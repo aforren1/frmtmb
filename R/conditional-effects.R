@@ -1,0 +1,282 @@
+# Conditional-effects displays, diagnostic plot method, pp_check.
+
+# Reference value a predictor is held at when it is not varied.
+ce_ref_value <- function(col) {
+  if (is.matrix(col)) {
+    matrix(colMeans(col), 1, ncol(col))
+  } else if (is.factor(col)) {
+    factor(levels(col)[1L], levels = levels(col))
+  } else if (is.numeric(col)) {
+    mean(col)
+  } else if (is.logical(col)) {
+    FALSE
+  } else {
+    sort(unique(col))[1L]
+  }
+}
+
+# Grid of values for the varied (first) predictor.
+ce_grid_values <- function(col, resolution) {
+  if (is.factor(col)) {
+    factor(levels(col), levels = levels(col))
+  } else if (is.numeric(col)) {
+    seq(min(col), max(col), length.out = resolution)
+  } else if (is.logical(col)) {
+    c(FALSE, TRUE)
+  } else {
+    sort(unique(col))
+  }
+}
+
+# Values for the second predictor of an "x:z" effect.
+ce_second_values <- function(col) {
+  if (is.numeric(col) && !is.matrix(col)) {
+    signif(mean(col) + c(-1, 0, 1) * stats::sd(col), 3)
+  } else {
+    ce_grid_values(col, resolution = 0)
+  }
+}
+
+#' Conditional effects of predictors
+#'
+#' For each requested effect, predicts over a grid of that predictor
+#' with every other predictor held at a reference value (numeric: mean;
+#' factor: first level; matrix covariate: column means) and random
+#' effects excluded (`re.form = NA`). Confidence bands are Wald
+#' intervals computed on the link scale and back-transformed. Smooth
+#' terms are included, so this also covers what brms calls
+#' `conditional_smooths()`.
+#'
+#' @param x A `frmtmb_fit`.
+#' @param effects Character vector of variable names, or `"x:z"` pairs;
+#'   for a pair, the first variable is varied over its range while the
+#'   second is held at its levels (factors) or at mean and mean plus or
+#'   minus one SD (numeric). Default: every fixed-effect and smooth
+#'   variable of the selected linear predictor.
+#' @param resp,dpar Response and distributional parameter, as in
+#'   [predict.frmtmb_fit()].
+#' @param resolution Number of grid points for a varied numeric
+#'   predictor.
+#' @param prob Coverage of the confidence bands (brms spelling).
+#' @param conditions Named list overriding reference values, e.g.
+#'   `list(x2 = 1, g = "b")`.
+#' @param data The original model data. Only needed when the model frame
+#'   does not store a raw variable (e.g. a variable used only inside
+#'   `poly()`).
+#' @param ... Passed to [predict.frmtmb_fit()].
+#' @return A named list of data frames (one per effect) with the varied
+#'   variable(s) plus `estimate__`, `se__` (link scale), `lower__`, and
+#'   `upper__`; printing it draws the plots.
+#' @export
+conditional_effects <- function(x, ...) UseMethod("conditional_effects")
+
+#' @rdname conditional_effects
+#' @export
+conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
+                                           dpar = NULL, resolution = 100,
+                                           prob = 0.95, conditions = list(),
+                                           data = NULL, ...) {
+  resp <- resp %||% names(x$spec$responses)[1L]
+  rspec <- x$spec$responses[[resp]]
+  dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
+    rspec$primary_dpars[1]
+  lp <- find_linpred(x, resp, dpar)
+  base <- data %||% x$frame$data_frame
+
+  fixed_vars <- all.vars(stats::delete.response(lp$terms))
+  sm_vars <- unlist(lapply(lp$smooths, function(si) si$sm$term))
+  vars <- unique(c(fixed_vars, sm_vars))
+  vars <- vars[vars %in% names(base)]
+  vars <- vars[!vapply(vars, function(v) is.matrix(base[[v]]), TRUE)]
+  if (is.null(effects)) {
+    effects <- vars
+    if (!length(effects)) {
+      stop("No plottable predictors found for dpar '", dpar, "'",
+           call. = FALSE)
+    }
+  }
+
+  z <- stats::qnorm(1 - (1 - prob) / 2)
+  out <- list()
+  for (eff in effects) {
+    ev <- strsplit(eff, ":", fixed = TRUE)[[1L]]
+    if (length(ev) > 2L) {
+      stop("Effects support at most two variables: '", eff, "'",
+           call. = FALSE)
+    }
+    missing_ev <- setdiff(ev, names(base))
+    if (length(missing_ev)) {
+      stop("Variable '", missing_ev[1L], "' is not stored in the model ",
+           "frame; pass the original data via data =", call. = FALSE)
+    }
+    v1 <- ce_grid_values(base[[ev[1L]]], resolution)
+    v2 <- if (length(ev) == 2L) ce_second_values(base[[ev[2L]]])
+    n1 <- length(v1)
+    n2 <- max(1L, length(v2))
+    n <- n1 * n2
+
+    nd <- data.frame(.ce_row = seq_len(n))
+    for (nm in names(base)) {
+      val <- if (nm %in% names(conditions)) {
+        cnd <- conditions[[nm]]
+        if (is.factor(base[[nm]])) {
+          factor(cnd, levels = levels(base[[nm]]))
+        } else {
+          cnd
+        }
+      } else {
+        ce_ref_value(base[[nm]])
+      }
+      nd[[nm]] <- if (is.matrix(val)) {
+        matrix(val, n, ncol(val), byrow = TRUE)
+      } else {
+        rep(val, length.out = n)
+      }
+    }
+    nd[[ev[1L]]] <- rep(v1, times = n2)
+    if (length(ev) == 2L) nd[[ev[2L]]] <- rep(v2, each = n1)
+    nd$.ce_row <- NULL
+
+    p <- predict(x, newdata = nd, type = "link", dpar = dpar,
+                 resp = resp, re.form = NA, se.fit = TRUE, ...)
+    df <- nd[ev]
+    df$estimate__ <- lp$link$linkinv(p$fit)
+    df$se__ <- p$se.fit
+    df$lower__ <- lp$link$linkinv(p$fit - z * p$se.fit)
+    df$upper__ <- lp$link$linkinv(p$fit + z * p$se.fit)
+    attr(df, "effects") <- ev
+    attr(df, "response") <- resp
+    attr(df, "dpar") <- dpar
+    out[[eff]] <- df
+  }
+  structure(out, class = "frmtmb_conditional_effects")
+}
+
+#' @export
+print.frmtmb_conditional_effects <- function(x, ...) {
+  plot(x, ...)
+  invisible(x)
+}
+
+#' @export
+plot.frmtmb_conditional_effects <- function(x, ask = NULL, ...) {
+  ask <- ask %||% (length(x) > 1L && grDevices::dev.interactive())
+  if (ask) {
+    oask <- grDevices::devAskNewPage(TRUE)
+    on.exit(grDevices::devAskNewPage(oask))
+  }
+  for (nm in names(x)) ce_plot_one(x[[nm]])
+  invisible(x)
+}
+
+ce_plot_one <- function(df) {
+  ev <- attr(df, "effects")
+  ylab <- paste0(attr(df, "response"), " (", attr(df, "dpar"), ")")
+  v1 <- df[[ev[1L]]]
+  grp <- if (length(ev) == 2L) factor(df[[ev[2L]]])
+  ylim <- range(df$lower__, df$upper__)
+
+  if (is.numeric(v1)) {
+    graphics::plot(range(v1), ylim, type = "n", xlab = ev[1L],
+                   ylab = ylab)
+    if (is.null(grp)) {
+      graphics::polygon(c(v1, rev(v1)), c(df$lower__, rev(df$upper__)),
+                        col = grDevices::adjustcolor("black", 0.15),
+                        border = NA)
+      graphics::lines(v1, df$estimate__, lwd = 2)
+    } else {
+      for (k in seq_along(levels(grp))) {
+        i <- grp == levels(grp)[k]
+        graphics::polygon(c(v1[i], rev(v1[i])),
+                          c(df$lower__[i], rev(df$upper__[i])),
+                          col = grDevices::adjustcolor(k, 0.12),
+                          border = NA)
+        graphics::lines(v1[i], df$estimate__[i], col = k, lwd = 2)
+      }
+      graphics::legend("topleft", legend = levels(grp), col =
+                         seq_along(levels(grp)), lwd = 2, title = ev[2L],
+                       bty = "n")
+    }
+  } else {
+    xi <- as.integer(factor(v1))
+    if (!is.null(grp)) {
+      xi <- xi + (as.integer(grp) - (nlevels(grp) + 1) / 2) * 0.15
+    }
+    graphics::plot(range(xi) + c(-0.5, 0.5), ylim, type = "n",
+                   xaxt = "n", xlab = ev[1L], ylab = ylab)
+    graphics::axis(1, at = seq_len(nlevels(factor(v1))),
+                   labels = levels(factor(v1)))
+    cols <- if (is.null(grp)) 1L else as.integer(grp)
+    graphics::arrows(xi, df$lower__, xi, df$upper__, angle = 90,
+                     code = 3, length = 0.05, col = cols)
+    graphics::points(xi, df$estimate__, pch = 16, col = cols)
+    if (!is.null(grp)) {
+      graphics::legend("topleft", legend = levels(grp),
+                       col = seq_along(levels(grp)), pch = 16,
+                       title = ev[2L], bty = "n")
+    }
+  }
+}
+
+#' Diagnostic plots for a fit
+#'
+#' Panel 1: Pearson residuals against fitted values with a lowess
+#' trend. Panel 2: normal QQ plot of the Pearson residuals. For
+#' simulation-based residuals that are exact for discrete families, use
+#' [dharma_residuals()] or `residuals(type = "osa")`.
+#'
+#' @param x A `frmtmb_fit`.
+#' @param which Subset of `1:2`.
+#' @param ask Whether to prompt between plots; defaults to the usual
+#'   interactive-device rule.
+#' @param ... Unused.
+#' @export
+plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
+  r <- residuals(x, type = "pearson")
+  ask <- ask %||% (length(which) > 1L && grDevices::dev.interactive())
+  if (ask) {
+    oask <- grDevices::devAskNewPage(TRUE)
+    on.exit(grDevices::devAskNewPage(oask))
+  }
+  if (1L %in% which) {
+    ft <- fitted(x)
+    graphics::plot(ft, r, xlab = "Fitted values",
+                   ylab = "Pearson residuals")
+    graphics::abline(h = 0, lty = 2)
+    ok <- is.finite(ft) & is.finite(r)
+    graphics::lines(stats::lowess(ft[ok], r[ok]), col = 2, lwd = 2)
+  }
+  if (2L %in% which) {
+    stats::qqnorm(r, main = "Pearson residuals")
+    stats::qqline(r, lty = 2)
+  }
+  invisible(x)
+}
+
+#' Predictive check against simulated responses
+#'
+#' The frequentist analog of brms's `pp_check()`: responses are
+#' simulated from the fitted model (marginally over the random effects)
+#' and handed to the corresponding bayesplot `ppc_*` function. Requires
+#' bayesplot; call as `bayesplot::pp_check(fit)` or load bayesplot
+#' first.
+#'
+#' @param object A `frmtmb_fit` for a univariate model.
+#' @param type The bayesplot check, i.e. the part after `ppc_`
+#'   (`"dens_overlay"`, `"hist"`, `"stat"`, `"scatter_avg"`, ...).
+#' @param ndraws Number of simulated response vectors.
+#' @param re.form Passed to [simulate()]; the default `NA` simulates new
+#'   random effects.
+#' @param ... Passed to the `ppc_*` function.
+#' @exportS3Method bayesplot::pp_check
+pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
+                                ndraws = 10, re.form = NA, ...) {
+  rspec <- uni_resp(object, "pp_check()")
+  y <- object$frame$y[[1L]]
+  if (is.matrix(y)) {
+    stop("pp_check() supports vector responses", call. = FALSE)
+  }
+  yrep <- t(as.matrix(simulate(object, nsim = ndraws, re.form = re.form)))
+  fun <- get(paste0("ppc_", type), envir = asNamespace("bayesplot"))
+  fun(as.numeric(y), yrep, ...)
+}

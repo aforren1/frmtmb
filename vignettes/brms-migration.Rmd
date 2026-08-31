@@ -41,12 +41,32 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 - Posterior summaries become ML estimates: `fixef()` returns point
   estimates, `confint()` gives Wald or profile intervals, `anova()`
   gives likelihood-ratio tests, and `AIC()`/`BIC()` replace `loo()`.
-- `posterior_predict()` becomes `simulate()`; `conditional_effects()`
-  is not implemented yet (use `predict(newdata, se.fit = TRUE)` over a
-  grid, or `emmeans`).
+- `posterior_predict()` becomes `simulate()`; `posterior_epred()` over
+  `newdata` becomes `predict(newdata, type = "response")`.
 - Not supported: `mi()`, `me()`, `mo()`, `gp()`, `cs()`,
   `mixture()`, `ar()/ma()` residual autocorrelation terms (use the
   `ar1()` random-effect structure), category-specific effects.
+
+## Method conventions
+
+frmtmb keeps the brms spelling for functions that originate in brms and
+the stats/lme4 spelling for standard generics:
+
+- brms-origin, same names and argument spellings:
+  `conditional_effects()` (includes what `conditional_smooths()`
+  covers), `hypothesis()` (a delta-method Wald test here),
+  `pp_check()` (simulate-based, through bayesplot's `ppc_*`
+  functions), `prior_summary()`, `fixef()`, `ranef()`, `VarCorr()`,
+  `ngrps()`.
+- stats-origin generics follow stats/lme4/glmmTMB, not brms:
+  `predict()` returns a vector (with `se.fit = TRUE`, a list), not a
+  draws matrix with `Estimate`/`Q2.5` columns; `fitted()` and
+  `residuals()` return vectors; `confint()` takes `level =`, not
+  `probs =`; `re.form` replaces `re_formula`.
+- `coef()` is the per-group convention shared by all three packages:
+  fixed effects plus conditional modes per grouping level.
+- `plot(fit)` draws residual diagnostics, not MCMC traces; for
+  simulation-based residual checks use `dharma_residuals()`.
 
 ## When you still want brms
 

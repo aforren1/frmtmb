@@ -6,39 +6,59 @@ S3method("+",frmtmb_priorlist)
 S3method(VarCorr,frmtmb_fit)
 S3method(anova,frmtmb_fit)
 S3method(as.matrix,frmtmb_draws)
+S3method(bayesplot::pp_check,frmtmb_fit)
 S3method(c,frmtmb_priorlist)
 S3method(coef,frmtmb_fit)
+S3method(conditional_effects,frmtmb_fit)
+S3method(confint,frmtmb_boot)
 S3method(confint,frmtmb_fit)
+S3method(deviance,frmtmb_fit)
 S3method(df.residual,frmtmb_fit)
 S3method(emmeans::emm_basis,frmtmb_fit)
+S3method(extractAIC,frmtmb_fit)
 S3method(family,frmtmb_fit)
 S3method(fitted,frmtmb_fit)
 S3method(fixef,frmtmb_fit)
 S3method(formula,frmtmb_fit)
+S3method(hypothesis,frmtmb_fit)
 S3method(logLik,frmtmb_fit)
 S3method(marginaleffects::get_coef,frmtmb_fit)
 S3method(marginaleffects::get_predict,frmtmb_fit)
 S3method(marginaleffects::get_vcov,frmtmb_fit)
 S3method(marginaleffects::set_coef,frmtmb_fit)
 S3method(model.frame,frmtmb_fit)
+S3method(model.matrix,frmtmb_fit)
+S3method(ngrps,frmtmb_fit)
 S3method(nobs,frmtmb_fit)
+S3method(plot,frmtmb_conditional_effects)
+S3method(plot,frmtmb_fit)
+S3method(plot,frmtmb_hypothesis)
 S3method(predict,frmtmb_fit)
 S3method(print,VarCorr_frmtmb)
+S3method(print,frmtmb_boot)
+S3method(print,frmtmb_conditional_effects)
 S3method(print,frmtmb_draws)
 S3method(print,frmtmb_family)
 S3method(print,frmtmb_fit)
 S3method(print,frmtmb_formula)
 S3method(print,frmtmb_frame)
+S3method(print,frmtmb_hypothesis)
 S3method(print,frmtmb_mvformula)
 S3method(print,frmtmb_priorlist)
 S3method(print,frmtmb_spec)
 S3method(print,summary.frmtmb_fit)
+S3method(prior_summary,frmtmb_fit)
+S3method(profile,frmtmb_fit)
 S3method(ranef,frmtmb_fit)
+S3method(refit,frmtmb_fit)
 S3method(residuals,frmtmb_fit)
+S3method(sigma,frmtmb_fit)
 S3method(simulate,frmtmb_fit)
 S3method(summary,frmtmb_fit)
+S3method(terms,frmtmb_fit)
 S3method(update,frmtmb_fit)
 S3method(vcov,frmtmb_fit)
+S3method(weights,frmtmb_fit)
 export(Beta)
 export(VarCorr)
 export(as_tmbstan)
@@ -47,6 +67,7 @@ export(bf)
 export(check_custom_family)
 export(check_laplace)
 export(compois)
+export(conditional_effects)
 export(confint_varcorr)
 export(cumulative)
 export(custom_family)
@@ -55,19 +76,24 @@ export(diagnose)
 export(exgaussian)
 export(fixef)
 export(frm)
+export(frm_bootstrap)
 export(frm_sample)
 export(frmtmb_control)
 export(frmtmb_family)
 export(hurdle_poisson)
+export(hypothesis)
 export(lognormal)
 export(multinomial)
 export(mvbf)
 export(nbinom1)
 export(negbinomial)
+export(ngrps)
 export(num_factor)
 export(prior_normal)
+export(prior_summary)
 export(prior_t)
 export(ranef)
+export(refit)
 export(rescor_matrix)
 export(set_prior)
 export(set_rescor)
@@ -76,20 +102,28 @@ export(student)
 export(tweedie)
 export(zero_inflated_negbinomial)
 export(zero_inflated_poisson)
+importFrom(graphics,plot)
 importFrom(stats,
   anova,
   coef,
   confint,
+  deviance,
   df.residual,
+  extractAIC,
   family,
   fitted,
   formula,
   logLik,
   model.frame,
+  model.matrix,
   nobs,
   predict,
+  profile,
   residuals,
+  sigma,
   simulate,
+  terms,
   update,
-  vcov
+  vcov,
+  weights
 )

@@ -79,6 +79,19 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   frame <- assemble_frame(spec, data, na.action = na.action)
   if (identical(dry_run, "frame")) return(frame)
 
+  fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
+                control = control, se = se, lower = lower, upper = upper,
+                priors = priors, quadrature = quadrature)
+}
+
+# Fitting core shared by frm() and refit(): objective build through the
+# convergence check. A non-NULL `template` bypasses make_start (warm
+# starts when refitting to a new response).
+fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
+                          se, lower, upper, priors, quadrature,
+                          template = NULL) {
+  lower_arg <- lower
+  upper_arg <- upper
   nll <- build_objective(frame)
   if (!is.null(priors)) {
     # MAP / regularized ML: the optimized objective includes the prior
@@ -100,7 +113,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
       upper <- unlist(upper)
     }
   }
-  template <- make_start(frame, start)
+  if (is.null(template)) template <- make_start(frame, start)
 
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
   random <- if (!is.null(template[["b"]])) "b" else character(0)
@@ -157,6 +170,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
          REML = REML, estimates = est, priors = priors,
          bform = bform, call = cl,
+         control = control, quadrature = isTRUE(quadrature),
+         lower = lower_arg, upper = upper_arg,
          cache = new.env(parent = emptyenv())),
     class = "frmtmb_fit"
   )

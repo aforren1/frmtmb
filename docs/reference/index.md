@@ -39,11 +39,20 @@
   intervals for frmtmb fits
 - [`confint_varcorr()`](confint_varcorr.md) : Natural-scale confidence
   intervals for covariance parameters
+- [`profile(`*`<frmtmb_fit>`*`)`](profile.frmtmb_fit.md) : Likelihood
+  profiles
+- [`hypothesis()`](hypothesis.md) : Hypothesis tests on parameter
+  expressions
+- [`frm_bootstrap()`](frm_bootstrap.md) : Parametric bootstrap
 - [`diagnose()`](diagnose.md) : Convergence diagnostics for a frmtmb fit
 - [`dharma_residuals()`](dharma_residuals.md) : DHARMa residual
   diagnostics
 - [`residuals(`*`<frmtmb_fit>`*`)`](residuals.frmtmb_fit.md) : Residuals
   from a frmtmb fit
+- [`plot(`*`<frmtmb_fit>`*`)`](plot.frmtmb_fit.md) : Diagnostic plots
+  for a fit
+- [`pp_check(`*`<frmtmb_fit>`*`)`](pp_check.frmtmb_fit.md) : Predictive
+  check against simulated responses
 - [`anova(`*`<frmtmb_fit>`*`)`](anova.frmtmb_fit.md) : Likelihood-ratio
   tests between nested frmtmb fits
 - [`as_tmbstan()`](as_tmbstan.md) : Sample from a frmtmb fit with
@@ -54,19 +63,29 @@
 - [`set_prior()`](set_prior.md) : Set up priors brms-style
 - [`prior_normal()`](frmtmb-priors.md) [`prior_t()`](frmtmb-priors.md) :
   Prior specifications for frm_sample
+- [`prior_summary()`](prior_summary.md) : Priors used in a fit
 
 ## Extractors and prediction
 
 - [`predict(`*`<frmtmb_fit>`*`)`](predict.frmtmb_fit.md) : Predictions
   from a frmtmb fit
+- [`conditional_effects()`](conditional_effects.md) : Conditional
+  effects of predictors
 - [`residuals(`*`<frmtmb_fit>`*`)`](residuals.frmtmb_fit.md) : Residuals
   from a frmtmb fit
 - [`simulate(`*`<frmtmb_fit>`*`)`](simulate.frmtmb_fit.md) : Simulate
   responses from a frmtmb fit
+- [`refit()`](refit.md) : Refit a model to a new response
+- [`coef(`*`<frmtmb_fit>`*`)`](coef.frmtmb_fit.md) : Per-group
+  coefficients (fixed effects plus conditional modes)
 - [`fixef()`](fixef.md) : Extract fixed effects
 - [`ranef()`](ranef.md) : Extract random-effect modes
+- [`ngrps()`](ngrps.md) : Number of levels per random-effect grouping
+  factor
 - [`VarCorr()`](VarCorr.md) : Extract random-effect covariance matrices
 - [`rescor_matrix()`](rescor_matrix.md) : Estimated residual correlation
   matrix (rescor fits), else NULL
 - [`vcov(`*`<frmtmb_fit>`*`)`](vcov.frmtmb_fit.md) : Covariance matrix
   of the fixed-effect estimates
+- [`sigma(`*`<frmtmb_fit>`*`)`](sigma.frmtmb_fit.md) : Residual standard
+  deviation

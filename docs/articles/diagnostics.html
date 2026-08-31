@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
   </ul>
 </li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -143,6 +144,14 @@ without the group effect is overdispersed:</p>
 <span><span class="co">#&gt; data:  simulationOutput</span></span>
 <span><span class="co">#&gt; dispersion = 1.661, p-value &lt; 2.2e-16</span></span>
 <span><span class="co">#&gt; alternative hypothesis: two.sided</span></span></code></pre></div>
+<p>Two quicker looks. <code>plot(fit)</code> draws Pearson residuals
+against fitted values and their normal QQ plot. And
+<code>pp_check(fit)</code> overlays the observed response with responses
+simulated from the fitted model, through bayesplot’s <code>ppc_*</code>
+functions (brms users know this display):</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">pp_check</a></span><span class="op">(</span><span class="va">fit</span>, ndraws <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></code></pre></div>
+<p><img src="diagnostics_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="700"></p>
 </div>
 <div class="section level2">
 <h2 id="are-the-standard-errors-trustworthy">Are the standard errors trustworthy?<a class="anchor" aria-label="anchor" href="#are-the-standard-errors-trustworthy"></a>
@@ -155,11 +164,11 @@ against the ML estimates and Wald SEs; large <code>z_shift</code> or
 <code>sd_ratio</code> far from 1 flags parameters where Wald intervals
 should not be trusted - use <code>confint(method = "profile")</code> or
 the posterior itself for those.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/check_laplace.html">check_laplace</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">2</span>, iter <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></code></pre></div>
 <p>The drawn posterior is also a diagnostic object in its own right;
 bayesplot works on the draws:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span>,</span>
 <span>                 priors <span class="op">=</span> <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 5)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>                   <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span><span class="op">)</span></span>
@@ -175,7 +184,7 @@ anything more.</p>
 </h2>
 <p><code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> reports random-effect SDs and
 correlations with delta-method intervals on interpretable scales:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/confint_varcorr.html">confint_varcorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;             block        term type  estimate       lwr       upr</span></span>
 <span><span class="co">#&gt; (Intercept) 1 | g (Intercept)   sd 0.4783034 0.3383263 0.6761937</span></span></code></pre></div>

@@ -327,6 +327,22 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
             coords <- parse_num_levels(levels(mf[[v]]))
             aux_D <- abs(outer(coords, coords, "-"))
           }
+          aux_Q <- NULL
+          if (cs_name == "gr_prec") {
+            if (d_k != 1L) {
+              stop("gr(prec=) supports intercept-only terms:",
+                   " (1 | gr(g, prec = Q))", call. = FALSE)
+            }
+            Q <- eval(dp$re[[k]]$cov_expr, data, resp$formula_env)
+            if (is.null(rownames(Q)) ||
+                !all(levels(fac) %in% rownames(Q))) {
+              stop("gr(prec=): prec needs dimnames covering all ",
+                   "grouping levels", call. = FALSE)
+            }
+            lv <- levels(fac)
+            aux_Q <- methods::as(Matrix::Matrix(Q[lv, lv], sparse = TRUE),
+                                 "generalMatrix")
+          }
           if (cs_name == "gr_cov") {
             A <- eval(dp$re[[k]]$cov_expr, data, resp$formula_env)
             if (!is.matrix(A) || nrow(A) != ncol(A)) {
@@ -358,7 +374,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
             dim = d_k, n_levels = len_k %/% d_k,
             levels = levels(fac), cnms = rt$cnms[[k]],
             bar = bars[[k]], Zlocal = Zk, aux_A = aux_A,
-            aux_D = aux_D, aux_kron = aux_kron,
+            aux_D = aux_D, aux_kron = aux_kron, aux_Q = aux_Q,
             group_name = names(rt$flist)[fassign[k]],
             label = paste0(dp_prefix, deparse1(bars[[k]]))
           )
@@ -517,6 +533,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
       aux_A = cps[[1]]$aux_A,
       aux_D = cps[[1]]$aux_D,
       aux_kron = cps[[1]]$aux_kron,
+      aux_Q = cps[[1]]$aux_Q,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
       term_label = label,

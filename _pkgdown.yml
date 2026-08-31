@@ -22,25 +22,36 @@ reference:
   contents:
   - confint.frmtmb_fit
   - confint_varcorr
+  - profile.frmtmb_fit
+  - hypothesis
+  - frm_bootstrap
   - diagnose
   - dharma_residuals
   - residuals.frmtmb_fit
+  - plot.frmtmb_fit
+  - pp_check.frmtmb_fit
   - anova.frmtmb_fit
   - as_tmbstan
   - frm_sample
   - check_laplace
   - set_prior
   - frmtmb-priors
+  - prior_summary
 - title: Extractors and prediction
   contents:
   - predict.frmtmb_fit
+  - conditional_effects
   - residuals.frmtmb_fit
   - simulate.frmtmb_fit
+  - refit
+  - coef.frmtmb_fit
   - fixef
   - ranef
+  - ngrps
   - VarCorr
   - rescor_matrix
   - vcov.frmtmb_fit
+  - sigma.frmtmb_fit
 
 articles:
 - title: Guides

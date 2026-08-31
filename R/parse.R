@@ -109,18 +109,22 @@ parse_linpred <- function(rhs_form, env) {
       id <- paste0(deparse1(bar[[2]][[3]]), "|", deparse1(bar[[3]]))
       bar <- call("|", bar[[2]][[2]], bar[[3]])
     }
-    # brms (1 | gr(g, cov = A)): known covariance over the levels
+    # brms (x | gr(g, cov = A)): known covariance over the levels;
+    # gr(g, prec = Q) takes a (sparse) precision matrix instead
     if (is.call(bar[[3]]) && identical(bar[[3]][[1]], as.name("gr"))) {
       ga <- as.list(bar[[3]])[-1]
       nms <- names(ga) %||% rep("", length(ga))
       gvar <- ga[nms == ""]
-      if (length(gvar) != 1 || is.null(ga$cov) ||
-          !all(nms %in% c("", "cov"))) {
-        stop("gr() supports the form (1 | gr(g, cov = A))", call. = FALSE)
+      has_cov <- !is.null(ga$cov)
+      has_prec <- !is.null(ga$prec)
+      if (length(gvar) != 1 || (has_cov + has_prec) != 1 ||
+          !all(nms %in% c("", "cov", "prec"))) {
+        stop("gr() supports (x | gr(g, cov = A)) or ",
+             "(1 | gr(g, prec = Q))", call. = FALSE)
       }
-      cov_expr <- ga$cov
+      cov_expr <- ga$cov %||% ga$prec
       bar <- call("|", bar[[2]], gvar[[1]])
-      cls <- "gr_cov"
+      cls <- if (has_cov) "gr_cov" else "gr_prec"
     }
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
          cov_expr = cov_expr)

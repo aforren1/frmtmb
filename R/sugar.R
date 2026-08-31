@@ -1,0 +1,168 @@
+# Small accessor methods: the conventional S3 surface that downstream
+# packages (insight, performance, step, and friends) dispatch on.
+
+# Resolve one linear predictor by response / dpar name.
+find_linpred <- function(object, resp = NULL, dpar = "mu") {
+  hits <- Filter(function(lp) {
+    lp$dpar == dpar && (is.null(resp) || lp$resp == resp)
+  }, object$frame$linpreds)
+  if (!length(hits)) {
+    stop("No linear predictor for dpar '", dpar, "'",
+         if (!is.null(resp)) paste0(" of response '", resp, "'") else "",
+         call. = FALSE)
+  }
+  if (length(hits) > 1L) {
+    stop("Multiple responses have dpar '", dpar,
+         "'; disambiguate with resp = ", call. = FALSE)
+  }
+  hits[[1L]]
+}
+
+#' Residual standard deviation
+#'
+#' Returns the estimated `sigma` distributional parameter on the
+#' response scale when it is constant across observations
+#' (intercept-only or fixed). When `sigma` is modeled with covariates
+#' the scalar summary does not exist; the method warns and returns `NA`
+#' (use `predict(dpar = "sigma")` for the per-observation values).
+#' Families without a `sigma` parameter return 1, following glmmTMB.
+#'
+#' @param object A `frmtmb_fit`.
+#' @param ... Unused.
+#' @return A scalar, or a named vector for multivariate fits.
+#' @export
+sigma.frmtmb_fit <- function(object, ...) {
+  out <- vapply(object$spec$responses, function(rsp) {
+    if (!"sigma" %in% rsp$family$dpars) return(1)
+    lp <- NULL
+    for (l in object$frame$linpreds) {
+      if (l$resp == rsp$resp_name && l$dpar == "sigma") lp <- l
+    }
+    if (is.null(lp)) return(1)
+    if (!is.null(lp$constant)) return(lp$constant)
+    if (ncol(lp$X) == 1L && identical(colnames(lp$X), "(Intercept)") &&
+        is.null(lp$Z)) {
+      return(lp$link$linkinv(object$estimates[[lp$par]][lp$idx]))
+    }
+    warning("sigma varies by observation; returning NA ",
+            "(use predict(dpar = \"sigma\"))", call. = FALSE)
+    NA_real_
+  }, numeric(1))
+  if (length(out) == 1L) unname(out) else out
+}
+
+#' @export
+terms.frmtmb_fit <- function(x, resp = NULL, dpar = "mu", ...) {
+  find_linpred(x, resp, dpar)$terms
+}
+
+#' @export
+model.matrix.frmtmb_fit <- function(object, resp = NULL, dpar = "mu",
+                                    ...) {
+  find_linpred(object, resp, dpar)$X
+}
+
+#' @export
+weights.frmtmb_fit <- function(object, resp = NULL, ...) {
+  rn <- if (is.null(resp)) names(object$frame$y)[1L] else resp
+  w <- object$frame$aterm_values[[rn]][["weights"]]
+  if (is.null(w)) rep(1, object$frame$n_obs) else w
+}
+
+#' @export
+deviance.frmtmb_fit <- function(object, ...) {
+  -2 * as.numeric(logLik(object))
+}
+
+#' @export
+extractAIC.frmtmb_fit <- function(fit, scale = 0, k = 2, ...) {
+  ll <- logLik(fit)
+  edf <- attr(ll, "df")
+  c(edf, -2 * as.numeric(ll) + k * edf)
+}
+
+#' Number of levels per random-effect grouping factor
+#'
+#' @param object A `frmtmb_fit`.
+#' @param ... Unused.
+#' @return A named integer vector (smooth terms are excluded).
+#' @export
+ngrps <- function(object, ...) UseMethod("ngrps")
+
+#' @rdname ngrps
+#' @export
+ngrps.frmtmb_fit <- function(object, ...) {
+  bks <- Filter(function(bk) bk$covstruct != "smooth",
+                object$frame$re_blocks)
+  ng <- vapply(bks, `[[`, 0L, "n_levels")
+  names(ng) <- vapply(bks, `[[`, "", "group_name")
+  ng[!duplicated(names(ng))]
+}
+
+#' Priors used in a fit
+#'
+#' @param object A `frmtmb_fit`.
+#' @param ... Unused.
+#' @return The `frmtmb_priorlist` the fit was penalized with, or
+#'   (invisibly) `NULL` for a plain maximum-likelihood fit.
+#' @export
+prior_summary <- function(object, ...) UseMethod("prior_summary")
+
+#' @rdname prior_summary
+#' @export
+prior_summary.frmtmb_fit <- function(object, ...) {
+  if (is.null(object$priors)) {
+    cat("No priors were set (plain maximum likelihood).\n")
+    return(invisible(NULL))
+  }
+  object$priors
+}
+
+#' Refit a model to a new response
+#'
+#' Reuses the assembled design (no formula parsing, no frame assembly)
+#' and warm-starts the optimizer at the previous estimates, so a refit
+#' costs one re-tape plus the optimization. This is the engine for
+#' parametric bootstrap: simulate responses with [simulate()], refit to
+#' each.
+#'
+#' @param object A `frmtmb_fit` for a univariate model.
+#' @param newresp Replacement response: a vector of the original length,
+#'   or a matrix of the original dimensions for matrix responses.
+#' @param start Optional named start list (as in [frm()]); when given it
+#'   replaces the warm start.
+#' @param ... Unused.
+#' @return A new `frmtmb_fit`.
+#' @export
+refit <- function(object, newresp, ...) UseMethod("refit")
+
+#' @rdname refit
+#' @export
+refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
+  frame <- object$frame
+  if (length(frame$y) != 1L) {
+    stop("refit() supports univariate models", call. = FALSE)
+  }
+  y0 <- frame$y[[1L]]
+  if (is.matrix(y0)) {
+    newresp <- as.matrix(newresp)
+    if (!identical(dim(newresp), dim(y0))) {
+      stop("newresp must be a ", nrow(y0), " x ", ncol(y0), " matrix",
+           call. = FALSE)
+    }
+  } else {
+    if (is.data.frame(newresp)) newresp <- newresp[[1L]]
+    newresp <- as.vector(newresp)
+    if (length(newresp) != length(y0)) {
+      stop("newresp must have length ", length(y0), call. = FALSE)
+    }
+  }
+  frame$y[[1L]] <- newresp
+  fit_assembled(object$spec, frame, object$bform, object$call,
+                REML = object$REML, start = start,
+                control = object$control %||% frmtmb_control(),
+                se = FALSE, lower = object$lower, upper = object$upper,
+                priors = object$priors,
+                quadrature = isTRUE(object$quadrature),
+                template = if (is.null(start)) object$estimates)
+}

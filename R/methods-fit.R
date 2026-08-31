@@ -220,9 +220,74 @@ vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
   V
 }
 
+#' Per-group coefficients (fixed effects plus conditional modes)
+#'
+#' Follows the lme4/glmmTMB/brms convention: for each random-effect
+#' grouping factor, the fixed effects of its linear predictor broadcast
+#' over the group levels, with the conditional modes added to the
+#' matching columns. Use [fixef()] for the fixed effects alone.
+#'
+#' The result is a list of data frames keyed by grouping factor. When
+#' random effects appear in more than one dpar (or response), an outer
+#' layer keyed like [fixef()] is added. Smooth terms are excluded. A fit
+#' without random effects returns [fixef()] (the single coefficient
+#' vector when there is one linear predictor).
+#'
+#' @param object A `frmtmb_fit`.
+#' @param ... Unused.
 #' @export
 coef.frmtmb_fit <- function(object, ...) {
-  unlist(fixef(object))
+  fe <- fixef(object)
+  out <- list()
+  for (bk in object$frame$re_blocks) {
+    if (bk$covstruct == "smooth") next
+    bmat <- t(matrix(object$estimates[["b"]][bk$b_idx], nrow = bk$dim))
+    for (cp in bk$components) {
+      lp <- object$frame$linpreds[[cp$lp_key]]
+      key <- coef_block_key(object, lp)
+      # a second term on the same factor adds its modes to the same
+      # frame; the fixed effects are broadcast only once
+      gname <- bk$group_name
+      df <- out[[key]][[gname]]
+      if (!is.null(df) && !identical(rownames(df), bk$levels)) {
+        gname <- bk$term_label
+        df <- out[[key]][[gname]]
+      }
+      if (is.null(df)) {
+        fev <- fe[[key]]
+        df <- as.data.frame(
+          matrix(fev, nrow = bk$n_levels, ncol = length(fev),
+                 byrow = TRUE, dimnames = list(bk$levels, names(fev))),
+          optional = TRUE
+        )
+      }
+      for (j in seq_len(cp$dim)) {
+        cn <- cp$cnms[j]
+        bv <- bmat[, cp$offset + j]
+        if (cn %in% colnames(df)) {
+          df[[cn]] <- df[[cn]] + bv
+        } else {
+          df[[cn]] <- bv
+        }
+      }
+      out[[key]][[gname]] <- df
+    }
+  }
+  if (!length(out)) {
+    # GLM-style fits: the mu vector alone, unless another dpar is
+    # actually modeled with covariates
+    if (length(object$spec$responses) == 1L && "mu" %in% names(fe)) {
+      aux <- Filter(function(lp) lp$dpar != "mu",
+                    object$frame$linpreds)
+      simple <- all(vapply(aux, function(lp) {
+        !is.null(lp$constant) ||
+          (ncol(lp$X) == 1L && identical(colnames(lp$X), "(Intercept)"))
+      }, TRUE))
+      if (simple) return(fe[["mu"]])
+    }
+    return(fe)
+  }
+  if (length(out) == 1L) out[[1L]] else out
 }
 
 #' Extract fixed effects

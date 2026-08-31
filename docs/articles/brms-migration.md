@@ -37,11 +37,41 @@ likelihood-ratio tests, AIC).
   replace `loo()`.
 - `posterior_predict()` becomes
   [`simulate()`](https://rdrr.io/r/stats/simulate.html);
-  `conditional_effects()` is not implemented yet (use
-  `predict(newdata, se.fit = TRUE)` over a grid, or `emmeans`).
+  `posterior_epred()` over `newdata` becomes
+  `predict(newdata, type = "response")`.
 - Not supported: `mi()`, `me()`, `mo()`, `gp()`, `cs()`, `mixture()`,
   `ar()/ma()` residual autocorrelation terms (use the `ar1()`
   random-effect structure), category-specific effects.
+
+## Method conventions
+
+frmtmb keeps the brms spelling for functions that originate in brms and
+the stats/lme4 spelling for standard generics:
+
+- brms-origin, same names and argument spellings:
+  [`conditional_effects()`](../reference/conditional_effects.md)
+  (includes what `conditional_smooths()` covers),
+  [`hypothesis()`](../reference/hypothesis.md) (a delta-method Wald test
+  here), `pp_check()` (simulate-based, through bayesplot’s `ppc_*`
+  functions), [`prior_summary()`](../reference/prior_summary.md),
+  [`fixef()`](../reference/fixef.md),
+  [`ranef()`](../reference/ranef.md),
+  [`VarCorr()`](../reference/VarCorr.md),
+  [`ngrps()`](../reference/ngrps.md).
+- stats-origin generics follow stats/lme4/glmmTMB, not brms:
+  [`predict()`](https://rdrr.io/r/stats/predict.html) returns a vector
+  (with `se.fit = TRUE`, a list), not a draws matrix with
+  `Estimate`/`Q2.5` columns;
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) return
+  vectors; [`confint()`](https://rdrr.io/r/stats/confint.html) takes
+  `level =`, not `probs =`; `re.form` replaces `re_formula`.
+- [`coef()`](https://rdrr.io/r/stats/coef.html) is the per-group
+  convention shared by all three packages: fixed effects plus
+  conditional modes per grouping level.
+- `plot(fit)` draws residual diagnostics, not MCMC traces; for
+  simulation-based residual checks use
+  [`dharma_residuals()`](../reference/dharma_residuals.md).
 
 ## When you still want brms
 

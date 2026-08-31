@@ -5,7 +5,15 @@ grammar and a frequentist backend. It fits models by maximum likelihood with
 the Laplace approximation for latent effects, through RTMB. It does not use
 MCMC and it does not compile code at run time.
 
-Status: design specification; v0.5 implemented (v0.4.x: cumulative
+Status: design specification; v0.13 implemented (see NEWS.md for the
+consolidated changelog; v0.13 adds the conventional method surface:
+sigma/terms/weights/model.matrix/deviance/extractAIC/ngrps accessors,
+lme4-convention coef(), conditional_effects() with plotting, plot(fit)
+residual diagnostics, pp_check() via bayesplot, hypothesis() with
+wald/profile/boot methods over an environment that includes
+natural-scale sd_/cor_/sigma names, profile(), prior_summary(),
+refit(), and frm_bootstrap() - parametric bootstrap over warm-started
+refits). Earlier: v0.5 implemented (v0.4.x: cumulative
 ordinal with threshold extra-parameters, cens()/trunc() for
 CDF-carrying families; v0.5: nl = TRUE nonlinear formulas,
 custom_family() with check_custom_family(), emmeans registration,

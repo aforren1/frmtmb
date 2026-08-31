@@ -350,7 +350,26 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   }
   V <- jc$V[coef_pos, coef_pos, drop = FALSE]
   A <- as.matrix(A)
-  se_eta <- sqrt(pmax(rowSums((A %*% V) * A), 0))
+  var_eta <- pmax(rowSums((A %*% V) * A), 0)
+  # new grouping levels (allow_new_levels) contribute their block's
+  # marginal variance: the population-prediction-interval convention.
+  # For |ID|-merged blocks this is the JOINT block's slice for this
+  # component.
+  if (use_re && length(re_parts)) {
+    th <- object$estimates$theta
+    for (rp in re_parts) {
+      nas <- which(is.na(rp$j))
+      if (!length(nas)) next
+      bk <- rp$bk
+      if (bk$covstruct %in% c("gr_cov", "gr_prec")) next  # levels ARE the structure
+      S <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
+      cols <- rp$comp$offset + seq_len(rp$comp$dim)
+      Scc <- S[cols, cols, drop = FALSE]
+      mmn <- rp$mm[nas, , drop = FALSE]
+      var_eta[nas] <- var_eta[nas] + rowSums((mmn %*% Scc) * mmn)
+    }
+  }
+  se_eta <- sqrt(var_eta)
 
   out <- if (type == "response") {
     list(fit = lp$link$linkinv(eta),
@@ -457,6 +476,14 @@ draw_b <- function(fit) {
       K <- kronecker(bk$aux_A, S)
       b[bk$b_idx] <- drop(crossprod(chol(K),
                                     stats::rnorm(nrow(K))))
+      next
+    }
+    if (bk$covstruct == "gr_prec") {
+      # x = sd * U^-1 z with U'U = Q has covariance sd^2 Q^-1
+      U <- Matrix::chol(bk$aux_Q)
+      z <- stats::rnorm(bk$n_levels)
+      b[bk$b_idx] <- exp(th[bk$theta_idx]) *
+        as.vector(Matrix::solve(U, z))
       next
     }
     V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)

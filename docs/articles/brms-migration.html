@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
   </ul>
 </li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -168,14 +169,42 @@ intervals, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-li
 <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>/<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> replace <code>loo()</code>.</li>
 <li>
 <code>posterior_predict()</code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>;
-<code>conditional_effects()</code> is not implemented yet (use
-<code>predict(newdata, se.fit = TRUE)</code> over a grid, or
-<code>emmeans</code>).</li>
+<code>posterior_epred()</code> over <code>newdata</code> becomes
+<code>predict(newdata, type = "response")</code>.</li>
 <li>Not supported: <code>mi()</code>, <code>me()</code>,
 <code>mo()</code>, <code>gp()</code>, <code>cs()</code>,
 <code>mixture()</code>, <code>ar()/ma()</code> residual autocorrelation
 terms (use the <code>ar1()</code> random-effect structure),
 category-specific effects.</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="method-conventions">Method conventions<a class="anchor" aria-label="anchor" href="#method-conventions"></a>
+</h2>
+<p>frmtmb keeps the brms spelling for functions that originate in brms
+and the stats/lme4 spelling for standard generics:</p>
+<ul>
+<li>brms-origin, same names and argument spellings:
+<code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> (includes what
+<code>conditional_smooths()</code> covers), <code><a href="../reference/hypothesis.html">hypothesis()</a></code> (a
+delta-method Wald test here), <code>pp_check()</code> (simulate-based,
+through bayesplot’s <code>ppc_*</code> functions),
+<code><a href="../reference/prior_summary.html">prior_summary()</a></code>, <code><a href="../reference/fixef.html">fixef()</a></code>,
+<code><a href="../reference/ranef.html">ranef()</a></code>, <code><a href="../reference/VarCorr.html">VarCorr()</a></code>, <code><a href="../reference/ngrps.html">ngrps()</a></code>.</li>
+<li>stats-origin generics follow stats/lme4/glmmTMB, not brms:
+<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> returns a vector (with
+<code>se.fit = TRUE</code>, a list), not a draws matrix with
+<code>Estimate</code>/<code>Q2.5</code> columns; <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>
+and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> return vectors; <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>
+takes <code>level =</code>, not <code>probs =</code>;
+<code>re.form</code> replaces <code>re_formula</code>.</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> is the per-group convention shared by all three
+packages: fixed effects plus conditional modes per grouping level.</li>
+<li>
+<code>plot(fit)</code> draws residual diagnostics, not MCMC traces;
+for simulation-based residual checks use
+<code><a href="../reference/dharma_residuals.html">dharma_residuals()</a></code>.</li>
 </ul>
 </div>
 <div class="section level2">

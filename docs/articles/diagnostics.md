@@ -95,6 +95,18 @@ DHARMa::testDispersion(dharma_residuals(fit_bad, nsim = 200, seed = 1),
 #> alternative hypothesis: two.sided
 ```
 
+Two quicker looks. `plot(fit)` draws Pearson residuals against fitted
+values and their normal QQ plot. And `pp_check(fit)` overlays the
+observed response with responses simulated from the fitted model,
+through bayesplot’s `ppc_*` functions (brms users know this display):
+
+``` r
+
+bayesplot::pp_check(fit, ndraws = 20)
+```
+
+![](diagnostics_files/figure-html/unnamed-chunk-7-1.png)
+
 ## Are the standard errors trustworthy?
 
 Wald standard errors and the Laplace approximation share failure modes:

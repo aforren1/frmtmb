@@ -237,6 +237,24 @@ covstruct_registry$gr_cov <- list(
   start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
 )
 
+# Known-precision intercepts: b ~ N(0, sd^2 * Q^-1) with Q a (sparse)
+# precision matrix over the levels - gr(g, prec = Q). The sparse GMRF
+# density keeps large structures (big phylogenies, spatial graphs)
+# tractable where the dense gr(cov=) path is not.
+covstruct_registry$gr_prec <- list(
+  npar = function(dim) 1L,
+  sd_idx = function(dim) 1L,
+  nll = function(b, theta, blk) {
+    Qs <- exp(-2 * theta[1]) * blk$aux_Q
+    sum(RTMB::dgmrf(b, 0, Qs, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    matrix(exp(theta[1])^2, 1, 1,
+           dimnames = list(blk$cnms, blk$cnms))
+  },
+  start = function(dim) 0
+)
+
 # Smooth wiggly blocks are iid-Gaussian with one variance (the inverse
 # smoothing parameter); reuse the homdiag machinery under its own name so
 # blocks stay self-describing.
