@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.18.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.19.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,11 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.19.0" id="frmtmb-0190">frmtmb 0.19.0<a class="anchor" aria-label="anchor" href="#frmtmb-0190"></a></h2>
+<ul><li>Latent classes now combine with continuous random effects (growth-mixture models): <code>mixture(..., groups = ~g)</code> accepts random effects, smooths, and gp() terms in the component formulas. The class sum is computed conditional on the latent effects, so one Laplace approximation integrates them - the sum-and-integral swap makes this exact as an integrand identity, and even crossed random effects are structurally fine. Random effects written in a component formula are class-specific by construction. Accuracy: the Laplace approximation of the class-mixture integrand carries a small documented bias (about 0.1 log-likelihood units in the validation problem, with parameter estimates matching the exact closed-form marginal to 0.01); <code>quadrature = TRUE</code> is numerically exact when the per-group integrand is univariate (validated to 5e-3) and approximate when class-specific intercepts couple. <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> now draws one class per group and then simulates each observation from its group’s component; <code><a href="../reference/mixture_probs.html">mixture_probs()</a></code> gives empirical-Bayes classification conditional on the modes.</li>
+<li>README rewritten for the current scope, with related-work pointers (glmmTMB, BayesRTMB).</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.18.0" id="frmtmb-0180">frmtmb 0.18.0<a class="anchor" aria-label="anchor" href="#frmtmb-0180"></a></h2>
 <p>The last three roadmap features.</p>

@@ -1161,13 +1161,23 @@ fam_acat <- function(link = "logit") {
 #'
 #' With `groups = ~g` the mixture moves to the group level (latent
 #' classes): every observation of a group shares one class draw, and
-#' the marginal likelihood sums the class assignment per group -
-#' latent-class regression (growth-mixture models without random
-#' effects). Restrictions: univariate fits, no random effects or
-#' smooths, mixing-weight predictors evaluated at each group's first
-#' row (use group-constant covariates), and `simulate()` is not
-#' supported yet. [mixture_probs()] returns the posterior class
-#' probabilities per group (or per observation for ordinary mixtures).
+#' the marginal likelihood sums the class assignment per group.
+#' Continuous random effects, smooths, and gp() terms are allowed in
+#' the component formulas - the class sum happens conditional on the
+#' latent effects, so one Laplace approximation integrates them
+#' (growth-mixture models). Random effects written in a component
+#' formula are class-specific by construction; the Laplace
+#' approximation of the class-mixture integrand is not exact even for
+#' gaussian responses (a fraction of a log-likelihood unit in typical
+#' well-separated problems). `quadrature = TRUE` makes the integral
+#' numerically exact when the per-group integrand is univariate (one
+#' scalar random intercept, in one class); with class-specific
+#' intercepts in several classes the coordinates couple and quadrature
+#' remains approximate - use [check_laplace()] to judge.
+#' Mixing-weight predictors are evaluated at each group's first row
+#' (use group-constant covariates). [mixture_probs()] returns the
+#' posterior class probabilities per group (or per observation for
+#' ordinary mixtures), conditional on the random-effect modes.
 #'
 #' @param ... Two or more component families.
 #' @param groups Optional one-sided formula naming the latent-class
@@ -1299,6 +1309,15 @@ mixture <- function(..., groups = NULL) {
     K = K,
     comp_lpdf = function(y, dpars, aterms, k) {
       comps[[k]]$lpdf(y, comp_dpars(dpars, k), aterms)
+    },
+    comp_dpars = comp_dpars,
+    comp_sim = function(dpars_k, aterms, n, k) {
+      sk <- comps[[k]]$sim
+      if (is.null(sk)) {
+        stop("Component '", comps[[k]]$family, "' has no simulator",
+             call. = FALSE)
+      }
+      sk(dpars_k, aterms, n)
     },
     log_pi = log_pi
   )

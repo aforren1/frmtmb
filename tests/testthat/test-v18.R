@@ -144,9 +144,9 @@ test_that("group-level latent-class mixtures match direct ML", {
   P0 <- mixture_probs(f0)
   expect_equal(dim(P0), c(ng * m, 2L))
 
-  # guards
-  expect_error(frm(bf(y ~ 1 + (1 | g)) +
-                     mixture(gaussian(), gaussian(), groups = ~g),
-                   data = dd), "random effects")
-  expect_error(simulate(fit), "not supported")
+  # since v0.19 random effects and simulate() work with groups=
+  fre <- frm(bf(y ~ 1 + (1 | g)) +
+               mixture(gaussian(), gaussian(), groups = ~g), data = dd)
+  expect_gte(as.numeric(logLik(fre)), as.numeric(logLik(fit)) - 1e-6)
+  expect_equal(nrow(simulate(fit, nsim = 1, seed = 1)), nrow(dd))
 })

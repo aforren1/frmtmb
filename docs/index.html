@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.18.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.19.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,33 +56,38 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="frmtmb">frmtmb<a class="anchor" aria-label="anchor" href="#frmtmb"></a>
 </h1></div>
-<p>frmtmb fits regression models specified with a brms-style formula grammar, by maximum likelihood with the Laplace approximation for random effects. The backend is <a href="https://cran.r-project.org/package=RTMB" class="external-link">RTMB</a>: model objectives are generated as R closures and differentiated on the TMB AD tape. No MCMC, no Stan, and no compilation at run time.</p>
+<p>frmtmb fits regression models specified with a brms-style formula grammar, by maximum likelihood with the Laplace approximation for latent effects. The backend is <a href="https://cran.r-project.org/package=RTMB" class="external-link">RTMB</a>: each model’s objective is generated as an R closure and differentiated on the TMB AD tape. No MCMC, no Stan, and no compilation at run time; refits re-tape in milliseconds, which the bootstrap, influence, and multi-start machinery exploit.</p>
 <div class="section level2">
 <h2 id="status">Status<a class="anchor" aria-label="anchor" href="#status"></a>
 </h2>
-<p>Early development (v0.6). Current scope:</p>
+<p>Pre-release (v0.19), working toward CRAN. The test suite holds about 850 tests; every model class is validated against an exact reference (glmmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive, quantreg, closed-form marginals, or hand-written ML) - see <code>tests/testthat/</code> and <code>dev/feature-gaps.md</code>.</p>
+</div>
+<div class="section level2">
+<h2 id="model-grammar">Model grammar<a class="anchor" aria-label="anchor" href="#model-grammar"></a>
+</h2>
 <ul>
-<li><p>Diagnostics: <code><a href="reference/diagnose.html">diagnose()</a></code> convergence forensics, simulation-based residuals via DHARMa (<code><a href="reference/dharma_residuals.html">dharma_residuals()</a></code>), and full-Bayes checks by handing the fitted objective to NUTS (<code><a href="reference/as_tmbstan.html">as_tmbstan()</a></code>; bayesplot works on the draws)</p></li>
-<li><p>Robustness hardening mined from lme4/glmmTMB/brms issue history: frozen data-dependent bases (poly/ns/scale), rank-deficient designs, non-default contrasts, <code>na.exclude</code>, nested <code>(1 | a/b)</code> grouping, fits that outlive their calling environment</p></li>
-<li><p>Deferred <code>sdreport</code>: standard errors are computed on first use, which cuts about a quarter off fit time in fit-and-predict or bootstrap loops (<code>se = TRUE</code> restores eager behavior)</p></li>
-<li><p>Nonlinear formulas (<code>nl = TRUE</code>): arbitrary R expressions over named parameters, each with the full predictor grammar (<code>bf(y ~ a * exp(-b * x), a ~ 1 + (1 | g), b ~ 1, nl = TRUE)</code>)</p></li>
-<li><p>Custom families as plain R functions (<code><a href="reference/frmtmb_family.html">custom_family()</a></code>), with an AD safety checker (<code><a href="reference/check_custom_family.html">check_custom_family()</a></code>)</p></li>
-<li><p>Ordinal regression: <code>cumulative(logit/probit)</code> with ordered thresholds, ordered-factor responses, random effects</p></li>
-<li><p>Censoring and truncation: <code>y | cens(c) ~ ...</code>, <code>y | trunc(lb = 0)</code> (gaussian, lognormal)</p></li>
-<li><p>emmeans support and a tmbstan bridge (<code><a href="reference/as_tmbstan.html">as_tmbstan()</a></code>) for MCMC on the same objective</p></li>
-<li><p>Function-on-scalar (functional response) regression via the long-format + smooth representation, validated against mgcv</p></li>
-<li><p>Multivariate models: <code><a href="reference/mvbf.html">mvbf()</a></code>, <code>bf() + bf()</code>, <code>mvbind()</code>; a family per response; residual correlation (<code>rescor = TRUE</code>, gaussian); and brms <code>|ID|</code> syntax for random-effect correlation across responses (<code>(1 | p | g)</code> in several formulas) - open glmmTMB issue #1267</p></li>
-<li><p>Matrix responses: <code>multinomial(K)</code> takes an n x K count matrix with per-category linear predictors</p></li>
-<li><p>Zero-inflation and hurdle: <code><a href="reference/frmtmb-families.html">zero_inflated_poisson()</a></code>, <code><a href="reference/frmtmb-families.html">zero_inflated_negbinomial()</a></code>, <code><a href="reference/frmtmb-families.html">hurdle_poisson()</a></code>, with full <code>zi ~</code> / <code>hu ~</code> formulas</p></li>
-<li><p>Distributional regression: every distributional parameter takes its own formula with the full predictor grammar, including random effects and smooths (<code>bf(y ~ s(x) + (1 | g), sigma ~ s(z) + (1 | g))</code>), or a fixed constant (<code>bf(y ~ x, sigma = 1)</code>)</p></li>
-<li><p>mgcv smooths <code>s()</code> and <code>t2()</code> in any linear predictor; smoothing parameters are estimated as variance components by marginal ML/REML (matches <code>mgcv::gam(method = "ML")</code>)</p></li>
-<li><p>Families: gaussian, poisson, binomial (with <code>trials()</code>), Gamma, lognormal, student, negbinomial, nbinom1, beta, tweedie, compois</p></li>
-<li><p><code>lme4</code>-style random effects: <code>(1 | g)</code>, <code>(1 + x | g)</code>, <code>(x || g)</code>, with <code>us()</code>, <code><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag()</a></code>, <code>homdiag()</code>, <code>cs()</code>, and <code>ar1()</code> covariance structures</p></li>
-<li><p><code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code> addition term and <code><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset()</a></code></p></li>
-<li><p>ML and REML</p></li>
-<li><p>Methods: <code>summary</code>, <code>logLik</code>, <code>AIC</code>, <code>vcov</code>, <code>fixef</code>, <code>ranef</code>, <code>VarCorr</code>, <code>predict</code> (newdata, <code>se.fit</code>, <code>re.form</code>), <code>fitted</code>, <code>residuals</code>, <code>simulate</code>, <code>confint</code> (Wald, profile, uniroot), <code>anova</code> (LRT), <code>update</code>, <code>diagnose</code></p></li>
+<li>
+<code><a href="reference/bf.html">bf()</a></code> with the brms spelling; families attach with <code>+</code>. Ports of brms code drop the priors and change <code>brm()</code> to <code><a href="reference/frm.html">frm()</a></code>.</li>
+<li>Distributional regression: every distributional parameter takes its own formula with the full predictor grammar (<code>bf(y ~ s(x) + (1 | g), sigma ~ s(z) + (1 | g))</code>), or a constant.</li>
+<li>Random effects: lme4 syntax plus structured covariances - <code>us</code>, <code>diag</code>, <code>homdiag</code>, <code>cs</code>, <code>homcs</code>, <code>ar1</code>, <code>hetar1</code>, <code>toep</code>, <code>homtoep</code>, <code>ou</code>, spatial <code>exp</code>/<code>gau</code>/<code>mat</code> over <code>num_factor(x, y)</code> coordinates, reduced-rank <code>rr(d =)</code>, known structure <code>gr(g, cov = A)</code> / <code>gr(g, prec = Q)</code> / <code>equalto()</code>, and <code>|ID|</code> correlation across formulas.</li>
+<li>mgcv smooths <code>s()</code>/<code>t2()</code> in any linear predictor, including matrix-covariate terms: scalar-on-function, function-on-scalar, and function-on-function regression.</li>
+<li>Gaussian processes: <code>gp(x)</code> exact, <code>gp(x, k = 30)</code> Hilbert-space.</li>
+<li>Special terms: <code>mo()</code> monotonic effects, <code>mi()</code> one-step imputation of continuous predictors, <code>mi(sdx)</code> measurement error, <code>cs()</code> category-specific ordinal effects; <code>mo()</code>/<code>mi()</code> support two-way interactions.</li>
+<li>Multivariate models (<code>mvbf</code>, per-response families, <code>rescor</code>), nonlinear formulas (<code>nl = TRUE</code>), matrix-response <code>multinomial(K)</code>.</li>
+<li>Families: the usual GLM(M) set plus student, tweedie, compois, beta-binomial, skew-normal, ex-gaussian, weibull, shifted lognormal, quantile regression (<code>asym_laplace</code>), zero-inflated and hurdle variants, four ordinal families, and finite <code><a href="reference/mixture.html">mixture()</a></code> families - including group-level latent classes (<code>mixture(..., groups = ~g)</code>) with class-specific random effects (growth-mixture models). <code><a href="reference/frmtmb_family.html">custom_family()</a></code> takes a plain R log-density (the test suite fits a Wiener drift-diffusion model in about 15 lines).</li>
+<li>Addition terms: <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>trials()</code> (counts or proportions), <code>cens()</code>, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code>se()</code> (meta-analysis), <code>mi()</code>, <code>vint()</code>/<code>vreal()</code>.</li>
 </ul>
-<p>See <a href="SPEC.html">SPEC.md</a> for the full design and roadmap: ordinal families and <code>cens()</code>/<code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> (v0.4.x), nonlinear formulas and custom families as plain R functions (v0.5).</p>
+</div>
+<div class="section level2">
+<h2 id="estimation-and-inference">Estimation and inference<a class="anchor" aria-label="anchor" href="#estimation-and-inference"></a>
+</h2>
+<ul>
+<li>ML and REML; adaptive quadrature (<code>quadrature = TRUE</code>) for scalar random effects; MAP via brms-style <code><a href="reference/set_prior.html">set_prior()</a></code>; hard bounds; pluggable optimizers; <code>frmtmb_control(profile = TRUE)</code> for many-coefficient models.</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> (Wald/profile/likelihood-root), <code><a href="reference/hypothesis.html">hypothesis()</a></code> (Wald/profile/bootstrap, with natural-scale <code>sd_</code>/<code>cor_</code> names for ICC-type quantities), <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> LRTs, <code><a href="reference/frm_bootstrap.html">frm_bootstrap()</a></code>, <code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code>, <code><a href="reference/frm_allfit.html">frm_allfit()</a></code>, <code><a href="reference/frm_multiple.html">frm_multiple()</a></code> (Rubin pooling), <code><a href="reference/frm_simulate.html">frm_simulate()</a></code> (power analysis).</li>
+<li>Post-hoc NUTS on the fitted objective: <code><a href="reference/frm_sample.html">frm_sample()</a></code> with a full draws method surface (<code><a href="reference/posterior_epred.html">posterior_epred()</a></code>, <code><a href="reference/posterior_epred.html">posterior_predict()</a></code>, <code><a href="reference/hypothesis.html">hypothesis()</a></code>, <code>pp_check()</code>) and <code><a href="reference/check_laplace.html">check_laplace()</a></code> to audit the approximation.</li>
+<li>Diagnostics: OSA residuals, DHARMa, <code>pp_check()</code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>, <code><a href="reference/conditional_effects.html">conditional_effects()</a></code>; ecosystem hooks for emmeans, marginaleffects, and insight/easystats.</li>
+</ul>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
@@ -95,16 +100,21 @@
 <span>           data <span class="op">=</span> <span class="va">sleepstudy</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># distributional regression: model the residual SD, with group effects</span></span>
+<span><span class="co"># distributional regression: model the residual SD too</span></span>
 <span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="reference/bf.html">bf</a></span><span class="op">(</span><span class="va">Reaction</span> <span class="op">~</span> <span class="va">Days</span> <span class="op">+</span> <span class="op">(</span><span class="va">Days</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span>,</span>
 <span>               <span class="va">sigma</span> <span class="op">~</span> <span class="va">Days</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>            data <span class="op">=</span> <span class="va">sleepstudy</span><span class="op">)</span></span></code></pre></div>
+<span>            data <span class="op">=</span> <span class="va">sleepstudy</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">fit2</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)"</span>,</span>
+<span>           method <span class="op">=</span> <span class="st">"boot"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
 </h2>
-<p>No frequentist equivalent of brms exists. glmmTMB is one fixed C++ likelihood behind a formula front end; frmtmb inverts that design and compiles the formula into the objective. That makes features that are structural dead ends in glmmTMB (random effects in any distributional parameter formula, nonlinear predictors, per-response families, custom families without C++) into ordinary code paths.</p>
-<p>Fits are validated against glmmTMB, lme4, mgcv, and gamlss in the test suite.</p>
+<p>No frequentist equivalent of brms exists. glmmTMB is one fixed C++ likelihood behind a formula front end; frmtmb inverts that design and compiles the formula into the objective. That turns features that are structural dead ends elsewhere - random effects in any distributional parameter, nonlinear predictors, per-response families, monotonic effects, in-model imputation, latent-class mixtures, custom families without C++ or Stan code - into ordinary code paths.</p>
+<p>Related work: <a href="https://glmmtmb.github.io/glmmTMB/" class="external-link">glmmTMB</a> (fixed likelihood, C++ TMB; frmtmb matches its fits where the models overlap) and <a href="https://github.com/norimune/BayesRTMB" class="external-link">BayesRTMB</a> (a Bayesian-first, Stan-like modeling layer on the same RTMB backend).</p>
+<p>See <a href="SPEC.html">SPEC.md</a> for the design and <code>NEWS.md</code> for the changelog.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="license">

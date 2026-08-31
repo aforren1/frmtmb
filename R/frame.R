@@ -351,12 +351,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         stop("Group-level mixtures cannot be combined with cens() or ",
              "trunc()", call. = FALSE)
       }
+      if (isTRUE(resp$aterms$mi)) {
+        stop("Group-level mixtures cannot be combined with mi() on ",
+             "the same response", call. = FALSE)
+      }
       gv <- factor(eval(resp$family$mix_groups[[2L]], mf,
                         resp$formula_env))
       G <- Matrix::sparseMatrix(i = seq_len(n), j = as.integer(gv),
                                 x = 1, dims = c(n, nlevels(gv)))
       mix_g[[resp$resp_name]] <- list(G = G, Gt = Matrix::t(G),
                                       first = match(levels(gv), gv),
+                                      gindex = as.integer(gv),
                                       levels = levels(gv))
     }
     if (!is.null(resp$family$valid_y)) {
@@ -820,10 +825,6 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
     }
   }
 
-  if (length(mix_g) && length(components)) {
-    stop("Group-level mixtures cannot be combined with random effects, ",
-         "smooths, or gp() terms yet", call. = FALSE)
-  }
   re_blocks <- list()
   comp_block <- integer(length(components))   # component -> block index
   comp_offset <- integer(length(components))  # coef offset within level

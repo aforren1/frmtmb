@@ -21,7 +21,7 @@ bf(y ~ x, mu2 ~ 1)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.18.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.19.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -96,13 +96,23 @@ through <code>lower</code>/<code>upper</code>). Component families with extra pa
 (ordinal) are not supported.</p>
 <p>With <code>groups = ~g</code> the mixture moves to the group level (latent
 classes): every observation of a group shares one class draw, and
-the marginal likelihood sums the class assignment per group -
-latent-class regression (growth-mixture models without random
-effects). Restrictions: univariate fits, no random effects or
-smooths, mixing-weight predictors evaluated at each group's first
-row (use group-constant covariates), and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> is not
-supported yet. <code><a href="mixture_probs.html">mixture_probs()</a></code> returns the posterior class
-probabilities per group (or per observation for ordinary mixtures).</p>
+the marginal likelihood sums the class assignment per group.
+Continuous random effects, smooths, and gp() terms are allowed in
+the component formulas - the class sum happens conditional on the
+latent effects, so one Laplace approximation integrates them
+(growth-mixture models). Random effects written in a component
+formula are class-specific by construction; the Laplace
+approximation of the class-mixture integrand is not exact even for
+gaussian responses (a fraction of a log-likelihood unit in typical
+well-separated problems). <code>quadrature = TRUE</code> makes the integral
+numerically exact when the per-group integrand is univariate (one
+scalar random intercept, in one class); with class-specific
+intercepts in several classes the coordinates couple and quadrature
+remains approximate - use <code><a href="check_laplace.html">check_laplace()</a></code> to judge.
+Mixing-weight predictors are evaluated at each group's first row
+(use group-constant covariates). <code><a href="mixture_probs.html">mixture_probs()</a></code> returns the
+posterior class probabilities per group (or per observation for
+ordinary mixtures), conditional on the random-effect modes.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

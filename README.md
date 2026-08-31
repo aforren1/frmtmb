@@ -1,73 +1,76 @@
 # frmtmb
 
-frmtmb fits regression models specified with a brms-style formula grammar,
-by maximum likelihood with the Laplace approximation for random effects.
-The backend is [RTMB](https://cran.r-project.org/package=RTMB): model
-objectives are generated as R closures and differentiated on the TMB AD
-tape. No MCMC, no Stan, and no compilation at run time.
+frmtmb fits regression models specified with a brms-style formula
+grammar, by maximum likelihood with the Laplace approximation for
+latent effects. The backend is
+[RTMB](https://cran.r-project.org/package=RTMB): each model's
+objective is generated as an R closure and differentiated on the TMB
+AD tape. No MCMC, no Stan, and no compilation at run time; refits
+re-tape in milliseconds, which the bootstrap, influence, and
+multi-start machinery exploit.
 
 ## Status
 
-Early development (v0.6). Current scope:
+Pre-release (v0.19), working toward CRAN. The test suite holds about
+850 tests; every model class is validated against an exact reference
+(glmmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive, quantreg,
+closed-form marginals, or hand-written ML) - see
+`tests/testthat/` and `dev/feature-gaps.md`.
 
-- Diagnostics: `diagnose()` convergence forensics, simulation-based
-  residuals via DHARMa (`dharma_residuals()`), and full-Bayes checks by
-  handing the fitted objective to NUTS (`as_tmbstan()`; bayesplot works
-  on the draws)
-- Robustness hardening mined from lme4/glmmTMB/brms issue history:
-  frozen data-dependent bases (poly/ns/scale), rank-deficient designs,
-  non-default contrasts, `na.exclude`, nested `(1 | a/b)` grouping,
-  fits that outlive their calling environment
-- Deferred `sdreport`: standard errors are computed on first use, which
-  cuts about a quarter off fit time in fit-and-predict or bootstrap
-  loops (`se = TRUE` restores eager behavior)
+## Model grammar
 
-- Nonlinear formulas (`nl = TRUE`): arbitrary R expressions over named
-  parameters, each with the full predictor grammar
-  (`bf(y ~ a * exp(-b * x), a ~ 1 + (1 | g), b ~ 1, nl = TRUE)`)
-- Custom families as plain R functions (`custom_family()`), with an AD
-  safety checker (`check_custom_family()`)
-- Ordinal regression: `cumulative(logit/probit)` with ordered
-  thresholds, ordered-factor responses, random effects
-- Censoring and truncation: `y | cens(c) ~ ...`, `y | trunc(lb = 0)`
-  (gaussian, lognormal)
-- emmeans support and a tmbstan bridge (`as_tmbstan()`) for MCMC on the
-  same objective
-- Function-on-scalar (functional response) regression via the
-  long-format + smooth representation, validated against mgcv
+- `bf()` with the brms spelling; families attach with `+`. Ports of
+  brms code drop the priors and change `brm()` to `frm()`.
+- Distributional regression: every distributional parameter takes its
+  own formula with the full predictor grammar
+  (`bf(y ~ s(x) + (1 | g), sigma ~ s(z) + (1 | g))`), or a constant.
+- Random effects: lme4 syntax plus structured covariances - `us`,
+  `diag`, `homdiag`, `cs`, `homcs`, `ar1`, `hetar1`, `toep`,
+  `homtoep`, `ou`, spatial `exp`/`gau`/`mat` over `num_factor(x, y)`
+  coordinates, reduced-rank `rr(d =)`, known structure
+  `gr(g, cov = A)` / `gr(g, prec = Q)` / `equalto()`, and `|ID|`
+  correlation across formulas.
+- mgcv smooths `s()`/`t2()` in any linear predictor, including
+  matrix-covariate terms: scalar-on-function, function-on-scalar, and
+  function-on-function regression.
+- Gaussian processes: `gp(x)` exact, `gp(x, k = 30)` Hilbert-space.
+- Special terms: `mo()` monotonic effects, `mi()` one-step imputation
+  of continuous predictors, `mi(sdx)` measurement error, `cs()`
+  category-specific ordinal effects; `mo()`/`mi()` support two-way
+  interactions.
+- Multivariate models (`mvbf`, per-response families, `rescor`),
+  nonlinear formulas (`nl = TRUE`), matrix-response `multinomial(K)`.
+- Families: the usual GLM(M) set plus student, tweedie, compois,
+  beta-binomial, skew-normal, ex-gaussian, weibull, shifted
+  lognormal, quantile regression (`asym_laplace`), zero-inflated and
+  hurdle variants, four ordinal families, and finite `mixture()`
+  families - including group-level latent classes
+  (`mixture(..., groups = ~g)`) with class-specific random effects
+  (growth-mixture models). `custom_family()` takes a plain R
+  log-density (the test suite fits a Wiener drift-diffusion model in
+  about 15 lines).
+- Addition terms: `weights()`, `trials()` (counts or proportions),
+  `cens()`, `trunc()`, `se()` (meta-analysis), `mi()`,
+  `vint()`/`vreal()`.
 
-- Multivariate models: `mvbf()`, `bf() + bf()`, `mvbind()`; a family per
-  response; residual correlation (`rescor = TRUE`, gaussian); and brms
-  `|ID|` syntax for random-effect correlation across responses
-  (`(1 | p | g)` in several formulas) - open glmmTMB issue #1267
-- Matrix responses: `multinomial(K)` takes an n x K count matrix with
-  per-category linear predictors
-- Zero-inflation and hurdle: `zero_inflated_poisson()`,
-  `zero_inflated_negbinomial()`, `hurdle_poisson()`, with full `zi ~` /
-  `hu ~` formulas
+## Estimation and inference
 
-- Distributional regression: every distributional parameter takes its own
-  formula with the full predictor grammar, including random effects and
-  smooths (`bf(y ~ s(x) + (1 | g), sigma ~ s(z) + (1 | g))`), or a fixed
-  constant (`bf(y ~ x, sigma = 1)`)
-- mgcv smooths `s()` and `t2()` in any linear predictor; smoothing
-  parameters are estimated as variance components by marginal ML/REML
-  (matches `mgcv::gam(method = "ML")`)
-- Families: gaussian, poisson, binomial (with `trials()`), Gamma,
-  lognormal, student, negbinomial, nbinom1, beta, tweedie, compois
-- `lme4`-style random effects: `(1 | g)`, `(1 + x | g)`, `(x || g)`,
-  with `us()`, `diag()`, `homdiag()`, `cs()`, and `ar1()` covariance
-  structures
-- `weights()` addition term and `offset()`
-- ML and REML
-- Methods: `summary`, `logLik`, `AIC`, `vcov`, `fixef`, `ranef`,
-  `VarCorr`, `predict` (newdata, `se.fit`, `re.form`), `fitted`,
-  `residuals`, `simulate`, `confint` (Wald, profile, uniroot),
-  `anova` (LRT), `update`, `diagnose`
-
-See [SPEC.md](SPEC.md) for the full design and roadmap: ordinal families
-and `cens()`/`trunc()` (v0.4.x), nonlinear formulas and custom families
-as plain R functions (v0.5).
+- ML and REML; adaptive quadrature (`quadrature = TRUE`) for scalar
+  random effects; MAP via brms-style `set_prior()`; hard bounds;
+  pluggable optimizers; `frmtmb_control(profile = TRUE)` for
+  many-coefficient models.
+- `confint()` (Wald/profile/likelihood-root), `hypothesis()`
+  (Wald/profile/bootstrap, with natural-scale `sd_`/`cor_` names for
+  ICC-type quantities), `anova()` LRTs, `frm_bootstrap()`,
+  `influence()`, `frm_allfit()`, `frm_multiple()` (Rubin pooling),
+  `frm_simulate()` (power analysis).
+- Post-hoc NUTS on the fitted objective: `frm_sample()` with a full
+  draws method surface (`posterior_epred()`, `posterior_predict()`,
+  `hypothesis()`, `pp_check()`) and `check_laplace()` to audit the
+  approximation.
+- Diagnostics: OSA residuals, DHARMa, `pp_check()`, `plot()`,
+  `conditional_effects()`; ecosystem hooks for emmeans,
+  marginaleffects, and insight/easystats.
 
 ## Example
 
@@ -79,20 +82,30 @@ fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
            data = sleepstudy)
 summary(fit)
 
-# distributional regression: model the residual SD, with group effects
+# distributional regression: model the residual SD too
 fit2 <- frm(bf(Reaction ~ Days + (Days | Subject),
                sigma ~ Days + (1 | Subject)) + gaussian(),
             data = sleepstudy)
+anova(fit, fit2)
+
+hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)",
+           method = "boot")
 ```
 
 ## Why
 
 No frequentist equivalent of brms exists. glmmTMB is one fixed C++
 likelihood behind a formula front end; frmtmb inverts that design and
-compiles the formula into the objective. That makes features that are
-structural dead ends in glmmTMB (random effects in any distributional
-parameter formula, nonlinear predictors, per-response families, custom
-families without C++) into ordinary code paths.
+compiles the formula into the objective. That turns features that are
+structural dead ends elsewhere - random effects in any distributional
+parameter, nonlinear predictors, per-response families, monotonic
+effects, in-model imputation, latent-class mixtures, custom families
+without C++ or Stan code - into ordinary code paths.
 
-Fits are validated against glmmTMB, lme4, mgcv, and gamlss in the test
-suite.
+Related work: [glmmTMB](https://glmmtmb.github.io/glmmTMB/) (fixed
+likelihood, C++ TMB; frmtmb matches its fits where the models
+overlap) and [BayesRTMB](https://github.com/norimune/BayesRTMB) (a
+Bayesian-first, Stan-like modeling layer on the same RTMB backend).
+
+See [SPEC.md](SPEC.md) for the design and `NEWS.md` for the
+changelog.

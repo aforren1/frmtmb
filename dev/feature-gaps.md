@@ -76,12 +76,16 @@ purely-conditional `postVar`.
   predictors, so mixture-of-experts is free; quantile-spread mean
   inits; exact vs direct ML). Multimodality is inherent to mixture
   ML - use frm_allfit / bounds.
-- ~~Group-level mixtures (nested case)~~ DONE in v0.18 as
-  `mixture(..., groups = ~g)`: latent-class regression (no continuous
-  REs alongside), the tractable slice of brms#1905. Latent classes
-  COMBINED with continuous random effects would need per-group
-  per-class Laplace (a new integration mode); crossed designs stay
-  out of the Laplace class entirely.
+- ~~Group-level mixtures~~ DONE: v0.18 latent-class regression,
+  v0.19 WITH continuous random effects (growth mixtures). The
+  earlier "needs per-group per-class Laplace / crossed impossible"
+  analysis was wrong: swapping sum and integral, the marginal is
+  exactly the integral of a per-group class-mixture conditional on
+  b, so ONE Laplace over b handles it and crossed designs are
+  structurally fine. What remains approximate is the Laplace of the
+  (non-Gaussian) mixture integrand: ~0.1 logLik bias in validation,
+  parameters to 0.01; quadrature exact for univariate per-group
+  integrands, approximate when class-specific intercepts couple.
 
 ## Tier 3: positioning decisions
 

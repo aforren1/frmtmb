@@ -36,11 +36,21 @@ through \code{lower}/\code{upper}). Component families with extra parameters
 
 With \code{groups = ~g} the mixture moves to the group level (latent
 classes): every observation of a group shares one class draw, and
-the marginal likelihood sums the class assignment per group -
-latent-class regression (growth-mixture models without random
-effects). Restrictions: univariate fits, no random effects or
-smooths, mixing-weight predictors evaluated at each group's first
-row (use group-constant covariates), and \code{simulate()} is not
-supported yet. \code{\link[=mixture_probs]{mixture_probs()}} returns the posterior class
-probabilities per group (or per observation for ordinary mixtures).
+the marginal likelihood sums the class assignment per group.
+Continuous random effects, smooths, and gp() terms are allowed in
+the component formulas - the class sum happens conditional on the
+latent effects, so one Laplace approximation integrates them
+(growth-mixture models). Random effects written in a component
+formula are class-specific by construction; the Laplace
+approximation of the class-mixture integrand is not exact even for
+gaussian responses (a fraction of a log-likelihood unit in typical
+well-separated problems). \code{quadrature = TRUE} makes the integral
+numerically exact when the per-group integrand is univariate (one
+scalar random intercept, in one class); with class-specific
+intercepts in several classes the coordinates couple and quadrature
+remains approximate - use \code{\link[=check_laplace]{check_laplace()}} to judge.
+Mixing-weight predictors are evaluated at each group's first row
+(use group-constant covariates). \code{\link[=mixture_probs]{mixture_probs()}} returns the
+posterior class probabilities per group (or per observation for
+ordinary mixtures), conditional on the random-effect modes.
 }

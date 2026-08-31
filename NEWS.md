@@ -1,3 +1,25 @@
+# frmtmb 0.19.0
+
+* Latent classes now combine with continuous random effects
+  (growth-mixture models): `mixture(..., groups = ~g)` accepts
+  random effects, smooths, and gp() terms in the component formulas.
+  The class sum is computed conditional on the latent effects, so
+  one Laplace approximation integrates them - the sum-and-integral
+  swap makes this exact as an integrand identity, and even crossed
+  random effects are structurally fine. Random effects written in a
+  component formula are class-specific by construction. Accuracy:
+  the Laplace approximation of the class-mixture integrand carries a
+  small documented bias (about 0.1 log-likelihood units in the
+  validation problem, with parameter estimates matching the exact
+  closed-form marginal to 0.01); `quadrature = TRUE` is numerically
+  exact when the per-group integrand is univariate (validated to
+  5e-3) and approximate when class-specific intercepts couple.
+  `simulate()` now draws one class per group and then simulates each
+  observation from its group's component; `mixture_probs()` gives
+  empirical-Bayes classification conditional on the modes.
+* README rewritten for the current scope, with related-work pointers
+  (glmmTMB, BayesRTMB).
+
 # frmtmb 0.18.0
 
 The last three roadmap features.

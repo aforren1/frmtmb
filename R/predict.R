@@ -698,14 +698,12 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   if (is.null(fam$sim)) {
     stop("Family '", fam$family, "' has no simulator yet", call. = FALSE)
   }
-  if (!is.null(object$frame$mix_g[[rspec$resp_name]])) {
-    stop("simulate() for group-level mixtures is not supported yet",
-         call. = FALSE)
-  }
+  mg <- object$frame$mix_g[[rspec$resp_name]]
   marginal <- !is.null(re.form) && !inherits(re.form, "formula") &&
     is.na(re.form)
   n <- stats::nobs(object)
   out <- vector("list", nsim)
+  av <- object$frame$aterm_values[[rspec$resp_name]]
   for (s in seq_len(nsim)) {
     b_use <- if (marginal && length(object$frame$re_blocks)) {
       draw_b(object)
@@ -713,7 +711,31 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
       object$estimates[["b"]]
     }
     dp <- eval_dpars(object, b = b_use)[[rspec$resp_name]]
-    out[[s]] <- fam$sim(dp, object$frame$aterm_values[[rspec$resp_name]], n)
+    out[[s]] <- if (is.null(mg)) {
+      fam$sim(dp, av, n)
+    } else {
+      # latent-class mixture: one class draw per group, then each
+      # observation simulates from its group's component
+      lps <- fam$mix$log_pi(dp)
+      Pg <- vapply(lps, function(l) {
+        exp(rep(l, length.out = n)[mg$first])
+      }, numeric(length(mg$first)))
+      kg <- vapply(seq_len(nrow(Pg)), function(g_) {
+        sample.int(fam$mix$K, 1L, prob = Pg[g_, ])
+      }, integer(1))
+      kk <- kg[mg$gindex]
+      ys <- numeric(n)
+      for (k in seq_len(fam$mix$K)) {
+        idx <- which(kk == k)
+        if (length(idx)) {
+          dk <- lapply(fam$mix$comp_dpars(dp, k), function(v) {
+            rep(v, length.out = n)[idx]
+          })
+          ys[idx] <- fam$mix$comp_sim(dk, av, length(idx), k)
+        }
+      }
+      ys
+    }
   }
   names(out) <- paste0("sim_", seq_len(nsim))
   as.data.frame(out)
