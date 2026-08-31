@@ -122,9 +122,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   for (resp in spec$responses) {
     add_part(resp$resp_expr)
     for (dp in resp$dpars) add_part(dpar_frame_rhs(dp))
-    for (a in resp$aterms) {
-      # literal constants (e.g. trials(10)) are not frame variables
-      if (!is.numeric(a) && !is.logical(a)) add_part(a)
+    for (nm_at in names(resp$aterms)) {
+      # literal constants (e.g. trials(10)) are not frame variables, and
+      # interval bounds (cens_y2) may be NA on non-interval rows, so they
+      # stay out of the na.omit frame (brms#1070)
+      a <- resp$aterms[[nm_at]]
+      if (nm_at != "cens_y2" && !is.numeric(a) && !is.logical(a)) {
+        add_part(a)
+      }
     }
   }
   env <- spec$responses[[1]]$formula_env
@@ -153,11 +158,19 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   extras <- list()
   for (resp in spec$responses) {
     y[[resp$resp_name]] <- extract_y(resp, mf)
-    av <- lapply(resp$aterms, function(a) {
+    av <- lapply(resp$aterms[setdiff(names(resp$aterms), "cens_y2")],
+                 function(a) {
       v <- mf[[deparse1(a)]]
       if (is.null(v)) v <- eval(a, mf, resp$formula_env)
       as.numeric(v)
     })
+    if (!is.null(resp$aterms$cens_y2)) {
+      v <- as.numeric(eval(resp$aterms$cens_y2, data, resp$formula_env))
+      if (!is.null(attr(mf, "na.action"))) {
+        v <- v[-attr(mf, "na.action")]
+      }
+      av$cens_y2 <- v
+    }
     if (!is.null(av$weights)) {
       if (any(av$weights < 0)) {
         stop("weights() must be non-negative", call. = FALSE)
@@ -171,11 +184,35 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         !is.null(av$trunc_ub)) {
       if (is.null(resp$family$lcdf)) {
         stop("cens()/trunc() need a family with a CDF (currently: ",
-             "gaussian, lognormal)", call. = FALSE)
+             "gaussian, lognormal, poisson)", call. = FALSE)
       }
-      if (!is.null(av$cens) && !all(av$cens %in% c(-1, 0, 1))) {
-        stop("cens() codes must be -1 (left), 0 (observed), or 1 (right)",
-             call. = FALSE)
+      if (!is.null(av$cens) && identical(resp$family$type, "discrete")) {
+        stop("cens() is not supported for discrete families yet ",
+             "(truncation is)", call. = FALSE)
+      }
+      if (!is.null(av$cens) && !all(av$cens %in% c(-1, 0, 1, 2))) {
+        stop("cens() codes must be -1 (left), 0 (observed), 1 (right), ",
+             "or 2 (interval)", call. = FALSE)
+      }
+      if (!is.null(av$cens) && any(av$cens == 2)) {
+        i2 <- av$cens == 2
+        if (is.null(av$cens_y2)) {
+          stop("Interval censoring (code 2) needs upper bounds: ",
+               "cens(c, y2)", call. = FALSE)
+        }
+        if (anyNA(av$cens_y2[i2])) {
+          stop("cens() upper bounds must not be NA on interval-censored ",
+               "rows", call. = FALSE)
+        }
+        yv <- y[[resp$resp_name]]
+        if (any(av$cens_y2[i2] <= yv[i2])) {
+          stop("Interval upper bounds (y2) must exceed the lower bounds ",
+               "(the response)", call. = FALSE)
+        }
+        # NA bounds on non-interval rows are legal and unused; make them
+        # harmless for the taped CDF evaluation
+        av$cens_y2[!i2 | is.na(av$cens_y2)] <-
+          yv[!i2 | is.na(av$cens_y2)]
       }
     }
     if (!is.null(resp$family$valid_y)) {
@@ -276,13 +313,30 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
                  "of the bar, e.g. ar1(times + 0 | g)", call. = FALSE)
           }
           fac <- rt$flist[[fassign[k]]]
+          aux_A <- NULL
+          if (cs_name == "gr_cov") {
+            if (d_k != 1L) {
+              stop("gr(cov=) supports intercept-only terms for now: ",
+                   "(1 | gr(g, cov = A))", call. = FALSE)
+            }
+            A <- eval(dp$re[[k]]$cov_expr, data, resp$formula_env)
+            if (!is.matrix(A) || nrow(A) != ncol(A)) {
+              stop("gr(cov=): cov must be a square matrix", call. = FALSE)
+            }
+            lv <- levels(fac)
+            if (is.null(rownames(A)) || !all(lv %in% rownames(A))) {
+              stop("gr(cov=): cov needs dimnames covering all grouping ",
+                   "levels", call. = FALSE)
+            }
+            aux_A <- unname(A[lv, lv])
+          }
           Zk <- Matrix::t(rt$Zt[rt$Gp[k] + seq_len(len_k), , drop = FALSE])
           components[[length(components) + 1L]] <- list(
             lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
             covstruct = cs_name, id = dp$re[[k]]$id,
             dim = d_k, n_levels = len_k %/% d_k,
             levels = levels(fac), cnms = rt$cnms[[k]],
-            bar = bars[[k]], Zlocal = Zk,
+            bar = bars[[k]], Zlocal = Zk, aux_A = aux_A,
             group_name = names(rt$flist)[fassign[k]],
             label = paste0(dp_prefix, deparse1(bars[[k]]))
           )
@@ -438,6 +492,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
       b_idx = n_b + seq_len(D * n_levels),
       theta_idx = n_theta + seq_len(npar_k),
       levels = cps[[1]]$levels,
+      aux_A = cps[[1]]$aux_A,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
       term_label = label,

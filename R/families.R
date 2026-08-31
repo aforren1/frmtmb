@@ -122,6 +122,9 @@ fam_poisson <- function(link = "log") {
     lpdf = function(y, dpars, aterms) {
       RTMB::dpois(y, dpars$mu, log = TRUE)
     },
+    lcdf = function(q, dpars, aterms) {
+      RTMB::ppois(q, dpars$mu)
+    },
     valid_y = count_y("poisson"),
     init_dpars = list(mu = function(y, aterms) mean(y) + 0.1),
     type = "discrete",
@@ -479,6 +482,127 @@ fam_hurdle_poisson <- function(link = "log") {
   )
 }
 
+# --- RTMBdist-backed families ---
+
+fam_beta_binomial <- function(link = "logit") {
+  frmtmb_family(
+    "beta_binomial",
+    dpars = c("mu", "phi"),
+    links = list(mu = link, phi = "log"),
+    lpdf = function(y, dpars, aterms) {
+      size <- aterms$trials %||% 1
+      RTMBdist::dbetabinom(y, size, dpars$mu * dpars$phi,
+                           (1 - dpars$mu) * dpars$phi, log = TRUE)
+    },
+    valid_y = function(y, aterms) {
+      size <- aterms$trials %||% 1
+      if (any(y < 0) || any(y > size) || any(y != round(y))) {
+        stop("beta_binomial: response must be integer counts in ",
+             "[0, trials]", call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      mu = function(y, aterms) {
+        p <- mean(y / (aterms$trials %||% 1))
+        min(max(p, 0.02), 0.98)
+      },
+      phi = function(y, aterms) 5
+    ),
+    type = "discrete",
+    post = list(
+      mean_fn = function(dpars, aterms) dpars$mu * (aterms$trials %||% 1)
+    ),
+    sim = function(dpars, aterms, n) {
+      RTMBdist::rbetabinom(n, aterms$trials %||% 1,
+                           dpars$mu * dpars$phi,
+                           (1 - dpars$mu) * dpars$phi)
+    }
+  )
+}
+
+fam_skew_normal <- function(link = "identity") {
+  frmtmb_family(
+    "skew_normal",
+    dpars = c("mu", "sigma", "alpha"),
+    links = list(mu = link, sigma = "log", alpha = "identity"),
+    lpdf = function(y, dpars, aterms) {
+      RTMBdist::dskewnorm2(y, dpars$mu, dpars$sigma, dpars$alpha,
+                           log = TRUE)
+    },
+    init_dpars = list(
+      mu = function(y, aterms) mean(y),
+      sigma = function(y, aterms) stats::sd(y),
+      alpha = function(y, aterms) {
+        # alpha = 0 is a stationary point of the skew-normal likelihood
+        # (singular information); start from the sample skewness side
+        m3 <- mean((y - mean(y))^3) / stats::sd(y)^3
+        2 * sign(m3) + 0.5 * m3
+      }
+    ),
+    type = "continuous",
+    post = list(mean_fn = function(dpars, aterms) dpars$mu),
+    sim = function(dpars, aterms, n) {
+      RTMBdist::rskewnorm2(n, dpars$mu, dpars$sigma, dpars$alpha)
+    }
+  )
+}
+
+fam_inverse_gaussian <- function(link = "log") {
+  frmtmb_family(
+    "inverse.gaussian",
+    dpars = c("mu", "shape"),
+    links = list(mu = link, shape = "log"),
+    lpdf = function(y, dpars, aterms) {
+      RTMBdist::dinvgauss(y, mean = dpars$mu, shape = dpars$shape,
+                          log = TRUE)
+    },
+    lcdf = function(q, dpars, aterms) {
+      RTMBdist::pinvgauss(q, mean = dpars$mu, shape = dpars$shape)
+    },
+    valid_y = positive_y("inverse.gaussian"),
+    init_dpars = list(
+      mu = function(y, aterms) mean(y),
+      shape = function(y, aterms) mean(y)^3 / max(stats::var(y), 1e-8)
+    ),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) dpars$mu,
+      var_fn = function(dpars, aterms) dpars$mu^3 / dpars$shape
+    ),
+    sim = function(dpars, aterms, n) {
+      RTMBdist::rinvgauss(n, mean = dpars$mu, shape = dpars$shape)
+    }
+  )
+}
+
+# brms parameterization: mu is the DISTRIBUTION mean, beta the scale of
+# the exponential component (gaussian component sits at mu - beta).
+fam_exgaussian <- function(link = "identity") {
+  frmtmb_family(
+    "exgaussian",
+    dpars = c("mu", "sigma", "beta"),
+    links = list(mu = link, sigma = "log", beta = "log"),
+    lpdf = function(y, dpars, aterms) {
+      RTMBdist::dexgauss(y, dpars$mu - dpars$beta, dpars$sigma,
+                         1 / dpars$beta, log = TRUE)
+    },
+    init_dpars = list(
+      mu = function(y, aterms) mean(y),
+      sigma = function(y, aterms) stats::sd(y) / 2,
+      beta = function(y, aterms) stats::sd(y) / 2
+    ),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) dpars$mu,
+      var_fn = function(dpars, aterms) dpars$sigma^2 + dpars$beta^2
+    ),
+    sim = function(dpars, aterms, n) {
+      RTMBdist::rexgauss(n, dpars$mu - dpars$beta, dpars$sigma,
+                         1 / dpars$beta)
+    }
+  )
+}
+
 # Cumulative ordinal: response in 1..K (or an ordered factor). The linear
 # predictor has no intercept; K-1 ordered thresholds take its place,
 # parameterized as (tau_1, log increments) in `extra_pars`.
@@ -589,7 +713,11 @@ family_registry <- list(
   zero_inflated_negbinomial = fam_zi_negbinomial,
   hurdle_poisson            = fam_hurdle_poisson,
   multinomial               = fam_multinomial,
-  cumulative                = fam_cumulative
+  cumulative                = fam_cumulative,
+  beta_binomial             = fam_beta_binomial,
+  skew_normal               = fam_skew_normal,
+  inverse.gaussian          = fam_inverse_gaussian,
+  exgaussian                = fam_exgaussian
 )
 
 as_frmtmb_family <- function(x) {
@@ -677,6 +805,18 @@ multinomial <- function(K) fam_multinomial(K)
 #' @rdname frmtmb-families
 #' @export
 cumulative <- function(link = "logit") fam_cumulative(link)
+
+#' @rdname frmtmb-families
+#' @export
+beta_binomial <- function(link = "logit") fam_beta_binomial(link)
+
+#' @rdname frmtmb-families
+#' @export
+skew_normal <- function(link = "identity") fam_skew_normal(link)
+
+#' @rdname frmtmb-families
+#' @export
+exgaussian <- function(link = "identity") fam_exgaussian(link)
 
 #' @export
 print.frmtmb_family <- function(x, ...) {

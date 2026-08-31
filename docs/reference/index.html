@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -20,6 +20,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+    <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -99,7 +100,7 @@
 
         <dt>
 
-          <code><a href="frmtmb-families.html">student()</a></code> <code><a href="frmtmb-families.html">lognormal()</a></code> <code><a href="frmtmb-families.html">negbinomial()</a></code> <code><a href="frmtmb-families.html">nbinom1()</a></code> <code><a href="frmtmb-families.html">Beta()</a></code> <code><a href="frmtmb-families.html">tweedie()</a></code> <code><a href="frmtmb-families.html">compois()</a></code> <code><a href="frmtmb-families.html">zero_inflated_poisson()</a></code> <code><a href="frmtmb-families.html">zero_inflated_negbinomial()</a></code> <code><a href="frmtmb-families.html">hurdle_poisson()</a></code> <code><a href="frmtmb-families.html">multinomial()</a></code> <code><a href="frmtmb-families.html">cumulative()</a></code>
+          <code><a href="frmtmb-families.html">student()</a></code> <code><a href="frmtmb-families.html">lognormal()</a></code> <code><a href="frmtmb-families.html">negbinomial()</a></code> <code><a href="frmtmb-families.html">nbinom1()</a></code> <code><a href="frmtmb-families.html">Beta()</a></code> <code><a href="frmtmb-families.html">tweedie()</a></code> <code><a href="frmtmb-families.html">compois()</a></code> <code><a href="frmtmb-families.html">zero_inflated_poisson()</a></code> <code><a href="frmtmb-families.html">zero_inflated_negbinomial()</a></code> <code><a href="frmtmb-families.html">hurdle_poisson()</a></code> <code><a href="frmtmb-families.html">multinomial()</a></code> <code><a href="frmtmb-families.html">cumulative()</a></code> <code><a href="frmtmb-families.html">beta_binomial()</a></code> <code><a href="frmtmb-families.html">skew_normal()</a></code> <code><a href="frmtmb-families.html">exgaussian()</a></code>
 
         </dt>
         <dd>Additional response families</dd>
@@ -129,6 +130,13 @@
 
         <dt>
 
+          <code><a href="confint_varcorr.html">confint_varcorr()</a></code>
+
+        </dt>
+        <dd>Natural-scale confidence intervals for covariance parameters</dd>
+
+        <dt>
+
           <code><a href="diagnose.html">diagnose()</a></code>
 
         </dt>
@@ -143,6 +151,13 @@
 
         <dt>
 
+          <code><a href="residuals.frmtmb_fit.html">residuals(<i>&lt;frmtmb_fit&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Residuals from a frmtmb fit</dd>
+
+        <dt>
+
           <code><a href="anova.frmtmb_fit.html">anova(<i>&lt;frmtmb_fit&gt;</i>)</a></code>
 
         </dt>
@@ -154,6 +169,34 @@
 
         </dt>
         <dd>Sample from a frmtmb fit with tmbstan (NUTS)</dd>
+
+        <dt>
+
+          <code><a href="frm_sample.html">frm_sample()</a></code>
+
+        </dt>
+        <dd>Sample the fitted model with NUTS</dd>
+
+        <dt>
+
+          <code><a href="check_laplace.html">check_laplace()</a></code>
+
+        </dt>
+        <dd>Check the Laplace/Wald approximation against NUTS</dd>
+
+        <dt>
+
+          <code><a href="set_prior.html">set_prior()</a></code>
+
+        </dt>
+        <dd>Set up priors brms-style</dd>
+
+        <dt>
+
+          <code><a href="frmtmb-priors.html">prior_normal()</a></code> <code><a href="frmtmb-priors.html">prior_t()</a></code>
+
+        </dt>
+        <dd>Prior specifications for frm_sample</dd>
       </dl></div><div class="section level2">
       <h2 id="extractors-and-prediction">Extractors and prediction<a class="anchor" aria-label="anchor" href="#extractors-and-prediction"></a></h2>
 

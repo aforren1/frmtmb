@@ -1,6 +1,7 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>/404.html</loc></url>
 <url><loc>/articles/brms-migration.html</loc></url>
+<url><loc>/articles/diagnostics.html</loc></url>
 <url><loc>/articles/frmtmb.html</loc></url>
 <url><loc>/articles/index.html</loc></url>
 <url><loc>/authors.html</loc></url>
@@ -9,21 +10,26 @@
 <url><loc>/reference/as_tmbstan.html</loc></url>
 <url><loc>/reference/bf.html</loc></url>
 <url><loc>/reference/check_custom_family.html</loc></url>
+<url><loc>/reference/check_laplace.html</loc></url>
 <url><loc>/reference/confint.frmtmb_fit.html</loc></url>
+<url><loc>/reference/confint_varcorr.html</loc></url>
 <url><loc>/reference/dharma_residuals.html</loc></url>
 <url><loc>/reference/diagnose.html</loc></url>
 <url><loc>/reference/fixef.html</loc></url>
 <url><loc>/reference/frm.html</loc></url>
 <url><loc>/reference/frmtmb-families.html</loc></url>
 <url><loc>/reference/frmtmb-package.html</loc></url>
+<url><loc>/reference/frmtmb-priors.html</loc></url>
 <url><loc>/reference/frmtmb_control.html</loc></url>
 <url><loc>/reference/frmtmb_family.html</loc></url>
+<url><loc>/reference/frm_sample.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
 <url><loc>/reference/mvbf.html</loc></url>
 <url><loc>/reference/predict.frmtmb_fit.html</loc></url>
 <url><loc>/reference/ranef.html</loc></url>
 <url><loc>/reference/rescor_matrix.html</loc></url>
 <url><loc>/reference/residuals.frmtmb_fit.html</loc></url>
+<url><loc>/reference/set_prior.html</loc></url>
 <url><loc>/reference/simulate.frmtmb_fit.html</loc></url>
 <url><loc>/reference/VarCorr.html</loc></url>
 <url><loc>/reference/vcov.frmtmb_fit.html</loc></url>

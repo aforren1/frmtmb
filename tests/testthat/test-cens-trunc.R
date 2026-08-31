@@ -72,10 +72,13 @@ test_that("truncation matches a hand-rolled reference", {
 test_that("cens/trunc validation", {
   dd <- data.frame(y = rpois(50, 3), x = rnorm(50), cen = 0)
   expect_error(frm(bf(y | cens(cen) ~ x) + poisson(), data = dd),
-               "family with a CDF")
-  dd2 <- data.frame(y = rnorm(50), x = rnorm(50), cen = 2)
+               "discrete")
+  dd2 <- data.frame(y = rnorm(50), x = rnorm(50), cen = 3)
   expect_error(frm(bf(y | cens(cen) ~ x) + gaussian(), data = dd2),
                "codes")
+  dd3 <- data.frame(y = rnorm(50), x = rnorm(50), cen = 2)
+  expect_error(frm(bf(y | cens(cen) ~ x) + gaussian(), data = dd3),
+               "needs upper bounds")
   expect_error(frm(bf(y | trunc(0) ~ x) + gaussian(),
                    data = NULL, dry_run = "spec"),
                "named bounds")

@@ -14,6 +14,9 @@
 \alias{hurdle_poisson}
 \alias{multinomial}
 \alias{cumulative}
+\alias{beta_binomial}
+\alias{skew_normal}
+\alias{exgaussian}
 \title{Additional response families}
 \usage{
 student(link = "identity")
@@ -39,6 +42,12 @@ hurdle_poisson(link = "log")
 multinomial(K)
 
 cumulative(link = "logit")
+
+beta_binomial(link = "logit")
+
+skew_normal(link = "identity")
+
+exgaussian(link = "identity")
 }
 \arguments{
 \item{link}{Link for \code{mu}.}

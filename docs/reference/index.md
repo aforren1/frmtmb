@@ -24,7 +24,10 @@
   [`zero_inflated_negbinomial()`](frmtmb-families.md)
   [`hurdle_poisson()`](frmtmb-families.md)
   [`multinomial()`](frmtmb-families.md)
-  [`cumulative()`](frmtmb-families.md) : Additional response families
+  [`cumulative()`](frmtmb-families.md)
+  [`beta_binomial()`](frmtmb-families.md)
+  [`skew_normal()`](frmtmb-families.md)
+  [`exgaussian()`](frmtmb-families.md) : Additional response families
 - [`check_custom_family()`](check_custom_family.md) : Check a custom
   family's log-density for AD safety
 
@@ -32,13 +35,23 @@
 
 - [`confint(`*`<frmtmb_fit>`*`)`](confint.frmtmb_fit.md) : Confidence
   intervals for frmtmb fits
+- [`confint_varcorr()`](confint_varcorr.md) : Natural-scale confidence
+  intervals for covariance parameters
 - [`diagnose()`](diagnose.md) : Convergence diagnostics for a frmtmb fit
 - [`dharma_residuals()`](dharma_residuals.md) : DHARMa residual
   diagnostics
+- [`residuals(`*`<frmtmb_fit>`*`)`](residuals.frmtmb_fit.md) : Residuals
+  from a frmtmb fit
 - [`anova(`*`<frmtmb_fit>`*`)`](anova.frmtmb_fit.md) : Likelihood-ratio
   tests between nested frmtmb fits
 - [`as_tmbstan()`](as_tmbstan.md) : Sample from a frmtmb fit with
   tmbstan (NUTS)
+- [`frm_sample()`](frm_sample.md) : Sample the fitted model with NUTS
+- [`check_laplace()`](check_laplace.md) : Check the Laplace/Wald
+  approximation against NUTS
+- [`set_prior()`](set_prior.md) : Set up priors brms-style
+- [`prior_normal()`](frmtmb-priors.md) [`prior_t()`](frmtmb-priors.md) :
+  Prior specifications for frm_sample
 
 ## Extractors and prediction
 

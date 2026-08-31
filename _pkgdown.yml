@@ -20,10 +20,16 @@ reference:
 - title: Inference and diagnostics
   contents:
   - confint.frmtmb_fit
+  - confint_varcorr
   - diagnose
   - dharma_residuals
+  - residuals.frmtmb_fit
   - anova.frmtmb_fit
   - as_tmbstan
+  - frm_sample
+  - check_laplace
+  - set_prior
+  - frmtmb-priors
 - title: Extractors and prediction
   contents:
   - predict.frmtmb_fit
@@ -41,3 +47,4 @@ articles:
   contents:
   - frmtmb
   - brms-migration
+  - diagnostics

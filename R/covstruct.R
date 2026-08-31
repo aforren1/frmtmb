@@ -23,6 +23,7 @@ us_chol_cor <- function(theta_cor, d) {
 covstruct_registry <- list(
   us = list(
     npar = function(dim) dim + dim * (dim - 1L) / 2L,
+    sd_idx = function(dim) seq_len(dim),
     nll = function(b, theta, blk) {
       d <- blk$dim
       if (d == 1L) {
@@ -32,8 +33,10 @@ covstruct_registry <- list(
       C <- us_chol_cor(theta[-seq_len(d)], d)
       # RTMB::matrix, not base::matrix: base strips the advector class.
       Sigma <- C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
-      U <- t(RTMB::matrix(b, nrow = d))
-      sum(RTMB::dmvnorm(U, 0, Sigma, log = TRUE))
+      # dim<- (not matrix()) reshapes b: it preserves simref objects, so
+      # obj$simulate() can draw the block
+      dim(b) <- c(d, length(b) %/% d)
+      sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
     },
     vcov = function(theta, blk) {
       d <- blk$dim
@@ -51,6 +54,7 @@ covstruct_registry <- list(
   ),
   diag = list(
     npar = function(dim) dim,
+    sd_idx = function(dim) seq_len(dim),
     nll = function(b, theta, blk) {
       sdv <- rep(exp(theta), times = blk$n_levels)
       sum(RTMB::dnorm(b, 0, sdv, log = TRUE))
@@ -64,6 +68,7 @@ covstruct_registry <- list(
   ),
   homdiag = list(
     npar = function(dim) 1L,
+    sd_idx = function(dim) 1L,
     nll = function(b, theta, blk) {
       sum(RTMB::dnorm(b, 0, exp(theta), log = TRUE))
     },
@@ -78,6 +83,7 @@ covstruct_registry <- list(
   # parameterization: theta = (log sd, phi) with rho = phi/sqrt(1+phi^2).
   ar1 = list(
     npar = function(dim) 2L,
+    sd_idx = function(dim) 1L,
     nll = function(b, theta, blk) {
       "[<-" <- RTMB::ADoverload("[<-")
       d <- blk$dim
@@ -91,8 +97,8 @@ covstruct_registry <- list(
       M <- abs(outer(seq_len(d), seq_len(d), "-")) + 1L
       C <- RTMB::matrix(pows[as.vector(M)], d, d)
       Sigma <- sd1^2 * C
-      U <- t(RTMB::matrix(b, nrow = d))
-      sum(RTMB::dmvnorm(U, 0, Sigma, log = TRUE))
+      dim(b) <- c(d, length(b) %/% d)
+      sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
     },
     vcov = function(theta, blk) {
       d <- blk$dim
@@ -107,6 +113,7 @@ covstruct_registry <- list(
   # d log-sds plus one correlation mapped onto (-1/(d-1), 1).
   cs = list(
     npar = function(dim) dim + 1L,
+    sd_idx = function(dim) seq_len(dim),
     nll = function(b, theta, blk) {
       d <- blk$dim
       sdv <- exp(theta[seq_len(d)])
@@ -114,8 +121,8 @@ covstruct_registry <- list(
       rho <- -a + (1 + a) / (1 + exp(-theta[d + 1L]))
       C <- diag(d) * (1 - rho) + rho
       Sigma <- C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
-      U <- t(RTMB::matrix(b, nrow = d))
-      sum(RTMB::dmvnorm(U, 0, Sigma, log = TRUE))
+      dim(b) <- c(d, length(b) %/% d)
+      sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
     },
     vcov = function(theta, blk) {
       d <- blk$dim
@@ -129,6 +136,25 @@ covstruct_registry <- list(
     },
     start = function(dim) numeric(dim + 1L)
   )
+)
+
+# Known-covariance intercepts: b ~ N(0, sd^2 * A) with A a fixed matrix
+# over the grouping levels (phylogenetic, pedigree, spatial neighbor
+# structures) - brms (1 | gr(g, cov = A)). Correlation is ACROSS levels,
+# so the block is one multivariate observation. Dense solve: fine for
+# hundreds of levels, revisit (sparse precision) for thousands.
+covstruct_registry$gr_cov <- list(
+  npar = function(dim) 1L,
+  sd_idx = function(dim) 1L,
+  nll = function(b, theta, blk) {
+    Sigma <- exp(2 * theta[1]) * blk$aux_A
+    sum(RTMB::dmvnorm(b, 0, Sigma, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    matrix(exp(theta[1])^2, 1, 1,
+           dimnames = list(blk$cnms, blk$cnms))
+  },
+  start = function(dim) 0
 )
 
 # Smooth wiggly blocks are iid-Gaussian with one variance (the inverse

@@ -84,6 +84,116 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   ci
 }
 
+#' Natural-scale confidence intervals for covariance parameters
+#'
+#' Wald intervals for random-effect standard deviations (on the log
+#' scale, back-transformed) and correlations (on the Fisher-z scale,
+#' back-transformed), delta-method-propagated from the internal `theta`
+#' covariance. One row per SD and per correlation of every block.
+#'
+#' @param fit A `frmtmb_fit`.
+#' @param level Confidence level.
+#' @return A data frame with columns `block`, `term`, `type`,
+#'   `estimate`, `lwr`, `upr`.
+#' @export
+confint_varcorr <- function(fit, level = 0.95) {
+  sdr <- sdr_of(fit)
+  Vfull <- sdr$cov.fixed
+  th_pos <- which(rownames(Vfull) == "theta")
+  th <- fit$estimates$theta
+  z <- stats::qnorm(1 - (1 - level) / 2)
+  rows <- list()
+  for (bk in fit$frame$re_blocks) {
+    Vth <- Vfull[th_pos[bk$theta_idx], th_pos[bk$theta_idx],
+                 drop = FALSE]
+    t0 <- th[bk$theta_idx]
+    if (bk$covstruct == "smooth") {
+      se1 <- sqrt(Vth[1, 1])
+      rows[[length(rows) + 1L]] <- data.frame(
+        block = bk$term_label, term = "sd(wiggle)", type = "sd",
+        estimate = exp(t0[1]),
+        lwr = exp(t0[1] - z * se1), upr = exp(t0[1] + z * se1)
+      )
+      next
+    }
+    # g(theta): log-sds then atanh-correlations, via the block's vcov
+    gfun <- function(tt) {
+      V <- covstruct_registry[[bk$covstruct]]$vcov(tt, bk)
+      sds <- sqrt(diag(V))
+      out <- log(sds)
+      if (nrow(V) > 1) {
+        C <- stats::cov2cor(V)
+        out <- c(out, atanh(pmin(pmax(C[lower.tri(C)], -0.9999), 0.9999)))
+      }
+      out
+    }
+    g0 <- gfun(t0)
+    # numeric jacobian, central differences
+    J <- vapply(seq_along(t0), function(i) {
+      h <- 1e-5 * max(abs(t0[i]), 1)
+      tp <- t0; tp[i] <- tp[i] + h
+      tm <- t0; tm[i] <- tm[i] - h
+      (gfun(tp) - gfun(tm)) / (2 * h)
+    }, numeric(length(g0)))
+    J <- matrix(J, nrow = length(g0))
+    se_g <- sqrt(pmax(diag(J %*% Vth %*% t(J)), 0))
+
+    d <- bk$dim
+    sd_names <- if (bk$covstruct == "smooth") "sd(wiggle)" else bk$cnms
+    n_sd <- length(g0) - if (d > 1) d * (d - 1) / 2 else 0
+    for (i in seq_len(n_sd)) {
+      rows[[length(rows) + 1L]] <- data.frame(
+        block = bk$term_label,
+        term = if (bk$covstruct == "smooth") "sd(wiggle)" else
+          sd_names[min(i, length(sd_names))],
+        type = "sd",
+        estimate = exp(g0[i]),
+        lwr = exp(g0[i] - z * se_g[i]),
+        upr = exp(g0[i] + z * se_g[i])
+      )
+    }
+    if (d > 1 && bk$covstruct != "smooth") {
+      pairs <- which(lower.tri(diag(d)), arr.ind = TRUE)
+      for (k in seq_len(nrow(pairs))) {
+        i <- n_sd + k
+        rows[[length(rows) + 1L]] <- data.frame(
+          block = bk$term_label,
+          term = paste0("cor(", bk$cnms[pairs[k, 2]], ",",
+                        bk$cnms[pairs[k, 1]], ")"),
+          type = "cor",
+          estimate = tanh(g0[i]),
+          lwr = tanh(g0[i] - z * se_g[i]),
+          upr = tanh(g0[i] + z * se_g[i])
+        )
+      }
+    }
+  }
+  do.call(rbind, rows)
+}
+
+# Effective degrees of freedom of the smooth blocks: for an iid wiggly
+# block, edf = k - tr(posterior cov)/prior variance (the ridge identity).
+smooth_edf <- function(fit) {
+  blocks <- Filter(function(bk) bk$covstruct == "smooth",
+                   fit$frame$re_blocks)
+  if (!length(blocks)) return(NULL)
+  sdr <- sdr_of(fit)
+  dcr <- sdr$diag.cov.random
+  if (is.null(dcr)) return(NULL)
+  # par.random holds the `random` components in template order; b entries
+  # are the ones named "b"
+  b_pos <- which(names(sdr$par.random) == "b")
+  th <- fit$estimates$theta
+  out <- vapply(blocks, function(bk) {
+    prior_var <- exp(th[bk$theta_idx])^2
+    k <- bk$dim
+    # +1 null-space columns live in beta; conventionally reported as the
+    # penalized-part edf
+    k - sum(dcr[b_pos[bk$b_idx]]) / prior_var
+  }, numeric(1))
+  stats::setNames(out, vapply(blocks, `[[`, "", "term_label"))
+}
+
 #' Convergence diagnostics for a frmtmb fit
 #'
 #' @param fit A `frmtmb_fit`.

@@ -35,6 +35,12 @@ hurdle_poisson(link = "log")
 multinomial(K)
 
 cumulative(link = "logit")
+
+beta_binomial(link = "logit")
+
+skew_normal(link = "identity")
+
+exgaussian(link = "identity")
 ```
 
 ## Arguments

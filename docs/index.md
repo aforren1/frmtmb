@@ -8,7 +8,23 @@ TMB AD tape. No MCMC, no Stan, and no compilation at run time.
 
 ## Status
 
-Early development (v0.5). Current scope:
+Early development (v0.6). Current scope:
+
+- Diagnostics: [`diagnose()`](reference/diagnose.md) convergence
+  forensics, simulation-based residuals via DHARMa
+  ([`dharma_residuals()`](reference/dharma_residuals.md)), and
+  full-Bayes checks by handing the fitted objective to NUTS
+  ([`as_tmbstan()`](reference/as_tmbstan.md); bayesplot works on the
+  draws)
+
+- Robustness hardening mined from lme4/glmmTMB/brms issue history:
+  frozen data-dependent bases (poly/ns/scale), rank-deficient designs,
+  non-default contrasts, `na.exclude`, nested `(1 | a/b)` grouping, fits
+  that outlive their calling environment
+
+- Deferred `sdreport`: standard errors are computed on first use, which
+  cuts about a quarter off fit time in fit-and-predict or bootstrap
+  loops (`se = TRUE` restores eager behavior)
 
 - Nonlinear formulas (`nl = TRUE`): arbitrary R expressions over named
   parameters, each with the full predictor grammar

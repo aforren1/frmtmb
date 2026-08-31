@@ -59,6 +59,283 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
   invisible(TRUE)
 }
 
+#' Prior specifications for frm_sample
+#'
+#' Priors apply on the INTERNAL parameter scale: coefficients are on
+#' their link scale, and covariance parameters (`theta_*`) are the
+#' unconstrained parameterization (log-SDs, scaled-Cholesky terms), so
+#' `prior_normal(0, 1)` on `theta_1` is a lognormal prior on that SD.
+#'
+#' @param location,scale,df Prior parameters.
+#' @return A `frmtmb_prior` object.
+#' @name frmtmb-priors
+NULL
+
+#' @rdname frmtmb-priors
+#' @export
+prior_normal <- function(location = 0, scale = 1) {
+  stopifnot(scale > 0)
+  structure(list(kind = "normal", location = location, scale = scale),
+            class = "frmtmb_prior")
+}
+
+#' @rdname frmtmb-priors
+#' @export
+prior_t <- function(df = 3, location = 0, scale = 1) {
+  stopifnot(df > 0, scale > 0)
+  structure(list(kind = "t", df = df, location = location, scale = scale),
+            class = "frmtmb_prior")
+}
+
+# Resolve a named prior list to per-component index/parameter vectors.
+# Names may be individual parameters (as in outer_par_names()) or whole
+# components ("beta", "betad", "theta", "thetar").
+resolve_priors <- function(fit, priors) {
+  stopifnot(is.list(priors), !is.null(names(priors)))
+  tpl <- fit$frame$par_template
+  comp_names <- list()
+  for (cp in setdiff(names(tpl), "b")) {
+    v <- names(tpl[[cp]])
+    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
+    if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
+      v[fit$frame$betad_fixed_idx] <- NA   # mapped: no prior
+    }
+    comp_names[[cp]] <- v
+  }
+  entries <- list()
+  add <- function(comp, idx, pr) {
+    entries[[length(entries) + 1L]] <<- list(comp = comp, idx = idx,
+                                             prior = pr)
+  }
+  for (nm in names(priors)) {
+    pr <- priors[[nm]]
+    if (!inherits(pr, "frmtmb_prior")) {
+      stop("priors[['", nm, "']] must be a prior object ",
+           "(prior_normal(), prior_t())", call. = FALSE)
+    }
+    if (nm %in% names(comp_names)) {
+      idx <- which(!is.na(comp_names[[nm]]))
+      add(nm, idx, pr)
+      next
+    }
+    hit <- FALSE
+    for (cp in names(comp_names)) {
+      i <- which(comp_names[[cp]] == nm)
+      if (length(i)) {
+        add(cp, i, pr)
+        hit <- TRUE
+        break
+      }
+    }
+    if (!hit) {
+      stop("Unknown parameter in priors: '", nm, "'. Available: ",
+           paste(unlist(comp_names)[!is.na(unlist(comp_names))],
+                 collapse = ", "),
+           " or component names ",
+           paste(names(comp_names), collapse = ", "), call. = FALSE)
+    }
+  }
+  entries
+}
+
+# AD-safe negative log prior over resolved per-parameter entries
+# (each: comp, idx, dist, scale; see prior_logdens).
+neg_log_prior_fn <- function(entries) {
+  function(pars) {
+    nlp <- 0
+    for (e in entries) {
+      nlp <- nlp - sum(prior_logdens(pars[[e$comp]][e$idx], e$dist,
+                                     e$scale))
+    }
+    nlp
+  }
+}
+
+# Named bound specs -> full-length vectors over the outer parameters.
+resolve_bounds <- function(fit, lower, upper) {
+  nm <- outer_par_names(fit)
+  mk <- function(x, fill) {
+    out <- rep(fill, length(nm))
+    if (is.null(x)) return(out)
+    if (is.null(names(x)) || any(names(x) == "")) {
+      stop("Bounds must be named numeric vectors, e.g. ",
+           "lower = c(x = 0)", call. = FALSE)
+    }
+    bad <- setdiff(names(x), nm)
+    if (length(bad)) {
+      stop("Unknown parameter(s) in bounds: ",
+           paste(bad, collapse = ", "), ". Available: ",
+           paste(nm, collapse = ", "), call. = FALSE)
+    }
+    out[match(names(x), nm)] <- as.numeric(x)
+    out
+  }
+  list(lower = mk(lower, -Inf), upper = mk(upper, Inf))
+}
+
+# Retape the fit's objective with priors added; parameters start at the
+# ML estimates so sampling initializes at (near) the posterior mode.
+prior_augmented_obj <- function(fit, entries) {
+  nll <- build_objective(fit$frame)
+  nlp <- neg_log_prior_fn(entries)
+  RTMB::MakeADFun(function(pars) nll(pars) + nlp(pars),
+                  fit$estimates,
+                  random = if (!is.null(fit$frame$par_template$b)) "b",
+                  map = fit$frame$map, silent = TRUE)
+}
+
+# Labels for the full sampled parameter vector, in template order,
+# skipping mapped entries; b kept as b[i].
+all_par_labels <- function(fit, include_b = TRUE) {
+  tpl <- fit$frame$par_template
+  out <- character(0)
+  for (cp in names(tpl)) {
+    v <- names(tpl[[cp]])
+    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
+    if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
+      v <- v[-fit$frame$betad_fixed_idx]
+    }
+    if (cp == "b") {
+      if (!include_b) next
+      v <- paste0("b[", seq_along(tpl[[cp]]), "]")
+    }
+    out <- c(out, v)
+  }
+  out
+}
+
+#' Sample the fitted model with NUTS
+#'
+#' Runs [tmbstan::tmbstan()] on the fitted objective, initialized at the
+#' ML estimates (which shortens warmup considerably), and returns the
+#' draws with frmtmb coefficient names. Without priors this samples the
+#' likelihood with flat improper priors on the outer parameters - the
+#' random effects get their proper hierarchical Gaussian terms - so
+#' treat the result as an ML diagnostic (see [check_laplace()]) rather
+#' than a full Bayesian analysis; posteriors can be improper for
+#' variance components with few groups.
+#'
+#' @param fit A `frmtmb_fit`.
+#' @param ... Passed to [tmbstan::tmbstan()] (`chains`, `iter`, `laplace`,
+#'   `cores`, ...).
+#' @param priors Optional named list of priors (see [prior_normal()]);
+#'   names are parameter names as in the draws (or whole components:
+#'   `"beta"`, `"theta"`, ...). Parameters without a prior keep the flat
+#'   improper default. The objective is re-taped with the prior terms
+#'   added; the ML fit itself is unchanged.
+#' @param lower,upper Optional named numeric vectors of hard bounds on
+#'   outer parameters (brms `lb`/`ub`), applied on the internal scale
+#'   through Stan's constrained transforms.
+#' @param init Initialization; defaults to the ML mode.
+#' @return An object of class `frmtmb_draws`: list with the `stanfit`,
+#'   a draws matrix with named columns (`as.matrix()` method), and the
+#'   originating fit.
+#' @export
+frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
+                       upper = NULL, init = "last.par.best") {
+  if (!requireNamespace("tmbstan", quietly = TRUE) ||
+      !requireNamespace("rstan", quietly = TRUE)) {
+    stop("frm_sample() needs the 'tmbstan' and 'rstan' packages",
+         call. = FALSE)
+  }
+  pr_lower <- c()
+  pr_upper <- c()
+  obj <- fit$obj
+  # a MAP fit carries its priors into sampling unless overridden
+  priors <- priors %||% fit$priors
+  if (!is.null(priors)) {
+    ri <- resolve_prior_input(fit, priors)
+    if (length(ri$entries)) obj <- prior_augmented_obj(fit, ri$entries)
+    pr_lower <- ri$lower
+    pr_upper <- ri$upper
+  }
+  # explicit lower/upper override set_prior() bounds on overlap
+  lower <- utils::modifyList(as.list(pr_lower),
+                             as.list(lower %||% c()))
+  upper <- utils::modifyList(as.list(pr_upper),
+                             as.list(upper %||% c()))
+  args <- list(obj = obj, init = init, ...)
+  if (length(lower) || length(upper)) {
+    bounds <- resolve_bounds(fit, unlist(lower), unlist(upper))
+    args$lower <- bounds$lower
+    args$upper <- bounds$upper
+  }
+  sf <- do.call(tmbstan::tmbstan, args)
+  a <- rstan::extract(sf, permuted = FALSE)   # iter x chain x par
+  stan_names <- dimnames(a)[[3]]
+  labels <- all_par_labels(fit)
+  n_lab <- min(length(labels), length(stan_names))
+  stan_names[seq_len(n_lab)] <- labels[seq_len(n_lab)]
+  m <- do.call(rbind, lapply(seq_len(dim(a)[2]), function(ch) a[, ch, ]))
+  colnames(m) <- stan_names
+  structure(list(stanfit = sf, draws = m, fit = fit),
+            class = "frmtmb_draws")
+}
+
+#' @export
+as.matrix.frmtmb_draws <- function(x, ...) x$draws
+
+#' @export
+print.frmtmb_draws <- function(x, ...) {
+  m <- x$draws
+  keep <- setdiff(colnames(m),
+                  c("lp__", grep("^b\\[", colnames(m), value = TRUE)))
+  cat("<frmtmb_draws> ", nrow(m), " draws x ", ncol(m),
+      " parameters\n\n", sep = "")
+  tab <- t(vapply(keep, function(nm) {
+    c(mean = mean(m[, nm]), sd = stats::sd(m[, nm]),
+      `2.5%` = unname(stats::quantile(m[, nm], 0.025)),
+      `97.5%` = unname(stats::quantile(m[, nm], 0.975)))
+  }, numeric(4)))
+  print(signif(tab, 4))
+  invisible(x)
+}
+
+#' Check the Laplace/Wald approximation against NUTS
+#'
+#' Samples the fitted objective (see [frm_sample()]) and compares the ML
+#' estimates and sdreport standard errors against posterior means and
+#' SDs. Close agreement supports the Laplace approximation and Wald
+#' intervals; a posterior SD much larger than the Wald SE, or a shifted
+#' mean, flags parameters where they are unreliable (typically variance
+#' components with few groups).
+#'
+#' @param fit A `frmtmb_fit`.
+#' @param chains,iter Passed to [frm_sample()].
+#' @param ... Passed to [frm_sample()].
+#' @return A data frame (one row per outer parameter) with columns
+#'   `ml`, `post_mean`, `wald_se`, `post_sd`, `z_shift`
+#'   ((post_mean - ml)/post_sd) and `sd_ratio` (post_sd/wald_se).
+#' @export
+check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
+  ds <- frm_sample(fit, chains = chains, iter = iter, ...)
+  m <- ds$draws
+  keep <- setdiff(colnames(m),
+                  c("lp__", grep("^b\\[", colnames(m), value = TRUE)))
+  ml <- fit$opt$par
+  se <- sqrt(diag(sdr_of(fit)$cov.fixed))
+  stopifnot(length(ml) == length(keep))
+  post_mean <- colMeans(m[, keep, drop = FALSE])
+  post_sd <- apply(m[, keep, drop = FALSE], 2, stats::sd)
+  out <- data.frame(
+    parameter = keep,
+    ml = unname(ml),
+    post_mean = unname(post_mean),
+    wald_se = unname(se),
+    post_sd = unname(post_sd),
+    z_shift = unname((post_mean - ml) / post_sd),
+    sd_ratio = unname(post_sd / se),
+    row.names = NULL
+  )
+  flagged <- abs(out$z_shift) > 0.5 | out$sd_ratio > 1.5 |
+    out$sd_ratio < 2 / 3
+  if (any(flagged)) {
+    message("Laplace/Wald approximation questionable for: ",
+            paste(out$parameter[flagged], collapse = ", "))
+  }
+  out
+}
+
 #' Sample from a frmtmb fit with tmbstan (NUTS)
 #'
 #' Hands the fitted RTMB object to [tmbstan::tmbstan()]; from Stan's
@@ -92,6 +369,46 @@ emm_mu_linpred <- function(object) {
 }
 
 #' @exportS3Method emmeans::recover_data
+# marginaleffects support: the four extension generics plus the
+# class-whitelist option set in .onLoad. Predictions under set_coef are
+# conditional on the estimated random-effect modes (the glmmTMB/lmer
+# convention for delta-method slopes).
+
+#' @exportS3Method marginaleffects::get_coef
+get_coef.frmtmb_fit <- function(model, ...) {
+  est <- model$estimates
+  bd <- est$betad
+  if (length(model$frame$betad_fixed_idx)) {
+    bd <- bd[-model$frame$betad_fixed_idx]
+  }
+  stats::setNames(c(est$beta, bd), estimated_coef_names(model))
+}
+
+#' @exportS3Method marginaleffects::set_coef
+set_coef.frmtmb_fit <- function(model, coefs, ...) {
+  tpl <- model$frame$par_template
+  nb <- length(tpl$beta)
+  model$estimates$beta[] <- coefs[seq_len(nb)]
+  if (!is.null(tpl$betad)) {
+    keep <- setdiff(seq_along(tpl$betad), model$frame$betad_fixed_idx)
+    model$estimates$betad[keep] <- coefs[nb + seq_along(keep)]
+  }
+  model
+}
+
+#' @exportS3Method marginaleffects::get_vcov
+get_vcov.frmtmb_fit <- function(model, ...) {
+  vcov(model)
+}
+
+#' @exportS3Method marginaleffects::get_predict
+get_predict.frmtmb_fit <- function(model, newdata, type = "response",
+                                   ...) {
+  type <- if (identical(type, "link")) "link" else "response"
+  p <- predict(model, newdata = newdata, type = type)
+  data.frame(rowid = seq_along(p), estimate = as.numeric(p))
+}
+
 recover_data.frmtmb_fit <- function(object, ..., data = NULL) {
   lp <- emm_mu_linpred(object)
   emmeans::recover_data(object$call,

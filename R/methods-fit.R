@@ -23,7 +23,8 @@ print.frmtmb_fit <- function(x, ...) {
                           function(r) r$family$family, ""),
                    collapse = ", ")
   cat("Family:", fam_str, "  Method:",
-      if (x$REML) "REML" else "ML", "\n")
+      paste0(if (x$REML) "REML" else "ML",
+             if (!is.null(x$priors)) " (MAP)"), "\n")
   ll <- logLik(x)
   cat("logLik:", format(as.numeric(ll), digits = 6),
       " AIC:", format(stats::AIC(x), digits = 6),
@@ -68,6 +69,7 @@ summary.frmtmb_fit <- function(object, ...) {
          BIC = stats::BIC(object), REML = object$REML,
          coefficients = coefs, varcor = VarCorr(object),
          rescor = rescor_matrix(object),
+         smooth_edf = smooth_edf(object),
          extras = local({
            ex <- list()
            for (nm in object$frame$extra_names %||% character(0)) {
@@ -106,6 +108,10 @@ print.summary.frmtmb_fit <- function(x, ...) {
   if (!is.null(x$rescor)) {
     cat("\nResidual correlation:\n")
     print(signif(x$rescor, 4))
+  }
+  if (!is.null(x$smooth_edf)) {
+    cat("\nSmooth terms (edf of the penalized part):\n")
+    print(round(x$smooth_edf, 2))
   }
   for (nm in names(x$coefficients)) {
     if (nm %in% names(x$fixed_dpars)) next

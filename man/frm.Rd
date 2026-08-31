@@ -13,6 +13,9 @@ frm(
   control = frmtmb_control(),
   se = FALSE,
   na.action = stats::na.omit,
+  lower = NULL,
+  upper = NULL,
+  priors = NULL,
   dry_run = NULL
 )
 }
@@ -44,6 +47,18 @@ loops. The deferred report is cached, so nothing is computed twice.}
 
 \item{na.action}{How to handle missing values, as in \code{\link[stats:lm]{stats::lm()}}
 (default \link[stats:na.omit]{stats::na.omit}).}
+
+\item{lower, upper}{Optional named numeric vectors of hard box
+constraints on outer parameters (brms \code{lb}/\code{ub}), on the internal
+scale, e.g. \code{lower = c(b = 0)} for a nonlinear rate parameter.
+Names as in \code{confint()} rows.}
+
+\item{priors}{Optional \code{\link[=set_prior]{set_prior()}} specification. This makes the
+fit MAP / regularized ML (glmmTMB's \verb{priors=} in spirit): useful
+for stabilizing singular variance components or separating
+binomials. The reported logLik/AIC then include the prior terms
+and are penalized quantities, and \code{anova()} comparisons across
+different priors are meaningless.}
 
 \item{dry_run}{\code{"spec"} returns the parsed intermediate representation
 without touching \code{data}; \code{"frame"} returns the assembled design

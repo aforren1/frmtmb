@@ -23,6 +23,16 @@
 #'   loops. The deferred report is cached, so nothing is computed twice.
 #' @param na.action How to handle missing values, as in [stats::lm()]
 #'   (default [stats::na.omit]).
+#' @param lower,upper Optional named numeric vectors of hard box
+#'   constraints on outer parameters (brms `lb`/`ub`), on the internal
+#'   scale, e.g. `lower = c(b = 0)` for a nonlinear rate parameter.
+#'   Names as in `confint()` rows.
+#' @param priors Optional [set_prior()] specification. This makes the
+#'   fit MAP / regularized ML (glmmTMB's `priors=` in spirit): useful
+#'   for stabilizing singular variance components or separating
+#'   binomials. The reported logLik/AIC then include the prior terms
+#'   and are penalized quantities, and `anova()` comparisons across
+#'   different priors are meaningless.
 #' @param dry_run `"spec"` returns the parsed intermediate representation
 #'   without touching `data`; `"frame"` returns the assembled design
 #'   matrices and parameter template without fitting.
@@ -37,7 +47,8 @@
 #' @export
 frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 control = frmtmb_control(), se = FALSE,
-                na.action = stats::na.omit, dry_run = NULL) {
+                na.action = stats::na.omit, lower = NULL, upper = NULL,
+                priors = NULL, dry_run = NULL) {
   cl <- match.call()
   bform <- if (inherits(formula, c("frmtmb_formula", "frmtmb_mvformula"))) {
     formula
@@ -63,6 +74,26 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   if (identical(dry_run, "frame")) return(frame)
 
   nll <- build_objective(frame)
+  if (!is.null(priors)) {
+    # MAP / regularized ML: the optimized objective includes the prior
+    # terms, so logLik/AIC are penalized quantities - documented
+    ri <- resolve_prior_input(list(frame = frame, spec = spec), priors)
+    if (length(ri$entries)) {
+      nll0 <- nll
+      nlp <- neg_log_prior_fn(ri$entries)
+      nll <- function(pars) nll0(pars) + nlp(pars)
+    }
+    if (length(ri$lower)) {
+      lower <- utils::modifyList(as.list(ri$lower),
+                                 as.list(lower %||% c()))
+      lower <- unlist(lower)
+    }
+    if (length(ri$upper)) {
+      upper <- utils::modifyList(as.list(ri$upper),
+                                 as.list(upper %||% c()))
+      upper <- unlist(upper)
+    }
+  }
   template <- make_start(frame, start)
 
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
@@ -72,7 +103,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
 
   obj <- RTMB::MakeADFun(nll, template, random = random,
                          map = frame$map, silent = TRUE)
-  opt <- optimize_obj(obj, control)
+  bounds <- resolve_bounds(list(frame = frame, REML = REML), lower, upper)
+  opt <- optimize_obj(obj, control, bounds)
 
   # Estimates come cheaply from the parameter list at the optimum;
   # sdreport (a quarter of typical fit time) is computed on demand
@@ -83,7 +115,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   }
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
-         REML = REML, estimates = est,
+         REML = REML, estimates = est, priors = priors,
          bform = bform, call = cl,
          cache = new.env(parent = emptyenv())),
     class = "frmtmb_fit"
@@ -117,12 +149,16 @@ frmtmb_control <- function(optCtrl = list(iter.max = 1000, eval.max = 1000),
   list(optCtrl = optCtrl, restarts = restarts, grad_tol = grad_tol)
 }
 
-optimize_obj <- function(obj, control) {
-  opt <- stats::nlminb(obj$par, obj$fn, obj$gr, control = control$optCtrl)
+optimize_obj <- function(obj, control,
+                         bounds = list(lower = -Inf, upper = Inf)) {
+  opt <- stats::nlminb(obj$par, obj$fn, obj$gr, control = control$optCtrl,
+                       lower = bounds$lower, upper = bounds$upper)
   for (i in seq_len(control$restarts)) {
     g <- max(abs(obj$gr(opt$par)))
     if (is.finite(g) && g < control$grad_tol) break
-    opt2 <- stats::nlminb(opt$par, obj$fn, obj$gr, control = control$optCtrl)
+    opt2 <- stats::nlminb(opt$par, obj$fn, obj$gr,
+                          control = control$optCtrl,
+                          lower = bounds$lower, upper = bounds$upper)
     if (opt2$objective <= opt$objective) opt <- opt2
   }
   opt

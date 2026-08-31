@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/brms-migration.html">frmtmb for brms users</a></li>
+    <li><a class="dropdown-item" href="articles/diagnostics.html">Model diagnostics</a></li>
   </ul>
 </li>
       </ul>
@@ -58,8 +59,11 @@
 <div class="section level2">
 <h2 id="status">Status<a class="anchor" aria-label="anchor" href="#status"></a>
 </h2>
-<p>Early development (v0.5). Current scope:</p>
+<p>Early development (v0.6). Current scope:</p>
 <ul>
+<li><p>Diagnostics: <code><a href="reference/diagnose.html">diagnose()</a></code> convergence forensics, simulation-based residuals via DHARMa (<code><a href="reference/dharma_residuals.html">dharma_residuals()</a></code>), and full-Bayes checks by handing the fitted objective to NUTS (<code><a href="reference/as_tmbstan.html">as_tmbstan()</a></code>; bayesplot works on the draws)</p></li>
+<li><p>Robustness hardening mined from lme4/glmmTMB/brms issue history: frozen data-dependent bases (poly/ns/scale), rank-deficient designs, non-default contrasts, <code>na.exclude</code>, nested <code>(1 | a/b)</code> grouping, fits that outlive their calling environment</p></li>
+<li><p>Deferred <code>sdreport</code>: standard errors are computed on first use, which cuts about a quarter off fit time in fit-and-predict or bootstrap loops (<code>se = TRUE</code> restores eager behavior)</p></li>
 <li><p>Nonlinear formulas (<code>nl = TRUE</code>): arbitrary R expressions over named parameters, each with the full predictor grammar (<code>bf(y ~ a * exp(-b * x), a ~ 1 + (1 | g), b ~ 1, nl = TRUE)</code>)</p></li>
 <li><p>Custom families as plain R functions (<code><a href="reference/frmtmb_family.html">custom_family()</a></code>), with an AD safety checker (<code><a href="reference/check_custom_family.html">check_custom_family()</a></code>)</p></li>
 <li><p>Ordinal regression: <code>cumulative(logit/probit)</code> with ordered thresholds, ordered-factor responses, random effects</p></li>

@@ -4,18 +4,30 @@
 \alias{residuals.frmtmb_fit}
 \title{Residuals from a frmtmb fit}
 \usage{
-\method{residuals}{frmtmb_fit}(object, type = c("response", "pearson"), ...)
+\method{residuals}{frmtmb_fit}(
+  object,
+  type = c("response", "pearson", "osa"),
+  osa_method = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
-\item{type}{\code{"response"} or \code{"pearson"}.}
+\item{type}{\code{"response"}, \code{"pearson"}, or \code{"osa"}.}
 
-\item{...}{Unused.}
+\item{osa_method}{Method for \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}; defaults to
+\code{"fullGaussian"} for gaussian models and \code{"oneStepGeneric"}
+otherwise.}
+
+\item{...}{For \code{type = "osa"}: passed to \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}.}
 }
 \value{
 A numeric vector.
 }
 \description{
-Residuals from a frmtmb fit
+\code{"osa"} gives one-step-ahead (conditional quantile) residuals via
+\code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}: standard-normal under a correctly specified
+model, valid under correlated observations where pearson residuals
+mislead.
 }

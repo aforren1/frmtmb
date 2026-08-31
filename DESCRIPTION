@@ -1,6 +1,6 @@
 Package: frmtmb
 Title: Formula-Based Regression Models via 'RTMB'
-Version: 0.6.0
+Version: 0.10.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"))
@@ -22,8 +22,10 @@ Imports:
     mgcv,
     reformulas (>= 0.4.4),
     RTMB (>= 1.9),
+    RTMBdist (>= 1.0.6),
     stats,
-    TMB
+    TMB,
+    utils
 Suggests:
     bayesplot,
     DHARMa,
@@ -31,6 +33,7 @@ Suggests:
     glmmTMB,
     knitr,
     lme4,
+    marginaleffects,
     MASS,
     nnet,
     rmarkdown,

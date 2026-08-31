@@ -1,0 +1,142 @@
+# Model diagnostics
+
+Diagnostics for a frmtmb fit answer three separate questions: did the
+optimizer find a real optimum, does the fitted family describe the data,
+and are the reported uncertainties trustworthy. Each has its own tool.
+
+``` r
+
+library(frmtmb)
+set.seed(1)
+n <- 400
+dd <- data.frame(x = rnorm(n), g = factor(rep(1:20, n / 20)))
+dd$y <- rpois(n, exp(0.5 + 0.4 * dd$x + rnorm(20, 0, 0.5)[dd$g]))
+fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+```
+
+## Did the optimizer converge?
+
+[`diagnose()`](../reference/diagnose.md) reports the convergence code,
+the largest gradient component at the optimum, whether the Hessian is
+positive definite, and covariance parameters near a boundary (a variance
+component collapsing to zero is the common case):
+
+``` r
+
+diagnose(fit)
+#> Optimizer convergence code: 0 (relative convergence (4)) 
+#> Max |gradient|: 6.943e-05 at (Intercept) 
+#> Hessian positive definite: TRUE 
+#> No convergence problems detected
+```
+
+## Does the family fit the data?
+
+Three residual types, in increasing order of statistical care:
+
+- `residuals(fit)` is response-scale (`y - E[y]`), in the response’s
+  units. Good for effect-size intuition, useless as a distributional
+  check for counts.
+- `residuals(fit, type = "pearson")` standardizes by the family
+  variance.
+- `residuals(fit, type = "osa")` gives one-step-ahead quantile residuals
+  via \[TMB::oneStepPredict()\]: each observation’s CDF position given
+  the previous ones, mapped through the normal quantile function. They
+  are standard normal under a correctly specified model regardless of
+  family, and remain valid under correlated observations, where pearson
+  residuals mislead.
+
+``` r
+
+r <- residuals(fit, type = "osa")
+qqnorm(r); abline(0, 1)
+```
+
+![](diagnostics_files/figure-html/unnamed-chunk-4-1.png)
+
+Simulation-based residuals through DHARMa cover the same ground with a
+richer test suite (dispersion, zero-inflation, outliers) and better
+plots:
+
+``` r
+
+dh <- dharma_residuals(fit, nsim = 200, seed = 1)
+plot(dh)
+```
+
+![](diagnostics_files/figure-html/unnamed-chunk-5-1.png)
+
+``` r
+
+DHARMa::testDispersion(dh, plot = FALSE)
+#> 
+#>  DHARMa nonparametric dispersion test via sd of residuals fitted vs.
+#>  simulated
+#> 
+#> data:  simulationOutput
+#> dispersion = 1.0486, p-value = 0.59
+#> alternative hypothesis: two.sided
+```
+
+A misspecified model shows up immediately; here the same data fit
+without the group effect is overdispersed:
+
+``` r
+
+fit_bad <- frm(bf(y ~ x) + poisson(), data = dd)
+DHARMa::testDispersion(dharma_residuals(fit_bad, nsim = 200, seed = 1),
+                       plot = FALSE)
+#> 
+#>  DHARMa nonparametric dispersion test via sd of residuals fitted vs.
+#>  simulated
+#> 
+#> data:  simulationOutput
+#> dispersion = 1.661, p-value < 2.2e-16
+#> alternative hypothesis: two.sided
+```
+
+## Are the standard errors trustworthy?
+
+Wald standard errors and the Laplace approximation share failure modes:
+variance components with few groups, binary data with tiny clusters.
+[`check_laplace()`](../reference/check_laplace.md) samples the fitted
+objective with NUTS (initialized at the ML mode) and compares posterior
+means and SDs against the ML estimates and Wald SEs; large `z_shift` or
+`sd_ratio` far from 1 flags parameters where Wald intervals should not
+be trusted - use `confint(method = "profile")` or the posterior itself
+for those.
+
+``` r
+
+check_laplace(fit, chains = 2, iter = 1000)
+```
+
+The drawn posterior is also a diagnostic object in its own right;
+bayesplot works on the draws:
+
+``` r
+
+ds <- frm_sample(fit, chains = 4,
+                 priors = set_prior("normal(0, 5)", class = "b") +
+                   set_prior("exponential(1)", class = "sd"))
+bayesplot::mcmc_intervals(as.matrix(ds),
+                          pars = c("(Intercept)", "x"))
+```
+
+Without priors, [`frm_sample()`](../reference/frm_sample.md) samples
+with flat improper priors on the internal parameters; fine as a
+diagnostic, fragile as inference. Supply priors (brms-style
+[`set_prior()`](../reference/set_prior.md)) for anything more.
+
+## Variance components on their natural scale
+
+[`confint_varcorr()`](../reference/confint_varcorr.md) reports
+random-effect SDs and correlations with delta-method intervals on
+interpretable scales:
+
+``` r
+
+confint_varcorr(fit)
+#>             block        term type  estimate       lwr       upr
+#> (Intercept) 1 | g (Intercept)   sd 0.4783034 0.3383263 0.6761937
+```

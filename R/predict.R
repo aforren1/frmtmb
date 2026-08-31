@@ -396,16 +396,38 @@ fitted.frmtmb_fit <- function(object, ...) {
 
 #' Residuals from a frmtmb fit
 #'
+#' `"osa"` gives one-step-ahead (conditional quantile) residuals via
+#' [TMB::oneStepPredict()]: standard-normal under a correctly specified
+#' model, valid under correlated observations where pearson residuals
+#' mislead.
+#'
 #' @param object A `frmtmb_fit`.
-#' @param type `"response"` or `"pearson"`.
-#' @param ... Unused.
+#' @param type `"response"`, `"pearson"`, or `"osa"`.
+#' @param osa_method Method for [TMB::oneStepPredict()]; defaults to
+#'   `"fullGaussian"` for gaussian models and `"oneStepGeneric"`
+#'   otherwise.
+#' @param ... For `type = "osa"`: passed to [TMB::oneStepPredict()].
 #' @return A numeric vector.
 #' @export
-residuals.frmtmb_fit <- function(object, type = c("response", "pearson"),
-                                 ...) {
+residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
+                                                  "osa"),
+                                 osa_method = NULL, ...) {
   type <- match.arg(type)
   rspec <- uni_resp(object, "residuals()")
   fam <- rspec$family
+  if (type == "osa") {
+    method <- osa_method %||%
+      if (identical(fam$family, "gaussian")) "fullGaussian" else
+        "oneStepGeneric"
+    args <- list(obj = object$obj, observation.name = ".frm_obs",
+                 method = method, trace = FALSE, ...)
+    if (method == "oneStepGeneric") {
+      args$discrete <- identical(fam$type, "discrete")
+      if (args$discrete && is.null(args$range)) args$range <- c(0, Inf)
+    }
+    osa <- do.call(RTMB::oneStepPredict, args)
+    return(napred(object, osa$residual))
+  }
   dp <- eval_dpars(object)[[rspec$resp_name]]
   mu <- if (!is.null(fam$post$mean_fn)) {
     fam$post$mean_fn(dp, object$frame$aterm_values[[rspec$resp_name]])
@@ -429,6 +451,13 @@ draw_b <- function(fit) {
   th <- fit$estimates$theta
   b <- numeric(length(fit$estimates[["b"]] %||% numeric(0)))
   for (bk in fit$frame$re_blocks) {
+    if (bk$covstruct == "gr_cov") {
+      # correlation is across levels, not within them
+      Sigma <- exp(th[bk$theta_idx])^2 * bk$aux_A
+      b[bk$b_idx] <- drop(crossprod(chol(Sigma),
+                                    stats::rnorm(bk$n_levels)))
+      next
+    }
     V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
     L <- chol(V)
     U <- matrix(stats::rnorm(bk$n_levels * bk$dim), bk$n_levels) %*% L

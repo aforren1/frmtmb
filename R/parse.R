@@ -31,6 +31,14 @@ parse_response <- function(formula) {
         }
         if (!is.null(args$lb)) aterms$trunc_lb <- args$lb
         if (!is.null(args$ub)) aterms$trunc_ub <- args$ub
+      } else if (nm == "cens") {
+        args <- as.list(tm)[-1]
+        if (length(args) < 1 || length(args) > 2) {
+          stop("cens() takes the censoring code and optionally interval ",
+               "upper bounds: cens(c) or cens(c, y2)", call. = FALSE)
+        }
+        aterms$cens <- args[[1]]
+        if (length(args) == 2) aterms$cens_y2 <- args[[2]]
       } else {
         if (length(tm) != 2) {
           stop("`", nm, "()` takes exactly one argument", call. = FALSE)
@@ -92,6 +100,7 @@ parse_linpred <- function(rhs_form, env) {
     # brms |ID| syntax: (x | p | g) parses as ((x | p) | g); the middle
     # element keys random-effect correlation across formulas
     id <- NULL
+    cov_expr <- NULL
     if (is.call(bar[[2]]) && identical(bar[[2]][[1]], as.name("|"))) {
       if (cls != "us") {
         stop("|ID| correlation is only supported for default (us) ",
@@ -100,7 +109,21 @@ parse_linpred <- function(rhs_form, env) {
       id <- paste0(deparse1(bar[[2]][[3]]), "|", deparse1(bar[[3]]))
       bar <- call("|", bar[[2]][[2]], bar[[3]])
     }
-    list(bar = bar, group = bar[[3]], covstruct = cls, id = id)
+    # brms (1 | gr(g, cov = A)): known covariance over the levels
+    if (is.call(bar[[3]]) && identical(bar[[3]][[1]], as.name("gr"))) {
+      ga <- as.list(bar[[3]])[-1]
+      nms <- names(ga) %||% rep("", length(ga))
+      gvar <- ga[nms == ""]
+      if (length(gvar) != 1 || is.null(ga$cov) ||
+          !all(nms %in% c("", "cov"))) {
+        stop("gr() supports the form (1 | gr(g, cov = A))", call. = FALSE)
+      }
+      cov_expr <- ga$cov
+      bar <- call("|", bar[[2]], gvar[[1]])
+      cls <- "gr_cov"
+    }
+    list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
+         cov_expr = cov_expr)
   }, sf$reTrmFormulas, sf$reTrmClasses)
   names(re) <- vapply(re, function(z) deparse1(z$bar), "")
 

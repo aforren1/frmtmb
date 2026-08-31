@@ -15,6 +15,9 @@ frm(
   control = frmtmb_control(),
   se = FALSE,
   na.action = stats::na.omit,
+  lower = NULL,
+  upper = NULL,
+  priors = NULL,
   dry_run = NULL
 )
 ```
@@ -65,6 +68,22 @@ frm(
   How to handle missing values, as in
   [`stats::lm()`](https://rdrr.io/r/stats/lm.html) (default
   [stats::na.omit](https://rdrr.io/r/stats/na.fail.html)).
+
+- lower, upper:
+
+  Optional named numeric vectors of hard box constraints on outer
+  parameters (brms `lb`/`ub`), on the internal scale, e.g.
+  `lower = c(b = 0)` for a nonlinear rate parameter. Names as in
+  [`confint()`](https://rdrr.io/r/stats/confint.html) rows.
+
+- priors:
+
+  Optional [`set_prior()`](set_prior.md) specification. This makes the
+  fit MAP / regularized ML (glmmTMB's `priors=` in spirit): useful for
+  stabilizing singular variance components or separating binomials. The
+  reported logLik/AIC then include the prior terms and are penalized
+  quantities, and [`anova()`](https://rdrr.io/r/stats/anova.html)
+  comparisons across different priors are meaningless.
 
 - dry_run:
 

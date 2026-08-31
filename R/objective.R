@@ -84,7 +84,9 @@ build_objective <- function(frame) {
         # would collide on "y[[r]]" and silently swap data. Univariate
         # fits only; it also has no matrix method.
         yobs <- if (length(resps) == 1L && !is.matrix(y[[r]])) {
-          RTMB::OBS(y[[r]])
+          # a stable symbol gives OSA machinery its observation.name
+          .frm_obs <- y[[r]]
+          RTMB::OBS(.frm_obs)
         } else {
           y[[r]]
         }
@@ -101,15 +103,31 @@ build_objective <- function(frame) {
           Fv <- fam$lcdf(y[[r]], dparv[[r]], atv[[r]])
           i_r <- which(cen == 1)
           i_l <- which(cen == -1)
+          i_i <- which(cen == 2)
           if (length(i_r)) ll[i_r] <- log(1 - Fv[i_r])
           if (length(i_l)) ll[i_l] <- log(Fv[i_l])
+          if (length(i_i)) {
+            F2 <- fam$lcdf(atv[[r]]$cens_y2, dparv[[r]], atv[[r]])
+            ll[i_i] <- log(F2[i_i] - Fv[i_i])
+          }
         }
         if (!is.null(atv[[r]]$trunc_lb) || !is.null(atv[[r]]$trunc_ub)) {
+          disc <- identical(fam$type, "discrete")
+          lb <- atv[[r]]$trunc_lb
+          if (!is.null(lb) && disc) {
+            # inclusive lower bound: P(lb <= Y <= ub) needs F(lb - 1)
+            # (brms#1903 off-by-one)
+            if (any(lb < 1)) {
+              stop("Discrete truncation needs lb >= 1 (lb = 0 is no ",
+                   "truncation)", call. = FALSE)
+            }
+            lb <- lb - 1
+          }
           Fub <- if (!is.null(atv[[r]]$trunc_ub)) {
             fam$lcdf(atv[[r]]$trunc_ub, dparv[[r]], atv[[r]])
           } else 1
-          Flb <- if (!is.null(atv[[r]]$trunc_lb)) {
-            fam$lcdf(atv[[r]]$trunc_lb, dparv[[r]], atv[[r]])
+          Flb <- if (!is.null(lb)) {
+            fam$lcdf(lb, dparv[[r]], atv[[r]])
           } else 0
           ll <- ll - log(Fub - Flb)
         }
