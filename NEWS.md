@@ -17,8 +17,15 @@
   `simulate()` now draws one class per group and then simulates each
   observation from its group's component; `mixture_probs()` gives
   empirical-Bayes classification conditional on the modes.
+* `variables()` (brms spelling): lists every parameter name usable in
+  `hypothesis()` expressions (coefficients, `sd_`/`cor_` summaries,
+  `sigma`); on `frm_sample()` output it lists the draw columns.
+* `get_prior()` (brms spelling): enumerates every slot `set_prior()`
+  can target (class/coef/dpar/group rows), from a formula plus data
+  or from a fit; the default in every slot is flat.
 * README rewritten for the current scope, with related-work pointers
-  (glmmTMB, BayesRTMB).
+  (glmmTMB, BayesRTMB); getting-started vignette extended to the full
+  grammar; SPEC.md status and deviations brought current.
 
 # frmtmb 0.18.0
 

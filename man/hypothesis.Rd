@@ -64,6 +64,7 @@ row names with parentheses stripped (\code{Intercept}, \code{x},
 \verb{sd_<group>__<term>} and \verb{cor_<group>__<t1>__<t2>} (brms naming),
 and \code{sigma} when the residual SD is a scalar. So an ICC is
 \code{"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"}.
+\code{\link[=variables]{variables()}} lists every usable name for a fit.
 
 Methods:
 \itemize{

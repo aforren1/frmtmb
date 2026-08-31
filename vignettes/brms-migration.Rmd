@@ -73,7 +73,8 @@ the stats/lme4 spelling for standard generics:
   covers), `hypothesis()` (a delta-method Wald test here),
   `pp_check()` (simulate-based, through bayesplot's `ppc_*`
   functions), `prior_summary()`, `fixef()`, `ranef()`, `VarCorr()`,
-  `ngrps()`.
+  `ngrps()`, `variables()` (the usable parameter names, e.g.
+  `sd_Subject__Days`).
 - stats-origin generics follow stats/lme4/glmmTMB, not brms:
   `predict()` returns a vector (with `se.fit = TRUE`, a list), not a
   draws matrix with `Estimate`/`Q2.5` columns; `fitted()` and

@@ -116,6 +116,101 @@ print.frmtmb_priorlist <- function(x, ...) {
   invisible(x)
 }
 
+#' Enumerate the targetable prior slots
+#'
+#' The [set_prior()] counterpart of brms's `get_prior()`: one row per
+#' slot a prior can target, with the class/coef/dpar/group values to
+#' pass to `set_prior()`. The default in every slot is flat (this is
+#' maximum likelihood until priors are set). Class `"sd"` is targeted
+#' by `group` only; class `"theta"` rows name the raw internal
+#' covariance parameters (escape hatch, including correlations).
+#'
+#' @param formula A `bf()` formula (with family), a plain formula, or
+#'   an already fitted `frmtmb_fit`.
+#' @param data Model data (ignored when `formula` is a fit).
+#' @param family Family, when `formula` does not carry one.
+#' @return A data frame with columns `prior`, `class`, `coef`,
+#'   `group`, `dpar`, `resp`, `lb`, `ub`.
+#' @examples
+#' dd <- data.frame(y = rnorm(60), x = rnorm(60),
+#'                  g = factor(rep(1:6, 10)))
+#' get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#' @export
+get_prior <- function(formula, data = NULL, family = NULL) {
+  if (inherits(formula, "frmtmb_fit")) {
+    spec <- formula$spec
+    frame <- formula$frame
+  } else {
+    bform <- if (inherits(formula,
+                          c("frmtmb_formula", "frmtmb_mvformula"))) {
+      formula
+    } else {
+      bf(formula)
+    }
+    if (!is.null(family)) {
+      fam <- as_frmtmb_family(family)
+      if (inherits(bform, "frmtmb_mvformula")) {
+        bform$forms <- lapply(bform$forms, function(f) {
+          if (is.null(f$family)) f$family <- fam
+          f
+        })
+      } else {
+        bform$family <- fam
+      }
+    }
+    spec <- parse_spec(bform)
+    frame <- assemble_frame(spec, data)
+  }
+
+  multi <- length(spec$responses) > 1L
+  rows <- list()
+  add <- function(class, coef = "", group = "", dpar = "", resp = "") {
+    rows[[length(rows) + 1L]] <<- data.frame(
+      prior = "(flat)", class = class, coef = coef, group = group,
+      dpar = dpar, resp = resp, lb = NA_real_, ub = NA_real_
+    )
+  }
+
+  for (lp in frame$linpreds) {
+    if (!is.null(lp$constant) || !is.null(lp$nl_body)) next
+    rspec <- spec$responses[[lp$resp]]
+    # location dpars are the default target (dpar = ""), matching
+    # set_prior()'s resolution
+    dpar_lab <- if (lp$dpar %in% rspec$primary_dpars) "" else lp$dpar
+    resp_lab <- if (multi) lp$resp else ""
+    cn <- colnames(lp$X)
+    if ("(Intercept)" %in% cn) {
+      add("Intercept", dpar = dpar_lab, resp = resp_lab)
+    }
+    others <- setdiff(cn, "(Intercept)")
+    if (length(others)) {
+      add("b", dpar = dpar_lab, resp = resp_lab)
+      for (co in others) {
+        add("b", coef = co, dpar = dpar_lab, resp = resp_lab)
+      }
+    }
+  }
+
+  sd_groups <- character(0)
+  for (bk in frame$re_blocks) {
+    sd_i <- covstruct_registry[[bk$covstruct]]$sd_idx(bk$dim)
+    if (length(sd_i)) sd_groups <- c(sd_groups, bk$group_name)
+  }
+  if (length(sd_groups)) {
+    add("sd")
+    for (g in unique(sd_groups)) add("sd", group = g)
+  }
+  n_th <- length(frame$par_template$theta %||% numeric(0))
+  if (n_th) {
+    add("theta")
+    for (i in seq_len(n_th)) add("theta", coef = paste0("theta_", i))
+  }
+
+  out <- unique(do.call(rbind, rows))
+  rownames(out) <- NULL
+  out
+}
+
 # Resolve a priorlist against a fit: per-parameter prior entries (later
 # specs override earlier) plus named bound vectors.
 # Entry: comp, idx (scalar), dist, scale ("internal" or "sd").

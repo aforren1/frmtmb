@@ -126,7 +126,8 @@ row names with parentheses stripped (<code>Intercept</code>, <code>x</code>,
 <code>sigma_Intercept</code>, ...), natural-scale random-effect summaries
 <code>sd_&lt;group&gt;__&lt;term&gt;</code> and <code>cor_&lt;group&gt;__&lt;t1&gt;__&lt;t2&gt;</code> (brms naming),
 and <code>sigma</code> when the residual SD is a scalar. So an ICC is
-<code>"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</code>.</p>
+<code>"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</code>.
+<code><a href="variables.html">variables()</a></code> lists every usable name for a fit.</p>
 <p>Methods:</p><ul><li><p><code>"wald"</code> (default): delta-method z-test, finite-difference
 gradient against the joint parameter covariance (under REML, from
 the joint precision).</p></li>

@@ -58,6 +58,43 @@ test_that("latent classes with class-specific intercept REs work", {
                stats::sd(tapply(dd$y, dd$g, mean)), tolerance = 0.25)
 })
 
+test_that("variables() lists the usable parameter names", {
+  skip_if_not_installed("lme4")
+  data(sleepstudy, package = "lme4")
+  fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
+             data = sleepstudy)
+  v <- variables(fit)
+  expect_true(all(c("Intercept", "Days", "sigma_Intercept",
+                    "sd_Subject__Intercept", "sd_Subject__Days",
+                    "cor_Subject__Intercept__Days", "sigma") %in% v))
+  # every listed name is accepted by hypothesis()
+  h <- hypothesis(fit, v[1])
+  expect_true(is.finite(h$estimate))
+})
+
+test_that("get_prior enumerates slots set_prior accepts", {
+  dd <- data.frame(y = rnorm(60), x = rnorm(60),
+                   g = factor(rep(1:6, 10)))
+  gp <- get_prior(bf(y ~ x + (x | g), sigma ~ x) + gaussian(),
+                  data = dd)
+  expect_setequal(unique(gp$class), c("Intercept", "b", "sd", "theta"))
+  expect_true("x" %in% gp$coef[gp$class == "b" & gp$dpar == ""])
+  expect_true("x" %in% gp$coef[gp$class == "b" & gp$dpar == "sigma"])
+  expect_true("g" %in% gp$group[gp$class == "sd"])
+  # (x | g) us block: two log-sds plus one correlation parameter
+  expect_equal(sum(gp$class == "theta" & nzchar(gp$coef)), 3L)
+
+  # every concrete slot round-trips through set_prior into a MAP fit
+  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+  gp2 <- get_prior(fit)
+  pr <- set_prior("normal(0, 2)", class = "b", coef = "x") +
+    set_prior("exponential(1)", class = "sd", group = "g")
+  fmap <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+              priors = pr)
+  expect_s3_class(fmap, "frmtmb_fit")
+  expect_true(all(c("b", "sd") %in% gp2$class))
+})
+
 test_that("quadrature is exact for a univariate class-RE integrand", {
   s <- sim_lcm(seed = 29)
   dd <- s$dd

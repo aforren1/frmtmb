@@ -29,6 +29,7 @@ reference:
   - confint_varcorr
   - profile.frmtmb_fit
   - hypothesis
+  - variables
   - frm_bootstrap
   - diagnose
   - dharma_residuals
@@ -42,6 +43,7 @@ reference:
   - check_laplace
   - influence.frmtmb_fit
   - set_prior
+  - get_prior
   - frmtmb-priors
   - prior_summary
 - title: Extractors and prediction

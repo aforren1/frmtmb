@@ -81,6 +81,7 @@ random-effect summaries `sd_<group>__<term>` and
 `cor_<group>__<t1>__<t2>` (brms naming), and `sigma` when the residual
 SD is a scalar. So an ICC is
 `"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"`.
+[`variables()`](variables.md) lists every usable name for a fit.
 
 Methods:
 

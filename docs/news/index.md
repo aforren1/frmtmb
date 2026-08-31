@@ -20,8 +20,19 @@
   class per group and then simulates each observation from its group’s
   component; [`mixture_probs()`](../reference/mixture_probs.md) gives
   empirical-Bayes classification conditional on the modes.
+- [`variables()`](../reference/variables.md) (brms spelling): lists
+  every parameter name usable in
+  [`hypothesis()`](../reference/hypothesis.md) expressions
+  (coefficients, `sd_`/`cor_` summaries, `sigma`); on
+  [`frm_sample()`](../reference/frm_sample.md) output it lists the draw
+  columns.
+- [`get_prior()`](../reference/get_prior.md) (brms spelling): enumerates
+  every slot [`set_prior()`](../reference/set_prior.md) can target
+  (class/coef/dpar/group rows), from a formula plus data or from a fit;
+  the default in every slot is flat.
 - README rewritten for the current scope, with related-work pointers
-  (glmmTMB, BayesRTMB).
+  (glmmTMB, BayesRTMB); getting-started vignette extended to the full
+  grammar; SPEC.md status and deviations brought current.
 
 ## frmtmb 0.18.0
 

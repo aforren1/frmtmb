@@ -240,6 +240,12 @@ as_draws.frmtmb_draws <- function(x, ...) {
   posterior::as_draws_matrix(x$draws)
 }
 
+#' @rdname variables
+#' @export
+variables.frmtmb_draws <- function(x, ...) {
+  colnames(x$draws)
+}
+
 #' @export
 as.data.frame.frmtmb_draws <- function(x, ...) {
   as.data.frame(x$draws)

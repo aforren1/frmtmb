@@ -87,6 +87,18 @@ purely-conditional `postVar`.
   parameters to 0.01; quadrature exact for univariate per-group
   integrands, approximate when class-specific intercepts couple.
 
+## Multivariate mixture components (noted 2026-08-31, vs clustTMB)
+
+clustTMB (Havron) does model-based clustering of MULTIVARIATE
+gaussian observations (mclust-style per-cluster mean vectors and
+covariance matrices, VVV etc.), with covariates and spatial GMRFs in
+the gating and expert parts. We cover the rest of its surface -
+covariate-dependent mixing, REs in component means, obs- and
+group-level clustering, GMRF structure via gr(prec=) - but our
+mixture() components are univariate families. Multivariate mixture
+components (per-class mean vector + rescor-style covariance) would
+need mixture() over mvbf responses; unscheduled.
+
 ## Tier 3: positioning decisions
 
 - `frm_multiple`: fit over multiply-imputed datasets and pool by

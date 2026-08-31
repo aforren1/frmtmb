@@ -507,6 +507,7 @@ hyp_fd_grad <- function(f, v) {
 #' `sd_<group>__<term>` and `cor_<group>__<t1>__<t2>` (brms naming),
 #' and `sigma` when the residual SD is a scalar. So an ICC is
 #' `"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"`.
+#' [variables()] lists every usable name for a fit.
 #'
 #' Methods:
 #' - `"wald"` (default): delta-method z-test, finite-difference
@@ -556,6 +557,34 @@ hyp_fd_grad <- function(f, v) {
 #'            method = "boot", nsim = 20, seed = 1)
 #' @export
 hypothesis <- function(x, ...) UseMethod("hypothesis")
+
+#' Usable parameter names
+#'
+#' The names that [hypothesis()] expressions (and `set_prior()`
+#' targeting) accept: fixed-effect coefficients under their `vcov()`
+#' names with parentheses stripped, natural-scale random-effect
+#' summaries (`sd_<group>__<term>`, `cor_<group>__<t1>__<t2>`), and
+#' `sigma` when the residual SD is a scalar. The brms spelling; for
+#' sampled fits, `variables()` on the [frm_sample()] result lists the
+#' draw columns instead.
+#'
+#' @param x A `frmtmb_fit` or `frmtmb_draws`.
+#' @param ... Unused.
+#' @return A character vector.
+#' @examples
+#' dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+#' dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#' variables(fit)
+#' @export
+variables <- function(x, ...) UseMethod("variables")
+
+#' @rdname variables
+#' @export
+variables.frmtmb_fit <- function(x, ...) {
+  vo <- hyp_vals_only(x)
+  names(hyp_env_vals(x, vo$vals, vo$comp))
+}
 
 #' @rdname hypothesis
 #' @export

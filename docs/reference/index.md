@@ -64,6 +64,7 @@
   profiles
 - [`hypothesis()`](hypothesis.md) : Hypothesis tests on parameter
   expressions
+- [`variables()`](variables.md) : Usable parameter names
 - [`frm_bootstrap()`](frm_bootstrap.md) : Parametric bootstrap
 - [`diagnose()`](diagnose.md) : Convergence diagnostics for a frmtmb fit
 - [`dharma_residuals()`](dharma_residuals.md) : DHARMa residual
@@ -87,6 +88,7 @@
 - [`influence(`*`<frmtmb_fit>`*`)`](influence.frmtmb_fit.md) : Influence
   measures by case deletion
 - [`set_prior()`](set_prior.md) : Set up priors brms-style
+- [`get_prior()`](get_prior.md) : Enumerate the targetable prior slots
 - [`prior_normal()`](frmtmb-priors.md) [`prior_t()`](frmtmb-priors.md) :
   Prior specifications for frm_sample
 - [`prior_summary()`](prior_summary.md) : Priors used in a fit

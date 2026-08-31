@@ -75,7 +75,9 @@ the stats/lme4 spelling for standard generics:
   [`fixef()`](../reference/fixef.md),
   [`ranef()`](../reference/ranef.md),
   [`VarCorr()`](../reference/VarCorr.md),
-  [`ngrps()`](../reference/ngrps.md).
+  [`ngrps()`](../reference/ngrps.md),
+  [`variables()`](../reference/variables.md) (the usable parameter
+  names, e.g. `sd_Subject__Days`).
 - stats-origin generics follow stats/lme4/glmmTMB, not brms:
   [`predict()`](https://rdrr.io/r/stats/predict.html) returns a vector
   (with `se.fit = TRUE`, a list), not a draws matrix with

@@ -30,6 +30,7 @@
 <url><loc>/reference/frm_multiple.html</loc></url>
 <url><loc>/reference/frm_sample.html</loc></url>
 <url><loc>/reference/frm_simulate.html</loc></url>
+<url><loc>/reference/get_prior.html</loc></url>
 <url><loc>/reference/hypothesis.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
 <url><loc>/reference/influence.frmtmb_fit.html</loc></url>
@@ -52,6 +53,7 @@
 <url><loc>/reference/sigma.frmtmb_fit.html</loc></url>
 <url><loc>/reference/simulate.frmtmb_fit.html</loc></url>
 <url><loc>/reference/VarCorr.html</loc></url>
+<url><loc>/reference/variables.html</loc></url>
 <url><loc>/reference/vcov.frmtmb_fit.html</loc></url>
 <url><loc>/SPEC.html</loc></url>
 </urlset>

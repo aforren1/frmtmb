@@ -5,10 +5,17 @@ brms grammar and a frequentist backend. It fits models by maximum
 likelihood with the Laplace approximation for latent effects, through
 RTMB. It does not use MCMC and it does not compile code at run time.
 
-Status: design specification; v0.15 implemented (see NEWS.md for the
-consolidated changelog; v0.15: mo() monotonic terms, sratio/cratio/ acat
+Status: design specification; v0.19 implemented (see NEWS.md for the
+consolidated changelog). The original roadmap and its extensions are
+complete: v0.19 latent classes with continuous random effects (growth
+mixtures, via the sum-integral swap); v0.18 gp() exact and Hilbert-space
+Gaussian processes, mo()/mi() interactions, group-level latent-class
+mixtures; v0.17 mixture() families, mi(sdx) measurement error, cs()
+category-specific effects, equalto(), rr se.fit, registered insight
+methods; v0.16 rr() reduced-rank covariance (two-space b) and mi()
+one-step imputation; v0.15: mo() monotonic terms, sratio/cratio/acat
 ordinal families, hetar1/homcs/homtoep and spatial exp/gau/mat
-covariance structures, influence()/cooks.distance, frm_multiple() Rubin
+covariance structures, influence()/ cooks.distance, frm_multiple() Rubin
 pooling, vint()/vreal() custom-family data, CE prediction intervals and
 condition sets, and a full method surface over frm_sample() draws;
 v0.14: se() meta-analysis, proportion trials(), ten families,
@@ -26,18 +33,18 @@ v0.5: nl = TRUE nonlinear formulas, custom_family() with
 check_custom_family(), emmeans registration, as_tmbstan(); plus predvars
 freezing, rank-deficiency column dropping, and an edge-case suite mined
 from lme4/glmmTMB/brms issue history - see dev/test-backlog.md).
-Function-on-scalar functional regression works through the long-format +
-smooth representation (validated vs mgcv); scalar-on-function terms
-(mgcv matrix-covariate summation convention) are a roadmap item.
-Earlier: (v0.4 core: v0.1 GLMM core; v0.2 distributional regression,
-single-response family roster, newdata prediction with delta-method SEs,
-simulate, confint/anova/diagnose; v0.3 s()/t2() smooths in any dpar plus
-homdiag/cs/ar1 covariance structures; v0.4 multivariate models with
-per-response families, gaussian rescor, brms \|ID\| cross-formula
-random-effect correlation, matrix-response multinomial, and zi/hurdle
-families with full zi/hu formulas). The main fit function is
-[`frm()`](reference/frm.md) (cf. `brm()`/brms). Interfaces can change
-until v1.0.
+Functional regression is complete: scalar-on-function,
+function-on-scalar, and function-on-function all work through the
+long-format + matrix-covariate smooth representation (validated against
+mgcv). Earlier: (v0.4 core: v0.1 GLMM core; v0.2 distributional
+regression, single-response family roster, newdata prediction with
+delta-method SEs, simulate, confint/anova/diagnose; v0.3 s()/t2()
+smooths in any dpar plus homdiag/cs/ar1 covariance structures; v0.4
+multivariate models with per-response families, gaussian rescor, brms
+\|ID\| cross-formula random-effect correlation, matrix-response
+multinomial, and zi/hurdle families with full zi/hu formulas). The main
+fit function is [`frm()`](reference/frm.md) (cf. `brm()`/brms).
+Interfaces can change until v1.0.
 
 Multivariate design notes: every linear predictor’s Z spans the full b
 vector (sparse), so Z column indices are b indices and \|ID\| merging is
@@ -49,22 +56,24 @@ under distributional sigma. Matrix responses (multinomial) use
 `primary_dpars`: families whose location predictors are mu2..muK all
 receive the main formula, individually overridable as dpar formulas.
 
-Deviations from the original plan:
-[`simulate()`](https://rdrr.io/r/stats/simulate.html) is implemented as
-a numeric R-level simulator per family instead of `obj$simulate()` (see
-the simref note in section 4.7) and OSA residuals are deferred alongside
-it; RTMBdist wiring is deferred until its families are needed (native
-RTMB densities have sufficed); from v0.3, `gr(by=, cov=)`, `ou`, `toep`,
-and `propto` are deferred (ou/toep need numFactor-style coordinate
-handling), and smooth edf reporting in summary() is deferred. Smooth
-terms are extracted from the formula top-level before
-reformulas::splitForm runs, because splitForm strips s()/t2() regardless
-of its specials argument; the s()/t2() calls are evaluated with mgcv’s
-own constructors. From v0.4: cumulative ordinal and cens()/trunc() moved
-to v0.4.x; fitted/residuals/simulate are univariate-only for now; and
-OBS() is applied only to univariate non-matrix responses, because RTMB
-registers observations under the deparsed argument expression, so
-identical expressions in a loop over responses silently collide.
+Deviations from the original plan that remain true today:
+[`simulate()`](https://rdrr.io/r/stats/simulate.html) is a numeric
+R-level simulator per family instead of `obj$simulate()` (sparse Z x
+simref is unsupported; see the simref note in section 4.7). Smooth
+terms, mo(), mi(), cs(), and gp() calls are extracted from the formula
+top level before reformulas::splitForm runs, because splitForm silently
+strips ANY term whose expression mentions a special name (even inside
+I() or nested calls); plain-function uses of structure names
+(e.g. exp(x) in a fixed formula) are protected by alias substitution.
+fitted/residuals/simulate are univariate-only, and OBS() is applied only
+to univariate non-matrix responses, because RTMB registers observations
+under the deparsed argument expression, so identical expressions in a
+loop over responses silently collide. Everything else once listed here
+(OSA residuals, RTMBdist families, gr(cov=), ou/toep, propto-equivalent
+equalto, smooth edf reporting) has since shipped; `propto` itself is
+spelled `gr(g, cov = A)`. Remaining deferrals: multi-dimensional gp(),
+kriging prediction for exact gp(), and `ar()/ma()` residual
+autocorrelation terms.
 
 ## 1. Thesis
 
