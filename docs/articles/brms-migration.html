@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.18.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -175,16 +175,18 @@ intervals, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-li
 <code>mo()</code> monotonic effects, <code>mi()</code> one-step
 imputation of continuous predictors, <code>mi(sdx)</code> measurement
 error (the <code>me()</code> replacement, as in current brms),
-<code>cs()</code> category-specific ordinal effects, and
-<code><a href="../reference/mixture.html">mixture()</a></code> families all work (standalone
-<code>mo()</code>/<code>mi()</code> terms only; discrete predictors
-cannot be imputed in-model, the same restriction Stan has). Multiply
-imputed data can instead go through <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> (Rubin’s
-rules), the <code>brm_multiple()</code> analog. Mixture fits are ML:
-expect multimodality, compare starts (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>).</li>
-<li>Not supported: <code>gp()</code>, <code>ar()/ma()</code> residual
-autocorrelation terms (use the <code>ar1()</code> random-effect
-structure).</li>
+<code>cs()</code> category-specific ordinal effects, <code>gp(x)</code>
+/ <code>gp(x, k =)</code> Gaussian processes, and <code><a href="../reference/mixture.html">mixture()</a></code>
+families (including group-level latent classes via
+<code>groups = ~g</code>) all work. <code>mo()</code>/<code>mi()</code>
+support two-way <code>:</code>/<code>*</code> interactions with numeric
+terms; discrete predictors cannot be imputed in-model, the same
+restriction Stan has. Multiply imputed data can instead go through
+<code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> (Rubin’s rules), the
+<code>brm_multiple()</code> analog. Mixture fits are ML: expect
+multimodality, compare starts (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>).</li>
+<li>Not supported: <code>ar()/ma()</code> residual autocorrelation terms
+(use the <code>ar1()</code> random-effect structure).</li>
 <li>glmer’s proportion-response idiom (<code>weights = size</code>)
 becomes <code>y | trials(size)</code> with either proportions or counts;
 <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code> in the formula stays a frequency weight, as in

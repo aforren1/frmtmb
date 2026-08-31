@@ -41,16 +41,18 @@ likelihood-ratio tests, AIC).
   becomes `predict(newdata, type = "response")`.
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
   predictors, `mi(sdx)` measurement error (the `me()` replacement, as in
-  current brms), `cs()` category-specific ordinal effects, and
-  [`mixture()`](../reference/mixture.md) families all work (standalone
-  `mo()`/`mi()` terms only; discrete predictors cannot be imputed
-  in-model, the same restriction Stan has). Multiply imputed data can
-  instead go through [`frm_multiple()`](../reference/frm_multiple.md)
-  (Rubin’s rules), the `brm_multiple()` analog. Mixture fits are ML:
-  expect multimodality, compare starts
-  ([`frm_allfit()`](../reference/frm_allfit.md)).
-- Not supported: `gp()`, `ar()/ma()` residual autocorrelation terms (use
-  the `ar1()` random-effect structure).
+  current brms), `cs()` category-specific ordinal effects, `gp(x)` /
+  `gp(x, k =)` Gaussian processes, and
+  [`mixture()`](../reference/mixture.md) families (including group-level
+  latent classes via `groups = ~g`) all work. `mo()`/`mi()` support
+  two-way `:`/`*` interactions with numeric terms; discrete predictors
+  cannot be imputed in-model, the same restriction Stan has. Multiply
+  imputed data can instead go through
+  [`frm_multiple()`](../reference/frm_multiple.md) (Rubin’s rules), the
+  `brm_multiple()` analog. Mixture fits are ML: expect multimodality,
+  compare starts ([`frm_allfit()`](../reference/frm_allfit.md)).
+- Not supported: `ar()/ma()` residual autocorrelation terms (use the
+  `ar1()` random-effect structure).
 - glmer’s proportion-response idiom (`weights = size`) becomes
   `y | trials(size)` with either proportions or counts;
   [`weights()`](https://rdrr.io/r/stats/weights.html) in the formula

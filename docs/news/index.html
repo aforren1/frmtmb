@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.18.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,15 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.18.0" id="frmtmb-0180">frmtmb 0.18.0<a class="anchor" aria-label="anchor" href="#frmtmb-0180"></a></h2>
+<p>The last three roadmap features.</p>
+<ul><li>
+<code>gp(x)</code> Gaussian-process terms: exact (a dense squared-exponential block over the unique positions, with a standard 1e-6 nugget) or the Hilbert-space approximation via <code>gp(x, k = 30)</code> (sine basis with spectral-density prior SDs), in any linear predictor. Exact fits match direct GP marginal ML; the approximation converges to the exact answer and predicts at arbitrary positions (the exact form predicts at observed positions only). <code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> reports <code>sd(gp)</code> and <code>range(gp)</code>.</li>
+<li>
+<code>mo()</code> and <code>mi()</code> interactions: <code>mo(x):z</code>, <code>mo(x)*z</code>, <code>mi(x):z</code>, <code>mi(x)*z</code> with numeric multipliers; <code>mo()</code> interactions share their variable’s simplex (brms convention). Both validated exact against direct ML (the <code>mi()</code> interaction stays linear in the latent value, so the closed-form marginal still applies).</li>
+<li>Group-level latent-class mixtures: <code>mixture(..., groups = ~g)</code> sums the class assignment per group (growth-mixture / latent-class regression; the tractable nested case of brms#1905). Exact against direct ML; <code><a href="../reference/mixture_probs.html">mixture_probs()</a></code> returns posterior class probabilities per group, or per observation for ordinary mixtures. Restrictions: no random effects or smooths alongside, mixing predictors evaluated at each group’s first row, no <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> yet. Crossed-design group mixtures remain out of the Laplace class.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.17.0" id="frmtmb-0170">frmtmb 0.17.0<a class="anchor" aria-label="anchor" href="#frmtmb-0170"></a></h2>
 <p>Clearing the roadmap: mixtures, measurement error, and the remaining grammar gaps.</p>

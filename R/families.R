@@ -1159,10 +1159,22 @@ fam_acat <- function(link = "logit") {
 #' through `lower`/`upper`). Component families with extra parameters
 #' (ordinal) are not supported.
 #'
+#' With `groups = ~g` the mixture moves to the group level (latent
+#' classes): every observation of a group shares one class draw, and
+#' the marginal likelihood sums the class assignment per group -
+#' latent-class regression (growth-mixture models without random
+#' effects). Restrictions: univariate fits, no random effects or
+#' smooths, mixing-weight predictors evaluated at each group's first
+#' row (use group-constant covariates), and `simulate()` is not
+#' supported yet. [mixture_probs()] returns the posterior class
+#' probabilities per group (or per observation for ordinary mixtures).
+#'
 #' @param ... Two or more component families.
+#' @param groups Optional one-sided formula naming the latent-class
+#'   grouping factor.
 #' @return A `frmtmb_family`.
 #' @export
-mixture <- function(...) {
+mixture <- function(..., groups = NULL) {
   comps <- lapply(list(...), as_frmtmb_family)
   K <- length(comps)
   if (K < 2L) {
@@ -1224,7 +1236,7 @@ mixture <- function(...) {
   }
 
   types <- unique(vapply(comps, `[[`, "", "type"))
-  frmtmb_family(
+  fam <- frmtmb_family(
     paste0("mixture(", paste(vapply(comps, `[[`, "", "family"),
                              collapse = ", "), ")"),
     dpars = dpars,
@@ -1281,6 +1293,59 @@ mixture <- function(...) {
     },
     primary_dpars = paste0("mu", seq_len(K))
   )
+  # internals for the objective's group-level branch and for
+  # mixture_probs(): per-component log-densities and log mixing weights
+  fam$mix <- list(
+    K = K,
+    comp_lpdf = function(y, dpars, aterms, k) {
+      comps[[k]]$lpdf(y, comp_dpars(dpars, k), aterms)
+    },
+    log_pi = log_pi
+  )
+  if (!is.null(groups)) {
+    if (!inherits(groups, "formula") || length(groups) != 2L) {
+      stop("groups must be a one-sided formula: groups = ~g",
+           call. = FALSE)
+    }
+    fam$mix_groups <- groups
+  }
+  fam
+}
+
+#' Posterior class probabilities of a mixture fit
+#'
+#' For an ordinary [mixture()] fit, one row per observation; for a
+#' group-level mixture (`groups = ~g`), one row per group.
+#'
+#' @param fit A `frmtmb_fit` with a mixture family.
+#' @return A matrix of class probabilities (rows sum to one).
+#' @export
+mixture_probs <- function(fit) {
+  rspec <- uni_resp(fit, "mixture_probs()")
+  fam <- rspec$family
+  if (is.null(fam$mix)) {
+    stop("mixture_probs() needs a mixture() family fit", call. = FALSE)
+  }
+  dp <- eval_dpars(fit)[[rspec$resp_name]]
+  av <- fit$frame$aterm_values[[rspec$resp_name]]
+  yv <- fit$frame$y[[rspec$resp_name]]
+  lps_pi <- fam$mix$log_pi(dp)
+  K <- fam$mix$K
+  mg <- fit$frame$mix_g[[rspec$resp_name]]
+  w <- av$weights %||% 1
+  M <- vapply(seq_len(K), function(k) {
+    ll_k <- fam$mix$comp_lpdf(yv, dp, av, k)
+    if (!is.null(mg)) {
+      as.vector(Matrix::t(mg$G) %*% (w * ll_k)) + lps_pi[[k]][mg$first]
+    } else {
+      ll_k + rep(lps_pi[[k]], length.out = length(ll_k))
+    }
+  }, numeric(if (!is.null(mg)) length(mg$first) else length(yv)))
+  P <- exp(M - apply(M, 1, max))
+  P <- P / rowSums(P)
+  rownames(P) <- if (!is.null(mg)) mg$levels
+  colnames(P) <- paste0("class", seq_len(K))
+  P
 }
 
 # Matrix-response multinomial: y is an n x K count matrix, category 1 is

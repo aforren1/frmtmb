@@ -21,6 +21,7 @@ reference:
   - frmtmb_family
   - frmtmb-families
   - mixture
+  - mixture_probs
   - check_custom_family
 - title: Inference and diagnostics
   contents:

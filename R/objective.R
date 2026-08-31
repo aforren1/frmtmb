@@ -86,12 +86,14 @@ build_objective <- function(frame) {
         zeta <- exp(c(0, pars[[mi$zeta]]))
         zeta <- zeta / sum(zeta)
         cz0 <- c(0, cumsum(zeta))
-        eta <- eta + pars[[lp$par]][lp$idx[mi$col]] * mi$D *
-          cz0[mi$codes + 1L]
+        term <- mi$D * cz0[mi$codes + 1L]
+        if (!is.null(mi$mult)) term <- term * mi$mult
+        eta <- eta + pars[[lp$par]][lp$idx[mi$col]] * term
       }
       # mi(x) terms: coefficient times the observed-or-latent values
       for (mt in lp$mi %||% list()) {
         xv <- mivals[[mt$var]] %||% y[[mt$var]]
+        if (!is.null(mt$mult)) xv <- xv * mt$mult
         eta <- eta + pars[[lp$par]][lp$idx[mt$col]] * xv
       }
       # cs(x) terms: n x (K-1) threshold-specific offsets, consumed by
@@ -127,6 +129,24 @@ build_objective <- function(frame) {
       for (r in names(resps)) {
         fam <- resps[[r]]$family
         w <- atv[[r]]$weights %||% 1
+        if (!is.null(fam$mix) && !is.null(frame$mix_g[[r]])) {
+          # latent-class (group-level) mixture: one class draw per
+          # group, so the group's per-observation log-densities sum
+          # BEFORE the logsumexp over classes
+          mg <- frame$mix_g[[r]]
+          lps_pi <- fam$mix$log_pi(dparv[[r]])
+          total <- NULL
+          for (k in seq_len(fam$mix$K)) {
+            ll_k <- fam$mix$comp_lpdf(y[[r]], dparv[[r]], atv[[r]], k)
+            g_k <- as.vector(mg$Gt %*% (w * ll_k)) +
+              lps_pi[[k]][mg$first]
+            total <- if (is.null(total)) g_k else {
+              RTMB::logspace_add(total, g_k)
+            }
+          }
+          nll <- nll - sum(total)
+          next
+        }
         # OBS() drives simulation/OSA machinery, but registers data under
         # the DEPARSED ARGUMENT EXPRESSION: in this loop every response
         # would collide on "y[[r]]" and silently swap data. Univariate

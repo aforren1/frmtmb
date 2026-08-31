@@ -74,10 +74,14 @@ mi_values <- function(fit, vn) {
 # mo() and mi() values at the current estimates.
 patch_mo_cols <- function(fit, lp, X) {
   for (mi in lp$mo %||% list()) {
-    X[, mi$col] <- mo_col_values(fit, mi)
+    v <- mo_col_values(fit, mi)
+    if (!is.null(mi$mult)) v <- v * mi$mult
+    X[, mi$col] <- v
   }
   for (mt in lp$mi %||% list()) {
-    X[, mt$col] <- mi_values(fit, mt$var)
+    v <- mi_values(fit, mt$var)
+    if (!is.null(mt$mult)) v <- v * mt$mult
+    X[, mt$col] <- v
   }
   X
 }
@@ -126,10 +130,46 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   # mo()/mi() columns come after the smooth null-space columns, matching
   # the fitted X layout; mo values use the current simplex, mi values
   # must be supplied complete in newdata
+  # gp() contributions rebuild their basis at the new positions and
+  # ride the smooth-parts machinery (curve kept at population level)
+  for (gi in lp$gps %||% list()) {
+    v <- as.numeric(eval(gi$expr, newdata, env))
+    Xr <- if (gi$type == "hsgp") {
+      xc <- v - gi$center
+      sapply(seq_along(gi$omega), function(j) {
+        sin(gi$omega[j] * (xc + gi$L)) / sqrt(gi$L)
+      })
+    } else {
+      j <- match(v, gi$positions)
+      if (anyNA(j)) {
+        stop("gp() without k= can only predict at positions seen in ",
+             "the data; refit with gp(", deparse1(gi$expr),
+             ", k = ...) for interpolation", call. = FALSE)
+      }
+      as.matrix(Matrix::sparseMatrix(i = seq_along(v), j = j, x = 1,
+                                     dims = c(length(v),
+                                              length(gi$positions))))
+    }
+    if (is.null(dim(Xr))) Xr <- matrix(Xr, nrow = length(v))
+    sm_parts[[length(sm_parts) + 1L]] <- list(
+      bk = fit$frame$re_blocks[[gi$block_id]],
+      Xr = Xr
+    )
+  }
+
+  nd_mult <- function(mult_expr) {
+    if (is.null(mult_expr)) return(1)
+    m <- as.numeric(eval(mult_expr, newdata, env))
+    if (anyNA(m)) {
+      stop("Interaction multiplier '", deparse1(mult_expr),
+           "' has missing values in newdata", call. = FALSE)
+    }
+    m
+  }
   for (mi in lp$mo %||% list()) {
-    X <- cbind(X, matrix(mo_col_values(fit, mi,
-                                       mo_codes(fit, lp, mi, newdata)),
-                         ncol = 1, dimnames = list(NULL, mi$label)))
+    v <- mo_col_values(fit, mi, mo_codes(fit, lp, mi, newdata)) *
+      nd_mult(mi$mult_expr)
+    X <- cbind(X, matrix(v, ncol = 1, dimnames = list(NULL, mi$label)))
   }
   for (mt in lp$mi %||% list()) {
     v <- newdata[[mt$var]]
@@ -137,8 +177,8 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       stop("mi(", mt$var, "): newdata must supply complete values",
            call. = FALSE)
     }
-    X <- cbind(X, matrix(as.numeric(v), ncol = 1,
-                         dimnames = list(NULL, mt$label)))
+    X <- cbind(X, matrix(as.numeric(v) * nd_mult(mt$mult_expr),
+                         ncol = 1, dimnames = list(NULL, mt$label)))
   }
 
   if (!use_re) {
@@ -149,7 +189,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
 
   re_parts <- list()
   for (bk in fit$frame$re_blocks) {
-    if (bk$covstruct == "smooth") next
+    if (bk$covstruct %in% c("smooth", "gp", "hsgp")) next
     for (comp in bk$components) {
       if (comp$lp_key != linpred_key(lp$resp, lp$dpar)) next
       tt2 <- stats::terms(stats::as.formula(call("~", comp$bar[[2]]),
@@ -380,7 +420,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   re_parts <- list()
   sm_parts <- list()
   sm_blocks <- Filter(function(bk) {
-    bk$covstruct == "smooth" &&
+    bk$covstruct %in% c("smooth", "gp", "hsgp") &&
       any(vapply(bk$components, function(cp) cp$lp_key == key, TRUE))
   }, object$frame$re_blocks)
 
@@ -657,6 +697,10 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   fam <- rspec$family
   if (is.null(fam$sim)) {
     stop("Family '", fam$family, "' has no simulator yet", call. = FALSE)
+  }
+  if (!is.null(object$frame$mix_g[[rspec$resp_name]])) {
+    stop("simulate() for group-level mixtures is not supported yet",
+         call. = FALSE)
   }
   marginal <- !is.null(re.form) && !inherits(re.form, "formula") &&
     is.na(re.form)

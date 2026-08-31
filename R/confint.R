@@ -148,6 +148,21 @@ confint_varcorr <- function(fit, level = 0.95) {
       )
       next
     }
+    if (bk$covstruct %in% c("gp", "hsgp")) {
+      se_t <- sqrt(diag(Vth))
+      rows[[length(rows) + 1L]] <- data.frame(
+        block = bk$term_label, term = "sd(gp)", type = "sd",
+        estimate = exp(t0[1]),
+        lwr = exp(t0[1] - z * se_t[1]), upr = exp(t0[1] + z * se_t[1])
+      )
+      rows[[length(rows) + 1L]] <- data.frame(
+        block = bk$term_label, term = "range(gp)", type = "range",
+        estimate = exp(t0[2]),
+        lwr = exp(t0[2] - z * se_t[2]), upr = exp(t0[2] + z * se_t[2])
+      )
+      next
+    }
+    if (bk$covstruct == "equalto") next   # nothing estimated
     # g(theta): log-sds then atanh-correlations, via the block's vcov
     gfun <- function(tt) {
       V <- covstruct_registry[[bk$covstruct]]$vcov(tt, bk)
@@ -410,7 +425,8 @@ hyp_env_vals <- function(fit, vals, comp) {
 
   th <- vals[comp == "theta"]
   for (bk in fit$frame$re_blocks) {
-    if (bk$covstruct %in% c("smooth", "gr_cov", "gr_prec")) next
+    if (bk$covstruct %in% c("smooth", "gr_cov", "gr_prec",
+                            "gp", "hsgp", "equalto")) next
     V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
     tn <- hyp_san(bk$cnms)
     g <- hyp_san(bk$group_name)

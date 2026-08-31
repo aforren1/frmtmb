@@ -107,6 +107,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   mo <- list()
   miterms <- list()
   csterms <- list()
+  gpterms <- list()
   rest <- list()
   for (tm in terms_list) {
     if (is_smooth_call(tm)) {
@@ -121,13 +122,67 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       if (length(tm) != 2L) {
         stop("mo() takes exactly one variable", call. = FALSE)
       }
-      mo[[length(mo) + 1L]] <- tm[[2]]
+      mo[[length(mo) + 1L]] <- list(expr = tm[[2]], mult = NULL)
     } else if (is.call(tm) && identical(tm[[1]], as.name("mi"))) {
       if (length(tm) != 2L || !is.name(tm[[2]])) {
         stop("mi() in a predictor takes one variable name: mi(x)",
              call. = FALSE)
       }
-      miterms[[length(miterms) + 1L]] <- tm[[2]]
+      miterms[[length(miterms) + 1L]] <- list(expr = tm[[2]],
+                                              mult = NULL)
+    } else if (is.call(tm) &&
+               (identical(tm[[1]], as.name(":")) ||
+                  identical(tm[[1]], as.name("*"))) &&
+               any(c("mo", "mi") %in% all.names(tm))) {
+      # mo(x):z / mo(x)*z (and mi versions): the special call on one
+      # side, a plain multiplier term on the other. `*` also emits the
+      # main effects; mo() interactions share their variable's simplex.
+      op_star <- identical(tm[[1]], as.name("*"))
+      sides <- list(tm[[2]], tm[[3]])
+      is_sp <- vapply(sides, function(s) {
+        is.call(s) && as.character(s[[1]])[1] %in% c("mo", "mi")
+      }, TRUE)
+      if (sum(is_sp) != 1L) {
+        stop("mo()/mi() interactions need the special on exactly one ",
+             "side of ':' or '*': ", deparse1(tm), call. = FALSE)
+      }
+      sp <- sides[[which(is_sp)]]
+      other <- sides[[which(!is_sp)]]
+      if (any(c("mo", "mi") %in% all.names(other))) {
+        stop("mo()/mi() cannot interact with another mo()/mi() term: ",
+             deparse1(tm), call. = FALSE)
+      }
+      spn <- as.character(sp[[1]])[1]
+      entry <- list(expr = sp[[2]], mult = other)
+      if (spn == "mo") {
+        mo[[length(mo) + 1L]] <- entry
+        if (op_star) mo[[length(mo) + 1L]] <- list(expr = sp[[2]],
+                                                   mult = NULL)
+      } else {
+        if (!is.name(sp[[2]])) {
+          stop("mi() in a predictor takes one variable name: mi(x)",
+               call. = FALSE)
+        }
+        miterms[[length(miterms) + 1L]] <- entry
+        if (op_star) miterms[[length(miterms) + 1L]] <-
+          list(expr = sp[[2]], mult = NULL)
+      }
+      if (op_star) rest[[length(rest) + 1L]] <- other
+    } else if (is.call(tm) && identical(tm[[1]], as.name("gp"))) {
+      aa <- as.list(tm)[-1]
+      nms <- names(aa) %||% rep("", length(aa))
+      var <- aa[nms == ""]
+      if (length(var) != 1L || !all(nms %in% c("", "k", "c"))) {
+        stop("gp() takes one variable plus optional k = (basis size) ",
+             "and c = (boundary factor): gp(x) or gp(x, k = 30)",
+             call. = FALSE)
+      }
+      gpterms[[length(gpterms) + 1L]] <- list(
+        expr = var[[1L]],
+        k = if (!is.null(aa$k)) as.integer(eval(aa$k, baseenv())),
+        c = if (!is.null(aa$c)) as.numeric(eval(aa$c, baseenv()))
+            else 1.25
+      )
     } else if (is.call(tm) && identical(tm[[1]], as.name("cs")) &&
                !("|" %in% all.names(tm))) {
       # barless cs(x): category-specific ordinal effect (the bar form
@@ -140,8 +195,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       for (sp_nm in c("mo", "mi")) {
         if (sp_nm %in% all.names(tm)) {
           stop(sp_nm, "() is only supported as a standalone additive ",
-               "term (no interactions or group-level ", sp_nm,
-               "() yet): ", deparse1(tm), call. = FALSE)
+               "term or a two-way ':'/'*' interaction: ",
+               deparse1(tm), call. = FALSE)
         }
       }
       rest[[length(rest) + 1L]] <- tm
@@ -206,6 +261,10 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # element keys random-effect correlation across formulas
     id <- NULL
     cov_expr <- NULL
+    if (cls %in% c("gp", "hsgp")) {
+      stop("gp() is not a bar term; write gp(x) or gp(x, k = 30)",
+           call. = FALSE)
+    }
     rank <- NULL
     if (cls == "rr") {
       aa <- as.list(addargs)[-1]
@@ -257,7 +316,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   fixed <- sf$fixedFormula
   environment(fixed) <- env_lp
   list(fixed = fixed, re = re, smooth = smooth, mo = mo,
-       miterms = miterms, csterms = csterms, rhs = rhs_form)
+       miterms = miterms, csterms = csterms, gpterms = gpterms,
+       rhs = rhs_form)
 }
 
 # Default (intercept-only) or constant dpar spec.

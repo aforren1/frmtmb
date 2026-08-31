@@ -390,6 +390,43 @@ covstruct_registry$gr_prec <- list(
   start = function(dim) 0
 )
 
+# Exact Gaussian process over observed positions (gp(x) without k=):
+# squared-exponential kernel sd^2 exp(-d^2 / (2 rho^2)), matching the
+# Hilbert-space approximation's kernel so gp(x) and gp(x, k=) estimate
+# the same quantity. theta = (log sd, log rho); dense over the unique
+# positions (blk$aux_D).
+# the 1e-6 nugget keeps the notoriously ill-conditioned SE kernel
+# Cholesky-factorizable as the range grows (standard GP practice)
+covstruct_registry$gp <- spatial_entry(
+  function(D, theta) {
+    exp(-(D / exp(theta[2]))^2 / 2) + diag(1e-6, nrow(D))
+  }, 2L
+)
+
+# Hilbert-space GP approximation (Riutort-Mayol et al.): sine basis in
+# Z, independent coefficients whose prior SDs follow the SE-kernel
+# spectral density at the basis frequencies (blk$aux_omega).
+hsgp_sds <- function(theta, omega) {
+  sd_ <- exp(theta[1])
+  rho <- exp(theta[2])
+  sqrt(sd_^2 * rho * sqrt(2 * pi) * exp(-0.5 * (rho * omega)^2))
+}
+
+covstruct_registry$hsgp <- list(
+  npar = function(dim) 2L,
+  sd_idx = function(dim) 1L,
+  nll = function(b, theta, blk) {
+    sum(RTMB::dnorm(b, 0, hsgp_sds(theta, blk$aux_omega), log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    V <- diag(as.numeric(hsgp_sds(theta, blk$aux_omega))^2,
+              nrow = blk$dim)
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
+  },
+  start = function(dim) c(0, 0)
+)
+
 # Known, fully fixed within-level covariance (glmmTMB equalto): b ~
 # N(0, V) with V supplied by the user - zero parameters (meta-analysis
 # sampling covariances and similar).

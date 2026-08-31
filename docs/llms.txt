@@ -172,6 +172,8 @@ suite.
   [`sratio()`](frmtmb-families.md) [`cratio()`](frmtmb-families.md)
   [`acat()`](frmtmb-families.md) : Additional response families
 - [`mixture()`](mixture.md) : Finite mixture families
+- [`mixture_probs()`](mixture_probs.md) : Posterior class probabilities
+  of a mixture fit
 - [`check_custom_family()`](check_custom_family.md) : Check a custom
   family's log-density for AD safety
 

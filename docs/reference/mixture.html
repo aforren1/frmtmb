@@ -21,7 +21,7 @@ bf(y ~ x, mu2 ~ 1)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.17.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.18.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,7 +65,7 @@ applies to every component mean; override per component with
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">mixture</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">mixture</span><span class="op">(</span><span class="va">...</span>, groups <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -74,6 +74,11 @@ applies to every component mean; override per component with
 
 <dl><dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Two or more component families.</p></dd>
+
+
+<dt id="arg-groups">groups<a class="anchor" aria-label="anchor" href="#arg-groups"></a></dt>
+<dd><p>Optional one-sided formula naming the latent-class
+grouping factor.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -89,6 +94,15 @@ component means are initialized on spread-out response quantiles,
 and multimodality is real (compare starts, or order the intercepts
 through <code>lower</code>/<code>upper</code>). Component families with extra parameters
 (ordinal) are not supported.</p>
+<p>With <code>groups = ~g</code> the mixture moves to the group level (latent
+classes): every observation of a group shares one class draw, and
+the marginal likelihood sums the class assignment per group -
+latent-class regression (growth-mixture models without random
+effects). Restrictions: univariate fits, no random effects or
+smooths, mixing-weight predictors evaluated at each group's first
+row (use group-constant covariates), and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> is not
+supported yet. <code><a href="mixture_probs.html">mixture_probs()</a></code> returns the posterior class
+probabilities per group (or per observation for ordinary mixtures).</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

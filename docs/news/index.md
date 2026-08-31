@@ -1,5 +1,33 @@
 # Changelog
 
+## frmtmb 0.18.0
+
+The last three roadmap features.
+
+- `gp(x)` Gaussian-process terms: exact (a dense squared-exponential
+  block over the unique positions, with a standard 1e-6 nugget) or the
+  Hilbert-space approximation via `gp(x, k = 30)` (sine basis with
+  spectral-density prior SDs), in any linear predictor. Exact fits match
+  direct GP marginal ML; the approximation converges to the exact answer
+  and predicts at arbitrary positions (the exact form predicts at
+  observed positions only).
+  [`confint_varcorr()`](../reference/confint_varcorr.md) reports
+  `sd(gp)` and `range(gp)`.
+- `mo()` and `mi()` interactions: `mo(x):z`, `mo(x)*z`, `mi(x):z`,
+  `mi(x)*z` with numeric multipliers; `mo()` interactions share their
+  variable’s simplex (brms convention). Both validated exact against
+  direct ML (the `mi()` interaction stays linear in the latent value, so
+  the closed-form marginal still applies).
+- Group-level latent-class mixtures: `mixture(..., groups = ~g)` sums
+  the class assignment per group (growth-mixture / latent-class
+  regression; the tractable nested case of brms#1905). Exact against
+  direct ML; [`mixture_probs()`](../reference/mixture_probs.md) returns
+  posterior class probabilities per group, or per observation for
+  ordinary mixtures. Restrictions: no random effects or smooths
+  alongside, mixing predictors evaluated at each group’s first row, no
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) yet.
+  Crossed-design group mixtures remain out of the Laplace class.
+
 ## frmtmb 0.17.0
 
 Clearing the roadmap: mixtures, measurement error, and the remaining

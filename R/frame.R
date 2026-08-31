@@ -54,8 +54,15 @@ dpar_frame_rhs <- function(dp) {
       parts <- c(parts, list(as.name(sspec$by)))
     }
   }
-  for (mexpr in dp$mo %||% list()) {
-    for (v in all.vars(mexpr)) parts <- c(parts, list(as.name(v)))
+  for (ent in dp$mo %||% list()) {
+    for (v in all.vars(ent$expr)) parts <- c(parts, list(as.name(v)))
+    if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
+  }
+  for (ent in dp$miterms %||% list()) {
+    if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
+  }
+  for (ge in dp$gpterms %||% list()) {
+    for (v in all.vars(ge$expr)) parts <- c(parts, list(as.name(v)))
   }
   out <- NULL
   for (p in parts) out <- if (is.null(out)) p else call("+", out, p)
@@ -125,6 +132,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   for (resp in spec$responses) {
     add_part(resp$resp_expr)
     for (dp in resp$dpars) add_part(dpar_frame_rhs(dp))
+    if (!is.null(resp$family$mix_groups)) {
+      add_part(resp$family$mix_groups[[2L]])
+    }
     for (nm_at in names(resp$aterms)) {
       # literal constants (e.g. trials(10)) are not frame variables, and
       # interval bounds (cens_y2) may be NA on non-interval rows, so they
@@ -187,6 +197,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   mi_map <- list()   # per mi() response: missing rows + miss indices
   n_miss <- 0L
   miss_init <- numeric(0)
+  mix_g <- list()    # per response: latent-class grouping structure
   for (resp in spec$responses) {
     y[[resp$resp_name]] <- extract_y(resp, mf)
     av <- lapply(resp$aterms[setdiff(names(resp$aterms),
@@ -329,6 +340,24 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         }
         y[[resp$resp_name]] <- round(yc)
       }
+    }
+    if (!is.null(resp$family$mix_groups)) {
+      if (length(spec$responses) > 1L || spec$rescor) {
+        stop("Group-level mixtures support univariate models",
+             call. = FALSE)
+      }
+      if (any(c("cens", "trunc_lb", "trunc_ub") %in%
+                names(resp$aterms))) {
+        stop("Group-level mixtures cannot be combined with cens() or ",
+             "trunc()", call. = FALSE)
+      }
+      gv <- factor(eval(resp$family$mix_groups[[2L]], mf,
+                        resp$formula_env))
+      G <- Matrix::sparseMatrix(i = seq_len(n), j = as.integer(gv),
+                                x = 1, dims = c(n, nlevels(gv)))
+      mix_g[[resp$resp_name]] <- list(G = G, Gt = Matrix::t(G),
+                                      first = match(levels(gv), gv),
+                                      levels = levels(gv))
     }
     if (!is.null(resp$family$valid_y)) {
       resp$family$valid_y(y[[resp$resp_name]], av)
@@ -560,12 +589,79 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         }
       }
 
+      # Gaussian-process terms: gp(x) is exact (a dense SE-kernel block
+      # over the unique positions); gp(x, k=) is the Hilbert-space
+      # approximation (sine basis in Z, spectral-density prior SDs).
+      gp_info <- list()
+      for (ge in dp$gpterms %||% list()) {
+        v <- as.numeric(eval(ge$expr, mf, resp$formula_env))
+        lab0 <- paste0("gp(", deparse1(ge$expr),
+                       if (!is.null(ge$k)) paste0(", k = ", ge$k) else "",
+                       ")")
+        if (is.null(ge$k)) {
+          pos <- sort(unique(v))
+          npos <- length(pos)
+          if (npos > 500L) {
+            stop("gp() without k= builds a dense ", npos,
+                 "-point covariance; use k= for the Hilbert-space ",
+                 "approximation", call. = FALSE)
+          }
+          Zg <- Matrix::sparseMatrix(i = seq_along(v),
+                                     j = match(v, pos), x = 1,
+                                     dims = c(length(v), npos))
+          components[[length(components) + 1L]] <- list(
+            lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
+            covstruct = "gp", id = NULL,
+            dim = npos, n_levels = 1L,
+            levels = NULL, cnms = paste0(lab0, ".", seq_len(npos)),
+            bar = NULL, Zlocal = methods::as(Zg, "CsparseMatrix"),
+            aux_D = abs(outer(pos, pos, "-")),
+            group_name = lab0,
+            label = paste0(dp_prefix, lab0)
+          )
+          gp_info[[length(gp_info) + 1L]] <- list(
+            expr = ge$expr, type = "exact", positions = pos,
+            comp_id = length(components), block_id = NULL, label = lab0
+          )
+        } else {
+          ctr <- mean(v)
+          xc <- v - ctr
+          Lb <- ge$c * max(abs(xc))
+          if (Lb <= 0) {
+            stop("gp(): the variable has no spread", call. = FALSE)
+          }
+          m <- ge$k
+          omega <- (seq_len(m) * pi) / (2 * Lb)
+          Phi <- sapply(seq_len(m), function(j) {
+            sin(omega[j] * (xc + Lb)) / sqrt(Lb)
+          })
+          components[[length(components) + 1L]] <- list(
+            lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
+            covstruct = "hsgp", id = NULL,
+            dim = m, n_levels = 1L,
+            levels = NULL, cnms = paste0(lab0, ".", seq_len(m)),
+            bar = NULL, Zlocal = methods::as(Phi, "CsparseMatrix"),
+            aux_omega = omega,
+            group_name = lab0,
+            label = paste0(dp_prefix, lab0)
+          )
+          gp_info[[length(gp_info) + 1L]] <- list(
+            expr = ge$expr, type = "hsgp", center = ctr, L = Lb,
+            omega = omega, comp_id = length(components),
+            block_id = NULL, label = lab0
+          )
+        }
+        comp_ids <- c(comp_ids, length(components))
+      }
+
       # Monotonic terms: one scale coefficient in beta (a zero column in
       # the stored X keeps the bookkeeping - names, idx, vcov - while
       # the objective and the numeric prediction paths supply the
       # simplex-weighted values); the simplex parameters join `extras`.
       mo_info <- list()
-      for (mexpr in dp$mo %||% list()) {
+      mo_zetas <- list()   # simplexes are shared per mo() variable
+      for (ent in dp$mo %||% list()) {
+        mexpr <- ent$expr
         v <- eval(mexpr, mf, resp$formula_env)
         if (is.factor(v)) {
           if (!is.ordered(v)) {
@@ -587,14 +683,32 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         if (D_mo < 2L) {
           stop("mo() needs at least 3 ordered categories", call. = FALSE)
         }
-        lab <- paste0("mo", deparse1(mexpr))
-        zname <- paste0("zeta", length(extras) + 1L)
-        extras[[zname]] <- numeric(D_mo - 1L)
+        vkey <- deparse1(mexpr)
+        zname <- mo_zetas[[vkey]]
+        if (is.null(zname)) {
+          zname <- paste0("zeta", length(extras) + 1L)
+          extras[[zname]] <- numeric(D_mo - 1L)
+          mo_zetas[[vkey]] <- zname
+        }
+        mult <- NULL
+        if (!is.null(ent$mult)) {
+          mult <- eval(ent$mult, mf, resp$formula_env)
+          if (is.factor(mult) || !is.numeric(as.numeric(mult))) {
+            stop("mo() interactions support numeric multipliers only: ",
+                 deparse1(ent$mult), call. = FALSE)
+          }
+          mult <- as.numeric(mult)
+        }
+        lab <- paste0("mo", vkey,
+                      if (!is.null(ent$mult)) {
+                        paste0(":", deparse1(ent$mult))
+                      } else "")
         X <- cbind(X, matrix(0, nrow(X), 1,
                              dimnames = list(NULL, lab)))
         mo_info[[length(mo_info) + 1L]] <- list(
           expr = mexpr, codes = codes, D = D_mo, levels = mo_levels,
-          zeta = zname, col = ncol(X), label = lab
+          zeta = zname, col = ncol(X), label = lab,
+          mult = mult, mult_expr = ent$mult
         )
       }
 
@@ -602,8 +716,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
       # as with mo); the values are observed-or-latent, supplied by the
       # objective and the numeric prediction paths
       mi_info <- list()
-      for (mexpr in dp$miterms %||% list()) {
-        vn <- deparse1(mexpr)
+      for (ent in dp$miterms %||% list()) {
+        vn <- deparse1(ent$expr)
         tgt <- spec$responses[[vn]]
         if (is.null(tgt) || !isTRUE(tgt$aterms$mi)) {
           stop("mi(", vn, ") needs a matching imputation model: ",
@@ -613,10 +727,18 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
           stop("mi(", vn, ") cannot appear in its own model",
                call. = FALSE)
         }
-        lab <- paste0("mi", vn)
+        mult <- NULL
+        if (!is.null(ent$mult)) {
+          mult <- as.numeric(eval(ent$mult, mf, resp$formula_env))
+        }
+        lab <- paste0("mi", vn,
+                      if (!is.null(ent$mult)) {
+                        paste0(":", deparse1(ent$mult))
+                      } else "")
         X <- cbind(X, matrix(0, nrow(X), 1, dimnames = list(NULL, lab)))
         mi_info[[length(mi_info) + 1L]] <- list(
-          var = vn, col = ncol(X), label = lab
+          var = vn, col = ncol(X), label = lab,
+          mult = mult, mult_expr = ent$mult
         )
       }
 
@@ -672,6 +794,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         xlevels = xlev,
         contrasts = contr,
         smooths = sm_info,
+        gps = gp_info,
         mo = mo_info,
         mi = mi_info,
         cs = cs_info,
@@ -697,6 +820,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
     }
   }
 
+  if (length(mix_g) && length(components)) {
+    stop("Group-level mixtures cannot be combined with random effects, ",
+         "smooths, or gp() terms yet", call. = FALSE)
+  }
   re_blocks <- list()
   comp_block <- integer(length(components))   # component -> block index
   comp_offset <- integer(length(components))  # coef offset within level
@@ -769,6 +896,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
       aux_D = cps[[1]]$aux_D,
       aux_kron = cps[[1]]$aux_kron,
       aux_Q = cps[[1]]$aux_Q,
+      aux_omega = cps[[1]]$aux_omega,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
       term_label = label,
@@ -809,6 +937,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
       lp$smooths <- lapply(lp$smooths, function(si) {
         si$block_ids <- comp_block[si$comp_ids]
         si
+      })
+    }
+    if (length(lp$gps)) {
+      lp$gps <- lapply(lp$gps, function(gi) {
+        gi$block_id <- comp_block[gi$comp_id]
+        gi
       })
     }
     lp$comp_ids <- NULL
@@ -862,7 +996,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   structure(
     list(spec = spec, n_obs = n, y = y, aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
-         n_c = n_c, has_rr = has_rr, mi_map = mi_map,
+         n_c = n_c, has_rr = has_rr, mi_map = mi_map, mix_g = mix_g,
          par_template = par_template, map = map,
          betad_fixed_idx = betad_fixed_idx,
          extra_names = names(extras),

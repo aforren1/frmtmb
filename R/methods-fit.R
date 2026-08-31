@@ -441,6 +441,10 @@ VarCorr.frmtmb_fit <- function(x, ...) {
       # one smoothing variance; the k x k identity blowup is noise
       matrix(exp(th[bk$theta_idx])^2, 1, 1,
              dimnames = list("sd(wiggle)", "sd(wiggle)"))
+    } else if (bk$covstruct %in% c("gp", "hsgp")) {
+      # marginal GP sd; the range lives in confint_varcorr
+      matrix(exp(th[bk$theta_idx[1]])^2, 1, 1,
+             dimnames = list("sd(gp)", "sd(gp)"))
     } else {
       covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
     }

@@ -76,12 +76,12 @@ purely-conditional `postVar`.
   predictors, so mixture-of-experts is free; quantile-spread mean
   inits; exact vs direct ML). Multimodality is inherent to mixture
   ML - use frm_allfit / bounds.
-- Group-level mixtures (brms PR #1905: latent classes over random
-  effects) are a different object: the marginal sums over class
-  assignments per GROUP. For nested designs this is per-group
-  sum-of-Laplaces (growth-mixture / lcmm territory) - possible but a
-  new integration mode; for crossed designs the sum does not factor
-  and it is out of the Laplace class entirely.
+- ~~Group-level mixtures (nested case)~~ DONE in v0.18 as
+  `mixture(..., groups = ~g)`: latent-class regression (no continuous
+  REs alongside), the tractable slice of brms#1905. Latent classes
+  COMBINED with continuous random effects would need per-group
+  per-class Laplace (a new integration mode); crossed designs stay
+  out of the Laplace class entirely.
 
 ## Tier 3: positioning decisions
 
@@ -115,7 +115,10 @@ purely-conditional `postVar`.
 - ~~`me()` measurement error~~ DONE in v0.17 as `x | mi(sdx)` (the
   brms spelling since me() was folded into mi). Discrete-predictor
   mi(): impossible.
-- `gp()` HSGP (deferred; `gr(prec=)` covers the GMRF path).
+- ~~`gp()`~~ DONE in v0.18: exact (dense SE kernel + nugget) and
+  Hilbert-space (`k =`) forms; 1-D only for now.
+- ~~mo()/mi() interactions~~ DONE in v0.18 (two-way `:`/`*` with
+  numeric terms; shared simplex per mo variable).
 - OpenMP objective parallelism (RTMB limitation; benchmarks fine
   without it). brms threading, glmmTMB parallel vignettes are moot.
 - Compilation management (precompile, cmdstanr backends): moot,

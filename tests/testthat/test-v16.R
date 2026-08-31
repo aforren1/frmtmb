@@ -144,7 +144,8 @@ test_that("mi() degenerates and guards correctly", {
   expect_error(frm(bf(y ~ mi(x) + z) + gaussian() +
                      bf(x | mi() ~ z) + poisson(), data = d3),
                "gaussian or student")
-  expect_error(frm(bf(y ~ mi(x) * z) + gaussian() +
-                     bf(x | mi() ~ z) + gaussian(), data = d2),
-               "standalone")
+  # mi() interactions work since v0.18
+  fint <- frm(bf(y ~ mi(x) * z) + gaussian() +
+                bf(x | mi() ~ z) + gaussian(), data = d2)
+  expect_true(all(c("mix", "mix:z") %in% names(fixef(fint)$y_mu)))
 })
