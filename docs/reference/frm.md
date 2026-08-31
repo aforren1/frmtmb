@@ -18,6 +18,7 @@ frm(
   lower = NULL,
   upper = NULL,
   priors = NULL,
+  quadrature = FALSE,
   dry_run = NULL
 )
 ```
@@ -84,6 +85,14 @@ frm(
   reported logLik/AIC then include the prior terms and are penalized
   quantities, and [`anova()`](https://rdrr.io/r/stats/anova.html)
   comparisons across different priors are meaningless.
+
+- quadrature:
+
+  If `TRUE`, marginalize each scalar random effect by adaptive
+  Gauss-Kronrod quadrature instead of the Laplace approximation (the
+  `glmer(nAGQ = k)` analogue; matches it in tests). Worth it for
+  Bernoulli responses with small clusters, where Laplace biases variance
+  components. Scalar random-intercept models only.
 
 - dry_run:
 

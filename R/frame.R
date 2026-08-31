@@ -304,21 +304,30 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
           d_k <- length(rt$cnms[[k]])
           len_k <- rt$Gp[k + 1L] - rt$Gp[k]
           cs_name <- dp$re[[k]]$covstruct
-          if (cs_name %in% c("ar1", "cs") && d_k < 2L) {
+          if (cs_name %in% c("ar1", "cs", "toep", "ou") && d_k < 2L) {
             stop(cs_name, "() needs at least 2 terms per level",
                  call. = FALSE)
           }
-          if (cs_name == "ar1" && "(Intercept)" %in% rt$cnms[[k]]) {
-            stop("ar1() requires a factor without intercept on the left ",
-                 "of the bar, e.g. ar1(times + 0 | g)", call. = FALSE)
+          if (cs_name %in% c("ar1", "ou") &&
+              "(Intercept)" %in% rt$cnms[[k]]) {
+            stop(cs_name, "() requires a factor without intercept on ",
+                 "the left of the bar, e.g. ", cs_name,
+                 "(times + 0 | g)", call. = FALSE)
           }
           fac <- rt$flist[[fassign[k]]]
           aux_A <- NULL
-          if (cs_name == "gr_cov") {
-            if (d_k != 1L) {
-              stop("gr(cov=) supports intercept-only terms for now: ",
-                   "(1 | gr(g, cov = A))", call. = FALSE)
+          aux_D <- NULL
+          aux_kron <- NULL
+          if (cs_name == "ou") {
+            v <- all.vars(bars[[k]][[2]])
+            if (length(v) != 1L || !is.factor(mf[[v]])) {
+              stop("ou() needs a single factor built with num_factor(): ",
+                   "ou(times + 0 | g)", call. = FALSE)
             }
+            coords <- parse_num_levels(levels(mf[[v]]))
+            aux_D <- abs(outer(coords, coords, "-"))
+          }
+          if (cs_name == "gr_cov") {
             A <- eval(dp$re[[k]]$cov_expr, data, resp$formula_env)
             if (!is.matrix(A) || nrow(A) != ncol(A)) {
               stop("gr(cov=): cov must be a square matrix", call. = FALSE)
@@ -329,6 +338,18 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
                    "levels", call. = FALSE)
             }
             aux_A <- unname(A[lv, lv])
+            if (d_k > 1L) {
+              nl_k0 <- len_k %/% d_k
+              r <- seq_len(len_k)
+              l1 <- (r - 1L) %/% d_k + 1L
+              c1 <- (r - 1L) %% d_k + 1L
+              aux_kron <- list(
+                ia = as.vector(outer(l1, l1,
+                                     function(a, b) (b - 1L) * nl_k0 + a)),
+                is = as.vector(outer(c1, c1,
+                                     function(a, b) (b - 1L) * d_k + a))
+              )
+            }
           }
           Zk <- Matrix::t(rt$Zt[rt$Gp[k] + seq_len(len_k), , drop = FALSE])
           components[[length(components) + 1L]] <- list(
@@ -337,6 +358,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
             dim = d_k, n_levels = len_k %/% d_k,
             levels = levels(fac), cnms = rt$cnms[[k]],
             bar = bars[[k]], Zlocal = Zk, aux_A = aux_A,
+            aux_D = aux_D, aux_kron = aux_kron,
             group_name = names(rt$flist)[fassign[k]],
             label = paste0(dp_prefix, deparse1(bars[[k]]))
           )
@@ -493,6 +515,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
       theta_idx = n_theta + seq_len(npar_k),
       levels = cps[[1]]$levels,
       aux_A = cps[[1]]$aux_A,
+      aux_D = cps[[1]]$aux_D,
+      aux_kron = cps[[1]]$aux_kron,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
       term_label = label,

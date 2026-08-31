@@ -67,7 +67,7 @@ test_that("gaussian gets an intercept-only sigma dpar", {
 })
 
 test_that("unsupported covariance structures error at parse time", {
-  expect_error(frm(bf(y ~ toep(x | g)) + gaussian(),
+  expect_error(frm(bf(y ~ rr(x | g)) + gaussian(),
                       data = NULL, dry_run = "spec"),
                "not supported yet")
 })

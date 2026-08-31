@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -58,6 +58,7 @@ Laplace approximation for random effects through RTMB.</p>
 <span>  lower <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  upper <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  priors <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  quadrature <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  dry_run <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -124,6 +125,15 @@ for stabilizing singular variance components or separating
 binomials. The reported logLik/AIC then include the prior terms
 and are penalized quantities, and <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> comparisons across
 different priors are meaningless.</p></dd>
+
+
+<dt id="arg-quadrature">quadrature<a class="anchor" aria-label="anchor" href="#arg-quadrature"></a></dt>
+<dd><p>If <code>TRUE</code>, marginalize each scalar random effect by
+adaptive Gauss-Kronrod quadrature instead of the Laplace
+approximation (the <code>glmer(nAGQ = k)</code> analogue; matches it in
+tests). Worth it for Bernoulli responses with small clusters,
+where Laplace biases variance components. Scalar random-intercept
+models only.</p></dd>
 
 
 <dt id="arg-dry-run">dry_run<a class="anchor" aria-label="anchor" href="#arg-dry-run"></a></dt>

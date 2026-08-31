@@ -16,6 +16,7 @@ frm(
   lower = NULL,
   upper = NULL,
   priors = NULL,
+  quadrature = FALSE,
   dry_run = NULL
 )
 }
@@ -59,6 +60,13 @@ for stabilizing singular variance components or separating
 binomials. The reported logLik/AIC then include the prior terms
 and are penalized quantities, and \code{anova()} comparisons across
 different priors are meaningless.}
+
+\item{quadrature}{If \code{TRUE}, marginalize each scalar random effect by
+adaptive Gauss-Kronrod quadrature instead of the Laplace
+approximation (the \code{glmer(nAGQ = k)} analogue; matches it in
+tests). Worth it for Bernoulli responses with small clusters,
+where Laplace biases variance components. Scalar random-intercept
+models only.}
 
 \item{dry_run}{\code{"spec"} returns the parsed intermediate representation
 without touching \code{data}; \code{"frame"} returns the assembled design

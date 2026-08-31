@@ -20,6 +20,14 @@ us_chol_cor <- function(theta_cor, d) {
   Lr %*% t(Lr)
 }
 
+# Unstructured d x d covariance from its theta segment (AD-safe).
+us_sigma <- function(theta, d) {
+  if (d == 1L) return(RTMB::matrix(exp(2 * theta[1]), 1, 1))
+  sdv <- exp(theta[seq_len(d)])
+  C <- us_chol_cor(theta[-seq_len(d)], d)
+  C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
+}
+
 covstruct_registry <- list(
   us = list(
     npar = function(dim) dim + dim * (dim - 1L) / 2L,
@@ -138,23 +146,95 @@ covstruct_registry <- list(
   )
 )
 
-# Known-covariance intercepts: b ~ N(0, sd^2 * A) with A a fixed matrix
-# over the grouping levels (phylogenetic, pedigree, spatial neighbor
-# structures) - brms (1 | gr(g, cov = A)). Correlation is ACROSS levels,
-# so the block is one multivariate observation. Dense solve: fine for
-# hundreds of levels, revisit (sparse precision) for thousands.
-covstruct_registry$gr_cov <- list(
-  npar = function(dim) 1L,
+# Continuous-position AR / exponential covariance over num_factor()
+# levels: Sigma_ij = sd^2 * exp(-rate * |t_i - t_j|). theta = (log sd,
+# log rate); blk$aux_D holds the distance matrix.
+covstruct_registry$ou <- list(
+  npar = function(dim) 2L,
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
-    Sigma <- exp(2 * theta[1]) * blk$aux_A
-    sum(RTMB::dmvnorm(b, 0, Sigma, log = TRUE))
+    Sigma <- exp(2 * theta[1]) * exp(-exp(theta[2]) * blk$aux_D)
+    dim(b) <- c(blk$dim, length(b) %/% blk$dim)
+    sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
   },
   vcov = function(theta, blk) {
-    matrix(exp(theta[1])^2, 1, 1,
-           dimnames = list(blk$cnms, blk$cnms))
+    V <- exp(theta[1])^2 * exp(-exp(theta[2]) * blk$aux_D)
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
   },
-  start = function(dim) 0
+  start = function(dim) c(0, 0)
+)
+
+# Heterogeneous Toeplitz (glmmTMB parameter count 2 * dim - 1): d
+# log-sds plus banded correlations rho_k = phi_k / sqrt(1 + phi_k^2).
+# PD is not guaranteed for every parameter value (same as glmmTMB); the
+# optimizer stays in the feasible region.
+covstruct_registry$toep <- list(
+  npar = function(dim) 2L * dim - 1L,
+  sd_idx = function(dim) seq_len(dim),
+  nll = function(b, theta, blk) {
+    "[<-" <- RTMB::ADoverload("[<-")
+    d <- blk$dim
+    sdv <- exp(theta[seq_len(d)])
+    phi <- theta[d + seq_len(d - 1L)]
+    cvec <- rep(phi[1], d)
+    cvec[1] <- 1
+    for (k in seq_len(d - 1L)) {
+      cvec[k + 1L] <- phi[k] / sqrt(1 + phi[k]^2)
+    }
+    M <- abs(outer(seq_len(d), seq_len(d), "-")) + 1L
+    C <- RTMB::matrix(cvec[as.vector(M)], d, d)
+    Sigma <- C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
+    dim(b) <- c(d, length(b) %/% d)
+    sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    d <- blk$dim
+    sdv <- exp(theta[seq_len(d)])
+    phi <- theta[d + seq_len(d - 1L)]
+    cvec <- c(1, phi / sqrt(1 + phi^2))
+    C <- matrix(cvec[abs(outer(seq_len(d), seq_len(d), "-")) + 1L], d, d)
+    V <- C * (sdv %o% sdv)
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
+  },
+  start = function(dim) numeric(2L * dim - 1L)
+)
+
+# Known-covariance random effects: level-major b ~ N(0, A (x) Sigma)
+# with A a fixed matrix over the grouping levels (phylogenetic,
+# pedigree, neighbor structures) and Sigma an unstructured d x d
+# within-level covariance - brms (x | gr(g, cov = A)). Correlation runs
+# ACROSS levels, so the block is one multivariate observation of
+# dimension d * n_levels; the Kronecker product is assembled from
+# precomputed index maps (blk$aux_kron). Dense solve: fine into the
+# hundreds of levels, revisit (sparse precision) for thousands.
+covstruct_registry$gr_cov <- list(
+  npar = function(dim) dim + dim * (dim - 1L) / 2L,
+  sd_idx = function(dim) seq_len(dim),
+  nll = function(b, theta, blk) {
+    if (blk$dim == 1L) {
+      Sigma <- exp(2 * theta[1]) * blk$aux_A
+      return(sum(RTMB::dmvnorm(b, 0, Sigma, log = TRUE)))
+    }
+    S <- us_sigma(theta, blk$dim)
+    D <- blk$dim * blk$n_levels
+    K <- RTMB::matrix(as.vector(blk$aux_A)[blk$aux_kron$ia] *
+                        as.vector(S)[blk$aux_kron$is], D, D)
+    sum(RTMB::dmvnorm(b, 0, K, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    d <- blk$dim
+    V <- if (d == 1L) {
+      matrix(exp(theta[1])^2, 1, 1)
+    } else {
+      sdv <- exp(theta[seq_len(d)])
+      us_chol_cor(theta[-seq_len(d)], d) * (sdv %o% sdv)
+    }
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
+  },
+  start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
 )
 
 # Smooth wiggly blocks are iid-Gaussian with one variance (the inverse

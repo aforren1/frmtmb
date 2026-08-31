@@ -5,6 +5,8 @@
 - [`bf()`](bf.md) : Set up a model formula
 - [`mvbf()`](mvbf.md) [`set_rescor()`](mvbf.md) : Combine formulas into
   a multivariate model
+- [`num_factor()`](num_factor.md) : Factor with numeric-coded levels for
+  coordinate covariance structures
 
 ## Fitting
 

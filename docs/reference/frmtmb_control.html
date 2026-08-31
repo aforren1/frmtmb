@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,7 @@
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">frmtmb_control</span><span class="op">(</span></span>
+<span>  optimizer <span class="op">=</span> <span class="st">"nlminb"</span>,</span>
 <span>  optCtrl <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>iter.max <span class="op">=</span> <span class="fl">1000</span>, eval.max <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span>,</span>
 <span>  restarts <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  grad_tol <span class="op">=</span> <span class="fl">0.001</span></span>
@@ -54,8 +55,25 @@
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-optctrl">optCtrl<a class="anchor" aria-label="anchor" href="#arg-optctrl"></a></dt>
-<dd><p>Control list passed to <code><a href="https://rdrr.io/r/stats/nlminb.html" class="external-link">stats::nlminb()</a></code>.</p></dd>
+<dl><dt id="arg-optimizer">optimizer<a class="anchor" aria-label="anchor" href="#arg-optimizer"></a></dt>
+<dd><p><code>"nlminb"</code> (default), <code>"optim"</code> (L-BFGS-B), or a
+function with signature <code>(par, fn, gr, lower, upper, control)</code>
+returning a list with elements <code>par</code>, <code>objective</code>, <code>convergence</code>
+(0 = success), and optionally <code>message</code> - the hook for optimx,
+nloptr, and friends without frmtmb depending on them. Example:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>nlopt <span class="ot">&lt;-</span> <span class="cf">function</span>(par, fn, gr, lower, upper, control) {</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  r <span class="ot">&lt;-</span> nloptr<span class="sc">::</span><span class="fu">nloptr</span>(par, fn, gr, <span class="at">lb =</span> lower, <span class="at">ub =</span> upper,</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>                      <span class="at">opts =</span> <span class="fu">list</span>(<span class="at">algorithm =</span> <span class="st">"NLOPT_LD_LBFGS"</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>                                  <span class="at">xtol_rel =</span> <span class="fl">1e-10</span>, <span class="at">maxeval =</span> <span class="dv">2000</span>))</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">par =</span> r<span class="sc">$</span>solution, <span class="at">objective =</span> r<span class="sc">$</span>objective,</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>       <span class="at">convergence =</span> <span class="fu">as.integer</span>(r<span class="sc">$</span>status <span class="sc">&lt;</span> <span class="dv">0</span>), <span class="at">message =</span> r<span class="sc">$</span>message)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>}</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="fu">frm</span>(..., <span class="at">control =</span> <span class="fu">frmtmb_control</span>(<span class="at">optimizer =</span> nlopt))</span></code></pre><p></p></div></dd>
+
+
+<dt id="arg-optctrl">optCtrl<a class="anchor" aria-label="anchor" href="#arg-optctrl"></a></dt>
+<dd><p>Control list passed to the built-in optimizers
+(<code><a href="https://rdrr.io/r/stats/nlminb.html" class="external-link">stats::nlminb()</a></code> / <code><a href="https://rdrr.io/r/stats/optim.html" class="external-link">stats::optim()</a></code>).</p></dd>
 
 
 <dt id="arg-restarts">restarts<a class="anchor" aria-label="anchor" href="#arg-restarts"></a></dt>

@@ -8,6 +8,7 @@ reference:
   - bf
   - mvbf
   - set_rescor
+  - num_factor
 - title: Fitting
   contents:
   - frm

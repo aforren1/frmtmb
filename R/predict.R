@@ -453,9 +453,10 @@ draw_b <- function(fit) {
   for (bk in fit$frame$re_blocks) {
     if (bk$covstruct == "gr_cov") {
       # correlation is across levels, not within them
-      Sigma <- exp(th[bk$theta_idx])^2 * bk$aux_A
-      b[bk$b_idx] <- drop(crossprod(chol(Sigma),
-                                    stats::rnorm(bk$n_levels)))
+      S <- covstruct_registry$gr_cov$vcov(th[bk$theta_idx], bk)
+      K <- kronecker(bk$aux_A, S)
+      b[bk$b_idx] <- drop(crossprod(chol(K),
+                                    stats::rnorm(nrow(K))))
       next
     }
     V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)

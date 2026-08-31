@@ -33,6 +33,12 @@
 #'   binomials. The reported logLik/AIC then include the prior terms
 #'   and are penalized quantities, and `anova()` comparisons across
 #'   different priors are meaningless.
+#' @param quadrature If `TRUE`, marginalize each scalar random effect by
+#'   adaptive Gauss-Kronrod quadrature instead of the Laplace
+#'   approximation (the `glmer(nAGQ = k)` analogue; matches it in
+#'   tests). Worth it for Bernoulli responses with small clusters,
+#'   where Laplace biases variance components. Scalar random-intercept
+#'   models only.
 #' @param dry_run `"spec"` returns the parsed intermediate representation
 #'   without touching `data`; `"frame"` returns the assembled design
 #'   matrices and parameter template without fitting.
@@ -48,7 +54,7 @@
 frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 control = frmtmb_control(), se = FALSE,
                 na.action = stats::na.omit, lower = NULL, upper = NULL,
-                priors = NULL, dry_run = NULL) {
+                priors = NULL, quadrature = FALSE, dry_run = NULL) {
   cl <- match.call()
   bform <- if (inherits(formula, c("frmtmb_formula", "frmtmb_mvformula"))) {
     formula
@@ -101,8 +107,32 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   if (REML) random <- c(random, "beta")
   if (!length(random)) random <- NULL
 
+  integrate <- NULL
+  if (isTRUE(quadrature)) {
+    scalar_iid <- vapply(frame$re_blocks, function(bk) {
+      bk$dim == 1L && bk$covstruct %in% c("us", "diag", "homdiag")
+    }, TRUE)
+    if (!length(scalar_iid) || !all(scalar_iid)) {
+      stop("quadrature = TRUE currently supports scalar random ",
+           "intercepts only (every block must be a dim-1 us/diag term)",
+           call. = FALSE)
+    }
+    if (REML) {
+      stop("quadrature = TRUE cannot be combined with REML = TRUE",
+           call. = FALSE)
+    }
+    # adaptive Gauss-Kronrod marginalization per scalar random effect
+    # (TMB's experimental `integrate`; the nAGQ analogue - matches
+    # glmer(nAGQ = 25) in tests). Spec replicated from TMB's GK().
+    integrate <- list(b = structure(
+      list(dim = 1, adaptive = FALSE, debug = FALSE,
+           method = "marginal_gk"),
+      class = "GK"
+    ))
+  }
   obj <- RTMB::MakeADFun(nll, template, random = random,
-                         map = frame$map, silent = TRUE)
+                         map = frame$map, integrate = integrate,
+                         silent = TRUE)
   bounds <- resolve_bounds(list(frame = frame, REML = REML), lower, upper)
   opt <- optimize_obj(obj, control, bounds)
 
@@ -112,6 +142,16 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   est <- obj$env$parList(opt$par)
   for (nm in names(frame$par_template)) {
     names(est[[nm]]) <- names(frame$par_template[[nm]])
+  }
+  # under integrate= (quadrature), parList leaves outer components NA;
+  # the optimizer vector is authoritative for them either way
+  pn <- names(opt$par)
+  for (cp in setdiff(unique(pn), random %||% character(0))) {
+    pos <- seq_along(frame$par_template[[cp]])
+    if (cp == "betad" && length(frame$betad_fixed_idx)) {
+      pos <- setdiff(pos, frame$betad_fixed_idx)
+    }
+    est[[cp]][pos] <- unname(opt$par[pn == cp])
   }
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
@@ -137,28 +177,75 @@ sdr_of <- function(fit) {
 
 #' Control parameters for frmtmb fits
 #'
-#' @param optCtrl Control list passed to [stats::nlminb()].
+#' @param optimizer `"nlminb"` (default), `"optim"` (L-BFGS-B), or a
+#'   function with signature `(par, fn, gr, lower, upper, control)`
+#'   returning a list with elements `par`, `objective`, `convergence`
+#'   (0 = success), and optionally `message` - the hook for optimx,
+#'   nloptr, and friends without frmtmb depending on them. Example:
+#'   ```
+#'   nlopt <- function(par, fn, gr, lower, upper, control) {
+#'     r <- nloptr::nloptr(par, fn, gr, lb = lower, ub = upper,
+#'                         opts = list(algorithm = "NLOPT_LD_LBFGS",
+#'                                     xtol_rel = 1e-10, maxeval = 2000))
+#'     list(par = r$solution, objective = r$objective,
+#'          convergence = as.integer(r$status < 0), message = r$message)
+#'   }
+#'   frm(..., control = frmtmb_control(optimizer = nlopt))
+#'   ```
+#' @param optCtrl Control list passed to the built-in optimizers
+#'   ([stats::nlminb()] / [stats::optim()]).
 #' @param restarts Number of times to restart the optimizer from the
 #'   current optimum while the gradient remains above `grad_tol`.
 #' @param grad_tol Warn (and restart) if the maximum absolute gradient at
 #'   the optimum exceeds this value.
 #' @return A list of control settings.
 #' @export
-frmtmb_control <- function(optCtrl = list(iter.max = 1000, eval.max = 1000),
+frmtmb_control <- function(optimizer = "nlminb",
+                           optCtrl = list(iter.max = 1000, eval.max = 1000),
                            restarts = 1, grad_tol = 1e-3) {
-  list(optCtrl = optCtrl, restarts = restarts, grad_tol = grad_tol)
+  list(optimizer = optimizer, optCtrl = optCtrl, restarts = restarts,
+       grad_tol = grad_tol)
+}
+
+# One optimizer invocation, normalized to nlminb's result shape.
+run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control) {
+  if (is.function(optimizer)) {
+    res <- optimizer(par, fn, gr, lower, upper, control)
+    need <- c("par", "objective", "convergence")
+    if (!all(need %in% names(res))) {
+      stop("A custom optimizer must return par, objective, and ",
+           "convergence", call. = FALSE)
+    }
+    res$message <- res$message %||% ""
+    return(res)
+  }
+  switch(optimizer,
+    nlminb = stats::nlminb(par, fn, gr, control = control,
+                           lower = lower, upper = upper),
+    optim = {
+      ctl <- control[names(control) %in%
+                       c("maxit", "factr", "pgtol", "trace")]
+      if (is.null(ctl$maxit)) ctl$maxit <- 1000
+      r <- stats::optim(par, fn, gr, method = "L-BFGS-B",
+                        lower = lower, upper = upper, control = ctl)
+      list(par = r$par, objective = r$value,
+           convergence = r$convergence, message = r$message %||% "")
+    },
+    stop("Unknown optimizer '", optimizer,
+         "' (use \"nlminb\", \"optim\", or a function)", call. = FALSE)
+  )
 }
 
 optimize_obj <- function(obj, control,
                          bounds = list(lower = -Inf, upper = Inf)) {
-  opt <- stats::nlminb(obj$par, obj$fn, obj$gr, control = control$optCtrl,
-                       lower = bounds$lower, upper = bounds$upper)
+  optimizer <- control$optimizer %||% "nlminb"
+  opt <- run_optimizer(optimizer, obj$par, obj$fn, obj$gr,
+                       bounds$lower, bounds$upper, control$optCtrl)
   for (i in seq_len(control$restarts)) {
     g <- max(abs(obj$gr(opt$par)))
     if (is.finite(g) && g < control$grad_tol) break
-    opt2 <- stats::nlminb(opt$par, obj$fn, obj$gr,
-                          control = control$optCtrl,
-                          lower = bounds$lower, upper = bounds$upper)
+    opt2 <- run_optimizer(optimizer, opt$par, obj$fn, obj$gr,
+                          bounds$lower, bounds$upper, control$optCtrl)
     if (opt2$objective <= opt$objective) opt <- opt2
   }
   opt

@@ -111,6 +111,4 @@ test_that("gr(cov=) matches a hand-rolled correlated-intercepts reference", {
   A2 <- A; dimnames(A2) <- NULL
   expect_error(frm(bf(y ~ x + (1 | gr(g, cov = A2))) + gaussian(),
                    data = dd), "dimnames")
-  expect_error(frm(bf(y ~ x + (x | gr(g, cov = A))) + gaussian(),
-                   data = dd), "intercept-only")
 })
