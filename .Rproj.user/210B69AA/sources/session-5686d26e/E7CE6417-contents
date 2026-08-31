@@ -1,0 +1,43 @@
+url: ~
+template:
+  bootstrap: 5
+
+reference:
+- title: Model specification
+  contents:
+  - bf
+  - mvbf
+  - set_rescor
+- title: Fitting
+  contents:
+  - frm
+  - frmtmb_control
+- title: Families
+  contents:
+  - frmtmb_family
+  - frmtmb-families
+  - check_custom_family
+- title: Inference and diagnostics
+  contents:
+  - confint.frmtmb_fit
+  - diagnose
+  - dharma_residuals
+  - anova.frmtmb_fit
+  - as_tmbstan
+- title: Extractors and prediction
+  contents:
+  - predict.frmtmb_fit
+  - residuals.frmtmb_fit
+  - simulate.frmtmb_fit
+  - fixef
+  - ranef
+  - VarCorr
+  - rescor_matrix
+  - vcov.frmtmb_fit
+
+articles:
+- title: Guides
+  navbar: ~
+  contents:
+  - frmtmb
+  - brms-migration

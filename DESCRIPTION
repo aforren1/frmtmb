@@ -1,0 +1,43 @@
+Package: frmtmb
+Title: Formula-Based Regression Models via 'RTMB'
+Version: 0.6.0
+Authors@R:
+    person("Alex", "Forrence", email = "alex.forrence@gmail.com",
+           role = c("aut", "cre"))
+Description: Fits regression models specified with a 'brms'-style formula
+    grammar by maximum likelihood, with the Laplace approximation for
+    random effects. Model objectives are generated as R closures and
+    differentiated with 'RTMB', so no compilation happens at run time.
+    Supports 'lme4'-style random effects with structured covariances,
+    and (in later versions) distributional regression, smooths,
+    nonlinear formulas, and multivariate models.
+License: GPL (>= 2)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1)
+Imports:
+    Matrix,
+    methods,
+    mgcv,
+    reformulas (>= 0.4.4),
+    RTMB (>= 1.9),
+    stats,
+    TMB
+Suggests:
+    bayesplot,
+    DHARMa,
+    emmeans,
+    glmmTMB,
+    knitr,
+    lme4,
+    MASS,
+    nnet,
+    rmarkdown,
+    rstan,
+    survival,
+    testthat (>= 3.0.0),
+    tmbstan
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0
