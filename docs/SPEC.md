@@ -450,8 +450,9 @@ Each milestone ends green against a reference implementation.
 | v0.5 | `nl = TRUE`, [`custom_family()`](reference/frmtmb_family.md) public, emmeans/marginaleffects polish, `conditional_effects`, `as_tmbstan`, `mm()`, pkgdown + brms-migration vignette | nl growth models vs [`nlme::nlme`](https://rdrr.io/pkg/nlme/man/nlme.html); custom nbinom2 matches built-in to 1e-10 |
 
 Deferred (candidates for v0.6+): `mo()`, `gp()` (HSGP or `dgmrf`),
-CAR/SAR, `me()`, `cs()`, `mixture()` (not latent-Gaussian; Laplace
-inappropriate; multimodal ML). Excluded: `mi()` missing-data terms.
+CAR/SAR, `me()`, `cs()`, [`mixture()`](reference/mixture.md) (not
+latent-Gaussian; Laplace inappropriate; multimodal ML). Excluded: `mi()`
+missing-data terms.
 
 ## 7. Testing strategy
 

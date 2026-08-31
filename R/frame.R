@@ -137,13 +137,38 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   }
   env <- spec$responses[[1]]$formula_env
   fr_formula <- stats::as.formula(call("~", rhs_comb), env = env)
-  mf <- stats::model.frame(fr_formula, data = data,
-                           drop.unused.levels = TRUE,
-                           na.action = na.action)
+  # x | mi() responses may carry NAs (they become latent parameters);
+  # rows are dropped only for NAs in every OTHER variable
+  mi_cols <- vapply(
+    Filter(function(r) isTRUE(r$aterms$mi), spec$responses),
+    function(r) deparse1(r$resp_expr), ""
+  )
+  if (length(mi_cols)) {
+    mf <- stats::model.frame(fr_formula, data = data,
+                             drop.unused.levels = TRUE,
+                             na.action = stats::na.pass)
+    bad <- Reduce(`|`, lapply(setdiff(names(mf), mi_cols), function(cn) {
+      v <- mf[[cn]]
+      if (is.matrix(v)) rowSums(is.na(v)) > 0 else is.na(v)
+    }), rep(FALSE, nrow(mf)))
+    if (any(bad)) {
+      dropped <- which(bad)
+      mf <- mf[!bad, , drop = FALSE]
+      attr(mf, "na.action") <- structure(
+        dropped,
+        class = if (identical(na.action, stats::na.exclude)) "exclude"
+                else "omit"
+      )
+    }
+  } else {
+    mf <- stats::model.frame(fr_formula, data = data,
+                             drop.unused.levels = TRUE,
+                             na.action = na.action)
+  }
   n <- nrow(mf)
   if (n == 0L) stop("No complete observations after removing NAs",
                     call. = FALSE)
-  if (anyNA(mf)) {
+  if (anyNA(mf[setdiff(names(mf), mi_cols)])) {
     stop("NA values remain in the model variables after applying ",
          "na.action; use na.omit (default) or na.exclude", call. = FALSE)
   }
@@ -159,10 +184,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   y <- list()
   aterm_values <- list()
   extras <- list()
+  mi_map <- list()   # per mi() response: missing rows + miss indices
+  n_miss <- 0L
+  miss_init <- numeric(0)
   for (resp in spec$responses) {
     y[[resp$resp_name]] <- extract_y(resp, mf)
     av <- lapply(resp$aterms[setdiff(names(resp$aterms),
-                                     c("cens_y2", "se_sigma"))],
+                                     c("cens_y2", "se_sigma", "mi"))],
                  function(a) {
       v <- mf[[deparse1(a)]]
       if (is.null(v)) v <- eval(a, mf, resp$formula_env)
@@ -170,6 +198,57 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
     })
     if (!is.null(resp$aterms$se_sigma)) {
       av$se_sigma <- resp$aterms$se_sigma   # logical flag, not data
+    }
+    if (isTRUE(resp$aterms$mi)) {
+      if (!resp$family$family %in% c("gaussian", "student")) {
+        stop("mi() responses need a gaussian or student model",
+             call. = FALSE)
+      }
+      if (any(c("cens", "trunc_lb", "trunc_ub", "se") %in%
+                names(resp$aterms))) {
+        stop("mi() cannot be combined with cens(), trunc(), or se() ",
+             "on the same response", call. = FALSE)
+      }
+      if (spec$rescor) {
+        stop("mi() cannot be combined with rescor = TRUE", call. = FALSE)
+      }
+      yv <- y[[resp$resp_name]]
+      if (is.matrix(yv)) {
+        stop("mi() responses must be numeric vectors", call. = FALSE)
+      }
+      if (!is.null(av$mi_sd)) {
+        # measurement error (brms me()): every true value is latent;
+        # observed values get a N(latent, sd) term in the objective
+        if (any(av$mi_sd <= 0)) {
+          stop("mi(sd): measurement SDs must be positive", call. = FALSE)
+        }
+        obs <- which(!is.na(yv))
+        if (!length(obs)) {
+          stop("mi(sd): the response has no observed values",
+               call. = FALSE)
+        }
+        rows <- seq_along(yv)
+        mi_map[[resp$resp_name]] <- list(
+          rows = rows, idx = n_miss + rows,
+          se = av$mi_sd, obs = obs
+        )
+        n_miss <- n_miss + length(rows)
+        miss_init <- c(miss_init,
+                       ifelse(is.na(yv), mean(yv[obs]), yv))
+        yv[is.na(yv)] <- 0
+        y[[resp$resp_name]] <- yv
+      } else {
+        rows <- which(is.na(yv))
+        if (length(rows)) {
+          mi_map[[resp$resp_name]] <- list(rows = rows,
+                                           idx = n_miss + seq_along(rows))
+          n_miss <- n_miss + length(rows)
+          miss_init <- c(miss_init,
+                         rep(mean(yv[-rows]), length(rows)))
+          yv[rows] <- 0
+          y[[resp$resp_name]] <- yv
+        }
+      }
     }
     if (!is.null(resp$aterms$cens_y2)) {
       v <- as.numeric(eval(resp$aterms$cens_y2, data, resp$formula_env))
@@ -342,7 +421,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
           cs_name <- dp$re[[k]]$covstruct
           dist_cs <- c("ou", "exp", "gau", "mat")
           if (cs_name %in% c("ar1", "hetar1", "cs", "homcs", "toep",
-                             "homtoep", dist_cs) && d_k < 2L) {
+                             "homtoep", "rr", dist_cs) && d_k < 2L) {
             stop(cs_name, "() needs at least 2 terms per level",
                  call. = FALSE)
           }
@@ -410,10 +489,19 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
               )
             }
           }
+          if (cs_name == "equalto") {
+            V <- eval(dp$re[[k]]$cov_expr, data, resp$formula_env)
+            if (!is.matrix(V) || nrow(V) != d_k || ncol(V) != d_k) {
+              stop("equalto(): V must be a ", d_k, " x ", d_k,
+                   " matrix", call. = FALSE)
+            }
+            aux_A <- unname(V)
+          }
           Zk <- Matrix::t(rt$Zt[rt$Gp[k] + seq_len(len_k), , drop = FALSE])
           components[[length(components) + 1L]] <- list(
             lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
             covstruct = cs_name, id = dp$re[[k]]$id,
+            rank = dp$re[[k]]$rank,
             dim = d_k, n_levels = len_k %/% d_k,
             levels = levels(fac), cnms = rt$cnms[[k]],
             bar = bars[[k]], Zlocal = Zk, aux_A = aux_A,
@@ -510,6 +598,49 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         )
       }
 
+      # mi(x) predictor terms: one coefficient (zero placeholder column,
+      # as with mo); the values are observed-or-latent, supplied by the
+      # objective and the numeric prediction paths
+      mi_info <- list()
+      for (mexpr in dp$miterms %||% list()) {
+        vn <- deparse1(mexpr)
+        tgt <- spec$responses[[vn]]
+        if (is.null(tgt) || !isTRUE(tgt$aterms$mi)) {
+          stop("mi(", vn, ") needs a matching imputation model: ",
+               "add bf(", vn, " | mi() ~ ...)", call. = FALSE)
+        }
+        if (identical(vn, resp$resp_name)) {
+          stop("mi(", vn, ") cannot appear in its own model",
+               call. = FALSE)
+        }
+        lab <- paste0("mi", vn)
+        X <- cbind(X, matrix(0, nrow(X), 1, dimnames = list(NULL, lab)))
+        mi_info[[length(mi_info) + 1L]] <- list(
+          var = vn, col = ncol(X), label = lab
+        )
+      }
+
+      # Category-specific ordinal effects cs(x): K-1 coefficients per
+      # term (extras), entering the threshold-specific predictors.
+      cs_info <- list()
+      if (length(dp$csterms %||% list())) {
+        if (!identical(resp$family$type, "ordinal") ||
+            identical(resp$family$family, "cumulative")) {
+          stop("cs() needs an sratio, cratio, or acat family",
+               call. = FALSE)
+        }
+        K_cs <- max(y[[resp$resp_name]])
+        for (cexpr in dp$csterms) {
+          v <- as.numeric(eval(cexpr, mf, resp$formula_env))
+          csname <- paste0("bcs", length(extras) + 1L)
+          extras[[csname]] <- numeric(K_cs - 1L)
+          cs_info[[length(cs_info) + 1L]] <- list(
+            vals = v, par = csname,
+            label = paste0("cs", deparse1(cexpr))
+          )
+        }
+      }
+
       cn <- colnames(X)
       if (!identical(dp$name, "mu")) cn <- paste(dp$name, cn, sep = "_")
       if (length(spec$responses) > 1) {
@@ -542,6 +673,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         contrasts = contr,
         smooths = sm_info,
         mo = mo_info,
+        mi = mi_info,
+        cs = cs_info,
         comp_ids = comp_ids,
         constant = dp$constant
       )
@@ -567,12 +700,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   re_blocks <- list()
   comp_block <- integer(length(components))   # component -> block index
   comp_offset <- integer(length(components))  # coef offset within level
-  n_b <- 0L
+  n_b <- 0L      # parameter space (rr blocks hold factors here)
+  n_c <- 0L      # coefficient space (the Z columns)
   n_theta <- 0L
+  has_rr <- FALSE
 
   for (gd in group_defs) {
     cps <- components[gd]
     if (length(cps) > 1L) {
+      if (any(vapply(cps, `[[`, "", "covstruct") == "rr")) {
+        stop("rr() terms cannot share an |ID| key", call. = FALSE)
+      }
       lv <- cps[[1]]$levels
       for (cp in cps) {
         if (!identical(cp$levels, lv)) {
@@ -589,6 +727,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
       label <- paste0(paste(vapply(cps, `[[`, "", "label"),
                             collapse = " + "), " [ID]")
       n_levels <- cps[[1]]$n_levels
+      rank_k <- NULL
     } else {
       cp <- cps[[1]]
       D <- cp$dim
@@ -596,8 +735,20 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
       cnms <- cp$cnms
       label <- cp$label
       n_levels <- cp$n_levels
+      rank_k <- cp$rank
     }
-    npar_k <- covstruct_registry[[cs_name]]$npar(D)
+    if (cs_name == "rr") {
+      if (is.null(rank_k) || rank_k > D) {
+        stop("rr(): the rank d must not exceed the term dimension (",
+             D, ")", call. = FALSE)
+      }
+      has_rr <- TRUE
+      npar_k <- rr_npar(D, rank_k)
+      nb_k <- rank_k * n_levels
+    } else {
+      npar_k <- covstruct_registry[[cs_name]]$npar(D)
+      nb_k <- D * n_levels
+    }
     blk_i <- length(re_blocks) + 1L
     ofs <- 0L
     for (k in seq_along(gd)) {
@@ -608,8 +759,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
     re_blocks[[blk_i]] <- list(
       covstruct = cs_name,
       dim = D,
+      rank = rank_k,
       n_levels = n_levels,
-      b_idx = n_b + seq_len(D * n_levels),
+      b_idx = n_b + seq_len(nb_k),
+      c_idx = n_c + seq_len(D * n_levels),
       theta_idx = n_theta + seq_len(npar_k),
       levels = cps[[1]]$levels,
       aux_A = cps[[1]]$aux_A,
@@ -626,7 +779,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
              cnms = cps[[k]]$cnms, label = cps[[k]]$label)
       })
     )
-    n_b <- n_b + D * n_levels
+    n_b <- n_b + nb_k
+    n_c <- n_c + D * n_levels
     n_theta <- n_theta + npar_k
   }
 
@@ -643,13 +797,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         loc_col <- Tk@j + 1L
         lev <- (loc_col - 1L) %/% cp$dim + 1L
         cf <- (loc_col - 1L) %% cp$dim + 1L
-        glob <- bk$b_idx[(lev - 1L) * bk$dim + comp_offset[ci] + cf]
+        glob <- bk$c_idx[(lev - 1L) * bk$dim + comp_offset[ci] + cf]
         ii <- c(ii, Tk@i + 1L)
         jj <- c(jj, glob)
         xx <- c(xx, Tk@x)
       }
       lp$Z <- Matrix::sparseMatrix(i = ii, j = jj, x = xx,
-                                   dims = c(n, n_b))
+                                   dims = c(n, n_c))
     }
     if (length(lp$smooths)) {
       lp$smooths <- lapply(lp$smooths, function(si) {
@@ -671,8 +825,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   if (n_theta) {
     th0 <- numeric(n_theta)
     for (bk in re_blocks) {
-      th0[bk$theta_idx] <-
+      th0[bk$theta_idx] <- if (bk$covstruct == "rr") {
+        rr_start(bk$dim, bk$rank)
+      } else {
         covstruct_registry[[bk$covstruct]]$start(bk$dim)
+      }
     }
     par_template$theta <- th0
   }
@@ -680,6 +837,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
     K <- length(spec$responses)
     par_template$thetar <- numeric(K * (K - 1L) / 2L)
   }
+  if (n_miss) par_template$miss <- miss_init
   for (nm in names(extras)) {
     if (nm %in% names(par_template)) {
       stop("Extra-parameter name collides with the template: ", nm,
@@ -704,6 +862,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   structure(
     list(spec = spec, n_obs = n, y = y, aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
+         n_c = n_c, has_rr = has_rr, mi_map = mi_map,
          par_template = par_template, map = map,
          betad_fixed_idx = betad_fixed_idx,
          extra_names = names(extras),

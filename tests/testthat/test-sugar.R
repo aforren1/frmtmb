@@ -104,7 +104,9 @@ test_that("insight defaults work off the standard accessors", {
   expect_equal(insight::n_obs(fit), 100)
   expect_equal(nrow(insight::get_data(fit)), 100)
   expect_equal(as.numeric(insight::get_sigma(fit)), sigma(fit))
-  expect_setequal(insight::find_predictors(fit)$conditional, c("x", "g"))
+  # registered insight methods (v0.17) split fixed from random parts
+  expect_equal(insight::find_predictors(fit)$conditional, "x")
+  expect_equal(insight::find_random(fit)$random, "g")
 })
 
 test_that("refit powers a small parametric bootstrap", {

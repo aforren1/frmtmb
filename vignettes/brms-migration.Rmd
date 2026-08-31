@@ -43,13 +43,17 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
   gives likelihood-ratio tests, and `AIC()`/`BIC()` replace `loo()`.
 - `posterior_predict()` becomes `simulate()`; `posterior_epred()` over
   `newdata` becomes `predict(newdata, type = "response")`.
-- `mo()` monotonic effects work (standalone terms; interactions with
-  `mo()` are not supported yet). Multiply imputed data goes through
-  `frm_multiple()` (Rubin's rules) instead of `brm_multiple()`.
-- Not supported: `mi()` in-model imputation (use `frm_multiple()`),
-  `me()`, `gp()`, `cs()`, `mixture()`, `ar()/ma()` residual
-  autocorrelation terms (use the `ar1()` random-effect structure),
-  category-specific effects.
+- `mo()` monotonic effects, `mi()` one-step imputation of continuous
+  predictors, `mi(sdx)` measurement error (the `me()` replacement,
+  as in current brms), `cs()` category-specific ordinal effects, and
+  `mixture()` families all work (standalone `mo()`/`mi()` terms
+  only; discrete predictors cannot be imputed in-model, the same
+  restriction Stan has). Multiply imputed data can instead go
+  through `frm_multiple()` (Rubin's rules), the `brm_multiple()`
+  analog. Mixture fits are ML: expect multimodality, compare starts
+  (`frm_allfit()`).
+- Not supported: `gp()`, `ar()/ma()` residual autocorrelation terms
+  (use the `ar1()` random-effect structure).
 - glmer's proportion-response idiom (`weights = size`) becomes
   `y | trials(size)` with either proportions or counts; `weights()`
   in the formula stays a frequency weight, as in brms.
@@ -81,8 +85,8 @@ the stats/lme4 spelling for standard generics:
 ## When you still want brms
 
 Genuine prior information, full posterior uncertainty for derived
-quantities, models outside the latent-Gaussian/Laplace class
-(mixtures, discrete latents), or `loo`-based model comparison. A
+quantities, models with discrete latent structure beyond
+observation-level mixtures, or `loo`-based model comparison. A
 practical workflow is model screening in frmtmb and a final fit in
 brms; `as_tmbstan(fit)` also runs NUTS on the frmtmb objective
 directly.

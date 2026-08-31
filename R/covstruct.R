@@ -390,6 +390,97 @@ covstruct_registry$gr_prec <- list(
   start = function(dim) 0
 )
 
+# Known, fully fixed within-level covariance (glmmTMB equalto): b ~
+# N(0, V) with V supplied by the user - zero parameters (meta-analysis
+# sampling covariances and similar).
+covstruct_registry$equalto <- list(
+  npar = function(dim) 0L,
+  sd_idx = function(dim) integer(0),
+  nll = function(b, theta, blk) {
+    dim(b) <- c(blk$dim, length(b) %/% blk$dim)
+    sum(RTMB::dmvnorm(t(b), 0, blk$aux_A, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    V <- blk$aux_A
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
+  },
+  start = function(dim) numeric(0)
+)
+
+# Reduced-rank / factor-analytic (glmmTMB rr): per-level coefficients
+# c = Lambda f with f iid standard normal factors (the block's b segment)
+# and Lambda the D x rank loadings matrix, columnwise lower-triangular
+# (theta). Covariance = Lambda Lambda', rank-deficient by design. The
+# expansion from factors to coefficients happens in expand_b(); npar and
+# start are handled at the frame call sites (they need the rank).
+rr_npar <- function(dim, rank) {
+  as.integer(dim * rank - rank * (rank - 1L) / 2L)
+}
+
+# start at Lambda = [I_rank; 0]: identified, unit factor scale
+rr_start <- function(dim, rank) {
+  th <- numeric(rr_npar(dim, rank))
+  pos <- 0L
+  for (j in seq_len(rank)) {
+    th[pos + 1L] <- 1
+    pos <- pos + (dim - j + 1L)
+  }
+  th
+}
+
+rr_loadings <- function(theta, dim, rank) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  L <- RTMB::matrix(0, dim, rank)
+  pos <- 0L
+  for (j in seq_len(rank)) {
+    len <- dim - j + 1L
+    L[seq.int(j, dim), j] <- theta[pos + seq_len(len)]
+    pos <- pos + len
+  }
+  L
+}
+
+covstruct_registry$rr <- list(
+  npar = function(dim) {
+    stop("rr npar needs the rank; handled at the frame call site",
+         call. = FALSE)
+  },
+  sd_idx = function(dim) integer(0),
+  nll = function(b, theta, blk) {
+    sum(RTMB::dnorm(b, 0, 1, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    L <- rr_loadings(theta, blk$dim, blk$rank)
+    V <- as.matrix(L %*% t(L))
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
+  },
+  start = function(dim) {
+    stop("rr start needs the rank; handled at the frame call site",
+         call. = FALSE)
+  }
+)
+
+# Coefficient-space vector the Z matrices multiply: identical to b
+# except for rr blocks, whose factors expand through the loadings.
+# AD-safe (RTMB::matrix + [<- overload) and numeric-safe.
+expand_b <- function(frame, b, theta) {
+  if (!isTRUE(frame$has_rr)) return(b)
+  "[<-" <- RTMB::ADoverload("[<-")
+  cvec <- rep(b[1] * 0, frame$n_c)   # keeps the advector class if taped
+  for (bk in frame$re_blocks) {
+    if (bk$covstruct == "rr") {
+      L <- rr_loadings(theta[bk$theta_idx], bk$dim, bk$rank)
+      Fm <- RTMB::matrix(b[bk$b_idx], bk$rank, bk$n_levels)
+      cvec[bk$c_idx] <- as.vector(L %*% Fm)
+    } else {
+      cvec[bk$c_idx] <- b[bk$b_idx]
+    }
+  }
+  cvec
+}
+
 # Smooth wiggly blocks are iid-Gaussian with one variance (the inverse
 # smoothing parameter); reuse the homdiag machinery under its own name so
 # blocks stay self-describing.

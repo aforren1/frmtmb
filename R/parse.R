@@ -12,7 +12,7 @@ parse_response <- function(formula) {
       }
       nm <- as.character(tm[[1]])
       supported <- c("weights", "trials", "cens", "trunc", "se",
-                     "vint", "vreal")
+                     "vint", "vreal", "mi")
       if (!nm %in% supported) {
         stop("Addition term `", nm, "()` is not supported yet ",
              "(currently supported: ",
@@ -42,6 +42,17 @@ parse_response <- function(formula) {
         }
         aterms$cens <- args[[1]]
         if (length(args) == 2) aterms$cens_y2 <- args[[2]]
+      } else if (nm == "mi") {
+        # x | mi() ~ ...: the response may contain NAs; missing entries
+        # become latent parameters (one-step imputation). With known
+        # measurement SDs - x | mi(sdx) - every value is latent and the
+        # observed ones get a measurement model (brms me()).
+        if (length(tm) > 2L) {
+          stop("mi() on the response side takes at most one argument ",
+               "(known measurement SDs)", call. = FALSE)
+        }
+        aterms$mi <- TRUE
+        if (length(tm) == 2L) aterms$mi_sd <- tm[[2]]
       } else if (nm %in% c("vint", "vreal")) {
         # custom-family data vectors (brms vint()/vreal()): each
         # argument becomes aterms$vint1, vint2, ... for the lpdf
@@ -94,6 +105,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   cs_specials <- unique(c(supported_cs, "rr", "propto"))
   smooth <- list()
   mo <- list()
+  miterms <- list()
+  csterms <- list()
   rest <- list()
   for (tm in terms_list) {
     if (is_smooth_call(tm)) {
@@ -109,11 +122,27 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
         stop("mo() takes exactly one variable", call. = FALSE)
       }
       mo[[length(mo) + 1L]] <- tm[[2]]
+    } else if (is.call(tm) && identical(tm[[1]], as.name("mi"))) {
+      if (length(tm) != 2L || !is.name(tm[[2]])) {
+        stop("mi() in a predictor takes one variable name: mi(x)",
+             call. = FALSE)
+      }
+      miterms[[length(miterms) + 1L]] <- tm[[2]]
+    } else if (is.call(tm) && identical(tm[[1]], as.name("cs")) &&
+               !("|" %in% all.names(tm))) {
+      # barless cs(x): category-specific ordinal effect (the bar form
+      # cs(x | g) stays a compound-symmetry covariance structure)
+      if (length(tm) != 2L) {
+        stop("cs() takes one variable: cs(x)", call. = FALSE)
+      }
+      csterms[[length(csterms) + 1L]] <- tm[[2]]
     } else {
-      if ("mo" %in% all.names(tm)) {
-        stop("mo() is only supported as a standalone additive term ",
-             "(no interactions or group-level mo() yet): ",
-             deparse1(tm), call. = FALSE)
+      for (sp_nm in c("mo", "mi")) {
+        if (sp_nm %in% all.names(tm)) {
+          stop(sp_nm, "() is only supported as a standalone additive ",
+               "term (no interactions or group-level ", sp_nm,
+               "() yet): ", deparse1(tm), call. = FALSE)
+        }
       }
       rest[[length(rest) + 1L]] <- tm
     }
@@ -172,11 +201,29 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
          " (currently supported: ",
          paste(supported_cs, collapse = ", "), ")", call. = FALSE)
   }
-  re <- Map(function(bar, cls) {
+  re <- Map(function(bar, cls, addargs) {
     # brms |ID| syntax: (x | p | g) parses as ((x | p) | g); the middle
     # element keys random-effect correlation across formulas
     id <- NULL
     cov_expr <- NULL
+    rank <- NULL
+    if (cls == "rr") {
+      aa <- as.list(addargs)[-1]
+      rank <- as.integer(eval(aa$d %||% 2, baseenv()))
+      if (is.na(rank) || rank < 1L) {
+        stop("rr() needs a positive integer rank: rr(x | g, d = 2)",
+             call. = FALSE)
+      }
+    }
+    if (cls == "equalto") {
+      aa <- as.list(addargs)[-1]
+      aa <- aa[!nzchar(names(aa) %||% rep("", length(aa)))]
+      if (length(aa) != 1L) {
+        stop("equalto() needs the fixed covariance matrix: ",
+             "equalto(x + 0 | g, V)", call. = FALSE)
+      }
+      cov_expr <- aa[[1L]]
+    }
     if (is.call(bar[[2]]) && identical(bar[[2]][[1]], as.name("|"))) {
       if (cls != "us") {
         stop("|ID| correlation is only supported for default (us) ",
@@ -203,13 +250,14 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       cls <- if (has_cov) "gr_cov" else "gr_prec"
     }
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
-         cov_expr = cov_expr)
-  }, sf$reTrmFormulas, sf$reTrmClasses)
+         cov_expr = cov_expr, rank = rank)
+  }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs)
   names(re) <- vapply(re, function(z) deparse1(z$bar), "")
 
   fixed <- sf$fixedFormula
   environment(fixed) <- env_lp
-  list(fixed = fixed, re = re, smooth = smooth, mo = mo, rhs = rhs_form)
+  list(fixed = fixed, re = re, smooth = smooth, mo = mo,
+       miterms = miterms, csterms = csterms, rhs = rhs_form)
 }
 
 # Default (intercept-only) or constant dpar spec.

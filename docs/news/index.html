@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.17.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,28 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.17.0" id="frmtmb-0170">frmtmb 0.17.0<a class="anchor" aria-label="anchor" href="#frmtmb-0170"></a></h2>
+<p>Clearing the roadmap: mixtures, measurement error, and the remaining grammar gaps.</p>
+<ul><li>
+<code>mixture(fam1, fam2, ...)</code> finite-mixture families: each component keeps its own suffixed dpars (<code>mu1</code>, <code>sigma1</code>, …), mixing proportions are multinomial-logit dpars with their own linear predictors (mixture-of-experts comes free), and the likelihood is a branch-free logsumexp - so random effects and smooths work in any component formula. Exact against direct ML for gaussian and poisson mixtures. Component means initialize on spread response quantiles; the usual finite-mixture multimodality caveats apply (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>, or order intercepts via bounds).</li>
+<li>
+<code>mi(sdx)</code> measurement error (brms <code>me()</code>): known per-observation measurement SDs make every true value latent, with the observed values entering through a measurement model. Exact against the closed-form bivariate-normal marginal; attenuation bias is corrected and NAs (missing + mismeasured) combine.</li>
+<li>
+<code>cs()</code> category-specific effects for <code>sratio</code>, <code>cratio</code>, and <code>acat</code> (refused for <code>cumulative</code>, as in brms). Exact against direct ML.</li>
+<li>
+<code>equalto(x + 0 | g, V)</code> covariance structure: fully fixed known V, zero parameters (meta-analytic sampling covariances).</li>
+<li>rr() fits now support <code>se.fit</code>: the delta method routes the factor columns through the loadings Jacobian and adds loading-parameter columns; verified parameterization-invariant against the full-rank-vs-<code>us()</code> equivalence.</li>
+<li>Registered insight methods (<code>find_formula</code>, <code>find_random</code>, <code>get_parameters</code>, <code>get_varcov</code>, <code>find_statistic</code>, link accessors): <code><a href="https://easystats.github.io/insight/reference/is_mixed_model.html" class="external-link">insight::is_mixed_model()</a></code> and the easystats accessor layer now see the random-effect structure.</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.16.0" id="frmtmb-0160">frmtmb 0.16.0<a class="anchor" aria-label="anchor" href="#frmtmb-0160"></a></h2>
+<p>The two deferred architecture features.</p>
+<ul><li>
+<code>rr(x | g, d = k)</code> reduced-rank / factor-analytic covariance (glmmTMB’s GLVM structure): per-level coefficients are loadings times iid standard-normal factors, so <code>b</code> holds the factors while the design matrices span the coefficient space. Matches glmmTMB exactly and reduces to <code>us()</code> at full rank. <code>se.fit</code> on rr models is deferred (the loadings enter the coefficients nonlinearly); <code>predict</code>, <code>simulate</code>, <code>ranef</code>, and <code>VarCorr</code> (the rank-k covariance) all work.</li>
+<li>
+<code>mi()</code> one-step imputation for continuous predictors, reversing the original exclusion: <code>bf(y ~ mi(x) + z) + bf(x | mi() ~ z)</code> turns missing <code>x</code> values into latent parameters that Laplace integrates (exactly, in the linear-gaussian case - validated against the closed-form marginal likelihood). Imputation uncertainty propagates into the coefficient standard errors automatically. Rows with NAs in non-<code>mi()</code> variables still drop; imputation models must be gaussian or student; discrete predictors remain impossible (as in Stan). <code>me()</code> measurement error is the natural follow-on.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.15.0" id="frmtmb-0150">frmtmb 0.15.0<a class="anchor" aria-label="anchor" href="#frmtmb-0150"></a></h2>
 <p>Tier-2 sweep of dev/feature-gaps.md plus a method surface for sampled fits.</p>

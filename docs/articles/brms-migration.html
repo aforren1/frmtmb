@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.17.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -172,15 +172,19 @@ intervals, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-li
 <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code> over <code>newdata</code> becomes
 <code>predict(newdata, type = "response")</code>.</li>
 <li>
-<code>mo()</code> monotonic effects work (standalone terms;
-interactions with <code>mo()</code> are not supported yet). Multiply
-imputed data goes through <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> (Rubin’s rules)
-instead of <code>brm_multiple()</code>.</li>
-<li>Not supported: <code>mi()</code> in-model imputation (use
-<code><a href="../reference/frm_multiple.html">frm_multiple()</a></code>), <code>me()</code>, <code>gp()</code>,
-<code>cs()</code>, <code>mixture()</code>, <code>ar()/ma()</code>
-residual autocorrelation terms (use the <code>ar1()</code> random-effect
-structure), category-specific effects.</li>
+<code>mo()</code> monotonic effects, <code>mi()</code> one-step
+imputation of continuous predictors, <code>mi(sdx)</code> measurement
+error (the <code>me()</code> replacement, as in current brms),
+<code>cs()</code> category-specific ordinal effects, and
+<code><a href="../reference/mixture.html">mixture()</a></code> families all work (standalone
+<code>mo()</code>/<code>mi()</code> terms only; discrete predictors
+cannot be imputed in-model, the same restriction Stan has). Multiply
+imputed data can instead go through <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> (Rubin’s
+rules), the <code>brm_multiple()</code> analog. Mixture fits are ML:
+expect multimodality, compare starts (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>).</li>
+<li>Not supported: <code>gp()</code>, <code>ar()/ma()</code> residual
+autocorrelation terms (use the <code>ar1()</code> random-effect
+structure).</li>
 <li>glmer’s proportion-response idiom (<code>weights = size</code>)
 becomes <code>y | trials(size)</code> with either proportions or counts;
 <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code> in the formula stays a frequency weight, as in
@@ -224,11 +228,11 @@ for simulation-based residual checks use
 <h2 id="when-you-still-want-brms">When you still want brms<a class="anchor" aria-label="anchor" href="#when-you-still-want-brms"></a>
 </h2>
 <p>Genuine prior information, full posterior uncertainty for derived
-quantities, models outside the latent-Gaussian/Laplace class (mixtures,
-discrete latents), or <code>loo</code>-based model comparison. A
-practical workflow is model screening in frmtmb and a final fit in brms;
-<code>as_tmbstan(fit)</code> also runs NUTS on the frmtmb objective
-directly.</p>
+quantities, models with discrete latent structure beyond
+observation-level mixtures, or <code>loo</code>-based model comparison.
+A practical workflow is model screening in frmtmb and a final fit in
+brms; <code>as_tmbstan(fit)</code> also runs NUTS on the frmtmb
+objective directly.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

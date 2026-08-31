@@ -128,12 +128,17 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (is.null(template)) template <- make_start(frame, start)
 
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
-  random <- if (!is.null(template[["b"]])) "b" else character(0)
+  random <- c(if (!is.null(template[["b"]])) "b",
+              if (!is.null(template[["miss"]])) "miss")
   if (REML) random <- c(random, "beta")
   if (!length(random)) random <- NULL
 
   integrate <- NULL
   if (isTRUE(quadrature)) {
+    if (!is.null(template[["miss"]])) {
+      stop("quadrature = TRUE cannot be combined with mi()",
+           call. = FALSE)
+    }
     scalar_iid <- vapply(frame$re_blocks, function(bk) {
       bk$dim == 1L && bk$covstruct %in% c("us", "diag", "homdiag")
     }, TRUE)

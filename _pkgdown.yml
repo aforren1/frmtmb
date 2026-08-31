@@ -20,6 +20,7 @@ reference:
   contents:
   - frmtmb_family
   - frmtmb-families
+  - mixture
   - check_custom_family
 - title: Inference and diagnostics
   contents:

@@ -39,14 +39,18 @@ likelihood-ratio tests, AIC).
   [`simulate()`](https://rdrr.io/r/stats/simulate.html);
   [`posterior_epred()`](../reference/posterior_epred.md) over `newdata`
   becomes `predict(newdata, type = "response")`.
-- `mo()` monotonic effects work (standalone terms; interactions with
-  `mo()` are not supported yet). Multiply imputed data goes through
-  [`frm_multiple()`](../reference/frm_multiple.md) (Rubin’s rules)
-  instead of `brm_multiple()`.
-- Not supported: `mi()` in-model imputation (use
-  [`frm_multiple()`](../reference/frm_multiple.md)), `me()`, `gp()`,
-  `cs()`, `mixture()`, `ar()/ma()` residual autocorrelation terms (use
-  the `ar1()` random-effect structure), category-specific effects.
+- `mo()` monotonic effects, `mi()` one-step imputation of continuous
+  predictors, `mi(sdx)` measurement error (the `me()` replacement, as in
+  current brms), `cs()` category-specific ordinal effects, and
+  [`mixture()`](../reference/mixture.md) families all work (standalone
+  `mo()`/`mi()` terms only; discrete predictors cannot be imputed
+  in-model, the same restriction Stan has). Multiply imputed data can
+  instead go through [`frm_multiple()`](../reference/frm_multiple.md)
+  (Rubin’s rules), the `brm_multiple()` analog. Mixture fits are ML:
+  expect multimodality, compare starts
+  ([`frm_allfit()`](../reference/frm_allfit.md)).
+- Not supported: `gp()`, `ar()/ma()` residual autocorrelation terms (use
+  the `ar1()` random-effect structure).
 - glmer’s proportion-response idiom (`weights = size`) becomes
   `y | trials(size)` with either proportions or counts;
   [`weights()`](https://rdrr.io/r/stats/weights.html) in the formula
@@ -88,7 +92,7 @@ the stats/lme4 spelling for standard generics:
 ## When you still want brms
 
 Genuine prior information, full posterior uncertainty for derived
-quantities, models outside the latent-Gaussian/Laplace class (mixtures,
-discrete latents), or `loo`-based model comparison. A practical workflow
-is model screening in frmtmb and a final fit in brms; `as_tmbstan(fit)`
-also runs NUTS on the frmtmb objective directly.
+quantities, models with discrete latent structure beyond
+observation-level mixtures, or `loo`-based model comparison. A practical
+workflow is model screening in frmtmb and a final fit in brms;
+`as_tmbstan(fit)` also runs NUTS on the frmtmb objective directly.

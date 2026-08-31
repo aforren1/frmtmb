@@ -248,10 +248,11 @@ vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
 #' @export
 coef.frmtmb_fit <- function(object, ...) {
   fe <- fixef(object)
+  cvec <- coef_b(object)
   out <- list()
   for (bk in object$frame$re_blocks) {
     if (bk$covstruct == "smooth") next
-    bmat <- t(matrix(object$estimates[["b"]][bk$b_idx], nrow = bk$dim))
+    bmat <- t(matrix(cvec[bk$c_idx], nrow = bk$dim))
     for (cp in bk$components) {
       lp <- object$frame$linpreds[[cp$lp_key]]
       key <- coef_block_key(object, lp)
@@ -335,7 +336,7 @@ ranef <- function(object, ...) UseMethod("ranef")
 #' @rdname ranef
 #' @export
 ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
-  b <- object$estimates[["b"]]
+  cvec <- coef_b(object)
   csd <- NULL
   if (condVar) {
     sdr <- sdr_of(object)
@@ -346,10 +347,16 @@ ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
   }
   out <- list()
   for (bk in object$frame$re_blocks) {
-    M <- t(matrix(b[bk$b_idx], nrow = bk$dim))
+    M <- t(matrix(cvec[bk$c_idx], nrow = bk$dim))
     dimnames(M) <- list(bk$levels, bk$cnms)
     if (!is.null(csd)) {
-      S <- t(matrix(csd[bk$b_idx], nrow = bk$dim))
+      # rr factors live in a different space than the displayed
+      # coefficients; no conditional SDs for those blocks
+      S <- if (bk$covstruct == "rr") {
+        matrix(NA_real_, nrow(M), ncol(M))
+      } else {
+        t(matrix(csd[bk$b_idx], nrow = bk$dim))
+      }
       dimnames(S) <- dimnames(M)
       attr(M, "condSD") <- S
     }

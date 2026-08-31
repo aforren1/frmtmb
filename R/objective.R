@@ -35,6 +35,29 @@ build_objective <- function(frame) {
                       function(nm) pars[[nm]])
     }
 
+    # coefficient-space vector for the Z products (rr blocks expand
+    # their factors through the loadings)
+    bvec <- if (isTRUE(frame$has_rr)) {
+      expand_b(frame, pars[["b"]], pars[["theta"]])
+    } else {
+      pars[["b"]]
+    }
+
+    # mi(): observed-or-latent value vectors per imputation response
+    mivals <- list()
+    for (vn in names(frame$mi_map %||% list())) {
+      mm_ <- frame$mi_map[[vn]]
+      xv <- y[[vn]]
+      xv[mm_$rows] <- pars[["miss"]][mm_$idx]
+      mivals[[vn]] <- xv
+      if (!is.null(mm_$se)) {
+        # measurement model: observed values scatter around the latent
+        # truth with known SD (brms me())
+        nll <- nll - sum(RTMB::dnorm(y[[vn]][mm_$obs], xv[mm_$obs],
+                                     mm_$se[mm_$obs], log = TRUE))
+      }
+    }
+
     dparv <- list()
     for (lp in lps) {
       if (!is.null(lp$nl_body)) {
@@ -52,7 +75,7 @@ build_objective <- function(frame) {
         rep(0, n)   # threshold-only ordinal model
       }
       if (!is.null(lp$Z)) {
-        eta <- eta + as.vector(lp$Z %*% pars[["b"]])
+        eta <- eta + as.vector(lp$Z %*% bvec)
       }
       if (!is.null(lp$offset)) {
         eta <- eta + lp$offset
@@ -65,6 +88,22 @@ build_objective <- function(frame) {
         cz0 <- c(0, cumsum(zeta))
         eta <- eta + pars[[lp$par]][lp$idx[mi$col]] * mi$D *
           cz0[mi$codes + 1L]
+      }
+      # mi(x) terms: coefficient times the observed-or-latent values
+      for (mt in lp$mi %||% list()) {
+        xv <- mivals[[mt$var]] %||% y[[mt$var]]
+        eta <- eta + pars[[lp$par]][lp$idx[mt$col]] * xv
+      }
+      # cs(x) terms: n x (K-1) threshold-specific offsets, consumed by
+      # the sequential ordinal lpdfs through dpars$.cs
+      if (length(lp$cs %||% list())) {
+        CS <- 0
+        for (ct in lp$cs) {
+          bcs <- pars[[ct$par]]
+          CS <- CS + RTMB::matrix(ct$vals, n, 1) %*%
+            RTMB::matrix(bcs, 1, length(bcs))
+        }
+        dparv[[lp$resp]][[".cs"]] <- CS
       }
       dparv[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
     }
@@ -92,7 +131,12 @@ build_objective <- function(frame) {
         # the DEPARSED ARGUMENT EXPRESSION: in this loop every response
         # would collide on "y[[r]]" and silently swap data. Univariate
         # fits only; it also has no matrix method.
-        yobs <- if (length(resps) == 1L && !is.matrix(y[[r]])) {
+        yobs <- if (!is.null(mivals[[r]])) {
+          # mi() response: the density is evaluated at the
+          # observed-or-latent values (the latent entries' Gaussian
+          # contribution IS this term)
+          mivals[[r]]
+        } else if (length(resps) == 1L && !is.matrix(y[[r]])) {
           # a stable symbol gives OSA machinery its observation.name
           .frm_obs <- y[[r]]
           RTMB::OBS(.frm_obs)

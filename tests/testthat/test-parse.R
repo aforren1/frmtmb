@@ -72,7 +72,12 @@ test_that("gaussian gets an intercept-only sigma dpar", {
 })
 
 test_that("unsupported covariance structures error at parse time", {
-  expect_error(frm(bf(y ~ rr(x | g)) + gaussian(),
+  expect_error(frm(bf(y ~ propto(x | g)) + gaussian(),
                       data = NULL, dry_run = "spec"),
                "not supported yet")
+  # rr parses since v0.16 (default rank 2)
+  spec <- frm(bf(y ~ rr(x + 0 | g, d = 2)) + gaussian(),
+              data = NULL, dry_run = "spec")
+  expect_identical(spec$responses[[1]]$dpars$mu$re[[1]]$covstruct, "rr")
+  expect_identical(spec$responses[[1]]$dpars$mu$re[[1]]$rank, 2L)
 })

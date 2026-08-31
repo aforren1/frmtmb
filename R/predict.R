@@ -26,6 +26,13 @@ get_joint_cov <- function(fit) {
   cache$Vjoint
 }
 
+# Numeric coefficient-space vector for a fitted model (rr factors
+# expanded through the loadings; identity otherwise).
+coef_b <- function(fit, b = fit$estimates[["b"]]) {
+  if (is.null(b)) return(b)
+  expand_b(fit$frame, b, fit$estimates$theta)
+}
+
 # Numeric mo() column values: D times the cumulative simplex at the
 # category codes, evaluated at the current simplex estimates.
 mo_col_values <- function(fit, mi, codes = mi$codes) {
@@ -55,11 +62,22 @@ mo_codes <- function(fit, lp, mi, newdata) {
   codes
 }
 
+# Observed-or-latent values of a mi() response at the estimates.
+mi_values <- function(fit, vn) {
+  xv <- fit$frame$y[[vn]]
+  mm_ <- fit$frame$mi_map[[vn]]
+  if (!is.null(mm_)) xv[mm_$rows] <- fit$estimates$miss[mm_$idx]
+  xv
+}
+
 # Fill the zero placeholder columns of a stored design matrix with the
-# mo() values at the current estimates.
+# mo() and mi() values at the current estimates.
 patch_mo_cols <- function(fit, lp, X) {
   for (mi in lp$mo %||% list()) {
     X[, mi$col] <- mo_col_values(fit, mi)
+  }
+  for (mt in lp$mi %||% list()) {
+    X[, mt$col] <- mi_values(fit, mt$var)
   }
   X
 }
@@ -105,12 +123,22 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     }
   }
 
-  # mo() columns come after the smooth null-space columns, matching the
-  # fitted X layout; the values are already at the current simplex
+  # mo()/mi() columns come after the smooth null-space columns, matching
+  # the fitted X layout; mo values use the current simplex, mi values
+  # must be supplied complete in newdata
   for (mi in lp$mo %||% list()) {
     X <- cbind(X, matrix(mo_col_values(fit, mi,
                                        mo_codes(fit, lp, mi, newdata)),
                          ncol = 1, dimnames = list(NULL, mi$label)))
+  }
+  for (mt in lp$mi %||% list()) {
+    v <- newdata[[mt$var]]
+    if (is.null(v) || anyNA(v)) {
+      stop("mi(", mt$var, "): newdata must supply complete values",
+           call. = FALSE)
+    }
+    X <- cbind(X, matrix(as.numeric(v), ncol = 1,
+                         dimnames = list(NULL, mt$label)))
   }
 
   if (!use_re) {
@@ -151,12 +179,13 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   list(X = X, off = off, re_parts = re_parts, sm_parts = sm_parts)
 }
 
-# RE contribution to eta for one linear predictor, given the full b.
-re_eta <- function(re_parts, b, n) {
+# RE contribution to eta for one linear predictor, given the full
+# coefficient-space vector (see coef_b).
+re_eta <- function(re_parts, cvec, n) {
   eta <- numeric(n)
   for (rp in re_parts) {
     bk <- rp$bk
-    B <- t(matrix(b[bk$b_idx], nrow = bk$dim))  # levels x D
+    B <- t(matrix(cvec[bk$c_idx], nrow = bk$dim))  # levels x D
     cols <- rp$comp$offset + seq_len(rp$comp$dim)
     contrib <- rowSums(rp$mm * B[rp$j, cols, drop = FALSE])
     contrib[is.na(contrib)] <- 0                # new levels: population
@@ -166,10 +195,10 @@ re_eta <- function(re_parts, b, n) {
 }
 
 # Smooth wiggly contribution to eta for one linear predictor.
-sm_eta <- function(sm_parts, b) {
+sm_eta <- function(sm_parts, cvec) {
   eta <- 0
   for (sp in sm_parts) {
-    eta <- eta + drop(sp$Xr %*% b[sp$bk$b_idx])
+    eta <- eta + drop(sp$Xr %*% cvec[sp$bk$c_idx])
   }
   eta
 }
@@ -178,6 +207,7 @@ sm_eta <- function(sm_parts, b) {
 # for the training data. Nested: out[[resp]][[dpar]].
 eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
   est <- fit$estimates
+  if (!is.null(b)) b <- expand_b(fit$frame, b, est$theta)
   out <- list()
   for (lp in fit$frame$linpreds) {
     if (!is.null(lp$nl_body)) {
@@ -201,8 +231,8 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
   out
 }
 
-# Sparse RE design (n x length(b)) for the newdata delta method,
-# columns at global b positions.
+# Sparse RE design (n x n_c) for the newdata delta method, columns at
+# global coefficient-space positions.
 re_design_matrix <- function(re_parts, n, q) {
   ii <- integer(0); jj <- integer(0); xx <- numeric(0)
   for (rp in re_parts) {
@@ -211,11 +241,49 @@ re_design_matrix <- function(re_parts, n, q) {
     ok <- which(!is.na(rp$j))
     for (k in seq_len(rp$comp$dim)) {
       ii <- c(ii, ok)
-      jj <- c(jj, bk$b_idx[(rp$j[ok] - 1L) * D + rp$comp$offset + k])
+      jj <- c(jj, bk$c_idx[(rp$j[ok] - 1L) * D + rp$comp$offset + k])
       xx <- c(xx, rp$mm[ok, k])
     }
   }
   Matrix::sparseMatrix(i = ii, j = jj, x = xx, dims = c(n, q))
+}
+
+# Jacobians of the coefficient-space expansion for rr fits: d cvec/d b
+# (sparse; identity except the rr blocks' loadings) and d cvec/d theta
+# for the rr loading parameters (finite differences on expand_b).
+rr_jacobians <- function(fit) {
+  frame <- fit$frame
+  est <- fit$estimates
+  ii <- integer(0); jj <- integer(0); xx <- numeric(0)
+  th_cols <- list()
+  for (bk in frame$re_blocks) {
+    if (bk$covstruct == "rr") {
+      L <- rr_loadings(est$theta[bk$theta_idx], bk$dim, bk$rank)
+      for (l in seq_len(bk$n_levels)) {
+        rows <- bk$c_idx[(l - 1L) * bk$dim + seq_len(bk$dim)]
+        cols <- bk$b_idx[(l - 1L) * bk$rank + seq_len(bk$rank)]
+        ii <- c(ii, rep(rows, times = bk$rank))
+        jj <- c(jj, rep(cols, each = bk$dim))
+        xx <- c(xx, as.vector(L))
+      }
+      for (j in bk$theta_idx) {
+        h <- 1e-6 * max(1, abs(est$theta[j]))
+        tp <- est$theta; tp[j] <- tp[j] + h
+        tn <- est$theta; tn[j] <- tn[j] - h
+        dvec <- (expand_b(frame, est[["b"]], tp) -
+                   expand_b(frame, est[["b"]], tn)) / (2 * h)
+        th_cols[[length(th_cols) + 1L]] <- list(j = j, dvec = dvec)
+      }
+    } else {
+      ii <- c(ii, bk$c_idx)
+      jj <- c(jj, bk$b_idx)
+      xx <- c(xx, rep(1, length(bk$b_idx)))
+    }
+  }
+  list(Jb = Matrix::sparseMatrix(i = ii, j = jj, x = xx,
+                                 dims = c(frame$n_c,
+                                          length(est[["b"]]))),
+       th_cols = th_cols)
 }
 
 # The single response of a univariate fit, or an informative error.
@@ -322,13 +390,14 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     n <- object$frame$n_obs
     eta <- drop(as.matrix(X %*% est[[lp$par]][lp$idx]))
     if (!is.null(lp$Z)) {
+      cvec <- coef_b(object)
       if (use_re) {
-        eta <- eta + as.numeric(lp$Z %*% est[["b"]])
+        eta <- eta + as.numeric(lp$Z %*% cvec)
       } else if (length(sm_blocks)) {
         # population-level: drop group effects but keep the smooth curve
         for (bk in sm_blocks) {
-          eta <- eta + as.numeric(lp$Z[, bk$b_idx, drop = FALSE] %*%
-                                    est[["b"]][bk$b_idx])
+          eta <- eta + as.numeric(lp$Z[, bk$c_idx, drop = FALSE] %*%
+                                    cvec[bk$c_idx])
         }
       }
     }
@@ -341,11 +410,12 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     sm_parts <- pd$sm_parts
     n <- nrow(X)
     eta <- drop(as.matrix(X %*% est[[lp$par]][lp$idx]))
+    cvec <- coef_b(object)
     if (use_re && length(re_parts)) {
-      eta <- eta + re_eta(re_parts, est[["b"]], n)
+      eta <- eta + re_eta(re_parts, cvec, n)
     }
     if (length(sm_parts)) {
-      eta <- eta + sm_eta(sm_parts, est[["b"]])
+      eta <- eta + sm_eta(sm_parts, cvec)
     }
   }
   if (!is.null(off)) eta <- eta + off
@@ -356,9 +426,28 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   }
 
   # Delta method: var(eta) = A V A' over the estimated coefficients (and b
-  # when random effects are included).
+  # when random effects are included). For rr fits the Z matrices span
+  # the coefficient space, so the b columns go through the Jacobian of
+  # the loadings expansion, and the rr loading parameters (theta)
+  # contribute their own columns.
+  has_rr <- isTRUE(object$frame$has_rr)
+  rrj <- if (has_rr) rr_jacobians(object)
   jc <- get_joint_cov(object)
   rn <- jc$names
+  add_b_cols <- function(A, coef_pos, Zc, b_pos, th_pos) {
+    if (has_rr) {
+      A <- Matrix::cbind2(A, Zc %*% rrj$Jb)
+      coef_pos <- c(coef_pos, b_pos)
+      for (tc in rrj$th_cols) {
+        A <- Matrix::cbind2(A, Zc %*% tc$dvec)
+        coef_pos <- c(coef_pos, th_pos[tc$j])
+      }
+    } else {
+      A <- Matrix::cbind2(A, Zc)
+      coef_pos <- c(coef_pos, b_pos)
+    }
+    list(A = A, coef_pos = coef_pos)
+  }
   if (lp$par == "beta") {
     coef_pos <- which(rn == "beta")[lp$idx]
     A <- X
@@ -373,21 +462,25 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   }
   if (length(object$frame$re_blocks)) {
     b_pos <- which(rn == "b")
+    th_pos <- which(rn == "theta")
     if (is.null(newdata)) {
       if (use_re && !is.null(lp$Z)) {
-        A <- Matrix::cbind2(A, lp$Z)
-        coef_pos <- c(coef_pos, b_pos)
+        upd <- add_b_cols(A, coef_pos, lp$Z, b_pos, th_pos)
+        A <- upd$A
+        coef_pos <- upd$coef_pos
       } else if (!use_re && length(sm_blocks) && !is.null(lp$Z)) {
         for (bk in sm_blocks) {
-          A <- Matrix::cbind2(A, lp$Z[, bk$b_idx, drop = FALSE])
+          A <- Matrix::cbind2(A, lp$Z[, bk$c_idx, drop = FALSE])
           coef_pos <- c(coef_pos, b_pos[bk$b_idx])
         }
       }
     } else {
       if (use_re && length(re_parts)) {
-        Zn <- re_design_matrix(re_parts, n, length(est[["b"]]))
-        A <- Matrix::cbind2(A, Zn)
-        coef_pos <- c(coef_pos, b_pos)
+        Zn <- re_design_matrix(re_parts, n,
+                               object$frame$n_c %||% length(est[["b"]]))
+        upd <- add_b_cols(A, coef_pos, Zn, b_pos, th_pos)
+        A <- upd$A
+        coef_pos <- upd$coef_pos
       }
       for (sp in sm_parts) {
         A <- Matrix::cbind2(A, sp$Xr)
@@ -447,7 +540,7 @@ napred <- function(fit, x) {
 fitted.frmtmb_fit <- function(object, ...) {
   rspec <- uni_resp(object, "fitted()")
   dp <- eval_dpars(object)[[rspec$resp_name]]
-  if (!"mu" %in% names(dp)) {
+  if (!"mu" %in% names(dp) && is.null(rspec$family$post$mean_fn)) {
     stop("fitted() is not defined for family '", rspec$family$family, "'",
          call. = FALSE)
   }
@@ -517,6 +610,11 @@ draw_b <- function(fit) {
   th <- fit$estimates$theta
   b <- numeric(length(fit$estimates[["b"]] %||% numeric(0)))
   for (bk in fit$frame$re_blocks) {
+    if (bk$covstruct == "rr") {
+      # standard-normal factors; eval_dpars expands them via loadings
+      b[bk$b_idx] <- stats::rnorm(length(bk$b_idx))
+      next
+    }
     if (bk$covstruct == "gr_cov") {
       # correlation is across levels, not within them
       S <- covstruct_registry$gr_cov$vcov(th[bk$theta_idx], bk)

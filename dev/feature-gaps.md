@@ -43,16 +43,14 @@ purely-conditional `postVar`.
 - ~~De novo simulation~~ DONE in v0.14 (`frm_simulate()`).
 - ~~mo() monotonic effects~~ DONE (standalone additive terms;
   interactions and group-level mo() remain out).
-- ~~sratio / cratio / acat~~ DONE. `cs()` category-specific effects
-  still out.
+- ~~sratio / cratio / acat~~ DONE. ~~cs()~~ DONE in v0.17
+  (sratio/cratio/acat; refused for cumulative).
 - ~~influence() + cooks.distance~~ DONE.
-- ~~hetar1 / homcs / homtoep / exp / gau / mat~~ DONE (`equalto`
-  still out; map-trick candidate).
-- `rr(..., d = k)` reduced-rank / GLVM: STILL OUT. Requires the b
-  template segment (latent factors) to differ in size from the Z
-  columns (loadings expand factors to coefficients inside the
-  objective) - a two-sizes-of-b architecture change. Deferred until
-  demanded.
+- ~~hetar1 / homcs / homtoep / exp / gau / mat~~ DONE. ~~equalto~~
+  DONE in v0.17 (zero-parameter registry entry).
+- ~~rr(..., d = k)~~ DONE in v0.16 (two-space b: factors in the
+  parameter vector, expand_b() maps to the coefficient space the Z
+  matrices span; exact vs glmmTMB; se.fit deferred).
 - ~~conditional_effects(method = "predict") + data-frame
   conditions~~ DONE.
 - ~~vint() / vreal()~~ DONE (Wiener diffusion showcase in
@@ -62,17 +60,28 @@ purely-conditional `postVar`.
 
 - `frm_multiple()` (Rubin pooling over imputations, mice interop):
   DONE in v0.15.
-- In-model `mi()` (brms one-step imputation): FEASIBLE for
-  continuous predictors under Laplace, contrary to the original
-  exclusion. Missing x-values are latent Gaussians given the
-  multivariate formula's x-model - exactly the latent-Gaussian class
-  Laplace integrates; mark them as random effects, joint likelihood,
-  done. Discrete predictors stay impossible (no discrete latents in
-  the Laplace class - same wall Stan has). Missing responses need no
-  machinery (predict handles them). Implementation would ride on the
-  mvbf machinery: `bf(y ~ mi(x)) + bf(x | mi() ~ z)`, with the
-  missing entries appended to `b`. Substantial parse/frame work;
-  roadmap item, not scheduled.
+- ~~In-model `mi()`~~ DONE in v0.16 for continuous predictors
+  (gaussian/student imputation models; validated against the
+  closed-form linear-gaussian marginal). Discrete predictors stay
+  impossible (no discrete latents in the Laplace class - same wall
+  Stan has). `me()` measurement error is a small follow-on (mi with
+  a known-error observation model). mi() in dpar formulas, smooths
+  of mi() variables, and mi() interactions remain out.
+
+## Mixture models (assessed 2026-08-31)
+
+- ~~Observation-level `mixture(fam1, fam2, ...)`~~ DONE in v0.17
+  (logsumexp lpdf via RTMB::logspace_add; suffixed component dpars;
+  mixing weights are multinomial-logit dpars with full linear
+  predictors, so mixture-of-experts is free; quantile-spread mean
+  inits; exact vs direct ML). Multimodality is inherent to mixture
+  ML - use frm_allfit / bounds.
+- Group-level mixtures (brms PR #1905: latent classes over random
+  effects) are a different object: the marginal sums over class
+  assignments per GROUP. For nested designs this is per-group
+  sum-of-Laplaces (growth-mixture / lcmm territory) - possible but a
+  new integration mode; for crossed designs the sum does not factor
+  and it is out of the Laplace class entirely.
 
 ## Tier 3: positioning decisions
 
@@ -103,10 +112,13 @@ purely-conditional `postVar`.
 
 ## Explicitly out (locked or moot)
 
-- `mi()` (excluded by decision); `me()` (folded into mi in brms).
+- ~~`me()` measurement error~~ DONE in v0.17 as `x | mi(sdx)` (the
+  brms spelling since me() was folded into mi). Discrete-predictor
+  mi(): impossible.
 - `gp()` HSGP (deferred; `gr(prec=)` covers the GMRF path).
 - OpenMP objective parallelism (RTMB limitation; benchmarks fine
   without it). brms threading, glmmTMB parallel vignettes are moot.
 - Compilation management (precompile, cmdstanr backends): moot,
   nothing ever compiles.
-- `mixture()` (deferred: not latent-Gaussian).
+- Group-level mixtures for crossed designs (see the mixture section:
+  out of the Laplace class).

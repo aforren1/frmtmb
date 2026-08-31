@@ -1056,6 +1056,7 @@ fam_sratio <- function(link = "logit") {
       if (K1 > 1) for (k in 2:K1) tau[k] <- tau[k - 1] + exp(raw[k])
       n <- length(y)
       M <- ord_eta_mat(dpars$mu, tau, n, K1)
+      if (!is.null(dpars$.cs)) M <- M - dpars$.cs
       ind <- ord_indicators(y, K1)
       P <- Fcdf(M)
       ones <- rep(1, K1)   # rowSums strips the advector class
@@ -1082,8 +1083,9 @@ fam_cratio <- function(link = "logit") {
       K1 <- length(tau)
       n <- length(y)
       M <- ord_eta_mat(dpars$mu, tau, n, K1)   # tau_j - eta
+      if (!is.null(dpars$.cs)) M <- M - dpars$.cs
       ind <- ord_indicators(y, K1)
-      P <- Fcdf(-M)                            # F(eta - tau_j)
+      P <- Fcdf(-M)                            # F(eta + cs_j - tau_j)
       ones <- rep(1, K1)   # rowSums strips the advector class
       as.vector((log(1 - P) * ind$sel) %*% ones) +
         as.vector((log(P) * ind$below) %*% ones)
@@ -1117,6 +1119,15 @@ fam_acat <- function(link = "logit") {
       Rm <- matrix(rep(seq_len(K) - 1L, each = n), n, K)
       E <- Rm * eta -
         RTMB::matrix(1, n, 1) %*% RTMB::matrix(ct0, 1, K)
+      if (!is.null(dpars$.cs)) {
+        "[<-" <- RTMB::ADoverload("[<-")
+        CS <- dpars$.cs
+        acc <- 0 * eta
+        for (r in seq.int(2L, K)) {
+          acc <- acc + CS[, r - 1L]
+          E[, r] <- E[, r] + acc
+        }
+      }
       jj <- rep(seq_len(K), each = n)
       S <- matrix(as.numeric(rep(y, K) == jj), n, K)
       ones <- rep(1, K)   # rowSums strips the advector class
@@ -1126,6 +1137,149 @@ fam_acat <- function(link = "logit") {
     type = "ordinal",
     extra_pars = function(y, aterms) ord_tau_init(y, ordered = FALSE),
     drop_intercept = TRUE
+  )
+}
+
+#' Finite mixture families
+#'
+#' `mixture(fam1, fam2, ...)` builds a K-component mixture: each
+#' component keeps its own distributional parameters, suffixed by the
+#' component index (`mu1`, `sigma1`, `mu2`, ...), and the mixing
+#' proportions come from `theta1 ... theta{K-1}` (multinomial-logit
+#' against the last component, each with its own linear predictor - so
+#' mixing weights may depend on covariates). The main model formula
+#' applies to every component mean; override per component with
+#' `bf(y ~ x, mu2 ~ 1)`.
+#'
+#' The likelihood is a parameter-branch-free logsumexp, so Laplace
+#' machinery is untouched; the usual finite-mixture ML caveats apply
+#' instead: the likelihood is invariant to component relabeling, so the
+#' component means are initialized on spread-out response quantiles,
+#' and multimodality is real (compare starts, or order the intercepts
+#' through `lower`/`upper`). Component families with extra parameters
+#' (ordinal) are not supported.
+#'
+#' @param ... Two or more component families.
+#' @return A `frmtmb_family`.
+#' @export
+mixture <- function(...) {
+  comps <- lapply(list(...), as_frmtmb_family)
+  K <- length(comps)
+  if (K < 2L) {
+    stop("mixture() needs at least two component families", call. = FALSE)
+  }
+  for (cp in comps) {
+    if (!is.null(cp$extra_pars) || isTRUE(cp$drop_intercept)) {
+      stop("mixture() does not support component family '", cp$family,
+           "'", call. = FALSE)
+    }
+    if (!"mu" %in% cp$dpars) {
+      stop("mixture() components need a 'mu' parameter", call. = FALSE)
+    }
+  }
+
+  dpars <- character(0)
+  links <- list()
+  for (k in seq_len(K)) {
+    for (dp in comps[[k]]$dpars) {
+      nm <- paste0(dp, k)
+      dpars <- c(dpars, nm)
+      links[[nm]] <- comps[[k]]$links[[dp]]
+    }
+  }
+  for (k in seq_len(K - 1L)) {
+    nm <- paste0("theta", k)
+    dpars <- c(dpars, nm)
+    links[[nm]] <- "identity"
+  }
+
+  comp_dpars <- function(dpars_all, k) {
+    stats::setNames(
+      lapply(comps[[k]]$dpars, function(dp) dpars_all[[paste0(dp, k)]]),
+      comps[[k]]$dpars
+    )
+  }
+  # log mixing weights: multinomial logit, last component reference
+  log_pi <- function(dpars_all) {
+    Ts <- lapply(seq_len(K - 1L), function(k) {
+      dpars_all[[paste0("theta", k)]]
+    })
+    Ts[[K]] <- 0 * dpars_all$mu1
+    lse <- Ts[[1L]]
+    for (k in seq.int(2L, K)) lse <- RTMB::logspace_add(lse, Ts[[k]])
+    lapply(Ts, function(t_) t_ - lse)
+  }
+
+  init <- list()
+  for (k in seq_len(K)) {
+    kk <- k
+    init[[paste0("mu", k)]] <- local({
+      k_ <- kk
+      function(y, aterms) stats::quantile(y, k_ / (K + 1), names = FALSE)
+    })
+    for (dp in setdiff(comps[[k]]$dpars, "mu")) {
+      fn <- comps[[k]]$init_dpars[[dp]]
+      if (!is.null(fn)) init[[paste0(dp, k)]] <- fn
+    }
+  }
+
+  types <- unique(vapply(comps, `[[`, "", "type"))
+  frmtmb_family(
+    paste0("mixture(", paste(vapply(comps, `[[`, "", "family"),
+                             collapse = ", "), ")"),
+    dpars = dpars,
+    links = links,
+    lpdf = function(y, dpars, aterms) {
+      lp <- log_pi(dpars)
+      ll <- NULL
+      for (k in seq_len(K)) {
+        llk <- comps[[k]]$lpdf(y, comp_dpars(dpars, k), aterms) + lp[[k]]
+        ll <- if (is.null(ll)) llk else RTMB::logspace_add(ll, llk)
+      }
+      ll
+    },
+    valid_y = function(y, aterms) {
+      for (cp in comps) {
+        if (!is.null(cp$valid_y)) cp$valid_y(y, aterms)
+      }
+    },
+    init_dpars = init,
+    type = if (length(types) == 1L) types else "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) {
+        lp <- log_pi(dpars)
+        out <- 0
+        for (k in seq_len(K)) {
+          mk <- comps[[k]]$post$mean_fn
+          if (is.null(mk)) return(NULL)
+          out <- out + exp(lp[[k]]) * mk(comp_dpars(dpars, k), aterms)
+        }
+        out
+      }
+    ),
+    sim = function(dpars, aterms, n) {
+      lp <- log_pi(dpars)
+      P <- vapply(lp, function(l) rep(exp(l), length.out = n),
+                  numeric(n))
+      ks <- vapply(seq_len(n), function(i) {
+        sample.int(K, 1L, prob = P[i, ])
+      }, integer(1))
+      out <- numeric(n)
+      for (k in seq_len(K)) {
+        sk <- comps[[k]]$sim
+        if (is.null(sk)) stop("Component '", comps[[k]]$family,
+                              "' has no simulator", call. = FALSE)
+        idx <- which(ks == k)
+        if (length(idx)) {
+          dk <- lapply(comp_dpars(dpars, k), function(v) {
+            rep(v, length.out = n)[idx]
+          })
+          out[idx] <- sk(dk, aterms, length(idx))
+        }
+      }
+      out
+    },
+    primary_dpars = paste0("mu", seq_len(K))
   )
 }
 

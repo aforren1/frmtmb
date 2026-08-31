@@ -171,6 +171,7 @@ suite.
   [`asym_laplace()`](frmtmb-families.md)
   [`sratio()`](frmtmb-families.md) [`cratio()`](frmtmb-families.md)
   [`acat()`](frmtmb-families.md) : Additional response families
+- [`mixture()`](mixture.md) : Finite mixture families
 - [`check_custom_family()`](check_custom_family.md) : Check a custom
   family's log-density for AD safety
 

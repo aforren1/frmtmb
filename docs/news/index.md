@@ -1,5 +1,59 @@
 # Changelog
 
+## frmtmb 0.17.0
+
+Clearing the roadmap: mixtures, measurement error, and the remaining
+grammar gaps.
+
+- `mixture(fam1, fam2, ...)` finite-mixture families: each component
+  keeps its own suffixed dpars (`mu1`, `sigma1`, …), mixing proportions
+  are multinomial-logit dpars with their own linear predictors
+  (mixture-of-experts comes free), and the likelihood is a branch-free
+  logsumexp - so random effects and smooths work in any component
+  formula. Exact against direct ML for gaussian and poisson mixtures.
+  Component means initialize on spread response quantiles; the usual
+  finite-mixture multimodality caveats apply
+  ([`frm_allfit()`](../reference/frm_allfit.md), or order intercepts via
+  bounds).
+- `mi(sdx)` measurement error (brms `me()`): known per-observation
+  measurement SDs make every true value latent, with the observed values
+  entering through a measurement model. Exact against the closed-form
+  bivariate-normal marginal; attenuation bias is corrected and NAs
+  (missing + mismeasured) combine.
+- `cs()` category-specific effects for `sratio`, `cratio`, and `acat`
+  (refused for `cumulative`, as in brms). Exact against direct ML.
+- `equalto(x + 0 | g, V)` covariance structure: fully fixed known V,
+  zero parameters (meta-analytic sampling covariances).
+- rr() fits now support `se.fit`: the delta method routes the factor
+  columns through the loadings Jacobian and adds loading-parameter
+  columns; verified parameterization-invariant against the
+  full-rank-vs-`us()` equivalence.
+- Registered insight methods (`find_formula`, `find_random`,
+  `get_parameters`, `get_varcov`, `find_statistic`, link accessors):
+  [`insight::is_mixed_model()`](https://easystats.github.io/insight/reference/is_mixed_model.html)
+  and the easystats accessor layer now see the random-effect structure.
+
+## frmtmb 0.16.0
+
+The two deferred architecture features.
+
+- `rr(x | g, d = k)` reduced-rank / factor-analytic covariance
+  (glmmTMB’s GLVM structure): per-level coefficients are loadings times
+  iid standard-normal factors, so `b` holds the factors while the design
+  matrices span the coefficient space. Matches glmmTMB exactly and
+  reduces to `us()` at full rank. `se.fit` on rr models is deferred (the
+  loadings enter the coefficients nonlinearly); `predict`, `simulate`,
+  `ranef`, and `VarCorr` (the rank-k covariance) all work.
+- `mi()` one-step imputation for continuous predictors, reversing the
+  original exclusion: `bf(y ~ mi(x) + z) + bf(x | mi() ~ z)` turns
+  missing `x` values into latent parameters that Laplace integrates
+  (exactly, in the linear-gaussian case - validated against the
+  closed-form marginal likelihood). Imputation uncertainty propagates
+  into the coefficient standard errors automatically. Rows with NAs in
+  non-`mi()` variables still drop; imputation models must be gaussian or
+  student; discrete predictors remain impossible (as in Stan). `me()`
+  measurement error is the natural follow-on.
+
 ## frmtmb 0.15.0
 
 Tier-2 sweep of dev/feature-gaps.md plus a method surface for sampled
