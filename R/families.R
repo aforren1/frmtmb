@@ -42,6 +42,19 @@
 #'   the main formula's design matrix (ordinal families: thresholds take
 #'   its place).
 #' @return An object of class `frmtmb_family`.
+#' @examples
+#' # a custom family is a plain R log-density over taped parameters
+#' dd <- data.frame(y = rbinom(100, 5, 0.4),
+#'                  size = 5, x = rnorm(100))
+#' fam <- custom_family(
+#'   "vbinom", dpars = "mu", links = list(mu = "logit"),
+#'   lpdf = function(y, dpars, aterms) {
+#'     RTMB::dbinom(y, aterms$vint1, dpars$mu, log = TRUE)
+#'   },
+#'   type = "discrete"
+#' )
+#' fit <- frm(bf(y | vint(size) ~ x) + fam, data = dd)
+#' fixef(fit)
 #' @export
 frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           init_dpars = list(), type = "continuous",
@@ -90,16 +103,23 @@ count_y <- function(name) {
   }
 }
 
+# Residual SD including a known se() component (meta-analysis): se()
+# alone replaces sigma; se(x, sigma = TRUE) adds them in quadrature.
+resid_sd <- function(sigma, aterms) {
+  if (is.null(aterms$se)) return(sigma)
+  if (isTRUE(aterms$se_sigma)) sqrt(sigma^2 + aterms$se^2) else aterms$se
+}
+
 fam_gaussian <- function(link = "identity") {
   frmtmb_family(
     "gaussian",
     dpars = c("mu", "sigma"),
     links = list(mu = link, sigma = "log"),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dnorm(y, dpars$mu, dpars$sigma, log = TRUE)
+      RTMB::dnorm(y, dpars$mu, resid_sd(dpars$sigma, aterms), log = TRUE)
     },
     lcdf = function(q, dpars, aterms) {
-      RTMB::pnorm((q - dpars$mu) / dpars$sigma)
+      RTMB::pnorm((q - dpars$mu) / resid_sd(dpars$sigma, aterms))
     },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
@@ -108,9 +128,11 @@ fam_gaussian <- function(link = "identity") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$sigma^2
+      var_fn = function(dpars, aterms) resid_sd(dpars$sigma, aterms)^2
     ),
-    sim = function(dpars, aterms, n) stats::rnorm(n, dpars$mu, dpars$sigma)
+    sim = function(dpars, aterms, n) {
+      stats::rnorm(n, dpars$mu, resid_sd(dpars$sigma, aterms))
+    }
   )
 }
 
@@ -234,8 +256,9 @@ fam_student <- function(link = "identity") {
     dpars = c("mu", "sigma", "nu"),
     links = list(mu = link, sigma = "log", nu = "logm1"),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dt((y - dpars$mu) / dpars$sigma, df = dpars$nu, log = TRUE) -
-        log(dpars$sigma)
+      sd_t <- resid_sd(dpars$sigma, aterms)
+      RTMB::dt((y - dpars$mu) / sd_t, df = dpars$nu, log = TRUE) -
+        log(sd_t)
     },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
@@ -246,12 +269,13 @@ fam_student <- function(link = "identity") {
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
       var_fn = function(dpars, aterms) {
-        ifelse(dpars$nu > 2, dpars$sigma^2 * dpars$nu / (dpars$nu - 2),
+        sd_t <- resid_sd(dpars$sigma, aterms)
+        ifelse(dpars$nu > 2, sd_t^2 * dpars$nu / (dpars$nu - 2),
                NA_real_)
       }
     ),
     sim = function(dpars, aterms, n) {
-      dpars$mu + dpars$sigma * stats::rt(n, dpars$nu)
+      dpars$mu + resid_sd(dpars$sigma, aterms) * stats::rt(n, dpars$nu)
     }
   )
 }
@@ -482,6 +506,325 @@ fam_hurdle_poisson <- function(link = "log") {
   )
 }
 
+fam_bernoulli <- function(link = "logit") {
+  frmtmb_family(
+    "bernoulli",
+    dpars = "mu",
+    links = list(mu = link),
+    lpdf = function(y, dpars, aterms) {
+      RTMB::dbinom(y, 1, dpars$mu, log = TRUE)
+    },
+    valid_y = function(y, aterms) {
+      if (!all(y %in% c(0, 1))) {
+        stop("bernoulli: response must be 0/1", call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      mu = function(y, aterms) min(max(mean(y), 0.02), 0.98)
+    ),
+    type = "discrete",
+    post = list(
+      mean_fn = function(dpars, aterms) dpars$mu,
+      var_fn = function(dpars, aterms) dpars$mu * (1 - dpars$mu)
+    ),
+    sim = function(dpars, aterms, n) stats::rbinom(n, 1, dpars$mu)
+  )
+}
+
+fam_geometric <- function(link = "log") {
+  frmtmb_family(
+    "geometric",
+    dpars = "mu",
+    links = list(mu = link),
+    lpdf = function(y, dpars, aterms) {
+      RTMB::dnbinom2(y, dpars$mu, dpars$mu * (1 + dpars$mu), log = TRUE)
+    },
+    valid_y = count_y("geometric"),
+    init_dpars = list(mu = function(y, aterms) mean(y) + 0.1),
+    type = "discrete",
+    post = list(
+      mean_fn = function(dpars, aterms) dpars$mu,
+      var_fn = function(dpars, aterms) dpars$mu * (1 + dpars$mu)
+    ),
+    sim = function(dpars, aterms, n) {
+      stats::rnbinom(n, size = 1, mu = dpars$mu)
+    }
+  )
+}
+
+fam_exponential <- function(link = "log") {
+  frmtmb_family(
+    "exponential",
+    dpars = "mu",
+    links = list(mu = link),
+    lpdf = function(y, dpars, aterms) {
+      -log(dpars$mu) - y / dpars$mu
+    },
+    lcdf = function(q, dpars, aterms) {
+      1 - exp(-q / dpars$mu)
+    },
+    valid_y = positive_y("exponential"),
+    init_dpars = list(mu = function(y, aterms) mean(y)),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) dpars$mu,
+      var_fn = function(dpars, aterms) dpars$mu^2
+    ),
+    sim = function(dpars, aterms, n) stats::rexp(n, 1 / dpars$mu)
+  )
+}
+
+fam_weibull <- function(link = "log") {
+  frmtmb_family(
+    "weibull",
+    dpars = c("mu", "shape"),
+    links = list(mu = link, shape = "log"),
+    lpdf = function(y, dpars, aterms) {
+      # brms parameterization: mu is the mean, scale = mu/gamma(1+1/k)
+      sc <- dpars$mu / exp(lgamma(1 + 1 / dpars$shape))
+      RTMB::dweibull(y, shape = dpars$shape, scale = sc, log = TRUE)
+    },
+    lcdf = function(q, dpars, aterms) {
+      sc <- dpars$mu / exp(lgamma(1 + 1 / dpars$shape))
+      1 - exp(-(q / sc)^dpars$shape)
+    },
+    valid_y = positive_y("weibull"),
+    init_dpars = list(
+      mu = function(y, aterms) mean(y),
+      shape = function(y, aterms) 1.2
+    ),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) dpars$mu,
+      var_fn = function(dpars, aterms) {
+        g1 <- exp(lgamma(1 + 1 / dpars$shape))
+        g2 <- exp(lgamma(1 + 2 / dpars$shape))
+        dpars$mu^2 * (g2 / g1^2 - 1)
+      }
+    ),
+    sim = function(dpars, aterms, n) {
+      stats::rweibull(n, shape = dpars$shape,
+                      scale = dpars$mu / gamma(1 + 1 / dpars$shape))
+    }
+  )
+}
+
+fam_shifted_lognormal <- function(link = "identity") {
+  frmtmb_family(
+    "shifted_lognormal",
+    dpars = c("mu", "sigma", "ndt"),
+    links = list(mu = link, sigma = "log", ndt = "log"),
+    lpdf = function(y, dpars, aterms) {
+      # y <= ndt gives NaN, which the optimizer treats as a rejected
+      # step; the ndt init keeps the start feasible
+      RTMB::dnorm(log(y - dpars$ndt), dpars$mu, dpars$sigma, log = TRUE) -
+        log(y - dpars$ndt)
+    },
+    valid_y = positive_y("shifted_lognormal"),
+    init_dpars = list(
+      mu = function(y, aterms) mean(log(y - min(y) / 2)),
+      sigma = function(y, aterms) stats::sd(log(y - min(y) / 2)),
+      ndt = function(y, aterms) min(y) / 2
+    ),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) {
+        dpars$ndt + exp(dpars$mu + dpars$sigma^2 / 2)
+      }
+    ),
+    sim = function(dpars, aterms, n) {
+      dpars$ndt + stats::rlnorm(n, dpars$mu, dpars$sigma)
+    }
+  )
+}
+
+fam_hurdle_gamma <- function(link = "log") {
+  frmtmb_family(
+    "hurdle_gamma",
+    dpars = c("mu", "shape", "hu"),
+    links = list(mu = link, shape = "log", hu = "logit"),
+    lpdf = function(y, dpars, aterms) {
+      i0 <- as.numeric(y == 0)
+      yp <- y + i0   # dodge dgamma(0) = -Inf; the term carries weight 0
+      i0 * log(dpars$hu) +
+        (1 - i0) * (log(1 - dpars$hu) +
+                      RTMB::dgamma(yp, shape = dpars$shape,
+                                   scale = dpars$mu / dpars$shape,
+                                   log = TRUE))
+    },
+    valid_y = function(y, aterms) {
+      if (any(y < 0)) {
+        stop("hurdle_gamma: response must be non-negative", call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      mu = function(y, aterms) if (any(y > 0)) mean(y[y > 0]) else 1,
+      shape = function(y, aterms) 1,
+      hu = function(y, aterms) min(max(mean(y == 0), 0.05), 0.95)
+    ),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) (1 - dpars$hu) * dpars$mu
+    ),
+    sim = function(dpars, aterms, n) {
+      stats::rbinom(n, 1, 1 - dpars$hu) *
+        stats::rgamma(n, shape = dpars$shape,
+                      scale = dpars$mu / dpars$shape)
+    }
+  )
+}
+
+fam_hurdle_lognormal <- function(link = "identity") {
+  frmtmb_family(
+    "hurdle_lognormal",
+    dpars = c("mu", "sigma", "hu"),
+    links = list(mu = link, sigma = "log", hu = "logit"),
+    lpdf = function(y, dpars, aterms) {
+      i0 <- as.numeric(y == 0)
+      yp <- y + i0
+      i0 * log(dpars$hu) +
+        (1 - i0) * (log(1 - dpars$hu) +
+                      RTMB::dnorm(log(yp), dpars$mu, dpars$sigma,
+                                  log = TRUE) - log(yp))
+    },
+    valid_y = function(y, aterms) {
+      if (any(y < 0)) {
+        stop("hurdle_lognormal: response must be non-negative",
+             call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      mu = function(y, aterms) {
+        if (any(y > 0)) mean(log(y[y > 0])) else 0
+      },
+      sigma = function(y, aterms) {
+        if (sum(y > 0) > 1) stats::sd(log(y[y > 0])) else 1
+      },
+      hu = function(y, aterms) min(max(mean(y == 0), 0.05), 0.95)
+    ),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) {
+        (1 - dpars$hu) * exp(dpars$mu + dpars$sigma^2 / 2)
+      }
+    ),
+    sim = function(dpars, aterms, n) {
+      stats::rbinom(n, 1, 1 - dpars$hu) *
+        stats::rlnorm(n, dpars$mu, dpars$sigma)
+    }
+  )
+}
+
+fam_zi_binomial <- function(link = "logit") {
+  frmtmb_family(
+    "zero_inflated_binomial",
+    dpars = c("mu", "zi"),
+    links = list(mu = link, zi = "logit"),
+    lpdf = function(y, dpars, aterms) {
+      size <- aterms$trials %||% 1
+      i0 <- as.numeric(y == 0)
+      p0 <- (1 - dpars$mu)^size
+      i0 * log(dpars$zi + (1 - dpars$zi) * p0) +
+        (1 - i0) * (log(1 - dpars$zi) +
+                      RTMB::dbinom(y, size, dpars$mu, log = TRUE))
+    },
+    valid_y = function(y, aterms) {
+      size <- aterms$trials %||% 1
+      if (any(y < 0) || any(y > size) || any(y != round(y))) {
+        stop("zero_inflated_binomial: response must be integer counts ",
+             "in [0, trials]", call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      mu = function(y, aterms) {
+        size <- aterms$trials %||% 1
+        min(max(mean(y / size), 0.05), 0.95)
+      },
+      zi = function(y, aterms) min(max(mean(y == 0) / 2, 0.05), 0.9)
+    ),
+    type = "discrete",
+    post = list(
+      mean_fn = function(dpars, aterms) {
+        (1 - dpars$zi) * dpars$mu * (aterms$trials %||% 1)
+      }
+    ),
+    sim = function(dpars, aterms, n) {
+      stats::rbinom(n, 1, 1 - dpars$zi) *
+        stats::rbinom(n, aterms$trials %||% 1, dpars$mu)
+    }
+  )
+}
+
+fam_zi_beta <- function(link = "logit") {
+  frmtmb_family(
+    "zero_inflated_beta",
+    dpars = c("mu", "phi", "zi"),
+    links = list(mu = link, phi = "log", zi = "logit"),
+    lpdf = function(y, dpars, aterms) {
+      i0 <- as.numeric(y == 0)
+      ya <- y + i0 * 0.5   # dodge dbeta(0) = -Inf; term carries weight 0
+      i0 * log(dpars$zi) +
+        (1 - i0) * (log(1 - dpars$zi) +
+                      RTMB::dbeta(ya, dpars$mu * dpars$phi,
+                                  (1 - dpars$mu) * dpars$phi, log = TRUE))
+    },
+    valid_y = function(y, aterms) {
+      if (any(y < 0) || any(y >= 1)) {
+        stop("zero_inflated_beta: response must be in [0, 1)",
+             call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      mu = function(y, aterms) {
+        if (any(y > 0)) min(max(mean(y[y > 0]), 0.05), 0.95) else 0.5
+      },
+      phi = function(y, aterms) 5,
+      zi = function(y, aterms) min(max(mean(y == 0), 0.05), 0.9)
+    ),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) (1 - dpars$zi) * dpars$mu
+    ),
+    sim = function(dpars, aterms, n) {
+      stats::rbinom(n, 1, 1 - dpars$zi) *
+        stats::rbeta(n, dpars$mu * dpars$phi, (1 - dpars$mu) * dpars$phi)
+    }
+  )
+}
+
+fam_asym_laplace <- function(link = "identity") {
+  frmtmb_family(
+    "asym_laplace",
+    dpars = c("mu", "sigma", "quantile"),
+    links = list(mu = link, sigma = "log", quantile = "logit"),
+    lpdf = function(y, dpars, aterms) {
+      # rho_p(u) = 0.5 * (|u| + (2p - 1) u); ML at fixed quantile p
+      # reproduces quantile-regression point estimates
+      p <- dpars$quantile
+      u <- (y - dpars$mu) / dpars$sigma
+      log(p) + log(1 - p) - log(dpars$sigma) -
+        0.5 * (abs(u) + (2 * p - 1) * u)
+    },
+    init_dpars = list(
+      mu = function(y, aterms) stats::median(y),
+      sigma = function(y, aterms) stats::sd(y) / 2,
+      quantile = function(y, aterms) 0.5
+    ),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) {
+        dpars$mu + dpars$sigma * (1 - 2 * dpars$quantile) /
+          (dpars$quantile * (1 - dpars$quantile))
+      }
+    ),
+    sim = function(dpars, aterms, n) {
+      p <- dpars$quantile
+      dpars$mu + dpars$sigma *
+        (stats::rexp(n) / p - stats::rexp(n) / (1 - p))
+    }
+  )
+}
+
 # --- RTMBdist-backed families ---
 
 fam_beta_binomial <- function(link = "logit") {
@@ -651,6 +994,141 @@ fam_cumulative <- function(link = "logit") {
   )
 }
 
+# Shared scaffolding for the sequential ordinal families: an
+# n x (K-1) matrix of (tau_j - eta_i) or (eta_i - tau_j), and data-only
+# indicator matrices selecting the observed category (branch-free).
+ord_indicators <- function(y, K1) {
+  n <- length(y)
+  jj <- rep(seq_len(K1), each = n)
+  yy <- rep(y, K1)
+  list(
+    sel = matrix(as.numeric(yy == jj), n, K1),   # j == y (y <= K-1)
+    below = matrix(as.numeric(jj < yy), n, K1)   # j < y
+  )
+}
+
+ord_eta_mat <- function(eta, tau, n, K1) {
+  # broadcast via matmul: rep() strips the advector class
+  TM <- RTMB::matrix(1, n, 1) %*% RTMB::matrix(tau, 1, K1)
+  TM - eta   # column-wise recycling: row i is tau_j - eta_i
+}
+
+ord_valid_y <- function(name) {
+  function(y, aterms) {
+    if (any(y < 1) || any(y != round(y)) || length(unique(y)) < 2) {
+      stop(name, ": response must be an ordered factor or integers ",
+           "1..K with at least 2 observed categories", call. = FALSE)
+    }
+  }
+}
+
+ord_tau_init <- function(y, ordered = TRUE) {
+  K <- max(y)
+  p <- cumsum(tabulate(y, K) / length(y))[-K]
+  p <- pmin(pmax(p, 0.01), 0.99)
+  tau0 <- stats::qlogis(p)
+  if (!ordered) return(list(tau_raw = tau0))
+  incr <- pmax(diff(tau0), 0.05)
+  list(tau_raw = c(tau0[1], log(incr)))
+}
+
+ord_link_cdf <- function(name, link) {
+  switch(link,
+    logit = function(x) 1 / (1 + exp(-x)),
+    probit = function(x) RTMB::pnorm(x),
+    stop(name, "() supports links 'logit' and 'probit'", call. = FALSE)
+  )
+}
+
+# Stopping ratio (brms sratio): P(y=k) = F(tau_k - eta) *
+# prod_{j<k} (1 - F(tau_j - eta)); ordered thresholds like cumulative.
+fam_sratio <- function(link = "logit") {
+  Fcdf <- ord_link_cdf("sratio", link)
+  frmtmb_family(
+    "sratio",
+    dpars = "mu",
+    links = list(mu = "identity"),
+    lpdf = function(y, dpars, aterms, extra) {
+      "[<-" <- RTMB::ADoverload("[<-")
+      raw <- extra$tau_raw
+      K1 <- length(raw)
+      tau <- rep(raw[1], K1)
+      if (K1 > 1) for (k in 2:K1) tau[k] <- tau[k - 1] + exp(raw[k])
+      n <- length(y)
+      M <- ord_eta_mat(dpars$mu, tau, n, K1)
+      ind <- ord_indicators(y, K1)
+      P <- Fcdf(M)
+      ones <- rep(1, K1)   # rowSums strips the advector class
+      as.vector((log(P) * ind$sel) %*% ones) +
+        as.vector((log(1 - P) * ind$below) %*% ones)
+    },
+    valid_y = ord_valid_y("sratio"),
+    type = "ordinal",
+    extra_pars = function(y, aterms) ord_tau_init(y, ordered = TRUE),
+    drop_intercept = TRUE
+  )
+}
+
+# Continuation ratio (brms cratio): P(y=k) = (1 - F(eta - tau_k)) *
+# prod_{j<k} F(eta - tau_j); unordered thresholds.
+fam_cratio <- function(link = "logit") {
+  Fcdf <- ord_link_cdf("cratio", link)
+  frmtmb_family(
+    "cratio",
+    dpars = "mu",
+    links = list(mu = "identity"),
+    lpdf = function(y, dpars, aterms, extra) {
+      tau <- extra$tau_raw
+      K1 <- length(tau)
+      n <- length(y)
+      M <- ord_eta_mat(dpars$mu, tau, n, K1)   # tau_j - eta
+      ind <- ord_indicators(y, K1)
+      P <- Fcdf(-M)                            # F(eta - tau_j)
+      ones <- rep(1, K1)   # rowSums strips the advector class
+      as.vector((log(1 - P) * ind$sel) %*% ones) +
+        as.vector((log(P) * ind$below) %*% ones)
+    },
+    valid_y = ord_valid_y("cratio"),
+    type = "ordinal",
+    extra_pars = function(y, aterms) ord_tau_init(y, ordered = FALSE),
+    drop_intercept = TRUE
+  )
+}
+
+# Adjacent category (brms acat, logit link): P(y=k) proportional to
+# exp(sum_{j<k} (eta - tau_j)); unordered thresholds.
+fam_acat <- function(link = "logit") {
+  if (!identical(link, "logit")) {
+    stop("acat() supports the 'logit' link only", call. = FALSE)
+  }
+  frmtmb_family(
+    "acat",
+    dpars = "mu",
+    links = list(mu = "identity"),
+    lpdf = function(y, dpars, aterms, extra) {
+      tau <- extra$tau_raw
+      K <- length(tau) + 1L
+      n <- length(y)
+      eta <- dpars$mu
+      "c" <- RTMB::ADoverload("c")
+      ct0 <- c(0, cumsum(tau))                 # length K
+      # E[i, r] = (r-1) * eta_i - cumsum tau, r = 1..K; broadcast by
+      # matmul (rep() strips the advector class)
+      Rm <- matrix(rep(seq_len(K) - 1L, each = n), n, K)
+      E <- Rm * eta -
+        RTMB::matrix(1, n, 1) %*% RTMB::matrix(ct0, 1, K)
+      jj <- rep(seq_len(K), each = n)
+      S <- matrix(as.numeric(rep(y, K) == jj), n, K)
+      ones <- rep(1, K)   # rowSums strips the advector class
+      as.vector((E * S) %*% ones) - log(as.vector(exp(E) %*% ones))
+    },
+    valid_y = ord_valid_y("acat"),
+    type = "ordinal",
+    extra_pars = function(y, aterms) ord_tau_init(y, ordered = FALSE),
+    drop_intercept = TRUE
+  )
+}
+
 # Matrix-response multinomial: y is an n x K count matrix, category 1 is
 # the reference. One linear predictor per non-reference category (mu2,
 # ..., muK), all receiving the main model formula unless overridden.
@@ -717,7 +1195,20 @@ family_registry <- list(
   beta_binomial             = fam_beta_binomial,
   skew_normal               = fam_skew_normal,
   inverse.gaussian          = fam_inverse_gaussian,
-  exgaussian                = fam_exgaussian
+  exgaussian                = fam_exgaussian,
+  bernoulli                 = fam_bernoulli,
+  geometric                 = fam_geometric,
+  exponential               = fam_exponential,
+  weibull                   = fam_weibull,
+  shifted_lognormal         = fam_shifted_lognormal,
+  hurdle_gamma              = fam_hurdle_gamma,
+  hurdle_lognormal          = fam_hurdle_lognormal,
+  zero_inflated_binomial    = fam_zi_binomial,
+  zero_inflated_beta        = fam_zi_beta,
+  asym_laplace              = fam_asym_laplace,
+  sratio                    = fam_sratio,
+  cratio                    = fam_cratio,
+  acat                      = fam_acat
 )
 
 as_frmtmb_family <- function(x) {
@@ -817,6 +1308,58 @@ skew_normal <- function(link = "identity") fam_skew_normal(link)
 #' @rdname frmtmb-families
 #' @export
 exgaussian <- function(link = "identity") fam_exgaussian(link)
+
+#' @rdname frmtmb-families
+#' @export
+bernoulli <- function(link = "logit") fam_bernoulli(link)
+
+#' @rdname frmtmb-families
+#' @export
+geometric <- function(link = "log") fam_geometric(link)
+
+#' @rdname frmtmb-families
+#' @export
+exponential <- function(link = "log") fam_exponential(link)
+
+#' @rdname frmtmb-families
+#' @export
+weibull <- function(link = "log") fam_weibull(link)
+
+#' @rdname frmtmb-families
+#' @export
+shifted_lognormal <- function(link = "identity") fam_shifted_lognormal(link)
+
+#' @rdname frmtmb-families
+#' @export
+hurdle_gamma <- function(link = "log") fam_hurdle_gamma(link)
+
+#' @rdname frmtmb-families
+#' @export
+hurdle_lognormal <- function(link = "identity") fam_hurdle_lognormal(link)
+
+#' @rdname frmtmb-families
+#' @export
+zero_inflated_binomial <- function(link = "logit") fam_zi_binomial(link)
+
+#' @rdname frmtmb-families
+#' @export
+zero_inflated_beta <- function(link = "logit") fam_zi_beta(link)
+
+#' @rdname frmtmb-families
+#' @export
+asym_laplace <- function(link = "identity") fam_asym_laplace(link)
+
+#' @rdname frmtmb-families
+#' @export
+sratio <- function(link = "logit") fam_sratio(link)
+
+#' @rdname frmtmb-families
+#' @export
+cratio <- function(link = "logit") fam_cratio(link)
+
+#' @rdname frmtmb-families
+#' @export
+acat <- function(link = "logit") fam_acat(link)
 
 #' @export
 print.frmtmb_family <- function(x, ...) {

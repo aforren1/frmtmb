@@ -230,6 +230,17 @@ all_par_labels <- function(fit, include_b = TRUE) {
 #' @return An object of class `frmtmb_draws`: list with the `stanfit`,
 #'   a draws matrix with named columns (`as.matrix()` method), and the
 #'   originating fit.
+#' @examples
+#' \donttest{
+#' set.seed(9)
+#' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+#' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#' ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
+#' summary(ds)
+#' fixef(ds)
+#' hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+#' }
 #' @export
 frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
                        upper = NULL, init = "last.par.best") {

@@ -9,7 +9,8 @@ frmtmb_control(
   optimizer = "nlminb",
   optCtrl = list(iter.max = 1000, eval.max = 1000),
   restarts = 1,
-  grad_tol = 0.001
+  grad_tol = 0.001,
+  profile = FALSE
 )
 ```
 
@@ -47,6 +48,18 @@ frmtmb_control(
 
   Warn (and restart) if the maximum absolute gradient at the optimum
   exceeds this value.
+
+- profile:
+
+  Experimental: move the primary (`beta`) coefficients into the inner
+  (Laplace) problem, TMB's `profile` argument - the analog of
+  `glmmTMBControl(profile = TRUE)` and `glmer(nAGQ = 0)`. Speeds up
+  models with many fixed effects, and like those it is an approximation:
+  estimates differ slightly from the exact fit. Coefficient covariance
+  comes from the joint precision. Not compatible with `REML = TRUE` or
+  `quadrature = TRUE`; profile/uniroot
+  [`confint()`](https://rdrr.io/r/stats/confint.html) and
+  `hypothesis(method = "profile")` need a non-profiled fit.
 
 ## Value
 

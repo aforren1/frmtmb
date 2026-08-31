@@ -46,3 +46,15 @@ treat the result as an ML diagnostic (see \code{\link[=check_laplace]{check_lapl
 than a full Bayesian analysis; posteriors can be improper for
 variance components with few groups.
 }
+\examples{
+\donttest{
+set.seed(9)
+dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
+summary(ds)
+fixef(ds)
+hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+}
+}

@@ -13,7 +13,7 @@ against zero. A hypothesis is &quot;expr&quot; (tested against 0) or
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -64,7 +64,10 @@ against zero. A hypothesis is <code>"expr"</code> (tested against 0) or
 <span>  nsim <span class="op">=</span> <span class="fl">500</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
+<span><span class="fu">hypothesis</span><span class="op">(</span><span class="va">x</span>, <span class="va">hypothesis</span>, alpha <span class="op">=</span> <span class="fl">0.05</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -138,6 +141,30 @@ Handles any expression, including the variance-component names,
 whose sampling distributions Wald approximates poorly.</p></li>
 </ul></div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">120</span><span class="op">)</span>, x2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">120</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                 g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="fl">12</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">120</span>, <span class="fl">1</span> <span class="op">+</span> <span class="fl">0.6</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x1</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x2</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>                <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">0</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">g</span><span class="op">]</span>, <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">hypothesis</span><span class="op">(</span><span class="va">fit</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x1 - x2 = 0"</span>, <span class="st">"exp(Intercept)"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Hypothesis tests (method = wald)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      hypothesis estimate     se   lwr    upr     z         p</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     x1 - x2 = 0    0.370 0.1280 0.119 0.6209 2.889 3.859e-03</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  exp(Intercept)    2.507 0.4829 1.561 3.4540 5.192 2.079e-07</span>
+<span class="r-in"><span><span class="co"># variance-component expressions: an ICC with bootstrap intervals</span></span></span>
+<span class="r-in"><span><span class="fu">hypothesis</span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</span>,</span></span>
+<span class="r-in"><span>           method <span class="op">=</span> <span class="st">"boot"</span>, nsim <span class="op">=</span> <span class="fl">20</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Hypothesis tests (method = boot)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   bootstrap draws: 20 (0 failed or not converged)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                         hypothesis estimate     se     lwr</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)   0.2694 0.1231 0.03343</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     upr     z       p</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  0.4187 2.189 0.09524</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

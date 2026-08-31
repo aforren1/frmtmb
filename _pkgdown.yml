@@ -13,6 +13,9 @@ reference:
   contents:
   - frm
   - frmtmb_control
+  - frm_allfit
+  - frm_simulate
+  - frm_multiple
 - title: Families
   contents:
   - frmtmb_family
@@ -33,7 +36,9 @@ reference:
   - anova.frmtmb_fit
   - as_tmbstan
   - frm_sample
+  - posterior_epred
   - check_laplace
+  - influence.frmtmb_fit
   - set_prior
   - frmtmb-priors
   - prior_summary

@@ -41,6 +41,32 @@ beta_binomial(link = "logit")
 skew_normal(link = "identity")
 
 exgaussian(link = "identity")
+
+bernoulli(link = "logit")
+
+geometric(link = "log")
+
+exponential(link = "log")
+
+weibull(link = "log")
+
+shifted_lognormal(link = "identity")
+
+hurdle_gamma(link = "log")
+
+hurdle_lognormal(link = "identity")
+
+zero_inflated_binomial(link = "logit")
+
+zero_inflated_beta(link = "logit")
+
+asym_laplace(link = "identity")
+
+sratio(link = "logit")
+
+cratio(link = "logit")
+
+acat(link = "logit")
 ```
 
 ## Arguments

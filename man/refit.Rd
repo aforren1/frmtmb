@@ -30,3 +30,13 @@ costs one re-tape plus the optimization. This is the engine for
 parametric bootstrap: simulate responses with \code{\link[=simulate]{simulate()}}, refit to
 each.
 }
+\examples{
+set.seed(2)
+dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+# refit to a simulated response (the parametric-bootstrap step)
+ysim <- simulate(fit, nsim = 1, re.form = NA)[[1]]
+rf <- refit(fit, ysim)
+fixef(rf)
+}

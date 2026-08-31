@@ -54,6 +54,9 @@ dpar_frame_rhs <- function(dp) {
       parts <- c(parts, list(as.name(sspec$by)))
     }
   }
+  for (mexpr in dp$mo %||% list()) {
+    for (v in all.vars(mexpr)) parts <- c(parts, list(as.name(v)))
+  }
   out <- NULL
   for (p in parts) out <- if (is.null(out)) p else call("+", out, p)
   out
@@ -158,18 +161,28 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
   extras <- list()
   for (resp in spec$responses) {
     y[[resp$resp_name]] <- extract_y(resp, mf)
-    av <- lapply(resp$aterms[setdiff(names(resp$aterms), "cens_y2")],
+    av <- lapply(resp$aterms[setdiff(names(resp$aterms),
+                                     c("cens_y2", "se_sigma"))],
                  function(a) {
       v <- mf[[deparse1(a)]]
       if (is.null(v)) v <- eval(a, mf, resp$formula_env)
       as.numeric(v)
     })
+    if (!is.null(resp$aterms$se_sigma)) {
+      av$se_sigma <- resp$aterms$se_sigma   # logical flag, not data
+    }
     if (!is.null(resp$aterms$cens_y2)) {
       v <- as.numeric(eval(resp$aterms$cens_y2, data, resp$formula_env))
       if (!is.null(attr(mf, "na.action"))) {
         v <- v[-attr(mf, "na.action")]
       }
       av$cens_y2 <- v
+    }
+    for (vn in grep("^vint", names(av), value = TRUE)) {
+      if (any(av[[vn]] != round(av[[vn]]))) {
+        stop(vn, " values must be integers (use vreal() for reals)",
+             call. = FALSE)
+      }
     }
     if (!is.null(av$weights)) {
       if (any(av$weights < 0)) {
@@ -213,6 +226,29 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         # harmless for the taped CDF evaluation
         av$cens_y2[!i2 | is.na(av$cens_y2)] <-
           yv[!i2 | is.na(av$cens_y2)]
+      }
+    }
+    if (!is.null(av$se)) {
+      if (!resp$family$family %in% c("gaussian", "student")) {
+        stop("se() is supported for gaussian and student families only",
+             call. = FALSE)
+      }
+      if (any(av$se <= 0)) {
+        stop("se() values must be positive", call. = FALSE)
+      }
+    }
+    # glm/glmer compatibility: a proportion response with trials()
+    # becomes integer counts before validation
+    if (resp$family$family %in% c("binomial", "beta_binomial") &&
+        !is.null(av$trials)) {
+      yv <- y[[resp$resp_name]]
+      if (is.numeric(yv) && !is.matrix(yv) && any(yv != round(yv))) {
+        yc <- yv * av$trials
+        if (max(abs(yc - round(yc))) > 1e-6) {
+          stop(resp$family$family, ": a proportion response times ",
+               "trials() must give integer counts", call. = FALSE)
+        }
+        y[[resp$resp_name]] <- round(yc)
       }
     }
     if (!is.null(resp$family$valid_y)) {
@@ -304,11 +340,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
           d_k <- length(rt$cnms[[k]])
           len_k <- rt$Gp[k + 1L] - rt$Gp[k]
           cs_name <- dp$re[[k]]$covstruct
-          if (cs_name %in% c("ar1", "cs", "toep", "ou") && d_k < 2L) {
+          dist_cs <- c("ou", "exp", "gau", "mat")
+          if (cs_name %in% c("ar1", "hetar1", "cs", "homcs", "toep",
+                             "homtoep", dist_cs) && d_k < 2L) {
             stop(cs_name, "() needs at least 2 terms per level",
                  call. = FALSE)
           }
-          if (cs_name %in% c("ar1", "ou") &&
+          if (cs_name %in% c("ar1", "hetar1", dist_cs) &&
               "(Intercept)" %in% rt$cnms[[k]]) {
             stop(cs_name, "() requires a factor without intercept on ",
                  "the left of the bar, e.g. ", cs_name,
@@ -318,14 +356,19 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
           aux_A <- NULL
           aux_D <- NULL
           aux_kron <- NULL
-          if (cs_name == "ou") {
+          if (cs_name %in% dist_cs) {
             v <- all.vars(bars[[k]][[2]])
             if (length(v) != 1L || !is.factor(mf[[v]])) {
-              stop("ou() needs a single factor built with num_factor(): ",
-                   "ou(times + 0 | g)", call. = FALSE)
+              stop(cs_name, "() needs a single factor built with ",
+                   "num_factor(): ", cs_name, "(pos + 0 | g)",
+                   call. = FALSE)
             }
             coords <- parse_num_levels(levels(mf[[v]]))
-            aux_D <- abs(outer(coords, coords, "-"))
+            if (is.matrix(coords)) {
+              aux_D <- as.matrix(stats::dist(coords))
+            } else {
+              aux_D <- abs(outer(coords, coords, "-"))
+            }
           }
           aux_Q <- NULL
           if (cs_name == "gr_prec") {
@@ -429,6 +472,44 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         }
       }
 
+      # Monotonic terms: one scale coefficient in beta (a zero column in
+      # the stored X keeps the bookkeeping - names, idx, vcov - while
+      # the objective and the numeric prediction paths supply the
+      # simplex-weighted values); the simplex parameters join `extras`.
+      mo_info <- list()
+      for (mexpr in dp$mo %||% list()) {
+        v <- eval(mexpr, mf, resp$formula_env)
+        if (is.factor(v)) {
+          if (!is.ordered(v)) {
+            stop("mo(): factor variables must be ordered factors",
+                 call. = FALSE)
+          }
+          codes <- as.integer(v) - 1L
+          D_mo <- nlevels(v) - 1L
+          mo_levels <- levels(v)
+        } else {
+          if (any(v < 0) || any(v != round(v))) {
+            stop("mo(): variable must be an ordered factor or ",
+                 "non-negative integers", call. = FALSE)
+          }
+          codes <- as.integer(v)
+          D_mo <- max(codes)
+          mo_levels <- NULL
+        }
+        if (D_mo < 2L) {
+          stop("mo() needs at least 3 ordered categories", call. = FALSE)
+        }
+        lab <- paste0("mo", deparse1(mexpr))
+        zname <- paste0("zeta", length(extras) + 1L)
+        extras[[zname]] <- numeric(D_mo - 1L)
+        X <- cbind(X, matrix(0, nrow(X), 1,
+                             dimnames = list(NULL, lab)))
+        mo_info[[length(mo_info) + 1L]] <- list(
+          expr = mexpr, codes = codes, D = D_mo, levels = mo_levels,
+          zeta = zname, col = ncol(X), label = lab
+        )
+      }
+
       cn <- colnames(X)
       if (!identical(dp$name, "mu")) cn <- paste(dp$name, cn, sep = "_")
       if (length(spec$responses) > 1) {
@@ -460,6 +541,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
         xlevels = xlev,
         contrasts = contr,
         smooths = sm_info,
+        mo = mo_info,
         comp_ids = comp_ids,
         constant = dp$constant
       )
@@ -586,7 +668,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
                                           betad_names)
   }
   if (n_b) par_template$b <- numeric(n_b)
-  if (n_theta) par_template$theta <- numeric(n_theta)
+  if (n_theta) {
+    th0 <- numeric(n_theta)
+    for (bk in re_blocks) {
+      th0[bk$theta_idx] <-
+        covstruct_registry[[bk$covstruct]]$start(bk$dim)
+    }
+    par_template$theta <- th0
+  }
   if (spec$rescor) {
     K <- length(spec$responses)
     par_template$thetar <- numeric(K * (K - 1L) / 2L)

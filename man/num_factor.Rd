@@ -4,17 +4,20 @@
 \alias{num_factor}
 \title{Factor with numeric-coded levels for coordinate covariance structures}
 \usage{
-num_factor(x)
+num_factor(x, y = NULL)
 }
 \arguments{
 \item{x}{Numeric positions (times, coordinates).}
+
+\item{y}{Optional second coordinate.}
 }
 \value{
-A factor whose levels encode the sorted unique positions.
+A factor whose levels encode the unique positions.
 }
 \description{
-\code{ou()} (and future spatial structures) need the positions of the term
-levels. \code{num_factor(x)} encodes them in the level labels the same way
-\code{glmmTMB::numFactor()} does, so factors created by either function
-work.
+\code{ou()} and the spatial structures (\code{exp()}, \code{gau()}, \code{mat()}) need
+the positions of the term levels. \code{num_factor(x)} (one dimension) or
+\code{num_factor(x, y)} (planar coordinates) encodes them in the level
+labels the same way \code{glmmTMB::numFactor()} does, so factors created
+by either function work.
 }

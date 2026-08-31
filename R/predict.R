@@ -26,6 +26,44 @@ get_joint_cov <- function(fit) {
   cache$Vjoint
 }
 
+# Numeric mo() column values: D times the cumulative simplex at the
+# category codes, evaluated at the current simplex estimates.
+mo_col_values <- function(fit, mi, codes = mi$codes) {
+  zeta <- exp(c(0, fit$estimates[[mi$zeta]]))
+  zeta <- zeta / sum(zeta)
+  cz0 <- c(0, cumsum(zeta))
+  mi$D * cz0[codes + 1L]
+}
+
+# Category codes of a mo() variable in new data, validated against the
+# fitted range.
+mo_codes <- function(fit, lp, mi, newdata) {
+  env <- fit$spec$responses[[lp$resp]]$formula_env
+  v <- eval(mi$expr, newdata, env)
+  if (!is.null(mi$levels)) {
+    v <- factor(v, levels = mi$levels, ordered = TRUE)
+    if (anyNA(v)) {
+      stop("mo(): new data contain unknown categories", call. = FALSE)
+    }
+    return(as.integer(v) - 1L)
+  }
+  codes <- as.integer(round(v))   # grids may land between categories
+  if (any(codes < 0 | codes > mi$D)) {
+    stop("mo(): new data outside the fitted range 0..", mi$D,
+         call. = FALSE)
+  }
+  codes
+}
+
+# Fill the zero placeholder columns of a stored design matrix with the
+# mo() values at the current estimates.
+patch_mo_cols <- function(fit, lp, X) {
+  for (mi in lp$mo %||% list()) {
+    X[, mi$col] <- mo_col_values(fit, mi)
+  }
+  X
+}
+
 # xlevels restricted to the variables a terms object actually uses;
 # extra entries make model.frame warn.
 xlev_for <- function(xlevels, tt) {
@@ -65,6 +103,14 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     if (si$nf > 0L) {
       X <- cbind(X, M[, pos + seq_len(si$nf), drop = FALSE])
     }
+  }
+
+  # mo() columns come after the smooth null-space columns, matching the
+  # fitted X layout; the values are already at the current simplex
+  for (mi in lp$mo %||% list()) {
+    X <- cbind(X, matrix(mo_col_values(fit, mi,
+                                       mo_codes(fit, lp, mi, newdata)),
+                         ncol = 1, dimnames = list(NULL, mi$label)))
   }
 
   if (!use_re) {
@@ -141,7 +187,8 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
       next
     }
     eta <- if (ncol(lp$X)) {
-      drop(as.matrix(lp$X %*% est[[lp$par]][lp$idx]))
+      drop(as.matrix(patch_mo_cols(fit, lp, lp$X) %*%
+                       est[[lp$par]][lp$idx]))
     } else {
       numeric(fit$frame$n_obs)
     }
@@ -270,7 +317,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   }, object$frame$re_blocks)
 
   if (is.null(newdata)) {
-    X <- lp$X
+    X <- patch_mo_cols(object, lp, lp$X)
     off <- lp$offset
     n <- object$frame$n_obs
     eta <- drop(as.matrix(X %*% est[[lp$par]][lp$idx]))

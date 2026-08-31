@@ -131,10 +131,20 @@ print.summary.frmtmb_fit <- function(x, ...) {
   invisible(x)
 }
 
+# Estimated outer parameters: profiled betas (control profile = TRUE)
+# leave opt$par but are still estimated and must count toward df.
+n_outer_est <- function(object) {
+  n <- length(object$opt$par)
+  if (isTRUE(object$control$profile)) {
+    n <- n + length(object$frame$par_template$beta)
+  }
+  n
+}
+
 #' @export
 logLik.frmtmb_fit <- function(object, ...) {
   structure(-object$opt$objective,
-            df = length(object$opt$par),
+            df = n_outer_est(object),
             nobs = object$frame$n_obs,
             REML = object$REML,
             class = "logLik")
@@ -145,7 +155,7 @@ nobs.frmtmb_fit <- function(object, ...) object$frame$n_obs
 
 #' @export
 df.residual.frmtmb_fit <- function(object, ...) {
-  object$frame$n_obs - length(object$opt$par)
+  object$frame$n_obs - n_outer_est(object)
 }
 
 #' @export
@@ -198,7 +208,7 @@ estimated_coef_names <- function(fit) {
 #' @export
 vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
   nm <- estimated_coef_names(object)
-  if (!object$REML) {
+  if (!object$REML && !isTRUE(object$control$profile)) {
     V <- sdr_of(object)$cov.fixed
     if (full) {
       return(V)
@@ -312,22 +322,99 @@ fixef.frmtmb_fit <- function(object, ...) {
 
 #' Extract random-effect modes
 #' @param object A `frmtmb_fit`.
+#' @param condVar If `TRUE`, attach the conditional SDs of the modes
+#'   (from the Laplace posterior) as a `"condSD"` attribute on each
+#'   matrix, in matching layout.
 #' @param ... Unused.
 #' @return A named list of levels-by-coefficients matrices, one per
-#'   random-effect term.
+#'   random-effect term. `as.data.frame()` gives the long form (with a
+#'   `condsd` column when `condVar = TRUE` was used).
 #' @export
 ranef <- function(object, ...) UseMethod("ranef")
 
 #' @rdname ranef
 #' @export
-ranef.frmtmb_fit <- function(object, ...) {
+ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
   b <- object$estimates[["b"]]
+  csd <- NULL
+  if (condVar) {
+    sdr <- sdr_of(object)
+    dcr <- sdr$diag.cov.random
+    if (!is.null(dcr)) {
+      csd <- sqrt(pmax(dcr[names(sdr$par.random) == "b"], 0))
+    }
+  }
   out <- list()
   for (bk in object$frame$re_blocks) {
     M <- t(matrix(b[bk$b_idx], nrow = bk$dim))
     dimnames(M) <- list(bk$levels, bk$cnms)
+    if (!is.null(csd)) {
+      S <- t(matrix(csd[bk$b_idx], nrow = bk$dim))
+      dimnames(S) <- dimnames(M)
+      attr(M, "condSD") <- S
+    }
     out[[bk$term_label]] <- M
   }
+  structure(out, class = "ranef_frmtmb")
+}
+
+#' @export
+print.ranef_frmtmb <- function(x, ...) {
+  for (nm in names(x)) {
+    cat("$", nm, "\n", sep = "")
+    print(`attr<-`(x[[nm]], "condSD", NULL))
+    cat("\n")
+  }
+  invisible(x)
+}
+
+#' @export
+as.data.frame.ranef_frmtmb <- function(x, ...) {
+  rows <- lapply(names(x), function(nm) {
+    M <- x[[nm]]
+    S <- attr(M, "condSD")
+    lv <- rownames(M) %||% as.character(seq_len(nrow(M)))
+    df <- data.frame(
+      grp = nm,
+      term = rep(colnames(M), each = nrow(M)),
+      level = rep(lv, ncol(M)),
+      condval = as.vector(M)
+    )
+    if (!is.null(S)) df$condsd <- as.vector(S)
+    df
+  })
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+#' @export
+as.data.frame.VarCorr_frmtmb <- function(x, ...) {
+  rows <- list()
+  for (nm in names(x)) {
+    V <- x[[nm]]
+    sds <- sqrt(diag(V))
+    cn <- colnames(V)
+    for (i in seq_along(sds)) {
+      rows[[length(rows) + 1L]] <- data.frame(
+        grp = nm, var1 = cn[i], var2 = NA_character_,
+        vcov = V[i, i], sdcor = sds[i]
+      )
+    }
+    if (ncol(V) > 1L) {
+      C <- stats::cov2cor(V)
+      for (i in seq_len(ncol(V) - 1L)) {
+        for (j in seq(i + 1L, ncol(V))) {
+          rows[[length(rows) + 1L]] <- data.frame(
+            grp = nm, var1 = cn[i], var2 = cn[j],
+            vcov = V[i, j], sdcor = C[i, j]
+          )
+        }
+      }
+    }
+  }
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
   out
 }
 

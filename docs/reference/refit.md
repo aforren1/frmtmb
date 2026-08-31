@@ -38,3 +38,24 @@ refit(object, newresp, start = NULL, ...)
 ## Value
 
 A new `frmtmb_fit`.
+
+## Examples
+
+``` r
+set.seed(2)
+dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+# refit to a simulated response (the parametric-bootstrap step)
+ysim <- simulate(fit, nsim = 1, re.form = NA)[[1]]
+rf <- refit(fit, ysim)
+fixef(rf)
+#> $mu
+#> (Intercept)           x 
+#>   0.9330103   0.5717605 
+#> 
+#> $sigma
+#> (Intercept) 
+#>  0.07467955 
+#> 
+```

@@ -201,6 +201,141 @@ covstruct_registry$toep <- list(
   start = function(dim) numeric(2L * dim - 1L)
 )
 
+# Heterogeneous AR(1): d log-sds plus one phi (rho = phi/sqrt(1+phi^2)).
+covstruct_registry$hetar1 <- list(
+  npar = function(dim) dim + 1L,
+  sd_idx = function(dim) seq_len(dim),
+  nll = function(b, theta, blk) {
+    "[<-" <- RTMB::ADoverload("[<-")
+    d <- blk$dim
+    sdv <- exp(theta[seq_len(d)])
+    rho <- theta[d + 1L] / sqrt(1 + theta[d + 1L]^2)
+    pows <- rep(rho, d)
+    pows[1] <- 1
+    for (k in seq_len(d - 1L) + 1L) pows[k] <- pows[k - 1L] * rho
+    M <- abs(outer(seq_len(d), seq_len(d), "-")) + 1L
+    C <- RTMB::matrix(pows[as.vector(M)], d, d)
+    Sigma <- C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
+    dim(b) <- c(d, length(b) %/% d)
+    sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    d <- blk$dim
+    sdv <- exp(theta[seq_len(d)])
+    rho <- theta[d + 1L] / sqrt(1 + theta[d + 1L]^2)
+    V <- rho^abs(outer(seq_len(d), seq_len(d), "-")) * (sdv %o% sdv)
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
+  },
+  start = function(dim) numeric(dim + 1L)
+)
+
+# Homogeneous compound symmetry: one log-sd plus one correlation on
+# (-1/(d-1), 1).
+covstruct_registry$homcs <- list(
+  npar = function(dim) 2L,
+  sd_idx = function(dim) 1L,
+  nll = function(b, theta, blk) {
+    d <- blk$dim
+    a <- 1 / (d - 1)
+    rho <- -a + (1 + a) / (1 + exp(-theta[2]))
+    C <- diag(d) * (1 - rho) + rho
+    Sigma <- exp(2 * theta[1]) * C
+    dim(b) <- c(d, length(b) %/% d)
+    sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    d <- blk$dim
+    a <- 1 / (d - 1)
+    rho <- -a + (1 + a) / (1 + exp(-theta[2]))
+    V <- exp(theta[1])^2 * (diag(d) * (1 - rho) + rho)
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
+  },
+  start = function(dim) c(0, 0)
+)
+
+# Homogeneous Toeplitz: one log-sd plus d-1 banded correlations.
+covstruct_registry$homtoep <- list(
+  npar = function(dim) dim,
+  sd_idx = function(dim) 1L,
+  nll = function(b, theta, blk) {
+    "[<-" <- RTMB::ADoverload("[<-")
+    d <- blk$dim
+    phi <- theta[1L + seq_len(d - 1L)]
+    cvec <- rep(phi[1], d)
+    cvec[1] <- 1
+    for (k in seq_len(d - 1L)) {
+      cvec[k + 1L] <- phi[k] / sqrt(1 + phi[k]^2)
+    }
+    M <- abs(outer(seq_len(d), seq_len(d), "-")) + 1L
+    C <- RTMB::matrix(cvec[as.vector(M)], d, d)
+    Sigma <- exp(2 * theta[1]) * C
+    dim(b) <- c(d, length(b) %/% d)
+    sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    d <- blk$dim
+    phi <- theta[1L + seq_len(d - 1L)]
+    cvec <- c(1, phi / sqrt(1 + phi^2))
+    C <- matrix(cvec[abs(outer(seq_len(d), seq_len(d), "-")) + 1L], d, d)
+    V <- exp(theta[1])^2 * C
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
+  },
+  start = function(dim) numeric(dim)
+)
+
+# Spatial structures over num_factor() coordinates (blk$aux_D holds the
+# distance matrix), glmmTMB parameterizations: theta = (log sd,
+# log range[, log shape]).
+spatial_entry <- function(corr_fn, npar_k) {
+  list(
+    npar = function(dim) npar_k,
+    sd_idx = function(dim) 1L,
+    nll = function(b, theta, blk) {
+      Sigma <- exp(2 * theta[1]) * corr_fn(blk$aux_D, theta)
+      dim(b) <- c(blk$dim, length(b) %/% blk$dim)
+      sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
+    },
+    vcov = function(theta, blk) {
+      V <- exp(theta[1])^2 * corr_fn(blk$aux_D, theta)
+      V <- as.matrix(V)
+      dimnames(V) <- list(blk$cnms, blk$cnms)
+      V
+    },
+    start = function(dim) numeric(npar_k)
+  )
+}
+
+covstruct_registry$exp <- spatial_entry(
+  function(D, theta) exp(-D / exp(theta[2])), 2L
+)
+
+covstruct_registry$gau <- spatial_entry(
+  function(D, theta) exp(-(D / exp(theta[2]))^2), 2L
+)
+
+# Matern correlation 2^(1-nu)/Gamma(nu) (d/range)^nu K_nu(d/range); the
+# zero-distance diagonal is masked in (data-only mask, branch-free).
+# Bounded internal transforms - smoothness in (0.1, 5), range floored at
+# 5% of the median distance - keep every intermediate representable, so
+# the optimizer cannot step into 0 * Inf territory (which is where both
+# we and glmmTMB otherwise die). Compare fits at the covariance level,
+# not the theta level.
+covstruct_registry$mat <- spatial_entry(
+  function(D, theta) {
+    d <- nrow(D)
+    mask <- as.numeric(D > 0)
+    Dp <- as.vector(D) + (1 - mask)   # zeros -> 1, masked out below
+    rng <- 0.05 * stats::median(D[D > 0]) + exp(theta[2])
+    u <- Dp / rng
+    nu <- 0.1 + 4.9 / (1 + exp(-theta[3]))
+    cr <- 2^(1 - nu) / exp(lgamma(nu)) * u^nu * RTMB::besselK(u, nu)
+    RTMB::matrix(mask * cr + (1 - mask), d, d)
+  }, 3L
+)
+
 # Known-covariance random effects: level-major b ~ N(0, A (x) Sigma)
 # with A a fixed matrix over the grouping levels (phylogenetic,
 # pedigree, neighbor structures) and Sigma an unstructured d x d

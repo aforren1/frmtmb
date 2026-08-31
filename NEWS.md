@@ -1,3 +1,77 @@
+# frmtmb 0.15.0
+
+Tier-2 sweep of dev/feature-gaps.md plus a method surface for sampled
+fits.
+
+* `mo()` monotonic effects (brms syntax): scale coefficient times an
+  estimated simplex, exact against direct ML; works in prediction,
+  `conditional_effects()`, and with ordered factors. No frequentist
+  package offers this. Standalone additive terms only for now.
+* Sequential ordinal families `sratio`, `cratio`, `acat`, validated
+  against direct ML and collapsing to logistic regression at K = 2.
+* Covariance structures: `hetar1`, `homcs`, `homtoep` (glmmTMB
+  parameterizations, exact where glmmTMB converges) and spatial
+  `exp()`, `gau()`, `mat()` over `num_factor(x, y)` coordinates
+  (Matern uses bounded internal transforms for stability where both
+  we and glmmTMB otherwise diverge).
+* Fixed a latent parser bug: `exp(x)` (or any covariance-structure
+  name) used as a plain function in a fixed formula was silently
+  stripped by the formula splitter - since v0.1. Such calls are now
+  protected automatically.
+* `influence(fit, groups = )` and `cooks.distance()`: case-deletion
+  diagnostics over warm-started refits.
+* `frm_multiple()`: fits across multiply-imputed datasets (list or
+  `mice::mids`) pooled by Rubin's rules with Barnard-Rubin df.
+* `conditional_effects()` gains `method = "predict"` (prediction
+  intervals) and data-frame `conditions` (one condition set per row,
+  brms style).
+* `vint()`/`vreal()` addition terms pass arbitrary data vectors to
+  custom families (brms custom-family convention). The test suite
+  includes a full Wiener drift-diffusion model written as a
+  `custom_family()` in plain R - the workflow brms needs raw Stan
+  code for.
+* Method surface for `frm_sample()` draws: `summary()` (with
+  Rhat/ESS), `fixef()`, `VarCorr()` (natural scale), `hypothesis()`
+  (exact posterior version), `posterior_epred()` /
+  `posterior_predict()` (each draw runs the full prediction
+  machinery), `pp_check()`, and `posterior::as_draws()`.
+* Examples added across the reference (run by R CMD check).
+
+# frmtmb 0.14.0
+
+Gap-closing milestone from a sweep of the lme4 / glmmTMB / brms
+vignettes (dev/feature-gaps.md).
+
+* `se()` addition term: known per-observation sampling SDs
+  (meta-analysis), gaussian and student. `se(x)` fixes the residual SD
+  (sigma is mapped out); `se(x, sigma = TRUE)` adds an estimated sigma
+  in quadrature. With `(1 | obs)` this is random-effects
+  meta-analysis, and with `gr(g, cov = A)` the phylogenetic version.
+* Binomial (and beta-binomial) responses may be proportions of
+  `trials()`, the glm/glmer idiom, converted to counts internally.
+* New families: `bernoulli`, `geometric`, `exponential`, `weibull`
+  (mean-parameterized, matches survreg's likelihood),
+  `shifted_lognormal`, `hurdle_gamma`, `hurdle_lognormal`,
+  `zero_inflated_binomial`, `zero_inflated_beta` (validated against
+  glmmTMB), and `asym_laplace` for quantile regression (fixed
+  `quantile` dpar reproduces `quantreg::rq` estimates).
+* `ranef(condVar = TRUE)`: conditional SDs of the modes (TMB/glmmTMB
+  convention: fixed-effect uncertainty propagates), plus tidy
+  `as.data.frame()` methods for `ranef` and `VarCorr` output.
+* `frm_allfit()`: refit under every available optimizer (nlminb,
+  optim, bobyqa, NLopt) and compare, the lme4 `allFit()` analog.
+* `frm_simulate()`: de novo simulation from a `bf()` formula and
+  supplied parameters with no fitted model (power analysis; the
+  glmmTMB `simulate_new()` analog).
+* `frmtmb_control(profile = TRUE)` (experimental): profile the
+  primary-coefficient vector into the inner Laplace problem, the
+  `glmmTMBControl(profile = TRUE)` / `glmer(nAGQ = 0)` speed
+  approximation for many-coefficient models; covariance comes from
+  the joint precision.
+* `anova()` no longer fails on models sharing a primary formula
+  (distributional vs plain fits); row labels now include dpar
+  formulas.
+
 # frmtmb 0.13.0
 
 Method-surface ("sugar") milestone: the conventional S3 methods that

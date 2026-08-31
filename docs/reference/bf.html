@@ -17,7 +17,7 @@ versions and signal an error for now."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,6 +99,27 @@ Every linear predictor accepts lme4-style random effects <code>(1 | g)</code>,
 <p>Attach a family with <code>+</code>, for example <code>bf(y ~ x) + gaussian()</code>.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># brms-style model formulas: attach a family with `+`</span></span></span>
+<span class="r-in"><span><span class="fu">bf</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x + (1 | g) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian </span>
+<span class="r-in"><span><span class="co"># distributional parameters get their own formulas or constants</span></span></span>
+<span class="r-in"><span><span class="fu">bf</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="va">sigma</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma ~ x </span>
+<span class="r-in"><span><span class="fu">bf</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, shape <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">Gamma</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> shape = 2 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Family: Gamma </span>
+<span class="r-in"><span><span class="co"># nonlinear models declare parameter formulas and nl = TRUE</span></span></span>
+<span class="r-in"><span><span class="fu">bf</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">a</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">b</span> <span class="op">*</span> <span class="va">x</span><span class="op">)</span>, <span class="va">a</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">b</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y ~ a * exp(-b * x) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> a ~ 1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> b ~ 1 + (1 | g) </span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

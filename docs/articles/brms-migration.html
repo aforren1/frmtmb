@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -168,14 +168,27 @@ returns point estimates, <code><a href="https://rdrr.io/r/stats/confint.html" cl
 intervals, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> gives likelihood-ratio tests, and
 <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>/<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> replace <code>loo()</code>.</li>
 <li>
-<code>posterior_predict()</code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>;
-<code>posterior_epred()</code> over <code>newdata</code> becomes
+<code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>;
+<code><a href="../reference/posterior_epred.html">posterior_epred()</a></code> over <code>newdata</code> becomes
 <code>predict(newdata, type = "response")</code>.</li>
-<li>Not supported: <code>mi()</code>, <code>me()</code>,
-<code>mo()</code>, <code>gp()</code>, <code>cs()</code>,
-<code>mixture()</code>, <code>ar()/ma()</code> residual autocorrelation
-terms (use the <code>ar1()</code> random-effect structure),
-category-specific effects.</li>
+<li>
+<code>mo()</code> monotonic effects work (standalone terms;
+interactions with <code>mo()</code> are not supported yet). Multiply
+imputed data goes through <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> (Rubin’s rules)
+instead of <code>brm_multiple()</code>.</li>
+<li>Not supported: <code>mi()</code> in-model imputation (use
+<code><a href="../reference/frm_multiple.html">frm_multiple()</a></code>), <code>me()</code>, <code>gp()</code>,
+<code>cs()</code>, <code>mixture()</code>, <code>ar()/ma()</code>
+residual autocorrelation terms (use the <code>ar1()</code> random-effect
+structure), category-specific effects.</li>
+<li>glmer’s proportion-response idiom (<code>weights = size</code>)
+becomes <code>y | trials(size)</code> with either proportions or counts;
+<code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code> in the formula stays a frequency weight, as in
+brms.</li>
+<li>
+<code>se()</code> works as in brms (meta-analysis), including
+<code>se(x, sigma = TRUE)</code> and the phylogenetic version with
+<code>gr(g, cov = A)</code>.</li>
 </ul>
 </div>
 <div class="section level2">

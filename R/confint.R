@@ -1,10 +1,34 @@
 # Confidence intervals, convergence diagnostics, model comparison.
 
+# One-line label for a fit including dpar formulas, so two models that
+# share a primary formula (e.g. plain vs distributional) stay
+# distinguishable in anova tables.
+model_label <- function(fit) {
+  one <- function(bform) {
+    parts <- deparse1(bform$formula)
+    for (nm in names(bform$pforms)) {
+      parts <- c(parts, deparse1(bform$pforms[[nm]]))
+    }
+    for (nm in names(bform$pfix)) {
+      parts <- c(parts, paste(nm, "=", bform$pfix[[nm]]))
+    }
+    paste(parts, collapse = ", ")
+  }
+  bf0 <- fit$bform
+  if (inherits(bf0, "frmtmb_mvformula")) {
+    paste(vapply(bf0$forms, one, ""), collapse = " + ")
+  } else {
+    one(bf0)
+  }
+}
+
 # Names of the outer (optimized) parameters, in obj$par order: template
 # component order, minus `random` components, minus mapped entries.
 outer_par_names <- function(fit) {
   tpl <- fit$frame$par_template
   random <- if (fit$REML) c("b", "beta") else "b"
+  # control profile = TRUE moves beta into the inner problem
+  if (isTRUE(fit$control$profile)) random <- union(random, "beta")
   nm <- character(0)
   for (cp in names(tpl)) {
     if (cp %in% random) next
@@ -56,7 +80,11 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   idx <- resolve_parm(parm)
 
   if (method == "wald") {
-    se <- sqrt(diag(sdr_of(object)$cov.fixed))
+    sdr <- sdr_of(object)
+    se <- sqrt(diag(sdr$cov.fixed))
+    # under control profile = TRUE the profiled betas are absent from
+    # opt$par but present in par.fixed
+    if (length(est) != length(se)) est <- sdr$par.fixed
     ci <- cbind(lwr = est + stats::qnorm(a) * se,
                 upr = est + stats::qnorm(1 - a) * se,
                 est = est)
@@ -64,6 +92,10 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
     return(ci[idx, , drop = FALSE])
   }
 
+  if (isTRUE(object$control$profile)) {
+    stop("confint(method = '", method, "') needs a fit without ",
+         "frmtmb_control(profile = TRUE)", call. = FALSE)
+  }
   if (is.null(parm)) {
     stop("`parm` is required for method = '", method, "'", call. = FALSE)
   }
@@ -272,7 +304,7 @@ anova.frmtmb_fit <- function(object, ...) {
     Chisq = chisq, `Chi Df` = ddf, `Pr(>Chisq)` = p,
     check.names = FALSE
   )
-  rownames(tab) <- vapply(fits, function(f) deparse1(formula(f)), "")
+  rownames(tab) <- make.unique(vapply(fits, model_label, ""))
   structure(tab, class = c("anova", "data.frame"),
             heading = "Likelihood-ratio tests\n")
 }
@@ -337,11 +369,14 @@ hyp_vals_only <- function(fit) {
 # integrated out, so the blocks come from the joint precision.
 hyp_par_cov <- function(fit) {
   comps <- c("beta", "betad", "theta", "thetar")
-  if (!fit$REML) {
-    V <- sdr_of(fit)$cov.fixed
+  if (!fit$REML && !isTRUE(fit$control$profile)) {
+    sdr <- sdr_of(fit)
+    V <- sdr$cov.fixed
     rn <- rownames(V)
     keep <- which(rn %in% comps)
-    list(vals = unname(fit$opt$par[keep]), comp = rn[keep],
+    # par.fixed equals opt$par at the optimum and, unlike opt$par,
+    # includes betas profiled by control profile = TRUE
+    list(vals = unname(sdr$par.fixed[keep]), comp = rn[keep],
          V = V[keep, keep, drop = FALSE], outer_pos = keep,
          n_outer = length(fit$opt$par))
   } else {
@@ -492,6 +527,17 @@ hyp_fd_grad <- function(f, v) {
 #'   the implied Wald normal density, one panel per hypothesis.
 #'   Subsetting with `[` drops the attributes; keep the full object for
 #'   plotting.
+#' @examples
+#' set.seed(4)
+#' dd <- data.frame(x1 = rnorm(120), x2 = rnorm(120),
+#'                  g = factor(rep(1:10, 12)))
+#' dd$y <- rnorm(120, 1 + 0.6 * dd$x1 + 0.4 * dd$x2 +
+#'                 rnorm(10, 0, 0.5)[dd$g], 1)
+#' fit <- frm(bf(y ~ x1 + x2 + (1 | g)) + gaussian(), data = dd)
+#' hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept)"))
+#' # variance-component expressions: an ICC with bootstrap intervals
+#' hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
+#'            method = "boot", nsim = 20, seed = 1)
 #' @export
 hypothesis <- function(x, ...) UseMethod("hypothesis")
 
@@ -569,6 +615,10 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
              "the fixed effects out of the outer problem)",
              call. = FALSE)
       }
+      if (isTRUE(x$control$profile)) {
+        stop("hypothesis(method = 'profile') needs a fit without ",
+             "frmtmb_control(profile = TRUE)", call. = FALSE)
+      }
       g2 <- hyp_fd_grad(fn, pc$vals + 0.1 * (1 + abs(pc$vals)))
       if (max(abs(g - g2)) > 1e-4 * max(1, max(abs(g)))) {
         stop("Hypothesis '", hypothesis[i], "' is not linear in the ",
@@ -635,12 +685,13 @@ plot.frmtmb_hypothesis <- function(x, ask = NULL, ...) {
   }
   for (i in seq_len(n)) {
     h <- x$hypothesis[i]
-    if (method == "boot") {
+    if (method %in% c("boot", "posterior")) {
       d <- attr(x, "draws")[, i]
       d <- d[is.finite(d)]
       graphics::hist(d, freq = FALSE, breaks = "FD", main = h,
-                     xlab = "bootstrap value", col = "gray90",
-                     border = "gray60")
+                     xlab = if (method == "boot") "bootstrap value" else
+                       "posterior value",
+                     col = "gray90", border = "gray60")
       if (length(unique(d)) > 1L) {
         graphics::lines(stats::density(d), lwd = 2)
       }

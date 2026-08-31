@@ -8,7 +8,8 @@ frmtmb_control(
   optimizer = "nlminb",
   optCtrl = list(iter.max = 1000, eval.max = 1000),
   restarts = 1,
-  grad_tol = 0.001
+  grad_tol = 0.001,
+  profile = FALSE
 )
 }
 \arguments{
@@ -36,6 +37,16 @@ current optimum while the gradient remains above \code{grad_tol}.}
 
 \item{grad_tol}{Warn (and restart) if the maximum absolute gradient at
 the optimum exceeds this value.}
+
+\item{profile}{Experimental: move the primary (\code{beta}) coefficients
+into the inner (Laplace) problem, TMB's \code{profile} argument - the
+analog of \code{glmmTMBControl(profile = TRUE)} and \code{glmer(nAGQ = 0)}.
+Speeds up models with many fixed effects, and like those it is an
+approximation: estimates differ slightly from the exact fit.
+Coefficient covariance comes from the joint precision. Not
+compatible with \code{REML = TRUE} or \code{quadrature = TRUE};
+profile/uniroot \code{confint()} and \code{hypothesis(method = "profile")}
+need a non-profiled fit.}
 }
 \value{
 A list of control settings.

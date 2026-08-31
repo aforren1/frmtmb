@@ -13,24 +13,42 @@ linpred_key <- function(resp, dpar) paste(resp, dpar, sep = ".")
 
 #' Factor with numeric-coded levels for coordinate covariance structures
 #'
-#' `ou()` (and future spatial structures) need the positions of the term
-#' levels. `num_factor(x)` encodes them in the level labels the same way
-#' `glmmTMB::numFactor()` does, so factors created by either function
-#' work.
+#' `ou()` and the spatial structures (`exp()`, `gau()`, `mat()`) need
+#' the positions of the term levels. `num_factor(x)` (one dimension) or
+#' `num_factor(x, y)` (planar coordinates) encodes them in the level
+#' labels the same way `glmmTMB::numFactor()` does, so factors created
+#' by either function work.
 #'
 #' @param x Numeric positions (times, coordinates).
-#' @return A factor whose levels encode the sorted unique positions.
+#' @param y Optional second coordinate.
+#' @return A factor whose levels encode the unique positions.
 #' @export
-num_factor <- function(x) {
-  ux <- sort(unique(as.numeric(x)))
-  factor(sprintf("(%g)", as.numeric(x)),
-         levels = sprintf("(%g)", ux))
+num_factor <- function(x, y = NULL) {
+  if (is.null(y)) {
+    ux <- sort(unique(as.numeric(x)))
+    return(factor(sprintf("(%g)", as.numeric(x)),
+                  levels = sprintf("(%g)", ux)))
+  }
+  lab <- sprintf("(%g,%g)", as.numeric(x), as.numeric(y))
+  ord <- order(as.numeric(x), as.numeric(y))
+  factor(lab, levels = unique(lab[ord]))
 }
 
-# Recover coordinates from num_factor / glmmTMB::numFactor levels, or
-# from plainly numeric level labels.
+# Recover coordinates from num_factor / glmmTMB::numFactor levels
+# (vector for 1-D, matrix for 2-D), or from plainly numeric labels.
 parse_num_levels <- function(lv) {
-  out <- suppressWarnings(as.numeric(gsub("[()]", "", lv)))
+  s <- gsub("[()]", "", lv)
+  if (any(grepl(",", s, fixed = TRUE))) {
+    parts <- strsplit(s, ",", fixed = TRUE)
+    out <- t(vapply(parts, function(p) suppressWarnings(as.numeric(p)),
+                    numeric(length(parts[[1]]))))
+    if (anyNA(out)) {
+      stop("Levels must encode numeric positions; build the factor ",
+           "with num_factor()", call. = FALSE)
+    }
+    return(out)
+  }
+  out <- suppressWarnings(as.numeric(s))
   if (anyNA(out)) {
     stop("Levels must encode numeric positions; build the factor with ",
          "num_factor()", call. = FALSE)

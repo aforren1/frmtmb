@@ -7,16 +7,21 @@
 \usage{
 ranef(object, ...)
 
-\method{ranef}{frmtmb_fit}(object, ...)
+\method{ranef}{frmtmb_fit}(object, condVar = FALSE, ...)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
 \item{...}{Unused.}
+
+\item{condVar}{If \code{TRUE}, attach the conditional SDs of the modes
+(from the Laplace posterior) as a \code{"condSD"} attribute on each
+matrix, in matching layout.}
 }
 \value{
 A named list of levels-by-coefficients matrices, one per
-random-effect term.
+random-effect term. \code{as.data.frame()} gives the long form (with a
+\code{condsd} column when \code{condVar = TRUE} was used).
 }
 \description{
 Extract random-effect modes

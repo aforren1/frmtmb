@@ -58,8 +58,17 @@ ce_second_values <- function(col) {
 #' @param resolution Number of grid points for a varied numeric
 #'   predictor.
 #' @param prob Coverage of the confidence bands (brms spelling).
+#' @param method `"epred"` (default): Wald bands for the expected
+#'   response. `"predict"`: prediction intervals - the epred point
+#'   estimate with quantile bands from `ndraws` responses simulated
+#'   from the family at each grid point (observation noise; random
+#'   effects stay excluded, as in brms with `re_formula = NA`).
+#' @param ndraws Simulated responses per grid point for
+#'   `method = "predict"`.
 #' @param conditions Named list overriding reference values, e.g.
-#'   `list(x2 = 1, g = "b")`.
+#'   `list(x2 = 1, g = "b")`; or a data frame whose rows define
+#'   multiple condition sets (brms style), labeled by a `cond__`
+#'   column from its row names.
 #' @param data The original model data. Only needed when the model frame
 #'   does not store a raw variable (e.g. a variable used only inside
 #'   `poly()`).
@@ -67,6 +76,15 @@ ce_second_values <- function(col) {
 #' @return A named list of data frames (one per effect) with the varied
 #'   variable(s) plus `estimate__`, `se__` (link scale), `lower__`, and
 #'   `upper__`; printing it draws the plots.
+#' @examples
+#' set.seed(5)
+#' dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))
+#' dd$y <- rnorm(120, 1 + 0.5 * dd$x + (dd$f == "b"), 1)
+#' fit <- frm(bf(y ~ x * f) + gaussian(), data = dd)
+#' ce <- conditional_effects(fit, effects = c("x", "x:f"))
+#' plot(ce, ask = FALSE)
+#' # prediction intervals instead of epred bands
+#' ce_p <- conditional_effects(fit, effects = "x", method = "predict")
 #' @export
 conditional_effects <- function(x, ...) UseMethod("conditional_effects")
 
@@ -74,8 +92,12 @@ conditional_effects <- function(x, ...) UseMethod("conditional_effects")
 #' @export
 conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                                            dpar = NULL, resolution = 100,
-                                           prob = 0.95, conditions = list(),
+                                           prob = 0.95,
+                                           method = c("epred", "predict"),
+                                           ndraws = 400,
+                                           conditions = list(),
                                            data = NULL, ...) {
+  method <- match.arg(method)
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
   dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
@@ -94,6 +116,16 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       stop("No plottable predictors found for dpar '", dpar, "'",
            call. = FALSE)
     }
+  }
+
+  # a data-frame `conditions` defines one condition set per row (brms
+  # style); a named list is a single condition set
+  cond_sets <- if (is.data.frame(conditions)) {
+    stats::setNames(lapply(seq_len(nrow(conditions)), function(r) {
+      as.list(conditions[r, , drop = FALSE])
+    }), rownames(conditions))
+  } else {
+    list(conditions)
   }
 
   z <- stats::qnorm(1 - (1 - prob) / 2)
@@ -115,35 +147,61 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
     n2 <- max(1L, length(v2))
     n <- n1 * n2
 
-    nd <- data.frame(.ce_row = seq_len(n))
-    for (nm in names(base)) {
-      val <- if (nm %in% names(conditions)) {
-        cnd <- conditions[[nm]]
-        if (is.factor(base[[nm]])) {
-          factor(cnd, levels = levels(base[[nm]]))
+    dfs <- list()
+    for (ci in seq_along(cond_sets)) {
+      cset <- cond_sets[[ci]]
+      nd <- data.frame(.ce_row = seq_len(n))
+      for (nm in names(base)) {
+        val <- if (nm %in% names(cset)) {
+          cnd <- cset[[nm]]
+          if (is.factor(base[[nm]])) {
+            factor(cnd, levels = levels(base[[nm]]))
+          } else {
+            cnd
+          }
         } else {
-          cnd
+          ce_ref_value(base[[nm]])
         }
-      } else {
-        ce_ref_value(base[[nm]])
+        nd[[nm]] <- if (is.matrix(val)) {
+          matrix(val, n, ncol(val), byrow = TRUE)
+        } else {
+          rep(val, length.out = n)
+        }
       }
-      nd[[nm]] <- if (is.matrix(val)) {
-        matrix(val, n, ncol(val), byrow = TRUE)
-      } else {
-        rep(val, length.out = n)
-      }
-    }
-    nd[[ev[1L]]] <- rep(v1, times = n2)
-    if (length(ev) == 2L) nd[[ev[2L]]] <- rep(v2, each = n1)
-    nd$.ce_row <- NULL
+      nd[[ev[1L]]] <- rep(v1, times = n2)
+      if (length(ev) == 2L) nd[[ev[2L]]] <- rep(v2, each = n1)
+      nd$.ce_row <- NULL
 
-    p <- predict(x, newdata = nd, type = "link", dpar = dpar,
-                 resp = resp, re.form = NA, se.fit = TRUE, ...)
-    df <- nd[ev]
-    df$estimate__ <- lp$link$linkinv(p$fit)
-    df$se__ <- p$se.fit
-    df$lower__ <- lp$link$linkinv(p$fit - z * p$se.fit)
-    df$upper__ <- lp$link$linkinv(p$fit + z * p$se.fit)
+      p <- predict(x, newdata = nd, type = "link", dpar = dpar,
+                   resp = resp, re.form = NA, se.fit = TRUE, ...)
+      df <- nd[ev]
+      df$estimate__ <- lp$link$linkinv(p$fit)
+      df$se__ <- p$se.fit
+      df$lower__ <- lp$link$linkinv(p$fit - z * p$se.fit)
+      df$upper__ <- lp$link$linkinv(p$fit + z * p$se.fit)
+      if (method == "predict") {
+        fam <- rspec$family
+        if (is.null(fam$sim)) {
+          stop("method = 'predict' needs a family with a simulator",
+               call. = FALSE)
+        }
+        dpv <- list()
+        for (dnm in names(rspec$dpars)) {
+          dpv[[dnm]] <- as.vector(predict(x, newdata = nd, dpar = dnm,
+                                          resp = resp, re.form = NA,
+                                          type = "response"))
+        }
+        sims <- replicate(ndraws, fam$sim(dpv, list(), n))
+        df$lower__ <- apply(sims, 1, stats::quantile, (1 - prob) / 2)
+        df$upper__ <- apply(sims, 1, stats::quantile, 1 - (1 - prob) / 2)
+        df$se__ <- apply(sims, 1, stats::sd)
+      }
+      if (length(cond_sets) > 1L) {
+        df$cond__ <- names(cond_sets)[ci] %||% as.character(ci)
+      }
+      dfs[[ci]] <- df
+    }
+    df <- do.call(rbind, dfs)
     attr(df, "effects") <- ev
     attr(df, "response") <- resp
     attr(df, "dpar") <- dpar
@@ -165,13 +223,27 @@ plot.frmtmb_conditional_effects <- function(x, ask = NULL, ...) {
     oask <- grDevices::devAskNewPage(TRUE)
     on.exit(grDevices::devAskNewPage(oask))
   }
-  for (nm in names(x)) ce_plot_one(x[[nm]])
+  for (nm in names(x)) {
+    df <- x[[nm]]
+    if (!is.null(df$cond__) && length(unique(df$cond__)) > 1L) {
+      for (cv in unique(df$cond__)) {
+        sub <- df[df$cond__ == cv, , drop = FALSE]
+        for (a in c("effects", "response", "dpar")) {
+          attr(sub, a) <- attr(df, a)
+        }
+        ce_plot_one(sub, cond = cv)
+      }
+    } else {
+      ce_plot_one(df)
+    }
+  }
   invisible(x)
 }
 
-ce_plot_one <- function(df) {
+ce_plot_one <- function(df, cond = NULL) {
   ev <- attr(df, "effects")
   ylab <- paste0(attr(df, "response"), " (", attr(df, "dpar"), ")")
+  if (!is.null(cond)) ylab <- paste0(ylab, " | ", cond)
   v1 <- df[[ev[1L]]]
   grp <- if (length(ev) == 2L) factor(df[[ev[2L]]])
   ylim <- range(df$lower__, df$upper__)

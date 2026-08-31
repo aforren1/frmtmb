@@ -118,3 +118,24 @@ custom_family(
 ## Value
 
 An object of class `frmtmb_family`.
+
+## Examples
+
+``` r
+# a custom family is a plain R log-density over taped parameters
+dd <- data.frame(y = rbinom(100, 5, 0.4),
+                 size = 5, x = rnorm(100))
+fam <- custom_family(
+  "vbinom", dpars = "mu", links = list(mu = "logit"),
+  lpdf = function(y, dpars, aterms) {
+    RTMB::dbinom(y, aterms$vint1, dpars$mu, log = TRUE)
+  },
+  type = "discrete"
+)
+fit <- frm(bf(y | vint(size) ~ x) + fam, data = dd)
+fixef(fit)
+#> $mu
+#> (Intercept)           x 
+#>  -0.3898761  -0.1675495 
+#> 
+```

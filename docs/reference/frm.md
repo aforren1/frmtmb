@@ -113,4 +113,51 @@ fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
               data = sleepstudy)
 summary(fit)
 } # }
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+summary(fit)
+#> Family: gaussian 
+#> Formula: y ~ x + (1 | g) 
+#> Method: ML   nobs: 100 
+#> logLik: -145.746  AIC: 299.492  BIC: 309.913 
+#> 
+#> Random effects:
+#>   1 | g 
+#>         Name Std.Dev.
+#>  (Intercept)  0.55725
+#> 
+#> Coefficients (mu):
+#>             Estimate Std. Error z value  Pr(>|z|)
+#> (Intercept)  1.13568    0.20133  5.6410 1.691e-08
+#> x            0.66736    0.11269  5.9222 3.176e-09
+#> 
+#> Coefficients (sigma):
+#>              Estimate Std. Error z value Pr(>|z|)
+#> (Intercept) -0.034743   0.074545 -0.4661   0.6412
+fixef(fit)
+#> $mu
+#> (Intercept)           x 
+#>   1.1356757   0.6673571 
+#> 
+#> $sigma
+#> (Intercept) 
+#> -0.03474316 
+#> 
+VarCorr(fit)
+#>   1 | g 
+#>         Name Std.Dev.
+#>  (Intercept)  0.55725
+
+# distributional regression: model sigma too
+fit2 <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
+anova(fit, fit2)
+#> Likelihood-ratio tests
+#> 
+#>                            Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)   
+#> y ~ x + (1 | g)             4 -145.75 299.49                            
+#> y ~ x + (1 | g), sigma ~ x  5 -141.62 293.23 8.2614      1    0.00405 **
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```

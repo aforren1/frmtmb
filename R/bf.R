@@ -23,6 +23,14 @@
 #'   to [frm()].
 #' @param nl Nonlinear-formula flag (not yet supported).
 #' @return An object of class `frmtmb_formula`.
+#' @examples
+#' # brms-style model formulas: attach a family with `+`
+#' bf(y ~ x + (1 | g)) + gaussian()
+#' # distributional parameters get their own formulas or constants
+#' bf(y ~ x, sigma ~ x)
+#' bf(y ~ x, shape = 2) + Gamma()
+#' # nonlinear models declare parameter formulas and nl = TRUE
+#' bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1 + (1 | g), nl = TRUE)
 #' @export
 bf <- function(formula, ..., family = NULL, nl = FALSE) {
   if (!inherits(formula, "formula")) {

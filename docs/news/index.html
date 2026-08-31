@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,43 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.15.0" id="frmtmb-0150">frmtmb 0.15.0<a class="anchor" aria-label="anchor" href="#frmtmb-0150"></a></h2>
+<p>Tier-2 sweep of dev/feature-gaps.md plus a method surface for sampled fits.</p>
+<ul><li>
+<code>mo()</code> monotonic effects (brms syntax): scale coefficient times an estimated simplex, exact against direct ML; works in prediction, <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code>, and with ordered factors. No frequentist package offers this. Standalone additive terms only for now.</li>
+<li>Sequential ordinal families <code>sratio</code>, <code>cratio</code>, <code>acat</code>, validated against direct ML and collapsing to logistic regression at K = 2.</li>
+<li>Covariance structures: <code>hetar1</code>, <code>homcs</code>, <code>homtoep</code> (glmmTMB parameterizations, exact where glmmTMB converges) and spatial <code><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp()</a></code>, <code>gau()</code>, <code>mat()</code> over <code>num_factor(x, y)</code> coordinates (Matern uses bounded internal transforms for stability where both we and glmmTMB otherwise diverge).</li>
+<li>Fixed a latent parser bug: <code>exp(x)</code> (or any covariance-structure name) used as a plain function in a fixed formula was silently stripped by the formula splitter - since v0.1. Such calls are now protected automatically.</li>
+<li>
+<code>influence(fit, groups = )</code> and <code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">cooks.distance()</a></code>: case-deletion diagnostics over warm-started refits.</li>
+<li>
+<code><a href="../reference/frm_multiple.html">frm_multiple()</a></code>: fits across multiply-imputed datasets (list or <code>mice::mids</code>) pooled by Rubin’s rules with Barnard-Rubin df.</li>
+<li>
+<code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> gains <code>method = "predict"</code> (prediction intervals) and data-frame <code>conditions</code> (one condition set per row, brms style).</li>
+<li>
+<code>vint()</code>/<code>vreal()</code> addition terms pass arbitrary data vectors to custom families (brms custom-family convention). The test suite includes a full Wiener drift-diffusion model written as a <code><a href="../reference/frmtmb_family.html">custom_family()</a></code> in plain R - the workflow brms needs raw Stan code for.</li>
+<li>Method surface for <code><a href="../reference/frm_sample.html">frm_sample()</a></code> draws: <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> (with Rhat/ESS), <code><a href="../reference/fixef.html">fixef()</a></code>, <code><a href="../reference/VarCorr.html">VarCorr()</a></code> (natural scale), <code><a href="../reference/hypothesis.html">hypothesis()</a></code> (exact posterior version), <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code> / <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> (each draw runs the full prediction machinery), <code>pp_check()</code>, and <code><a href="https://mc-stan.org/posterior/reference/draws.html" class="external-link">posterior::as_draws()</a></code>.</li>
+<li>Examples added across the reference (run by R CMD check).</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.14.0" id="frmtmb-0140">frmtmb 0.14.0<a class="anchor" aria-label="anchor" href="#frmtmb-0140"></a></h2>
+<p>Gap-closing milestone from a sweep of the lme4 / glmmTMB / brms vignettes (dev/feature-gaps.md).</p>
+<ul><li>
+<code>se()</code> addition term: known per-observation sampling SDs (meta-analysis), gaussian and student. <code>se(x)</code> fixes the residual SD (sigma is mapped out); <code>se(x, sigma = TRUE)</code> adds an estimated sigma in quadrature. With <code>(1 | obs)</code> this is random-effects meta-analysis, and with <code>gr(g, cov = A)</code> the phylogenetic version.</li>
+<li>Binomial (and beta-binomial) responses may be proportions of <code>trials()</code>, the glm/glmer idiom, converted to counts internally.</li>
+<li>New families: <code>bernoulli</code>, <code>geometric</code>, <code>exponential</code>, <code>weibull</code> (mean-parameterized, matches survreg’s likelihood), <code>shifted_lognormal</code>, <code>hurdle_gamma</code>, <code>hurdle_lognormal</code>, <code>zero_inflated_binomial</code>, <code>zero_inflated_beta</code> (validated against glmmTMB), and <code>asym_laplace</code> for quantile regression (fixed <code>quantile</code> dpar reproduces <code><a href="https://rdrr.io/pkg/quantreg/man/rq.html" class="external-link">quantreg::rq</a></code> estimates).</li>
+<li>
+<code>ranef(condVar = TRUE)</code>: conditional SDs of the modes (TMB/glmmTMB convention: fixed-effect uncertainty propagates), plus tidy <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> methods for <code>ranef</code> and <code>VarCorr</code> output.</li>
+<li>
+<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>: refit under every available optimizer (nlminb, optim, bobyqa, NLopt) and compare, the lme4 <code>allFit()</code> analog.</li>
+<li>
+<code><a href="../reference/frm_simulate.html">frm_simulate()</a></code>: de novo simulation from a <code><a href="../reference/bf.html">bf()</a></code> formula and supplied parameters with no fitted model (power analysis; the glmmTMB <code>simulate_new()</code> analog).</li>
+<li>
+<code>frmtmb_control(profile = TRUE)</code> (experimental): profile the primary-coefficient vector into the inner Laplace problem, the <code>glmmTMBControl(profile = TRUE)</code> / <code>glmer(nAGQ = 0)</code> speed approximation for many-coefficient models; covariance comes from the joint precision.</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> no longer fails on models sharing a primary formula (distributional vs plain fits); row labels now include dpar formulas.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.13.0" id="frmtmb-0130">frmtmb 0.13.0<a class="anchor" aria-label="anchor" href="#frmtmb-0130"></a></h2>
 <p>Method-surface (“sugar”) milestone: the conventional S3 methods that downstream packages and user muscle memory dispatch on.</p>

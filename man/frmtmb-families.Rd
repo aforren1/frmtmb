@@ -17,6 +17,19 @@
 \alias{beta_binomial}
 \alias{skew_normal}
 \alias{exgaussian}
+\alias{bernoulli}
+\alias{geometric}
+\alias{exponential}
+\alias{weibull}
+\alias{shifted_lognormal}
+\alias{hurdle_gamma}
+\alias{hurdle_lognormal}
+\alias{zero_inflated_binomial}
+\alias{zero_inflated_beta}
+\alias{asym_laplace}
+\alias{sratio}
+\alias{cratio}
+\alias{acat}
 \title{Additional response families}
 \usage{
 student(link = "identity")
@@ -48,6 +61,32 @@ beta_binomial(link = "logit")
 skew_normal(link = "identity")
 
 exgaussian(link = "identity")
+
+bernoulli(link = "logit")
+
+geometric(link = "log")
+
+exponential(link = "log")
+
+weibull(link = "log")
+
+shifted_lognormal(link = "identity")
+
+hurdle_gamma(link = "log")
+
+hurdle_lognormal(link = "identity")
+
+zero_inflated_binomial(link = "logit")
+
+zero_inflated_beta(link = "logit")
+
+asym_laplace(link = "identity")
+
+sratio(link = "logit")
+
+cratio(link = "logit")
+
+acat(link = "logit")
 }
 \arguments{
 \item{link}{Link for \code{mu}.}

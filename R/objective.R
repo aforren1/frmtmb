@@ -57,6 +57,15 @@ build_objective <- function(frame) {
       if (!is.null(lp$offset)) {
         eta <- eta + lp$offset
       }
+      # monotonic terms: scale coefficient (in beta, zero X column)
+      # times D * cumulative simplex at the observed category
+      for (mi in lp$mo %||% list()) {
+        zeta <- exp(c(0, pars[[mi$zeta]]))
+        zeta <- zeta / sum(zeta)
+        cz0 <- c(0, cumsum(zeta))
+        eta <- eta + pars[[lp$par]][lp$idx[mi$col]] * mi$D *
+          cz0[mi$codes + 1L]
+      }
       dparv[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
     }
 

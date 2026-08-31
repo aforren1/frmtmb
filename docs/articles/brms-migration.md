@@ -35,13 +35,25 @@ likelihood-ratio tests, AIC).
   gives likelihood-ratio tests, and
   [`AIC()`](https://rdrr.io/r/stats/AIC.html)/[`BIC()`](https://rdrr.io/r/stats/AIC.html)
   replace `loo()`.
-- `posterior_predict()` becomes
+- [`posterior_predict()`](../reference/posterior_epred.md) becomes
   [`simulate()`](https://rdrr.io/r/stats/simulate.html);
-  `posterior_epred()` over `newdata` becomes
-  `predict(newdata, type = "response")`.
-- Not supported: `mi()`, `me()`, `mo()`, `gp()`, `cs()`, `mixture()`,
-  `ar()/ma()` residual autocorrelation terms (use the `ar1()`
-  random-effect structure), category-specific effects.
+  [`posterior_epred()`](../reference/posterior_epred.md) over `newdata`
+  becomes `predict(newdata, type = "response")`.
+- `mo()` monotonic effects work (standalone terms; interactions with
+  `mo()` are not supported yet). Multiply imputed data goes through
+  [`frm_multiple()`](../reference/frm_multiple.md) (Rubin’s rules)
+  instead of `brm_multiple()`.
+- Not supported: `mi()` in-model imputation (use
+  [`frm_multiple()`](../reference/frm_multiple.md)), `me()`, `gp()`,
+  `cs()`, `mixture()`, `ar()/ma()` residual autocorrelation terms (use
+  the `ar1()` random-effect structure), category-specific effects.
+- glmer’s proportion-response idiom (`weights = size`) becomes
+  `y | trials(size)` with either proportions or counts;
+  [`weights()`](https://rdrr.io/r/stats/weights.html) in the formula
+  stays a frequency weight, as in brms.
+- `se()` works as in brms (meta-analysis), including
+  `se(x, sigma = TRUE)` and the phylogenetic version with
+  `gr(g, cov = A)`.
 
 ## Method conventions
 

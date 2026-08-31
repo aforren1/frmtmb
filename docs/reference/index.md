@@ -13,6 +13,12 @@
 - [`frm()`](frm.md) : Fit a model
 - [`frmtmb_control()`](frmtmb_control.md) : Control parameters for
   frmtmb fits
+- [`frm_allfit()`](frm_allfit.md) : Refit a model with every available
+  optimizer
+- [`frm_simulate()`](frm_simulate.md) : Simulate responses from a
+  formula and parameters
+- [`frm_multiple()`](frm_multiple.md) : Fit a model across multiply
+  imputed datasets
 
 ## Families
 
@@ -29,7 +35,19 @@
   [`cumulative()`](frmtmb-families.md)
   [`beta_binomial()`](frmtmb-families.md)
   [`skew_normal()`](frmtmb-families.md)
-  [`exgaussian()`](frmtmb-families.md) : Additional response families
+  [`exgaussian()`](frmtmb-families.md)
+  [`bernoulli()`](frmtmb-families.md)
+  [`geometric()`](frmtmb-families.md)
+  [`exponential()`](frmtmb-families.md)
+  [`weibull()`](frmtmb-families.md)
+  [`shifted_lognormal()`](frmtmb-families.md)
+  [`hurdle_gamma()`](frmtmb-families.md)
+  [`hurdle_lognormal()`](frmtmb-families.md)
+  [`zero_inflated_binomial()`](frmtmb-families.md)
+  [`zero_inflated_beta()`](frmtmb-families.md)
+  [`asym_laplace()`](frmtmb-families.md)
+  [`sratio()`](frmtmb-families.md) [`cratio()`](frmtmb-families.md)
+  [`acat()`](frmtmb-families.md) : Additional response families
 - [`check_custom_family()`](check_custom_family.md) : Check a custom
   family's log-density for AD safety
 
@@ -58,8 +76,13 @@
 - [`as_tmbstan()`](as_tmbstan.md) : Sample from a frmtmb fit with
   tmbstan (NUTS)
 - [`frm_sample()`](frm_sample.md) : Sample the fitted model with NUTS
+- [`posterior_epred()`](posterior_epred.md)
+  [`posterior_predict()`](posterior_epred.md) : Expected-value and
+  predictive draws from sampled parameters
 - [`check_laplace()`](check_laplace.md) : Check the Laplace/Wald
   approximation against NUTS
+- [`influence(`*`<frmtmb_fit>`*`)`](influence.frmtmb_fit.md) : Influence
+  measures by case deletion
 - [`set_prior()`](set_prior.md) : Set up priors brms-style
 - [`prior_normal()`](frmtmb-priors.md) [`prior_t()`](frmtmb-priors.md) :
   Prior specifications for frm_sample

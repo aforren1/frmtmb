@@ -53,9 +53,14 @@ test_that("aterms parse and unsupported aterms error", {
   spec <- frm(bf(y | trials(n) ~ x) + binomial(),
                  data = NULL, dry_run = "spec")
   expect_named(spec$responses[[1]]$aterms, "trials")
-  expect_error(bf_spec <- frm(bf(y | se(s2) ~ x) + gaussian(),
-                                 data = NULL, dry_run = "spec"),
-               "se")
+  # se() parses since v0.14 and maps sigma out
+  spec_se <- frm(bf(y | se(s2) ~ x) + gaussian(),
+                 data = NULL, dry_run = "spec")
+  expect_true("se" %in% names(spec_se$responses[[1]]$aterms))
+  expect_equal(spec_se$responses[[1]]$dpars$sigma$constant, 1)
+  expect_error(frm(bf(y | dec(d) ~ x) + gaussian(),
+                   data = NULL, dry_run = "spec"),
+               "dec")
 })
 
 test_that("gaussian gets an intercept-only sigma dpar", {

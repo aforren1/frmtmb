@@ -5,8 +5,15 @@ grammar and a frequentist backend. It fits models by maximum likelihood with
 the Laplace approximation for latent effects, through RTMB. It does not use
 MCMC and it does not compile code at run time.
 
-Status: design specification; v0.13 implemented (see NEWS.md for the
-consolidated changelog; v0.13 adds the conventional method surface:
+Status: design specification; v0.15 implemented (see NEWS.md for the
+consolidated changelog; v0.15: mo() monotonic terms, sratio/cratio/
+acat ordinal families, hetar1/homcs/homtoep and spatial exp/gau/mat
+covariance structures, influence()/cooks.distance, frm_multiple()
+Rubin pooling, vint()/vreal() custom-family data, CE prediction
+intervals and condition sets, and a full method surface over
+frm_sample() draws; v0.14: se() meta-analysis, proportion trials(),
+ten families, ranef(condVar), frm_allfit, frm_simulate, profile
+control; v0.13 adds the conventional method surface:
 sigma/terms/weights/model.matrix/deviance/extractAIC/ngrps accessors,
 lme4-convention coef(), conditional_effects() with plotting, plot(fit)
 residual diagnostics, pp_check() via bayesplot, hypothesis() with

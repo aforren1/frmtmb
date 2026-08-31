@@ -23,6 +23,14 @@
 #' @return A `frmtmb_boot` object: `t0` (FUN at the original fit), `t`
 #'   (`nsim` x `length(t0)` matrix), and `converged`. `confint()` gives
 #'   percentile intervals.
+#' @examples
+#' set.seed(3)
+#' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+#' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#' bs <- frm_bootstrap(fit, nsim = 20, seed = 1)
+#' bs
+#' confint(bs)
 #' @export
 frm_bootstrap <- function(fit, FUN = function(f) unlist(fixef(f)),
                           nsim = 500, seed = NULL, re.form = NA) {

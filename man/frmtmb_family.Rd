@@ -95,3 +95,17 @@ function must be vectorized and AD-compatible: it is evaluated on RTMB
 operations (RTMB and RTMBdist \verb{d*} functions, plain arithmetic) and must
 not branch on parameter values.
 }
+\examples{
+# a custom family is a plain R log-density over taped parameters
+dd <- data.frame(y = rbinom(100, 5, 0.4),
+                 size = 5, x = rnorm(100))
+fam <- custom_family(
+  "vbinom", dpars = "mu", links = list(mu = "logit"),
+  lpdf = function(y, dpars, aterms) {
+    RTMB::dbinom(y, aterms$vint1, dpars$mu, log = TRUE)
+  },
+  type = "discrete"
+)
+fit <- frm(bf(y | vint(size) ~ x) + fam, data = dd)
+fixef(fit)
+}

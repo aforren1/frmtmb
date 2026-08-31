@@ -86,4 +86,15 @@ fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
               data = sleepstudy)
 summary(fit)
 }
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+summary(fit)
+fixef(fit)
+VarCorr(fit)
+
+# distributional regression: model sigma too
+fit2 <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
+anova(fit, fit2)
 }

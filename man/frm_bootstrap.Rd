@@ -43,3 +43,12 @@ There is no standard \code{bootstrap} generic to implement
 (\code{boot::boot} and \code{lme4::bootMer} are plain functions), hence the
 \code{frm_} prefix.
 }
+\examples{
+set.seed(3)
+dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+bs <- frm_bootstrap(fit, nsim = 20, seed = 1)
+bs
+confint(bs)
+}

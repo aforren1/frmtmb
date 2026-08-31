@@ -14,6 +14,8 @@ conditional_effects(x, ...)
   dpar = NULL,
   resolution = 100,
   prob = 0.95,
+  method = c("epred", "predict"),
+  ndraws = 400,
   conditions = list(),
   data = NULL,
   ...
@@ -38,8 +40,19 @@ predictor.}
 
 \item{prob}{Coverage of the confidence bands (brms spelling).}
 
+\item{method}{\code{"epred"} (default): Wald bands for the expected
+response. \code{"predict"}: prediction intervals - the epred point
+estimate with quantile bands from \code{ndraws} responses simulated
+from the family at each grid point (observation noise; random
+effects stay excluded, as in brms with \code{re_formula = NA}).}
+
+\item{ndraws}{Simulated responses per grid point for
+\code{method = "predict"}.}
+
 \item{conditions}{Named list overriding reference values, e.g.
-\code{list(x2 = 1, g = "b")}.}
+\code{list(x2 = 1, g = "b")}; or a data frame whose rows define
+multiple condition sets (brms style), labeled by a \code{cond__}
+column from its row names.}
 
 \item{data}{The original model data. Only needed when the model frame
 does not store a raw variable (e.g. a variable used only inside
@@ -58,4 +71,14 @@ effects excluded (\code{re.form = NA}). Confidence bands are Wald
 intervals computed on the link scale and back-transformed. Smooth
 terms are included, so this also covers what brms calls
 \code{conditional_smooths()}.
+}
+\examples{
+set.seed(5)
+dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))
+dd$y <- rnorm(120, 1 + 0.5 * dd$x + (dd$f == "b"), 1)
+fit <- frm(bf(y ~ x * f) + gaussian(), data = dd)
+ce <- conditional_effects(fit, effects = c("x", "x:f"))
+plot(ce, ask = FALSE)
+# prediction intervals instead of epred bands
+ce_p <- conditional_effects(fit, effects = "x", method = "predict")
 }

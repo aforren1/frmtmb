@@ -87,7 +87,9 @@ test_that("trials() validation catches the brms error taxonomy", {
   dd <- data.frame(y = c(2, 3, 5), n = c(5, 5, 4), x = 1:3)
   expect_error(frm(bf(y | trials(n) ~ x) + binomial(), data = dd),
                "\\[0, trials\\]")   # y > trials
-  dd2 <- data.frame(y = c(0.5, 1), n = c(2, 2), x = 1:2)
+  # a proportion response is legal since v0.14 when it times out to
+  # integer counts; a fractional count is still an error
+  dd2 <- data.frame(y = c(0.3, 1), n = c(2, 2), x = 1:2)
   expect_error(frm(bf(y | trials(n) ~ x) + binomial(), data = dd2),
                "integer")
   # constant literal trials work

@@ -20,6 +20,9 @@ hypothesis(
   seed = NULL,
   ...
 )
+
+# S3 method for class 'frmtmb_draws'
+hypothesis(x, hypothesis, alpha = 0.05, ...)
 ```
 
 ## Arguments
@@ -97,3 +100,28 @@ Methods:
   `se` is the bootstrap SD). Handles any expression, including the
   variance-component names, whose sampling distributions Wald
   approximates poorly.
+
+## Examples
+
+``` r
+set.seed(4)
+dd <- data.frame(x1 = rnorm(120), x2 = rnorm(120),
+                 g = factor(rep(1:10, 12)))
+dd$y <- rnorm(120, 1 + 0.6 * dd$x1 + 0.4 * dd$x2 +
+                rnorm(10, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x1 + x2 + (1 | g)) + gaussian(), data = dd)
+hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept)"))
+#> Hypothesis tests (method = wald)
+#>      hypothesis estimate     se   lwr    upr     z         p
+#>     x1 - x2 = 0    0.370 0.1280 0.119 0.6209 2.889 3.859e-03
+#>  exp(Intercept)    2.507 0.4829 1.561 3.4540 5.192 2.079e-07
+# variance-component expressions: an ICC with bootstrap intervals
+hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
+           method = "boot", nsim = 20, seed = 1)
+#> Hypothesis tests (method = boot)
+#>   bootstrap draws: 20 (0 failed or not converged)
+#>                                         hypothesis estimate     se     lwr
+#>  sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)   0.2694 0.1231 0.03343
+#>     upr     z       p
+#>  0.4187 2.189 0.09524
+```

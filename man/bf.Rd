@@ -38,3 +38,12 @@ Every linear predictor accepts lme4-style random effects \code{(1 | g)},
 
 Attach a family with \code{+}, for example \code{bf(y ~ x) + gaussian()}.
 }
+\examples{
+# brms-style model formulas: attach a family with `+`
+bf(y ~ x + (1 | g)) + gaussian()
+# distributional parameters get their own formulas or constants
+bf(y ~ x, sigma ~ x)
+bf(y ~ x, shape = 2) + Gamma()
+# nonlinear models declare parameter formulas and nl = TRUE
+bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1 + (1 | g), nl = TRUE)
+}

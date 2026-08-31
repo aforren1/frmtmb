@@ -50,6 +50,18 @@
 #'               data = sleepstudy)
 #' summary(fit)
 #' }
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.5)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#' summary(fit)
+#' fixef(fit)
+#' VarCorr(fit)
+#'
+#' # distributional regression: model sigma too
+#' fit2 <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
+#' anova(fit, fit2)
 #' @export
 frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 control = frmtmb_control(), se = FALSE,
@@ -143,9 +155,21 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       class = "GK"
     ))
   }
+  profile_arg <- NULL
+  if (isTRUE(control$profile)) {
+    if (REML) {
+      stop("frmtmb_control(profile = TRUE) cannot be combined with ",
+           "REML = TRUE (beta is already integrated)", call. = FALSE)
+    }
+    if (isTRUE(quadrature)) {
+      stop("frmtmb_control(profile = TRUE) cannot be combined with ",
+           "quadrature = TRUE", call. = FALSE)
+    }
+    profile_arg <- "beta"
+  }
   obj <- RTMB::MakeADFun(nll, template, random = random,
                          map = frame$map, integrate = integrate,
-                         silent = TRUE)
+                         profile = profile_arg, silent = TRUE)
   bounds <- resolve_bounds(list(frame = frame, REML = REML), lower, upper)
   opt <- optimize_obj(obj, control, bounds)
 
@@ -175,9 +199,17 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
          cache = new.env(parent = emptyenv())),
     class = "frmtmb_fit"
   )
-  if (se) fit$cache$sdr <- RTMB::sdreport(obj, getJointPrecision = REML)
+  if (se) {
+    fit$cache$sdr <- RTMB::sdreport(obj, getJointPrecision = needs_jp(fit))
+  }
   check_convergence(fit, control)
   fit
+}
+
+# The joint precision is the covariance source for parameters outside
+# cov.fixed: REML (beta random) and control profile = TRUE (beta inner).
+needs_jp <- function(fit) {
+  fit$REML || isTRUE(fit$control$profile)
 }
 
 # Memoized sdreport: the standard-error machinery (summary, vcov,
@@ -185,7 +217,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
 sdr_of <- function(fit) {
   cache <- fit$cache
   if (is.null(cache$sdr)) {
-    cache$sdr <- RTMB::sdreport(fit$obj, getJointPrecision = fit$REML)
+    cache$sdr <- RTMB::sdreport(fit$obj, getJointPrecision = needs_jp(fit))
   }
   cache$sdr
 }
@@ -213,13 +245,23 @@ sdr_of <- function(fit) {
 #'   current optimum while the gradient remains above `grad_tol`.
 #' @param grad_tol Warn (and restart) if the maximum absolute gradient at
 #'   the optimum exceeds this value.
+#' @param profile Experimental: move the primary (`beta`) coefficients
+#'   into the inner (Laplace) problem, TMB's `profile` argument - the
+#'   analog of `glmmTMBControl(profile = TRUE)` and `glmer(nAGQ = 0)`.
+#'   Speeds up models with many fixed effects, and like those it is an
+#'   approximation: estimates differ slightly from the exact fit.
+#'   Coefficient covariance comes from the joint precision. Not
+#'   compatible with `REML = TRUE` or `quadrature = TRUE`;
+#'   profile/uniroot `confint()` and `hypothesis(method = "profile")`
+#'   need a non-profiled fit.
 #' @return A list of control settings.
 #' @export
 frmtmb_control <- function(optimizer = "nlminb",
                            optCtrl = list(iter.max = 1000, eval.max = 1000),
-                           restarts = 1, grad_tol = 1e-3) {
+                           restarts = 1, grad_tol = 1e-3,
+                           profile = FALSE) {
   list(optimizer = optimizer, optCtrl = optCtrl, restarts = restarts,
-       grad_tol = grad_tol)
+       grad_tol = grad_tol, profile = isTRUE(profile))
 }
 
 # One optimizer invocation, normalized to nlminb's result shape.

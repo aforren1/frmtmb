@@ -20,6 +20,8 @@ conditional_effects(
   dpar = NULL,
   resolution = 100,
   prob = 0.95,
+  method = c("epred", "predict"),
+  ndraws = 400,
   conditions = list(),
   data = NULL,
   ...
@@ -57,9 +59,23 @@ conditional_effects(
 
   Coverage of the confidence bands (brms spelling).
 
+- method:
+
+  `"epred"` (default): Wald bands for the expected response.
+  `"predict"`: prediction intervals - the epred point estimate with
+  quantile bands from `ndraws` responses simulated from the family at
+  each grid point (observation noise; random effects stay excluded, as
+  in brms with `re_formula = NA`).
+
+- ndraws:
+
+  Simulated responses per grid point for `method = "predict"`.
+
 - conditions:
 
-  Named list overriding reference values, e.g. `list(x2 = 1, g = "b")`.
+  Named list overriding reference values, e.g. `list(x2 = 1, g = "b")`;
+  or a data frame whose rows define multiple condition sets (brms
+  style), labeled by a `cond__` column from its row names.
 
 - data:
 
@@ -72,3 +88,18 @@ conditional_effects(
 A named list of data frames (one per effect) with the varied variable(s)
 plus `estimate__`, `se__` (link scale), `lower__`, and `upper__`;
 printing it draws the plots.
+
+## Examples
+
+``` r
+set.seed(5)
+dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))
+dd$y <- rnorm(120, 1 + 0.5 * dd$x + (dd$f == "b"), 1)
+fit <- frm(bf(y ~ x * f) + gaussian(), data = dd)
+ce <- conditional_effects(fit, effects = c("x", "x:f"))
+plot(ce, ask = FALSE)
+
+
+# prediction intervals instead of epred bands
+ce_p <- conditional_effects(fit, effects = "x", method = "predict")
+```
