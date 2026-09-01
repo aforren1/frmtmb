@@ -4,7 +4,15 @@
 \alias{frm_simulate}
 \title{Simulate responses from a formula and parameters}
 \usage{
-frm_simulate(formula, data, family = NULL, newparams, nsim = 1, seed = NULL)
+frm_simulate(
+  formula,
+  data,
+  family = NULL,
+  newparams = NULL,
+  priors = NULL,
+  nsim = 1,
+  seed = NULL
+)
 }
 \arguments{
 \item{formula}{A \code{bf()} formula (with a family attached) or a plain
@@ -14,37 +22,107 @@ formula plus \code{family}.}
 
 \item{family}{Family, when \code{formula} does not carry one.}
 
-\item{newparams}{Named list of parameter vectors matching the
-template: \code{beta} (and \code{betad}, \code{theta}, \code{thetar} as the model
-requires); optionally \code{b} to fix the random effects across
-simulations.}
+\item{newparams}{Named list of parameters, in either spelling (see
+Details). Optional when \code{priors} pins everything.}
+
+\item{priors}{A \code{\link[=set_prior]{set_prior()}} specification to draw parameters from,
+once per simulation.}
 
 \item{nsim, seed}{As in \code{\link[=simulate]{simulate()}}.}
 }
 \value{
-A data frame with \code{nsim} columns of simulated responses.
+A data frame with \code{nsim} columns of simulated responses,
+carrying the drawn parameters in \code{attr(., "pars")} when \code{priors}
+is used.
 }
 \description{
 Builds the design from \code{formula} and \code{data} exactly as \code{\link[=frm]{frm()}}
-would, sets the parameters from \code{newparams}, and simulates
-responses. Random effects are redrawn from their covariance for
-every simulation unless \code{newparams$b} supplies them.
+would, sets the parameters from \code{newparams} (and/or draws them from
+\code{priors}), and simulates responses. Random effects are redrawn from
+their covariance for every simulation unless \code{newparams$b} supplies
+them.
 }
 \details{
 \code{data} must contain a response column with values that are valid for
 the family (any dummy values do; they only anchor the design).
-Inspect the required parameter layout with
-\code{frm(formula, data, dry_run = "frame")$par_template}.
 }
+\section{Two spellings for \code{newparams}}{
+
+\emph{Natural scale} (recommended): the names \code{\link[=variables]{variables()}} and
+\code{\link[=hypothesis]{hypothesis()}} use, one number each.
+\itemize{
+\item fixed coefficients under their \code{vcov()} names with parentheses
+stripped (\code{Intercept}, \code{x}, \code{sigma_Intercept}, ...), on the LINK
+scale;
+\item \code{sigma} (and any other intercept-only dispersion dpar: \code{shape},
+\code{phi}, \code{zi}, ...) on the RESPONSE scale, so \code{sigma = 0.7} is a
+residual SD of 0.7;
+\item \verb{sd_<group>__<term>} for random-effect standard deviations,
+\verb{cor_<group>__<t1>__<t2>} for their correlations, and
+\verb{sds_<label>} for a smooth's smoothing SD. Unset correlations are
+0.
+}
+
+\emph{Internal scale}: named after the \code{par_template} components -
+\code{beta}, \code{betad}, \code{theta}, and optionally \code{b} - each a full-length
+vector, on the internal parameterization (\code{theta} holds log SDs and
+Cholesky correlation parameters, \code{betad} holds dispersion dpars on
+their link scale). Inspect the layout with
+\code{frm(formula, data, dry_run = "frame")$par_template}.
+
+The two spellings cannot be mixed: \code{newparams} is read as internal
+when every name is a \code{par_template} component (or \code{b}), and as
+natural otherwise. The natural spelling covers \code{us}, \code{diag},
+\code{homdiag}, \code{smooth}, \code{gr_cov} and \code{gr_prec} random-effect
+structures; other structures (\code{ar1}, \code{cs}, \code{toep}, GPs, ...) have no
+inverse map from SDs and correlations and need the internal
+spelling.
+}
+
+\section{Prior-predictive simulation}{
+
+With \code{priors}, each of the \code{nsim} simulations draws a fresh
+parameter vector from the \code{\link[=set_prior]{set_prior()}} specification and simulates
+from it - the analog of brms's \code{sample_prior = "only"} followed by
+\code{posterior_predict()}. Draws are taken on the scale each class
+defines: class \code{"b"}/\code{"Intercept"} on the link scale, class \code{"sd"}
+on the natural SD scale (mapped to \code{theta} afterwards), class
+\code{"theta"} on the internal scale. \code{lb}/\code{ub} truncate by rejection.
+The drawn values come back as \code{attr(result, "pars")}, one row per
+simulation, so a prior-predictive check can relate parameters to
+outcomes.
+
+Parameters without a prior keep their \code{newparams} value. Whenever
+\code{priors} are used, or \code{newparams} uses the natural spelling, every
+fixed coefficient and every random-effect SD must be pinned by one
+or the other; an unpinned parameter is an error rather than a silent
+zero effect or unit SD.
+}
+
 \examples{
 # power analysis: simulate from a design with chosen parameters
 dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)), y = 0)
-frm(bf(y ~ x + (1 | g)) + gaussian(), dd,
-    dry_run = "frame")$par_template   # the required layout
 sims <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
-                     newparams = list(beta = c(1, 0.5),
-                                      betad = log(0.7),
-                                      theta = log(0.5)),
+                     newparams = list(Intercept = 1, x = 0.5,
+                                      sigma = 0.7,
+                                      sd_g__Intercept = 0.5),
                      nsim = 3, seed = 1)
 head(sims)
+# the same thing on the internal scale
+frm(bf(y ~ x + (1 | g)) + gaussian(), dd,
+    dry_run = "frame")$par_template   # the required layout
+sims2 <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
+                      newparams = list(beta = c(1, 0.5),
+                                       betad = log(0.7),
+                                       theta = log(0.5)),
+                      nsim = 3, seed = 1)
+# prior-predictive draws
+pp <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
+                   priors = set_prior("normal(0, 1)", class = "b") +
+                     set_prior("normal(0, 2)", class = "Intercept") +
+                     set_prior("exponential(1)", class = "sd") +
+                     set_prior("exponential(1)", class = "Intercept",
+                               dpar = "sigma"),
+                   nsim = 4, seed = 1)
+head(attr(pp, "pars"))
 }

@@ -398,6 +398,15 @@ has_trunc <- function(rspec) {
 # mean cannot use (censoring, structural flags) are skipped; trials, se
 # and the truncation bounds must evaluate because omitting them silently
 # changes the mean.
+# An addition term as the user wrote it, for error messages.
+aterm_label <- function(nm, ex) {
+  switch(nm,
+    trunc_lb = paste0("trunc(lb = ", deparse1(ex), ")"),
+    trunc_ub = paste0("trunc(ub = ", deparse1(ex), ")"),
+    paste0(nm, "(", deparse1(ex), ")")
+  )
+}
+
 aterms_for_newdata <- function(rspec, newdata) {
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights")
   need <- c("trials", "se", "trunc_lb", "trunc_ub")
@@ -415,11 +424,7 @@ aterms_for_newdata <- function(rspec, newdata) {
       v <- NULL
     }
     if (is.null(v) && nm %in% need) {
-      label <- switch(nm,
-        trunc_lb = paste0("trunc(lb = ", deparse1(rspec$aterms[[nm]]), ")"),
-        trunc_ub = paste0("trunc(ub = ", deparse1(rspec$aterms[[nm]]), ")"),
-        paste0(nm, "(", deparse1(rspec$aterms[[nm]]), ")")
-      )
+      label <- aterm_label(nm, rspec$aterms[[nm]])
       stop("Addition term ", label, " could not be evaluated on ",
            "newdata; supply the variable or use type = \"conditional\"",
            call. = FALSE)
@@ -871,7 +876,9 @@ osa_cens_domain <- function(av, y) {
            "the censoring process. dharma_residuals() is not an ",
            "alternative: simulate() draws the LATENT uncensored ",
            "response, so its draws are not comparable with the ",
-           "observed censored values", call. = FALSE)
+           "observed censored values, and simulate(censored = TRUE) ",
+           "needs the same single censoring point this message is ",
+           "about", call. = FALSE)
     }
     p
   }
@@ -907,8 +914,11 @@ osa_cens_domain <- function(av, y) {
 #' per side (type-I censoring); row-varying censoring times and interval
 #' censoring are refused. `dharma_residuals()` is not a substitute on a
 #' censored fit, because [simulate.frmtmb_fit()] draws the latent
-#' uncensored response and those draws are not comparable with the
-#' observed censored values.
+#' uncensored response by default (as brms's `posterior_predict()`
+#' does) and those draws are not comparable with the observed censored
+#' values; `simulate(censored = TRUE)` makes them comparable, but the
+#' resulting point mass at each censoring point is not a distribution
+#' DHARMa's rank transform can use.
 #'
 #' Ordinal responses use `"oneStepGeneric"` over the discrete support
 #' `1..K`, which makes the residuals randomized quantile residuals.
@@ -1063,12 +1073,72 @@ draw_b <- function(fit) {
   b
 }
 
+# The observation window the censoring mechanism imposes: the censoring
+# point is the response value on a censored row, and it must be the
+# same for every censored row on a side (type-I censoring). With
+# row-varying censoring times the point is unknown on the rows that
+# were NOT censored - the data only say it was never reached - so the
+# mechanism cannot be applied to their draws at all.
+cens_window <- function(av, yobs) {
+  cen <- av$cens
+  if (any(cen == 2)) {
+    stop("simulate(censored = TRUE) is defined for left- and ",
+         "right-censored rows; an interval-censored observation is an ",
+         "interval, not a value", call. = FALSE)
+  }
+  point <- function(idx, side) {
+    p <- unique(yobs[idx])
+    if (length(p) > 1L) {
+      stop("simulate(censored = TRUE) needs one ", side,
+           "-censoring point shared by every censored row (type-I ",
+           "censoring); got ", length(p), " distinct points. With ",
+           "row-varying censoring times an uncensored row's censoring ",
+           "point is unknown, so the mechanism cannot be applied to ",
+           "its draws", call. = FALSE)
+    }
+    p
+  }
+  i_r <- which(cen == 1)
+  i_l <- which(cen == -1)
+  list(lo = if (length(i_l)) point(i_l, "left") else -Inf,
+       hi = if (length(i_r)) point(i_r, "right") else Inf)
+}
+
+# Apply the censoring mechanism to one draw of the latent response:
+# every draw outside the observation window is recorded at the window's
+# edge, exactly as the observed data were.
+apply_censoring <- function(y, win) {
+  pmin(pmax(y, win$lo), win$hi)
+}
+
 #' Simulate responses from a frmtmb fit
 #'
 #' A `trunc()`ed response simulates by rejection within its bounds, so
 #' every draw lies in `[lb, ub]` and posterior-predictive checks
 #' ([dharma_residuals()], `pp_check()`) see the same support the
 #' likelihood was normalized on.
+#'
+#' @section Censored responses:
+#' On a `cens()` fit the default draws the LATENT, uncensored response:
+#' the model describes the latent distribution, and censoring is a
+#' property of the observation process, not of the response. This
+#' matches brms, whose `posterior_predict()` also ignores `cens()` (and
+#' whose `pp_check()` therefore drops the censored rows). The draws are
+#' then not comparable with the observed values on censored rows, which
+#' is why `dharma_residuals()` and `residuals(type = "osa")` refuse or
+#' skip them.
+#'
+#' `censored = TRUE` applies the fitted censoring mechanism to each
+#' draw instead, so the draws are directly comparable with the observed
+#' data: every draw is recorded at the edge of the observation window
+#' it falls outside, capped above by the right-censoring point and
+#' below by the left-censoring point. Those points are the response
+#' values of the censored rows, and they must be the same for every
+#' censored row on a side (type-I censoring): with row-varying
+#' censoring times an uncensored row's censoring point is unknown, so
+#' the mechanism cannot be applied to its draws and the call is
+#' refused. Interval censoring has no single-value representation and
+#' is refused too.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param nsim Number of simulated response vectors.
@@ -1078,11 +1148,13 @@ draw_b <- function(fit) {
 #' @param re.form `NULL` (default) conditions on the estimated random
 #'   effects; `NA` redraws them from their estimated distribution
 #'   (marginal simulation).
+#' @param censored Apply the fitted `cens()` mechanism to the draws
+#'   (see Censored responses). Ignored without `cens()`.
 #' @param ... Unused.
 #' @return A data frame with `nsim` columns and a `"seed"` attribute.
 #' @export
 simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
-                                re.form = NULL, ...) {
+                                re.form = NULL, censored = FALSE, ...) {
   # the stats::simulate seed contract (as in simulate.lm)
   if (!exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
     stats::runif(1)
@@ -1106,6 +1178,14 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   n <- stats::nobs(object)
   out <- vector("list", nsim)
   av <- object$frame$aterm_values[[rspec$resp_name]]
+  cwin <- NULL
+  if (isTRUE(censored)) {
+    if (is.null(av$cens)) {
+      stop("simulate(censored = TRUE) needs a cens() response",
+           call. = FALSE)
+    }
+    cwin <- cens_window(av, object$frame$y[[rspec$resp_name]])
+  }
   for (s in seq_len(nsim)) {
     b_use <- if (marginal && length(object$frame$re_blocks)) {
       draw_b(object)
@@ -1138,6 +1218,7 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
       }
       ys
     }
+    if (!is.null(cwin)) out[[s]] <- apply_censoring(out[[s]], cwin)
   }
   names(out) <- paste0("sim_", seq_len(nsim))
   out <- as.data.frame(out)

@@ -1,5 +1,42 @@
 # Conditional-effects displays, diagnostic plot method, pp_check.
 
+# Addition-term values for the conditional-effects grid. A grid row is
+# an artificial observation, so an aterm that changes the predictive
+# distribution (trials, se, truncation bounds) must not be taken at a
+# reference value: the mean number of trials is rarely a whole number,
+# and a mean truncation bound is nobody's bound. Those terms are read
+# only from variables the user pinned in `conditions`; literal bounds
+# apply as written. Everything else (vint/vreal payloads a custom
+# family needs) is evaluated against the grid when it can be.
+ce_aterms <- function(rspec, nd, cset, n) {
+  skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights")
+  strict <- c("trials", "se", "trunc_lb", "trunc_ub")
+  av <- list()
+  for (nm in setdiff(names(rspec$aterms), skip)) {
+    ex <- rspec$aterms[[nm]]
+    vars <- all.vars(ex)
+    pinned <- !length(vars) || all(vars %in% names(cset))
+    if (nm %in% strict && !pinned) {
+      stop("conditional_effects(method = \"predict\") cannot evaluate ",
+           aterm_label(nm, ex), " on the effect grid: its value would ",
+           "be a reference value, not a real one. Pin ",
+           paste(setdiff(vars, names(cset)), collapse = ", "),
+           " in conditions = list(...).", call. = FALSE)
+    }
+    v <- tryCatch(as.numeric(eval(ex, nd, rspec$formula_env)),
+                  error = function(e) NULL)
+    if (!is.null(v) && !length(v) %in% c(1L, n)) v <- NULL
+    if (is.null(v) && nm %in% strict) {
+      stop("conditional_effects(method = \"predict\") could not ",
+           "evaluate ", aterm_label(nm, ex), " on the effect grid",
+           call. = FALSE)
+    }
+    if (!is.null(v)) av[[nm]] <- v
+  }
+  if (!is.null(rspec$aterms$se_sigma)) av$se_sigma <- rspec$aterms$se_sigma
+  av
+}
+
 # Reference value a predictor is held at when it is not varied.
 ce_ref_value <- function(col) {
   if (is.matrix(col)) {
@@ -59,10 +96,17 @@ ce_second_values <- function(col) {
 #'   predictor.
 #' @param prob Coverage of the confidence bands (brms spelling).
 #' @param method `"epred"` (default): Wald bands for the expected
-#'   response. `"predict"`: prediction intervals - the epred point
-#'   estimate with quantile bands from `ndraws` responses simulated
-#'   from the family at each grid point (observation noise; random
-#'   effects stay excluded, as in brms with `re_formula = NA`).
+#'   response. `"predict"`: prediction intervals - quantile bands from
+#'   `ndraws` responses simulated from the family at each grid point
+#'   (observation noise; random effects stay excluded, as in brms with
+#'   `re_formula = NA`), around the expected response on the same
+#'   scale as the draws (a count under `trials()`, the truncated mean
+#'   under `trunc()`). The
+#'   draws respect the response's addition terms: literal `trunc()`
+#'   bounds apply, and `trials()`, `se()` or variable `trunc()` bounds
+#'   must be pinned in `conditions` (a grid row is an artificial
+#'   observation, so a reference value for those is meaningless and is
+#'   an error rather than a silent default).
 #' @param ndraws Simulated responses per grid point for
 #'   `method = "predict"`.
 #' @param conditions Named list overriding reference values, e.g.
@@ -191,7 +235,14 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                                           resp = resp, re.form = NA,
                                           type = "response"))
         }
-        sims <- replicate(ndraws, fam$sim(dpv, list(), n))
+        avc <- ce_aterms(rspec, nd, cset, n)
+        # sim_response(), not fam$sim(): trunc() bounds are respected by
+        # rejection, as everywhere else responses are drawn
+        sims <- replicate(ndraws, sim_response(fam, dpv, avc, n))
+        # the point estimate moves onto the response scale the bands
+        # live on: a binomial band is a count, not a probability, and a
+        # truncated band is centered on the truncated mean
+        df$estimate__ <- response_mean(fam, dpv, avc)
         df$lower__ <- apply(sims, 1, stats::quantile, (1 - prob) / 2)
         df$upper__ <- apply(sims, 1, stats::quantile, 1 - (1 - prob) / 2)
         df$se__ <- apply(sims, 1, stats::sd)

@@ -145,6 +145,48 @@ hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)")
 `frm_bootstrap()` runs a warm-started parametric bootstrap, and
 `confint(fit, method = "profile")` profiles single parameters.
 
+## Simulating from a design
+
+`frm_simulate()` builds a design from a formula and data, sets the
+parameters, and simulates responses - no fit needed. This is the power
+analysis loop: simulate, refit, count. Parameters take the same names
+`hypothesis()` and `variables()` use, on their natural scales
+(coefficients on the link scale, `sigma` as a residual SD,
+`sd_<group>__<term>` as a standard deviation):
+
+```{r}
+set.seed(1)
+dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, 10)), y = 0)
+form <- bf(y ~ x + (1 | g)) + gaussian()
+sims <- frm_simulate(form, dd, nsim = 3, seed = 1,
+                     newparams = list(Intercept = 1, x = 0.5,
+                                      sigma = 0.6,
+                                      sd_g__Intercept = 0.7))
+str(sims, max.level = 0)
+```
+
+Give `priors` instead and every simulation draws its own parameter
+vector first - the analog of brms's `sample_prior = "only"` followed by
+`posterior_predict()`. The drawn parameters come back as an attribute,
+so a prior-predictive check can relate parameters to outcomes:
+
+```{r}
+pp <- frm_simulate(form, dd, nsim = 50, seed = 2,
+                   priors = set_prior("normal(0, 1)", class = "b") +
+                     set_prior("normal(0, 2)", class = "Intercept") +
+                     set_prior("exponential(1)", class = "sd") +
+                     set_prior("normal(0, 1)", class = "Intercept",
+                               dpar = "sigma"))
+pars <- attr(pp, "pars")
+head(pars, 3)
+# does the prior imply plausible data? slope against outcome spread
+plot(pars$x, apply(pp, 2, sd), xlab = "slope", ylab = "sd(y)")
+```
+
+Every coefficient and every random-effect SD needs a value from
+`newparams` or a prior; leaving one out is an error rather than a
+silent zero effect.
+
 ## Diagnostics
 
 `diagnose(fit)` reports convergence forensics. Simulation-based

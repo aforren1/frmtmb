@@ -4,7 +4,7 @@
 \alias{simulate.frmtmb_fit}
 \title{Simulate responses from a frmtmb fit}
 \usage{
-\method{simulate}{frmtmb_fit}(object, nsim = 1, seed = NULL, re.form = NULL, ...)
+\method{simulate}{frmtmb_fit}(object, nsim = 1, seed = NULL, re.form = NULL, censored = FALSE, ...)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
@@ -19,6 +19,9 @@ seed used is attached as the \code{"seed"} attribute.}
 effects; \code{NA} redraws them from their estimated distribution
 (marginal simulation).}
 
+\item{censored}{Apply the fitted \code{cens()} mechanism to the draws
+(see Censored responses). Ignored without \code{cens()}.}
+
 \item{...}{Unused.}
 }
 \value{
@@ -30,3 +33,27 @@ every draw lies in \verb{[lb, ub]} and posterior-predictive checks
 (\code{\link[=dharma_residuals]{dharma_residuals()}}, \code{pp_check()}) see the same support the
 likelihood was normalized on.
 }
+\section{Censored responses}{
+
+On a \code{cens()} fit the default draws the LATENT, uncensored response:
+the model describes the latent distribution, and censoring is a
+property of the observation process, not of the response. This
+matches brms, whose \code{posterior_predict()} also ignores \code{cens()} (and
+whose \code{pp_check()} therefore drops the censored rows). The draws are
+then not comparable with the observed values on censored rows, which
+is why \code{dharma_residuals()} and \code{residuals(type = "osa")} refuse or
+skip them.
+
+\code{censored = TRUE} applies the fitted censoring mechanism to each
+draw instead, so the draws are directly comparable with the observed
+data: every draw is recorded at the edge of the observation window
+it falls outside, capped above by the right-censoring point and
+below by the left-censoring point. Those points are the response
+values of the censored rows, and they must be the same for every
+censored row on a side (type-I censoring): with row-varying
+censoring times an uncensored row's censoring point is unknown, so
+the mechanism cannot be applied to its draws and the call is
+refused. Interval censoring has no single-value representation and
+is refused too.
+}
+
