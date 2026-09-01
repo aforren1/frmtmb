@@ -191,8 +191,15 @@ test_that("gp() k/c/iso resolve in the formula environment", {
 test_that("2-D Hilbert-space gp() approximates the exact fit", {
   dg <- gp2_data()
   f2 <- frm(bf(y ~ gp(x1, x2)) + gaussian(), data = dg)
-  fh <- frm(bf(y ~ gp(x1, x2, k = 10, c = 1.5)) + gaussian(), data = dg)
-  expect_lt(abs(as.numeric(logLik(fh)) - as.numeric(logLik(f2))), 0.5)
+  # brms's convention rescales both coordinates by one shared factor (the
+  # largest pairwise distance over the whole coordinate matrix), so the
+  # boundary is L = c per dimension. The wider effective domain lets the
+  # default c = 1.25 reach 0.3 logLik at k = 10, where the pre-brms
+  # half-range convention needed c = 1.5 for less accuracy.
+  fh <- frm(bf(y ~ gp(x1, x2, k = 10)) + gaussian(), data = dg)
+  expect_equal(fh$frame$linpreds[["y.mu"]]$gps[[1]]$L, c(1.25, 1.25),
+               tolerance = 1e-12)
+  expect_lt(abs(as.numeric(logLik(fh)) - as.numeric(logLik(f2))), 0.3)
 
   # unseen grid (positions are multiples of 0.5): hsgp basis evaluates
   # anywhere, the exact fit kriges; the surfaces agree
@@ -200,8 +207,32 @@ test_that("2-D Hilbert-space gp() approximates the exact fit", {
                      x2 = c(0.75, 1.75, 2.75))
   p_e <- predict(f2, newdata = ndg)
   p_h <- predict(fh, newdata = ndg, se.fit = TRUE)
-  expect_lt(max(abs(p_h$fit - p_e)), 0.3)
+  expect_lt(max(abs(p_h$fit - p_e)), 0.06)
   expect_true(all(is.finite(p_h$se.fit)))
+
+  # in-sample newdata reproduces the fit exactly (stored scaling)
+  expect_equal(unname(predict(fh, newdata = dg)), unname(fitted(fh)),
+               tolerance = 1e-12)
+
+  # the lengthscales are estimated on the rescaled inputs but reported in
+  # data units, so they track the exact fit's per-dimension ranges
+  cvh <- confint_varcorr(fh)
+  cve <- confint_varcorr(f2)
+  expect_setequal(cvh$term,
+                  c("sd(gp)", "range(gp, x1)", "range(gp, x2)"))
+  for (tm in c("range(gp, x1)", "range(gp, x2)")) {
+    expect_lt(abs(cvh$estimate[cvh$term == tm] /
+                    cve$estimate[cve$term == tm] - 1), 0.15)
+  }
+
+  # c = is per covariate in brms; a vector widens one boundary only
+  fv <- frm(bf(y ~ gp(x1, x2, k = 8, c = c(1.5, 2))) + gaussian(),
+            data = dg, dry_run = "frame")
+  expect_equal(fv$linpreds[["y.mu"]]$gps[[1]]$L, c(1.5, 2),
+               tolerance = 1e-12)
+  expect_error(frm(bf(y ~ gp(x1, x2, k = 8, c = c(1, 2, 3))) + gaussian(),
+                   data = dg, dry_run = "frame"),
+               "length 1 or the number of variables")
 })
 
 test_that("rr(d=) and se(sigma=) resolve in the formula environment", {

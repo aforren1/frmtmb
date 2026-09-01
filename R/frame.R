@@ -738,13 +738,31 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             comp_id = length(components), block_id = NULL, label = lab0
           )
         } else {
-          ctr <- colMeans(Xc)
-          xc <- sweep(Xc, 2, ctr)
-          Lb <- ge$c * apply(abs(xc), 2, max)
-          if (any(Lb <= 0)) {
-            stop("gp(): variable ", vnames[which(Lb <= 0)[1]],
-                 " has no spread", call. = FALSE)
+          # brms's input convention (brms:::.data_gp): rescale by the
+          # largest pairwise distance over the DISTINCT coordinate rows,
+          # center on that scale, then take a shared boundary
+          # L_j = c_j * max(1, range of the whole centered matrix). The
+          # same gp(x, k, c) call is then the same approximation here and
+          # in brms. Distinct rows because brms's gr = TRUE default
+          # collapses duplicate positions before computing the scale, so
+          # ties would otherwise shift the center.
+          cvec <- ge$c
+          if (length(cvec) == 1L) cvec <- rep(cvec, Dg)
+          if (length(cvec) != Dg) {
+            stop("gp(): c = must be length 1 or the number of ",
+                 "variables (", Dg, ")", call. = FALSE)
           }
+          uq <- Xc[!duplicated(pos_rowkey(Xc)), , drop = FALSE]
+          dmax <- gp_max_dist(uq)
+          if (!isTRUE(dmax > 0)) {
+            # a single scale over all coordinates, so it vanishes only
+            # when every coordinate row is identical
+            stop("gp(", paste(vnames, collapse = ", "),
+                 "): the coordinates have no spread", call. = FALSE)
+          }
+          ctr <- colMeans(uq / dmax)
+          Lb <- gp_choose_L(sweep(uq / dmax, 2, ctr), cvec)
+          xc <- sweep(Xc / dmax, 2, ctr)
           m <- ge$k
           if (m^Dg > 1000) {
             stop("gp(): k = ", m, " over ", Dg, " dimensions gives ",
@@ -764,12 +782,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             bar = NULL, Zlocal = methods::as(Phi, "CsparseMatrix"),
             aux_omega = omega,
             gp_D = Dg, gp_iso = iso, gp_vars = vnames,
+            gp_dmax = dmax,
             group_name = lab0,
             label = paste0(dp_prefix, lab0)
           )
           gp_info[[length(gp_info) + 1L]] <- list(
             exprs = ge$exprs, type = "hsgp", center = ctr, L = Lb,
-            omega = omega, comp_id = length(components),
+            dmax = dmax, omega = omega, comp_id = length(components),
             block_id = NULL, label = lab0
           )
         }
@@ -1024,6 +1043,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       gp_D = cps[[1]]$gp_D,
       gp_iso = cps[[1]]$gp_iso,
       gp_vars = cps[[1]]$gp_vars,
+      gp_dmax = cps[[1]]$gp_dmax,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
       term_label = label,
@@ -1088,7 +1108,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     for (bk in re_blocks) {
       th0[bk$theta_idx] <- if (bk$covstruct == "rr") {
         rr_start(bk$dim, bk$rank)
-      } else if (bk$covstruct %in% c("gp", "hsgp")) {
+      } else if (bk$covstruct == "hsgp") {
+        hsgp_start(bk$gp_D, bk$gp_iso)
+      } else if (bk$covstruct == "gp") {
         gp_start(bk$gp_D, bk$gp_iso)
       } else {
         covstruct_registry[[bk$covstruct]]$start(bk$dim)

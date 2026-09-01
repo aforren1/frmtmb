@@ -170,13 +170,18 @@ varcorr_trans_rows <- function(fit) {
     if (bk$covstruct %in% c("gp", "hsgp")) {
       se_t <- sqrt(diag(Vth))
       add("sd(gp)", "sd", t0[1], se_t[1], bk)
+      # hsgp estimates the lengthscale on brms's rescaled inputs, but the
+      # reported range belongs in data units. The scale factor is a data
+      # constant, so the shift on the log scale is exact and the se rides
+      # through unchanged. The exact gp keeps the raw scale (dmax NULL).
+      log_dmax <- log(bk$gp_dmax %||% 1)
       # iso: one shared range; otherwise one per dimension
       nr <- length(t0) - 1L
       for (j in seq_len(nr)) {
         term_j <- if (nr == 1L) "range(gp)" else {
           paste0("range(gp, ", bk$gp_vars[j], ")")
         }
-        add(term_j, "range", t0[1 + j], se_t[1 + j], bk)
+        add(term_j, "range", t0[1 + j] + log_dmax, se_t[1 + j], bk)
       }
       next
     }
