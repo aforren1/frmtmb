@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.21.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.22.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,32 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.22.0" id="frmtmb-0220">frmtmb 0.22.0<a class="anchor" aria-label="anchor" href="#frmtmb-0220"></a></h2>
+<p>Cross-validation against brms itself, closer brms compatibility, and fit ergonomics.</p>
+<div class="section level3">
+<h3 id="brms-agreement-suite-0-22-0">brms agreement suite<a class="anchor" aria-label="anchor" href="#brms-agreement-suite-0-22-0"></a></h3>
+<ul><li>New test tier validating the elaborate grammar structurally against <code><a href="https://paulbuerkner.com/brms/reference/standata.html" class="external-link">brms::make_standata()</a></code>/<code>brmsterms()</code> without any Stan compilation (designs, RE structures, <code>|ID|</code> merging, ordinal thresholds, <code>cs()</code>, <code>mo()</code> codes, gp bases, smooths, addition terms, mvbf, nl, mixture naming; most exact to 1e-10 or better), plus an opt-in numeric tier (<code>FRMTMB_BRMS_FIT_TESTS=true</code>) showing fixed-effects estimates match the mode of brms’s own generated Stan program to 1e-4 and that our <code>mo()</code> parameterization is brms’s likelihood exactly (via <code><a href="https://mc-stan.org/rstan/reference/stanfit-method-logprob.html" class="external-link">rstan::log_prob</a></code>). brms is in Suggests only.</li>
+<li>Found by the suite and fixed: <code>cs()</code> predictor variables never reached the combined model frame, so <code>bf(y ~ x + cs(z))</code> errored unless <code>z</code> already appeared elsewhere.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="brms-compatibility-0-22-0">brms compatibility<a class="anchor" aria-label="anchor" href="#brms-compatibility-0-22-0"></a></h3>
+<ul><li>Hilbert-space <code>gp(x, k =)</code> now uses brms’s input convention exactly: coordinates are rescaled by the largest pairwise distance (one shared factor across dimensions) and centered, so the boundary is <code>L = c</code> and the same <code>gp()</code> call is the same approximation in both packages (basis agreement with brms to 1e-16, tied coordinates and vector-valued <code>c =</code> included). This roughly doubles the effective boundary at a given <code>c</code>: accuracy against the exact gp improves about 25x at the same k (k = 40 now within 2e-4 logLik), and the default <code>c = 1.25</code> is the right choice in 2-D as well. Reported <code>range(gp)</code> values stay in data units (exact log-shift back-transform); fitted lengthscales differ from pre-0.22 fits by the data-dependent scale factor.</li>
+<li>
+<code>cens()</code> accepts brms’s character and factor codes (<code>"left"</code>/<code>"none"</code>/<code>"right"</code>/<code>"interval"</code>, prefix-matched, case-insensitively); unknown labels and out-of-range numeric codes error informatively instead of coercing to NA.</li>
+<li>
+<code>gp()</code>’s <code>k</code>/<code>c</code>/<code>iso</code>, <code>rr()</code>’s <code>d</code>, and <code>se()</code>’s <code>sigma</code> arguments now evaluate in the formula environment (brms behavior), so variables and expressions work; invalid values error with the offending expression named.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="fit-ergonomics-0-22-0">Fit ergonomics<a class="anchor" aria-label="anchor" href="#fit-ergonomics-0-22-0"></a></h3>
+<ul><li>
+<code>frmtmb_control(verbose =)</code> (and the <code>frm(verbose =)</code> shortcut): level 1 prints timed stage lines (parse, frame, tape, optimize, restarts, sdreport) through <code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code> so a slow fit shows where it is slow; level 2 adds the optimizer’s own iteration trace. Bootstrap, influence, and allfit refit loops stay quiet.</li>
+<li>The large-gradient warning now points to <code><a href="../reference/diagnose.html">diagnose()</a></code> and the new “Convergence problems” remedy ladder in the diagnostics vignette (scaling, restarts, optimizer comparison, profiles, boundary fits, and judging marginal gradients).</li>
+<li>
+<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>’s nloptr optimizer produced an empty row: nloptr rejects callbacks that declare <code>...</code> (RTMB’s <code>obj$fn</code>/<code>obj$gr</code> do), and the error was swallowed; separately, missing <code>ftol_rel</code> made NLopt report failure at the converged optimum. Both fixed; the agreement test now requires every optimizer to converge and match.</li>
+<li>The brms-migration vignette documents how to recover the model function (the <code>stancode()</code> analog): the objective closure via <code>build_objective(fit$frame)</code>, its joint-vs-marginal relationship to <code>fit$obj$fn</code>, and how to reproduce <code>fit$obj</code>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.21.0" id="frmtmb-0210">frmtmb 0.21.0<a class="anchor" aria-label="anchor" href="#frmtmb-0210"></a></h2>
 <p>Method-surface audit against lme4/glmmTMB/brms, plus fixes from a full code review.</p>

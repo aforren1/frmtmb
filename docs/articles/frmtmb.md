@@ -105,7 +105,11 @@ smoothing and kernel parameters are estimated as variance components.
 `gp()` takes up to three variables (separate lengthscales per dimension;
 `iso = TRUE` shares one). The exact form predicts at new positions by
 kriging; the Hilbert-space form (`k =`) interpolates through its basis,
-capped at `k^D <= 1000` columns:
+capped at `k^D <= 1000` columns. The Hilbert-space form uses brms’s
+input convention: the coordinates are divided by their largest pairwise
+distance, so the boundary factor `c =` (1.25 by default, one value per
+variable) means the same thing here as in brms. Reported lengthscales
+stay in data units.
 
 ``` r
 
@@ -116,7 +120,7 @@ fs <- frm(bf(y ~ s(x)) + gaussian(), data = ds)
 fg <- frm(bf(y ~ gp(x, k = 25)) + gaussian(), data = ds)
 c(smooth = AIC(fs), gp = AIC(fg))
 #>   smooth       gp 
-#> 250.6414 249.8730
+#> 250.6414 250.1495
 ```
 
 ## Special terms

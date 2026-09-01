@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.21.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.22.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,6 +90,61 @@ component collapsing to zero is the common case):</p>
 <span><span class="co">#&gt; Max |gradient|: 6.943e-05 at (Intercept) </span></span>
 <span><span class="co">#&gt; Hessian positive definite: TRUE </span></span>
 <span><span class="co">#&gt; No convergence problems detected</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="convergence-problems">Convergence problems<a class="anchor" aria-label="anchor" href="#convergence-problems"></a>
+</h2>
+<p>The warning “Large maximum absolute gradient at the optimum” means
+the optimizer stopped at a point where the objective still has slope
+above <code>frmtmb_control(grad_tol = 1e-3)</code>. Work through these
+in order; each step tells you something even when it does not fix the
+warning.</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Identify the parameter.</strong> <code>diagnose(fit)</code>
+prints the largest gradient component and its name. A coefficient of a
+continuous predictor points to scaling; a <code>theta_*</code> component
+points to a variance-parameter problem, and <code><a href="../reference/diagnose.html">diagnose()</a></code>
+flags extreme values (a log-SD far below zero is a variance collapsing
+to its boundary, which is a model issue, not an optimizer issue).</li>
+<li>
+<strong>Fix predictor scaling.</strong> For a flagged coefficient,
+<code>frmtmb_control(autoscale = TRUE)</code> standardizes badly scaled
+columns internally and judges convergence in the rescaled units;
+rescaling the variable in the data works equally well.</li>
+<li>
+<strong>Restart harder.</strong>
+<code>frmtmb_control(restarts = 3)</code> re-launches the optimizer from
+the current optimum until the gradient passes;
+<code>optCtrl = list(iter.max = 5000, eval.max = 5000)</code> lifts the
+iteration caps for slow problems.</li>
+<li>
+<strong>Compare optimizers.</strong> <code>frm_allfit(fit)</code>
+refits with nlminb, optim, bobyqa, and nloptr and tabulates
+log-likelihoods. All optimizers agreeing on the log-likelihood to
+several decimals while one warns usually means a flat ridge near the
+optimum, not a wrong answer; disagreement means the warning is
+real.</li>
+<li>
+<strong>Look at the profile.</strong>
+<code>plot(profile(fit, "theta_1"))</code> shows whether the flagged
+parameter sits in a flat valley (benign) or on a slope (not
+converged).</li>
+<li>
+<strong>Boundary fits.</strong> When a random-effect SD is
+collapsing to zero, the likelihood surface is one-sided and the gradient
+check can never fully settle. Either simplify the random-effect
+structure, or keep the term and regularize with
+<code>priors = set_prior("exponential(1)", class = "sd")</code> (a MAP
+fit; the same move as <code>blme</code>’s covariance priors).</li>
+<li>
+<strong>Judge marginal cases.</strong> A gradient just above the
+default <code>1e-3</code> (say 0.001-0.01) with stable estimates across
+restarts and optimizers is typically flatness at machine precision for
+that problem’s scale, not non-convergence. The threshold is a heuristic;
+<code>frmtmb_control(grad_tol = )</code> tunes it, and steps 4-5 are the
+evidence for deciding.</li>
+</ol>
 </div>
 <div class="section level2">
 <h2 id="does-the-family-fit-the-data">Does the family fit the data?<a class="anchor" aria-label="anchor" href="#does-the-family-fit-the-data"></a>

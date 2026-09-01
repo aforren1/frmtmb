@@ -12,7 +12,8 @@ frmtmb_control(
   grad_tol = 0.001,
   profile = FALSE,
   sparse_x = FALSE,
-  autoscale = FALSE
+  autoscale = FALSE,
+  verbose = NULL
 )
 ```
 
@@ -88,6 +89,35 @@ frmtmb_control(
   no-op when nothing qualifies. Compatible with `profile = TRUE`. Under
   `priors` or bounds, the first stage applies them to the scaled
   coefficients; the second stage is the fit that is reported.
+
+- verbose:
+
+  Report fit progress through
+  [`message()`](https://rdrr.io/r/base/message.html), one terse line per
+  stage with its elapsed seconds, so a slow fit shows where the time
+  went. `FALSE` (default) is silent and costs nothing. `TRUE` (or `1`)
+  reports parsing, frame assembly, the autoscale pre-fit, tape
+  construction, each optimizer run and restart, `sdreport()` when
+  `se = TRUE`, and a closing line with the objective, the maximum
+  absolute gradient, and the number of convergence warnings. The fit
+  itself opens with a line naming the family, the mode (ML or REML, plus
+  profile, quadrature, autoscale, priors), and the optimizer. `2` adds
+  the optimizer's own trace, by setting `optCtrl$trace` unless you set
+  it yourself. That trace is printed by
+  [`stats::nlminb()`](https://rdrr.io/r/stats/nlminb.html) /
+  [`stats::optim()`](https://rdrr.io/r/stats/optim.html) to standard
+  output, not through
+  [`message()`](https://rdrr.io/r/base/message.html), and a custom
+  optimizer function receives `optCtrl` unchanged, so `verbose` does not
+  reach it.
+
+  Use [`suppressMessages()`](https://rdrr.io/r/base/message.html) to
+  silence a verbose fit. The refit loops in
+  [`frm_bootstrap()`](frm_bootstrap.md),
+  [`influence()`](https://rdrr.io/r/stats/lm.influence.html), and
+  [`frm_allfit()`](frm_allfit.md) force `verbose` off, so a verbose fit
+  does not make them print hundreds of lines; [`refit()`](refit.md) and
+  [`frm_multiple()`](frm_multiple.md) report normally.
 
 ## Value
 

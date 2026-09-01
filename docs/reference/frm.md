@@ -19,7 +19,8 @@ frm(
   upper = NULL,
   priors = NULL,
   quadrature = FALSE,
-  dry_run = NULL
+  dry_run = NULL,
+  verbose = FALSE
 )
 ```
 
@@ -99,6 +100,13 @@ frm(
   `"spec"` returns the parsed intermediate representation without
   touching `data`; `"frame"` returns the assembled design matrices and
   parameter template without fitting.
+
+- verbose:
+
+  Report fit progress; a shortcut for
+  `control = frmtmb_control(verbose =)`, whose value wins when both are
+  given. See [`frmtmb_control()`](frmtmb_control.md) for the levels and
+  the output.
 
 ## Value
 

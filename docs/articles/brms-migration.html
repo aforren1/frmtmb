@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.21.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.22.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -227,6 +227,37 @@ packages: fixed effects plus conditional modes per grouping level.</li>
 for simulation-based residual checks use
 <code><a href="../reference/dharma_residuals.html">dharma_residuals()</a></code>.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="seeing-the-model-code">Seeing the model code<a class="anchor" aria-label="anchor" href="#seeing-the-model-code"></a>
+</h2>
+<p>brms users inspect the generated model with
+<code>stancode(fit)</code>. The frmtmb analog is the objective function
+itself: an ordinary R closure that <code>RTMB::MakeADFun()</code> tapes,
+rebuilt deterministically from the fitted frame.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nll</span> <span class="op">&lt;-</span> <span class="fu">frmtmb</span><span class="fu">:::</span><span class="fu">build_objective</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">frame</span><span class="op">)</span></span>
+<span><span class="fu">nll</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">estimates</span><span class="op">)</span>   <span class="co"># joint negative log density at the estimates</span></span></code></pre></div>
+<p>Two properties matter when reading it:</p>
+<ul>
+<li>The closure takes the named parameter list (the shape of
+<code>fit$frame$par_template</code>) and returns the JOINT negative log
+density: random-effect prior terms are inside it. The marginal (Laplace)
+likelihood the optimizer minimized is what
+<code>MakeADFun(random = )</code> makes of it, exposed as
+<code>fit$obj$fn</code> over the flat outer-parameter vector; at the
+optimum <code>fit$obj$fn(fit$opt$par)</code> equals
+<code>-logLik(fit)</code>.</li>
+<li>All data is baked into the closure’s environment (the reason refits
+re-tape instead of recompiling), so <code>environment(nll)</code> holds
+the assembled frame, and the closure evaluates on plain numeric
+parameter lists without any tape.</li>
+</ul>
+<p><code>RTMB::MakeADFun(nll, fit$frame$par_template, random = "b", map = fit$frame$map)</code>
+reproduces <code>fit$obj</code>. There is no generated code to print:
+the closure IS the model, and <code><a href="https://rdrr.io/r/base/body.html" class="external-link">body()</a></code>,
+<code><a href="https://rdrr.io/r/base/environment.html" class="external-link">environment()</a></code>, and the debugger work on it like on any R
+function.</p>
 </div>
 <div class="section level2">
 <h2 id="when-you-still-want-brms">When you still want brms<a class="anchor" aria-label="anchor" href="#when-you-still-want-brms"></a>

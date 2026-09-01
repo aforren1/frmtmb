@@ -93,6 +93,39 @@ the stats/lme4 spelling for standard generics:
   simulation-based residual checks use
   [`dharma_residuals()`](../reference/dharma_residuals.md).
 
+## Seeing the model code
+
+brms users inspect the generated model with `stancode(fit)`. The frmtmb
+analog is the objective function itself: an ordinary R closure that
+`RTMB::MakeADFun()` tapes, rebuilt deterministically from the fitted
+frame.
+
+``` r
+
+nll <- frmtmb:::build_objective(fit$frame)
+nll(fit$estimates)   # joint negative log density at the estimates
+```
+
+Two properties matter when reading it:
+
+- The closure takes the named parameter list (the shape of
+  `fit$frame$par_template`) and returns the JOINT negative log density:
+  random-effect prior terms are inside it. The marginal (Laplace)
+  likelihood the optimizer minimized is what `MakeADFun(random = )`
+  makes of it, exposed as `fit$obj$fn` over the flat outer-parameter
+  vector; at the optimum `fit$obj$fn(fit$opt$par)` equals
+  `-logLik(fit)`.
+- All data is baked into the closure’s environment (the reason refits
+  re-tape instead of recompiling), so `environment(nll)` holds the
+  assembled frame, and the closure evaluates on plain numeric parameter
+  lists without any tape.
+
+`RTMB::MakeADFun(nll, fit$frame$par_template, random = "b", map = fit$frame$map)`
+reproduces `fit$obj`. There is no generated code to print: the closure
+IS the model, and [`body()`](https://rdrr.io/r/base/body.html),
+[`environment()`](https://rdrr.io/r/base/environment.html), and the
+debugger work on it like on any R function.
+
 ## When you still want brms
 
 Genuine prior information, full posterior uncertainty for derived

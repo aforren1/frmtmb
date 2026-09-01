@@ -30,6 +30,49 @@ diagnose(fit)
 #> No convergence problems detected
 ```
 
+## Convergence problems
+
+The warning “Large maximum absolute gradient at the optimum” means the
+optimizer stopped at a point where the objective still has slope above
+`frmtmb_control(grad_tol = 1e-3)`. Work through these in order; each
+step tells you something even when it does not fix the warning.
+
+1.  **Identify the parameter.** `diagnose(fit)` prints the largest
+    gradient component and its name. A coefficient of a continuous
+    predictor points to scaling; a `theta_*` component points to a
+    variance-parameter problem, and
+    [`diagnose()`](../reference/diagnose.md) flags extreme values (a
+    log-SD far below zero is a variance collapsing to its boundary,
+    which is a model issue, not an optimizer issue).
+2.  **Fix predictor scaling.** For a flagged coefficient,
+    `frmtmb_control(autoscale = TRUE)` standardizes badly scaled columns
+    internally and judges convergence in the rescaled units; rescaling
+    the variable in the data works equally well.
+3.  **Restart harder.** `frmtmb_control(restarts = 3)` re-launches the
+    optimizer from the current optimum until the gradient passes;
+    `optCtrl = list(iter.max = 5000, eval.max = 5000)` lifts the
+    iteration caps for slow problems.
+4.  **Compare optimizers.** `frm_allfit(fit)` refits with nlminb, optim,
+    bobyqa, and nloptr and tabulates log-likelihoods. All optimizers
+    agreeing on the log-likelihood to several decimals while one warns
+    usually means a flat ridge near the optimum, not a wrong answer;
+    disagreement means the warning is real.
+5.  **Look at the profile.** `plot(profile(fit, "theta_1"))` shows
+    whether the flagged parameter sits in a flat valley (benign) or on a
+    slope (not converged).
+6.  **Boundary fits.** When a random-effect SD is collapsing to zero,
+    the likelihood surface is one-sided and the gradient check can never
+    fully settle. Either simplify the random-effect structure, or keep
+    the term and regularize with
+    `priors = set_prior("exponential(1)", class = "sd")` (a MAP fit; the
+    same move as `blme`’s covariance priors).
+7.  **Judge marginal cases.** A gradient just above the default `1e-3`
+    (say 0.001-0.01) with stable estimates across restarts and
+    optimizers is typically flatness at machine precision for that
+    problem’s scale, not non-convergence. The threshold is a heuristic;
+    `frmtmb_control(grad_tol = )` tunes it, and steps 4-5 are the
+    evidence for deciding.
+
 ## Does the family fit the data?
 
 Three residual types, in increasing order of statistical care:

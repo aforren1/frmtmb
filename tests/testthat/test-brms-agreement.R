@@ -226,7 +226,7 @@ test_that("exact gp() matches brms's unique-position grouping", {
   expect_true(all(outer(ours, ours, "==") == outer(sd$Jgp_1, sd$Jgp_1, "==")))
 })
 
-test_that("gp(k =) HSGP basis matches brms once the input scaling agrees", {
+test_that("gp(k =) HSGP basis matches brms exactly", {
   skip_unless_brms()
   set.seed(2)
   ds <- data.frame(x = runif(200, 0, 10))
@@ -240,28 +240,22 @@ test_that("gp(k =) HSGP basis matches brms once the input scaling agrees", {
   expect_identical(fr$re_blocks[[1]]$dim, as.integer(sd$NBgp_1))
   expect_identical(fr$re_blocks[[1]]$covstruct, "hsgp")
 
-  # DIVERGENCE (convention): brms rescales the inputs by the maximum
-  # pairwise distance and sets L = c * max(1, range(scaled)), which in
-  # one dimension is always exactly c. We keep the raw scale and use
-  # L = c * max|x - mean(x)|, the half-range convention of
-  # Riutort-Mayol et al. brms's effective boundary is therefore about
-  # twice ours for the same c. Reproduce brms's coordinates and the
-  # bases coincide to machine precision, which pins the divergence to
-  # the scaling alone.
+  # same input convention: brms rescales the covariates by the largest
+  # pairwise distance and takes L = c * max(1, range(scaled)), which
+  # after that scaling is always exactly c. We do the same, so the
+  # boundary, the basis and the spectral frequencies agree directly.
+  gi <- fr$linpreds[["y.mu"]]$gps[[1]]
+  expect_vector_equal(gi$L, as.numeric(sd$Lgp_1), tol = 1e-12)
   expect_equal(as.numeric(sd$Lgp_1), 1.25)
-  dmax <- max(stats::dist(ds$x))
-  ds$u <- ds$x / dmax
-  uc <- ds$u - mean(ds$u)
-  cc <- as.numeric(sd$Lgp_1) / max(abs(uc))
-  fu <- frm(bf(stats::as.formula(bquote(y ~ gp(u, k = 25, c = .(cc))))) +
-              gaussian(), data = ds, dry_run = "frame")
-  gi <- fu$linpreds[["y.mu"]]$gps[[1]]
-  expect_vector_equal(gi$L, as.numeric(sd$Lgp_1), tol = 1e-10)
-  expect_design_equal(fu$linpreds[["y.mu"]]$Z, sd$Xgp_1, tol = 1e-12)
-  # the spectral frequencies are the same m * pi / (2 L) grid
-  expect_vector_equal(as.vector(gi$omega), as.vector(sd$slambda_1), tol = 1e-10)
+  # brms builds its basis over distinct positions and indexes it with
+  # Jgp; our Z carries one basis row per observation
+  expect_design_equal(fr$linpreds[["y.mu"]]$Z,
+                      sd$Xgp_1[sd$Jgp_1, , drop = FALSE], tol = 1e-12)
+  expect_vector_equal(as.vector(gi$omega), as.vector(sd$slambda_1),
+                      tol = 1e-12)
 
-  # multi-dimensional gp: k^D basis columns in both
+  # multi-dimensional gp: one shared scale over all coordinates, one
+  # boundary per dimension, and the same k^D basis
   dd <- brms_agree_data(n = 120)
   sd2 <- brms_standata(brms::bf(yg ~ gp(x, z, k = 5)), data = dd,
                        family = gaussian())
@@ -269,6 +263,33 @@ test_that("gp(k =) HSGP basis matches brms once the input scaling agrees", {
              dry_run = "frame")
   expect_identical(fr2$re_blocks[[1]]$dim, as.integer(sd2$NBgp_1))
   expect_identical(fr2$re_blocks[[1]]$gp_D, as.integer(sd2$Dgp_1))
+  gi2 <- fr2$linpreds[["yg.mu"]]$gps[[1]]
+  expect_vector_equal(gi2$L, as.numeric(sd2$Lgp_1), tol = 1e-12)
+  expect_design_equal(fr2$linpreds[["yg.mu"]]$Z,
+                      sd2$Xgp_1[sd2$Jgp_1, , drop = FALSE], tol = 1e-12)
+  expect_vector_equal(as.vector(gi2$omega), as.vector(sd2$slambda_1),
+                      tol = 1e-12)
+
+  # c = is per covariate in brms, and so here
+  sd3 <- brms_standata(brms::bf(yg ~ gp(x, z, k = 5, c = c(1.5, 2))),
+                       data = dd, family = gaussian())
+  fr3 <- frm(bf(yg ~ gp(x, z, k = 5, c = c(1.5, 2))) + gaussian(),
+             data = dd, dry_run = "frame")
+  expect_vector_equal(fr3$linpreds[["yg.mu"]]$gps[[1]]$L,
+                      as.numeric(sd3$Lgp_1), tol = 1e-12)
+  expect_design_equal(fr3$linpreds[["yg.mu"]]$Z,
+                      sd3$Xgp_1[sd3$Jgp_1, , drop = FALSE], tol = 1e-12)
+
+  # tied coordinates: brms's gr = TRUE collapses duplicate positions
+  # before it computes the scale and the center, and so do we
+  dt <- data.frame(x = round(runif(150, 0, 10), 1))
+  dt$y <- sin(dt$x) + rnorm(150, 0, 0.3)
+  sd4 <- brms_standata(brms::bf(y ~ gp(x, k = 12)), data = dt,
+                       family = gaussian())
+  fr4 <- frm(bf(y ~ gp(x, k = 12)) + gaussian(), data = dt,
+             dry_run = "frame")
+  expect_design_equal(fr4$linpreds[["y.mu"]]$Z,
+                      sd4$Xgp_1[sd4$Jgp_1, , drop = FALSE], tol = 1e-12)
 })
 
 test_that("mgcv smooths agree with brms's Zs/Xs bases", {
