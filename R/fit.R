@@ -994,6 +994,22 @@ optimize_obj <- function(obj, control,
 # The condition carries a class of its own so the autoscale pre-fit -
 # an inner fit_assembled() that has already been through here - is
 # rethrown rather than wrapped a second time.
+#
+# The diagnosis is only attached to errors that actually look numerical.
+# Everything raised inside the wrapped expression lands here, including
+# a misspelled optimizer, a custom optimizer that broke its return
+# contract, and errors from user code in a custom family - none of which
+# says anything about the likelihood. Reporting those as an undefined
+# objective sends the user to the wrong remedies and buries the real
+# message under advice.
+fit_numerical_error <- function(msg) {
+  # nlminb ("NA/NaN function evaluation"), RTMB ("NA/NaN gradient
+  # evaluation") and optim's L-BFGS-B finiteness checks are the
+  # vocabulary of an objective that came back undefined
+  grepl("NA/NaN|NaN|non-?finite|not finite|infinite|Inf\\b", msg,
+        ignore.case = TRUE)
+}
+
 fit_error_context <- function(spec, start, REML, control, quadrature,
                               priors, expr) {
   nl <- any(vapply(spec$responses,
@@ -1002,24 +1018,32 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
   withCallingHandlers(
     tryCatch(expr, error = function(e) {
       if (inherits(e, "frmtmb_fit_error")) stop(e)
-      msg <- if (nl_start) {
+      emsg <- conditionMessage(e)
+      numerical <- fit_numerical_error(emsg)
+      msg <- if (nl_start && numerical) {
         paste0("The nonlinear fit failed from the default zero starting ",
-               "values (", conditionMessage(e), "). Nonlinear models ",
+               "values (", emsg, "). Nonlinear models ",
                "need starting values in the right region: supply them ",
                "with the `start` argument of frm(), e.g. ",
                "start = list(beta = c(...)) in the order of fixef(); ",
                "frm(..., dry_run = \"frame\")$par_template shows the ",
                "layout")
-      } else {
+      } else if (numerical) {
         paste0("The optimizer failed on this model (",
                vb_fit_detail(spec, REML, control, quadrature, priors),
-               "): ", conditionMessage(e),
+               "): ", emsg,
                ". The likelihood was undefined or unbounded somewhere ",
                "the optimizer stepped. Refit with verbose = TRUE to see ",
                "which stage broke, try another optimizer ",
                "(frmtmb_control(optimizer = \"optim\")), or start the ",
                "fit nearer the optimum with the `start` argument of ",
                "frm()")
+      } else {
+        # the real message first, then only what is certainly true:
+        # which model it came from
+        paste0(emsg, " (raised while fitting: ",
+               vb_fit_detail(spec, REML, control, quadrature, priors),
+               ")")
       }
       stop(structure(
         class = c("frmtmb_fit_error", "simpleError", "error", "condition"),

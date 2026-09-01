@@ -572,10 +572,10 @@ frmtmb_compat_rules_tbl <- function() {
     "gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level.",
     override = TRUE)
   r("car", "*", "conditional",
-    "car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric binary adjacency matrix with dimnames covering every location. type = \"escar\" is the proper CAR, \"icar\"/\"esicar\" the intrinsic one under a soft sum-to-zero constraint (con_sd), \"bym2\" the scaled mixture; escar needs every location to have a neighbor.",
+    "car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = \"escar\" is the proper CAR, \"icar\"/\"esicar\" the intrinsic one under a soft sum-to-zero constraint (con_sd), \"bym2\" the scaled mixture; escar needs every location to have a neighbor.",
     override = TRUE)
   r("spde", "*", "conditional",
-    "spde(fem, gr = node) is a predictor special taking a mesh's finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes, so a general projector matrix is not supported yet.",
+    "spde(fem, gr = node) is a predictor special taking a mesh's finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes BY ROW NUMBER (whole numbers in 1..nrow(M0), as integers or as a factor/character spelling of them), because the matrices carry no dimnames to match labels against. Unobserved nodes keep their column; a general projector matrix is not supported yet.",
     override = TRUE)
   for (cs in frmtmb_compat_groups_lst$gmrf) {
     r(cs, "simulate", "works",

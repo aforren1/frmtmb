@@ -146,9 +146,32 @@ four orders below the standard error of `sd(car)`.
 `spde()` fits a Matern field over a finite-element mesh: it takes the
 mesh's three matrices (`fmesher::fm_fem()`'s `c0`/`g1`/`g2`, or INLA's
 `M0`/`M1`/`M2`) as fixed data and estimates `Q = tau^2 (kappa^4 M0 +
-2 kappa^2 M1 + M2)`. Mesh construction stays outside the package;
-`gr` maps observations onto mesh nodes. `confint_varcorr()` reports the
-marginal sd and the range under the planar `alpha = 2` identities.
+2 kappa^2 M1 + M2)`. Mesh construction stays outside the package.
+`confint_varcorr()` reports the marginal sd and the range under the
+planar `alpha = 2` identities.
+
+`gr` maps observations onto mesh nodes, and it does so by **row
+number**: the value of `gr` for an observation is the row of `M0` that
+holds its node. The finite-element matrices carry no dimnames, so
+nothing else can reconcile a set of labels with them - a label ordering
+would be a guess, and a wrong guess permutes the field against its own
+precision and still converges. Give `gr` whole numbers in
+`1..nrow(M0)`, as an integer or numeric column, a character column of
+those numbers, or a factor whose levels are those numbers; every one of
+those spellings is the same model. Any other labeling is an error. Not
+every node has to be observed: a node no row visits keeps its column
+and its prior, so the field is still smoothed across it.
+
+```r
+# node holds the mesh row of each observation, 1..nrow(fem$c0)
+frm(bf(y ~ x + spde(fmesher::fm_fem(mesh), gr = node)) + gaussian(),
+    data = d)
+```
+
+Because `gr` is one node per observation, the mesh has to place every
+observation on a node. A general projector matrix, which spreads an
+observation over the vertices of the triangle it falls in, is not
+supported yet.
 
 ## Special terms
 

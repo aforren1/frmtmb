@@ -558,17 +558,46 @@ car_adjacency <- function(M, locs) {
   if (length(dim(M)) != 2L || nrow(M) != ncol(M)) {
     stop("car(): M must be a square adjacency matrix", call. = FALSE)
   }
-  rn <- rownames(M) %||% colnames(M)
-  if (is.null(rn)) {
+  Md <- as.matrix(M)
+  # NA first: every check below compares, and a comparison against NA is
+  # NA, which reaches the user as "missing value where TRUE/FALSE
+  # needed" from isSymmetric() - naming neither the matrix nor the cell
+  if (anyNA(Md)) {
+    bad <- which(is.na(Md), arr.ind = TRUE)
+    stop("car(): M has ", nrow(bad), " missing entry/entries (the first ",
+         "at row ", bad[1L, 1L], ", column ", bad[1L, 2L], "); an ",
+         "adjacency matrix needs a 0 for every non-neighbor pair",
+         call. = FALSE)
+  }
+  # Locations are matched by NAME, so one set of names is enough - but
+  # when both are present they have to agree, or the row a location gets
+  # and the column it gets are two different places.
+  rn <- rownames(Md)
+  cn <- colnames(Md)
+  if (is.null(rn) && is.null(cn)) {
     stop("car(): M needs dimnames naming the locations", call. = FALSE)
   }
-  miss <- setdiff(locs, rn)
+  if (!is.null(rn) && !is.null(cn) && !identical(rn, cn)) {
+    stop("car(): M's rownames and colnames must name the same locations ",
+         "in the same order", call. = FALSE)
+  }
+  nms <- rn %||% cn
+  dup <- unique(nms[duplicated(nms)])
+  if (length(dup)) {
+    stop("car(): M names location(s) ",
+         paste(utils::head(dup, 5), collapse = ", "),
+         " more than once", call. = FALSE)
+  }
+  miss <- setdiff(locs, nms)
   if (length(miss)) {
     stop("car(): M has no row for location(s) ",
          paste(utils::head(miss, 5), collapse = ", "),
          if (length(miss) > 5) " ..." else "", call. = FALSE)
   }
-  W <- methods::as(Matrix::Matrix(as.matrix(M)[locs, locs, drop = FALSE],
+  # positional subsetting, so a matrix carrying only rownames (or only
+  # colnames) is read exactly like one carrying both
+  pos <- match(locs, nms)
+  W <- methods::as(Matrix::Matrix(Md[pos, pos, drop = FALSE],
                                   sparse = TRUE), "generalMatrix")
   if (!Matrix::isSymmetric(W, check.attributes = FALSE)) {
     stop("car(): M must be symmetric", call. = FALSE)
@@ -578,6 +607,14 @@ car_adjacency <- function(M, locs) {
          "itself)", call. = FALSE)
   }
   W <- methods::as(W, "CsparseMatrix")
+  # brms's validate_car_matrix reads an adjacency as non-negative
+  # weights. Binarizing a negative entry would turn a stated repulsion
+  # into a neighbor, so refuse it rather than reinterpret it.
+  if (any(W@x < 0)) {
+    stop("car(): M has ", sum(W@x < 0), " negative entry/entries (the ",
+         "smallest is ", format(min(W@x), digits = 4), "); an adjacency ",
+         "matrix holds non-negative weights", call. = FALSE)
+  }
   if (any(W@x != 1)) {
     message("car(): converting all non-zero values in M to 1.")
     W@x[W@x != 1] <- 1
@@ -587,8 +624,10 @@ car_adjacency <- function(M, locs) {
 }
 
 # The three finite-element matrices, under either the INLA (M0/M1/M2)
-# or the fmesher (c0/g1/g2) spelling.
-spde_matrices <- function(fem, n) {
+# or the fmesher (c0/g1/g2) spelling. The mesh size is whatever the
+# matrices say it is - see spde_node_index() for why the data cannot be
+# asked instead.
+spde_matrices <- function(fem) {
   nms <- names(fem) %||% character(0)
   key <- if (all(c("M0", "M1", "M2") %in% nms)) c("M0", "M1", "M2")
          else if (all(c("c0", "g1", "g2") %in% nms)) c("c0", "g1", "g2")
@@ -597,19 +636,86 @@ spde_matrices <- function(fem, n) {
     stop("spde(): fem must be a list holding M0, M1, M2 (INLA) or ",
          "c0, g1, g2 (fmesher::fm_fem)", call. = FALSE)
   }
+  M0 <- fem[[key[1L]]]
+  if (length(dim(M0)) != 2L || nrow(M0) != ncol(M0)) {
+    stop("spde(): ", key[1L], " must be a square matrix, one row per ",
+         "mesh node", call. = FALSE)
+  }
+  n <- nrow(M0)
   out <- list()
   for (i in seq_along(key)) {
     Mi <- fem[[key[i]]]
-    if (nrow(Mi) != n || ncol(Mi) != n) {
-      stop("spde(): ", key[i], " is ", nrow(Mi), " x ", ncol(Mi),
-           " but the grouping factor has ", n, " mesh nodes",
-           call. = FALSE)
+    if (length(dim(Mi)) != 2L || nrow(Mi) != n || ncol(Mi) != n) {
+      stop("spde(): ", key[i], " is ",
+           paste(dim(Mi) %||% length(Mi), collapse = " x "), " but ",
+           key[1L], " has ", n, " mesh nodes; the three finite-element ",
+           "matrices must be square and the same size", call. = FALSE)
     }
     out[[c("M0", "M1", "M2")[i]]] <-
       methods::as(methods::as(Matrix::Matrix(Mi, sparse = TRUE),
                               "generalMatrix"), "CsparseMatrix")
   }
   out
+}
+
+# Node indices for an spde() grouping variable.
+#
+# The finite-element matrices are indexed by mesh ROW NUMBER and carry
+# no dimnames to match labels against, so nothing reconciles a level
+# ordering with the mesh. Deriving the ordering from the grouping
+# variable - factor levels, or sort(unique(as.character(gv))) - reads
+# integer node ids lexicographically ("1", "10", "11", "2", ...), which
+# permutes the field against its own precision and converges silently to
+# a different model. The contract is therefore explicit: gr holds mesh
+# row indices, in 1..nrow(M0). Anything else is refused rather than
+# guessed at. Unobserved nodes are fine (they keep their prior); gaps
+# are not an error.
+spde_node_index <- function(gv, n, gr_expr) {
+  idx <- spde_node_numeric(gv)
+  if (is.null(idx) || any(idx != trunc(idx))) {
+    stop("spde(): mesh nodes are indexed by their ROW NUMBER in the ",
+         "finite-element matrices, which carry no location names, so ",
+         "gr must hold whole-number node indices in 1..", n, "; '",
+         deparse1(gr_expr), "' holds labels that are not whole numbers. ",
+         "Map each observation onto its mesh row first and pass those ",
+         "indices as gr", call. = FALSE)
+  }
+  idx <- as.integer(idx)
+  bad <- unique(idx[idx < 1L | idx > n])
+  if (length(bad)) {
+    stop("spde(): gr = ", deparse1(gr_expr), " holds node index/indices ",
+         paste(utils::head(sort(bad), 5), collapse = ", "),
+         ", outside the mesh's 1..", n, " rows", call. = FALSE)
+  }
+  idx
+}
+
+# The numeric node ids behind an spde() grouping variable, or NULL when
+# the values are not numbers. A factor is read through its LEVELS, never
+# its integer codes: the codes are a level ordering, which is exactly
+# the thing that must not decide mesh rows.
+spde_node_numeric <- function(gv) {
+  v <- if (is.factor(gv)) {
+    lv <- suppressWarnings(as.numeric(levels(gv)))
+    if (anyNA(lv)) return(NULL)
+    lv[as.integer(gv)]
+  } else if (is.numeric(gv)) {
+    as.numeric(gv)
+  } else {
+    w <- suppressWarnings(as.numeric(as.character(gv)))
+    if (anyNA(w)) return(NULL)
+    w
+  }
+  if (anyNA(v)) NULL else v
+}
+
+# The block level labels an spde() grouping variable maps onto, used by
+# both frame assembly and newdata prediction so the two spellings of a
+# node ("3", 3L, factor "3") always land on the same column.
+spde_node_labels <- function(gv) {
+  v <- spde_node_numeric(gv)
+  if (is.null(v) || any(v != trunc(v))) return(as.character(gv))
+  as.character(as.integer(v))
 }
 
 car_npar <- function(type) if (type %in% c("escar", "bym2")) 2L else 1L
@@ -680,8 +786,17 @@ car_aux <- function(W, type, con_sd = car_con_sd_default) {
            " have none. Use type = \"icar\" instead", call. = FALSE)
     }
     isq <- diag(1 / sqrt(deg), nrow = n)
-    aux$eigW <- eigen(isq %*% as.matrix(W) %*% isq, symmetric = TRUE,
-                      only.values = TRUE)$values
+    ev <- eigen(isq %*% as.matrix(W) %*% isq, symmetric = TRUE,
+                only.values = TRUE)$values
+    # The normalized adjacency's spectrum lies in [-1, 1], but LAPACK
+    # returns the extreme eigenvalues a few ulp outside it. The density
+    # takes log(1 - rho * eig) with rho = plogis(theta2), which reaches
+    # 1 to double precision by theta2 = 36: a stray eig = 1 + 2e-16
+    # makes the argument negative and the whole objective NaN, and the
+    # optimizer only reports "NA/NaN function evaluation". Clamping
+    # costs nothing elsewhere - the determinant is unchanged to twelve
+    # digits - and keeps the boundary evaluable.
+    aux$eigW <- pmin(pmax(ev, -1), 1)
     aux$ldet_deg <- sum(log(deg))
     return(aux)
   }

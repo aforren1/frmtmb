@@ -18,11 +18,13 @@ frm_sample(
 \item{fit}{A \code{frmtmb_fit}.}
 
 \item{...}{Passed to \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} (\code{chains}, \code{iter},
-\code{laplace}, \code{cores}, ...). On Windows \code{cores > 1} falls back to
-sequential chains with a warning: parallel chains run on socket
+\code{laplace}, \code{cores}, ...). On Windows more than one core falls back
+to sequential chains with a warning: parallel chains run on socket
 workers, which can evaluate neither the RTMB tape nor the
 objective closure (the known RTMB limitation of tmbstan,
-tmbstan#27). Fork clusters on unix can, so \code{cores} works there.}
+tmbstan#27). The fallback also covers a core count inherited from
+\code{options(mc.cores)}, which is what rstan reads when \code{cores} is not
+given. Fork clusters on unix can, so \code{cores} works there.}
 
 \item{priors}{Optional named list of priors (see \code{\link[=prior_normal]{prior_normal()}});
 names are parameter names as in the draws (or whole components:

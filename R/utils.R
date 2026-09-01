@@ -64,7 +64,18 @@ parse_num_levels <- function(lv) {
 # below its tolerance), and cov.fixed comes back filled with NaN on a
 # fit that converged with a small gradient and a positive definite
 # Hessian. diagnose() names the parameters; nothing else did.
-warn_nonfinite_cov <- function() {
+#
+# The verdict is a property of the FIT, not of the call, so it is worth
+# saying once per fit: vcov(), summary(), confint() and predict() all
+# reach it on the same degenerate object, and frm_multiple() and
+# influence() loop over those. The flag lives on the fit's cache
+# environment, which is replaced whenever the fit is re-estimated, so a
+# refit that is still degenerate warns again.
+warn_nonfinite_cov <- function(cache = NULL) {
+  if (is.environment(cache)) {
+    if (isTRUE(cache$warned_nonfinite_cov)) return(invisible(NULL))
+    cache$warned_nonfinite_cov <- TRUE
+  }
   warning("Some standard errors are not finite, so vcov() and ",
           "summary() report NaN: the covariance could not be recovered ",
           "from the Hessian and the model is probably ",
@@ -80,7 +91,7 @@ warn_nonfinite_cov <- function() {
 # hand here would instead throw a raw LAPACK message that names neither
 # the model nor the remedy. Degrade the same way ML does: NaN entries
 # plus one warning pointing at diagnose().
-solve_joint_precision <- function(Q) {
+solve_joint_precision <- function(Q, cache = NULL) {
   # Matrix::solve, not base solve: the joint precision of a GLMM is
   # sparse and often badly conditioned, and base's dense LAPACK path
   # refuses it on a reciprocal-condition-number test that the sparse
@@ -97,8 +108,16 @@ solve_joint_precision <- function(Q) {
     # The x slot is the stored values of a Matrix; a base matrix has no
     # such slot and is read whole.
     xs <- tryCatch(V@x, error = function(e) as.numeric(as.matrix(V)))
-    if (any(!is.finite(xs))) warn_nonfinite_cov()
+    if (any(!is.finite(xs))) warn_nonfinite_cov(cache)
     return(V)
+  }
+  if (is.environment(cache)) {
+    # same once-per-fit rule as warn_nonfinite_cov(): a singular joint
+    # precision stays singular for every caller that asks
+    if (isTRUE(cache$warned_singular_precision)) {
+      return(matrix(NaN, nrow(Q), ncol(Q), dimnames = dimnames(Q)))
+    }
+    cache$warned_singular_precision <- TRUE
   }
   warning("The joint precision matrix is singular, so standard errors ",
           "are NaN; the model is probably overparameterized. ",

@@ -70,9 +70,13 @@ dpar_frame_rhs <- function(dp) {
     }
   }
   # car()/spde() need their grouping variable in the frame; the
-  # adjacency and mesh matrices are external data, like gr(cov = A)'s
+  # adjacency and mesh matrices are external data, like gr(cov = A)'s.
+  # The RAW variables go in, not the expression - a call-valued gr
+  # (gr = factor(node)) is evaluated against the frame at assembly, the
+  # way every other special resolves its arguments, and model.frame
+  # cannot be asked to carry the call itself.
   for (ce in c(dp$carterms %||% list(), dp$spdeterms %||% list())) {
-    parts <- c(parts, list(ce$gr_expr))
+    for (v in all.vars(ce$gr_expr)) parts <- c(parts, list(as.name(v)))
   }
   out <- NULL
   for (p in parts) out <- if (is.null(out)) p else call("+", out, p)
@@ -951,22 +955,30 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           stop(fn, "(): the grouping variable '", deparse1(ce$gr_expr),
                "' has missing values", call. = FALSE)
         }
-        locs <- if (is.factor(gv)) levels(droplevels(gv)) else {
-          sort(unique(as.character(gv)))
-        }
-        j_loc <- match(as.character(gv), locs)
-        Zc <- Matrix::sparseMatrix(i = seq_along(j_loc), j = j_loc, x = 1,
-                                   dims = c(length(j_loc), length(locs)))
         aux_car <- NULL
         aux_spde <- NULL
         if (is_car) {
+          # the adjacency matrix names its locations, so the block's
+          # level order is the data's and the matrix is permuted to it
+          locs <- if (is.factor(gv)) levels(droplevels(gv)) else {
+            sort(unique(as.character(gv)))
+          }
+          j_loc <- match(as.character(gv), locs)
           M <- eval(ce$M_expr, data, resp$formula_env)
           W <- car_adjacency(M, locs)
           aux_car <- car_aux(W, ce$type, ce$con_sd)
         } else {
+          # the mesh names nothing, so the block's levels ARE the mesh
+          # rows and the data is permuted to them: every node gets a
+          # column, observed or not (an unobserved one keeps its prior)
           fem <- eval(ce$fem_expr, data, resp$formula_env)
-          aux_spde <- spde_matrices(fem, length(locs))
+          aux_spde <- spde_matrices(fem)
+          n_node <- nrow(aux_spde[["M0"]])
+          j_loc <- spde_node_index(gv, n_node, ce$gr_expr)
+          locs <- as.character(seq_len(n_node))
         }
+        Zc <- Matrix::sparseMatrix(i = seq_along(j_loc), j = j_loc, x = 1,
+                                   dims = c(length(j_loc), length(locs)))
         components[[length(components) + 1L]] <- list(
           lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
           covstruct = fn, id = NULL,

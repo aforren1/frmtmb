@@ -22,7 +22,7 @@ get_joint_cov <- function(fit) {
     # same degradation vcov() uses: a singular joint precision gives NaN
     # standard errors and one warning naming diagnose(), not a raw
     # LAPACK message from deep inside predict()
-    V <- as.matrix(solve_joint_precision(Q))
+    V <- as.matrix(solve_joint_precision(Q, cache))
     rn <- rownames(Q)
   }
   cache$Vjoint <- list(V = V, names = rn)
@@ -247,7 +247,13 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
              paste(colnames(mm), collapse = ", "), " vs ",
              paste(comp$cnms, collapse = ", "), ")", call. = FALSE)
       }
-      gv <- as.character(eval(comp$bar[[3]], newdata, env))
+      gvr <- eval(comp$bar[[3]], newdata, env)
+      # an spde block's levels are mesh ROW NUMBERS, so the node has to
+      # be read as a number here too: as.character() on a double would
+      # spell node 100000 as "1e+05" and lose the column
+      gv <- if (bk$covstruct == "spde") spde_node_labels(gvr) else {
+        as.character(gvr)
+      }
       j <- match(gv, bk$levels)
       if (anyNA(j) && !allow_new_levels) {
         stop("New levels in grouping factor `", deparse1(comp$bar[[3]]),

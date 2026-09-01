@@ -230,7 +230,7 @@ vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
     # own convergence checks all passed - so say so here, or nothing
     # does. (The REML/profile branch below warns through
     # solve_joint_precision().)
-    if (any(!is.finite(V))) warn_nonfinite_cov()
+    if (any(!is.finite(V))) warn_nonfinite_cov(object$cache)
     if (full) {
       # cov.fixed rows repeat the component names; the per-parameter
       # names (confint rows) are the useful labels
@@ -242,7 +242,7 @@ vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
     V <- V[ord, ord, drop = FALSE]
   } else {
     Q <- sdr_of(object)$jointPrecision
-    Vall <- solve_joint_precision(Q)
+    Vall <- solve_joint_precision(Q, object$cache)
     rn <- rownames(Q)
     ord <- c(which(rn == "beta"), which(rn == "betad"))
     V <- as.matrix(Vall[ord, ord, drop = FALSE])

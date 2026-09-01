@@ -393,6 +393,53 @@ diagnose_singular <- function(fit, tol = 1e-4) {
   out
 }
 
+# The theta components that are LOG STANDARD DEVIATIONS, named the way
+# confint_varcorr() names their rows.
+#
+# The |theta| > 8 near-singularity heuristic only reads as a boundary
+# fit on a log sd: e^-8 is a variance no data supports. The other
+# components live on their own scales, where the same magnitude is
+# ordinary - a CAR/BYM2 mixing proportion and an AR(1) phi are logit-
+# and arctan-like, so a rho legitimately at the boundary sits at
+# |theta| >> 8, and the SPDE's (log tau, log kappa) are a precision and
+# an inverse range, neither of which is a standard deviation. Reading
+# those as singular fits is a false alarm on a converged model.
+# Structures whose registry declares no sd (rr, equalto, spde)
+# contribute nothing.
+log_sd_theta_index <- function(fit) {
+  idx <- integer(0)
+  nms <- character(0)
+  for (bk in fit$frame$re_blocks %||% list()) {
+    # blocks whose confint() rows are hand-written carry their own name
+    shared <- switch(bk$covstruct,
+                     smooth = "sd(wiggle)", gp = "sd(gp)",
+                     hsgp = "sd(gp)", car = "sd(car)",
+                     spde = NA_character_, equalto = NA_character_,
+                     NULL)
+    if (!is.null(shared)) {
+      if (is.na(shared)) next
+      idx <- c(idx, bk$theta_idx[1L])
+      nms <- c(nms, paste0(bk$term_label, " ", shared))
+      next
+    }
+    reg <- covstruct_registry[[bk$covstruct]]
+    si <- if (is.null(reg)) integer(0) else {
+      tryCatch(as.integer(reg$sd_idx(bk$dim)),
+               error = function(e) integer(0))
+    }
+    for (i in seq_along(si)) {
+      idx <- c(idx, bk$theta_idx[si[i]])
+      # the generic confint() path labels sd rows by column name, and
+      # falls back to the first when one sd is shared across columns
+      nms <- c(nms, paste0(bk$term_label, " ",
+                           bk$cnms[min(i, length(bk$cnms))]))
+    }
+  }
+  th_n <- length(fit$estimates$theta %||% numeric(0))
+  keep <- !is.na(idx) & idx >= 1L & idx <= th_n
+  stats::setNames(idx[keep], nms[keep])
+}
+
 #' Convergence diagnostics for a frmtmb fit
 #'
 #' Reports the optimizer's own verdict plus four checks that a converged
@@ -422,6 +469,8 @@ diagnose <- function(fit, quiet = FALSE) {
   # theta is absent from fits with no random effects; abs(NULL) is an
   # error, not an empty result
   th <- fit$estimates$theta %||% numeric(0)
+  # only the log-sd components; see log_sd_theta_index()
+  sd_i <- log_sd_theta_index(fit)
   ps <- tryCatch(par_est_se(fit), error = function(e) NULL)
   out <- list(
     convergence = fit$opt$convergence,
@@ -431,7 +480,7 @@ diagnose <- function(fit, quiet = FALSE) {
     pdHess = isTRUE(sdr_of(fit)$pdHess),
     bad_se = nm[!is.finite(se)],
     min_cov_eigenvalue = if (!is.null(ev) && length(ev)) min(ev),
-    extreme_theta = which(abs(th) > 8),
+    extreme_theta = sd_i[abs(th[sd_i]) > 8],
     separation = if (!is.null(ps)) diagnose_separation(fit, ps),
     predictor_scale = diagnose_predictor_scale(fit),
     singular = diagnose_singular(fit)
@@ -452,9 +501,11 @@ diagnose <- function(fit, quiet = FALSE) {
           paste(out$bad_se, collapse = ", "), "\n")
     }
     if (length(out$extreme_theta)) {
-      cat("Extreme covariance parameters (|theta| > 8) at index ",
-          paste(out$extreme_theta, collapse = ", "),
-          ": the fit is near-singular; consider simplifying the ",
+      cat("Extreme covariance parameters (|log sd| > 8): ",
+          paste(paste0(names(out$extreme_theta), " (log sd ",
+                       format(th[out$extreme_theta], digits = 3), ")"),
+                collapse = "; "),
+          "\n  The fit is near-singular; consider simplifying the ",
           "random effects (e.g. diag() instead of a correlated term)\n",
           sep = "")
     }
@@ -808,7 +859,7 @@ hyp_par_cov <- function(fit) {
          n_outer = length(fit$opt$par))
   } else {
     Q <- sdr_of(fit)$jointPrecision
-    Vall <- solve_joint_precision(Q)
+    Vall <- solve_joint_precision(Q, fit$cache)
     rn <- rownames(Q)
     keep <- which(rn %in% comps)
     vo <- hyp_vals_only(fit)

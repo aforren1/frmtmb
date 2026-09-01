@@ -267,6 +267,14 @@ all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
   out
 }
 
+# The core count tmbstan would actually use. rstan defaults its `cores`
+# argument to getOption("mc.cores", 1L), so a session-wide mc.cores
+# starts parallel chains just as an explicit cores = does, and the
+# Windows guard has to read the same source or it never fires.
+stan_cores <- function(args) {
+  as.numeric(args$cores %||% getOption("mc.cores", 1L))[1L]
+}
+
 #' Sample the fitted model with NUTS
 #'
 #' Runs [tmbstan::tmbstan()] on the fitted objective, initialized at the
@@ -280,11 +288,13 @@ all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
 #'
 #' @param fit A `frmtmb_fit`.
 #' @param ... Passed to [tmbstan::tmbstan()] (`chains`, `iter`,
-#'   `laplace`, `cores`, ...). On Windows `cores > 1` falls back to
-#'   sequential chains with a warning: parallel chains run on socket
+#'   `laplace`, `cores`, ...). On Windows more than one core falls back
+#'   to sequential chains with a warning: parallel chains run on socket
 #'   workers, which can evaluate neither the RTMB tape nor the
 #'   objective closure (the known RTMB limitation of tmbstan,
-#'   tmbstan#27). Fork clusters on unix can, so `cores` works there.
+#'   tmbstan#27). The fallback also covers a core count inherited from
+#'   `options(mc.cores)`, which is what rstan reads when `cores` is not
+#'   given. Fork clusters on unix can, so `cores` works there.
 #' @param priors Optional named list of priors (see [prior_normal()]);
 #'   names are parameter names as in the draws (or whole components:
 #'   `"beta"`, `"theta"`, ...). Parameters without a prior keep the flat
@@ -356,10 +366,17 @@ frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
   }
   if (identical(init, "last.par.best")) {
     # a singular ML mode (variance at the boundary) is exactly the
-    # pathological start the mode-init criticism is about
-    if (any(abs(fit$estimates$theta %||% 0) > 8)) {
-      warning("The ML mode has an extreme covariance parameter ",
-              "(likely a boundary/singular fit); mode initialization ",
+    # pathological start the mode-init criticism is about. Only the
+    # log-sd components read that way: a CAR mixing proportion or an
+    # AR(1) phi at its own boundary is a large theta on a converged,
+    # perfectly samplable fit (see log_sd_theta_index()).
+    th_all <- fit$estimates$theta %||% numeric(0)
+    sd_i <- log_sd_theta_index(fit)
+    ext <- sd_i[abs(th_all[sd_i]) > 8]
+    if (length(ext)) {
+      warning("The ML mode has an extreme covariance parameter (",
+              paste(names(ext), collapse = ", "),
+              "; likely a boundary/singular fit); mode initialization ",
               "starts the chains there. Consider init = \"random\", ",
               "or regularize with priors =", call. = FALSE)
     }
@@ -395,7 +412,7 @@ frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
   # function and rstan's error names neither. Known upstream as
   # tmbstan#27; fork clusters (unix) inherit both, so only Windows
   # needs the guard.
-  if (.Platform$OS.type == "windows" && (args$cores %||% 1) > 1) {
+  if (.Platform$OS.type == "windows" && stan_cores(args) > 1) {
     warning("cores > 1 is not available on Windows: parallel chains ",
             "run on socket workers, which cannot evaluate the RTMB ",
             "tape. Running the chains sequentially", call. = FALSE)
