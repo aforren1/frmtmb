@@ -379,7 +379,6 @@ emm_mu_linpred <- function(object) {
   lp
 }
 
-#' @exportS3Method emmeans::recover_data
 # marginaleffects support: the four extension generics plus the
 # class-whitelist option set in .onLoad. Predictions under set_coef are
 # conditional on the estimated random-effect modes (the glmmTMB/lmer
@@ -420,6 +419,7 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
   data.frame(rowid = seq_along(p), estimate = as.numeric(p))
 }
 
+#' @exportS3Method emmeans::recover_data
 recover_data.frmtmb_fit <- function(object, ..., data = NULL) {
   lp <- emm_mu_linpred(object)
   emmeans::recover_data(object$call,

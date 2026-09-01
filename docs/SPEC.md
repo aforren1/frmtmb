@@ -71,9 +71,10 @@ under the deparsed argument expression, so identical expressions in a
 loop over responses silently collide. Everything else once listed here
 (OSA residuals, RTMBdist families, gr(cov=), ou/toep, propto-equivalent
 equalto, smooth edf reporting) has since shipped; `propto` itself is
-spelled `gr(g, cov = A)`. Remaining deferrals: multi-dimensional gp(),
-kriging prediction for exact gp(), and `ar()/ma()` residual
-autocorrelation terms.
+spelled `gr(g, cov = A)`; gp() now spans up to 3 dimensions
+(per-dimension or iso lengthscales) and the exact form kriges at unseen
+positions. Remaining deferrals: `ar()/ma()` residual autocorrelation
+terms.
 
 ## 1. Thesis
 
@@ -455,7 +456,7 @@ Each milestone ends green against a reference implementation.
 | v0.1 | gaussian/poisson/binomial (with `trials()`), mu formula only, `(1|g)` and `(1+x|g)` with `us`/`diag`, [`weights()`](https://rdrr.io/r/stats/weights.html)/[`offset()`](https://rdrr.io/r/stats/offset.html), ML + REML, core methods, `dry_run` IR printing | logLik vs glmmTMB to 1e-6; fixef 1e-5; SEs 1e-4; REML vs `lmer` (sleepstudy, cbpp) |
 | v0.2 | full dpar formulas incl. REs; Gamma, nbinom1/2, beta, student, tweedie, lognormal, compois; newdata predict + se.fit; residuals/simulate/confint/diagnose/anova | `sigma ~ x` vs `glmmTMB(dispformula=)` and gamlss to 1e-5; OSA residuals uniform on simulated data |
 | v0.3 | `s()`/`t2()` in any dpar; `gr(by=, cov=)`; ar1/cs/toep/homdiag/ou/propto; edf reporting | vs `mgcv::gam(method="ML"/"REML")` to 1e-4; `ar1` vs glmmTMB to 1e-6 |
-| v0.4 | mvbf, per-response families, rescor (gaussian/student), `\|ID\|` cross-formula RE correlation, zi/hurdle wrappers, cumulative ordinal, cens/trunc | ordinal vs `ordinal::clmm` 1e-5; zi vs glmmTMB 1e-6; censored gaussian vs [`survival::survreg`](https://rdrr.io/pkg/survival/man/survreg.html) |
+| v0.4 | mvbf, per-response families, rescor (gaussian/student), `\|ID\|` cross-formula RE correlation, zi/hurdle wrappers, cumulative ordinal, cens/trunc | ordinal vs [`ordinal::clmm`](https://rdrr.io/pkg/ordinal/man/clmm.html) 1e-5; zi vs glmmTMB 1e-6; censored gaussian vs [`survival::survreg`](https://rdrr.io/pkg/survival/man/survreg.html) |
 | v0.5 | `nl = TRUE`, [`custom_family()`](reference/frmtmb_family.md) public, emmeans/marginaleffects polish, `conditional_effects`, `as_tmbstan`, `mm()`, pkgdown + brms-migration vignette | nl growth models vs [`nlme::nlme`](https://rdrr.io/pkg/nlme/man/nlme.html); custom nbinom2 matches built-in to 1e-10 |
 
 Deferred (candidates for v0.6+): `mo()`, `gp()` (HSGP or `dgmrf`),

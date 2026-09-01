@@ -53,7 +53,9 @@ predict(
 
   If `TRUE`, return a list with elements `fit` and `se.fit`
   (delta-method standard errors accounting for fixed-effect and
-  random-effect uncertainty).
+  random-effect uncertainty). Exact `gp()` terms predict unseen
+  positions by kriging: the conditional mean at the fitted kernel, with
+  the GP conditional variance added to the standard errors.
 
 - allow_new_levels:
 

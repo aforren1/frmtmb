@@ -1,5 +1,65 @@
 # Changelog
 
+## frmtmb 0.20.0
+
+- `mixture_mvn(K, D)`: multivariate gaussian mixture components for
+  model-based clustering of an n x D matrix response (the mclust /
+  clustTMB use case). Every class mean is a full linear predictor, so
+  cluster means may depend on covariates and random effects; mixing
+  weights are multinomial-logit dpars with their own formulas. Validated
+  against a hand-rolled ML fit to 1.3e-10 and against faithful-data
+  cluster recovery. Limitations (documented in
+  [`?mixture_mvn`](../reference/mixture_mvn.md)): class covariances are
+  unstructured (`us`) and covariate-free - no mclust-style constrained
+  covariance taxonomy (EII..VEV);
+  `cens()`/[`trunc()`](https://rdrr.io/r/base/Round.html),
+  [`mvbf()`](../reference/mvbf.md), and
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) are not
+  supported.
+- Multi-dimensional Gaussian processes: `gp(x1, x2, ...)` takes up to
+  three variables, with a separate lengthscale per dimension by default
+  (the brms convention) or one shared lengthscale via `iso = TRUE`, in
+  both the exact and the Hilbert-space (`k =`) form. The tensor HSGP
+  basis is capped at `k^D <= 1000` columns.
+  [`confint_varcorr()`](../reference/confint_varcorr.md) reports one
+  range row per dimension. Validated against a direct 2-D ML fit to
+  3.8e-11.
+- Kriging prediction for the exact `gp()`: `predict(newdata = )` at
+  positions not seen at fit time now returns the GP conditional mean,
+  and `se.fit = TRUE` adds the conditional variance, instead of
+  erroring. Kriging mean validated to 1.7e-15 and the standard error to
+  the exact decomposition identity. The Hilbert-space form already
+  interpolated through its basis.
+- `frmtmb_control(sparse_x = TRUE)`: sparse fixed-effect design matrices
+  ([`Matrix::sparse.model.matrix`](https://rdrr.io/pkg/Matrix/man/sparse.model.matrix.html)),
+  the analog of `glmmTMB(sparseX = )`, for models where a many-level
+  fixed factor dominates memory. Estimates are identical to the dense
+  path (gradient agreement 3e-14; 13.8% lower tape memory in the
+  validation model);
+  [`model.matrix()`](https://rdrr.io/r/stats/model.matrix.html) on the
+  fit returns a sparse matrix. Prediction falls back to the dense
+  builder for newdata containing NA factor rows, which
+  `sparse.model.matrix` would silently zero.
+- `frmtmb_control(autoscale = TRUE)`: internal standardization of badly
+  scaled continuous predictors (the lme4 \>= 1.1.37 feature): a scaled
+  pre-fit is mapped back exactly and warm-starts the reported fit,
+  parameter magnitudes feed `nlminb`’s scale hook, and convergence and
+  standard-error Hessian checks run in scaled units. Turns 12 scaling
+  warnings into 0 on the validation problem with a 0.0 log-likelihood
+  difference against a manually standardized reference. Reported results
+  are always on the original scale.
+- [`frm_multiple()`](../reference/frm_multiple.md) pooling extensions:
+  `$pooled_varcorr` pools random-effect SDs and correlations across
+  imputations on transformed scales (log for SDs and GP ranges, Fisher z
+  for correlations) with Barnard-Rubin degrees of freedom, and
+  [`hypothesis()`](../reference/hypothesis.md) on a `frmtmb_multiple`
+  object pools delta-method hypothesis estimates by Rubin’s rules with
+  t-based intervals. Fixed-effect pooling matches
+  [`mice::pool()`](https://amices.org/mice/reference/pool.html) to
+  2.1e-6. Likelihood-ratio pooling across imputations (mice’s D3) is not
+  implemented; [`anova()`](https://rdrr.io/r/stats/anova.html) on pooled
+  fits remains per-fit.
+
 ## frmtmb 0.19.0
 
 - Latent classes now combine with continuous random effects
@@ -141,8 +201,9 @@ fits.
   [`cooks.distance()`](https://rdrr.io/r/stats/influence.measures.html):
   case-deletion diagnostics over warm-started refits.
 - [`frm_multiple()`](../reference/frm_multiple.md): fits across
-  multiply-imputed datasets (list or `mice::mids`) pooled by Rubin’s
-  rules with Barnard-Rubin df.
+  multiply-imputed datasets (list or
+  [`mice::mids`](https://amices.org/mice/reference/mids.html)) pooled by
+  Rubin’s rules with Barnard-Rubin df.
 - [`conditional_effects()`](../reference/conditional_effects.md) gains
   `method = "predict"` (prediction intervals) and data-frame
   `conditions` (one condition set per row, brms style).

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.19.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.20.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,7 +94,9 @@ gives population-level predictions.</p></dd>
 <dt id="arg-se-fit">se.fit<a class="anchor" aria-label="anchor" href="#arg-se-fit"></a></dt>
 <dd><p>If <code>TRUE</code>, return a list with elements <code>fit</code> and <code>se.fit</code>
 (delta-method standard errors accounting for fixed-effect and
-random-effect uncertainty).</p></dd>
+random-effect uncertainty). Exact <code>gp()</code> terms predict unseen
+positions by kriging: the conditional mean at the fitted kernel,
+with the GP conditional variance added to the standard errors.</p></dd>
 
 
 <dt id="arg-allow-new-levels">allow_new_levels<a class="anchor" aria-label="anchor" href="#arg-allow-new-levels"></a></dt>

@@ -33,7 +33,9 @@ closed-form marginals, or hand-written ML) - see
 - mgcv smooths `s()`/`t2()` in any linear predictor, including
   matrix-covariate terms: scalar-on-function, function-on-scalar, and
   function-on-function regression.
-- Gaussian processes: `gp(x)` exact, `gp(x, k = 30)` Hilbert-space.
+- Gaussian processes: `gp(x)` exact with kriging prediction,
+  `gp(x, k = 30)` Hilbert-space, up to three dimensions
+  (`gp(x1, x2)`, per-dimension lengthscales, `iso = TRUE` to share).
 - Special terms: `mo()` monotonic effects, `mi()` one-step imputation
   of continuous predictors, `mi(sdx)` measurement error, `cs()`
   category-specific ordinal effects; `mo()`/`mi()` support two-way
@@ -46,7 +48,10 @@ closed-form marginals, or hand-written ML) - see
   hurdle variants, four ordinal families, and finite `mixture()`
   families - including group-level latent classes
   (`mixture(..., groups = ~g)`) with class-specific random effects
-  (growth-mixture models). `custom_family()` takes a plain R
+  (growth-mixture models) and multivariate gaussian components
+  (`mixture_mvn(K, D)`, model-based clustering with
+  covariate-dependent means and gating). `custom_family()` takes a
+  plain R
   log-density (the test suite fits a Wiener drift-diffusion model in
   about 15 lines).
 - Addition terms: `weights()`, `trials()` (counts or proportions),
@@ -58,7 +63,8 @@ closed-form marginals, or hand-written ML) - see
 - ML and REML; adaptive quadrature (`quadrature = TRUE`) for scalar
   random effects; MAP via brms-style `set_prior()`; hard bounds;
   pluggable optimizers; `frmtmb_control(profile = TRUE)` for
-  many-coefficient models.
+  many-coefficient models, `sparse_x = TRUE` for many-level fixed
+  factors, `autoscale = TRUE` for badly scaled predictors.
 - `confint()` (Wald/profile/likelihood-root), `hypothesis()`
   (Wald/profile/bootstrap, with natural-scale `sd_`/`cor_` names for
   ICC-type quantities), `anova()` LRTs, `frm_bootstrap()`,

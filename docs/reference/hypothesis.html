@@ -13,7 +13,7 @@ against zero. A hypothesis is &quot;expr&quot; (tested against 0) or
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.19.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.20.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,6 +67,9 @@ against zero. A hypothesis is <code>"expr"</code> (tested against 0) or
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
+<span><span class="fu">hypothesis</span><span class="op">(</span><span class="va">x</span>, <span class="va">hypothesis</span>, alpha <span class="op">=</span> <span class="fl">0.05</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'frmtmb_multiple'</span></span>
 <span><span class="fu">hypothesis</span><span class="op">(</span><span class="va">x</span>, <span class="va">hypothesis</span>, alpha <span class="op">=</span> <span class="fl">0.05</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -75,7 +78,7 @@ against zero. A hypothesis is <code>"expr"</code> (tested against 0) or
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>A <code>frmtmb_fit</code>.</p></dd>
+<dd><p>A <code>frmtmb_fit</code>, or a <code>frmtmb_multiple</code> for pooled tests.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -140,7 +143,12 @@ Wald-based - the method changes the interval.</p></li>
 whose resolution is limited by <code>nsim</code>; <code>se</code> is the bootstrap SD).
 Handles any expression, including the variance-component names,
 whose sampling distributions Wald approximates poorly.</p></li>
-</ul></div>
+</ul><p>For a <code><a href="frm_multiple.html">frm_multiple()</a></code> result the Wald estimate and delta-method
+variance are computed per imputation and pooled by Rubin's rules
+with Barnard-Rubin degrees of freedom; the returned table carries
+<code>t</code> and <code>df</code> columns in place of <code>z</code> (reference t distribution, not
+normal), and only Wald inference is available.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

@@ -23,13 +23,16 @@ hypothesis(
 
 # S3 method for class 'frmtmb_draws'
 hypothesis(x, hypothesis, alpha = 0.05, ...)
+
+# S3 method for class 'frmtmb_multiple'
+hypothesis(x, hypothesis, alpha = 0.05, ...)
 ```
 
 ## Arguments
 
 - x:
 
-  A `frmtmb_fit`.
+  A `frmtmb_fit`, or a `frmtmb_multiple` for pooled tests.
 
 - ...:
 
@@ -101,6 +104,12 @@ Methods:
   `se` is the bootstrap SD). Handles any expression, including the
   variance-component names, whose sampling distributions Wald
   approximates poorly.
+
+For a [`frm_multiple()`](frm_multiple.md) result the Wald estimate and
+delta-method variance are computed per imputation and pooled by Rubin's
+rules with Barnard-Rubin degrees of freedom; the returned table carries
+`t` and `df` columns in place of `z` (reference t distribution, not
+normal), and only Wald inference is available.
 
 ## Examples
 

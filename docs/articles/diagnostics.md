@@ -149,6 +149,6 @@ interpretable scales:
 ``` r
 
 confint_varcorr(fit)
-#>             block        term type  estimate       lwr       upr
-#> (Intercept) 1 | g (Intercept)   sd 0.4783034 0.3383263 0.6761937
+#>   block        term type  estimate       lwr       upr
+#> 1 1 | g (Intercept)   sd 0.4783034 0.3383263 0.6761937
 ```

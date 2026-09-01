@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.19.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.20.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,19 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.20.0" id="frmtmb-0200">frmtmb 0.20.0<a class="anchor" aria-label="anchor" href="#frmtmb-0200"></a></h2>
+<ul><li>
+<code>mixture_mvn(K, D)</code>: multivariate gaussian mixture components for model-based clustering of an n x D matrix response (the mclust / clustTMB use case). Every class mean is a full linear predictor, so cluster means may depend on covariates and random effects; mixing weights are multinomial-logit dpars with their own formulas. Validated against a hand-rolled ML fit to 1.3e-10 and against faithful-data cluster recovery. Limitations (documented in <code><a href="../reference/mixture_mvn.html">?mixture_mvn</a></code>): class covariances are unstructured (<code>us</code>) and covariate-free - no mclust-style constrained covariance taxonomy (EII..VEV); <code>cens()</code>/<code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code><a href="../reference/mvbf.html">mvbf()</a></code>, and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> are not supported.</li>
+<li>Multi-dimensional Gaussian processes: <code>gp(x1, x2, ...)</code> takes up to three variables, with a separate lengthscale per dimension by default (the brms convention) or one shared lengthscale via <code>iso = TRUE</code>, in both the exact and the Hilbert-space (<code>k =</code>) form. The tensor HSGP basis is capped at <code>k^D &lt;= 1000</code> columns. <code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> reports one range row per dimension. Validated against a direct 2-D ML fit to 3.8e-11.</li>
+<li>Kriging prediction for the exact <code>gp()</code>: <code>predict(newdata = )</code> at positions not seen at fit time now returns the GP conditional mean, and <code>se.fit = TRUE</code> adds the conditional variance, instead of erroring. Kriging mean validated to 1.7e-15 and the standard error to the exact decomposition identity. The Hilbert-space form already interpolated through its basis.</li>
+<li>
+<code>frmtmb_control(sparse_x = TRUE)</code>: sparse fixed-effect design matrices (<code><a href="https://rdrr.io/pkg/Matrix/man/sparse.model.matrix.html" class="external-link">Matrix::sparse.model.matrix</a></code>), the analog of <code>glmmTMB(sparseX = )</code>, for models where a many-level fixed factor dominates memory. Estimates are identical to the dense path (gradient agreement 3e-14; 13.8% lower tape memory in the validation model); <code><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">model.matrix()</a></code> on the fit returns a sparse matrix. Prediction falls back to the dense builder for newdata containing NA factor rows, which <code>sparse.model.matrix</code> would silently zero.</li>
+<li>
+<code>frmtmb_control(autoscale = TRUE)</code>: internal standardization of badly scaled continuous predictors (the lme4 &gt;= 1.1.37 feature): a scaled pre-fit is mapped back exactly and warm-starts the reported fit, parameter magnitudes feed <code>nlminb</code>’s scale hook, and convergence and standard-error Hessian checks run in scaled units. Turns 12 scaling warnings into 0 on the validation problem with a 0.0 log-likelihood difference against a manually standardized reference. Reported results are always on the original scale.</li>
+<li>
+<code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> pooling extensions: <code>$pooled_varcorr</code> pools random-effect SDs and correlations across imputations on transformed scales (log for SDs and GP ranges, Fisher z for correlations) with Barnard-Rubin degrees of freedom, and <code><a href="../reference/hypothesis.html">hypothesis()</a></code> on a <code>frmtmb_multiple</code> object pools delta-method hypothesis estimates by Rubin’s rules with t-based intervals. Fixed-effect pooling matches <code><a href="https://amices.org/mice/reference/pool.html" class="external-link">mice::pool()</a></code> to 2.1e-6. Likelihood-ratio pooling across imputations (mice’s D3) is not implemented; <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> on pooled fits remains per-fit.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.19.0" id="frmtmb-0190">frmtmb 0.19.0<a class="anchor" aria-label="anchor" href="#frmtmb-0190"></a></h2>
 <ul><li>Latent classes now combine with continuous random effects (growth-mixture models): <code>mixture(..., groups = ~g)</code> accepts random effects, smooths, and gp() terms in the component formulas. The class sum is computed conditional on the latent effects, so one Laplace approximation integrates them - the sum-and-integral swap makes this exact as an integrand identity, and even crossed random effects are structurally fine. Random effects written in a component formula are class-specific by construction. Accuracy: the Laplace approximation of the class-mixture integrand carries a small documented bias (about 0.1 log-likelihood units in the validation problem, with parameter estimates matching the exact closed-form marginal to 0.01); <code>quadrature = TRUE</code> is numerically exact when the per-group integrand is univariate (validated to 5e-3) and approximate when class-specific intercepts couple. <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> now draws one class per group and then simulates each observation from its group’s component; <code><a href="../reference/mixture_probs.html">mixture_probs()</a></code> gives empirical-Bayes classification conditional on the modes.</li>
@@ -88,7 +101,7 @@
 <li>
 <code>influence(fit, groups = )</code> and <code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">cooks.distance()</a></code>: case-deletion diagnostics over warm-started refits.</li>
 <li>
-<code><a href="../reference/frm_multiple.html">frm_multiple()</a></code>: fits across multiply-imputed datasets (list or <code>mice::mids</code>) pooled by Rubin’s rules with Barnard-Rubin df.</li>
+<code><a href="../reference/frm_multiple.html">frm_multiple()</a></code>: fits across multiply-imputed datasets (list or <code><a href="https://amices.org/mice/reference/mids.html" class="external-link">mice::mids</a></code>) pooled by Rubin’s rules with Barnard-Rubin df.</li>
 <li>
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> gains <code>method = "predict"</code> (prediction intervals) and data-frame <code>conditions</code> (one condition set per row, brms style).</li>
 <li>

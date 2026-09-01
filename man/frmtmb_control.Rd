@@ -10,6 +10,7 @@ frmtmb_control(
   restarts = 1,
   grad_tol = 0.001,
   profile = FALSE,
+  sparse_x = FALSE,
   autoscale = FALSE
 )
 }
@@ -48,6 +49,12 @@ Coefficient covariance comes from the joint precision. Not
 compatible with \code{REML = TRUE} or \code{quadrature = TRUE};
 profile/uniroot \code{confint()} and \code{hypothesis(method = "profile")}
 need a non-profiled fit.}
+
+\item{sparse_x}{Build the parametric fixed-effect design matrices as
+sparse \code{\link[Matrix:sparse.model.matrix]{Matrix::sparse.model.matrix()}} objects, the analog of
+\code{glmmTMB(sparseX =)}. Worth it when a many-level fixed factor makes
+the dense design dominate memory; estimates are identical either
+way. \code{model.matrix()} on the fit then returns a sparse matrix.}
 
 \item{autoscale}{Standardize badly scaled continuous predictors
 internally (the lme4 >= 1.1.37 feature): fit a copy of the model

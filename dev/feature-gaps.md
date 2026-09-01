@@ -92,22 +92,30 @@ purely-conditional `postVar`.
 clustTMB (Havron) does model-based clustering of MULTIVARIATE
 gaussian observations (mclust-style per-cluster mean vectors and
 covariance matrices, VVV etc.), with covariates and spatial GMRFs in
-the gating and expert parts. We cover the rest of its surface -
-covariate-dependent mixing, REs in component means, obs- and
-group-level clustering, GMRF structure via gr(prec=) - but our
-mixture() components are univariate families. Multivariate mixture
-components (per-class mean vector + rescor-style covariance) would
-need mixture() over mvbf responses; unscheduled.
+the gating and expert parts. DONE in v0.20 as `mixture_mvn(K, D)`:
+per-class D-dim means as full linear predictors (covariates, REs) +
+unstructured per-class covariance; gating on covariates via the
+theta dpars. Validated vs hand-rolled ML to 1.3e-10. Remaining
+sub-gaps, logged in ?mixture_mvn: covariances are `us`-only and
+covariate-free (no EII..VEV taxonomy, no covariance regression); no
+cens/trunc, no mvbf components (mixture over mvbf with rescor is the
+general form; unscheduled), and simulate() needs a simulator
+interface that can see family-level extras.
 
 ## Tier 3: positioning decisions
 
-- `frm_multiple`: fit over multiply-imputed datasets and pool by
-  Rubin's rules (frequentist analog of `brm_multiple`; mice interop).
-- Sparse X option (`sparse.model.matrix`) for many-level fixed
-  factors; lme4's workaround is modular hacking, glmmTMB has
-  `sparseX`.
-- `autoscale`-style internal predictor scaling with back-transform
-  (lme4 >= 1.1.37). We currently only advise rescaling in docs.
+- ~~`frm_multiple`~~ DONE in v0.15; v0.20 adds varcorr pooling on
+  transformed scales and Rubin-pooled hypothesis(). Fixed effects
+  match mice::pool to 2.1e-6. Remaining: mice's pooled
+  likelihood-ratio tests (D2/D3) - anova() stays per-fit.
+- ~~Sparse X option~~ DONE in v0.20 (`frmtmb_control(sparse_x =
+  TRUE)`, glmmTMB `sparseX` analog). Identical estimates (gradient
+  3e-14), 13.8% tape memory saved; dense fallback for NA-factor
+  newdata rows.
+- ~~`autoscale` internal predictor scaling~~ DONE in v0.20
+  (lme4 >= 1.1.37 analog): scaled pre-fit + exact back-transform +
+  warm start, optimizer/convergence/Hessian in scaled units. 12
+  scaling warnings to 0, logLik identical to manual standardization.
 - Sandwich/robust SEs (`vcovHC`, `bread`/`estfun`): still skipped;
   glmmTMB does cluster-level scores. Revisit only on demand.
 

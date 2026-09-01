@@ -80,7 +80,11 @@ check_custom_family(my_poisson, y = rpois(50, 3),
 ## Smooths and Gaussian processes
 
 mgcv smooths and `gp()` terms work in any linear predictor; their
-smoothing and kernel parameters are estimated as variance components:
+smoothing and kernel parameters are estimated as variance components.
+`gp()` takes up to three variables (separate lengthscales per
+dimension; `iso = TRUE` shares one). The exact form predicts at new
+positions by kriging; the Hilbert-space form (`k =`) interpolates
+through its basis, capped at `k^D <= 1000` columns:
 
 ```{r}
 set.seed(2)

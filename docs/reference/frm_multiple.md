@@ -1,14 +1,14 @@
 # Fit a model across multiply imputed datasets
 
 The frequentist counterpart of brms's `brm_multiple()`: fits the model
-on every imputed dataset and pools the fixed-effect estimates by Rubin's
-rules with Barnard-Rubin adjusted degrees of freedom. Accepts a plain
-list of data frames or a `mice::mids` object.
+on every imputed dataset and pools by Rubin's rules with Barnard-Rubin
+adjusted degrees of freedom. Accepts a plain list of data frames or a
+[`mice::mids`](https://amices.org/mice/reference/mids.html) object.
 
 ## Usage
 
 ``` r
-frm_multiple(formula, data, ...)
+frm_multiple(formula, data, level = 0.95, ...)
 ```
 
 ## Arguments
@@ -19,18 +19,30 @@ frm_multiple(formula, data, ...)
 
 - data:
 
-  A list of completed data frames, or a `mice::mids`.
+  A list of completed data frames, or a
+  [`mice::mids`](https://amices.org/mice/reference/mids.html).
+
+- level:
+
+  Confidence level for the `$pooled_varcorr` interval.
 
 ## Value
 
-A `frmtmb_multiple` object: `pooled` (the Rubin table) and `fits` (the
-per-imputation fits).
+A `frmtmb_multiple` object: `pooled` (the Rubin table for the fixed
+effects), `pooled_varcorr` (grp/term/type/estimate/ lwr/upr/df/fmi for
+the random-effect SDs and correlations; `NULL` without random effects),
+and `fits` (the per-imputation fits).
 
 ## Details
 
-Only the fixed effects are pooled (covariance parameters are reported
-per fit through `$fits`). For missing-data mechanisms beyond imputation,
-see the roadmap note on latent-variable `mi()` in dev/feature-gaps.md.
+Fixed effects are pooled on the link scale, so distributional
+coefficients like `sigma` appear in `$pooled` on their link (log) scale,
+exactly as in [`vcov()`](https://rdrr.io/r/stats/vcov.html).
+Random-effect SDs and correlations are pooled on the scales where a Wald
+argument is defensible (log for SDs and GP ranges, Fisher z for
+correlations, the [`confint_varcorr()`](confint_varcorr.md) convention)
+and back-transformed, giving `$pooled_varcorr`. For missing-data
+mechanisms beyond imputation, see in-model `mi()`.
 
 ## Examples
 

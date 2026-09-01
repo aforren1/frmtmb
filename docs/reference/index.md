@@ -49,6 +49,8 @@
   [`sratio()`](frmtmb-families.md) [`cratio()`](frmtmb-families.md)
   [`acat()`](frmtmb-families.md) : Additional response families
 - [`mixture()`](mixture.md) : Finite mixture families
+- [`mixture_mvn()`](mixture_mvn.md) : Multivariate gaussian mixture
+  family
 - [`mixture_probs()`](mixture_probs.md) : Posterior class probabilities
   of a mixture fit
 - [`check_custom_family()`](check_custom_family.md) : Check a custom

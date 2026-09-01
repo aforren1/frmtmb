@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.19.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.20.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,7 +49,9 @@
 <span>  optCtrl <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>iter.max <span class="op">=</span> <span class="fl">1000</span>, eval.max <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span>,</span>
 <span>  restarts <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  grad_tol <span class="op">=</span> <span class="fl">0.001</span>,</span>
-<span>  profile <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  profile <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  sparse_x <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  autoscale <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -98,6 +100,31 @@ Coefficient covariance comes from the joint precision. Not
 compatible with <code>REML = TRUE</code> or <code>quadrature = TRUE</code>;
 profile/uniroot <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> and <code>hypothesis(method = "profile")</code>
 need a non-profiled fit.</p></dd>
+
+
+<dt id="arg-sparse-x">sparse_x<a class="anchor" aria-label="anchor" href="#arg-sparse-x"></a></dt>
+<dd><p>Build the parametric fixed-effect design matrices as
+sparse <code><a href="https://rdrr.io/pkg/Matrix/man/sparse.model.matrix.html" class="external-link">Matrix::sparse.model.matrix()</a></code> objects, the analog of
+<code>glmmTMB(sparseX =)</code>. Worth it when a many-level fixed factor makes
+the dense design dominate memory; estimates are identical either
+way. <code><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">model.matrix()</a></code> on the fit then returns a sparse matrix.</p></dd>
+
+
+<dt id="arg-autoscale">autoscale<a class="anchor" aria-label="anchor" href="#arg-autoscale"></a></dt>
+<dd><p>Standardize badly scaled continuous predictors
+internally (the lme4 &gt;= 1.1.37 feature): fit a copy of the model
+with each qualifying fixed-effect column centered and scaled
+(scaled only, in a linear predictor without an intercept), map
+that optimum back to the original parameterization exactly, and
+warm-start the ordinary fit there. Reported results are always on
+the original scale, so every downstream method works unchanged;
+the cost is a second (cheap) optimization. Columns qualify when
+they are parametric and take more than two distinct values;
+intercepts, factor contrasts, smooth bases, and mo()/mi() columns
+are never touched, and the whole step is a silent no-op when
+nothing qualifies. Compatible with <code>profile = TRUE</code>. Under
+<code>priors</code> or bounds, the first stage applies them to the scaled
+coefficients; the second stage is the fit that is reported.</p></dd>
 
 </dl></div>
     <div class="section level2">
