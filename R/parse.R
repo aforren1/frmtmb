@@ -72,7 +72,9 @@ parse_response <- function(formula) {
         }
         aterms$se <- args[[which(nms == "")]]
         if ("sigma" %in% nms) {
-          aterms$se_sigma <- isTRUE(eval(args[["sigma"]], baseenv()))
+          aterms$se_sigma <- eval_spec_arg(args[["sigma"]], "sigma",
+                                           environment(formula),
+                                           fn = "se")
         }
       } else {
         if (length(tm) != 2) {
@@ -83,6 +85,46 @@ parse_response <- function(formula) {
     }
   }
   list(resp = resp, aterms = aterms)
+}
+
+# Evaluate one scalar special-term tuning argument (gp's k/c/iso, rr's
+# d, se's sigma flag). These are user code, so they resolve in the
+# environment the formula was written in (brms does the same); only the
+# evaluated scalar reaches the spec, so the frame and predict() never
+# re-evaluate them.
+eval_spec_arg <- function(expr, nm, env, fn = "gp") {
+  val <- tryCatch(eval(expr, env), error = function(e) {
+    stop(fn, "(): cannot evaluate ", nm, " = ", deparse1(expr), ": ",
+         conditionMessage(e), call. = FALSE)
+  })
+  if (length(val) != 1L) {
+    stop(fn, "(): ", nm, " = ", deparse1(expr),
+         " must be a single value (got length ", length(val), ")",
+         call. = FALSE)
+  }
+  if (nm %in% c("iso", "sigma")) {
+    if (!is.logical(val) || is.na(val)) {
+      stop(fn, "(): ", nm, " = ", deparse1(expr),
+           " must be TRUE or FALSE", call. = FALSE)
+    }
+    return(isTRUE(val))
+  }
+  if (!is.numeric(val) || !is.finite(val)) {
+    stop(fn, "(): ", nm, " = ", deparse1(expr),
+         " must be a finite number", call. = FALSE)
+  }
+  if (nm %in% c("k", "d")) {
+    if (val < 1 || val != trunc(val)) {
+      stop(fn, "(): ", nm, " = ", deparse1(expr),
+           " must be a positive whole number", call. = FALSE)
+    }
+    return(as.integer(val))
+  }
+  if (val <= 0) {
+    stop(fn, "(): ", nm, " = ", deparse1(expr), " must be positive",
+         call. = FALSE)
+  }
+  as.numeric(val)
 }
 
 # Split one linear-predictor RHS (a one-sided formula) into a parametric
@@ -184,10 +226,9 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       }
       gpterms[[length(gpterms) + 1L]] <- list(
         exprs = vars,
-        k = if (!is.null(aa$k)) as.integer(eval(aa$k, baseenv())),
-        c = if (!is.null(aa$c)) as.numeric(eval(aa$c, baseenv()))
-            else 1.25,
-        iso = if (!is.null(aa$iso)) isTRUE(eval(aa$iso, baseenv()))
+        k = if (!is.null(aa$k)) eval_spec_arg(aa$k, "k", env),
+        c = if (!is.null(aa$c)) eval_spec_arg(aa$c, "c", env) else 1.25,
+        iso = if (!is.null(aa$iso)) eval_spec_arg(aa$iso, "iso", env)
               else FALSE
       )
     } else if (is.call(tm) && identical(tm[[1]], as.name("cs")) &&
@@ -275,10 +316,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     rank <- NULL
     if (cls == "rr") {
       aa <- as.list(addargs)[-1]
-      rank <- as.integer(eval(aa$d %||% 2, baseenv()))
-      if (is.na(rank) || rank < 1L) {
-        stop("rr() needs a positive integer rank: rr(x | g, d = 2)",
-             call. = FALSE)
+      rank <- if (is.null(aa$d)) 2L else {
+        eval_spec_arg(aa$d, "d", env, fn = "rr")
       }
     }
     if (cls == "equalto") {
