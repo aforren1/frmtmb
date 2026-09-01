@@ -9,7 +9,9 @@ frm_compat(feature_a = NULL, feature_b = NULL, status = NULL)
 \arguments{
 \item{feature_a, feature_b}{Feature names, as given by
 \code{\link[=frm_compat_features]{frm_compat_features()}}. Supply both for one pair, one for every
-pair involving that feature, or neither for the whole table.}
+pair involving that feature, or neither for the whole table. Both
+accept a vector, which gives every pair in the cross of the two
+sides; an empty vector is an error rather than an empty answer.}
 
 \item{status}{Optional character vector; keep only these statuses.}
 }

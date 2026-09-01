@@ -236,7 +236,11 @@ note_table("structure", "aterm")
 ### Structures and post-fit methods
 
 Several post-fit methods are univariate-only. A multivariate fit
-supports `fitted()` and `predict()` and refuses the rest.
+predicts one response at a time, through `predict(fit, resp = )`, and
+refuses `fitted()`, `simulate()` and `residuals()`. The inference
+surface is not univariate-only: `confint()`, `hypothesis()` and
+`frm_sample()` read the outer parameter vector, which a multivariate
+fit has like any other.
 
 ```{r struct-method}
 grid_table("structure", "method", rows = kind_of("structure"),

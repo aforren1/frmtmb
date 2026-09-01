@@ -17,13 +17,11 @@ test_that("pairwise grammar fuzz finds no new invariant violations", {
               "set FRMTMB_FUZZ=true to run the grammar fuzz tier")
 
   size <- suppressWarnings(as.integer(Sys.getenv("FRMTMB_FUZZ_N")))
+  # fuzz_plan() caps the plan itself, so a smoke run keeps the prefix of
+  # the greedy cover (the rows that buy the most pairs) plus the refusal
+  # probes, rather than a random slice of the full plan
   plan <- fuzz_plan(seed = 20260901L,
                     size = if (is.na(size)) 300L else max(size, 1L))
-  if (!is.na(size) && size < nrow(plan)) {
-    # seeded so a smoke run names the same specs every time
-    set.seed(20260901L)
-    plan <- plan[sort(sample.int(nrow(plan), size)), , drop = FALSE]
-  }
   res <- fuzz_run(plan)
   sm <- fuzz_summary(res)
 

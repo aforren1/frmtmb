@@ -31,6 +31,8 @@ sm <- fuzz_summary(res)
 
 cat("\n=== ", round(res$elapsed, 1), "s, ", res$n_specs, " specs, ",
     res$n_fits, " fits ===\n", sep = "")
+cat("Wald coverage of beta_x = ", FUZZ_BETA_X, ": ",
+    res$coverage$covered, " of ", res$coverage$n, " intervals\n", sep = "")
 print(sm$counts)
 cat("\n")
 for (f in sm$triaged) cat(fuzz_format(f))
