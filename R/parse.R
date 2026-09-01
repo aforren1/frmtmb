@@ -87,17 +87,19 @@ parse_response <- function(formula) {
   list(resp = resp, aterms = aterms)
 }
 
-# Evaluate one scalar special-term tuning argument (gp's k/c/iso, rr's
-# d, se's sigma flag). These are user code, so they resolve in the
+# Evaluate one special-term tuning argument (gp's k/c/iso, rr's d,
+# se's sigma flag). These are user code, so they resolve in the
 # environment the formula was written in (brms does the same); only the
-# evaluated scalar reaches the spec, so the frame and predict() never
-# re-evaluate them.
+# evaluated value reaches the spec, so the frame and predict() never
+# re-evaluate them. gp's c is per-dimension (brms convention), so it
+# alone may be a vector; its length-vs-D check lives in the frame,
+# which knows D.
 eval_spec_arg <- function(expr, nm, env, fn = "gp") {
   val <- tryCatch(eval(expr, env), error = function(e) {
     stop(fn, "(): cannot evaluate ", nm, " = ", deparse1(expr), ": ",
          conditionMessage(e), call. = FALSE)
   })
-  if (length(val) != 1L) {
+  if (length(val) != 1L && nm != "c") {
     stop(fn, "(): ", nm, " = ", deparse1(expr),
          " must be a single value (got length ", length(val), ")",
          call. = FALSE)
@@ -109,9 +111,9 @@ eval_spec_arg <- function(expr, nm, env, fn = "gp") {
     }
     return(isTRUE(val))
   }
-  if (!is.numeric(val) || !is.finite(val)) {
+  if (!is.numeric(val) || !length(val) || !all(is.finite(val))) {
     stop(fn, "(): ", nm, " = ", deparse1(expr),
-         " must be a finite number", call. = FALSE)
+         " must be finite and numeric", call. = FALSE)
   }
   if (nm %in% c("k", "d")) {
     if (val < 1 || val != trunc(val)) {
@@ -120,7 +122,7 @@ eval_spec_arg <- function(expr, nm, env, fn = "gp") {
     }
     return(as.integer(val))
   }
-  if (val <= 0) {
+  if (any(val <= 0)) {
     stop(fn, "(): ", nm, " = ", deparse1(expr), " must be positive",
          call. = FALSE)
   }
@@ -152,6 +154,16 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   gpterms <- list()
   rest <- list()
   for (tm in terms_list) {
+    # `x * (1 | g)` and `x:(1 | g)` are almost always a typo for `+`.
+    # splitForm hoists the bar out and silently fits the `+` model, so
+    # the user never learns the interaction was ignored. [lme4#196]
+    if (is.call(tm) &&
+        as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
+        any(c("|", "||") %in% all.names(tm))) {
+      stop("A random-effect term cannot be crossed with '",
+           as.character(tm[[1]])[1], "': ", deparse1(tm),
+           ". Did you mean '+'?", call. = FALSE)
+    }
     if (is_smooth_call(tm)) {
       fn <- as.character(tm[[1]])[1]
       if (fn %in% c("te", "ti")) {

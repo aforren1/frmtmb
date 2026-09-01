@@ -344,6 +344,19 @@ anova.frmtmb_fit <- function(object, ...) {
     stop("Likelihood-ratio tests require ML fits (REML = FALSE)",
          call. = FALSE)
   }
+  # Likelihoods computed on different data are not on a common scale, so
+  # the LRT would be meaningless (and can come out negative). lme4 keys
+  # its equivalent check off the `data` argument in the call, which both
+  # false-positives on identical frames and misses NA-dropped rows;
+  # comparing the response actually used catches the real cases.
+  # [lme4#622]
+  nobs_all <- vapply(fits, function(f) as.integer(f$frame$n_obs), 0L)
+  if (length(unique(nobs_all)) > 1L) {
+    stop("anova() needs fits with the same number of observations (got ",
+         paste(unique(nobs_all), collapse = ", "),
+         "); models fit to different data or with different NA rows ",
+         "dropped are not comparable", call. = FALSE)
+  }
   ll <- vapply(fits, function(f) as.numeric(logLik(f)), 0)
   df <- vapply(fits, function(f) attr(logLik(f), "df"), 0L)
   ord <- order(df)

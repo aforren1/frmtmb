@@ -1,3 +1,67 @@
+# frmtmb 0.22.0
+
+Cross-validation against brms itself, closer brms compatibility, and
+fit ergonomics.
+
+## brms agreement suite
+
+* New test tier validating the elaborate grammar structurally against
+  `brms::make_standata()`/`brmsterms()` without any Stan compilation
+  (designs, RE structures, `|ID|` merging, ordinal thresholds, `cs()`,
+  `mo()` codes, gp bases, smooths, addition terms, mvbf, nl, mixture
+  naming; most exact to 1e-10 or better), plus an opt-in numeric tier
+  (`FRMTMB_BRMS_FIT_TESTS=true`) showing fixed-effects estimates match
+  the mode of brms's own generated Stan program to 1e-4 and that our
+  `mo()` parameterization is brms's likelihood exactly (via
+  `rstan::log_prob`). brms is in Suggests only.
+* Found by the suite and fixed: `cs()` predictor variables never
+  reached the combined model frame, so `bf(y ~ x + cs(z))` errored
+  unless `z` already appeared elsewhere.
+
+## brms compatibility
+
+* Hilbert-space `gp(x, k =)` now uses brms's input convention exactly:
+  coordinates are rescaled by the largest pairwise distance (one
+  shared factor across dimensions) and centered, so the boundary is
+  `L = c` and the same `gp()` call is the same approximation in both
+  packages (basis agreement with brms to 1e-16, tied coordinates and
+  vector-valued `c =` included). This roughly doubles the effective
+  boundary at a given `c`: accuracy against the exact gp improves
+  about 25x at the same k (k = 40 now within 2e-4 logLik), and the
+  default `c = 1.25` is the right choice in 2-D as well. Reported
+  `range(gp)` values stay in data units (exact log-shift
+  back-transform); fitted lengthscales differ from pre-0.22 fits by
+  the data-dependent scale factor.
+* `cens()` accepts brms's character and factor codes
+  (`"left"`/`"none"`/`"right"`/`"interval"`, prefix-matched,
+  case-insensitively); unknown labels and out-of-range numeric codes
+  error informatively instead of coercing to NA.
+* `gp()`'s `k`/`c`/`iso`, `rr()`'s `d`, and `se()`'s `sigma` arguments
+  now evaluate in the formula environment (brms behavior), so
+  variables and expressions work; invalid values error with the
+  offending expression named.
+
+## Fit ergonomics
+
+* `frmtmb_control(verbose =)` (and the `frm(verbose =)` shortcut):
+  level 1 prints timed stage lines (parse, frame, tape, optimize,
+  restarts, sdreport) through `message()` so a slow fit shows where
+  it is slow; level 2 adds the optimizer's own iteration trace.
+  Bootstrap, influence, and allfit refit loops stay quiet.
+* The large-gradient warning now points to `diagnose()` and the new
+  "Convergence problems" remedy ladder in the diagnostics vignette
+  (scaling, restarts, optimizer comparison, profiles, boundary fits,
+  and judging marginal gradients).
+* `frm_allfit()`'s nloptr optimizer produced an empty row: nloptr
+  rejects callbacks that declare `...` (RTMB's `obj$fn`/`obj$gr` do),
+  and the error was swallowed; separately, missing `ftol_rel` made
+  NLopt report failure at the converged optimum. Both fixed; the
+  agreement test now requires every optimizer to converge and match.
+* The brms-migration vignette documents how to recover the model
+  function (the `stancode()` analog): the objective closure via
+  `build_objective(fit$frame)`, its joint-vs-marginal relationship to
+  `fit$obj$fn`, and how to reproduce `fit$obj`.
+
 # frmtmb 0.21.0
 
 Method-surface audit against lme4/glmmTMB/brms, plus fixes from a
