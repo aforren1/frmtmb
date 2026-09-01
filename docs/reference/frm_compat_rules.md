@@ -43,7 +43,7 @@ rule is doing the work.
 ``` r
 rules <- frm_compat_rules()
 nrow(rules)
-#> [1] 221
+#> [1] 227
 subset(rules, status == "broken")[, c("feature_a", "feature_b")]
 #> [1] feature_a feature_b
 #> <0 rows> (or 0-length row.names)

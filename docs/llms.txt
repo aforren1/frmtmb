@@ -46,6 +46,13 @@ Pre-release (v0.25), working toward CRAN. Validation is layered:
   reduced-rank `rr(d =)`, known structure `gr(g, cov = A)` /
   `gr(g, prec = Q)` / `equalto()`, and `|ID|` correlation across
   formulas.
+- Spatial Gaussian Markov random fields: `car(M, gr = g, type =)` with
+  brms’s spelling and all four of its types (`escar`, `esicar`, `icar`,
+  `bym2`, the last with brms’s scaling convention), and
+  `spde(fem, gr = node)` for a Matern field over a finite-element mesh
+  (`fmesher`/INLA matrices as fixed data). Precisions are assembled on
+  the tape from fixed sparse matrices and every normalizing constant is
+  analytic.
 - mgcv smooths `s()`/`t2()` in any linear predictor, including
   matrix-covariate terms: scalar-on-function, function-on-scalar, and
   function-on-function regression.
@@ -67,8 +74,8 @@ Pre-release (v0.25), working toward CRAN. Validation is layered:
   families - including group-level latent classes
   (`mixture(..., groups = ~g)`) with class-specific random effects
   (growth-mixture models) and multivariate gaussian components
-  (`mixture_mvn(K, D)`, model-based clustering with covariate-dependent
-  means and gating).
+  (`mixture_mvn(K, D, model =)`, model-based clustering over mclust’s
+  covariance taxonomy, with covariate-dependent means and gating).
   [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
   takes a plain R log-density (the test suite fits a Wiener
   drift-diffusion model in about 15 lines).
@@ -112,13 +119,15 @@ Pre-release (v0.25), working toward CRAN. Validation is layered:
   ([`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
   [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
-  `pp_check()`) and
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md))
+  and
   [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
   to audit the approximation.
 - Diagnostics: one-step-ahead residuals calibrated for censored,
   truncated, and ordinal responses; deviance residuals across the GLM
   families; response-scale `se.fit` for every family through the joint
-  delta method; DHARMa, `pp_check()`,
+  delta method; DHARMa,
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md),
   [`plot()`](https://rdrr.io/r/graphics/plot.default.html),
   [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md);
   ecosystem hooks for emmeans, marginaleffects, and insight/easystats.
@@ -263,7 +272,7 @@ and `NEWS.md` for the changelog.
   : Residuals from a frmtmb fit
 - [`plot(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/plot.frmtmb_fit.md)
   : Diagnostic plots for a fit
-- [`pp_check(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/pp_check.frmtmb_fit.md)
+- [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
   : Predictive check against simulated responses
 - [`anova(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/anova.frmtmb_fit.md)
   : Likelihood-ratio tests between nested frmtmb fits
@@ -279,6 +288,10 @@ and `NEWS.md` for the changelog.
   [`posterior_linpred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
   : Expected-value and predictive draws from sampled parameters
+- [`as_draws()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  : Convert draws to a posterior draws object
+- [`getME(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/getME.frmtmb_fit.md)
+  : Extract components of a fit, lme4 style
 - [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
   : Check the Laplace/Wald approximation against NUTS
 - [`influence(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)

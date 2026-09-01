@@ -44,7 +44,7 @@ frm_allfit(fit)
 #>     optimizer    logLik convergence seconds
 #>        nlminb -100.9269           0    0.01
 #>         optim -100.9269           0    0.02
-#>        bobyqa -100.9269           0    0.04
+#>        bobyqa -100.9269           0    0.03
 #>  nloptr_lbfgs -100.9269           0    0.05
 #> 
 #> logLik spread: 3.82e-11 

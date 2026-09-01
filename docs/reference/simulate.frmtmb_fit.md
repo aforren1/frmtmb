@@ -4,7 +4,8 @@ A [`trunc()`](https://rdrr.io/r/base/Round.html)ed response simulates by
 rejection within its bounds, so every draw lies in `[lb, ub]` and
 posterior-predictive checks
 ([`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md),
-`pp_check()`) see the same support the likelihood was normalized on.
+[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md))
+see the same support the likelihood was normalized on.
 
 ## Usage
 
@@ -54,9 +55,10 @@ On a `cens()` fit the default draws the LATENT, uncensored response: the
 model describes the latent distribution, and censoring is a property of
 the observation process, not of the response. This matches brms, whose
 [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-also ignores `cens()` (and whose `pp_check()` therefore drops the
-censored rows). The draws are then not comparable with the observed
-values on censored rows, which is why
+also ignores `cens()` (and whose
+[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+therefore drops the censored rows). The draws are then not comparable
+with the observed values on censored rows, which is why
 [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
 and `residuals(type = "osa")` refuse or skip them.
 

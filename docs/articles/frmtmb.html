@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.28.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -179,13 +179,68 @@ brms. Reported lengthscales stay in data units.</p>
 <span><span class="co">#&gt; 250.6414 250.1495</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="spatial-gaussian-markov-random-fields">Spatial Gaussian Markov random fields<a class="anchor" aria-label="anchor" href="#spatial-gaussian-markov-random-fields"></a>
+</h2>
+<p><code>car()</code> fits a conditional autoregressive field over an
+adjacency matrix, with brms’s spelling and all four of its types.
+<code>M</code> is a symmetric binary adjacency matrix whose dimnames
+name the locations, <code>gr</code> is the grouping variable that maps
+observations onto them, and <code>type</code> is one of
+<code>"escar"</code> (the proper CAR, default), <code>"icar"</code> and
+its alias <code>"esicar"</code> (intrinsic), or <code>"bym2"</code> (the
+scaled mixture of a spatial and an unstructured part).
+<code>sd(car)</code> is the field scale; <code>escar</code> and
+<code>bym2</code> add a mixing parameter on <code>(0, 1)</code>,
+reported by <code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> under brms’s names
+<code>car</code> and <code>rhocar</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>r <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, c <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span></span>
+<span><span class="va">nloc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span></span>
+<span><span class="va">W</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">nloc</span>, <span class="va">nloc</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">nloc</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">j</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">nloc</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">r</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">-</span> <span class="va">grid</span><span class="op">$</span><span class="va">r</span><span class="op">[</span><span class="va">j</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">c</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">-</span> <span class="va">grid</span><span class="op">$</span><span class="va">c</span><span class="op">[</span><span class="va">j</span><span class="op">]</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">W</span><span class="op">[</span><span class="va">i</span>, <span class="va">j</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1</span></span>
+<span>    <span class="op">}</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/dimnames.html" class="external-link">dimnames</a></span><span class="op">(</span><span class="va">W</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"L"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">nloc</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"L"</span>, <span class="fl">1</span><span class="op">:</span><span class="va">nloc</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">phi</span> <span class="op">&lt;-</span> <span class="fl">0.7</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale</a></span><span class="op">(</span><span class="va">grid</span><span class="op">$</span><span class="va">r</span> <span class="op">+</span> <span class="va">grid</span><span class="op">$</span><span class="va">c</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.7</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">nloc</span><span class="op">)</span></span>
+<span><span class="va">dc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>loc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">W</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>,</span>
+<span>                              levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">W</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">dc</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">+</span> <span class="va">phi</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">dc</span><span class="op">$</span><span class="va">loc</span><span class="op">)</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dc</span><span class="op">)</span>, <span class="fl">0</span>, <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">fc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fu">car</span><span class="op">(</span><span class="va">W</span>, gr <span class="op">=</span> <span class="va">loc</span>, type <span class="op">=</span> <span class="st">"escar"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>          data <span class="op">=</span> <span class="va">dc</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/confint_varcorr.html">confint_varcorr</a></span><span class="op">(</span><span class="va">fc</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                              block    term type estimate       lwr       upr</span></span>
+<span><span class="co">#&gt; 1 car(W, gr = loc, type = "escar") sd(car)   sd 1.111466 0.8096418 1.5258056</span></span>
+<span><span class="co">#&gt; 2 car(W, gr = loc, type = "escar")     car prop 0.951133 0.5172424 0.9971797</span></span></code></pre></div>
+<p>An intrinsic CAR is improper - the field is identified only up to a
+constant per connected component - so <code>icar</code>,
+<code>esicar</code> and <code>bym2</code> add brms’s soft sum-to-zero
+constraint, whose scale is <code>con_sd</code> (brms’s <code>1e-3</code>
+by default, relative to the field’s own sd). Tightening it walks the fit
+onto the exactly constrained likelihood; the default is already four
+orders below the standard error of <code>sd(car)</code>.</p>
+<p><code>spde()</code> fits a Matern field over a finite-element mesh:
+it takes the mesh’s three matrices (<code>fmesher::fm_fem()</code>’s
+<code>c0</code>/<code>g1</code>/<code>g2</code>, or INLA’s
+<code>M0</code>/<code>M1</code>/<code>M2</code>) as fixed data and
+estimates <code>Q = tau^2 (kappa^4 M0 + 2 kappa^2 M1 + M2)</code>. Mesh
+construction stays outside the package; <code>gr</code> maps
+observations onto mesh nodes. <code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> reports the
+marginal sd and the range under the planar <code>alpha = 2</code>
+identities.</p>
+</div>
+<div class="section level2">
 <h2 id="special-terms">Special terms<a class="anchor" aria-label="anchor" href="#special-terms"></a>
 </h2>
 <p><code>mo()</code> fits monotonic effects of ordinal predictors,
 <code>mi()</code> imputes missing continuous predictors inside the model
 (with <code>mi(sdx)</code> for known measurement error), and
 <code>se()</code> gives meta-analysis:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">dm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">300</span>, <span class="cn">TRUE</span><span class="op">)</span>, z <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">300</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">dm</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">1.6</span>, <span class="fl">2</span><span class="op">)</span><span class="op">[</span><span class="va">dm</span><span class="op">$</span><span class="va">inc</span> <span class="op">+</span> <span class="fl">1</span><span class="op">]</span> <span class="op">+</span> <span class="fl">0.3</span> <span class="op">*</span> <span class="va">dm</span><span class="op">$</span><span class="va">z</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">300</span><span class="op">)</span></span>
@@ -200,7 +255,7 @@ brms. Reported lengthscales stay in data units.</p>
 <p>Finite mixtures keep per-component parameters and covariate-dependent
 mixing weights; <code>groups = ~g</code> moves the class draw to the
 group level (latent classes, combinable with random effects):</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">40</span>, each <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span><span class="va">cl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">1</span>, <span class="fl">0.4</span><span class="op">)</span></span>
@@ -220,7 +275,7 @@ group level (latent classes, combinable with random effects):</p>
 <p><code><a href="../reference/hypothesis.html">hypothesis()</a></code> tests arbitrary parameter expressions
 (Wald, profile, or parametric bootstrap), with natural-scale
 random-effect names:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Hypothesis tests (method = wald)</span></span>
 <span><span class="co">#&gt;                                           hypothesis estimate      se      lwr</span></span>
@@ -242,7 +297,7 @@ on their natural scales (coefficients on the link scale,
 <code>sigma</code> as a residual SD,
 <code>sd_&lt;group&gt;__&lt;term&gt;</code> as a standard
 deviation):</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">120</span><span class="op">)</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">12</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>, y <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
 <span><span class="va">form</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -258,7 +313,7 @@ parameter vector first - the analog of brms’s
 <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>. The drawn parameters come back as an
 attribute, so a prior-predictive check can relate parameters to
 outcomes:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_simulate.html">frm_simulate</a></span><span class="op">(</span><span class="va">form</span>, <span class="va">dd</span>, nsim <span class="op">=</span> <span class="fl">50</span>, seed <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>                   priors <span class="op">=</span> <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>                     <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 2)"</span>, class <span class="op">=</span> <span class="st">"Intercept"</span><span class="op">)</span> <span class="op">+</span></span>
@@ -273,7 +328,7 @@ outcomes:</p>
 <span><span class="co">#&gt; 3  0.6668503  1.54729045      1.12473222     -0.03551988</span></span>
 <span><span class="co"># does the prior imply plausible data? slope against outcome spread</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">x</span>, <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">pp</span>, <span class="fl">2</span>, <span class="va">sd</span><span class="op">)</span>, xlab <span class="op">=</span> <span class="st">"slope"</span>, ylab <span class="op">=</span> <span class="st">"sd(y)"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="frmtmb_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" alt="" width="700"></p>
+<p><img src="frmtmb_files/figure-html/unnamed-chunk-12-1.png" class="r-plt" alt="" width="700"></p>
 <p>Every coefficient and every random-effect SD needs a value from
 <code>newparams</code> or a prior; leaving one out is an error rather
 than a silent zero effect.</p>
@@ -283,18 +338,18 @@ than a silent zero effect.</p>
 </h2>
 <p><code>diagnose(fit)</code> reports convergence forensics.
 Simulation-based residuals come through DHARMa, predictive checks
-through <code>pp_check()</code>, and effect displays through
+through <code><a href="../reference/pp_check.html">pp_check()</a></code>, and effect displays through
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code>:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="../reference/dharma_residuals.html">dharma_residuals</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="../reference/conditional_effects.html">conditional_effects</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>And the fitted objective can be handed to NUTS for full Bayes on the
 same model - <code><a href="../reference/frm_sample.html">frm_sample()</a></code> returns draws with the full
 method surface (<code><a href="../reference/posterior_epred.html">posterior_epred()</a></code>,
-<code><a href="../reference/hypothesis.html">hypothesis()</a></code>, <code>pp_check()</code>), and
+<code><a href="../reference/hypothesis.html">hypothesis()</a></code>, <code><a href="../reference/pp_check.html">pp_check()</a></code>), and
 <code><a href="../reference/check_laplace.html">check_laplace()</a></code> audits the Laplace approximation against
 them:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/check_laplace.html">check_laplace</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
 <p>See <code><a href="../articles/brms-migration.html">vignette("brms-migration")</a></code> for the brms feature map

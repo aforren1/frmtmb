@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.28.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,35 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.28.0" id="frmtmb-0280">frmtmb 0.28.0<a class="anchor" aria-label="anchor" href="#frmtmb-0280"></a></h2>
+<p>Spatial GMRF grammar, the mclust covariance taxonomy, and the close-out of the fuzz tier.</p>
+<div class="section level3">
+<h3 id="new-0-28-0">New<a class="anchor" aria-label="anchor" href="#new-0-28-0"></a></h3>
+<ul><li>Spatial conditional autoregressions with the brms spelling: <code>car(M, gr = g, type = "escar"/"esicar"/"icar"/"bym2")</code> over an adjacency matrix, with analytic log-determinants throughout (no on-tape factorization) and brms’s per-component soft sum-to-zero constraint, whose distance to the hard-constrained ML is measured and documented (4e-4 logLik at the default, shrinking quadratically). Validated against hand-rolled direct ML to 1e-11.</li>
+<li>
+<code>spde(fem, gr = node)</code>: an SPDE-Matern field from fmesher/INLA FEM matrices, Q(kappa, tau) assembled on the tape from fixed sparse matrices; sd and range reported through the planar identities.</li>
+<li>
+<code>gr(g, prec = Q)</code> supports correlated slopes (sparse Kronecker precisions; agrees with the dense <code>gr(cov = solve(Q))</code> equivalent to 0 ulp).</li>
+<li>
+<code>mixture_mvn(K, D, model =)</code> gains the mclust covariance taxonomy (EII, VII, EEI, VEI, EVI, VVI, EEE, VVV) with per-model parameter templates; matches <code><a href="https://mclust-org.github.io/mclust/reference/Mclust.html" class="external-link">mclust::Mclust</a></code> to 1e-12 log-likelihood and 1e-15 posteriors on intercept-only fits, while keeping covariate-dependent means, which mclust cannot fit.</li>
+<li>
+<code>anova(refit = TRUE)</code> refits REML models with ML for comparison (warm-started, with a message naming what was refit); <code>getME()</code> on the lme4 generic with the commonly consumed vocabulary.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="corrected-behavior-0-28-0">Corrected behavior<a class="anchor" aria-label="anchor" href="#corrected-behavior-0-28-0"></a></h3>
+<ul><li>Non-finite covariance matrices warn at <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>/<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> and at fit time under <code>se = TRUE</code>, pointing at <code><a href="../reference/diagnose.html">diagnose()</a></code> (a positive-definite Hessian can still be numerically singular to invert; previously silent NaNs).</li>
+<li>Optimizer failures recover automatically where a better start provably exists (the plain-Laplace optimum under <code>profile = TRUE</code>; a cold start when a warm start is itself the failure), and every optimizer error carries the model label and remedies instead of a bare RTMB message.</li>
+<li>One quadrature configuration is rescued by displaced calibrations; the six irrecoverable thin-data configurations refuse with messages naming the configuration and the guaranteed <code>quadrature = FALSE</code> fallback. The fuzz tier runs green.</li>
+<li>
+<code>frm_sample(cores &gt; 1)</code> on Windows falls back to sequential chains with a warning instead of failing incomprehensibly (RTMB tapes and objective closures cannot reach socket workers; upstream kaskr/tmbstan#27). <code><a href="../reference/pp_check.html">pp_check()</a></code> and <code><a href="../reference/as_draws.html">as_draws()</a></code> dispatch without attaching bayesplot or posterior (frmtmb ships its own generics, dual-registered).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="notes-0-28-0">Notes<a class="anchor" aria-label="anchor" href="#notes-0-28-0"></a></h3>
+<ul><li>dev/benchmarks.md records the RTMBp (parallel RTMB) measurement: no gain on Cholesky-dominated mixed models, 1.7-2x on accumulation-dominated GLMMs at 4-16 threads; not adopted.</li>
+<li>dev/feature-gaps.md records the ODE roadmap (RTMBode) and the Suggests + Additional_repositories packaging plan for non-CRAN extensions.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.27.0" id="frmtmb-0270">frmtmb 0.27.0<a class="anchor" aria-label="anchor" href="#frmtmb-0270"></a></h2>
 <p>Fixes from a full review of the v0.22-v0.25 waves.</p>
@@ -289,7 +318,7 @@
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> gains <code>method = "predict"</code> (prediction intervals) and data-frame <code>conditions</code> (one condition set per row, brms style).</li>
 <li>
 <code>vint()</code>/<code>vreal()</code> addition terms pass arbitrary data vectors to custom families (brms custom-family convention). The test suite includes a full Wiener drift-diffusion model written as a <code><a href="../reference/frmtmb_family.html">custom_family()</a></code> in plain R - the workflow brms needs raw Stan code for.</li>
-<li>Method surface for <code><a href="../reference/frm_sample.html">frm_sample()</a></code> draws: <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> (with Rhat/ESS), <code><a href="../reference/fixef.html">fixef()</a></code>, <code><a href="../reference/VarCorr.html">VarCorr()</a></code> (natural scale), <code><a href="../reference/hypothesis.html">hypothesis()</a></code> (exact posterior version), <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code> / <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> (each draw runs the full prediction machinery), <code>pp_check()</code>, and <code><a href="https://mc-stan.org/posterior/reference/draws.html" class="external-link">posterior::as_draws()</a></code>.</li>
+<li>Method surface for <code><a href="../reference/frm_sample.html">frm_sample()</a></code> draws: <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> (with Rhat/ESS), <code><a href="../reference/fixef.html">fixef()</a></code>, <code><a href="../reference/VarCorr.html">VarCorr()</a></code> (natural scale), <code><a href="../reference/hypothesis.html">hypothesis()</a></code> (exact posterior version), <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code> / <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> (each draw runs the full prediction machinery), <code><a href="../reference/pp_check.html">pp_check()</a></code>, and <code><a href="https://mc-stan.org/posterior/reference/draws.html" class="external-link">posterior::as_draws()</a></code>.</li>
 <li>Examples added across the reference (run by R CMD check).</li>
 </ul></div>
     <div class="section level2">
@@ -321,7 +350,7 @@
 <li>
 <code>plot(fit)</code>: Pearson-residual diagnostics (residuals vs fitted, normal QQ).</li>
 <li>
-<code>pp_check()</code> (registered on the bayesplot generic): predictive checks from <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws through any <code>ppc_*</code> function.</li>
+<code><a href="../reference/pp_check.html">pp_check()</a></code> (registered on the bayesplot generic): predictive checks from <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws through any <code>ppc_*</code> function.</li>
 <li>
 <code><a href="../reference/hypothesis.html">hypothesis()</a></code>: tests of arbitrary expressions of the parameters, brms spelling, with three methods: delta-method Wald (default), <code>"profile"</code> (profile-likelihood intervals via <code><a href="https://rdrr.io/pkg/TMB/man/tmbroot.html" class="external-link">TMB::tmbroot()</a></code> lincombs; linear hypotheses, ML fits), and <code>"boot"</code> (parametric bootstrap percentile intervals; any expression). The expression environment includes natural-scale random-effect names (<code>sd_&lt;group&gt;__&lt;term&gt;</code>, <code>cor_&lt;group&gt;__&lt;t1&gt;__&lt;t2&gt;</code>, <code>sigma</code>), so ICC inference is <code>hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)", method = "boot")</code>. The result is a <code>frmtmb_hypothesis</code> data frame carrying the bootstrap draws or profile curves in attributes, with a <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method (bootstrap histogram, profile curve, or the implied Wald normal, per hypothesis).</li>
 <li>

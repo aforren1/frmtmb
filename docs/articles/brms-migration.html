@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.28.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -154,6 +154,13 @@ unsupported</td>
 <td>same</td>
 <td>multinomial takes <code>K</code> explicitly</td>
 </tr>
+<tr class="odd">
+<td><code>car(M, gr = g, type =)</code></td>
+<td>same</td>
+<td>all four types; <code>M</code> is looked up in the data or the
+calling environment, not in <code>data2</code>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -229,7 +236,7 @@ and the stats/lme4 spelling for standard generics:</p>
 <li>brms-origin, same names and argument spellings:
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> (includes what
 <code>conditional_smooths()</code> covers), <code><a href="../reference/hypothesis.html">hypothesis()</a></code> (a
-delta-method Wald test here), <code>pp_check()</code> (simulate-based,
+delta-method Wald test here), <code><a href="../reference/pp_check.html">pp_check()</a></code> (simulate-based,
 through bayesplot’s <code>ppc_*</code> functions),
 <code><a href="../reference/prior_summary.html">prior_summary()</a></code>, <code><a href="../reference/fixef.html">fixef()</a></code>,
 <code><a href="../reference/ranef.html">ranef()</a></code>, <code><a href="../reference/VarCorr.html">VarCorr()</a></code>, <code><a href="../reference/ngrps.html">ngrps()</a></code>,

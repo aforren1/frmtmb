@@ -21,7 +21,7 @@ variance components with few groups."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.28.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -87,8 +87,12 @@ variance components with few groups.</p>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed to <code><a href="https://rdrr.io/pkg/tmbstan/man/tmbstan.html" class="external-link">tmbstan::tmbstan()</a></code> (<code>chains</code>, <code>iter</code>, <code>laplace</code>,
-<code>cores</code>, ...).</p></dd>
+<dd><p>Passed to <code><a href="https://rdrr.io/pkg/tmbstan/man/tmbstan.html" class="external-link">tmbstan::tmbstan()</a></code> (<code>chains</code>, <code>iter</code>,
+<code>laplace</code>, <code>cores</code>, ...). On Windows <code>cores &gt; 1</code> falls back to
+sequential chains with a warning: parallel chains run on socket
+workers, which can evaluate neither the RTMB tape nor the
+objective closure (the known RTMB limitation of tmbstan,
+tmbstan#27). Fork clusters on unix can, so <code>cores</code> works there.</p></dd>
 
 
 <dt id="arg-priors">priors<a class="anchor" aria-label="anchor" href="#arg-priors"></a></dt>

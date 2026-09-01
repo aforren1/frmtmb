@@ -89,7 +89,7 @@
   : Residuals from a frmtmb fit
 - [`plot(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/plot.frmtmb_fit.md)
   : Diagnostic plots for a fit
-- [`pp_check(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/pp_check.frmtmb_fit.md)
+- [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
   : Predictive check against simulated responses
 - [`anova(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/anova.frmtmb_fit.md)
   : Likelihood-ratio tests between nested frmtmb fits
@@ -105,6 +105,10 @@
   [`posterior_linpred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
   : Expected-value and predictive draws from sampled parameters
+- [`as_draws()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  : Convert draws to a posterior draws object
+- [`getME(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/getME.frmtmb_fit.md)
+  : Extract components of a fit, lme4 style
 - [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
   : Check the Laplace/Wald approximation against NUTS
 - [`influence(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)

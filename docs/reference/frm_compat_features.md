@@ -43,5 +43,5 @@ head(frm_compat_features())
 table(frm_compat_features()$kind)
 #> 
 #>     aterm covstruct    family   grammar    method      mode   special structure 
-#>         8        20        33         3         9         8         6         6 
+#>         8        22        33         3         9         8         6         6 
 ```

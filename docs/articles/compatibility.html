@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.28.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -1731,13 +1731,35 @@ or <code>homdiag</code> term.</p>
 <td align="center">~</td>
 <td align="center">~</td>
 </tr>
+<tr class="odd">
+<td align="left">car</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+</tr>
+<tr class="even">
+<td align="left">spde</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+</tr>
 </tbody>
 </table>
 <table class="table">
 <colgroup>
-<col width="2%">
-<col width="30%">
-<col width="67%">
+<col width="1%">
+<col width="23%">
+<col width="74%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -1804,8 +1826,10 @@ needs dimnames covering every grouping level.</td>
 <td align="left">~</td>
 <td align="left">gr_prec + priors; gr_prec + bounds; gr_prec +
 verbose</td>
-<td align="left">gr(prec = Q) supports intercept-only terms: (1 | gr(g,
-prec = Q)).</td>
+<td align="left">gr(prec = Q) takes correlated slopes; the block
+precision is the Kronecker product of Q and the inverse term covariance,
+so it stays as sparse as Q. Q needs dimnames covering every grouping
+level.</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>
@@ -1821,9 +1845,27 @@ hsgp + bounds; hsgp + verbose</td>
 Write gp(x), not (gp(x) | g).</td>
 </tr>
 <tr class="even">
+<td align="left">~</td>
+<td align="left">car + priors; car + bounds; car + verbose</td>
+<td align="left">car(M, gr = g, type = ) is a predictor special, not a
+bar term. M is a symmetric binary adjacency matrix with dimnames
+covering every location. type = “escar” is the proper CAR,
+“icar”/“esicar” the intrinsic one under a soft sum-to-zero constraint
+(con_sd), “bym2” the scaled mixture; escar needs every location to have
+a neighbor.</td>
+</tr>
+<tr class="odd">
+<td align="left">~</td>
+<td align="left">spde + priors; spde + bounds; spde + verbose</td>
+<td align="left">spde(fem, gr = node) is a predictor special taking a
+mesh’s finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr
+maps observations onto mesh nodes, so a general projector matrix is not
+supported yet.</td>
+</tr>
+<tr class="even">
 <td align="left">x</td>
 <td align="left">cs + quadrature; ar1 + quadrature; hetar1 + quadrature;
-ou + quadrature; toep + quadrature; and 12 more</td>
+ou + quadrature; toep + quadrature; and 14 more</td>
 <td align="left">Refused: quadrature marginalizes one scalar random
 intercept at a time. Every block must be a dimension-1 us, diag, or
 homdiag term.</td>
@@ -2378,17 +2420,17 @@ level.</td>
 <tbody>
 <tr class="odd">
 <td align="left">works</td>
-<td align="right">1249</td>
-<td align="left">33%</td>
+<td align="right">1259</td>
+<td align="left">32%</td>
 </tr>
 <tr class="even">
 <td align="left">conditional</td>
-<td align="right">1363</td>
-<td align="left">36%</td>
+<td align="right">1530</td>
+<td align="left">39%</td>
 </tr>
 <tr class="odd">
 <td align="left">refused</td>
-<td align="right">389</td>
+<td align="right">395</td>
 <td align="left">10%</td>
 </tr>
 <tr class="even">
@@ -2398,8 +2440,8 @@ level.</td>
 </tr>
 <tr class="odd">
 <td align="left">untested</td>
-<td align="right">749</td>
-<td align="left">20%</td>
+<td align="right">753</td>
+<td align="left">19%</td>
 </tr>
 </tbody>
 </table>

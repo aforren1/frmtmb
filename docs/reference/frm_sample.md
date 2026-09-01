@@ -36,7 +36,11 @@ frm_sample(
 
   Passed to
   [`tmbstan::tmbstan()`](https://rdrr.io/pkg/tmbstan/man/tmbstan.html)
-  (`chains`, `iter`, `laplace`, `cores`, ...).
+  (`chains`, `iter`, `laplace`, `cores`, ...). On Windows `cores > 1`
+  falls back to sequential chains with a warning: parallel chains run on
+  socket workers, which can evaluate neither the RTMB tape nor the
+  objective closure (the known RTMB limitation of tmbstan, tmbstan#27).
+  Fork clusters on unix can, so `cores` works there.
 
 - priors:
 

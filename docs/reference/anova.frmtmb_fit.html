@@ -19,7 +19,7 @@ refuses the rest with the reason (glmmTMB#776)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.28.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,7 +65,7 @@ refuses the rest with the reason (glmmTMB#776).</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'frmtmb_fit'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span>, refit <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -79,6 +79,14 @@ refuses the rest with the reason (glmmTMB#776).</p>
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Further <code>frmtmb_fit</code> objects, nested with <code>object</code>.</p></dd>
 
+
+<dt id="arg-refit">refit<a class="anchor" aria-label="anchor" href="#arg-refit"></a></dt>
+<dd><p>If <code>TRUE</code>, refit every REML fit in the comparison with
+ML and compare those, with a message naming what was refit. The
+refits reuse the assembled design and warm-start at the REML
+estimates. <code>FALSE</code> (the default) keeps the REML fits and refuses
+the comparisons a restricted likelihood cannot support.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -86,7 +94,11 @@ refuses the rest with the reason (glmmTMB#776).</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>When the smaller model removes a variance component, the null value
+    <p><code>refit = TRUE</code> is the lme4 convenience for the refused case: every
+REML fit in the comparison is refit with <code>REML = FALSE</code> and the ML
+fits are compared instead. lme4 does this silently by default; here
+it is opt-in and the message names the models that were refit.</p>
+<p>When the smaller model removes a variance component, the null value
 sits on the boundary of the parameter space and the usual chi-square
 reference is wrong: the asymptotic null is a mixture (for one
 component, half a point mass at zero and half a chi-square with one

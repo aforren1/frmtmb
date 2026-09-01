@@ -123,6 +123,61 @@ c(smooth = AIC(fs), gp = AIC(fg))
 #> 250.6414 250.1495
 ```
 
+## Spatial Gaussian Markov random fields
+
+`car()` fits a conditional autoregressive field over an adjacency
+matrix, with brms’s spelling and all four of its types. `M` is a
+symmetric binary adjacency matrix whose dimnames name the locations,
+`gr` is the grouping variable that maps observations onto them, and
+`type` is one of `"escar"` (the proper CAR, default), `"icar"` and its
+alias `"esicar"` (intrinsic), or `"bym2"` (the scaled mixture of a
+spatial and an unstructured part). `sd(car)` is the field scale; `escar`
+and `bym2` add a mixing parameter on `(0, 1)`, reported by
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+under brms’s names `car` and `rhocar`.
+
+``` r
+
+set.seed(4)
+grid <- expand.grid(r = 1:5, c = 1:5)
+nloc <- nrow(grid)
+W <- matrix(0, nloc, nloc)
+for (i in seq_len(nloc)) {
+  for (j in seq_len(nloc)) {
+    if (abs(grid$r[i] - grid$r[j]) + abs(grid$c[i] - grid$c[j]) == 1) {
+      W[i, j] <- 1
+    }
+  }
+}
+dimnames(W) <- list(paste0("L", 1:nloc), paste0("L", 1:nloc))
+phi <- 0.7 * as.numeric(scale(grid$r + grid$c)) + 0.7 * rnorm(nloc)
+dc <- data.frame(loc = factor(rep(rownames(W), each = 8),
+                              levels = rownames(W)))
+dc$y <- 1 + phi[as.integer(dc$loc)] + rnorm(nrow(dc), 0, 0.5)
+fc <- frm(bf(y ~ car(W, gr = loc, type = "escar")) + gaussian(),
+          data = dc)
+confint_varcorr(fc)
+#>                              block    term type estimate       lwr       upr
+#> 1 car(W, gr = loc, type = "escar") sd(car)   sd 1.111466 0.8096418 1.5258056
+#> 2 car(W, gr = loc, type = "escar")     car prop 0.951133 0.5172424 0.9971797
+```
+
+An intrinsic CAR is improper - the field is identified only up to a
+constant per connected component - so `icar`, `esicar` and `bym2` add
+brms’s soft sum-to-zero constraint, whose scale is `con_sd` (brms’s
+`1e-3` by default, relative to the field’s own sd). Tightening it walks
+the fit onto the exactly constrained likelihood; the default is already
+four orders below the standard error of `sd(car)`.
+
+`spde()` fits a Matern field over a finite-element mesh: it takes the
+mesh’s three matrices (`fmesher::fm_fem()`’s `c0`/`g1`/`g2`, or INLA’s
+`M0`/`M1`/`M2`) as fixed data and estimates
+`Q = tau^2 (kappa^4 M0 + 2 kappa^2 M1 + M2)`. Mesh construction stays
+outside the package; `gr` maps observations onto mesh nodes.
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+reports the marginal sd and the range under the planar `alpha = 2`
+identities.
+
 ## Special terms
 
 `mo()` fits monotonic effects of ordinal predictors, `mi()` imputes
@@ -231,7 +286,7 @@ head(pars, 3)
 plot(pars$x, apply(pp, 2, sd), xlab = "slope", ylab = "sd(y)")
 ```
 
-![](frmtmb_files/figure-html/unnamed-chunk-11-1.png)
+![](frmtmb_files/figure-html/unnamed-chunk-12-1.png)
 
 Every coefficient and every random-effect SD needs a value from
 `newparams` or a prior; leaving one out is an error rather than a silent
@@ -240,7 +295,8 @@ zero effect.
 ## Diagnostics
 
 `diagnose(fit)` reports convergence forensics. Simulation-based
-residuals come through DHARMa, predictive checks through `pp_check()`,
+residuals come through DHARMa, predictive checks through
+[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md),
 and effect displays through
 [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md):
 
@@ -256,7 +312,8 @@ same model -
 returns draws with the full method surface
 ([`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
-`pp_check()`), and
+[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)),
+and
 [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
 audits the Laplace approximation against them:
 

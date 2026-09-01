@@ -10,6 +10,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/news/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/anova.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/anova.frmtmb_multiple.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/as_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/as_tmbstan.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/bf.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/check_custom_family.html</loc></url>
@@ -36,6 +37,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_multiple.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_sample.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_simulate.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/getME.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/get_prior.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/hypothesis.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/index.html</loc></url>
@@ -48,7 +50,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/num_factor.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/plot.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/posterior_epred.html</loc></url>
-<url><loc>https://aforren1.github.io/frmtmb/reference/pp_check.frmtmb_fit.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/pp_check.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/prior_summary.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/profile.frmtmb_fit.html</loc></url>

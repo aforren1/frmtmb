@@ -23,6 +23,7 @@ likelihood-ratio tests, AIC).
 | `nl = TRUE` | same | provide `start`; se.fit on the nonlinear mu not yet |
 | [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md) | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md), [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md) | same | multinomial takes `K` explicitly |
+| `car(M, gr = g, type =)` | same | all four types; `M` is looked up in the data or the calling environment, not in `data2` |
 
 ## What changes
 
@@ -95,8 +96,9 @@ the stats/lme4 spelling for standard generics:
   [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
   (includes what `conditional_smooths()` covers),
   [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
-  (a delta-method Wald test here), `pp_check()` (simulate-based, through
-  bayesplot’s `ppc_*` functions),
+  (a delta-method Wald test here),
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  (simulate-based, through bayesplot’s `ppc_*` functions),
   [`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md),
   [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
   [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),

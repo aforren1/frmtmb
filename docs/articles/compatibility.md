@@ -262,6 +262,8 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | smooth  |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 | gp      |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 | hsgp    |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
+| car     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
+| spde    |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -273,10 +275,12 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | ~ | rr + priors; rr + bounds; rr + verbose | rr() gives a reduced-rank block; the rank d must not exceed the term dimension. |
 | ~ | equalto + priors; equalto + bounds; equalto + verbose | equalto(x + 0 \| g, V) fixes the term covariance to V, which must be square and match the term dimension. |
 | ~ | gr_cov + priors; gr_cov + bounds; gr_cov + verbose | gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level. |
-| ~ | gr_prec + priors; gr_prec + bounds; gr_prec + verbose | gr(prec = Q) supports intercept-only terms: (1 \| gr(g, prec = Q)). |
+| ~ | gr_prec + priors; gr_prec + bounds; gr_prec + verbose | gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level. |
 | ~ | smooth + priors; smooth + bounds; smooth + verbose | smooth is the internal structure behind s() and t2(); it is not written directly in a formula. |
 | ~ | gp + priors; gp + bounds; gp + verbose; hsgp + priors; hsgp + bounds; hsgp + verbose | gp() and hsgp() are predictor specials, not bar terms. Write gp(x), not (gp(x) \| g). |
-| x | cs + quadrature; ar1 + quadrature; hetar1 + quadrature; ou + quadrature; toep + quadrature; and 12 more | Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term. |
+| ~ | car + priors; car + bounds; car + verbose | car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric binary adjacency matrix with dimnames covering every location. type = “escar” is the proper CAR, “icar”/“esicar” the intrinsic one under a soft sum-to-zero constraint (con_sd), “bym2” the scaled mixture; escar needs every location to have a neighbor. |
+| ~ | spde + priors; spde + bounds; spde + verbose | spde(fem, gr = node) is a predictor special taking a mesh’s finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes, so a general projector matrix is not supported yet. |
+| x | cs + quadrature; ar1 + quadrature; hetar1 + quadrature; ou + quadrature; toep + quadrature; and 14 more | Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term. |
 
 ## Model structures
 
@@ -375,11 +379,11 @@ Three spellings have restrictions of their own.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1249 | 33%   |
-| conditional |  1363 | 36%   |
-| refused     |   389 | 10%   |
+| works       |  1259 | 32%   |
+| conditional |  1530 | 39%   |
+| refused     |   395 | 10%   |
 | broken      |     0 | 0%    |
-| untested    |   749 | 20%   |
+| untested    |   753 | 19%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To

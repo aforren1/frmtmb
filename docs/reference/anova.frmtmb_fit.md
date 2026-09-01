@@ -12,7 +12,7 @@ with the fixed effects held fixed - and refuses the rest with the reason
 
 ``` r
 # S3 method for class 'frmtmb_fit'
-anova(object, ...)
+anova(object, ..., refit = FALSE)
 ```
 
 ## Arguments
@@ -25,11 +25,24 @@ anova(object, ...)
 
   Further `frmtmb_fit` objects, nested with `object`.
 
+- refit:
+
+  If `TRUE`, refit every REML fit in the comparison with ML and compare
+  those, with a message naming what was refit. The refits reuse the
+  assembled design and warm-start at the REML estimates. `FALSE` (the
+  default) keeps the REML fits and refuses the comparisons a restricted
+  likelihood cannot support.
+
 ## Value
 
 An `anova` table.
 
 ## Details
+
+`refit = TRUE` is the lme4 convenience for the refused case: every REML
+fit in the comparison is refit with `REML = FALSE` and the ML fits are
+compared instead. lme4 does this silently by default; here it is opt-in
+and the message names the models that were refit.
 
 When the smaller model removes a variance component, the null value sits
 on the boundary of the parameter space and the usual chi-square

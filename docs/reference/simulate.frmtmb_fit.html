@@ -13,7 +13,7 @@ likelihood was normalized on."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.28.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,7 +49,7 @@ likelihood was normalized on."></head><body>
     <div class="ref-description section level2">
     <p>A <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>ed response simulates by rejection within its bounds, so
 every draw lies in <code>[lb, ub]</code> and posterior-predictive checks
-(<code><a href="dharma_residuals.html">dharma_residuals()</a></code>, <code>pp_check()</code>) see the same support the
+(<code><a href="dharma_residuals.html">dharma_residuals()</a></code>, <code><a href="pp_check.html">pp_check()</a></code>) see the same support the
 likelihood was normalized on.</p>
     </div>
 
@@ -104,7 +104,7 @@ effects; <code>NA</code> redraws them from their estimated distribution
 the model describes the latent distribution, and censoring is a
 property of the observation process, not of the response. This
 matches brms, whose <code><a href="posterior_epred.html">posterior_predict()</a></code> also ignores <code>cens()</code> (and
-whose <code>pp_check()</code> therefore drops the censored rows). The draws are
+whose <code><a href="pp_check.html">pp_check()</a></code> therefore drops the censored rows). The draws are
 then not comparable with the observed values on censored rows, which
 is why <code><a href="dharma_residuals.html">dharma_residuals()</a></code> and <code>residuals(type = "osa")</code> refuse or
 skip them.</p>

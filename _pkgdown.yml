@@ -43,6 +43,8 @@ reference:
   - as_tmbstan
   - frm_sample
   - posterior_epred
+  - as_draws
+  - getME.frmtmb_fit
   - check_laplace
   - influence.frmtmb_fit
   - set_prior
