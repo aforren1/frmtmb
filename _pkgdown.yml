@@ -63,6 +63,11 @@ reference:
   - rescor_matrix
   - vcov.frmtmb_fit
   - sigma.frmtmb_fit
+- title: Feature compatibility
+  contents:
+  - frm_compat
+  - frm_compat_features
+  - frm_compat_rules
 
 articles:
 - title: Guides
@@ -71,3 +76,4 @@ articles:
   - frmtmb
   - brms-migration
   - diagnostics
+  - compatibility
