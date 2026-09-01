@@ -21,6 +21,7 @@ frm(
   upper = NULL,
   priors = NULL,
   quadrature = FALSE,
+  data2 = list(),
   dry_run = NULL,
   verbose = FALSE
 )
@@ -74,7 +75,10 @@ frm(
 
   How to handle missing values, as in
   [`stats::lm()`](https://rdrr.io/r/stats/lm.html) (default
-  [stats::na.omit](https://rdrr.io/r/stats/na.fail.html)).
+  [stats::na.omit](https://rdrr.io/r/stats/na.fail.html)). Rows dropped
+  for missingness are reported in a message; wrap the call in
+  [`suppressMessages()`](https://rdrr.io/r/base/message.html) to silence
+  it.
 
 - lower, upper:
 
@@ -111,6 +115,24 @@ frm(
   [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
   [`predict()`](https://rdrr.io/r/stats/predict.html) work as usual.
+
+- data2:
+
+  A named list of objects that are not columns of `data`: the adjacency
+  matrix of `car()`, the mesh triple of `spde()`, and the matrices of
+  `gr(prec = )`, `gr(cov = )` and `equalto()`. This is brms's `data2`
+  argument, with one deliberate extension: brms accepts a bare name
+  only, while frmtmb also evaluates compound expressions with `data2` in
+  front of the data mask, so `gr(g, cov = solve(Q))` finds `Q` there.
+  Each structural expression resolves from `data2` first, then `data`,
+  then the formula environment; that last step is what a model written
+  before `data2` relied on, so old code keeps working. Prefer `data2`:
+  its objects are stored on the fit, so
+  [`saveRDS()`](https://rdrr.io/r/base/readRDS.html) and a later
+  [`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md),
+  [`influence()`](https://rdrr.io/r/stats/lm.influence.html) or
+  [`update()`](https://rdrr.io/r/stats/update.html) in a fresh session
+  do not need the calling environment to still exist.
 
 - dry_run:
 

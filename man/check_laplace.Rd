@@ -28,6 +28,8 @@ components with few groups).
 }
 \examples{
 \donttest{
+if (requireNamespace("tmbstan", quietly = TRUE) &&
+    requireNamespace("rstan", quietly = TRUE)) {
 # a binary GLMM with small clusters: the regime where the Laplace
 # approximation and Wald intervals are least reliable
 set.seed(4)
@@ -41,5 +43,6 @@ cl
 # |z_shift| well above 0 or sd_ratio far from 1 marks the parameters
 # whose Wald interval to replace with a profile or bootstrap one
 cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
+}
 }
 }

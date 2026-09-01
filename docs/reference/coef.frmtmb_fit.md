@@ -44,3 +44,32 @@ layer keyed like
 added. Smooth terms are excluded. A fit without random effects returns
 [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) (the
 single coefficient vector when there is one linear predictor).
+
+## Examples
+
+``` r
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+# one row per group: the fixed effects with the modes added in
+head(coef(fit)$g)
+#>   (Intercept)         x
+#> 1  0.44665008 0.6706869
+#> 2  1.43337233 0.6706869
+#> 3  0.54268306 0.6706869
+#> 4  0.87303571 0.6706869
+#> 5 -0.02536969 0.6706869
+#> 6  2.28544238 0.6706869
+# which is fixef() plus ranef(), the lme4 identity
+all.equal(coef(fit)$g[["(Intercept)"]],
+          fixef(fit)$mu[["(Intercept)"]] + ranef(fit)$g[, 1],
+          check.attributes = FALSE)
+#> [1] "Numeric: lengths (10, 0) differ"
+
+# without random effects there are no groups, so coef() is fixef()
+coef(frm(bf(y ~ x) + gaussian(), data = dd))
+#> (Intercept)           x 
+#>   1.2457711   0.6136201 
+```

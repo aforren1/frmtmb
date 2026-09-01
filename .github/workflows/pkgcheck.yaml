@@ -1,0 +1,19 @@
+# rOpenSci's submission gate, run on every push to main: pkgcheck plus
+# the srr statistical-standards checks, in the same container the
+# rOpenSci editors use. post-to-issue is off so results live in the
+# run summary instead of a bot-maintained issue.
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+name: pkgcheck
+
+jobs:
+  pkgcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ropensci-review-tools/pkgcheck-action@main
+        with:
+          post-to-issue: false
+          summary-workflow-link: true

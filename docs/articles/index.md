@@ -4,6 +4,8 @@
 
 - [Getting started with
   frmtmb](https://aforren1.github.io/frmtmb/articles/frmtmb.md):
+- [Inputs and
+  preprocessing](https://aforren1.github.io/frmtmb/articles/inputs.md):
 - [frmtmb for brms
   users](https://aforren1.github.io/frmtmb/articles/brms-migration.md):
 - [Model

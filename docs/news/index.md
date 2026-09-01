@@ -1,5 +1,61 @@
 # Changelog
 
+## frmtmb 0.30.0
+
+data2, ODE feasibility, and the remaining rOpenSci runway.
+
+### New
+
+- `frm(..., data2 = list())`, the brms spelling for structural objects:
+  the matrices of `gr(cov =)`/`gr(prec =)`, `equalto()`, `car()` and
+  `spde()` resolve from `data2` before the data and the formula
+  environment (compound expressions over `data2` objects work, a
+  documented permissive divergence from brms). `data2` is stored on the
+  fit, so [`saveRDS()`](https://rdrr.io/r/base/readRDS.html) carries the
+  matrices and
+  [`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md)/[`update()`](https://rdrr.io/r/stats/update.html)/[`drop1()`](https://rdrr.io/r/stats/add1.html)/[`influence()`](https://rdrr.io/r/stats/lm.influence.html)/[`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
+  re-assemble in a session where the calling environment is gone.
+- Population pharmacokinetic models work today through `nl = TRUE`
+  bodies calling
+  [`RTMBode::ode()`](https://rdrr.io/pkg/RTMBode/man/ode.html) per
+  subject (RTMBode installs from kaskr.r-universe.dev): the Laplace
+  approximation is exact through the adjoint solver, and a
+  one-compartment population fit agrees with nlmixr2’s FOCEi to three
+  decimals with no compiler. The feasibility study, the sharp edges
+  (never stack subjects into one system; adaptive integrators only), and
+  the planned `frm_ode()` helper are recorded in dev/ode-feasibility.md.
+
+### rOpenSci runway
+
+- Every exported help page has executing examples (35 pages added; the
+  as-cran check runs them all in ~14s).
+- Every internal function (288) is documented with its contract under
+  `@noRd`; a new “Inputs and preprocessing” vignette covers the
+  formula-to-design pipeline, accepted predictor classes, argument
+  types, attribute survival, terminology, and reproducible runtime
+  claims. srr standards: 105 of 116 tagged in code, docs, and tests; the
+  other 11 documented as not applicable.
+- Nine standards tests added (degenerate inputs, noise invariance,
+  exact-fit behavior, row-name retention, runtime scaling).
+- CI gained the rOpenSci `pkgcheck` action (the editors’ submission
+  checks, srr included) and a coverage workflow.
+
+### Corrected behavior
+
+- Rows dropped by `na.action` are reported with a count (a
+  [`message()`](https://rdrr.io/r/base/message.html), so
+  [`suppressMessages()`](https://rdrr.io/r/base/message.html) silences
+  it); fitting zero rows says so instead of blaming missing values.
+- Eleven duplicated error messages across the package were disambiguated
+  with call context.
+- When a structural expression fails under the `data2` mask (for example
+  [`solve()`](https://rdrr.io/r/base/solve.html) of a singular matrix),
+  the error now reports that cause instead of a misleading “not found”
+  from the fallback lookup.
+- An unordered factor response to an ordinal family warns with the level
+  order about to be used, then fits (the brms behavior); `mo()` keeps
+  its stricter ordered-factor requirement.
+
 ## frmtmb 0.29.0
 
 Review fixes for the spatial wave and rOpenSci review preparation.

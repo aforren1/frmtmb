@@ -28,6 +28,8 @@ prior_normal(0, 2)
 prior_t(df = 3, location = 0, scale = 1)
 
 \donttest{
+if (requireNamespace("tmbstan", quietly = TRUE) &&
+    requireNamespace("rstan", quietly = TRUE)) {
 set.seed(9)
 dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
@@ -39,5 +41,6 @@ ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0,
                  priors = list(beta = prior_normal(0, 5),
                                theta_1 = prior_t(3, 0, 1)))
 summary(ds)
+}
 }
 }

@@ -35,3 +35,21 @@ plot(x, which = 1:2, ask = NULL, ...)
 ## Value
 
 `x`, invisibly. Called for the plots it draws.
+
+## Examples
+
+``` r
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+# both panels, side by side
+op <- par(mfrow = c(1, 2))
+plot(fit, ask = FALSE)
+
+par(op)
+
+# just the QQ panel
+plot(fit, which = 2)
+```

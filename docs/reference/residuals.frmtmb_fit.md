@@ -113,3 +113,28 @@ population-level mean.
 convention), which for a mixed model is the Laplace-approximated
 marginal deviance and does **not** equal
 `sum(residuals(fit, type = "deviance")^2)`.
+
+## Examples
+
+``` r
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+
+# raw and variance-standardized residuals
+head(residuals(fit))
+#>          1          2          3          4          5          6 
+#> -0.4940281 -0.9276322 -0.7935414  0.3403558  2.0031268  0.4382665 
+head(residuals(fit, type = "pearson"))
+#>          1          2          3          4          5          6 
+#> -0.7028714 -0.9631367 -0.8908094  0.2086995  2.0062658  0.2738239 
+# the usual overdispersion check for a poisson fit
+sum(residuals(fit, type = "pearson")^2) / df.residual(fit)
+#> [1] 0.9176762
+
+# one-step-ahead quantile residuals are standard normal under a
+# correctly specified model, whatever the family
+r <- residuals(fit, type = "osa")
+qqnorm(r); qqline(r)
+```

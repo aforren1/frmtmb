@@ -58,3 +58,86 @@ row (use group-constant covariates).
 [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
 returns the posterior class probabilities per group (or per observation
 for ordinary mixtures), conditional on the random-effect modes.
+
+## Examples
+
+``` r
+# two well-separated gaussian components
+set.seed(3)
+dd <- data.frame(y = c(rnorm(80, 0, 1), rnorm(80, 5, 1)),
+                 x = rnorm(160))
+fit <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
+# one mu and sigma per component, plus the mixing weight theta1
+fixef(fit)
+#> $mu1
+#>  (Intercept) 
+#> -0.002346141 
+#> 
+#> $sigma1
+#> (Intercept) 
+#>  -0.1298411 
+#> 
+#> $mu2
+#> (Intercept) 
+#>    4.999987 
+#> 
+#> $sigma2
+#> (Intercept) 
+#>  0.01009985 
+#> 
+#> $theta1
+#> (Intercept) 
+#> 0.004758874 
+#> 
+# posterior class probability per observation
+head(mixture_probs(fit))
+#>         class1       class2
+#> [1,] 1.0000000 4.288987e-08
+#> [2,] 0.9999990 1.000118e-06
+#> [3,] 0.9999851 1.488386e-05
+#> [4,] 1.0000000 1.798825e-08
+#> [5,] 0.9999891 1.087896e-05
+#> [6,] 0.9999952 4.800314e-06
+
+# the mixing weight can take its own predictor
+frm(bf(y ~ 1, theta1 ~ x) + mixture(gaussian(), gaussian()), data = dd)
+#> frmtmb fit: y ~ 1 
+#> Family: mixture(gaussian, gaussian)   Method: ML 
+#> logLik: -327.164  AIC: 666.328  nobs: 160 
+#> 
+#> Fixed effects:
+#>  mu1:
+#> (Intercept) 
+#>   -0.002575 
+#>  sigma1:
+#> (Intercept) 
+#>     -0.1302 
+#>  mu2:
+#> (Intercept) 
+#>           5 
+#>  sigma2:
+#> (Intercept) 
+#>     0.01038 
+#>  theta1:
+#> (Intercept)           x 
+#>     0.01004    -0.07069 
+
+# \donttest{
+# latent classes: every observation of a group shares one class
+set.seed(4)
+n_g <- 40
+cls <- rep(c(1, 2), each = n_g / 2)
+dg <- data.frame(g = factor(rep(seq_len(n_g), each = 5)))
+dg$y <- rnorm(nrow(dg), c(0, 4)[cls[as.integer(dg$g)]], 1)
+fg <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian(), groups = ~g),
+          data = dg)
+head(mixture_probs(fg))   # one row per group, not per observation
+#>   class1       class2
+#> 1      1 1.262122e-12
+#> 2      1 2.820791e-12
+#> 3      1 8.436732e-16
+#> 4      1 7.884398e-16
+#> 5      1 4.031519e-09
+#> 6      1 1.439555e-13
+# }
+```

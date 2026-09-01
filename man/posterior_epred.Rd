@@ -73,6 +73,8 @@ them).
 }
 \examples{
 \donttest{
+if (requireNamespace("tmbstan", quietly = TRUE) &&
+    requireNamespace("rstan", quietly = TRUE)) {
 set.seed(9)
 dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 dd$y <- rpois(80, exp(0.3 + 0.4 * dd$x + rnorm(8, 0, 0.5)[dd$g]))
@@ -93,5 +95,6 @@ apply(pp, 2, quantile, c(0.025, 0.5, 0.975))
 
 # the linear predictor itself, on the link scale by default
 head(posterior_linpred(ds, newdata = nd, ndraws = 5))
+}
 }
 }

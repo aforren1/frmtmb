@@ -13,7 +13,7 @@ likelihood was normalized on."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.29.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,7 +25,8 @@ likelihood was normalized on."></head><body>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
+    <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
@@ -121,6 +122,58 @@ refused. Interval censoring has no single-value representation and
 is refused too.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">0.3</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">0</span>, <span class="fl">0.6</span><span class="op">)</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">g</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># one column per draw; the seed used is attached</span></span></span>
+<span class="r-in"><span><span class="va">sims</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate</a></span><span class="op">(</span><span class="va">fit</span>, nsim <span class="op">=</span> <span class="fl">5</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sims</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	100 obs. of  5 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ sim_1: int  2 3 0 4 1 2 2 1 2 5 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ sim_2: int  1 0 0 2 3 6 2 3 2 0 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ sim_3: int  1 1 2 2 0 2 4 2 1 2 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ sim_4: int  0 1 0 2 2 5 1 1 1 3 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ sim_5: int  0 1 1 2 2 1 4 1 0 3 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  - attr(*, "seed")= num 42</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..- attr(*, "kind")=List of 3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   .. ..$ : chr "Mersenne-Twister"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   .. ..$ : chr "Inversion"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   .. ..$ : chr "Rejection"</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">sims</span>, <span class="st">"seed"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 42</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"kind")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"kind")[[1]]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Mersenne-Twister"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"kind")[[2]]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Inversion"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"kind")[[3]]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Rejection"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># re.form = NA redraws the group effects, which is the right choice</span></span></span>
+<span class="r-in"><span><span class="co"># for a parametric bootstrap over new groups</span></span></span>
+<span class="r-in"><span><span class="va">sims_m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate</a></span><span class="op">(</span><span class="va">fit</span>, nsim <span class="op">=</span> <span class="fl">5</span>, re.form <span class="op">=</span> <span class="cn">NA</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">sims_m</span>, <span class="fl">2</span>, <span class="va">var</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">sims</span>, <span class="fl">2</span>, <span class="va">var</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sim_1 sim_2 sim_3 sim_4 sim_5 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  TRUE FALSE FALSE FALSE  TRUE </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># a posterior-predictive check by hand: does the fit reproduce the</span></span></span>
+<span class="r-in"><span><span class="co"># share of zeros in the data?</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.29</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate</a></span><span class="op">(</span><span class="va">fit</span>, nsim <span class="op">=</span> <span class="fl">20</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  sim_1  sim_2  sim_3  sim_4  sim_5  sim_6  sim_7  sim_8  sim_9 sim_10 sim_11 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.30   0.24   0.35   0.30   0.25   0.25   0.23   0.24   0.33   0.32   0.27 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sim_12 sim_13 sim_14 sim_15 sim_16 sim_17 sim_18 sim_19 sim_20 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.27   0.30   0.37   0.27   0.29   0.24   0.29   0.28   0.34 </span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

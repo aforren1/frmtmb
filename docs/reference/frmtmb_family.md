@@ -143,6 +143,6 @@ fit <- frm(bf(y | vint(size) ~ x) + fam, data = dd)
 fixef(fit)
 #> $mu
 #> (Intercept)           x 
-#>  -0.3898761  -0.1675495 
+#> -0.58378094 -0.02406052 
 #> 
 ```

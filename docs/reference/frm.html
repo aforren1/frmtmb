@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.29.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -21,7 +21,8 @@ Laplace approximation for random effects through RTMB."></head><body>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
+    <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
@@ -62,6 +63,7 @@ Laplace approximation for random effects through RTMB.</p>
 <span>  upper <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  priors <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  quadrature <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  data2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  dry_run <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -112,7 +114,9 @@ loops. The deferred report is cached, so nothing is computed twice.</p></dd>
 
 <dt id="arg-na-action">na.action<a class="anchor" aria-label="anchor" href="#arg-na-action"></a></dt>
 <dd><p>How to handle missing values, as in <code><a href="https://rdrr.io/r/stats/lm.html" class="external-link">stats::lm()</a></code>
-(default <a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">stats::na.omit</a>).</p></dd>
+(default <a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">stats::na.omit</a>). Rows dropped for missingness are
+reported in a message; wrap the call in <code><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages()</a></code> to
+silence it.</p></dd>
 
 
 <dt id="arg-lower-upper">lower, upper<a class="anchor" aria-label="anchor" href="#arg-lower-upper"></a></dt>
@@ -145,6 +149,22 @@ starting point decides whether the marginalized objective is
 finite at all. That fit also supplies the conditional modes, which
 the marginalized objective no longer carries, so <code><a href="ranef.html">ranef()</a></code>,
 <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> work as usual.</p></dd>
+
+
+<dt id="arg-data-">data2<a class="anchor" aria-label="anchor" href="#arg-data-"></a></dt>
+<dd><p>A named list of objects that are not columns of <code>data</code>:
+the adjacency matrix of <code>car()</code>, the mesh triple of <code>spde()</code>, and
+the matrices of <code>gr(prec = )</code>, <code>gr(cov = )</code> and <code>equalto()</code>. This
+is brms's <code>data2</code> argument, with one deliberate extension: brms
+accepts a bare name only, while frmtmb also evaluates compound
+expressions with <code>data2</code> in front of the data mask, so
+<code>gr(g, cov = solve(Q))</code> finds <code>Q</code> there.
+Each structural expression resolves from <code>data2</code> first, then
+<code>data</code>, then the formula environment; that last step is what a
+model written before <code>data2</code> relied on, so old code keeps working.
+Prefer <code>data2</code>: its objects are stored on the fit, so <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code>
+and a later <code><a href="refit.html">refit()</a></code>, <code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code> or <code><a href="https://rdrr.io/r/stats/update.html" class="external-link">update()</a></code> in a fresh
+session do not need the calling environment to still exist.</p></dd>
 
 
 <dt id="arg-dry-run">dry_run<a class="anchor" aria-label="anchor" href="#arg-dry-run"></a></dt>

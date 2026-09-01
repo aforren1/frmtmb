@@ -3,3 +3,4 @@
 tests/testthat/_problems
 *.tar.gz
 *.Rcheck
+Rplots.pdf

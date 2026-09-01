@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.29.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,7 +34,8 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+<li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
+    <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
@@ -1758,8 +1759,8 @@ or <code>homdiag</code> term.</p>
 <table class="table">
 <colgroup>
 <col width="1%">
-<col width="18%">
-<col width="80%">
+<col width="17%">
+<col width="81%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -1813,14 +1814,16 @@ exceed the term dimension.</td>
 <td align="left">equalto + priors; equalto + bounds; equalto +
 verbose</td>
 <td align="left">equalto(x + 0 | g, V) fixes the term covariance to V,
-which must be square and match the term dimension.</td>
+which must be square and match the term dimension, and belongs in data2
+= list(V = V).</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>
 <td align="left">gr_cov + priors; gr_cov + bounds; gr_cov + verbose</td>
 <td align="left">gr(cov = A) accepts correlated slopes; the block
 covariance is the Kronecker product of A and the term covariance. A
-needs dimnames covering every grouping level.</td>
+needs dimnames covering every grouping level, and belongs in data2 =
+list(A = A).</td>
 </tr>
 <tr class="odd">
 <td align="left">~</td>
@@ -1829,7 +1832,7 @@ verbose</td>
 <td align="left">gr(prec = Q) takes correlated slopes; the block
 precision is the Kronecker product of Q and the inverse term covariance,
 so it stays as sparse as Q. Q needs dimnames covering every grouping
-level.</td>
+level, and belongs in data2 = list(Q = Q).</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>
@@ -1853,7 +1856,8 @@ colnames, or both, which then have to agree) covering every location;
 entries must be present and non-negative, and non-zero weights are
 binarized. type = “escar” is the proper CAR, “icar”/“esicar” the
 intrinsic one under a soft sum-to-zero constraint (con_sd), “bym2” the
-scaled mixture; escar needs every location to have a neighbor.</td>
+scaled mixture; escar needs every location to have a neighbor. M belongs
+in data2 = list(M = M).</td>
 </tr>
 <tr class="odd">
 <td align="left">~</td>
@@ -1864,7 +1868,7 @@ maps observations onto mesh nodes BY ROW NUMBER (whole numbers in
 1..nrow(M0), as integers or as a factor/character spelling of them),
 because the matrices carry no dimnames to match labels against.
 Unobserved nodes keep their column; a general projector matrix is not
-supported yet.</td>
+supported yet. The matrices belong in data2 = list(fem = fem).</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>

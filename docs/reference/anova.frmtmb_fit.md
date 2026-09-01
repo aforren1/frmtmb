@@ -53,3 +53,58 @@ component. lme4 and glmmTMB report the same naive p-value; halve it for
 the one-component case, or use
 [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
 for a simulation-based reference.
+
+## Examples
+
+``` r
+set.seed(1)
+n <- 200
+dd <- data.frame(x = rnorm(n), z = rnorm(n), g = factor(rep(1:20, 10)))
+u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.5))
+dd$y <- rnorm(n, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
+
+m0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+m1 <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
+anova(m0, m1)
+#> Likelihood-ratio tests
+#> 
+#>                     Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)
+#> y ~ x + (1 | g)      4 -334.52 677.04                         
+#> y ~ x + z + (1 | g)  5 -334.05 678.10 0.9394      1     0.3324
+
+# dropping a variance component puts the null on the boundary, so
+# this p-value is conservative by up to a factor of two
+m2 <- frm(bf(y ~ x) + gaussian(), data = dd)
+anova(m2, m0)
+#> Likelihood-ratio tests
+#> 
+#>                 Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)    
+#> y ~ x            3 -352.75 711.51                             
+#> y ~ x + (1 | g)  4 -334.52 677.04 36.468      1  1.552e-09 ***
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+# REML fits compare only when the fixed-effect designs agree, which
+# is the case for a variance-component test
+r0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, REML = TRUE)
+r1 <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd, REML = TRUE)
+anova(r0, r1)
+#> Likelihood-ratio tests
+#> 
+#>                 Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)    
+#> y ~ x + (1 | g)  2 -336.69 677.39                             
+#> y ~ x + (x | g)  4 -325.44 658.87 22.516      2   1.29e-05 ***
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# differing designs are refused; refit = TRUE compares ML fits instead
+rz <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, REML = TRUE)
+try(anova(r0, rz))
+#> Error : REML likelihoods are comparable only between fits whose fixed-effect designs span the same column space; these do not. Pass refit = TRUE (or refit with REML = FALSE) to compare fixed effects, or hold the fixed effects fixed to compare random-effect structures
+anova(r0, rz, refit = TRUE)
+#> anova(): refitting 2 REML models with ML: y ~ x + (1 | g); y ~ x + z + (1 | g)
+#> Likelihood-ratio tests
+#> 
+#>                     Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)
+#> y ~ x + (1 | g)      4 -334.52 677.04                         
+#> y ~ x + z + (1 | g)  5 -334.05 678.10 0.9394      1     0.3324
+```

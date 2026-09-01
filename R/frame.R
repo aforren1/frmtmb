@@ -363,6 +363,7 @@ validate_data2 <- function(data2) {
 # data-then-formula-env evaluation stays as the fallback, so models
 # written before data2 existed keep working.
 lookup_structural <- function(expr, data2, data, env, what) {
+  e2 <- NULL
   if (length(data2)) {
     if (is.symbol(expr)) {
       nm <- as.character(expr)
@@ -371,12 +372,20 @@ lookup_structural <- function(expr, data2, data, env, what) {
     # the wrapper list separates "evaluated to NULL" from "failed"
     val <- tryCatch(
       list(v = eval(expr, data2, list2env(as.list(data), parent = env))),
-      error = function(e) NULL
+      error = function(e) {
+        e2 <<- e
+        NULL
+      }
     )
     if (!is.null(val)) return(val$v)
   }
   tryCatch(eval(expr, data, env), error = function(e) {
-    stop(structural_lookup_msg(expr, data2, what, e), call. = FALSE)
+    # the data2-mask attempt saw the widest scope, so when both paths
+    # fail its error names the real cause (the fallback just repeats
+    # "not found" for objects that only exist in data2)
+    stop(structural_lookup_msg(expr, data2, what,
+                               if (is.null(e2)) e else e2),
+         call. = FALSE)
   })
 }
 

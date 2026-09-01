@@ -13,7 +13,7 @@ hatch, including correlations).
 ## Usage
 
 ``` r
-get_prior(formula, data = NULL, family = NULL)
+get_prior(formula, data = NULL, family = NULL, data2 = list())
 ```
 
 ## Arguments
@@ -30,6 +30,12 @@ get_prior(formula, data = NULL, family = NULL)
 - family:
 
   Family, when `formula` does not carry one.
+
+- data2:
+
+  Structural objects, as in
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) (ignored
+  when `formula` is a fit, which carries its own).
 
 ## Value
 

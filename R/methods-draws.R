@@ -196,6 +196,8 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05, ...) {
 #' @return A draws-by-observations matrix.
 #' @examples
 #' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
 #' set.seed(9)
 #' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 #' dd$y <- rpois(80, exp(0.3 + 0.4 * dd$x + rnorm(8, 0, 0.5)[dd$g]))
@@ -216,6 +218,7 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05, ...) {
 #'
 #' # the linear predictor itself, on the link scale by default
 #' head(posterior_linpred(ds, newdata = nd, ndraws = 5))
+#' }
 #' }
 #' @export
 posterior_epred <- function(object, ...) UseMethod("posterior_epred")

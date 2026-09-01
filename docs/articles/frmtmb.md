@@ -348,7 +348,10 @@ check_laplace(fit)
 ```
 
 See
+[`vignette("inputs")`](https://aforren1.github.io/frmtmb/articles/inputs.md)
+for what [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md)
+accepts and what it costs to run,
 [`vignette("brms-migration")`](https://aforren1.github.io/frmtmb/articles/brms-migration.md)
-for the brms feature map and
+for the brms feature map, and
 [`vignette("diagnostics")`](https://aforren1.github.io/frmtmb/articles/diagnostics.md)
 for the model-checking workflow.

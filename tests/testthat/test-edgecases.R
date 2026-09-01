@@ -192,8 +192,10 @@ test_that("NA handling: rows dropped consistently, Inf rejected upstream", {
   expect_length(fitted(m), 46)
   # NA rows in newdata propagate NA predictions, not errors
   nd <- dd[1:6, ]
+  nd$x[2] <- NA
   p <- predict(m, newdata = nd, re.form = NA)
-  expect_true(is.na(p[1]) == FALSE)   # NA was only in y/g, x is fine
+  expect_false(is.na(p[1]))   # NA was only in y/g, x is fine
+  expect_true(is.na(p[2]))    # NA predictor rows come back NA
 })
 
 test_that("rows dropped by na.action are reported once (G2.14b)", {
@@ -347,6 +349,9 @@ test_that("a noiseless exact fit succeeds (RE7.1)", {
 })
 
 test_that("a noiseless fit costs no more than the noisy one (RE7.1a)", {
+  # iteration counts move with BLAS and platform, and the wall-clock
+  # comparison needs an unloaded machine
+  skip_on_cran()
   fit <- function(d) frm(bf(y ~ x + z, sigma = 1) + gaussian(), data = d)
   # A single data set says nothing: the iteration count of a 3-parameter
   # quasi-Newton problem swings between 2 and 17 with the draw. The

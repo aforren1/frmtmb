@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.29.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -19,7 +19,8 @@
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
+    <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
@@ -39,6 +40,30 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.30.0" id="frmtmb-0300">frmtmb 0.30.0<a class="anchor" aria-label="anchor" href="#frmtmb-0300"></a></h2>
+<p>data2, ODE feasibility, and the remaining rOpenSci runway.</p>
+<div class="section level3">
+<h3 id="new-0-30-0">New<a class="anchor" aria-label="anchor" href="#new-0-30-0"></a></h3>
+<ul><li>
+<code>frm(..., data2 = list())</code>, the brms spelling for structural objects: the matrices of <code>gr(cov =)</code>/<code>gr(prec =)</code>, <code>equalto()</code>, <code>car()</code> and <code>spde()</code> resolve from <code>data2</code> before the data and the formula environment (compound expressions over <code>data2</code> objects work, a documented permissive divergence from brms). <code>data2</code> is stored on the fit, so <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> carries the matrices and <code><a href="../reference/refit.html">refit()</a></code>/<code><a href="https://rdrr.io/r/stats/update.html" class="external-link">update()</a></code>/<code><a href="https://rdrr.io/r/stats/add1.html" class="external-link">drop1()</a></code>/<code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code>/<code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> re-assemble in a session where the calling environment is gone.</li>
+<li>Population pharmacokinetic models work today through <code>nl = TRUE</code> bodies calling <code><a href="https://rdrr.io/pkg/RTMBode/man/ode.html" class="external-link">RTMBode::ode()</a></code> per subject (RTMBode installs from kaskr.r-universe.dev): the Laplace approximation is exact through the adjoint solver, and a one-compartment population fit agrees with nlmixr2’s FOCEi to three decimals with no compiler. The feasibility study, the sharp edges (never stack subjects into one system; adaptive integrators only), and the planned <code>frm_ode()</code> helper are recorded in dev/ode-feasibility.md.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="ropensci-runway-0-30-0">rOpenSci runway<a class="anchor" aria-label="anchor" href="#ropensci-runway-0-30-0"></a></h3>
+<ul><li>Every exported help page has executing examples (35 pages added; the as-cran check runs them all in ~14s).</li>
+<li>Every internal function (288) is documented with its contract under <code>@noRd</code>; a new “Inputs and preprocessing” vignette covers the formula-to-design pipeline, accepted predictor classes, argument types, attribute survival, terminology, and reproducible runtime claims. srr standards: 105 of 116 tagged in code, docs, and tests; the other 11 documented as not applicable.</li>
+<li>Nine standards tests added (degenerate inputs, noise invariance, exact-fit behavior, row-name retention, runtime scaling).</li>
+<li>CI gained the rOpenSci <code>pkgcheck</code> action (the editors’ submission checks, srr included) and a coverage workflow.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="corrected-behavior-0-30-0">Corrected behavior<a class="anchor" aria-label="anchor" href="#corrected-behavior-0-30-0"></a></h3>
+<ul><li>Rows dropped by <code>na.action</code> are reported with a count (a <code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code>, so <code><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages()</a></code> silences it); fitting zero rows says so instead of blaming missing values.</li>
+<li>Eleven duplicated error messages across the package were disambiguated with call context.</li>
+<li>When a structural expression fails under the <code>data2</code> mask (for example <code><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve()</a></code> of a singular matrix), the error now reports that cause instead of a misleading “not found” from the fallback lookup.</li>
+<li>An unordered factor response to an ordinal family warns with the level order about to be used, then fits (the brms behavior); <code>mo()</code> keeps its stricter ordered-factor requirement.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.29.0" id="frmtmb-0290">frmtmb 0.29.0<a class="anchor" aria-label="anchor" href="#frmtmb-0290"></a></h2>
 <p>Review fixes for the spatial wave and rOpenSci review preparation.</p>

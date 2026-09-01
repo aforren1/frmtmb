@@ -72,3 +72,56 @@ side (type-I censoring): with row-varying censoring times an uncensored
 row's censoring point is unknown, so the mechanism cannot be applied to
 its draws and the call is refused. Interval censoring has no
 single-value representation and is refused too.
+
+## Examples
+
+``` r
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+
+# one column per draw; the seed used is attached
+sims <- simulate(fit, nsim = 5, seed = 42)
+str(sims)
+#> 'data.frame':    100 obs. of  5 variables:
+#>  $ sim_1: int  2 3 0 4 1 2 2 1 2 5 ...
+#>  $ sim_2: int  1 0 0 2 3 6 2 3 2 0 ...
+#>  $ sim_3: int  1 1 2 2 0 2 4 2 1 2 ...
+#>  $ sim_4: int  0 1 0 2 2 5 1 1 1 3 ...
+#>  $ sim_5: int  0 1 1 2 2 1 4 1 0 3 ...
+#>  - attr(*, "seed")= num 42
+#>   ..- attr(*, "kind")=List of 3
+#>   .. ..$ : chr "Mersenne-Twister"
+#>   .. ..$ : chr "Inversion"
+#>   .. ..$ : chr "Rejection"
+attr(sims, "seed")
+#> [1] 42
+#> attr(,"kind")
+#> attr(,"kind")[[1]]
+#> [1] "Mersenne-Twister"
+#> 
+#> attr(,"kind")[[2]]
+#> [1] "Inversion"
+#> 
+#> attr(,"kind")[[3]]
+#> [1] "Rejection"
+#> 
+
+# re.form = NA redraws the group effects, which is the right choice
+# for a parametric bootstrap over new groups
+sims_m <- simulate(fit, nsim = 5, re.form = NA, seed = 42)
+apply(sims_m, 2, var) > apply(sims, 2, var)
+#> sim_1 sim_2 sim_3 sim_4 sim_5 
+#>  TRUE FALSE FALSE FALSE  TRUE 
+
+# a posterior-predictive check by hand: does the fit reproduce the
+# share of zeros in the data?
+mean(dd$y == 0)
+#> [1] 0.29
+colMeans(simulate(fit, nsim = 20, seed = 1) == 0)
+#>  sim_1  sim_2  sim_3  sim_4  sim_5  sim_6  sim_7  sim_8  sim_9 sim_10 sim_11 
+#>   0.30   0.24   0.35   0.30   0.25   0.25   0.23   0.24   0.33   0.32   0.27 
+#> sim_12 sim_13 sim_14 sim_15 sim_16 sim_17 sim_18 sim_19 sim_20 
+#>   0.27   0.30   0.37   0.27   0.29   0.24   0.29   0.28   0.34 
+```

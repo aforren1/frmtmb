@@ -44,3 +44,30 @@ dharma_residuals(fit, nsim = 250, re.form = NULL, seed = NULL, ...)
 ## Value
 
 A `DHARMa` object.
+
+## Examples
+
+``` r
+if (requireNamespace("DHARMa", quietly = TRUE)) {
+  set.seed(1)
+  dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+  dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+  fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+
+  # scaled quantile residuals: uniform under a correct model, which
+  # is what Pearson residuals cannot give for a discrete family
+  res <- dharma_residuals(fit, nsim = 100, seed = 1)
+  plot(res)
+  DHARMa::testUniformity(res, plot = FALSE)
+  DHARMa::testDispersion(res, plot = FALSE)
+}
+
+#> 
+#>  DHARMa nonparametric dispersion test via sd of residuals fitted vs.
+#>  simulated
+#> 
+#> data:  simulationOutput
+#> dispersion = 0.99641, p-value = 0.88
+#> alternative hypothesis: two.sided
+#> 
+```

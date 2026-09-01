@@ -22,3 +22,69 @@ prior_t(df = 3, location = 0, scale = 1)
 ## Value
 
 A `frmtmb_prior` object.
+
+## Examples
+
+``` r
+# the objects themselves are cheap descriptions
+prior_normal(0, 2)
+#> $kind
+#> [1] "normal"
+#> 
+#> $location
+#> [1] 0
+#> 
+#> $scale
+#> [1] 2
+#> 
+#> attr(,"class")
+#> [1] "frmtmb_prior"
+prior_t(df = 3, location = 0, scale = 1)
+#> $kind
+#> [1] "t"
+#> 
+#> $df
+#> [1] 3
+#> 
+#> $location
+#> [1] 0
+#> 
+#> $scale
+#> [1] 1
+#> 
+#> attr(,"class")
+#> [1] "frmtmb_prior"
+
+# \donttest{
+if (requireNamespace("tmbstan", quietly = TRUE) &&
+    requireNamespace("rstan", quietly = TRUE)) {
+set.seed(9)
+dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+# names are parameter names as in the draws, or whole components.
+# theta_1 is a log-SD, so a normal there is a lognormal on the SD.
+ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0,
+                 priors = list(beta = prior_normal(0, 5),
+                               theta_1 = prior_t(3, 0, 1)))
+summary(ds)
+}
+#> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#bulk-ess
+#> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#tail-ess
+#>                          mean         sd       2.5%      97.5%     n_eff
+#> (Intercept)        0.86727138 0.22383644  0.4705373  1.2908627  65.81962
+#> x                  0.60890639 0.11494112  0.3919374  0.8098386 166.17303
+#> sigma_(Intercept) -0.04449472 0.07919443 -0.2126601  0.1180956 331.91295
+#> theta_1           -1.23438073 0.55239525 -2.2943477 -0.1414038  55.11599
+#>                        Rhat
+#> (Intercept)       1.0199300
+#> x                 1.0056924
+#> sigma_(Intercept) 1.0043718
+#> theta_1           0.9991041
+# }
+```

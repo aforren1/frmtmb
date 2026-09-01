@@ -99,6 +99,8 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #' prior_t(df = 3, location = 0, scale = 1)
 #'
 #' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
 #' set.seed(9)
 #' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 #' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
@@ -110,6 +112,7 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #'                  priors = list(beta = prior_normal(0, 5),
 #'                                theta_1 = prior_t(3, 0, 1)))
 #' summary(ds)
+#' }
 #' }
 #' @name frmtmb-priors
 NULL
@@ -387,6 +390,8 @@ stan_cores <- function(args) {
 #'   individually.
 #' @examples
 #' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
 #' set.seed(9)
 #' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 #' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
@@ -395,6 +400,7 @@ stan_cores <- function(args) {
 #' summary(ds)
 #' fixef(ds)
 #' hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+#' }
 #' }
 #' @export
 frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
@@ -554,6 +560,8 @@ print.frmtmb_draws <- function(x, ...) {
 #'
 #' @examples
 #' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
 #' # a binary GLMM with small clusters: the regime where the Laplace
 #' # approximation and Wald intervals are least reliable
 #' set.seed(4)
@@ -567,6 +575,7 @@ print.frmtmb_draws <- function(x, ...) {
 #' # |z_shift| well above 0 or sd_ratio far from 1 marks the parameters
 #' # whose Wald interval to replace with a profile or bootstrap one
 #' cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
+#' }
 #' }
 #' @export
 check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
@@ -610,6 +619,8 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
 #' @return A `stanfit` object.
 #' @examples
 #' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
 #' set.seed(9)
 #' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 #' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
@@ -623,6 +634,7 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
 #' # every parameter is sampled, random effects included, because Stan
 #' # sees the joint density. Pass laplace = TRUE to integrate them out.
 #' dim(as.matrix(sf))
+#' }
 #' }
 #' @export
 as_tmbstan <- function(fit, ...) {

@@ -23,7 +23,8 @@ likelihood-ratio tests, AIC).
 | `nl = TRUE` | same | provide `start`; se.fit on the nonlinear mu not yet |
 | [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md) | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md), [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md) | same | multinomial takes `K` explicitly |
-| `car(M, gr = g, type =)` | same | all four types; `M` is looked up in the data or the calling environment, not in `data2` |
+| `car(M, gr = g, type =)` | same | all four types |
+| `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 
 ## What changes
 
@@ -86,6 +87,39 @@ likelihood-ratio tests, AIC).
 - `se()` works as in brms (meta-analysis), including
   `se(x, sigma = TRUE)` and the phylogenetic version with
   `gr(g, cov = A)`.
+
+## Structural objects: `data2`
+
+Matrices that are not columns of `data` go in `data2`, the brms
+spelling: the adjacency matrix of `car()`, the mesh triple of `spde()`,
+and the matrices of `gr(prec = )`, `gr(cov = )` and `equalto()`.
+
+``` r
+
+frm(bf(y ~ x + car(W, gr = loc, type = "icar")) + gaussian(),
+    data = d, data2 = list(W = W))
+frm(bf(phen ~ 1 + (1 | gr(species, cov = A))) + gaussian(),
+    data = d, data2 = list(A = A))
+```
+
+Two differences from brms. First, brms accepts a bare name in `data2`
+and nothing else, while frmtmb evaluates the whole expression with
+`data2` in front of the data mask, so `gr(g, cov = solve(Q))` finds `Q`
+in `data2`. Second, `data2` is optional: a matrix visible from the
+formula environment is still found, which is what frmtmb did before
+`data2` existed.
+
+Use `data2` anyway. Its objects are stored on the fit, so the fit is
+self-contained: [`saveRDS()`](https://rdrr.io/r/base/readRDS.html)
+writes the matrices with it, and
+[`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md),
+[`update()`](https://rdrr.io/r/stats/update.html),
+[`drop1()`](https://rdrr.io/r/stats/add1.html),
+[`influence()`](https://rdrr.io/r/stats/lm.influence.html) and
+[`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
+re-assemble in a fresh session where the calling environment that built
+the matrix is gone. Without `data2` those refits depend on the name
+still resolving where the model was written.
 
 ## Method conventions
 

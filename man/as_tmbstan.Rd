@@ -21,6 +21,8 @@ parameters including random effects are sampled unless \code{laplace = TRUE} is 
 }
 \examples{
 \donttest{
+if (requireNamespace("tmbstan", quietly = TRUE) &&
+    requireNamespace("rstan", quietly = TRUE)) {
 set.seed(9)
 dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
@@ -34,5 +36,6 @@ class(sf)
 # every parameter is sampled, random effects included, because Stan
 # sees the joint density. Pass laplace = TRUE to integrate them out.
 dim(as.matrix(sf))
+}
 }
 }

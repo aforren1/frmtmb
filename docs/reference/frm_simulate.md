@@ -16,7 +16,8 @@ frm_simulate(
   newparams = NULL,
   priors = NULL,
   nsim = 1,
-  seed = NULL
+  seed = NULL,
+  data2 = list()
 )
 ```
 
@@ -49,6 +50,11 @@ frm_simulate(
 - nsim, seed:
 
   As in [`simulate()`](https://rdrr.io/r/stats/simulate.html).
+
+- data2:
+
+  Structural objects, as in
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md).
 
 ## Value
 
