@@ -609,6 +609,33 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #'   population level under `allow_new_levels = TRUE` (the lme4 spelling
 #'   `allow.new.levels` is accepted as well).
 #'
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+#' fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+#'
+#' # the link scale by default; "response" is what fitted() returns
+#' head(predict(fit))
+#' max(abs(predict(fit, type = "response") - fitted(fit)))
+#'
+#' # re.form = NA drops the random effects: the population prediction
+#' nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
+#' predict(fit, newdata = nd, re.form = NA, type = "response")
+#'
+#' # delta-method standard errors, on whichever scale was asked for
+#' p <- predict(fit, newdata = nd, se.fit = TRUE)
+#' cbind(fit = p$fit, se = p$se.fit)
+#'
+#' # a level the fit never saw errors unless it is allowed explicitly,
+#' # in which case it is predicted at the population level
+#' nd_new <- data.frame(x = 0, g = factor("new"))
+#' try(predict(fit, newdata = nd_new))
+#' predict(fit, newdata = nd_new, allow_new_levels = TRUE)
+#'
+#' # a distributional parameter instead of the mean
+#' fit2 <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
+#' head(predict(fit2, dpar = "sigma", type = "response"))
 #' @export
 predict.frmtmb_fit <- function(object, newdata = NULL,
                                type = c("link", "response",
@@ -984,9 +1011,9 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   for (dnm in dnames) {
     lp <- object$frame$linpreds[[linpred_key(rnm, dnm)]]
     if (!is.null(lp$nl_body)) {
-      stop("se.fit is not supported for the nonlinear predictor yet; ",
-           "request the nonlinear parameters (dpar = '",
-           rspec$nlpars[1], "', ...) instead", call. = FALSE)
+      stop("se.fit is not supported on the response scale for a ",
+           "nonlinear predictor yet; request the nonlinear parameters ",
+           "(dpar = '", rspec$nlpars[1], "', ...) instead", call. = FALSE)
     }
     ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
     eds[[dnm]] <- ed
@@ -1263,6 +1290,22 @@ osa_cens_domain <- function(av, y) {
 #'   hands the simulation-based equivalent to DHARMa for the user's own
 #'   tests, and `vignette("diagnostics")` works through the choice.
 #'
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+#' fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+#'
+#' # raw and variance-standardized residuals
+#' head(residuals(fit))
+#' head(residuals(fit, type = "pearson"))
+#' # the usual overdispersion check for a poisson fit
+#' sum(residuals(fit, type = "pearson")^2) / df.residual(fit)
+#'
+#' # one-step-ahead quantile residuals are standard normal under a
+#' # correctly specified model, whatever the family
+#' r <- residuals(fit, type = "osa")
+#' qqnorm(r); qqline(r)
 #' @export
 residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
                                                   "deviance", "osa"),
@@ -1505,6 +1548,26 @@ apply_censoring <- function(y, win) {
 #'   (see Censored responses). Ignored without `cens()`.
 #' @param ... Unused.
 #' @return A data frame with `nsim` columns and a `"seed"` attribute.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+#' fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+#'
+#' # one column per draw; the seed used is attached
+#' sims <- simulate(fit, nsim = 5, seed = 42)
+#' str(sims)
+#' attr(sims, "seed")
+#'
+#' # re.form = NA redraws the group effects, which is the right choice
+#' # for a parametric bootstrap over new groups
+#' sims_m <- simulate(fit, nsim = 5, re.form = NA, seed = 42)
+#' apply(sims_m, 2, var) > apply(sims, 2, var)
+#'
+#' # a posterior-predictive check by hand: does the fit reproduce the
+#' # share of zeros in the data?
+#' mean(dd$y == 0)
+#' colMeans(simulate(fit, nsim = 20, seed = 1) == 0)
 #' @export
 simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
                                 re.form = NULL, censored = FALSE, ...) {
@@ -1523,7 +1586,8 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   rspec <- uni_resp(object, "simulate()")
   fam <- rspec$family
   if (is.null(fam$sim)) {
-    stop("Family '", fam$family, "' has no simulator yet", call. = FALSE)
+    stop("simulate(): family '", fam$family, "' has no simulator yet",
+         call. = FALSE)
   }
   mg <- object$frame$mix_g[[rspec$resp_name]]
   marginal <- !is.null(re.form) && !inherits(re.form, "formula") &&

@@ -30,6 +30,21 @@ find_linpred <- function(object, resp = NULL, dpar = "mu") {
 #' @param object A `frmtmb_fit`.
 #' @param ... Unused.
 #' @return A scalar, or a named vector for multivariate fits.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'
+#' # the residual SD, on the response scale
+#' sigma(fit)
+#' # which is what the standardized residuals divide by
+#' max(abs(residuals(fit, type = "pearson") -
+#'           residuals(fit) / sigma(fit)))
+#'
+#' # a poisson fit has no dispersion parameter, so sigma() is 1
+#' dd$cnt <- rpois(100, exp(0.5 + 0.3 * dd$x))
+#' sigma(frm(bf(cnt ~ x) + poisson(), data = dd))
 #' @export
 sigma.frmtmb_fit <- function(object, ...) {
   out <- vapply(object$spec$responses, function(rsp) {
@@ -95,6 +110,19 @@ extractAIC.frmtmb_fit <- function(fit, scale = 0, k = 2, ...) {
 #' @param object A `frmtmb_fit`.
 #' @param ... Unused.
 #' @return A named integer vector (smooth terms are excluded).
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100),
+#'                  g = factor(rep(1:10, 10)),
+#'                  h = factor(rep(1:4, each = 25)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g) + (1 | h)) + gaussian(), data = dd)
+#'
+#' # one count per distinct grouping factor
+#' ngrps(fit)
+#' # the count that decides whether a variance component is trustworthy,
+#' # and the unit influence() deletes when given `groups`
+#' ngrps(fit)[["h"]]
 #' @export
 ngrps <- function(object, ...) UseMethod("ngrps")
 
@@ -114,6 +142,20 @@ ngrps.frmtmb_fit <- function(object, ...) {
 #' @param ... Unused.
 #' @return The `frmtmb_priorlist` the fit was penalized with, or
 #'   (invisibly) `NULL` for a plain maximum-likelihood fit.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#'
+#' # what was actually applied, after set_prior() was matched to the
+#' # coefficients of this design
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+#'            priors = set_prior("normal(0, 1)", class = "b") +
+#'                     set_prior("exponential(1)", class = "sd"))
+#' prior_summary(fit)
+#'
+#' # a plain maximum-likelihood fit reports that it had none
+#' prior_summary(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd))
 #' @export
 prior_summary <- function(object, ...) UseMethod("prior_summary")
 

@@ -15,6 +15,31 @@
 #' @param aterms Named list of addition-term values (e.g. `trials`).
 #' @param tol Maximum relative gradient error.
 #' @return Invisibly `TRUE`; signals an error on failure.
+#' @examples
+#' set.seed(1)
+#' y <- rpois(50, 3)
+#'
+#' # a hand-written poisson: check it before fitting anything with it
+#' ok <- custom_family(
+#'   "my_poisson", dpars = "mu", links = list(mu = "log"),
+#'   lpdf = function(y, dpars, aterms) {
+#'     y * log(dpars$mu) - dpars$mu - lgamma(y + 1)
+#'   },
+#'   type = "discrete"
+#' )
+#' check_custom_family(ok, y = y, dpars = list(mu = rep(2.5, 50)))
+#'
+#' # base matrix() strips the advector class, so the tape sees constants
+#' # and the gradient is silently wrong. The check catches it.
+#' bad <- custom_family(
+#'   "bad", dpars = "mu", links = list(mu = "log"),
+#'   lpdf = function(y, dpars, aterms) {
+#'     m <- matrix(dpars$mu, ncol = 1)
+#'     y * log(m[, 1]) - m[, 1] - lgamma(y + 1)
+#'   },
+#'   type = "discrete"
+#' )
+#' try(check_custom_family(bad, y = y, dpars = list(mu = rep(2.5, 50))))
 #' @export
 check_custom_family <- function(family, y, dpars, aterms = list(),
                                 tol = 1e-4) {
@@ -68,6 +93,24 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #'
 #' @param location,scale,df Prior parameters.
 #' @return A `frmtmb_prior` object.
+#' @examples
+#' # the objects themselves are cheap descriptions
+#' prior_normal(0, 2)
+#' prior_t(df = 3, location = 0, scale = 1)
+#'
+#' \donttest{
+#' set.seed(9)
+#' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+#' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'
+#' # names are parameter names as in the draws, or whole components.
+#' # theta_1 is a log-SD, so a normal there is a lognormal on the SD.
+#' ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0,
+#'                  priors = list(beta = prior_normal(0, 5),
+#'                                theta_1 = prior_t(3, 0, 1)))
+#' summary(ds)
+#' }
 #' @name frmtmb-priors
 NULL
 
@@ -491,6 +534,22 @@ print.frmtmb_draws <- function(x, ...) {
 #'   regime where the Laplace fit is biased.
 #'   `vignette("diagnostics")` works through this.
 #'
+#' @examples
+#' \donttest{
+#' # a binary GLMM with small clusters: the regime where the Laplace
+#' # approximation and Wald intervals are least reliable
+#' set.seed(4)
+#' dd <- data.frame(x = rnorm(120), g = factor(rep(1:30, 4)))
+#' dd$y <- rbinom(120, 1,
+#'                plogis(0.3 + 0.5 * dd$x + rnorm(30, 0, 1)[dd$g]))
+#' fit <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
+#'
+#' cl <- check_laplace(fit, chains = 1, iter = 500, refresh = 0)
+#' cl
+#' # |z_shift| well above 0 or sd_ratio far from 1 marks the parameters
+#' # whose Wald interval to replace with a profile or bootstrap one
+#' cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
+#' }
 #' @export
 check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
   ds <- frm_sample(fit, chains = chains, iter = iter, ...)
@@ -531,6 +590,22 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
 #' @param fit A `frmtmb_fit`.
 #' @param ... Passed to [tmbstan::tmbstan()] (chains, iter, laplace, ...).
 #' @return A `stanfit` object.
+#' @examples
+#' \donttest{
+#' set.seed(9)
+#' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+#' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'
+#' # The raw stanfit, for rstan and bayesplot code that wants one.
+#' # Use frm_sample() instead when you want frmtmb parameter names.
+#' # This run is deliberately short, so expect sampler warnings.
+#' sf <- as_tmbstan(fit, chains = 1, iter = 400, refresh = 0)
+#' class(sf)
+#' # every parameter is sampled, random effects included, because Stan
+#' # sees the joint density. Pass laplace = TRUE to integrate them out.
+#' dim(as.matrix(sf))
+#' }
 #' @export
 as_tmbstan <- function(fit, ...) {
   if (!requireNamespace("tmbstan", quietly = TRUE)) {
@@ -729,6 +804,27 @@ getME_flist <- function(object) {
 #'   `poly()` and `scale()`. A name outside the vocabulary errors and
 #'   lists the accepted names.
 #'
+#' @examples
+#' if (requireNamespace("lme4", quietly = TRUE)) {
+#'   set.seed(1)
+#'   dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#'   dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#'   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'
+#'   # the designs, for downstream code written against merMod objects
+#'   dim(lme4::getME(fit, "X"))
+#'   dim(lme4::getME(fit, "Zt"))
+#'
+#'   # a vector of names returns a named list
+#'   str(lme4::getME(fit, c("n_rtrms", "n_rfacs", "sigma")))
+#'
+#'   # the conditional modes in coefficient space, aligned with Z
+#'   head(lme4::getME(fit, "b"))
+#'   # note: "lower" is all -Inf here, because the internal covariance
+#'   # parameterization is unbounded. Use diagnose() to spot a singular
+#'   # fit, not theta == lower.
+#'   lme4::getME(fit, "lower")
+#' }
 #' @exportS3Method lme4::getME
 getME.frmtmb_fit <- function(object, name, resp = NULL, ...) {
   if (missing(name) || !is.character(name) || !length(name)) {

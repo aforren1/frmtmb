@@ -75,6 +75,25 @@ outer_par_names <- function(fit) {
 #'   intervals for standard deviations and correlations. Row names match
 #'   those of `vcov(full = TRUE)`, which the test suite asserts.
 #'
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'
+#' # Wald intervals for every parameter, covariance ones included
+#' confint(fit)
+#'
+#' # the likelihood profile does not assume a quadratic log-likelihood,
+#' # so it is the one to trust for a variance component
+#' confint(fit, parm = "theta_1", method = "profile")
+#'
+#' # confint_varcorr() puts the same information on the SD scale
+#' confint_varcorr(fit)
+#' \donttest{
+#' # a parametric bootstrap, the lme4 confint(method = "boot") analog
+#' confint(fit, parm = "x", method = "boot", nsim = 50, seed = 1)
+#' }
 #' @export
 confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
                                method = c("wald", "Wald", "profile",
@@ -91,7 +110,7 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
     if (is.numeric(parm)) return(as.integer(parm))
     idx <- match(parm, nm)
     if (anyNA(idx)) {
-      stop("Unknown parameter(s): ",
+      stop("Unknown parameter(s) in confint(parm =): ",
            paste(parm[is.na(idx)], collapse = ", "),
            ". Available: ", paste(nm, collapse = ", "), call. = FALSE)
     }
@@ -277,6 +296,22 @@ varcorr_untrans <- function(type, v) {
 #' @param level Confidence level.
 #' @return A data frame with columns `block`, `term`, `type`,
 #'   `estimate`, `lwr`, `upr`.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
+#' u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.4))
+#' dd$y <- rnorm(200, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
+#' fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
+#'
+#' # one row per SD and per correlation, on the scale they are read on
+#' confint_varcorr(fit)
+#'
+#' # confint() reports the same parameters on their internal scale, so
+#' # the bounds there are log-SDs and Fisher-z correlations
+#' confint(fit)[grep("^theta", rownames(confint(fit))), ]
+#'
+#' # a fit with no random effects has no covariance parameters
+#' confint_varcorr(frm(bf(y ~ x) + gaussian(), data = dd))
 #' @export
 confint_varcorr <- function(fit, level = 0.95) {
   tr <- varcorr_trans_rows(fit)
@@ -477,6 +512,24 @@ log_sd_theta_index <- function(fit) {
 #'   optimizers as a further convergence check, and `check_laplace()`
 #'   audits the approximation itself.
 #'
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#' diagnose(fit)
+#'
+#' # a random effect the data cannot support collapses to the boundary,
+#' # which is a valid fit but a warning about the model
+#' dd$h <- factor(rep(1:10, each = 10))
+#' fit_s <- frm(bf(y ~ x + (1 | g) + (1 | h)) + gaussian(), data = dd)
+#' d <- diagnose(fit_s, quiet = TRUE)
+#' d$singular
+#'
+#' # a predictor scaled far from one slows the optimizer down; the
+#' # remedy is frmtmb_control(autoscale = TRUE)
+#' dd$xbig <- dd$x * 1e5
+#' diagnose(frm(bf(xbig ~ 1) + gaussian(), data = dd), quiet = TRUE)$scale
 #' @export
 diagnose <- function(fit, quiet = FALSE) {
   stopifnot(inherits(fit, "frmtmb_fit"))
@@ -687,6 +740,31 @@ anova_refit_ml <- function(fit) {
 #'   `confint()`. The boundary problem for variance-component tests is
 #'   documented above rather than left implicit.
 #'
+#' @examples
+#' set.seed(1)
+#' n <- 200
+#' dd <- data.frame(x = rnorm(n), z = rnorm(n), g = factor(rep(1:20, 10)))
+#' u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.5))
+#' dd$y <- rnorm(n, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
+#'
+#' m0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#' m1 <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
+#' anova(m0, m1)
+#'
+#' # dropping a variance component puts the null on the boundary, so
+#' # this p-value is conservative by up to a factor of two
+#' m2 <- frm(bf(y ~ x) + gaussian(), data = dd)
+#' anova(m2, m0)
+#'
+#' # REML fits compare only when the fixed-effect designs agree, which
+#' # is the case for a variance-component test
+#' r0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, REML = TRUE)
+#' r1 <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd, REML = TRUE)
+#' anova(r0, r1)
+#' # differing designs are refused; refit = TRUE compares ML fits instead
+#' rz <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, REML = TRUE)
+#' try(anova(r0, rz))
+#' anova(r0, rz, refit = TRUE)
 #' @export
 anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   fits <- c(list(object), Filter(function(x) inherits(x, "frmtmb_fit"),
@@ -765,6 +843,19 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
 #' @param k AIC penalty per parameter.
 #' @param ... Unused.
 #' @return An `anova` table with one row per dropped term.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), z = rnorm(100),
+#'                  g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#' fit <- frm(bf(y ~ x * z + (1 | g)) + gaussian(), data = dd)
+#'
+#' # marginality keeps the main effects out of scope while x:z is in it
+#' drop1(fit)
+#' drop1(fit, test = "Chisq")
+#'
+#' # name the terms to override the default scope
+#' drop1(fit, scope = ~ x + z, test = "Chisq")
 #' @export
 drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
                              k = 2, ...) {
@@ -855,12 +946,28 @@ update.frmtmb_fit <- function(object, ..., evaluate = TRUE) {
 #' @param ... Passed to [TMB::tmbprofile()].
 #' @return A `tmbprofile` data frame, or a named list of them when
 #'   `parm` has length above one.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'
+#' # parameter names are the confint() row names
+#' rownames(confint(fit))
+#' pr <- profile(fit, "theta_1")
+#' plot(pr)
+#' # TMB's confint() reads the interval off the profile
+#' confint(pr)
+#'
+#' # several parameters at once return a named list
+#' prs <- profile(fit, c("x", "theta_1"))
+#' names(prs)
 #' @export
 profile.frmtmb_fit <- function(fitted, parm, ...) {
   nm <- outer_par_names(fitted)
   idx <- if (is.numeric(parm)) as.integer(parm) else match(parm, nm)
   if (anyNA(idx)) {
-    stop("Unknown parameter(s): ",
+    stop("Unknown parameter(s) in profile(parm =): ",
          paste(parm[is.na(match(parm, nm))], collapse = ", "),
          ". Available: ", paste(nm, collapse = ", "), call. = FALSE)
   }
@@ -1121,7 +1228,7 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
     val <- hyp_eval(x, exs[[i]], vo$vals, vo$comp)
     if (!is.numeric(val) || length(val) != 1L) {
       stop("Hypothesis '", hypothesis[i], "' must evaluate to a single ",
-           "number", call. = FALSE)
+           "number at the fitted estimates", call. = FALSE)
     }
     val
   }, numeric(1))

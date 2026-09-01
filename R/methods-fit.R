@@ -179,6 +179,21 @@ family.frmtmb_fit <- function(object, ...) {
 #' Estimated residual correlation matrix (rescor fits), else NULL
 #' @param fit A `frmtmb_fit`.
 #' @return A correlation matrix or `NULL`.
+#' @examples
+#' set.seed(2)
+#' n <- 80
+#' dd <- data.frame(x = rnorm(n))
+#' # two responses that share a residual disturbance
+#' e <- rnorm(n)
+#' dd$y1 <- 1 + 0.5 * dd$x + e + rnorm(n, 0, 0.5)
+#' dd$y2 <- 2 - 0.3 * dd$x + e + rnorm(n, 0, 0.5)
+#' fit <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x), rescor = TRUE) + gaussian(),
+#'            data = dd)
+#' rescor_matrix(fit)
+#'
+#' # a fit without rescor has no residual correlation to report
+#' fit0 <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x)) + gaussian(), data = dd)
+#' rescor_matrix(fit0)
 #' @export
 rescor_matrix <- function(fit) {
   if (!isTRUE(fit$spec$rescor)) return(NULL)
@@ -228,6 +243,21 @@ estimated_coef_names <- function(fit) {
 #'   precision for a REML or profiled fit. A covariance that could not be
 #'   recovered from the Hessian warns rather than returning silent `NaN`.
 #'
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'
+#' # standard errors of the fixed effects
+#' sqrt(diag(vcov(fit)))
+#' # the covariance parameters join the block on their internal scale
+#' rownames(vcov(fit, full = TRUE))
+#'
+#' # the matrix is what a delta-method calculation needs
+#' V <- vcov(fit)
+#' a <- c(1, 2)                       # prediction at x = 2, no group
+#' sqrt(drop(t(a) %*% V[1:2, 1:2] %*% a))
 #' @export
 vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
   nm <- estimated_coef_names(object)
@@ -291,6 +321,21 @@ vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
 #'   and by [fixef()] for the fixed effects alone. [ranef()] returns the
 #'   conditional modes and [VarCorr()] the variance components.
 #'
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'
+#' # one row per group: the fixed effects with the modes added in
+#' head(coef(fit)$g)
+#' # which is fixef() plus ranef(), the lme4 identity
+#' all.equal(coef(fit)$g[["(Intercept)"]],
+#'           fixef(fit)$mu[["(Intercept)"]] + ranef(fit)$g[, 1],
+#'           check.attributes = FALSE)
+#'
+#' # without random effects there are no groups, so coef() is fixef()
+#' coef(frm(bf(y ~ x) + gaussian(), data = dd))
 #' @export
 coef.frmtmb_fit <- function(object, ...) {
   fe <- fixef(object)
@@ -351,6 +396,18 @@ coef.frmtmb_fit <- function(object, ...) {
 #' @param object A `frmtmb_fit`.
 #' @param ... Unused.
 #' @return A named list of coefficient vectors, one per dpar.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#'
+#' # one entry per distributional parameter, each on its link scale
+#' fit <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
+#' fixef(fit)
+#' exp(fixef(fit)$sigma[["(Intercept)"]])   # sigma is modeled on the log
+#'
+#' # flatten to the vector confint() and hypothesis() name their rows by
+#' unlist(fixef(fit))
 #' @export
 fixef <- function(object, ...) UseMethod("fixef")
 
@@ -376,6 +433,22 @@ fixef.frmtmb_fit <- function(object, ...) {
 #' @return A named list of levels-by-coefficients matrices, one per
 #'   random-effect term. `as.data.frame()` gives the long form (with a
 #'   `condsd` column when `condVar = TRUE` was used).
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'
+#' # one matrix per random-effect term, levels by coefficients
+#' ranef(fit)
+#'
+#' # condVar adds the conditional SDs a caterpillar plot needs
+#' re <- as.data.frame(ranef(fit, condVar = TRUE))
+#' head(re)
+#' with(re[order(re$condval), ],
+#'      plot(condval, seq_along(condval), pch = 16,
+#'           xlim = range(condval - 2 * condsd, condval + 2 * condsd),
+#'           xlab = "conditional mode", ylab = "group"))
 #' @export
 ranef <- function(object, ...) UseMethod("ranef")
 
@@ -475,6 +548,19 @@ as.data.frame.VarCorr_frmtmb <- function(x, ...) {
 #' @param x A `frmtmb_fit`.
 #' @param ... Unused.
 #' @return A named list of covariance matrices, one per random-effect term.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
+#' u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.4))
+#' dd$y <- rnorm(200, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
+#' fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
+#'
+#' # the printed form shows SDs and correlations, as lme4 does
+#' VarCorr(fit)
+#' # the stored value is the covariance matrix itself
+#' VarCorr(fit)[["x | g"]]
+#' # tidy shape for broom.mixed-style code
+#' as.data.frame(VarCorr(fit))
 #' @export
 VarCorr <- function(x, ...) UseMethod("VarCorr")
 

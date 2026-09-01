@@ -23,3 +23,20 @@ A \code{tmbprofile} data frame, or a named list of them when
 Wraps \code{\link[TMB:tmbprofile]{TMB::tmbprofile()}} per parameter. The returned objects have
 \code{plot()} and \code{confint()} methods (from TMB).
 }
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+# parameter names are the confint() row names
+rownames(confint(fit))
+pr <- profile(fit, "theta_1")
+plot(pr)
+# TMB's confint() reads the interval off the profile
+confint(pr)
+
+# several parameters at once return a named list
+prs <- profile(fit, c("x", "theta_1"))
+names(prs)
+}

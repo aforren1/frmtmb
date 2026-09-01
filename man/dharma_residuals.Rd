@@ -28,3 +28,18 @@ model. Plot the result with \code{plot()}, or run
 \code{\link[DHARMa:testUniformity]{DHARMa::testUniformity()}}, \code{\link[DHARMa:testDispersion]{DHARMa::testDispersion()}},
 \code{\link[DHARMa:testZeroInflation]{DHARMa::testZeroInflation()}} and friends on it.
 }
+\examples{
+if (requireNamespace("DHARMa", quietly = TRUE)) {
+  set.seed(1)
+  dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+  dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+  fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+
+  # scaled quantile residuals: uniform under a correct model, which
+  # is what Pearson residuals cannot give for a discrete family
+  res <- dharma_residuals(fit, nsim = 100, seed = 1)
+  plot(res)
+  DHARMa::testUniformity(res, plot = FALSE)
+  DHARMa::testDispersion(res, plot = FALSE)
+}
+}

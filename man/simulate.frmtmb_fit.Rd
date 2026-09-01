@@ -57,3 +57,24 @@ refused. Interval censoring has no single-value representation and
 is refused too.
 }
 
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+
+# one column per draw; the seed used is attached
+sims <- simulate(fit, nsim = 5, seed = 42)
+str(sims)
+attr(sims, "seed")
+
+# re.form = NA redraws the group effects, which is the right choice
+# for a parametric bootstrap over new groups
+sims_m <- simulate(fit, nsim = 5, re.form = NA, seed = 42)
+apply(sims_m, 2, var) > apply(sims, 2, var)
+
+# a posterior-predictive check by hand: does the fit reproduce the
+# share of zeros in the data?
+mean(dd$y == 0)
+colMeans(simulate(fit, nsim = 20, seed = 1) == 0)
+}

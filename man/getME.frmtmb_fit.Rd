@@ -62,3 +62,25 @@ of distinct grouping factors.}
 Multivariate fits have one design per response, so \code{"X"}, \code{"Z"} and
 \code{"Zt"} need \code{resp}; the other names answer without it.
 }
+\examples{
+if (requireNamespace("lme4", quietly = TRUE)) {
+  set.seed(1)
+  dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+  dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+  # the designs, for downstream code written against merMod objects
+  dim(lme4::getME(fit, "X"))
+  dim(lme4::getME(fit, "Zt"))
+
+  # a vector of names returns a named list
+  str(lme4::getME(fit, c("n_rtrms", "n_rfacs", "sigma")))
+
+  # the conditional modes in coefficient space, aligned with Z
+  head(lme4::getME(fit, "b"))
+  # note: "lower" is all -Inf here, because the internal covariance
+  # parameterization is unbounded. Use diagnose() to spot a singular
+  # fit, not theta == lower.
+  lme4::getME(fit, "lower")
+}
+}

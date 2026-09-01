@@ -31,3 +31,19 @@ layer keyed like \code{\link[=fixef]{fixef()}} is added. Smooth terms are exclud
 without random effects returns \code{\link[=fixef]{fixef()}} (the single coefficient
 vector when there is one linear predictor).
 }
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+# one row per group: the fixed effects with the modes added in
+head(coef(fit)$g)
+# which is fixef() plus ranef(), the lme4 identity
+all.equal(coef(fit)$g[["(Intercept)"]],
+          fixef(fit)$mu[["(Intercept)"]] + ranef(fit)$g[, 1],
+          check.attributes = FALSE)
+
+# without random effects there are no groups, so coef() is fixef()
+coef(frm(bf(y ~ x) + gaussian(), data = dd))
+}

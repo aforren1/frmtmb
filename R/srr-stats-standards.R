@@ -34,6 +34,18 @@
 #'
 #' @srrstatsVerbose TRUE
 #'
+#' @srrstats {G5.2a} Every condition message raised in `R/` is unique.
+#'   The 326 `stop()` calls that carry literal text produce 326 distinct
+#'   messages, so a message a user reports names one line of source. Two
+#'   calls that would otherwise read the same are separated by the
+#'   context that tells the two faults apart, for example `car()` on the
+#'   left of a bar term versus `car()` as its grouping factor,
+#'   `posterior_predict()` versus `simulate()` versus `frm_simulate()`
+#'   meeting a family with no simulator, and `confint(parm =)` versus
+#'   `profile(parm =)` rejecting an unknown parameter name. The property
+#'   is mechanically checkable: parse `R/`, collect the literal argument
+#'   text of every `stop()`, and require no duplicates.
+#'
 #' @noRd
 NULL
 

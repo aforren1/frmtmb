@@ -94,3 +94,20 @@ convention), which for a mixed model is the Laplace-approximated
 marginal deviance and does \strong{not} equal \code{sum(residuals(fit, type = "deviance")^2)}.
 }
 
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+
+# raw and variance-standardized residuals
+head(residuals(fit))
+head(residuals(fit, type = "pearson"))
+# the usual overdispersion check for a poisson fit
+sum(residuals(fit, type = "pearson")^2) / df.residual(fit)
+
+# one-step-ahead quantile residuals are standard normal under a
+# correctly specified model, whatever the family
+r <- residuals(fit, type = "osa")
+qqnorm(r); qqline(r)
+}

@@ -19,3 +19,20 @@ Hands the fitted RTMB object to \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}
 point of view the model is the (Laplace-free) joint density, so all
 parameters including random effects are sampled unless \code{laplace = TRUE} is passed through.
 }
+\examples{
+\donttest{
+set.seed(9)
+dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+# The raw stanfit, for rstan and bayesplot code that wants one.
+# Use frm_sample() instead when you want frmtmb parameter names.
+# This run is deliberately short, so expect sampler warnings.
+sf <- as_tmbstan(fit, chains = 1, iter = 400, refresh = 0)
+class(sf)
+# every parameter is sampled, random effects included, because Stan
+# sees the joint density. Pass laplace = TRUE to integrate them out.
+dim(as.matrix(sf))
+}
+}

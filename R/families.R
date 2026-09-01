@@ -1676,6 +1676,31 @@ fam_acat <- function(link = "logit") {
 #' @param groups Optional one-sided formula naming the latent-class
 #'   grouping factor.
 #' @return A `frmtmb_family`.
+#' @examples
+#' # two well-separated gaussian components
+#' set.seed(3)
+#' dd <- data.frame(y = c(rnorm(80, 0, 1), rnorm(80, 5, 1)),
+#'                  x = rnorm(160))
+#' fit <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
+#' # one mu and sigma per component, plus the mixing weight theta1
+#' fixef(fit)
+#' # posterior class probability per observation
+#' head(mixture_probs(fit))
+#'
+#' # the mixing weight can take its own predictor
+#' frm(bf(y ~ 1, theta1 ~ x) + mixture(gaussian(), gaussian()), data = dd)
+#'
+#' \donttest{
+#' # latent classes: every observation of a group shares one class
+#' set.seed(4)
+#' n_g <- 40
+#' cls <- rep(c(1, 2), each = n_g / 2)
+#' dg <- data.frame(g = factor(rep(seq_len(n_g), each = 5)))
+#' dg$y <- rnorm(nrow(dg), c(0, 4)[cls[as.integer(dg$g)]], 1)
+#' fg <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian(), groups = ~g),
+#'           data = dg)
+#' head(mixture_probs(fg))   # one row per group, not per observation
+#' }
 #' @export
 mixture <- function(..., groups = NULL) {
   comps <- lapply(list(...), as_frmtmb_family)
@@ -1782,8 +1807,9 @@ mixture <- function(..., groups = NULL) {
       out <- numeric(n)
       for (k in seq_len(K)) {
         sk <- comps[[k]]$sim
-        if (is.null(sk)) stop("Component '", comps[[k]]$family,
-                              "' has no simulator", call. = FALSE)
+        if (is.null(sk)) stop("Mixture component ", k, " ('",
+                              comps[[k]]$family,
+                              "') has no simulator", call. = FALSE)
         idx <- which(ks == k)
         if (length(idx)) {
           dk <- lapply(comp_dpars(dpars, k), function(v) {
@@ -1807,8 +1833,8 @@ mixture <- function(..., groups = NULL) {
     comp_sim = function(dpars_k, aterms, n, k) {
       sk <- comps[[k]]$sim
       if (is.null(sk)) {
-        stop("Component '", comps[[k]]$family, "' has no simulator",
-             call. = FALSE)
+        stop("Mixture component ", k, " ('", comps[[k]]$family,
+             "') has no simulator for class-wise draws", call. = FALSE)
       }
       sk(dpars_k, aterms, n)
     },
@@ -1832,6 +1858,18 @@ mixture <- function(..., groups = NULL) {
 #'
 #' @param fit A `frmtmb_fit` with a mixture family.
 #' @return A matrix of class probabilities (rows sum to one).
+#' @examples
+#' set.seed(3)
+#' dd <- data.frame(y = c(rnorm(80, 0, 1), rnorm(80, 5, 1)))
+#' fit <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
+#'
+#' p <- mixture_probs(fit)
+#' head(p)
+#' rowSums(p)[1:3]                    # rows sum to one
+#'
+#' # the hard assignment, and how well it recovers the truth
+#' cl <- max.col(p)
+#' table(cl, truth = rep(1:2, each = 80))
 #' @export
 mixture_probs <- function(fit) {
   rspec <- uni_resp(fit, "mixture_probs()")
@@ -2277,7 +2315,8 @@ as_frmtmb_family <- function(x) {
   if (inherits(x, "family")) {
     ctor <- family_registry[[x$family]]
     if (is.null(ctor)) {
-      stop("Unsupported family: '", x$family, "'. Currently supported: ",
+      stop("Unsupported family object: '", x$family,
+           "'. Currently supported: ",
            paste(unique(names(family_registry)), collapse = ", "),
            call. = FALSE)
     }
@@ -2286,7 +2325,7 @@ as_frmtmb_family <- function(x) {
   if (is.character(x) && length(x) == 1) {
     ctor <- family_registry[[x]]
     if (is.null(ctor)) {
-      stop("Unsupported family: '", x, "'. Currently supported: ",
+      stop("Unsupported family name: '", x, "'. Currently supported: ",
            paste(unique(names(family_registry)), collapse = ", "),
            call. = FALSE)
     }
@@ -2302,8 +2341,40 @@ as_frmtmb_family <- function(x) {
 #' brms naming. `gaussian()`, `poisson()`, `binomial()`, and `Gamma()`
 #' from 'stats' are accepted directly by [frm()] and `+`.
 #'
+#' An ordinal family (`cumulative()`, `sratio()`, `cratio()`, `acat()`)
+#' takes the response's level order as the category order. Supply an
+#' ordered factor, or integer codes `1..K`: an unordered factor is
+#' accepted, as brms accepts it, but warns and names the order it is
+#' about to use, which is alphabetical unless the levels were set.
+#'
 #' @param link Link for `mu`.
 #' @return A `frmtmb_family` object.
+#' @examples
+#' set.seed(4)
+#' n <- 120
+#' dd <- data.frame(x = rnorm(n))
+#'
+#' # heavier tails than gaussian(), with an estimated df
+#' dd$y <- 1 + 0.8 * dd$x + rt(n, df = 4)
+#' fixef(frm(bf(y ~ x) + student(), data = dd))
+#'
+#' # counts with more spread than poisson() allows
+#' dd$cnt <- rnbinom(n, mu = exp(0.5 + 0.4 * dd$x), size = 2)
+#' fit <- frm(bf(cnt ~ x) + negbinomial(), data = dd)
+#' fixef(fit)$mu
+#'
+#' # a zero-inflated count: the zi dpar gets its own predictor
+#' dd$zi <- ifelse(runif(n) < 0.3, 0, dd$cnt)
+#' frm(bf(zi ~ x, zi ~ 1) + zero_inflated_poisson(), data = dd)
+#'
+#' # an ordered response: level order is the category order
+#' dd$grade <- cut(1 + 0.8 * dd$x + rlogis(n), 3,
+#'                 labels = c("low", "mid", "high"), ordered_result = TRUE)
+#' frm(bf(grade ~ x) + cumulative(), data = dd)
+#'
+#' # a proportion in (0, 1)
+#' dd$p <- plogis(0.2 + 0.6 * dd$x + rnorm(n, 0, 0.3))
+#' frm(bf(p ~ x) + Beta(), data = dd)
 #' @name frmtmb-families
 NULL
 

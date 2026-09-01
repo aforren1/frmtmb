@@ -26,3 +26,20 @@ intervals; a posterior SD much larger than the Wald SE, or a shifted
 mean, flags parameters where they are unreliable (typically variance
 components with few groups).
 }
+\examples{
+\donttest{
+# a binary GLMM with small clusters: the regime where the Laplace
+# approximation and Wald intervals are least reliable
+set.seed(4)
+dd <- data.frame(x = rnorm(120), g = factor(rep(1:30, 4)))
+dd$y <- rbinom(120, 1,
+               plogis(0.3 + 0.5 * dd$x + rnorm(30, 0, 1)[dd$g]))
+fit <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
+
+cl <- check_laplace(fit, chains = 1, iter = 500, refresh = 0)
+cl
+# |z_shift| well above 0 or sd_ratio far from 1 marks the parameters
+# whose Wald interval to replace with a profile or bootstrap one
+cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
+}
+}

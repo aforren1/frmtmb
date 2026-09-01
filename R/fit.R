@@ -35,7 +35,9 @@
 #'   roughly a quarter off fit time in fit-and-predict or bootstrap
 #'   loops. The deferred report is cached, so nothing is computed twice.
 #' @param na.action How to handle missing values, as in [stats::lm()]
-#'   (default [stats::na.omit]).
+#'   (default [stats::na.omit]). Rows dropped for missingness are
+#'   reported in a message; wrap the call in `suppressMessages()` to
+#'   silence it.
 #' @param lower,upper Optional named numeric vectors of hard box
 #'   constraints on outer parameters (brms `lb`/`ub`), on the internal
 #'   scale, e.g. `lower = c(b = 0)` for a nonlinear rate parameter.
@@ -82,11 +84,14 @@
 #'   `cens()` use `as.numeric()`.
 #' @srrstats {G2.5} Where a factor input is expected, the expected kind is
 #'   checked and documented. `mo()` requires an ordered factor and errors
-#'   otherwise ("mo(): factor variables must be ordered factors"); the
-#'   ordinal families take level order as category order; a factor
-#'   response for a non-ordinal, non-binomial family is refused. The
-#'   compatibility registry states the requirement in prose and it is
-#'   rendered in `vignette("compatibility")`.
+#'   otherwise ("mo(): factor variables must be ordered factors"). An
+#'   ordinal family takes level order as category order, and warns when
+#'   the response is an unordered factor, naming the order it is about to
+#'   use: that order is alphabetical unless the user set it, so the model
+#'   can differ from the one intended. The fit still runs, which is what
+#'   brms does. A factor response for a non-ordinal, non-binomial family
+#'   is refused. The compatibility registry states the requirement in
+#'   prose and it is rendered in `vignette("compatibility")`.
 #' @srrstats {G2.6} One-dimensional responses are pre-processed to a plain
 #'   numeric vector regardless of the class they arrive in: a factor, a
 #'   one-column matrix, a `scale()`d matrix carrying attributes, or a bare
@@ -108,6 +113,12 @@
 #'   drop the affected rows, and `na.exclude` pads `fitted()`,
 #'   `residuals()`, `predict()`, and `simulate()` back to the input
 #'   length with `NA` in the original positions.
+#' @srrstats {G2.14b} Rows dropped for missingness are reported, not
+#'   dropped silently: frame assembly emits one `message()` per fit
+#'   giving the number of rows removed. It is a message, not a warning,
+#'   so `suppressMessages()` silences it for callers that ask for
+#'   `na.omit` deliberately, and `na.action()` on the fit still names the
+#'   rows.
 #' @srrstats {G2.15} No function assumes non-missingness by inheriting a
 #'   default. The invariant is established once at the boundary: assembly
 #'   errors unless every model variable is free of missing values, so
@@ -868,6 +879,32 @@ sdr_of <- function(fit) {
 #'   `grad_tol`, and `optimizer` to substitute another optimizer
 #'   altogether.
 #'
+#' @examples
+#' set.seed(1)
+#' n <- 200
+#' dd <- data.frame(x = rnorm(n), g = factor(rep(1:10, 20)))
+#' dd$y <- rnorm(n, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#'
+#' # another optimizer, with its own control list
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+#'            control = frmtmb_control(optimizer = "optim",
+#'                                     optCtrl = list(maxit = 500)))
+#' fit$opt$convergence
+#'
+#' # a tighter gradient criterion, with restarts from the current
+#' # optimum until it is met
+#' frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+#'     control = frmtmb_control(grad_tol = 1e-4, restarts = 3))
+#'
+#' # badly scaled predictors: fit an internally standardized copy first,
+#' # then warm-start the reported fit from it
+#' dd$xbig <- dd$x * 1e5
+#' frm(bf(y ~ xbig + (1 | g)) + gaussian(), data = dd,
+#'     control = frmtmb_control(autoscale = TRUE))
+#'
+#' # the object is a plain list, so it can be built once and reused
+#' ctrl <- frmtmb_control(check_nlev_1 = "ignore")
+#' ctrl$optimizer
 #' @export
 frmtmb_control <- function(optimizer = "nlminb",
                            optCtrl = list(iter.max = 1000, eval.max = 1000),

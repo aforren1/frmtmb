@@ -49,7 +49,9 @@ roughly a quarter off fit time in fit-and-predict or bootstrap
 loops. The deferred report is cached, so nothing is computed twice.}
 
 \item{na.action}{How to handle missing values, as in \code{\link[stats:lm]{stats::lm()}}
-(default \link[stats:na.omit]{stats::na.omit}).}
+(default \link[stats:na.omit]{stats::na.omit}). Rows dropped for missingness are
+reported in a message; wrap the call in \code{suppressMessages()} to
+silence it.}
 
 \item{lower, upper}{Optional named numeric vectors of hard box
 constraints on outer parameters (brms \code{lb}/\code{ub}), on the internal

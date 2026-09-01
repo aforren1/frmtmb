@@ -21,3 +21,20 @@ scale, back-transformed) and correlations (on the Fisher-z scale,
 back-transformed), delta-method-propagated from the internal \code{theta}
 covariance. One row per SD and per correlation of every block.
 }
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
+u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.4))
+dd$y <- rnorm(200, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
+fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
+
+# one row per SD and per correlation, on the scale they are read on
+confint_varcorr(fit)
+
+# confint() reports the same parameters on their internal scale, so
+# the bounds there are log-SDs and Fisher-z correlations
+confint(fit)[grep("^theta", rownames(confint(fit))), ]
+
+# a fit with no random effects has no covariance parameters
+confint_varcorr(frm(bf(y ~ x) + gaussian(), data = dd))
+}
