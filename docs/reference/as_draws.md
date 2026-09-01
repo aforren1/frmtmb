@@ -20,3 +20,9 @@ as_draws(x, ...)
 - ...:
 
   Unused.
+
+## Value
+
+A
+[`posterior::draws_matrix`](https://mc-stan.org/posterior/reference/draws_matrix.html):
+one column per sampled variable and one row per draw.

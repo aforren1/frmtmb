@@ -24,6 +24,17 @@ coef(object, ...)
 
   Unused.
 
+## Value
+
+A named list of data frames, one per grouping factor, each with one row
+per group level and one column per coefficient. When random effects
+appear in more than one linear predictor, the list is nested one level
+deeper, keyed as in
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md). A fit
+without random effects returns the
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) value
+instead.
+
 ## Details
 
 The result is a list of data frames keyed by grouping factor. When

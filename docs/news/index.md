@@ -1,5 +1,54 @@
 # Changelog
 
+## frmtmb 0.29.0
+
+Review fixes for the spatial wave and rOpenSci review preparation.
+
+### Breaking
+
+- `spde()` grouping values are now explicitly MESH ROW INDICES: integer,
+  whole-number character, and integer-level factor spellings are
+  accepted and land identically; any other labels error stating the
+  contract. Previously a non-mesh-order grouping (integer node IDs
+  included, which sort lexicographically) fit a silently permuted field
+  with a wrong likelihood and no warning. Code that passed non-numeric
+  node labels must now map them to row indices.
+
+### Corrected behavior
+
+- `car()`/`spde()` accept call-valued grouping variables
+  (`gr = factor(node)`).
+- The Windows sequential-chains guard in
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  also covers `options(mc.cores =)`, which rstan reads as its default.
+- Optimizer error wrapping no longer claims a numerical cause for
+  non-numerical errors; the underlying message leads.
+- The `escar` log-determinant is finite at `rho` near 1 (the adjacency
+  eigenspectrum is clamped against floating-point overshoot).
+- The extreme-parameter heuristics in
+  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+  and
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  only test log-SD components and name the parameter; a `car`/`bym2`
+  mixing proportion at its boundary no longer trips a misleading
+  singularity warning.
+- `car()` adjacency validation: NA entries and negative weights error
+  informatively; one-sided dimnames work (the rownames-only path was
+  broken); duplicate names error.
+- Non-finite covariance warnings fire once per fit instead of once per
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html) call.
+
+### rOpenSci preparation
+
+- Review infrastructure: CONTRIBUTING, code of conduct, CITATION,
+  codemeta, `Language` field, return-value documentation, README
+  currency fixes.
+- srr statistical-software standards: General and Regression categories
+  scaffolded with 77 standards tagged at their code locations, 11 marked
+  inapplicable with justifications, and the 28 remaining gaps recorded
+  as the submission roadmap in the standards file. Test coverage
+  measured at 87.6% (full suite).
+
 ## frmtmb 0.28.0
 
 Spatial GMRF grammar, the mclust covariance taxonomy, and the close-out

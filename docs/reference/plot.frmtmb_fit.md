@@ -31,3 +31,7 @@ plot(x, which = 1:2, ask = NULL, ...)
 - ...:
 
   Unused.
+
+## Value
+
+`x`, invisibly. Called for the plots it draws.

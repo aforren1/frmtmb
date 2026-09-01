@@ -40,3 +40,8 @@ pp_check(object, type = "dens_overlay", ndraws = 50, ...)
 
   Passed to [`simulate()`](https://rdrr.io/r/stats/simulate.html); the
   default `NA` simulates new random effects.
+
+## Value
+
+A ggplot object, as returned by the bayesplot `ppc_*` function that
+`type` selects.

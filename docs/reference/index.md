@@ -132,8 +132,6 @@
   : Predictions from a frmtmb fit
 - [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
   : Conditional effects of predictors
-- [`residuals(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/residuals.frmtmb_fit.md)
-  : Residuals from a frmtmb fit
 - [`simulate(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md)
   : Simulate responses from a frmtmb fit
 - [`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md) :
@@ -163,3 +161,9 @@
   : Feature metadata for the compatibility registry
 - [`frm_compat_rules()`](https://aforren1.github.io/frmtmb/reference/frm_compat_rules.md)
   : Compatibility rules, before resolution
+
+## Package
+
+- [`frmtmb`](https://aforren1.github.io/frmtmb/reference/frmtmb-package.md)
+  [`frmtmb-package`](https://aforren1.github.io/frmtmb/reference/frmtmb-package.md)
+  : frmtmb: Formula-Based Regression Models via 'RTMB'

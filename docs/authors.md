@@ -7,15 +7,15 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/aforren1/frmtmb/blob/HEAD/DESCRIPTION)
+[`inst/CITATION`](https://github.com/aforren1/frmtmb/blob/HEAD/inst/CITATION)
 
-Forrence A (2026). *frmtmb: Formula-Based Regression Models via 'RTMB'*.
-R package version 0.28.0, <https://aforren1.github.io/frmtmb/>.
+Forrence A (2026). *frmtmb: Formula-Based Regression Models via RTMB*. R
+package version 0.29.0, <https://github.com/aforren1/frmtmb>.
 
     @Manual{,
-      title = {frmtmb: Formula-Based Regression Models via 'RTMB'},
+      title = {frmtmb: Formula-Based Regression Models via RTMB},
       author = {Alex Forrence},
       year = {2026},
-      note = {R package version 0.28.0},
-      url = {https://aforren1.github.io/frmtmb/},
+      note = {R package version 0.29.0},
+      url = {https://github.com/aforren1/frmtmb},
     }

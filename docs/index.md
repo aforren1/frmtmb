@@ -12,9 +12,9 @@ Documentation: <https://aforren1.github.io/frmtmb/>
 
 ## Status
 
-Pre-release (v0.25), working toward CRAN. Validation is layered:
+Pre-release (v0.28), working toward CRAN. Validation is layered:
 
-- about 1850 tests; every model class is checked against an exact
+- about 2500 tests; every model class is checked against an exact
   reference (glmmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive,
   quantreg, mice, closed-form marginals, or hand-written ML);
 - the model-building layer is cross-validated against brms itself:
@@ -177,6 +177,45 @@ Related work: [glmmTMB](https://glmmtmb.github.io/glmmTMB/) (fixed
 likelihood, C++ TMB; frmtmb matches its fits where the models overlap)
 and [BayesRTMB](https://github.com/norimune/BayesRTMB) (a
 Bayesian-first, Stan-like modeling layer on the same RTMB backend).
+
+## Life cycle
+
+frmtmb is maturing. The package is not yet on CRAN.
+
+- **The model grammar is stable.** It follows brms, so it changes only
+  when brms changes. Formulas that fit today will fit in later versions.
+- **The fitted-object API is stable.**
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md), the
+  accessor methods ([`coef()`](https://rdrr.io/r/stats/coef.html),
+  [`confint()`](https://rdrr.io/r/stats/confint.html),
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html),
+  [`predict()`](https://rdrr.io/r/stats/predict.html), and the rest),
+  and the family constructors keep their current behavior.
+- **Internal structure can change.** Fields of the fitted object that no
+  exported method reaches are not part of the API. Use the accessors.
+- **Some parts are still moving.** Multivariate coverage of the post-fit
+  methods, the mixture families, and
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  gain features between releases.
+
+Version numbers stay below 1.0 until the CRAN release. Breaking changes
+are listed in `NEWS.md`.
+
+The package is actively developed and maintained. Planned work: full
+multivariate support in every post-fit method, more reference
+comparisons, and CRAN submission.
+
+## Citation
+
+Run `citation("frmtmb")` in R. Please also cite RTMB and TMB (Kristensen
+et al. 2016, <doi:10.18637/jss.v070.i05>).
+
+## Contributing
+
+See
+[CONTRIBUTING.md](https://aforren1.github.io/frmtmb/CONTRIBUTING.md).
+Everyone taking part must follow the [Code of
+Conduct](https://aforren1.github.io/frmtmb/CODE_OF_CONDUCT.md).
 
 See [SPEC.md](https://aforren1.github.io/frmtmb/SPEC.md) for the design
 and `NEWS.md` for the changelog.
