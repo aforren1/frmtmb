@@ -278,7 +278,102 @@ smooth_edf <- function(fit) {
   stats::setNames(out, vapply(blocks, `[[`, "", "term_label"))
 }
 
+# Families whose linear predictor lives on a bounded probability scale,
+# so an unbounded coefficient is evidence of separated data rather than
+# of a large effect.
+separation_families <- c("binomial", "bernoulli", "beta_binomial",
+                         "zero_inflated_binomial",
+                         "zero_inflated_beta_binomial")
+
+# Complete (or quasi-complete) separation: the maximum likelihood sits
+# at infinity, so the optimizer stops wherever its tolerances bite and
+# reports a huge coefficient with a standard error to match. lme4 and
+# glmmTMB both flag the pair rather than either half, because a
+# genuinely large effect on a well-populated cell keeps a small se.
+# [glmmTMB diagnose()]
+diagnose_separation <- function(fit, ps) {
+  rows <- list()
+  for (lp in fit$frame$linpreds) {
+    fam <- fit$spec$responses[[lp$resp]]$family
+    if (!fam$family %in% separation_families) next
+    if (!lp$dpar %in% (fam$primary_dpars %||% "mu")) next
+    if (is.null(lp$X) || !ncol(lp$X)) next
+    est <- ps$est[[lp$par]][lp$idx]
+    se <- ps$se[[lp$par]][lp$idx]
+    hit <- which(abs(est) > 10 & (!is.finite(se) | se > 10))
+    for (i in hit) {
+      rows[[length(rows) + 1L]] <- data.frame(
+        parameter = paste0(coef_block_key(fit, lp), ": ",
+                           colnames(lp$X)[i]),
+        estimate = est[i], std.error = se[i]
+      )
+    }
+  }
+  if (!length(rows)) return(NULL)
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+# Predictor columns whose spread is many orders of magnitude away from
+# one: the objective's curvature then spans the same range, and the
+# optimizer's convergence tolerances are absolute. autoscale = TRUE
+# fixes it without touching the model. [glmmTMB diagnose()]
+diagnose_predictor_scale <- function(fit, tol = 3) {
+  rows <- list()
+  for (lp in fit$frame$linpreds) {
+    if (is.null(lp$X) || !ncol(lp$X)) next
+    X <- as.matrix(lp$X)
+    for (j in seq_len(ncol(X))) {
+      if (identical(colnames(X)[j], "(Intercept)")) next
+      s <- stats::sd(X[, j])
+      if (!is.finite(s) || s <= 0) next
+      if (abs(log10(s)) <= tol) next
+      rows[[length(rows) + 1L]] <- data.frame(
+        column = paste0(coef_block_key(fit, lp), ": ", colnames(X)[j]),
+        sd = s
+      )
+    }
+  }
+  if (!length(rows)) return(NULL)
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+# lme4's isSingular: a variance component sitting on the boundary of its
+# parameter space - a standard deviation at zero, or a correlation at
+# +/-1. The verdict is read off the estimates alone, so it stands even
+# when the Hessian is positive definite and every gradient is tiny (a
+# collapsed component is a well-behaved optimum of a model the data
+# cannot support). [lme4 test-isSingular.R, #660]
+diagnose_singular <- function(fit, tol = 1e-4) {
+  if (!length(fit$frame$re_blocks)) return(NULL)
+  vc <- tryCatch(as.data.frame(VarCorr(fit)), error = function(e) NULL)
+  if (is.null(vc) || !nrow(vc)) return(NULL)
+  is_cor <- !is.na(vc$var2)
+  bad <- ifelse(is_cor, abs(vc$sdcor) > 1 - tol, vc$sdcor < tol)
+  bad[is.na(bad)] <- FALSE
+  if (!any(bad)) return(NULL)
+  out <- data.frame(
+    block = vc$grp[bad],
+    term = ifelse(is_cor[bad],
+                  paste0("cor(", vc$var1[bad], ",", vc$var2[bad], ")"),
+                  paste0("sd(", vc$var1[bad], ")")),
+    value = vc$sdcor[bad]
+  )
+  rownames(out) <- NULL
+  out
+}
+
 #' Convergence diagnostics for a frmtmb fit
+#'
+#' Reports the optimizer's own verdict plus four checks that a converged
+#' fit can still fail: non-finite standard errors, complete separation
+#' in a binomial-type fit, predictor columns scaled far from one, and
+#' variance components on the boundary of their parameter space
+#' (lme4's `isSingular()`, read off the estimates rather than the
+#' Hessian).
 #'
 #' @param fit A `frmtmb_fit`.
 #' @param quiet If `TRUE`, return the diagnostics without printing.
@@ -287,27 +382,43 @@ smooth_edf <- function(fit) {
 diagnose <- function(fit, quiet = FALSE) {
   stopifnot(inherits(fit, "frmtmb_fit"))
   nm <- outer_par_names(fit)
-  gr <- drop(fit$obj$gr(fit$opt$par))
-  se <- sqrt(diag(sdr_of(fit)$cov.fixed))
-  ev <- tryCatch(eigen(sdr_of(fit)$cov.fixed, symmetric = TRUE,
-                       only.values = TRUE)$values,
-                 error = function(e) NULL)
-  th <- fit$estimates$theta
+  # a degenerate fit (no free outer parameters) has no gradient, no
+  # covariance and no theta to report on
+  degenerate <- !length(fit$opt$par)
+  gr <- if (degenerate) numeric(0) else drop(fit$obj$gr(fit$opt$par))
+  V <- sdr_of(fit)$cov.fixed
+  se <- if (!length(V)) numeric(0) else sqrt(diag(V))
+  ev <- if (!length(V)) NULL else {
+    tryCatch(eigen(V, symmetric = TRUE, only.values = TRUE)$values,
+             error = function(e) NULL)
+  }
+  # theta is absent from fits with no random effects; abs(NULL) is an
+  # error, not an empty result
+  th <- fit$estimates$theta %||% numeric(0)
+  ps <- tryCatch(par_est_se(fit), error = function(e) NULL)
   out <- list(
     convergence = fit$opt$convergence,
     message = fit$opt$message,
-    max_grad = max(abs(gr)),
-    worst_grad = nm[which.max(abs(gr))],
+    max_grad = if (length(gr)) max(abs(gr)) else NA_real_,
+    worst_grad = if (length(gr)) nm[which.max(abs(gr))] else NA_character_,
     pdHess = isTRUE(sdr_of(fit)$pdHess),
     bad_se = nm[!is.finite(se)],
-    min_cov_eigenvalue = if (!is.null(ev)) min(ev),
-    extreme_theta = which(abs(th) > 8)
+    min_cov_eigenvalue = if (!is.null(ev) && length(ev)) min(ev),
+    extreme_theta = which(abs(th) > 8),
+    separation = if (!is.null(ps)) diagnose_separation(fit, ps),
+    predictor_scale = diagnose_predictor_scale(fit),
+    singular = diagnose_singular(fit)
   )
   if (!quiet) {
     cat("Optimizer convergence code:", out$convergence,
         if (!is.null(out$message)) paste0("(", out$message, ")"), "\n")
-    cat("Max |gradient|:", format(out$max_grad, digits = 4),
-        "at", out$worst_grad, "\n")
+    if (degenerate) {
+      cat("No free parameters: the model is degenerate and the ",
+          "likelihood was evaluated once\n", sep = "")
+    } else {
+      cat("Max |gradient|:", format(out$max_grad, digits = 4),
+          "at", out$worst_grad, "\n")
+    }
     cat("Hessian positive definite:", out$pdHess, "\n")
     if (length(out$bad_se)) {
       cat("Non-finite standard errors:",
@@ -320,15 +431,106 @@ diagnose <- function(fit, quiet = FALSE) {
           "random effects (e.g. diag() instead of a correlated term)\n",
           sep = "")
     }
-    if (out$convergence == 0 && out$pdHess && !length(out$bad_se) &&
-        out$max_grad < 1e-3) {
-      cat("No convergence problems detected\n")
+    if (!is.null(out$singular)) {
+      cat("Singular fit: ",
+          paste(paste0(out$singular$block, " ", out$singular$term,
+                       " = ", format(out$singular$value, digits = 3)),
+                collapse = "; "),
+          "\n  A variance component is on the boundary of its ",
+          "parameter space. The fit is valid but the random-effect ",
+          "structure is more complex than the data support; drop the ",
+          "collapsed term or use diag() instead of a correlated ",
+          "block.\n", sep = "")
     }
+    if (!is.null(out$separation)) {
+      cat("Likely complete separation: ",
+          paste(paste0(out$separation$parameter, " = ",
+                       format(out$separation$estimate, digits = 3),
+                       " (se ", format(out$separation$std.error,
+                                       digits = 3), ")"),
+                collapse = "; "),
+          "\n  Coefficients this large on the link scale with standard ",
+          "errors to match mean the maximum likelihood is at infinity: ",
+          "some combination of the predictors separates the outcome ",
+          "perfectly. Drop or pool the offending predictor, or add a ",
+          "prior (see set_prior()).\n", sep = "")
+    }
+    if (!is.null(out$predictor_scale)) {
+      cat("Badly scaled predictors: ",
+          paste(paste0(out$predictor_scale$column, " (sd ",
+                       format(out$predictor_scale$sd, digits = 3), ")"),
+                collapse = "; "),
+          "\n  Rescale the column, or refit with ",
+          "frmtmb_control(autoscale = TRUE).\n", sep = "")
+    }
+    clean <- out$convergence == 0 && out$pdHess && !length(out$bad_se) &&
+      is.null(out$singular) && is.null(out$separation) &&
+      is.null(out$predictor_scale) &&
+      (degenerate || out$max_grad < 1e-3)
+    if (clean) cat("No convergence problems detected\n")
   }
   invisible(out)
 }
 
+maxabs <- function(M) if (!length(M)) 0 else max(abs(M))
+
+# Residual of B after projecting onto the column space of A.
+proj_resid <- function(A, B) if (!ncol(A)) B else qr.resid(qr(A), B)
+
+same_column_space <- function(A, B, tol = 1e-8) {
+  if (nrow(A) != nrow(B)) return(FALSE)
+  if (!ncol(A) && !ncol(B)) return(TRUE)
+  s <- max(1, maxabs(A), maxabs(B))
+  if (!ncol(A) || !ncol(B)) return(FALSE)
+  maxabs(proj_resid(A, B)) <= tol * s &&
+    maxabs(proj_resid(B, A)) <= tol * s
+}
+
+# Designs REML integrates out: the primary-dpar linear predictors, whose
+# coefficients live in the `beta` template component (dpar formulas keep
+# their coefficients in `betad` and stay outer).
+reml_designs <- function(fit) {
+  parts <- list()
+  for (lp in fit$frame$linpreds) {
+    if (!identical(lp$par, "beta")) next
+    X <- if (is.null(lp$X)) {
+      matrix(numeric(0), fit$frame$n_obs, 0L)
+    } else {
+      as.matrix(lp$X)
+    }
+    parts[[linpred_key(lp$resp, lp$dpar)]] <- X
+  }
+  parts[order(names(parts))]
+}
+
+# A REML likelihood carries a -1/2 log|X' V^-1 X| term, so it is a
+# likelihood for a DIFFERENT quantity - the error contrasts - once X
+# changes, and differencing two of them is meaningless. It is perfectly
+# meaningful when the error contrasts are the same, which is exactly
+# when the fixed-effect designs span the same column space; that is the
+# usual REML comparison of variance-component structures. Refusing every
+# REML fit (the old behavior) refused that case too. [glmmTMB#776]
+reml_comparable <- function(fits) {
+  d1 <- reml_designs(fits[[1]])
+  for (f in fits[-1]) {
+    d2 <- reml_designs(f)
+    if (!identical(names(d1), names(d2))) return(FALSE)
+    for (k in names(d1)) {
+      if (!same_column_space(d1[[k]], d2[[k]])) return(FALSE)
+    }
+  }
+  TRUE
+}
+
 #' Likelihood-ratio tests between nested frmtmb fits
+#'
+#' ML fits compare freely. REML fits compare only with each other, and
+#' only when their fixed-effect designs span the same column space: a
+#' REML likelihood is a likelihood for the error contrasts of that
+#' design, so two of them are on a common scale exactly when the design
+#' is the same. That covers the usual REML use - testing
+#' variance-component structures with the fixed effects held fixed - and
+#' refuses the rest with the reason (glmmTMB#776).
 #'
 #' @param object A `frmtmb_fit`.
 #' @param ... Further `frmtmb_fit` objects, nested with `object`.
@@ -340,9 +542,20 @@ anova.frmtmb_fit <- function(object, ...) {
   if (length(fits) < 2) {
     stop("anova() needs at least two frmtmb fits to compare", call. = FALSE)
   }
-  if (any(vapply(fits, `[[`, TRUE, "REML"))) {
-    stop("Likelihood-ratio tests require ML fits (REML = FALSE)",
-         call. = FALSE)
+  reml <- vapply(fits, `[[`, TRUE, "REML")
+  if (any(reml)) {
+    if (!all(reml)) {
+      stop("anova() cannot mix REML and ML fits: their likelihoods are ",
+           "for different quantities. Refit them all with the same ",
+           "REML setting", call. = FALSE)
+    }
+    if (!reml_comparable(fits)) {
+      stop("REML likelihoods are comparable only between fits whose ",
+           "fixed-effect designs span the same column space; these do ",
+           "not. Refit with REML = FALSE to compare fixed effects, or ",
+           "hold the fixed effects fixed to compare random-effect ",
+           "structures", call. = FALSE)
+    }
   }
   # Likelihoods computed on different data are not on a common scale, so
   # the LRT would be meaningless (and can come out negative). lme4 keys

@@ -39,7 +39,9 @@ frm_bootstrap <- function(fit, FUN = function(f) unlist(fixef(f)),
   if (!is.numeric(t0)) {
     stop("FUN must return a numeric vector", call. = FALSE)
   }
-  sims <- simulate(fit, nsim = nsim, re.form = re.form)
+  # refit() replaces the response of the FITTED rows, so the na.exclude
+  # padding simulate() adds has to come back off
+  sims <- na_unpad(fit, simulate(fit, nsim = nsim, re.form = re.form))
   # nsim refits run off this fit's control; a verbose original would
   # otherwise narrate every draw
   if (!is.null(fit$control)) fit$control$verbose <- FALSE

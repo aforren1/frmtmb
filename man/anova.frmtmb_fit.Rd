@@ -15,5 +15,11 @@
 An \code{anova} table.
 }
 \description{
-Likelihood-ratio tests between nested frmtmb fits
+ML fits compare freely. REML fits compare only with each other, and
+only when their fixed-effect designs span the same column space: a
+REML likelihood is a likelihood for the error contrasts of that
+design, so two of them are on a common scale exactly when the design
+is the same. That covers the usual REML use - testing
+variance-component structures with the fixed effects held fixed - and
+refuses the rest with the reason (glmmTMB#776).
 }

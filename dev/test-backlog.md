@@ -63,38 +63,123 @@ tests/testthat/ (mostly test-edgecases.R); the rest are open work.
 
 ## Open - medium
 
-- One-level grouping factors / gaussian OLRE: three-way
-  ignore/warn/stop control vocabulary. [lme4 lmerControl checks]
-- Complete separation in binomial: diagnose() thresholds for big
-  coefficients (|b|>10) and flat directions. [glmmTMB diagnose()]
-- Singular-fit detection independent of the Hessian (isSingular
-  equivalent); profile CIs on boundary parameters must warn not hang.
+- Singular-fit detection: the isSingular verdict is done (see the
+  diagnostics/UX cluster below); what is left is profile CIs on
+  boundary parameters, which must warn rather than hang.
   [lme4 test-isSingular.R, #660]
-- Predictor-scale warnings (|log10 sd| > 3). [glmmTMB diagnose()]
-- Offset in dpar formulas; offset-only models (zero-column X in every
-  predictor - partially covered by ordinal); offset argument form.
-  [glmmTMB test-offset.R, #625, #286]
+- Offset-only models (zero-column X in every predictor - partially
+  covered by ordinal); the offset ARGUMENT form (offset = as a separate
+  argument, not offset() in the formula). Offset in dpar formulas is
+  done. [glmmTMB test-offset.R, #625, #286]
 - predict type grid for zi families: response = (1-zprob)*conditional;
   zprob on non-zi model returns 0 not garbage; truncated conditional
   means. [glmmTMB#798, #873, #634]
 - gam-style exclude= for zeroing individual smooths in prediction;
   re.form = NA keeps smooths (implemented - keep regression test).
   [glmmTMB test-smooths.R; mgcv semantics]
-- simulate() returns original response type (ordered factor for
-  ordinal, matrix for multinomial) and respects na.action. [glmmTMB
-  test-simulate.R; lme4#737]
-- nlpar name colliding with a data column: error or documented
-  precedence (currently the nlpar value wins silently - decide).
-  [brms#391]
-- nl start values: fail informatively when optimizer diverges from
-  0-starts, or require start for nl fits. [brms#734 doctrine]
-- REML logLik invariance to fixed-effect term order; anova() refusing
-  REML fits with different X column spaces (currently refuses all REML).
-  [glmmTMB#776]
 - confint/vcov excluding mapped parameters everywhere (constant dpars
   covered; extend to any future map use). [glmmTMB#1120]
 - dpar/nlpar names with dots or underscores rejected (collision with
   coefficient naming). [brms tests.brmsformula.R]
+
+## Diagnostics and UX cluster (2026-09-01)
+
+The porting papercuts: what a user moving from glm, lme4, glmmTMB or
+brms meets before anything statistical goes wrong. Regression tests in
+tests/testthat/test-diagnostics-ux.R.
+
+### Fixed
+
+- `cbind(successes, failures)` binomial responses are ACCEPTED, which
+  is what every reference package does. The spelling is rewritten at
+  parse time to the internal `successes | trials(successes + failures)`
+  form, so frame assembly, `valid_y`, `fitted()`, `predict()` and
+  `simulate()` need no matrix branch of their own and the two spellings
+  give bit-identical fits. Verified against `glm(cbind(s, f) ~ x)`:
+  coefficients, logLik and standard errors all agree to 1e-5 or better.
+  `cbind(s, f) | trials(n)` (two contradictory sources of trials), a
+  three-column `cbind()`, and a fractional failure column are refused
+  with messages that name the actual problem; the old message spoke
+  about `trials` without saying what the user had written wrong.
+  Matrix-response families (multinomial) keep their own spelling.
+  [glmmTMB#1319, #1325]
+- A model with zero free outer parameters (`y | trials(n) ~ 0`) fits
+  degenerately instead of dying inside nlminb with "'d' must be a
+  nonempty numeric (double) vector". `optimize_obj()` evaluates the
+  template once and reports convergence 0 with the message "no free
+  parameters (degenerate model)"; `logLik` is the template's, with
+  `df = 0`. `par_est_se()` and `diagnose()` were fixed alongside: an
+  empty sdreport summary has no rows for `as.list(what = "Std. Error")`
+  to reshape, and `check_convergence()` took `max()` of an empty
+  gradient. [glmmTMB#1325, #1317]
+- One-level grouping factors and gaussian OLRE now have lme4's
+  three-way control vocabulary: `frmtmb_control(check_nlev_1 =)` and
+  `check_olre =`, each `"warning"` (default) / `"ignore"` / `"stop"`.
+  Both previously fit silently. The nlev check fires only on SCALAR
+  blocks - a structured block over several terms per level (ar1, us,
+  the spatial covstructs) is one realization of a field, where a single
+  grouping level is the normal spelling. The OLRE check fires only when
+  sigma is free to absorb the variance: `se()` and a constant sigma
+  both identify the split, which is exactly the random-effects
+  meta-analysis. [lme4 lmerControl checks]
+- `diagnose()` gained three checks and lost a crash. It errored on
+  ANY fit without random effects, because `theta` is NULL there and
+  `abs(NULL)` is an error rather than an empty result. The new checks:
+  a complete-separation heuristic for binomial-type fits (|coef| > 10
+  on the link scale WITH a standard error to match - a genuinely large
+  effect on a well-populated cell keeps a small se); predictor-scale
+  warnings (|log10 sd(x)| > 3, pointing at `autoscale`); and an
+  isSingular-style verdict listing every variance component on the
+  boundary of its parameter space (sd at zero, |cor| at one), read off
+  the estimates so it stands independently of `pdHess`.
+  [glmmTMB diagnose(), lme4 isSingular]
+- `simulate()` returns the response's own type. The four ordinal
+  families had NO simulator at all ("Family 'cumulative' has no
+  simulator yet"); they now have one, and it hands back an ordered
+  factor carrying the original levels rather than 1..K codes. The
+  category distributions are built in plain doubles, one branch per
+  family, and reproduce `exp(lpdf)` at the observed category to 1e-15
+  for cumulative, sratio, cratio and acat (the taped lpdf only scores
+  the observed category, so the whole distribution is new code and is
+  pinned against it). `multinomial()` gained a simulator too, returning
+  an n x K count matrix with the response's column names in a data
+  frame of matrix columns (the lme4 convention). `simulate()` now
+  respects `na.exclude` padding like `fitted()` and `residuals()` do;
+  the internal consumers that work in fitted-row space
+  (`frm_bootstrap()`, `dharma_residuals()`, `pp_check()`) unpad first.
+  `dharma_residuals()` refuses ordinal fits outright: DHARMa's rank
+  transform needs a numeric scale, and an ordinal response has only an
+  order. [glmmTMB test-simulate.R; lme4#737]
+- An nlpar whose name is also a data column is refused. The nonlinear
+  body resolved the name to the PARAMETER and silently ignored the
+  column, so the fit ran and reported numbers for a model the user did
+  not write. Silent precedence was the other option and is worse: no
+  one would remember it. [brms#391]
+- A nonlinear fit that dies from the default zero starting values now
+  names `start=` and the template layout instead of surfacing RTMB's
+  own error; a non-convergence warning on an nl fit says the same. The
+  raw "NA/NaN function evaluation" from nlminb is muffled on that path,
+  since it is the optimizer noticing the same undefined objective the
+  error already names. [brms#734 doctrine]
+- `anova()` no longer refuses every REML fit. A REML likelihood is a
+  likelihood for the error contrasts of its fixed-effect design, so two
+  of them are on a common scale exactly when the designs span the same
+  column space - which is the usual REML comparison, of
+  variance-component structures with the fixed effects held fixed. The
+  check projects each design onto the other's column space, so a
+  reordered but equivalent design passes (which also settles the "REML
+  logLik invariance to fixed-effect term order" item). Different column
+  spaces are refused with the reason, and mixing REML with ML fits is
+  refused separately. [glmmTMB#776]
+
+### Already worked (regression tests added)
+
+- `offset()` inside a dpar formula (`sigma ~ x + offset(o)`) reaches
+  the likelihood exactly - the fitted logLik matches a hand-rolled
+  `dnorm(y, mu, exp(Xb + offset))` to 1e-13 - and follows through to
+  `predict(dpar = "sigma")` both in sample and on newdata. Pinned down
+  so it cannot regress into the silent drop glmmTMB#625 describes.
+  [glmmTMB test-offset.R]
 
 ## Open-issue sweep (2026-09-01)
 
@@ -203,15 +288,11 @@ tests/testthat/test-aliased-grouping.R.
   fix wants an integrator that recalibrates per evaluation; TMBad's
   `adaptive = TRUE` is meant to be that and is measurably worse, so it
   would have to be built rather than switched on.
-- `cbind(successes, failures)` responses are rejected with a message
-  about `trials` that does not name the real problem. Every reference
-  package accepts the spelling, so ported code lands here first.
-  [glmmTMB#1319, #1325]
-- A model with zero free parameters (`y | trials(n) ~ 0`) fails inside
-  nlminb with "'d' must be a nonempty numeric (double) vector" rather
-  than reporting the degenerate model. [glmmTMB#1325, #1317]
 - No `link_zi` / `link_hu`: the zero-inflation and hurdle parts are
   logit-only, as in glmmTMB. [glmmTMB#847]
+
+(`cbind(successes, failures)` and the zero-free-parameter model moved
+to the diagnostics/UX cluster below; both are fixed.)
 
 ### Verified immune (regression tests added)
 

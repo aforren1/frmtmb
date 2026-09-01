@@ -87,6 +87,37 @@ parse_response <- function(formula) {
   list(resp = resp, aterms = aterms)
 }
 
+# glm(), lme4 and glmmTMB all spell a two-column binomial response
+# `cbind(successes, failures)`, so ported code lands here before it
+# reaches anything else. Rewrite it into the internal
+# `successes | trials(successes + failures)` form: every later stage
+# (frame assembly, valid_y, fitted, predict, simulate) then sees an
+# ordinary count response and needs no matrix branch of its own.
+# Other matrix-response families (multinomial) keep their own spelling.
+# [glmmTMB#1319, #1325]
+rewrite_cbind_response <- function(ri, fam) {
+  resp <- ri$resp
+  if (!is.call(resp) || !identical(resp[[1L]], as.name("cbind")) ||
+      !fam$family %in% c("binomial", "beta_binomial")) {
+    return(ri)
+  }
+  args <- as.list(resp)[-1L]
+  nms <- names(args) %||% rep("", length(args))
+  if (length(args) != 2L || any(nzchar(nms))) {
+    stop("A cbind() ", fam$family, " response takes exactly two unnamed ",
+         "columns: cbind(successes, failures)", call. = FALSE)
+  }
+  if (!is.null(ri$aterms$trials)) {
+    stop("cbind(successes, failures) already carries the number of ",
+         "trials; drop the trials() addition term (write either ",
+         "cbind(s, f) ~ ... or s | trials(n) ~ ...)", call. = FALSE)
+  }
+  ri$resp <- args[[1L]]
+  ri$aterms$trials <- call("+", args[[1L]], args[[2L]])
+  ri$cbind_resp <- TRUE
+  ri
+}
+
 # Evaluate one special-term tuning argument (gp's k/c/iso, rr's d,
 # se's sigma flag). These are user code, so they resolve in the
 # environment the formula was written in (brms does the same); only the
@@ -441,7 +472,7 @@ parse_one_response <- function(bform) {
   # special-named functions here so the combined model frame (which
   # evaluates with formula_env) can resolve them
   shared_env <- new.env(parent = env)
-  ri <- parse_response(f)
+  ri <- rewrite_cbind_response(parse_response(f), fam)
 
   if (isTRUE(bform$nl)) {
     if (!identical(fam$primary_dpars %||% "mu", "mu")) {
@@ -493,6 +524,7 @@ parse_one_response <- function(bform) {
       dpars = dpars,
       primary_dpars = nlpars,   # REML integrates the nlpar coefficients
       nlpars = nlpars,
+      cbind_resp = isTRUE(ri$cbind_resp),
       formula_env = shared_env
     ))
   }
@@ -543,6 +575,7 @@ parse_one_response <- function(bform) {
     dpars = dpars,
     primary_dpars = primaries,
     nlpars = character(0),
+    cbind_resp = isTRUE(ri$cbind_resp),
     formula_env = shared_env
   )
 }

@@ -278,7 +278,8 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       }
       dpv
     }
-    ys <- sim_response(rspec$family, dp, av, length(dp[[1]]))
+    ys <- sim_response(rspec$family, dp, av, length(dp[[1]]),
+                       extra = fit_extras(sh))
     if (is.null(out)) out <- matrix(NA_real_, length(rows), length(ys))
     out[k, ] <- ys
   }

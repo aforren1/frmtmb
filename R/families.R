@@ -245,8 +245,17 @@ subset_obs <- function(x, idx, n) {
 # interval. Bounds that exclude nearly all the family's mass never
 # converge, so the iteration cap reports the acceptance rate instead of
 # spinning.
-sim_response <- function(fam, dpars, aterms, n, max_iter = 100L) {
-  y <- fam$sim(dpars, aterms, n)
+sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
+                         extra = NULL) {
+  # families whose draws need parameters outside the dpar system
+  # (ordinal thresholds) declare a fourth argument; the rest keep the
+  # three-argument contract
+  fam_sim <- if (length(formals(fam$sim)) >= 4L) {
+    function(dp, av, nn) fam$sim(dp, av, nn, extra)
+  } else {
+    fam$sim
+  }
+  y <- fam_sim(dpars, aterms, n)
   tb <- trunc_bounds(aterms, n)
   if (is.null(tb)) return(y)
   drawn <- n
@@ -262,7 +271,7 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L) {
            "distribution's mass.", call. = FALSE)
     }
     drawn <- drawn + length(bad)
-    yb <- fam$sim(subset_obs(dpars, bad, n), subset_obs(aterms, bad, n),
+    yb <- fam_sim(subset_obs(dpars, bad, n), subset_obs(aterms, bad, n),
                   length(bad))
     y[bad] <- yb
     bad <- bad[yb < tb$lb[bad] | yb > tb$ub[bad]]
@@ -1327,6 +1336,7 @@ fam_cumulative <- function(link = "logit") {
       incr <- pmax(diff(tau0), 0.05)
       list(tau_raw = c(tau0[1], log(incr)))
     },
+    sim = ord_sim("cumulative", ordered = TRUE, link = link),
     drop_intercept = TRUE
   )
 }
@@ -1385,6 +1395,80 @@ ord_tau_init <- function(y, ordered = TRUE) {
   list(tau_raw = c(tau0[1], log(incr)))
 }
 
+# --- ordinal simulators ----------------------------------------------
+# The lpdfs are taped, so they answer "how likely is this category"; a
+# simulator needs the whole category distribution instead. These build
+# it in plain doubles, one branch per family, matching each lpdf term
+# for term.
+
+# cumulative and sratio store ordered thresholds as (tau_1, log
+# increments); cratio and acat store them raw.
+ord_tau_from_raw <- function(raw, ordered) {
+  if (!ordered || length(raw) < 2L) return(raw)
+  c(raw[1L], raw[1L] + cumsum(exp(raw[-1L])))
+}
+
+ord_num_cdf <- function(link) {
+  switch(link, logit = stats::plogis, probit = stats::pnorm,
+         stop("no numeric CDF for link '", link, "'", call. = FALSE))
+}
+
+# n x K matrix of category probabilities.
+ord_cat_probs <- function(family, eta, tau, cs, link) {
+  n <- length(eta)
+  K1 <- length(tau)
+  K <- K1 + 1L
+  if (identical(family, "acat")) {
+    # P(y=r) proportional to exp((r-1) eta - cumsum(tau)[r]); the row
+    # maximum comes out before exp() so a wide eta cannot overflow
+    ct0 <- c(0, cumsum(tau))
+    E <- outer(eta, seq_len(K) - 1) - matrix(ct0, n, K, byrow = TRUE)
+    if (!is.null(cs)) {
+      acc <- rep(0, n)
+      for (r in seq.int(2L, K)) {
+        acc <- acc + cs[, r - 1L]
+        E[, r] <- E[, r] + acc
+      }
+    }
+    ex <- exp(E - apply(E, 1L, max))
+    return(ex / rowSums(ex))
+  }
+  Fcdf <- ord_num_cdf(link)
+  M <- matrix(tau, n, K1, byrow = TRUE) - eta   # tau_j - eta_i
+  if (!is.null(cs)) M <- M - cs
+  if (identical(family, "cumulative")) {
+    # P(y=k) = F(tau_k - eta) - F(tau_{k-1} - eta), with the two
+    # boundary values pinned at 0 and 1: a column-wise difference of the
+    # K+1 cumulative probabilities
+    Fm <- cbind(0, Fcdf(M), 1)
+    return(Fm[, -1L, drop = FALSE] - Fm[, -ncol(Fm), drop = FALSE])
+  }
+  # sequential families: h_j is the chance of stopping at category j
+  # given survival past j-1, on each family's own scale
+  h <- if (identical(family, "sratio")) Fcdf(M) else 1 - Fcdf(-M)
+  P <- matrix(0, n, K)
+  surv <- rep(1, n)
+  for (j in seq_len(K1)) {
+    P[, j] <- surv * h[, j]
+    surv <- surv * (1 - h[, j])
+  }
+  P[, K] <- surv
+  P
+}
+
+ord_sim <- function(family, ordered, link) {
+  function(dpars, aterms, n, extra) {
+    tau <- ord_tau_from_raw(extra$tau_raw, ordered)
+    P <- ord_cat_probs(family, rep(dpars$mu, length.out = n), tau,
+                       dpars$.cs, link)
+    K <- ncol(P)
+    # inverse-CDF sampling, one uniform per row
+    cp <- t(apply(P, 1L, cumsum))
+    if (n == 1L) cp <- matrix(cp, 1L, K)
+    pmin(1L + rowSums(cp < stats::runif(n)), K)
+  }
+}
+
 ord_link_cdf <- function(name, link) {
   switch(link,
     logit = function(x) 1 / (1 + exp(-x)),
@@ -1424,6 +1508,7 @@ fam_sratio <- function(link = "logit") {
     valid_y = ord_valid_y("sratio"),
     type = "ordinal",
     extra_pars = function(y, aterms) ord_tau_init(y, ordered = TRUE),
+    sim = ord_sim("sratio", ordered = TRUE, link = link),
     drop_intercept = TRUE
   )
 }
@@ -1456,6 +1541,7 @@ fam_cratio <- function(link = "logit") {
     valid_y = ord_valid_y("cratio"),
     type = "ordinal",
     extra_pars = function(y, aterms) ord_tau_init(y, ordered = FALSE),
+    sim = ord_sim("cratio", ordered = FALSE, link = link),
     drop_intercept = TRUE
   )
 }
@@ -1516,6 +1602,7 @@ fam_acat <- function(link = "logit") {
     valid_y = ord_valid_y("acat"),
     type = "ordinal",
     extra_pars = function(y, aterms) ord_tau_init(y, ordered = FALSE),
+    sim = ord_sim("acat", ordered = FALSE, link = link),
     drop_intercept = TRUE
   )
 }
@@ -1953,6 +2040,26 @@ fam_multinomial <- function(K) {
       }
     },
     type = "discrete",
+    sim = function(dpars, aterms, n) {
+      size <- aterms$trials
+      if (is.null(size)) {
+        stop("simulate(): a multinomial fit needs trials() to know how ",
+             "many draws each row gets", call. = FALSE)
+      }
+      denom <- 1
+      for (k in dpn) denom <- denom + exp(dpars[[k]])
+      P <- matrix(0, n, K)
+      P[, 1L] <- rep(1 / denom, length.out = n)
+      for (j in seq_along(dpn)) {
+        P[, j + 1L] <- rep(exp(dpars[[dpn[j]]]) / denom, length.out = n)
+      }
+      size <- rep(size, length.out = n)
+      out <- matrix(0L, n, K)
+      for (i in seq_len(n)) {
+        out[i, ] <- stats::rmultinom(1L, size[i], P[i, ])
+      }
+      out
+    },
     primary_dpars = dpn
   )
 }
