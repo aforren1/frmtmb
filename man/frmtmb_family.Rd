@@ -59,8 +59,12 @@ through the link).}
 
 \item{type}{One of \code{"continuous"}, \code{"discrete"}, \code{"ordinal"}.}
 
-\item{post}{Named list of numeric helper functions \code{mean_fn(dpars, aterms)} and \code{var_fn(dpars, aterms)}, used by \code{\link[=fitted]{fitted()}} and
-\code{\link[=residuals]{residuals()}}.}
+\item{post}{Named list of numeric helper functions used by
+\code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}} and \code{\link[=residuals]{residuals()}}: \code{mean_fn(dpars, aterms)} (the response mean), \code{var_fn(dpars, aterms)} (for pearson
+residuals) and \code{dev_fn(y, dpars, aterms)} (the unit deviance
+\verb{2 * (loglik of the saturated fit - loglik at the fitted value)},
+for \code{residuals(type = "deviance")}). A family that omits one is
+refused by the method that needs it.}
 
 \item{sim}{Optional numeric simulator \verb{(dpars, aterms, n)} returning \code{n}
 response draws; used by \code{\link[=simulate]{simulate()}}.}

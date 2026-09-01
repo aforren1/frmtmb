@@ -146,7 +146,12 @@ test_that("predict type = 'response' is the expected response (zi)", {
   nd <- dd[1:5, ]
   expect_equal(predict(fit, newdata = nd, type = "response"),
                unname(fitted(fit)[1:5]), tolerance = 1e-8)
-  expect_error(predict(fit, type = "response", se.fit = TRUE), "se.fit")
+  # the expected response now carries joint delta-method SEs, and they
+  # agree with glmmTMB's own response-scale delta method
+  ps <- predict(fit, type = "response", se.fit = TRUE)
+  rs <- predict(ref, type = "response", se.fit = TRUE)
+  expect_vector_equal(ps$fit, rs$fit, tol = 1e-3)
+  expect_vector_equal(ps$se.fit, rs$se.fit, tol = 1e-3)
   expect_error(predict(fit, type = "disp"), "dispersion")
 })
 
