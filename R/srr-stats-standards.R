@@ -28,9 +28,13 @@
 #' category assumes.
 #'
 #' Standards that are met are tagged with `@srrstats` at the code that
-#' implements them. Standards that do not apply are collected below with
-#' a reason. Standards that are not yet met carry no tag; those are the
-#' compliance gap list.
+#' implements them. Standards that a document rather than code satisfies
+#' are tagged in that document instead, in a dedicated non-evaluated
+#' chunk: `vignettes/inputs.Rmd` carries the input, terminology,
+#' attribute, scaling and benchmark-reproduction standards it closes.
+#' Standards that do not apply are collected below with a reason.
+#' Standards that are not yet met carry no tag; those are the compliance
+#' gap list.
 #'
 #' @srrstatsVerbose TRUE
 #'

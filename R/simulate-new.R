@@ -9,13 +9,15 @@
 # Natural-scale vocabulary
 # ---------------------------------------------------------------------
 
-# One slot per natural-scale name the model accepts:
-#   kind "coef"  fixed coefficient on the LINK scale (comp, idx)
-#   kind "dpar"  intercept-only dispersion dpar on the RESPONSE scale
-#   kind "sd"    random-effect SD (block, positions within the block)
-#   kind "cor"   random-effect correlation (block, j < k)
-# Names that two different parameters would share are recorded as
-# ambiguous rather than silently resolved to the first one.
+#' One slot per natural-scale name the model accepts:
+#'   kind `"coef"`  fixed coefficient on the LINK scale (comp, idx)
+#'   kind `"dpar"`  intercept-only dispersion dpar on the RESPONSE scale
+#'   kind `"sd"`    random-effect SD (block, positions within the block)
+#'   kind `"cor"`   random-effect correlation (block, `j < k`)
+#' Names that two different parameters would share are recorded as
+#' ambiguous rather than silently resolved to the first one.
+#'
+#' @noRd
 nat_slots <- function(frame) {
   tpl <- frame$par_template
   slots <- list()
@@ -75,23 +77,29 @@ nat_slots <- function(frame) {
   structure(slots, ambiguous = unique(dup))
 }
 
-# theta indices a natural sd slot writes to.
+#' `theta` indices a natural sd slot writes to.
+#'
+#' @noRd
 nat_sd_theta_idx <- function(frame, slot) {
   bk <- frame$re_blocks[[slot$blk]]
   reg <- covstruct_registry[[bk$covstruct]]
   unique(bk$theta_idx[reg$sd_idx(bk$dim)[slot$pos]])
 }
 
-# Whether `newparams` speaks the internal parameterization: every name
-# is a par_template component (or "b"). A model whose coefficients are
-# literally named `beta`/`theta` must use the internal spelling.
+#' Whether `newparams` speaks the internal parameterization: every name
+#' is a `par_template` component (or `"b"`). A model whose coefficients
+#' are literally named `beta`/`theta` must use the internal spelling.
+#'
+#' @noRd
 is_internal_newparams <- function(np, tpl) {
   length(np) > 0L &&
     all(names(np) %in% c(names(tpl), "b"))
 }
 
-# Refuse the natural path where it cannot express the whole parameter
-# vector, rather than leaving parameters at silent defaults.
+#' Refuse the natural path where it cannot express the whole parameter
+#' vector, rather than leaving parameters at silent defaults.
+#'
+#' @noRd
 check_natural_supported <- function(frame) {
   extra <- setdiff(names(frame$par_template),
                    c("beta", "betad", "b", "theta"))
@@ -113,9 +121,12 @@ check_natural_supported <- function(frame) {
   }
 }
 
-# Write natural-scale values into the internal estimate list. Blocks the
-# names touch are rebuilt from their SDs and correlations as a whole, so
-# an unset correlation is 0 rather than whatever theta happened to hold.
+#' Write natural-scale values into the internal estimate list. Blocks
+#' the names touch are rebuilt from their SDs and correlations as a
+#' whole, so an unset correlation is 0 rather than whatever `theta`
+#' happened to hold.
+#'
+#' @noRd
 apply_natural <- function(est, frame, slots, np) {
   bad <- setdiff(names(np), names(slots))
   if (length(bad)) {
@@ -192,8 +203,10 @@ apply_natural <- function(est, frame, slots, np) {
 # Prior draws
 # ---------------------------------------------------------------------
 
-# One draw from a parsed set_prior() distribution, on the scale the
-# class defines it (class "sd" draws a standard deviation).
+#' One draw from a parsed `set_prior()` distribution, on the scale the
+#' class defines it (class `"sd"` draws a standard deviation).
+#'
+#' @noRd
 rprior_one <- function(dist) {
   switch(dist$kind,
     normal = stats::rnorm(1L, dist$location, dist$scale),
@@ -203,8 +216,10 @@ rprior_one <- function(dist) {
   )
 }
 
-# Rejection draw inside the entry's bounds (and inside (0, Inf) for an
-# sd), on the entry's own scale.
+#' Rejection draw inside the entry's bounds (and inside `(0, Inf)` for
+#' an sd), on the entry's own scale.
+#'
+#' @noRd
 draw_prior_entry <- function(e, label, max_try = 1000L) {
   lb <- if (is.null(e$lb) || is.na(e$lb)) -Inf else e$lb
   ub <- if (is.null(e$ub) || is.na(e$ub)) Inf else e$ub
@@ -219,8 +234,10 @@ draw_prior_entry <- function(e, label, max_try = 1000L) {
        lb, ", ", ub, "] in ", max_try, " tries", call. = FALSE)
 }
 
-# Label for a prior entry: the natural name where one exists, else the
-# internal spelling.
+#' Label for a prior entry: the natural name where one exists, else the
+#' internal spelling.
+#'
+#' @noRd
 prior_entry_label <- function(frame, slots, e) {
   if (e$comp %in% c("beta", "betad")) {
     nms <- names(frame$par_template[[e$comp]])
@@ -236,7 +253,9 @@ prior_entry_label <- function(frame, slots, e) {
   paste0(e$comp, "_", e$idx)
 }
 
-# Draw every prior-covered parameter once and write it into `est`.
+#' Draw every prior-covered parameter once and write it into `est`.
+#'
+#' @noRd
 draw_prior_pars <- function(est, entries, labels) {
   vals <- numeric(length(entries))
   for (i in seq_along(entries)) {
@@ -252,9 +271,11 @@ draw_prior_pars <- function(est, entries, labels) {
 # Coverage
 # ---------------------------------------------------------------------
 
-# Every fixed coefficient and every random-effect SD must be pinned by
-# newparams or by a prior. Leaving one out means simulating from a
-# default (a zero effect, a unit SD) that nobody chose.
+#' Every fixed coefficient and every random-effect SD must be pinned by
+#' `newparams` or by a prior. Leaving one out means simulating from a
+#' default (a zero effect, a unit SD) that nobody chose.
+#'
+#' @noRd
 check_coverage <- function(frame, slots, np_internal, np_natural,
                            entries) {
   tpl <- frame$par_template

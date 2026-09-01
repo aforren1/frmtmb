@@ -98,7 +98,9 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
             class = "frmtmb_influence")
 }
 
-# theta labels for the influence table
+#' theta labels for the influence table
+#'
+#' @noRd
 outer_theta_names <- function(fit) {
   th <- fit$estimates$theta
   if (!length(th)) return(character(0))

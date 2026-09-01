@@ -107,6 +107,11 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
 #' @export
 custom_family <- frmtmb_family
 
+#' Make a response validator that rejects any value less than or equal
+#' to zero. The families with support on `(0, Inf)` use it so a bad
+#' response fails at assembly time with the family name in the message.
+#'
+#' @noRd
 positive_y <- function(name) {
   force(name)
   function(y, aterms) {
@@ -116,6 +121,10 @@ positive_y <- function(name) {
   }
 }
 
+#' Make a response validator that rejects a response which is not a
+#' non-negative integer. The count families use it.
+#'
+#' @noRd
 count_y <- function(name) {
   force(name)
   function(y, aterms) {
@@ -125,27 +134,34 @@ count_y <- function(name) {
   }
 }
 
-# P(a < Z < b) for standard normal bounds. pnorm(b) - pnorm(a) loses
-# every significant digit when both bounds sit in the upper tail, which
-# is exactly where truncated means are computed; the mirrored form keeps
-# full precision there.
+#' `P(a < Z < b)` for standard normal bounds. `pnorm(b) - pnorm(a)`
+#' loses every significant digit when both bounds sit in the upper tail,
+#' which is exactly where truncated means are computed; the mirrored
+#' form keeps full precision there.
+#'
+#' @noRd
 pnorm_diff <- function(a, b) {
   ifelse(a > 0,
          stats::pnorm(-a) - stats::pnorm(-b),
          stats::pnorm(b) - stats::pnorm(a))
 }
 
-# Residual SD including a known se() component (meta-analysis): se()
-# alone replaces sigma; se(x, sigma = TRUE) adds them in quadrature.
+#' Residual SD including a known `se()` component (meta-analysis):
+#' `se()` alone replaces `sigma`; `se(x, sigma = TRUE)` adds them in
+#' quadrature.
+#'
+#' @noRd
 resid_sd <- function(sigma, aterms) {
   if (is.null(aterms$se)) return(sigma)
   if (isTRUE(aterms$se_sigma)) sqrt(sigma^2 + aterms$se^2) else aterms$se
 }
 
-# trunc() bounds from an aterm-value list as a pair of length-n numeric
-# vectors, or NULL when the response is not truncated. An absent bound
-# is the family's unbounded default; the per-family truncated means all
-# handle the infinities.
+#' `trunc()` bounds from an aterm-value list as a pair of length-n
+#' numeric vectors, or `NULL` when the response is not truncated. An
+#' absent bound is the family's unbounded default; the per-family
+#' truncated means all handle the infinities.
+#'
+#' @noRd
 trunc_bounds <- function(aterms, n) {
   lb <- aterms[["trunc_lb"]]
   ub <- aterms[["trunc_ub"]]
@@ -154,10 +170,13 @@ trunc_bounds <- function(aterms, n) {
        ub = rep(ub %||% Inf, length.out = n))
 }
 
-# Expected response at the given dpar values. On a truncated response
-# this is E[Y | lb <= Y <= ub], the quantity fitted(), residuals() and
-# predict(type = "response") report; per-dpar predictions stay
-# untruncated because they describe the latent parameter.
+#' Expected response at the given dpar values. On a truncated response
+#' this is `E[Y | lb <= Y <= ub]`, the quantity `fitted()`,
+#' `residuals()` and `predict(type = "response")` report; per-dpar
+#' predictions stay untruncated because they describe the latent
+#' parameter.
+#'
+#' @noRd
 response_mean <- function(fam, dpars, aterms) {
   mu <- if (!is.null(fam$post$mean_fn)) {
     fam$post$mean_fn(dpars, aterms)
@@ -184,28 +203,38 @@ response_mean <- function(fam, dpars, aterms) {
 # rest (negbinomial, beta, tweedie) use the same saturated-likelihood
 # definition at a fixed shape.
 
-# y log(y / mu) under the 0 log 0 = 0 convention the saturated fit needs
-# at a zero count.
+#' `y log(y / mu)` under the `0 log 0 = 0` convention the saturated fit
+#' needs at a zero count.
+#'
+#' @noRd
 ylogy_mu <- function(y, mu) ifelse(y > 0, y * log(y / mu), 0)
 
-# Negative-binomial unit deviance at a given size (shape). nbinom1 feeds
-# it the row's own size mu / phi.
+#' Negative-binomial unit deviance at a given size (shape). nbinom1
+#' feeds it the row's own size `mu / phi`.
+#'
+#' @noRd
 nbinom_deviance <- function(y, mu, size) {
   2 * (ylogy_mu(y, mu) - (y + size) * log((y + size) / (mu + size)))
 }
 
-# Binomial unit deviance on COUNTS out of `size` trials; both terms
-# vanish at the boundaries y = 0 and y = size.
+#' Binomial unit deviance on COUNTS out of `size` trials; both terms
+#' vanish at the boundaries `y = 0` and `y = size`.
+#'
+#' @noRd
 binomial_deviance <- function(y, mu, size) {
   2 * (ylogy_mu(y, size * mu) + ylogy_mu(size - y, size * (1 - mu)))
 }
 
-# Gamma unit deviance; also the exponential one (shape fixed at 1).
+#' Gamma unit deviance; also the exponential one (shape fixed at 1).
+#'
+#' @noRd
 gamma_deviance <- function(y, mu) 2 * ((y - mu) / mu - log(y / mu))
 
-# Families that define a unit deviance, for the residuals() refusal
-# message. Read off the registry so the list cannot drift; the
-# constructors that need arguments (multinomial) simply drop out.
+#' Families that define a unit deviance, for the `residuals()` refusal
+#' message. Read off the registry so the list cannot drift; the
+#' constructors that need arguments (multinomial) simply drop out.
+#'
+#' @noRd
 deviance_family_names <- function() {
   nms <- names(family_registry)
   ok <- vapply(nms, function(nm) {
@@ -215,11 +244,13 @@ deviance_family_names <- function() {
   sort(unique(nms[ok]))
 }
 
-# Deviance residuals: sign(y - E[Y]) * sqrt(w_i d_i). Weights multiply
-# the unit deviance, as in glm(). A truncated or censored response is
-# refused: the fitted likelihood is not the family's own density there,
-# so the saturated comparison the unit deviance is built on does not
-# describe the model that was estimated.
+#' Deviance residuals: `sign(y - E[Y]) * sqrt(w_i d_i)`. Weights
+#' multiply the unit deviance, as in `glm()`. A truncated or censored
+#' response is refused: the fitted likelihood is not the family's own
+#' density there, so the saturated comparison the unit deviance is built
+#' on does not describe the model that was estimated.
+#'
+#' @noRd
 deviance_residuals <- function(fam, y, dpars, aterms, n) {
   dev <- fam$post$dev_fn
   if (is.null(dev)) {
@@ -246,8 +277,10 @@ deviance_residuals <- function(fam, y, dpars, aterms, n) {
   sign(y - response_mean(fam, dpars, aterms)) * sqrt(pmax(w * d, 0))
 }
 
-# Per-observation subset of dpar / aterm vectors, for resampling the
-# rows a rejection step has not accepted yet.
+#' Per-observation subset of dpar / aterm vectors, for resampling the
+#' rows a rejection step has not accepted yet.
+#'
+#' @noRd
 subset_obs <- function(x, idx, n) {
   lapply(x, function(v) {
     if (is.numeric(v) && length(v) %in% c(1L, n)) {
@@ -258,11 +291,13 @@ subset_obs <- function(x, idx, n) {
   })
 }
 
-# One simulated response vector, respecting trunc() bounds by rejection:
-# out-of-bounds draws are redrawn until every row is inside its own
-# interval. Bounds that exclude nearly all the family's mass never
-# converge, so the iteration cap reports the acceptance rate instead of
-# spinning.
+#' One simulated response vector, respecting `trunc()` bounds by
+#' rejection: out-of-bounds draws are redrawn until every row is inside
+#' its own interval. Bounds that exclude nearly all the family's mass
+#' never converge, so the iteration cap reports the acceptance rate
+#' instead of spinning.
+#'
+#' @noRd
 sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
                          extra = NULL) {
   # families whose draws need parameters outside the dpar system
@@ -297,6 +332,11 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
   y
 }
 
+#' Gaussian family, dpars `mu` and `sigma`. A known `se()` term enters
+#' the residual SD, which is what makes meta-analysis work. It supplies
+#' a CDF, so `cens()` and `trunc()` apply to it.
+#'
+#' @noRd
 fam_gaussian <- function(link = "identity") {
   frmtmb_family(
     "gaussian",
@@ -341,6 +381,10 @@ fam_gaussian <- function(link = "identity") {
   )
 }
 
+#' Poisson family, single dpar `mu` (the mean). It supplies a CDF and a
+#' truncated mean, so `cens()` and `trunc()` apply to it.
+#'
+#' @noRd
 fam_poisson <- function(link = "log") {
   frmtmb_family(
     "poisson",
@@ -374,6 +418,11 @@ fam_poisson <- function(link = "log") {
   )
 }
 
+#' Binomial family, single dpar `mu` (the success probability). The
+#' number of trials comes from the `trials()` addition term and defaults
+#' to one, so the response is a count out of `trials`.
+#'
+#' @noRd
 fam_binomial <- function(link = "logit") {
   frmtmb_family(
     "binomial",
@@ -413,6 +462,10 @@ fam_binomial <- function(link = "logit") {
   )
 }
 
+#' Gamma family in the mean parameterization, dpars `mu` and `shape`.
+#' The scale is `mu / shape`, so `mu` stays the mean at any shape.
+#'
+#' @noRd
 fam_Gamma <- function(link = "log") {
   frmtmb_family(
     "Gamma",
@@ -442,6 +495,11 @@ fam_Gamma <- function(link = "log") {
   )
 }
 
+#' Lognormal family, dpars `mu` and `sigma`. As in brms, they are the
+#' mean and SD on the LOG scale, which is why `mu` takes the identity
+#' link. It supplies a CDF and a truncated mean.
+#'
+#' @noRd
 fam_lognormal <- function(link = "identity") {
   frmtmb_family(
     "lognormal",
@@ -480,6 +538,11 @@ fam_lognormal <- function(link = "identity") {
   )
 }
 
+#' Student-t family, dpars `mu`, `sigma` and `nu`. The `logm1` link on
+#' `nu` holds the degrees of freedom above one. A known `se()` term
+#' enters the scale, as in the gaussian family.
+#'
+#' @noRd
 fam_student <- function(link = "identity") {
   frmtmb_family(
     "student",
@@ -510,6 +573,11 @@ fam_student <- function(link = "identity") {
   )
 }
 
+#' Negative binomial with quadratic variance (brms negbinomial, glmmTMB
+#' nbinom2), dpars `mu` and `shape`. The variance is
+#' `mu + mu^2 / shape`.
+#'
+#' @noRd
 fam_negbinomial <- function(link = "log") {
   frmtmb_family(
     "negbinomial",
@@ -542,6 +610,11 @@ fam_negbinomial <- function(link = "log") {
   )
 }
 
+#' Negative binomial with linear variance (glmmTMB nbinom1), dpars `mu`
+#' and `phi`. The variance is `mu * (1 + phi)`, so `phi` is a
+#' quasi-Poisson style dispersion.
+#'
+#' @noRd
 fam_nbinom1 <- function(link = "log") {
   frmtmb_family(
     "nbinom1",
@@ -578,6 +651,11 @@ fam_nbinom1 <- function(link = "log") {
   )
 }
 
+#' Beta family in the mean-precision parameterization, dpars `mu` and
+#' `phi`. The two shapes are `mu * phi` and `(1 - mu) * phi`, and the
+#' response must lie strictly inside `(0, 1)`.
+#'
+#' @noRd
 fam_beta <- function(link = "logit") {
   frmtmb_family(
     "beta",
@@ -622,6 +700,11 @@ fam_beta <- function(link = "logit") {
   )
 }
 
+#' Tweedie family for a non-negative response with a mass at zero,
+#' dpars `mu`, `phi` and `power`. The `power12` link holds `power`
+#' between 1 and 2, the compound Poisson-gamma range.
+#'
+#' @noRd
 fam_tweedie <- function(link = "log") {
   frmtmb_family(
     "tweedie",
@@ -657,6 +740,11 @@ fam_tweedie <- function(link = "log") {
   )
 }
 
+#' Conway-Maxwell-Poisson family for counts that are under- or
+#' over-dispersed, dpars `mu` (the mean) and `nu` (the dispersion,
+#' with `nu = 1` giving the Poisson).
+#'
+#' @noRd
 fam_compois <- function(link = "log") {
   frmtmb_family(
     "compois",
@@ -677,6 +765,10 @@ fam_compois <- function(link = "log") {
   )
 }
 
+#' Zero-inflated Poisson, dpars `mu` (the Poisson mean) and `zi` (the
+#' probability of a structural zero).
+#'
+#' @noRd
 fam_zi_poisson <- function(link = "log") {
   frmtmb_family(
     "zero_inflated_poisson",
@@ -707,6 +799,10 @@ fam_zi_poisson <- function(link = "log") {
   )
 }
 
+#' Zero-inflated negative binomial (nbinom2 variance), dpars `mu`,
+#' `shape` and `zi` (the probability of a structural zero).
+#'
+#' @noRd
 fam_zi_negbinomial <- function(link = "log") {
   frmtmb_family(
     "zero_inflated_negbinomial",
@@ -739,6 +835,11 @@ fam_zi_negbinomial <- function(link = "log") {
   )
 }
 
+#' Hurdle Poisson, dpars `mu` and `hu`. `hu` is the probability of a
+#' zero and the positive part is a zero-truncated Poisson, so zeros come
+#' only from the hurdle.
+#'
+#' @noRd
 fam_hurdle_poisson <- function(link = "log") {
   frmtmb_family(
     "hurdle_poisson",
@@ -766,6 +867,10 @@ fam_hurdle_poisson <- function(link = "log") {
   )
 }
 
+#' Bernoulli family for a 0/1 response, single dpar `mu` (the success
+#' probability).
+#'
+#' @noRd
 fam_bernoulli <- function(link = "logit") {
   frmtmb_family(
     "bernoulli",
@@ -794,6 +899,10 @@ fam_bernoulli <- function(link = "logit") {
   )
 }
 
+#' Geometric family, single dpar `mu` (the mean). It is the negative
+#' binomial with the shape held at one.
+#'
+#' @noRd
 fam_geometric <- function(link = "log") {
   frmtmb_family(
     "geometric",
@@ -819,6 +928,11 @@ fam_geometric <- function(link = "log") {
   )
 }
 
+#' Exponential family in the mean parameterization, single dpar `mu`
+#' (the mean, that is one over the rate). It supplies a CDF and a
+#' truncated mean.
+#'
+#' @noRd
 fam_exponential <- function(link = "log") {
   frmtmb_family(
     "exponential",
@@ -853,6 +967,11 @@ fam_exponential <- function(link = "log") {
   )
 }
 
+#' Weibull family, dpars `mu` and `shape`. As in brms, `mu` is the mean
+#' and the scale is `mu / gamma(1 + 1 / shape)`. It supplies a CDF and a
+#' truncated mean.
+#'
+#' @noRd
 fam_weibull <- function(link = "log") {
   frmtmb_family(
     "weibull",
@@ -899,6 +1018,11 @@ fam_weibull <- function(link = "log") {
   )
 }
 
+#' Shifted lognormal for response times, dpars `mu`, `sigma` (both on
+#' the log scale) and `ndt`, the non-decision time the distribution
+#' starts at.
+#'
+#' @noRd
 fam_shifted_lognormal <- function(link = "identity") {
   frmtmb_family(
     "shifted_lognormal",
@@ -928,6 +1052,11 @@ fam_shifted_lognormal <- function(link = "identity") {
   )
 }
 
+#' Hurdle gamma for a non-negative response, dpars `mu`, `shape` and
+#' `hu`. `hu` is the probability of an exact zero and the positive part
+#' is a mean-parameterized gamma.
+#'
+#' @noRd
 fam_hurdle_gamma <- function(link = "log") {
   frmtmb_family(
     "hurdle_gamma",
@@ -964,6 +1093,10 @@ fam_hurdle_gamma <- function(link = "log") {
   )
 }
 
+#' Hurdle lognormal for a non-negative response, dpars `mu`, `sigma`
+#' (both on the log scale) and `hu`, the probability of an exact zero.
+#'
+#' @noRd
 fam_hurdle_lognormal <- function(link = "identity") {
   frmtmb_family(
     "hurdle_lognormal",
@@ -1005,6 +1138,11 @@ fam_hurdle_lognormal <- function(link = "identity") {
   )
 }
 
+#' Zero-inflated binomial, dpars `mu` (the success probability) and `zi`
+#' (the probability of a structural zero). Trials come from the
+#' `trials()` addition term.
+#'
+#' @noRd
 fam_zi_binomial <- function(link = "logit") {
   frmtmb_family(
     "zero_inflated_binomial",
@@ -1045,6 +1183,10 @@ fam_zi_binomial <- function(link = "logit") {
   )
 }
 
+#' Zero-inflated beta for a response in `[0, 1)`, dpars `mu`, `phi` and
+#' `zi`, the probability of an exact zero.
+#'
+#' @noRd
 fam_zi_beta <- function(link = "logit") {
   frmtmb_family(
     "zero_inflated_beta",
@@ -1082,6 +1224,11 @@ fam_zi_beta <- function(link = "logit") {
   )
 }
 
+#' Asymmetric Laplace family, dpars `mu`, `sigma` and `quantile`. At a
+#' fixed `quantile` the maximum-likelihood fit gives the quantile
+#' regression point estimates.
+#'
+#' @noRd
 fam_asym_laplace <- function(link = "identity") {
   frmtmb_family(
     "asym_laplace",
@@ -1117,6 +1264,10 @@ fam_asym_laplace <- function(link = "identity") {
 
 # --- RTMBdist-backed families ---
 
+#' Beta-binomial family in the mean-precision parameterization, dpars
+#' `mu` and `phi`. Trials come from the `trials()` addition term.
+#'
+#' @noRd
 fam_beta_binomial <- function(link = "logit") {
   frmtmb_family(
     "beta_binomial",
@@ -1153,6 +1304,11 @@ fam_beta_binomial <- function(link = "logit") {
   )
 }
 
+#' Skew-normal family in the mean parameterization, dpars `mu` (the
+#' mean), `sigma` and `alpha` (the skewness). The `alpha` start avoids
+#' zero, which is a stationary point of the likelihood.
+#'
+#' @noRd
 fam_skew_normal <- function(link = "identity") {
   frmtmb_family(
     "skew_normal",
@@ -1180,6 +1336,10 @@ fam_skew_normal <- function(link = "identity") {
   )
 }
 
+#' Inverse gaussian family, dpars `mu` (the mean) and `shape`. It
+#' supplies a CDF and a truncated mean.
+#'
+#' @noRd
 fam_inverse_gaussian <- function(link = "log") {
   frmtmb_family(
     "inverse.gaussian",
@@ -1238,8 +1398,12 @@ fam_inverse_gaussian <- function(link = "log") {
   )
 }
 
-# brms parameterization: mu is the DISTRIBUTION mean, beta the scale of
-# the exponential component (gaussian component sits at mu - beta).
+#' Ex-gaussian family, dpars `mu`, `sigma` and `beta`.
+#' brms parameterization: `mu` is the DISTRIBUTION mean, `beta` the
+#' scale of the exponential component (gaussian component sits at
+#' `mu - beta`).
+#'
+#' @noRd
 fam_exgaussian <- function(link = "identity") {
   frmtmb_family(
     "exgaussian",
@@ -1273,11 +1437,14 @@ fam_exgaussian <- function(link = "identity") {
 # exact in floating point - off the diagonal one factor is exactly 0, on
 # it every factor is exactly 1 - so the taped path and the data path
 # agree bit for bit.
-# During oneStepPredict RTMB hands the response to the lpdf as an "osa"
-# object: the taped value in @x and the per-row data-term indicator in
-# @keep. RTMB's own densities apply the indicator through dGenericOSA,
-# so a hand-written lpdf has to do it itself or every observation stays
-# switched on and the one-step sequence collapses.
+#' During oneStepPredict RTMB hands the response to the lpdf as an "osa"
+#' object: the taped value in `@x` and the per-row data-term indicator
+#' in `@keep`. RTMB's own densities apply the indicator through
+#' dGenericOSA, so a hand-written lpdf has to do it itself or every
+#' observation stays switched on and the one-step sequence collapses.
+#' This returns the pair, or `NULL` when the response is plain data.
+#'
+#' @noRd
 osa_unwrap <- function(y) {
   if (!methods::is(y, "osa")) return(NULL)
   keep <- y@keep
@@ -1288,6 +1455,11 @@ osa_unwrap <- function(y) {
   list(y = y@x, keep = keep[, 1])
 }
 
+#' The `1{y == k}` indicators for `k = 1..K`, one vector per category,
+#' from the arithmetic Lagrange basis described above. It works with the
+#' response on the AD tape, where comparison operators are not available.
+#'
+#' @noRd
 ord_cat_sel <- function(y, K) {
   lapply(seq_len(K), function(k) {
     s <- 1
@@ -1298,7 +1470,9 @@ ord_cat_sel <- function(y, K) {
   })
 }
 
-# 1{j < y} for j = 1..K-1, from the same basis.
+#' `1{j < y}` for `j = 1..K-1`, from the same basis.
+#'
+#' @noRd
 ord_cat_below <- function(sel, K) {
   lapply(seq_len(K - 1L), function(j) {
     b <- sel[[j + 1L]]
@@ -1307,9 +1481,11 @@ ord_cat_below <- function(sel, K) {
   })
 }
 
-# Cumulative ordinal: response in 1..K (or an ordered factor). The linear
-# predictor has no intercept; K-1 ordered thresholds take its place,
-# parameterized as (tau_1, log increments) in `extra_pars`.
+#' Cumulative ordinal: response in `1..K` (or an ordered factor). The
+#' linear predictor has no intercept; K-1 ordered thresholds take its
+#' place, parameterized as (tau_1, log increments) in `extra_pars`.
+#'
+#' @noRd
 fam_cumulative <- function(link = "logit") {
   Fcdf <- switch(link,
     logit = function(x) 1 / (1 + exp(-x)),
@@ -1367,9 +1543,12 @@ fam_cumulative <- function(link = "logit") {
   )
 }
 
-# Shared scaffolding for the sequential ordinal families: an
-# n x (K-1) matrix of (tau_j - eta_i) or (eta_i - tau_j), and data-only
-# indicator matrices selecting the observed category (branch-free).
+#' Shared scaffolding for the sequential ordinal families: an
+#' n x (K-1) matrix of `(tau_j - eta_i)` or `(eta_i - tau_j)`, and
+#' data-only indicator matrices selecting the observed category
+#' (branch-free).
+#'
+#' @noRd
 ord_indicators <- function(y, K1) {
   n <- length(y)
   jj <- rep(seq_len(K1), each = n)
@@ -1380,15 +1559,22 @@ ord_indicators <- function(y, K1) {
   )
 }
 
+#' The n x (K-1) matrix of `tau_j - eta_i` the ordinal lpdfs work over.
+#' It broadcasts by matrix multiplication because `rep()` would strip the
+#' advector class.
+#'
+#' @noRd
 ord_eta_mat <- function(eta, tau, n, K1) {
   # broadcast via matmul: rep() strips the advector class
   TM <- RTMB::matrix(1, n, 1) %*% RTMB::matrix(tau, 1, K1)
   TM - eta   # column-wise recycling: row i is tau_j - eta_i
 }
 
-# Sequential (sratio/cratio) log-density with the response on the tape.
-# Column-at-a-time so nothing indexes an advector and nothing needs the
-# n x (K-1) matrices, which the data path builds for speed.
+#' Sequential (sratio/cratio) log-density with the response on the tape.
+#' Column-at-a-time so nothing indexes an advector and nothing needs the
+#' n x (K-1) matrices, which the data path builds for speed.
+#'
+#' @noRd
 ord_seq_lpdf_ad <- function(y, eta, tau, K1, cs, Fcdf, stopping) {
   sel <- ord_cat_sel(y, K1 + 1L)
   below <- ord_cat_below(sel, K1 + 1L)
@@ -1402,6 +1588,11 @@ ord_seq_lpdf_ad <- function(y, eta, tau, K1, cs, Fcdf, stopping) {
   out
 }
 
+#' Make the response validator the ordinal families share: the response
+#' must be integers `1..K`, and at least two categories must be
+#' observed.
+#'
+#' @noRd
 ord_valid_y <- function(name) {
   function(y, aterms) {
     if (any(y < 1) || any(y != round(y)) || length(unique(y)) < 2) {
@@ -1411,6 +1602,11 @@ ord_valid_y <- function(name) {
   }
 }
 
+#' Starting values for the K-1 ordinal thresholds, from the observed
+#' cumulative category frequencies. With `ordered = TRUE` they come back
+#' in the (first threshold, log increments) parameterization.
+#'
+#' @noRd
 ord_tau_init <- function(y, ordered = TRUE) {
   K <- max(y)
   p <- cumsum(tabulate(y, K) / length(y))[-K]
@@ -1427,19 +1623,29 @@ ord_tau_init <- function(y, ordered = TRUE) {
 # it in plain doubles, one branch per family, matching each lpdf term
 # for term.
 
-# cumulative and sratio store ordered thresholds as (tau_1, log
-# increments); cratio and acat store them raw.
+#' cumulative and sratio store ordered thresholds as (tau_1, log
+#' increments); cratio and acat store them raw. This returns the
+#' thresholds themselves.
+#'
+#' @noRd
 ord_tau_from_raw <- function(raw, ordered) {
   if (!ordered || length(raw) < 2L) return(raw)
   c(raw[1L], raw[1L] + cumsum(exp(raw[-1L])))
 }
 
+#' The plain numeric CDF for an ordinal link. The simulators run off the
+#' tape, so they use this instead of the AD-safe version.
+#'
+#' @noRd
 ord_num_cdf <- function(link) {
   switch(link, logit = stats::plogis, probit = stats::pnorm,
          stop("no numeric CDF for link '", link, "'", call. = FALSE))
 }
 
-# n x K matrix of category probabilities.
+#' n x K matrix of category probabilities, one branch per ordinal
+#' family, in plain doubles.
+#'
+#' @noRd
 ord_cat_probs <- function(family, eta, tau, cs, link) {
   n <- length(eta)
   K1 <- length(tau)
@@ -1482,6 +1688,11 @@ ord_cat_probs <- function(family, eta, tau, cs, link) {
   P
 }
 
+#' Make the simulator for an ordinal family. It draws one category per
+#' row by inverse-CDF sampling of the full category distribution, which
+#' the taped log-density does not give.
+#'
+#' @noRd
 ord_sim <- function(family, ordered, link) {
   function(dpars, aterms, n, extra) {
     tau <- ord_tau_from_raw(extra$tau_raw, ordered)
@@ -1495,6 +1706,10 @@ ord_sim <- function(family, ordered, link) {
   }
 }
 
+#' The AD-safe CDF for an ordinal link, for use inside a taped
+#' log-density. An unsupported link errors with the family name.
+#'
+#' @noRd
 ord_link_cdf <- function(name, link) {
   switch(link,
     logit = function(x) 1 / (1 + exp(-x)),
@@ -1503,8 +1718,10 @@ ord_link_cdf <- function(name, link) {
   )
 }
 
-# Stopping ratio (brms sratio): P(y=k) = F(tau_k - eta) *
-# prod_{j<k} (1 - F(tau_j - eta)); ordered thresholds like cumulative.
+#' Stopping ratio (brms sratio): `P(y=k) = F(tau_k - eta) *
+#' prod_{j<k} (1 - F(tau_j - eta))`; ordered thresholds like cumulative.
+#'
+#' @noRd
 fam_sratio <- function(link = "logit") {
   Fcdf <- ord_link_cdf("sratio", link)
   frmtmb_family(
@@ -1539,8 +1756,10 @@ fam_sratio <- function(link = "logit") {
   )
 }
 
-# Continuation ratio (brms cratio): P(y=k) = (1 - F(eta - tau_k)) *
-# prod_{j<k} F(eta - tau_j); unordered thresholds.
+#' Continuation ratio (brms cratio): `P(y=k) = (1 - F(eta - tau_k)) *
+#' prod_{j<k} F(eta - tau_j)`; unordered thresholds.
+#'
+#' @noRd
 fam_cratio <- function(link = "logit") {
   Fcdf <- ord_link_cdf("cratio", link)
   frmtmb_family(
@@ -1572,8 +1791,10 @@ fam_cratio <- function(link = "logit") {
   )
 }
 
-# Adjacent category (brms acat, logit link): P(y=k) proportional to
-# exp(sum_{j<k} (eta - tau_j)); unordered thresholds.
+#' Adjacent category (brms acat, logit link): `P(y=k)` proportional to
+#' `exp(sum_{j<k} (eta - tau_j))`; unordered thresholds.
+#'
+#' @noRd
 fam_acat <- function(link = "logit") {
   if (!identical(link, "logit")) {
     stop("acat() supports the 'logit' link only", call. = FALSE)
@@ -1881,10 +2102,12 @@ mixture_probs <- function(fit) {
 mvn_cov_models <- c("EII", "VII", "EEI", "VEI", "EVI", "VVI",
                     "EEE", "VVV")
 
-# The extras a covariance model needs and how they assemble class k's
-# covariance. `pars` is the (name, length) template used for the error
-# messages and the documentation; `init` turns the response into the
-# starting values; `sigma` runs on the tape, so it must stay AD-safe.
+#' The extras a covariance model needs and how they assemble class k's
+#' covariance. `pars` is the (name, length) template used for the error
+#' messages and the documentation; `init` turns the response into the
+#' starting values; `sigma` runs on the tape, so it must stay AD-safe.
+#'
+#' @noRd
 mvn_cov_spec <- function(model, K, D) {
   if (!is.character(model) || length(model) != 1L ||
         !model %in% mvn_cov_models) {
@@ -2169,9 +2392,12 @@ mixture_mvn <- function(K, D, model = "VVV") {
   fam
 }
 
-# Matrix-response multinomial: y is an n x K count matrix, category 1 is
-# the reference. One linear predictor per non-reference category (mu2,
-# ..., muK), all receiving the main model formula unless overridden.
+#' Matrix-response multinomial: y is an n x K count matrix, category 1
+#' is the reference. One linear predictor per non-reference category
+#' (`mu2`, ..., `muK`), all receiving the main model formula unless
+#' overridden.
+#'
+#' @noRd
 fam_multinomial <- function(K) {
   if (missing(K) || K < 2) {
     stop("multinomial() needs the number of categories, e.g. ",
@@ -2271,6 +2497,12 @@ family_registry <- list(
   acat                      = fam_acat
 )
 
+#' Turn a family given as a `frmtmb_family`, a `stats::family()` object,
+#' a family constructor, or a name into the one internal representation
+#' the rest of the package works with. An unknown value errors and names
+#' the supported families.
+#'
+#' @noRd
 as_frmtmb_family <- function(x) {
   if (inherits(x, "frmtmb_family")) return(x)
   if (is.function(x)) x <- x()

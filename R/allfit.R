@@ -1,7 +1,9 @@
 # Refit under every available optimizer (the lme4::allFit analog).
 
-# Derivative-free optimizers from Suggests, wrapped to the
-# frmtmb_control() custom-optimizer contract.
+#' Derivative-free optimizers from Suggests, wrapped to the
+#' `frmtmb_control()` custom-optimizer contract.
+#'
+#' @noRd
 allfit_optimizers <- function() {
   opts <- list(nlminb = "nlminb", optim = "optim")
   if (requireNamespace("minqa", quietly = TRUE)) {

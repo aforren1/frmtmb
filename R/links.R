@@ -54,6 +54,12 @@ frmtmb_links <- list(
   )
 )
 
+#' Look up a link by name in the AD-safe link registry. An already
+#' resolved link list passes through unchanged, so callers can accept
+#' either a name or a custom link. An unknown name errors and lists the
+#' available links.
+#'
+#' @noRd
 get_link <- function(name) {
   if (is.list(name)) return(name)
   lk <- frmtmb_links[[name]]

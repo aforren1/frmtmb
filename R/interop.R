@@ -87,9 +87,11 @@ prior_t <- function(df = 3, location = 0, scale = 1) {
             class = "frmtmb_prior")
 }
 
-# Resolve a named prior list to per-component index/parameter vectors.
-# Names may be individual parameters (as in outer_par_names()) or whole
-# components ("beta", "betad", "theta", "thetar").
+#' Resolve a named prior list to per-component index/parameter vectors.
+#' Names may be individual parameters (as in outer_par_names()) or whole
+#' components ("beta", "betad", "theta", "thetar").
+#'
+#' @noRd
 resolve_priors <- function(fit, priors) {
   stopifnot(is.list(priors), !is.null(names(priors)))
   tpl <- fit$frame$par_template
@@ -138,8 +140,10 @@ resolve_priors <- function(fit, priors) {
   entries
 }
 
-# AD-safe negative log prior over resolved per-parameter entries
-# (each: comp, idx, dist, scale; see prior_logdens).
+#' AD-safe negative log prior over resolved per-parameter entries
+#' (each: comp, idx, dist, scale; see prior_logdens).
+#'
+#' @noRd
 neg_log_prior_fn <- function(entries) {
   function(pars) {
     nlp <- 0
@@ -151,7 +155,9 @@ neg_log_prior_fn <- function(entries) {
   }
 }
 
-# Named bound specs -> full-length vectors over the outer parameters.
+#' Named bound specs -> full-length vectors over the outer parameters.
+#'
+#' @noRd
 resolve_bounds <- function(fit, lower, upper) {
   nm <- outer_par_names(fit)
   mk <- function(x, fill) {
@@ -173,12 +179,14 @@ resolve_bounds <- function(fit, lower, upper) {
   list(lower = mk(lower, -Inf), upper = mk(upper, Inf))
 }
 
-# Pull a start value strictly inside the bounding box. Stan turns a
-# bound into a constrained transform, and a start AT the bound maps to
-# an infinite unconstrained value: rstan then reports "Initialization
-# failed" and names neither the parameter nor the bound. The pad is
-# relative so it survives bounds of any magnitude; a box narrower than
-# two pads collapses to its midpoint.
+#' Pull a start value strictly inside the bounding box. Stan turns a
+#' bound into a constrained transform, and a start AT the bound maps to
+#' an infinite unconstrained value: rstan then reports "Initialization
+#' failed" and names neither the parameter nor the bound. The pad is
+#' relative so it survives bounds of any magnitude; a box narrower than
+#' two pads collapses to its midpoint.
+#'
+#' @noRd
 clamp_into_bounds <- function(v, lower, upper) {
   if (is.null(lower) && is.null(upper)) return(v)
   lo <- lower %||% rep(-Inf, length(v))
@@ -194,12 +202,14 @@ clamp_into_bounds <- function(v, lower, upper) {
   pmin(pmax(v, fl), ce)
 }
 
-# Per-chain initial values around the ML mode: chain 1 exactly at the
-# mode (the short-warmup anchor), later chains at mode + N(0, jitter)
-# on the unconstrained scale, restoring the overdispersion Rhat needs
-# to detect chains agreeing for the wrong reason. Every chain - the
-# mode-anchored one included, because the bounds can exclude the ML
-# mode itself - is then pulled inside the bounds.
+#' Per-chain initial values around the ML mode: chain 1 exactly at the
+#' mode (the short-warmup anchor), later chains at mode + N(0, jitter)
+#' on the unconstrained scale, restoring the overdispersion Rhat needs
+#' to detect chains agreeing for the wrong reason. Every chain - the
+#' mode-anchored one included, because the bounds can exclude the ML
+#' mode itself - is then pulled inside the bounds.
+#'
+#' @noRd
 mode_inits <- function(mode, chains, jitter, lower = NULL, upper = NULL) {
   mode <- as.numeric(mode)
   if (!is.finite(jitter) || jitter <= 0 || chains <= 1L) {
@@ -212,10 +222,12 @@ mode_inits <- function(mode, chains, jitter, lower = NULL, upper = NULL) {
   })
 }
 
-# tmbstan widens outer-length bounds over the whole parameter vector
-# when the objective has random effects (the inner block is unbounded);
-# the inits are the full vector too, so they must be clamped against
-# the same widening.
+#' tmbstan widens outer-length bounds over the whole parameter vector
+#' when the objective has random effects (the inner block is unbounded);
+#' the inits are the full vector too, so they must be clamped against
+#' the same widening.
+#'
+#' @noRd
 mode_aligned_bounds <- function(obj, bounds, laplace, n) {
   if (is.null(bounds)) return(NULL)
   if (length(bounds$lower) == n) return(bounds)
@@ -230,8 +242,10 @@ mode_aligned_bounds <- function(obj, bounds, laplace, n) {
   list(lower = lo, upper = hi)
 }
 
-# Retape the fit's objective with priors added; parameters start at the
-# ML estimates so sampling initializes at (near) the posterior mode.
+#' Retape the fit's objective with priors added; parameters start at the
+#' ML estimates so sampling initializes at (near) the posterior mode.
+#'
+#' @noRd
 prior_augmented_obj <- function(fit, entries) {
   nll <- build_objective(fit$frame)
   nlp <- neg_log_prior_fn(entries)
@@ -245,9 +259,11 @@ prior_augmented_obj <- function(fit, entries) {
                   map = fit$frame$map, silent = TRUE)
 }
 
-# Labels for the full sampled parameter vector, in template order,
-# skipping mapped entries; b kept as b[i]. include_random = FALSE
-# drops the inner components (b, miss) for laplace-marginalized draws.
+#' Labels for the full sampled parameter vector, in template order,
+#' skipping mapped entries; b kept as `b[i]`. `include_random = FALSE`
+#' drops the inner components (b, miss) for laplace-marginalized draws.
+#'
+#' @noRd
 all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
   tpl <- fit$frame$par_template
   out <- character(0)
@@ -267,10 +283,12 @@ all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
   out
 }
 
-# The core count tmbstan would actually use. rstan defaults its `cores`
-# argument to getOption("mc.cores", 1L), so a session-wide mc.cores
-# starts parallel chains just as an explicit cores = does, and the
-# Windows guard has to read the same source or it never fires.
+#' The core count tmbstan would actually use. rstan defaults its `cores`
+#' argument to getOption("mc.cores", 1L), so a session-wide mc.cores
+#' starts parallel chains just as an explicit cores = does, and the
+#' Windows guard has to read the same source or it never fires.
+#'
+#' @noRd
 stan_cores <- function(args) {
   as.numeric(args$cores %||% getOption("mc.cores", 1L))[1L]
 }
@@ -539,8 +557,10 @@ as_tmbstan <- function(fit, ...) {
   tmbstan::tmbstan(fit$obj, ...)
 }
 
-# emmeans support: registered in .onLoad, only for the parametric fixed
-# part of the mu linear predictor of univariate, non-nl fits.
+#' emmeans support: registered in .onLoad, only for the parametric fixed
+#' part of the mu linear predictor of univariate, non-nl fits.
+#'
+#' @noRd
 emm_mu_linpred <- function(object) {
   if (length(object$spec$responses) > 1) {
     stop("emmeans support is univariate-only for now", call. = FALSE)
@@ -625,18 +645,22 @@ frmtmb_getME_vocab <- c("X", "Z", "Zt", "beta", "fixef", "b", "theta",
                         "lower", "sigma", "flist", "n_rtrms",
                         "n_rfacs")
 
-# Blocks that carry a real grouping factor. Smooths and Gaussian
-# processes are stored as random-effect blocks too, but their "levels"
-# are basis functions, so they have no factor to report.
+#' Blocks that carry a real grouping factor. Smooths and Gaussian
+#' processes are stored as random-effect blocks too, but their "levels"
+#' are basis functions, so they have no factor to report.
+#'
+#' @noRd
 getME_group_blocks <- function(object) {
   Filter(function(bk) !bk$covstruct %in% c("smooth", "gp", "hsgp") &&
            !is.null(bk$components[[1L]]$bar),
          object$frame$re_blocks)
 }
 
-# Labels for the random-effect coefficient vector, which is also the
-# column order of every Z: level-major within a block, one entry per
-# (level, term coefficient), the way lme4 labels Zt rows.
+#' Labels for the random-effect coefficient vector, which is also the
+#' column order of every Z: level-major within a block, one entry per
+#' (level, term coefficient), the way lme4 labels Zt rows.
+#'
+#' @noRd
 re_coef_labels <- function(frame) {
   if (!length(frame$re_blocks)) return(character(0))
   unlist(lapply(frame$re_blocks, function(bk) {
@@ -645,8 +669,10 @@ re_coef_labels <- function(frame) {
   }), use.names = FALSE)
 }
 
-# The grouping factors as they were at fit time, rebuilt from the
-# stored model frame the same way predict() rebuilds them for newdata.
+#' The grouping factors as they were at fit time, rebuilt from the
+#' stored model frame the same way predict() rebuilds them for newdata.
+#'
+#' @noRd
 getME_flist <- function(object) {
   out <- list()
   for (bk in getME_group_blocks(object)) {

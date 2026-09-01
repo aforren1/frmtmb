@@ -1,5 +1,7 @@
-# Parse the left-hand side of a formula into the response expression and
-# addition terms (brms aterms): `y | weights(w) + trials(n) ~ ...`.
+#' Parse the left-hand side of a formula into the response expression and
+#' addition terms (brms aterms): `y | weights(w) + trials(n) ~ ...`.
+#'
+#' @noRd
 parse_response <- function(formula) {
   lhs <- formula[[2]]
   aterms <- list()
@@ -87,14 +89,16 @@ parse_response <- function(formula) {
   list(resp = resp, aterms = aterms)
 }
 
-# glm(), lme4 and glmmTMB all spell a two-column binomial response
-# `cbind(successes, failures)`, so ported code lands here before it
-# reaches anything else. Rewrite it into the internal
-# `successes | trials(successes + failures)` form: every later stage
-# (frame assembly, valid_y, fitted, predict, simulate) then sees an
-# ordinary count response and needs no matrix branch of its own.
-# Other matrix-response families (multinomial) keep their own spelling.
-# [glmmTMB#1319, #1325]
+#' glm(), lme4 and glmmTMB all spell a two-column binomial response
+#' `cbind(successes, failures)`, so ported code lands here before it
+#' reaches anything else. Rewrite it into the internal
+#' `successes | trials(successes + failures)` form: every later stage
+#' (frame assembly, valid_y, fitted, predict, simulate) then sees an
+#' ordinary count response and needs no matrix branch of its own.
+#' Other matrix-response families (multinomial) keep their own spelling.
+#' `[glmmTMB#1319, #1325]`
+#'
+#' @noRd
 rewrite_cbind_response <- function(ri, fam) {
   resp <- ri$resp
   if (!is.call(resp) || !identical(resp[[1L]], as.name("cbind")) ||
@@ -118,13 +122,15 @@ rewrite_cbind_response <- function(ri, fam) {
   ri
 }
 
-# Evaluate one special-term tuning argument (gp's k/c/iso, rr's d,
-# se's sigma flag). These are user code, so they resolve in the
-# environment the formula was written in (brms does the same); only the
-# evaluated value reaches the spec, so the frame and predict() never
-# re-evaluate them. gp's c is per-dimension (brms convention), so it
-# alone may be a vector; its length-vs-D check lives in the frame,
-# which knows D.
+#' Evaluate one special-term tuning argument (gp's k/c/iso, rr's d,
+#' se's sigma flag). These are user code, so they resolve in the
+#' environment the formula was written in (brms does the same); only the
+#' evaluated value reaches the spec, so the frame and predict() never
+#' re-evaluate them. gp's c is per-dimension (brms convention), so it
+#' alone may be a vector; its length-vs-D check lives in the frame,
+#' which knows D.
+#'
+#' @noRd
 eval_spec_arg <- function(expr, nm, env, fn = "gp") {
   val <- tryCatch(eval(expr, env), error = function(e) {
     stop(fn, "(): cannot evaluate ", nm, " = ", deparse1(expr), ": ",
@@ -160,10 +166,12 @@ eval_spec_arg <- function(expr, nm, env, fn = "gp") {
   as.numeric(val)
 }
 
-# Positional-or-named argument matching for the predictor specials that
-# take a fixed argument list (brms's car() and our spde()). R's own
-# partial matching is deliberately not reproduced: a misspelled name
-# should be an error, not a silent match.
+#' Positional-or-named argument matching for the predictor specials that
+#' take a fixed argument list (brms's car() and our spde()). R's own
+#' partial matching is deliberately not reproduced: a misspelled name
+#' should be an error, not a silent match.
+#'
+#' @noRd
 match_special_args <- function(call_expr, argn, fn) {
   aa <- as.list(call_expr)[-1]
   nms <- names(aa) %||% rep("", length(aa))
@@ -184,9 +192,11 @@ match_special_args <- function(call_expr, argn, fn) {
   out
 }
 
-# brms's car(M, gr, type): M is an adjacency matrix (looked up in the
-# data or the formula environment, as gr(cov = A) is), gr the grouping
-# variable naming the locations, type one of brms's four.
+#' brms's car(M, gr, type): M is an adjacency matrix (looked up in the
+#' data or the formula environment, as gr(cov = A) is), gr the grouping
+#' variable naming the locations, type one of brms's four.
+#'
+#' @noRd
 parse_car_call <- function(tm, env) {
   a <- match_special_args(tm, c("M", "gr", "type", "con_sd"), "car")
   if (is.null(a$M) || is.null(a$gr)) {
@@ -216,8 +226,10 @@ parse_car_call <- function(tm, env) {
        label = deparse1(tm))
 }
 
-# spde(fem, gr): fem is a list of the mesh's finite-element matrices,
-# gr the factor mapping observations to mesh nodes.
+#' spde(fem, gr): fem is a list of the mesh's finite-element matrices,
+#' gr the factor mapping observations to mesh nodes.
+#'
+#' @noRd
 parse_spde_call <- function(tm, env) {
   a <- match_special_args(tm, c("fem", "gr"), "spde")
   if (is.null(a$fem) || is.null(a$gr)) {
@@ -227,21 +239,25 @@ parse_spde_call <- function(tm, env) {
   list(fem_expr = a$fem, gr_expr = a$gr, label = deparse1(tm))
 }
 
-# Drop redundant parentheses so a term can be inspected and re-split.
+#' Drop redundant parentheses so a term can be inspected and re-split.
+#'
+#' @noRd
 strip_parens <- function(e) {
   while (is.call(e) && identical(e[[1]], as.name("("))) e <- e[[2]]
   e
 }
 
-# `(x || g)` promises uncorrelated effects, but lme4's expansion is
-# purely syntactic: a FACTOR contributes a single term carrying all of
-# its contrast columns, which then lands in one default (`us`) block and
-# comes back fully correlated - the opposite of what was asked for
-# [lme4#818]. Expand each `||` term the way lme4 does, so the block
-# structure users already rely on is preserved, then tag every piece
-# `diag()`, the independent-variance structure for any column count. A
-# one-column piece has no correlation to lose, so `diag` and `us`
-# coincide there and numeric double bars are bit-identical to before.
+#' `(x || g)` promises uncorrelated effects, but lme4's expansion is
+#' purely syntactic: a FACTOR contributes a single term carrying all of
+#' its contrast columns, which then lands in one default (`us`) block and
+#' comes back fully correlated - the opposite of what was asked for
+#' `[lme4#818]`. Expand each `||` term the way lme4 does, so the block
+#' structure users already rely on is preserved, then tag every piece
+#' `diag()`, the independent-variance structure for any column count. A
+#' one-column piece has no correlation to lose, so `diag` and `us`
+#' coincide there and numeric double bars are bit-identical to before.
+#'
+#' @noRd
 expand_double_verts <- function(form) {
   raw <- split_plus(reformulas::RHSForm(form))
   out <- list()
@@ -261,10 +277,23 @@ expand_double_verts <- function(form) {
   form
 }
 
-# Split one linear-predictor RHS (a one-sided formula) into a parametric
-# fixed formula, random-effect terms (reformulas), and mgcv smooth
-# specifications. `shared` is the response-level environment that keeps
-# protected-function aliases visible to the combined model frame.
+#' Split one linear-predictor RHS (a one-sided formula) into a parametric
+#' fixed formula, random-effect terms (reformulas), and mgcv smooth
+#' specifications. `shared` is the response-level environment that keeps
+#' protected-function aliases visible to the combined model frame.
+#'
+#' This is the first stage of the formula-to-design-matrix pipeline and
+#' the only place that reads predictor syntax. It takes the RHS of one
+#' dpar formula plus the environment it was written in, and returns a
+#' list with one slot per term family: `fixed` (the parametric formula),
+#' `re` (bar terms with their covariance structure, `|ID|` key, and
+#' known covariance or rank), `smooth`, `mo`, `miterms`, `csterms`,
+#' `gpterms`, `carterms`, `spdeterms`, and `rhs` (the expanded formula).
+#' Every entry is an unevaluated expression plus its tuning values; the
+#' data is never touched here. `assemble_frame()` turns these slots into
+#' design matrices and random-effect blocks.
+#'
+#' @noRd
 parse_linpred <- function(rhs_form, env, shared = NULL) {
   environment(rhs_form) <- env
   rhs_form <- expand_double_verts(rhs_form)
@@ -529,7 +558,9 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
        rhs = rhs_form)
 }
 
-# Default (intercept-only) or constant dpar spec.
+#' Default (intercept-only) or constant dpar spec.
+#'
+#' @noRd
 plain_dpar <- function(dp, fam, constant = NULL) {
   if (!is.null(constant)) {
     lv <- fam$links[[dp]]$linkfun(constant)
@@ -542,7 +573,19 @@ plain_dpar <- function(dp, fam, constant = NULL) {
        rhs = ~1, smooth = list(), constant = constant)
 }
 
-# One bf() -> one response entry of the spec.
+#' One bf() -> one response entry of the spec.
+#'
+#' Takes one `frmtmb_formula` (a formula plus its family, dpar formulas
+#' and fixed dpar values) and returns the response entry the frame
+#' builds from: `resp_name`, `resp_expr`, `family`, the addition terms
+#' `aterms`, one parsed linear predictor per `dpars` entry, the primary
+#' (location) dpar names, the nonlinear parameter names, and the shared
+#' `formula_env`. It runs `parse_linpred()` once per dpar, gives every
+#' dpar without a formula an intercept or a constant, and handles the
+#' nonlinear (`nl = TRUE`) case where mu is a body expression instead of
+#' a design. It checks the formula, never the data.
+#'
+#' @noRd
 parse_one_response <- function(bform) {
   fam <- bform$family
   if (is.null(fam)) {
@@ -666,7 +709,16 @@ parse_one_response <- function(bform) {
   )
 }
 
-# frmtmb_formula / frmtmb_mvformula -> frmtmb_spec.
+#' frmtmb_formula / frmtmb_mvformula -> frmtmb_spec.
+#'
+#' The entry point of the parsing stage. It calls `parse_one_response()`
+#' for each response of a univariate or multivariate formula and returns
+#' a `frmtmb_spec`: the named `responses` list plus the `rescor` flag.
+#' The spec is pure formula information, so `frm()` can inspect it
+#' before any data arrives; `assemble_frame(spec, data)` is the next
+#' step and produces the design matrices.
+#'
+#' @noRd
 parse_spec <- function(bform) {
   if (inherits(bform, "frmtmb_mvformula")) {
     resps <- lapply(bform$forms, parse_one_response)

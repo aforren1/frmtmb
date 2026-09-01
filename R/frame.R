@@ -17,8 +17,10 @@
 # placement. Constant dpars keep their intercept column in betad but are
 # excluded from estimation through the MakeADFun `map`.
 
-# Sum of offset() terms of one linear predictor, evaluated against the
-# combined model frame (whose columns are named by deparsed expressions).
+#' Sum of offset() terms of one linear predictor, evaluated against the
+#' combined model frame (whose columns are named by deparsed expressions).
+#'
+#' @noRd
 extract_offset <- function(tt, mf, env) {
   oi <- attr(tt, "offset")
   if (is.null(oi) || !length(oi)) return(NULL)
@@ -33,9 +35,11 @@ extract_offset <- function(tt, mf, env) {
   off
 }
 
-# The variables one dpar needs in the combined model frame: parametric
-# terms, bar variables, and raw smooth variables (never the s() calls
-# themselves, which model.frame cannot evaluate).
+#' The variables one dpar needs in the combined model frame: parametric
+#' terms, bar variables, and raw smooth variables (never the s() calls
+#' themselves, which model.frame cannot evaluate).
+#'
+#' @noRd
 dpar_frame_rhs <- function(dp) {
   if (!is.null(dp$nl_body)) {
     parts <- lapply(dp$datavars, as.name)
@@ -83,12 +87,14 @@ dpar_frame_rhs <- function(dp) {
   out
 }
 
-# mo()/mi() interaction multipliers scale a single coefficient, so they
-# have to be one numeric column; a factor or character multiplier would
-# need contrast expansion, which the simplex/latent machinery has no
-# column for. Reject those up front: as.numeric() on a character vector
-# yields all-NA and the failure only surfaces as "NA/NaN gradient
-# evaluation" from the optimizer. [brms#1828]
+#' mo()/mi() interaction multipliers scale a single coefficient, so they
+#' have to be one numeric column; a factor or character multiplier would
+#' need contrast expansion, which the simplex/latent machinery has no
+#' column for. Reject those up front: as.numeric() on a character vector
+#' yields all-NA and the failure only surfaces as "NA/NaN gradient
+#' evaluation" from the optimizer. `[brms#1828]`
+#'
+#' @noRd
 check_special_mult <- function(mult, expr, fn) {
   if (is.logical(mult)) return(as.numeric(mult))
   if (!is.numeric(mult) || is.factor(mult)) {
@@ -99,14 +105,16 @@ check_special_mult <- function(mult, expr, fn) {
   as.numeric(mult)
 }
 
-# ar1()/hetar1() correlate two levels by their POSITION in the ordering
-# factor, never by the distance between the labels: with times 1..6 and
-# 10 present, cor(t6, t10) is fitted as rho, not rho^4, and rho itself
-# comes out biased. glmmTMB reads the levels the same way and our
-# agreement tests pin that reading down, so the likelihood stays as it
-# is and the user gets told instead. Silence is right when the labels
-# carry no numbers: position is then the only meaning available.
-# [glmmTMB#1278]
+#' ar1()/hetar1() correlate two levels by their POSITION in the ordering
+#' factor, never by the distance between the labels: with times 1..6 and
+#' 10 present, cor(t6, t10) is fitted as rho, not rho^4, and rho itself
+#' comes out biased. glmmTMB reads the levels the same way and our
+#' agreement tests pin that reading down, so the likelihood stays as it
+#' is and the user gets told instead. Silence is right when the labels
+#' carry no numbers: position is then the only meaning available.
+#' `[glmmTMB#1278]`
+#'
+#' @noRd
 warn_ar1_level_gaps <- function(bar, mf, cs_name) {
   v <- all.vars(bar[[2]])
   if (length(v) != 1L || !is.factor(mf[[v]])) return(invisible(NULL))
@@ -125,6 +133,13 @@ warn_ar1_level_gaps <- function(bar, mf, cs_name) {
   invisible(NULL)
 }
 
+#' Pull one response out of the combined model frame and coerce it to the
+#' numeric form the objective needs. Ordinal factors become category
+#' codes and keep their labels in a `y_levels` attribute, binomial
+#' two-level factors become 0/1, and unsupported factor responses or
+#' non-finite values are rejected here.
+#'
+#' @noRd
 extract_y <- function(resp, mf) {
   y <- mf[[deparse1(resp$resp_expr)]]
   if (is.null(y)) {
@@ -161,11 +176,13 @@ extract_y <- function(resp, mf) {
   y
 }
 
-# Data-dependent bases (poly, ns, scale) must be frozen at fit time: the
-# combined model frame's terms carry predvars for every variable; patch
-# them onto a sub-formula's terms by deparsed-variable match before any
-# newdata evaluation (glmmTMB#402 and the largest bug class in
-# lme4/glmmTMB prediction history).
+#' Data-dependent bases (poly, ns, scale) must be frozen at fit time: the
+#' combined model frame's terms carry predvars for every variable; patch
+#' them onto a sub-formula's terms by deparsed-variable match before any
+#' newdata evaluation (glmmTMB#402 and the largest bug class in
+#' lme4/glmmTMB prediction history).
+#'
+#' @noRd
 patch_predvars <- function(tt, map) {
   if (is.null(map) || !length(map)) return(tt)
   vars <- attr(tt, "variables")
@@ -182,10 +199,19 @@ patch_predvars <- function(tt, map) {
   tt
 }
 
-# sparse.model.matrix names the columns of matrix-valued terms (poly,
-# ns, scale) by bare index instead of the term-prefixed dense names.
-# Names are load-bearing (frozen param_colnames, coefficient labels), so
-# take them from a one-row dense header over the same frame.
+#' sparse.model.matrix names the columns of matrix-valued terms (poly,
+#' ns, scale) by bare index instead of the term-prefixed dense names.
+#' Names are load-bearing (frozen param_colnames, coefficient labels), so
+#' take them from a one-row dense header over the same frame.
+#'
+#' This is the sparse counterpart of `stats::model.matrix()` used by
+#' `assemble_frame()` when `sparse_x = TRUE`. It takes the terms of one
+#' linear predictor, the combined model frame, and the contrasts, and
+#' returns a sparse design matrix whose column names match the dense
+#' path exactly. It errors if the two paths disagree on the column
+#' count, because every later stage indexes coefficients by those names.
+#'
+#' @noRd
 sparse_mm <- function(tt, mf, contrasts.arg = NULL) {
   X <- Matrix::sparse.model.matrix(tt, mf, contrasts.arg = contrasts.arg)
   # keeping the frame's terms attribute on the one-row slice routes
@@ -203,11 +229,13 @@ sparse_mm <- function(tt, mf, contrasts.arg = NULL) {
   X
 }
 
-# Cheap rank screen for a sparse design: |diag(R)| of the sparse QR
-# collapses on aliased columns. The threshold is 100x looser than dense
-# qr()'s 1e-7 default, so anything the dense path would drop gets
-# flagged; a flagged design is re-checked densely, which decides the
-# exact drop set (identical to the dense path by construction).
+#' Cheap rank screen for a sparse design: |diag(R)| of the sparse QR
+#' collapses on aliased columns. The threshold is 100x looser than dense
+#' qr()'s 1e-7 default, so anything the dense path would drop gets
+#' flagged; a flagged design is re-checked densely, which decides the
+#' exact drop set (identical to the dense path by construction).
+#'
+#' @noRd
 sparse_maybe_deficient <- function(X) {
   d <- tryCatch(
     abs(Matrix::diag(Matrix::qrR(Matrix::qr(X), backPermute = FALSE))),
@@ -222,14 +250,16 @@ sparse_maybe_deficient <- function(X) {
 # whose value has to exist as a single model-frame column.
 grp_structural_ops <- c(":", "/", "*", "+", "%in%")
 
-# A grouping factor written as a call - (1 | factor(x)),
-# (1 | interaction(a, b)) - is one variable of the combined model frame,
-# stored under its deparsed name. reformulas instead re-evaluates the
-# expression inside the frame, where the call's own arguments (x, a, b)
-# are not columns, and dies with an error raised several frames down.
-# Point the bar at the existing column by name instead; the original bar
-# is what the fit keeps, so prediction still evaluates the expression
-# against newdata. [lme4#464, #156]
+#' A grouping factor written as a call - `(1 | factor(x))`,
+#' `(1 | interaction(a, b))` - is one variable of the combined model frame,
+#' stored under its deparsed name. reformulas instead re-evaluates the
+#' expression inside the frame, where the call's own arguments (x, a, b)
+#' are not columns, and dies with an error raised several frames down.
+#' Point the bar at the existing column by name instead; the original bar
+#' is what the fit keeps, so prediction still evaluates the expression
+#' against newdata. `[lme4#464, #156]`
+#'
+#' @noRd
 resolve_group_calls <- function(bars, fr, env) {
   sub_call <- function(e) {
     if (!is.call(e)) return(e)
@@ -255,11 +285,13 @@ resolve_group_calls <- function(bars, fr, env) {
 # 1 right, 2 interval. The names are the accepted spellings.
 cens_code_map <- c(none = 0, left = -1, right = 1, interval = 2)
 
-# brms lets cens() carry spelled-out codes as well as numbers, and a
-# plain as.numeric() would turn those into NAs with only a coercion
-# warning, so decode before the numeric conversion the other addition
-# terms use. Prefix matching mirrors brms prepare_cens(); unlike brms
-# it is case-insensitive, because "Right" reads as a typo, not garbage.
+#' brms lets cens() carry spelled-out codes as well as numbers, and a
+#' plain as.numeric() would turn those into NAs with only a coercion
+#' warning, so decode before the numeric conversion the other addition
+#' terms use. Prefix matching mirrors brms prepare_cens(); unlike brms
+#' it is case-insensitive, because "Right" reads as a typo, not garbage.
+#'
+#' @noRd
 decode_cens <- function(v) {
   if (is.factor(v)) v <- as.character(v)
   if (!is.character(v)) return(as.numeric(v))
@@ -287,6 +319,29 @@ decode_cens <- function(v) {
   ifelse(is.na(num), out, num)
 }
 
+#' Turn a parsed spec plus data into the numeric `frmtmb_frame` the
+#' objective is built from. This is the second and last stage of the
+#' formula-to-design-matrix pipeline: `parse_spec()` reads the formulas,
+#' `assemble_frame()` reads the data.
+#'
+#' It builds one combined model frame over every response, every dpar
+#' variable and every addition-term variable, so `na.action` drops rows
+#' from all of them together. It then evaluates the responses and the
+#' addition terms, builds the fixed-effect design of each linear
+#' predictor (dropping aliased columns the way `lm()` does), and turns
+#' every random-effect, smooth, Gaussian-process, spatial, monotonic,
+#' missing-data and category-specific term into a component. Components
+#' sharing an `|ID|` key merge into one block, blocks are laid out in
+#' the flat `b` and `theta` vectors, and each linear predictor gets a
+#' sparse `Z` over the whole `b` vector.
+#'
+#' The returned object carries the designs (`linpreds`), the
+#' random-effect blocks (`re_blocks`), the response and addition-term
+#' values, the `par_template` with the MakeADFun `map`, and everything
+#' prediction needs to reproduce the designs on newdata: terms,
+#' xlevels, contrasts, frozen predvars, and the model frame itself.
+#'
+#' @noRd
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE) {
   # One combined model frame holds every response, every variable of every

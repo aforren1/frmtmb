@@ -279,5 +279,6 @@ ds <- frm_sample(fit, chains = 4)
 check_laplace(fit)
 ```
 
-See `vignette("brms-migration")` for the brms feature map and
+See `vignette("inputs")` for what `frm()` accepts and what it costs to
+run, `vignette("brms-migration")` for the brms feature map, and
 `vignette("diagnostics")` for the model-checking workflow.

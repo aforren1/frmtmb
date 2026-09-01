@@ -1,8 +1,10 @@
 # Confidence intervals, convergence diagnostics, model comparison.
 
-# One-line label for a fit including dpar formulas, so two models that
-# share a primary formula (e.g. plain vs distributional) stay
-# distinguishable in anova tables.
+#' One-line label for a fit including dpar formulas, so two models that
+#' share a primary formula (e.g. plain vs distributional) stay
+#' distinguishable in anova tables.
+#'
+#' @noRd
 model_label <- function(fit) {
   one <- function(bform) {
     parts <- deparse1(bform$formula)
@@ -22,8 +24,10 @@ model_label <- function(fit) {
   }
 }
 
-# Names of the outer (optimized) parameters, in obj$par order: template
-# component order, minus `random` components, minus mapped entries.
+#' Names of the outer (optimized) parameters, in obj$par order: template
+#' component order, minus `random` components, minus mapped entries.
+#'
+#' @noRd
 outer_par_names <- function(fit) {
   tpl <- fit$frame$par_template
   # mirror the MakeADFun random= construction in fit_assembled: b and
@@ -149,12 +153,14 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   ci
 }
 
-# Transformed-scale Wald rows for the covariance parameters of one fit:
-# one row per SD/range (log scale) and per correlation (Fisher-z
-# scale), with the delta-method se on that scale. These scales are
-# where a normal approximation is defensible, which makes the rows the
-# right currency both for confint_varcorr's intervals and for Rubin
-# pooling across imputations in frm_multiple.
+#' Transformed-scale Wald rows for the covariance parameters of one fit:
+#' one row per SD/range (log scale) and per correlation (Fisher-z
+#' scale), with the delta-method se on that scale. These scales are
+#' where a normal approximation is defensible, which makes the rows the
+#' right currency both for confint_varcorr's intervals and for Rubin
+#' pooling across imputations in frm_multiple.
+#'
+#' @noRd
 varcorr_trans_rows <- function(fit) {
   sdr <- sdr_of(fit)
   Vfull <- sdr$cov.fixed
@@ -258,9 +264,11 @@ varcorr_trans_rows <- function(fit) {
   out
 }
 
-# Back-transform to the natural scale (elementwise over types): log for
-# scales, Fisher-z for correlations, logit for the CAR mixing
-# proportions (which live on (0, 1), as they do in brms).
+#' Back-transform to the natural scale (elementwise over types): log for
+#' scales, Fisher-z for correlations, logit for the CAR mixing
+#' proportions (which live on (0, 1), as they do in brms).
+#'
+#' @noRd
 varcorr_untrans <- function(type, v) {
   ifelse(type == "cor", tanh(v),
          ifelse(type == "prop", 1 / (1 + exp(-v)), exp(v)))
@@ -290,8 +298,11 @@ confint_varcorr <- function(fit, level = 0.95) {
   )
 }
 
-# Effective degrees of freedom of the smooth blocks: for an iid wiggly
-# block, edf = k - tr(posterior cov)/prior variance (the ridge identity).
+#' Effective degrees of freedom of the smooth blocks: for an iid wiggly
+#' block, `edf = k - tr(posterior cov)/prior variance` (the ridge
+#' identity).
+#'
+#' @noRd
 smooth_edf <- function(fit) {
   blocks <- Filter(function(bk) bk$covstruct == "smooth",
                    fit$frame$re_blocks)
@@ -320,12 +331,14 @@ separation_families <- c("binomial", "bernoulli", "beta_binomial",
                          "zero_inflated_binomial",
                          "zero_inflated_beta_binomial")
 
-# Complete (or quasi-complete) separation: the maximum likelihood sits
-# at infinity, so the optimizer stops wherever its tolerances bite and
-# reports a huge coefficient with a standard error to match. lme4 and
-# glmmTMB both flag the pair rather than either half, because a
-# genuinely large effect on a well-populated cell keeps a small se.
-# [glmmTMB diagnose()]
+#' Complete (or quasi-complete) separation: the maximum likelihood sits
+#' at infinity, so the optimizer stops wherever its tolerances bite and
+#' reports a huge coefficient with a standard error to match. lme4 and
+#' glmmTMB both flag the pair rather than either half, because a
+#' genuinely large effect on a well-populated cell keeps a small se.
+#' `[glmmTMB diagnose()]`
+#'
+#' @noRd
 diagnose_separation <- function(fit, ps) {
   rows <- list()
   for (lp in fit$frame$linpreds) {
@@ -350,10 +363,12 @@ diagnose_separation <- function(fit, ps) {
   out
 }
 
-# Predictor columns whose spread is many orders of magnitude away from
-# one: the objective's curvature then spans the same range, and the
-# optimizer's convergence tolerances are absolute. autoscale = TRUE
-# fixes it without touching the model. [glmmTMB diagnose()]
+#' Predictor columns whose spread is many orders of magnitude away from
+#' one: the objective's curvature then spans the same range, and the
+#' optimizer's convergence tolerances are absolute. `autoscale = TRUE`
+#' fixes it without touching the model. `[glmmTMB diagnose()]`
+#'
+#' @noRd
 diagnose_predictor_scale <- function(fit, tol = 3) {
   rows <- list()
   for (lp in fit$frame$linpreds) {
@@ -376,12 +391,14 @@ diagnose_predictor_scale <- function(fit, tol = 3) {
   out
 }
 
-# lme4's isSingular: a variance component sitting on the boundary of its
-# parameter space - a standard deviation at zero, or a correlation at
-# +/-1. The verdict is read off the estimates alone, so it stands even
-# when the Hessian is positive definite and every gradient is tiny (a
-# collapsed component is a well-behaved optimum of a model the data
-# cannot support). [lme4 test-isSingular.R, #660]
+#' lme4's isSingular: a variance component sitting on the boundary of its
+#' parameter space - a standard deviation at zero, or a correlation at
+#' +/-1. The verdict is read off the estimates alone, so it stands even
+#' when the Hessian is positive definite and every gradient is tiny (a
+#' collapsed component is a well-behaved optimum of a model the data
+#' cannot support). `[lme4 test-isSingular.R, #660]`
+#'
+#' @noRd
 diagnose_singular <- function(fit, tol = 1e-4) {
   if (!length(fit$frame$re_blocks)) return(NULL)
   vc <- tryCatch(as.data.frame(VarCorr(fit)), error = function(e) NULL)
@@ -401,19 +418,21 @@ diagnose_singular <- function(fit, tol = 1e-4) {
   out
 }
 
-# The theta components that are LOG STANDARD DEVIATIONS, named the way
-# confint_varcorr() names their rows.
-#
-# The |theta| > 8 near-singularity heuristic only reads as a boundary
-# fit on a log sd: e^-8 is a variance no data supports. The other
-# components live on their own scales, where the same magnitude is
-# ordinary - a CAR/BYM2 mixing proportion and an AR(1) phi are logit-
-# and arctan-like, so a rho legitimately at the boundary sits at
-# |theta| >> 8, and the SPDE's (log tau, log kappa) are a precision and
-# an inverse range, neither of which is a standard deviation. Reading
-# those as singular fits is a false alarm on a converged model.
-# Structures whose registry declares no sd (rr, equalto, spde)
-# contribute nothing.
+#' The theta components that are LOG STANDARD DEVIATIONS, named the way
+#' confint_varcorr() names their rows.
+#'
+#' The `|theta| > 8` near-singularity heuristic only reads as a boundary
+#' fit on a log sd: `e^-8` is a variance no data supports. The other
+#' components live on their own scales, where the same magnitude is
+#' ordinary - a CAR/BYM2 mixing proportion and an AR(1) phi are logit-
+#' and arctan-like, so a rho legitimately at the boundary sits at
+#' `|theta| >> 8`, and the SPDE's (log tau, log kappa) are a precision
+#' and an inverse range, neither of which is a standard deviation.
+#' Reading those as singular fits is a false alarm on a converged model.
+#' Structures whose registry declares no sd (rr, equalto, spde)
+#' contribute nothing.
+#'
+#' @noRd
 log_sd_theta_index <- function(fit) {
   idx <- integer(0)
   nms <- character(0)
@@ -575,11 +594,21 @@ diagnose <- function(fit, quiet = FALSE) {
   invisible(out)
 }
 
+#' Largest absolute entry of a matrix, and 0 for an empty one.
+#'
+#' @noRd
 maxabs <- function(M) if (!length(M)) 0 else max(abs(M))
 
-# Residual of B after projecting onto the column space of A.
+#' Residual of B after projecting onto the column space of A.
+#'
+#' @noRd
 proj_resid <- function(A, B) if (!ncol(A)) B else qr.resid(qr(A), B)
 
+#' Test whether two design matrices span the same column space, up to a
+#' relative tolerance. Used to decide when two REML likelihoods are
+#' comparable.
+#'
+#' @noRd
 same_column_space <- function(A, B, tol = 1e-8) {
   if (nrow(A) != nrow(B)) return(FALSE)
   if (!ncol(A) && !ncol(B)) return(TRUE)
@@ -589,9 +618,11 @@ same_column_space <- function(A, B, tol = 1e-8) {
     maxabs(proj_resid(B, A)) <= tol * s
 }
 
-# Designs REML integrates out: the primary-dpar linear predictors, whose
-# coefficients live in the `beta` template component (dpar formulas keep
-# their coefficients in `betad` and stay outer).
+#' Designs REML integrates out: the primary-dpar linear predictors, whose
+#' coefficients live in the `beta` template component (dpar formulas keep
+#' their coefficients in `betad` and stay outer).
+#'
+#' @noRd
 reml_designs <- function(fit) {
   parts <- list()
   for (lp in fit$frame$linpreds) {
@@ -606,13 +637,15 @@ reml_designs <- function(fit) {
   parts[order(names(parts))]
 }
 
-# A REML likelihood carries a -1/2 log|X' V^-1 X| term, so it is a
-# likelihood for a DIFFERENT quantity - the error contrasts - once X
-# changes, and differencing two of them is meaningless. It is perfectly
-# meaningful when the error contrasts are the same, which is exactly
-# when the fixed-effect designs span the same column space; that is the
-# usual REML comparison of variance-component structures. Refusing every
-# REML fit (the old behavior) refused that case too. [glmmTMB#776]
+#' A REML likelihood carries a `-1/2 log|X' V^-1 X|` term, so it is a
+#' likelihood for a DIFFERENT quantity - the error contrasts - once X
+#' changes, and differencing two of them is meaningless. It is perfectly
+#' meaningful when the error contrasts are the same, which is exactly
+#' when the fixed-effect designs span the same column space; that is the
+#' usual REML comparison of variance-component structures. Refusing every
+#' REML fit (the old behavior) refused that case too. `[glmmTMB#776]`
+#'
+#' @noRd
 reml_comparable <- function(fits) {
   d1 <- reml_designs(fits[[1]])
   for (f in fits[-1]) {
@@ -625,11 +658,13 @@ reml_comparable <- function(fits) {
   TRUE
 }
 
-# The cheapest correct REML -> ML conversion: reuse the assembled
-# design (no formula parsing, no frame assembly) and warm-start the
-# optimizer at the REML estimates. The parameter template is the same
-# list either way; REML only decides whether `beta` is integrated out,
-# so the REML estimates are a valid ML start.
+#' The cheapest correct REML -> ML conversion: reuse the assembled
+#' design (no formula parsing, no frame assembly) and warm-start the
+#' optimizer at the REML estimates. The parameter template is the same
+#' list either way; REML only decides whether `beta` is integrated out,
+#' so the REML estimates are a valid ML start.
+#'
+#' @noRd
 anova_refit_ml <- function(fit) {
   ctl <- fit$control %||% frmtmb_control()
   # one anova() call can trigger several refits; a verbose original fit
@@ -861,10 +896,17 @@ profile.frmtmb_fit <- function(fitted, parm, ...) {
 
 ## hypothesis(): the expression environment and its parameter mapping.
 
+#' Make a term or group name usable as a variable name in a hypothesis
+#' expression: drop parentheses and every other character an R name
+#' cannot carry.
+#'
+#' @noRd
 hyp_san <- function(s) gsub("[^[:alnum:]_.]", "", gsub("[()]", "", s))
 
-# Parameter values without any covariance machinery (usable on refits
-# inside a bootstrap without triggering sdreport).
+#' Parameter values without any covariance machinery (usable on refits
+#' inside a bootstrap without triggering sdreport).
+#'
+#' @noRd
 hyp_vals_only <- function(fit) {
   est <- fit$estimates
   bd <- est$betad
@@ -877,10 +919,12 @@ hyp_vals_only <- function(fit) {
   )
 }
 
-# Values plus joint covariance of (beta, estimated betad, theta,
-# thetar). ML: straight from cov.fixed in opt$par order (outer_pos maps
-# back into the full outer vector for tmbroot lincombs). REML: beta is
-# integrated out, so the blocks come from the joint precision.
+#' Values plus joint covariance of (beta, estimated betad, theta,
+#' thetar). ML: straight from cov.fixed in opt$par order (outer_pos maps
+#' back into the full outer vector for tmbroot lincombs). REML: beta is
+#' integrated out, so the blocks come from the joint precision.
+#'
+#' @noRd
 hyp_par_cov <- function(fit) {
   comps <- c("beta", "betad", "theta", "thetar")
   if (!fit$REML && !isTRUE(fit$control$profile)) {
@@ -912,10 +956,12 @@ hyp_par_cov <- function(fit) {
   }
 }
 
-# Named list the hypothesis expressions are evaluated in: fixed
-# coefficients under their vcov() names (parentheses stripped),
-# natural-scale random-effect summaries (sd_<group>__<term>,
-# cor_<group>__<t1>__<t2>), and `sigma` when it is a scalar.
+#' Named list the hypothesis expressions are evaluated in: fixed
+#' coefficients under their vcov() names (parentheses stripped),
+#' natural-scale random-effect summaries (`sd_<group>__<term>`,
+#' `cor_<group>__<t1>__<t2>`), and `sigma` when it is a scalar.
+#'
+#' @noRd
 hyp_env_vals <- function(fit, vals, comp) {
   env <- list()
   cf <- c(vals[comp == "beta"], vals[comp == "betad"])
@@ -965,6 +1011,11 @@ hyp_env_vals <- function(fit, vals, comp) {
   env
 }
 
+#' Turn one hypothesis string into a language object to evaluate. An
+#' `"lhs = rhs"` hypothesis becomes the difference of the two sides, so
+#' every hypothesis is then tested against zero.
+#'
+#' @noRd
 hyp_parse <- function(h) {
   eq <- strsplit(h, "=", fixed = TRUE)[[1L]]
   txt <- if (length(eq) == 2L) {
@@ -977,6 +1028,10 @@ hyp_parse <- function(h) {
   str2lang(txt)
 }
 
+#' Evaluate a parsed hypothesis at one parameter vector. A failure lists
+#' the available names, because an unknown name is the usual cause.
+#'
+#' @noRd
 hyp_eval <- function(fit, ex, vals, comp) {
   ev <- hyp_env_vals(fit, vals, comp)
   tryCatch(eval(ex, ev), error = function(e) {
@@ -985,6 +1040,11 @@ hyp_eval <- function(fit, ex, vals, comp) {
   })
 }
 
+#' Central-difference gradient of a scalar function of the parameter
+#' vector. The delta method needs a gradient, and a hypothesis is an
+#' arbitrary R expression with no derivative available.
+#'
+#' @noRd
 hyp_fd_grad <- function(f, v) {
   vapply(seq_along(v), function(i) {
     step <- max(1e-5, 1e-5 * abs(v[i]))

@@ -1,6 +1,14 @@
+#' Null-coalescing operator: `y` when `x` is `NULL`, else `x`.
+#'
+#' Defined here rather than imported so the package keeps working on the
+#' oldest supported R, where base does not export it.
+#'
+#' @noRd
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
-# Split `a + b + c` into list(a, b, c), left-associatively.
+#' Split `a + b + c` into list(a, b, c), left-associatively.
+#'
+#' @noRd
 split_plus <- function(expr) {
   if (is.call(expr) && identical(expr[[1]], as.name("+"))) {
     c(split_plus(expr[[2]]), list(expr[[3]]))
@@ -9,6 +17,11 @@ split_plus <- function(expr) {
   }
 }
 
+#' The `"response.dpar"` key that names one linear predictor throughout
+#' the package. Written once so every table that is indexed by linear
+#' predictor agrees on the separator.
+#'
+#' @noRd
 linpred_key <- function(resp, dpar) paste(resp, dpar, sep = ".")
 
 #' Factor with numeric-coded levels for coordinate covariance structures
@@ -34,8 +47,11 @@ num_factor <- function(x, y = NULL) {
   factor(lab, levels = unique(lab[ord]))
 }
 
-# Recover coordinates from num_factor / glmmTMB::numFactor levels
-# (vector for 1-D, matrix for 2-D), or from plainly numeric labels.
+#' Recover coordinates from num_factor / glmmTMB::numFactor levels
+#' (vector for 1-D, matrix for 2-D), or from plainly numeric labels.
+#' Errors when a level does not encode a position.
+#'
+#' @noRd
 parse_num_levels <- function(lv) {
   s <- gsub("[()]", "", lv)
   if (any(grepl(",", s, fixed = TRUE))) {
@@ -56,21 +72,23 @@ parse_num_levels <- function(lv) {
   out
 }
 
-# The verdict both covariance paths give when the standard errors come
-# back non-finite. It is a separate verdict from "the Hessian is not
-# positive definite", because the two do not coincide: sdreport reports
-# pdHess from a Cholesky, which succeeds on a matrix LAPACK's solver
-# then refuses as computationally singular (reciprocal condition number
-# below its tolerance), and cov.fixed comes back filled with NaN on a
-# fit that converged with a small gradient and a positive definite
-# Hessian. diagnose() names the parameters; nothing else did.
-#
-# The verdict is a property of the FIT, not of the call, so it is worth
-# saying once per fit: vcov(), summary(), confint() and predict() all
-# reach it on the same degenerate object, and frm_multiple() and
-# influence() loop over those. The flag lives on the fit's cache
-# environment, which is replaced whenever the fit is re-estimated, so a
-# refit that is still degenerate warns again.
+#' The verdict both covariance paths give when the standard errors come
+#' back non-finite. It is a separate verdict from "the Hessian is not
+#' positive definite", because the two do not coincide: sdreport reports
+#' pdHess from a Cholesky, which succeeds on a matrix LAPACK's solver
+#' then refuses as computationally singular (reciprocal condition number
+#' below its tolerance), and cov.fixed comes back filled with NaN on a
+#' fit that converged with a small gradient and a positive definite
+#' Hessian. diagnose() names the parameters; nothing else did.
+#'
+#' The verdict is a property of the FIT, not of the call, so it is worth
+#' saying once per fit: vcov(), summary(), confint() and predict() all
+#' reach it on the same degenerate object, and frm_multiple() and
+#' influence() loop over those. The flag lives on the fit's cache
+#' environment, which is replaced whenever the fit is re-estimated, so a
+#' refit that is still degenerate warns again.
+#'
+#' @noRd
 warn_nonfinite_cov <- function(cache = NULL) {
   if (is.environment(cache)) {
     if (isTRUE(cache$warned_nonfinite_cov)) return(invisible(NULL))
@@ -84,13 +102,15 @@ warn_nonfinite_cov <- function(cache = NULL) {
           "vignette('diagnostics')", call. = FALSE)
 }
 
-# Invert the joint precision of a REML / profile fit.
-#
-# The ML branch of vcov() reads an already-inverted cov.fixed, which
-# sdreport fills with NaN when the Hessian is singular; inverting by
-# hand here would instead throw a raw LAPACK message that names neither
-# the model nor the remedy. Degrade the same way ML does: NaN entries
-# plus one warning pointing at diagnose().
+#' Invert the joint precision of a REML / profile fit.
+#'
+#' The ML branch of vcov() reads an already-inverted cov.fixed, which
+#' sdreport fills with NaN when the Hessian is singular; inverting by
+#' hand here would instead throw a raw LAPACK message that names neither
+#' the model nor the remedy. Degrade the same way ML does: NaN entries
+#' plus one warning pointing at diagnose().
+#'
+#' @noRd
 solve_joint_precision <- function(Q, cache = NULL) {
   # Matrix::solve, not base solve: the joint precision of a GLMM is
   # sparse and often badly conditioned, and base's dense LAPACK path
@@ -127,9 +147,11 @@ solve_joint_precision <- function(Q, cache = NULL) {
   matrix(NaN, nrow(Q), ncol(Q), dimnames = dimnames(Q))
 }
 
-# One string key per coordinate row, used to match gp() prediction
-# positions against fitted positions. Defined once so frame assembly
-# and kriging can never disagree on the separator.
+#' One string key per coordinate row, used to match gp() prediction
+#' positions against fitted positions. Defined once so frame assembly
+#' and kriging can never disagree on the separator.
+#'
+#' @noRd
 pos_rowkey <- function(M) {
   do.call(paste, c(as.data.frame(M), sep = "\r"))
 }

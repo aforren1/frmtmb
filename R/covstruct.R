@@ -10,6 +10,12 @@
 # `dim` coefficients of each level are contiguous (mkReTrms ordering), so
 # matrix(b, nrow = dim) has one level per column.
 
+#' Correlation matrix behind the correlation segment of a `us` theta.
+#'
+#' The unit-diagonal lower-triangular `L` gets row-normalized, so every
+#' value of `theta_cor` maps onto a valid correlation matrix. AD-safe.
+#'
+#' @noRd
 us_chol_cor <- function(theta_cor, d) {
   # Lower-triangular L with unit diagonal, rows normalized: C = Lr Lr'.
   "[<-" <- RTMB::ADoverload("[<-")
@@ -20,11 +26,13 @@ us_chol_cor <- function(theta_cor, d) {
   Lr %*% t(Lr)
 }
 
-# Inverse of us_chol_cor(): the theta segment whose row-normalized unit
-# lower-triangular L reproduces the correlation matrix C. C = Lc Lc'
-# with Lc lower-triangular has unit-norm rows (diag(C) = 1), so Lc is
-# already the normalized Lr; dividing row i by Lc[i, i] undoes the
-# normalization and recovers L. Numeric only - this runs off the tape.
+#' Inverse of us_chol_cor(): the theta segment whose row-normalized unit
+#' lower-triangular L reproduces the correlation matrix C. C = Lc Lc'
+#' with Lc lower-triangular has unit-norm rows (diag(C) = 1), so Lc is
+#' already the normalized Lr; dividing row i by `Lc[i, i]` undoes the
+#' normalization and recovers L. Numeric only - this runs off the tape.
+#'
+#' @noRd
 us_theta_cor <- function(C) {
   d <- nrow(C)
   Lc <- tryCatch(t(chol(C)), error = function(e) {
@@ -36,7 +44,9 @@ us_theta_cor <- function(C) {
   L[lower.tri(L)]
 }
 
-# Unstructured d x d covariance from its theta segment (AD-safe).
+#' Unstructured d x d covariance from its theta segment (AD-safe).
+#'
+#' @noRd
 us_sigma <- function(theta, d) {
   if (d == 1L) return(RTMB::matrix(exp(2 * theta[1]), 1, 1))
   sdv <- exp(theta[seq_len(d)])
@@ -50,6 +60,11 @@ us_sigma <- function(theta, d) {
 # parameters); it returns the WHOLE theta segment, so no entry of the
 # block is left at a stale value. frm_simulate()'s natural-scale
 # newparams path refuses structures without it.
+#' The one log standard deviation a homogeneous block keeps in `theta`.
+#' Natural-scale standard deviations that differ have no representation in
+#' such a block, so the call stops instead.
+#'
+#' @noRd
 homogeneous_sd <- function(sds, what) {
   if (length(unique(signif(sds, 12))) > 1L) {
     stop("A '", what, "' block has one shared standard deviation; got ",
@@ -322,9 +337,11 @@ covstruct_registry$homtoep <- list(
   start = function(dim) numeric(dim)
 )
 
-# Spatial structures over num_factor() coordinates (blk$aux_D holds the
-# distance matrix), glmmTMB parameterizations: theta = (log sd,
-# log range[, log shape]).
+#' Spatial structures over num_factor() coordinates (blk$aux_D holds the
+#' distance matrix), glmmTMB parameterizations: `theta = (log sd,
+#' log range[, log shape])`.
+#'
+#' @noRd
 spatial_entry <- function(corr_fn, npar_k) {
   list(
     npar = function(dim) npar_k,
@@ -465,10 +482,12 @@ covstruct_registry$gr_prec <- list(
   start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
 )
 
-# Fixed sparse pieces of the level-major Kronecker precision
-# Q (x) Sigma^-1: one matrix per entry (a, b) of the d x d within-level
-# precision, so the tape only ever multiplies them by a scalar. The
-# (a, b) and (b, a) halves share a matrix because Sigma^-1 is symmetric.
+#' Fixed sparse pieces of the level-major Kronecker precision
+#' Q (x) Sigma^-1: one matrix per entry (a, b) of the d x d within-level
+#' precision, so the tape only ever multiplies them by a scalar. The
+#' (a, b) and (b, a) halves share a matrix because Sigma^-1 is symmetric.
+#'
+#' @noRd
 kron_prec_parts <- function(Q, d) {
   out <- list()
   for (a in seq_len(d)) {
@@ -551,9 +570,11 @@ kron_prec_parts <- function(Q, d) {
 car_con_sd_default <- 1e-3
 car_types <- c("escar", "esicar", "icar", "bym2")
 
-# brms's validate_car_matrix plus the level matching data_ac() does: a
-# symmetric binary adjacency over exactly the locations the data show,
-# in the block's level order.
+#' brms's validate_car_matrix plus the level matching data_ac() does: a
+#' symmetric binary adjacency over exactly the locations the data show,
+#' in the block's level order.
+#'
+#' @noRd
 car_adjacency <- function(M, locs) {
   if (length(dim(M)) != 2L || nrow(M) != ncol(M)) {
     stop("car(): M must be a square adjacency matrix", call. = FALSE)
@@ -623,10 +644,12 @@ car_adjacency <- function(M, locs) {
   W
 }
 
-# The three finite-element matrices, under either the INLA (M0/M1/M2)
-# or the fmesher (c0/g1/g2) spelling. The mesh size is whatever the
-# matrices say it is - see spde_node_index() for why the data cannot be
-# asked instead.
+#' The three finite-element matrices, under either the INLA (M0/M1/M2)
+#' or the fmesher (c0/g1/g2) spelling. The mesh size is whatever the
+#' matrices say it is - see spde_node_index() for why the data cannot be
+#' asked instead.
+#'
+#' @noRd
 spde_matrices <- function(fem) {
   nms <- names(fem) %||% character(0)
   key <- if (all(c("M0", "M1", "M2") %in% nms)) c("M0", "M1", "M2")
@@ -658,18 +681,20 @@ spde_matrices <- function(fem) {
   out
 }
 
-# Node indices for an spde() grouping variable.
-#
-# The finite-element matrices are indexed by mesh ROW NUMBER and carry
-# no dimnames to match labels against, so nothing reconciles a level
-# ordering with the mesh. Deriving the ordering from the grouping
-# variable - factor levels, or sort(unique(as.character(gv))) - reads
-# integer node ids lexicographically ("1", "10", "11", "2", ...), which
-# permutes the field against its own precision and converges silently to
-# a different model. The contract is therefore explicit: gr holds mesh
-# row indices, in 1..nrow(M0). Anything else is refused rather than
-# guessed at. Unobserved nodes are fine (they keep their prior); gaps
-# are not an error.
+#' Node indices for an spde() grouping variable.
+#'
+#' The finite-element matrices are indexed by mesh ROW NUMBER and carry
+#' no dimnames to match labels against, so nothing reconciles a level
+#' ordering with the mesh. Deriving the ordering from the grouping
+#' variable - factor levels, or sort(unique(as.character(gv))) - reads
+#' integer node ids lexicographically ("1", "10", "11", "2", ...), which
+#' permutes the field against its own precision and converges silently to
+#' a different model. The contract is therefore explicit: gr holds mesh
+#' row indices, in 1..nrow(M0). Anything else is refused rather than
+#' guessed at. Unobserved nodes are fine (they keep their prior); gaps
+#' are not an error.
+#'
+#' @noRd
 spde_node_index <- function(gv, n, gr_expr) {
   idx <- spde_node_numeric(gv)
   if (is.null(idx) || any(idx != trunc(idx))) {
@@ -690,10 +715,12 @@ spde_node_index <- function(gv, n, gr_expr) {
   idx
 }
 
-# The numeric node ids behind an spde() grouping variable, or NULL when
-# the values are not numbers. A factor is read through its LEVELS, never
-# its integer codes: the codes are a level ordering, which is exactly
-# the thing that must not decide mesh rows.
+#' The numeric node ids behind an spde() grouping variable, or NULL when
+#' the values are not numbers. A factor is read through its LEVELS, never
+#' its integer codes: the codes are a level ordering, which is exactly
+#' the thing that must not decide mesh rows.
+#'
+#' @noRd
 spde_node_numeric <- function(gv) {
   v <- if (is.factor(gv)) {
     lv <- suppressWarnings(as.numeric(levels(gv)))
@@ -709,25 +736,41 @@ spde_node_numeric <- function(gv) {
   if (anyNA(v)) NULL else v
 }
 
-# The block level labels an spde() grouping variable maps onto, used by
-# both frame assembly and newdata prediction so the two spellings of a
-# node ("3", 3L, factor "3") always land on the same column.
+#' The block level labels an spde() grouping variable maps onto, used by
+#' both frame assembly and newdata prediction so the two spellings of a
+#' node ("3", 3L, factor "3") always land on the same column.
+#'
+#' @noRd
 spde_node_labels <- function(gv) {
   v <- spde_node_numeric(gv)
   if (is.null(v) || any(v != trunc(v))) return(as.character(gv))
   as.character(as.integer(v))
 }
 
+#' Number of `theta` entries a CAR block needs. The two types that mix an
+#' independent part with the spatial one carry a `rho`; the intrinsic
+#' forms do not.
+#'
+#' @noRd
 car_npar <- function(type) if (type %in% c("escar", "bym2")) 2L else 1L
 
+#' Starting `theta` for a CAR block: unit `sdcar`, and `rho` at the middle
+#' of its range where the type has one.
+#'
+#' @noRd
 car_start <- function(type) numeric(car_npar(type))
 
 # brms bounds both mixing parameters on (0, 1)
+#' Maps an unbounded `theta` entry onto a CAR mixing parameter in (0, 1).
+#'
+#' @noRd
 car_rho <- function(x) 1 / (1 + exp(-x))
 
-# Connected components of a symmetric adjacency matrix, by breadth-first
-# sweep over the sparse column pattern (isolated levels are their own
-# component, which is what the rank correction counts).
+#' Connected components of a symmetric adjacency matrix, by breadth-first
+#' sweep over the sparse column pattern (isolated levels are their own
+#' component, which is what the rank correction counts).
+#'
+#' @noRd
 car_components <- function(W) {
   n <- nrow(W)
   Wt <- methods::as(W, "TsparseMatrix")
@@ -754,10 +797,12 @@ car_components <- function(W) {
   comp
 }
 
-# brms's scaling factor for BYM2 (brms:::.car_scale): the geometric mean
-# of the marginal variances of a unit-scale ICAR field under the
-# sum-to-zero constraint. Reproduced here (perturbation included) so the
-# rho of a bym2 fit means what it means in brms.
+#' brms's scaling factor for BYM2 (brms:::.car_scale): the geometric mean
+#' of the marginal variances of a unit-scale ICAR field under the
+#' sum-to-zero constraint. Reproduced here (perturbation included) so the
+#' rho of a bym2 fit means what it means in brms.
+#'
+#' @noRd
 car_scale_factor <- function(W) {
   n <- nrow(W)
   Q <- Matrix::Diagonal(n, Matrix::rowSums(W)) - W
@@ -770,9 +815,11 @@ car_scale_factor <- function(W) {
   exp(mean(log(Matrix::diag(Sigma))))
 }
 
-# Everything the density needs, precomputed once from the adjacency
-# matrix over the grouping levels. `type` decides which fields matter;
-# all of them are fixed data.
+#' Everything the density needs, precomputed once from the adjacency
+#' matrix over the grouping levels. `type` decides which fields matter;
+#' all of them are fixed data.
+#'
+#' @noRd
 car_aux <- function(W, type, con_sd = car_con_sd_default) {
   n <- nrow(W)
   deg <- as.numeric(Matrix::rowSums(W))
@@ -821,8 +868,10 @@ car_aux <- function(W, type, con_sd = car_con_sd_default) {
   aux
 }
 
-# Numeric covariance of the whole field at a theta (draws, VarCorr
-# details); off the tape, so a dense solve is fine.
+#' Numeric covariance of the whole field at a theta (draws, VarCorr
+#' details); off the tape, so a dense solve is fine.
+#'
+#' @noRd
 car_cov <- function(theta, blk) {
   a <- blk$aux_car
   s2 <- exp(2 * theta[1])
@@ -897,15 +946,28 @@ covstruct_registry$car <- list(
 # density; theta = (log tau, log kappa). alpha = 2 (nu = 1 in the plane)
 # is the only order the three-matrix form covers, which is the standard
 # choice and what fm_fem() returns.
+#' Number of `theta` entries for an spde block: `log tau` and `log kappa`.
+#'
+#' @noRd
 spde_npar <- function() 2L
 
+#' Starting `theta` for an spde block: unit `tau` and unit `kappa`.
+#'
+#' @noRd
 spde_start <- function() c(0, 0)
 
 # Range and marginal sd follow the alpha = 2, d = 2 identities
 # (Lindgren et al. 2011 eq. 2): range = sqrt(8 nu)/kappa with nu = 1,
 # sigma^2 = 1 / (4 pi kappa^2 tau^2).
+#' Marginal range of an spde field at a `theta`, on the natural scale.
+#'
+#' @noRd
 spde_range <- function(theta) sqrt(8) / exp(theta[2])
 
+#' Marginal standard deviation of an spde field at a `theta`, on the
+#' natural scale.
+#'
+#' @noRd
 spde_sd <- function(theta) {
   1 / (exp(theta[1]) * exp(theta[2]) * sqrt(4 * pi))
 }
@@ -932,7 +994,9 @@ covstruct_registry$spde <- list(
   }
 )
 
-# Numeric precision of an spde block at a theta (draws, diagnostics).
+#' Numeric precision of an spde block at a theta (draws, diagnostics).
+#'
+#' @noRd
 spde_prec <- function(theta, blk) {
   a <- blk$aux_spde
   kap2 <- exp(2 * theta[2])
@@ -951,10 +1015,22 @@ spde_prec <- function(theta, blk) {
 # like rr.
 # the 1e-6 nugget keeps the notoriously ill-conditioned SE kernel
 # Cholesky-factorizable as the range grows (standard GP practice)
+#' Number of `theta` entries for an exact gp block: one `log sd` plus one
+#' lengthscale, shared when `iso` and one per input dimension otherwise.
+#'
+#' @noRd
 gp_npar <- function(D, iso) if (isTRUE(iso)) 2L else 1L + as.integer(D)
 
+#' Starting `theta` for an exact gp block: unit sd and unit lengthscales.
+#'
+#' @noRd
 gp_start <- function(D, iso) numeric(gp_npar(D, iso))
 
+#' Correlation matrix of an exact gp block at a `theta`, assembled on the
+#' tape from the per-dimension squared-difference matrices. The nugget on
+#' the diagonal keeps the factorization stable at long lengthscales.
+#'
+#' @noRd
 gp_corr <- function(theta, blk) {
   Q <- 0
   for (j in seq_along(blk$aux_D2)) {
@@ -964,10 +1040,12 @@ gp_corr <- function(theta, blk) {
   exp(-Q) + diag(1e-6, nrow(blk$aux_D2[[1]]))
 }
 
-# Numeric K(X*, X) of a fitted exact-gp block at new coordinates Xnew
-# (n_new x D) against the block's positions. The nugget rides on
-# coincident points so kriging at observed positions collapses to
-# exact interpolation (K* row = K row -> indicator weights).
+#' Numeric `K(X*, X)` of a fitted exact-gp block at new coordinates Xnew
+#' (n_new x D) against the block's positions. The nugget rides on
+#' coincident points so kriging at observed positions collapses to
+#' exact interpolation (`K*` row = K row -> indicator weights).
+#'
+#' @noRd
 gp_cross_cov <- function(theta, blk, Xnew, pos) {
   Q <- 0
   same <- 1
@@ -1002,11 +1080,13 @@ covstruct_registry$gp <- list(
   }
 )
 
-# Hilbert-space GP approximation (Riutort-Mayol et al.): tensor-product
-# sine basis in Z, independent coefficients whose prior SDs follow the
-# D-dim SE-kernel spectral density at the multi-index frequencies
-# (blk$aux_omega, M x D):
-# S(w) = sd^2 (2 pi)^{D/2} prod_j rho_j exp(-0.5 sum_j rho_j^2 w_j^2).
+#' Hilbert-space GP approximation (Riutort-Mayol et al.): tensor-product
+#' sine basis in Z, independent coefficients whose prior SDs follow the
+#' D-dim SE-kernel spectral density at the multi-index frequencies
+#' (blk$aux_omega, M x D):
+#' `S(w) = sd^2 (2 pi)^{D/2} prod_j rho_j exp(-0.5 sum_j rho_j^2 w_j^2)`.
+#'
+#' @noRd
 hsgp_sds <- function(theta, omega, iso = TRUE) {
   D <- ncol(omega)
   log_rho <- if (isTRUE(iso)) rep(theta[2], D) else theta[1 + seq_len(D)]
@@ -1015,8 +1095,10 @@ hsgp_sds <- function(theta, omega, iso = TRUE) {
   exp(logS / 2)
 }
 
-# Tensor-product sine basis at centered coordinates xc (n x D) for the
-# multi-index frequencies omega (M x D) and boundaries L (length D).
+#' Tensor-product sine basis at centered coordinates xc (n x D) for the
+#' multi-index frequencies omega (M x D) and boundaries L (length D).
+#'
+#' @noRd
 hsgp_basis <- function(xc, omega, L) {
   Phi <- 1
   for (j in seq_len(ncol(omega))) {
@@ -1025,12 +1107,14 @@ hsgp_basis <- function(xc, omega, L) {
   Phi
 }
 
-# Largest pairwise Euclidean distance among the rows of P: brms's input
-# scale for gp() terms (brms:::.data_gp does
-# `dmax <- sqrt(max(diff_quad(Xgp)))`). The per-pair arithmetic here is
-# brms's, so the answer is bit-identical, but the sweep is chunked and
-# the 1-D case is closed-form so a large n never materializes the n x n
-# distance matrix that brms builds.
+#' Largest pairwise Euclidean distance among the rows of P: brms's input
+#' scale for gp() terms (brms:::.data_gp does
+#' `dmax <- sqrt(max(diff_quad(Xgp)))`). The per-pair arithmetic here is
+#' brms's, so the answer is bit-identical, but the sweep is chunked and
+#' the 1-D case is closed-form so a large n never materializes the n x n
+#' distance matrix that brms builds.
+#'
+#' @noRd
 gp_max_dist <- function(P) {
   D <- ncol(P)
   if (D == 1L) {
@@ -1050,20 +1134,24 @@ gp_max_dist <- function(P) {
   sqrt(best)
 }
 
-# brms's boundary rule (brms:::choose_L): one range taken over the whole
-# centered matrix - not per column - so a shared, isotropy-preserving
-# box, floored at 1 so a domain narrower than the unit scale still gets
-# a boundary of at least c.
+#' brms's boundary rule (brms:::choose_L): one range taken over the whole
+#' centered matrix - not per column - so a shared, isotropy-preserving
+#' box, floored at 1 so a domain narrower than the unit scale still gets
+#' a boundary of at least c.
+#'
+#' @noRd
 gp_choose_L <- function(xc, cvec) {
   cvec * max(1, max(xc) - min(xc))
 }
 
-# Start values for the Hilbert-space form. Because the inputs are
-# rescaled to unit maximum pairwise distance, the domain geometry is
-# fixed and a constant start is scale-free. rho = 1 would push the
-# spectral density at the top frequencies to underflow (exp(-rho^2 w^2)
-# with w up to k*pi/(2c)); rho = 0.1 keeps every basis SD representable
-# while still starting well inside the smooth region.
+#' Start values for the Hilbert-space form. Because the inputs are
+#' rescaled to unit maximum pairwise distance, the domain geometry is
+#' fixed and a constant start is scale-free. rho = 1 would push the
+#' spectral density at the top frequencies to underflow (exp(-rho^2 w^2)
+#' with w up to `k*pi/(2c)`); rho = 0.1 keeps every basis SD representable
+#' while still starting well inside the smooth region.
+#'
+#' @noRd
 hsgp_start <- function(D, iso) {
   c(0, rep(log(0.1), gp_npar(D, iso) - 1L))
 }
@@ -1109,17 +1197,21 @@ covstruct_registry$equalto <- list(
   start = function(dim) numeric(0)
 )
 
-# Reduced-rank / factor-analytic (glmmTMB rr): per-level coefficients
-# c = Lambda f with f iid standard normal factors (the block's b segment)
-# and Lambda the D x rank loadings matrix, columnwise lower-triangular
-# (theta). Covariance = Lambda Lambda', rank-deficient by design. The
-# expansion from factors to coefficients happens in expand_b(); npar and
-# start are handled at the frame call sites (they need the rank).
+#' Reduced-rank / factor-analytic (glmmTMB rr): per-level coefficients
+#' c = Lambda f with f iid standard normal factors (the block's b segment)
+#' and Lambda the D x rank loadings matrix, columnwise lower-triangular
+#' (theta). Covariance = Lambda Lambda', rank-deficient by design. The
+#' expansion from factors to coefficients happens in expand_b(); npar and
+#' start are handled at the frame call sites (they need the rank).
+#'
+#' @noRd
 rr_npar <- function(dim, rank) {
   as.integer(dim * rank - rank * (rank - 1L) / 2L)
 }
 
-# start at Lambda = [I_rank; 0]: identified, unit factor scale
+#' start at `Lambda = [I_rank; 0]`: identified, unit factor scale
+#'
+#' @noRd
 rr_start <- function(dim, rank) {
   th <- numeric(rr_npar(dim, rank))
   pos <- 0L
@@ -1130,6 +1222,10 @@ rr_start <- function(dim, rank) {
   th
 }
 
+#' The columnwise lower-triangular loadings matrix that a reduced-rank
+#' theta segment encodes (AD-safe).
+#'
+#' @noRd
 rr_loadings <- function(theta, dim, rank) {
   "[<-" <- RTMB::ADoverload("[<-")
   L <- RTMB::matrix(0, dim, rank)
@@ -1163,9 +1259,11 @@ covstruct_registry$rr <- list(
   }
 )
 
-# Coefficient-space vector the Z matrices multiply: identical to b
-# except for rr blocks, whose factors expand through the loadings.
-# AD-safe (RTMB::matrix + [<- overload) and numeric-safe.
+#' Coefficient-space vector the Z matrices multiply: identical to b
+#' except for rr blocks, whose factors expand through the loadings.
+#' AD-safe (`RTMB::matrix` + `[<-` overload) and numeric-safe.
+#'
+#' @noRd
 expand_b <- function(frame, b, theta) {
   if (!isTRUE(frame$has_rr)) return(b)
   "[<-" <- RTMB::ADoverload("[<-")

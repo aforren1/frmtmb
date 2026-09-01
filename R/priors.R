@@ -59,6 +59,12 @@ set_prior <- function(prior = "", class = "b", coef = "", dpar = "",
   structure(list(spec), class = "frmtmb_priorlist")
 }
 
+#' Turn a brms-style prior string such as `"normal(0, 5)"` into a
+#' `frmtmb_prior` object, or `NULL` for the empty string. It errors on an
+#' unparsable string, on non-numeric arguments, and on the wrong number
+#' of arguments for the named distribution.
+#'
+#' @noRd
 parse_prior_dist <- function(prior) {
   if (inherits(prior, "frmtmb_prior")) return(prior)
   stopifnot(is.character(prior), length(prior) == 1)
@@ -206,19 +212,25 @@ get_prior <- function(formula, data = NULL, family = NULL) {
   out
 }
 
-# Resolve a priorlist against a fit: per-parameter prior entries (later
-# specs override earlier) plus named bound vectors.
-# Entry: comp, idx (scalar), dist, scale ("internal" or "sd"), and
-# lb/ub on the ENTRY's scale (frm_simulate() rejects draws outside
-# them; frm_sample() uses the named bound vectors instead).
-# A later bounds-only specification tightens an entry the distribution
-# already created, instead of being lost.
+#' Copy the bounds of a prior specification onto an existing entry. This
+#' is how a later bounds-only specification tightens an entry that an
+#' earlier distribution created, instead of being lost.
+#'
+#' @noRd
 entry_bounds <- function(entry, s) {
   if (!is.na(s$lb)) entry$lb <- s$lb
   if (!is.na(s$ub)) entry$ub <- s$ub
   entry
 }
 
+#' Resolve a priorlist against a fit: per-parameter prior entries (later
+#' specifications override earlier ones) plus named bound vectors. An
+#' entry holds `comp`, a scalar `idx`, `dist`, `scale` ("internal" or
+#' "sd"), and `lb`/`ub` on the entry's own scale. `frm_simulate()`
+#' rejects draws outside those bounds; `frm_sample()` uses the named
+#' bound vectors instead.
+#'
+#' @noRd
 resolve_priorlist <- function(fit, pl) {
   frame <- fit$frame
   assigned <- list()   # key "comp.idx" -> entry
@@ -324,8 +336,10 @@ resolve_priorlist <- function(fit, pl) {
   list(entries = unname(assigned), lower = lower, upper = upper)
 }
 
-# Log density of one prior entry value (AD-safe), with the sd-scale
-# change of variables where requested.
+#' Log density of one prior entry value (AD-safe), with the sd-scale
+#' change of variables where requested.
+#'
+#' @noRd
 prior_logdens <- function(x, dist, scale) {
   jac <- 0
   if (identical(scale, "sd")) {
@@ -341,8 +355,10 @@ prior_logdens <- function(x, dist, scale) {
   ld + jac
 }
 
-# Accepts the legacy named list of prior objects OR a priorlist; returns
-# entries + bounds.
+#' Accepts the legacy named list of prior objects OR a priorlist; returns
+#' entries plus bounds.
+#'
+#' @noRd
 resolve_prior_input <- function(fit, priors) {
   if (inherits(priors, "frmtmb_priorlist")) {
     return(resolve_priorlist(fit, priors))

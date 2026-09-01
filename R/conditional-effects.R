@@ -1,13 +1,15 @@
 # Conditional-effects displays, diagnostic plot method, pp_check.
 
-# Addition-term values for the conditional-effects grid. A grid row is
-# an artificial observation, so an aterm that changes the predictive
-# distribution (trials, se, truncation bounds) must not be taken at a
-# reference value: the mean number of trials is rarely a whole number,
-# and a mean truncation bound is nobody's bound. Those terms are read
-# only from variables the user pinned in `conditions`; literal bounds
-# apply as written. Everything else (vint/vreal payloads a custom
-# family needs) is evaluated against the grid when it can be.
+#' Addition-term values for the conditional-effects grid. A grid row is
+#' an artificial observation, so an aterm that changes the predictive
+#' distribution (trials, se, truncation bounds) must not be taken at a
+#' reference value: the mean number of trials is rarely a whole number,
+#' and a mean truncation bound is nobody's bound. Those terms are read
+#' only from variables the user pinned in `conditions`; literal bounds
+#' apply as written. Everything else (`vint`/`vreal` payloads a custom
+#' family needs) is evaluated against the grid when it can be.
+#'
+#' @noRd
 ce_aterms <- function(rspec, nd, cset, n) {
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights")
   strict <- c("trials", "se", "trunc_lb", "trunc_ub")
@@ -37,7 +39,9 @@ ce_aterms <- function(rspec, nd, cset, n) {
   av
 }
 
-# Reference value a predictor is held at when it is not varied.
+#' Reference value a predictor is held at when it is not varied.
+#'
+#' @noRd
 ce_ref_value <- function(col) {
   if (is.matrix(col)) {
     matrix(colMeans(col), 1, ncol(col))
@@ -52,7 +56,9 @@ ce_ref_value <- function(col) {
   }
 }
 
-# Grid of values for the varied (first) predictor.
+#' Grid of values for the varied (first) predictor.
+#'
+#' @noRd
 ce_grid_values <- function(col, resolution) {
   if (is.factor(col)) {
     factor(levels(col), levels = levels(col))
@@ -65,7 +71,9 @@ ce_grid_values <- function(col, resolution) {
   }
 }
 
-# Values for the second predictor of an "x:z" effect.
+#' Values for the second predictor of an `"x:z"` effect.
+#'
+#' @noRd
 ce_second_values <- function(col) {
   if (is.numeric(col) && !is.matrix(col)) {
     signif(mean(col) + c(-1, 0, 1) * stats::sd(col), 3)
@@ -292,6 +300,12 @@ plot.frmtmb_conditional_effects <- function(x, ask = NULL, ...) {
   invisible(x)
 }
 
+#' Draw one conditional-effect panel: the estimate over the varied
+#' predictor with its band, lines and a shaded band for a numeric
+#' predictor, points and error bars for a discrete one, split by the
+#' optional second predictor.
+#'
+#' @noRd
 ce_plot_one <- function(df, cond = NULL) {
   ev <- attr(df, "effects")
   ylab <- paste0(attr(df, "response"), " (", attr(df, "dpar"), ")")

@@ -231,11 +231,13 @@ print.frmtmb_formula <- function(x, ...) {
   invisible(x)
 }
 
-# Normalize a plain formula or bf()/mvbf() object plus an optional
-# family argument into a bform with families attached: the argument
-# fills empty per-response slots of a multivariate form and overrides
-# a univariate one. Shared by frm(), get_prior(), and frm_simulate()
-# so the coercion cannot drift between entry points.
+#' Normalize a plain formula or `bf()`/`mvbf()` object plus an optional
+#' family argument into a bform with families attached: the argument
+#' fills empty per-response slots of a multivariate form and overrides
+#' a univariate one. Shared by `frm()`, `get_prior()`, and
+#' `frm_simulate()` so the coercion cannot drift between entry points.
+#'
+#' @noRd
 as_bform <- function(formula, family = NULL) {
   bform <- if (inherits(formula,
                         c("frmtmb_formula", "frmtmb_mvformula"))) {
