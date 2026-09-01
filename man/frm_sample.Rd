@@ -10,7 +10,8 @@ frm_sample(
   priors = NULL,
   lower = NULL,
   upper = NULL,
-  init = "last.par.best"
+  init = "last.par.best",
+  init_jitter = 0.25
 )
 }
 \arguments{
@@ -29,7 +30,17 @@ added; the ML fit itself is unchanged.}
 outer parameters (brms \code{lb}/\code{ub}), applied on the internal scale
 through Stan's constrained transforms.}
 
-\item{init}{Initialization; defaults to the ML mode.}
+\item{init}{Initialization; the default starts chain 1 exactly at
+the ML mode and every further chain at the mode plus a normal
+perturbation of sd \code{init_jitter} on the unconstrained scale.
+The mode anchor keeps warmup short; the jitter keeps the chains
+overdispersed enough for Rhat to retain power against
+multimodality (the standard objection to identical mode starts).
+\code{"random"} requests Stan's own overdispersed initialization.}
+
+\item{init_jitter}{Per-chain perturbation sd for the default init;
+\code{0} starts every chain exactly at the mode. Draws from the R
+session's RNG, so \code{set.seed()} makes the inits reproducible.}
 }
 \value{
 An object of class \code{frmtmb_draws}: list with the \code{stanfit},
@@ -46,6 +57,15 @@ treat the result as an ML diagnostic (see \code{\link[=check_laplace]{check_lapl
 than a full Bayesian analysis; posteriors can be improper for
 variance components with few groups.
 }
+\section{Multimodal posteriors}{
+
+For \code{\link[=mixture]{mixture()}} fits the posterior is multimodal by construction
+(label switching at minimum). Mode-centered inits, jittered or
+not, leave every chain in one symmetry branch, so Rhat cannot
+flag the others; use \code{init = "random"} there and inspect chains
+individually.
+}
+
 \examples{
 \donttest{
 set.seed(9)

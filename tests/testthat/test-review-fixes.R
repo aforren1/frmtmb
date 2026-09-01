@@ -134,3 +134,38 @@ test_that("NA in an RE-only design variable propagates to predictions", {
   expect_true(is.finite(p[1]))
   expect_true(is.na(p[2]))
 })
+
+test_that("mode_inits anchors chain 1 and jitters the rest", {
+  mode <- c(a = 1, b = -2, c = 0.5)
+  ii <- mode_inits(mode, chains = 4, jitter = 0.25)
+  expect_length(ii, 4L)
+  expect_identical(ii[[1]], as.numeric(mode))
+  for (k in 2:4) {
+    expect_false(identical(ii[[k]], as.numeric(mode)))
+    expect_lt(max(abs(ii[[k]] - as.numeric(mode))), 2)  # modest jitter
+  }
+  # jitter = 0 restores identical mode starts
+  i0 <- mode_inits(mode, chains = 3, jitter = 0)
+  expect_true(all(vapply(i0, identical, TRUE, as.numeric(mode))))
+})
+
+test_that("frm_sample runs multiple chains with jittered mode inits", {
+  skip_if_not_installed("tmbstan")
+  skip_if_not_installed("rstan")
+  set.seed(409)
+  d <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+  d$y <- rnorm(60, 1 + 0.5 * d$x + rnorm(6, 0, 0.5)[d$g], 1)
+  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = d)
+  ds <- suppressWarnings(
+    frm_sample(fit, chains = 2, iter = 300, refresh = 0))
+  a <- rstan::extract(ds$stanfit, permuted = FALSE)
+  expect_identical(dim(a)[2], 2L)
+  # a boundary-ish mode triggers the singular-init warning; the
+  # crippled 10-iteration run may warn on its own, so collect all
+  fit2 <- fit
+  fit2$estimates$theta <- c(-9)
+  w <- testthat::capture_warnings(
+    try(frm_sample(fit2, chains = 1, iter = 10, refresh = 0),
+        silent = TRUE))
+  expect_true(any(grepl("extreme covariance parameter", w)))
+})
