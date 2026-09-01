@@ -236,6 +236,9 @@ fuzz_ok <- function(a) {
   if (a$mode == "quadrature") {
     if (!isTRUE(fuzz_re[[a$re]]$scalar)) return(FALSE)
     if (a$special != "none") return(FALSE)
+    # the truncation normalizer underflows at the Gauss-Kronrod nodes,
+    # so the pair is refused at fit time (probed in fuzz_refusal_cases)
+    if (a$aterm == "trunc") return(FALSE)
   }
   if (a$op == "simulate" && !fm$sim) return(FALSE)
   TRUE
@@ -371,6 +374,10 @@ fuzz_refusal_cases <- list(
   list(name = "quad_reml", expect = "REML",
        a = list(family = "gaussian", aterm = "none", re = "ri",
                 special = "none", dpar = "none", mode = "quad_reml",
+                op = "predict")),
+  list(name = "quad_trunc", expect = "trunc",
+       a = list(family = "gaussian", aterm = "trunc", re = "ri",
+                special = "none", dpar = "none", mode = "quadrature",
                 op = "predict")),
   list(name = "profile_reml", expect = "REML",
        a = list(family = "gaussian", aterm = "none", re = "ri",

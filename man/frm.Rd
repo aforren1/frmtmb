@@ -67,7 +67,14 @@ adaptive Gauss-Kronrod quadrature instead of the Laplace
 approximation (the \code{glmer(nAGQ = k)} analogue; matches it in
 tests). Worth it for Bernoulli responses with small clusters,
 where Laplace biases variance components. Scalar random-intercept
-models only.}
+models only, and not with \code{mi()}, \code{trunc()}, \code{REML = TRUE}, or
+\code{frmtmb_control(profile = TRUE)}. A plain Laplace fit runs first
+and the quadrature tape is built at its optimum: the
+Gauss-Kronrod rescaling is fixed when the tape is built, so the
+starting point decides whether the marginalized objective is
+finite at all. That fit also supplies the conditional modes, which
+the marginalized objective no longer carries, so \code{ranef()},
+\code{fitted()} and \code{predict()} work as usual.}
 
 \item{dry_run}{\code{"spec"} returns the parsed intermediate representation
 without touching \code{data}; \code{"frame"} returns the assembled design

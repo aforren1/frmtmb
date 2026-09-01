@@ -38,7 +38,14 @@
 #'   approximation (the `glmer(nAGQ = k)` analogue; matches it in
 #'   tests). Worth it for Bernoulli responses with small clusters,
 #'   where Laplace biases variance components. Scalar random-intercept
-#'   models only.
+#'   models only, and not with `mi()`, `trunc()`, `REML = TRUE`, or
+#'   `frmtmb_control(profile = TRUE)`. A plain Laplace fit runs first
+#'   and the quadrature tape is built at its optimum: the
+#'   Gauss-Kronrod rescaling is fixed when the tape is built, so the
+#'   starting point decides whether the marginalized objective is
+#'   finite at all. That fit also supplies the conditional modes, which
+#'   the marginalized objective no longer carries, so `ranef()`,
+#'   `fitted()` and `predict()` work as usual.
 #' @param dry_run `"spec"` returns the parsed intermediate representation
 #'   without touching `data`; `"frame"` returns the assembled design
 #'   matrices and parameter template without fitting.
@@ -228,6 +235,29 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (REML) random <- c(random, "beta")
   if (!length(random)) random <- NULL
 
+  # A mixture likelihood is invariant to permuting its components, so
+  # the mu coefficients enter a multimodal objective. Both REML and
+  # profile = TRUE integrate those coefficients out with a Laplace
+  # approximation about a single inner mode, which is not defined here:
+  # the inner Newton solve walks between the component modes and the
+  # fit either dies at "NA/NaN gradient evaluation" or reports an
+  # optimum with a gradient near 1e9. Quadrature is unaffected because
+  # it marginalizes the random effects, not the coefficients.
+  if (has_mixture(spec)) {
+    if (REML) {
+      stop("REML = TRUE cannot be combined with mixture(): the ",
+           "mixture likelihood is multimodal in the fixed effects ",
+           "REML integrates out, so the restricted likelihood is not ",
+           "defined. Use REML = FALSE", call. = FALSE)
+    }
+    if (isTRUE(control$profile)) {
+      stop("frmtmb_control(profile = TRUE) cannot be combined with ",
+           "mixture(): profiling moves the fixed effects into the ",
+           "inner Laplace problem, and the mixture likelihood is ",
+           "multimodal in them. Use profile = FALSE", call. = FALSE)
+    }
+  }
+
   integrate <- NULL
   if (isTRUE(quadrature)) {
     if (!is.null(template[["miss"]])) {
@@ -245,6 +275,25 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     if (REML) {
       stop("quadrature = TRUE cannot be combined with REML = TRUE",
            call. = FALSE)
+    }
+    # The truncation normalizer is log(F(ub) - F(lb)) over plain CDFs.
+    # The Gauss-Kronrod nodes reach random-effect values where that
+    # difference underflows to exactly zero while the density itself is
+    # still representable, so the integrand is +Inf there and the
+    # marginalized objective comes back -Inf - at the Laplace optimum
+    # as well as at the starting values. Laplace never leaves the
+    # neighborhood of the mode and is unaffected. Refusing beats
+    # reporting logLik = +Inf as a converged fit.
+    trunc_resp <- names(which(vapply(
+      frame$aterm_values,
+      function(a) !is.null(a$trunc_lb) || !is.null(a$trunc_ub), TRUE)))
+    if (length(trunc_resp)) {
+      stop("quadrature = TRUE cannot be combined with trunc() (",
+           paste(trunc_resp, collapse = ", "), "): the truncation ",
+           "normalizer underflows at the Gauss-Kronrod nodes and the ",
+           "marginalized objective is unbounded. Use quadrature = ",
+           "FALSE (Laplace), REML = TRUE, or ",
+           "frmtmb_control(profile = TRUE)", call. = FALSE)
     }
     # adaptive Gauss-Kronrod marginalization per scalar random effect
     # (TMB's experimental `integrate`; the nAGQ analogue - matches
@@ -267,9 +316,18 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     }
     profile_arg <- "beta"
   }
-  obj <- RTMB::MakeADFun(nll, template, random = random,
-                         map = frame$map, integrate = integrate,
-                         profile = profile_arg, silent = TRUE)
+  # Under integrate= the objective is built in two passes: the plain
+  # Laplace tape first, then the marginalized one calibrated at its
+  # optimum. See quad_fit() for why. The Laplace objective is kept
+  # afterwards because it is the only source of the conditional modes.
+  lap_obj <- if (is.null(integrate)) NULL else {
+    RTMB::MakeADFun(nll, template, random = random, map = frame$map,
+                    silent = TRUE)
+  }
+  obj <- if (is.null(integrate)) {
+    RTMB::MakeADFun(nll, template, random = random, map = frame$map,
+                    profile = profile_arg, silent = TRUE)
+  } else lap_obj
   if (vb) {
     vb_stage("tape", t0,
              paste0(length(obj$par), " outer, ",
@@ -291,7 +349,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (vb >= 2L) {
     ctl_opt$optCtrl <- vb_trace_ctrl(control$optCtrl, control$optimizer)
   }
-  opt <- optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb)
+  if (is.null(integrate)) {
+    opt <- optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb)
+  } else {
+    qf <- quad_fit(nll, template, random, frame$map, integrate, lap_obj,
+                   ctl_opt, bounds, par_units, vb)
+    obj <- qf$obj
+    opt <- qf$opt
+  }
 
   # Estimates come cheaply from the parameter list at the optimum;
   # sdreport (a quarter of typical fit time) is computed on demand
@@ -309,6 +374,16 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       pos <- setdiff(pos, frame$betad_fixed_idx)
     }
     est[[cp]][pos] <- unname(opt$par[pn == cp])
+  }
+  if (!is.null(integrate)) {
+    # integrate= removes the random effects from the tape, so this
+    # objective has no conditional modes to report: parList() leaves
+    # them NA and slides the outer values into their slots. ranef(),
+    # fitted() and predict(newdata =) all read them, so recover them
+    # from the inner Newton solve of the Laplace objective at the
+    # quadrature optimum.
+    inner <- solved_par_list(lap_obj, opt$par)
+    for (cp in random) est[[cp]][] <- inner[[cp]]
   }
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
@@ -332,6 +407,120 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                     vb_plural(length(chk$warnings), "warning")))
   }
   fit
+}
+
+# Does any response carry a mixture() family?
+has_mixture <- function(spec) {
+  any(vapply(spec$responses,
+             function(r) !is.null(r$family[["mix"]]), TRUE))
+}
+
+# parList() at an outer parameter vector with the inner problem solved
+# there first. fn() runs the inner Newton solve and leaves the
+# conditional modes in last.par, which is parList's default `par`.
+solved_par_list <- function(obj, par) {
+  obj$fn(par)
+  obj$env$parList(par)
+}
+
+# Build and optimize the Gauss-Kronrod (integrate=) objective.
+#
+# TMBad's marginal_gk transform rescales each integrand ONCE: it finds
+# the mode and curvature of the log-integrand by finite differences and
+# bakes that (mu, sigma) pair into the tape as constants, at whichever
+# parameter values `template` happens to hold. Everything downstream
+# depends on that one calibration, so this function has to do two
+# things the transform does not do for itself.
+#
+# 1. Tape at a sensible point. From the cold start the frozen rescaling
+#    sits far from the real conditional mode, and for every family
+#    whose inverse link exponentiates the linear predictor the rescaled
+#    integrand then overflows: obj$fn() is NaN before the optimizer
+#    takes a step (poisson, Gamma and Beta over nested scalar blocks,
+#    Beta over a single one). Gaussian responses survive it only
+#    because their integrand is quadratic wherever it is sampled. So
+#    fit the plain Laplace objective first and tape the marginalized
+#    one at that optimum: the two optima maximize the same marginal
+#    likelihood, one exactly and one to O(n^-1).
+#
+# 2. Recalibrate when the tape expires. A frozen rescaling is only
+#    trustworthy near the point it was made at, so it can run out in
+#    two ways. The optimizer can walk far enough that the rescaled
+#    integrand breaks (RTMB then raises "NA/NaN gradient evaluation"
+#    from inside nlminb), or it can stop somewhere the tape's own
+#    gradient does not vanish - a mixture whose Laplace fit collapses a
+#    mixing weight to exp(-35) does that, and the reported objective is
+#    then a value no neighborhood shares. Either way the answer is to
+#    tape again at the best point reached and carry on, and to keep the
+#    cold template as a last anchor when the Laplace optimum is the bad
+#    one. Each candidate costs a tape, so they are tried in order and
+#    the first stationary result wins.
+quad_fit <- function(nll, template, random, map, integrate, lap_obj,
+                     control, bounds, par_units, vb = 0L, rounds = 3L) {
+  if (vb) t0 <- vb_now()
+  lap_opt <- optimize_obj(lap_obj, control, bounds, par_units)
+  if (vb) vb_stage("quadrature warm start", t0, vb_opt_detail(lap_opt))
+
+  # A template holding the outer values `par` plus the conditional
+  # modes there, which is what MakeADFun needs to calibrate the tape.
+  anchor <- function(par) solved_par_list(lap_obj, par)[names(template)]
+
+  # One build-and-optimize pass. Returns the fit, or - when the tape
+  # broke mid-optimization - the best point it reached, so the caller
+  # can recalibrate there.
+  attempt <- function(tpl) {
+    if (vb) t0 <- vb_now()
+    o <- RTMB::MakeADFun(nll, tpl, random = random, map = map,
+                         integrate = integrate, silent = TRUE)
+    f0 <- try(o$fn(o$par), silent = TRUE)
+    if (inherits(f0, "try-error") || !is.finite(f0)) return(NULL)
+    if (vb) vb_stage("quadrature tape", t0)
+    op <- tryCatch(optimize_obj(o, control, bounds, par_units,
+                                verbose = vb),
+                   error = function(e) NULL)
+    if (is.null(op) || !is.finite(op$objective)) {
+      pb <- o$env$last.par.best
+      if (is.null(pb) || length(pb) != length(o$par) || anyNA(pb)) {
+        return(NULL)
+      }
+      return(list(retry = stats::setNames(as.numeric(pb),
+                                          names(o$par))))
+    }
+    g <- try(max(abs(o$gr(op$par) * (par_units %||% 1))), silent = TRUE)
+    if (inherits(g, "try-error")) g <- NA_real_
+    list(obj = o, opt = op, stationary = isTRUE(g < control$grad_tol))
+  }
+
+  best <- NULL
+  tpl <- anchor(lap_opt$par)
+  cold_left <- TRUE
+  for (i in seq_len(rounds)) {
+    a <- attempt(tpl)
+    if (!is.null(a) && !is.null(a$obj)) {
+      if (is.null(best) || a$stationary) best <- a
+      if (a$stationary) break
+    }
+    nxt <- if (!is.null(a) && !is.null(a$retry)) {
+      # the frozen rescaling expired where the optimizer walked to:
+      # tape again at the best point it managed
+      anchor(a$retry)
+    } else if (cold_left) {
+      # the anchor itself is the problem (the Laplace optimum can sit
+      # on a singular variance component): the untouched template is a
+      # different, sometimes better, calibration point
+      cold_left <- FALSE
+      template
+    }
+    if (is.null(nxt)) break
+    tpl <- nxt
+  }
+  if (is.null(best)) {
+    stop("quadrature = TRUE could not marginalize this model: the ",
+         "Gauss-Kronrod objective broke down for this likelihood ",
+         "(a non-finite objective or gradient). Refit with ",
+         "quadrature = FALSE", call. = FALSE)
+  }
+  best[c("obj", "opt")]
 }
 
 # The joint precision is the covariance source for parameters outside

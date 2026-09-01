@@ -201,10 +201,10 @@ frmtmb_compat_rules_tbl <- function() {
   r("REML", "hypothesis_profile", "refused",
     "Refused: profile likelihood tests need an ML fit.")
   r("REML", "kind:structure", "untested", "See the specific rules.")
-  r("REML", "mixture", "broken",
-    "Broken: mixture() under REML either stops with 'NA/NaN gradient evaluation' or returns a fit with a gradient near 1e9. There is no guard. Use REML = FALSE.")
-  r("REML", "mixture_mvn", "untested",
-    "Not exercised. Treat it like mixture() and prefer REML = FALSE.")
+  r("REML", "mixture", "refused",
+    "Refused: a mixture likelihood is invariant to permuting its components, so it is multimodal in the fixed effects REML integrates out. The inner Laplace solve has no single mode to expand about; the fit used to stop with 'NA/NaN gradient evaluation' or report a gradient near 1e9.")
+  r("REML", "mixture_mvn", "refused",
+    "Refused for the same reason as mixture(): the classes are exchangeable, so the restricted likelihood is not defined.")
   r("REML", "mvbf", "works", "")
   r("REML", "rescor", "works", "")
   r("REML", "nl", "works", "Verified by a tiny fit.")
@@ -221,7 +221,9 @@ frmtmb_compat_rules_tbl <- function() {
   r("quadrature", "group:wide_blocks", "refused",
     "Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term.")
   r("quadrature", "group:quadrature_blocks", "conditional",
-    "Allowed only when the block is one-dimensional, that is a scalar random intercept. Correlated slopes are refused.")
+    "Allowed only when the block is one-dimensional, that is a scalar random intercept. Correlated slopes are refused. Several such blocks are fine, nested ones included: (1 | ga/gb) becomes an iterated one-dimensional integral.")
+  r("quadrature", "group:post_fit", "works",
+    "The marginalized objective carries no conditional modes, so they are recovered from the inner solve of the Laplace objective at the quadrature optimum. Verified: they match glmer(nAGQ = 25)'s modes to 1e-4, and ranef(), fitted(), predict() and residuals() are NA-free.")
   r("quadrature", "mi()", "refused",
     "Refused: the imputed values are themselves random effects that quadrature cannot marginalize.")
   r("quadrature", "profile", "refused",
@@ -232,8 +234,8 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused in practice: a smooth is a wide random-effect block.")
   r("quadrature", "gp_pred()", "refused",
     "Refused in practice: gp() builds a wide block, so the scalar-intercept guard rejects it.")
-  r("quadrature", "trunc()", "broken",
-    "BROKEN. The truncation normalizer is dropped from the marginalized objective. The fit returns convergence 0 with slope estimates collapsed to zero, next to a correct 0.93 from ML, REML, and profile. A large-gradient warning is the only signal. Do not combine these; use REML or plain ML for truncated responses.")
+  r("quadrature", "trunc()", "refused",
+    "Refused: the truncation normalizer is log(F(ub) - F(lb)) over plain CDFs, and the Gauss-Kronrod nodes reach random-effect values where that difference underflows to exactly zero while the density is still representable. The integrand is then +Inf and the marginalized objective is -Inf, at the Laplace optimum as well as at the starting values, so the fit used to report logLik = +Inf as converged. Laplace stays near the mode and is unaffected: use quadrature = FALSE, REML, or profile for truncated responses.")
   r("quadrature", "cens()", "works",
     "Verified: agrees with the REML and ML fits of the same censored model.")
   r("quadrature", "weights()", "works", "Verified by a tiny fit.")
@@ -244,11 +246,12 @@ frmtmb_compat_rules_tbl <- function() {
   r("quadrature", "nl", "works",
     "Verified by a tiny fit, with the random effect on one nonlinear parameter.")
   r("quadrature", "group:ordinal", "works", "Verified by a tiny fit.")
-  r("quadrature", "mixture", "broken",
-    "Broken: the fit runs and reports a gradient near 1e11. There is no guard.")
+  r("quadrature", "mixture", "conditional",
+    "Exact when the per-group integrand is univariate (one scalar random intercept, in one class), which is the case the exactness test pins down. A mixture whose fit collapses a mixing weight to about exp(-35) degenerates the rescaled integrand and leaves a gradient near 1e14; the fit is not silent, the large-gradient and non-convergence warnings both fire. Check the gradient before trusting a mixture quadrature fit.")
   r("quadrature", "mvbf", "untested", "")
   r("quadrature", "rescor", "untested", "")
-  r("quadrature", "mixture_mvn", "untested", "")
+  r("quadrature", "mixture_mvn", "refused",
+    "Refused in practice: mixture_mvn() clusters a matrix response and carries no scalar random-intercept block, so the scalar-intercept guard rejects it.")
 
   ## profile -----------------------------------------------------------
   r("profile", "bounds", "refused",
@@ -259,8 +262,10 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: profile likelihood hypothesis tests need a fit without frmtmb_control(profile = TRUE).")
   r("profile", "priors", "conditional",
     "Priors on the profiled fixed effects are accepted, while bounds on the same parameters are refused. Treat priors under profile with care.")
-  r("profile", "mixture", "broken",
-    "Broken: stops with 'NA/NaN gradient evaluation' rather than a clear refusal.")
+  r("profile", "mixture", "refused",
+    "Refused: profiling moves the fixed effects into the inner Laplace problem, and a mixture likelihood is multimodal in them. The fit used to stop with 'NA/NaN gradient evaluation' rather than a clear refusal.")
+  r("profile", "mixture_mvn", "refused",
+    "Refused for the same reason as mixture(): the inner problem would be multimodal.")
   r("profile", "mi()", "works", "Verified by a tiny fit.")
   r("profile", "cens()", "works", "Verified by a tiny fit.")
   r("profile", "trunc()", "works",

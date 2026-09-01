@@ -128,6 +128,34 @@ tests/testthat/test-aliased-grouping.R.
   bar at the frame column the expression already produced; the original
   expression is kept for labels and for newdata prediction, and `:`
   / `/` groupings keep their reformulas expansion. [lme4#464, #156]
+- The quadrature defect cluster (dev/fuzz-findings.md N1-N4). TMBad's
+  `marginal_gk` rescales each integrand ONCE, at whatever parameter
+  values the template holds when `MakeADFun` tapes it, and freezes that
+  `(mu, sigma)` pair. One cold calibration explained all of it: every
+  conditional mode but the first came back `NA` (the marginalized
+  objective carries none, and `parList()` slid an outer value into the
+  first slot), and poisson, Gamma and Beta over nested scalar blocks -
+  Beta over a single one - died at a bare `NA/NaN gradient evaluation`.
+  `frm()` now fits the plain Laplace objective first, tapes the
+  marginalized one at that optimum, and reads the modes back from the
+  inner Newton solve there. They match `glmer(nAGQ = 25)`'s `ranef()`
+  to 3e-05. `quadrature` crossed with `trunc()` is refused instead:
+  the normalizer `log(F(ub) - F(lb))` underflows at the Gauss-Kronrod
+  nodes, so the objective is `-Inf` even at the Laplace optimum, and
+  the fit used to report `logLik = +Inf` as converged. What survives is
+  a runtime limitation on hard likelihoods (singular variance
+  components, nested blocks on thin data), reported as an error naming
+  `quadrature` rather than an RTMB string. Regression tests in
+  tests/testthat/test-quadrature-defects.R.
+- `mixture()` under `REML = TRUE` or `frmtmb_control(profile = TRUE)`
+  is refused. Both integrate the fixed effects out with a Laplace
+  approximation about a single inner mode, and a mixture likelihood is
+  invariant to permuting its components, so it is multimodal in exactly
+  those coefficients. The fits used to stop at `NA/NaN gradient
+  evaluation` or report a gradient near 1e9 with no guard.
+  `quadrature = TRUE` stays allowed - it marginalizes the random
+  effects, not the coefficients - and test-v19.R pins down that it is
+  exact when the per-group integrand is univariate.
 - Truncation reached only the likelihood, never the post-fit surface.
   `fitted()`, `predict(type = "response")` and `residuals()` now report
   E[Y | lb <= Y <= ub] (closed forms for every family with an `lcdf`:
@@ -157,6 +185,15 @@ tests/testthat/test-aliased-grouping.R.
 
 ### Open - medium
 
+- `quadrature = TRUE` still breaks down on hard likelihoods: a variance
+  component near zero (the fuzzer found `sd = 8.8e-05`) defeats the
+  finite-difference curvature estimate `marginal_gk` calibrates with
+  (`dx = 1`), and nested scalar blocks on thin data make the outer
+  integrand the output of a frozen inner rescaling. `quad_fit()` tries
+  three calibration points and then errors, naming `quadrature`. A real
+  fix wants an integrator that recalibrates per evaluation; TMBad's
+  `adaptive = TRUE` is meant to be that and is measurably worse, so it
+  would have to be built rather than switched on.
 - `cbind(successes, failures)` responses are rejected with a message
   about `trials` that does not name the real problem. Every reference
   package accepts the spelling, so ported code lands here first.
