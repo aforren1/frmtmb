@@ -569,13 +569,13 @@ frmtmb_compat_rules_tbl <- function() {
       override = TRUE)
   }
   r("gr_prec", "*", "conditional",
-    "gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level.",
+    "gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q).",
     override = TRUE)
   r("car", "*", "conditional",
-    "car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = \"escar\" is the proper CAR, \"icar\"/\"esicar\" the intrinsic one under a soft sum-to-zero constraint (con_sd), \"bym2\" the scaled mixture; escar needs every location to have a neighbor.",
+    "car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = \"escar\" is the proper CAR, \"icar\"/\"esicar\" the intrinsic one under a soft sum-to-zero constraint (con_sd), \"bym2\" the scaled mixture; escar needs every location to have a neighbor. M belongs in data2 = list(M = M).",
     override = TRUE)
   r("spde", "*", "conditional",
-    "spde(fem, gr = node) is a predictor special taking a mesh's finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes BY ROW NUMBER (whole numbers in 1..nrow(M0), as integers or as a factor/character spelling of them), because the matrices carry no dimnames to match labels against. Unobserved nodes keep their column; a general projector matrix is not supported yet.",
+    "spde(fem, gr = node) is a predictor special taking a mesh's finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes BY ROW NUMBER (whole numbers in 1..nrow(M0), as integers or as a factor/character spelling of them), because the matrices carry no dimnames to match labels against. Unobserved nodes keep their column; a general projector matrix is not supported yet. The matrices belong in data2 = list(fem = fem).",
     override = TRUE)
   for (cs in frmtmb_compat_groups_lst$gmrf) {
     r(cs, "simulate", "works",
@@ -584,10 +584,10 @@ frmtmb_compat_rules_tbl <- function() {
       "Locations outside the fitted set have no marginal variance of their own; allow_new_levels predicts them at the population level with no block contribution.")
   }
   r("gr_cov", "*", "conditional",
-    "gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level.",
+    "gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level, and belongs in data2 = list(A = A).",
     override = TRUE)
   r("equalto", "*", "conditional",
-    "equalto(x + 0 | g, V) fixes the term covariance to V, which must be square and match the term dimension.",
+    "equalto(x + 0 | g, V) fixes the term covariance to V, which must be square and match the term dimension, and belongs in data2 = list(V = V).",
     override = TRUE)
   r("rr", "*", "conditional",
     "rr() gives a reduced-rank block; the rank d must not exceed the term dimension.",

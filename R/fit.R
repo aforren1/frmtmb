@@ -6,6 +6,19 @@
 #' @param formula A `frmtmb_formula` from [bf()] (with a family attached
 #'   via `+`), or a plain formula combined with the `family` argument.
 #' @param data A data frame.
+#' @param data2 A named list of objects that are not columns of `data`:
+#'   the adjacency matrix of `car()`, the mesh triple of `spde()`, and
+#'   the matrices of `gr(prec = )`, `gr(cov = )` and `equalto()`. This
+#'   is brms's `data2` argument, with one deliberate extension: brms
+#'   accepts a bare name only, while frmtmb also evaluates compound
+#'   expressions with `data2` in front of the data mask, so
+#'   `gr(g, cov = solve(Q))` finds `Q` there.
+#'   Each structural expression resolves from `data2` first, then
+#'   `data`, then the formula environment; that last step is what a
+#'   model written before `data2` relied on, so old code keeps working.
+#'   Prefer `data2`: its objects are stored on the fit, so `saveRDS()`
+#'   and a later `refit()`, `influence()` or `update()` in a fresh
+#'   session do not need the calling environment to still exist.
 #' @param family A family: a `frmtmb_family`, a [stats::family] object or
 #'   constructor (for example `gaussian`, `poisson`, `binomial`), or a
 #'   family name as a string. Overrides a family already attached to
@@ -179,9 +192,10 @@
 frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 control = frmtmb_control(), se = FALSE,
                 na.action = stats::na.omit, lower = NULL, upper = NULL,
-                priors = NULL, quadrature = FALSE, dry_run = NULL,
-                verbose = FALSE) {
+                priors = NULL, quadrature = FALSE, data2 = list(),
+                dry_run = NULL, verbose = FALSE) {
   cl <- match.call()
+  data2 <- validate_data2(data2)
   # frmtmb_control() leaves verbose unset (NULL), so an explicit control
   # value always wins over the frm() shortcut
   control$verbose <- control$verbose %||% verbose
@@ -195,14 +209,15 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
 
   if (vb) t0 <- vb_now()
   frame <- assemble_frame(spec, data, na.action = na.action,
-                          sparse_x = isTRUE(control$sparse_x))
+                          sparse_x = isTRUE(control$sparse_x),
+                          data2 = data2)
   if (vb) vb_stage("frame", t0, vb_frame_detail(frame))
   check_re_structure(spec, frame, control)
   if (identical(dry_run, "frame")) return(frame)
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
                 control = control, se = se, lower = lower, upper = upper,
-                priors = priors, quadrature = quadrature)
+                priors = priors, quadrature = quadrature, data2 = data2)
 }
 
 # --- verbose progress reporting --------------------------------------
@@ -285,7 +300,7 @@ vb_trace_ctrl <- function(optCtrl, optimizer) {
 # starts when refitting to a new response).
 fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           se, lower, upper, priors, quadrature,
-                          template = NULL) {
+                          template = NULL, data2 = list()) {
   lower_arg <- lower
   upper_arg <- upper
   vb <- verbose_level(control)
@@ -511,7 +526,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
          REML = REML, estimates = est, priors = priors,
-         bform = bform, call = cl,
+         bform = bform, call = cl, data2 = data2,
          control = control, quadrature = isTRUE(quadrature),
          lower = lower_arg, upper = upper_arg, par_units = par_units,
          cache = new.env(parent = emptyenv())),

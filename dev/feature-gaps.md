@@ -242,6 +242,25 @@ family-level extras.
   `bym2` is dense outright, so the practical field size is in the low
   thousands rather than the 1e5 nodes sdmTMB/VAST reach. `car()`
   refuses unseen locations at prediction time (as brms does).
+- ~~`data2 = list()`: the five sites that captured structural matrices
+  from the calling environment~~ DONE in v0.29. All five go through
+  one helper, `lookup_structural(expr, data2, data, env, what)`:
+  `gr(g, prec = Q)`, `gr(g, cov = A)`, `equalto(..., V)`,
+  `car(M, ...)` and `spde(fem, ...)`. Resolution order is data2 (bare
+  name), then the expression evaluated with data2 in front of the data
+  mask, then the historical data-then-formula-env path. The middle
+  step is a deliberate divergence from brms, whose rule is name-only:
+  it makes `gr(g, cov = solve(Q))` work with `Q` in data2. The objects
+  are stored as `fit$data2` and threaded through every re-assembly
+  path (`refit()`, `influence()`, `update()`, `drop1()`,
+  `anova(refit = TRUE)`, `frm_allfit()`, and `frm_multiple()` per
+  imputation), so a `saveRDS()`ed fit refits in a session where the
+  environment that built the matrix is gone;
+  `tests/testthat/test-data2.R` proves that against the same fit
+  built without data2, whose deletion refits all fail.
+  `frm_bootstrap()` and the autoscale pre-fit reuse the assembled
+  frame and needed nothing. data2 stays optional and the fallback path
+  is unchanged, so pre-v0.29 code keeps working.
 
 ## Method-surface residue (v0.21 audit)
 
