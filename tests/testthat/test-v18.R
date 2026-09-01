@@ -87,11 +87,12 @@ test_that("exact gp() matches direct GP marginal ML", {
                      control = list(reltol = 1e-12, maxit = 2000))
   expect_lt(abs(as.numeric(logLik(fg)) + op$value), 1e-4)
 
-  # observed-position prediction works; unseen positions are guarded
+  # observed-position prediction works; unseen positions krige
+  # (closed-form validation in test-gp-multidim.R)
   expect_equal(unname(predict(fg, newdata = dg[1:5, ])),
                unname(fitted(fg)[1:5]), tolerance = 1e-10)
-  expect_error(predict(fg, newdata = data.frame(x = 0.05)),
-               "positions seen")
+  p_new <- predict(fg, newdata = data.frame(x = 0.05), se.fit = TRUE)
+  expect_true(is.finite(p_new$fit) && is.finite(p_new$se.fit))
   cv <- confint_varcorr(fg)
   expect_setequal(cv$term, c("sd(gp)", "range(gp)"))
 

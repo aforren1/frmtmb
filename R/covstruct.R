@@ -390,41 +390,112 @@ covstruct_registry$gr_prec <- list(
   start = function(dim) 0
 )
 
-# Exact Gaussian process over observed positions (gp(x) without k=):
-# squared-exponential kernel sd^2 exp(-d^2 / (2 rho^2)), matching the
-# Hilbert-space approximation's kernel so gp(x) and gp(x, k=) estimate
-# the same quantity. theta = (log sd, log rho); dense over the unique
-# positions (blk$aux_D).
+# Exact Gaussian process over observed positions (gp(...) without k=):
+# anisotropic squared-exponential kernel
+# sd^2 exp(-sum_j d_j^2 / (2 rho_j^2)), assembled from per-dimension
+# squared-difference matrices (blk$aux_D2) so the tape sees data
+# matrices and advector lengthscales; iso = TRUE shares one rho.
+# theta = (log sd, log rho) iso / (log sd, log rho_1..log rho_D)
+# otherwise; parameter count depends on the dimension count, so npar
+# and start are handled at the frame call sites (gp_npar/gp_start),
+# like rr.
 # the 1e-6 nugget keeps the notoriously ill-conditioned SE kernel
 # Cholesky-factorizable as the range grows (standard GP practice)
-covstruct_registry$gp <- spatial_entry(
-  function(D, theta) {
-    exp(-(D / exp(theta[2]))^2 / 2) + diag(1e-6, nrow(D))
-  }, 2L
+gp_npar <- function(D, iso) if (isTRUE(iso)) 2L else 1L + as.integer(D)
+
+gp_start <- function(D, iso) numeric(gp_npar(D, iso))
+
+gp_corr <- function(theta, blk) {
+  Q <- 0
+  for (j in seq_along(blk$aux_D2)) {
+    rho <- if (isTRUE(blk$gp_iso)) exp(theta[2]) else exp(theta[1 + j])
+    Q <- Q + blk$aux_D2[[j]] / (2 * rho^2)
+  }
+  exp(-Q) + diag(1e-6, nrow(blk$aux_D2[[1]]))
+}
+
+# Numeric K(X*, X) of a fitted exact-gp block at new coordinates Xnew
+# (n_new x D) against the block's positions. The nugget rides on
+# coincident points so kriging at observed positions collapses to
+# exact interpolation (K* row = K row -> indicator weights).
+gp_cross_cov <- function(theta, blk, Xnew, pos) {
+  Q <- 0
+  same <- 1
+  for (j in seq_len(ncol(pos))) {
+    dj <- outer(Xnew[, j], pos[, j], "-")
+    rho <- if (isTRUE(blk$gp_iso)) exp(theta[2]) else exp(theta[1 + j])
+    Q <- Q + dj^2 / (2 * rho^2)
+    same <- same * (dj == 0)
+  }
+  exp(2 * theta[1]) * (exp(-Q) + 1e-6 * same)
+}
+
+covstruct_registry$gp <- list(
+  npar = function(dim) {
+    stop("gp npar needs the dimension count; handled at the frame ",
+         "call site", call. = FALSE)
+  },
+  sd_idx = function(dim) 1L,
+  nll = function(b, theta, blk) {
+    Sigma <- exp(2 * theta[1]) * gp_corr(theta, blk)
+    dim(b) <- c(blk$dim, length(b) %/% blk$dim)
+    sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    V <- as.matrix(exp(theta[1])^2 * gp_corr(theta, blk))
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
+  },
+  start = function(dim) {
+    stop("gp start needs the dimension count; handled at the frame ",
+         "call site", call. = FALSE)
+  }
 )
 
-# Hilbert-space GP approximation (Riutort-Mayol et al.): sine basis in
-# Z, independent coefficients whose prior SDs follow the SE-kernel
-# spectral density at the basis frequencies (blk$aux_omega).
-hsgp_sds <- function(theta, omega) {
-  sd_ <- exp(theta[1])
-  rho <- exp(theta[2])
-  sqrt(sd_^2 * rho * sqrt(2 * pi) * exp(-0.5 * (rho * omega)^2))
+# Hilbert-space GP approximation (Riutort-Mayol et al.): tensor-product
+# sine basis in Z, independent coefficients whose prior SDs follow the
+# D-dim SE-kernel spectral density at the multi-index frequencies
+# (blk$aux_omega, M x D):
+# S(w) = sd^2 (2 pi)^{D/2} prod_j rho_j exp(-0.5 sum_j rho_j^2 w_j^2).
+hsgp_sds <- function(theta, omega, iso = TRUE) {
+  D <- ncol(omega)
+  log_rho <- if (isTRUE(iso)) rep(theta[2], D) else theta[1 + seq_len(D)]
+  logS <- 2 * theta[1] + (D / 2) * log(2 * pi) + sum(log_rho) -
+    0.5 * as.vector(omega^2 %*% exp(2 * log_rho))
+  exp(logS / 2)
+}
+
+# Tensor-product sine basis at centered coordinates xc (n x D) for the
+# multi-index frequencies omega (M x D) and boundaries L (length D).
+hsgp_basis <- function(xc, omega, L) {
+  Phi <- 1
+  for (j in seq_len(ncol(omega))) {
+    Phi <- Phi * sin(outer(xc[, j] + L[j], omega[, j])) / sqrt(L[j])
+  }
+  Phi
 }
 
 covstruct_registry$hsgp <- list(
-  npar = function(dim) 2L,
+  npar = function(dim) {
+    stop("hsgp npar needs the dimension count; handled at the frame ",
+         "call site", call. = FALSE)
+  },
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
-    sum(RTMB::dnorm(b, 0, hsgp_sds(theta, blk$aux_omega), log = TRUE))
+    sum(RTMB::dnorm(b, 0, hsgp_sds(theta, blk$aux_omega, blk$gp_iso),
+                    log = TRUE))
   },
   vcov = function(theta, blk) {
-    V <- diag(as.numeric(hsgp_sds(theta, blk$aux_omega))^2,
+    V <- diag(as.numeric(hsgp_sds(theta, blk$aux_omega,
+                                  blk$gp_iso))^2,
               nrow = blk$dim)
     dimnames(V) <- list(blk$cnms, blk$cnms)
     V
   },
-  start = function(dim) c(0, 0)
+  start = function(dim) {
+    stop("hsgp start needs the dimension count; handled at the frame ",
+         "call site", call. = FALSE)
+  }
 )
 
 # Known, fully fixed within-level covariance (glmmTMB equalto): b ~

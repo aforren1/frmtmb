@@ -132,7 +132,10 @@ need mixture() over mvbf responses; unscheduled.
   brms spelling since me() was folded into mi). Discrete-predictor
   mi(): impossible.
 - ~~`gp()`~~ DONE in v0.18: exact (dense SE kernel + nugget) and
-  Hilbert-space (`k =`) forms; 1-D only for now.
+  Hilbert-space (`k =`) forms. Extended post-v0.19: up to 3
+  dimensions (per-dimension lengthscales by default, `iso = TRUE`
+  for a shared one) and kriging prediction for the exact form at
+  unseen positions.
 - ~~mo()/mi() interactions~~ DONE in v0.18 (two-way `:`/`*` with
   numeric terms; shared simplex per mo variable).
 - OpenMP objective parallelism (RTMB limitation; benchmarks fine

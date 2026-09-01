@@ -36,7 +36,9 @@ gives population-level predictions.}
 
 \item{se.fit}{If \code{TRUE}, return a list with elements \code{fit} and \code{se.fit}
 (delta-method standard errors accounting for fixed-effect and
-random-effect uncertainty).}
+random-effect uncertainty). Exact \code{gp()} terms predict unseen
+positions by kriging: the conditional mean at the fitted kernel,
+with the GP conditional variance added to the standard errors.}
 
 \item{allow_new_levels}{Predict unseen grouping-factor levels at the
 population level instead of erroring.}

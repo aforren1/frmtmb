@@ -62,7 +62,9 @@ dpar_frame_rhs <- function(dp) {
     if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
   }
   for (ge in dp$gpterms %||% list()) {
-    for (v in all.vars(ge$expr)) parts <- c(parts, list(as.name(v)))
+    for (ex in ge$exprs) {
+      for (v in all.vars(ex)) parts <- c(parts, list(as.name(v)))
+    }
   }
   out <- NULL
   for (p in parts) out <- if (is.null(out)) p else call("+", out, p)
@@ -638,64 +640,87 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         }
       }
 
-      # Gaussian-process terms: gp(x) is exact (a dense SE-kernel block
-      # over the unique positions); gp(x, k=) is the Hilbert-space
-      # approximation (sine basis in Z, spectral-density prior SDs).
+      # Gaussian-process terms: gp(x1, ...) is exact (a dense SE-kernel
+      # block over the unique coordinate rows); gp(..., k=) is the
+      # Hilbert-space approximation (tensor-product sine basis in Z,
+      # spectral-density prior SDs). D up to 3; iso shares one
+      # lengthscale, the default is one per dimension (brms).
       gp_info <- list()
       for (ge in dp$gpterms %||% list()) {
-        v <- as.numeric(eval(ge$expr, mf, resp$formula_env))
-        lab0 <- paste0("gp(", deparse1(ge$expr),
+        Xc <- do.call(cbind, lapply(ge$exprs, function(ex) {
+          as.numeric(eval(ex, mf, resp$formula_env))
+        }))
+        Dg <- ncol(Xc)
+        iso <- isTRUE(ge$iso) || Dg == 1L
+        vnames <- vapply(ge$exprs, deparse1, "")
+        lab0 <- paste0("gp(", paste(vnames, collapse = ", "),
                        if (!is.null(ge$k)) paste0(", k = ", ge$k) else "",
                        ")")
+        rowkey <- function(M) {
+          do.call(paste, c(as.data.frame(M), sep = "\r"))
+        }
         if (is.null(ge$k)) {
-          pos <- sort(unique(v))
-          npos <- length(pos)
+          posdf <- unique(as.data.frame(Xc))
+          posdf <- posdf[do.call(order, posdf), , drop = FALSE]
+          pos <- unname(as.matrix(posdf))
+          npos <- nrow(pos)
           if (npos > 500L) {
             stop("gp() without k= builds a dense ", npos,
                  "-point covariance; use k= for the Hilbert-space ",
                  "approximation", call. = FALSE)
           }
-          Zg <- Matrix::sparseMatrix(i = seq_along(v),
-                                     j = match(v, pos), x = 1,
-                                     dims = c(length(v), npos))
+          Zg <- Matrix::sparseMatrix(i = seq_len(nrow(Xc)),
+                                     j = match(rowkey(Xc), rowkey(pos)),
+                                     x = 1, dims = c(nrow(Xc), npos))
           components[[length(components) + 1L]] <- list(
             lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
             covstruct = "gp", id = NULL,
             dim = npos, n_levels = 1L,
             levels = NULL, cnms = paste0(lab0, ".", seq_len(npos)),
             bar = NULL, Zlocal = methods::as(Zg, "CsparseMatrix"),
-            aux_D = abs(outer(pos, pos, "-")),
+            aux_D2 = lapply(seq_len(Dg), function(j) {
+              outer(pos[, j], pos[, j], "-")^2
+            }),
+            gp_D = Dg, gp_iso = iso, gp_vars = vnames,
             group_name = lab0,
             label = paste0(dp_prefix, lab0)
           )
           gp_info[[length(gp_info) + 1L]] <- list(
-            expr = ge$expr, type = "exact", positions = pos,
+            exprs = ge$exprs, type = "exact", positions = pos,
             comp_id = length(components), block_id = NULL, label = lab0
           )
         } else {
-          ctr <- mean(v)
-          xc <- v - ctr
-          Lb <- ge$c * max(abs(xc))
-          if (Lb <= 0) {
-            stop("gp(): the variable has no spread", call. = FALSE)
+          ctr <- colMeans(Xc)
+          xc <- sweep(Xc, 2, ctr)
+          Lb <- ge$c * apply(abs(xc), 2, max)
+          if (any(Lb <= 0)) {
+            stop("gp(): variable ", vnames[which(Lb <= 0)[1]],
+                 " has no spread", call. = FALSE)
           }
           m <- ge$k
-          omega <- (seq_len(m) * pi) / (2 * Lb)
-          Phi <- sapply(seq_len(m), function(j) {
-            sin(omega[j] * (xc + Lb)) / sqrt(Lb)
-          })
+          if (m^Dg > 1000) {
+            stop("gp(): k = ", m, " over ", Dg, " dimensions gives ",
+                 m^Dg, " basis columns (cap 1000); lower k=",
+                 call. = FALSE)
+          }
+          idx <- as.matrix(do.call(expand.grid,
+                                   rep(list(seq_len(m)), Dg)))
+          omega <- sweep(idx * pi, 2, 2 * Lb, "/")
+          Phi <- hsgp_basis(xc, omega, Lb)
+          M_b <- nrow(omega)
           components[[length(components) + 1L]] <- list(
             lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
             covstruct = "hsgp", id = NULL,
-            dim = m, n_levels = 1L,
-            levels = NULL, cnms = paste0(lab0, ".", seq_len(m)),
+            dim = M_b, n_levels = 1L,
+            levels = NULL, cnms = paste0(lab0, ".", seq_len(M_b)),
             bar = NULL, Zlocal = methods::as(Phi, "CsparseMatrix"),
             aux_omega = omega,
+            gp_D = Dg, gp_iso = iso, gp_vars = vnames,
             group_name = lab0,
             label = paste0(dp_prefix, lab0)
           )
           gp_info[[length(gp_info) + 1L]] <- list(
-            expr = ge$expr, type = "hsgp", center = ctr, L = Lb,
+            exprs = ge$exprs, type = "hsgp", center = ctr, L = Lb,
             omega = omega, comp_id = length(components),
             block_id = NULL, label = lab0
           )
@@ -917,6 +942,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       has_rr <- TRUE
       npar_k <- rr_npar(D, rank_k)
       nb_k <- rank_k * n_levels
+    } else if (cs_name %in% c("gp", "hsgp")) {
+      # parameter count depends on the gp dimension count, not the
+      # block dimension (positions / basis size)
+      npar_k <- gp_npar(cps[[1]]$gp_D, cps[[1]]$gp_iso)
+      nb_k <- D * n_levels
     } else {
       npar_k <- covstruct_registry[[cs_name]]$npar(D)
       nb_k <- D * n_levels
@@ -939,9 +969,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       levels = cps[[1]]$levels,
       aux_A = cps[[1]]$aux_A,
       aux_D = cps[[1]]$aux_D,
+      aux_D2 = cps[[1]]$aux_D2,
       aux_kron = cps[[1]]$aux_kron,
       aux_Q = cps[[1]]$aux_Q,
       aux_omega = cps[[1]]$aux_omega,
+      gp_D = cps[[1]]$gp_D,
+      gp_iso = cps[[1]]$gp_iso,
+      gp_vars = cps[[1]]$gp_vars,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
       term_label = label,
@@ -1006,6 +1040,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     for (bk in re_blocks) {
       th0[bk$theta_idx] <- if (bk$covstruct == "rr") {
         rr_start(bk$dim, bk$rank)
+      } else if (bk$covstruct %in% c("gp", "hsgp")) {
+        gp_start(bk$gp_D, bk$gp_iso)
       } else {
         covstruct_registry[[bk$covstruct]]$start(bk$dim)
       }
