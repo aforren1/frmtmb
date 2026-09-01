@@ -182,7 +182,9 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
 
   nd_mult <- function(mult_expr) {
     if (is.null(mult_expr)) return(1)
-    m <- as.numeric(eval(mult_expr, newdata, env))
+    # same type gate as fit time, so a newdata column that changed type
+    # reports the type rather than a downstream all-NA column [brms#1828]
+    m <- check_special_mult(eval(mult_expr, newdata, env), mult_expr, "mo/mi")
     if (anyNA(m)) {
       stop("Interaction multiplier '", deparse1(mult_expr),
            "' has missing values in newdata", call. = FALSE)
