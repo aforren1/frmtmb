@@ -4,13 +4,17 @@
 \alias{mixture_mvn}
 \title{Multivariate gaussian mixture family}
 \usage{
-mixture_mvn(K, D)
+mixture_mvn(K, D, model = "VVV")
 }
 \arguments{
 \item{K}{Number of mixture classes (at least 2).}
 
 \item{D}{Number of response columns (at least 2; for \code{D = 1} use
 \code{mixture(gaussian(), ...)}).}
+
+\item{model}{Covariance model name from mclust's vocabulary: one of
+\code{"EII"}, \code{"VII"}, \code{"EEI"}, \code{"VEI"}, \code{"EVI"}, \code{"VVI"}, \code{"EEE"},
+\code{"VVV"} (the default, a free covariance per class).}
 }
 \value{
 A \code{frmtmb_family}.
@@ -18,7 +22,8 @@ A \code{frmtmb_family}.
 \description{
 \code{mixture_mvn(K, D)} does model-based clustering of an n x D matrix
 response (mclust-style): K classes, each with its own D-dimensional
-mean and unstructured D x D covariance. Every class mean is a full
+mean and a D x D covariance from mclust's model taxonomy. Every
+class mean is a full
 linear predictor - the main model formula applies to all of them -
 so cluster means may depend on covariates, which mclust cannot do.
 The location dpars are named \verb{mu<k>d<j>} (class k, response column
@@ -27,18 +32,44 @@ j) and are individually overridable, e.g. \code{bf(Y ~ x, mu2d1 ~ 1)}
 linear predictor - so gating on covariates works like \code{\link[=mixture]{mixture()}}.
 }
 \details{
-Class covariances are family-level extra parameters in the \code{us}
-parameterization (D log-SDs, then scaled-Cholesky correlation
-entries), stored as \verb{sigmaraw<k>} in \code{fit$estimates}; they are
-covariate-free. Log-SDs start at the per-column response SDs and
-correlations at zero; class means start on spread-out per-column
-response quantiles to break the label symmetry. The usual
-finite-mixture ML caveats apply: the likelihood is invariant to
+Class covariances are family-level extra parameters, covariate-free,
+and their structure follows \code{model}, mclust's volume-shape-orientation
+taxonomy for \verb{Sigma_k = lambda_k * D_k * A_k * D_k'}:
+
+\tabular{lll}{
+\code{EII} \tab spherical, equal volume
+\tab \code{sigmaraw}, one log-SD \cr
+\code{VII} \tab spherical, varying volume
+\tab \verb{sigmaraw<k>}, one log-SD each \cr
+\code{EEI} \tab diagonal, equal volume and shape
+\tab \code{sigmaraw}, D log-SDs \cr
+\code{VEI} \tab diagonal, varying volume, equal shape
+\tab \verb{sigmavol<k>} plus \code{sigmashape} (D - 1) \cr
+\code{EVI} \tab diagonal, equal volume, varying shape
+\tab \code{sigmavol} plus \verb{sigmashape<k>} (D - 1 each) \cr
+\code{VVI} \tab diagonal, free
+\tab \verb{sigmaraw<k>}, D log-SDs each \cr
+\code{EEE} \tab one shared full covariance
+\tab \code{sigmaraw}, a \code{us} block \cr
+\code{VVV} \tab free full covariance per class (default)
+\tab \verb{sigmaraw<k>}, one \code{us} block each
+}
+
+A \code{us} block is D log-SDs then the scaled-Cholesky correlation
+entries, as in \code{\link[=frm]{frm()}}'s \code{us()} covariance structure. The
+\code{sigmashape} vectors hold the first D - 1 log-shape entries; the last
+is minus their sum, which is what fixes \code{det(A_k) = 1}. Log-SDs start
+at the per-column response SDs and correlations at zero; class means
+start on spread-out per-column response quantiles to break the label
+symmetry. The usual finite-mixture ML caveats apply: the
+likelihood is invariant to
 relabeling and can be multimodal (compare starts via
 \code{\link[=frm_allfit]{frm_allfit()}}). \code{\link[=mixture_probs]{mixture_probs()}} returns posterior class
 probabilities per row; \code{\link[=fitted]{fitted()}} returns the n x D mixture-mean
-matrix. \code{cens()}/\code{trunc()}, \code{\link[=mvbf]{mvbf()}}, and \code{simulate()} are not
-supported.
+matrix. Covariances take no linear predictor (no covariance
+regression), and the models with a class-varying eigenvector basis
+(\code{EEV}, \code{VEV}, \code{EVE}, \code{VEE}, \code{VVE}, \code{EVV}) are not available.
+\code{cens()}/\code{trunc()}, \code{\link[=mvbf]{mvbf()}}, and \code{simulate()} are not supported.
 }
 \examples{
 set.seed(1)
@@ -49,4 +80,6 @@ dd$Y <- Y
 fit <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dd)
 fixef(fit)
 head(mixture_probs(fit))
+# a shared spherical covariance (mclust's EII, k-means-like)
+frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2, model = "EII"), data = dd)
 }

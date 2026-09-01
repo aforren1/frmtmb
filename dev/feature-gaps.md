@@ -96,12 +96,30 @@ covariance matrices, VVV etc.), with covariates and spatial GMRFs in
 the gating and expert parts. DONE in v0.20 as `mixture_mvn(K, D)`:
 per-class D-dim means as full linear predictors (covariates, REs) +
 unstructured per-class covariance; gating on covariates via the
-theta dpars. Validated vs hand-rolled ML to 1.3e-10. Remaining
-sub-gaps, logged in ?mixture_mvn: covariances are `us`-only and
-covariate-free (no EII..VEV taxonomy, no covariance regression); no
-cens/trunc, no mvbf components (mixture over mvbf with rescor is the
-general form; unscheduled), and simulate() needs a simulator
-interface that can see family-level extras.
+theta dpars. Validated vs hand-rolled ML to 1.3e-10.
+
+The covariance taxonomy landed next as
+`mixture_mvn(K, D, model = )`, in mclust's own model-name vocabulary:
+EII, VII (spherical), EEI, VEI, EVI, VVI (diagonal), EEE (one shared
+full covariance) and VVV (the default, free per class). The extras
+shrink with the model - a single log-SD for EII, one `us` block for
+EEE, `sigmavol*`/`sigmashape*` for the volume-shape pair - so
+confint() and frm_sample() label exactly the parameters a model has.
+Validated against mclust::Mclust() with intercept-only means (where
+the two models are the same likelihood): starting our ML at mclust's
+EM solution, logLik agrees to 1e-12, class means and covariances and
+posterior z to 1e-15, on faithful (K=2, D=2) and a simulated K=3,
+D=3 set; from our own cold start we reach mclust's optimum to 1e-8.
+The eight likelihoods are bit-identical at a shared spherical-equal
+parameter point, and the fitted maxima respect every nesting chain.
+
+Remaining sub-gaps, logged in ?mixture_mvn: the six models with a
+class-varying eigenvector basis (EEV, VEV, EVE, VEE, VVE, EVV) need
+constrained-orientation machinery and are absent; covariances take no
+linear predictor (no covariance regression); no cens/trunc, no mvbf
+components (mixture over mvbf with rescor is the general form;
+unscheduled), and simulate() needs a simulator interface that can see
+family-level extras.
 
 ## Tier 3: positioning decisions
 
