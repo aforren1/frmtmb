@@ -1,0 +1,298 @@
+---
+title: "Feature compatibility"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Feature compatibility}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+library(frmtmb)
+```
+
+```{r helpers}
+# Every table below is built from frm_compat(). The page cannot drift
+# away from the registry, because it has no separate copy of it.
+compat <- frm_compat()
+
+SYM <- c(works = "+", conditional = "~", refused = "x",
+         broken = "!", untested = "?")
+
+# Pairs of two kinds, in a fixed row/column orientation.
+slice_kinds <- function(row_kind, col_kind) {
+  a <- compat[compat$kind_a == row_kind & compat$kind_b == col_kind, ]
+  b <- compat[compat$kind_a == col_kind & compat$kind_b == row_kind, ]
+  if (nrow(b)) {
+    names(b)[1:4] <- names(b)[c(3, 4, 1, 2)]
+    b <- b[, names(a)]
+  }
+  rbind(a, b)
+}
+
+grid_table <- function(row_kind, col_kind, rows = NULL, cols = NULL) {
+  s <- slice_kinds(row_kind, col_kind)
+  rn <- rows %||% unique(s$feature_a)
+  cn <- cols %||% unique(s$feature_b)
+  m <- matrix("", length(rn), length(cn), dimnames = list(rn, cn))
+  m[cbind(match(s$feature_a, rn), match(s$feature_b, cn))] <-
+    SYM[s$status]
+  knitr::kable(m, align = "c")
+}
+
+# Conditions, refusals and defects, grouped by the text that explains
+# them, so a rule that covers thirty pairs is written out once.
+group_notes <- function(s) {
+  s <- s[s$status %in% c("conditional", "refused", "broken") &
+           nzchar(s$note), ]
+  if (!nrow(s)) return(NULL)
+  # a same-kind slice carries each pair in both orientations, to fill
+  # both triangles of the grid; list it once here
+  uid <- vapply(seq_len(nrow(s)), function(i) {
+    paste(sort(c(s$feature_a[i], s$feature_b[i])), collapse = "\r")
+  }, "")
+  s <- s[!duplicated(uid), ]
+  key <- paste(s$status, s$note)
+  out <- do.call(rbind, lapply(unique(key), function(k) {
+    g <- s[key == k, ]
+    pr <- paste0(g$feature_a, " + ", g$feature_b)
+    if (length(pr) > 6L) {
+      pr <- c(pr[1:5], paste0("and ", length(pr) - 5L, " more"))
+    }
+    data.frame(Status = SYM[[g$status[1]]],
+               Pairs = paste(pr, collapse = "; "),
+               Note = g$note[1], stringsAsFactors = FALSE)
+  }))
+  out[order(match(out$Status, SYM)), ]
+}
+
+note_table <- function(row_kind, col_kind) {
+  out <- group_notes(slice_kinds(row_kind, col_kind))
+  if (is.null(out)) return(invisible(NULL))
+  knitr::kable(out, row.names = FALSE)
+}
+
+`%||%` <- function(x, y) if (is.null(x)) y else x
+fam <- frm_compat_features()
+kind_of <- function(k) fam$name[fam$kind == k]
+```
+
+This package accepts a large grammar: about thirty families, a dozen
+addition terms, twenty covariance structures, six predictor specials,
+eight estimation modes, and several model structures. Most of the
+combinations are meaningful. Some are refused. A few are accepted and
+give a wrong answer.
+
+The worst defects in this package's history were all of the third
+kind. `rescor = TRUE` once accepted `cens()` and then dropped the
+censoring from the likelihood. `frmtmb_control(profile = TRUE)` once
+accepted parameter bounds and applied them to the wrong parameters.
+Neither raised an error, so neither looked like a defect.
+
+The lesson is that a guard which does not exist looks exactly like a
+guard that passed. The absence of an error is not evidence of support.
+This page therefore gives every pair of features one of five states,
+and it treats "nobody has checked" as a state of its own.
+
+## The five states
+
+```{r legend}
+knitr::kable(data.frame(
+  Symbol = unname(SYM),
+  Status = names(SYM),
+  Meaning = c(
+    "Supported and exercised by the test suite.",
+    "Supported, but the combination must meet a stated condition.",
+    "frm() or the post-fit method stops with an error. The refusal is deliberate.",
+    "Accepted, but the result is wrong or the failure does not explain itself. Do not use the pair.",
+    "Nothing checks this pair. It may work. Treat a silent success as unverified.")),
+  row.names = FALSE)
+```
+
+`untested` is the state that matters most. It does not mean the
+combination fails. It means that if it fails, it will fail quietly,
+because nothing in the test suite would notice.
+
+## Reading the registry from code
+
+The tables on this page are generated from the registry, so you can
+ask it the same questions directly.
+
+```{r query, echo = TRUE}
+frm_compat("rescor", "cens()")
+
+frm_compat("quadrature", "trunc()")$status
+```
+
+Give one feature to get every pair it takes part in, and `status` to
+filter:
+
+```{r query2, echo = TRUE}
+head(frm_compat("se()", status = "works"), 3)
+```
+
+`frm_compat_features()` lists the vocabulary. `frm_compat_rules()`
+shows the underlying rules, which are written per kind or per feature
+group rather than per pair.
+
+## Combinations to avoid
+
+These pairs are accepted and should not be. Each one is a defect, not
+a design decision.
+
+```{r broken}
+b <- group_notes(frm_compat(status = "broken"))
+knitr::kable(data.frame(Combination = b$Pairs, Evidence = b$Note),
+             row.names = FALSE)
+```
+
+## Response distributions and addition terms
+
+Addition terms are the most family-sensitive part of the grammar.
+`cens()` and `trunc()` need a family that supplies a cumulative
+distribution function, and `cens()` additionally refuses discrete
+responses. `se()` and `mi()` need a gaussian or student model.
+
+```{r fam-aterm}
+grid_table("family", "aterm", rows = kind_of("family"),
+           cols = kind_of("aterm"))
+```
+
+```{r fam-aterm-notes}
+note_table("family", "aterm")
+```
+
+## Response distributions and post-fit methods
+
+What you can do with a fit depends on what the family supplies. A
+family without a simulator cannot be simulated from. A family without
+a mean function has no `fitted()` value.
+
+```{r fam-method}
+grid_table("family", "method", rows = kind_of("family"),
+           cols = kind_of("method"))
+```
+
+```{r fam-method-notes}
+note_table("family", "method")
+```
+
+## Estimation modes
+
+The modes constrain each other more than they constrain anything else.
+`REML`, `quadrature`, and `profile` all move the fixed effects out of
+the outer optimization problem, and no two of them can do that at
+once. Bounds name outer parameters, so bounds on fixed effects are
+refused under `REML` and under `profile`.
+
+`autoscale`, `sparse_x`, and `verbose` are different in kind. They
+change the arithmetic or the output, not the model.
+
+```{r mode-mode}
+grid_table("mode", "mode", rows = kind_of("mode"), cols = kind_of("mode"))
+```
+
+```{r mode-mode-notes}
+note_table("mode", "mode")
+```
+
+### Modes and addition terms
+
+```{r mode-aterm}
+grid_table("aterm", "mode", rows = kind_of("aterm"), cols = kind_of("mode"))
+```
+
+```{r mode-aterm-notes}
+note_table("aterm", "mode")
+```
+
+### Modes and covariance structures
+
+Only `quadrature` reads the covariance structures. It marginalizes one
+scalar random intercept at a time, so every block in the model must be
+a one-dimensional `us`, `diag`, or `homdiag` term.
+
+```{r mode-cov}
+grid_table("covstruct", "mode", rows = kind_of("covstruct"),
+           cols = kind_of("mode"))
+```
+
+```{r mode-cov-notes}
+note_table("covstruct", "mode")
+```
+
+## Model structures
+
+```{r struct-aterm}
+grid_table("structure", "aterm", rows = kind_of("structure"),
+           cols = kind_of("aterm"))
+```
+
+```{r struct-aterm-notes}
+note_table("structure", "aterm")
+```
+
+### Structures and post-fit methods
+
+Several post-fit methods are univariate-only. A multivariate fit
+supports `fitted()` and `predict()` and refuses the rest.
+
+```{r struct-method}
+grid_table("structure", "method", rows = kind_of("structure"),
+           cols = kind_of("method"))
+```
+
+```{r struct-method-notes}
+note_table("structure", "method")
+```
+
+## Predictor specials
+
+```{r special-mode}
+grid_table("special", "mode", rows = kind_of("special"),
+           cols = kind_of("mode"))
+```
+
+```{r special-notes}
+note_table("special", "mode")
+```
+
+The specials `mi()`, `gp()`, and `cs()` share a name with a covariance
+structure. The registry writes the predictor forms as `mi_pred()`,
+`gp_pred()`, and `cs_pred()` to keep them apart.
+
+## Formula grammar
+
+Three spellings have restrictions of their own.
+
+```{r grammar}
+spelling <- c(bar_crossing = "x * (1 | g)",
+              call_group = "(1 | factor(x))",
+              double_bar = "(x || g)")
+# Each grammar feature carries one rule that covers all its pairs.
+# Report the status and note that rule gives to most of them.
+gr <- do.call(rbind, lapply(names(spelling), function(feat) {
+  s <- frm_compat(feat)
+  s <- s[s$kind_b != "grammar", ]
+  k <- paste(s$status, s$note)
+  top <- s[k == names(sort(table(k), decreasing = TRUE))[1], ][1, ]
+  data.frame(Spelling = spelling[[feat]], Status = SYM[[top$status]],
+             Note = top$note, stringsAsFactors = FALSE)
+}))
+knitr::kable(gr, row.names = FALSE)
+```
+
+## Coverage
+
+```{r coverage}
+tb <- table(factor(compat$status, levels = names(SYM)))
+knitr::kable(data.frame(
+  Status = names(tb), Pairs = as.integer(tb),
+  Share = paste0(round(100 * as.integer(tb) / sum(tb)), "%")),
+  row.names = FALSE)
+```
+
+The untested share is the honest measure of what this registry does
+not yet know. It shrinks as pairs are tested, not as the code is
+trusted. To close one, add a test and change the rule in `R/compat.R`.
