@@ -522,7 +522,7 @@ hyp_par_cov <- function(fit) {
          n_outer = length(fit$opt$par))
   } else {
     Q <- sdr_of(fit)$jointPrecision
-    Vall <- solve(Q)
+    Vall <- solve_joint_precision(Q)
     rn <- rownames(Q)
     keep <- which(rn %in% comps)
     vo <- hyp_vals_only(fit)

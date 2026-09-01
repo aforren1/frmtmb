@@ -289,7 +289,7 @@ frmtmb_compat_rules_tbl <- function() {
   r("trunc()", "group:cdf", "works",
     "Supported through the whole surface: the likelihood, fitted(), predict(), simulate(), and residuals().")
   r("cens()", "group:cdf_continuous", "works",
-    "Supported through the whole surface except one-step-ahead residuals; see the residuals_osa rule.")
+    "Supported through the whole surface; one-step-ahead residuals cover the uncensored rows only, see the residuals_osa rule.")
   r("cens()", "poisson", "refused",
     "Refused: censoring is not supported for discrete families yet, even though poisson carries a CDF.")
   r("cens()", "group:discrete", "refused",
@@ -491,10 +491,10 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: this family has no simulator yet.")
   r("residuals_osa", "kind:family", "conditional",
     "One-step-ahead residuals need the family to register its observation through OBS().")
-  r("residuals_osa", "group:ordinal", "broken",
-    "Broken: residuals(type = \"osa\") on an ordinal fit stops inside the OSA machinery with 'comparison (==) is possible only for atomic and list types' rather than refusing cleanly.")
-  r("residuals_osa", "cens()", "broken",
-    "BROKEN. The default method stops with a singular Lapack system, and oneStepGeneric returns NaN for every censored row after a stream of integration errors. There is no guard. Do not request one-step-ahead residuals for a censored fit.")
+  r("residuals_osa", "group:ordinal", "works",
+    "oneStepGeneric over the discrete support 1..K; the result is a randomized quantile residual and matches the analytic one to 1e-13.")
+  r("residuals_osa", "cens()", "conditional",
+    "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused.")
   r("residuals_osa", "trunc()", "conditional",
     "Supported for constant truncation bounds. Row-varying bounds are refused, because the one-step-ahead transform is not defined across changing support.")
   r("residuals_osa", "weights()", "conditional",

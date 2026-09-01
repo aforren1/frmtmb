@@ -18,15 +18,16 @@
 
 \item{osa_method}{Method for \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}; defaults to
 \code{"fullGaussian"} for gaussian models and \code{"oneStepGeneric"}
-otherwise. A truncated response always uses \code{"oneStepGeneric"}
-(a truncated gaussian is not gaussian) with the integration domain
-and discrete support taken from the \code{trunc()} bounds, which must
-then be the same for every row.}
+otherwise. A truncated, censored or ordinal response always uses
+\code{"oneStepGeneric"} (a truncated gaussian is not gaussian) with the
+integration domain and discrete support taken from the \code{trunc()}
+bounds or the censoring window, which must then be the same for
+every row.}
 
 \item{...}{For \code{type = "osa"}: passed to \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}.}
 }
 \value{
-A numeric vector.
+A numeric vector, \code{NA} on censored rows.
 }
 \description{
 \code{"osa"} gives one-step-ahead (conditional quantile) residuals via
@@ -39,4 +40,17 @@ On a \code{trunc()}ed response, \code{"response"} residuals are taken against
 the truncated mean \verb{E[Y | lb <= Y <= ub]}. \code{"pearson"} divides by the
 untruncated family variance, so it is conservative there. \code{"osa"}
 builds its conditional CDF on \verb{[lb, ub]} (see \code{osa_method}).
+
+On a \code{cens()}ed response, \code{"osa"} returns \code{NA} for every censored
+row: what is observed there is an event (\code{Y > c}), not a value, and
+an event has no one-step CDF. The uncensored rows get residuals
+conditional on the censoring events, which needs one censoring point
+per side (type-I censoring); row-varying censoring times and interval
+censoring are refused. \code{dharma_residuals()} is not a substitute on a
+censored fit, because \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}} draws the latent
+uncensored response and those draws are not comparable with the
+observed censored values.
+
+Ordinal responses use \code{"oneStepGeneric"} over the discrete support
+\verb{1..K}, which makes the residuals randomized quantile residuals.
 }

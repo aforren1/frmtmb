@@ -216,6 +216,54 @@ tests/testthat/test-aliased-grouping.R.
 - `t2()` matches mgcv; `te()`/`ti()` refused clearly. [glmmTMB#1082]
 - Discrete truncation normalizes with F(lb-1). [brms#1903, #1923]
 
+## OSA and inference surface (2026-09-01)
+
+From the compatibility-registry probes and the grammar fuzzer.
+Regression tests in tests/testthat/test-osa-inference.R.
+
+### Fixed
+
+- `cens()` x `residuals(type = "osa")`. A censored row contributes a
+  probability MASS, and in the tape that contribution does not depend
+  on the observation at all, so `fullGaussian` inverted an exactly
+  singular Hessian block and `oneStepGeneric` integrated a flat slice
+  to infinity and returned NaN. What is well defined is the CDF of the
+  UNCENSORED rows conditional on the censoring events, so those rows go
+  in `subset` and the censored rows in `conditional`; an uncensored row
+  is a draw that landed inside the censoring window, so its integration
+  domain is that window, exactly as a `trunc()` fit's is. Censored rows
+  return NA. Verified against the analytic conditional PIT
+  `qnorm(F(y) / F(c))` to 7e-09 and by KS uniformity. Row-varying
+  censoring points (the distribution of an uncensored response is then
+  not identified without a model for the censoring process) and
+  interval censoring are refused with a message that also says why
+  `dharma_residuals()` is not the fallback: `simulate()` draws the
+  LATENT uncensored response, so its draws are not comparable with the
+  observed censored values.
+- Ordinal x `residuals(type = "osa")`. `oneStepPredict` re-tapes with
+  the response promoted to a parameter, and the ordinal lpdfs index and
+  compare with it (`y == K`, `tau[pmin(y, K1)]`), which no advector
+  supports. The four ordinal families now carry an OSA branch that
+  selects the category with a Lagrange basis over 1..K - exact in
+  floating point at integer y - and applies the `@keep` data-term
+  indicator that RTMB's own densities get from `dGenericOSA`. The
+  residuals match the analytic randomized quantile residual to 4e-14
+  and are uniform under KS for cumulative, sratio, cratio and acat,
+  with or without random effects.
+- Raw LAPACK error from `solve(jointPrecision)` under REML or
+  `profile = TRUE`. See fuzz finding N4.
+
+### Open - medium
+
+- OSA under `cens()` covers the uncensored rows only. A residual for a
+  censored row would have to be a randomized quantile inside the
+  censoring interval, which `oneStepPredict` cannot produce; doing it
+  would mean computing the conditional CDF at the censoring point
+  outside TMB.
+- `dharma_residuals()` on a censored fit compares latent draws with
+  observed censored values and is not valid. It neither warns nor
+  refuses.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

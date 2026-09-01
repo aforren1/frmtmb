@@ -822,6 +822,72 @@ fitted.frmtmb_fit <- function(object, ...) {
   napred(object, out)
 }
 
+# Number of ordinal categories, from the threshold vector rather than
+# from the data: the top category may be unobserved.
+ordinal_ncat <- function(fit) {
+  raw <- fit$estimates[["tau_raw"]]
+  if (is.null(raw)) {
+    rspec <- uni_resp(fit, "residuals()")
+    return(max(fit$frame$y[[rspec$resp_name]]))
+  }
+  length(raw) + 1L
+}
+
+# OSA integration window and row split for a censored response, or NULL
+# when nothing is censored.
+#
+# A censored row contributes a probability MASS: on the tape its
+# likelihood no longer depends on the observation, so oneStepPredict
+# either inverts a singular system (fullGaussian) or integrates a flat
+# slice to infinity (oneStepGeneric). Both are real: the "observation"
+# on such a row is an event, not a value, and has no one-step CDF.
+# What IS well defined is the CDF of the uncensored rows conditional on
+# the censoring events, which is what subset/conditional buys. Under
+# type-I censoring (one censoring point per side) an uncensored row is
+# exactly a draw that landed inside the window, so its PIT renormalizes
+# on that window just as a trunc() fit's does.
+osa_cens_domain <- function(av, y) {
+  cen <- av[["cens"]]
+  if (is.null(cen) || !any(cen != 0)) return(NULL)
+  if (any(cen == 2)) {
+    stop("residuals(type = \"osa\") does not support interval censoring ",
+         "(cens code 2): an interval-censored row observes an event, not ",
+         "a value, and the uncensored rows' observation window is then ",
+         "not a single interval", call. = FALSE)
+  }
+  i_obs <- which(cen == 0)
+  if (!length(i_obs)) {
+    stop("residuals(type = \"osa\") needs at least one uncensored ",
+         "observation", call. = FALSE)
+  }
+  point <- function(idx, side) {
+    p <- unique(y[idx])
+    if (length(p) > 1L) {
+      stop("residuals(type = \"osa\") on a cens() fit needs one ",
+           side, "-censoring point shared by every censored row ",
+           "(type-I censoring); got ", length(p), " distinct points. ",
+           "With row-varying censoring times the distribution of an ",
+           "uncensored response is not identified without a model for ",
+           "the censoring process. dharma_residuals() is not an ",
+           "alternative: simulate() draws the LATENT uncensored ",
+           "response, so its draws are not comparable with the ",
+           "observed censored values", call. = FALSE)
+    }
+    p
+  }
+  i_r <- which(cen == 1)
+  i_l <- which(cen == -1)
+  hi <- if (length(i_r)) point(i_r, "right") else Inf
+  lo <- if (length(i_l)) point(i_l, "left") else -Inf
+  if (any(y[i_obs] < lo) || any(y[i_obs] > hi)) {
+    stop("residuals(type = \"osa\") on a cens() fit found uncensored ",
+         "responses outside the censoring window [", lo, ", ", hi,
+         "]; the censoring is not type-I and the one-step CDF has no ",
+         "well-defined domain", call. = FALSE)
+  }
+  list(lo = lo, hi = hi, subset = i_obs, conditional = c(i_l, i_r))
+}
+
 #' Residuals from a frmtmb fit
 #'
 #' `"osa"` gives one-step-ahead (conditional quantile) residuals via
@@ -834,16 +900,30 @@ fitted.frmtmb_fit <- function(object, ...) {
 #' untruncated family variance, so it is conservative there. `"osa"`
 #' builds its conditional CDF on `[lb, ub]` (see `osa_method`).
 #'
+#' On a `cens()`ed response, `"osa"` returns `NA` for every censored
+#' row: what is observed there is an event (`Y > c`), not a value, and
+#' an event has no one-step CDF. The uncensored rows get residuals
+#' conditional on the censoring events, which needs one censoring point
+#' per side (type-I censoring); row-varying censoring times and interval
+#' censoring are refused. `dharma_residuals()` is not a substitute on a
+#' censored fit, because [simulate.frmtmb_fit()] draws the latent
+#' uncensored response and those draws are not comparable with the
+#' observed censored values.
+#'
+#' Ordinal responses use `"oneStepGeneric"` over the discrete support
+#' `1..K`, which makes the residuals randomized quantile residuals.
+#'
 #' @param object A `frmtmb_fit`.
 #' @param type `"response"`, `"pearson"`, or `"osa"`.
 #' @param osa_method Method for [TMB::oneStepPredict()]; defaults to
 #'   `"fullGaussian"` for gaussian models and `"oneStepGeneric"`
-#'   otherwise. A truncated response always uses `"oneStepGeneric"`
-#'   (a truncated gaussian is not gaussian) with the integration domain
-#'   and discrete support taken from the `trunc()` bounds, which must
-#'   then be the same for every row.
+#'   otherwise. A truncated, censored or ordinal response always uses
+#'   `"oneStepGeneric"` (a truncated gaussian is not gaussian) with the
+#'   integration domain and discrete support taken from the `trunc()`
+#'   bounds or the censoring window, which must then be the same for
+#'   every row.
 #' @param ... For `type = "osa"`: passed to [TMB::oneStepPredict()].
-#' @return A numeric vector.
+#' @return A numeric vector, `NA` on censored rows.
 #' @export
 residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
                                                   "osa"),
@@ -852,21 +932,35 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
   rspec <- uni_resp(object, "residuals()")
   fam <- rspec$family
   if (type == "osa") {
-    tb <- trunc_bounds(object$frame$aterm_values[[rspec$resp_name]],
-                       object$frame$n_obs)
+    av0 <- object$frame$aterm_values[[rspec$resp_name]]
+    tb <- trunc_bounds(av0, object$frame$n_obs)
+    cb <- osa_cens_domain(av0, object$frame$y[[rspec$resp_name]])
+    ordinal <- identical(fam$type, "ordinal")
     method <- osa_method %||%
-      if (!is.null(tb)) "oneStepGeneric"
+      if (!is.null(tb) || !is.null(cb) || ordinal) "oneStepGeneric"
       else if (identical(fam$family, "gaussian")) "fullGaussian"
       else "oneStepGeneric"
+    if (!is.null(cb) && !identical(method, "oneStepGeneric")) {
+      # a censored row's contribution is a probability MASS, so its
+      # observation drops out of the tape; every method that
+      # differentiates the observation hits a singular system there
+      stop("residuals(type = \"osa\") on a cens() fit needs ",
+           "osa_method = \"oneStepGeneric\"", call. = FALSE)
+    }
     args <- list(obj = object$obj, observation.name = ".frm_obs",
                  method = method, trace = FALSE, ...)
     if (method == "oneStepGeneric") {
-      args$discrete <- identical(fam$type, "discrete")
-      if (is.null(tb)) {
-        if (args$discrete && is.null(args[["range"]])) {
-          args$range <- c(0, Inf)
+      args$discrete <- identical(fam$type, "discrete") || ordinal
+      if (ordinal) {
+        # the taped lpdf is a proper pmf on 1..K once the category is
+        # selected arithmetically (see ord_cat_sel)
+        if (is.null(args[["discreteSupport"]])) {
+          args$discreteSupport <- seq_len(ordinal_ncat(object))
         }
-      } else {
+      }
+      lo <- -Inf
+      hi <- Inf
+      if (!is.null(tb)) {
         # The taped density integrates to 1 only over [lb, ub], so the
         # conditional CDF must be built on that domain: over the whole
         # line it sums to 1/P(lb <= Y <= ub) and the residuals come out
@@ -878,6 +972,17 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
                "the same for every observation; got row-varying bounds",
                call. = FALSE)
         }
+      }
+      if (!is.null(cb)) {
+        # An uncensored row is only observed because it fell inside the
+        # censoring window, so its PIT is F(y) / P(window) - the same
+        # renormalization trunc() needs, on the window's domain.
+        lo <- max(lo, cb$lo)
+        hi <- min(hi, cb$hi)
+        args$subset <- cb$subset
+        args$conditional <- cb$conditional
+      }
+      if (!is.null(tb) || !is.null(cb)) {
         if (is.null(args[["range"]])) args$range <- c(lo, hi)
         if (args$discrete) {
           if (is.null(args[["discreteSupport"]]) && is.finite(hi)) {
@@ -889,10 +994,20 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
           # reproduces the analytic PIT
           args$splineApprox <- FALSE
         }
+      } else if (args$discrete && is.null(args[["range"]]) && !ordinal) {
+        args$range <- c(0, Inf)
       }
     }
     osa <- do.call(RTMB::oneStepPredict, args)
-    return(napred(object, osa$residual))
+    r <- osa$residual
+    if (!is.null(cb)) {
+      # censored rows carry no residual of their own; they enter only as
+      # the conditioning event
+      full <- rep(NA_real_, object$frame$n_obs)
+      full[cb$subset] <- r
+      r <- full
+    }
+    return(napred(object, r))
   }
   dp <- eval_dpars(object)[[rspec$resp_name]]
   av <- object$frame$aterm_values[[rspec$resp_name]]
