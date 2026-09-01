@@ -103,11 +103,96 @@ count_y <- function(name) {
   }
 }
 
+# P(a < Z < b) for standard normal bounds. pnorm(b) - pnorm(a) loses
+# every significant digit when both bounds sit in the upper tail, which
+# is exactly where truncated means are computed; the mirrored form keeps
+# full precision there.
+pnorm_diff <- function(a, b) {
+  ifelse(a > 0,
+         stats::pnorm(-a) - stats::pnorm(-b),
+         stats::pnorm(b) - stats::pnorm(a))
+}
+
 # Residual SD including a known se() component (meta-analysis): se()
 # alone replaces sigma; se(x, sigma = TRUE) adds them in quadrature.
 resid_sd <- function(sigma, aterms) {
   if (is.null(aterms$se)) return(sigma)
   if (isTRUE(aterms$se_sigma)) sqrt(sigma^2 + aterms$se^2) else aterms$se
+}
+
+# trunc() bounds from an aterm-value list as a pair of length-n numeric
+# vectors, or NULL when the response is not truncated. An absent bound
+# is the family's unbounded default; the per-family truncated means all
+# handle the infinities.
+trunc_bounds <- function(aterms, n) {
+  lb <- aterms[["trunc_lb"]]
+  ub <- aterms[["trunc_ub"]]
+  if (is.null(lb) && is.null(ub)) return(NULL)
+  list(lb = rep(lb %||% -Inf, length.out = n),
+       ub = rep(ub %||% Inf, length.out = n))
+}
+
+# Expected response at the given dpar values. On a truncated response
+# this is E[Y | lb <= Y <= ub], the quantity fitted(), residuals() and
+# predict(type = "response") report; per-dpar predictions stay
+# untruncated because they describe the latent parameter.
+response_mean <- function(fam, dpars, aterms) {
+  mu <- if (!is.null(fam$post$mean_fn)) {
+    fam$post$mean_fn(dpars, aterms)
+  } else {
+    dpars$mu
+  }
+  tb <- trunc_bounds(aterms, length(mu))
+  if (is.null(tb)) return(mu)
+  tmf <- fam$post$trunc_mean_fn
+  if (is.null(tmf)) {
+    stop("Family '", fam$family, "' has no truncated mean; fitted(), ",
+         "residuals() and predict(type = \"response\") would report the ",
+         "untruncated mean", call. = FALSE)
+  }
+  tmf(dpars, aterms, tb$lb, tb$ub)
+}
+
+# Per-observation subset of dpar / aterm vectors, for resampling the
+# rows a rejection step has not accepted yet.
+subset_obs <- function(x, idx, n) {
+  lapply(x, function(v) {
+    if (is.numeric(v) && length(v) %in% c(1L, n)) {
+      rep(v, length.out = n)[idx]
+    } else {
+      v
+    }
+  })
+}
+
+# One simulated response vector, respecting trunc() bounds by rejection:
+# out-of-bounds draws are redrawn until every row is inside its own
+# interval. Bounds that exclude nearly all the family's mass never
+# converge, so the iteration cap reports the acceptance rate instead of
+# spinning.
+sim_response <- function(fam, dpars, aterms, n, max_iter = 100L) {
+  y <- fam$sim(dpars, aterms, n)
+  tb <- trunc_bounds(aterms, n)
+  if (is.null(tb)) return(y)
+  drawn <- n
+  bad <- which(y < tb$lb | y > tb$ub)
+  it <- 0L
+  while (length(bad)) {
+    it <- it + 1L
+    if (it > max_iter) {
+      stop("trunc(): rejection sampling did not fill ", length(bad),
+           " of ", n, " rows in ", max_iter, " passes (acceptance rate ",
+           format((n - length(bad)) / drawn, digits = 2),
+           "). The bounds exclude nearly all of the fitted ",
+           "distribution's mass.", call. = FALSE)
+    }
+    drawn <- drawn + length(bad)
+    yb <- fam$sim(subset_obs(dpars, bad, n), subset_obs(aterms, bad, n),
+                  length(bad))
+    y[bad] <- yb
+    bad <- bad[yb < tb$lb[bad] | yb > tb$ub[bad]]
+  }
+  y
 }
 
 fam_gaussian <- function(link = "identity") {
@@ -128,7 +213,15 @@ fam_gaussian <- function(link = "identity") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) resid_sd(dpars$sigma, aterms)^2
+      var_fn = function(dpars, aterms) resid_sd(dpars$sigma, aterms)^2,
+      # mu + sigma * (phi(a) - phi(b)) / (Phi(b) - Phi(a))
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        s <- resid_sd(dpars$sigma, aterms)
+        a <- (lb - dpars$mu) / s
+        b <- (ub - dpars$mu) / s
+        dpars$mu + s * (stats::dnorm(a) - stats::dnorm(b)) /
+          pnorm_diff(a, b)
+      }
     ),
     sim = function(dpars, aterms, n) {
       stats::rnorm(n, dpars$mu, resid_sd(dpars$sigma, aterms))
@@ -152,7 +245,15 @@ fam_poisson <- function(link = "log") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu
+      var_fn = function(dpars, aterms) dpars$mu,
+      # sum_{lb}^{ub} y dpois(y) = mu * (F(ub-1) - F(lb-2)), over the
+      # same F(ub) - F(lb-1) normalizer the likelihood uses: the
+      # inclusive lower bound keeps its own mass (brms#1903)
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        mu <- dpars$mu
+        mu * (stats::ppois(ub - 1, mu) - stats::ppois(lb - 2, mu)) /
+          (stats::ppois(ub, mu) - stats::ppois(lb - 1, mu))
+      }
     ),
     sim = function(dpars, aterms, n) stats::rpois(n, dpars$mu)
   )
@@ -244,6 +345,15 @@ fam_lognormal <- function(link = "identity") {
       },
       var_fn = function(dpars, aterms) {
         (exp(dpars$sigma^2) - 1) * exp(2 * dpars$mu + dpars$sigma^2)
+      },
+      # E[Y] * (Phi(b - sigma) - Phi(a - sigma)) / (Phi(b) - Phi(a)),
+      # a, b the log-scale standardized bounds
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        sg <- dpars$sigma
+        a <- (log(pmax(lb, 0)) - dpars$mu) / sg
+        b <- (log(ub) - dpars$mu) / sg
+        exp(dpars$mu + sg^2 / 2) * pnorm_diff(a - sg, b - sg) /
+          pnorm_diff(a, b)
       }
     ),
     sim = function(dpars, aterms, n) stats::rlnorm(n, dpars$mu, dpars$sigma)
@@ -568,7 +678,17 @@ fam_exponential <- function(link = "log") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu^2
+      var_fn = function(dpars, aterms) dpars$mu^2,
+      # int_lb^ub y f(y) dy = (lb + mu) e^{-lb/mu} - (ub + mu) e^{-ub/mu}
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        mu <- dpars$mu
+        lo <- pmax(lb, 0)
+        el <- exp(-lo / mu)
+        eu <- exp(-ub / mu)
+        # Inf * 0 at an absent upper bound; the term is zero there
+        hi_term <- ifelse(is.finite(ub), (ub + mu) * eu, 0)
+        ((lo + mu) * el - hi_term) / (el - eu)
+      }
     ),
     sim = function(dpars, aterms, n) stats::rexp(n, 1 / dpars$mu)
   )
@@ -600,6 +720,17 @@ fam_weibull <- function(link = "log") {
         g1 <- exp(lgamma(1 + 1 / dpars$shape))
         g2 <- exp(lgamma(1 + 2 / dpars$shape))
         dpars$mu^2 * (g2 / g1^2 - 1)
+      },
+      # int_lb^ub y f(y) dy = scale * gamma(1 + 1/k) * (P(1 + 1/k, zu) -
+      # P(1 + 1/k, zl)) with z = (y/scale)^k; scale * gamma(1 + 1/k) = mu
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        k <- dpars$shape
+        sc <- dpars$mu / exp(lgamma(1 + 1 / k))
+        zl <- (pmax(lb, 0) / sc)^k
+        zu <- (ub / sc)^k
+        dpars$mu * (stats::pgamma(zu, 1 + 1 / k) -
+                      stats::pgamma(zl, 1 + 1 / k)) /
+          (exp(-zl) - exp(-zu))
       }
     ),
     sim = function(dpars, aterms, n) {
@@ -910,7 +1041,33 @@ fam_inverse_gaussian <- function(link = "log") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu^3 / dpars$shape
+      var_fn = function(dpars, aterms) dpars$mu^3 / dpars$shape,
+      # Partial moment (Jorgensen): E[Y 1{Y <= x}] =
+      # mu (Phi(z1) - e^{2 lambda / mu} Phi(-z2)), with the CDF the same
+      # pair added instead of subtracted; the exponential factor
+      # overflows on its own, so it rides in log space
+      trunc_mean_fn = function(dpars, aterms, lb, ub) {
+        mu <- dpars$mu
+        lam <- dpars$shape
+        part <- function(x) {
+          r <- sqrt(lam / x)
+          mu * (stats::pnorm(r * (x / mu - 1)) -
+                  exp(2 * lam / mu +
+                        stats::pnorm(-r * (x / mu + 1), log.p = TRUE)))
+        }
+        cdf <- function(x) {
+          r <- sqrt(lam / x)
+          stats::pnorm(r * (x / mu - 1)) +
+            exp(2 * lam / mu +
+                  stats::pnorm(-r * (x / mu + 1), log.p = TRUE))
+        }
+        lo <- pmax(lb, 0)
+        pl <- ifelse(lo > 0, part(lo), 0)
+        fl <- ifelse(lo > 0, cdf(lo), 0)
+        pu <- ifelse(is.finite(ub), part(ub), mu)
+        fu <- ifelse(is.finite(ub), cdf(ub), 1)
+        (pu - pl) / (fu - fl)
+      }
     ),
     sim = function(dpars, aterms, n) {
       RTMBdist::rinvgauss(n, mean = dpars$mu, shape = dpars$shape)

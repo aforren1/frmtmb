@@ -128,6 +128,19 @@ tests/testthat/test-aliased-grouping.R.
   bar at the frame column the expression already produced; the original
   expression is kept for labels and for newdata prediction, and `:`
   / `/` groupings keep their reformulas expansion. [lme4#464, #156]
+- Truncation reached only the likelihood, never the post-fit surface.
+  `fitted()`, `predict(type = "response")` and `residuals()` now report
+  E[Y | lb <= Y <= ub] (closed forms for every family with an `lcdf`:
+  gaussian, lognormal, poisson, exponential, weibull, inverse.gaussian;
+  the poisson form reuses the objective's F(lb-1) convention), and
+  `simulate()`/`posterior_predict()` reject out-of-bounds draws instead
+  of sampling the untruncated distribution (23% of draws used to land
+  outside [lb, ub] on a Poisson trunc(2, 6) fit, which silently
+  invalidated DHARMa and pp_check). Dpar-scale predictions stay
+  untruncated on purpose. `residuals(type = "osa")` was wrong too: the
+  taped density integrates to 1 only over [lb, ub], so the conditional
+  CDF is now built on that domain (and never with `fullGaussian`, since
+  a truncated gaussian is not gaussian). [brms#1923, #1903]
 
 ### Mitigated
 
@@ -141,18 +154,6 @@ tests/testthat/test-aliased-grouping.R.
   correct spelling for irregular spacing. Non-integer labels stay
   silent, since position is then the only available meaning.
   [glmmTMB#1278]
-
-### Open - high priority
-
-1. Truncation is ignored by every post-fit mean: the likelihood
-   normalizes correctly with F(lb-1), but `fitted()`, `predict(type =
-   "response")` and `residuals()` return the *untruncated* family mean,
-   and `simulate()` draws from the untruncated distribution (23% of
-   draws land outside [lb, ub] on a Poisson trunc(2, 6) fit). brms is
-   wrong here too but only by an off-by-one; we omit the correction
-   entirely. Needs E[Y | lb <= Y <= ub] per family (only gaussian,
-   lognormal and poisson accept trunc()) plus rejection sampling in
-   `simulate()`. [brms#1923, #1903]
 
 ### Open - medium
 

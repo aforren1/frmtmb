@@ -448,7 +448,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         !is.null(av$trunc_ub)) {
       if (is.null(resp$family$lcdf)) {
         stop("cens()/trunc() need a family with a CDF (currently: ",
-             "gaussian, lognormal, poisson)", call. = FALSE)
+             "gaussian, lognormal, poisson, exponential, weibull, ",
+             "inverse.gaussian)", call. = FALSE)
       }
       if (!is.null(av$cens) && identical(resp$family$type, "discrete")) {
         stop("cens() is not supported for discrete families yet ",
