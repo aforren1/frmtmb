@@ -351,12 +351,29 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     ctl_opt$optCtrl <- vb_trace_ctrl(control$optCtrl, control$optimizer)
   }
   if (is.null(integrate)) {
-    opt <- nl_start_context(spec, start,
-                            optimize_obj(obj, ctl_opt, bounds, par_units,
-                                         verbose = vb))
+    opt <- fit_error_context(
+      spec, start, REML, control, quadrature, priors,
+      tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb),
+               error = function(e) {
+                 rs <- fit_recovery_starts(obj, nll, template, random,
+                                           frame$map, frame, start,
+                                           ctl_opt, bounds, par_units)
+                 for (lbl in names(rs)) {
+                   if (vb) {
+                     vb_say("optimizer failed (", conditionMessage(e),
+                            "); restarting from ", lbl)
+                   }
+                   op <- tryCatch(optimize_obj(obj, ctl_opt, bounds,
+                                               par_units, verbose = vb,
+                                               start_par = rs[[lbl]]),
+                                  error = function(e2) NULL)
+                   if (!is.null(op)) return(op)
+                 }
+                 stop(e)
+               }))
   } else {
     qf <- quad_fit(nll, template, random, frame$map, integrate, lap_obj,
-                   ctl_opt, bounds, par_units, vb)
+                   ctl_opt, bounds, par_units, frame, vb)
     obj <- qf$obj
     opt <- qf$opt
   }
@@ -469,8 +486,19 @@ quad_keep_best <- function(best, a) {
 #    one. Each candidate costs a tape, so they are tried in order and
 #    the first stationary result wins; if none is stationary the
 #    candidate with the lowest objective does.
+#
+# 3. Displace the widths when neither anchor holds. What the transform
+#    freezes is a width per random effect, so a calibration that expires
+#    within a step or two is one whose widths are wrong, and the
+#    parameter that sets them is theta. Half a log-SD either way, then a
+#    whole one, is enough where displacement helps at all - it recovers
+#    single-block fits whose every un-displaced calibration dies inside
+#    the optimizer. It cannot recover a nested block, where the outer
+#    integrand is the inner rescaling's output and the objective is NaN
+#    before the optimizer takes a step.
 quad_fit <- function(nll, template, random, map, integrate, lap_obj,
-                     control, bounds, par_units, vb = 0L, rounds = 3L) {
+                     control, bounds, par_units, frame = NULL, vb = 0L,
+                     rounds = 3L) {
   if (vb) t0 <- vb_now()
   lap_opt <- optimize_obj(lap_obj, control, bounds, par_units)
   if (vb) vb_stage("quadrature warm start", t0, vb_opt_detail(lap_opt))
@@ -505,34 +533,88 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
     list(obj = o, opt = op, stationary = isTRUE(g < control$grad_tol))
   }
 
+  # Calibration points, in the order they are tried. The Laplace optimum
+  # first; then the untouched template, because the anchor itself can be
+  # the problem (the Laplace optimum can sit on a singular variance
+  # component); then the anchor with the integrand widths displaced.
+  lap_tpl <- anchor(lap_opt$par)
+  seeds <- list(lap_tpl, template)
+  if (length(lap_tpl$theta)) {
+    seeds <- c(seeds, lapply(c(-0.5, 0.5, -1), function(s) {
+      tpl <- lap_tpl
+      tpl$theta <- tpl$theta + s
+      tpl
+    }))
+  }
+
   best <- NULL
-  tpl <- anchor(lap_opt$par)
-  cold_left <- TRUE
-  for (i in seq_len(rounds)) {
-    a <- attempt(tpl)
-    best <- quad_keep_best(best, a)
-    if (!is.null(a) && isTRUE(a$stationary)) break
-    nxt <- if (!is.null(a) && !is.null(a$retry)) {
+  for (seed in seeds) {
+    tpl <- seed
+    for (i in seq_len(rounds)) {
+      a <- attempt(tpl)
+      best <- quad_keep_best(best, a)
+      if (is.null(a) || isTRUE(a$stationary) || is.null(a$retry)) break
       # the frozen rescaling expired where the optimizer walked to:
       # tape again at the best point it managed
-      anchor(a$retry)
-    } else if (cold_left) {
-      # the anchor itself is the problem (the Laplace optimum can sit
-      # on a singular variance component): the untouched template is a
-      # different, sometimes better, calibration point
-      cold_left <- FALSE
-      template
+      tpl <- anchor(a$retry)
     }
-    if (is.null(nxt)) break
-    tpl <- nxt
+    if (!is.null(best) && isTRUE(best$stationary)) break
   }
   if (is.null(best)) {
-    stop("quadrature = TRUE could not marginalize this model: the ",
-         "Gauss-Kronrod objective broke down for this likelihood ",
-         "(a non-finite objective or gradient). Refit with ",
-         "quadrature = FALSE", call. = FALSE)
+    stop(quad_breakdown_message(frame, lap_tpl$theta), call. = FALSE)
   }
   best[c("obj", "opt")]
+}
+
+# The refusal message when every calibration point breaks down. A bare
+# "the objective was non-finite" tells a user nothing they can act on,
+# and the two shapes this failure takes want different answers, so name
+# whichever applies: an iterated integral over nested blocks (the outer
+# integrand is the inner rescaling's output, and no calibration of the
+# outer one can repair that), and a variance component so narrow that
+# the transform's unit-step finite differences cannot measure it.
+quad_breakdown_message <- function(frame, theta) {
+  blocks <- frame$re_blocks %||% list()
+  desc <- function(b) paste0("'", b$term_label, "' (", b$n_levels,
+                             " levels)")
+  sds <- vapply(blocks, function(b) {
+    v <- tryCatch(covstruct_registry[[b$covstruct]]$vcov(
+      theta[b$theta_idx], b), error = function(e) NULL)
+    if (is.null(v)) NA_real_ else sqrt(v[1L, 1L])
+  }, 1)
+  why <- character(0)
+  if (length(blocks) > 1L) {
+    why <- c(why, paste0("the model asks for an iterated integral over ",
+                         length(blocks), " nested blocks (",
+                         paste(vapply(blocks, desc, ""), collapse = ", "),
+                         ") on ", frame$n_obs, " observations, and the ",
+                         "outer integrand is itself the frozen ",
+                         "rescaling of the inner one"))
+  }
+  sing <- which(is.finite(sds) & sds < 1e-3)
+  if (length(sing)) {
+    why <- c(why, paste0("the Laplace optimum leaves ",
+                         paste(vapply(blocks[sing], desc, ""),
+                               collapse = ", "),
+                         " on a singular variance component (sd ",
+                         paste(format(sds[sing], digits = 2),
+                               collapse = ", "),
+                         "), which the transform measures by finite ",
+                         "differences with a step of 1"))
+  }
+  if (!length(why)) {
+    why <- paste0("the calibration expired on ",
+                  paste(vapply(blocks, desc, ""), collapse = ", "),
+                  " at every point tried")
+  }
+  paste0("quadrature = TRUE could not marginalize this model: the ",
+         "Gauss-Kronrod objective broke down (a non-finite objective ",
+         "or gradient) at every calibration point - the Laplace ",
+         "optimum, the best point the optimizer reached, the cold ",
+         "start, and the optimum with the integrand widths displaced. ",
+         "Here ", paste(why, collapse = "; "),
+         ". Refit with quadrature = FALSE: the Laplace approximation ",
+         "fits this model (it is what the warm start above already did)")
 }
 
 # The joint precision is the covariance source for parameters outside
@@ -757,9 +839,107 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
   )
 }
 
+# A parameter list flattened into the outer vector the optimizer
+# iterates on: the components of names(obj$par), in that order, with
+# the dpars that se() maps to constants removed. Same loop
+# autoscale_units() walks, and the inverse of the one that fills
+# `estimates` from opt$par.
+outer_from_template <- function(tpl, obj, frame) {
+  pn <- names(obj$par)
+  out <- numeric(0)
+  for (cp in unique(pn)) {
+    v <- tpl[[cp]]
+    if (is.null(v)) return(NULL)
+    if (cp == "betad" && length(frame$betad_fixed_idx)) {
+      v <- v[-frame$betad_fixed_idx]
+    }
+    out <- c(out, unname(v))
+  }
+  if (length(out) != length(pn)) return(NULL)
+  stats::setNames(out, pn)
+}
+
+# Starting points to try when the optimizer could not get through at
+# all. Both only ever run after a failure, so a healthy fit pays
+# nothing.
+#
+# The start itself can be unusable. The autoscale pre-fit hands back a
+# warm start, and when the standardized fit ran a correlated block to a
+# perfect correlation the mapped-back template has an infinite
+# objective and a NaN gradient - nlminb dies before its first step,
+# while the cold start make_start() would have built fits the same
+# model. So offer the cold start whenever the fit did not begin there.
+#
+# Or the path from a usable start crosses a hole. Under profile = TRUE
+# beta moves into the inner problem, and the outer objective left
+# behind can be undefined where the optimizer must pass (a Gamma shape
+# intercept on its way to exp(34) does it). The plain Laplace objective
+# over the same model - the one every other mode optimizes - has no
+# such barrier, so its optimum is a starting point on the far side of
+# the hole. Same recipe quad_fit() uses to calibrate the Gauss-Kronrod
+# tape at the Laplace optimum.
+fit_recovery_starts <- function(obj, nll, template, random, map, frame,
+                                start, control, bounds, par_units) {
+  out <- list()
+  differs <- function(p) {
+    !is.null(p) && length(p) == length(obj$par) && all(is.finite(p)) &&
+      !isTRUE(all.equal(unname(as.numeric(p)), unname(as.numeric(obj$par))))
+  }
+  cold <- outer_from_template(make_start(frame, start), obj, frame)
+  if (differs(cold)) out[["the cold starting values"]] <- cold
+  if (isTRUE(control$profile)) {
+    plain <- tryCatch({
+      o <- RTMB::MakeADFun(nll, template, random = random, map = map,
+                           silent = TRUE)
+      # bounds and units are resolved for the profiled parameterization,
+      # which has no beta in it; this fit only supplies a starting point
+      # and the real optimization below applies both
+      op <- optimize_obj(o, control)
+      outer_from_template(o$env$parList(op$par), obj, frame)
+    }, error = function(e) NULL)
+    if (differs(plain)) out[["the Laplace optimum"]] <- plain
+  }
+  # a start outside the model's bounds is rejected by the optimizer
+  lapply(out, function(p) pmin(pmax(p, bounds$lower), bounds$upper))
+}
+
+# Second chance after the optimizer aborts the whole fit.
+#
+# nlminb hands RTMB a step that lands outside the region where the
+# likelihood is defined, RTMB raises "NA/NaN gradient evaluation" from
+# inside the optimizer, and the fit dies - on models that fit perfectly
+# well from a different starting point (an ar1 block under
+# profile = TRUE, a wide smooth under autoscale). The tape is not
+# broken: it still holds the best point the line search reached, and
+# restarting there steps around the hole. quad_fit() already does
+# exactly this when a frozen Gauss-Kronrod rescaling expires the same
+# way. One retry only, and only from a point the optimizer preferred to
+# where it started: a second failure is an objective that is genuinely
+# undefined nearby, not an unlucky step.
+optimizer_from_best <- function(obj, par, e, optimizer, bounds, control,
+                                par_units, verbose = 0L) {
+  pb <- obj$env$last.par.best
+  # last.par.best spans the joint vector when the model has random
+  # effects (profiled parameters included); lfixed() selects the outer
+  # block the optimizer actually iterates on
+  p0 <- if (is.null(pb)) NULL else pb[obj$env$lfixed()]
+  if (is.null(p0) || length(p0) != length(par) || anyNA(p0) ||
+      isTRUE(all.equal(unname(as.numeric(p0)), unname(as.numeric(par))))) {
+    stop(e)
+  }
+  if (verbose) {
+    vb_say("optimizer failed (", conditionMessage(e),
+           "); restarting from the best point it reached")
+  }
+  run_optimizer(optimizer, stats::setNames(as.numeric(p0), names(par)),
+                obj$fn, obj$gr, bounds$lower, bounds$upper,
+                control$optCtrl, par_units)
+}
+
 optimize_obj <- function(obj, control,
                          bounds = list(lower = -Inf, upper = Inf),
-                         par_units = NULL, verbose = 0L) {
+                         par_units = NULL, verbose = 0L,
+                         start_par = obj$par) {
   optimizer <- control$optimizer %||% "nlminb"
   # A model with no free outer parameters - every dpar pinned by a
   # constant and every design zero-column, e.g. y | trials(n) ~ 0 - is
@@ -773,18 +953,22 @@ optimize_obj <- function(obj, control,
                 convergence = 0L,
                 message = "no free parameters (degenerate model)"))
   }
+  run <- function(par) {
+    tryCatch(run_optimizer(optimizer, par, obj$fn, obj$gr,
+                           bounds$lower, bounds$upper, control$optCtrl,
+                           par_units),
+             error = function(e) optimizer_from_best(obj, par, e, optimizer,
+                                                     bounds, control,
+                                                     par_units, verbose))
+  }
   if (verbose) t0 <- vb_now()
-  opt <- run_optimizer(optimizer, obj$par, obj$fn, obj$gr,
-                       bounds$lower, bounds$upper, control$optCtrl,
-                       par_units)
+  opt <- run(start_par)
   if (verbose) vb_stage("optimize", t0, vb_opt_detail(opt))
   for (i in seq_len(control$restarts)) {
     g <- max(abs(obj$gr(opt$par) * (par_units %||% 1)))
     if (is.finite(g) && g < control$grad_tol) break
     if (verbose) t0 <- vb_now()
-    opt2 <- run_optimizer(optimizer, opt$par, obj$fn, obj$gr,
-                          bounds$lower, bounds$upper, control$optCtrl,
-                          par_units)
+    opt2 <- run(opt$par)
     if (verbose) {
       vb_stage(paste0("restart ", i), t0,
                paste0(vb_opt_detail(opt2), ", from max|grad| ",
@@ -795,31 +979,59 @@ optimize_obj <- function(obj, control,
   opt
 }
 
-# A nonlinear model's coefficients have no data-driven starting values -
-# make_start() can only seed intercepts through a family's init_dpars,
-# and a nonlinear mu has no design of its own - so an nl fit begins at
-# zero, where most nonlinear forms are flat, singular, or undefined.
-# The optimizer then dies deep inside RTMB with a message that names
-# neither the model nor the remedy, so name `start=` here instead of
-# leaving the user to guess. [brms#734 doctrine]
-nl_start_context <- function(spec, start, expr) {
+# Whatever the optimizer throws reaches the user raw otherwise. RTMB's
+# "NA/NaN gradient evaluation" and nlminb's PORT strings name neither
+# the model nor anything to try, and they arrive with the call stack of
+# stats::nlminb, so the user cannot even tell which of their models
+# failed. Wrap the optimizer call once and say both.
+#
+# A nonlinear model gets the sharper advice, because there the cause is
+# nearly always the start: make_start() can only seed intercepts through
+# a family's init_dpars, and a nonlinear mu has no design of its own, so
+# an nl fit begins at zero, where most nonlinear forms are flat,
+# singular, or undefined. [brms#734 doctrine]
+#
+# The condition carries a class of its own so the autoscale pre-fit -
+# an inner fit_assembled() that has already been through here - is
+# rethrown rather than wrapped a second time.
+fit_error_context <- function(spec, start, REML, control, quadrature,
+                              priors, expr) {
   nl <- any(vapply(spec$responses,
                    function(r) length(r$nlpars) > 0L, TRUE))
-  if (!nl || !is.null(start)) return(expr)
+  nl_start <- nl && is.null(start)
   withCallingHandlers(
     tryCatch(expr, error = function(e) {
-      stop("The nonlinear fit failed from the default zero starting ",
-           "values (", conditionMessage(e), "). Nonlinear models need ",
-           "starting values in the right region: supply them with the ",
-           "`start` argument of frm(), e.g. start = list(beta = c(...)) ",
-           "in the order of fixef(); frm(..., dry_run = \"frame\"",
-           ")$par_template shows the layout", call. = FALSE)
+      if (inherits(e, "frmtmb_fit_error")) stop(e)
+      msg <- if (nl_start) {
+        paste0("The nonlinear fit failed from the default zero starting ",
+               "values (", conditionMessage(e), "). Nonlinear models ",
+               "need starting values in the right region: supply them ",
+               "with the `start` argument of frm(), e.g. ",
+               "start = list(beta = c(...)) in the order of fixef(); ",
+               "frm(..., dry_run = \"frame\")$par_template shows the ",
+               "layout")
+      } else {
+        paste0("The optimizer failed on this model (",
+               vb_fit_detail(spec, REML, control, quadrature, priors),
+               "): ", conditionMessage(e),
+               ". The likelihood was undefined or unbounded somewhere ",
+               "the optimizer stepped. Refit with verbose = TRUE to see ",
+               "which stage broke, try another optimizer ",
+               "(frmtmb_control(optimizer = \"optim\")), or start the ",
+               "fit nearer the optimum with the `start` argument of ",
+               "frm()")
+      }
+      stop(structure(
+        class = c("frmtmb_fit_error", "simpleError", "error", "condition"),
+        list(message = msg, call = NULL)))
     }),
     warning = function(w) {
       # nlminb's own "NA/NaN function evaluation" is the optimizer
-      # noticing the same undefined objective the error below names;
+      # noticing the same undefined objective the error above names;
       # letting both through would report the failure twice
-      if (grepl("NA/NaN", conditionMessage(w))) invokeRestart("muffleWarning")
+      if (nl_start && grepl("NA/NaN", conditionMessage(w))) {
+        invokeRestart("muffleWarning")
+      }
     }
   )
 }
@@ -884,13 +1096,23 @@ check_convergence <- function(fit, control) {
                            "see the 'Convergence problems' section of ",
                            "vignette('diagnostics') for the remedies"))
   }
-  # pdHess is only known once sdreport has run (se = TRUE); the lazy
-  # path surfaces it through summary()/diagnose() instead
+  # Covariance verdicts are only known once sdreport has run (se =
+  # TRUE); the lazy path surfaces them through vcov()/summary()/
+  # diagnose() instead. pdHess does not imply usable standard errors:
+  # the Cholesky it comes from succeeds on a Hessian LAPACK's solver
+  # then refuses as computationally singular, and cov.fixed is NaN.
   sdr <- fit$cache$sdr
   if (!is.null(sdr) && !is.null(sdr$pdHess) && !isTRUE(sdr$pdHess)) {
     msgs <- c(msgs, paste0("Hessian is not positive definite; standard ",
                            "errors are unreliable. The model may be ",
                            "overparameterized"))
+  } else if (!is.null(sdr) && length(sdr$cov.fixed) &&
+             any(!is.finite(sdr$cov.fixed))) {
+    msgs <- c(msgs, paste0("Some standard errors are not finite: the ",
+                           "covariance could not be recovered from the ",
+                           "Hessian. diagnose() names the offending ",
+                           "parameters; see the 'Convergence problems' ",
+                           "section of vignette('diagnostics')"))
   }
   for (m in msgs) warning(m, call. = FALSE)
   invisible(list(grad = g, warnings = msgs))
