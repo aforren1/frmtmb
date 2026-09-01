@@ -1,8 +1,10 @@
 # Multiply-imputed data: fit per imputation, pool by Rubin's rules.
 
-# Rubin's rules with Barnard-Rubin small-sample df. Q and U are
-# quantity-by-imputation matrices of estimates and squared standard
-# errors; dfcom is the complete-data residual df.
+#' Rubin's rules with Barnard-Rubin small-sample df. `Q` and `U` are
+#' quantity-by-imputation matrices of estimates and squared standard
+#' errors; `dfcom` is the complete-data residual df.
+#'
+#' @noRd
 rubin_pool <- function(Q, U, dfcom) {
   m <- ncol(Q)
   qbar <- rowMeans(Q)
@@ -307,8 +309,10 @@ print.frmtmb_pooled_anova <- function(x, digits = 4, ...) {
   invisible(x)
 }
 
-# Order two pooled fits by model size (logLik df of the first fit) and
-# check that they were fit to the same imputed datasets.
+#' Order two pooled fits by model size (logLik df of the first fit) and
+#' check that they were fit to the same imputed datasets.
+#'
+#' @noRd
 pooled_order <- function(a, b) {
   if (a$m != b$m) {
     stop("anova() needs both fits pooled over the same imputations ",
@@ -333,8 +337,10 @@ pooled_order <- function(a, b) {
   if (dfa > dfb) list(big = a, small = b) else list(big = b, small = a)
 }
 
-# Qhat (k x m) and Uhat (k x k x m) for the coefficients under test:
-# those the larger model adds, or the named `constraint` set.
+#' `Qhat (k x m)` and `Uhat (k x k x m)` for the coefficients under
+#' test: those the larger model adds, or the named `constraint` set.
+#'
+#' @noRd
 pooled_wald_parts <- function(big, small, constraint) {
   nm1 <- estimated_coef_names(big$fits[[1]])
   if (is.null(small)) {
@@ -398,8 +404,10 @@ pooled_wald_parts <- function(big, small, constraint) {
        big_fit = big$fits[[1]])
 }
 
-# Per-imputation deviance differences, at the imputation-specific
-# estimates and (for D3) at the pooled parameter vector.
+#' Per-imputation deviance differences, at the imputation-specific
+#' estimates and (for D3) at the pooled parameter vector.
+#'
+#' @noRd
 pooled_lrt_parts <- function(big, small, method) {
   m <- big$m
   k <- attr(logLik(big$fits[[1]]), "df") -
@@ -417,12 +425,15 @@ pooled_lrt_parts <- function(big, small, method) {
   out
 }
 
-# Deviance of every imputation's own likelihood at the across-imputation
-# mean of the optimizer's parameter vector. The stored objective is
-# reusable: obj$fn() reruns the inner Laplace solve at the new outer
-# values, so this costs one likelihood evaluation per imputation rather
-# than a refit. fn() leaves its argument in the tape's last.par, which
-# sdreport() and the conditional modes read, so restore the optimum.
+#' Deviance of every imputation's own likelihood at the across-imputation
+#' mean of the optimizer's parameter vector. The stored objective is
+#' reusable: `obj$fn()` reruns the inner Laplace solve at the new outer
+#' values, so this costs one likelihood evaluation per imputation rather
+#' than a refit. `fn()` leaves its argument in the tape's `last.par`,
+#' which `sdreport()` and the conditional modes read, so restore the
+#' optimum.
+#'
+#' @noRd
 dev_at_pooled <- function(fits) {
   p1 <- fits[[1]]$opt$par
   P <- vapply(fits, function(f) {
@@ -442,9 +453,11 @@ dev_at_pooled <- function(fits) {
   }, 0)
 }
 
-# Denominator df of the F reference when the complete-data df is not
-# used (Li, Raghunathan and Rubin 1991 eq. 2.2). r = 0 gives Inf, the
-# complete-data chi-square limit.
+#' Denominator df of the F reference when the complete-data df is not
+#' used (Li, Raghunathan and Rubin 1991 eq. 2.2). A relative increase
+#' `r` of zero gives `Inf`, the complete-data chi-square limit.
+#'
+#' @noRd
 d_denom_df <- function(r, k, m) {
   tdf <- k * (m - 1)
   if (tdf > 4) {
@@ -454,13 +467,15 @@ d_denom_df <- function(r, k, m) {
   }
 }
 
-# D1 denominator df: the Reiter (2007) small-sample form when the
-# complete-data df is finite, which is what mice::D1() uses by default.
-# Every one of its terms carries a factor a = r t / (t - 2), so a zero
-# ARIV collapses it to the complete-data df. Below t = 4 its
-# c0 = 1 / (t - 4) turns negative and can carry the result past zero,
-# where pf() has no answer; fall back to the large-sample form there
-# and on any other degenerate value.
+#' D1 denominator df: the Reiter (2007) small-sample form when the
+#' complete-data df is finite, which is what `mice::D1()` uses by
+#' default. Every one of its terms carries a factor `a = r t / (t - 2)`,
+#' so a zero ARIV collapses it to the complete-data df. Below `t = 4`
+#' its `c0 = 1 / (t - 4)` turns negative and can carry the result past
+#' zero, where `pf()` has no answer; fall back to the large-sample form
+#' there and on any other degenerate value.
+#'
+#' @noRd
 d1_denom_df <- function(r, k, m, dfcom) {
   tdf <- k * (m - 1)
   if (!is.finite(dfcom) || tdf < 4) return(d_denom_df(r, k, m))
@@ -479,6 +494,13 @@ d1_denom_df <- function(r, k, m, dfcom) {
   if (is.na(v) || v <= 0) d_denom_df(r, k, m) else v
 }
 
+#' D1, the multivariate Wald rule of Li, Raghunathan and Rubin (1991).
+#' Pools the coefficients `Q` and their within-imputation covariances
+#' `U`, then inflates the pooled covariance by the average relative
+#' increase in variance. The result is referred to an F distribution on
+#' `k` and the `d1_denom_df()` denominator degrees of freedom.
+#'
+#' @noRd
 d1_stat <- function(Q, U, m, dfcom) {
   k <- nrow(Q)
   qbar <- rowMeans(Q)
@@ -493,6 +515,12 @@ d1_stat <- function(Q, U, m, dfcom) {
   list(statistic = stat, df1 = k, df2 = df2, riv = r)
 }
 
+#' D2, the pooled test statistic rule of Li, Meng, Raghunathan and Rubin
+#' (1991). Combines the `m` per-imputation chi-squares `d`, so it needs
+#' no covariance matrix. The result is referred to an F distribution on
+#' `k` and `k^(-3/m) (m - 1) (1 + 1/r)^2` degrees of freedom.
+#'
+#' @noRd
 d2_stat <- function(d, k, m) {
   r <- max(0, (1 + 1 / m) * stats::var(sqrt(d)))
   stat <- (mean(d) / k - (m + 1) / (m - 1) * r) / (1 + r)
@@ -500,6 +528,13 @@ d2_stat <- function(d, k, m) {
        df2 = k^(-3 / m) * (m - 1) * (1 + 1 / r)^2, riv = r)
 }
 
+#' D3, the pooled likelihood ratio rule of Meng and Rubin (1992). Takes
+#' the average deviance difference at the imputation-specific estimates
+#' (`dbar`) and at the pooled estimates (`dtilde`). The result is
+#' referred to an F distribution on `k` and the `d_denom_df()`
+#' denominator degrees of freedom.
+#'
+#' @noRd
 d3_stat <- function(dbar, dtilde, k, m) {
   r <- max(0, (m + 1) / (k * (m - 1)) * (dbar - dtilde))
   list(statistic = dtilde / (k * (1 + r)), df1 = k,

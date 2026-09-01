@@ -5,8 +5,10 @@
 # in-sample path. For newdata, each block contribution is rebuilt from the
 # block's components (one component per contributing linear predictor).
 
-# Memoized joint covariance of all estimated parameters (fixed + random),
-# with row/col component names. Cached in fit$cache.
+#' Memoized joint covariance of all estimated parameters (fixed + random),
+#' with row/col component names. Cached in `fit$cache`.
+#'
+#' @noRd
 get_joint_cov <- function(fit) {
   cache <- fit$cache
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
@@ -29,15 +31,19 @@ get_joint_cov <- function(fit) {
   cache$Vjoint
 }
 
-# Numeric coefficient-space vector for a fitted model (rr factors
-# expanded through the loadings; identity otherwise).
+#' Numeric coefficient-space vector for a fitted model (rr factors
+#' expanded through the loadings; identity otherwise).
+#'
+#' @noRd
 coef_b <- function(fit, b = fit$estimates[["b"]]) {
   if (is.null(b)) return(b)
   expand_b(fit$frame, b, fit$estimates$theta)
 }
 
-# Numeric mo() column values: D times the cumulative simplex at the
-# category codes, evaluated at the current simplex estimates.
+#' Numeric `mo()` column values: D times the cumulative simplex at the
+#' category codes, evaluated at the current simplex estimates.
+#'
+#' @noRd
 mo_col_values <- function(fit, mi, codes = mi$codes) {
   zeta <- exp(c(0, fit$estimates[[mi$zeta]]))
   zeta <- zeta / sum(zeta)
@@ -45,8 +51,10 @@ mo_col_values <- function(fit, mi, codes = mi$codes) {
   mi$D * cz0[codes + 1L]
 }
 
-# Category codes of a mo() variable in new data, validated against the
-# fitted range.
+#' Category codes of a `mo()` variable in new data, validated against the
+#' fitted range.
+#'
+#' @noRd
 mo_codes <- function(fit, lp, mi, newdata) {
   env <- fit$spec$responses[[lp$resp]]$formula_env
   v <- eval(mi$expr, newdata, env)
@@ -65,7 +73,9 @@ mo_codes <- function(fit, lp, mi, newdata) {
   codes
 }
 
-# Observed-or-latent values of a mi() response at the estimates.
+#' Observed-or-latent values of a `mi()` response at the estimates.
+#'
+#' @noRd
 mi_values <- function(fit, vn) {
   xv <- fit$frame$y[[vn]]
   mm_ <- fit$frame$mi_map[[vn]]
@@ -73,8 +83,10 @@ mi_values <- function(fit, vn) {
   xv
 }
 
-# Fill the zero placeholder columns of a stored design matrix with the
-# mo() and mi() values at the current estimates.
+#' Fill the zero placeholder columns of a stored design matrix with the
+#' `mo()` and `mi()` values at the current estimates.
+#'
+#' @noRd
 patch_mo_cols <- function(fit, lp, X) {
   for (mi in lp$mo %||% list()) {
     v <- mo_col_values(fit, mi)
@@ -89,15 +101,19 @@ patch_mo_cols <- function(fit, lp, X) {
   X
 }
 
-# xlevels restricted to the variables a terms object actually uses;
-# extra entries make model.frame warn.
+#' `xlevels` restricted to the variables a terms object actually uses;
+#' extra entries make `model.frame` warn.
+#'
+#' @noRd
 xlev_for <- function(xlevels, tt) {
   xlevels[intersect(names(xlevels), all.vars(tt))]
 }
 
-# Rebuild the design pieces of one linear predictor for new data:
-# dense X (parametric + smooth null-space columns), per-block RE
-# component designs with level indices, and the offset.
+#' Rebuild the design pieces of one linear predictor for new data:
+#' dense X (parametric + smooth null-space columns), per-block RE
+#' component designs with level indices, and the offset.
+#'
+#' @noRd
 pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
                         use_re = TRUE) {
   env <- fit$spec$responses[[lp$resp]]$formula_env
@@ -269,8 +285,10 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
        nonest = nonest)
 }
 
-# RE contribution to eta for one linear predictor, given the full
-# coefficient-space vector (see coef_b).
+#' RE contribution to eta for one linear predictor, given the full
+#' coefficient-space vector (see `coef_b`).
+#'
+#' @noRd
 re_eta <- function(re_parts, cvec, n) {
   eta <- numeric(n)
   for (rp in re_parts) {
@@ -286,7 +304,9 @@ re_eta <- function(re_parts, cvec, n) {
   eta
 }
 
-# Smooth wiggly contribution to eta for one linear predictor.
+#' Smooth wiggly contribution to eta for one linear predictor.
+#'
+#' @noRd
 sm_eta <- function(sm_parts, cvec) {
   eta <- 0
   for (sp in sm_parts) {
@@ -295,8 +315,10 @@ sm_eta <- function(sm_parts, cvec) {
   eta
 }
 
-# Numeric dpar values at the estimates (optionally with a supplied b),
-# for the training data. Nested: out[[resp]][[dpar]].
+#' Numeric dpar values at the estimates (optionally with a supplied b),
+#' for the training data. Nested: `out[[resp]][[dpar]]`.
+#'
+#' @noRd
 eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
   est <- fit$estimates
   if (!is.null(b)) b <- expand_b(fit$frame, b, est$theta)
@@ -323,8 +345,10 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
   out
 }
 
-# Sparse RE design (n x n_c) for the newdata delta method, columns at
-# global coefficient-space positions.
+#' Sparse RE design (`n x n_c`) for the newdata delta method, columns at
+#' global coefficient-space positions.
+#'
+#' @noRd
 re_design_matrix <- function(re_parts, n, q) {
   ii <- integer(0); jj <- integer(0); xx <- numeric(0)
   for (rp in re_parts) {
@@ -340,9 +364,11 @@ re_design_matrix <- function(re_parts, n, q) {
   Matrix::sparseMatrix(i = ii, j = jj, x = xx, dims = c(n, q))
 }
 
-# Jacobians of the coefficient-space expansion for rr fits: d cvec/d b
-# (sparse; identity except the rr blocks' loadings) and d cvec/d theta
-# for the rr loading parameters (finite differences on expand_b).
+#' Jacobians of the coefficient-space expansion for rr fits: `d cvec/d b`
+#' (sparse; identity except the rr blocks' loadings) and `d cvec/d theta`
+#' for the rr loading parameters (finite differences on `expand_b`).
+#'
+#' @noRd
 rr_jacobians <- function(fit) {
   frame <- fit$frame
   est <- fit$estimates
@@ -378,7 +404,9 @@ rr_jacobians <- function(fit) {
        th_cols = th_cols)
 }
 
-# The single response of a univariate fit, or an informative error.
+#' The single response of a univariate fit, or an informative error.
+#'
+#' @noRd
 uni_resp <- function(fit, what) {
   if (length(fit$spec$responses) > 1) {
     stop(what, " is not supported yet for multivariate fits",
@@ -387,17 +415,21 @@ uni_resp <- function(fit, what) {
   fit$spec$responses[[1]]
 }
 
-# Whether the family's response mean is just the mu dpar. All the
-# built-in identity-mean families spell their mean_fn as `dpars$mu`, so
-# the structural check is exact for them and conservative (general
-# path) for custom families.
+#' Whether the family's response mean is just the mu dpar. All the
+#' built-in identity-mean families spell their `mean_fn` as `dpars$mu`, so
+#' the structural check is exact for them and conservative (general
+#' path) for custom families.
+#'
+#' @noRd
 mean_is_mu <- function(fam) {
   is.null(fam$post$mean_fn) ||
     identical(body(fam$post$mean_fn), quote(dpars$mu))
 }
 
-# Whether a response carries trunc() bounds, from the spec (the stored
-# expressions) rather than from evaluated values.
+#' Whether a response carries `trunc()` bounds, from the spec (the stored
+#' expressions) rather than from evaluated values.
+#'
+#' @noRd
 has_trunc <- function(rspec) {
   any(c("trunc_lb", "trunc_ub") %in% names(rspec$aterms))
 }
@@ -407,7 +439,9 @@ has_trunc <- function(rspec) {
 # mean cannot use (censoring, structural flags) are skipped; trials, se
 # and the truncation bounds must evaluate because omitting them silently
 # changes the mean.
-# An addition term as the user wrote it, for error messages.
+#' An addition term as the user wrote it, for error messages.
+#'
+#' @noRd
 aterm_label <- function(nm, ex) {
   switch(nm,
     trunc_lb = paste0("trunc(lb = ", deparse1(ex), ")"),
@@ -417,11 +451,19 @@ aterm_label <- function(nm, ex) {
   )
 }
 
-# A custom family's lpdf/mean_fn reads its vint()/vreal() payload out of
-# aterms, so an omitted one is not a missing covariate but a missing
-# argument: the family returns a zero-length prediction.
+#' A custom family's `lpdf`/`mean_fn` reads its `vint()`/`vreal()` payload
+#' out of aterms, so an omitted one is not a missing covariate but a
+#' missing argument: the family returns a zero-length prediction.
+#'
+#' @noRd
 is_custom_data_aterm <- function(nm) grepl("^v(int|real)[0-9]+$", nm)
 
+#' Re-evaluate a response's addition terms on new data, for the
+#' expected-response prediction path. A term the family mean needs must
+#' evaluate, because dropping it silently changes the mean; any other
+#' term is dropped with a warning.
+#'
+#' @noRd
 aterms_for_newdata <- function(rspec, newdata) {
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights")
   need <- c("trials", "se", "trunc_lb", "trunc_ub")
@@ -470,8 +512,10 @@ aterms_for_newdata <- function(rspec, newdata) {
   av
 }
 
-# Expected response over all dpars: the family mean at predicted dpar
-# values (fitted()'s convention, extended to newdata and re.form).
+#' Expected response over all dpars: the family mean at predicted dpar
+#' values (`fitted()`'s convention, extended to newdata and `re.form`).
+#'
+#' @noRd
 predict_mean_response <- function(fit, rspec, newdata, re.form,
                                   allow_new_levels) {
   fam <- rspec$family
@@ -782,9 +826,11 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   out
 }
 
-# eta and the design pieces of one linear predictor, in sample or on
-# newdata. Shared by predict() and by the joint delta method for the
-# expected response, so both see exactly the same eta.
+#' eta and the design pieces of one linear predictor, in sample or on
+#' newdata. Shared by `predict()` and by the joint delta method for the
+#' expected response, so both see exactly the same eta.
+#'
+#' @noRd
 lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   est <- object$estimates
   key <- linpred_key(lp$resp, lp$dpar)
@@ -846,8 +892,10 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
        sm_parts = sm_parts, sm_blocks = sm_blocks, nonest = nonest, n = n)
 }
 
-# A standard error that leaves out a variance component is only honest
-# if it says so, so this is a warning rather than a note in the docs.
+#' A standard error that leaves out a variance component is only honest
+#' if it says so, so this is a warning rather than a note in the docs.
+#'
+#' @noRd
 warn_modes_conditional_se <- function() {
   warning("The fitted objective marginalizes the random effects ",
           "(quadrature = TRUE), so its covariance carries no ",
@@ -858,12 +906,14 @@ warn_modes_conditional_se <- function() {
   invisible(NULL)
 }
 
-# Delta method: var(eta) = A V A' over the estimated coefficients (and b
-# when random effects are included). For rr fits the Z matrices span the
-# coefficient space, so the b columns go through the Jacobian of the
-# loadings expansion, and the rr loading parameters (theta) contribute
-# their own columns. Returns A and the positions of its columns in the
-# joint covariance, so several linear predictors can be combined.
+#' Delta method: `var(eta) = A V A'` over the estimated coefficients (and b
+#' when random effects are included). For rr fits the Z matrices span the
+#' coefficient space, so the b columns go through the Jacobian of the
+#' loadings expansion, and the rr loading parameters (theta) contribute
+#' their own columns. Returns A and the positions of its columns in the
+#' joint covariance, so several linear predictors can be combined.
+#'
+#' @noRd
 lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
   est <- object$estimates
   rn <- jc$names
@@ -939,12 +989,14 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
   list(A = A, coef_pos = coef_pos)
 }
 
-# Variance sources that are not coefficient uncertainty. A new grouping
-# level (allow_new_levels) contributes its block's marginal variance -
-# the population-prediction-interval convention; for |ID|-merged blocks
-# that is the JOINT block's slice for this component. An exact gp() at
-# an unseen position contributes the GP's own conditional variance
-# (zero at observed positions).
+#' Variance sources that are not coefficient uncertainty. A new grouping
+#' level (`allow_new_levels`) contributes its block's marginal variance,
+#' the population-prediction-interval convention; for `|ID|`-merged blocks
+#' that is the JOINT block's slice for this component. An exact `gp()` at
+#' an unseen position contributes the GP's own conditional variance
+#' (zero at observed positions).
+#'
+#' @noRd
 lp_extra_var <- function(object, ed, use_re) {
   nl <- list()
   if (use_re && length(ed$re_parts)) {
@@ -971,13 +1023,15 @@ lp_extra_var <- function(object, ed, use_re) {
   list(new_levels = nl, gp = gp)
 }
 
-# Central-difference gradient of the expected response with respect to
-# one dpar's linear predictor. Analytic gradients exist for the simple
-# mean_fn forms, but the family set (and the truncated means) is wide
-# enough that one differencing rule beats a table of hand derivatives;
-# every mean_fn is elementwise, so a whole column of the Jacobian costs
-# two evaluations. The step is relative so it survives both tiny and
-# large etas.
+#' Central-difference gradient of the expected response with respect to
+#' one dpar's linear predictor. Analytic gradients exist for the simple
+#' `mean_fn` forms, but the family set (and the truncated means) is wide
+#' enough that one differencing rule beats a table of hand derivatives;
+#' every `mean_fn` is elementwise, so a whole column of the Jacobian costs
+#' two evaluations. The step is relative so it survives both tiny and
+#' large etas.
+#'
+#' @noRd
 mean_eta_grad <- function(fam, dp, av, dnm, link, eta) {
   h <- 1e-5 * pmax(1, abs(eta))
   dp_hi <- dp
@@ -987,15 +1041,17 @@ mean_eta_grad <- function(fam, dp, av, dnm, link, eta) {
   (response_mean(fam, dp_hi, av) - response_mean(fam, dp_lo, av)) / (2 * h)
 }
 
-# Delta-method SEs for the expected response of a family whose mean is
-# not the mu dpar (zero-inflation, hurdles, lognormal, trials-binomial,
-# or any truncated response). The mean runs through EVERY dpar's linear
-# predictor, so the gradient row stacks dm/deta_k times each predictor's
-# own A matrix and the quadratic form is taken over the JOINT
-# coefficient covariance - the cross-dpar covariances (and the shared b
-# block) are part of the answer, not an afterthought. Random effects
-# enter conditional on their modes, the same convention predict() uses
-# for eta.
+#' Delta-method SEs for the expected response of a family whose mean is
+#' not the mu dpar (zero-inflation, hurdles, lognormal, trials-binomial,
+#' or any truncated response). The mean runs through EVERY dpar's linear
+#' predictor, so the gradient row stacks `dm/deta_k` times each predictor's
+#' own A matrix and the quadratic form is taken over the JOINT
+#' coefficient covariance: the cross-dpar covariances (and the shared b
+#' block) are part of the answer, not an afterthought. Random effects
+#' enter conditional on their modes, the same convention `predict()` uses
+#' for eta.
+#'
+#' @noRd
 predict_mean_se <- function(object, rspec, newdata, use_re,
                             allow_new_levels) {
   fam <- rspec$family
@@ -1108,7 +1164,10 @@ model.frame.frmtmb_fit <- function(formula, ...) {
   formula$frame$data_frame
 }
 
-# Reinsert NAs for na.exclude fits (napredict is a no-op for na.omit).
+#' Reinsert NAs for `na.exclude` fits (`napredict` is a no-op for
+#' `na.omit`).
+#'
+#' @noRd
 napred <- function(fit, x) {
   stats::napredict(fit$frame$na_action, x)
 }
@@ -1127,8 +1186,10 @@ fitted.frmtmb_fit <- function(object, ...) {
   napred(object, out)
 }
 
-# Number of ordinal categories, from the threshold vector rather than
-# from the data: the top category may be unobserved.
+#' Number of ordinal categories, from the threshold vector rather than
+#' from the data: the top category may be unobserved.
+#'
+#' @noRd
 ordinal_ncat <- function(fit) {
   raw <- fit$estimates[["tau_raw"]]
   if (is.null(raw)) {
@@ -1138,19 +1199,21 @@ ordinal_ncat <- function(fit) {
   length(raw) + 1L
 }
 
-# OSA integration window and row split for a censored response, or NULL
-# when nothing is censored.
-#
-# A censored row contributes a probability MASS: on the tape its
-# likelihood no longer depends on the observation, so oneStepPredict
-# either inverts a singular system (fullGaussian) or integrates a flat
-# slice to infinity (oneStepGeneric). Both are real: the "observation"
-# on such a row is an event, not a value, and has no one-step CDF.
-# What IS well defined is the CDF of the uncensored rows conditional on
-# the censoring events, which is what subset/conditional buys. Under
-# type-I censoring (one censoring point per side) an uncensored row is
-# exactly a draw that landed inside the window, so its PIT renormalizes
-# on that window just as a trunc() fit's does.
+#' OSA integration window and row split for a censored response, or NULL
+#' when nothing is censored.
+#'
+#' A censored row contributes a probability MASS: on the tape its
+#' likelihood no longer depends on the observation, so `oneStepPredict`
+#' either inverts a singular system (`fullGaussian`) or integrates a flat
+#' slice to infinity (`oneStepGeneric`). Both are real: the "observation"
+#' on such a row is an event, not a value, and has no one-step CDF.
+#' What IS well defined is the CDF of the uncensored rows conditional on
+#' the censoring events, which is what subset/conditional buys. Under
+#' type-I censoring (one censoring point per side) an uncensored row is
+#' exactly a draw that landed inside the window, so its PIT renormalizes
+#' on that window just as a `trunc()` fit's does.
+#'
+#' @noRd
 osa_cens_domain <- function(av, y) {
   cen <- av[["cens"]]
   if (is.null(cen) || !any(cen != 0)) return(NULL)
@@ -1416,7 +1479,10 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
   napred(object, r)
 }
 
-# One draw of the full b vector from its estimated distribution N(0, Sigma).
+#' One draw of the full b vector from its estimated distribution
+#' `N(0, Sigma)`.
+#'
+#' @noRd
 draw_b <- function(fit) {
   th <- fit$estimates$theta
   b <- numeric(length(fit$estimates[["b"]] %||% numeric(0)))
@@ -1469,12 +1535,14 @@ draw_b <- function(fit) {
   b
 }
 
-# The observation window the censoring mechanism imposes: the censoring
-# point is the response value on a censored row, and it must be the
-# same for every censored row on a side (type-I censoring). With
-# row-varying censoring times the point is unknown on the rows that
-# were NOT censored - the data only say it was never reached - so the
-# mechanism cannot be applied to their draws at all.
+#' The observation window the censoring mechanism imposes: the censoring
+#' point is the response value on a censored row, and it must be the
+#' same for every censored row on a side (type-I censoring). With
+#' row-varying censoring times the point is unknown on the rows that
+#' were NOT censored (the data only say it was never reached), so the
+#' mechanism cannot be applied to their draws at all.
+#'
+#' @noRd
 cens_window <- function(av, yobs) {
   cen <- av$cens
   if (any(cen == 2)) {
@@ -1500,9 +1568,11 @@ cens_window <- function(av, yobs) {
        hi = if (length(i_r)) point(i_r, "right") else Inf)
 }
 
-# Apply the censoring mechanism to one draw of the latent response:
-# every draw outside the observation window is recorded at the window's
-# edge, exactly as the observed data were.
+#' Apply the censoring mechanism to one draw of the latent response:
+#' every draw outside the observation window is recorded at the window's
+#' edge, exactly as the observed data were.
+#'
+#' @noRd
 apply_censoring <- function(y, win) {
   pmin(pmax(y, win$lo), win$hi)
 }
@@ -1646,17 +1716,21 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   out
 }
 
-# Extra (non-dpar) parameters of a fit, in the shape the family's
-# simulator expects: ordinal thresholds, category-specific coefficients.
+#' Extra (non-dpar) parameters of a fit, in the shape the family's
+#' simulator expects: ordinal thresholds, category-specific coefficients.
+#'
+#' @noRd
 fit_extras <- function(fit) {
   nms <- fit$frame$extra_names %||% character(0)
   if (!length(nms)) return(NULL)
   fit$estimates[nms]
 }
 
-# cs(x) contributes an n x (K-1) matrix of threshold-specific offsets.
-# The objective builds it on the tape; eval_dpars() has no reason to,
-# so add it here for the ordinal simulators that consume it.
+#' `cs(x)` contributes an `n x (K-1)` matrix of threshold-specific
+#' offsets. The objective builds it on the tape; `eval_dpars()` has no
+#' reason to, so add it here for the ordinal simulators that consume it.
+#'
+#' @noRd
 with_cs_offsets <- function(fit, rspec, dpv) {
   for (lp in fit$frame$linpreds) {
     if (!length(lp$cs %||% list())) next
@@ -1669,11 +1743,13 @@ with_cs_offsets <- function(fit, rspec, dpv) {
   dpv
 }
 
-# simulate() hands draws back in the response's own type: an ordered
-# factor for an ordinal fit (the 1..K codes mean nothing without the
-# levels) and a matrix for a matrix response. na.exclude fits pad back
-# to the original row count, the same contract fitted() and residuals()
-# keep. [glmmTMB test-simulate.R; lme4#737]
+#' `simulate()` hands draws back in the response's own type: an ordered
+#' factor for an ordinal fit (the 1..K codes mean nothing without the
+#' levels) and a matrix for a matrix response. `na.exclude` fits pad back
+#' to the original row count, the same contract `fitted()` and
+#' `residuals()` keep. `[glmmTMB test-simulate.R; lme4#737]`
+#'
+#' @noRd
 sim_restore_type <- function(fit, rspec, v) {
   lv <- fit$frame$y_levels[[rspec$resp_name]]
   if (!is.null(lv)) {
@@ -1685,9 +1761,11 @@ sim_restore_type <- function(fit, rspec, v) {
   napred(fit, v)
 }
 
-# A matrix response needs a data frame whose COLUMNS are matrices (the
-# lme4 convention); the default as.data.frame() would flatten each draw
-# into one column per category.
+#' A matrix response needs a data frame whose COLUMNS are matrices (the
+#' lme4 convention); the default `as.data.frame()` would flatten each draw
+#' into one column per category.
+#'
+#' @noRd
 sim_as_data_frame <- function(out) {
   if (!is.matrix(out[[1L]])) return(as.data.frame(out))
   df <- data.frame(row.names = seq_len(nrow(out[[1L]])))
@@ -1695,8 +1773,10 @@ sim_as_data_frame <- function(out) {
   df
 }
 
-# Drop the rows napredict() padded back in, for the internal consumers
-# that work in fitted-row space (bootstrap refits, DHARMa, pp_check).
+#' Drop the rows `napredict()` padded back in, for the internal consumers
+#' that work in fitted-row space (bootstrap refits, DHARMa, `pp_check`).
+#'
+#' @noRd
 na_unpad <- function(fit, x) {
   na <- fit$frame$na_action
   if (is.null(na) || !inherits(na, "exclude")) return(x)

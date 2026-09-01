@@ -15,11 +15,15 @@
 
 # ---------------------------------------------------------------- features
 
-# name: how the feature is written in a formula or a call argument.
-# key:  the identifier the package itself uses, so tests can look the
-#       feature up in family_registry, covstruct_registry, and the
-#       parser vocabularies. Display names carry "()" for callable
-#       features; the key never does.
+#' The feature vocabulary of the registry, one row per feature.
+#'
+#' `name`: how the feature is written in a formula or a call argument.
+#' `key`:  the identifier the package itself uses, so tests can look the
+#'         feature up in `family_registry`, `covstruct_registry`, and the
+#'         parser vocabularies. Display names carry `"()"` for callable
+#'         features; the key never does.
+#'
+#' @noRd
 frmtmb_compat_features_tbl <- function() {
   f <- function(name, kind) {
     key <- sub("\\(\\)$", "", name)
@@ -117,32 +121,36 @@ frmtmb_compat_groups_lst <- list(
 
 # ------------------------------------------------------------------- rules
 
-# Patterns, from least to most specific, with the specificity each one
-# scores:
-#   "*"                any feature                            0
-#   "kind:<kind>"      any feature of that kind               1
-#   "group:<group>"    any feature in that named group        2
-#   "<name>"           exactly that feature                   3
-#
-# PRECEDENCE. A rule's signature is its two sides' specificities sorted
-# descending, and two rules are compared lexicographically on that
-# signature:
-#
-#   (3,3) > (3,2) > (3,1) > (3,0) > (2,2) > (2,1) > (2,0) > (1,1) > ...
-#
-# Adding the two sides instead would let unrelated pattern shapes tie -
-# "<name>" x "*", "group:" x "kind:" and "kind:" x "group:" all sum to
-# 3 - and file order, not specificity, would then decide. The sorted
-# pair keeps the property that matters: a rule that is strictly more
-# specific on one side and no less specific on the other always wins,
-# because sorting preserves that domination.
-#
-# Two rules can therefore tie only when their signatures are identical.
-# The later rule wins those, so an override is appended, never
-# inserted. A tie between rules that DISAGREE about the status is a
-# registry defect, not an override: frmtmb_compat_validate() (asserted
-# by test-compat.R) errors on it unless the winning rule is marked
-# override = TRUE and says in its note what it is overriding.
+#' The declared compatibility rules, one row per rule.
+#'
+#' Patterns, from least to most specific, with the specificity each one
+#' scores:
+#'   `"*"`                any feature                            0
+#'   `"kind:<kind>"`      any feature of that kind               1
+#'   `"group:<group>"`    any feature in that named group        2
+#'   `"<name>"`           exactly that feature                   3
+#'
+#' PRECEDENCE. A rule's signature is its two sides' specificities sorted
+#' descending, and two rules are compared lexicographically on that
+#' signature:
+#'
+#'   `(3,3) > (3,2) > (3,1) > (3,0) > (2,2) > (2,1) > (2,0) > (1,1) > ...`
+#'
+#' Adding the two sides instead would let unrelated pattern shapes tie -
+#' `"<name>" x "*"`, `"group:" x "kind:"` and `"kind:" x "group:"` all
+#' sum to 3 - and file order, not specificity, would then decide. The
+#' sorted pair keeps the property that matters: a rule that is strictly
+#' more specific on one side and no less specific on the other always
+#' wins, because sorting preserves that domination.
+#'
+#' Two rules can therefore tie only when their signatures are identical.
+#' The later rule wins those, so an override is appended, never
+#' inserted. A tie between rules that DISAGREE about the status is a
+#' registry defect, not an override: `frmtmb_compat_validate()`
+#' (asserted by test-compat.R) errors on it unless the winning rule is
+#' marked `override = TRUE` and says in its note what it is overriding.
+#'
+#' @noRd
 frmtmb_compat_rules_tbl <- function() {
   rows <- list()
   r <- function(a, b, status, note, override = FALSE) {
@@ -678,25 +686,31 @@ frmtmb_compat_rules_tbl <- function() {
 frmtmb_compat_statuses <- c("works", "conditional", "refused",
                             "broken", "untested")
 
-# Specificity of one pattern. Higher beats lower.
+#' Specificity of one pattern. Higher beats lower.
+#'
+#' @noRd
 compat_spec <- function(pat) {
   ifelse(pat == "*", 0L,
          ifelse(startsWith(pat, "kind:"), 1L,
                 ifelse(startsWith(pat, "group:"), 2L, 3L)))
 }
 
-# A rule's precedence, as one comparable integer: the two sides'
-# specificities sorted descending, then read as a two-digit base-4
-# number. Lexicographic order on the sorted pair is exactly numeric
-# order on the result, so the resolver can compare with `>=`. See the
-# PRECEDENCE note above frmtmb_compat_rules_tbl().
+#' A rule's precedence, as one comparable integer: the two sides'
+#' specificities sorted descending, then read as a two-digit base-4
+#' number. Lexicographic order on the sorted pair is exactly numeric
+#' order on the result, so the resolver can compare with `>=`. See the
+#' PRECEDENCE note above `frmtmb_compat_rules_tbl()`.
+#'
+#' @noRd
 compat_sig_rank <- function(pa, pb) {
   a <- compat_spec(pa)
   b <- compat_spec(pb)
   4L * pmax(a, b) + pmin(a, b)
 }
 
-# Does `pat` cover the feature at position i of the feature table?
+#' Does `pat` cover the feature at position i of the feature table?
+#'
+#' @noRd
 compat_match <- function(pat, name, kind) {
   if (pat == "*") return(rep(TRUE, length(name)))
   if (startsWith(pat, "kind:")) return(kind == substring(pat, 6L))
@@ -707,7 +721,9 @@ compat_match <- function(pat, name, kind) {
   name == pat
 }
 
-# A rule is unordered: it may match a pair either way round.
+#' A rule is unordered: it may match a pair either way round.
+#'
+#' @noRd
 compat_hit <- function(pa, pb, pairs) {
   (compat_match(pa, pairs$feature_a, pairs$kind_a) &
      compat_match(pb, pairs$feature_b, pairs$kind_b)) |
@@ -715,8 +731,10 @@ compat_hit <- function(pa, pb, pairs) {
        compat_match(pb, pairs$feature_a, pairs$kind_a))
 }
 
-# Unordered pairs of distinct features, minus family x family: a model
-# carries exactly one family, so those pairs mean nothing.
+#' Unordered pairs of distinct features, minus family x family: a model
+#' carries exactly one family, so those pairs mean nothing.
+#'
+#' @noRd
 frmtmb_compat_pairs_tbl <- function() {
   ft <- frmtmb_compat_features_tbl()
   ij <- utils::combn(nrow(ft), 2L)
@@ -728,9 +746,12 @@ frmtmb_compat_pairs_tbl <- function() {
     stringsAsFactors = FALSE)
 }
 
-# Which rule wins each pair. Resolution always runs over the whole pair
-# table, never over the slice a caller asked for, so a rule's precedence
-# is judged against the registry rather than against the query.
+#' Which rule wins each pair. Resolution always runs over the whole pair
+#' table, never over the slice a caller asked for, so a rule's
+#' precedence is judged against the registry rather than against the
+#' query.
+#'
+#' @noRd
 compat_resolve <- function(pairs, rules) {
   rank <- compat_sig_rank(rules$feature_a, rules$feature_b)
   best <- rep(-1L, nrow(pairs))
@@ -745,12 +766,14 @@ compat_resolve <- function(pairs, rules) {
   list(win = win, best = best, rank = rank)
 }
 
-# Pairs whose winning precedence is shared by rules that disagree about
-# the status. Such a pair is decided by file order, which is the defect
-# the sorted-pair precedence exists to remove; the registry must have
-# none of them unless the winning rule says it is a deliberate
-# override. Run from test-compat.R rather than at load time: it costs a
-# pass over every rule x pair combination.
+#' Pairs whose winning precedence is shared by rules that disagree about
+#' the status. Such a pair is decided by file order, which is the defect
+#' the sorted-pair precedence exists to remove; the registry must have
+#' none of them unless the winning rule says it is a deliberate
+#' override. Run from test-compat.R rather than at load time: it costs a
+#' pass over every rule x pair combination.
+#'
+#' @noRd
 frmtmb_compat_validate <- function() {
   pairs <- frmtmb_compat_pairs_tbl()
   rules <- frmtmb_compat_rules_tbl()

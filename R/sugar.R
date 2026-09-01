@@ -1,7 +1,9 @@
 # Small accessor methods: the conventional S3 surface that downstream
 # packages (insight, performance, step, and friends) dispatch on.
 
-# Resolve one linear predictor by response / dpar name.
+#' Resolve one linear predictor by response / dpar name.
+#'
+#' @noRd
 find_linpred <- function(object, resp = NULL, dpar = "mu") {
   hits <- Filter(function(lp) {
     lp$dpar == dpar && (is.null(resp) || lp$resp == resp)

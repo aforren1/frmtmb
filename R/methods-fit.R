@@ -1,8 +1,10 @@
 # S3 accessor and print methods for frmtmb_fit.
 
-# Template-shaped Estimate / Std. Error lists. as.list(sdreport) fills the
-# full parameter template regardless of map or REML, which keeps indexing
-# by lp$idx valid; mapped-out entries get SE = NA.
+#' Template-shaped Estimate / Std. Error lists. as.list(sdreport) fills the
+#' full parameter template regardless of map or REML, which keeps indexing
+#' by lp$idx valid; mapped-out entries get SE = NA.
+#'
+#' @noRd
 par_est_se <- function(fit) {
   est <- fit$estimates
   # A degenerate fit (no free outer parameters, no random effects) gives
@@ -48,6 +50,11 @@ print.frmtmb_fit <- function(x, ...) {
   invisible(x)
 }
 
+#' The name a linear predictor's coefficient block gets in output. A
+#' multivariate fit needs the response in the key to stay unambiguous;
+#' a univariate fit shows the dpar alone.
+#'
+#' @noRd
 coef_block_key <- function(fit, lp) {
   if (length(fit$spec$responses) > 1) {
     paste(lp$resp, lp$dpar, sep = "_")
@@ -143,8 +150,10 @@ print.summary.frmtmb_fit <- function(x, ...) {
   invisible(x)
 }
 
-# Estimated outer parameters: profiled betas (control profile = TRUE)
-# leave opt$par but are still estimated and must count toward df.
+#' Estimated outer parameters: profiled betas (control profile = TRUE)
+#' leave opt$par but are still estimated and must count toward df.
+#'
+#' @noRd
 n_outer_est <- function(object) {
   n <- length(object$opt$par)
   if (isTRUE(object$control$profile)) {
@@ -213,7 +222,9 @@ formula.frmtmb_fit <- function(x, ...) {
   }
 }
 
-# Names of the estimated (non-mapped) fixed coefficients, in template order.
+#' Names of the estimated (non-mapped) fixed coefficients, in template order.
+#'
+#' @noRd
 estimated_coef_names <- function(fit) {
   tpl <- fit$frame$par_template
   nm_betad <- names(tpl$betad)

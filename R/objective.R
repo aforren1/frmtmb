@@ -6,11 +6,22 @@
 # on parameter values. Data referenced by the closure is baked into the
 # tape as constants.
 
-# A truncation bound evaluated at the censored rows. An absent bound is
-# the scalar 0 / 1 the untruncated case wants, and a present one is a
-# full-length CDF vector, so the two need different subsetting.
+#' A truncation bound evaluated at the censored rows. An absent bound is
+#' the scalar 0 / 1 the untruncated case wants, and a present one is a
+#' full-length CDF vector, so the two need different subsetting.
+#'
+#' @noRd
 bound_rows <- function(v, i) if (length(v) == 1L) v else v[i]
 
+#' Turns an assembled `frmtmb_frame` into the negative log-likelihood
+#' closure that `RTMB::MakeADFun()` tapes. The returned function takes the
+#' parameter list and gives back one value, with the design matrices, the
+#' response, and the addition terms baked in as constants. It is a closure
+#' and not compiled code because RTMB tapes plain R: the model structure
+#' is resolved once here, outside the function the tape records, so the
+#' taped code loops over data only through vectorized operations.
+#'
+#' @noRd
 build_objective <- function(frame) {
   lps <- frame$linpreds
   blocks <- frame$re_blocks

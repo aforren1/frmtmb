@@ -2,8 +2,10 @@
 # parameter vector (tmbstan samples the random effects too), so the
 # fitted-model machinery runs per draw exactly.
 
-# Column positions of each template component inside the draws matrix
-# (which is in template order, mapped betad entries absent, lp__ last).
+#' Column positions of each template component inside the draws matrix
+#' (which is in template order, mapped betad entries absent, `lp__` last).
+#'
+#' @noRd
 draws_par_index <- function(fit) {
   tpl <- fit$frame$par_template
   idx <- list()
@@ -19,7 +21,9 @@ draws_par_index <- function(fit) {
   idx
 }
 
-# The originating fit with its estimates replaced by one draw.
+#' The originating fit with its estimates replaced by one draw.
+#'
+#' @noRd
 draws_fit_at <- function(x, i, idx = draws_par_index(x$fit)) {
   fit <- x$fit
   est <- fit$frame$par_template   # mapped betad entries keep link(const)
@@ -40,6 +44,11 @@ draws_fit_at <- function(x, i, idx = draws_par_index(x$fit)) {
   fit
 }
 
+#' Row indices of an evenly spaced subsample of the draws. Predictive
+#' methods run the whole model per draw, so a thinned set keeps them
+#' affordable without favoring one part of the chain.
+#'
+#' @noRd
 draws_subsample <- function(x, ndraws) {
   n <- nrow(x$draws)
   if (is.null(ndraws) || ndraws >= n) return(seq_len(n))

@@ -238,8 +238,10 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
 # strings. Nothing here reaches inside the tape - per-evaluation
 # printing would dominate the fit it is meant to measure.
 
-# Resolved level: 0 = silent, 1 = stage progress, 2 = also the
-# optimizer's own iteration trace.
+#' Resolved level: 0 = silent, 1 = stage progress, 2 = also the
+#' optimizer's own iteration trace.
+#'
+#' @noRd
 verbose_level <- function(control) {
   v <- control$verbose
   if (is.null(v) || isFALSE(v)) return(0L)
@@ -248,28 +250,47 @@ verbose_level <- function(control) {
   if (is.na(v) || v < 0L) 0L else v
 }
 
+#' The clock every verbose timing reads: elapsed seconds as one number.
+#'
+#' @noRd
 vb_now <- function() proc.time()[["elapsed"]]
 
+#' One progress line with the package prefix, through `message()`.
+#'
+#' @noRd
 vb_say <- function(...) message("frmtmb: ", ...)
 
-# "frmtmb: <stage> [1.23s]: <detail>"
+#' One timed stage line, shaped `"frmtmb: <stage> [1.23s]: <detail>"`.
+#'
+#' @noRd
 vb_stage <- function(stage, t0, detail = NULL) {
   message("frmtmb: ", stage, " [", sprintf("%.2f", vb_now() - t0), "s]",
           if (is.null(detail)) "" else paste0(": ", detail))
 }
 
+#' A count and its noun, with the plural `s` only when the count needs
+#' one.
+#'
+#' @noRd
 vb_plural <- function(n, what) {
   paste0(n, " ", what, if (n != 1L) "s")
 }
 
+#' The size of an assembled frame in one clause: observations, linear
+#' predictors, and random-effect blocks. The detail of the "frame" stage
+#' line.
+#'
+#' @noRd
 vb_frame_detail <- function(frame) {
   paste0(frame$n_obs, " obs, ",
          vb_plural(length(frame$linpreds), "linear predictor"), ", ",
          vb_plural(length(frame$re_blocks), "random-effect block"))
 }
 
-# First line of a fit: the family and every mode that changes what the
-# optimizer is solving, so a slow log says which problem it is timing.
+#' First line of a fit: the family and every mode that changes what the
+#' optimizer is solving, so a slow log says which problem it is timing.
+#'
+#' @noRd
 vb_fit_detail <- function(spec, REML, control, quadrature, priors) {
   fams <- vapply(spec$responses, function(r) r$family$family %||% "?", "")
   opt <- control$optimizer %||% "nlminb"
@@ -283,6 +304,10 @@ vb_fit_detail <- function(spec, REML, control, quadrature, priors) {
          paste(flags, collapse = ", "), ", ", opt)
 }
 
+#' An optimizer result in one clause: the objective, plus the status code
+#' when the optimizer did not report success.
+#'
+#' @noRd
 vb_opt_detail <- function(opt) {
   paste0("objective ", format(opt$objective, digits = 8),
          if (opt$convergence != 0) {
@@ -290,10 +315,12 @@ vb_opt_detail <- function(opt) {
          })
 }
 
-# verbose >= 2 turns on the optimizer's own iteration trace, unless the
-# user already asked for one. That trace is printed by nlminb/optim
-# themselves and so goes to stdout, not through message(); a custom
-# optimizer receives optCtrl untouched.
+#' verbose >= 2 turns on the optimizer's own iteration trace, unless the
+#' user already asked for one. That trace is printed by nlminb/optim
+#' themselves and so goes to stdout, not through message(); a custom
+#' optimizer receives optCtrl untouched.
+#'
+#' @noRd
 vb_trace_ctrl <- function(optCtrl, optimizer) {
   optCtrl <- optCtrl %||% list()
   if (!is.null(optCtrl[["trace"]])) return(optCtrl)
@@ -306,9 +333,11 @@ vb_trace_ctrl <- function(optCtrl, optimizer) {
   optCtrl
 }
 
-# Fitting core shared by frm() and refit(): objective build through the
-# convergence check. A non-NULL `template` bypasses make_start (warm
-# starts when refitting to a new response).
+#' Fitting core shared by frm() and refit(): objective build through the
+#' convergence check. A non-NULL `template` bypasses make_start (warm
+#' starts when refitting to a new response).
+#'
+#' @noRd
 fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           se, lower, upper, priors, quadrature,
                           template = NULL, data2 = list()) {
@@ -558,73 +587,81 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   fit
 }
 
-# Does any response carry a mixture() family?
+#' Does any response carry a mixture() family?
+#'
+#' @noRd
 has_mixture <- function(spec) {
   any(vapply(spec$responses,
              function(r) !is.null(r$family[["mix"]]), TRUE))
 }
 
-# parList() at an outer parameter vector with the inner problem solved
-# there first. fn() runs the inner Newton solve and leaves the
-# conditional modes in last.par, which is parList's default `par`.
+#' parList() at an outer parameter vector with the inner problem solved
+#' there first. fn() runs the inner Newton solve and leaves the
+#' conditional modes in last.par, which is parList's default `par`.
+#'
+#' @noRd
 solved_par_list <- function(obj, par) {
   obj$fn(par)
   obj$env$parList(par)
 }
 
-# Which of two quadrature candidates quad_fit() keeps. A stationary one
-# wins outright (the loop stops there); among non-stationary ones the
-# lowest objective is the best point reached, not the first that
-# happened to tape and optimize without breaking.
+#' Which of two quadrature candidates quad_fit() keeps. A stationary one
+#' wins outright (the loop stops there); among non-stationary ones the
+#' lowest objective is the best point reached, not the first that
+#' happened to tape and optimize without breaking.
+#'
+#' @noRd
 quad_keep_best <- function(best, a) {
   if (is.null(a) || is.null(a$obj)) return(best)
   if (isTRUE(a$stationary)) return(a)
   if (is.null(best) || a$opt$objective < best$opt$objective) a else best
 }
 
-# Build and optimize the Gauss-Kronrod (integrate=) objective.
-#
-# TMBad's marginal_gk transform rescales each integrand ONCE: it finds
-# the mode and curvature of the log-integrand by finite differences and
-# bakes that (mu, sigma) pair into the tape as constants, at whichever
-# parameter values `template` happens to hold. Everything downstream
-# depends on that one calibration, so this function has to do two
-# things the transform does not do for itself.
-#
-# 1. Tape at a sensible point. From the cold start the frozen rescaling
-#    sits far from the real conditional mode, and for every family
-#    whose inverse link exponentiates the linear predictor the rescaled
-#    integrand then overflows: obj$fn() is NaN before the optimizer
-#    takes a step (poisson, Gamma and Beta over nested scalar blocks,
-#    Beta over a single one). Gaussian responses survive it only
-#    because their integrand is quadratic wherever it is sampled. So
-#    fit the plain Laplace objective first and tape the marginalized
-#    one at that optimum: the two optima maximize the same marginal
-#    likelihood, one exactly and one to O(n^-1).
-#
-# 2. Recalibrate when the tape expires. A frozen rescaling is only
-#    trustworthy near the point it was made at, so it can run out in
-#    two ways. The optimizer can walk far enough that the rescaled
-#    integrand breaks (RTMB then raises "NA/NaN gradient evaluation"
-#    from inside nlminb), or it can stop somewhere the tape's own
-#    gradient does not vanish - a mixture whose Laplace fit collapses a
-#    mixing weight to exp(-35) does that, and the reported objective is
-#    then a value no neighborhood shares. Either way the answer is to
-#    tape again at the best point reached and carry on, and to keep the
-#    cold template as a last anchor when the Laplace optimum is the bad
-#    one. Each candidate costs a tape, so they are tried in order and
-#    the first stationary result wins; if none is stationary the
-#    candidate with the lowest objective does.
-#
-# 3. Displace the widths when neither anchor holds. What the transform
-#    freezes is a width per random effect, so a calibration that expires
-#    within a step or two is one whose widths are wrong, and the
-#    parameter that sets them is theta. Half a log-SD either way, then a
-#    whole one, is enough where displacement helps at all - it recovers
-#    single-block fits whose every un-displaced calibration dies inside
-#    the optimizer. It cannot recover a nested block, where the outer
-#    integrand is the inner rescaling's output and the objective is NaN
-#    before the optimizer takes a step.
+#' Build and optimize the Gauss-Kronrod (integrate=) objective.
+#'
+#' TMBad's marginal_gk transform rescales each integrand ONCE: it finds
+#' the mode and curvature of the log-integrand by finite differences and
+#' bakes that (mu, sigma) pair into the tape as constants, at whichever
+#' parameter values `template` happens to hold. Everything downstream
+#' depends on that one calibration, so this function has to do two
+#' things the transform does not do for itself.
+#'
+#' 1. Tape at a sensible point. From the cold start the frozen rescaling
+#'    sits far from the real conditional mode, and for every family
+#'    whose inverse link exponentiates the linear predictor the rescaled
+#'    integrand then overflows: obj$fn() is NaN before the optimizer
+#'    takes a step (poisson, Gamma and Beta over nested scalar blocks,
+#'    Beta over a single one). Gaussian responses survive it only
+#'    because their integrand is quadratic wherever it is sampled. So
+#'    fit the plain Laplace objective first and tape the marginalized
+#'    one at that optimum: the two optima maximize the same marginal
+#'    likelihood, one exactly and one to O(n^-1).
+#'
+#' 2. Recalibrate when the tape expires. A frozen rescaling is only
+#'    trustworthy near the point it was made at, so it can run out in
+#'    two ways. The optimizer can walk far enough that the rescaled
+#'    integrand breaks (RTMB then raises "NA/NaN gradient evaluation"
+#'    from inside nlminb), or it can stop somewhere the tape's own
+#'    gradient does not vanish - a mixture whose Laplace fit collapses a
+#'    mixing weight to exp(-35) does that, and the reported objective is
+#'    then a value no neighborhood shares. Either way the answer is to
+#'    tape again at the best point reached and carry on, and to keep the
+#'    cold template as a last anchor when the Laplace optimum is the bad
+#'    one. Each candidate costs a tape, so they are tried in order and
+#'    the first stationary result wins; if none is stationary the
+#'    candidate with the lowest objective does.
+#'
+#' 3. Displace the widths when neither anchor holds. What the transform
+#'    freezes is a width per random effect, so a calibration that expires
+#'    within a step or two is one whose widths are wrong, and the
+#'    parameter that sets them is theta. Half a log-SD either way, then a
+#'    whole one, is enough where displacement helps at all - it recovers
+#'    single-block fits whose every un-displaced calibration dies inside
+#'    the optimizer. It cannot recover a nested block, where the outer
+#'    integrand is the inner rescaling's output and the objective is NaN
+#'    before the optimizer takes a step.
+#'
+#' @noRd
 quad_fit <- function(nll, template, random, map, integrate, lap_obj,
                      control, bounds, par_units, frame = NULL, vb = 0L,
                      rounds = 3L) {
@@ -695,13 +732,15 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
   best[c("obj", "opt")]
 }
 
-# The refusal message when every calibration point breaks down. A bare
-# "the objective was non-finite" tells a user nothing they can act on,
-# and the two shapes this failure takes want different answers, so name
-# whichever applies: an iterated integral over nested blocks (the outer
-# integrand is the inner rescaling's output, and no calibration of the
-# outer one can repair that), and a variance component so narrow that
-# the transform's unit-step finite differences cannot measure it.
+#' The refusal message when every calibration point breaks down. A bare
+#' "the objective was non-finite" tells a user nothing they can act on,
+#' and the two shapes this failure takes want different answers, so name
+#' whichever applies: an iterated integral over nested blocks (the outer
+#' integrand is the inner rescaling's output, and no calibration of the
+#' outer one can repair that), and a variance component so narrow that
+#' the transform's unit-step finite differences cannot measure it.
+#'
+#' @noRd
 quad_breakdown_message <- function(frame, theta) {
   blocks <- frame$re_blocks %||% list()
   desc <- function(b) paste0("'", b$term_label, "' (", b$n_levels,
@@ -746,14 +785,18 @@ quad_breakdown_message <- function(frame, theta) {
          "fits this model (it is what the warm start above already did)")
 }
 
-# The joint precision is the covariance source for parameters outside
-# cov.fixed: REML (beta random) and control profile = TRUE (beta inner).
+#' The joint precision is the covariance source for parameters outside
+#' cov.fixed: REML (beta random) and control profile = TRUE (beta inner).
+#'
+#' @noRd
 needs_jp <- function(fit) {
   fit$REML || isTRUE(fit$control$profile)
 }
 
-# Memoized sdreport: the standard-error machinery (summary, vcov,
-# confint, predict se.fit, diagnose) triggers it on first use.
+#' Memoized sdreport: the standard-error machinery (summary, vcov,
+#' confint, predict se.fit, diagnose) triggers it on first use.
+#'
+#' @noRd
 sdr_of <- function(fit) {
   cache <- fit$cache
   if (is.null(cache$sdr)) {
@@ -924,11 +967,13 @@ frmtmb_control <- function(optimizer = "nlminb",
        verbose = verbose)
 }
 
-# lme4's lmerControl runs a battery of structural checks before the fit
-# and gives each one an ignore/warning/stop setting; these are the two
-# that change what a frmtmb fit MEANS rather than how fast it runs.
-# Both currently fit silently to an answer the user did not ask for.
-# [lme4 lmerControl checks]
+#' lme4's lmerControl runs a battery of structural checks before the fit
+#' and gives each one an ignore/warning/stop setting; these are the two
+#' that change what a frmtmb fit MEANS rather than how fast it runs.
+#' Both currently fit silently to an answer the user did not ask for.
+#' `[lme4 lmerControl checks]`
+#'
+#' @noRd
 re_check_act <- function(what, msg) {
   switch(what %||% "warning",
          ignore = invisible(NULL),
@@ -936,6 +981,13 @@ re_check_act <- function(what, msg) {
          warning(msg, call. = FALSE))
 }
 
+#' Runs those two checks over the assembled random-effect blocks, before
+#' any fitting starts: a scalar term whose grouping factor has one level,
+#' and an observation-level term on a response whose residual sd already
+#' holds that variance. Each check reports through `re_check_act()`, so
+#' the control setting decides between silence, a warning, and an error.
+#'
+#' @noRd
 check_re_structure <- function(spec, frame, control) {
   gaussian_like <- c("gaussian", "student", "lognormal")
   for (bk in frame$re_blocks) {
@@ -985,9 +1037,11 @@ check_re_structure <- function(spec, frame, control) {
   invisible(NULL)
 }
 
-# One optimizer invocation, normalized to nlminb's result shape.
-# par_units (autoscale) carries per-parameter magnitudes into nlminb's
-# scaling hook; the custom-optimizer contract is unchanged.
+#' One optimizer invocation, normalized to nlminb's result shape.
+#' par_units (autoscale) carries per-parameter magnitudes into nlminb's
+#' scaling hook; the custom-optimizer contract is unchanged.
+#'
+#' @noRd
 run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
                           par_units = NULL) {
   if (is.function(optimizer)) {
@@ -1022,11 +1076,13 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
   )
 }
 
-# A parameter list flattened into the outer vector the optimizer
-# iterates on: the components of names(obj$par), in that order, with
-# the dpars that se() maps to constants removed. Same loop
-# autoscale_units() walks, and the inverse of the one that fills
-# `estimates` from opt$par.
+#' A parameter list flattened into the outer vector the optimizer
+#' iterates on: the components of names(obj$par), in that order, with
+#' the dpars that se() maps to constants removed. Same loop
+#' autoscale_units() walks, and the inverse of the one that fills
+#' `estimates` from opt$par.
+#'
+#' @noRd
 outer_from_template <- function(tpl, obj, frame) {
   pn <- names(obj$par)
   out <- numeric(0)
@@ -1042,25 +1098,27 @@ outer_from_template <- function(tpl, obj, frame) {
   stats::setNames(out, pn)
 }
 
-# Starting points to try when the optimizer could not get through at
-# all. Both only ever run after a failure, so a healthy fit pays
-# nothing.
-#
-# The start itself can be unusable. The autoscale pre-fit hands back a
-# warm start, and when the standardized fit ran a correlated block to a
-# perfect correlation the mapped-back template has an infinite
-# objective and a NaN gradient - nlminb dies before its first step,
-# while the cold start make_start() would have built fits the same
-# model. So offer the cold start whenever the fit did not begin there.
-#
-# Or the path from a usable start crosses a hole. Under profile = TRUE
-# beta moves into the inner problem, and the outer objective left
-# behind can be undefined where the optimizer must pass (a Gamma shape
-# intercept on its way to exp(34) does it). The plain Laplace objective
-# over the same model - the one every other mode optimizes - has no
-# such barrier, so its optimum is a starting point on the far side of
-# the hole. Same recipe quad_fit() uses to calibrate the Gauss-Kronrod
-# tape at the Laplace optimum.
+#' Starting points to try when the optimizer could not get through at
+#' all. Both only ever run after a failure, so a healthy fit pays
+#' nothing.
+#'
+#' The start itself can be unusable. The autoscale pre-fit hands back a
+#' warm start, and when the standardized fit ran a correlated block to a
+#' perfect correlation the mapped-back template has an infinite
+#' objective and a NaN gradient - nlminb dies before its first step,
+#' while the cold start make_start() would have built fits the same
+#' model. So offer the cold start whenever the fit did not begin there.
+#'
+#' Or the path from a usable start crosses a hole. Under profile = TRUE
+#' beta moves into the inner problem, and the outer objective left
+#' behind can be undefined where the optimizer must pass (a Gamma shape
+#' intercept on its way to exp(34) does it). The plain Laplace objective
+#' over the same model - the one every other mode optimizes - has no
+#' such barrier, so its optimum is a starting point on the far side of
+#' the hole. Same recipe quad_fit() uses to calibrate the Gauss-Kronrod
+#' tape at the Laplace optimum.
+#'
+#' @noRd
 fit_recovery_starts <- function(obj, nll, template, random, map, frame,
                                 start, control, bounds, par_units) {
   out <- list()
@@ -1086,19 +1144,21 @@ fit_recovery_starts <- function(obj, nll, template, random, map, frame,
   lapply(out, function(p) pmin(pmax(p, bounds$lower), bounds$upper))
 }
 
-# Second chance after the optimizer aborts the whole fit.
-#
-# nlminb hands RTMB a step that lands outside the region where the
-# likelihood is defined, RTMB raises "NA/NaN gradient evaluation" from
-# inside the optimizer, and the fit dies - on models that fit perfectly
-# well from a different starting point (an ar1 block under
-# profile = TRUE, a wide smooth under autoscale). The tape is not
-# broken: it still holds the best point the line search reached, and
-# restarting there steps around the hole. quad_fit() already does
-# exactly this when a frozen Gauss-Kronrod rescaling expires the same
-# way. One retry only, and only from a point the optimizer preferred to
-# where it started: a second failure is an objective that is genuinely
-# undefined nearby, not an unlucky step.
+#' Second chance after the optimizer aborts the whole fit.
+#'
+#' nlminb hands RTMB a step that lands outside the region where the
+#' likelihood is defined, RTMB raises "NA/NaN gradient evaluation" from
+#' inside the optimizer, and the fit dies - on models that fit perfectly
+#' well from a different starting point (an ar1 block under
+#' profile = TRUE, a wide smooth under autoscale). The tape is not
+#' broken: it still holds the best point the line search reached, and
+#' restarting there steps around the hole. quad_fit() already does
+#' exactly this when a frozen Gauss-Kronrod rescaling expires the same
+#' way. One retry only, and only from a point the optimizer preferred to
+#' where it started: a second failure is an objective that is genuinely
+#' undefined nearby, not an unlucky step.
+#'
+#' @noRd
 optimizer_from_best <- function(obj, par, e, optimizer, bounds, control,
                                 par_units, verbose = 0L) {
   pb <- obj$env$last.par.best
@@ -1119,6 +1179,13 @@ optimizer_from_best <- function(obj, par, e, optimizer, bounds, control,
                 control$optCtrl, par_units)
 }
 
+#' The single entry point to the optimizer for every fit mode: it runs
+#' the objective to an optimum, restarts from there while the gradient
+#' stays above `grad_tol`, and keeps the better result. Bounds, autoscale
+#' units, and the restart-from-best recovery are applied here, so no
+#' caller has to repeat them.
+#'
+#' @noRd
 optimize_obj <- function(obj, control,
                          bounds = list(lower = -Inf, upper = Inf),
                          par_units = NULL, verbose = 0L,
@@ -1162,29 +1229,17 @@ optimize_obj <- function(obj, control,
   opt
 }
 
-# Whatever the optimizer throws reaches the user raw otherwise. RTMB's
-# "NA/NaN gradient evaluation" and nlminb's PORT strings name neither
-# the model nor anything to try, and they arrive with the call stack of
-# stats::nlminb, so the user cannot even tell which of their models
-# failed. Wrap the optimizer call once and say both.
-#
-# A nonlinear model gets the sharper advice, because there the cause is
-# nearly always the start: make_start() can only seed intercepts through
-# a family's init_dpars, and a nonlinear mu has no design of its own, so
-# an nl fit begins at zero, where most nonlinear forms are flat,
-# singular, or undefined. [brms#734 doctrine]
-#
-# The condition carries a class of its own so the autoscale pre-fit -
-# an inner fit_assembled() that has already been through here - is
-# rethrown rather than wrapped a second time.
-#
-# The diagnosis is only attached to errors that actually look numerical.
-# Everything raised inside the wrapped expression lands here, including
-# a misspelled optimizer, a custom optimizer that broke its return
-# contract, and errors from user code in a custom family - none of which
-# says anything about the likelihood. Reporting those as an undefined
-# objective sends the user to the wrong remedies and buries the real
-# message under advice.
+#' Does an optimizer failure message read like an undefined objective?
+#'
+#' The diagnosis is only attached to errors that actually look numerical.
+#' Everything raised inside the wrapped expression lands here, including
+#' a misspelled optimizer, a custom optimizer that broke its return
+#' contract, and errors from user code in a custom family - none of which
+#' says anything about the likelihood. Reporting those as an undefined
+#' objective sends the user to the wrong remedies and buries the real
+#' message under advice.
+#'
+#' @noRd
 fit_numerical_error <- function(msg) {
   # nlminb ("NA/NaN function evaluation"), RTMB ("NA/NaN gradient
   # evaluation") and optim's L-BFGS-B finiteness checks are the
@@ -1193,6 +1248,26 @@ fit_numerical_error <- function(msg) {
         ignore.case = TRUE)
 }
 
+#' Runs the optimizer call and rewrites any failure into a message that
+#' names the model and what to try next.
+#'
+#' Whatever the optimizer throws reaches the user raw otherwise. RTMB's
+#' "NA/NaN gradient evaluation" and nlminb's PORT strings name neither
+#' the model nor anything to try, and they arrive with the call stack of
+#' stats::nlminb, so the user cannot even tell which of their models
+#' failed. Wrap the optimizer call once and say both.
+#'
+#' A nonlinear model gets the sharper advice, because there the cause is
+#' nearly always the start: make_start() can only seed intercepts through
+#' a family's init_dpars, and a nonlinear mu has no design of its own, so
+#' an nl fit begins at zero, where most nonlinear forms are flat,
+#' singular, or undefined. `[brms#734 doctrine]`
+#'
+#' The condition carries a class of its own, `frmtmb_fit_error`, so the
+#' autoscale pre-fit (an inner `fit_assembled()` that has already been
+#' through here) is rethrown rather than wrapped a second time.
+#'
+#' @noRd
 fit_error_context <- function(spec, start, REML, control, quadrature,
                               priors, expr) {
   nl <- any(vapply(spec$responses,
@@ -1243,6 +1318,13 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
   )
 }
 
+#' The cold starting values: the parameter template with each linear
+#' predictor's intercept seeded from the family's own initializer, then
+#' whatever the user gave in `start` written over the result. Component
+#' names and lengths are checked here, where the error can still name
+#' the template.
+#'
+#' @noRd
 make_start <- function(frame, start) {
   tpl <- frame$par_template
   for (lp in frame$linpreds) {
@@ -1272,6 +1354,12 @@ make_start <- function(frame, start) {
   tpl
 }
 
+#' The post-fit verdict: the optimizer status, the maximum absolute
+#' gradient, and, when a report is already there, the Hessian and the
+#' standard errors. Each failure is a separate warning, so
+#' `suppressWarnings()` silences them and the fit is still returned.
+#'
+#' @noRd
 check_convergence <- function(fit, control) {
   # collected first, warned second, so the verbose summary line can
   # report how many diagnostics the fit raised

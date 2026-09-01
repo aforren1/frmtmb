@@ -79,6 +79,7 @@ articles:
   navbar: ~
   contents:
   - frmtmb
+  - inputs
   - brms-migration
   - diagnostics
   - compatibility
