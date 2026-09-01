@@ -11,7 +11,9 @@
 
 \item{nsim}{Number of simulated response vectors.}
 
-\item{seed}{Optional RNG seed.}
+\item{seed}{Optional RNG seed. Follows the \code{\link[stats:simulate]{stats::simulate()}}
+contract: the global RNG state is restored afterwards, and the
+seed used is attached as the \code{"seed"} attribute.}
 
 \item{re.form}{\code{NULL} (default) conditions on the estimated random
 effects; \code{NA} redraws them from their estimated distribution
@@ -20,7 +22,7 @@ effects; \code{NA} redraws them from their estimated distribution
 \item{...}{Unused.}
 }
 \value{
-A data frame with \code{nsim} columns.
+A data frame with \code{nsim} columns and a \code{"seed"} attribute.
 }
 \description{
 Simulate responses from a frmtmb fit

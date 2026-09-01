@@ -39,22 +39,7 @@
 frm_simulate <- function(formula, data, family = NULL, newparams,
                          nsim = 1, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
-  bform <- if (inherits(formula, c("frmtmb_formula", "frmtmb_mvformula"))) {
-    formula
-  } else {
-    bf(formula)
-  }
-  if (!is.null(family)) {
-    fam <- as_frmtmb_family(family)
-    if (inherits(bform, "frmtmb_mvformula")) {
-      bform$forms <- lapply(bform$forms, function(f) {
-        if (is.null(f$family)) f$family <- fam
-        f
-      })
-    } else {
-      bform$family <- fam
-    }
-  }
+  bform <- as_bform(formula, family)
   spec <- parse_spec(bform)
   frame <- assemble_frame(spec, data)
   if (length(spec$responses) > 1L) {

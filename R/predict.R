@@ -152,10 +152,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       Xr <- hsgp_basis(sweep(Xc, 2, gi$center), gi$omega, gi$L)
     } else {
       pos <- gi$positions
-      rowkey <- function(M) {
-        do.call(paste, c(as.data.frame(M), sep = "\r"))
-      }
-      j <- match(rowkey(Xc), rowkey(pos))
+      j <- match(pos_rowkey(Xc), pos_rowkey(pos))
       if (anyNA(j)) {
         th <- fit$estimates$theta[bk$theta_idx]
         K <- unname(covstruct_registry$gp$vcov(th, bk))
@@ -252,7 +249,9 @@ re_eta <- function(re_parts, cvec, n) {
     B <- t(matrix(cvec[bk$c_idx], nrow = bk$dim))  # levels x D
     cols <- rp$comp$offset + seq_len(rp$comp$dim)
     contrib <- rowSums(rp$mm * B[rp$j, cols, drop = FALSE])
-    contrib[is.na(contrib)] <- 0                # new levels: population
+    # only unmatched LEVELS predict at the population value; an NA in
+    # the RE design data itself must propagate, not silently zero
+    contrib[is.na(rp$j)] <- 0
     eta <- eta + contrib
   }
   eta
@@ -359,13 +358,91 @@ uni_resp <- function(fit, what) {
   fit$spec$responses[[1]]
 }
 
+# Whether the family's response mean is just the mu dpar. All the
+# built-in identity-mean families spell their mean_fn as `dpars$mu`, so
+# the structural check is exact for them and conservative (general
+# path) for custom families.
+mean_is_mu <- function(fam) {
+  is.null(fam$post$mean_fn) ||
+    identical(body(fam$post$mean_fn), quote(dpars$mu))
+}
+
+# Addition-term values (trials, se, ...) re-evaluated on new data, for
+# the expected-response prediction path. Terms the family mean cannot
+# use (censoring, truncation, structural flags) are skipped; trials and
+# se must evaluate because omitting them silently changes the mean.
+aterms_for_newdata <- function(rspec, newdata) {
+  skip <- c("cens", "cens_y2", "trunc_lb", "trunc_ub", "se_sigma",
+            "mi", "mi_sd", "weights")
+  av <- list()
+  for (nm in setdiff(names(rspec$aterms), skip)) {
+    v <- tryCatch(
+      as.numeric(eval(rspec$aterms[[nm]], newdata, rspec$formula_env)),
+      error = function(e) NULL
+    )
+    if (is.null(v) && nm %in% c("trials", "se")) {
+      stop("Addition term ", nm, "(",
+           deparse1(rspec$aterms[[nm]]), ") could not be evaluated on ",
+           "newdata; supply the variable or use type = \"conditional\"",
+           call. = FALSE)
+    }
+    if (!is.null(v)) av[[nm]] <- v
+  }
+  if (!is.null(rspec$aterms$se_sigma)) {
+    av$se_sigma <- rspec$aterms$se_sigma
+  }
+  av
+}
+
+# Expected response over all dpars: the family mean at predicted dpar
+# values (fitted()'s convention, extended to newdata and re.form).
+predict_mean_response <- function(fit, rspec, newdata, re.form,
+                                  allow_new_levels) {
+  fam <- rspec$family
+  rn <- rspec$resp_name
+  if (is.null(newdata) && is.null(re.form)) {
+    # exactly fitted(): dpars at the estimates, conditional on the modes
+    dp <- eval_dpars(fit)[[rn]]
+    out <- fam$post$mean_fn(dp, fit$frame$aterm_values[[rn]])
+    return(napred(fit, out))
+  }
+  dp <- list()
+  for (dnm in names(rspec$dpars)) {
+    dp[[dnm]] <- as.vector(predict(fit, newdata = newdata, dpar = dnm,
+                                   resp = rn, re.form = re.form,
+                                   type = "response",
+                                   allow_new_levels = allow_new_levels))
+  }
+  av <- if (is.null(newdata)) {
+    # in-sample dpar predictions come back napredict-ed; pad the
+    # per-observation aterm values the same way (a no-op under na.omit)
+    lapply(fit$frame$aterm_values[[rn]], function(v) {
+      if (is.numeric(v) && length(v) == fit$frame$n_obs) {
+        napred(fit, v)
+      } else {
+        v
+      }
+    })
+  } else {
+    aterms_for_newdata(rspec, newdata)
+  }
+  fam$post$mean_fn(dp, av)
+}
+
 #' Predictions from a frmtmb fit
 #'
 #' @param object A `frmtmb_fit`.
 #' @param newdata Optional data frame to predict on. Defaults to the
 #'   training data.
 #' @param type `"link"` for the linear predictor, `"response"` for the
-#'   dpar on its natural scale.
+#'   expected response (which equals [fitted()] on the training data;
+#'   for zero-inflated, hurdle, and similar families this is the
+#'   response mean, not the `mu` dpar). When `dpar` is given,
+#'   `"response"` is that dpar on its natural scale. The glmmTMB
+#'   spellings `"conditional"` (the `mu` dpar on its natural scale),
+#'   `"zprob"`/`"zlink"` (the zero-inflation/hurdle probability on the
+#'   response/link scale), and `"disp"` (the dispersion dpar) are
+#'   accepted as aliases.
 #' @param dpar Which distributional parameter to predict; defaults to the
 #'   family's first location parameter (`"mu"` for most families).
 #' @param resp For multivariate fits: which response to predict (defaults
@@ -383,13 +460,21 @@ uni_resp <- function(fit, what) {
 #' @return A numeric vector, or a list when `se.fit = TRUE`.
 #' @export
 predict.frmtmb_fit <- function(object, newdata = NULL,
-                               type = c("link", "response"),
+                               type = c("link", "response",
+                                        "conditional", "zprob", "zlink",
+                                        "disp"),
                                dpar = NULL, resp = NULL, re.form = NULL,
                                se.fit = FALSE,
                                allow_new_levels = FALSE, ...) {
-  if (...length()) {
+  dots <- list(...)
+  # lme4/glmmTMB spell allow_new_levels with dots; accept it silently
+  if ("allow.new.levels" %in% names(dots)) {
+    allow_new_levels <- isTRUE(dots[["allow.new.levels"]])
+    dots[["allow.new.levels"]] <- NULL
+  }
+  if (length(dots)) {
     warning("ignoring unknown arguments to predict(): ",
-            paste(...names(), collapse = ", "), call. = FALSE)
+            paste(names(dots), collapse = ", "), call. = FALSE)
   }
   type <- match.arg(type)
   use_re <- is.null(re.form) ||
@@ -402,6 +487,42 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     stop("Unknown response: '", resp, "'. Available: ",
          paste(names(object$spec$responses), collapse = ", "),
          call. = FALSE)
+  }
+  # glmmTMB type aliases resolve to a dpar plus scale
+  if (type %in% c("zprob", "zlink", "disp")) {
+    if (!is.null(dpar)) {
+      stop("type = '", type, "' selects its own dpar; drop dpar =",
+           call. = FALSE)
+    }
+    dpar <- switch(type,
+      zprob = ,
+      zlink = intersect(c("zi", "hu"), names(rspec$dpars))[1],
+      disp = intersect(c("sigma", "shape", "phi"),
+                       names(rspec$dpars))[1]
+    )
+    if (is.na(dpar)) {
+      stop("type = '", type, "' needs a family with a ",
+           if (type == "disp") "dispersion" else "zero-inflation/hurdle",
+           " parameter; family '", rspec$family$family, "' has none",
+           call. = FALSE)
+    }
+    type <- if (type == "zlink") "link" else "response"
+  } else if (type == "conditional") {
+    type <- "response"   # the conditional mean is the mu dpar
+  } else if (type == "response" && is.null(dpar) &&
+             !mean_is_mu(rspec$family)) {
+    # the response mean is not the mu dpar (zi, hurdle, lognormal,
+    # trials-binomial, ...): "response" means the expected response,
+    # the fitted()/glmmTMB/brms-epred convention. Per-dpar values stay
+    # available through dpar = or type = "conditional".
+    if (se.fit) {
+      stop("se.fit is not available for the expected response of ",
+           "family '", rspec$family$family, "'; use type = ",
+           "\"conditional\" (the mu dpar) or a parametric bootstrap",
+           call. = FALSE)
+    }
+    return(predict_mean_response(object, rspec, newdata, re.form,
+                                 allow_new_levels))
   }
   dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
     rspec$primary_dpars[1]
@@ -715,16 +836,29 @@ draw_b <- function(fit) {
 #'
 #' @param object A `frmtmb_fit`.
 #' @param nsim Number of simulated response vectors.
-#' @param seed Optional RNG seed.
+#' @param seed Optional RNG seed. Follows the [stats::simulate()]
+#'   contract: the global RNG state is restored afterwards, and the
+#'   seed used is attached as the `"seed"` attribute.
 #' @param re.form `NULL` (default) conditions on the estimated random
 #'   effects; `NA` redraws them from their estimated distribution
 #'   (marginal simulation).
 #' @param ... Unused.
-#' @return A data frame with `nsim` columns.
+#' @return A data frame with `nsim` columns and a `"seed"` attribute.
 #' @export
 simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
                                 re.form = NULL, ...) {
-  if (!is.null(seed)) set.seed(seed)
+  # the stats::simulate seed contract (as in simulate.lm)
+  if (!exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    stats::runif(1)
+  }
+  if (is.null(seed)) {
+    rng_state <- get(".Random.seed", envir = globalenv())
+  } else {
+    saved_seed <- get(".Random.seed", envir = globalenv())
+    set.seed(seed)
+    rng_state <- structure(seed, kind = as.list(RNGkind()))
+    on.exit(assign(".Random.seed", saved_seed, envir = globalenv()))
+  }
   rspec <- uni_resp(object, "simulate()")
   fam <- rspec$family
   if (is.null(fam$sim)) {
@@ -770,5 +904,7 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     }
   }
   names(out) <- paste0("sim_", seq_len(nsim))
-  as.data.frame(out)
+  out <- as.data.frame(out)
+  attr(out, "seed") <- rng_state
+  out
 }

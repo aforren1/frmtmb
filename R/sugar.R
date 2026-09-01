@@ -74,6 +74,11 @@ weights.frmtmb_fit <- function(object, resp = NULL, ...) {
 }
 
 #' @export
+na.action.frmtmb_fit <- function(object, ...) {
+  object$frame$na_action
+}
+
+#' @export
 deviance.frmtmb_fit <- function(object, ...) {
   -2 * as.numeric(logLik(object))
 }

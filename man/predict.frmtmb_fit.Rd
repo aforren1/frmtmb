@@ -7,7 +7,7 @@
 \method{predict}{frmtmb_fit}(
   object,
   newdata = NULL,
-  type = c("link", "response"),
+  type = c("link", "response", "conditional", "zprob", "zlink", "disp"),
   dpar = NULL,
   resp = NULL,
   re.form = NULL,
@@ -23,7 +23,14 @@
 training data.}
 
 \item{type}{\code{"link"} for the linear predictor, \code{"response"} for the
-dpar on its natural scale.}
+expected response (which equals \code{\link[=fitted]{fitted()}} on the training data;
+for zero-inflated, hurdle, and similar families this is the
+response mean, not the \code{mu} dpar). When \code{dpar} is given,
+\code{"response"} is that dpar on its natural scale. The glmmTMB
+spellings \code{"conditional"} (the \code{mu} dpar on its natural scale),
+\code{"zprob"}/\code{"zlink"} (the zero-inflation/hurdle probability on the
+response/link scale), and \code{"disp"} (the dispersion dpar) are
+accepted as aliases.}
 
 \item{dpar}{Which distributional parameter to predict; defaults to the
 family's first location parameter (\code{"mu"} for most families).}

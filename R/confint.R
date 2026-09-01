@@ -26,9 +26,13 @@ model_label <- function(fit) {
 # component order, minus `random` components, minus mapped entries.
 outer_par_names <- function(fit) {
   tpl <- fit$frame$par_template
-  random <- if (fit$REML) c("b", "beta") else "b"
-  # control profile = TRUE moves beta into the inner problem
-  if (isTRUE(fit$control$profile)) random <- union(random, "beta")
+  # mirror the MakeADFun random= construction in fit_assembled: b and
+  # the mi() latent component are always inner, beta under REML or
+  # control profile = TRUE
+  random <- c("b", "miss")
+  if (fit$REML || isTRUE(fit$control$profile)) {
+    random <- c(random, "beta")
+  }
   nm <- character(0)
   for (cp in names(tpl)) {
     if (cp %in% random) next
@@ -50,18 +54,26 @@ outer_par_names <- function(fit) {
 #' @param object A `frmtmb_fit`.
 #' @param parm Parameter names (see `rownames` of the Wald result) or
 #'   indices. Required for `"profile"` and `"uniroot"`; defaults to all
-#'   parameters for `"wald"`.
+#'   parameters for `"wald"` and `"boot"`.
 #' @param level Confidence level.
 #' @param method `"wald"` (fast, from the sdreport covariance),
-#'   `"profile"` (likelihood profile via [TMB::tmbprofile()]), or
-#'   `"uniroot"` (likelihood-root search via [TMB::tmbroot()]).
-#' @param ... Passed to the TMB profiling functions.
+#'   `"profile"` (likelihood profile via [TMB::tmbprofile()]),
+#'   `"uniroot"` (likelihood-root search via [TMB::tmbroot()]), or
+#'   `"boot"` (parametric-bootstrap percentile intervals through
+#'   [frm_bootstrap()], the `lme4::confint(method = "boot")` analog;
+#'   like the other methods it works on the internal parameter scale).
+#'   `"Wald"` is accepted as an alias for `"wald"`.
+#' @param nsim,seed Bootstrap draws and seed for `method = "boot"`.
+#' @param ... Passed to the TMB profiling functions, or to
+#'   [frm_bootstrap()] for `method = "boot"` (e.g. `re.form`).
 #' @return A matrix with columns `lwr`, `upr`, `est`.
 #' @export
 confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
-                               method = c("wald", "profile", "uniroot"),
-                               ...) {
+                               method = c("wald", "Wald", "profile",
+                                          "uniroot", "boot"),
+                               nsim = 500, seed = NULL, ...) {
   method <- match.arg(method)
+  if (method == "Wald") method <- "wald"
   nm <- outer_par_names(object)
   est <- object$opt$par
   a <- (1 - level) / 2
@@ -82,11 +94,24 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   if (method == "wald") {
     sdr <- sdr_of(object)
     se <- sqrt(diag(sdr$cov.fixed))
-    # under control profile = TRUE the profiled betas are absent from
-    # opt$par but present in par.fixed
+    # profiled betas are absent from BOTH opt$par and par.fixed in
+    # current RTMB; the fallback stays as a defensive alignment only
     if (length(est) != length(se)) est <- sdr$par.fixed
     ci <- cbind(lwr = est + stats::qnorm(a) * se,
                 upr = est + stats::qnorm(1 - a) * se,
+                est = est)
+    rownames(ci) <- nm
+    return(ci[idx, , drop = FALSE])
+  }
+
+  if (method == "boot") {
+    # refits share the fit's control, so opt$par lines up with nm
+    # (profile = TRUE excludes beta from both)
+    bs <- frm_bootstrap(object, FUN = function(f) f$opt$par,
+                        nsim = nsim, seed = seed, ...)
+    ci <- cbind(lwr = apply(bs$t, 2, stats::quantile, a, na.rm = TRUE),
+                upr = apply(bs$t, 2, stats::quantile, 1 - a,
+                            na.rm = TRUE),
                 est = est)
     rownames(ci) <- nm
     return(ci[idx, , drop = FALSE])
@@ -331,6 +356,82 @@ anova.frmtmb_fit <- function(object, ...) {
             heading = "Likelihood-ratio tests\n")
 }
 
+#' Single-term deletions
+#'
+#' Drops each fixed-effect term of the primary (`mu`) formula in turn,
+#' refits, and tabulates AIC (and likelihood-ratio tests with
+#' `test = "Chisq"`), following [stats::drop1()] and lme4's
+#' `drop1.merMod`. Random-effect, smooth, and `mo()`/`mi()` terms are
+#' not part of the deletion scope.
+#'
+#' @param object A `frmtmb_fit` from an ML fit (`REML = FALSE`) of a
+#'   univariate model.
+#' @param scope Terms to drop: a character vector or a right-hand-side
+#'   formula. Defaults to all fixed-effect terms that marginality
+#'   allows ([stats::drop.scope()]).
+#' @param test `"Chisq"` adds likelihood-ratio tests.
+#' @param k AIC penalty per parameter.
+#' @param ... Unused.
+#' @return An `anova` table with one row per dropped term.
+#' @export
+drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
+                             k = 2, ...) {
+  test <- match.arg(test)
+  if (object$REML) {
+    stop("drop1() compares fixed effects; refit with REML = FALSE",
+         call. = FALSE)
+  }
+  if (length(object$spec$responses) > 1) {
+    stop("drop1() is not supported for multivariate fits", call. = FALSE)
+  }
+  tt <- terms(object)
+  labs <- attr(tt, "term.labels")
+  if (missing(scope)) {
+    scope <- stats::drop.scope(tt)
+  } else if (!is.character(scope)) {
+    scope <- attr(stats::terms(stats::update.formula(
+      stats::formula(tt), scope)), "term.labels")
+  }
+  bad <- setdiff(scope, labs)
+  if (length(bad)) {
+    stop("scope is not a subset of the term labels: ",
+         paste(bad, collapse = ", "), call. = FALSE)
+  }
+
+  ll0 <- logLik(object)
+  df0 <- attr(ll0, "df")
+  aic0 <- -2 * as.numeric(ll0) + k * df0
+  n_sc <- length(scope)
+  ddf <- aic <- lrt <- rep(NA_real_, n_sc)
+  for (i in seq_len(n_sc)) {
+    # rebuild the bf() object with the term removed; the stored model
+    # frame carries every variable, so the refit does not depend on
+    # the original data still being visible
+    nb <- object$bform
+    nf <- stats::update.formula(nb$formula,
+                                paste(". ~ . -", scope[i]))
+    environment(nf) <- environment(nb$formula)
+    nb$formula <- nf
+    cl <- object$call
+    cl$formula <- nb
+    cl$data <- object$frame$data_frame
+    fit_i <- eval(cl, environment(nb$formula) %||% parent.frame())
+    ll_i <- logLik(fit_i)
+    ddf[i] <- df0 - attr(ll_i, "df")
+    aic[i] <- -2 * as.numeric(ll_i) + k * attr(ll_i, "df")
+    lrt[i] <- 2 * (as.numeric(ll0) - as.numeric(ll_i))
+  }
+  tab <- data.frame(Df = c(NA, ddf), AIC = c(aic0, aic),
+                    row.names = c("<none>", scope), check.names = FALSE)
+  if (test == "Chisq") {
+    tab$LRT <- c(NA, lrt)
+    tab$`Pr(>Chi)` <- c(NA, stats::pchisq(lrt, ddf, lower.tail = FALSE))
+  }
+  structure(tab, class = c("anova", "data.frame"),
+            heading = c("Single term deletions\n",
+                        paste("Model:", model_label(object)), ""))
+}
+
 #' @export
 update.frmtmb_fit <- function(object, ..., evaluate = TRUE) {
   cl <- object$call
@@ -396,8 +497,8 @@ hyp_par_cov <- function(fit) {
     V <- sdr$cov.fixed
     rn <- rownames(V)
     keep <- which(rn %in% comps)
-    # par.fixed equals opt$par at the optimum and, unlike opt$par,
-    # includes betas profiled by control profile = TRUE
+    # par.fixed equals opt$par at the optimum (this branch is never
+    # taken under control profile = TRUE)
     list(vals = unname(sdr$par.fixed[keep]), comp = rn[keep],
          V = V[keep, keep, drop = FALSE], outer_pos = keep,
          n_outer = length(fit$opt$par))
@@ -453,7 +554,8 @@ hyp_env_vals <- function(fit, vals, comp) {
     }
   }
 
-  if (length(fit$spec$responses) == 1L) {
+  if (length(fit$spec$responses) == 1L && is.null(env[["sigma"]])) {
+    # the guard keeps a covariate literally named `sigma` visible
     for (lp in fit$frame$linpreds) {
       if (lp$dpar != "sigma") next
       if (!is.null(lp$constant)) {

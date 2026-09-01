@@ -55,3 +55,10 @@ parse_num_levels <- function(lv) {
   }
   out
 }
+
+# One string key per coordinate row, used to match gp() prediction
+# positions against fitted positions. Defined once so frame assembly
+# and kriging can never disagree on the separator.
+pos_rowkey <- function(M) {
+  do.call(paste, c(as.data.frame(M), sep = "\r"))
+}

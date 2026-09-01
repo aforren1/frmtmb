@@ -118,6 +118,37 @@ interface that can see family-level extras.
   scaling warnings to 0, logLik identical to manual standardization.
 - Sandwich/robust SEs (`vcovHC`, `bread`/`estfun`): still skipped;
   glmmTMB does cluster-level scores. Revisit only on demand.
+- `car(M, gr, type = "icar"/"bym2"/"escar")` (brms spelling) and an
+  SPDE-Matern covstruct (noted 2026-08-31, fMRI/spatial discussion).
+  The backend is ready: sparse GMRFs are TMB's home turf (dgmrf +
+  sparse Laplace Hessian; sdmTMB/VAST scale to 1e5+ latent nodes),
+  and `gr(g, prec = Q)` already tapes an advector-scaled sparse Q.
+  Missing pieces are grammar and hyperparameters, not capability:
+  (1) Q(theta) assembled on the tape as an AD-weighted linear
+  combination of fixed sparse matrices - ICAR from adjacency
+  (needs sum-to-zero constraint + the TMB normalize trick for the
+  parameter-dependent constant), BYM2 mixing, SPDE
+  tau^2(kappa^4 C + 2 kappa^2 G1 + G2); (2) `gr(prec=)` beyond
+  intercept-only. Mesh/adjacency construction stays out of scope
+  (fmesher/spdep are preprocessing, same posture as HRF
+  convolution). vs references: brms has car() under full MCMC
+  pricing; glmmTMB has no CAR; sdmTMB owns SPDE but is
+  fixed-likelihood. Deferred since v0.1; schedule on spatial
+  demand.
+
+## Method-surface residue (v0.21 audit, deferred)
+
+- Deviance residuals (`residuals(type = "deviance")`, lme4/glmmTMB):
+  needs a per-family unit-deviance function across ~30 families;
+  mechanical but wide. Dunn-Smyth covered via `dharma_residuals()`
+  and OSA.
+- `se.fit` for the expected response of non-identity-mean families:
+  needs the joint delta method across all dpar linear predictors
+  (gradient of mean_fn wrt each eta); single-dpar plumbing exists.
+  Currently errors with guidance.
+- `getME()`: small accessor vocabulary (X, Z, theta, beta, b) on the
+  lme4 generic; low value until a concrete downstream consumer
+  appears (design access exists via `fit$frame`).
 
 ## Already ahead (no action)
 

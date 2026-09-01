@@ -4,8 +4,8 @@
 #' parameters (dpars) can get their own formulas with the full predictor
 #' grammar, or be fixed to constants:
 #' `bf(y ~ x + (1 | g), sigma ~ z + (1 | g))`, `bf(y ~ x, sigma = 1)`.
-#' Nonlinear (`nl = TRUE`) and multivariate formulas arrive in later
-#' versions and signal an error for now.
+#' Nonlinear formulas (`nl = TRUE`) and multivariate models (see
+#' [mvbf()]) use the same grammar.
 #'
 #' The left-hand side accepts addition terms after `|`:
 #' `y | weights(w) ~ ...` and `y | trials(n) ~ ...`.
@@ -21,7 +21,9 @@
 #'   constant on the response scale (e.g. `sigma = 1`).
 #' @param family Optional family; can also be attached with `+` or passed
 #'   to [frm()].
-#' @param nl Nonlinear-formula flag (not yet supported).
+#' @param nl Nonlinear-formula flag: the main formula becomes a
+#'   nonlinear expression of named parameters, each given its own
+#'   `...` formula with the full predictor grammar.
 #' @return An object of class `frmtmb_formula`.
 #' @examples
 #' # brms-style model formulas: attach a family with `+`
@@ -198,4 +200,30 @@ print.frmtmb_formula <- function(x, ...) {
     cat("Family:", x$family$family, "\n")
   }
   invisible(x)
+}
+
+# Normalize a plain formula or bf()/mvbf() object plus an optional
+# family argument into a bform with families attached: the argument
+# fills empty per-response slots of a multivariate form and overrides
+# a univariate one. Shared by frm(), get_prior(), and frm_simulate()
+# so the coercion cannot drift between entry points.
+as_bform <- function(formula, family = NULL) {
+  bform <- if (inherits(formula,
+                        c("frmtmb_formula", "frmtmb_mvformula"))) {
+    formula
+  } else {
+    bf(formula)
+  }
+  if (!is.null(family)) {
+    fam <- as_frmtmb_family(family)
+    if (inherits(bform, "frmtmb_mvformula")) {
+      bform$forms <- lapply(bform$forms, function(f) {
+        if (is.null(f$family)) f$family <- fam
+        f
+      })
+    } else {
+      bform$family <- fam
+    }
+  }
+  bform
 }

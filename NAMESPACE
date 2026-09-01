@@ -17,9 +17,13 @@ S3method(coef,frmtmb_fit)
 S3method(conditional_effects,frmtmb_fit)
 S3method(confint,frmtmb_boot)
 S3method(confint,frmtmb_fit)
+S3method(cooks.distance,frmtmb_fit)
 S3method(cooks.distance,frmtmb_influence)
 S3method(deviance,frmtmb_fit)
 S3method(df.residual,frmtmb_fit)
+S3method(dfbeta,frmtmb_influence)
+S3method(dfbetas,frmtmb_influence)
+S3method(drop1,frmtmb_fit)
 S3method(emmeans::emm_basis,frmtmb_fit)
 S3method(emmeans::recover_data,frmtmb_fit)
 S3method(extractAIC,frmtmb_fit)
@@ -46,6 +50,7 @@ S3method(marginaleffects::get_vcov,frmtmb_fit)
 S3method(marginaleffects::set_coef,frmtmb_fit)
 S3method(model.frame,frmtmb_fit)
 S3method(model.matrix,frmtmb_fit)
+S3method(na.action,frmtmb_fit)
 S3method(ngrps,frmtmb_fit)
 S3method(nobs,frmtmb_fit)
 S3method(plot,frmtmb_conditional_effects)
@@ -53,6 +58,7 @@ S3method(plot,frmtmb_fit)
 S3method(plot,frmtmb_hypothesis)
 S3method(posterior::as_draws,frmtmb_draws)
 S3method(posterior_epred,frmtmb_draws)
+S3method(posterior_linpred,frmtmb_draws)
 S3method(posterior_predict,frmtmb_draws)
 S3method(predict,frmtmb_fit)
 S3method(print,VarCorr_frmtmb)
@@ -74,6 +80,7 @@ S3method(print,ranef_frmtmb)
 S3method(print,summary.frmtmb_fit)
 S3method(prior_summary,frmtmb_fit)
 S3method(profile,frmtmb_fit)
+S3method(ranef,frmtmb_draws)
 S3method(ranef,frmtmb_fit)
 S3method(refit,frmtmb_fit)
 S3method(residuals,frmtmb_fit)
@@ -133,6 +140,7 @@ export(negbinomial)
 export(ngrps)
 export(num_factor)
 export(posterior_epred)
+export(posterior_linpred)
 export(posterior_predict)
 export(prior_normal)
 export(prior_summary)
@@ -161,6 +169,9 @@ importFrom(stats,
   cooks.distance,
   deviance,
   df.residual,
+  dfbeta,
+  dfbetas,
+  drop1,
   extractAIC,
   family,
   fitted,
@@ -169,6 +180,7 @@ importFrom(stats,
   logLik,
   model.frame,
   model.matrix,
+  na.action,
   nobs,
   predict,
   profile,

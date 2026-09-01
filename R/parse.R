@@ -252,8 +252,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   }
   bare_form <- stats::as.formula(call("~", rhs_expr), env = env_lp)
   # newer structure names (hetar1, homcs, ...) are not in reformulas's
-  # default specials list; pass the full set explicitly (rr/propto so
-  # they reach the informative not-supported error below)
+  # default specials list; pass the full set explicitly (propto so it
+  # reaches the informative not-supported error below)
   sf <- reformulas::splitForm(bare_form, defaultTerm = "us",
                               specials = cs_specials)
   bad <- setdiff(sf$reTrmClasses, supported_cs)
@@ -481,7 +481,7 @@ parse_spec <- function(bform) {
       }
     }
     return(structure(
-      list(responses = resps, rescor = rescor, re_ids = list()),
+      list(responses = resps, rescor = rescor),
       class = "frmtmb_spec"
     ))
   }
@@ -489,7 +489,7 @@ parse_spec <- function(bform) {
   resp <- parse_one_response(bform)
   structure(
     list(responses = stats::setNames(list(resp), resp$resp_name),
-         rescor = FALSE, re_ids = list()),
+         rescor = FALSE),
     class = "frmtmb_spec"
   )
 }

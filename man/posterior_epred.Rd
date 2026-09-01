@@ -3,6 +3,8 @@
 \name{posterior_epred}
 \alias{posterior_epred}
 \alias{posterior_epred.frmtmb_draws}
+\alias{posterior_linpred}
+\alias{posterior_linpred.frmtmb_draws}
 \alias{posterior_predict}
 \alias{posterior_predict.frmtmb_draws}
 \title{Expected-value and predictive draws from sampled parameters}
@@ -14,6 +16,19 @@ posterior_epred(object, ...)
   newdata = NULL,
   resp = NULL,
   re.form = NULL,
+  ndraws = NULL,
+  ...
+)
+
+posterior_linpred(object, ...)
+
+\method{posterior_linpred}{frmtmb_draws}(
+  object,
+  transform = FALSE,
+  newdata = NULL,
+  resp = NULL,
+  re.form = NULL,
+  dpar = NULL,
   ndraws = NULL,
   ...
 )
@@ -37,6 +52,14 @@ posterior_predict(object, ...)
 \item{newdata, resp, re.form}{As in \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}.}
 
 \item{ndraws}{Number of draws to use (default: all).}
+
+\item{transform}{For \code{posterior_linpred()}: if \code{TRUE}, apply the
+inverse link (the value of the \code{mu} dpar on its natural scale,
+brms's convention; unlike \code{posterior_epred()} this is not the
+response mean for zero-inflated and similar families).}
+
+\item{dpar}{For \code{posterior_linpred()}: which distributional
+parameter's linear predictor to evaluate.}
 }
 \value{
 A draws-by-observations matrix.

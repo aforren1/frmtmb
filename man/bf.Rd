@@ -16,7 +16,9 @@ constant on the response scale (e.g. \code{sigma = 1}).}
 \item{family}{Optional family; can also be attached with \code{+} or passed
 to \code{\link[=frm]{frm()}}.}
 
-\item{nl}{Nonlinear-formula flag (not yet supported).}
+\item{nl}{Nonlinear-formula flag: the main formula becomes a
+nonlinear expression of named parameters, each given its own
+\code{...} formula with the full predictor grammar.}
 }
 \value{
 An object of class \code{frmtmb_formula}.
@@ -26,8 +28,8 @@ Specifies a model with brms-compatible syntax. Distributional
 parameters (dpars) can get their own formulas with the full predictor
 grammar, or be fixed to constants:
 \code{bf(y ~ x + (1 | g), sigma ~ z + (1 | g))}, \code{bf(y ~ x, sigma = 1)}.
-Nonlinear (\code{nl = TRUE}) and multivariate formulas arrive in later
-versions and signal an error for now.
+Nonlinear formulas (\code{nl = TRUE}) and multivariate models (see
+\code{\link[=mvbf]{mvbf()}}) use the same grammar.
 }
 \details{
 The left-hand side accepts addition terms after \code{|}:

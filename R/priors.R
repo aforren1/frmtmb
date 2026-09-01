@@ -141,23 +141,7 @@ get_prior <- function(formula, data = NULL, family = NULL) {
     spec <- formula$spec
     frame <- formula$frame
   } else {
-    bform <- if (inherits(formula,
-                          c("frmtmb_formula", "frmtmb_mvformula"))) {
-      formula
-    } else {
-      bf(formula)
-    }
-    if (!is.null(family)) {
-      fam <- as_frmtmb_family(family)
-      if (inherits(bform, "frmtmb_mvformula")) {
-        bform$forms <- lapply(bform$forms, function(f) {
-          if (is.null(f$family)) f$family <- fam
-          f
-        })
-      } else {
-        bform$family <- fam
-      }
-    }
+    bform <- as_bform(formula, family)
     spec <- parse_spec(bform)
     frame <- assemble_frame(spec, data)
   }

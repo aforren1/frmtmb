@@ -176,9 +176,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     for (nm_at in names(resp$aterms)) {
       # literal constants (e.g. trials(10)) are not frame variables, and
       # interval bounds (cens_y2) may be NA on non-interval rows, so they
-      # stay out of the na.omit frame (brms#1070)
+      # stay out of the na.omit frame (brms#1070); a signed literal
+      # (trunc(lb = -5)) parses as a unary call, not a numeric, and
+      # would break the frame formula
       a <- resp$aterms[[nm_at]]
-      if (nm_at != "cens_y2" && !is.numeric(a) && !is.logical(a)) {
+      signed_literal <- is.call(a) && length(a) == 2L &&
+        as.character(a[[1]])[1] %in% c("-", "+") && is.numeric(a[[2]])
+      if (nm_at != "cens_y2" && !is.numeric(a) && !is.logical(a) &&
+          !signed_literal) {
         add_part(a)
       }
     }
@@ -320,6 +325,15 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         stop("weights() cannot be combined with rescor = TRUE",
              call. = FALSE)
       }
+    }
+    # the joint-gaussian rescor likelihood has no censoring,
+    # truncation, or known-se machinery; without this guard those
+    # terms were silently dropped (wrong likelihood, no warning)
+    if (spec$rescor &&
+        (!is.null(av$cens) || !is.null(av$trunc_lb) ||
+         !is.null(av$trunc_ub) || !is.null(av$se))) {
+      stop("cens()/trunc()/se() cannot be combined with rescor = TRUE",
+           call. = FALSE)
     }
     if (!is.null(av$cens) || !is.null(av$trunc_lb) ||
         !is.null(av$trunc_ub)) {
@@ -656,9 +670,6 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         lab0 <- paste0("gp(", paste(vnames, collapse = ", "),
                        if (!is.null(ge$k)) paste0(", k = ", ge$k) else "",
                        ")")
-        rowkey <- function(M) {
-          do.call(paste, c(as.data.frame(M), sep = "\r"))
-        }
         if (is.null(ge$k)) {
           posdf <- unique(as.data.frame(Xc))
           posdf <- posdf[do.call(order, posdf), , drop = FALSE]
@@ -670,7 +681,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                  "approximation", call. = FALSE)
           }
           Zg <- Matrix::sparseMatrix(i = seq_len(nrow(Xc)),
-                                     j = match(rowkey(Xc), rowkey(pos)),
+                                     j = match(pos_rowkey(Xc),
+                                               pos_rowkey(pos)),
                                      x = 1, dims = c(nrow(Xc), npos))
           components[[length(components) + 1L]] <- list(
             lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,

@@ -5,7 +5,10 @@
 #' Refits the model with one group (or observation) left out at a time,
 #' warm-started at the full-data estimates, and collects the
 #' fixed-effect and covariance-parameter changes. [cooks.distance()] on
-#' the result gives the scaled fixed-effect displacement.
+#' the result gives the scaled fixed-effect displacement (calling it on
+#' the fit itself runs `influence()` first); `dfbeta()` and `dfbetas()`
+#' give the per-unit coefficient changes, raw and scaled by the
+#' coefficient standard errors (the lme4 influence surface).
 #'
 #' @param model A `frmtmb_fit`.
 #' @param groups Name of a random-effect grouping factor (see
@@ -50,7 +53,10 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
     })
   }
 
-  full_fe <- unlist(fixef(model))
+  # get_coef (not unlist(fixef)): aligned with vcov() rows, so mapped
+  # constant-dpar coefficients stay out and cooks.distance/dfbetas
+  # conform with the covariance matrix
+  full_fe <- get_coef.frmtmb_fit(model)
   full_th <- model$estimates$theta
   ctl <- model$control %||% frmtmb_control()
   fe <- matrix(NA_real_, length(units), length(full_fe),
@@ -77,7 +83,7 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                     template = tpl)
     }), error = function(e) NULL)
     if (is.null(fit_i)) next
-    fe_i <- unlist(fixef(fit_i))
+    fe_i <- get_coef.frmtmb_fit(fit_i)
     fe[i, names(fe_i)] <- fe_i
     if (length(full_th) &&
         length(fit_i$estimates$theta) == length(full_th)) {
@@ -108,6 +114,26 @@ print.frmtmb_influence <- function(x, n = 6, ...) {
   print(data.frame(unit = rownames(x$fixed)[top],
                    cooks_d = signif(cd[top], 4)), row.names = FALSE)
   invisible(x)
+}
+
+#' @rdname influence.frmtmb_fit
+#' @export
+cooks.distance.frmtmb_fit <- function(model, ...) {
+  cooks.distance(influence(model, ...))
+}
+
+#' @rdname influence.frmtmb_fit
+#' @export
+dfbeta.frmtmb_influence <- function(model, ...) {
+  # stats convention: the change when the unit is deleted,
+  # full-data estimate minus leave-one-out estimate
+  -sweep(model$fixed, 2, model$fixed_full)
+}
+
+#' @rdname influence.frmtmb_fit
+#' @export
+dfbetas.frmtmb_influence <- function(model, ...) {
+  sweep(dfbeta(model), 2, sqrt(diag(vcov(model$fit))), `/`)
 }
 
 #' @export

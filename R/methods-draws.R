@@ -105,6 +105,36 @@ VarCorr.frmtmb_draws <- function(x, ...) {
   base
 }
 
+#' @rdname ranef
+#' @export
+ranef.frmtmb_draws <- function(object, ...) {
+  fit <- object$fit
+  if (!length(fit$frame$re_blocks)) return(list())
+  idx <- draws_par_index(fit)
+  n <- nrow(object$draws)
+  per <- vector("list", n)
+  for (i in seq_len(n)) {
+    per[[i]] <- ranef(draws_fit_at(object, i, idx))
+  }
+  # brms shape: per term, a levels x statistics x coefficients array
+  out <- list()
+  for (tn in names(per[[1]])) {
+    M0 <- per[[1]][[tn]]
+    A <- vapply(per, function(r) r[[tn]], M0)
+    st <- array(NA_real_, c(nrow(M0), 4L, ncol(M0)),
+                dimnames = list(rownames(M0),
+                                c("Estimate", "Est.Error",
+                                  "Q2.5", "Q97.5"),
+                                colnames(M0)))
+    st[, "Estimate", ] <- apply(A, c(1, 2), mean)
+    st[, "Est.Error", ] <- apply(A, c(1, 2), stats::sd)
+    st[, "Q2.5", ] <- apply(A, c(1, 2), stats::quantile, 0.025)
+    st[, "Q97.5", ] <- apply(A, c(1, 2), stats::quantile, 0.975)
+    out[[tn]] <- st
+  }
+  out
+}
+
 #' @rdname hypothesis
 #' @export
 hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05, ...) {
@@ -170,6 +200,36 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
     sh <- draws_fit_at(object, rows[k], idx)
     p <- predict(sh, newdata = newdata, resp = resp, re.form = re.form,
                  type = "response")
+    if (is.null(out)) out <- matrix(NA_real_, length(rows), length(p))
+    out[k, ] <- p
+  }
+  out
+}
+
+#' @rdname posterior_epred
+#' @export
+posterior_linpred <- function(object, ...) UseMethod("posterior_linpred")
+
+#' @rdname posterior_epred
+#' @param transform For `posterior_linpred()`: if `TRUE`, apply the
+#'   inverse link (the value of the `mu` dpar on its natural scale,
+#'   brms's convention; unlike `posterior_epred()` this is not the
+#'   response mean for zero-inflated and similar families).
+#' @param dpar For `posterior_linpred()`: which distributional
+#'   parameter's linear predictor to evaluate.
+#' @export
+posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
+                                           newdata = NULL, resp = NULL,
+                                           re.form = NULL, dpar = NULL,
+                                           ndraws = NULL, ...) {
+  idx <- draws_par_index(object$fit)
+  rows <- draws_subsample(object, ndraws)
+  out <- NULL
+  for (k in seq_along(rows)) {
+    sh <- draws_fit_at(object, rows[k], idx)
+    p <- predict(sh, newdata = newdata, resp = resp, dpar = dpar,
+                 re.form = re.form,
+                 type = if (transform) "conditional" else "link")
     if (is.null(out)) out <- matrix(NA_real_, length(rows), length(p))
     out[k, ] <- p
   }

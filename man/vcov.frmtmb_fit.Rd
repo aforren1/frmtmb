@@ -9,7 +9,9 @@
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
-\item{full}{If \code{TRUE}, include covariance parameters (\code{theta}).}
+\item{full}{If \code{TRUE}, include covariance parameters (\code{theta}),
+named as in \code{confint()} (the glmmTMB \code{vcov(full = TRUE)}
+convention).}
 
 \item{...}{Unused.}
 }

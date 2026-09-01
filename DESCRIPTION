@@ -1,6 +1,6 @@
 Package: frmtmb
 Title: Formula-Based Regression Models via 'RTMB'
-Version: 0.20.0
+Version: 0.21.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"))
@@ -9,14 +9,17 @@ Description: Fits regression models specified with a 'brms'-style formula
     random effects. Model objectives are generated as R closures and
     differentiated with 'RTMB', so no compilation happens at run time.
     Supports 'lme4'-style random effects with structured covariances,
-    and (in later versions) distributional regression, smooths,
-    nonlinear formulas, and multivariate models.
+    distributional regression, smooths, Gaussian processes, nonlinear
+    formulas, multivariate models, finite mixtures, and in-model
+    imputation of missing predictors.
 License: GPL (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1)
 Imports:
+    graphics,
+    grDevices,
     Matrix,
     methods,
     mgcv,

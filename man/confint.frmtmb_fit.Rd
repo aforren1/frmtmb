@@ -8,7 +8,9 @@
   object,
   parm = NULL,
   level = 0.95,
-  method = c("wald", "profile", "uniroot"),
+  method = c("wald", "Wald", "profile", "uniroot", "boot"),
+  nsim = 500,
+  seed = NULL,
   ...
 )
 }
@@ -17,15 +19,22 @@
 
 \item{parm}{Parameter names (see \code{rownames} of the Wald result) or
 indices. Required for \code{"profile"} and \code{"uniroot"}; defaults to all
-parameters for \code{"wald"}.}
+parameters for \code{"wald"} and \code{"boot"}.}
 
 \item{level}{Confidence level.}
 
 \item{method}{\code{"wald"} (fast, from the sdreport covariance),
-\code{"profile"} (likelihood profile via \code{\link[TMB:tmbprofile]{TMB::tmbprofile()}}), or
-\code{"uniroot"} (likelihood-root search via \code{\link[TMB:tmbroot]{TMB::tmbroot()}}).}
+\code{"profile"} (likelihood profile via \code{\link[TMB:tmbprofile]{TMB::tmbprofile()}}),
+\code{"uniroot"} (likelihood-root search via \code{\link[TMB:tmbroot]{TMB::tmbroot()}}), or
+\code{"boot"} (parametric-bootstrap percentile intervals through
+\code{\link[=frm_bootstrap]{frm_bootstrap()}}, the \code{lme4::confint(method = "boot")} analog;
+like the other methods it works on the internal parameter scale).
+\code{"Wald"} is accepted as an alias for \code{"wald"}.}
 
-\item{...}{Passed to the TMB profiling functions.}
+\item{nsim, seed}{Bootstrap draws and seed for \code{method = "boot"}.}
+
+\item{...}{Passed to the TMB profiling functions, or to
+\code{\link[=frm_bootstrap]{frm_bootstrap()}} for \code{method = "boot"} (e.g. \code{re.form}).}
 }
 \value{
 A matrix with columns \code{lwr}, \code{upr}, \code{est}.

@@ -68,22 +68,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 na.action = stats::na.omit, lower = NULL, upper = NULL,
                 priors = NULL, quadrature = FALSE, dry_run = NULL) {
   cl <- match.call()
-  bform <- if (inherits(formula, c("frmtmb_formula", "frmtmb_mvformula"))) {
-    formula
-  } else {
-    bf(formula)
-  }
-  if (!is.null(family)) {
-    fam <- as_frmtmb_family(family)
-    if (inherits(bform, "frmtmb_mvformula")) {
-      bform$forms <- lapply(bform$forms, function(f) {
-        if (is.null(f$family)) f$family <- fam
-        f
-      })
-    } else {
-      bform$family <- fam
-    }
-  }
+  bform <- as_bform(formula, family)
 
   spec <- parse_spec(bform)
   if (identical(dry_run, "spec")) return(spec)
@@ -189,7 +174,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   obj <- RTMB::MakeADFun(nll, template, random = random,
                          map = frame$map, integrate = integrate,
                          profile = profile_arg, silent = TRUE)
-  bounds <- resolve_bounds(list(frame = frame, REML = REML), lower, upper)
+  # control must ride along: outer_par_names drops beta under
+  # profile = TRUE, and a shim without it misaligns every bound
+  bounds <- resolve_bounds(list(frame = frame, REML = REML,
+                                control = control), lower, upper)
   # a badly scaled coefficient has a badly scaled gradient too: judge
   # (and steer) the optimizer in per-parameter natural units
   par_units <- if (!is.null(ascale)) {

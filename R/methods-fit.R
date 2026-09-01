@@ -65,6 +65,7 @@ summary.frmtmb_fit <- function(object, ...) {
   structure(
     list(call = object$call, family = family(object),
          formula = formula(object), nobs = stats::nobs(object),
+         ngrps = ngrps(object),
          loglik = logLik(object), AIC = stats::AIC(object),
          BIC = stats::BIC(object), REML = object$REML,
          coefficients = coefs, varcor = VarCorr(object),
@@ -98,6 +99,10 @@ print.summary.frmtmb_fit <- function(x, ...) {
   cat("Formula:", deparse1(x$formula), "\n")
   cat("Method:", if (x$REML) "REML" else "ML",
       "  nobs:", x$nobs, "\n")
+  if (length(x$ngrps %||% integer(0))) {
+    cat("Groups:", paste(names(x$ngrps), x$ngrps, sep = ", ",
+                         collapse = "; "), "\n")
+  }
   cat("logLik:", format(as.numeric(x$loglik), digits = 6),
       " AIC:", format(x$AIC, digits = 6),
       " BIC:", format(x$BIC, digits = 6), "\n")
@@ -202,7 +207,9 @@ estimated_coef_names <- function(fit) {
 #' fixed to constants are excluded.
 #'
 #' @param object A `frmtmb_fit`.
-#' @param full If `TRUE`, include covariance parameters (`theta`).
+#' @param full If `TRUE`, include covariance parameters (`theta`),
+#'   named as in `confint()` (the glmmTMB `vcov(full = TRUE)`
+#'   convention).
 #' @param ... Unused.
 #' @return A covariance matrix.
 #' @export
@@ -211,6 +218,10 @@ vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
   if (!object$REML && !isTRUE(object$control$profile)) {
     V <- sdr_of(object)$cov.fixed
     if (full) {
+      # cov.fixed rows repeat the component names; the per-parameter
+      # names (confint rows) are the useful labels
+      dimnames(V) <- list(outer_par_names(object),
+                          outer_par_names(object))
       return(V)
     }
     ord <- c(which(rownames(V) == "beta"), which(rownames(V) == "betad"))

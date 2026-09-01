@@ -346,6 +346,28 @@ test_that("the draws surface runs the model machinery per draw", {
                          ndraws = 10)
   expect_equal(dim(ep2), c(10L, 2L))
 
+  # posterior_linpred: link scale, and transform = TRUE applies the
+  # inverse link (identity here, so it must equal the epred)
+  lp <- posterior_linpred(ds, ndraws = 25)
+  expect_equal(dim(lp), c(25L, 80L))
+  expect_equal(posterior_linpred(ds, transform = TRUE, ndraws = 25), lp)
+  expect_equal(lp, ep)
+  lp_s <- posterior_linpred(ds, dpar = "sigma", transform = TRUE,
+                            ndraws = 10)
+  expect_true(all(lp_s > 0))
+
+  # ranef over draws: brms-shaped arrays whose Estimate tracks the
+  # fitted conditional modes
+  re_d <- ranef(ds)
+  expect_named(re_d, "1 | g")
+  expect_identical(dim(re_d[["1 | g"]]), c(8L, 4L, 1L))
+  expect_identical(colnames(re_d[["1 | g"]]),
+                   c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
+  expect_lt(max(abs(re_d[["1 | g"]][, "Estimate", 1] -
+                      ranef(fit)[["1 | g"]][, 1])), 0.3)
+  expect_true(all(re_d[["1 | g"]][, "Q2.5", 1] <
+                    re_d[["1 | g"]][, "Q97.5", 1]))
+
   h <- hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
   expect_s3_class(h, "frmtmb_hypothesis")
   expect_true(h$lwr > 0 && h$upr < 1)

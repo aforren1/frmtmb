@@ -94,7 +94,7 @@ resolve_priors <- function(fit, priors) {
   stopifnot(is.list(priors), !is.null(names(priors)))
   tpl <- fit$frame$par_template
   comp_names <- list()
-  for (cp in setdiff(names(tpl), "b")) {
+  for (cp in setdiff(names(tpl), c("b", "miss"))) {
     v <- names(tpl[[cp]])
     if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
     if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
@@ -178,15 +178,20 @@ resolve_bounds <- function(fit, lower, upper) {
 prior_augmented_obj <- function(fit, entries) {
   nll <- build_objective(fit$frame)
   nlp <- neg_log_prior_fn(entries)
+  tpl <- fit$frame$par_template
+  # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
+  random <- c(if (!is.null(tpl[["b"]])) "b",
+              if (!is.null(tpl[["miss"]])) "miss")
+  if (!length(random)) random <- NULL
   RTMB::MakeADFun(function(pars) nll(pars) + nlp(pars),
-                  fit$estimates,
-                  random = if (!is.null(fit$frame$par_template$b)) "b",
+                  fit$estimates, random = random,
                   map = fit$frame$map, silent = TRUE)
 }
 
 # Labels for the full sampled parameter vector, in template order,
-# skipping mapped entries; b kept as b[i].
-all_par_labels <- function(fit, include_b = TRUE) {
+# skipping mapped entries; b kept as b[i]. include_random = FALSE
+# drops the inner components (b, miss) for laplace-marginalized draws.
+all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
   tpl <- fit$frame$par_template
   out <- character(0)
   for (cp in names(tpl)) {
@@ -195,8 +200,9 @@ all_par_labels <- function(fit, include_b = TRUE) {
     if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
       v <- v[-fit$frame$betad_fixed_idx]
     }
+    if (cp == "miss" && !include_random) next
     if (cp == "b") {
-      if (!include_b) next
+      if (!include_b || !include_random) next
       v <- paste0("b[", seq_along(tpl[[cp]]), "]")
     }
     out <- c(out, v)
@@ -265,6 +271,15 @@ frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
                              as.list(lower %||% c()))
   upper <- utils::modifyList(as.list(pr_upper),
                              as.list(upper %||% c()))
+  laplace <- isTRUE(list(...)$laplace)
+  if (laplace && identical(init, "last.par.best")) {
+    # under laplace tmbstan samples only the outer parameters, so the
+    # full-length keyword init has the wrong length; hand it the outer
+    # slice of the mode instead
+    lpb <- obj$env$last.par.best
+    rnd <- obj$env$random
+    init <- if (length(rnd)) lpb[-rnd] else lpb
+  }
   args <- list(obj = obj, init = init, ...)
   if (length(lower) || length(upper)) {
     bounds <- resolve_bounds(fit, unlist(lower), unlist(upper))
@@ -274,7 +289,9 @@ frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
   sf <- do.call(tmbstan::tmbstan, args)
   a <- rstan::extract(sf, permuted = FALSE)   # iter x chain x par
   stan_names <- dimnames(a)[[3]]
-  labels <- all_par_labels(fit)
+  # laplace draws skip the inner components entirely; labeling them
+  # with the full template order would misattribute theta as b[i]
+  labels <- all_par_labels(fit, include_random = !laplace)
   n_lab <- min(length(labels), length(stan_names))
   stan_names[seq_len(n_lab)] <- labels[seq_len(n_lab)]
   m <- do.call(rbind, lapply(seq_len(dim(a)[2]), function(ch) a[, ch, ]))

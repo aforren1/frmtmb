@@ -2,9 +2,18 @@
 % Please edit documentation in R/influence.R
 \name{influence.frmtmb_fit}
 \alias{influence.frmtmb_fit}
+\alias{cooks.distance.frmtmb_fit}
+\alias{dfbeta.frmtmb_influence}
+\alias{dfbetas.frmtmb_influence}
 \title{Influence measures by case deletion}
 \usage{
 \method{influence}{frmtmb_fit}(model, groups = NULL, data = NULL, force = FALSE, ...)
+
+\method{cooks.distance}{frmtmb_fit}(model, ...)
+
+\method{dfbeta}{frmtmb_influence}(model, ...)
+
+\method{dfbetas}{frmtmb_influence}(model, ...)
 }
 \arguments{
 \item{model}{A \code{frmtmb_fit}.}
@@ -29,7 +38,10 @@ A \code{frmtmb_influence} object: \code{fixed} and \code{theta} matrices
 Refits the model with one group (or observation) left out at a time,
 warm-started at the full-data estimates, and collects the
 fixed-effect and covariance-parameter changes. \code{\link[=cooks.distance]{cooks.distance()}} on
-the result gives the scaled fixed-effect displacement.
+the result gives the scaled fixed-effect displacement (calling it on
+the fit itself runs \code{influence()} first); \code{dfbeta()} and \code{dfbetas()}
+give the per-unit coefficient changes, raw and scaled by the
+coefficient standard errors (the lme4 influence surface).
 }
 \examples{
 \donttest{
