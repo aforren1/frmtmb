@@ -414,24 +414,416 @@ covstruct_registry$gr_cov <- list(
   start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
 )
 
-# Known-precision intercepts: b ~ N(0, sd^2 * Q^-1) with Q a (sparse)
-# precision matrix over the levels - gr(g, prec = Q). The sparse GMRF
-# density keeps large structures (big phylogenies, spatial graphs)
-# tractable where the dense gr(cov=) path is not.
+# Known-precision random effects: level-major b ~ N(0, Q^-1 (x) Sigma)
+# with Q a fixed (sparse) precision over the grouping levels and Sigma
+# the unstructured d x d within-level covariance - gr(g, prec = Q). The
+# sparse GMRF density keeps large structures (big phylogenies, spatial
+# graphs) tractable where the dense gr(cov=) path is not.
+#
+# Correlated slopes use the precision-side Kronecker identity: the
+# inverse of A (x) Sigma is A^-1 (x) Sigma^-1, so the block precision is
+# Q (x) Sigma^-1, which stays as sparse as Q itself (one dense d x d
+# block per stored entry of Q). It is assembled on the tape as an
+# AD-weighted sum of the fixed sparse matrices Q (x) E_ab (blk$aux_Qk),
+# so nothing but the d(d+1)/2 weights depends on the parameters.
 covstruct_registry$gr_prec <- list(
-  npar = function(dim) 1L,
-  sd_idx = function(dim) 1L,
-  from_natural = function(sds, C, blk) homogeneous_sd(sds, blk$covstruct),
+  npar = function(dim) dim + dim * (dim - 1L) / 2L,
+  sd_idx = function(dim) seq_len(dim),
+  # the natural values describe the WITHIN-level covariance; the
+  # across-level structure is the fixed precision Q
+  from_natural = function(sds, C, blk) {
+    if (blk$dim == 1L) return(log(sds[1L]))
+    c(log(sds), us_theta_cor(C))
+  },
   nll = function(b, theta, blk) {
-    Qs <- exp(-2 * theta[1]) * blk$aux_Q
+    if (blk$dim == 1L) {
+      Qs <- exp(-2 * theta[1]) * blk$aux_Q
+      return(sum(RTMB::dgmrf(b, 0, Qs, log = TRUE)))
+    }
+    # RTMB::solve, not base's: the S4 advector method is not imported
+    Sinv <- RTMB::solve(us_sigma(theta, blk$dim))
+    # no zero to start from: an AD-weighted sparse matrix has no
+    # additive identity, so the first term seeds the sum
+    Qs <- NULL
+    for (e in blk$aux_Qk) {
+      term <- Sinv[e[["a"]], e[["b"]]] * e[["M"]]
+      Qs <- if (is.null(Qs)) term else Qs + term
+    }
     sum(RTMB::dgmrf(b, 0, Qs, log = TRUE))
   },
   vcov = function(theta, blk) {
-    matrix(exp(theta[1])^2, 1, 1,
-           dimnames = list(blk$cnms, blk$cnms))
+    d <- blk$dim
+    V <- if (d == 1L) {
+      matrix(exp(theta[1])^2, 1, 1)
+    } else {
+      sdv <- exp(theta[seq_len(d)])
+      us_chol_cor(theta[-seq_len(d)], d) * (sdv %o% sdv)
+    }
+    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V
   },
-  start = function(dim) 0
+  start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
 )
+
+# Fixed sparse pieces of the level-major Kronecker precision
+# Q (x) Sigma^-1: one matrix per entry (a, b) of the d x d within-level
+# precision, so the tape only ever multiplies them by a scalar. The
+# (a, b) and (b, a) halves share a matrix because Sigma^-1 is symmetric.
+kron_prec_parts <- function(Q, d) {
+  out <- list()
+  for (a in seq_len(d)) {
+    for (b in seq.int(a, d)) {
+      E <- matrix(0, d, d)
+      E[a, b] <- 1
+      E[b, a] <- 1
+      M <- methods::as(methods::as(Matrix::kronecker(Q, E),
+                                   "generalMatrix"), "CsparseMatrix")
+      out[[length(out) + 1L]] <- list(a = a, b = b, M = M)
+    }
+  }
+  out
+}
+
+# ------------------------------------------------------- CAR / ICAR / BYM2
+#
+# Spatial conditional-autoregressive fields over a fixed adjacency
+# matrix - brms's car(M, gr = g, type = ). The field lives on the
+# grouping levels (one intercept per location), so the block is
+# dim = 1 with n_levels locations, exactly like gr(prec = Q); what
+# car() adds is that the precision is BUILT from the graph and carries
+# its own hyperparameters.
+#
+# Parameterization follows brms: theta = log(sdcar) for the intrinsic
+# forms and (log sdcar, logit rho) for the two that mix, with
+# tau = 1 / sdcar^2 the precision multiplier.
+#
+#   escar          Q = tau (D - rho W), proper for rho in (0, 1)
+#   icar / esicar  Q = tau (D - W), intrinsic, sum-to-zero constrained
+#   bym2           sd^2 [(1 - rho) I + (rho / scale) K^-1], the
+#                  Riebler et al. scaled mixture brms implements
+#
+# THE NORMALIZING CONSTANT is analytic in every case, so no
+# normalize-trick / on-tape log-determinant is needed and the density
+# costs one sparse matrix-vector product:
+#
+#   escar   log|Q| = n log tau + sum_i log d_i + sum_i log(1 - rho e_i)
+#           with e_i the eigenvalues of D^-1/2 W D^-1/2 (fixed data).
+#   icar    the graph Laplacian L = D - W is rank n - c with c the
+#           number of connected components, so log|Q|* = (n - c) log
+#           tau + log|L|*. The constrained density below turns that
+#           into an exact n log tau (see the constraint note).
+#
+# THE SUM-TO-ZERO CONSTRAINT. An intrinsic CAR is improper: L annihilates
+# the indicator of each connected component, so shifting the field
+# inside a component and the intercept the other way leaves the
+# likelihood untouched and the ML problem is rank deficient, not merely
+# ill conditioned. We adopt brms's remedy - a soft sum-to-zero
+# constraint whose precision rides on tau, as it does in brms's
+# non-centered zcar parameterization - so the whole block precision is
+#
+#   Q(tau) = tau * K,   K = L + sum_j kappa_j s_j s_j',
+#   kappa_j = 1 / (con_sd n_j)^2,
+#
+# with s_j the indicator of component j (n_j levels). K is fixed data,
+# so log|Q| = n log tau + log|K| is exact and constant-free, and the
+# density is a proper Gaussian - which is what makes ranef(), predict()
+# and simulate() well defined on the block. The component sums are then
+# pinned at an sd of con_sd n_j sdcar rather than exactly zero, so the
+# fit approaches the hard-constrained (brms esicar) likelihood as
+# con_sd -> 0; `esicar` selects the same density.
+#
+# con_sd defaults to brms's 1e-3, so the same call is the same model
+# here and there. Tightening it walks the fit onto the hard-constrained
+# (esicar) likelihood quadratically, and the walk is worth knowing:
+# measured on a 4 x 4 lattice against a hard sum-to-zero reference,
+# 1e-3 is off by 4.7e-4 in the log-likelihood (3.6e-5 relative in
+# sdcar), 1e-4 by 4.7e-6 (3.6e-7), 1e-5 by 4.5e-8 (3.7e-9), 1e-6 by
+# 9.2e-10, and 1e-7 loses to roundoff (1.1e-4). The bias at the default
+# is four orders below the parameter's own standard error, and the
+# tighter settings cost optimizer robustness - the constraint direction
+# carries a factor con_sd^-2 of the block Hessian, and over 25 lattice
+# refits nlminb reported false convergence 0 times at 1e-3, once at
+# 1e-4 and 6 times at 1e-5 - so the loose default is the better trade.
+#
+# The price of any sum-to-zero constraint is a dense rank-c update
+# inside the block's Laplace Hessian, which caps the practical field
+# size in the low thousands.
+car_con_sd_default <- 1e-3
+car_types <- c("escar", "esicar", "icar", "bym2")
+
+# brms's validate_car_matrix plus the level matching data_ac() does: a
+# symmetric binary adjacency over exactly the locations the data show,
+# in the block's level order.
+car_adjacency <- function(M, locs) {
+  if (length(dim(M)) != 2L || nrow(M) != ncol(M)) {
+    stop("car(): M must be a square adjacency matrix", call. = FALSE)
+  }
+  rn <- rownames(M) %||% colnames(M)
+  if (is.null(rn)) {
+    stop("car(): M needs dimnames naming the locations", call. = FALSE)
+  }
+  miss <- setdiff(locs, rn)
+  if (length(miss)) {
+    stop("car(): M has no row for location(s) ",
+         paste(utils::head(miss, 5), collapse = ", "),
+         if (length(miss) > 5) " ..." else "", call. = FALSE)
+  }
+  W <- methods::as(Matrix::Matrix(as.matrix(M)[locs, locs, drop = FALSE],
+                                  sparse = TRUE), "generalMatrix")
+  if (!Matrix::isSymmetric(W, check.attributes = FALSE)) {
+    stop("car(): M must be symmetric", call. = FALSE)
+  }
+  if (any(Matrix::diag(W) != 0)) {
+    stop("car(): M must have a zero diagonal (no location neighbors ",
+         "itself)", call. = FALSE)
+  }
+  W <- methods::as(W, "CsparseMatrix")
+  if (any(W@x != 1)) {
+    message("car(): converting all non-zero values in M to 1.")
+    W@x[W@x != 1] <- 1
+  }
+  dimnames(W) <- list(locs, locs)
+  W
+}
+
+# The three finite-element matrices, under either the INLA (M0/M1/M2)
+# or the fmesher (c0/g1/g2) spelling.
+spde_matrices <- function(fem, n) {
+  nms <- names(fem) %||% character(0)
+  key <- if (all(c("M0", "M1", "M2") %in% nms)) c("M0", "M1", "M2")
+         else if (all(c("c0", "g1", "g2") %in% nms)) c("c0", "g1", "g2")
+         else NULL
+  if (is.null(key)) {
+    stop("spde(): fem must be a list holding M0, M1, M2 (INLA) or ",
+         "c0, g1, g2 (fmesher::fm_fem)", call. = FALSE)
+  }
+  out <- list()
+  for (i in seq_along(key)) {
+    Mi <- fem[[key[i]]]
+    if (nrow(Mi) != n || ncol(Mi) != n) {
+      stop("spde(): ", key[i], " is ", nrow(Mi), " x ", ncol(Mi),
+           " but the grouping factor has ", n, " mesh nodes",
+           call. = FALSE)
+    }
+    out[[c("M0", "M1", "M2")[i]]] <-
+      methods::as(methods::as(Matrix::Matrix(Mi, sparse = TRUE),
+                              "generalMatrix"), "CsparseMatrix")
+  }
+  out
+}
+
+car_npar <- function(type) if (type %in% c("escar", "bym2")) 2L else 1L
+
+car_start <- function(type) numeric(car_npar(type))
+
+# brms bounds both mixing parameters on (0, 1)
+car_rho <- function(x) 1 / (1 + exp(-x))
+
+# Connected components of a symmetric adjacency matrix, by breadth-first
+# sweep over the sparse column pattern (isolated levels are their own
+# component, which is what the rank correction counts).
+car_components <- function(W) {
+  n <- nrow(W)
+  Wt <- methods::as(W, "TsparseMatrix")
+  nbr <- split(c(Wt@j + 1L, Wt@i + 1L),
+               factor(c(Wt@i + 1L, Wt@j + 1L), levels = seq_len(n)))
+  comp <- integer(n)
+  k <- 0L
+  for (s in seq_len(n)) {
+    if (comp[s]) next
+    k <- k + 1L
+    queue <- s
+    comp[s] <- k
+    while (length(queue)) {
+      v <- queue[1L]
+      queue <- queue[-1L]
+      nb <- nbr[[v]]
+      new <- nb[comp[nb] == 0L]
+      if (length(new)) {
+        comp[new] <- k
+        queue <- c(queue, unique(new))
+      }
+    }
+  }
+  comp
+}
+
+# brms's scaling factor for BYM2 (brms:::.car_scale): the geometric mean
+# of the marginal variances of a unit-scale ICAR field under the
+# sum-to-zero constraint. Reproduced here (perturbation included) so the
+# rho of a bym2 fit means what it means in brms.
+car_scale_factor <- function(W) {
+  n <- nrow(W)
+  Q <- Matrix::Diagonal(n, Matrix::rowSums(W)) - W
+  Q <- Q + Matrix::Diagonal(n) * max(Matrix::diag(Q)) *
+    sqrt(.Machine$double.eps)
+  Sigma <- Matrix::solve(Q)
+  A <- matrix(1, 1, n)
+  Wc <- Sigma %*% t(A)
+  Sigma <- Sigma - Wc %*% solve(A %*% Wc) %*% Matrix::t(Wc)
+  exp(mean(log(Matrix::diag(Sigma))))
+}
+
+# Everything the density needs, precomputed once from the adjacency
+# matrix over the grouping levels. `type` decides which fields matter;
+# all of them are fixed data.
+car_aux <- function(W, type, con_sd = car_con_sd_default) {
+  n <- nrow(W)
+  deg <- as.numeric(Matrix::rowSums(W))
+  L <- methods::as(Matrix::Diagonal(n, deg) - W, "generalMatrix")
+  aux <- list(type = type, n = n, W = W, L = L, deg = deg)
+  if (type == "escar") {
+    if (any(deg == 0)) {
+      stop("car(type = \"escar\"): every location needs at least one ",
+           "neighbor; location(s) ",
+           paste(rownames(W)[deg == 0], collapse = ", "),
+           " have none. Use type = \"icar\" instead", call. = FALSE)
+    }
+    isq <- diag(1 / sqrt(deg), nrow = n)
+    aux$eigW <- eigen(isq %*% as.matrix(W) %*% isq, symmetric = TRUE,
+                      only.values = TRUE)$values
+    aux$ldet_deg <- sum(log(deg))
+    return(aux)
+  }
+  comp <- car_components(W)
+  nj <- as.numeric(table(comp))
+  aux$con_sd <- con_sd
+  aux$kappa0 <- 1 / (con_sd * nj)^2
+  aux$Sgrp <- Matrix::sparseMatrix(i = comp, j = seq_len(n), x = 1,
+                                   dims = c(length(nj), n))
+  K <- L + Matrix::t(aux$Sgrp) %*% Matrix::Diagonal(length(nj),
+                                                    aux$kappa0) %*%
+    aux$Sgrp
+  aux$K <- methods::as(methods::as(K, "generalMatrix"), "CsparseMatrix")
+  aux$ldet_K <- as.numeric(Matrix::determinant(aux$K,
+                                               logarithm = TRUE)$modulus)
+  aux$n_comp <- length(nj)
+  if (type == "bym2") {
+    # the scaled mixture needs the covariance of the unit-scale ICAR
+    aux$Kinv <- as.matrix(Matrix::solve(aux$K))
+    aux$scale <- car_scale_factor(W)
+  }
+  aux
+}
+
+# Numeric covariance of the whole field at a theta (draws, VarCorr
+# details); off the tape, so a dense solve is fine.
+car_cov <- function(theta, blk) {
+  a <- blk$aux_car
+  s2 <- exp(2 * theta[1])
+  if (a[["type"]] == "escar") {
+    rho <- car_rho(theta[2])
+    Q <- Matrix::Diagonal(a[["n"]], a[["deg"]]) - rho * a[["W"]]
+    return(s2 * as.matrix(Matrix::solve(Q)))
+  }
+  if (a[["type"]] == "bym2") {
+    rho <- car_rho(theta[2])
+    return(s2 * ((1 - rho) * diag(a[["n"]]) +
+                   (rho / a[["scale"]]) * a[["Kinv"]]))
+  }
+  s2 * as.matrix(Matrix::solve(a[["K"]]))
+}
+
+covstruct_registry$car <- list(
+  npar = function(dim) {
+    stop("car npar needs the type; handled at the frame call site",
+         call. = FALSE)
+  },
+  sd_idx = function(dim) 1L,
+  nll = function(b, theta, blk) {
+    a <- blk$aux_car
+    n <- a[["n"]]
+    if (a[["type"]] == "bym2") {
+      # the mixture has no sparse precision, so the dense marginal
+      # covariance is the honest form; one MVN observation
+      rho <- car_rho(theta[2])
+      Sigma <- RTMB::matrix(
+        (1 - rho) * exp(2 * theta[1]) * as.vector(diag(n)) +
+          (rho * exp(2 * theta[1]) / a[["scale"]]) *
+          as.vector(a[["Kinv"]]), n, n)
+      return(sum(RTMB::dmvnorm(b, 0, Sigma, log = TRUE)))
+    }
+    tau <- exp(-2 * theta[1])
+    if (a[["type"]] == "escar") {
+      rho <- car_rho(theta[2])
+      quad <- sum(a[["deg"]] * b^2) -
+        rho * sum(b * as.vector(a[["W"]] %*% b))
+      ldet <- n * log(tau) + a[["ldet_deg"]] +
+        sum(log(1 - rho * a[["eigW"]]))
+    } else {
+      quad <- sum(b * as.vector(a[["K"]] %*% b))
+      ldet <- n * log(tau) + a[["ldet_K"]]
+    }
+    0.5 * (ldet - n * log(2 * pi)) - 0.5 * tau * quad
+  },
+  vcov = function(theta, blk) {
+    # sdcar, brms's reported scale; the field covariance is car_cov()
+    matrix(exp(theta[1])^2, 1, 1,
+           dimnames = list("sd(car)", "sd(car)"))
+  },
+  start = function(dim) {
+    stop("car start needs the type; handled at the frame call site",
+         call. = FALSE)
+  }
+)
+
+# ------------------------------------------------------------------ SPDE
+#
+# Gaussian Matern field through the SPDE / finite-element
+# representation (Lindgren-Rue-Lindstrom): on a fixed mesh the field's
+# precision is
+#
+#   Q(kappa, tau) = tau^2 (kappa^4 M0 + 2 kappa^2 M1 + M2)
+#
+# with M0/M1/M2 (fmesher's c0/g1/g2, INLA's M0/M1/M2) the mesh's finite
+# element matrices - fixed sparse data. Only the three weights depend on
+# the parameters, so the whole precision is an AD-weighted sum of fixed
+# sparse matrices and the log-determinant comes from RTMB's sparse GMRF
+# density; theta = (log tau, log kappa). alpha = 2 (nu = 1 in the plane)
+# is the only order the three-matrix form covers, which is the standard
+# choice and what fm_fem() returns.
+spde_npar <- function() 2L
+
+spde_start <- function() c(0, 0)
+
+# Range and marginal sd follow the alpha = 2, d = 2 identities
+# (Lindgren et al. 2011 eq. 2): range = sqrt(8 nu)/kappa with nu = 1,
+# sigma^2 = 1 / (4 pi kappa^2 tau^2).
+spde_range <- function(theta) sqrt(8) / exp(theta[2])
+
+spde_sd <- function(theta) {
+  1 / (exp(theta[1]) * exp(theta[2]) * sqrt(4 * pi))
+}
+
+covstruct_registry$spde <- list(
+  npar = function(dim) {
+    stop("spde npar is fixed at 2; handled at the frame call site",
+         call. = FALSE)
+  },
+  sd_idx = function(dim) integer(0),
+  nll = function(b, theta, blk) {
+    a <- blk$aux_spde
+    kap2 <- exp(2 * theta[2])
+    Q <- exp(2 * theta[1]) * (kap2 * kap2 * a[["M0"]] +
+                                (2 * kap2) * a[["M1"]] + a[["M2"]])
+    sum(RTMB::dgmrf(b, 0, Q, log = TRUE))
+  },
+  vcov = function(theta, blk) {
+    matrix(spde_sd(theta)^2, 1, 1,
+           dimnames = list("sd(spde)", "sd(spde)"))
+  },
+  start = function(dim) {
+    stop("spde start is handled at the frame call site", call. = FALSE)
+  }
+)
+
+# Numeric precision of an spde block at a theta (draws, diagnostics).
+spde_prec <- function(theta, blk) {
+  a <- blk$aux_spde
+  kap2 <- exp(2 * theta[2])
+  exp(2 * theta[1]) * (kap2 * kap2 * a[["M0"]] + (2 * kap2) * a[["M1"]] +
+                         a[["M2"]])
+}
 
 # Exact Gaussian process over observed positions (gp(...) without k=):
 # anisotropic squared-exponential kernel

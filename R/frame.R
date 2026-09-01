@@ -69,6 +69,11 @@ dpar_frame_rhs <- function(dp) {
       for (v in all.vars(ex)) parts <- c(parts, list(as.name(v)))
     }
   }
+  # car()/spde() need their grouping variable in the frame; the
+  # adjacency and mesh matrices are external data, like gr(cov = A)'s
+  for (ce in c(dp$carterms %||% list(), dp$spdeterms %||% list())) {
+    parts <- c(parts, list(ce$gr_expr))
+  }
   out <- NULL
   for (p in parts) out <- if (is.null(out)) p else call("+", out, p)
   out
@@ -719,11 +724,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             }
           }
           aux_Q <- NULL
+          aux_Qk <- NULL
           if (cs_name == "gr_prec") {
-            if (d_k != 1L) {
-              stop("gr(prec=) supports intercept-only terms:",
-                   " (1 | gr(g, prec = Q))", call. = FALSE)
-            }
             Q <- eval(dp$re[[k]]$cov_expr, data, resp$formula_env)
             if (is.null(rownames(Q)) ||
                 !all(levels(fac) %in% rownames(Q))) {
@@ -733,6 +735,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             lv <- levels(fac)
             aux_Q <- methods::as(Matrix::Matrix(Q[lv, lv], sparse = TRUE),
                                  "generalMatrix")
+            if (d_k > 1L) aux_Qk <- kron_prec_parts(aux_Q, d_k)
           }
           if (cs_name == "gr_cov") {
             A <- eval(dp$re[[k]]$cov_expr, data, resp$formula_env)
@@ -775,6 +778,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             levels = levels(fac), cnms = rt$cnms[[k]],
             bar = bars[[k]], Zlocal = Zk, aux_A = aux_A,
             aux_D = aux_D, aux_kron = aux_kron, aux_Q = aux_Q,
+            aux_Qk = aux_Qk,
             group_name = names(rt$flist)[fassign[k]],
             label = paste0(dp_prefix, deparse1(bars[[k]]))
           )
@@ -931,6 +935,50 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             block_id = NULL, label = lab0
           )
         }
+        comp_ids <- c(comp_ids, length(components))
+      }
+
+      # Spatial GMRF terms: car(M, gr = g) over an adjacency matrix and
+      # spde(fem, gr = node) over a mesh. Both are one intercept per
+      # location, so the block looks like (1 | g) with a structured
+      # precision; a synthetic bar keeps the prediction, ranef() and
+      # VarCorr() paths unchanged.
+      for (ce in c(dp$carterms %||% list(), dp$spdeterms %||% list())) {
+        is_car <- !is.null(ce$M_expr)
+        fn <- if (is_car) "car" else "spde"
+        gv <- eval(ce$gr_expr, mf, resp$formula_env)
+        if (anyNA(gv)) {
+          stop(fn, "(): the grouping variable '", deparse1(ce$gr_expr),
+               "' has missing values", call. = FALSE)
+        }
+        locs <- if (is.factor(gv)) levels(droplevels(gv)) else {
+          sort(unique(as.character(gv)))
+        }
+        j_loc <- match(as.character(gv), locs)
+        Zc <- Matrix::sparseMatrix(i = seq_along(j_loc), j = j_loc, x = 1,
+                                   dims = c(length(j_loc), length(locs)))
+        aux_car <- NULL
+        aux_spde <- NULL
+        if (is_car) {
+          M <- eval(ce$M_expr, data, resp$formula_env)
+          W <- car_adjacency(M, locs)
+          aux_car <- car_aux(W, ce$type, ce$con_sd)
+        } else {
+          fem <- eval(ce$fem_expr, data, resp$formula_env)
+          aux_spde <- spde_matrices(fem, length(locs))
+        }
+        components[[length(components) + 1L]] <- list(
+          lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
+          covstruct = fn, id = NULL,
+          dim = 1L, n_levels = length(locs),
+          levels = locs, cnms = "(Intercept)",
+          bar = call("|", 1, ce$gr_expr),
+          Zlocal = methods::as(Zc, "CsparseMatrix"),
+          aux_car = aux_car, aux_spde = aux_spde,
+          car_type = ce$type,
+          group_name = deparse1(ce$gr_expr),
+          label = paste0(dp_prefix, ce$label)
+        )
         comp_ids <- c(comp_ids, length(components))
       }
 
@@ -1152,6 +1200,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # block dimension (positions / basis size)
       npar_k <- gp_npar(cps[[1]]$gp_D, cps[[1]]$gp_iso)
       nb_k <- D * n_levels
+    } else if (cs_name == "car") {
+      # the CAR type decides whether there is a mixing parameter
+      npar_k <- car_npar(cps[[1]]$car_type)
+      nb_k <- D * n_levels
+    } else if (cs_name == "spde") {
+      npar_k <- spde_npar()
+      nb_k <- D * n_levels
     } else {
       npar_k <- covstruct_registry[[cs_name]]$npar(D)
       nb_k <- D * n_levels
@@ -1177,6 +1232,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       aux_D2 = cps[[1]]$aux_D2,
       aux_kron = cps[[1]]$aux_kron,
       aux_Q = cps[[1]]$aux_Q,
+      aux_Qk = cps[[1]]$aux_Qk,
+      aux_car = cps[[1]]$aux_car,
+      aux_spde = cps[[1]]$aux_spde,
+      car_type = cps[[1]]$car_type,
       aux_omega = cps[[1]]$aux_omega,
       gp_D = cps[[1]]$gp_D,
       gp_iso = cps[[1]]$gp_iso,
@@ -1250,6 +1309,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         hsgp_start(bk$gp_D, bk$gp_iso)
       } else if (bk$covstruct == "gp") {
         gp_start(bk$gp_D, bk$gp_iso)
+      } else if (bk$covstruct == "car") {
+        car_start(bk$car_type)
+      } else if (bk$covstruct == "spde") {
+        spde_start()
       } else {
         covstruct_registry[[bk$covstruct]]$start(bk$dim)
       }

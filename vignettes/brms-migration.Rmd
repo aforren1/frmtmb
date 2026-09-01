@@ -32,6 +32,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `nl = TRUE` | same | provide `start`; se.fit on the nonlinear mu not yet |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
+| `car(M, gr = g, type =)` | same | all four types; `M` is looked up in the data or the calling environment, not in `data2` |
 
 ## What changes
 

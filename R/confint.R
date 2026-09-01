@@ -185,6 +185,28 @@ varcorr_trans_rows <- function(fit) {
       }
       next
     }
+    if (bk$covstruct == "car") {
+      se_t <- sqrt(diag(Vth))
+      add("sd(car)", "sd", t0[1], se_t[1], bk)
+      if (length(t0) > 1L) {
+        # brms's names for the two mixing parameters, both on (0, 1)
+        nm <- if (identical(bk$car_type, "bym2")) "rhocar" else "car"
+        add(nm, "prop", t0[2], se_t[2], bk)
+      }
+      next
+    }
+    if (bk$covstruct == "spde") {
+      # sigma and range are analytic functions of (log tau, log kappa):
+      # log sigma = -log tau - log kappa - log(4 pi) / 2 and
+      # log range = log(8) / 2 - log kappa, so the delta method is one
+      # exact linear map with no differencing
+      g_sd <- c(-1, -1)
+      add("sd(spde)", "sd", log(spde_sd(t0)),
+          sqrt(max(drop(g_sd %*% Vth %*% g_sd), 0)), bk)
+      add("range(spde)", "range", log(spde_range(t0)),
+          sqrt(Vth[2, 2]), bk)
+      next
+    }
     if (bk$covstruct == "equalto") next   # nothing estimated
     # g(theta): log-sds then atanh-correlations, via the block's vcov
     gfun <- function(tt) {
@@ -228,8 +250,13 @@ varcorr_trans_rows <- function(fit) {
   out
 }
 
-# Back-transform to the natural scale (elementwise over types).
-varcorr_untrans <- function(type, v) ifelse(type == "cor", tanh(v), exp(v))
+# Back-transform to the natural scale (elementwise over types): log for
+# scales, Fisher-z for correlations, logit for the CAR mixing
+# proportions (which live on (0, 1), as they do in brms).
+varcorr_untrans <- function(type, v) {
+  ifelse(type == "cor", tanh(v),
+         ifelse(type == "prop", 1 / (1 + exp(-v)), exp(v)))
+}
 
 #' Natural-scale confidence intervals for covariance parameters
 #'
@@ -774,7 +801,7 @@ hyp_env_vals <- function(fit, vals, comp) {
   th <- vals[comp == "theta"]
   for (bk in fit$frame$re_blocks) {
     if (bk$covstruct %in% c("smooth", "gr_cov", "gr_prec",
-                            "gp", "hsgp", "equalto")) next
+                            "gp", "hsgp", "equalto", "car", "spde")) next
     V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
     tn <- hyp_san(bk$cnms)
     g <- hyp_san(bk$group_name)

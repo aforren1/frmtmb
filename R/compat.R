@@ -41,7 +41,8 @@ frmtmb_compat_features_tbl <- function() {
             "acat")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
-            "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp")
+            "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
+            "car", "spde")
   do.call(rbind, c(
     lapply(fams, f, kind = "family"),
     lapply(covs, f, kind = "covstruct"),
@@ -100,7 +101,10 @@ frmtmb_compat_groups_lst <- list(
   # every covariance structure quadrature cannot marginalize
   wide_blocks = c("cs", "ar1", "hetar1", "ou", "toep", "homtoep",
                   "homcs", "exp", "gau", "mat", "rr", "equalto",
-                  "gr_cov", "gr_prec", "smooth", "gp", "hsgp"),
+                  "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
+                  "car", "spde"),
+  # sparse Gaussian Markov random fields written as predictor specials
+  gmrf = c("car", "spde"),
   # structures over a metric coordinate rather than positional levels
   spatial = c("exp", "gau", "mat"),
   # positional structures: the level order sets the lag, not the value
@@ -565,8 +569,20 @@ frmtmb_compat_rules_tbl <- function() {
       override = TRUE)
   }
   r("gr_prec", "*", "conditional",
-    "gr(prec = Q) supports intercept-only terms: (1 | gr(g, prec = Q)).",
+    "gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level.",
     override = TRUE)
+  r("car", "*", "conditional",
+    "car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric binary adjacency matrix with dimnames covering every location. type = \"escar\" is the proper CAR, \"icar\"/\"esicar\" the intrinsic one under a soft sum-to-zero constraint (con_sd), \"bym2\" the scaled mixture; escar needs every location to have a neighbor.",
+    override = TRUE)
+  r("spde", "*", "conditional",
+    "spde(fem, gr = node) is a predictor special taking a mesh's finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes, so a general projector matrix is not supported yet.",
+    override = TRUE)
+  for (cs in frmtmb_compat_groups_lst$gmrf) {
+    r(cs, "simulate", "works",
+      "Draws come from the block's own fitted precision.")
+    r(cs, "predict", "conditional",
+      "Locations outside the fitted set have no marginal variance of their own; allow_new_levels predicts them at the population level with no block contribution.")
+  }
   r("gr_cov", "*", "conditional",
     "gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level.",
     override = TRUE)

@@ -83,8 +83,45 @@ test_that("gr(prec=) matches gr(cov=) with the inverse matrix", {
   set.seed(1)
   b1 <- frmtmb:::draw_b(fp)
   expect_length(b1, ng)
-  expect_error(frm(bf(y ~ x + (x | gr(g, prec = Q))) + gaussian(),
-                   data = dd), "intercept-only")
+})
+
+test_that("gr(prec=) takes correlated slopes", {
+  # inv(A (x) Sigma) = A^-1 (x) Sigma^-1, so the precision side of the
+  # Kronecker product has to reproduce the dense gr(cov=) fit exactly.
+  # The design needs real slope variation: a data set whose slope
+  # variance is zero puts both fits on the boundary, where they still
+  # agree but nothing about the Kronecker assembly is exercised.
+  set.seed(3)
+  ng <- 8
+  Q <- Matrix::bandSparse(ng, k = c(-1, 0, 1),
+                          diagonals = list(rep(-0.7, ng - 1),
+                                           rep(2, ng),
+                                           rep(-0.7, ng - 1)))
+  dimnames(Q) <- list(paste0("g", seq_len(ng)), paste0("g", seq_len(ng)))
+  A <- solve(as.matrix(Q))
+  dimnames(A) <- dimnames(Q)
+  S <- matrix(c(0.8, 0.3, 0.3, 0.5), 2, 2)
+  b_true <- drop(crossprod(chol(kronecker(A, S)), rnorm(2 * ng)))
+  dd <- data.frame(g = factor(rep(rownames(A), each = 12),
+                              levels = rownames(A)))
+  dd$x <- rnorm(nrow(dd))
+  j <- as.integer(dd$g)
+  dd$y <- 0.5 + b_true[(j - 1) * 2 + 1] + b_true[(j - 1) * 2 + 2] * dd$x +
+    rnorm(nrow(dd), 0, 0.4)
+
+  fp <- frm(bf(y ~ x + (1 + x | gr(g, prec = Q))) + gaussian(), data = dd)
+  fc <- frm(bf(y ~ x + (1 + x | gr(g, cov = A))) + gaussian(), data = dd)
+  expect_lt(abs(as.numeric(logLik(fp)) - as.numeric(logLik(fc))), 1e-8)
+  expect_vector_equal(fp$estimates$theta, fc$estimates$theta, tol = 1e-8)
+  expect_vector_equal(fixef(fp)$mu, fixef(fc)$mu, tol = 1e-8)
+  expect_vector_equal(VarCorr(fp)[[1]], VarCorr(fc)[[1]], tol = 1e-8)
+  expect_vector_equal(ranef(fp)[[1]], ranef(fc)[[1]], tol = 1e-8)
+  nd <- dd[c(1L, 30L, 90L), ]
+  expect_vector_equal(predict(fp, newdata = nd, se.fit = TRUE)$se.fit,
+                      predict(fc, newdata = nd, se.fit = TRUE)$se.fit,
+                      tol = 1e-8)
+  set.seed(1)
+  expect_length(frmtmb:::draw_b(fp), 2 * ng)
 })
 
 test_that("new levels add the block variance to prediction SEs", {
