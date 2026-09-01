@@ -296,7 +296,7 @@ frmtmb_compat_rules_tbl <- function() {
   r("trunc()", "poisson", "conditional",
     "Discrete truncation needs a lower bound of at least 1; trunc(lb = 0) is not truncation and is refused.")
   r("cens()", "trunc()", "works",
-    "Both restrict the same response; the truncated likelihood is renormalized and then censored.")
+    "The response is truncated FIRST and censored inside the window: a right-censored row contributes (F(ub) - F(y)) / Z and a left-censored one (F(y) - F(lb)) / Z, with Z the window mass (F(lb - 1) for a discrete lower bound). Verified against a hand-rolled likelihood for gaussian and for the discrete composed form, and it is the likelihood simulate(censored = TRUE) draws from. Through v0.25 only the normalizer was windowed, which censored the UNtruncated variable and biased the residual sd upward.")
   r("cens()", "weights()", "works",
     "Verified: the case weight multiplies the censored contribution.")
   r("trunc()", "weights()", "works", "")

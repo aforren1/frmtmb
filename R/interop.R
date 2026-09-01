@@ -173,18 +173,61 @@ resolve_bounds <- function(fit, lower, upper) {
   list(lower = mk(lower, -Inf), upper = mk(upper, Inf))
 }
 
+# Pull a start value strictly inside the bounding box. Stan turns a
+# bound into a constrained transform, and a start AT the bound maps to
+# an infinite unconstrained value: rstan then reports "Initialization
+# failed" and names neither the parameter nor the bound. The pad is
+# relative so it survives bounds of any magnitude; a box narrower than
+# two pads collapses to its midpoint.
+clamp_into_bounds <- function(v, lower, upper) {
+  if (is.null(lower) && is.null(upper)) return(v)
+  lo <- lower %||% rep(-Inf, length(v))
+  hi <- upper %||% rep(Inf, length(v))
+  pad_lo <- 1e-3 * pmax(1, abs(lo))
+  pad_hi <- 1e-3 * pmax(1, abs(hi))
+  fl <- ifelse(is.finite(lo), lo + pad_lo, -Inf)
+  ce <- ifelse(is.finite(hi), hi - pad_hi, Inf)
+  narrow <- is.finite(lo) & is.finite(hi) & fl > ce
+  mid <- (lo + hi) / 2
+  fl[narrow] <- mid[narrow]
+  ce[narrow] <- mid[narrow]
+  pmin(pmax(v, fl), ce)
+}
+
 # Per-chain initial values around the ML mode: chain 1 exactly at the
 # mode (the short-warmup anchor), later chains at mode + N(0, jitter)
 # on the unconstrained scale, restoring the overdispersion Rhat needs
-# to detect chains agreeing for the wrong reason.
-mode_inits <- function(mode, chains, jitter) {
+# to detect chains agreeing for the wrong reason. Every chain - the
+# mode-anchored one included, because the bounds can exclude the ML
+# mode itself - is then pulled inside the bounds.
+mode_inits <- function(mode, chains, jitter, lower = NULL, upper = NULL) {
   mode <- as.numeric(mode)
   if (!is.finite(jitter) || jitter <= 0 || chains <= 1L) {
-    return(lapply(seq_len(max(chains, 1L)), function(i) mode))
+    v <- clamp_into_bounds(mode, lower, upper)
+    return(lapply(seq_len(max(chains, 1L)), function(i) v))
   }
   lapply(seq_len(chains), function(i) {
-    if (i == 1L) mode else mode + stats::rnorm(length(mode), 0, jitter)
+    v <- if (i == 1L) mode else mode + stats::rnorm(length(mode), 0, jitter)
+    clamp_into_bounds(v, lower, upper)
   })
+}
+
+# tmbstan widens outer-length bounds over the whole parameter vector
+# when the objective has random effects (the inner block is unbounded);
+# the inits are the full vector too, so they must be clamped against
+# the same widening.
+mode_aligned_bounds <- function(obj, bounds, laplace, n) {
+  if (is.null(bounds)) return(NULL)
+  if (length(bounds$lower) == n) return(bounds)
+  rnd <- obj$env$random
+  if (laplace || is.null(rnd) || length(rnd) + length(bounds$lower) != n) {
+    return(NULL)
+  }
+  lo <- rep(-Inf, n)
+  hi <- rep(Inf, n)
+  lo[-rnd] <- bounds$lower
+  hi[-rnd] <- bounds$upper
+  list(lower = lo, upper = hi)
 }
 
 # Retape the fit's objective with priors added; parameters start at the
@@ -245,7 +288,9 @@ all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
 #'   added; the ML fit itself is unchanged.
 #' @param lower,upper Optional named numeric vectors of hard bounds on
 #'   outer parameters (brms `lb`/`ub`), applied on the internal scale
-#'   through Stan's constrained transforms.
+#'   through Stan's constrained transforms. Chain starting values are
+#'   clamped strictly inside the bounds; a bound that excludes the ML
+#'   mode itself warns, because the chains then no longer start there.
 #' @param init Initialization; the default starts chain 1 exactly at
 #'   the ML mode and every further chain at the mode plus a normal
 #'   perturbation of sd `init_jitter` on the unconstrained scale.
@@ -302,6 +347,9 @@ frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
   upper <- utils::modifyList(as.list(pr_upper),
                              as.list(upper %||% c()))
   laplace <- isTRUE(list(...)$laplace)
+  bounds <- if (length(lower) || length(upper)) {
+    resolve_bounds(fit, unlist(lower), unlist(upper))
+  }
   if (identical(init, "last.par.best")) {
     # a singular ML mode (variance at the boundary) is exactly the
     # pathological start the mode-init criticism is about
@@ -316,11 +364,28 @@ frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
     # under laplace tmbstan samples only the outer parameters, so the
     # full-length mode has the wrong length; take the outer slice
     mode <- if (laplace && length(rnd)) lpb[-rnd] else lpb
-    init <- mode_inits(mode, list(...)$chains %||% 4, init_jitter)
+    if (!is.null(bounds)) {
+      # a bound tighter than the ML estimate makes the mode inadmissible
+      # as a start; the chains then begin somewhere else, and a
+      # posterior pinned against a bound is a modeling statement worth
+      # hearing about
+      om <- if (laplace || !length(rnd)) mode else mode[-rnd]
+      viol <- which(as.numeric(om) < bounds$lower |
+                      as.numeric(om) > bounds$upper)
+      if (length(viol)) {
+        warning("The ML mode violates the requested bound(s) on ",
+                paste(outer_par_names(fit)[viol], collapse = ", "),
+                "; every chain starts at the clamped value instead of ",
+                "the mode. The bounded posterior is not centered on the ",
+                "unconstrained ML estimate", call. = FALSE)
+      }
+    }
+    mb <- mode_aligned_bounds(obj, bounds, laplace, length(mode))
+    init <- mode_inits(mode, list(...)$chains %||% 4, init_jitter,
+                       mb$lower, mb$upper)
   }
   args <- list(obj = obj, init = init, ...)
-  if (length(lower) || length(upper)) {
-    bounds <- resolve_bounds(fit, unlist(lower), unlist(upper))
+  if (!is.null(bounds)) {
     args$lower <- bounds$lower
     args$upper <- bounds$upper
   }

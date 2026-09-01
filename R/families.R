@@ -298,8 +298,16 @@ fam_gaussian <- function(link = "identity") {
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
       var_fn = function(dpars, aterms) resid_sd(dpars$sigma, aterms)^2,
-      # sigma is the dispersion, so it divides out of the unit deviance
-      dev_fn = function(y, dpars, aterms) (y - dpars$mu)^2,
+      # sigma is the dispersion, so it divides out of the unit deviance.
+      # se() breaks that: the residual sd is row-specific, and a raw
+      # squared residual would then compare rows of different precision
+      # on one scale. The known variance enters exactly as a glm prior
+      # weight sigma^2 / s_i^2, which is 1 without se(); se() alone maps
+      # sigma out at 1, so the row weight is the usual 1 / se_i^2.
+      dev_fn = function(y, dpars, aterms) {
+        s <- resid_sd(dpars$sigma, aterms)
+        (y - dpars$mu)^2 * (dpars$sigma / s)^2
+      },
       # mu + sigma * (phi(a) - phi(b)) / (Phi(b) - Phi(a))
       trunc_mean_fn = function(dpars, aterms, lb, ub) {
         s <- resid_sd(dpars$sigma, aterms)

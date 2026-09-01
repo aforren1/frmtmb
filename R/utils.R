@@ -64,7 +64,14 @@ parse_num_levels <- function(lv) {
 # the model nor the remedy. Degrade the same way ML does: NaN entries
 # plus one warning pointing at diagnose().
 solve_joint_precision <- function(Q) {
-  V <- try(solve(Q), silent = TRUE)
+  # Matrix::solve, not base solve: the joint precision of a GLMM is
+  # sparse and often badly conditioned, and base's dense LAPACK path
+  # refuses it on a reciprocal-condition-number test that the sparse
+  # Cholesky has no reason to apply. Rejecting an invertible precision
+  # would turn every standard error on such a fit into NaN.
+  # CHOLMOD narrates a failed factorization from C before the error
+  # reaches R; the message below is the one that names the remedy
+  V <- try(suppressWarnings(Matrix::solve(Q)), silent = TRUE)
   if (!inherits(V, "try-error")) return(V)
   warning("The joint precision matrix is singular, so standard errors ",
           "are NaN; the model is probably overparameterized. ",

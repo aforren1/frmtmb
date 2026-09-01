@@ -19,7 +19,10 @@ get_joint_cov <- function(fit) {
     V <- sdr_of(fit)$cov.fixed
     rn <- rownames(V)
   } else {
-    V <- as.matrix(Matrix::solve(Q))
+    # same degradation vcov() uses: a singular joint precision gives NaN
+    # standard errors and one warning naming diagnose(), not a raw
+    # LAPACK message from deep inside predict()
+    V <- as.matrix(solve_joint_precision(Q))
     rn <- rownames(Q)
   }
   cache$Vjoint <- list(V = V, names = rn)
@@ -403,9 +406,15 @@ aterm_label <- function(nm, ex) {
   switch(nm,
     trunc_lb = paste0("trunc(lb = ", deparse1(ex), ")"),
     trunc_ub = paste0("trunc(ub = ", deparse1(ex), ")"),
-    paste0(nm, "(", deparse1(ex), ")")
+    # vint(a, b) is stored one argument per aterm as vint1, vint2, ...
+    paste0(sub("[0-9]+$", "", nm), "(", deparse1(ex), ")")
   )
 }
+
+# A custom family's lpdf/mean_fn reads its vint()/vreal() payload out of
+# aterms, so an omitted one is not a missing covariate but a missing
+# argument: the family returns a zero-length prediction.
+is_custom_data_aterm <- function(nm) grepl("^v(int|real)[0-9]+$", nm)
 
 aterms_for_newdata <- function(rspec, newdata) {
   skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights")
@@ -413,8 +422,9 @@ aterms_for_newdata <- function(rspec, newdata) {
   nd_n <- nrow(newdata)
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
+    ex <- rspec$aterms[[nm]]
     v <- tryCatch(
-      as.numeric(eval(rspec$aterms[[nm]], newdata, rspec$formula_env)),
+      as.numeric(eval(ex, newdata, rspec$formula_env)),
       error = function(e) NULL
     )
     # a bound the model frame supplied but newdata did not can still
@@ -423,11 +433,28 @@ aterms_for_newdata <- function(rspec, newdata) {
     if (!is.null(v) && !is.null(nd_n) && !length(v) %in% c(1L, nd_n)) {
       v <- NULL
     }
-    if (is.null(v) && nm %in% need) {
-      label <- aterm_label(nm, rspec$aterms[[nm]])
-      stop("Addition term ", label, " could not be evaluated on ",
-           "newdata; supply the variable or use type = \"conditional\"",
-           call. = FALSE)
+    if (is.null(v)) {
+      label <- aterm_label(nm, ex)
+      missed <- setdiff(all.vars(ex), names(newdata))
+      if (nm %in% need || is_custom_data_aterm(nm)) {
+        stop("Addition term ", label, " could not be evaluated on ",
+             "newdata",
+             if (length(missed)) {
+               paste0(": newdata has no column ",
+                      paste(missed, collapse = ", "))
+             } else "",
+             "; supply the variable or use type = \"conditional\"",
+             call. = FALSE)
+      }
+      # anything else is dropped, but never silently: an aterm the
+      # family reads and this function omits is a wrong prediction
+      warning("Addition term ", label, " could not be evaluated on ",
+              "newdata and is omitted from the prediction",
+              if (length(missed)) {
+                paste0(" (newdata has no column ",
+                       paste(missed, collapse = ", "), ")")
+              } else "",
+              call. = FALSE)
     }
     if (!is.null(v)) av[[nm]] <- v
   }
@@ -754,6 +781,18 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
        sm_parts = sm_parts, sm_blocks = sm_blocks, nonest = nonest, n = n)
 }
 
+# A standard error that leaves out a variance component is only honest
+# if it says so, so this is a warning rather than a note in the docs.
+warn_modes_conditional_se <- function() {
+  warning("The fitted objective marginalizes the random effects ",
+          "(quadrature = TRUE), so its covariance carries no ",
+          "random-effect block: se.fit is conditional on the ",
+          "conditional modes and omits random-effect uncertainty. ",
+          "Refit with quadrature = FALSE for the full delta method",
+          call. = FALSE)
+  invisible(NULL)
+}
+
 # Delta method: var(eta) = A V A' over the estimated coefficients (and b
 # when random effects are included). For rr fits the Z matrices span the
 # coefficient space, so the b columns go through the Jacobian of the
@@ -793,6 +832,20 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
   if (length(object$frame$re_blocks)) {
     b_pos <- which(rn == "b")
     th_pos <- which(rn == "theta")
+    would_add <- if (is.null(newdata)) {
+      !is.null(lp$Z) && (use_re || length(ed$sm_blocks) > 0L)
+    } else {
+      (use_re && length(ed$re_parts) > 0L) || length(ed$sm_parts) > 0L
+    }
+    if (!length(b_pos) && would_add) {
+      # A marginalized (quadrature) objective has no b in its parameter
+      # vector, so the joint covariance carries no random-effect rows to
+      # pair the Z columns with. Adding them anyway made A wider than V
+      # and the delta method died non-conformable. Report the standard
+      # error conditional on the modes instead, and say so.
+      warn_modes_conditional_se()
+      return(list(A = A, coef_pos = coef_pos))
+    }
     if (is.null(newdata)) {
       if (use_re && !is.null(lp$Z)) {
         upd <- add_b_cols(A, coef_pos, lp$Z, b_pos, th_pos)
@@ -1124,6 +1177,14 @@ osa_cens_domain <- function(av, y) {
 #' size follow the saturated mean is not a deviance (the difference goes
 #' negative). `trunc()`ed and `cens()`ed responses are refused as well,
 #' because the fitted likelihood there is not the family's own density.
+#'
+#' A gaussian response with `se()` has no common dispersion for a raw
+#' squared residual to be measured against, so the known variance
+#' enters as a glm prior weight `sigma^2 / s_i^2` on top of `w`, where
+#' `s_i` is the row's residual sd (the quantity `"pearson"` divides
+#' by). Without `se()` that weight is 1 and nothing changes; `se(x)`
+#' alone maps `sigma` out at 1, leaving the familiar `1 / se_i^2` of a
+#' known-variance weighted fit.
 #'
 #' In a mixed model the residuals are conditional on the random-effect
 #' modes, the glmmTMB convention: `E[Y]` is [fitted()], not the

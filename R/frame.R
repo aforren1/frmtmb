@@ -255,12 +255,18 @@ decode_cens <- function(v) {
   if (is.factor(v)) v <- as.character(v)
   if (!is.character(v)) return(as.numeric(v))
   key <- tolower(trimws(v))
+  # the numeric codes the error message advertises can arrive as
+  # strings (a character column, or a factor built from one); prefix
+  # matching would reject every one of them, so read those directly.
+  # Out-of-range numbers fall through to the -1/0/1/2 check, which
+  # names the offending value
+  num <- suppressWarnings(as.numeric(key))
   idx <- vapply(key, function(k) {
     hit <- if (nzchar(k)) which(startsWith(names(cens_code_map), k)) else
       integer(0)
     if (length(hit) == 1L) hit else NA_integer_
   }, integer(1L), USE.NAMES = FALSE)
-  bad <- unique(v[is.na(idx)])
+  bad <- unique(v[is.na(idx) & is.na(num)])
   if (length(bad)) {
     stop("cens() cannot decode: ",
          paste0("\"", bad, "\"", collapse = ", "),
@@ -268,7 +274,8 @@ decode_cens <- function(v) {
          "(any unambiguous prefix), or the codes 0, -1, 1, 2",
          call. = FALSE)
   }
-  unname(cens_code_map[idx])
+  out <- unname(cens_code_map[idx])
+  ifelse(is.na(num), out, num)
 }
 
 assemble_frame <- function(spec, data, na.action = stats::na.omit,

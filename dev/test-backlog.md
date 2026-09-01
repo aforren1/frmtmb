@@ -369,6 +369,78 @@ Regression tests in tests/testthat/test-osa-inference.R.
   the point mass it puts at each censoring point is not a distribution
   DHARMa's rank transform can use, so it is not a drop-in fix.
 
+## Code-review fixes, v0.22-v0.25 (2026-09-01)
+
+Confirmed defects from a review of the v0.22-v0.25 work. Regression
+tests in tests/testthat/test-review-v25.R.
+
+### Fixed
+
+- `cens()` x `trunc()` was a silently wrong likelihood. Censoring
+  contributed `log(1 - F(y))` / `log(F(y))` against the whole line and
+  truncation then subtracted `log(F(ub) - F(lb))`, so only the
+  normalizer was windowed: the model censored the UNTRUNCATED
+  variable. Under truncation a right-censored row observes
+  `y < Y <= ub` and a left-censored one `lb <= Y <= y`, so the
+  numerators are `(F(ub) - F(y)) / Z` and `(F(y) - F(lb)) / Z`, with
+  `Z` the window mass and the discrete inclusive lower bound still
+  `F(lb - 1)`. An interval-censored row was already a windowed
+  difference of CDFs and only needed the division by `Z`, which it had.
+  Verified against hand-rolled likelihoods: gaussian on `[-1, 3]`
+  right-censored at 1.5 matches to 1e-8, and the residual sd drops
+  from 1.021 (old composition) to 0.896 against a data-generating 0.9;
+  the discrete composed form matches a `ppois` reference to 1e-10.
+  The corrected likelihood is also the one `simulate(censored = TRUE)`
+  draws from (truncate by rejection, then clamp to the censoring
+  window), which the old form was not. The OSA path is unchanged and
+  still matches the analytic PIT `(F(y) - F(lb)) / (F(c) - F(lb))` on
+  the uncensored rows to 5e-14, so `osa_cens_domain`'s window
+  intersection and the likelihood still agree.
+- `residuals(type = "deviance")` ignored `se()`. The gaussian unit
+  deviance `(y - mu)^2` assumes one dispersion, which `se()` removes:
+  two rows with `se` 0.1 and 0.5 got the same scale. The known
+  variance now enters as a glm prior weight `sigma^2 / s_i^2`, which
+  is the familiar `1 / se_i^2` when `se()` maps `sigma` out and 1
+  (hence exact `glm()` agreement) when there is no `se()`.
+- `quadrature = TRUE` x `predict(se.fit = TRUE)` died non-conformable.
+  A marginalized objective has no `b` rows in its covariance, so the
+  Z block was cbind'd against an empty column-position vector. The RE
+  columns are dropped and the standard error is reported conditional
+  on the modes, with a warning saying the random-effect uncertainty is
+  not in it.
+- `frm_sample()` mode inits could sit outside `lower`/`upper`. Stan
+  turns a bound into a constrained transform, so an init at or past it
+  has no preimage and rstan reports an unrecoverable initialization
+  failure naming neither parameter nor bound. Every chain's init is
+  clamped strictly inside the box (jittered chains included), and a
+  bound that excludes the ML mode itself warns.
+- `aterms_for_newdata()` dropped `vint()`/`vreal()`. A custom family
+  reading `aterms$vreal1` in its `mean_fn` then returned a LENGTH-0
+  prediction with no message. Those payloads are now required on
+  newdata (the error names the missing column) and the general
+  fallback warns rather than omitting silently.
+- `quad_fit()` kept the first non-stationary candidate instead of the
+  one with the lowest objective.
+- `get_joint_cov()` inverted the joint precision by hand, so a
+  singular REML/profile fit threw a raw LAPACK message from inside
+  `predict(se.fit = TRUE)`. It routes through
+  `solve_joint_precision()` and degrades to NaN plus one warning, as
+  `vcov()` does.
+- `decode_cens()` rejected the character codes `"0"`, `"1"` and
+  `"-1"` that its own error message advertises; numeric-looking
+  strings are coerced before prefix matching.
+
+### Open - medium
+
+- `conditional_effects(method = "predict")` still drops an unevaluable
+  `vint()`/`vreal()` payload silently (`ce_aterms()`), where
+  `aterms_for_newdata()` now errors or warns. The grid case is
+  deliberately laxer, but a custom family that needs the payload gets
+  the same length-0 mean there.
+- `cens()` stays refused for discrete families, so the discrete
+  censored-truncated branch is reachable only through
+  `build_objective()` and is tested that way.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:
