@@ -1,0 +1,55 @@
+R: R version 4.6.1 (2026-06-24 ucrt)
+RTMB  1.9
+RTMBp 1.9
+TMB   1.9.25
+
+--- exports only in RTMBp ---
+.__T__atan2:base, atan2
+--- exports only in RTMB ---
+
+
+--- RTMBp internals mentioning parallel/openmp/thread ---
+.onLoad, GetTape, oneStepPredict_patch
+--- RTMB internals mentioning parallel/openmp/thread ---
+GetTape, oneStepPredict_patch
+
+--- RTMBp native routines matching omp/thread/parallel ---
+RTMB: n routines = 120
+  matches: TMBconfig, _RTMB_set_tape_config, _RTMB_compare_allow, _RTMB_decompose_refs, _RTMB_distr_compois_calc_logZ, _RTMB_distr_compois_calc_loglambda, _RTMB_distr_rcompois, _RTMB_fft_complex
+RTMBp: n routines = 124
+  matches: TMBconfig, _RTMB_set_tape_config, _RTMB_compare_allow, _RTMB_decompose_refs, _RTMB_distr_compois_calc_logZ, _RTMB_distr_compois_calc_loglambda, _RTMB_distr_rcompois, _RTMB_fft_complex
+
+--- TapeConfig formals ---
+RTMB : ..., comparison, atomic, vectorize
+RTMBp: ..., comparison, atomic, vectorize
+--- TapeConfig() current values ---
+RTMB : matmul=plain ops=plain math=plain sparse=plain sum=plain mvnorm=atomic compare=forbid
+RTMBp: matmul=plain ops=plain math=plain sparse=plain sum=plain mvnorm=atomic compare=forbid
+--- MakeADFun formals ---
+RTMB : func, parameters, random, profile, integrate, intern, map, ADreport, silent, ridge.correct, ...
+RTMBp: func, parameters, random, profile, integrate, intern, map, ADreport, silent, ridge.correct, ...
+
+--- TMB::openmp ---
+formals: n, max, autopar, DLL
+function (n = NULL, max = FALSE, autopar = NULL, DLL = getUserDLL()) 
+{
+    if (max) {
+        n <- .Call("omp_num_threads", NULL, PACKAGE = "TMB")
+    }
+    if (!is.null(n)) 
+        config(nthreads = n, DLL = DLL)
+    if (is.logical(autopar)) 
+        config(autopar = autopar, DLL = DLL)
+    ans <- config(DLL = DLL)$nthreads
+    names(ans) <- DLL
+    attr(ans, "autopar") <- as.logical(config(DLL = DLL)$autopar)
+    ans
+}
+
+--- RTMB has config(): FALSE
+
+--- RTMBp has config(): FALSE
+
+RTMB dll: C:/Users/adf44/AppData/Local/R/win-library/4.6/RTMB/libs/x64/RTMB.dll  size=9226240
+
+RTMBp dll: C:/Users/adf44/AppData/Local/R/win-library/4.6/RTMBp/libs/x64/RTMBp.dll  size=9440256

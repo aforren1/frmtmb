@@ -342,17 +342,48 @@ What would help on large problems, in order of measured effect:
   is parallelism at the fit level, which is where the concurrency
   actually is, and it does not need optimParallel.
 
-## Note: RTMBp (2026-09-01, unmeasured)
+## RTMBp vs RTMB (2026-09-01, measured)
 
-kaskr packages an experimental PARALLEL build of RTMB as 'RTMBp'
-(r-universe only, not CRAN: install.packages('RTMBp', repos =
-c('https://kaskr.r-universe.dev', ...))). This targets exactly the
-gap the optimParallel benchmark identified: InstEval's optimize
-stage is 100% taped-objective evaluation, and TMB's OpenMP
-parallelizes the objective accumulation (the inner Cholesky stays
-serial). A follow-up measurement would swap RTMB -> RTMBp on the
-InstEval protocol above and compare fn/gr per-call costs across
-thread counts. Caveats before adopting anything: RTMBp is
-experimental and off-CRAN, so it could at most be an optional
-enhancement (namespace-conditional), never a dependency; and the
-"only real TMB-vs-RTMB gap is OpenMP" line in SPEC.md predates it.
+Setup: RTMBp from kaskr.r-universe.dev (Windows binary), hand-rolled
+objectives identical across backends. Shape A = the InstEval LMM
+protocol above (73k obs, ~4100 scalar REs; hand-rolled optimum
+matches frm()'s logLik to 2.8e-7). Shape B = accumulation-dominated
+poisson GLMM (3e5 rows, 1000 groups). Parallelism via RTMBp's
+autopar taping (one probe path assuming TMB's unexported
+TransformADFunObject failed against CRAN TMB 1.9.25 - a
+version-coupling fragility worth knowing); threads 1/2/4/8/16,
+medians of repeated runs, one process at a time. Full tables in
+dev/rtmbp-tables.txt; per-run RDS in dev/rtmbp-results/.
+
+Shape A (Cholesky/replay-dominated, the InstEval class): NO gain.
+Speedups 0.98-1.09x across every thread count; RTMBp without
+autopar is 15-20% SLOWER than RTMB. The inner sparse Cholesky and
+memory-bound tape replay leave parallel accumulation nothing to do,
+confirming the optimParallel section's diagnosis from the other
+direction.
+
+Shape B (accumulation-dominated): REAL but bounded gains. Fit stage
+2.4x at 4 threads, 3.0x at 16; whole fit (tape+fit+sdreport) 1.75x
+at 4 threads, 2.06x at 16, with tape BUILD 50-80% slower under
+RTMBp and clear diminishing returns past 4-8 threads. sdreport
+scales similarly (1.7-2.2x).
+
+Numerical agreement: at 1 thread RTMBp is bit-identical to RTMB
+(fn, gr, estimates, SEs all exactly 0 difference). Threaded runs
+differ only by floating-point reassociation: relative 1e-12 on
+objectives, estimates to 1e-10 (A) / 1e-13 (B), SEs to 1e-12/1e-15,
+identical optimizer paths (same iteration/fn/gr counts).
+
+VERDICT: do not adopt now. For the mixed-model workloads frmtmb
+mostly serves (InstEval-class), the gain is zero. For large-n
+cheap-Cholesky GLMMs the ~1.7-2x end-to-end at >= 4 threads is real
+and numerically safe, but RTMBp is experimental, off-CRAN, couples
+to TMB internals (the TransformADFunObject probe failure), and taxes
+tape build. Re-evaluate if RTMBp stabilizes toward CRAN or the
+observed gains reach ~2x at <= 8 threads on shape-A-like workloads;
+the integration path would be a namespace-conditional optional
+backend behind Suggests + Additional_repositories (the
+brms/cmdstanr posture), never a dependency. Users with
+accumulation-heavy models can already benefit by hand-rolling
+against RTMBp directly; the objective recipe is in
+dev/bench-rtmbp-core.R.

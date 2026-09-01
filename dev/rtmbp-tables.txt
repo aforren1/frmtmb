@@ -1,0 +1,144 @@
+
+================ SHAPE A ================
+
+--- per-call, min / median / max (seconds), n = 100 pooled calls ---
+config             fn                     gr (cached)            gr (fresh)            
+RTMB t1 apFALSE    0.120 / 0.170 / 0.290  0.210 / 0.280 / 0.530  0.200 / 0.290 / 0.560 
+RTMBp t1 apFALSE   0.120 / 0.160 / 0.730  0.210 / 0.280 / 0.940  0.220 / 0.300 / 0.850 
+RTMBp t1 apTRUE    0.120 / 0.160 / 0.310  0.220 / 0.270 / 0.410  0.220 / 0.270 / 0.390 
+RTMBp t2 apTRUE    0.110 / 0.160 / 0.380  0.200 / 0.270 / 0.690  0.210 / 0.270 / 0.570 
+RTMBp t4 apTRUE    0.120 / 0.160 / 0.770  0.210 / 0.270 / 0.920  0.210 / 0.265 / 0.420 
+RTMBp t8 apTRUE    0.120 / 0.160 / 0.260  0.220 / 0.270 / 0.370  0.220 / 0.280 / 0.560 
+RTMBp t16 apTRUE   0.120 / 0.150 / 0.400  0.210 / 0.270 / 0.800  0.220 / 0.290 / 0.510 
+
+--- tape build, fit, sdreport: min / median / max (s) ---
+config             tape                   fit                    sdreport              
+RTMB t1 apFALSE    0.450 / 0.530 / 0.720  13.71 / 14.27 / 15.86  3.44 / 3.63 / 4.28    
+RTMBp t1 apFALSE   0.640 / 0.735 / 0.890  16.13 / 18.00 / 32.83  3.92 / 4.19 / 7.79    
+RTMBp t1 apTRUE    0.600 / 0.755 / 1.610  12.86 / 13.25 / 13.92  3.50 / 3.59 / 4.11    
+RTMBp t2 apTRUE    0.640 / 0.750 / 0.860  12.83 / 13.05 / 13.28  3.46 / 3.56 / 3.66    
+RTMBp t4 apTRUE    0.560 / 0.635 / 1.710  12.59 / 12.77 / 14.53  3.30 / 3.50 / 3.61    
+RTMBp t8 apTRUE    0.590 / 0.680 / 0.750  12.99 / 13.39 / 14.64  3.53 / 4.19 / 4.69    
+RTMBp t16 apTRUE   0.590 / 0.685 / 2.490  13.98 / 14.46 / 15.74  3.23 / 3.93 / 4.06    
+
+--- speedup vs RTMB baseline (on minima) ---
+config                   fn       gr      fit sdreport
+RTMB t1 apFALSE       1.00x    1.00x    1.00x    1.00x
+RTMBp t1 apFALSE      1.00x    0.91x    0.85x    0.88x
+RTMBp t1 apTRUE       1.00x    0.91x    1.07x    0.98x
+RTMBp t2 apTRUE       1.09x    0.95x    1.07x    0.99x
+RTMBp t4 apTRUE       1.00x    0.95x    1.09x    1.04x
+RTMBp t8 apTRUE       1.00x    0.91x    1.06x    0.97x
+RTMBp t16 apTRUE      1.00x    0.91x    0.98x    1.07x
+
+--- whole fit = tape + fit + sdreport (s), and speedup ---
+config                    min     median    x (min)    x (med)
+RTMB t1 apFALSE         17.60      18.43      1.00x      1.00x
+RTMBp t1 apFALSE        20.69      22.92      0.85x      0.80x
+RTMBp t1 apTRUE         16.96      17.60      1.04x      1.05x
+RTMBp t2 apTRUE         16.93      17.36      1.04x      1.06x
+RTMBp t4 apTRUE         16.45      16.91      1.07x      1.09x
+RTMBp t8 apTRUE         17.11      18.26      1.03x      1.01x
+RTMBp t16 apTRUE        17.80      19.08      0.99x      0.97x
+
+--- optimizer path / objective ---
+RTMB t1 apFALSE    32 it, 45 fn, 33 gr, nll 118865.307680
+RTMBp t1 apFALSE   32 it, 45 fn, 33 gr, nll 118865.307680
+RTMBp t1 apTRUE    32 it, 45 fn, 33 gr, nll 118865.307680
+RTMBp t2 apTRUE    32 it, 45 fn, 33 gr, nll 118865.307680
+RTMBp t4 apTRUE    32 it, 45 fn, 33 gr, nll 118865.307680
+RTMBp t8 apTRUE    32 it, 45 fn, 33 gr, nll 118865.307680
+RTMBp t16 apTRUE   32 it, 45 fn, 33 gr, nll 118865.307680
+
+================ SHAPE B ================
+
+--- per-call, min / median / max (seconds), n = 100 pooled calls ---
+config             fn                     gr (cached)            gr (fresh)            
+RTMB t1 apFALSE    0.160 / 0.250 / 0.810  0.210 / 0.335 / 0.810  0.230 / 0.340 / 0.830 
+RTMBp t1 apFALSE   0.150 / 0.250 / 0.310  0.220 / 0.310 / 0.430  0.230 / 0.330 / 0.570 
+RTMBp t1 apTRUE    0.170 / 0.240 / 0.450  0.220 / 0.320 / 0.740  0.220 / 0.315 / 0.610 
+RTMBp t2 apTRUE    0.120 / 0.180 / 0.640  0.160 / 0.240 / 0.550  0.180 / 0.230 / 0.630 
+RTMBp t4 apTRUE    0.090 / 0.140 / 0.310  0.110 / 0.170 / 0.350  0.110 / 0.170 / 0.260 
+RTMBp t8 apTRUE    0.070 / 0.130 / 0.180  0.100 / 0.170 / 0.220  0.120 / 0.170 / 0.210 
+RTMBp t16 apTRUE   0.060 / 0.100 / 0.190  0.090 / 0.120 / 0.280  0.090 / 0.130 / 0.240 
+
+--- tape build, fit, sdreport: min / median / max (s) ---
+config             tape                   fit                    sdreport              
+RTMB t1 apFALSE    1.790 / 2.125 / 3.510  12.04 / 12.52 / 13.64  4.41 / 4.58 / 5.05    
+RTMBp t1 apFALSE   2.520 / 2.760 / 3.510  -                      -                     
+RTMBp t1 apTRUE    2.380 / 2.750 / 4.200  10.89 / 11.68 / 12.14  4.56 / 4.83 / 4.94    
+RTMBp t2 apTRUE    3.280 / 3.730 / 5.170  9.10 / 9.27 / 9.34     3.43 / 3.51 / 3.56    
+RTMBp t4 apTRUE    2.880 / 3.395 / 7.070  4.96 / 5.08 / 5.22     2.58 / 2.62 / 2.66    
+RTMBp t8 apTRUE    2.930 / 3.270 / 3.630  5.49 / 5.87 / 8.53     2.28 / 2.32 / 2.60    
+RTMBp t16 apTRUE   2.820 / 3.190 / 5.690  4.00 / 4.16 / 4.30     2.03 / 2.06 / 2.09    
+
+--- speedup vs RTMB baseline (on minima) ---
+config                   fn       gr      fit sdreport
+RTMB t1 apFALSE       1.00x    1.00x    1.00x    1.00x
+RTMBp t1 apFALSE      1.07x    1.00x        -        -
+RTMBp t1 apTRUE       0.94x    1.05x    1.11x    0.97x
+RTMBp t2 apTRUE       1.33x    1.28x    1.32x    1.29x
+RTMBp t4 apTRUE       1.78x    2.09x    2.43x    1.71x
+RTMBp t8 apTRUE       2.29x    1.92x    2.19x    1.93x
+RTMBp t16 apTRUE      2.67x    2.56x    3.01x    2.17x
+
+--- whole fit = tape + fit + sdreport (s), and speedup ---
+config                    min     median    x (min)    x (med)
+RTMB t1 apFALSE         18.24      19.23      1.00x      1.00x
+RTMBp t1 apTRUE         17.83      19.26      1.02x      1.00x
+RTMBp t2 apTRUE         15.81      16.51      1.15x      1.16x
+RTMBp t4 apTRUE         10.42      11.10      1.75x      1.73x
+RTMBp t8 apTRUE         10.70      11.46      1.70x      1.68x
+RTMBp t16 apTRUE         8.85       9.41      2.06x      2.04x
+
+--- optimizer path / objective ---
+RTMB t1 apFALSE    20 it, 27 fn, 21 gr, nll 479662.054718
+RTMBp t1 apTRUE    20 it, 27 fn, 21 gr, nll 479662.054718
+RTMBp t2 apTRUE    20 it, 27 fn, 21 gr, nll 479662.054719
+RTMBp t4 apTRUE    20 it, 27 fn, 21 gr, nll 479662.054719
+RTMBp t8 apTRUE    20 it, 27 fn, 21 gr, nll 479662.054719
+RTMBp t16 apTRUE   20 it, 27 fn, 21 gr, nll 479662.054719
+
+================ IDENTITY ================
+
+shape A: max abs difference vs RTMB at 4 fixed parameter vectors
+config                   max|dfn|    max rel dfn       max|dgr|    max rel dgr
+RTMBp t1 apFALSE        0.000e+00      0.000e+00      0.000e+00      0.000e+00
+RTMBp t1 apTRUE         0.000e+00      0.000e+00      0.000e+00      0.000e+00
+RTMBp t2 apTRUE         1.669e-07      1.404e-12      8.103e-10      4.549e-09
+RTMBp t4 apTRUE         1.665e-07      1.400e-12      6.223e-10      3.493e-09
+RTMBp t8 apTRUE         1.668e-07      1.403e-12      5.100e-10      2.863e-09
+RTMBp t16 apTRUE        1.666e-07      1.401e-12      5.918e-10      3.322e-09
+
+shape A: fitted estimates / SEs vs RTMB (full-mode runs)
+config                  max|dpar|      max|dest|       max|dSE|
+RTMBp t1 apFALSE        0.000e+00      0.000e+00      0.000e+00
+RTMBp t1 apTRUE         0.000e+00      0.000e+00      0.000e+00
+RTMBp t2 apTRUE         1.659e-10      1.659e-10      2.046e-12
+RTMBp t4 apTRUE         2.410e-10      2.410e-10      2.218e-12
+RTMBp t8 apTRUE         6.763e-10      6.763e-10      4.458e-12
+RTMBp t16 apTRUE        5.297e-10      5.297e-10      3.421e-12
+
+shape B: max abs difference vs RTMB at 4 fixed parameter vectors
+config                   max|dfn|    max rel dfn       max|dgr|    max rel dgr
+RTMBp t1 apFALSE        0.000e+00      0.000e+00      0.000e+00      0.000e+00
+RTMBp t1 apTRUE         0.000e+00      0.000e+00      0.000e+00      0.000e+00
+RTMBp t2 apTRUE         6.089e-07      1.268e-12      2.474e-10      3.201e-09
+RTMBp t4 apTRUE         6.069e-07      1.265e-12      5.894e-10      4.979e-09
+RTMBp t8 apTRUE         6.148e-07      1.281e-12      4.002e-10      4.704e-09
+RTMBp t16 apTRUE        6.031e-07      1.256e-12      3.274e-10      5.299e-09
+
+shape B: fitted estimates / SEs vs RTMB (full-mode runs)
+config                  max|dpar|      max|dest|       max|dSE|
+RTMBp t1 apTRUE         0.000e+00      0.000e+00      0.000e+00
+RTMBp t2 apTRUE         1.895e-13      1.895e-13      3.213e-15
+RTMBp t4 apTRUE         5.311e-13      5.311e-13      6.158e-15
+RTMBp t8 apTRUE         3.212e-13      3.212e-13      6.602e-15
+RTMBp t16 apTRUE        2.292e-13      2.292e-13      8.313e-15
+
+================ REFERENCE ================
+frm() InstEval logLik        : -118865.307680
+hand-rolled RTMB shape A     : -118865.307680
+abs difference               : 2.761e-07
+frm() wall (se = FALSE)      : 19.8 s
+shape B hand-rolled nll      : 479662.054718

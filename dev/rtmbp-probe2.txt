@@ -1,0 +1,63 @@
+--- RTMBp:::.onLoad ---
+function (libname, pkgname) 
+{
+    TMB::openmp(parallel::detectCores(), autopar = TRUE, DLL = "RTMBp")
+}
+
+--- RTMB:::.onLoad ---
+RTMB has NO .onLoad (no openmp call)
+
+--- routines only in RTMBp ---
+_RTMB_get_term_nodes, _RTMB_getdepIndex, _RTMB_inactivate, _RTMB_setdepIndex
+--- routines only in RTMB ---
+
+
+--- TMB::config(DLL='RTMBp') ---
+trace.atomic=1
+trace.optimize=1
+nthreads=16
+trace.parallel=1
+tmbad.atomic_sparse_log_determinant=1
+tmbad_deterministic_hash=1
+tape.parallel=1
+optimize.parallel=0
+autopar=1
+optimize.instantly=1
+debug.getListElement=0
+tmbad.sparse_hessian_compress=0
+
+--- TMB::config(DLL='RTMB') ---
+trace.atomic=1
+trace.optimize=1
+nthreads=1
+trace.parallel=1
+tmbad.atomic_sparse_log_determinant=1
+tmbad_deterministic_hash=1
+tape.parallel=1
+optimize.parallel=0
+autopar=0
+optimize.instantly=1
+debug.getListElement=0
+tmbad.sparse_hessian_compress=0
+
+--- TMB::openmp(max = TRUE) ---
+RTMBp 
+   16 
+attr(,"autopar")
+[1] TRUE
+
+--- TMB::openmp(4, DLL='RTMBp') ---
+RTMBp 
+    4 
+attr(,"autopar")
+[1] TRUE
+
+--- TMB::openmp(4, DLL='RTMB') ---
+RTMB 
+   4 
+attr(,"autopar")
+[1] FALSE
+
+--- vignettes / doc dirs ---
+RTMB: DESCRIPTION doc help html include INDEX libs MD5 Meta NAMESPACE NEWS R tinytest
+RTMBp: DESCRIPTION help html include INDEX libs MD5 Meta NAMESPACE NEWS R tinytest
