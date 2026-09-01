@@ -88,7 +88,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   spec <- parse_spec(bform)
   if (identical(dry_run, "spec")) return(spec)
 
-  frame <- assemble_frame(spec, data, na.action = na.action)
+  frame <- assemble_frame(spec, data, na.action = na.action,
+                          sparse_x = isTRUE(control$sparse_x))
   if (identical(dry_run, "frame")) return(frame)
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
@@ -259,14 +260,20 @@ sdr_of <- function(fit) {
 #'   compatible with `REML = TRUE` or `quadrature = TRUE`;
 #'   profile/uniroot `confint()` and `hypothesis(method = "profile")`
 #'   need a non-profiled fit.
+#' @param sparse_x Build the parametric fixed-effect design matrices as
+#'   sparse [Matrix::sparse.model.matrix()] objects, the analog of
+#'   `glmmTMB(sparseX =)`. Worth it when a many-level fixed factor makes
+#'   the dense design dominate memory; estimates are identical either
+#'   way. `model.matrix()` on the fit then returns a sparse matrix.
 #' @return A list of control settings.
 #' @export
 frmtmb_control <- function(optimizer = "nlminb",
                            optCtrl = list(iter.max = 1000, eval.max = 1000),
                            restarts = 1, grad_tol = 1e-3,
-                           profile = FALSE) {
+                           profile = FALSE, sparse_x = FALSE) {
   list(optimizer = optimizer, optCtrl = optCtrl, restarts = restarts,
-       grad_tol = grad_tol, profile = isTRUE(profile))
+       grad_tol = grad_tol, profile = isTRUE(profile),
+       sparse_x = isTRUE(sparse_x))
 }
 
 # One optimizer invocation, normalized to nlminb's result shape.
