@@ -17,7 +17,8 @@ frm(
   upper = NULL,
   priors = NULL,
   quadrature = FALSE,
-  dry_run = NULL
+  dry_run = NULL,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -71,6 +72,10 @@ models only.}
 \item{dry_run}{\code{"spec"} returns the parsed intermediate representation
 without touching \code{data}; \code{"frame"} returns the assembled design
 matrices and parameter template without fitting.}
+
+\item{verbose}{Report fit progress; a shortcut for
+\code{control = frmtmb_control(verbose =)}, whose value wins when both
+are given. See \code{\link[=frmtmb_control]{frmtmb_control()}} for the levels and the output.}
 }
 \value{
 An object of class \code{frmtmb_fit}.
