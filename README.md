@@ -62,8 +62,9 @@ Pre-release (v0.25), working toward CRAN. Validation is layered:
   families - including group-level latent classes
   (`mixture(..., groups = ~g)`) with class-specific random effects
   (growth-mixture models) and multivariate gaussian components
-  (`mixture_mvn(K, D)`, model-based clustering with
-  covariate-dependent means and gating). `custom_family()` takes a
+  (`mixture_mvn(K, D, model =)`, model-based clustering over mclust's
+  covariance taxonomy, with covariate-dependent means and gating).
+  `custom_family()` takes a
   plain R
   log-density (the test suite fits a Wiener drift-diffusion model in
   about 15 lines).
