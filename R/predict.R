@@ -149,7 +149,9 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     bk <- fit$frame$re_blocks[[gi$block_id]]
     extra_var <- NULL
     if (gi$type == "hsgp") {
-      Xr <- hsgp_basis(sweep(Xc, 2, gi$center), gi$omega, gi$L)
+      # dmax/center/L are the fitted scaling, so an in-sample newdata
+      # row rebuilds its fitted basis row bit for bit
+      Xr <- hsgp_basis(sweep(Xc / gi$dmax, 2, gi$center), gi$omega, gi$L)
     } else {
       pos <- gi$positions
       j <- match(pos_rowkey(Xc), pos_rowkey(pos))

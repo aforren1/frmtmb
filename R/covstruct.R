@@ -475,6 +475,49 @@ hsgp_basis <- function(xc, omega, L) {
   Phi
 }
 
+# Largest pairwise Euclidean distance among the rows of P: brms's input
+# scale for gp() terms (brms:::.data_gp does
+# `dmax <- sqrt(max(diff_quad(Xgp)))`). The per-pair arithmetic here is
+# brms's, so the answer is bit-identical, but the sweep is chunked and
+# the 1-D case is closed-form so a large n never materializes the n x n
+# distance matrix that brms builds.
+gp_max_dist <- function(P) {
+  D <- ncol(P)
+  if (D == 1L) {
+    return(sqrt((max(P[, 1]) - min(P[, 1]))^2))
+  }
+  n <- nrow(P)
+  step <- max(1L, as.integer(ceiling(1e6 / n)))
+  best <- 0
+  for (s in seq.int(1L, n, by = step)) {
+    ii <- seq.int(s, min(s + step - 1L, n))
+    q <- 0
+    for (j in seq_len(D)) {
+      q <- q + outer(P[ii, j], P[, j], function(a, b) (a - b)^2)
+    }
+    best <- max(best, max(q))
+  }
+  sqrt(best)
+}
+
+# brms's boundary rule (brms:::choose_L): one range taken over the whole
+# centered matrix - not per column - so a shared, isotropy-preserving
+# box, floored at 1 so a domain narrower than the unit scale still gets
+# a boundary of at least c.
+gp_choose_L <- function(xc, cvec) {
+  cvec * max(1, max(xc) - min(xc))
+}
+
+# Start values for the Hilbert-space form. Because the inputs are
+# rescaled to unit maximum pairwise distance, the domain geometry is
+# fixed and a constant start is scale-free. rho = 1 would push the
+# spectral density at the top frequencies to underflow (exp(-rho^2 w^2)
+# with w up to k*pi/(2c)); rho = 0.1 keeps every basis SD representable
+# while still starting well inside the smooth region.
+hsgp_start <- function(D, iso) {
+  c(0, rep(log(0.1), gp_npar(D, iso) - 1L))
+}
+
 covstruct_registry$hsgp <- list(
   npar = function(dim) {
     stop("hsgp npar needs the dimension count; handled at the frame ",
