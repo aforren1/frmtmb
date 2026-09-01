@@ -10,6 +10,24 @@
 # optimum, which also gives back the conditional modes that the
 # marginalized objective no longer carries.
 
+#' @srrstats {G5.3} Return objects that should contain no missing or
+#'   undefined values are explicitly tested for their absence. These
+#'   tests sweep the whole post-fit surface after a quadrature fit,
+#'   asserting `anyNA()` is false for the conditional modes, `fitted()`,
+#'   `ranef()`, `predict()` on new data, and `residuals()`, and that the
+#'   log-likelihood is finite. The same assertion appears for
+#'   `predict(se.fit = TRUE)` in `test-autoscale.R`,
+#'   `test-gp-multidim.R`, `test-review-v25.R`, and
+#'   `test-method-residue.R`, for one-step-ahead residuals across
+#'   families in `test-osa-inference.R`, and for Cook's distance in
+#'   `test-review-fixes.R`. Where `NA` is the correct answer, the tests
+#'   are paired: the value must be `NA` in exactly the expected positions
+#'   and non-`NA` everywhere else. The fuzz tier applies the same rule to
+#'   every generated model, treating a non-finite estimate or
+#'   log-likelihood as a defect unless the fit also warned.
+#' @noRd
+NULL
+
 quad_nested_data <- function(seed = 4, ng = 20, nt = 5) {
   set.seed(seed)
   n <- ng * nt

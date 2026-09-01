@@ -11,6 +11,13 @@
 
 \item{...}{Unused.}
 }
+\value{
+A named list of data frames, one per grouping factor, each
+with one row per group level and one column per coefficient. When
+random effects appear in more than one linear predictor, the list is
+nested one level deeper, keyed as in \code{\link[=fixef]{fixef()}}. A fit without random
+effects returns the \code{\link[=fixef]{fixef()}} value instead.
+}
 \description{
 Follows the lme4/glmmTMB/brms convention: for each random-effect
 grouping factor, the fixed effects of its linear predictor broadcast

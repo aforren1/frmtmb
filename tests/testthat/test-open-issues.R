@@ -3,6 +3,21 @@
 # defect frmtmb shared and has now fixed, or a trap frmtmb dodges that
 # is worth pinning down so a refactor cannot reintroduce it.
 
+#' @srrstats {G5.2,G5.2b} Error and warning behavior is demonstrated
+#'   explicitly by tests, and the tests compare the condition against its
+#'   expected message rather than merely asserting that something failed.
+#'   The suite holds 193 `expect_error()`, 16 `expect_warning()`, and 8
+#'   `expect_message()` calls, and essentially every one carries a
+#'   regular expression matching the message text, so a reworded or
+#'   misrouted condition fails the test. `test-compat.R` goes further and
+#'   walks the package's own compatibility registry, asserting that each
+#'   combination the registry declares as refused really does refuse, at
+#'   the stage the registry says it does. `test-parse.R` covers the
+#'   parse-time refusals and `test-fuzz.R` carries eleven refusal probes
+#'   that must produce a clean matching error rather than a crash.
+#' @noRd
+NULL
+
 test_that("random-effect terms cannot be crossed with '*' or ':' (lme4#196)", {
   data(sleepstudy, package = "lme4")
   # reformulas hoists the bar out and silently fits the '+' model, so

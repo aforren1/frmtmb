@@ -16,6 +16,9 @@ interactive-device rule.}
 
 \item{...}{Unused.}
 }
+\value{
+\code{x}, invisibly. Called for the plots it draws.
+}
 \description{
 Panel 1: Pearson residuals against fitted values with a lowess
 trend. Panel 2: normal QQ plot of the Pearson residuals. For

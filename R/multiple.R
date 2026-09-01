@@ -55,6 +55,18 @@ rubin_pool <- function(Q, U, dfcom) {
 #'   data.frame(y = y, x = xi)
 #' })
 #' frm_multiple(bf(y ~ x) + gaussian(), data = imps)
+#' @srrstats {G2.1} `data` is asserted to be a list of at least two data
+#'   frames, checked element by element, and errors with that requirement
+#'   spelled out. A `mice::mids` object is converted to that form first,
+#'   after checking that mice is installed.
+#' @srrstats {G2.14c} This is the second route for replacing missing data
+#'   with imputed values: imputations produced outside the model (by
+#'   mice, or by any procedure that yields a list of completed data
+#'   frames) are each fitted and then pooled by Rubin's rules, covering
+#'   the coefficients, the variance components, and `hypothesis()` and
+#'   `anova()` on the pooled fit. `bf(x | mi() ~ ...)` is the in-model
+#'   alternative.
+#'
 #' @export
 frm_multiple <- function(formula, data, level = 0.95, ...) {
   if (inherits(data, "mids")) {

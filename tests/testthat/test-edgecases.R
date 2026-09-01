@@ -1,6 +1,35 @@
 # Edge cases mined from lme4/glmmTMB/brms issue history (dev/test-backlog.md
 # holds the full list with sources).
 
+#' @srrstats {G5.8} Edge conditions are tested for the behavior they
+#'   should produce, which here is usually a clear error or a documented
+#'   message rather than a fit. This file covers data-dependent bases at
+#'   a single-row `newdata`, rank-deficient designs, matrix responses
+#'   carrying attributes, row permutation and factor releveling,
+#'   equivalent spellings of a grouping variable, duplicated multivariate
+#'   responses, the `trials()` error taxonomy, response rescaling, and
+#'   `NA` rows in both the fitting data and `newdata`.
+#' @srrstats {G5.8b} Data of unsupported types is tested to error rather
+#'   than be silently coerced. A fractional count for `trials()` errors
+#'   on "integer"; a response outside `[0, trials]` errors; a non-integer
+#'   response to a Poisson family and a non-0/1 response to a bernoulli
+#'   family are refused instead of fitted (lme4 warns and fits these);
+#'   and character and factor multipliers in a `mo()`/`mi()` interaction
+#'   are both rejected, the character case specifically because
+#'   `as.numeric()` on a character vector is numeric and all `NA`, which
+#'   used to pass the type gate and surface only as an optimizer failure.
+#' @srrstats {RE7.0,RE7.0a} Noiseless, exact relationships between
+#'   predictors are tested. A perfectly collinear pair (`x2 <- 2 * x`) is
+#'   required to produce a "rank deficient" message naming the dropped
+#'   column, a log-likelihood identical to the reduced model, and
+#'   identical predictions. The rejection behavior is tested separately:
+#'   a design whose collinearity is broken in `newdata` must warn "not
+#'   estimable" and return `NA` for exactly those rows, and an aliased
+#'   cell must return `NA` rather than a partial sum. The sparse backend
+#'   is required to drop the same columns as the dense one.
+#' @noRd
+NULL
+
 test_that("data-dependent bases are frozen at fit time (glmmTMB#402)", {
   set.seed(151)
   dd <- data.frame(x = runif(60, 0, 10), g = factor(rep(1:6, 10)))

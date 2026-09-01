@@ -219,6 +219,15 @@ estimated_coef_names <- function(fit) {
 #'   convention).
 #' @param ... Unused.
 #' @return A covariance matrix.
+#'
+#' @srrstats {RE4.6} The variance-covariance matrix of the model
+#'   parameters is returned by `vcov()`: the fixed-effect block by
+#'   default, and the covariance parameters as well under `full = TRUE`,
+#'   named as in `confint()`. It comes from the inverse observed
+#'   information produced by `RTMB::sdreport()`, or from the joint
+#'   precision for a REML or profiled fit. A covariance that could not be
+#'   recovered from the Hessian warns rather than returning silent `NaN`.
+#'
 #' @export
 vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
   nm <- estimated_coef_names(object)
@@ -270,6 +279,18 @@ vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
 #'
 #' @param object A `frmtmb_fit`.
 #' @param ... Unused.
+#' @return A named list of data frames, one per grouping factor, each
+#'   with one row per group level and one column per coefficient. When
+#'   random effects appear in more than one linear predictor, the list is
+#'   nested one level deeper, keyed as in [fixef()]. A fit without random
+#'   effects returns the [fixef()] value instead.
+#'
+#' @srrstats {RE4.2} Model coefficients are returned by `coef()`, in the
+#'   lme4 and glmmTMB sense of per-group coefficients (fixed effects
+#'   broadcast over the group levels with the conditional modes added),
+#'   and by [fixef()] for the fixed effects alone. [ranef()] returns the
+#'   conditional modes and [VarCorr()] the variance components.
+#'
 #' @export
 coef.frmtmb_fit <- function(object, ...) {
   fe <- fixef(object)

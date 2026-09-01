@@ -577,6 +577,38 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' smooth null-space, `gp()`, `mo()` and `mi()` columns are appended
 #' after the rank check and are never dropped.
 #' @return A numeric vector, or a list when `se.fit = TRUE`.
+#'
+#' @srrstats {G2.3,G2.3a} `type` is a univariate character parameter and
+#'   is restricted with `match.arg()` to the documented set, so an
+#'   unexpected value errors and names the permitted ones. `dpar` is
+#'   checked against the family's own parameter names, and an unknown
+#'   `resp` errors with the available responses listed.
+#' @srrstats {G3.0} Floating-point values are never compared for equality.
+#'   The estimability test for a rank-deficient design is a relative
+#'   tolerance of `1e-8` against the null space of the fitted design, the
+#'   same test [stats::predict.lm()] uses, and the documentation states
+#'   the tolerance and its consequence for near-aliased designs.
+#' @srrstats {RE1.3} Output structures retain the relevant aspects of the
+#'   input. Predictions, `fitted()` values, and residuals carry the row
+#'   names of the data they were computed from; `vcov()`, `confint()`,
+#'   and `fixef()` share one coefficient naming scheme, which
+#'   `tests/testthat/test-methods-audit.R` asserts is identical across
+#'   them; and the stored model frame keeps the input row names.
+#' @srrstats {RE4.9} Modelled values of the response are returned by
+#'   `fitted()`, and by `predict(type = "response")`, which is asserted to
+#'   equal `fitted()` on the training data.
+#' @srrstats {RE4.14} Uncertainty is available away from the observed
+#'   data. `se.fit = TRUE` returns delta-method standard errors that
+#'   include fixed-effect and random-effect uncertainty; unseen grouping
+#'   levels add their block's marginal variance, and exact `gp()` terms
+#'   add the Gaussian-process conditional (kriging) variance, so the
+#'   reported error grows with distance from the observed positions.
+#' @srrstats {RE4.16} New groups can be submitted to `predict()`. Levels
+#'   of a grouping factor that were not in the training data error by
+#'   default, naming the offending levels, and are predicted at the
+#'   population level under `allow_new_levels = TRUE` (the lme4 spelling
+#'   `allow.new.levels` is accepted as well).
+#'
 #' @export
 predict.frmtmb_fit <- function(object, newdata = NULL,
                                type = c("link", "response",
@@ -1212,6 +1244,25 @@ osa_cens_domain <- function(av, y) {
 #'   every row.
 #' @param ... For `type = "osa"`: passed to [TMB::oneStepPredict()].
 #' @return A numeric vector, `NA` on censored rows.
+#'
+#' @srrstats {G2.2} Parameters that expect a univariate response refuse a
+#'   multivariate fit rather than silently using the first response. One
+#'   guard serves every such method (`residuals()`, `fitted()`,
+#'   `simulate()`, `dharma_residuals()`, `mixture_probs()`, `pp_check()`),
+#'   and errors naming the method that is not yet multivariate.
+#' @srrstats {RE4.10} Model residuals are returned by `residuals()`, in
+#'   four types, with enough documentation to interpret them and to hand
+#'   them to a user's own test. `"response"` and `"pearson"` are the usual
+#'   forms; `"deviance"` is defined per family in a dedicated section that
+#'   lists the supported families and distinguishes the residual from the
+#'   model deviance reported by `deviance()`; `"osa"` gives one-step-ahead
+#'   quantile residuals through [TMB::oneStepPredict()], which are
+#'   standard normal under a correctly specified model whatever the
+#'   family, and which stay valid for censored, truncated, and ordinal
+#'   responses where Pearson residuals mislead. `dharma_residuals()`
+#'   hands the simulation-based equivalent to DHARMa for the user's own
+#'   tests, and `vignette("diagnostics")` works through the choice.
+#'
 #' @export
 residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
                                                   "deviance", "osa"),

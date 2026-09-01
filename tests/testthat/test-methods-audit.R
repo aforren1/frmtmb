@@ -1,6 +1,23 @@
 # Method-surface audit fixes: stats/lme4/glmmTMB argument conventions
 # and the expected-response predict() semantics.
 
+#' @srrstats {RE7.3} The accessor methods of RE4.2 to RE4.7 are exercised
+#'   on returned model objects and their expected behavior is asserted.
+#'   `vcov(full = TRUE)` must carry exactly the row names of
+#'   `confint()`, and its coefficient sub-block must equal `vcov()`;
+#'   `confint()` must accept both the `"Wald"` and `"wald"` spellings
+#'   identically and its bootstrap method must bracket the estimate and
+#'   agree with the Wald interval; `coef()`, `dfbeta()`, and `dfbetas()`
+#'   must match lme4 including the sign convention; `drop1()` must match
+#'   lme4 on AIC, LRT, and degrees of freedom; `nobs()`, `logLik()` with
+#'   its `df` attribute, `fixef()`, `ranef()`, `VarCorr()`, `family()`,
+#'   and `formula()` are checked in `test-methods.R`; and
+#'   `predict(type = "response")` must equal `fitted()`, the invariant
+#'   every reference package satisfies. `na.action()` must return the
+#'   dropped row indices.
+#' @noRd
+NULL
+
 meth_env <- local({
   set.seed(31)
   dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))

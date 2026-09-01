@@ -67,6 +67,14 @@ outer_par_names <- function(fit) {
 #' @param ... Passed to the TMB profiling functions, or to
 #'   [frm_bootstrap()] for `method = "boot"` (e.g. `re.form`).
 #' @return A matrix with columns `lwr`, `upr`, `est`.
+#'
+#' @srrstats {RE4.3} Confidence intervals on the model coefficients are
+#'   returned by `confint()`, by four methods: Wald from the sdreport
+#'   covariance, likelihood profile, likelihood-root search, and
+#'   parametric bootstrap. `confint_varcorr()` gives natural-scale
+#'   intervals for standard deviations and correlations. Row names match
+#'   those of `vcov(full = TRUE)`, which the test suite asserts.
+#'
 #' @export
 confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
                                method = c("wald", "Wald", "profile",
@@ -452,6 +460,23 @@ log_sd_theta_index <- function(fit) {
 #' @param fit A `frmtmb_fit`.
 #' @param quiet If `TRUE`, return the diagnostics without printing.
 #' @return Invisibly, a list of diagnostics.
+#'
+#' @srrstats {RE2.4b} Perfect collinearity between the predictors and the
+#'   response is reported as complete separation: a binomial-type fit
+#'   whose coefficients diverge because a predictor perfectly predicts
+#'   the response is flagged by name, with the offending estimate. The
+#'   test suite checks both that a separating design is flagged and that
+#'   a well-behaved binomial fit is not.
+#' @srrstats {RE4.7} Convergence statistics are available from the model
+#'   object. `fit$opt$convergence` and `fit$opt$message` carry the
+#'   optimizer's verdict, and `diagnose()` returns the maximum absolute
+#'   gradient, the worst-offending parameter, the positive-definiteness
+#'   of the Hessian, non-finite standard errors, the smallest eigenvalue
+#'   of the covariance, boundary (singular) variance components,
+#'   separation, and predictor scaling. `frm_allfit()` refits across
+#'   optimizers as a further convergence check, and `check_laplace()`
+#'   audits the approximation itself.
+#'
 #' @export
 diagnose <- function(fit, quiet = FALSE) {
   stopifnot(inherits(fit, "frmtmb_fit"))
@@ -650,6 +675,17 @@ anova_refit_ml <- function(fit) {
 #'   estimates. `FALSE` (the default) keeps the REML fits and refuses
 #'   the comparisons a restricted likelihood cannot support.
 #' @return An `anova` table.
+#'
+#' @srrstats {RE4.11} Goodness-of-fit statistics are available for the
+#'   fitted model. `logLik()` reports the log-likelihood with its degrees
+#'   of freedom and `nobs`, so `AIC()` and `BIC()` work through the
+#'   `stats` defaults; `extractAIC()` and `deviance()` are implemented;
+#'   `anova()` gives likelihood-ratio tests between nested fits and
+#'   `drop1()` single-term deletions. Effect sizes with the coefficients
+#'   come from `summary()` (estimate, standard error, z, p) and
+#'   `confint()`. The boundary problem for variance-component tests is
+#'   documented above rather than left implicit.
+#'
 #' @export
 anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   fits <- c(list(object), Filter(function(x) inherits(x, "frmtmb_fit"),
