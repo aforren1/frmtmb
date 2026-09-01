@@ -1,3 +1,9 @@
+# Heavy reference-validation file: full runs happen locally and in CI
+# (NOT_CRAN=true). CRAN only needs to see the package work, not the
+# validation program re-derived, and this file is a main contributor
+# to CRAN-condition check time.
+skip_on_cran()
+
 # trunc() must reach the post-fit surface, not just the likelihood:
 # fitted(), predict(type = "response"), residuals() and simulate() all
 # describe the TRUNCATED distribution. [brms#1923, #1903]

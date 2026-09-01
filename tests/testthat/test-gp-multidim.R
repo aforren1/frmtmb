@@ -1,3 +1,7 @@
+# Heavy reference-validation file: full runs happen locally and in CI
+# (NOT_CRAN=true); skipped on CRAN to keep check time within policy.
+skip_on_cran()
+
 # Multi-dimensional gp() terms (exact + Hilbert-space) and kriging
 # prediction for the exact form.
 

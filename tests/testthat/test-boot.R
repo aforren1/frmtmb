@@ -1,3 +1,9 @@
+# Heavy reference-validation file: full runs happen locally and in CI
+# (NOT_CRAN=true). CRAN only needs to see the package work, not the
+# validation program re-derived, and this file is a main contributor
+# to CRAN-condition check time.
+skip_on_cran()
+
 # v0.13: frm_bootstrap and hypothesis(method = "profile"/"boot"),
 # including the natural-scale random-effect names.
 

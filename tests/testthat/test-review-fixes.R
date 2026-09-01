@@ -1,3 +1,9 @@
+# Heavy reference-validation file: full runs happen locally and in CI
+# (NOT_CRAN=true). CRAN only needs to see the package work, not the
+# validation program re-derived, and this file is a main contributor
+# to CRAN-condition check time.
+skip_on_cran()
+
 # v0.21 code-review fixes: cross-feature guards and the outer-parameter
 # map (mi()/profile alignment across confint, bounds, and sampling).
 
