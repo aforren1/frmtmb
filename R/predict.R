@@ -182,7 +182,9 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
 
   nd_mult <- function(mult_expr) {
     if (is.null(mult_expr)) return(1)
-    m <- as.numeric(eval(mult_expr, newdata, env))
+    # same type gate as fit time, so a newdata column that changed type
+    # reports the type rather than a downstream all-NA column [brms#1828]
+    m <- check_special_mult(eval(mult_expr, newdata, env), mult_expr, "mo/mi")
     if (anyNA(m)) {
       stop("Interaction multiplier '", deparse1(mult_expr),
            "' has missing values in newdata", call. = FALSE)
@@ -369,22 +371,40 @@ mean_is_mu <- function(fam) {
     identical(body(fam$post$mean_fn), quote(dpars$mu))
 }
 
-# Addition-term values (trials, se, ...) re-evaluated on new data, for
-# the expected-response prediction path. Terms the family mean cannot
-# use (censoring, truncation, structural flags) are skipped; trials and
-# se must evaluate because omitting them silently changes the mean.
+# Whether a response carries trunc() bounds, from the spec (the stored
+# expressions) rather than from evaluated values.
+has_trunc <- function(rspec) {
+  any(c("trunc_lb", "trunc_ub") %in% names(rspec$aterms))
+}
+
+# Addition-term values (trials, se, trunc bounds, ...) re-evaluated on
+# new data, for the expected-response prediction path. Terms the family
+# mean cannot use (censoring, structural flags) are skipped; trials, se
+# and the truncation bounds must evaluate because omitting them silently
+# changes the mean.
 aterms_for_newdata <- function(rspec, newdata) {
-  skip <- c("cens", "cens_y2", "trunc_lb", "trunc_ub", "se_sigma",
-            "mi", "mi_sd", "weights")
+  skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights")
+  need <- c("trials", "se", "trunc_lb", "trunc_ub")
+  nd_n <- nrow(newdata)
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
     v <- tryCatch(
       as.numeric(eval(rspec$aterms[[nm]], newdata, rspec$formula_env)),
       error = function(e) NULL
     )
-    if (is.null(v) && nm %in% c("trials", "se")) {
-      stop("Addition term ", nm, "(",
-           deparse1(rspec$aterms[[nm]]), ") could not be evaluated on ",
+    # a bound the model frame supplied but newdata did not can still
+    # resolve in the formula environment, to the FITTED rows; the length
+    # check catches that rather than silently pairing the wrong bounds
+    if (!is.null(v) && !is.null(nd_n) && !length(v) %in% c(1L, nd_n)) {
+      v <- NULL
+    }
+    if (is.null(v) && nm %in% need) {
+      label <- switch(nm,
+        trunc_lb = paste0("trunc(lb = ", deparse1(rspec$aterms[[nm]]), ")"),
+        trunc_ub = paste0("trunc(ub = ", deparse1(rspec$aterms[[nm]]), ")"),
+        paste0(nm, "(", deparse1(rspec$aterms[[nm]]), ")")
+      )
+      stop("Addition term ", label, " could not be evaluated on ",
            "newdata; supply the variable or use type = \"conditional\"",
            call. = FALSE)
     }
@@ -405,7 +425,7 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
   if (is.null(newdata) && is.null(re.form)) {
     # exactly fitted(): dpars at the estimates, conditional on the modes
     dp <- eval_dpars(fit)[[rn]]
-    out <- fam$post$mean_fn(dp, fit$frame$aterm_values[[rn]])
+    out <- response_mean(fam, dp, fit$frame$aterm_values[[rn]])
     return(napred(fit, out))
   }
   dp <- list()
@@ -428,7 +448,7 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
   } else {
     aterms_for_newdata(rspec, newdata)
   }
-  fam$post$mean_fn(dp, av)
+  response_mean(fam, dp, av)
 }
 
 #' Predictions from a frmtmb fit
@@ -447,6 +467,16 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #'   accepted as aliases.
 #' @param dpar Which distributional parameter to predict; defaults to the
 #'   family's first location parameter (`"mu"` for most families).
+#' @section Truncated responses:
+#' For a response with `trunc()` bounds, `type = "response"` (and
+#' [fitted()]) report the truncated mean `E[Y | lb <= Y <= ub]`, matching
+#' the likelihood the model was fitted with. Predictions of a
+#' distributional parameter (`type = "link"`, `dpar = `, or
+#' `type = "conditional"`) stay **untruncated**: they are statements
+#' about the latent parameter, not about the observed, truncated
+#' response. Bounds are re-evaluated on `newdata` the same way `trials()`
+#' and `se()` are: a literal bound carries over unchanged, and a bound
+#' given as a variable must be a column of `newdata` of the right length.
 #' @param resp For multivariate fits: which response to predict (defaults
 #'   to the first).
 #' @param re.form `NULL` (default) includes random effects; `NA` or `~0`
@@ -512,16 +542,19 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   } else if (type == "conditional") {
     type <- "response"   # the conditional mean is the mu dpar
   } else if (type == "response" && is.null(dpar) &&
-             !mean_is_mu(rspec$family)) {
+             (!mean_is_mu(rspec$family) || has_trunc(rspec))) {
     # the response mean is not the mu dpar (zi, hurdle, lognormal,
-    # trials-binomial, ...): "response" means the expected response,
-    # the fitted()/glmmTMB/brms-epred convention. Per-dpar values stay
-    # available through dpar = or type = "conditional".
+    # trials-binomial, ...), or the response is truncated so the
+    # expected response is E[Y | lb <= Y <= ub]: "response" means the
+    # expected response, the fitted()/glmmTMB/brms-epred convention.
+    # Per-dpar values stay available through dpar = or
+    # type = "conditional".
     if (se.fit) {
       stop("se.fit is not available for the expected response of ",
-           "family '", rspec$family$family, "'; use type = ",
-           "\"conditional\" (the mu dpar) or a parametric bootstrap",
-           call. = FALSE)
+           if (has_trunc(rspec)) "a truncated model" else
+             paste0("family '", rspec$family$family, "'"),
+           "; use type = \"conditional\" (the mu dpar) or a parametric ",
+           "bootstrap", call. = FALSE)
     }
     return(predict_mean_response(object, rspec, newdata, re.form,
                                  allow_new_levels))
@@ -740,11 +773,8 @@ fitted.frmtmb_fit <- function(object, ...) {
          call. = FALSE)
   }
   fam <- rspec$family
-  out <- if (!is.null(fam$post$mean_fn)) {
-    fam$post$mean_fn(dp, object$frame$aterm_values[[rspec$resp_name]])
-  } else {
-    dp$mu
-  }
+  out <- response_mean(fam, dp,
+                       object$frame$aterm_values[[rspec$resp_name]])
   napred(object, out)
 }
 
@@ -755,11 +785,19 @@ fitted.frmtmb_fit <- function(object, ...) {
 #' model, valid under correlated observations where pearson residuals
 #' mislead.
 #'
+#' On a `trunc()`ed response, `"response"` residuals are taken against
+#' the truncated mean `E[Y | lb <= Y <= ub]`. `"pearson"` divides by the
+#' untruncated family variance, so it is conservative there. `"osa"`
+#' builds its conditional CDF on `[lb, ub]` (see `osa_method`).
+#'
 #' @param object A `frmtmb_fit`.
 #' @param type `"response"`, `"pearson"`, or `"osa"`.
 #' @param osa_method Method for [TMB::oneStepPredict()]; defaults to
 #'   `"fullGaussian"` for gaussian models and `"oneStepGeneric"`
-#'   otherwise.
+#'   otherwise. A truncated response always uses `"oneStepGeneric"`
+#'   (a truncated gaussian is not gaussian) with the integration domain
+#'   and discrete support taken from the `trunc()` bounds, which must
+#'   then be the same for every row.
 #' @param ... For `type = "osa"`: passed to [TMB::oneStepPredict()].
 #' @return A numeric vector.
 #' @export
@@ -770,31 +808,63 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
   rspec <- uni_resp(object, "residuals()")
   fam <- rspec$family
   if (type == "osa") {
+    tb <- trunc_bounds(object$frame$aterm_values[[rspec$resp_name]],
+                       object$frame$n_obs)
     method <- osa_method %||%
-      if (identical(fam$family, "gaussian")) "fullGaussian" else
-        "oneStepGeneric"
+      if (!is.null(tb)) "oneStepGeneric"
+      else if (identical(fam$family, "gaussian")) "fullGaussian"
+      else "oneStepGeneric"
     args <- list(obj = object$obj, observation.name = ".frm_obs",
                  method = method, trace = FALSE, ...)
     if (method == "oneStepGeneric") {
       args$discrete <- identical(fam$type, "discrete")
-      if (args$discrete && is.null(args$range)) args$range <- c(0, Inf)
+      if (is.null(tb)) {
+        if (args$discrete && is.null(args[["range"]])) {
+          args$range <- c(0, Inf)
+        }
+      } else {
+        # The taped density integrates to 1 only over [lb, ub], so the
+        # conditional CDF must be built on that domain: over the whole
+        # line it sums to 1/P(lb <= Y <= ub) and the residuals come out
+        # shrunk. TMB needs one domain for every row.
+        lo <- unique(tb$lb)
+        hi <- unique(tb$ub)
+        if (length(lo) > 1L || length(hi) > 1L) {
+          stop("residuals(type = \"osa\") needs trunc() bounds that are ",
+               "the same for every observation; got row-varying bounds",
+               call. = FALSE)
+        }
+        if (is.null(args[["range"]])) args$range <- c(lo, hi)
+        if (args$discrete) {
+          if (is.null(args[["discreteSupport"]]) && is.finite(hi)) {
+            args$discreteSupport <- seq(lo, hi)
+          }
+        } else if (is.null(args[["splineApprox"]])) {
+          # the spline approximation of the transformed density loses
+          # about six digits on a bounded domain; exact quadrature
+          # reproduces the analytic PIT
+          args$splineApprox <- FALSE
+        }
+      }
     }
     osa <- do.call(RTMB::oneStepPredict, args)
     return(napred(object, osa$residual))
   }
   dp <- eval_dpars(object)[[rspec$resp_name]]
-  mu <- if (!is.null(fam$post$mean_fn)) {
-    fam$post$mean_fn(dp, object$frame$aterm_values[[rspec$resp_name]])
-  } else {
-    dp$mu
-  }
+  av <- object$frame$aterm_values[[rspec$resp_name]]
+  # on a truncated response the residual is against the truncated mean,
+  # which is what the data were actually drawn from
+  mu <- response_mean(fam, dp, av)
   r <- object$frame$y[[rspec$resp_name]] - mu
   if (type == "pearson") {
     if (is.null(fam$post$var_fn)) {
       stop("Family '", fam$family, "' has no variance function; ",
            "pearson residuals are unavailable", call. = FALSE)
     }
-    v <- fam$post$var_fn(dp, object$frame$aterm_values[[rspec$resp_name]])
+    # the scale stays the untruncated family variance; only the centering
+    # is truncation-aware, so pearson residuals on a truncated model are
+    # slightly conservative
+    v <- fam$post$var_fn(dp, av)
     r <- r / sqrt(v)
   }
   napred(object, r)
@@ -835,6 +905,11 @@ draw_b <- function(fit) {
 }
 
 #' Simulate responses from a frmtmb fit
+#'
+#' A `trunc()`ed response simulates by rejection within its bounds, so
+#' every draw lies in `[lb, ub]` and posterior-predictive checks
+#' ([dharma_residuals()], `pp_check()`) see the same support the
+#' likelihood was normalized on.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param nsim Number of simulated response vectors.
@@ -880,7 +955,7 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     }
     dp <- eval_dpars(object, b = b_use)[[rspec$resp_name]]
     out[[s]] <- if (is.null(mg)) {
-      fam$sim(dp, av, n)
+      sim_response(fam, dp, av, n)
     } else {
       # latent-class mixture: one class draw per group, then each
       # observation simulates from its group's component

@@ -18,7 +18,10 @@
 
 \item{osa_method}{Method for \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}; defaults to
 \code{"fullGaussian"} for gaussian models and \code{"oneStepGeneric"}
-otherwise.}
+otherwise. A truncated response always uses \code{"oneStepGeneric"}
+(a truncated gaussian is not gaussian) with the integration domain
+and discrete support taken from the \code{trunc()} bounds, which must
+then be the same for every row.}
 
 \item{...}{For \code{type = "osa"}: passed to \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}.}
 }
@@ -30,4 +33,10 @@ A numeric vector.
 \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}: standard-normal under a correctly specified
 model, valid under correlated observations where pearson residuals
 mislead.
+}
+\details{
+On a \code{trunc()}ed response, \code{"response"} residuals are taken against
+the truncated mean \verb{E[Y | lb <= Y <= ub]}. \code{"pearson"} divides by the
+untruncated family variance, so it is conservative there. \code{"osa"}
+builds its conditional CDF on \verb{[lb, ub]} (see \code{osa_method}).
 }

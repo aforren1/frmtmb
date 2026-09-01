@@ -25,5 +25,8 @@ effects; \code{NA} redraws them from their estimated distribution
 A data frame with \code{nsim} columns and a \code{"seed"} attribute.
 }
 \description{
-Simulate responses from a frmtmb fit
+A \code{trunc()}ed response simulates by rejection within its bounds, so
+every draw lies in \verb{[lb, ub]} and posterior-predictive checks
+(\code{\link[=dharma_residuals]{dharma_residuals()}}, \code{pp_check()}) see the same support the
+likelihood was normalized on.
 }

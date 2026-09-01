@@ -256,6 +256,10 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   rows <- draws_subsample(object, ndraws)
   av <- if (is.null(newdata)) {
     fit$frame$aterm_values[[resp]]
+  } else if (has_trunc(rspec)) {
+    # truncation bounds must follow the newdata rows, or the draws land
+    # outside the support the likelihood was normalized on
+    aterms_for_newdata(rspec, newdata)
   } else {
     list()
   }
@@ -274,7 +278,7 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       }
       dpv
     }
-    ys <- rspec$family$sim(dp, av, length(dp[[1]]))
+    ys <- sim_response(rspec$family, dp, av, length(dp[[1]]))
     if (is.null(out)) out <- matrix(NA_real_, length(rows), length(ys))
     out[k, ] <- ys
   }

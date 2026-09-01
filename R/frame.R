@@ -74,6 +74,22 @@ dpar_frame_rhs <- function(dp) {
   out
 }
 
+# mo()/mi() interaction multipliers scale a single coefficient, so they
+# have to be one numeric column; a factor or character multiplier would
+# need contrast expansion, which the simplex/latent machinery has no
+# column for. Reject those up front: as.numeric() on a character vector
+# yields all-NA and the failure only surfaces as "NA/NaN gradient
+# evaluation" from the optimizer. [brms#1828]
+check_special_mult <- function(mult, expr, fn) {
+  if (is.logical(mult)) return(as.numeric(mult))
+  if (!is.numeric(mult) || is.factor(mult)) {
+    stop(fn, "() interactions support numeric multipliers only: ",
+         deparse1(expr), " is ", class(mult)[1L],
+         "; expand it to numeric indicator columns first", call. = FALSE)
+  }
+  as.numeric(mult)
+}
+
 extract_y <- function(resp, mf) {
   y <- mf[[deparse1(resp$resp_expr)]]
   if (is.null(y)) {
@@ -372,7 +388,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         !is.null(av$trunc_ub)) {
       if (is.null(resp$family$lcdf)) {
         stop("cens()/trunc() need a family with a CDF (currently: ",
-             "gaussian, lognormal, poisson)", call. = FALSE)
+             "gaussian, lognormal, poisson, exponential, weibull, ",
+             "inverse.gaussian)", call. = FALSE)
       }
       if (!is.null(av$cens) && identical(resp$family$type, "discrete")) {
         stop("cens() is not supported for discrete families yet ",
@@ -833,12 +850,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         }
         mult <- NULL
         if (!is.null(ent$mult)) {
-          mult <- eval(ent$mult, mf, resp$formula_env)
-          if (is.factor(mult) || !is.numeric(as.numeric(mult))) {
-            stop("mo() interactions support numeric multipliers only: ",
-                 deparse1(ent$mult), call. = FALSE)
-          }
-          mult <- as.numeric(mult)
+          mult <- check_special_mult(eval(ent$mult, mf, resp$formula_env),
+                                     ent$mult, "mo")
         }
         lab <- paste0("mo", vkey,
                       if (!is.null(ent$mult)) {
@@ -870,7 +883,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         }
         mult <- NULL
         if (!is.null(ent$mult)) {
-          mult <- as.numeric(eval(ent$mult, mf, resp$formula_env))
+          mult <- check_special_mult(eval(ent$mult, mf, resp$formula_env),
+                                     ent$mult, "mi")
         }
         lab <- paste0("mi", vn,
                       if (!is.null(ent$mult)) {

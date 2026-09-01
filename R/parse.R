@@ -154,6 +154,16 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   gpterms <- list()
   rest <- list()
   for (tm in terms_list) {
+    # `x * (1 | g)` and `x:(1 | g)` are almost always a typo for `+`.
+    # splitForm hoists the bar out and silently fits the `+` model, so
+    # the user never learns the interaction was ignored. [lme4#196]
+    if (is.call(tm) &&
+        as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
+        any(c("|", "||") %in% all.names(tm))) {
+      stop("A random-effect term cannot be crossed with '",
+           as.character(tm[[1]])[1], "': ", deparse1(tm),
+           ". Did you mean '+'?", call. = FALSE)
+    }
     if (is_smooth_call(tm)) {
       fn <- as.character(tm[[1]])[1]
       if (fn %in% c("te", "ti")) {

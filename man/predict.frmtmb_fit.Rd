@@ -58,3 +58,16 @@ A numeric vector, or a list when \code{se.fit = TRUE}.
 \description{
 Predictions from a frmtmb fit
 }
+\section{Truncated responses}{
+
+For a response with \code{trunc()} bounds, \code{type = "response"} (and
+\code{\link[=fitted]{fitted()}}) report the truncated mean \verb{E[Y | lb <= Y <= ub]}, matching
+the likelihood the model was fitted with. Predictions of a
+distributional parameter (\code{type = "link"}, \verb{dpar = }, or
+\code{type = "conditional"}) stay \strong{untruncated}: they are statements
+about the latent parameter, not about the observed, truncated
+response. Bounds are re-evaluated on \code{newdata} the same way \code{trials()}
+and \code{se()} are: a literal bound carries over unchanged, and a bound
+given as a variable must be a column of \code{newdata} of the right length.
+}
+
