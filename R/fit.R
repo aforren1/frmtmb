@@ -105,6 +105,19 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           template = NULL) {
   lower_arg <- lower
   upper_arg <- upper
+  ascale <- if (isTRUE(control$autoscale)) autoscale_plan(frame)
+  if (!is.null(ascale) && is.null(template)) {
+    # two-stage warm start: fit the standardized frame, back-transform
+    # the optimum, and continue below as the ordinary unscaled fit
+    # (see R/autoscale.R). Doubles the (cheap) optimization. A caller
+    # template (refit and friends) skips the pre-fit but keeps the
+    # plan, so the optimizer and sdreport still run in natural units.
+    template <- autoscale_prefit(spec, frame, bform, cl, REML = REML,
+                                 start = start, control = control,
+                                 lower = lower, upper = upper,
+                                 priors = priors,
+                                 quadrature = quadrature, plan = ascale)
+  }
   nll <- build_objective(frame)
   if (!is.null(priors)) {
     # MAP / regularized ML: the optimized objective includes the prior
@@ -177,7 +190,12 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                          map = frame$map, integrate = integrate,
                          profile = profile_arg, silent = TRUE)
   bounds <- resolve_bounds(list(frame = frame, REML = REML), lower, upper)
-  opt <- optimize_obj(obj, control, bounds)
+  # a badly scaled coefficient has a badly scaled gradient too: judge
+  # (and steer) the optimizer in per-parameter natural units
+  par_units <- if (!is.null(ascale)) {
+    autoscale_units(frame, ascale, names(obj$par))
+  }
+  opt <- optimize_obj(obj, control, bounds, par_units)
 
   # Estimates come cheaply from the parameter list at the optimum;
   # sdreport (a quarter of typical fit time) is computed on demand
@@ -201,12 +219,12 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
          REML = REML, estimates = est, priors = priors,
          bform = bform, call = cl,
          control = control, quadrature = isTRUE(quadrature),
-         lower = lower_arg, upper = upper_arg,
+         lower = lower_arg, upper = upper_arg, par_units = par_units,
          cache = new.env(parent = emptyenv())),
     class = "frmtmb_fit"
   )
   if (se) {
-    fit$cache$sdr <- RTMB::sdreport(obj, getJointPrecision = needs_jp(fit))
+    fit$cache$sdr <- autoscale_sdreport(fit)
   }
   check_convergence(fit, control)
   fit
@@ -223,7 +241,7 @@ needs_jp <- function(fit) {
 sdr_of <- function(fit) {
   cache <- fit$cache
   if (is.null(cache$sdr)) {
-    cache$sdr <- RTMB::sdreport(fit$obj, getJointPrecision = needs_jp(fit))
+    cache$sdr <- autoscale_sdreport(fit)
   }
   cache$sdr
 }
@@ -265,19 +283,37 @@ sdr_of <- function(fit) {
 #'   `glmmTMB(sparseX =)`. Worth it when a many-level fixed factor makes
 #'   the dense design dominate memory; estimates are identical either
 #'   way. `model.matrix()` on the fit then returns a sparse matrix.
+#' @param autoscale Standardize badly scaled continuous predictors
+#'   internally (the lme4 >= 1.1.37 feature): fit a copy of the model
+#'   with each qualifying fixed-effect column centered and scaled
+#'   (scaled only, in a linear predictor without an intercept), map
+#'   that optimum back to the original parameterization exactly, and
+#'   warm-start the ordinary fit there. Reported results are always on
+#'   the original scale, so every downstream method works unchanged;
+#'   the cost is a second (cheap) optimization. Columns qualify when
+#'   they are parametric and take more than two distinct values;
+#'   intercepts, factor contrasts, smooth bases, and mo()/mi() columns
+#'   are never touched, and the whole step is a silent no-op when
+#'   nothing qualifies. Compatible with `profile = TRUE`. Under
+#'   `priors` or bounds, the first stage applies them to the scaled
+#'   coefficients; the second stage is the fit that is reported.
 #' @return A list of control settings.
 #' @export
 frmtmb_control <- function(optimizer = "nlminb",
                            optCtrl = list(iter.max = 1000, eval.max = 1000),
                            restarts = 1, grad_tol = 1e-3,
-                           profile = FALSE, sparse_x = FALSE) {
+                           profile = FALSE, sparse_x = FALSE,
+                           autoscale = FALSE) {
   list(optimizer = optimizer, optCtrl = optCtrl, restarts = restarts,
        grad_tol = grad_tol, profile = isTRUE(profile),
-       sparse_x = isTRUE(sparse_x))
+       sparse_x = isTRUE(sparse_x), autoscale = isTRUE(autoscale))
 }
 
 # One optimizer invocation, normalized to nlminb's result shape.
-run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control) {
+# par_units (autoscale) carries per-parameter magnitudes into nlminb's
+# scaling hook; the custom-optimizer contract is unchanged.
+run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
+                          par_units = NULL) {
   if (is.function(optimizer)) {
     res <- optimizer(par, fn, gr, lower, upper, control)
     need <- c("par", "objective", "convergence")
@@ -290,11 +326,16 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control) {
   }
   switch(optimizer,
     nlminb = stats::nlminb(par, fn, gr, control = control,
+                           # PORT iterates in scale * par units
+                           scale = if (is.null(par_units)) 1 else
+                             1 / par_units,
                            lower = lower, upper = upper),
     optim = {
       ctl <- control[names(control) %in%
                        c("maxit", "factr", "pgtol", "trace")]
       if (is.null(ctl$maxit)) ctl$maxit <- 1000
+      # L-BFGS-B ignores parscale (see ?optim); par_units still govern
+      # the gradient-based convergence checks
       r <- stats::optim(par, fn, gr, method = "L-BFGS-B",
                         lower = lower, upper = upper, control = ctl)
       list(par = r$par, objective = r$value,
@@ -306,15 +347,18 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control) {
 }
 
 optimize_obj <- function(obj, control,
-                         bounds = list(lower = -Inf, upper = Inf)) {
+                         bounds = list(lower = -Inf, upper = Inf),
+                         par_units = NULL) {
   optimizer <- control$optimizer %||% "nlminb"
   opt <- run_optimizer(optimizer, obj$par, obj$fn, obj$gr,
-                       bounds$lower, bounds$upper, control$optCtrl)
+                       bounds$lower, bounds$upper, control$optCtrl,
+                       par_units)
   for (i in seq_len(control$restarts)) {
-    g <- max(abs(obj$gr(opt$par)))
+    g <- max(abs(obj$gr(opt$par) * (par_units %||% 1)))
     if (is.finite(g) && g < control$grad_tol) break
     opt2 <- run_optimizer(optimizer, opt$par, obj$fn, obj$gr,
-                          bounds$lower, bounds$upper, control$optCtrl)
+                          bounds$lower, bounds$upper, control$optCtrl,
+                          par_units)
     if (opt2$objective <= opt$objective) opt <- opt2
   }
   opt
@@ -354,7 +398,11 @@ check_convergence <- function(fit, control) {
     warning("Optimizer did not report convergence: ", fit$opt$message,
             call. = FALSE)
   }
-  g <- try(max(abs(fit$obj$gr(fit$opt$par))), silent = TRUE)
+  # under autoscale the gradient is judged in the same natural units
+  # the optimizer used (a 1e6-scale column bounds its coefficient's
+  # absolute gradient near machine noise times 1e6)
+  g <- try(max(abs(fit$obj$gr(fit$opt$par) * (fit$par_units %||% 1))),
+           silent = TRUE)
   if (!inherits(g, "try-error") && is.finite(g) && g > control$grad_tol) {
     warning("Large maximum absolute gradient at the optimum (",
             format(g, digits = 3), "); the fit may not have converged",
