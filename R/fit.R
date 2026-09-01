@@ -393,8 +393,10 @@ check_convergence <- function(fit, control) {
            silent = TRUE)
   if (!inherits(g, "try-error") && is.finite(g) && g > control$grad_tol) {
     warning("Large maximum absolute gradient at the optimum (",
-            format(g, digits = 3), "); the fit may not have converged",
-            call. = FALSE)
+            format(g, digits = 3), "); the fit may not have converged. ",
+            "diagnose() names the offending parameter; see the ",
+            "'Convergence problems' section of vignette('diagnostics') ",
+            "for the remedies", call. = FALSE)
   }
   # pdHess is only known once sdreport has run (se = TRUE); the lazy
   # path surfaces it through summary()/diagnose() instead
