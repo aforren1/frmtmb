@@ -13,11 +13,32 @@ allfit_optimizers <- function() {
   }
   if (requireNamespace("nloptr", quietly = TRUE)) {
     opts$nloptr_lbfgs <- function(par, fn, gr, lower, upper, control) {
-      r <- nloptr::nloptr(par, fn, gr, lb = lower, ub = upper,
+      # nloptr inspects its callbacks' formals and refuses any that
+      # declare `...` unless the extra arguments are handed to nloptr
+      # itself; RTMB's obj$fn/obj$gr are function(x, ...). The
+      # single-argument wrappers also drop obj$fn's "logarithm"
+      # attribute and flatten obj$gr's 1-row matrix, both of which
+      # nloptr wants as plain numerics.
+      f <- function(x) as.numeric(fn(x))
+      g <- function(x) as.vector(gr(x))
+      # nloptr insists on bounds of length(par); the optimizer contract
+      # allows a recycled scalar.
+      lb <- rep_len(if (length(lower)) lower else -Inf, length(par))
+      ub <- rep_len(if (length(upper)) upper else Inf, length(par))
+      # ftol_rel is what actually stops L-BFGS here: on an x-tolerance
+      # alone the line search collapses at the optimum before the step
+      # ever gets small enough, and NLopt then reports NLOPT_FAILURE at
+      # the right answer. Relative tolerances keep this scale-free.
+      r <- nloptr::nloptr(par, f, g, lb = lb, ub = ub,
                           opts = list(algorithm = "NLOPT_LD_LBFGS",
-                                      xtol_rel = 1e-10, maxeval = 2000))
-      list(par = r$solution, objective = r$objective,
-           convergence = as.integer(r$status < 0),
+                                      ftol_rel = 1e-10, xtol_rel = 1e-8,
+                                      maxeval = 2000))
+      list(par = stats::setNames(r$solution, names(par)),
+           objective = r$objective,
+           # NLopt reports success as a positive status, but 5 and 6
+           # are the evaluation and time budgets running out, which is
+           # not convergence
+           convergence = as.integer(!r$status %in% 1:4),
            message = r$message %||% "")
     }
   }

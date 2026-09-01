@@ -258,9 +258,26 @@ test_that("frm_allfit agrees across optimizers", {
   expect_s3_class(af, "frmtmb_allfit")
   ok <- !vapply(af$fits, is.null, TRUE)
   expect_gte(sum(ok), 2L)
+  # every offered optimizer must actually produce a fit: frm_allfit
+  # swallows refit errors, so a broken wrapper is invisible otherwise
+  expect_true(all(ok))
   ll <- vapply(af$fits[ok], function(f) as.numeric(logLik(f)), 0)
   expect_lt(diff(range(ll)), 1e-4)
   expect_output(print(af), "logLik spread")
+})
+
+test_that("frm_allfit drives the nloptr optimizer", {
+  skip_if_not_installed("nloptr")
+  skip_if_not_installed("lme4")
+  data(sleepstudy, package = "lme4")
+  fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
+             data = sleepstudy)
+  af <- frm_allfit(fit)
+  expect_true("nloptr_lbfgs" %in% names(af$fits))
+  expect_false(is.null(af$fits$nloptr_lbfgs))
+  expect_equal(af$fits$nloptr_lbfgs$opt$convergence, 0L)
+  expect_equal(as.numeric(logLik(af$fits$nloptr_lbfgs)),
+               as.numeric(logLik(af$fits$nlminb)), tolerance = 1e-4)
 })
 
 test_that("frm_simulate simulates de novo and recovers parameters", {
