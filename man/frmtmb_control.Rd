@@ -9,7 +9,8 @@ frmtmb_control(
   optCtrl = list(iter.max = 1000, eval.max = 1000),
   restarts = 1,
   grad_tol = 0.001,
-  profile = FALSE
+  profile = FALSE,
+  autoscale = FALSE
 )
 }
 \arguments{
@@ -47,6 +48,21 @@ Coefficient covariance comes from the joint precision. Not
 compatible with \code{REML = TRUE} or \code{quadrature = TRUE};
 profile/uniroot \code{confint()} and \code{hypothesis(method = "profile")}
 need a non-profiled fit.}
+
+\item{autoscale}{Standardize badly scaled continuous predictors
+internally (the lme4 >= 1.1.37 feature): fit a copy of the model
+with each qualifying fixed-effect column centered and scaled
+(scaled only, in a linear predictor without an intercept), map
+that optimum back to the original parameterization exactly, and
+warm-start the ordinary fit there. Reported results are always on
+the original scale, so every downstream method works unchanged;
+the cost is a second (cheap) optimization. Columns qualify when
+they are parametric and take more than two distinct values;
+intercepts, factor contrasts, smooth bases, and mo()/mi() columns
+are never touched, and the whole step is a silent no-op when
+nothing qualifies. Compatible with \code{profile = TRUE}. Under
+\code{priors} or bounds, the first stage applies them to the scaled
+coefficients; the second stage is the fit that is reported.}
 }
 \value{
 A list of control settings.

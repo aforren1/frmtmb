@@ -13,7 +13,7 @@ get_joint_cov <- function(fit) {
   Q <- sdr_of(fit)$jointPrecision
   if (is.null(Q) && !is.null(sdr_of(fit)$par.random) &&
       length(sdr_of(fit)$par.random)) {
-    Q <- RTMB::sdreport(fit$obj, getJointPrecision = TRUE)$jointPrecision
+    Q <- autoscale_sdreport(fit, jp = TRUE)$jointPrecision
   }
   if (is.null(Q)) {
     V <- sdr_of(fit)$cov.fixed
