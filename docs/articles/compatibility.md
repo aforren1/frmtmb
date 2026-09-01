@@ -161,7 +161,7 @@ value.
 | binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | bernoulli | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | beta_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| multinomial | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
+| multinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | zero_inflated_poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | zero_inflated_negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | zero_inflated_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
@@ -169,10 +169,10 @@ value.
 | hurdle_poisson | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
 | hurdle_gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | hurdle_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| cumulative | ~ | ~ | x | ~ | \+ | ~ | ~ | ~ | ~ |
-| sratio | ~ | ~ | x | ~ | \+ | ~ | ~ | ~ | ~ |
-| cratio | ~ | ~ | x | ~ | \+ | ~ | ~ | ~ | ~ |
-| acat | ~ | ~ | x | ~ | \+ | ~ | ~ | ~ | ~ |
+| cumulative | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
+| sratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
+| cratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
+| acat | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -182,7 +182,7 @@ value.
 | ~ | gaussian + residuals_osa; student + residuals_osa; lognormal + residuals_osa; shifted_lognormal + residuals_osa; skew_normal + residuals_osa; and 24 more | One-step-ahead residuals need the family to register its observation through OBS(). |
 | ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 28 more | Univariate fits only, and the mu predictor must be linear. |
 | ~ | gaussian + frm_sample; student + frm_sample; lognormal + frm_sample; shifted_lognormal + frm_sample; skew_normal + frm_sample; and 28 more | Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = “random” for a multimodal posterior. |
-| x | tweedie + simulate; compois + simulate; multinomial + simulate; hurdle_poisson + simulate; cumulative + simulate; and 3 more | Refused: this family has no simulator yet. |
+| x | tweedie + simulate; compois + simulate; hurdle_poisson + simulate | Refused: this family has no simulator yet. |
 
 ## Estimation modes
 
@@ -365,9 +365,9 @@ Three spellings have restrictions of their own.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1708 | 46%   |
+| works       |  1713 | 46%   |
 | conditional |   891 | 24%   |
-| refused     |   391 | 10%   |
+| refused     |   386 | 10%   |
 | broken      |     0 | 0%    |
 | untested    |   760 | 20%   |
 

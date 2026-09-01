@@ -1,5 +1,57 @@
 # Changelog
 
+## frmtmb 0.26.0
+
+Pooled model comparison across imputations and the diagnostics/UX
+backlog.
+
+### New
+
+- [`anova()`](https://rdrr.io/r/stats/anova.html) on
+  [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
+  fits pools nested-model tests across imputations: D1 (multivariate
+  Wald), D2 (chi-square combining), and D3 (Meng-Rubin likelihood
+  pooling, with the plug-in leg evaluated by re-taping each imputation’s
+  objective at the pooled parameters - no refits). D1/D2 match `mice` to
+  1e-7 on an exactly-shared reference; D3 is validated against the
+  Meng-Rubin formula directly, since
+  [`mice::D3`](https://amices.org/mice/reference/D3.html)’s `fix.coef`
+  variant is not the plug-in statistic. Includes an ARIV clamp and a
+  Reiter-df fallback for a small-m case where mice returns NaN.
+- `cbind(successes, failures)` binomial responses are accepted (the
+  glm/lme4/glmmTMB spelling), rewritten internally to
+  `successes | trials(successes + failures)`; bit-identical to the
+  `trials()` form.
+- [`simulate()`](https://rdrr.io/r/stats/simulate.html) returns ordinal
+  draws as ordered factors with the original levels and multinomial
+  draws as count matrices (both families previously had no simulator),
+  and respects `na.exclude` padding.
+- `frmtmb_control(check_nlev_1 =, check_olre =)`: lme4-style
+  warning/ignore/stop vocabulary for one-level grouping factors and
+  gaussian observation-level random effects (the `se()`-based
+  meta-analysis idiom is recognized and not flagged).
+- [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+  adds a complete-separation heuristic, predictor-scale warnings
+  pointing at `autoscale`, and an isSingular-style verdict independent
+  of the Hessian; it also no longer errors on fits without random
+  effects.
+
+### Corrected behavior
+
+- Models with zero free outer parameters fit degenerately instead of
+  dying inside nlminb (fixing latent empty-sdreport and empty-gradient
+  bugs found along the way).
+- A nonlinear-parameter name colliding with a data column errors instead
+  of silently shadowing the column; nonlinear fits that fail from
+  default zero starts name `start =` in the error.
+- REML [`anova()`](https://rdrr.io/r/stats/anova.html) compares fits
+  whose fixed-effect designs span the same column space (term reordering
+  included) instead of refusing every REML pair; genuinely different
+  designs and REML/ML mixes still refuse with the reason.
+- Offsets in distributional-parameter formulas were verified correct (to
+  1e-13) and are now regression-tested against the silent-drop failure
+  mode reported upstream (glmmTMB#625).
+
 ## frmtmb 0.25.0
 
 Simulation-workflow ergonomics, the last deferred method-surface items,

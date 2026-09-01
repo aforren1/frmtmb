@@ -58,8 +58,16 @@ likelihood-ratio tests, AIC).
   terms; discrete predictors cannot be imputed in-model, the same
   restriction Stan has. Multiply imputed data can instead go through
   [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
-  (Rubin’s rules), the `brm_multiple()` analog. Mixture fits are ML:
-  expect multimodality, compare starts
+  (Rubin’s rules), the `brm_multiple()` analog. Being frequentist, that
+  fit also needs pooled tests, which brms gets for free from the
+  posterior:
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  pools any function of the parameters, and
+  [`anova()`](https://rdrr.io/r/stats/anova.html) on the result compares
+  two nested
+  [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
+  fits with the D1, D2 and D3 rules of `mice` (D3 by default). Mixture
+  fits are ML: expect multimodality, compare starts
   ([`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)).
 - [`binomial()`](https://rdrr.io/r/stats/family.html) without `trials()`
   is accepted and means Bernoulli, the

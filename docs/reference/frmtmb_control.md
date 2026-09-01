@@ -13,6 +13,8 @@ frmtmb_control(
   profile = FALSE,
   sparse_x = FALSE,
   autoscale = FALSE,
+  check_nlev_1 = c("warning", "ignore", "stop"),
+  check_olre = c("warning", "ignore", "stop"),
   verbose = NULL
 )
 ```
@@ -89,6 +91,28 @@ frmtmb_control(
   no-op when nothing qualifies. Compatible with `profile = TRUE`. Under
   `priors` or bounds, the first stage applies them to the scaled
   coefficients; the second stage is the fit that is reported.
+
+- check_nlev_1:
+
+  What to do about a scalar random-effect term whose grouping factor has
+  a single level: `"warning"` (default), `"ignore"`, or `"stop"`,
+  following lme4's `lmerControl()` check vocabulary. Such a term has no
+  variance to estimate - the single level is absorbed by the intercept -
+  and its standard deviation collapses to zero. Structured blocks over
+  several terms per level (`ar1()`, `us()`, the spatial covariance
+  structures) are never flagged: one grouping level there is a single
+  realization of a field, which is the normal way to write them.
+
+- check_olre:
+
+  What to do about an observation-level random effect - one level per
+  row - on a gaussian, student or lognormal response: `"warning"`
+  (default), `"ignore"`, or `"stop"`. Its variance is confounded with
+  the residual standard deviation, so only their sum is identified and
+  the split between them is arbitrary. The check is skipped when `sigma`
+  is not free to absorb it - a `se()` response or a constant `sigma` -
+  which is the random-effects meta-analysis, and for discrete families,
+  where an observation-level term is the usual overdispersion model.
 
 - verbose:
 

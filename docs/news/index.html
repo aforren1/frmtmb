@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.25.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.26.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,30 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.26.0" id="frmtmb-0260">frmtmb 0.26.0<a class="anchor" aria-label="anchor" href="#frmtmb-0260"></a></h2>
+<p>Pooled model comparison across imputations and the diagnostics/UX backlog.</p>
+<div class="section level3">
+<h3 id="new-0-26-0">New<a class="anchor" aria-label="anchor" href="#new-0-26-0"></a></h3>
+<ul><li>
+<code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> on <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> fits pools nested-model tests across imputations: D1 (multivariate Wald), D2 (chi-square combining), and D3 (Meng-Rubin likelihood pooling, with the plug-in leg evaluated by re-taping each imputation’s objective at the pooled parameters - no refits). D1/D2 match <code>mice</code> to 1e-7 on an exactly-shared reference; D3 is validated against the Meng-Rubin formula directly, since <code><a href="https://amices.org/mice/reference/D3.html" class="external-link">mice::D3</a></code>’s <code>fix.coef</code> variant is not the plug-in statistic. Includes an ARIV clamp and a Reiter-df fallback for a small-m case where mice returns NaN.</li>
+<li>
+<code>cbind(successes, failures)</code> binomial responses are accepted (the glm/lme4/glmmTMB spelling), rewritten internally to <code>successes | trials(successes + failures)</code>; bit-identical to the <code>trials()</code> form.</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> returns ordinal draws as ordered factors with the original levels and multinomial draws as count matrices (both families previously had no simulator), and respects <code>na.exclude</code> padding.</li>
+<li>
+<code>frmtmb_control(check_nlev_1 =, check_olre =)</code>: lme4-style warning/ignore/stop vocabulary for one-level grouping factors and gaussian observation-level random effects (the <code>se()</code>-based meta-analysis idiom is recognized and not flagged).</li>
+<li>
+<code><a href="../reference/diagnose.html">diagnose()</a></code> adds a complete-separation heuristic, predictor-scale warnings pointing at <code>autoscale</code>, and an isSingular-style verdict independent of the Hessian; it also no longer errors on fits without random effects.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="corrected-behavior-0-26-0">Corrected behavior<a class="anchor" aria-label="anchor" href="#corrected-behavior-0-26-0"></a></h3>
+<ul><li>Models with zero free outer parameters fit degenerately instead of dying inside nlminb (fixing latent empty-sdreport and empty-gradient bugs found along the way).</li>
+<li>A nonlinear-parameter name colliding with a data column errors instead of silently shadowing the column; nonlinear fits that fail from default zero starts name <code>start =</code> in the error.</li>
+<li>REML <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> compares fits whose fixed-effect designs span the same column space (term reordering included) instead of refusing every REML pair; genuinely different designs and REML/ML mixes still refuse with the reason.</li>
+<li>Offsets in distributional-parameter formulas were verified correct (to 1e-13) and are now regression-tested against the silent-drop failure mode reported upstream (glmmTMB#625).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.25.0" id="frmtmb-0250">frmtmb 0.25.0<a class="anchor" aria-label="anchor" href="#frmtmb-0250"></a></h2>
 <p>Simulation-workflow ergonomics, the last deferred method-surface items, and CRAN readiness.</p>

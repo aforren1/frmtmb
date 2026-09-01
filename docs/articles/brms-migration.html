@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.25.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.26.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -194,7 +194,12 @@ support two-way <code>:</code>/<code>*</code> interactions with numeric
 terms; discrete predictors cannot be imputed in-model, the same
 restriction Stan has. Multiply imputed data can instead go through
 <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> (Rubin’s rules), the
-<code>brm_multiple()</code> analog. Mixture fits are ML: expect
+<code>brm_multiple()</code> analog. Being frequentist, that fit also
+needs pooled tests, which brms gets for free from the posterior:
+<code><a href="../reference/hypothesis.html">hypothesis()</a></code> pools any function of the parameters, and
+<code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> on the result compares two nested
+<code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> fits with the D1, D2 and D3 rules of
+<code>mice</code> (D3 by default). Mixture fits are ML: expect
 multimodality, compare starts (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>).</li>
 <li>
 <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code> without <code>trials()</code> is accepted

@@ -532,6 +532,15 @@ reml_comparable <- function(fits) {
 #' variance-component structures with the fixed effects held fixed - and
 #' refuses the rest with the reason (glmmTMB#776).
 #'
+#' When the smaller model removes a variance component, the null value
+#' sits on the boundary of the parameter space and the usual chi-square
+#' reference is wrong: the asymptotic null is a mixture (for one
+#' component, half a point mass at zero and half a chi-square with one
+#' df), so the reported p-value is conservative - up to a factor of two
+#' for a single component. lme4 and glmmTMB report the same naive
+#' p-value; halve it for the one-component case, or use
+#' [frm_bootstrap()] for a simulation-based reference.
+#'
 #' @param object A `frmtmb_fit`.
 #' @param ... Further `frmtmb_fit` objects, nested with `object`.
 #' @return An `anova` table.

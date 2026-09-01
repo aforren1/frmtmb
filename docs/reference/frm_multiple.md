@@ -45,6 +45,12 @@ correlations, the
 convention) and back-transformed, giving `$pooled_varcorr`. For
 missing-data mechanisms beyond imputation, see in-model `mi()`.
 
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+pools arbitrary functions of the parameters by the same rules, and
+[`anova.frmtmb_multiple()`](https://aforren1.github.io/frmtmb/reference/anova.frmtmb_multiple.md)
+compares two nested `frm_multiple()` fits with the D1, D2 and D3 rules
+of `mice`.
+
 ## Examples
 
 ``` r

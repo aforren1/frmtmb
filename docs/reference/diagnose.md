@@ -1,6 +1,10 @@
 # Convergence diagnostics for a frmtmb fit
 
-Convergence diagnostics for a frmtmb fit
+Reports the optimizer's own verdict plus four checks that a converged
+fit can still fail: non-finite standard errors, complete separation in a
+binomial-type fit, predictor columns scaled far from one, and variance
+components on the boundary of their parameter space (lme4's
+`isSingular()`, read off the estimates rather than the Hessian).
 
 ## Usage
 

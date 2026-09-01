@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.25.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.26.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,6 +54,8 @@
 <span>  profile <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  sparse_x <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  autoscale <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  check_nlev_1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"warning"</span>, <span class="st">"ignore"</span>, <span class="st">"stop"</span><span class="op">)</span>,</span>
+<span>  check_olre <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"warning"</span>, <span class="st">"ignore"</span>, <span class="st">"stop"</span><span class="op">)</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -128,6 +130,30 @@ are never touched, and the whole step is a silent no-op when
 nothing qualifies. Compatible with <code>profile = TRUE</code>. Under
 <code>priors</code> or bounds, the first stage applies them to the scaled
 coefficients; the second stage is the fit that is reported.</p></dd>
+
+
+<dt id="arg-check-nlev-">check_nlev_1<a class="anchor" aria-label="anchor" href="#arg-check-nlev-"></a></dt>
+<dd><p>What to do about a scalar random-effect term
+whose grouping factor has a single level: <code>"warning"</code> (default),
+<code>"ignore"</code>, or <code>"stop"</code>, following lme4's <code>lmerControl()</code> check
+vocabulary. Such a term has no variance to estimate - the single
+level is absorbed by the intercept - and its standard deviation
+collapses to zero. Structured blocks over several terms per level
+(<code>ar1()</code>, <code>us()</code>, the spatial covariance structures) are never
+flagged: one grouping level there is a single realization of a
+field, which is the normal way to write them.</p></dd>
+
+
+<dt id="arg-check-olre">check_olre<a class="anchor" aria-label="anchor" href="#arg-check-olre"></a></dt>
+<dd><p>What to do about an observation-level random
+effect - one level per row - on a gaussian, student or lognormal
+response: <code>"warning"</code> (default), <code>"ignore"</code>, or <code>"stop"</code>. Its
+variance is confounded with the residual standard deviation, so
+only their sum is identified and the split between them is
+arbitrary. The check is skipped when <code>sigma</code> is not free to absorb
+it - a <code>se()</code> response or a constant <code>sigma</code> - which is the
+random-effects meta-analysis, and for discrete families, where an
+observation-level term is the usual overdispersion model.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>

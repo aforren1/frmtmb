@@ -8,6 +8,16 @@ random effects with structured covariances, distributional regression,
 smooths, Gaussian processes, nonlinear formulas, multivariate models,
 finite mixtures, and in-model imputation of missing predictors.
 
+## See also
+
+Useful links:
+
+- <https://aforren1.github.io/frmtmb/>
+
+- <https://github.com/aforren1/frmtmb>
+
+- Report bugs at <https://github.com/aforren1/frmtmb/issues>
+
 ## Author
 
 **Maintainer**: Alex Forrence <alex.forrence@gmail.com>

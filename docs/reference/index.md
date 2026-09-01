@@ -93,6 +93,8 @@
   : Predictive check against simulated responses
 - [`anova(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/anova.frmtmb_fit.md)
   : Likelihood-ratio tests between nested frmtmb fits
+- [`anova(`*`<frmtmb_multiple>`*`)`](https://aforren1.github.io/frmtmb/reference/anova.frmtmb_multiple.md)
+  : Pooled model comparison across imputations (D1, D2, D3)
 - [`drop1(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/drop1.frmtmb_fit.md)
   : Single-term deletions
 - [`as_tmbstan()`](https://aforren1.github.io/frmtmb/reference/as_tmbstan.md)
