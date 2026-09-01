@@ -3,13 +3,13 @@
 parameters (dpars) can get their own formulas with the full predictor
 grammar, or be fixed to constants:
 bf(y ~ x + (1 | g), sigma ~ z + (1 | g)), bf(y ~ x, sigma = 1).
-Nonlinear (nl = TRUE) and multivariate formulas arrive in later
-versions and signal an error for now."><meta property="og:description" content="Specifies a model with brms-compatible syntax. Distributional
+Nonlinear formulas (nl = TRUE) and multivariate models (see
+mvbf()) use the same grammar."><meta property="og:description" content="Specifies a model with brms-compatible syntax. Distributional
 parameters (dpars) can get their own formulas with the full predictor
 grammar, or be fixed to constants:
 bf(y ~ x + (1 | g), sigma ~ z + (1 | g)), bf(y ~ x, sigma = 1).
-Nonlinear (nl = TRUE) and multivariate formulas arrive in later
-versions and signal an error for now."></head><body>
+Nonlinear formulas (nl = TRUE) and multivariate models (see
+mvbf()) use the same grammar."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -17,7 +17,7 @@ versions and signal an error for now."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.20.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.21.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,8 +53,8 @@ versions and signal an error for now."></head><body>
 parameters (dpars) can get their own formulas with the full predictor
 grammar, or be fixed to constants:
 <code>bf(y ~ x + (1 | g), sigma ~ z + (1 | g))</code>, <code>bf(y ~ x, sigma = 1)</code>.
-Nonlinear (<code>nl = TRUE</code>) and multivariate formulas arrive in later
-versions and signal an error for now.</p>
+Nonlinear formulas (<code>nl = TRUE</code>) and multivariate models (see
+<code><a href="mvbf.html">mvbf()</a></code>) use the same grammar.</p>
     </div>
 
     <div class="section level2">
@@ -82,7 +82,9 @@ to <code><a href="frm.html">frm()</a></code>.</p></dd>
 
 
 <dt id="arg-nl">nl<a class="anchor" aria-label="anchor" href="#arg-nl"></a></dt>
-<dd><p>Nonlinear-formula flag (not yet supported).</p></dd>
+<dd><p>Nonlinear-formula flag: the main formula becomes a
+nonlinear expression of named parameters, each given its own
+<code>...</code> formula with the full predictor grammar.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -19,6 +19,7 @@ summary(fit)
 #> Family: gaussian 
 #> Formula: Reaction ~ Days + (Days | Subject) 
 #> Method: ML   nobs: 180 
+#> Groups: Subject, 18 
 #> logLik: -875.97  AIC: 1763.94  BIC: 1783.1 
 #> 
 #> Random effects:

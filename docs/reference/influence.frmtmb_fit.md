@@ -4,13 +4,28 @@ Refits the model with one group (or observation) left out at a time,
 warm-started at the full-data estimates, and collects the fixed-effect
 and covariance-parameter changes.
 [`cooks.distance()`](https://rdrr.io/r/stats/influence.measures.html) on
-the result gives the scaled fixed-effect displacement.
+the result gives the scaled fixed-effect displacement (calling it on the
+fit itself runs
+[`influence()`](https://rdrr.io/r/stats/lm.influence.html) first);
+[`dfbeta()`](https://rdrr.io/r/stats/influence.measures.html) and
+[`dfbetas()`](https://rdrr.io/r/stats/influence.measures.html) give the
+per-unit coefficient changes, raw and scaled by the coefficient standard
+errors (the lme4 influence surface).
 
 ## Usage
 
 ``` r
 # S3 method for class 'frmtmb_fit'
 influence(model, groups = NULL, data = NULL, force = FALSE, ...)
+
+# S3 method for class 'frmtmb_fit'
+cooks.distance(model, ...)
+
+# S3 method for class 'frmtmb_influence'
+dfbeta(model, ...)
+
+# S3 method for class 'frmtmb_influence'
+dfbetas(model, ...)
 ```
 
 ## Arguments

@@ -7,11 +7,11 @@
 ## Citation
 
 Forrence A (2026). *frmtmb: Formula-Based Regression Models via 'RTMB'*.
-R package version 0.20.0.
+R package version 0.21.0.
 
     @Manual{,
       title = {frmtmb: Formula-Based Regression Models via 'RTMB'},
       author = {Alex Forrence},
       year = {2026},
-      note = {R package version 0.20.0},
+      note = {R package version 0.21.0},
     }

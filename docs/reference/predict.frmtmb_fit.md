@@ -9,7 +9,7 @@ Predictions from a frmtmb fit
 predict(
   object,
   newdata = NULL,
-  type = c("link", "response"),
+  type = c("link", "response", "conditional", "zprob", "zlink", "disp"),
   dpar = NULL,
   resp = NULL,
   re.form = NULL,
@@ -31,8 +31,16 @@ predict(
 
 - type:
 
-  `"link"` for the linear predictor, `"response"` for the dpar on its
-  natural scale.
+  `"link"` for the linear predictor, `"response"` for the expected
+  response (which equals
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) on the
+  training data; for zero-inflated, hurdle, and similar families this is
+  the response mean, not the `mu` dpar). When `dpar` is given,
+  `"response"` is that dpar on its natural scale. The glmmTMB spellings
+  `"conditional"` (the `mu` dpar on its natural scale),
+  `"zprob"`/`"zlink"` (the zero-inflation/hurdle probability on the
+  response/link scale), and `"disp"` (the dispersion dpar) are accepted
+  as aliases.
 
 - dpar:
 

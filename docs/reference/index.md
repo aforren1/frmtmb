@@ -79,16 +79,22 @@
   check against simulated responses
 - [`anova(`*`<frmtmb_fit>`*`)`](anova.frmtmb_fit.md) : Likelihood-ratio
   tests between nested frmtmb fits
+- [`drop1(`*`<frmtmb_fit>`*`)`](drop1.frmtmb_fit.md) : Single-term
+  deletions
 - [`as_tmbstan()`](as_tmbstan.md) : Sample from a frmtmb fit with
   tmbstan (NUTS)
 - [`frm_sample()`](frm_sample.md) : Sample the fitted model with NUTS
 - [`posterior_epred()`](posterior_epred.md)
+  [`posterior_linpred()`](posterior_epred.md)
   [`posterior_predict()`](posterior_epred.md) : Expected-value and
   predictive draws from sampled parameters
 - [`check_laplace()`](check_laplace.md) : Check the Laplace/Wald
   approximation against NUTS
-- [`influence(`*`<frmtmb_fit>`*`)`](influence.frmtmb_fit.md) : Influence
-  measures by case deletion
+- [`influence(`*`<frmtmb_fit>`*`)`](influence.frmtmb_fit.md)
+  [`cooks.distance(`*`<frmtmb_fit>`*`)`](influence.frmtmb_fit.md)
+  [`dfbeta(`*`<frmtmb_influence>`*`)`](influence.frmtmb_fit.md)
+  [`dfbetas(`*`<frmtmb_influence>`*`)`](influence.frmtmb_fit.md) :
+  Influence measures by case deletion
 - [`set_prior()`](set_prior.md) : Set up priors brms-style
 - [`get_prior()`](get_prior.md) : Enumerate the targetable prior slots
 - [`prior_normal()`](frmtmb-priors.md) [`prior_t()`](frmtmb-priors.md) :

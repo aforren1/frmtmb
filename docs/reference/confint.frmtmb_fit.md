@@ -11,7 +11,9 @@ confint(
   object,
   parm = NULL,
   level = 0.95,
-  method = c("wald", "profile", "uniroot"),
+  method = c("wald", "Wald", "profile", "uniroot", "boot"),
+  nsim = 500,
+  seed = NULL,
   ...
 )
 ```
@@ -26,7 +28,7 @@ confint(
 
   Parameter names (see `rownames` of the Wald result) or indices.
   Required for `"profile"` and `"uniroot"`; defaults to all parameters
-  for `"wald"`.
+  for `"wald"` and `"boot"`.
 
 - level:
 
@@ -37,12 +39,23 @@ confint(
   `"wald"` (fast, from the sdreport covariance), `"profile"` (likelihood
   profile via
   [`TMB::tmbprofile()`](https://rdrr.io/pkg/TMB/man/tmbprofile.html)),
-  or `"uniroot"` (likelihood-root search via
-  [`TMB::tmbroot()`](https://rdrr.io/pkg/TMB/man/tmbroot.html)).
+  `"uniroot"` (likelihood-root search via
+  [`TMB::tmbroot()`](https://rdrr.io/pkg/TMB/man/tmbroot.html)), or
+  `"boot"` (parametric-bootstrap percentile intervals through
+  [`frm_bootstrap()`](frm_bootstrap.md), the
+  `lme4::confint(method = "boot")` analog; like the other methods it
+  works on the internal parameter scale). `"Wald"` is accepted as an
+  alias for `"wald"`.
+
+- nsim, seed:
+
+  Bootstrap draws and seed for `method = "boot"`.
 
 - ...:
 
-  Passed to the TMB profiling functions.
+  Passed to the TMB profiling functions, or to
+  [`frm_bootstrap()`](frm_bootstrap.md) for `method = "boot"` (e.g.
+  `re.form`).
 
 ## Value
 

@@ -3,8 +3,8 @@
 Specifies a model with brms-compatible syntax. Distributional parameters
 (dpars) can get their own formulas with the full predictor grammar, or
 be fixed to constants: `bf(y ~ x + (1 | g), sigma ~ z + (1 | g))`,
-`bf(y ~ x, sigma = 1)`. Nonlinear (`nl = TRUE`) and multivariate
-formulas arrive in later versions and signal an error for now.
+`bf(y ~ x, sigma = 1)`. Nonlinear formulas (`nl = TRUE`) and
+multivariate models (see [`mvbf()`](mvbf.md)) use the same grammar.
 
 ## Usage
 
@@ -31,7 +31,9 @@ bf(formula, ..., family = NULL, nl = FALSE)
 
 - nl:
 
-  Nonlinear-formula flag (not yet supported).
+  Nonlinear-formula flag: the main formula becomes a nonlinear
+  expression of named parameters, each given its own `...` formula with
+  the full predictor grammar.
 
 ## Value
 

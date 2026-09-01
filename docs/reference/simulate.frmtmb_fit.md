@@ -21,7 +21,10 @@ simulate(object, nsim = 1, seed = NULL, re.form = NULL, ...)
 
 - seed:
 
-  Optional RNG seed.
+  Optional RNG seed. Follows the
+  [`stats::simulate()`](https://rdrr.io/r/stats/simulate.html) contract:
+  the global RNG state is restored afterwards, and the seed used is
+  attached as the `"seed"` attribute.
 
 - re.form:
 
@@ -34,4 +37,4 @@ simulate(object, nsim = 1, seed = NULL, re.form = NULL, ...)
 
 ## Value
 
-A data frame with `nsim` columns.
+A data frame with `nsim` columns and a `"seed"` attribute.

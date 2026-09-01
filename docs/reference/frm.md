@@ -121,6 +121,7 @@ summary(fit)
 #> Family: gaussian 
 #> Formula: y ~ x + (1 | g) 
 #> Method: ML   nobs: 100 
+#> Groups: g, 10 
 #> logLik: -145.746  AIC: 299.492  BIC: 309.913 
 #> 
 #> Random effects:

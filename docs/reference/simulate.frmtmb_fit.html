@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.20.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.21.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,7 +61,9 @@
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
-<dd><p>Optional RNG seed.</p></dd>
+<dd><p>Optional RNG seed. Follows the <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">stats::simulate()</a></code>
+contract: the global RNG state is restored afterwards, and the
+seed used is attached as the <code>"seed"</code> attribute.</p></dd>
 
 
 <dt id="arg-re-form">re.form<a class="anchor" aria-label="anchor" href="#arg-re-form"></a></dt>
@@ -76,7 +78,7 @@ effects; <code>NA</code> redraws them from their estimated distribution
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame with <code>nsim</code> columns.</p>
+    <p>A data frame with <code>nsim</code> columns and a <code>"seed"</code> attribute.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

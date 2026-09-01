@@ -9,7 +9,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.20.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.21.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -52,7 +52,9 @@
 <span>  <span class="va">object</span>,</span>
 <span>  parm <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wald"</span>, <span class="st">"profile"</span>, <span class="st">"uniroot"</span><span class="op">)</span>,</span>
+<span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wald"</span>, <span class="st">"Wald"</span>, <span class="st">"profile"</span>, <span class="st">"uniroot"</span>, <span class="st">"boot"</span><span class="op">)</span>,</span>
+<span>  nsim <span class="op">=</span> <span class="fl">500</span>,</span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -68,7 +70,7 @@
 <dt id="arg-parm">parm<a class="anchor" aria-label="anchor" href="#arg-parm"></a></dt>
 <dd><p>Parameter names (see <code>rownames</code> of the Wald result) or
 indices. Required for <code>"profile"</code> and <code>"uniroot"</code>; defaults to all
-parameters for <code>"wald"</code>.</p></dd>
+parameters for <code>"wald"</code> and <code>"boot"</code>.</p></dd>
 
 
 <dt id="arg-level">level<a class="anchor" aria-label="anchor" href="#arg-level"></a></dt>
@@ -77,12 +79,21 @@ parameters for <code>"wald"</code>.</p></dd>
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
 <dd><p><code>"wald"</code> (fast, from the sdreport covariance),
-<code>"profile"</code> (likelihood profile via <code><a href="https://rdrr.io/pkg/TMB/man/tmbprofile.html" class="external-link">TMB::tmbprofile()</a></code>), or
-<code>"uniroot"</code> (likelihood-root search via <code><a href="https://rdrr.io/pkg/TMB/man/tmbroot.html" class="external-link">TMB::tmbroot()</a></code>).</p></dd>
+<code>"profile"</code> (likelihood profile via <code><a href="https://rdrr.io/pkg/TMB/man/tmbprofile.html" class="external-link">TMB::tmbprofile()</a></code>),
+<code>"uniroot"</code> (likelihood-root search via <code><a href="https://rdrr.io/pkg/TMB/man/tmbroot.html" class="external-link">TMB::tmbroot()</a></code>), or
+<code>"boot"</code> (parametric-bootstrap percentile intervals through
+<code><a href="frm_bootstrap.html">frm_bootstrap()</a></code>, the <code>lme4::confint(method = "boot")</code> analog;
+like the other methods it works on the internal parameter scale).
+<code>"Wald"</code> is accepted as an alias for <code>"wald"</code>.</p></dd>
+
+
+<dt id="arg-nsim-seed">nsim, seed<a class="anchor" aria-label="anchor" href="#arg-nsim-seed"></a></dt>
+<dd><p>Bootstrap draws and seed for <code>method = "boot"</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed to the TMB profiling functions.</p></dd>
+<dd><p>Passed to the TMB profiling functions, or to
+<code><a href="frm_bootstrap.html">frm_bootstrap()</a></code> for <code>method = "boot"</code> (e.g. <code>re.form</code>).</p></dd>
 
 </dl></div>
     <div class="section level2">

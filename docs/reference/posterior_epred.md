@@ -20,6 +20,20 @@ posterior_epred(
   ...
 )
 
+posterior_linpred(object, ...)
+
+# S3 method for class 'frmtmb_draws'
+posterior_linpred(
+  object,
+  transform = FALSE,
+  newdata = NULL,
+  resp = NULL,
+  re.form = NULL,
+  dpar = NULL,
+  ndraws = NULL,
+  ...
+)
+
 posterior_predict(object, ...)
 
 # S3 method for class 'frmtmb_draws'
@@ -50,6 +64,18 @@ posterior_predict(
 - ndraws:
 
   Number of draws to use (default: all).
+
+- transform:
+
+  For `posterior_linpred()`: if `TRUE`, apply the inverse link (the
+  value of the `mu` dpar on its natural scale, brms's convention; unlike
+  `posterior_epred()` this is not the response mean for zero-inflated
+  and similar families).
+
+- dpar:
+
+  For `posterior_linpred()`: which distributional parameter's linear
+  predictor to evaluate.
 
 ## Value
 

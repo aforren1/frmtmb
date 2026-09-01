@@ -5,6 +5,9 @@ Extract random-effect modes
 ## Usage
 
 ``` r
+# S3 method for class 'frmtmb_draws'
+ranef(object, ...)
+
 ranef(object, ...)
 
 # S3 method for class 'frmtmb_fit'

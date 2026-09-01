@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.20.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.21.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,46 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.21.0" id="frmtmb-0210">frmtmb 0.21.0<a class="anchor" aria-label="anchor" href="#frmtmb-0210"></a></h2>
+<p>Method-surface audit against lme4/glmmTMB/brms, plus fixes from a full code review.</p>
+<div class="section level3">
+<h3 id="corrected-behavior-0-21-0">Corrected behavior<a class="anchor" aria-label="anchor" href="#corrected-behavior-0-21-0"></a></h3>
+<ul><li>
+<code>predict(type = "response")</code> now returns the expected response for every family (equal to <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> in-sample), not the primary dpar’s natural scale; zi/hurdle, lognormal, and trials-binomial fits were affected. The glmmTMB aliases <code>"conditional"</code>, <code>"zprob"</code>, <code>"zlink"</code>, and <code>"disp"</code> are accepted (validated against glmmTMB on a zero-inflated Poisson to ~8e-7). Note <code>"disp"</code> returns <code>sigma</code> on its natural scale, where glmmTMB returns the variance-scale dispersion for gaussian. <code>se.fit</code> for the mean of a non-identity-mean family is not yet available and errors with guidance.</li>
+<li>
+<code>rescor = TRUE</code> now refuses <code>cens()</code>, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, and <code>se()</code> addition terms, which the joint-gaussian likelihood silently ignored (wrong likelihood with no warning).</li>
+<li>Bounds (<code>lower</code>/<code>upper</code>, <code>set_prior</code> lb/ub) under <code>frmtmb_control(profile = TRUE)</code> were positionally misaligned: a bound on a fixed coefficient could silently pin a covariance parameter instead. Bounding a profiled coefficient now errors; covariance-parameter bounds land on the right slot.</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code>vcov(full = TRUE)</code>, and <code><a href="../reference/diagnose.html">diagnose()</a></code> labels were broken or misaligned on <code>mi()</code> fits: the latent imputation component was counted as an outer parameter.</li>
+<li>
+<code>frm_sample(priors = )</code> failed on fixed-effects-only fits of single-dpar families (a <code>$</code> partial-match bug), and <code>frm_sample(laplace = TRUE)</code> was broken twice: the default init had the wrong length, and draw columns were mislabeled (a column named <code>b[1]</code> actually held a covariance parameter).</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code> tables and <code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">cooks.distance()</a></code> now align with <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> (fits with a constant dpar errored; column names are now the coefficient labels).</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> follows the stats seed contract: a <code>"seed"</code> attribute and a restored RNG state instead of clobbering the global stream.</li>
+<li>A covariate literally named <code>sigma</code> is no longer shadowed by the residual sigma in <code><a href="../reference/hypothesis.html">hypothesis()</a></code>/<code><a href="../reference/variables.html">variables()</a></code>.</li>
+<li>In <code>predict(newdata = )</code>, an NA in a variable used only in a random-effect design now propagates to the prediction instead of being silently zeroed (only genuinely new levels predict at the population value).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="new-methods-0-21-0">New methods<a class="anchor" aria-label="anchor" href="#new-methods-0-21-0"></a></h3>
+<ul><li>
+<code><a href="https://rdrr.io/r/stats/add1.html" class="external-link">drop1()</a></code> (AIC/LRT, marginality-aware; matches <code><a href="https://rdrr.io/pkg/lme4/man/drop1.merMod.html" class="external-link">lme4::drop1.merMod</a></code> to 1e-4), <code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">cooks.distance()</a></code> directly on a fit, <code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">dfbeta()</a></code>/<code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">dfbetas()</a></code> on <code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code> results (stats sign convention; lme4 returns the negation), <code><a href="https://rdrr.io/r/stats/na.action.html" class="external-link">na.action()</a></code>, and an lme4-style “Groups:” line in <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>.</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> accepts lme4’s <code>"Wald"</code> spelling and gains <code>method = "boot"</code> (percentile intervals via [frm_bootstrap()]).</li>
+<li>
+<code>vcov(full = TRUE)</code> rows carry per-parameter names (glmmTMB convention).</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> accepts the lme4/glmmTMB <code>allow.new.levels</code> dot spelling.</li>
+<li>On draws objects: <code><a href="../reference/posterior_epred.html">posterior_linpred()</a></code> and <code><a href="../reference/ranef.html">ranef()</a></code> (brms-shaped arrays).</li>
+<li>
+<code><a href="https://rvlenth.github.io/emmeans/reference/extending-emmeans.html" class="external-link">emmeans::recover_data</a></code> had been silently missing from NAMESPACE since v0.13 (orphaned export tag); emmeans support was broken.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="internals-0-21-0">Internals<a class="anchor" aria-label="anchor" href="#internals-0-21-0"></a></h3>
+<ul><li>One authoritative outer-parameter map shared by <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, bounds resolution, <code>vcov(full = TRUE)</code>, and sampling; <code>graphics</code> and <code>grDevices</code> added to Imports; duplicated formula/family coercion and gp position-key helpers unified; REML <code>logLik</code> df counts only outer parameters (documented; lme4 counts the integrated fixed effects too, so REML AICs are not comparable across packages).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.20.0" id="frmtmb-0200">frmtmb 0.20.0<a class="anchor" aria-label="anchor" href="#frmtmb-0200"></a></h2>
 <ul><li>

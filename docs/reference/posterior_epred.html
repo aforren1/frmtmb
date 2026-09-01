@@ -15,7 +15,7 @@ them)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.20.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.21.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,6 +68,20 @@ them).</p>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="fu">posterior_linpred</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
+<span><span class="fu">posterior_linpred</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  transform <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  re.form <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
 <span><span class="fu">posterior_predict</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
@@ -99,6 +113,18 @@ them).</p>
 
 <dt id="arg-ndraws">ndraws<a class="anchor" aria-label="anchor" href="#arg-ndraws"></a></dt>
 <dd><p>Number of draws to use (default: all).</p></dd>
+
+
+<dt id="arg-transform">transform<a class="anchor" aria-label="anchor" href="#arg-transform"></a></dt>
+<dd><p>For <code>posterior_linpred()</code>: if <code>TRUE</code>, apply the
+inverse link (the value of the <code>mu</code> dpar on its natural scale,
+brms's convention; unlike <code>posterior_epred()</code> this is not the
+response mean for zero-inflated and similar families).</p></dd>
+
+
+<dt id="arg-dpar">dpar<a class="anchor" aria-label="anchor" href="#arg-dpar"></a></dt>
+<dd><p>For <code>posterior_linpred()</code>: which distributional
+parameter's linear predictor to evaluate.</p></dd>
 
 </dl></div>
     <div class="section level2">

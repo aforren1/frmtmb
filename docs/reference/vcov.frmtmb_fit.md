@@ -18,7 +18,9 @@ vcov(object, full = FALSE, ...)
 
 - full:
 
-  If `TRUE`, include covariance parameters (`theta`).
+  If `TRUE`, include covariance parameters (`theta`), named as in
+  [`confint()`](https://rdrr.io/r/stats/confint.html) (the glmmTMB
+  `vcov(full = TRUE)` convention).
 
 - ...:
 

@@ -1,5 +1,95 @@
 # Changelog
 
+## frmtmb 0.21.0
+
+Method-surface audit against lme4/glmmTMB/brms, plus fixes from a full
+code review.
+
+### Corrected behavior
+
+- `predict(type = "response")` now returns the expected response for
+  every family (equal to
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) in-sample),
+  not the primary dpar’s natural scale; zi/hurdle, lognormal, and
+  trials-binomial fits were affected. The glmmTMB aliases
+  `"conditional"`, `"zprob"`, `"zlink"`, and `"disp"` are accepted
+  (validated against glmmTMB on a zero-inflated Poisson to ~8e-7). Note
+  `"disp"` returns `sigma` on its natural scale, where glmmTMB returns
+  the variance-scale dispersion for gaussian. `se.fit` for the mean of a
+  non-identity-mean family is not yet available and errors with
+  guidance.
+- `rescor = TRUE` now refuses `cens()`,
+  [`trunc()`](https://rdrr.io/r/base/Round.html), and `se()` addition
+  terms, which the joint-gaussian likelihood silently ignored (wrong
+  likelihood with no warning).
+- Bounds (`lower`/`upper`, `set_prior` lb/ub) under
+  `frmtmb_control(profile = TRUE)` were positionally misaligned: a bound
+  on a fixed coefficient could silently pin a covariance parameter
+  instead. Bounding a profiled coefficient now errors;
+  covariance-parameter bounds land on the right slot.
+- [`confint()`](https://rdrr.io/r/stats/confint.html),
+  `vcov(full = TRUE)`, and [`diagnose()`](../reference/diagnose.md)
+  labels were broken or misaligned on `mi()` fits: the latent imputation
+  component was counted as an outer parameter.
+- `frm_sample(priors = )` failed on fixed-effects-only fits of
+  single-dpar families (a `$` partial-match bug), and
+  `frm_sample(laplace = TRUE)` was broken twice: the default init had
+  the wrong length, and draw columns were mislabeled (a column named
+  `b[1]` actually held a covariance parameter).
+- [`influence()`](https://rdrr.io/r/stats/lm.influence.html) tables and
+  [`cooks.distance()`](https://rdrr.io/r/stats/influence.measures.html)
+  now align with [`vcov()`](https://rdrr.io/r/stats/vcov.html) (fits
+  with a constant dpar errored; column names are now the coefficient
+  labels).
+- [`simulate()`](https://rdrr.io/r/stats/simulate.html) follows the
+  stats seed contract: a `"seed"` attribute and a restored RNG state
+  instead of clobbering the global stream.
+- A covariate literally named `sigma` is no longer shadowed by the
+  residual sigma in
+  [`hypothesis()`](../reference/hypothesis.md)/[`variables()`](../reference/variables.md).
+- In `predict(newdata = )`, an NA in a variable used only in a
+  random-effect design now propagates to the prediction instead of being
+  silently zeroed (only genuinely new levels predict at the population
+  value).
+
+### New methods
+
+- [`drop1()`](https://rdrr.io/r/stats/add1.html) (AIC/LRT,
+  marginality-aware; matches
+  [`lme4::drop1.merMod`](https://rdrr.io/pkg/lme4/man/drop1.merMod.html)
+  to 1e-4),
+  [`cooks.distance()`](https://rdrr.io/r/stats/influence.measures.html)
+  directly on a fit,
+  [`dfbeta()`](https://rdrr.io/r/stats/influence.measures.html)/[`dfbetas()`](https://rdrr.io/r/stats/influence.measures.html)
+  on [`influence()`](https://rdrr.io/r/stats/lm.influence.html) results
+  (stats sign convention; lme4 returns the negation),
+  [`na.action()`](https://rdrr.io/r/stats/na.action.html), and an
+  lme4-style “Groups:” line in
+  [`summary()`](https://rdrr.io/r/base/summary.html).
+- [`confint()`](https://rdrr.io/r/stats/confint.html) accepts lme4’s
+  `"Wald"` spelling and gains `method = "boot"` (percentile intervals
+  via \[frm_bootstrap()\]).
+- `vcov(full = TRUE)` rows carry per-parameter names (glmmTMB
+  convention).
+- [`predict()`](https://rdrr.io/r/stats/predict.html) accepts the
+  lme4/glmmTMB `allow.new.levels` dot spelling.
+- On draws objects:
+  [`posterior_linpred()`](../reference/posterior_epred.md) and
+  [`ranef()`](../reference/ranef.md) (brms-shaped arrays).
+- [`emmeans::recover_data`](https://rvlenth.github.io/emmeans/reference/extending-emmeans.html)
+  had been silently missing from NAMESPACE since v0.13 (orphaned export
+  tag); emmeans support was broken.
+
+### Internals
+
+- One authoritative outer-parameter map shared by
+  [`confint()`](https://rdrr.io/r/stats/confint.html), bounds
+  resolution, `vcov(full = TRUE)`, and sampling; `graphics` and
+  `grDevices` added to Imports; duplicated formula/family coercion and
+  gp position-key helpers unified; REML `logLik` df counts only outer
+  parameters (documented; lme4 counts the integrated fixed effects too,
+  so REML AICs are not comparable across packages).
+
 ## frmtmb 0.20.0
 
 - `mixture_mvn(K, D)`: multivariate gaussian mixture components for
