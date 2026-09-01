@@ -9,13 +9,25 @@ AD tape. No MCMC, no Stan, and no compilation at run time; refits
 re-tape in milliseconds, which the bootstrap, influence, and
 multi-start machinery exploit.
 
+Documentation: <https://aforren1.github.io/frmtmb/>
+
 ## Status
 
-Pre-release (v0.19), working toward CRAN. The test suite holds about
-850 tests; every model class is validated against an exact reference
-(glmmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive, quantreg,
-closed-form marginals, or hand-written ML) - see
-`tests/testthat/` and `dev/feature-gaps.md`.
+Pre-release (v0.25), working toward CRAN. Validation is layered:
+
+- about 1850 tests; every model class is checked against an exact
+  reference (glmmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive,
+  quantreg, mice, closed-form marginals, or hand-written ML);
+- the model-building layer is cross-validated against brms itself:
+  design matrices, random-effect structures, and special-term data
+  agree with `brms::make_standata()` to near machine precision, and
+  an opt-in tier verifies our estimates equal the mode of brms's own
+  generated Stan programs;
+- a pairwise grammar fuzzer sweeps feature combinations against
+  metamorphic invariants, and the resulting compatibility map is
+  queryable (`frm_compat()`) and published as the
+  [feature compatibility](https://aforren1.github.io/frmtmb/articles/compatibility.html)
+  article.
 
 ## Model grammar
 
@@ -34,7 +46,8 @@ closed-form marginals, or hand-written ML) - see
   matrix-covariate terms: scalar-on-function, function-on-scalar, and
   function-on-function regression.
 - Gaussian processes: `gp(x)` exact with kriging prediction,
-  `gp(x, k = 30)` Hilbert-space, up to three dimensions
+  `gp(x, k = 30)` Hilbert-space (brms's exact input convention, so
+  the same call is the same approximation), up to three dimensions
   (`gp(x1, x2)`, per-dimension lengthscales, `iso = TRUE` to share).
 - Special terms: `mo()` monotonic effects, `mi()` one-step imputation
   of continuous predictors, `mi(sdx)` measurement error, `cs()`
@@ -64,17 +77,27 @@ closed-form marginals, or hand-written ML) - see
   random effects; MAP via brms-style `set_prior()`; hard bounds;
   pluggable optimizers; `frmtmb_control(profile = TRUE)` for
   many-coefficient models, `sparse_x = TRUE` for many-level fixed
-  factors, `autoscale = TRUE` for badly scaled predictors.
-- `confint()` (Wald/profile/likelihood-root), `hypothesis()`
-  (Wald/profile/bootstrap, with natural-scale `sd_`/`cor_` names for
-  ICC-type quantities), `anova()` LRTs, `frm_bootstrap()`,
-  `influence()`, `frm_allfit()`, `frm_multiple()` (Rubin pooling),
-  `frm_simulate()` (power analysis).
+  factors, `autoscale = TRUE` for badly scaled predictors,
+  `verbose =` for timed stage progress on slow fits.
+- `confint()` (Wald/profile/likelihood-root/bootstrap),
+  `hypothesis()` (Wald/profile/bootstrap, with natural-scale
+  `sd_`/`cor_` names for ICC-type quantities), `anova()` LRTs and
+  `drop1()`, `frm_bootstrap()`, `influence()` with
+  `cooks.distance()`/`dfbetas()`, `frm_allfit()`, `frm_multiple()`
+  (Rubin pooling, including variance components and hypotheses).
+- Simulation both ways: `simulate()` from a fit, and
+  `frm_simulate()` from a bare design with natural-scale parameters
+  (`sd_g__Intercept = 0.7`) or with parameters drawn from
+  `set_prior()` specifications per replicate - the
+  `sample_prior = "only"` prior-predictive workflow, without MCMC.
 - Post-hoc NUTS on the fitted objective: `frm_sample()` with a full
   draws method surface (`posterior_epred()`, `posterior_predict()`,
   `hypothesis()`, `pp_check()`) and `check_laplace()` to audit the
   approximation.
-- Diagnostics: OSA residuals, DHARMa, `pp_check()`, `plot()`,
+- Diagnostics: one-step-ahead residuals calibrated for censored,
+  truncated, and ordinal responses; deviance residuals across the
+  GLM families; response-scale `se.fit` for every family through the
+  joint delta method; DHARMa, `pp_check()`, `plot()`,
   `conditional_effects()`; ecosystem hooks for emmeans,
   marginaleffects, and insight/easystats.
 
@@ -107,6 +130,15 @@ structural dead ends elsewhere - random effects in any distributional
 parameter, nonlinear predictors, per-response families, monotonic
 effects, in-model imputation, latent-class mixtures, custom families
 without C++ or Stan code - into ordinary code paths.
+
+The architecture also sidesteps long-standing open issues in the
+reference packages: zero prior weights are exactly equivalent to
+subsetting, nonlinear-model standard errors match nlme where
+`nlmer`'s are orders of magnitude off, crossed grouping `(1 | a*b)`
+and call-valued grouping factors `(1 | factor(x))` work, tensor
+smooths match mgcv where glmmTMB has none, REML predictions agree
+with `fixef()`, and lme4's penalized-IRLS pathologies are
+structurally absent (the audit lives in `dev/test-backlog.md`).
 
 Related work: [glmmTMB](https://glmmtmb.github.io/glmmTMB/) (fixed
 likelihood, C++ TMB; frmtmb matches its fits where the models
