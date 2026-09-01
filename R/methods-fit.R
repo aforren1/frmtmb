@@ -5,7 +5,14 @@
 # by lp$idx valid; mapped-out entries get SE = NA.
 par_est_se <- function(fit) {
   est <- fit$estimates
-  se <- as.list(sdr_of(fit), what = "Std. Error")
+  # A degenerate fit (no free outer parameters, no random effects) gives
+  # sdreport an empty summary, and as.list() has no rows to reshape
+  degenerate <- !length(fit$opt$par) && !length(fit$obj$env$random)
+  se <- if (degenerate) {
+    lapply(est, function(v) rep(NA_real_, length(v)))
+  } else {
+    as.list(sdr_of(fit), what = "Std. Error")
+  }
   if (length(fit$frame$betad_fixed_idx)) {
     se$betad[fit$frame$betad_fixed_idx] <- NA_real_
   }

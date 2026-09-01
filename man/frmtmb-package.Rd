@@ -8,6 +8,15 @@
 \description{
 Fits regression models specified with a 'brms'-style formula grammar by maximum likelihood, with the Laplace approximation for random effects. Model objectives are generated as R closures and differentiated with 'RTMB', so no compilation happens at run time. Supports 'lme4'-style random effects with structured covariances, distributional regression, smooths, Gaussian processes, nonlinear formulas, multivariate models, finite mixtures, and in-model imputation of missing predictors.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://aforren1.github.io/frmtmb/}
+  \item \url{https://github.com/aforren1/frmtmb}
+  \item Report bugs at \url{https://github.com/aforren1/frmtmb/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Alex Forrence \email{alex.forrence@gmail.com}
 

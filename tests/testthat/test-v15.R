@@ -67,9 +67,12 @@ test_that("spatial exp/gau/mat covstructs work over num_factor(x, y)", {
   # at least as good as the exponential special case region
   expect_true(is.finite(as.numeric(logLik(fm))))
   expect_gte(as.numeric(logLik(fm)) - as.numeric(logLik(fe)), -0.5)
-  # exp() the covstruct did not shadow exp() the function
+  # exp() the covstruct did not shadow exp() the function; grp has one
+  # level here, so the scalar term really is degenerate and the
+  # check_nlev_1 warning is correct - it is just not what is under test
   fx <- frm(bf(y ~ exp(as.numeric(pos) / 25) + (1 | grp)) + gaussian(),
-            data = sp)
+            data = sp,
+            control = frmtmb_control(check_nlev_1 = "ignore"))
   expect_length(fixef(fx)$mu, 2L)
 })
 

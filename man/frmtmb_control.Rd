@@ -12,6 +12,8 @@ frmtmb_control(
   profile = FALSE,
   sparse_x = FALSE,
   autoscale = FALSE,
+  check_nlev_1 = c("warning", "ignore", "stop"),
+  check_olre = c("warning", "ignore", "stop"),
   verbose = NULL
 )
 }
@@ -71,6 +73,26 @@ are never touched, and the whole step is a silent no-op when
 nothing qualifies. Compatible with \code{profile = TRUE}. Under
 \code{priors} or bounds, the first stage applies them to the scaled
 coefficients; the second stage is the fit that is reported.}
+
+\item{check_nlev_1}{What to do about a scalar random-effect term
+whose grouping factor has a single level: \code{"warning"} (default),
+\code{"ignore"}, or \code{"stop"}, following lme4's \code{lmerControl()} check
+vocabulary. Such a term has no variance to estimate - the single
+level is absorbed by the intercept - and its standard deviation
+collapses to zero. Structured blocks over several terms per level
+(\code{ar1()}, \code{us()}, the spatial covariance structures) are never
+flagged: one grouping level there is a single realization of a
+field, which is the normal way to write them.}
+
+\item{check_olre}{What to do about an observation-level random
+effect - one level per row - on a gaussian, student or lognormal
+response: \code{"warning"} (default), \code{"ignore"}, or \code{"stop"}. Its
+variance is confounded with the residual standard deviation, so
+only their sum is identified and the split between them is
+arbitrary. The check is skipped when \code{sigma} is not free to absorb
+it - a \code{se()} response or a constant \code{sigma} - which is the
+random-effects meta-analysis, and for discrete families, where an
+observation-level term is the usual overdispersion model.}
 
 \item{verbose}{Report fit progress through \code{\link[=message]{message()}}, one terse
 line per stage with its elapsed seconds, so a slow fit shows where

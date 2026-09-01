@@ -91,8 +91,7 @@ frmtmb_compat_groups_lst <- list(
                "compois", "binomial", "bernoulli", "beta_binomial",
                "zero_inflated_poisson", "zero_inflated_negbinomial",
                "zero_inflated_binomial", "hurdle_poisson"),
-  no_simulator = c("tweedie", "compois", "hurdle_poisson", "cumulative",
-                   "sratio", "cratio", "acat", "multinomial"),
+  no_simulator = c("tweedie", "compois", "hurdle_poisson"),
   matrix_response = c("multinomial"),
   trials_families = c("binomial", "beta_binomial",
                       "zero_inflated_binomial", "multinomial"),
@@ -347,6 +346,8 @@ frmtmb_compat_rules_tbl <- function() {
   r("trials()", "group:trials_families", "works", "")
   r("trials()", "multinomial", "conditional",
     "Required. The row sums of the response matrix must equal the trials.")
+  r("trials()", "binomial", "works",
+    "Also accepted as the glm spelling cbind(successes, failures), which is rewritten to successes | trials(successes + failures); the two fits are identical. The two spellings cannot be combined.")
 
   ## vint() and vreal() --------------------------------------------------
   r("vint()", "*", "untested",
@@ -489,6 +490,10 @@ frmtmb_compat_rules_tbl <- function() {
     "The family supplies a simulator.")
   r("simulate", "group:no_simulator", "refused",
     "Refused: this family has no simulator yet.")
+  r("simulate", "group:ordinal", "works",
+    "Draws come back as an ordered factor carrying the response's own levels, not as 1..K codes.")
+  r("simulate", "multinomial", "works",
+    "Draws come back as an n x K count matrix carrying the response's column names; needs trials().")
   r("residuals_osa", "kind:family", "conditional",
     "One-step-ahead residuals need the family to register its observation through OBS().")
   r("residuals_osa", "group:ordinal", "works",

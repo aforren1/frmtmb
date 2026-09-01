@@ -1408,9 +1408,11 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     } else {
       object$estimates[["b"]]
     }
-    dp <- eval_dpars(object, b = b_use)[[rspec$resp_name]]
+    dp <- with_cs_offsets(object, rspec, eval_dpars(object,
+                                                    b = b_use))
+    dp <- dp[[rspec$resp_name]]
     out[[s]] <- if (is.null(mg)) {
-      sim_response(fam, dp, av, n)
+      sim_response(fam, dp, av, n, extra = fit_extras(object))
     } else {
       # latent-class mixture: one class draw per group, then each
       # observation simulates from its group's component
@@ -1437,7 +1439,66 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     if (!is.null(cwin)) out[[s]] <- apply_censoring(out[[s]], cwin)
   }
   names(out) <- paste0("sim_", seq_len(nsim))
-  out <- as.data.frame(out)
+  out <- lapply(out, function(v) sim_restore_type(object, rspec, v))
+  out <- sim_as_data_frame(out)
   attr(out, "seed") <- rng_state
   out
+}
+
+# Extra (non-dpar) parameters of a fit, in the shape the family's
+# simulator expects: ordinal thresholds, category-specific coefficients.
+fit_extras <- function(fit) {
+  nms <- fit$frame$extra_names %||% character(0)
+  if (!length(nms)) return(NULL)
+  fit$estimates[nms]
+}
+
+# cs(x) contributes an n x (K-1) matrix of threshold-specific offsets.
+# The objective builds it on the tape; eval_dpars() has no reason to,
+# so add it here for the ordinal simulators that consume it.
+with_cs_offsets <- function(fit, rspec, dpv) {
+  for (lp in fit$frame$linpreds) {
+    if (!length(lp$cs %||% list())) next
+    CS <- 0
+    for (ct in lp$cs) {
+      CS <- CS + outer(ct$vals, fit$estimates[[ct$par]])
+    }
+    dpv[[lp$resp]][[".cs"]] <- CS
+  }
+  dpv
+}
+
+# simulate() hands draws back in the response's own type: an ordered
+# factor for an ordinal fit (the 1..K codes mean nothing without the
+# levels) and a matrix for a matrix response. na.exclude fits pad back
+# to the original row count, the same contract fitted() and residuals()
+# keep. [glmmTMB test-simulate.R; lme4#737]
+sim_restore_type <- function(fit, rspec, v) {
+  lv <- fit$frame$y_levels[[rspec$resp_name]]
+  if (!is.null(lv)) {
+    v <- factor(lv[v], levels = lv, ordered = TRUE)
+  } else if (is.matrix(v)) {
+    yv <- fit$frame$y[[rspec$resp_name]]
+    if (is.matrix(yv) && !is.null(colnames(yv))) colnames(v) <- colnames(yv)
+  }
+  napred(fit, v)
+}
+
+# A matrix response needs a data frame whose COLUMNS are matrices (the
+# lme4 convention); the default as.data.frame() would flatten each draw
+# into one column per category.
+sim_as_data_frame <- function(out) {
+  if (!is.matrix(out[[1L]])) return(as.data.frame(out))
+  df <- data.frame(row.names = seq_len(nrow(out[[1L]])))
+  for (nm in names(out)) df[[nm]] <- out[[nm]]
+  df
+}
+
+# Drop the rows napredict() padded back in, for the internal consumers
+# that work in fitted-row space (bootstrap refits, DHARMa, pp_check).
+na_unpad <- function(fit, x) {
+  na <- fit$frame$na_action
+  if (is.null(na) || !inherits(na, "exclude")) return(x)
+  idx <- unclass(na)
+  if (is.matrix(x) || is.data.frame(x)) x[-idx, , drop = FALSE] else x[-idx]
 }

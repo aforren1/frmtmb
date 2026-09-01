@@ -509,7 +509,9 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
       draw_b(shim)
     }
     dp <- eval_dpars(shim, b = b_use)[[rspec$resp_name]]
-    out[[s]] <- sim_response(rspec$family, dp, av, n)
+    ex <- frame$extra_names %||% character(0)
+    out[[s]] <- sim_response(rspec$family, dp, av, n,
+                             extra = if (length(ex)) est_s[ex])
   }
   names(out) <- paste0("sim_", seq_len(nsim))
   out <- as.data.frame(out)

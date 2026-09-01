@@ -238,7 +238,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         avc <- ce_aterms(rspec, nd, cset, n)
         # sim_response(), not fam$sim(): trunc() bounds are respected by
         # rejection, as everywhere else responses are drawn
-        sims <- replicate(ndraws, sim_response(fam, dpv, avc, n))
+        sims <- replicate(ndraws, sim_response(fam, dpv, avc, n,
+                                               extra = fit_extras(x)))
         # the point estimate moves onto the response scale the bands
         # live on: a binomial band is a count, not a probability, and a
         # truncated band is centered on the truncated mean
@@ -399,7 +400,8 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   if (is.matrix(y)) {
     stop("pp_check() supports vector responses", call. = FALSE)
   }
-  yrep <- t(as.matrix(simulate(object, nsim = ndraws, re.form = re.form)))
+  yrep <- t(as.matrix(na_unpad(
+    object, simulate(object, nsim = ndraws, re.form = re.form))))
   fun <- get(paste0("ppc_", type), envir = asNamespace("bayesplot"))
   fun(as.numeric(y), yrep, ...)
 }

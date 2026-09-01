@@ -94,6 +94,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   frame <- assemble_frame(spec, data, na.action = na.action,
                           sparse_x = isTRUE(control$sparse_x))
   if (vb) vb_stage("frame", t0, vb_frame_detail(frame))
+  check_re_structure(spec, frame, control)
   if (identical(dry_run, "frame")) return(frame)
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
@@ -350,7 +351,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     ctl_opt$optCtrl <- vb_trace_ctrl(control$optCtrl, control$optimizer)
   }
   if (is.null(integrate)) {
-    opt <- optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb)
+    opt <- nl_start_context(spec, start,
+                            optimize_obj(obj, ctl_opt, bounds, par_units,
+                                         verbose = vb))
   } else {
     qf <- quad_fit(nll, template, random, frame$map, integrate, lap_obj,
                    ctl_opt, bounds, par_units, vb)
@@ -590,6 +593,24 @@ sdr_of <- function(fit) {
 #'   nothing qualifies. Compatible with `profile = TRUE`. Under
 #'   `priors` or bounds, the first stage applies them to the scaled
 #'   coefficients; the second stage is the fit that is reported.
+#' @param check_nlev_1 What to do about a scalar random-effect term
+#'   whose grouping factor has a single level: `"warning"` (default),
+#'   `"ignore"`, or `"stop"`, following lme4's `lmerControl()` check
+#'   vocabulary. Such a term has no variance to estimate - the single
+#'   level is absorbed by the intercept - and its standard deviation
+#'   collapses to zero. Structured blocks over several terms per level
+#'   (`ar1()`, `us()`, the spatial covariance structures) are never
+#'   flagged: one grouping level there is a single realization of a
+#'   field, which is the normal way to write them.
+#' @param check_olre What to do about an observation-level random
+#'   effect - one level per row - on a gaussian, student or lognormal
+#'   response: `"warning"` (default), `"ignore"`, or `"stop"`. Its
+#'   variance is confounded with the residual standard deviation, so
+#'   only their sum is identified and the split between them is
+#'   arbitrary. The check is skipped when `sigma` is not free to absorb
+#'   it - a `se()` response or a constant `sigma` - which is the
+#'   random-effects meta-analysis, and for discrete families, where an
+#'   observation-level term is the usual overdispersion model.
 #' @param verbose Report fit progress through [message()], one terse
 #'   line per stage with its elapsed seconds, so a slow fit shows where
 #'   the time went. `FALSE` (default) is silent and costs nothing.
@@ -615,13 +636,79 @@ frmtmb_control <- function(optimizer = "nlminb",
                            optCtrl = list(iter.max = 1000, eval.max = 1000),
                            restarts = 1, grad_tol = 1e-3,
                            profile = FALSE, sparse_x = FALSE,
-                           autoscale = FALSE, verbose = NULL) {
+                           autoscale = FALSE,
+                           check_nlev_1 = c("warning", "ignore", "stop"),
+                           check_olre = c("warning", "ignore", "stop"),
+                           verbose = NULL) {
   # verbose stays NULL when unset, which is how frm(verbose =) knows an
   # explicit control value must win over its own shortcut
   list(optimizer = optimizer, optCtrl = optCtrl, restarts = restarts,
        grad_tol = grad_tol, profile = isTRUE(profile),
        sparse_x = isTRUE(sparse_x), autoscale = isTRUE(autoscale),
+       check_nlev_1 = match.arg(check_nlev_1),
+       check_olre = match.arg(check_olre),
        verbose = verbose)
+}
+
+# lme4's lmerControl runs a battery of structural checks before the fit
+# and gives each one an ignore/warning/stop setting; these are the two
+# that change what a frmtmb fit MEANS rather than how fast it runs.
+# Both currently fit silently to an answer the user did not ask for.
+# [lme4 lmerControl checks]
+re_check_act <- function(what, msg) {
+  switch(what %||% "warning",
+         ignore = invisible(NULL),
+         stop = stop(msg, call. = FALSE),
+         warning(msg, call. = FALSE))
+}
+
+check_re_structure <- function(spec, frame, control) {
+  gaussian_like <- c("gaussian", "student", "lognormal")
+  for (bk in frame$re_blocks) {
+    # smooth / gp / hsgp blocks carry a synthetic n_levels of 1 and no
+    # grouping levels at all; only real grouping factors are checked
+    if (is.null(bk$levels)) next
+    # A structured block over several terms per level (ar1, us, the
+    # spatial covstructs) is a single realization of a field, and one
+    # group level is the normal way to write it; only a SCALAR term
+    # loses its variance to a single level.
+    if (bk$n_levels == 1L && bk$dim == 1L) {
+      re_check_act(
+        control$check_nlev_1,
+        paste0("Grouping factor '", bk$group_name, "' in `",
+               bk$term_label, "` has a single level, so its variance is ",
+               "not identified and collapses to zero. Drop the term (it ",
+               "is absorbed by the intercept), or set ",
+               "frmtmb_control(check_nlev_1 = \"ignore\")"))
+      next
+    }
+    lp <- frame$linpreds[[bk$components[[1L]]$lp_key]]
+    resp <- spec$responses[[lp$resp]]
+    fam <- resp$family
+    if (is.null(fam)) next
+    # se() supplies the residual sd row by row and a constant dpar pins
+    # it outright; either way sigma is no longer free to absorb the
+    # observation-level variance, so the two are identified. That is
+    # exactly the random-effects meta-analysis, where the
+    # observation-level term IS the between-study variance.
+    sigma_free <- is.null(resp$aterms$se) &&
+      is.null(frame$linpreds[[linpred_key(lp$resp, "sigma")]]$constant)
+    if (sigma_free && bk$n_levels == frame$n_obs && bk$dim == 1L &&
+        fam$family %in% gaussian_like &&
+        bk$dpar %in% (fam$primary_dpars %||% "mu")) {
+      re_check_act(
+        control$check_olre,
+        paste0("`", bk$term_label, "` gives every observation its own ",
+               "random effect, and for a ", fam$family, " response that ",
+               "variance is confounded with the residual sd: only their ",
+               "sum is identified, so the split between them is ",
+               "arbitrary. Observation-level random effects are ",
+               "meaningful for discrete families (overdispersion), not ",
+               "here. Set frmtmb_control(check_olre = \"ignore\") to ",
+               "keep it"))
+    }
+  }
+  invisible(NULL)
 }
 
 # One optimizer invocation, normalized to nlminb's result shape.
@@ -665,6 +752,18 @@ optimize_obj <- function(obj, control,
                          bounds = list(lower = -Inf, upper = Inf),
                          par_units = NULL, verbose = 0L) {
   optimizer <- control$optimizer %||% "nlminb"
+  # A model with no free outer parameters - every dpar pinned by a
+  # constant and every design zero-column, e.g. y | trials(n) ~ 0 - is
+  # already at its optimum. nlminb's PORT front end rejects the empty
+  # start vector with "'d' must be a nonempty numeric (double) vector",
+  # which names nothing the user wrote, so evaluate the template
+  # instead and report a converged degenerate fit. [glmmTMB#1325, #1317]
+  if (!length(obj$par)) {
+    if (verbose) vb_say("no free parameters; evaluating the template")
+    return(list(par = obj$par, objective = as.numeric(obj$fn(obj$par)),
+                convergence = 0L,
+                message = "no free parameters (degenerate model)"))
+  }
   if (verbose) t0 <- vb_now()
   opt <- run_optimizer(optimizer, obj$par, obj$fn, obj$gr,
                        bounds$lower, bounds$upper, control$optCtrl,
@@ -685,6 +784,35 @@ optimize_obj <- function(obj, control,
     if (opt2$objective <= opt$objective) opt <- opt2
   }
   opt
+}
+
+# A nonlinear model's coefficients have no data-driven starting values -
+# make_start() can only seed intercepts through a family's init_dpars,
+# and a nonlinear mu has no design of its own - so an nl fit begins at
+# zero, where most nonlinear forms are flat, singular, or undefined.
+# The optimizer then dies deep inside RTMB with a message that names
+# neither the model nor the remedy, so name `start=` here instead of
+# leaving the user to guess. [brms#734 doctrine]
+nl_start_context <- function(spec, start, expr) {
+  nl <- any(vapply(spec$responses,
+                   function(r) length(r$nlpars) > 0L, TRUE))
+  if (!nl || !is.null(start)) return(expr)
+  withCallingHandlers(
+    tryCatch(expr, error = function(e) {
+      stop("The nonlinear fit failed from the default zero starting ",
+           "values (", conditionMessage(e), "). Nonlinear models need ",
+           "starting values in the right region: supply them with the ",
+           "`start` argument of frm(), e.g. start = list(beta = c(...)) ",
+           "in the order of fixef(); frm(..., dry_run = \"frame\"",
+           ")$par_template shows the layout", call. = FALSE)
+    }),
+    warning = function(w) {
+      # nlminb's own "NA/NaN function evaluation" is the optimizer
+      # noticing the same undefined objective the error below names;
+      # letting both through would report the failure twice
+      if (grepl("NA/NaN", conditionMessage(w))) invokeRestart("muffleWarning")
+    }
+  )
 }
 
 make_start <- function(frame, start) {
@@ -721,14 +849,23 @@ check_convergence <- function(fit, control) {
   # report how many diagnostics the fit raised
   msgs <- character(0)
   if (fit$opt$convergence != 0) {
+    # a nonlinear model that started at zero is the likeliest cause, and
+    # `start` is the only lever, so name it here [brms#734]
+    nl_hint <- if (any(vapply(fit$spec$responses,
+                              function(r) length(r$nlpars) > 0L, TRUE))) {
+      paste0(". This is a nonlinear model; if you did not set `start`, ",
+             "the fit began at zero, which is rarely in the right region")
+    } else ""
     msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
-                           fit$opt$message))
+                           fit$opt$message, nl_hint))
   }
   # under autoscale the gradient is judged in the same natural units
   # the optimizer used (a 1e6-scale column bounds its coefficient's
   # absolute gradient near machine noise times 1e6)
-  g <- try(max(abs(fit$obj$gr(fit$opt$par) * (fit$par_units %||% 1))),
-           silent = TRUE)
+  g <- if (!length(fit$opt$par)) NA_real_ else {
+    try(max(abs(fit$obj$gr(fit$opt$par) * (fit$par_units %||% 1))),
+        silent = TRUE)
+  }
   if (inherits(g, "try-error")) g <- NA_real_
   if (is.finite(g) && g > control$grad_tol) {
     msgs <- c(msgs, paste0("Large maximum absolute gradient at the ",

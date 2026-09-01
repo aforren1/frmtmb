@@ -22,8 +22,16 @@ dharma_residuals <- function(fit, nsim = 250, re.form = NULL,
     stop("dharma_residuals() needs the 'DHARMa' package", call. = FALSE)
   }
   rspec <- uni_resp(fit, "dharma_residuals()")
-  sims <- as.matrix(simulate(fit, nsim = nsim, seed = seed,
-                             re.form = re.form))
+  if (identical(rspec$family$type, "ordinal")) {
+    stop("dharma_residuals() has no ordinal support: DHARMa's rank ",
+         "transform needs a response on a numeric scale, and an ordinal ",
+         "response has only an order. Use residuals(type = \"osa\") ",
+         "instead", call. = FALSE)
+  }
+  # DHARMa works in fitted-row space, so the na.exclude padding
+  # simulate() adds has to come back off
+  sims <- as.matrix(na_unpad(fit, simulate(fit, nsim = nsim, seed = seed,
+                                           re.form = re.form)))
   DHARMa::createDHARMa(
     simulatedResponse = sims,
     observedResponse = fit$frame$y[[rspec$resp_name]],

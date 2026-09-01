@@ -121,7 +121,11 @@ extract_y <- function(resp, mf) {
   if (is.null(y)) {
     y <- eval(resp$resp_expr, mf, resp$formula_env)
   }
+  lv <- NULL
   if (is.factor(y) && identical(resp$family$type, "ordinal")) {
+    # the codes carry no meaning without the labels, and simulate() has
+    # to hand draws back in the response's own type
+    lv <- levels(y)
     y <- as.numeric(y)   # category codes 1..K in level order
   } else if (is.factor(y)) {
     if (!identical(resp$family$family, "binomial") || nlevels(y) != 2L) {
@@ -143,6 +147,8 @@ extract_y <- function(resp, mf) {
     stop("Non-finite (Inf/NaN) values in the response are not allowed",
          call. = FALSE)
   }
+  # attached last: the numeric coercions above drop attributes
+  if (!is.null(lv)) attr(y, "y_levels") <- lv
   y
 }
 
@@ -343,6 +349,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   })
 
   y <- list()
+  y_levels <- list()
   aterm_values <- list()
   extras <- list()
   mi_map <- list()   # per mi() response: missing rows + miss indices
@@ -350,7 +357,25 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   miss_init <- numeric(0)
   mix_g <- list()    # per response: latent-class grouping structure
   for (resp in spec$responses) {
-    y[[resp$resp_name]] <- extract_y(resp, mf)
+    # A name that is both a nonlinear parameter and a data column is
+    # ambiguous, and the nonlinear body resolves it to the PARAMETER,
+    # silently ignoring the column - the fit runs and reports numbers
+    # for a model the user did not write. Refuse rather than document a
+    # precedence nobody would remember. [brms#391, #734]
+    if (length(resp$nlpars)) {
+      clash <- intersect(resp$nlpars, names(data))
+      if (length(clash)) {
+        stop("Nonlinear parameter(s) ",
+             paste0("'", clash, "'", collapse = ", "),
+             " also name columns of the data. The nonlinear formula ",
+             "would use the parameter and ignore the column; rename ",
+             "one of them", call. = FALSE)
+      }
+    }
+    yv0 <- extract_y(resp, mf)
+    y_levels[[resp$resp_name]] <- attr(yv0, "y_levels")
+    attr(yv0, "y_levels") <- NULL   # nothing on the tape carries labels
+    y[[resp$resp_name]] <- yv0
     at_names <- setdiff(names(resp$aterms),
                         c("cens_y2", "se_sigma", "mi"))
     av <- stats::setNames(lapply(at_names, function(nm_at) {
@@ -490,6 +515,18 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
       if (any(av$se <= 0)) {
         stop("se() values must be positive", call. = FALSE)
+      }
+    }
+    # cbind(successes, failures) reaches here already rewritten to
+    # successes + trials(successes + failures); a fractional failure
+    # count would otherwise surface as the generic "response must be
+    # integer counts in [0, trials]" message, which names neither
+    # column. [glmmTMB#1319]
+    if (isTRUE(resp$cbind_resp)) {
+      fails <- av$trials - y[[resp$resp_name]]
+      if (any(fails < 0) || any(fails != round(fails))) {
+        stop("cbind(successes, failures): the failure column must hold ",
+             "non-negative integer counts", call. = FALSE)
       }
     }
     # glm/glmer compatibility: a proportion response with trials()
@@ -1239,7 +1276,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   }
 
   structure(
-    list(spec = spec, n_obs = n, y = y, aterm_values = aterm_values,
+    list(spec = spec, n_obs = n, y = y, y_levels = y_levels,
+         aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
          n_c = n_c, has_rr = has_rr, mi_map = mi_map, mix_g = mix_g,
          par_template = par_template, map = map,
