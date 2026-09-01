@@ -426,6 +426,16 @@ solved_par_list <- function(obj, par) {
   obj$env$parList(par)
 }
 
+# Which of two quadrature candidates quad_fit() keeps. A stationary one
+# wins outright (the loop stops there); among non-stationary ones the
+# lowest objective is the best point reached, not the first that
+# happened to tape and optimize without breaking.
+quad_keep_best <- function(best, a) {
+  if (is.null(a) || is.null(a$obj)) return(best)
+  if (isTRUE(a$stationary)) return(a)
+  if (is.null(best) || a$opt$objective < best$opt$objective) a else best
+}
+
 # Build and optimize the Gauss-Kronrod (integrate=) objective.
 #
 # TMBad's marginal_gk transform rescales each integrand ONCE: it finds
@@ -457,7 +467,8 @@ solved_par_list <- function(obj, par) {
 #    tape again at the best point reached and carry on, and to keep the
 #    cold template as a last anchor when the Laplace optimum is the bad
 #    one. Each candidate costs a tape, so they are tried in order and
-#    the first stationary result wins.
+#    the first stationary result wins; if none is stationary the
+#    candidate with the lowest objective does.
 quad_fit <- function(nll, template, random, map, integrate, lap_obj,
                      control, bounds, par_units, vb = 0L, rounds = 3L) {
   if (vb) t0 <- vb_now()
@@ -499,10 +510,8 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
   cold_left <- TRUE
   for (i in seq_len(rounds)) {
     a <- attempt(tpl)
-    if (!is.null(a) && !is.null(a$obj)) {
-      if (is.null(best) || a$stationary) best <- a
-      if (a$stationary) break
-    }
+    best <- quad_keep_best(best, a)
+    if (!is.null(a) && isTRUE(a$stationary)) break
     nxt <- if (!is.null(a) && !is.null(a$retry)) {
       # the frozen rescaling expired where the optimizer walked to:
       # tape again at the best point it managed

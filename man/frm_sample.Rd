@@ -28,7 +28,9 @@ added; the ML fit itself is unchanged.}
 
 \item{lower, upper}{Optional named numeric vectors of hard bounds on
 outer parameters (brms \code{lb}/\code{ub}), applied on the internal scale
-through Stan's constrained transforms.}
+through Stan's constrained transforms. Chain starting values are
+clamped strictly inside the bounds; a bound that excludes the ML
+mode itself warns, because the chains then no longer start there.}
 
 \item{init}{Initialization; the default starts chain 1 exactly at
 the ML mode and every further chain at the mode plus a normal

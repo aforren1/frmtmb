@@ -77,6 +77,14 @@ size follow the saturated mean is not a deviance (the difference goes
 negative). \code{trunc()}ed and \code{cens()}ed responses are refused as well,
 because the fitted likelihood there is not the family's own density.
 
+A gaussian response with \code{se()} has no common dispersion for a raw
+squared residual to be measured against, so the known variance
+enters as a glm prior weight \code{sigma^2 / s_i^2} on top of \code{w}, where
+\code{s_i} is the row's residual sd (the quantity \code{"pearson"} divides
+by). Without \code{se()} that weight is 1 and nothing changes; \code{se(x)}
+alone maps \code{sigma} out at 1, leaving the familiar \code{1 / se_i^2} of a
+known-variance weighted fit.
+
 In a mixed model the residuals are conditional on the random-effect
 modes, the glmmTMB convention: \code{E[Y]} is \code{\link[=fitted]{fitted()}}, not the
 population-level mean.
