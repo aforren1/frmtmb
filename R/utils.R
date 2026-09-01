@@ -56,6 +56,24 @@ parse_num_levels <- function(lv) {
   out
 }
 
+# Invert the joint precision of a REML / profile fit.
+#
+# The ML branch of vcov() reads an already-inverted cov.fixed, which
+# sdreport fills with NaN when the Hessian is singular; inverting by
+# hand here would instead throw a raw LAPACK message that names neither
+# the model nor the remedy. Degrade the same way ML does: NaN entries
+# plus one warning pointing at diagnose().
+solve_joint_precision <- function(Q) {
+  V <- try(solve(Q), silent = TRUE)
+  if (!inherits(V, "try-error")) return(V)
+  warning("The joint precision matrix is singular, so standard errors ",
+          "are NaN; the model is probably overparameterized. ",
+          "diagnose() names the offending parameter; see the ",
+          "'Convergence problems' section of vignette('diagnostics')",
+          call. = FALSE)
+  matrix(NaN, nrow(Q), ncol(Q), dimnames = dimnames(Q))
+}
+
 # One string key per coordinate row, used to match gp() prediction
 # positions against fitted positions. Defined once so frame assembly
 # and kriging can never disagree on the separator.

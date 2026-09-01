@@ -228,7 +228,7 @@ vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
     V <- V[ord, ord, drop = FALSE]
   } else {
     Q <- sdr_of(object)$jointPrecision
-    Vall <- solve(Q)
+    Vall <- solve_joint_precision(Q)
     rn <- rownames(Q)
     ord <- c(which(rn == "beta"), which(rn == "betad"))
     V <- as.matrix(Vall[ord, ord, drop = FALSE])

@@ -149,6 +149,13 @@ Low severity, but the two paths behave differently for the same
 condition and the message names neither the model nor `diagnose()`.
 The second case fitted without any convergence warning.
 
+**Fixed.** `solve_joint_precision()` (`R/utils.R`) wraps the inversion:
+a singular precision now yields `NaN` standard errors plus one warning
+naming `diagnose()` and `vignette('diagnostics')`, matching the ML
+branch. `hyp_par_cov()` (`R/confint.R`) carried the same raw solve and
+uses the wrapper too, so `confint()` and `hypothesis()` degrade the
+same way. Regression test in `tests/testthat/test-osa-inference.R`.
+
 ### N5. `logLik` moves 2.1e-06 under a row permutation (marginal)
 
 1 finding (`row_permutation`), `family=negbinomial aterm=weights
@@ -157,6 +164,24 @@ identical after undoing the permutation, and neither fit warned, so
 this is not a design-assembly problem; it is the autoscale pre-fit
 landing a hair away from the same optimum. Recorded because it clears
 the stated 1e-6 threshold, not because it looks like a defect.
+
+**Not a defect; closed.** Reproduced on clean `negbinomial + weights()
++ ar1()` data (gap 2.136e-06, the same magnitude). Three observations
+settle it:
+
+- The standardization constants are bit-identical under the
+  permutation (`sd(x)` and `mean(x)` differ by exactly 0), so
+  `autoscale_plan()` is not the source.
+- Dropping `autoscale` entirely leaves a gap of -5.26e-06 on the same
+  pair, i.e. **larger**. The finding is a property of the ar1 x
+  negbinomial surface, not of the two-stage warm start.
+- Tightening `nlminb`'s `rel.tol`/`x.tol` to 1e-12 does not move the
+  gap. The maximum absolute gradient at the two reported optima is
+  1.9e-04 and 1.3e-04; a quadratic with that gradient sits about 1e-06
+  above the true optimum, which is exactly the observed spread.
+
+The invariant's 1e-6 threshold is simply tighter than the optimizer's
+own convergence on a flat correlated-count surface. No code change.
 
 ---
 
@@ -216,6 +241,8 @@ is Bernoulli; brms requires `trials()` or `bernoulli()`. The divergence
 is in the permissive direction, so brms code ports to frmtmb
 unchanged - the reverse does not. Worth a line in the migration
 vignette rather than a code change.
+
+**Documented.** `vignettes/brms-migration.Rmd`, "What changes".
 
 ---
 

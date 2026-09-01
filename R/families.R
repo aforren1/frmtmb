@@ -1103,6 +1103,47 @@ fam_exgaussian <- function(link = "identity") {
   )
 }
 
+# Exact 1{y == k} for k = 1..K built from arithmetic alone. RTMB
+# advectors carry no comparison operators, and oneStepPredict re-tapes
+# the objective with the response promoted to a parameter, which is what
+# breaks the indexing forms below. At integer y this Lagrange basis is
+# exact in floating point - off the diagonal one factor is exactly 0, on
+# it every factor is exactly 1 - so the taped path and the data path
+# agree bit for bit.
+# During oneStepPredict RTMB hands the response to the lpdf as an "osa"
+# object: the taped value in @x and the per-row data-term indicator in
+# @keep. RTMB's own densities apply the indicator through dGenericOSA,
+# so a hand-written lpdf has to do it itself or every observation stays
+# switched on and the one-step sequence collapses.
+osa_unwrap <- function(y) {
+  if (!methods::is(y, "osa")) return(NULL)
+  keep <- y@keep
+  if (ncol(keep) != 1L) {
+    stop("osa_method = \"cdf\" is not supported for this family",
+         call. = FALSE)
+  }
+  list(y = y@x, keep = keep[, 1])
+}
+
+ord_cat_sel <- function(y, K) {
+  lapply(seq_len(K), function(k) {
+    s <- 1
+    for (j in seq_len(K)) {
+      if (j != k) s <- s * ((y - j) / (k - j))
+    }
+    s
+  })
+}
+
+# 1{j < y} for j = 1..K-1, from the same basis.
+ord_cat_below <- function(sel, K) {
+  lapply(seq_len(K - 1L), function(j) {
+    b <- sel[[j + 1L]]
+    if (j + 1L < K) for (k in (j + 2L):K) b <- b + sel[[k]]
+    b
+  })
+}
+
 # Cumulative ordinal: response in 1..K (or an ordered factor). The linear
 # predictor has no intercept; K-1 ordered thresholds take its place,
 # parameterized as (tau_1, log increments) in `extra_pars`.
@@ -1126,6 +1167,17 @@ fam_cumulative <- function(link = "logit") {
       }
       eta <- dpars$mu
       K <- K1 + 1L
+      ov <- osa_unwrap(y)
+      if (!is.null(ov)) {
+        # OSA re-tape: pick the category probability arithmetically
+        sel <- ord_cat_sel(ov$y, K)
+        Fk <- lapply(seq_len(K1), function(k) Fcdf(tau[k] - eta))
+        dens <- sel[[1]] * Fk[[1]]
+        if (K1 > 1) {
+          for (k in 2:K1) dens <- dens + sel[[k]] * (Fk[[k]] - Fk[[k - 1]])
+        }
+        return(log(dens + sel[[K]] * (1 - Fk[[K1]])) * ov$keep)
+      }
       iK <- as.numeric(y == K)
       i1 <- as.numeric(y == 1)
       up <- Fcdf(tau[pmin(y, K1)] - eta) * (1 - iK) + iK
@@ -1170,6 +1222,22 @@ ord_eta_mat <- function(eta, tau, n, K1) {
   TM - eta   # column-wise recycling: row i is tau_j - eta_i
 }
 
+# Sequential (sratio/cratio) log-density with the response on the tape.
+# Column-at-a-time so nothing indexes an advector and nothing needs the
+# n x (K-1) matrices, which the data path builds for speed.
+ord_seq_lpdf_ad <- function(y, eta, tau, K1, cs, Fcdf, stopping) {
+  sel <- ord_cat_sel(y, K1 + 1L)
+  below <- ord_cat_below(sel, K1 + 1L)
+  out <- 0
+  for (j in seq_len(K1)) {
+    Mj <- tau[j] - eta
+    if (!is.null(cs)) Mj <- Mj - cs[, j]
+    Pj <- if (stopping) Fcdf(Mj) else 1 - Fcdf(-Mj)
+    out <- out + sel[[j]] * log(Pj) + below[[j]] * log(1 - Pj)
+  }
+  out
+}
+
 ord_valid_y <- function(name) {
   function(y, aterms) {
     if (any(y < 1) || any(y != round(y)) || length(unique(y)) < 2) {
@@ -1212,6 +1280,11 @@ fam_sratio <- function(link = "logit") {
       tau <- rep(raw[1], K1)
       if (K1 > 1) for (k in 2:K1) tau[k] <- tau[k - 1] + exp(raw[k])
       n <- length(y)
+      ov <- osa_unwrap(y)
+      if (!is.null(ov)) {
+        return(ord_seq_lpdf_ad(ov$y, dpars$mu, tau, K1, dpars$.cs, Fcdf,
+                               stopping = TRUE) * ov$keep)
+      }
       M <- ord_eta_mat(dpars$mu, tau, n, K1)
       if (!is.null(dpars$.cs)) M <- M - dpars$.cs
       ind <- ord_indicators(y, K1)
@@ -1239,6 +1312,11 @@ fam_cratio <- function(link = "logit") {
       tau <- extra$tau_raw
       K1 <- length(tau)
       n <- length(y)
+      ov <- osa_unwrap(y)
+      if (!is.null(ov)) {
+        return(ord_seq_lpdf_ad(ov$y, dpars$mu, tau, K1, dpars$.cs, Fcdf,
+                               stopping = FALSE) * ov$keep)
+      }
       M <- ord_eta_mat(dpars$mu, tau, n, K1)   # tau_j - eta
       if (!is.null(dpars$.cs)) M <- M - dpars$.cs
       ind <- ord_indicators(y, K1)
@@ -1271,6 +1349,23 @@ fam_acat <- function(link = "logit") {
       eta <- dpars$mu
       "c" <- RTMB::ADoverload("c")
       ct0 <- c(0, cumsum(tau))                 # length K
+      ov <- osa_unwrap(y)
+      if (!is.null(ov)) {
+        sel <- ord_cat_sel(ov$y, K)
+        acc <- 0 * eta
+        num <- 0
+        den <- 0
+        for (r in seq_len(K)) {
+          Er <- (r - 1) * eta - ct0[r]
+          if (!is.null(dpars$.cs) && r >= 2L) {
+            acc <- acc + dpars$.cs[, r - 1L]
+            Er <- Er + acc
+          }
+          num <- num + sel[[r]] * Er
+          den <- den + exp(Er)
+        }
+        return((num - log(den)) * ov$keep)
+      }
       # E[i, r] = (r-1) * eta_i - cumsum tau, r = 1..K; broadcast by
       # matmul (rep() strips the advector class)
       Rm <- matrix(rep(seq_len(K) - 1L, each = n), n, K)
