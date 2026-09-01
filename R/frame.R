@@ -157,6 +157,35 @@ sparse_maybe_deficient <- function(X) {
     min(d) < 1e-5 * max(d)
 }
 
+# Internal censoring codes, shared with brms: -1 left, 0 observed,
+# 1 right, 2 interval. The names are the accepted spellings.
+cens_code_map <- c(none = 0, left = -1, right = 1, interval = 2)
+
+# brms lets cens() carry spelled-out codes as well as numbers, and a
+# plain as.numeric() would turn those into NAs with only a coercion
+# warning, so decode before the numeric conversion the other addition
+# terms use. Prefix matching mirrors brms prepare_cens(); unlike brms
+# it is case-insensitive, because "Right" reads as a typo, not garbage.
+decode_cens <- function(v) {
+  if (is.factor(v)) v <- as.character(v)
+  if (!is.character(v)) return(as.numeric(v))
+  key <- tolower(trimws(v))
+  idx <- vapply(key, function(k) {
+    hit <- if (nzchar(k)) which(startsWith(names(cens_code_map), k)) else
+      integer(0)
+    if (length(hit) == 1L) hit else NA_integer_
+  }, integer(1L), USE.NAMES = FALSE)
+  bad <- unique(v[is.na(idx)])
+  if (length(bad)) {
+    stop("cens() cannot decode: ",
+         paste0("\"", bad, "\"", collapse = ", "),
+         "; use \"none\", \"left\", \"right\", or \"interval\" ",
+         "(any unambiguous prefix), or the codes 0, -1, 1, 2",
+         call. = FALSE)
+  }
+  unname(cens_code_map[idx])
+}
+
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE) {
   # One combined model frame holds every response, every variable of every
@@ -243,13 +272,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   mix_g <- list()    # per response: latent-class grouping structure
   for (resp in spec$responses) {
     y[[resp$resp_name]] <- extract_y(resp, mf)
-    av <- lapply(resp$aterms[setdiff(names(resp$aterms),
-                                     c("cens_y2", "se_sigma", "mi"))],
-                 function(a) {
+    at_names <- setdiff(names(resp$aterms),
+                        c("cens_y2", "se_sigma", "mi"))
+    av <- stats::setNames(lapply(at_names, function(nm_at) {
+      a <- resp$aterms[[nm_at]]
       v <- mf[[deparse1(a)]]
       if (is.null(v)) v <- eval(a, mf, resp$formula_env)
-      as.numeric(v)
-    })
+      if (nm_at == "cens") decode_cens(v) else as.numeric(v)
+    }), at_names)
     if (!is.null(resp$aterms$se_sigma)) {
       av$se_sigma <- resp$aterms$se_sigma   # logical flag, not data
     }
@@ -347,7 +377,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
       if (!is.null(av$cens) && !all(av$cens %in% c(-1, 0, 1, 2))) {
         stop("cens() codes must be -1 (left), 0 (observed), 1 (right), ",
-             "or 2 (interval)", call. = FALSE)
+             "or 2 (interval), or the matching names \"left\", \"none\", ",
+             "\"right\", \"interval\"; got: ",
+             paste(unique(av$cens[!av$cens %in% c(-1, 0, 1, 2)]),
+                   collapse = ", "), call. = FALSE)
       }
       if (!is.null(av$cens) && any(av$cens == 2)) {
         i2 <- av$cens == 2
