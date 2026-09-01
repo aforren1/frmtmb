@@ -21,7 +21,7 @@ variance components with few groups."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.26.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -102,7 +102,9 @@ added; the ML fit itself is unchanged.</p></dd>
 <dt id="arg-lower-upper">lower, upper<a class="anchor" aria-label="anchor" href="#arg-lower-upper"></a></dt>
 <dd><p>Optional named numeric vectors of hard bounds on
 outer parameters (brms <code>lb</code>/<code>ub</code>), applied on the internal scale
-through Stan's constrained transforms.</p></dd>
+through Stan's constrained transforms. Chain starting values are
+clamped strictly inside the bounds; a bound that excludes the ML
+mode itself warns, because the chains then no longer start there.</p></dd>
 
 
 <dt id="arg-init">init<a class="anchor" aria-label="anchor" href="#arg-init"></a></dt>

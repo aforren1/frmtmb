@@ -13,7 +13,7 @@ mislead.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.26.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -135,6 +135,13 @@ negative-binomial size at the fitted row's <code>mu / phi</code>; letting the
 size follow the saturated mean is not a deviance (the difference goes
 negative). <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>ed and <code>cens()</code>ed responses are refused as well,
 because the fitted likelihood there is not the family's own density.</p>
+<p>A gaussian response with <code>se()</code> has no common dispersion for a raw
+squared residual to be measured against, so the known variance
+enters as a glm prior weight <code>sigma^2 / s_i^2</code> on top of <code>w</code>, where
+<code>s_i</code> is the row's residual sd (the quantity <code>"pearson"</code> divides
+by). Without <code>se()</code> that weight is 1 and nothing changes; <code>se(x)</code>
+alone maps <code>sigma</code> out at 1, leaving the familiar <code>1 / se_i^2</code> of a
+known-variance weighted fit.</p>
 <p>In a mixed model the residuals are conditional on the random-effect
 modes, the glmmTMB convention: <code>E[Y]</code> is <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, not the
 population-level mean.</p>

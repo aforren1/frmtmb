@@ -9,7 +9,7 @@ is one of:"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.26.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,7 +59,9 @@ is one of:</p>
 <dl><dt id="arg-feature-a-feature-b">feature_a, feature_b<a class="anchor" aria-label="anchor" href="#arg-feature-a-feature-b"></a></dt>
 <dd><p>Feature names, as given by
 <code><a href="frm_compat_features.html">frm_compat_features()</a></code>. Supply both for one pair, one for every
-pair involving that feature, or neither for the whole table.</p></dd>
+pair involving that feature, or neither for the whole table. Both
+accept a vector, which gives every pair in the cross of the two
+sides; an empty vector is an error rather than an empty answer.</p></dd>
 
 
 <dt id="arg-status">status<a class="anchor" aria-label="anchor" href="#arg-status"></a></dt>
@@ -109,8 +111,8 @@ error was never evidence of support.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># one pair</span></span></span>
 <span class="r-in"><span><span class="fu">frm_compat</span><span class="op">(</span><span class="st">"rescor"</span>, <span class="st">"cens()"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   feature_a kind_a feature_b    kind_b  status</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1    cens()  aterm    rescor structure refused</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   feature_a    kind_a feature_b kind_b  status</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1    rescor structure    cens()  aterm refused</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                                        note</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 Refused. This pair was once accepted with the censoring silently dropped.</span>
 <span class="r-in"><span></span></span>

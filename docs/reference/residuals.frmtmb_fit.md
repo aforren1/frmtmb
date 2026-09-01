@@ -97,6 +97,13 @@ deviance (the difference goes negative).
 responses are refused as well, because the fitted likelihood there is
 not the family's own density.
 
+A gaussian response with `se()` has no common dispersion for a raw
+squared residual to be measured against, so the known variance enters as
+a glm prior weight `sigma^2 / s_i^2` on top of `w`, where `s_i` is the
+row's residual sd (the quantity `"pearson"` divides by). Without `se()`
+that weight is 1 and nothing changes; `se(x)` alone maps `sigma` out at
+1, leaving the familiar `1 / se_i^2` of a known-variance weighted fit.
+
 In a mixed model the residuals are conditional on the random-effect
 modes, the glmmTMB convention: `E[Y]` is
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html), not the

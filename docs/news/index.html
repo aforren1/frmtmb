@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.26.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.27.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,29 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.27.0" id="frmtmb-0270">frmtmb 0.27.0<a class="anchor" aria-label="anchor" href="#frmtmb-0270"></a></h2>
+<p>Fixes from a full review of the v0.22-v0.25 waves.</p>
+<div class="section level3">
+<h3 id="corrected-behavior-0-27-0">Corrected behavior<a class="anchor" aria-label="anchor" href="#corrected-behavior-0-27-0"></a></h3>
+<ul><li>
+<code>cens()</code> combined with <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> produced a silently wrong likelihood: the censoring contribution was not restricted to the truncation window (right-censoring now contributes (F(ub) - F(y))/Z), which inflated the dispersion by ~14% on the reference problem. The corrected objective matches a hand-rolled windowed likelihood to 1e-8, collapses exactly to the old form without truncation, and the cens+trunc OSA residuals recalibrate to the analytic PIT (5e-14).</li>
+<li>
+<code>residuals(type = "deviance")</code> under <code>se()</code> now weights each row’s unit deviance by its own variance (the glm prior-weight form) instead of treating a common dispersion as shared.</li>
+<li>
+<code>predict(se.fit = TRUE)</code> on quadrature fits no longer dies with a non-conformable error: it reports mode-conditional standard errors with a warning. Singular joint precisions in the predict path now degrade like <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> does, and the shared solver uses <code><a href="https://rdrr.io/pkg/Matrix/man/solve-methods.html" class="external-link">Matrix::solve</a></code> (strictly more robust for ill-conditioned but invertible GLMM precisions).</li>
+<li>
+<code><a href="../reference/frm_sample.html">frm_sample()</a></code> chain inits are clamped inside any bounds passed to Stan, with a warning naming the parameters when the ML mode itself violates a bound (previously an incomprehensible rstan error).</li>
+<li>
+<code>vint()</code>/<code>vreal()</code> variables are required in <code>newdata</code>; a custom family’s prediction previously returned a length-0 vector with no message when they were missing.</li>
+<li>Character censoring codes like “0”/“1”/“-1” decode (the error message had advertised them).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="compatibility-registry-and-fuzzer-0-27-0">Compatibility registry and fuzzer<a class="anchor" aria-label="anchor" href="#compatibility-registry-and-fuzzer-0-27-0"></a></h3>
+<ul><li>The registry’s precedence is redesigned (lexicographic comparison of sorted side specificities, with a validator that forbids file-order ties except documented overrides). 488 of 3750 resolutions were corrected against probed reality, including 429 pairs whose covstruct conditions a family-level rule had erased, and the newly recorded caveat that spatial structures over a plain factor silently use level order as coordinates. <code><a href="../reference/frm_compat.html">frm_compat()</a></code> accepts vectors and errors on empty input.</li>
+<li>The fuzz tier’s invariants were strengthened (a previously unfailable interval check replaced by the Wald identity plus parameter-coverage tallies; per-row simulate agreement; grammar divergences asserted; convergence demotion keyed to actual convergence verdicts after fixing a truncation that discarded them). The strengthened tier reproduces only known findings.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.26.0" id="frmtmb-0260">frmtmb 0.26.0<a class="anchor" aria-label="anchor" href="#frmtmb-0260"></a></h2>
 <p>Pooled model comparison across imputations and the diagnostics/UX backlog.</p>

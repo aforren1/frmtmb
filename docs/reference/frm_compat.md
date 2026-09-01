@@ -16,7 +16,9 @@ frm_compat(feature_a = NULL, feature_b = NULL, status = NULL)
   Feature names, as given by
   [`frm_compat_features()`](https://aforren1.github.io/frmtmb/reference/frm_compat_features.md).
   Supply both for one pair, one for every pair involving that feature,
-  or neither for the whole table.
+  or neither for the whole table. Both accept a vector, which gives
+  every pair in the cross of the two sides; an empty vector is an error
+  rather than an empty answer.
 
 - status:
 
@@ -69,8 +71,8 @@ was never evidence of support.
 ``` r
 # one pair
 frm_compat("rescor", "cens()")
-#>   feature_a kind_a feature_b    kind_b  status
-#> 1    cens()  aterm    rescor structure refused
+#>   feature_a    kind_a feature_b kind_b  status
+#> 1    rescor structure    cens()  aterm refused
 #>                                                                        note
 #> 1 Refused. This pair was once accepted with the censoring silently dropped.
 

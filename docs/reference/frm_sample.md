@@ -51,7 +51,9 @@ frm_sample(
 
   Optional named numeric vectors of hard bounds on outer parameters
   (brms `lb`/`ub`), applied on the internal scale through Stan's
-  constrained transforms.
+  constrained transforms. Chain starting values are clamped strictly
+  inside the bounds; a bound that excludes the ML mode itself warns,
+  because the chains then no longer start there.
 
 - init:
 

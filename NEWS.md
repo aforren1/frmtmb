@@ -1,3 +1,52 @@
+# frmtmb 0.27.0
+
+Fixes from a full review of the v0.22-v0.25 waves.
+
+## Corrected behavior
+
+* `cens()` combined with `trunc()` produced a silently wrong
+  likelihood: the censoring contribution was not restricted to the
+  truncation window (right-censoring now contributes
+  (F(ub) - F(y))/Z), which inflated the dispersion by ~14% on the
+  reference problem. The corrected objective matches a hand-rolled
+  windowed likelihood to 1e-8, collapses exactly to the old form
+  without truncation, and the cens+trunc OSA residuals recalibrate
+  to the analytic PIT (5e-14).
+* `residuals(type = "deviance")` under `se()` now weights each
+  row's unit deviance by its own variance (the glm prior-weight
+  form) instead of treating a common dispersion as shared.
+* `predict(se.fit = TRUE)` on quadrature fits no longer dies with a
+  non-conformable error: it reports mode-conditional standard errors
+  with a warning. Singular joint precisions in the predict path now
+  degrade like `vcov()` does, and the shared solver uses
+  `Matrix::solve` (strictly more robust for ill-conditioned but
+  invertible GLMM precisions).
+* `frm_sample()` chain inits are clamped inside any bounds passed to
+  Stan, with a warning naming the parameters when the ML mode itself
+  violates a bound (previously an incomprehensible rstan error).
+* `vint()`/`vreal()` variables are required in `newdata`; a custom
+  family's prediction previously returned a length-0 vector with no
+  message when they were missing.
+* Character censoring codes like "0"/"1"/"-1" decode (the error
+  message had advertised them).
+
+## Compatibility registry and fuzzer
+
+* The registry's precedence is redesigned (lexicographic comparison
+  of sorted side specificities, with a validator that forbids
+  file-order ties except documented overrides). 488 of 3750
+  resolutions were corrected against probed reality, including 429
+  pairs whose covstruct conditions a family-level rule had erased,
+  and the newly recorded caveat that spatial structures over a plain
+  factor silently use level order as coordinates. `frm_compat()`
+  accepts vectors and errors on empty input.
+* The fuzz tier's invariants were strengthened (a previously
+  unfailable interval check replaced by the Wald identity plus
+  parameter-coverage tallies; per-row simulate agreement; grammar
+  divergences asserted; convergence demotion keyed to actual
+  convergence verdicts after fixing a truncation that discarded
+  them). The strengthened tier reproduces only known findings.
+
 # frmtmb 0.26.0
 
 Pooled model comparison across imputations and the diagnostics/UX

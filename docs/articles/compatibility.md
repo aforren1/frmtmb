@@ -39,8 +39,8 @@ it the same questions directly.
 ``` r
 
 frm_compat("rescor", "cens()")
-#>   feature_a kind_a feature_b    kind_b  status
-#> 1    cens()  aterm    rescor structure refused
+#>   feature_a    kind_a feature_b kind_b  status
+#> 1    rescor structure    cens()  aterm refused
 #>                                                                        note
 #> 1 Refused. This pair was once accepted with the censoring silently dropped.
 
@@ -252,16 +252,16 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | toep    |  \+  |     x      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
 | homtoep |  \+  |     x      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
 | homcs   |  \+  |     x      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| exp     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |   \+    |
-| gau     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |   \+    |
-| mat     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |   \+    |
+| exp     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
+| gau     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
+| mat     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 | rr      |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 | equalto |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 | gr_cov  |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 | gr_prec |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 | smooth  |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| gp      |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |   \+    |
-| hsgp    |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |   \+    |
+| gp      |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
+| hsgp    |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -269,13 +269,13 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | ~ | ar1 + priors; ar1 + bounds; ar1 + verbose | ar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. Use ou() over num_factor() for irregular spacing. |
 | ~ | hetar1 + priors; hetar1 + bounds; hetar1 + verbose | hetar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. |
 | ~ | ou + priors; ou + bounds; ou + verbose | ou() is the irregular-spacing structure. Build the levels with num_factor() so the metric distance is recoverable. |
-| ~ | exp + priors; exp + bounds; gau + priors; gau + bounds; mat + priors; mat + bounds | Spatial structures need coordinates built with num_factor(x, y). |
+| ~ | exp + priors; exp + bounds; exp + verbose; gau + priors; gau + bounds; and 4 more | Spatial structures need coordinates built with num_factor(x, y). |
 | ~ | rr + priors; rr + bounds; rr + verbose | rr() gives a reduced-rank block; the rank d must not exceed the term dimension. |
 | ~ | equalto + priors; equalto + bounds; equalto + verbose | equalto(x + 0 \| g, V) fixes the term covariance to V, which must be square and match the term dimension. |
 | ~ | gr_cov + priors; gr_cov + bounds; gr_cov + verbose | gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level. |
 | ~ | gr_prec + priors; gr_prec + bounds; gr_prec + verbose | gr(prec = Q) supports intercept-only terms: (1 \| gr(g, prec = Q)). |
 | ~ | smooth + priors; smooth + bounds; smooth + verbose | smooth is the internal structure behind s() and t2(); it is not written directly in a formula. |
-| ~ | gp + priors; gp + bounds; hsgp + priors; hsgp + bounds | gp() and hsgp() are predictor specials, not bar terms. Write gp(x), not (gp(x) \| g). |
+| ~ | gp + priors; gp + bounds; gp + verbose; hsgp + priors; hsgp + bounds; hsgp + verbose | gp() and hsgp() are predictor specials, not bar terms. Write gp(x), not (gp(x) \| g). |
 | x | cs + quadrature; ar1 + quadrature; hetar1 + quadrature; ou + quadrature; toep + quadrature; and 12 more | Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term. |
 
 ## Model structures
@@ -304,14 +304,22 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 ### Structures and post-fit methods
 
 Several post-fit methods are univariate-only. A multivariate fit
-supports [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
-[`predict()`](https://rdrr.io/r/stats/predict.html) and refuses the
-rest.
+predicts one response at a time, through `predict(fit, resp = )`, and
+refuses [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+[`simulate()`](https://rdrr.io/r/stats/simulate.html) and
+[`residuals()`](https://rdrr.io/r/stats/residuals.html). The inference
+surface is not univariate-only:
+[`confint()`](https://rdrr.io/r/stats/confint.html),
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+and
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+read the outer parameter vector, which a multivariate fit has like any
+other.
 
 |  | fitted | predict | simulate | residuals | residuals_osa | emmeans | frm_sample | confint_profile | hypothesis_profile |
 |:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| mvbf | \+ | \+ | x | x | ? | x | x | x | x |
-| rescor | \+ | \+ | x | ? | x | x | ? | ? | ? |
+| mvbf | x | \+ | x | x | x | x | \+ | \+ | \+ |
+| rescor | x | \+ | x | x | x | x | \+ | \+ | \+ |
 | \|ID\| | ? | ? | ? | ? | ? | ? | ~ | ? | ? |
 | nl | \+ | ~ | ? | ? | ? | x | ? | ? | ? |
 | mixture | ? | ? | ~ | ? | ? | ? | ~ | ? | ? |
@@ -323,9 +331,11 @@ rest.
 | ~ | nl + predict | Point predictions work. se.fit is not supported for the nonlinear predictor; request a nonlinear parameter with dpar instead. |
 | ~ | mixture + simulate | Works only when every component family has a simulator. |
 | ~ | mixture + frm_sample | Mixture posteriors are multimodal. Sample with init = “random” rather than the mode-anchored default. |
-| x | mvbf + simulate; mvbf + residuals; mvbf + emmeans; mvbf + frm_sample; mvbf + confint_profile; mvbf + hypothesis_profile | Refused: the post-fit methods below are univariate-only for now. |
+| x | mvbf + fitted; rescor + fitted | Refused: fitted() calls uni_resp() and stops with ‘fitted() is not supported yet for multivariate fits’. Predict one response at a time instead: predict(fit, resp = ). |
+| x | mvbf + simulate; mvbf + residuals; mvbf + emmeans | Refused: the post-fit methods below are univariate-only for now. |
+| x | mvbf + residuals_osa | Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included. |
 | x | rescor + simulate | Refused: simulate() is not supported for multivariate fits yet. |
-| x | rescor + residuals_osa | Refused: residuals() is not supported for multivariate fits yet. |
+| x | rescor + residuals; rescor + residuals_osa | Refused: residuals() is not supported for multivariate fits yet. |
 | x | rescor + emmeans | Refused: emmeans support is univariate-only for now. |
 | x | nl + emmeans | Refused: emmeans support needs a linear mu predictor. |
 | x | mixture_mvn + simulate | Refused: mixture_mvn() has no simulator yet. |
@@ -365,11 +375,11 @@ Three spellings have restrictions of their own.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1713 | 46%   |
-| conditional |   891 | 24%   |
-| refused     |   386 | 10%   |
+| works       |  1249 | 33%   |
+| conditional |  1363 | 36%   |
+| refused     |   389 | 10%   |
 | broken      |     0 | 0%    |
-| untested    |   760 | 20%   |
+| untested    |   749 | 20%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To
