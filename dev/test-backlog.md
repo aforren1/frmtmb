@@ -91,7 +91,9 @@ tests/testthat/ (mostly test-edgecases.R); the rest are open work.
 
 Mined from the *currently open* trackers of brms (145), lme4 (191) and
 glmmTMB (223); 34 shortlisted and run against frmtmb. Fixed items have
-regression tests in tests/testthat/test-open-issues.R.
+regression tests in tests/testthat/test-open-issues.R, except lme4#303
+and lme4#464/#156, which live in
+tests/testthat/test-aliased-grouping.R.
 
 ### Fixed
 
@@ -111,6 +113,21 @@ regression tests in tests/testthat/test-open-issues.R.
   explicit `diag(f | g)`. Numeric double bars keep lme4's block split
   and their old estimates, because `diag` and `us` coincide at dimension
   one. [lme4#818]
+- Prediction at an aliased cell of a rank-deficient design returned the
+  random-effect contribution alone. The fit now freezes the null space
+  of the fixed-effect design, and `predict(newdata =)` returns NA (with
+  NA standard errors) plus one warning naming the dropped columns for
+  the rows that load on it. Rows that merely restate a kept column
+  (`x2 = 2 * x`) stay exact, and the in-sample paths are untouched.
+  lme4 still returns the partial sum silently. [lme4#303]
+- Grouping factors written as calls - `(1 | factor(x))`,
+  `(1 | interaction(a, b))` - now fit. reformulas re-evaluates the bar
+  RHS inside the model frame, where the call's own arguments are not
+  columns, and died with an error raised several frames down
+  ("unique() applies only to vectors"). Frame assembly now points the
+  bar at the frame column the expression already produced; the original
+  expression is kept for labels and for newdata prediction, and `:`
+  / `/` groupings keep their reformulas expansion. [lme4#464, #156]
 
 ### Mitigated
 
@@ -139,10 +156,6 @@ regression tests in tests/testthat/test-open-issues.R.
 
 ### Open - medium
 
-- Prediction at an aliased cell of a rank-deficient design returns the
-  random-effect contribution alone, i.e. the dropped column silently
-  contributes 0. Upstream wants NA or an error; new *fixed* levels
-  already error correctly. [lme4#303]
 - `cbind(successes, failures)` responses are rejected with a message
   about `trials` that does not name the real problem. Every reference
   package accepts the spelling, so ported code lands here first.

@@ -109,6 +109,20 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   } else {
     stats::model.matrix(tt, mfp, contrasts.arg = lp$contrasts)
   }
+  # Estimability against a rank-deficient fit. A prediction is a linear
+  # functional of beta, so it is identified only when the new design row
+  # is orthogonal to every direction the fit could not resolve. Testing
+  # the frozen null space (not merely "a dropped column is nonzero")
+  # keeps rows that restate a kept column - x2 = 2 * x, or a cell whose
+  # aliased indicator is implied by the kept ones - exact.
+  nonest <- rep(FALSE, nrow(X))
+  if (!is.null(lp$alias_null)) {
+    Xa <- as.matrix(X[, rownames(lp$alias_null), drop = FALSE])
+    scl <- max(abs(Xa[is.finite(Xa)]), 1)
+    # NA rows already predict NA; keep them out of the estimability vote
+    nonest <- rowSums(abs(Xa %*% lp$alias_null) > 1e-8 * scl,
+                      na.rm = TRUE) > 0
+  }
   # frozen intercept-drop / rank-deficiency column set from fit time
   X <- X[, lp$param_colnames, drop = FALSE]
   off <- extract_offset(tt, mfp, env)
@@ -209,7 +223,8 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   if (!use_re) {
     # smooth wiggly parts are part of the curve, not group-level effects:
     # they stay in even for population-level predictions
-    return(list(X = X, off = off, re_parts = list(), sm_parts = sm_parts))
+    return(list(X = X, off = off, re_parts = list(), sm_parts = sm_parts,
+                nonest = nonest))
   }
 
   re_parts <- list()
@@ -241,7 +256,8 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
                                                 mm = mm, j = j)
     }
   }
-  list(X = X, off = off, re_parts = re_parts, sm_parts = sm_parts)
+  list(X = X, off = off, re_parts = re_parts, sm_parts = sm_parts,
+       nonest = nonest)
 }
 
 # RE contribution to eta for one linear predictor, given the full
@@ -461,6 +477,19 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' @param allow_new_levels Predict unseen grouping-factor levels at the
 #'   population level instead of erroring.
 #' @param ... Unused.
+#' @details
+#' When the fixed-effect design was rank deficient, the aliased columns
+#' were dropped at fit time and some coefficient combinations are not
+#' estimable. Rows of `newdata` that load on a dropped direction get
+#' `NA` (and `NA` standard errors), with one warning naming the dropped
+#' columns; every other row is unaffected. The test is the one
+#' [stats::predict.lm()] uses: a row is non-estimable when it is not
+#' orthogonal to the null space of the fitted design, up to a relative
+#' tolerance of `1e-8`. Two limits follow. It is a numerical test, so
+#' near-aliased designs sit on a threshold rather than a clean
+#' yes/no. And it covers the parametric fixed-effect block only:
+#' smooth null-space, `gp()`, `mo()` and `mi()` columns are appended
+#' after the rank check and are never dropped.
 #' @return A numeric vector, or a list when `se.fit = TRUE`.
 #' @export
 predict.frmtmb_fit <- function(object, newdata = NULL,
@@ -570,6 +599,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   est <- object$estimates
   re_parts <- list()
   sm_parts <- list()
+  nonest <- FALSE
   sm_blocks <- Filter(function(bk) {
     bk$covstruct %in% c("smooth", "gp", "hsgp") &&
       any(vapply(bk$components, function(cp) cp$lp_key == key, TRUE))
@@ -599,6 +629,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     off <- pd$off
     re_parts <- pd$re_parts
     sm_parts <- pd$sm_parts
+    nonest <- pd$nonest
     n <- nrow(X)
     eta <- drop(as.matrix(X %*% est[[lp$par]][lp$idx]))
     cvec <- coef_b(object)
@@ -610,6 +641,16 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     }
   }
   if (!is.null(off)) eta <- eta + off
+  # A non-estimable row has no defined fixed-effect part, so returning
+  # the remaining (random-effect, smooth) contributions alone would look
+  # like a valid prediction. One warning per call names the culprits.
+  if (any(nonest)) {
+    warning("Rank-deficient fit: ", sum(nonest), " row(s) of newdata are ",
+            "not estimable because they load on the dropped column(s) ",
+            paste(lp$dropped_colnames, collapse = ", "),
+            "; predicting NA there", call. = FALSE)
+    eta[nonest] <- NA_real_
+  }
 
   if (!se.fit) {
     out <- if (type == "response") lp$link$linkinv(eta) else eta
@@ -707,6 +748,9 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     if (!is.null(sp$extra_var)) var_eta <- var_eta + sp$extra_var
   }
   se_eta <- sqrt(var_eta)
+  # the kept columns still have a finite variance, but it is not the
+  # standard error of anything the fit estimates
+  if (any(nonest)) se_eta[nonest] <- NA_real_
 
   out <- if (type == "response") {
     list(fit = lp$link$linkinv(eta),

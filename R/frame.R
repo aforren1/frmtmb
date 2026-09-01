@@ -202,6 +202,40 @@ sparse_maybe_deficient <- function(X) {
     min(d) < 1e-5 * max(d)
 }
 
+# Operators that reformulas expands structurally inside a grouping
+# expression; everything else on the right of a bar is an ordinary call
+# whose value has to exist as a single model-frame column.
+grp_structural_ops <- c(":", "/", "*", "+", "%in%")
+
+# A grouping factor written as a call - (1 | factor(x)),
+# (1 | interaction(a, b)) - is one variable of the combined model frame,
+# stored under its deparsed name. reformulas instead re-evaluates the
+# expression inside the frame, where the call's own arguments (x, a, b)
+# are not columns, and dies with an error raised several frames down.
+# Point the bar at the existing column by name instead; the original bar
+# is what the fit keeps, so prediction still evaluates the expression
+# against newdata. [lme4#464, #156]
+resolve_group_calls <- function(bars, fr, env) {
+  sub_call <- function(e) {
+    if (!is.call(e)) return(e)
+    if (as.character(e[[1L]])[1L] %in% grp_structural_ops) {
+      for (i in seq_along(e)[-1]) e[[i]] <- sub_call(e[[i]])
+      return(e)
+    }
+    key <- deparse1(e)
+    if (!key %in% names(fr)) {
+      # defensive: a call nested inside ':' need not be a frame variable
+      fr[[key]] <<- eval(e, fr, env)
+    }
+    as.name(key)
+  }
+  bars <- lapply(bars, function(b) {
+    b[[3L]] <- sub_call(b[[3L]])
+    b
+  })
+  list(bars = bars, fr = fr)
+}
+
 # Internal censoring codes, shared with brms: -1 left, 0 observed,
 # 1 right, 2 interval. The names are the accepted spellings.
 cens_code_map <- c(none = 0, left = -1, right = 1, interval = 2)
@@ -562,17 +596,28 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # Sparse X densifies a copy only when the cheap screen flags a
       # possible deficiency, so the dropped-column set never differs
       # from the dense path.
+      alias_null <- NULL
+      dropped_colnames <- NULL
       if (ncol(X) > 1L) {
         Xq <- if (!sparse_x) X
               else if (sparse_maybe_deficient(X)) as.matrix(X)
               else NULL
         if (!is.null(Xq)) {
+          Xq <- as.matrix(Xq)
           qrX <- qr(Xq)
           if (qrX$rank < ncol(X)) {
             dropped <- colnames(X)[qrX$pivot[(qrX$rank + 1L):ncol(X)]]
             message("Fixed-effect design of '", lp_key,
                     "' is rank deficient; dropping column(s): ",
                     paste(dropped, collapse = ", "))
+            # Directions the data could not identify: null(X) is the
+            # orthogonal complement of the row space, so the trailing
+            # columns of the complete Q of t(X) span it. Frozen here so
+            # prediction can refuse rows that load on them. [lme4#303]
+            alias_null <- qr.Q(qr(t(Xq)), complete = TRUE)[
+              , (qrX$rank + 1L):ncol(Xq), drop = FALSE]
+            rownames(alias_null) <- colnames(X)
+            dropped_colnames <- dropped
             X <- X[, setdiff(colnames(X), dropped), drop = FALSE]
           }
         }
@@ -585,7 +630,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
 
       if (length(dp$re)) {
         bars <- lapply(dp$re, `[[`, "bar")
-        rt <- reformulas::mkReTrms(bars, fr = mf, reorder.terms = FALSE)
+        # bars keeps the user's expressions (labels, prediction); only
+        # the copy handed to reformulas is name-resolved
+        grp <- resolve_group_calls(bars, mf, resp$formula_env)
+        rt <- reformulas::mkReTrms(grp$bars, fr = grp$fr,
+                                   reorder.terms = FALSE)
         fassign <- attr(rt$flist, "assign")
         for (k in seq_along(bars)) {
           d_k <- length(rt$cnms[[k]])
@@ -968,6 +1017,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         X = X,
         n_param_cols = n_param_cols,
         param_colnames = param_colnames,
+        alias_null = alias_null,
+        dropped_colnames = dropped_colnames,
         Z = NULL,               # filled in phase 3
         par = par_name,
         idx = idx,
