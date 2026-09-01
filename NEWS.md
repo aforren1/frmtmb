@@ -1,3 +1,63 @@
+# frmtmb 0.28.0
+
+Spatial GMRF grammar, the mclust covariance taxonomy, and the
+close-out of the fuzz tier.
+
+## New
+
+* Spatial conditional autoregressions with the brms spelling:
+  `car(M, gr = g, type = "escar"/"esicar"/"icar"/"bym2")` over an
+  adjacency matrix, with analytic log-determinants throughout (no
+  on-tape factorization) and brms's per-component soft sum-to-zero
+  constraint, whose distance to the hard-constrained ML is measured
+  and documented (4e-4 logLik at the default, shrinking
+  quadratically). Validated against hand-rolled direct ML to 1e-11.
+* `spde(fem, gr = node)`: an SPDE-Matern field from fmesher/INLA FEM
+  matrices, Q(kappa, tau) assembled on the tape from fixed sparse
+  matrices; sd and range reported through the planar identities.
+* `gr(g, prec = Q)` supports correlated slopes (sparse Kronecker
+  precisions; agrees with the dense `gr(cov = solve(Q))` equivalent
+  to 0 ulp).
+* `mixture_mvn(K, D, model =)` gains the mclust covariance taxonomy
+  (EII, VII, EEI, VEI, EVI, VVI, EEE, VVV) with per-model parameter
+  templates; matches `mclust::Mclust` to 1e-12 log-likelihood and
+  1e-15 posteriors on intercept-only fits, while keeping
+  covariate-dependent means, which mclust cannot fit.
+* `anova(refit = TRUE)` refits REML models with ML for comparison
+  (warm-started, with a message naming what was refit); `getME()` on
+  the lme4 generic with the commonly consumed vocabulary.
+
+## Corrected behavior
+
+* Non-finite covariance matrices warn at `vcov()`/`summary()` and at
+  fit time under `se = TRUE`, pointing at `diagnose()` (a
+  positive-definite Hessian can still be numerically singular to
+  invert; previously silent NaNs).
+* Optimizer failures recover automatically where a better start
+  provably exists (the plain-Laplace optimum under
+  `profile = TRUE`; a cold start when a warm start is itself the
+  failure), and every optimizer error carries the model label and
+  remedies instead of a bare RTMB message.
+* One quadrature configuration is rescued by displaced calibrations;
+  the six irrecoverable thin-data configurations refuse with
+  messages naming the configuration and the guaranteed
+  `quadrature = FALSE` fallback. The fuzz tier runs green.
+* `frm_sample(cores > 1)` on Windows falls back to sequential chains
+  with a warning instead of failing incomprehensibly (RTMB tapes and
+  objective closures cannot reach socket workers; upstream
+  kaskr/tmbstan#27). `pp_check()` and `as_draws()` dispatch without
+  attaching bayesplot or posterior (frmtmb ships its own generics,
+  dual-registered).
+
+## Notes
+
+* dev/benchmarks.md records the RTMBp (parallel RTMB) measurement:
+  no gain on Cholesky-dominated mixed models, 1.7-2x on
+  accumulation-dominated GLMMs at 4-16 threads; not adopted.
+* dev/feature-gaps.md records the ODE roadmap (RTMBode) and the
+  Suggests + Additional_repositories packaging plan for non-CRAN
+  extensions.
+
 # frmtmb 0.27.0
 
 Fixes from a full review of the v0.22-v0.25 waves.
