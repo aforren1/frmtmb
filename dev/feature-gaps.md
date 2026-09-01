@@ -59,7 +59,8 @@ purely-conditional `postVar`.
 ## Missing data (assessed 2026-08-31)
 
 - `frm_multiple()` (Rubin pooling over imputations, mice interop):
-  DONE in v0.15.
+  DONE in v0.15; pooled model comparison (D1/D2/D3) added on top of
+  it, see the Tier 3 entry below.
 - ~~In-model `mi()`~~ DONE in v0.16 for continuous predictors
   (gaussian/student imputation models; validated against the
   closed-form linear-gaussian marginal). Discrete predictors stay
@@ -106,8 +107,33 @@ interface that can see family-level extras.
 
 - ~~`frm_multiple`~~ DONE in v0.15; v0.20 adds varcorr pooling on
   transformed scales and Rubin-pooled hypothesis(). Fixed effects
-  match mice::pool to 2.1e-6. Remaining: mice's pooled
-  likelihood-ratio tests (D2/D3) - anova() stays per-fit.
+  match mice::pool to 2.1e-6. Pooled model comparison is now DONE
+  too: `anova.frmtmb_multiple(method = c("D3", "D1", "D2"))`, with
+  `use = c("likelihood", "wald")` for D2 and a `constraint =` form
+  for the Wald rules. D3 is the default and is the reason our
+  architecture helps: the Meng-Rubin pooled-estimate leg needs each
+  imputation's likelihood at one common parameter vector, which is
+  `obj$fn(pbar)` on the stored objective - one Laplace solve per
+  imputation, no refit. Parameters are pooled on the optimizer's own
+  (internal) scale, so variance components pool as log/Cholesky,
+  consistent with `$pooled`.
+  Validation (tests/testthat/test-pooled-anova.R): a poisson GLM has
+  no dispersion parameter, so our ML coefficients, inverse-information
+  vcov and `df.residual` all equal `glm()`'s, and D1 / D2(wald) match
+  `mice::D1` / `mice::D2` end to end to 1e-5 relative (8.5e-8 on the
+  statistic; the residue is optimizer noise, BFGS at reltol 1e-14),
+  D2(likelihood) to 1e-8 (3.8e-12 on the statistic). Two convention
+  differences worth remembering. (1) `df.residual()` counts a gaussian
+  fit's dispersion parameter and `lm()` does not, so our default
+  `dfcom` is one smaller than mice's; `dfcom =` overrides it. (2)
+  `mice::D3()` does not plug the pooled estimates in - `fix.coef()`
+  makes them an offset and refits `. ~ 1`, which re-estimates the
+  dispersion AND frees an intercept. On a gaussian pair that put mice
+  10% away on the statistic and 77% on the p-value, while our value
+  is within 5.8e-4 of `mitml::testModels(method = "D3")` (the plug-in
+  form; the rest is mitml pooling sigma^2 on the variance scale where
+  we pool log sigma) and within 1.1e-13 of the Meng-Rubin formula
+  written out by hand.
 - ~~Sparse X option~~ DONE in v0.20 (`frmtmb_control(sparse_x =
   TRUE)`, glmmTMB `sparseX` analog). Identical estimates (gradient
   3e-14), 13.8% tape memory saved; dense fallback for NA-factor

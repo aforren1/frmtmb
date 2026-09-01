@@ -22,6 +22,15 @@ tests/testthat/ (mostly test-edgecases.R); the rest are open work.
   [brms data-response.R taxonomy]
 - Gaussian rescaling equivariance of coefficients and logLik.
 - NA rows dropped across response/predictors/grouping jointly.
+- Pooled model comparison over imputations: `anova()` on
+  `frmtmb_multiple` with the D1, D2 and D3 rules. Checked against
+  `mice::D1`/`D2` on a poisson GLM, where our ML covariance and
+  `df.residual` equal `glm()`'s, and against the Meng-Rubin formula
+  written out by hand for D3; plus the degenerate identity (identical
+  imputations collapse D3 and D2(likelihood) to the single-fit LRT)
+  and a GLMM smoke case with no reference implementation, where the
+  three rules have to agree with the per-imputation LRTs in rejection
+  direction. tests/testthat/test-pooled-anova.R
 
 ## Addressed in v0.6 (moved up from Open)
 

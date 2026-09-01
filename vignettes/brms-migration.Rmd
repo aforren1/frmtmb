@@ -59,8 +59,12 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
   numeric terms; discrete predictors cannot be imputed in-model, the
   same restriction Stan has. Multiply imputed data can instead go
   through `frm_multiple()` (Rubin's rules), the `brm_multiple()`
-  analog. Mixture fits are ML: expect multimodality, compare starts
-  (`frm_allfit()`).
+  analog. Being frequentist, that fit also needs pooled tests, which
+  brms gets for free from the posterior: `hypothesis()` pools any
+  function of the parameters, and `anova()` on the result compares two
+  nested `frm_multiple()` fits with the D1, D2 and D3 rules of `mice`
+  (D3 by default). Mixture fits are ML: expect multimodality, compare
+  starts (`frm_allfit()`).
 - `binomial()` without `trials()` is accepted and means Bernoulli, the
   `stats::glm()` convention; brms rejects it and asks for `trials()` or
   `bernoulli()`. The divergence is permissive, so brms code ports

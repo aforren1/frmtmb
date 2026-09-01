@@ -34,6 +34,10 @@ for SDs and GP ranges, Fisher z for correlations, the
 \code{\link[=confint_varcorr]{confint_varcorr()}} convention) and back-transformed, giving
 \verb{$pooled_varcorr}. For missing-data mechanisms beyond imputation,
 see in-model \code{mi()}.
+
+\code{\link[=hypothesis]{hypothesis()}} pools arbitrary functions of the parameters by the
+same rules, and \code{\link[=anova.frmtmb_multiple]{anova.frmtmb_multiple()}} compares two nested
+\code{frm_multiple()} fits with the D1, D2 and D3 rules of \code{mice}.
 }
 \examples{
 set.seed(8)
