@@ -4,28 +4,36 @@
 \alias{frm_multiple}
 \title{Fit a model across multiply imputed datasets}
 \usage{
-frm_multiple(formula, data, ...)
+frm_multiple(formula, data, level = 0.95, ...)
 }
 \arguments{
 \item{formula, ...}{As in \code{\link[=frm]{frm()}}.}
 
 \item{data}{A list of completed data frames, or a \code{mice::mids}.}
+
+\item{level}{Confidence level for the \verb{$pooled_varcorr} interval.}
 }
 \value{
-A \code{frmtmb_multiple} object: \code{pooled} (the Rubin table) and
-\code{fits} (the per-imputation fits).
+A \code{frmtmb_multiple} object: \code{pooled} (the Rubin table for
+the fixed effects), \code{pooled_varcorr} (grp/term/type/estimate/
+lwr/upr/df/fmi for the random-effect SDs and correlations; \code{NULL}
+without random effects), and \code{fits} (the per-imputation fits).
 }
 \description{
 The frequentist counterpart of brms's \code{brm_multiple()}: fits the
-model on every imputed dataset and pools the fixed-effect estimates
-by Rubin's rules with Barnard-Rubin adjusted degrees of freedom.
-Accepts a plain list of data frames or a \code{mice::mids} object.
+model on every imputed dataset and pools by Rubin's rules with
+Barnard-Rubin adjusted degrees of freedom. Accepts a plain list of
+data frames or a \code{mice::mids} object.
 }
 \details{
-Only the fixed effects are pooled (covariance parameters are
-reported per fit through \verb{$fits}). For missing-data mechanisms
-beyond imputation, see the roadmap note on latent-variable \code{mi()}
-in dev/feature-gaps.md.
+Fixed effects are pooled on the link scale, so distributional
+coefficients like \code{sigma} appear in \verb{$pooled} on their link (log)
+scale, exactly as in \code{vcov()}. Random-effect SDs and correlations
+are pooled on the scales where a Wald argument is defensible (log
+for SDs and GP ranges, Fisher z for correlations, the
+\code{\link[=confint_varcorr]{confint_varcorr()}} convention) and back-transformed, giving
+\verb{$pooled_varcorr}. For missing-data mechanisms beyond imputation,
+see in-model \code{mi()}.
 }
 \examples{
 set.seed(8)
