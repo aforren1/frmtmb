@@ -13,6 +13,7 @@ mixture_probs(fit)
 A matrix of class probabilities (rows sum to one).
 }
 \description{
-For an ordinary \code{\link[=mixture]{mixture()}} fit, one row per observation; for a
-group-level mixture (\code{groups = ~g}), one row per group.
+For an ordinary \code{\link[=mixture]{mixture()}} or \code{\link[=mixture_mvn]{mixture_mvn()}} fit, one row per
+observation; for a group-level mixture (\code{groups = ~g}), one row per
+group.
 }

@@ -1333,8 +1333,9 @@ mixture <- function(..., groups = NULL) {
 
 #' Posterior class probabilities of a mixture fit
 #'
-#' For an ordinary [mixture()] fit, one row per observation; for a
-#' group-level mixture (`groups = ~g`), one row per group.
+#' For an ordinary [mixture()] or [mixture_mvn()] fit, one row per
+#' observation; for a group-level mixture (`groups = ~g`), one row per
+#' group.
 #'
 #' @param fit A `frmtmb_fit` with a mixture family.
 #' @return A matrix of class probabilities (rows sum to one).
@@ -1352,19 +1353,184 @@ mixture_probs <- function(fit) {
   K <- fam$mix$K
   mg <- fit$frame$mix_g[[rspec$resp_name]]
   w <- av$weights %||% 1
+  # matrix responses (mixture_mvn) have one density per ROW, so NROW,
+  # not length; their class covariances live in the extra parameters
+  ex <- if (!is.null(fam$extra_pars)) {
+    fit$estimates[fit$frame$extra_names]
+  }
   M <- vapply(seq_len(K), function(k) {
-    ll_k <- fam$mix$comp_lpdf(yv, dp, av, k)
+    ll_k <- if (is.null(ex)) {
+      fam$mix$comp_lpdf(yv, dp, av, k)
+    } else {
+      fam$mix$comp_lpdf(yv, dp, av, k, ex)
+    }
     if (!is.null(mg)) {
       as.vector(Matrix::t(mg$G) %*% (w * ll_k)) + lps_pi[[k]][mg$first]
     } else {
       ll_k + rep(lps_pi[[k]], length.out = length(ll_k))
     }
-  }, numeric(if (!is.null(mg)) length(mg$first) else length(yv)))
+  }, numeric(if (!is.null(mg)) length(mg$first) else NROW(yv)))
   P <- exp(M - apply(M, 1, max))
   P <- P / rowSums(P)
   rownames(P) <- if (!is.null(mg)) mg$levels
   colnames(P) <- paste0("class", seq_len(K))
   P
+}
+
+#' Multivariate gaussian mixture family
+#'
+#' `mixture_mvn(K, D)` does model-based clustering of an n x D matrix
+#' response (mclust-style): K classes, each with its own D-dimensional
+#' mean and unstructured D x D covariance. Every class mean is a full
+#' linear predictor - the main model formula applies to all of them -
+#' so cluster means may depend on covariates, which mclust cannot do.
+#' The location dpars are named `mu<k>d<j>` (class k, response column
+#' j) and are individually overridable, e.g. `bf(Y ~ x, mu2d1 ~ 1)`
+#' (all except the first, `mu1d1`). Mixing weights are `theta1 ...
+#' theta{K-1}`, multinomial logit against class K, each with its own
+#' linear predictor - so gating on covariates works like [mixture()].
+#'
+#' Class covariances are family-level extra parameters in the `us`
+#' parameterization (D log-SDs, then scaled-Cholesky correlation
+#' entries), stored as `sigmaraw<k>` in `fit$estimates`; they are
+#' covariate-free. Log-SDs start at the per-column response SDs and
+#' correlations at zero; class means start on spread-out per-column
+#' response quantiles to break the label symmetry. The usual
+#' finite-mixture ML caveats apply: the likelihood is invariant to
+#' relabeling and can be multimodal (compare starts via
+#' [frm_allfit()]). [mixture_probs()] returns posterior class
+#' probabilities per row; [fitted()] returns the n x D mixture-mean
+#' matrix. `cens()`/`trunc()`, [mvbf()], and `simulate()` are not
+#' supported.
+#'
+#' @param K Number of mixture classes (at least 2).
+#' @param D Number of response columns (at least 2; for `D = 1` use
+#'   `mixture(gaussian(), ...)`).
+#' @return A `frmtmb_family`.
+#' @examples
+#' set.seed(1)
+#' Y <- rbind(matrix(rnorm(60, 0), ncol = 2),
+#'            matrix(rnorm(60, 4), ncol = 2))
+#' dd <- data.frame(row = seq_len(nrow(Y)))
+#' dd$Y <- Y
+#' fit <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dd)
+#' fixef(fit)
+#' head(mixture_probs(fit))
+#' @export
+mixture_mvn <- function(K, D) {
+  if (missing(K) || missing(D) || K < 2 || D < 2) {
+    stop("mixture_mvn() needs K >= 2 classes and D >= 2 response ",
+         "columns (for D = 1 use mixture(gaussian(), ...))",
+         call. = FALSE)
+  }
+  K <- as.integer(K)
+  D <- as.integer(D)
+  mu_names <- paste0("mu", rep(seq_len(K), each = D),
+                     "d", rep(seq_len(D), K))
+  dpars <- c(mu_names, paste0("theta", seq_len(K - 1L)))
+  links <- stats::setNames(rep(list("identity"), length(dpars)), dpars)
+
+  # n x D class-mean matrix from the class's D location dpars
+  class_mean <- function(dpars_all, k, n) {
+    "[<-" <- RTMB::ADoverload("[<-")
+    M <- RTMB::matrix(0, n, D)
+    for (j in seq_len(D)) {
+      M[, j] <- dpars_all[[paste0("mu", k, "d", j)]]
+    }
+    M
+  }
+  # log mixing weights: multinomial logit, last class reference
+  log_pi <- function(dpars_all) {
+    Ts <- lapply(seq_len(K - 1L), function(k) {
+      dpars_all[[paste0("theta", k)]]
+    })
+    Ts[[K]] <- 0 * dpars_all[[mu_names[1]]]
+    lse <- Ts[[1L]]
+    for (k in seq.int(2L, K)) lse <- RTMB::logspace_add(lse, Ts[[k]])
+    lapply(Ts, function(t_) t_ - lse)
+  }
+  # per-row class log-density; extra carries the raw us covariances
+  comp_lpdf <- function(y, dpars_all, aterms, k, extra) {
+    Sk <- us_sigma(extra[[paste0("sigmaraw", k)]], D)
+    R <- y - class_mean(dpars_all, k, nrow(y))
+    RTMB::dmvnorm(R, 0, Sk, log = TRUE)
+  }
+
+  init <- list()
+  for (k in seq_len(K)) {
+    for (j in seq_len(D)) {
+      init[[paste0("mu", k, "d", j)]] <- local({
+        k_ <- k
+        j_ <- j
+        function(y, aterms) {
+          stats::quantile(y[, j_], k_ / (K + 1), names = FALSE)
+        }
+      })
+    }
+  }
+
+  fam <- frmtmb_family(
+    paste0("mixture_mvn(K = ", K, ", D = ", D, ")"),
+    dpars = dpars,
+    links = links,
+    lpdf = function(y, dpars, aterms, extra) {
+      lp <- log_pi(dpars)
+      ll <- NULL
+      for (k in seq_len(K)) {
+        llk <- comp_lpdf(y, dpars, aterms, k, extra) + lp[[k]]
+        ll <- if (is.null(ll)) llk else RTMB::logspace_add(ll, llk)
+      }
+      ll
+    },
+    valid_y = function(y, aterms) {
+      if (!is.matrix(y) || ncol(y) != D) {
+        stop("mixture_mvn(K = ", K, ", D = ", D, "): response must be ",
+             "an n x ", D, " numeric matrix", call. = FALSE)
+      }
+    },
+    init_dpars = init,
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) {
+        lp <- log_pi(dpars)
+        n <- length(dpars[[mu_names[1]]])
+        out <- 0
+        for (k in seq_len(K)) {
+          Mk <- vapply(seq_len(D), function(j) {
+            dpars[[paste0("mu", k, "d", j)]]
+          }, numeric(n))
+          out <- out + exp(lp[[k]]) * Mk
+        }
+        out
+      }
+    ),
+    extra_pars = function(y, aterms) {
+      # identical covariance starts across classes; the quantile-spread
+      # mean inits break the label symmetry
+      th0 <- c(log(pmax(apply(y, 2, stats::sd), 1e-3)),
+               numeric(D * (D - 1L) / 2L))
+      out <- list()
+      for (k in seq_len(K)) out[[paste0("sigmaraw", k)]] <- th0
+      out
+    },
+    primary_dpars = mu_names
+  )
+  # internals for mixture_probs(): same shape as mixture()'s, with the
+  # extra (covariance) parameters as a fifth comp_lpdf argument
+  fam$mix <- list(
+    K = K,
+    comp_lpdf = comp_lpdf,
+    comp_dpars = function(dpars_all, k) {
+      stats::setNames(
+        lapply(seq_len(D), function(j) {
+          dpars_all[[paste0("mu", k, "d", j)]]
+        }),
+        paste0("mud", seq_len(D))
+      )
+    },
+    log_pi = log_pi
+  )
+  fam
 }
 
 # Matrix-response multinomial: y is an n x K count matrix, category 1 is
