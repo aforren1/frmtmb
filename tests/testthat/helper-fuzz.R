@@ -807,6 +807,39 @@ fuzz_design_match <- function(fr1, fr2, perm) {
   list(exact = exact, span = span)
 }
 
+# The tolerance the logLik half of I5 is entitled to.
+#
+# Two optima of the same likelihood, reached by an optimizer that stops
+# on a gradient tolerance rather than at a point. To first order the
+# objective differs across them by at most the gradient times the step,
+# and Hoelder pairs the sup-norm gradient the optimizer judges itself by
+# with the 1-norm step: |dlogLik| <= max|g| * ||dp||_1. On a flat ridge
+# ||dp||_1 is O(1) while max|g| is at the stopping tolerance, so a gap
+# of 1e-6 is what convergence bought, not a defect - and tightening
+# rel.tol/x.tol to 1e-13 does not move it, because the optimizer is not
+# what limits it.
+#
+# The two endpoint gradients stand in for the segment between them; on
+# a smooth objective whose endpoints are both near-stationary that is
+# what bounds it. 1e-6 stays the floor, so a well conditioned fit is
+# judged exactly as before: the bound only rises above it when the two
+# optima are genuinely far apart in parameter space.
+fuzz_permutation_tol <- function(fit1, fit2) {
+  p1 <- fit1$opt$par; p2 <- fit2$opt$par
+  if (!length(p1) || length(p1) != length(p2)) return(1e-6)
+  # the same natural units the fit judges its own gradient in, so the
+  # product is unit free
+  u <- fit1$par_units
+  if (is.null(u) || length(u) != length(p1)) u <- rep(1, length(p1))
+  g <- function(f) {
+    v <- try(max(abs(f$obj$gr(f$opt$par) * u)), silent = TRUE)
+    if (inherits(v, "try-error") || !is.finite(v)) NA_real_ else v
+  }
+  g1 <- g(fit1); g2 <- g(fit2)
+  if (is.na(g1) || is.na(g2)) return(1e-6)
+  max(1e-6, (g1 + g2) * sum(abs((p1 - p2) / u)))
+}
+
 # I5: the likelihood does not depend on row order.
 #
 # Three checks, from strongest evidence to weakest. The design
@@ -836,7 +869,17 @@ fuzz_inv_permutation <- function(recs, sp, fit, d) {
   }
   if (isTRUE(dm$ok) && dm$value$exact &&
       length(fit$opt$par) == length(f2$value$opt$par)) {
-    par <- fit$opt$par
+    # NOT at either fit's own optimum. obj$fn re-solves the inner
+    # problem starting from wherever the tape was last left, and a tape
+    # that has just finished optimizing is left AT its solution, so its
+    # inner Newton takes no step while the other tape's arrives from its
+    # own optimum and stops one inner tolerance away. The two objectives
+    # then differ by ~1e-7 at that one point and agree bitwise
+    # everywhere else. The midpoint of the two optima is a point neither
+    # optimizer stopped at, so both tapes re-solve the inner problem the
+    # same way - and it probes the same claim, that the two objectives
+    # are the same function of the parameters.
+    par <- (fit$opt$par + f2$value$opt$par) / 2
     s1 <- fuzz_try(as.numeric(fit$obj$fn(par)))
     s2 <- fuzz_try(as.numeric(f2$value$obj$fn(par)))
     if (s1$ok && s2$ok) {
@@ -854,10 +897,12 @@ fuzz_inv_permutation <- function(recs, sp, fit, d) {
   l1 <- suppressWarnings(as.numeric(stats::logLik(fit)))
   l2 <- suppressWarnings(as.numeric(stats::logLik(f2$value)))
   dif <- abs(l1 - l2)
-  if (!is.finite(dif) || dif > 1e-6) {
+  tol <- fuzz_permutation_tol(fit, f2$value)
+  if (!is.finite(dif) || dif > tol) {
     fuzz_finding(recs, sp, "row_permutation", "candidate",
                  "logLik changed under a row permutation",
-                 list(logLik = l1, logLik_permuted = l2, diff = dif))
+                 list(logLik = l1, logLik_permuted = l2, diff = dif,
+                      tol = tol))
   }
 }
 
@@ -995,9 +1040,19 @@ fuzz_inv_vcov_summary <- function(recs, sp, fit) {
     }
   }
   if (any(!is.finite(M))) {
-    fuzz_finding(recs, sp, "vcov_psd", "candidate",
-                 "vcov() has non-finite entries",
-                 list(n_nonfinite = sum(!is.finite(M))))
+    # A NaN standard error is a legitimate degradation on a rank
+    # deficient fit; a SILENT one is not. sdreport reports pdHess from a
+    # Cholesky that succeeds on a Hessian its own solver then refuses as
+    # computationally singular, so the fit itself can converge with a
+    # small gradient and warn about nothing while every entry here is
+    # NaN. What must hold is that vcov() says so on the spot - so read
+    # the warnings of the call this invariant already made, not just the
+    # fit's.
+    if (!length(V$warnings)) {
+      fuzz_finding(recs, sp, "vcov_psd", "candidate",
+                   "vcov() has non-finite entries and warned about nothing",
+                   list(n_nonfinite = sum(!is.finite(M))))
+    }
   } else {
     asym <- max(abs(M - t(M)))
     if (asym > 1e-8 * max(1, max(abs(M)))) {
@@ -1541,16 +1596,20 @@ fuzz_run <- function(plan, brms_oracle = TRUE, nsim = 200L,
 # 9. triage
 # ---------------------------------------------------------------------
 #
-# Findings that reproduce a defect already fixed on an unmerged sibling
-# branch are marked KNOWN-PENDING so they do not compete for attention
-# with anything new. Matching is on the spec plus the invariant. A rule
-# that could swallow an unrelated failure of the same shape also names
-# the symptom, because a wrong KNOWN-PENDING hides a real defect while
-# a wrong REAL-NEW only costs a second look.
+# Three lists, three different reasons a finding is not news:
+# KNOWN-PENDING (a defect already fixed on an unmerged sibling branch),
+# KNOWN-REFUSAL (a combination the package refuses on purpose, with the
+# reason it stands), and KNOWN-DIVERGENCE (a deliberate departure from
+# brms's reading of the grammar). Matching is on the spec plus the
+# invariant. A rule that could swallow an unrelated failure of the same
+# shape also names the symptom, because a wrong entry on any of these
+# lists hides a real defect while a wrong REAL-NEW only costs a second
+# look.
 
-# quadrature is implicated in defects of its own (see
-# dev/fuzz-findings.md), so no in-flight rule may claim a quadrature
-# fit: those findings must stand on their own.
+# quadrature carries a refusal of its own (FUZZ_KNOWN_REFUSAL), which
+# is a statement about quadrature and is entitled to claim one. An
+# in-flight fix on some other branch is not: it must not absorb a
+# quadrature finding as collateral.
 fuzz_not_quad <- function(f) !grepl("mode=quadrature", f$spec)
 
 FUZZ_KNOWN_PENDING <- list(
@@ -1592,6 +1651,38 @@ FUZZ_KNOWN_PENDING <- list(
        match = function(f) identical(f$kind, "refusal:mo_factor") &&
          identical(f$invariant, "refusal_is_error") &&
          grepl("was accepted", f$detail))
+)
+
+# Combinations the package refuses on purpose, with a message that
+# names the reason. A refusal is not a defect - but it is not free
+# either, so it has to be written down here with why it stands, or the
+# tier fails on it like anything else. Each rule names the exact
+# message its refusal produces: a crash, a silent acceptance, or any
+# other error on the same spec is still a finding.
+FUZZ_KNOWN_REFUSAL <- list(
+  list(id = "quad-breakdown",
+       why = paste("TMBad's marginal_gk transform bakes one (mu, sigma)",
+                   "per random effect into the tape as constants.",
+                   "quad_fit() calibrates at the Laplace optimum, at the",
+                   "best point the optimizer reached, at the cold start,",
+                   "and at the optimum with the integrand widths",
+                   "displaced; when none of those yields a finite",
+                   "objective and gradient the model is refused with a",
+                   "message that names the configuration. Nested scalar",
+                   "blocks are the shape that cannot be repaired by",
+                   "recalibration at all: the outer integrand is the",
+                   "inner rescaling's output, so the objective is NaN",
+                   "before the optimizer takes a step. An integrator",
+                   "that recalibrates per evaluation would be the fix;",
+                   "TMBad's adaptive = TRUE is meant to be that and is",
+                   "measurably worse (it fails on negbinomial cases the",
+                   "frozen path fits). The refusal is safe because",
+                   "quadrature = FALSE fits every one of these models -",
+                   "quad_fit() has already proved it by fitting the",
+                   "Laplace warm start."),
+       match = function(f) identical(f$invariant, "fit_error") &&
+         grepl("mode=quadrature", f$spec) &&
+         grepl("could not marginalize this model", f$detail))
 )
 
 # Divergences from brms's reading of the same formula. Each one is a
@@ -1646,6 +1737,13 @@ fuzz_triage <- function(findings) {
       f$class <- "known_pending"
       f$known_id <- hit[[1]]$id
       f$known_why <- hit[[1]]$why
+      return(f)
+    }
+    kr <- Filter(function(k) isTRUE(k$match(f)), FUZZ_KNOWN_REFUSAL)
+    if (length(kr)) {
+      f$class <- "known_refusal"
+      f$known_id <- kr[[1]]$id
+      f$known_why <- kr[[1]]$why
       return(f)
     }
     if (identical(f$class, "grammar_divergence")) {

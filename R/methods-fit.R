@@ -224,6 +224,13 @@ vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
   nm <- estimated_coef_names(object)
   if (!object$REML && !isTRUE(object$control$profile)) {
     V <- sdr_of(object)$cov.fixed
+    # This branch reads an already-inverted covariance and used to
+    # return whatever sdreport put there. When sdreport could not
+    # invert the outer Hessian that is a matrix of NaN, on a fit whose
+    # own convergence checks all passed - so say so here, or nothing
+    # does. (The REML/profile branch below warns through
+    # solve_joint_precision().)
+    if (any(!is.finite(V))) warn_nonfinite_cov()
     if (full) {
       # cov.fixed rows repeat the component names; the per-parameter
       # names (confint rows) are the useful labels

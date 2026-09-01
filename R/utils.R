@@ -56,6 +56,23 @@ parse_num_levels <- function(lv) {
   out
 }
 
+# The verdict both covariance paths give when the standard errors come
+# back non-finite. It is a separate verdict from "the Hessian is not
+# positive definite", because the two do not coincide: sdreport reports
+# pdHess from a Cholesky, which succeeds on a matrix LAPACK's solver
+# then refuses as computationally singular (reciprocal condition number
+# below its tolerance), and cov.fixed comes back filled with NaN on a
+# fit that converged with a small gradient and a positive definite
+# Hessian. diagnose() names the parameters; nothing else did.
+warn_nonfinite_cov <- function() {
+  warning("Some standard errors are not finite, so vcov() and ",
+          "summary() report NaN: the covariance could not be recovered ",
+          "from the Hessian and the model is probably ",
+          "overparameterized. diagnose() names the offending ",
+          "parameters; see the 'Convergence problems' section of ",
+          "vignette('diagnostics')", call. = FALSE)
+}
+
 # Invert the joint precision of a REML / profile fit.
 #
 # The ML branch of vcov() reads an already-inverted cov.fixed, which
@@ -72,7 +89,17 @@ solve_joint_precision <- function(Q) {
   # CHOLMOD narrates a failed factorization from C before the error
   # reaches R; the message below is the one that names the remedy
   V <- try(suppressWarnings(Matrix::solve(Q)), silent = TRUE)
-  if (!inherits(V, "try-error")) return(V)
+  if (!inherits(V, "try-error")) {
+    # A precision matrix can factor and still invert into non-finite
+    # entries. That is the same verdict as a failed solve() from the
+    # user's side - NaN standard errors - so it earns the same warning,
+    # or a profile fit reports NaN as quietly as the ML branch used to.
+    # The x slot is the stored values of a Matrix; a base matrix has no
+    # such slot and is read whole.
+    xs <- tryCatch(V@x, error = function(e) as.numeric(as.matrix(V)))
+    if (any(!is.finite(xs))) warn_nonfinite_cov()
+    return(V)
+  }
   warning("The joint precision matrix is singular, so standard errors ",
           "are NaN; the model is probably overparameterized. ",
           "diagnose() names the offending parameter; see the ",

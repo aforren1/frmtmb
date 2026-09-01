@@ -6,11 +6,13 @@
 #   testthat::test_file("tests/testthat/test-fuzz.R")
 #   FRMTMB_FUZZ_N = 20   subsample the plan for a quick smoke run
 #
-# The tier is red on the current checkout, and that is its report
-# rather than a broken harness: the failure message prints the open
-# REAL-NEW findings, which dev/fuzz-findings.md explains one by one.
-# Defects already fixed on an unmerged sibling branch are triaged out
-# (FUZZ_KNOWN_PENDING), so a new red line here is a new defect.
+# The tier is green: every finding the full plan produces is on one of
+# the three lists in helper-fuzz.R, each carrying the reason it stands -
+# FUZZ_KNOWN_PENDING (fixed on an unmerged sibling branch),
+# FUZZ_KNOWN_REFUSAL (refused on purpose), FUZZ_KNOWN_DIVERGENCE (a
+# deliberate departure from brms). dev/fuzz-findings.md is the long
+# form. A red line here is therefore a new defect, and the failure
+# message prints it.
 
 test_that("pairwise grammar fuzz finds no new invariant violations", {
   skip_if_not(identical(Sys.getenv("FRMTMB_FUZZ"), "true"),
