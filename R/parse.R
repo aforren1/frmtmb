@@ -171,17 +171,24 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     } else if (is.call(tm) && identical(tm[[1]], as.name("gp"))) {
       aa <- as.list(tm)[-1]
       nms <- names(aa) %||% rep("", length(aa))
-      var <- aa[nms == ""]
-      if (length(var) != 1L || !all(nms %in% c("", "k", "c"))) {
-        stop("gp() takes one variable plus optional k = (basis size) ",
-             "and c = (boundary factor): gp(x) or gp(x, k = 30)",
+      vars <- aa[nms == ""]
+      if (length(vars) < 1L || !all(nms %in% c("", "k", "c", "iso"))) {
+        stop("gp() takes 1-3 variables plus optional k = (basis size ",
+             "per dimension), c = (boundary factor), and iso = ",
+             "(shared lengthscale): gp(x), gp(x, k = 30), gp(x1, x2)",
              call. = FALSE)
       }
+      if (length(vars) > 3L) {
+        stop("gp() supports at most 3 dimensions (got ", length(vars),
+             ")", call. = FALSE)
+      }
       gpterms[[length(gpterms) + 1L]] <- list(
-        expr = var[[1L]],
+        exprs = vars,
         k = if (!is.null(aa$k)) as.integer(eval(aa$k, baseenv())),
         c = if (!is.null(aa$c)) as.numeric(eval(aa$c, baseenv()))
-            else 1.25
+            else 1.25,
+        iso = if (!is.null(aa$iso)) isTRUE(eval(aa$iso, baseenv()))
+              else FALSE
       )
     } else if (is.call(tm) && identical(tm[[1]], as.name("cs")) &&
                !("|" %in% all.names(tm))) {

@@ -155,11 +155,19 @@ confint_varcorr <- function(fit, level = 0.95) {
         estimate = exp(t0[1]),
         lwr = exp(t0[1] - z * se_t[1]), upr = exp(t0[1] + z * se_t[1])
       )
-      rows[[length(rows) + 1L]] <- data.frame(
-        block = bk$term_label, term = "range(gp)", type = "range",
-        estimate = exp(t0[2]),
-        lwr = exp(t0[2] - z * se_t[2]), upr = exp(t0[2] + z * se_t[2])
-      )
+      # iso: one shared range; otherwise one per dimension
+      nr <- length(t0) - 1L
+      for (j in seq_len(nr)) {
+        term_j <- if (nr == 1L) "range(gp)" else {
+          paste0("range(gp, ", bk$gp_vars[j], ")")
+        }
+        rows[[length(rows) + 1L]] <- data.frame(
+          block = bk$term_label, term = term_j, type = "range",
+          estimate = exp(t0[1 + j]),
+          lwr = exp(t0[1 + j] - z * se_t[1 + j]),
+          upr = exp(t0[1 + j] + z * se_t[1 + j])
+        )
+      }
       next
     }
     if (bk$covstruct == "equalto") next   # nothing estimated

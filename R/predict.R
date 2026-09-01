@@ -131,29 +131,46 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   # the fitted X layout; mo values use the current simplex, mi values
   # must be supplied complete in newdata
   # gp() contributions rebuild their basis at the new positions and
-  # ride the smooth-parts machinery (curve kept at population level)
+  # ride the smooth-parts machinery (curve kept at population level).
+  # Exact gp at unseen positions kriges: conditional-mean weights
+  # K* K^-1 at the fitted kernel slot into Xr, and the conditional
+  # variance diag(K** - K* K^-1 K*') rides along for se.fit.
   for (gi in lp$gps %||% list()) {
-    v <- as.numeric(eval(gi$expr, newdata, env))
-    Xr <- if (gi$type == "hsgp") {
-      xc <- v - gi$center
-      sapply(seq_along(gi$omega), function(j) {
-        sin(gi$omega[j] * (xc + gi$L)) / sqrt(gi$L)
-      })
+    Xc <- do.call(cbind, lapply(gi$exprs, function(ex) {
+      as.numeric(eval(ex, newdata, env))
+    }))
+    bk <- fit$frame$re_blocks[[gi$block_id]]
+    extra_var <- NULL
+    if (gi$type == "hsgp") {
+      Xr <- hsgp_basis(sweep(Xc, 2, gi$center), gi$omega, gi$L)
     } else {
-      j <- match(v, gi$positions)
-      if (anyNA(j)) {
-        stop("gp() without k= can only predict at positions seen in ",
-             "the data; refit with gp(", deparse1(gi$expr),
-             ", k = ...) for interpolation", call. = FALSE)
+      pos <- gi$positions
+      rowkey <- function(M) {
+        do.call(paste, c(as.data.frame(M), sep = "\r"))
       }
-      as.matrix(Matrix::sparseMatrix(i = seq_along(v), j = j, x = 1,
-                                     dims = c(length(v),
-                                              length(gi$positions))))
+      j <- match(rowkey(Xc), rowkey(pos))
+      if (anyNA(j)) {
+        th <- fit$estimates$theta[bk$theta_idx]
+        K <- unname(covstruct_registry$gp$vcov(th, bk))
+        Ks <- gp_cross_cov(th, bk, Xc, pos)
+        Xr <- t(solve(K, t(Ks)))
+        # observed rows reduce to indicators (K* row = K row), so their
+        # conditional variance vanishes; the clamp absorbs roundoff
+        kss <- exp(2 * th[1]) * (1 + 1e-6)
+        extra_var <- pmax(kss - rowSums(Xr * Ks), 0)
+      } else {
+        # every row observed: exact indicator fast path
+        Xr <- as.matrix(Matrix::sparseMatrix(i = seq_len(nrow(Xc)),
+                                             j = j, x = 1,
+                                             dims = c(nrow(Xc),
+                                                      nrow(pos))))
+      }
     }
-    if (is.null(dim(Xr))) Xr <- matrix(Xr, nrow = length(v))
+    if (is.null(dim(Xr))) Xr <- matrix(Xr, nrow = nrow(Xc))
     sm_parts[[length(sm_parts) + 1L]] <- list(
-      bk = fit$frame$re_blocks[[gi$block_id]],
-      Xr = Xr
+      bk = bk,
+      Xr = Xr,
+      extra_var = extra_var
     )
   }
 
@@ -350,7 +367,9 @@ uni_resp <- function(fit, what) {
 #'   gives population-level predictions.
 #' @param se.fit If `TRUE`, return a list with elements `fit` and `se.fit`
 #'   (delta-method standard errors accounting for fixed-effect and
-#'   random-effect uncertainty).
+#'   random-effect uncertainty). Exact `gp()` terms predict unseen
+#'   positions by kriging: the conditional mean at the fitted kernel,
+#'   with the GP conditional variance added to the standard errors.
 #' @param allow_new_levels Predict unseen grouping-factor levels at the
 #'   population level instead of erroring.
 #' @param ... Unused.
@@ -548,6 +567,12 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
       mmn <- rp$mm[nas, , drop = FALSE]
       var_eta[nas] <- var_eta[nas] + rowSums((mmn %*% Scc) * mmn)
     }
+  }
+  # exact-gp kriging at unseen positions: the GP's own conditional
+  # variance adds to the delta-method variance (same convention as the
+  # new-level marginal variance above); zero at observed positions
+  for (sp in sm_parts) {
+    if (!is.null(sp$extra_var)) var_eta <- var_eta + sp$extra_var
   }
   se_eta <- sqrt(var_eta)
 
