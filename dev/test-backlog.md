@@ -87,6 +87,92 @@ tests/testthat/ (mostly test-edgecases.R); the rest are open work.
 - dpar/nlpar names with dots or underscores rejected (collision with
   coefficient naming). [brms tests.brmsformula.R]
 
+## Open-issue sweep (2026-09-01)
+
+Mined from the *currently open* trackers of brms (145), lme4 (191) and
+glmmTMB (223); 34 shortlisted and run against frmtmb. Fixed items have
+regression tests in tests/testthat/test-open-issues.R, except lme4#303
+and lme4#464/#156, which live in
+tests/testthat/test-aliased-grouping.R.
+
+### Fixed
+
+- Random-effect terms crossed with `*` or `:` (`y ~ x * (1 | g)`) now
+  error instead of being silently refit as `+`. [lme4#196]
+- `mo()`/`mi()` interaction multipliers: the numeric type gate never
+  fired for character vectors (`is.numeric(as.numeric("a"))` is TRUE),
+  so the column went all-NA and the fit died at "NA/NaN gradient
+  evaluation". [brms#1828]
+- `anova()` rejected fits with different `nobs`; previously it compared
+  likelihoods across data sets and returned a negative Chisq.
+  [lme4#622]
+- Prediction at an aliased cell of a rank-deficient design returned the
+  random-effect contribution alone. The fit now freezes the null space
+  of the fixed-effect design, and `predict(newdata =)` returns NA (with
+  NA standard errors) plus one warning naming the dropped columns for
+  the rows that load on it. Rows that merely restate a kept column
+  (`x2 = 2 * x`) stay exact, and the in-sample paths are untouched.
+  lme4 still returns the partial sum silently. [lme4#303]
+- Grouping factors written as calls - `(1 | factor(x))`,
+  `(1 | interaction(a, b))` - now fit. reformulas re-evaluates the bar
+  RHS inside the model frame, where the call's own arguments are not
+  columns, and died with an error raised several frames down
+  ("unique() applies only to vectors"). Frame assembly now points the
+  bar at the frame column the expression already produced; the original
+  expression is kept for labels and for newdata prediction, and `:`
+  / `/` groupings keep their reformulas expansion. [lme4#464, #156]
+
+### Open - high priority
+
+1. `ar1()` over an ordering factor with gaps silently treats
+   consecutive *retained* levels as lag 1. Dropping times 7-9 from a
+   1..10 series makes cor(t6, t10) come back as rho, not rho^4 (0.73 vs
+   the true 0.41), and biases rho itself (0.79 -> 0.73 at rho = 0.8).
+   Root cause: `drop.unused.levels` in the model frame, so the block is
+   indexed by level position rather than by the level's value.
+   `ou()` over `num_factor()` coordinates is the correct spelling for
+   irregular spacing; ar1() should at minimum warn when the ordering
+   levels are non-consecutive integers. [glmmTMB#1278]
+2. Truncation is ignored by every post-fit mean: the likelihood
+   normalizes correctly with F(lb-1), but `fitted()`, `predict(type =
+   "response")` and `residuals()` return the *untruncated* family mean,
+   and `simulate()` draws from the untruncated distribution (23% of
+   draws land outside [lb, ub] on a Poisson trunc(2, 6) fit). brms is
+   wrong here too but only by an off-by-one; we omit the correction
+   entirely. Needs E[Y | lb <= Y <= ub] per family (only gaussian,
+   lognormal and poisson accept trunc()) plus rejection sampling in
+   `simulate()`. [brms#1923, #1903]
+3. `||` with a factor term expands to a full correlated block
+   (`(fD || g)` gives a 4x4 with |cor| up to 0.99), so users who write
+   `||` for uncorrelated effects get the opposite. lme4 cannot warn
+   because `expandDoubleVerts` has no model frame; we call it ourselves
+   in `parse_linpred()` and could defer the check to frame assembly,
+   where the term's type is known. [lme4#818]
+
+### Open - medium
+
+- `cbind(successes, failures)` responses are rejected with a message
+  about `trials` that does not name the real problem. Every reference
+  package accepts the spelling, so ported code lands here first.
+  [glmmTMB#1319, #1325]
+- A model with zero free parameters (`y | trials(n) ~ 0`) fails inside
+  nlminb with "'d' must be a nonempty numeric (double) vector" rather
+  than reporting the degenerate model. [glmmTMB#1325, #1317]
+- No `link_zi` / `link_hu`: the zero-inflation and hurdle parts are
+  logit-only, as in glmmTMB. [glmmTMB#847]
+
+### Verified immune (regression tests added)
+
+- Zero prior weights are exactly equivalent to subsetting. [lme4#880]
+- `(1 | a * b)` expands to a + b + a:b; lme4 still cannot. [lme4#234]
+- Nonlinear fixed-effect SEs match nlme; nlmer is ~100x too small on
+  the same fit, and `predict(newdata =)` works. [lme4#819, #164]
+- REML predictions agree with `fixef()`. [glmmTMB#1143, #983]
+- Numeric vs character grouping levels in newdata. [lme4#616]
+- Non-integer binomial/poisson responses rejected. [lme4#682, #180]
+- `t2()` matches mgcv; `te()`/`ti()` refused clearly. [glmmTMB#1082]
+- Discrete truncation normalizes with F(lb-1). [brms#1903, #1923]
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

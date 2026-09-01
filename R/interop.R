@@ -173,6 +173,20 @@ resolve_bounds <- function(fit, lower, upper) {
   list(lower = mk(lower, -Inf), upper = mk(upper, Inf))
 }
 
+# Per-chain initial values around the ML mode: chain 1 exactly at the
+# mode (the short-warmup anchor), later chains at mode + N(0, jitter)
+# on the unconstrained scale, restoring the overdispersion Rhat needs
+# to detect chains agreeing for the wrong reason.
+mode_inits <- function(mode, chains, jitter) {
+  mode <- as.numeric(mode)
+  if (!is.finite(jitter) || jitter <= 0 || chains <= 1L) {
+    return(lapply(seq_len(max(chains, 1L)), function(i) mode))
+  }
+  lapply(seq_len(chains), function(i) {
+    if (i == 1L) mode else mode + stats::rnorm(length(mode), 0, jitter)
+  })
+}
+
 # Retape the fit's objective with priors added; parameters start at the
 # ML estimates so sampling initializes at (near) the posterior mode.
 prior_augmented_obj <- function(fit, entries) {
@@ -232,10 +246,25 @@ all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
 #' @param lower,upper Optional named numeric vectors of hard bounds on
 #'   outer parameters (brms `lb`/`ub`), applied on the internal scale
 #'   through Stan's constrained transforms.
-#' @param init Initialization; defaults to the ML mode.
+#' @param init Initialization; the default starts chain 1 exactly at
+#'   the ML mode and every further chain at the mode plus a normal
+#'   perturbation of sd `init_jitter` on the unconstrained scale.
+#'   The mode anchor keeps warmup short; the jitter keeps the chains
+#'   overdispersed enough for Rhat to retain power against
+#'   multimodality (the standard objection to identical mode starts).
+#'   `"random"` requests Stan's own overdispersed initialization.
+#' @param init_jitter Per-chain perturbation sd for the default init;
+#'   `0` starts every chain exactly at the mode. Draws from the R
+#'   session's RNG, so `set.seed()` makes the inits reproducible.
 #' @return An object of class `frmtmb_draws`: list with the `stanfit`,
 #'   a draws matrix with named columns (`as.matrix()` method), and the
 #'   originating fit.
+#' @section Multimodal posteriors:
+#'   For [mixture()] fits the posterior is multimodal by construction
+#'   (label switching at minimum). Mode-centered inits, jittered or
+#'   not, leave every chain in one symmetry branch, so Rhat cannot
+#'   flag the others; use `init = "random"` there and inspect chains
+#'   individually.
 #' @examples
 #' \donttest{
 #' set.seed(9)
@@ -249,7 +278,8 @@ all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
 #' }
 #' @export
 frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
-                       upper = NULL, init = "last.par.best") {
+                       upper = NULL, init = "last.par.best",
+                       init_jitter = 0.25) {
   if (!requireNamespace("tmbstan", quietly = TRUE) ||
       !requireNamespace("rstan", quietly = TRUE)) {
     stop("frm_sample() needs the 'tmbstan' and 'rstan' packages",
@@ -272,13 +302,21 @@ frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
   upper <- utils::modifyList(as.list(pr_upper),
                              as.list(upper %||% c()))
   laplace <- isTRUE(list(...)$laplace)
-  if (laplace && identical(init, "last.par.best")) {
-    # under laplace tmbstan samples only the outer parameters, so the
-    # full-length keyword init has the wrong length; hand it the outer
-    # slice of the mode instead
+  if (identical(init, "last.par.best")) {
+    # a singular ML mode (variance at the boundary) is exactly the
+    # pathological start the mode-init criticism is about
+    if (any(abs(fit$estimates$theta %||% 0) > 8)) {
+      warning("The ML mode has an extreme covariance parameter ",
+              "(likely a boundary/singular fit); mode initialization ",
+              "starts the chains there. Consider init = \"random\", ",
+              "or regularize with priors =", call. = FALSE)
+    }
     lpb <- obj$env$last.par.best
     rnd <- obj$env$random
-    init <- if (length(rnd)) lpb[-rnd] else lpb
+    # under laplace tmbstan samples only the outer parameters, so the
+    # full-length mode has the wrong length; take the outer slice
+    mode <- if (laplace && length(rnd)) lpb[-rnd] else lpb
+    init <- mode_inits(mode, list(...)$chains %||% 4, init_jitter)
   }
   args <- list(obj = obj, init = init, ...)
   if (length(lower) || length(upper)) {
