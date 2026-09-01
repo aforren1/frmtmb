@@ -51,6 +51,13 @@ likelihood-ratio tests, AIC).
   [`frm_multiple()`](../reference/frm_multiple.md) (Rubin’s rules), the
   `brm_multiple()` analog. Mixture fits are ML: expect multimodality,
   compare starts ([`frm_allfit()`](../reference/frm_allfit.md)).
+- [`binomial()`](https://rdrr.io/r/stats/family.html) without `trials()`
+  is accepted and means Bernoulli, the
+  [`stats::glm()`](https://rdrr.io/r/stats/glm.html) convention; brms
+  rejects it and asks for `trials()` or
+  [`bernoulli()`](../reference/frmtmb-families.md). The divergence is
+  permissive, so brms code ports unchanged, but frmtmb code written this
+  way does not port back.
 - Not supported: `ar()/ma()` residual autocorrelation terms (use the
   `ar1()` random-effect structure).
 - glmer’s proportion-response idiom (`weights = size`) becomes

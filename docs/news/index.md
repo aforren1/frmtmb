@@ -1,5 +1,63 @@
 # Changelog
 
+## frmtmb 0.24.0
+
+The quadrature and OSA defect clusters surfaced by the fuzzer and
+compatibility registry.
+
+### Corrected behavior
+
+- `quadrature = TRUE` is rebuilt around one root cause: TMB’s
+  Gauss-Kronrod marginalization calibrates each integrand’s rescaling
+  once, at the parameter values in hand when the tape is built, and
+  frmtmb taped at the cold start. A plain Laplace fit now runs first and
+  the quadrature tape is built at its optimum. This fixes: conditional
+  modes returned as NA
+  ([`ranef()`](../reference/ranef.md)/[`fitted()`](https://rdrr.io/r/stats/fitted.values.html)/[`predict()`](https://rdrr.io/r/stats/predict.html)
+  were silently NA for all groups but the first, whose slot held a wrong
+  value) - modes now come from the Laplace inner solve and match
+  `glmer(nAGQ = 25)`’s [`ranef()`](../reference/ranef.md) to 3e-5; and
+  bare “NA/NaN gradient evaluation” crashes for poisson/Gamma/Beta with
+  nested or even single scalar blocks - all now fit with gradients \<
+  3e-4.
+- `quadrature` combined with
+  [`trunc()`](https://rdrr.io/r/base/Round.html) produced logLik = +Inf
+  as a successful fit; the combination is refused (the CDF difference
+  underflows at quadrature nodes; a stable fix needs log-CDF forms).
+  [`mixture()`](../reference/mixture.md) with `REML` or `profile = TRUE`
+  is refused: both Laplace-expand the mu coefficients around a single
+  mode, and a mixture likelihood is permutation-multimodal in exactly
+  those coefficients. [`mixture()`](../reference/mixture.md) with
+  quadrature remains supported.
+- `residuals(type = "osa")` on censored fits was broken (raw LAPACK
+  singularity or NaN for every censored row). Uncensored rows now get
+  calibrated one-step residuals by conditioning on the censoring window
+  and renormalizing the one-step CDF to it (matches the analytic
+  conditional PIT to 7e-9); censored rows are NA (an event has no
+  one-step CDF), and row-varying censoring points refuse. Note
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) draws the latent
+  uncensored response under `cens()`, so DHARMa is not a substitute
+  there (documented).
+- `residuals(type = "osa")` on ordinal fits crashed inside the OSA
+  machinery; the ordinal log-densities now handle `oneStepPredict`’s
+  taped-observation objects (exact Lagrange-basis category indicator),
+  and all four ordinal families produce calibrated residuals (cumulative
+  matches the analytic randomized-quantile residual to 4e-14).
+- A singular joint precision under REML or `profile = TRUE` no longer
+  throws a raw LAPACK error from
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html)/[`summary()`](https://rdrr.io/r/base/summary.html)/[`confint()`](https://rdrr.io/r/stats/confint.html)/
+  [`hypothesis()`](../reference/hypothesis.md): it degrades to NaN
+  standard errors with one warning pointing at
+  [`diagnose()`](../reference/diagnose.md), matching the ML branch.
+- The brms-migration vignette documents that
+  [`binomial()`](https://rdrr.io/r/stats/family.html) without `trials()`
+  means Bernoulli here (glm convention) where brms requires `trials()`
+  or [`bernoulli()`](../reference/frmtmb-families.md).
+
+The fuzz tier’s open findings drop from 28 to 16 on the identical plan;
+most of the remainder are now informative refusals on thin-data edge
+cases rather than defects.
+
 ## frmtmb 0.23.0
 
 Defect wave driven by an open-issue sweep of brms/lme4/glmmTMB, plus a

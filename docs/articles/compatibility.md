@@ -45,7 +45,7 @@ frm_compat("rescor", "cens()")
 #> 1 Refused. This pair was once accepted with the censoring silently dropped.
 
 frm_compat("quadrature", "trunc()")$status
-#> [1] "broken"
+#> [1] "refused"
 ```
 
 Give one feature to get every pair it takes part in, and `status` to
@@ -73,15 +73,6 @@ group rather than per pair.
 
 These pairs are accepted and should not be. Each one is a defect, not a
 design decision.
-
-| Combination | Evidence |
-|:---|:---|
-| cumulative + residuals_osa; sratio + residuals_osa; cratio + residuals_osa; acat + residuals_osa | Broken: residuals(type = “osa”) on an ordinal fit stops inside the OSA machinery with ‘comparison (==) is possible only for atomic and list types’ rather than refusing cleanly. |
-| cens() + residuals_osa | BROKEN. The default method stops with a singular Lapack system, and oneStepGeneric returns NaN for every censored row after a stream of integration errors. There is no guard. Do not request one-step-ahead residuals for a censored fit. |
-| trunc() + quadrature | BROKEN. The truncation normalizer is dropped from the marginalized objective. The fit returns convergence 0 with slope estimates collapsed to zero, next to a correct 0.93 from ML, REML, and profile. A large-gradient warning is the only signal. Do not combine these; use REML or plain ML for truncated responses. |
-| REML + mixture | Broken: mixture() under REML either stops with ‘NA/NaN gradient evaluation’ or returns a fit with a gradient near 1e9. There is no guard. Use REML = FALSE. |
-| quadrature + mixture | Broken: the fit runs and reports a gradient near 1e11. There is no guard. |
-| profile + mixture | Broken: stops with ‘NA/NaN gradient evaluation’ rather than a clear refusal. |
 
 ## Response distributions and addition terms
 
@@ -177,10 +168,10 @@ value.
 | hurdle_poisson | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
 | hurdle_gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
 | hurdle_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| cumulative | ~ | ~ | x | ~ | ! | ~ | ~ | ~ | ~ |
-| sratio | ~ | ~ | x | ~ | ! | ~ | ~ | ~ | ~ |
-| cratio | ~ | ~ | x | ~ | ! | ~ | ~ | ~ | ~ |
-| acat | ~ | ~ | x | ~ | ! | ~ | ~ | ~ | ~ |
+| cumulative | ~ | ~ | x | ~ | \+ | ~ | ~ | ~ | ~ |
+| sratio | ~ | ~ | x | ~ | \+ | ~ | ~ | ~ | ~ |
+| cratio | ~ | ~ | x | ~ | \+ | ~ | ~ | ~ | ~ |
+| acat | ~ | ~ | x | ~ | \+ | ~ | ~ | ~ | ~ |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -191,7 +182,6 @@ value.
 | ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 28 more | Univariate fits only, and the mu predictor must be linear. |
 | ~ | gaussian + frm_sample; student + frm_sample; lognormal + frm_sample; shifted_lognormal + frm_sample; skew_normal + frm_sample; and 28 more | Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = “random” for a multimodal posterior. |
 | x | tweedie + simulate; compois + simulate; multinomial + simulate; hurdle_poisson + simulate; cumulative + simulate; and 3 more | Refused: this family has no simulator yet. |
-| ! | cumulative + residuals_osa; sratio + residuals_osa; cratio + residuals_osa; acat + residuals_osa | Broken: residuals(type = “osa”) on an ordinal fit stops inside the OSA machinery with ‘comparison (==) is possible only for atomic and list types’ rather than refusing cleanly. |
 
 ## Estimation modes
 
@@ -232,7 +222,7 @@ change the arithmetic or the output, not the model.
 | weights() |  ?   |     \+     |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
 | trials()  |  ?   |     ?      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
 | cens()    |  \+  |     \+     |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| trunc()   |  \+  |     !      |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
+| trunc()   |  \+  |     x      |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
 | se()      |  \+  |     \+     |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
 | mi()      |  \+  |     x      |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
 | vint()    |  ?   |     ?      |    ?    |    \+     |    \+    |   ?    |   ?    |    ?    |
@@ -240,8 +230,8 @@ change the arithmetic or the output, not the model.
 
 | Status | Pairs | Note |
 |:---|:---|:---|
+| x | trunc() + quadrature | Refused: the truncation normalizer is log(F(ub) - F(lb)) over plain CDFs, and the Gauss-Kronrod nodes reach random-effect values where that difference underflows to exactly zero while the density is still representable. The integrand is then +Inf and the marginalized objective is -Inf, at the Laplace optimum as well as at the starting values, so the fit used to report logLik = +Inf as converged. Laplace stays near the mode and is unaffected: use quadrature = FALSE, REML, or profile for truncated responses. |
 | x | mi() + quadrature | Refused: the imputed values are themselves random effects that quadrature cannot marginalize. |
-| ! | trunc() + quadrature | BROKEN. The truncation normalizer is dropped from the marginalized objective. The fit returns convergence 0 with slope estimates collapsed to zero, next to a correct 0.93 from ML, REML, and profile. A large-gradient warning is the only signal. Do not combine these; use REML or plain ML for truncated responses. |
 
 ### Modes and covariance structures
 
@@ -274,7 +264,7 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 
 | Status | Pairs | Note |
 |:---|:---|:---|
-| ~ | us + quadrature; diag + quadrature; homdiag + quadrature | Allowed only when the block is one-dimensional, that is a scalar random intercept. Correlated slopes are refused. |
+| ~ | us + quadrature; diag + quadrature; homdiag + quadrature | Allowed only when the block is one-dimensional, that is a scalar random intercept. Correlated slopes are refused. Several such blocks are fine, nested ones included: (1 \| ga/gb) becomes an iterated one-dimensional integral. |
 | ~ | ar1 + priors; ar1 + bounds; ar1 + verbose | ar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. Use ou() over num_factor() for irregular spacing. |
 | ~ | hetar1 + priors; hetar1 + bounds; hetar1 + verbose | hetar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. |
 | ~ | ou + priors; ou + bounds; ou + verbose | ou() is the irregular-spacing structure. Build the levels with num_factor() so the metric distance is recoverable. |
@@ -374,11 +364,11 @@ Three spellings have restrictions of their own.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1698 | 45%   |
-| conditional |   889 | 24%   |
-| refused     |   385 | 10%   |
-| broken      |     9 | 0%    |
-| untested    |   769 | 21%   |
+| works       |  1708 | 46%   |
+| conditional |   891 | 24%   |
+| refused     |   391 | 10%   |
+| broken      |     0 | 0%    |
+| untested    |   760 | 20%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To

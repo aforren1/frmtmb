@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.23.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.24.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -186,6 +186,13 @@ restriction Stan has. Multiply imputed data can instead go through
 <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> (Rubin’s rules), the
 <code>brm_multiple()</code> analog. Mixture fits are ML: expect
 multimodality, compare starts (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>).</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code> without <code>trials()</code> is accepted
+and means Bernoulli, the <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">stats::glm()</a></code> convention; brms
+rejects it and asks for <code>trials()</code> or
+<code><a href="../reference/frmtmb-families.html">bernoulli()</a></code>. The divergence is permissive, so brms code
+ports unchanged, but frmtmb code written this way does not port
+back.</li>
 <li>Not supported: <code>ar()/ma()</code> residual autocorrelation terms
 (use the <code>ar1()</code> random-effect structure).</li>
 <li>glmer’s proportion-response idiom (<code>weights = size</code>)

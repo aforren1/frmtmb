@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.23.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.24.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -145,7 +145,7 @@ ask it the same questions directly.</p>
 <span><span class="co">#&gt; 1 Refused. This pair was once accepted with the censoring silently dropped.</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/frm_compat.html">frm_compat</a></span><span class="op">(</span><span class="st">"quadrature"</span>, <span class="st">"trunc()"</span><span class="op">)</span><span class="op">$</span><span class="va">status</span></span>
-<span><span class="co">#&gt; [1] "broken"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "refused"</span></span></code></pre></div>
 <p>Give one feature to get every pair it takes part in, and
 <code>status</code> to filter:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
@@ -167,56 +167,6 @@ written per kind or per feature group rather than per pair.</p>
 </h2>
 <p>These pairs are accepted and should not be. Each one is a defect, not
 a design decision.</p>
-<table class="table">
-<colgroup>
-<col width="23%">
-<col width="76%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">Combination</th>
-<th align="left">Evidence</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">cumulative + residuals_osa; sratio + residuals_osa;
-cratio + residuals_osa; acat + residuals_osa</td>
-<td align="left">Broken: residuals(type = “osa”) on an ordinal fit stops
-inside the OSA machinery with ‘comparison (==) is possible only for
-atomic and list types’ rather than refusing cleanly.</td>
-</tr>
-<tr class="even">
-<td align="left">cens() + residuals_osa</td>
-<td align="left">BROKEN. The default method stops with a singular Lapack
-system, and oneStepGeneric returns NaN for every censored row after a
-stream of integration errors. There is no guard. Do not request
-one-step-ahead residuals for a censored fit.</td>
-</tr>
-<tr class="odd">
-<td align="left">trunc() + quadrature</td>
-<td align="left">BROKEN. The truncation normalizer is dropped from the
-marginalized objective. The fit returns convergence 0 with slope
-estimates collapsed to zero, next to a correct 0.93 from ML, REML, and
-profile. A large-gradient warning is the only signal. Do not combine
-these; use REML or plain ML for truncated responses.</td>
-</tr>
-<tr class="even">
-<td align="left">REML + mixture</td>
-<td align="left">Broken: mixture() under REML either stops with ‘NA/NaN
-gradient evaluation’ or returns a fit with a gradient near 1e9. There is
-no guard. Use REML = FALSE.</td>
-</tr>
-<tr class="odd">
-<td align="left">quadrature + mixture</td>
-<td align="left">Broken: the fit runs and reports a gradient near 1e11.
-There is no guard.</td>
-</tr>
-<tr class="even">
-<td align="left">profile + mixture</td>
-<td align="left">Broken: stops with ‘NA/NaN gradient evaluation’ rather
-than a clear refusal.</td>
-</tr>
-</tbody>
-</table>
 </div>
 <div class="section level2">
 <h2 id="response-distributions-and-addition-terms">Response distributions and addition terms<a class="anchor" aria-label="anchor" href="#response-distributions-and-addition-terms"></a>
@@ -1078,7 +1028,7 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">x</td>
 <td align="center">~</td>
-<td align="center">!</td>
+<td align="center">+</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1090,7 +1040,7 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">x</td>
 <td align="center">~</td>
-<td align="center">!</td>
+<td align="center">+</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1102,7 +1052,7 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">x</td>
 <td align="center">~</td>
-<td align="center">!</td>
+<td align="center">+</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1114,7 +1064,7 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">x</td>
 <td align="center">~</td>
-<td align="center">!</td>
+<td align="center">+</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1125,8 +1075,8 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <table class="table">
 <colgroup>
 <col width="2%">
+<col width="51%">
 <col width="45%">
-<col width="52%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -1189,14 +1139,6 @@ posterior.</td>
 simulate; hurdle_poisson + simulate; cumulative + simulate; and 3
 more</td>
 <td align="left">Refused: this family has no simulator yet.</td>
-</tr>
-<tr class="even">
-<td align="left">!</td>
-<td align="left">cumulative + residuals_osa; sratio + residuals_osa;
-cratio + residuals_osa; acat + residuals_osa</td>
-<td align="left">Broken: residuals(type = “osa”) on an ordinal fit stops
-inside the OSA machinery with ‘comparison (==) is possible only for
-atomic and list types’ rather than refusing cleanly.</td>
 </tr>
 </tbody>
 </table>
@@ -1451,7 +1393,7 @@ parameters.</td>
 <tr class="even">
 <td align="left">trunc()</td>
 <td align="center">+</td>
-<td align="center">!</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1507,9 +1449,9 @@ parameters.</td>
 </table>
 <table class="table">
 <colgroup>
-<col width="2%">
-<col width="6%">
-<col width="91%">
+<col width="1%">
+<col width="3%">
+<col width="94%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -1519,18 +1461,21 @@ parameters.</td>
 <tbody>
 <tr class="odd">
 <td align="left">x</td>
+<td align="left">trunc() + quadrature</td>
+<td align="left">Refused: the truncation normalizer is log(F(ub) -
+F(lb)) over plain CDFs, and the Gauss-Kronrod nodes reach random-effect
+values where that difference underflows to exactly zero while the
+density is still representable. The integrand is then +Inf and the
+marginalized objective is -Inf, at the Laplace optimum as well as at the
+starting values, so the fit used to report logLik = +Inf as converged.
+Laplace stays near the mode and is unaffected: use quadrature = FALSE,
+REML, or profile for truncated responses.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
 <td align="left">mi() + quadrature</td>
 <td align="left">Refused: the imputed values are themselves random
 effects that quadrature cannot marginalize.</td>
-</tr>
-<tr class="even">
-<td align="left">!</td>
-<td align="left">trunc() + quadrature</td>
-<td align="left">BROKEN. The truncation normalizer is dropped from the
-marginalized objective. The fit returns convergence 0 with slope
-estimates collapsed to zero, next to a correct 0.93 from ML, REML, and
-profile. A large-gradient warning is the only signal. Do not combine
-these; use REML or plain ML for truncated responses.</td>
 </tr>
 </tbody>
 </table>
@@ -1791,8 +1736,8 @@ or <code>homdiag</code> term.</p>
 <table class="table">
 <colgroup>
 <col width="2%">
-<col width="37%">
-<col width="59%">
+<col width="30%">
+<col width="67%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -1805,7 +1750,9 @@ or <code>homdiag</code> term.</p>
 <td align="left">us + quadrature; diag + quadrature; homdiag +
 quadrature</td>
 <td align="left">Allowed only when the block is one-dimensional, that is
-a scalar random intercept. Correlated slopes are refused.</td>
+a scalar random intercept. Correlated slopes are refused. Several such
+blocks are fine, nested ones included: (1 | ga/gb) becomes an iterated
+one-dimensional integral.</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>
@@ -2415,28 +2362,28 @@ level.</td>
 <tbody>
 <tr class="odd">
 <td align="left">works</td>
-<td align="right">1698</td>
-<td align="left">45%</td>
+<td align="right">1708</td>
+<td align="left">46%</td>
 </tr>
 <tr class="even">
 <td align="left">conditional</td>
-<td align="right">889</td>
+<td align="right">891</td>
 <td align="left">24%</td>
 </tr>
 <tr class="odd">
 <td align="left">refused</td>
-<td align="right">385</td>
+<td align="right">391</td>
 <td align="left">10%</td>
 </tr>
 <tr class="even">
 <td align="left">broken</td>
-<td align="right">9</td>
+<td align="right">0</td>
 <td align="left">0%</td>
 </tr>
 <tr class="odd">
 <td align="left">untested</td>
-<td align="right">769</td>
-<td align="left">21%</td>
+<td align="right">760</td>
+<td align="left">20%</td>
 </tr>
 </tbody>
 </table>

@@ -179,9 +179,13 @@ test_that("frm_compat() slices the table three ways", {
 })
 
 test_that("frm_compat() filters by status and rejects unknown input", {
+  # the broken bucket can be (and currently is) empty: v0.24 cleared
+  # every known-broken pair; the filter must still work on it
   broken <- frm_compat(status = "broken")
   expect_true(all(broken$status == "broken"))
-  expect_gt(nrow(broken), 0L)
+  refused <- frm_compat(status = "refused")
+  expect_true(all(refused$status == "refused"))
+  expect_gt(nrow(refused), 0L)
   expect_error(frm_compat("no_such_feature"), "Unknown feature")
   expect_error(frm_compat(status = "maybe"), "Unknown status")
 })

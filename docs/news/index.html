@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.23.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.24.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,24 @@
 
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.24.0" id="frmtmb-0240">frmtmb 0.24.0<a class="anchor" aria-label="anchor" href="#frmtmb-0240"></a></h2>
+<p>The quadrature and OSA defect clusters surfaced by the fuzzer and compatibility registry.</p>
+<div class="section level3">
+<h3 id="corrected-behavior-0-24-0">Corrected behavior<a class="anchor" aria-label="anchor" href="#corrected-behavior-0-24-0"></a></h3>
+<ul><li>
+<code>quadrature = TRUE</code> is rebuilt around one root cause: TMB’s Gauss-Kronrod marginalization calibrates each integrand’s rescaling once, at the parameter values in hand when the tape is built, and frmtmb taped at the cold start. A plain Laplace fit now runs first and the quadrature tape is built at its optimum. This fixes: conditional modes returned as NA (<code><a href="../reference/ranef.html">ranef()</a></code>/<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>/<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> were silently NA for all groups but the first, whose slot held a wrong value) - modes now come from the Laplace inner solve and match <code>glmer(nAGQ = 25)</code>’s <code><a href="../reference/ranef.html">ranef()</a></code> to 3e-5; and bare “NA/NaN gradient evaluation” crashes for poisson/Gamma/Beta with nested or even single scalar blocks - all now fit with gradients &lt; 3e-4.</li>
+<li>
+<code>quadrature</code> combined with <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> produced logLik = +Inf as a successful fit; the combination is refused (the CDF difference underflows at quadrature nodes; a stable fix needs log-CDF forms). <code><a href="../reference/mixture.html">mixture()</a></code> with <code>REML</code> or <code>profile = TRUE</code> is refused: both Laplace-expand the mu coefficients around a single mode, and a mixture likelihood is permutation-multimodal in exactly those coefficients. <code><a href="../reference/mixture.html">mixture()</a></code> with quadrature remains supported.</li>
+<li>
+<code>residuals(type = "osa")</code> on censored fits was broken (raw LAPACK singularity or NaN for every censored row). Uncensored rows now get calibrated one-step residuals by conditioning on the censoring window and renormalizing the one-step CDF to it (matches the analytic conditional PIT to 7e-9); censored rows are NA (an event has no one-step CDF), and row-varying censoring points refuse. Note <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws the latent uncensored response under <code>cens()</code>, so DHARMa is not a substitute there (documented).</li>
+<li>
+<code>residuals(type = "osa")</code> on ordinal fits crashed inside the OSA machinery; the ordinal log-densities now handle <code>oneStepPredict</code>’s taped-observation objects (exact Lagrange-basis category indicator), and all four ordinal families produce calibrated residuals (cumulative matches the analytic randomized-quantile residual to 4e-14).</li>
+<li>A singular joint precision under REML or <code>profile = TRUE</code> no longer throws a raw LAPACK error from <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>/<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>/<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>/ <code><a href="../reference/hypothesis.html">hypothesis()</a></code>: it degrades to NaN standard errors with one warning pointing at <code><a href="../reference/diagnose.html">diagnose()</a></code>, matching the ML branch.</li>
+<li>The brms-migration vignette documents that <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code> without <code>trials()</code> means Bernoulli here (glm convention) where brms requires <code>trials()</code> or <code><a href="../reference/frmtmb-families.html">bernoulli()</a></code>.</li>
+</ul><p>The fuzz tier’s open findings drop from 28 to 16 on the identical plan; most of the remainder are now informative refusals on thin-data edge cases rather than defects.</p>
+</div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.23.0" id="frmtmb-0230">frmtmb 0.23.0<a class="anchor" aria-label="anchor" href="#frmtmb-0230"></a></h2>
 <p>Defect wave driven by an open-issue sweep of brms/lme4/glmmTMB, plus a feature-compatibility registry.</p>

@@ -93,7 +93,16 @@ frm(
   Gauss-Kronrod quadrature instead of the Laplace approximation (the
   `glmer(nAGQ = k)` analogue; matches it in tests). Worth it for
   Bernoulli responses with small clusters, where Laplace biases variance
-  components. Scalar random-intercept models only.
+  components. Scalar random-intercept models only, and not with `mi()`,
+  [`trunc()`](https://rdrr.io/r/base/Round.html), `REML = TRUE`, or
+  `frmtmb_control(profile = TRUE)`. A plain Laplace fit runs first and
+  the quadrature tape is built at its optimum: the Gauss-Kronrod
+  rescaling is fixed when the tape is built, so the starting point
+  decides whether the marginalized objective is finite at all. That fit
+  also supplies the conditional modes, which the marginalized objective
+  no longer carries, so [`ranef()`](ranef.md),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`predict()`](https://rdrr.io/r/stats/predict.html) work as usual.
 
 - dry_run:
 

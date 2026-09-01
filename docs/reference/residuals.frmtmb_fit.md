@@ -32,11 +32,11 @@ residuals(
   Method for
   [`TMB::oneStepPredict()`](https://rdrr.io/pkg/TMB/man/oneStepPredict.html);
   defaults to `"fullGaussian"` for gaussian models and
-  `"oneStepGeneric"` otherwise. A truncated response always uses
-  `"oneStepGeneric"` (a truncated gaussian is not gaussian) with the
-  integration domain and discrete support taken from the
-  [`trunc()`](https://rdrr.io/r/base/Round.html) bounds, which must then
-  be the same for every row.
+  `"oneStepGeneric"` otherwise. A truncated, censored or ordinal
+  response always uses `"oneStepGeneric"` (a truncated gaussian is not
+  gaussian) with the integration domain and discrete support taken from
+  the [`trunc()`](https://rdrr.io/r/base/Round.html) bounds or the
+  censoring window, which must then be the same for every row.
 
 - ...:
 
@@ -45,7 +45,7 @@ residuals(
 
 ## Value
 
-A numeric vector.
+A numeric vector, `NA` on censored rows.
 
 ## Details
 
@@ -54,3 +54,17 @@ On a [`trunc()`](https://rdrr.io/r/base/Round.html)ed response,
 `E[Y | lb <= Y <= ub]`. `"pearson"` divides by the untruncated family
 variance, so it is conservative there. `"osa"` builds its conditional
 CDF on `[lb, ub]` (see `osa_method`).
+
+On a `cens()`ed response, `"osa"` returns `NA` for every censored row:
+what is observed there is an event (`Y > c`), not a value, and an event
+has no one-step CDF. The uncensored rows get residuals conditional on
+the censoring events, which needs one censoring point per side (type-I
+censoring); row-varying censoring times and interval censoring are
+refused. [`dharma_residuals()`](dharma_residuals.md) is not a substitute
+on a censored fit, because
+[`simulate.frmtmb_fit()`](simulate.frmtmb_fit.md) draws the latent
+uncensored response and those draws are not comparable with the observed
+censored values.
+
+Ordinal responses use `"oneStepGeneric"` over the discrete support
+`1..K`, which makes the residuals randomized quantile residuals.

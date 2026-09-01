@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.23.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.24.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -136,7 +136,14 @@ adaptive Gauss-Kronrod quadrature instead of the Laplace
 approximation (the <code>glmer(nAGQ = k)</code> analogue; matches it in
 tests). Worth it for Bernoulli responses with small clusters,
 where Laplace biases variance components. Scalar random-intercept
-models only.</p></dd>
+models only, and not with <code>mi()</code>, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code>REML = TRUE</code>, or
+<code>frmtmb_control(profile = TRUE)</code>. A plain Laplace fit runs first
+and the quadrature tape is built at its optimum: the
+Gauss-Kronrod rescaling is fixed when the tape is built, so the
+starting point decides whether the marginalized objective is
+finite at all. That fit also supplies the conditional modes, which
+the marginalized objective no longer carries, so <code><a href="ranef.html">ranef()</a></code>,
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> work as usual.</p></dd>
 
 
 <dt id="arg-dry-run">dry_run<a class="anchor" aria-label="anchor" href="#arg-dry-run"></a></dt>

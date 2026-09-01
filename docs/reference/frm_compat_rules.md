@@ -32,13 +32,8 @@ pair. Use this function to see which rule is doing the work.
 ``` r
 rules <- frm_compat_rules()
 nrow(rules)
-#> [1] 223
+#> [1] 225
 subset(rules, status == "broken")[, c("feature_a", "feature_b")]
-#>         feature_a     feature_b
-#> 39           REML       mixture
-#> 58     quadrature       trunc()
-#> 67     quadrature       mixture
-#> 75        profile       mixture
-#> 194 residuals_osa group:ordinal
-#> 195 residuals_osa        cens()
+#> [1] feature_a feature_b
+#> <0 rows> (or 0-length row.names)
 ```

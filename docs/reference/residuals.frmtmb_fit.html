@@ -13,7 +13,7 @@ mislead.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.23.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.24.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,10 +78,11 @@ mislead.</p>
 <dt id="arg-osa-method">osa_method<a class="anchor" aria-label="anchor" href="#arg-osa-method"></a></dt>
 <dd><p>Method for <code><a href="https://rdrr.io/pkg/TMB/man/oneStepPredict.html" class="external-link">TMB::oneStepPredict()</a></code>; defaults to
 <code>"fullGaussian"</code> for gaussian models and <code>"oneStepGeneric"</code>
-otherwise. A truncated response always uses <code>"oneStepGeneric"</code>
-(a truncated gaussian is not gaussian) with the integration domain
-and discrete support taken from the <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> bounds, which must
-then be the same for every row.</p></dd>
+otherwise. A truncated, censored or ordinal response always uses
+<code>"oneStepGeneric"</code> (a truncated gaussian is not gaussian) with the
+integration domain and discrete support taken from the <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>
+bounds or the censoring window, which must then be the same for
+every row.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -90,7 +91,7 @@ then be the same for every row.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A numeric vector.</p>
+    <p>A numeric vector, <code>NA</code> on censored rows.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -98,6 +99,17 @@ then be the same for every row.</p></dd>
 the truncated mean <code>E[Y | lb &lt;= Y &lt;= ub]</code>. <code>"pearson"</code> divides by the
 untruncated family variance, so it is conservative there. <code>"osa"</code>
 builds its conditional CDF on <code>[lb, ub]</code> (see <code>osa_method</code>).</p>
+<p>On a <code>cens()</code>ed response, <code>"osa"</code> returns <code>NA</code> for every censored
+row: what is observed there is an event (<code>Y &gt; c</code>), not a value, and
+an event has no one-step CDF. The uncensored rows get residuals
+conditional on the censoring events, which needs one censoring point
+per side (type-I censoring); row-varying censoring times and interval
+censoring are refused. <code><a href="dharma_residuals.html">dharma_residuals()</a></code> is not a substitute on a
+censored fit, because <code><a href="simulate.frmtmb_fit.html">simulate.frmtmb_fit()</a></code> draws the latent
+uncensored response and those draws are not comparable with the
+observed censored values.</p>
+<p>Ordinal responses use <code>"oneStepGeneric"</code> over the discrete support
+<code>1..K</code>, which makes the residuals randomized quantile residuals.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
