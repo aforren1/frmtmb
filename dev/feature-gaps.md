@@ -187,9 +187,16 @@ interface that can see family-level extras.
   lognormal forms to 1e-8 and against glmmTMB's own response-scale
   delta method to ~1e-5 relative. The identity-mean path is
   bit-identical to before.
-- `getME()`: small accessor vocabulary (X, Z, theta, beta, b) on the
-  lme4 generic; low value until a concrete downstream consumer
-  appears (design access exists via `fit$frame`).
+- ~~`getME()`: small accessor vocabulary (X, Z, theta, beta, b) on the
+  lme4 generic~~ DONE in v0.28: `getME.frmtmb_fit` registered on
+  `lme4::getME` (Suggests, so the registration is delayed) with the
+  vocabulary X, Z, Zt, beta/fixef, b, theta, lower, sigma, flist,
+  n_rtrms, n_rfacs; anything else errors listing it. X and Z agree
+  with `lmer`'s on sleepstudy; `b` is coefficient space (rr blocks
+  expanded), `theta` is the internal unconstrained scale and `lower`
+  is therefore all `-Inf`, both documented as such. Design extractors
+  need `resp=` on a multivariate fit; the scalar names answer without
+  one.
 
 ## Already ahead (no action)
 

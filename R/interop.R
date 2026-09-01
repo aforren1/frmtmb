@@ -560,3 +560,159 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ...) {
   list(X = X, bhat = bhat, nbasis = matrix(NA), V = V,
        dffun = function(k, dfargs) Inf, dfargs = list(), misc = list())
 }
+
+# --- lme4::getME ------------------------------------------------------
+# Only the pieces that mean the same thing here. The vocabulary stays
+# small on purpose: a name that would have to be faked (Lambdat, u, the
+# lme4 sparse-Cholesky machinery) is worse than a name that errors,
+# because downstream code cannot tell a wrong answer from a right one.
+
+frmtmb_getME_vocab <- c("X", "Z", "Zt", "beta", "fixef", "b", "theta",
+                        "lower", "sigma", "flist", "n_rtrms",
+                        "n_rfacs")
+
+# Blocks that carry a real grouping factor. Smooths and Gaussian
+# processes are stored as random-effect blocks too, but their "levels"
+# are basis functions, so they have no factor to report.
+getME_group_blocks <- function(object) {
+  Filter(function(bk) !bk$covstruct %in% c("smooth", "gp", "hsgp") &&
+           !is.null(bk$components[[1L]]$bar),
+         object$frame$re_blocks)
+}
+
+# Labels for the random-effect coefficient vector, which is also the
+# column order of every Z: level-major within a block, one entry per
+# (level, term coefficient), the way lme4 labels Zt rows.
+re_coef_labels <- function(frame) {
+  if (!length(frame$re_blocks)) return(character(0))
+  unlist(lapply(frame$re_blocks, function(bk) {
+    lv <- bk$levels %||% as.character(seq_len(bk$n_levels))
+    paste0(rep(lv, each = bk$dim), ".", rep(bk$cnms, bk$n_levels))
+  }), use.names = FALSE)
+}
+
+# The grouping factors as they were at fit time, rebuilt from the
+# stored model frame the same way predict() rebuilds them for newdata.
+getME_flist <- function(object) {
+  out <- list()
+  for (bk in getME_group_blocks(object)) {
+    comp <- bk$components[[1L]]
+    lp <- object$frame$linpreds[[comp$lp_key]]
+    env <- object$spec$responses[[lp$resp]]$formula_env
+    gv <- tryCatch(
+      as.character(eval(comp$bar[[3L]], object$frame$data_frame, env)),
+      error = function(e) NULL
+    )
+    if (length(gv) != object$frame$n_obs) {
+      stop("getME(\"flist\"): cannot rebuild the grouping factor for `",
+           bk$term_label, "`", call. = FALSE)
+    }
+    nm <- bk$group_name
+    if (is.null(out[[nm]])) out[[nm]] <- factor(gv, levels = bk$levels)
+  }
+  out
+}
+
+#' Extract components of a fit, lme4 style
+#'
+#' A small [lme4::getME()] vocabulary, for downstream code written
+#' against merMod objects. Registered on lme4's generic, so call it as
+#' `lme4::getME(fit, "X")` or load lme4 first.
+#'
+#' Supported names:
+#' \describe{
+#'   \item{`"X"`}{Fixed-effect design matrix of the `mu` predictor.}
+#'   \item{`"Z"`, `"Zt"`}{The sparse random-effect design of the `mu`
+#'     predictor and its transpose. Columns (rows of `Zt`) span the
+#'     whole random-effect coefficient vector, so a block belonging to
+#'     another distributional parameter contributes zero columns here.}
+#'   \item{`"beta"`, `"fixef"`}{The primary (`mu`-family) fixed-effect
+#'     coefficients, named. Coefficients of auxiliary distributional
+#'     parameters are a separate vector; use [fixef()] for all of them.}
+#'   \item{`"b"`}{Conditional modes in coefficient space, aligned with
+#'     the columns of `Z`. Reduced-rank (`rr()`) blocks are expanded
+#'     through their loadings, so this is not the internal parameter
+#'     vector.}
+#'   \item{`"theta"`}{Covariance parameters on the internal
+#'     (unconstrained) scale, as in `confint()`. These are not lme4's
+#'     relative-covariance-factor entries.}
+#'   \item{`"lower"`}{Lower bounds on `theta`. The internal
+#'     parameterization is unbounded, so this is a vector of `-Inf`, not
+#'     lme4's mixture of `0` and `-Inf`. Code that tests
+#'     `theta == lower` to detect a singular fit will never fire; use
+#'     [diagnose()] or [VarCorr()] instead.}
+#'   \item{`"sigma"`}{Residual standard deviation
+#'     ([sigma.frmtmb_fit()]).}
+#'   \item{`"flist"`}{The grouping factors, one per distinct grouping
+#'     variable. Smooth and Gaussian-process blocks are excluded: their
+#'     levels are basis functions, not groups. There is no `"assign"`
+#'     attribute.}
+#'   \item{`"n_rtrms"`, `"n_rfacs"`}{Number of random-effect terms and
+#'     of distinct grouping factors.}
+#' }
+#'
+#' Multivariate fits have one design per response, so `"X"`, `"Z"` and
+#' `"Zt"` need `resp`; the other names answer without it.
+#'
+#' @param object A `frmtmb_fit`.
+#' @param name One or more names from the vocabulary above. A vector
+#'   returns a named list.
+#' @param resp Response name, for the design extractors on a
+#'   multivariate fit.
+#' @param ... Unused.
+#' @return The requested component, or a named list when `name` names
+#'   several.
+#' @exportS3Method lme4::getME
+getME.frmtmb_fit <- function(object, name, resp = NULL, ...) {
+  if (missing(name) || !is.character(name) || !length(name)) {
+    stop("getME() needs one or more names: ",
+         paste(frmtmb_getME_vocab, collapse = ", "), call. = FALSE)
+  }
+  bad <- setdiff(name, frmtmb_getME_vocab)
+  if (length(bad)) {
+    stop("getME(): unknown name(s) ", paste(bad, collapse = ", "),
+         ". Supported: ", paste(frmtmb_getME_vocab, collapse = ", "),
+         call. = FALSE)
+  }
+  if (length(name) > 1L) {
+    out <- lapply(name, function(nm) getME.frmtmb_fit(object, nm, resp))
+    return(stats::setNames(out, name))
+  }
+  # find_linpred() raises the "disambiguate with resp =" error for a
+  # multivariate fit, which is exactly the guard the designs need
+  mu_lp <- function() find_linpred(object, resp, "mu")
+  mu_Z <- function() {
+    Z <- mu_lp()$Z
+    if (is.null(Z)) {
+      Z <- Matrix::sparseMatrix(i = integer(0), j = integer(0),
+                                x = numeric(0),
+                                dims = c(object$frame$n_obs,
+                                         object$frame$n_c %||% 0L))
+    }
+    dimnames(Z) <- list(rownames(object$frame$data_frame),
+                        re_coef_labels(object$frame))
+    Z
+  }
+  theta <- object$estimates$theta %||% numeric(0)
+  names(theta) <- if (length(theta)) {
+    paste0("theta_", seq_along(theta))
+  }
+  switch(
+    name,
+    X = mu_lp()$X,
+    Z = mu_Z(),
+    Zt = Matrix::t(mu_Z()),
+    beta = ,
+    fixef = object$estimates$beta,
+    b = {
+      bv <- coef_b(object) %||% numeric(0)
+      stats::setNames(as.numeric(bv), re_coef_labels(object$frame))
+    },
+    theta = theta,
+    lower = stats::setNames(rep(-Inf, length(theta)), names(theta)),
+    sigma = sigma(object),
+    flist = getME_flist(object),
+    n_rtrms = length(getME_group_blocks(object)),
+    n_rfacs = length(getME_flist(object))
+  )
+}

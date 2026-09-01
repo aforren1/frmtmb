@@ -522,6 +522,24 @@ reml_comparable <- function(fits) {
   TRUE
 }
 
+# The cheapest correct REML -> ML conversion: reuse the assembled
+# design (no formula parsing, no frame assembly) and warm-start the
+# optimizer at the REML estimates. The parameter template is the same
+# list either way; REML only decides whether `beta` is integrated out,
+# so the REML estimates are a valid ML start.
+anova_refit_ml <- function(fit) {
+  ctl <- fit$control %||% frmtmb_control()
+  # one anova() call can trigger several refits; a verbose original fit
+  # must not make each of them narrate itself
+  ctl$verbose <- FALSE
+  fit_assembled(fit$spec, fit$frame, fit$bform, fit$call,
+                REML = FALSE, start = NULL, control = ctl, se = FALSE,
+                lower = fit$lower, upper = fit$upper,
+                priors = fit$priors,
+                quadrature = isTRUE(fit$quadrature),
+                template = fit$estimates)
+}
+
 #' Likelihood-ratio tests between nested frmtmb fits
 #'
 #' ML fits compare freely. REML fits compare only with each other, and
@@ -531,6 +549,11 @@ reml_comparable <- function(fits) {
 #' is the same. That covers the usual REML use - testing
 #' variance-component structures with the fixed effects held fixed - and
 #' refuses the rest with the reason (glmmTMB#776).
+#'
+#' `refit = TRUE` is the lme4 convenience for the refused case: every
+#' REML fit in the comparison is refit with `REML = FALSE` and the ML
+#' fits are compared instead. lme4 does this silently by default; here
+#' it is opt-in and the message names the models that were refit.
 #'
 #' When the smaller model removes a variance component, the null value
 #' sits on the boundary of the parameter space and the usual chi-square
@@ -543,27 +566,41 @@ reml_comparable <- function(fits) {
 #'
 #' @param object A `frmtmb_fit`.
 #' @param ... Further `frmtmb_fit` objects, nested with `object`.
+#' @param refit If `TRUE`, refit every REML fit in the comparison with
+#'   ML and compare those, with a message naming what was refit. The
+#'   refits reuse the assembled design and warm-start at the REML
+#'   estimates. `FALSE` (the default) keeps the REML fits and refuses
+#'   the comparisons a restricted likelihood cannot support.
 #' @return An `anova` table.
 #' @export
-anova.frmtmb_fit <- function(object, ...) {
+anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   fits <- c(list(object), Filter(function(x) inherits(x, "frmtmb_fit"),
                                  list(...)))
   if (length(fits) < 2) {
     stop("anova() needs at least two frmtmb fits to compare", call. = FALSE)
   }
   reml <- vapply(fits, `[[`, TRUE, "REML")
+  if (any(reml) && isTRUE(refit)) {
+    labs <- vapply(fits[reml], model_label, "")
+    message("anova(): refitting ", length(labs), " REML model",
+            if (length(labs) != 1L) "s" else "", " with ML: ",
+            paste(labs, collapse = "; "))
+    fits[reml] <- lapply(fits[reml], anova_refit_ml)
+    reml[] <- FALSE
+  }
   if (any(reml)) {
     if (!all(reml)) {
       stop("anova() cannot mix REML and ML fits: their likelihoods are ",
            "for different quantities. Refit them all with the same ",
-           "REML setting", call. = FALSE)
+           "REML setting, or pass refit = TRUE to compare them as ML ",
+           "fits", call. = FALSE)
     }
     if (!reml_comparable(fits)) {
       stop("REML likelihoods are comparable only between fits whose ",
            "fixed-effect designs span the same column space; these do ",
-           "not. Refit with REML = FALSE to compare fixed effects, or ",
-           "hold the fixed effects fixed to compare random-effect ",
-           "structures", call. = FALSE)
+           "not. Pass refit = TRUE (or refit with REML = FALSE) to ",
+           "compare fixed effects, or hold the fixed effects fixed to ",
+           "compare random-effect structures", call. = FALSE)
     }
   }
   # Likelihoods computed on different data are not on a common scale, so

@@ -43,6 +43,25 @@ test_that("anova performs likelihood-ratio tests", {
   expect_error(anova(reml, fit_ca$null), "REML")
 })
 
+test_that("anova(refit = TRUE) compares REML fits as ML fits", {
+  r_full <- update(fit_ca$full, REML = TRUE)
+  r_null <- update(fit_ca$null, REML = TRUE)
+  # the fixed designs differ, so the two restricted likelihoods are for
+  # different error contrasts and the REML path refuses
+  expect_error(anova(r_full, r_null), "same column space")
+  expect_message(tab <- anova(r_full, r_null, refit = TRUE),
+                 "refitting 2 REML models with ML")
+  ref <- anova(fit_ca$full, fit_ca$null)
+  expect_identical(rownames(tab), rownames(ref))
+  expect_identical(tab$Df, ref$Df)
+  expect_equal(tab$logLik, ref$logLik, tolerance = 1e-6)
+  expect_equal(tab$Chisq, ref$Chisq, tolerance = 1e-6)
+  # a REML/ML mix is refused by default and refit under refit = TRUE
+  expect_error(anova(r_full, fit_ca$null), "cannot mix REML and ML")
+  expect_message(anova(r_full, fit_ca$null, refit = TRUE),
+                 "refitting 1 REML model with ML")
+})
+
 test_that("update re-fits with modified arguments", {
   reml <- update(fit_ca$full, REML = TRUE)
   expect_true(reml$REML)
