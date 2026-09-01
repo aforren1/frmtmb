@@ -20,6 +20,22 @@ us_chol_cor <- function(theta_cor, d) {
   Lr %*% t(Lr)
 }
 
+# Inverse of us_chol_cor(): the theta segment whose row-normalized unit
+# lower-triangular L reproduces the correlation matrix C. C = Lc Lc'
+# with Lc lower-triangular has unit-norm rows (diag(C) = 1), so Lc is
+# already the normalized Lr; dividing row i by Lc[i, i] undoes the
+# normalization and recovers L. Numeric only - this runs off the tape.
+us_theta_cor <- function(C) {
+  d <- nrow(C)
+  Lc <- tryCatch(t(chol(C)), error = function(e) {
+    stop("The requested correlation matrix is not positive definite",
+         call. = FALSE)
+  })
+  # column-major recycling divides row i by diag(Lc)[i]
+  L <- Lc / diag(Lc)
+  L[lower.tri(L)]
+}
+
 # Unstructured d x d covariance from its theta segment (AD-safe).
 us_sigma <- function(theta, d) {
   if (d == 1L) return(RTMB::matrix(exp(2 * theta[1]), 1, 1))
@@ -28,10 +44,28 @@ us_sigma <- function(theta, d) {
   C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
 }
 
+# A structure that carries `from_natural(sds, C, blk)` can be set from
+# natural-scale standard deviations (length blk$dim) and a correlation
+# matrix (dim x dim, or NULL when the structure has no correlation
+# parameters); it returns the WHOLE theta segment, so no entry of the
+# block is left at a stale value. frm_simulate()'s natural-scale
+# newparams path refuses structures without it.
+homogeneous_sd <- function(sds, what) {
+  if (length(unique(signif(sds, 12))) > 1L) {
+    stop("A '", what, "' block has one shared standard deviation; got ",
+         paste(signif(sds, 4), collapse = ", "), call. = FALSE)
+  }
+  log(sds[1L])
+}
+
 covstruct_registry <- list(
   us = list(
     npar = function(dim) dim + dim * (dim - 1L) / 2L,
     sd_idx = function(dim) seq_len(dim),
+    from_natural = function(sds, C, blk) {
+      if (blk$dim == 1L) return(log(sds[1L]))
+      c(log(sds), us_theta_cor(C))
+    },
     nll = function(b, theta, blk) {
       d <- blk$dim
       if (d == 1L) {
@@ -63,6 +97,7 @@ covstruct_registry <- list(
   diag = list(
     npar = function(dim) dim,
     sd_idx = function(dim) seq_len(dim),
+    from_natural = function(sds, C, blk) log(sds),
     nll = function(b, theta, blk) {
       sdv <- rep(exp(theta), times = blk$n_levels)
       sum(RTMB::dnorm(b, 0, sdv, log = TRUE))
@@ -77,6 +112,7 @@ covstruct_registry <- list(
   homdiag = list(
     npar = function(dim) 1L,
     sd_idx = function(dim) 1L,
+    from_natural = function(sds, C, blk) homogeneous_sd(sds, blk$covstruct),
     nll = function(b, theta, blk) {
       sum(RTMB::dnorm(b, 0, exp(theta), log = TRUE))
     },
@@ -347,6 +383,12 @@ covstruct_registry$mat <- spatial_entry(
 covstruct_registry$gr_cov <- list(
   npar = function(dim) dim + dim * (dim - 1L) / 2L,
   sd_idx = function(dim) seq_len(dim),
+  # the natural values describe the WITHIN-level covariance; the
+  # across-level structure is the fixed matrix A
+  from_natural = function(sds, C, blk) {
+    if (blk$dim == 1L) return(log(sds[1L]))
+    c(log(sds), us_theta_cor(C))
+  },
   nll = function(b, theta, blk) {
     if (blk$dim == 1L) {
       Sigma <- exp(2 * theta[1]) * blk$aux_A
@@ -379,6 +421,7 @@ covstruct_registry$gr_cov <- list(
 covstruct_registry$gr_prec <- list(
   npar = function(dim) 1L,
   sd_idx = function(dim) 1L,
+  from_natural = function(sds, C, blk) homogeneous_sd(sds, blk$covstruct),
   nll = function(b, theta, blk) {
     Qs <- exp(-2 * theta[1]) * blk$aux_Q
     sum(RTMB::dgmrf(b, 0, Qs, log = TRUE))

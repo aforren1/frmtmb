@@ -240,6 +240,19 @@ Regression tests in tests/testthat/test-osa-inference.R.
   `dharma_residuals()` is not the fallback: `simulate()` draws the
   LATENT uncensored response, so its draws are not comparable with the
   observed censored values.
+- `cens()` x `simulate()` semantics. Drawing the latent response is
+  CORRECT and is what brms does: no `posterior_predict_*` method in
+  brms 2.23.0 reads the censoring column (only `log_lik_censor` does),
+  and brms's `pp_check()` therefore drops the censored rows outright
+  ("Censored responses are not included"). The model describes the
+  latent distribution; censoring belongs to the observation process.
+  Documented as the default, with `simulate(censored = TRUE)` as the
+  opt-in that applies the mechanism: every draw is recorded at the
+  edge of the observation window, so the draws become comparable with
+  the observed data. That needs one censoring point per side (type-I
+  censoring), because an uncensored row's censoring point is unknown
+  when the times vary by row; row-varying times and interval censoring
+  are refused.
 - Ordinal x `residuals(type = "osa")`. `oneStepPredict` re-tapes with
   the response promoted to a parameter, and the ordinal lpdfs index and
   compare with it (`y == K`, `tau[pmin(y, K1)]`), which no advector
@@ -262,7 +275,9 @@ Regression tests in tests/testthat/test-osa-inference.R.
   outside TMB.
 - `dharma_residuals()` on a censored fit compares latent draws with
   observed censored values and is not valid. It neither warns nor
-  refuses.
+  refuses. `simulate(censored = TRUE)` makes the draws comparable, but
+  the point mass it puts at each censoring point is not a distribution
+  DHARMa's rank transform can use, so it is not a drop-in fix.
 
 ## Reference
 

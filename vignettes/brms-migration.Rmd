@@ -42,7 +42,14 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
   estimates, `confint()` gives Wald or profile intervals, `anova()`
   gives likelihood-ratio tests, and `AIC()`/`BIC()` replace `loo()`.
 - `posterior_predict()` becomes `simulate()`; `posterior_epred()` over
-  `newdata` becomes `predict(newdata, type = "response")`.
+  `newdata` becomes `predict(newdata, type = "response")`. On a
+  `cens()` response both draw the LATENT uncensored value, as brms
+  does; `simulate(censored = TRUE)` applies the censoring mechanism
+  instead.
+- `sample_prior = "only"` plus `posterior_predict()` becomes
+  `frm_simulate(formula, data, priors = set_prior(...))`, which draws
+  a parameter vector per simulation and returns it alongside the
+  responses.
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
   predictors, `mi(sdx)` measurement error (the `me()` replacement,
   as in current brms), `cs()` category-specific ordinal effects,

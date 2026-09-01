@@ -48,8 +48,11 @@ conditional on the censoring events, which needs one censoring point
 per side (type-I censoring); row-varying censoring times and interval
 censoring are refused. \code{dharma_residuals()} is not a substitute on a
 censored fit, because \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}} draws the latent
-uncensored response and those draws are not comparable with the
-observed censored values.
+uncensored response by default (as brms's \code{posterior_predict()}
+does) and those draws are not comparable with the observed censored
+values; \code{simulate(censored = TRUE)} makes them comparable, but the
+resulting point mass at each censoring point is not a distribution
+DHARMa's rank transform can use.
 
 Ordinal responses use \code{"oneStepGeneric"} over the discrete support
 \verb{1..K}, which makes the residuals randomized quantile residuals.

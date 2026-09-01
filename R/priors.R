@@ -197,7 +197,17 @@ get_prior <- function(formula, data = NULL, family = NULL) {
 
 # Resolve a priorlist against a fit: per-parameter prior entries (later
 # specs override earlier) plus named bound vectors.
-# Entry: comp, idx (scalar), dist, scale ("internal" or "sd").
+# Entry: comp, idx (scalar), dist, scale ("internal" or "sd"), and
+# lb/ub on the ENTRY's scale (frm_simulate() rejects draws outside
+# them; frm_sample() uses the named bound vectors instead).
+# A later bounds-only specification tightens an entry the distribution
+# already created, instead of being lost.
+entry_bounds <- function(entry, s) {
+  if (!is.na(s$lb)) entry$lb <- s$lb
+  if (!is.na(s$ub)) entry$ub <- s$ub
+  entry
+}
+
 resolve_priorlist <- function(fit, pl) {
   frame <- fit$frame
   assigned <- list()   # key "comp.idx" -> entry
@@ -243,7 +253,10 @@ resolve_priorlist <- function(fit, pl) {
         key <- nm_of(tg$comp, tg$idx)
         if (!is.null(s$dist)) {
           assigned[[key]] <- list(comp = tg$comp, idx = tg$idx,
-                                  dist = s$dist, scale = "internal")
+                                  dist = s$dist, scale = "internal",
+                                  lb = s$lb, ub = s$ub)
+        } else if (!is.null(assigned[[key]])) {
+          assigned[[key]] <- entry_bounds(assigned[[key]], s)
         }
         if (!is.na(s$lb)) lower[tg$name] <- s$lb
         if (!is.na(s$ub)) upper[tg$name] <- s$ub
@@ -259,7 +272,10 @@ resolve_priorlist <- function(fit, pl) {
           key <- nm_of("theta", i)
           if (!is.null(s$dist)) {
             assigned[[key]] <- list(comp = "theta", idx = i,
-                                    dist = s$dist, scale = "sd")
+                                    dist = s$dist, scale = "sd",
+                                    lb = s$lb, ub = s$ub)
+          } else if (!is.null(assigned[[key]])) {
+            assigned[[key]] <- entry_bounds(assigned[[key]], s)
           }
           nm_theta <- paste0("theta_", i)
           if (!is.na(s$lb)) {
@@ -281,10 +297,13 @@ resolve_priorlist <- function(fit, pl) {
         seq_len(n_th)
       }
       for (i in idx) {
+        key <- nm_of("theta", i)
         if (!is.null(s$dist)) {
-          assigned[[nm_of("theta", i)]] <-
+          assigned[[key]] <-
             list(comp = "theta", idx = i, dist = s$dist,
-                 scale = "internal")
+                 scale = "internal", lb = s$lb, ub = s$ub)
+        } else if (!is.null(assigned[[key]])) {
+          assigned[[key]] <- entry_bounds(assigned[[key]], s)
         }
         if (!is.na(s$lb)) lower[paste0("theta_", i)] <- s$lb
         if (!is.na(s$ub)) upper[paste0("theta_", i)] <- s$ub
