@@ -4,12 +4,18 @@
 \alias{anova.frmtmb_fit}
 \title{Likelihood-ratio tests between nested frmtmb fits}
 \usage{
-\method{anova}{frmtmb_fit}(object, ...)
+\method{anova}{frmtmb_fit}(object, ..., refit = FALSE)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
 \item{...}{Further \code{frmtmb_fit} objects, nested with \code{object}.}
+
+\item{refit}{If \code{TRUE}, refit every REML fit in the comparison with
+ML and compare those, with a message naming what was refit. The
+refits reuse the assembled design and warm-start at the REML
+estimates. \code{FALSE} (the default) keeps the REML fits and refuses
+the comparisons a restricted likelihood cannot support.}
 }
 \value{
 An \code{anova} table.
@@ -24,6 +30,11 @@ variance-component structures with the fixed effects held fixed - and
 refuses the rest with the reason (glmmTMB#776).
 }
 \details{
+\code{refit = TRUE} is the lme4 convenience for the refused case: every
+REML fit in the comparison is refit with \code{REML = FALSE} and the ML
+fits are compared instead. lme4 does this silently by default; here
+it is opt-in and the message names the models that were refit.
+
 When the smaller model removes a variance component, the null value
 sits on the boundary of the parameter space and the usual chi-square
 reference is wrong: the asymptotic null is a mixture (for one
