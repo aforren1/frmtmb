@@ -40,6 +40,55 @@ test_that("no rule is stated twice for the same unordered pattern pair", {
   expect_equal(dup, character(0))
 })
 
+test_that("no rule names the same feature on both sides", {
+  rules <- frm_compat_rules()
+  # The resolved table holds unordered pairs of DISTINCT features, so a
+  # rule naming one feature twice can never match. Two rules may share
+  # a PATTERN on both sides ("kind:covstruct" x "kind:covstruct"),
+  # which covers distinct members of that kind.
+  self <- rules$feature_a == rules$feature_b &
+    compat_spec(rules$feature_a) == 3L
+  expect_equal(rules$feature_a[self], character(0))
+})
+
+test_that("every rule wins at least one pair", {
+  pairs <- frmtmb_compat_pairs_tbl()
+  rules <- frm_compat_rules()
+  win <- compat_resolve(pairs, rules)$win
+  dead <- setdiff(seq_len(nrow(rules)), unique(win))
+  # An unreachable rule is a claim nobody can read: it looks like a
+  # declaration and behaves like a comment.
+  expect_equal(
+    sprintf("%s x %s", rules$feature_a[dead], rules$feature_b[dead]),
+    character(0))
+})
+
+test_that("no pair is decided by file order alone", {
+  # Two rules of the same specificity signature that disagree about a
+  # pair leave the answer to whichever was typed last. Every such tie
+  # must be a declared override.
+  bad <- frmtmb_compat_validate()
+  expect_equal(sprintf("%s x %s", bad$feature_a, bad$feature_b),
+               character(0))
+})
+
+test_that("precedence compares the two sides as a sorted pair", {
+  # (3,1) beats (2,2) beats (2,1) beats (1,1); summing the sides would
+  # tie the first two at 4 and the last two at 3.
+  expect_gt(compat_sig_rank("cens()", "kind:family"),
+            compat_sig_rank("group:cdf", "group:discrete"))
+  expect_gt(compat_sig_rank("group:cdf", "group:discrete"),
+            compat_sig_rank("group:cdf", "kind:family"))
+  expect_gt(compat_sig_rank("group:cdf", "kind:family"),
+            compat_sig_rank("kind:family", "kind:aterm"))
+  # a rule more specific on one side and no less specific on the other
+  # always wins, whichever side that is
+  expect_gt(compat_sig_rank("cens()", "*"),
+            compat_sig_rank("group:cdf", "*"))
+  expect_gt(compat_sig_rank("*", "cens()"),
+            compat_sig_rank("*", "group:cdf"))
+})
+
 test_that("rule patterns name real kinds, groups, and features", {
   ft <- frm_compat_features()
   rules <- frm_compat_rules()
@@ -178,6 +227,30 @@ test_that("frm_compat() slices the table three ways", {
   expect_equal(frm_compat("cens()", "rescor")$status, "refused")
 })
 
+test_that("frm_compat() crosses vector arguments", {
+  # a vector used to be recycled against the whole table, which gave a
+  # silently wrong slice rather than the cross the caller asked for
+  many <- frm_compat(c("cens()", "trunc()"), c("gaussian", "poisson"))
+  expect_equal(nrow(many), 4L)
+  expect_setequal(many$feature_a, c("cens()", "trunc()"))
+  expect_setequal(many$feature_b, c("gaussian", "poisson"))
+  expect_equal(many$status[many$feature_a == "cens()" &
+                             many$feature_b == "poisson"], "refused")
+
+  one_side <- frm_compat(c("cens()", "trunc()"))
+  expect_true(all(one_side$feature_a %in% c("cens()", "trunc()")))
+  expect_equal(nrow(one_side),
+               nrow(frm_compat("cens()")) + nrow(frm_compat("trunc()")) - 1L)
+})
+
+test_that("frm_compat() rejects an empty feature argument", {
+  # returning an empty table reads exactly like "this feature takes
+  # part in no pairs", which is never true
+  expect_error(frm_compat(character(0)), "empty")
+  expect_error(frm_compat("cens()", character(0)), "empty")
+  expect_error(frm_compat(42), "character")
+})
+
 test_that("frm_compat() filters by status and rejects unknown input", {
   # the broken bucket can be (and currently is) empty: v0.24 cleared
   # every known-broken pair; the filter must still work on it
@@ -198,6 +271,46 @@ test_that("a more specific rule beats a broader one", {
   expect_equal(frm_compat("cens()", "beta")$status, "refused")
   expect_equal(frm_compat("trunc()", "poisson")$status, "conditional")
   expect_equal(frm_compat("trunc()", "weibull")$status, "works")
+})
+
+test_that("a structure's own condition survives the family", {
+  # A <covstruct> x kind:family rule granting "works" used to outrank
+  # each structure's own condition, so 429 pairs claimed unconditional
+  # support for a spatial or positional block. exp() over a plain
+  # factor still builds, with the level order standing in for the
+  # coordinates - which is the condition, not a refusal.
+  for (cs in c("exp", "gau", "mat", "ou", "ar1", "rr", "gr_cov")) {
+    expect_equal(frm_compat(cs, "gaussian")$status, "conditional",
+                 info = cs)
+    expect_equal(frm_compat(cs, "poisson")$status, "conditional",
+                 info = cs)
+  }
+  expect_match(frm_compat("exp", "gaussian")$note, "num_factor")
+})
+
+test_that("the bar-crossing refusal outranks the other grammar rules", {
+  # bar_crossing x * and call_group x * have the same signature, so the
+  # crossing refusal used to be lost to whichever was typed last
+  expect_equal(frm_compat("bar_crossing", "call_group")$status, "refused")
+  expect_equal(frm_compat("bar_crossing", "double_bar")$status, "refused")
+  expect_equal(frm_compat("call_group", "double_bar")$status, "works")
+})
+
+test_that("the multivariate post-fit surface is declared as it behaves", {
+  for (st in c("mvbf", "rescor")) {
+    expect_equal(frm_compat(st, "fitted")$status, "refused", info = st)
+    expect_equal(frm_compat(st, "predict")$status, "works", info = st)
+    expect_equal(frm_compat(st, "simulate")$status, "refused", info = st)
+    expect_equal(frm_compat(st, "residuals_osa")$status, "refused",
+                 info = st)
+    # these run: they address the outer parameter vector, not one
+    # response
+    expect_equal(frm_compat(st, "confint_profile")$status, "works",
+                 info = st)
+    expect_equal(frm_compat(st, "hypothesis_profile")$status, "works",
+                 info = st)
+    expect_equal(frm_compat(st, "frm_sample")$status, "works", info = st)
+  }
 })
 
 # ----------------------------------------- declared refusals really refuse
@@ -268,4 +381,26 @@ test_that("declared refusals at the fit stage really refuse", {
                    lower = c("x" = -10),
                    control = frmtmb_control(profile = TRUE)),
                "bounds")
+})
+
+test_that("the multivariate declarations match a multivariate fit", {
+  set.seed(4)
+  n <- 60
+  d <- data.frame(y = rnorm(n, 2), y2 = rnorm(n, -1), x = rnorm(n))
+  fit <- frm(bf(y ~ x) + bf(y2 ~ x) + set_rescor(TRUE), data = d,
+             family = gaussian())
+
+  expect_error(fitted(fit), "multivariate")
+  expect_error(simulate(fit), "multivariate")
+  expect_error(residuals(fit), "multivariate")
+  expect_length(predict(fit), n)
+
+  # the inference surface is declared to work, so it has to
+  ci <- confint(fit, method = "profile", parm = "y_x")
+  expect_equal(unname(ci[, "est"]),
+               unname(confint(fit, method = "wald", parm = "y_x")[, "est"]),
+               tolerance = 1e-6)
+  expect_lt(ci[, "lwr"], ci[, "upr"])
+  hp <- hypothesis(fit, "y_x = 0", method = "profile")
+  expect_equal(nrow(hp), 1L)
 })

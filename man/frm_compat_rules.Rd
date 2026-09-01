@@ -8,16 +8,27 @@ frm_compat_rules()
 }
 \value{
 A data frame with columns \code{feature_a}, \code{feature_b},
-\code{status}, and \code{note}.
+\code{status}, \code{note}, and \code{override}.
 }
 \description{
 The registry stores rules, not one row per pair. A rule side is one
 of four patterns, from least to most specific: \code{"*"} for any
-feature, \code{"kind:<kind>"} for a whole kind, \code{"group:<group>"} for a
-named feature set, or a bare feature name. A pair takes the status
-of the most specific matching rule; ties go to the later rule.
+feature (specificity 0), \code{"kind:<kind>"} for a whole kind (1),
+\code{"group:<group>"} for a named feature set (2), or a bare feature
+name (3).
 }
 \details{
+A pair takes the status of the rule with the highest precedence,
+where precedence is the two sides' specificities sorted descending
+and compared lexicographically: \verb{(3,3)} beats \verb{(3,2)} beats \verb{(3,1)}
+beats \verb{(3,0)} beats \verb{(2,2)} beats \verb{(2,1)}, and so on. A rule that is
+strictly more specific on one side and no less specific on the other
+therefore always wins. Rules can tie only when their two
+specificities match exactly; the later rule wins those, so an
+override is appended rather than inserted, and a tie between rules
+that disagree about the status is a registry defect the test suite
+rejects.
+
 Use \code{\link[=frm_compat]{frm_compat()}} to read the resolved answer for a pair. Use this
 function to see which rule is doing the work.
 }

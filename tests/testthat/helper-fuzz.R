@@ -295,19 +295,31 @@ fuzz_combo_matrix <- function(grid, m) {
 
 #' Build the pairwise covering plan.
 #' @param seed RNG seed; the whole plan and every datum derive from it.
-#' @param size Target number of specs (>= the size of the pair cover).
+#' @param size Hard cap on the number of specs the plan holds, refusal
+#'   probes included. The greedy pair cover is taken in order, so a
+#'   small plan keeps the rows that buy the most coverage; below the
+#'   cover's own size the plan is a prefix of it and `n_pairs_covered`
+#'   reports what that prefix actually reaches.
 #' @return A data frame with one row per spec: the dimension values,
-#'   a `seed`, and a `kind` ("cover", "pad", or "refusal").
+#'   a `seed`, and a `kind` ("cover", "pad", or "refusal:<case>").
 fuzz_plan <- function(seed = 20260901L, size = 300L) {
   grid <- fuzz_all_valid()
   set.seed(seed)
   grid <- grid[sample.int(nrow(grid)), , drop = FALSE]
   rownames(grid) <- NULL
 
+  # the refusal probes are part of the plan, so they come out of the
+  # same budget: `size` is what the caller gets, not a floor
+  refusals <- fuzz_refusals()
+  size <- max(as.integer(size), 1L)
+  refusals <- refusals[seq_len(min(nrow(refusals), size)), , drop = FALSE]
+  budget <- size - nrow(refusals)
+
   P2 <- fuzz_combo_matrix(grid, 2L)
   chosen <- integer(0)
   covered <- logical(max(P2))
   repeat {
+    if (length(chosen) >= budget) break
     gain <- rowSums(matrix(!covered[P2], nrow(P2)))
     b <- which.max(gain)
     if (gain[b] == 0L) break
@@ -316,29 +328,29 @@ fuzz_plan <- function(seed = 20260901L, size = 300L) {
   }
   n_cover <- length(chosen)
 
-  if (size > n_cover) {
+  if (budget > n_cover) {
     P3 <- fuzz_combo_matrix(grid, 3L)
     cov3 <- logical(max(P3))
     cov3[as.vector(P3[chosen, , drop = FALSE])] <- TRUE
-    while (length(chosen) < size) {
+    while (length(chosen) < budget) {
       gain <- rowSums(matrix(!cov3[P3], nrow(P3)))
       gain[chosen] <- -1L
       b <- which.max(gain)
       if (gain[b] <= 0L) {
         rest <- setdiff(seq_len(nrow(grid)), chosen)
         if (!length(rest)) break
-        b <- rest[seq_len(min(length(rest), size - length(chosen)))]
+        b <- rest[seq_len(min(length(rest), budget - length(chosen)))]
       }
       chosen <- c(chosen, b)
       cov3[as.vector(P3[b, , drop = FALSE])] <- TRUE
     }
-    chosen <- chosen[seq_len(min(length(chosen), size))]
+    chosen <- chosen[seq_len(min(length(chosen), budget))]
   }
 
   out <- grid[chosen, , drop = FALSE]
   out$kind <- c(rep("cover", n_cover),
                 rep("pad", nrow(out) - n_cover))[seq_len(nrow(out))]
-  out <- rbind(out, fuzz_refusals())
+  out <- rbind(out, refusals)
   out$seed <- seed + seq_len(nrow(out)) * 977L
   out$id <- seq_len(nrow(out))
   rownames(out) <- NULL
@@ -435,11 +447,16 @@ fuzz_design <- function(sp) {
   )
 }
 
+# The one generating coefficient every spec shares, whatever the family
+# and whatever else is in the formula. The confint invariant checks the
+# intervals against it, so the two must not drift apart.
+FUZZ_BETA_X <- 0.4
+
 # Linear predictor of the sampled model, with the same structure the
 # formula will fit: fixed x, the chosen special, the chosen RE.
 fuzz_eta <- function(sp, d) {
   n <- nrow(d)
-  eta <- fuzz_families[[sp$family]]$eta0 + 0.4 * d$x
+  eta <- fuzz_families[[sp$family]]$eta0 + FUZZ_BETA_X * d$x
   sm <- sp$special
   if (sm == "smooth" || sm == "gp") {
     eta <- eta + 0.5 * sin(0.6 * d$xs)
@@ -877,16 +894,52 @@ fuzz_inv_simulate_mean <- function(recs, sp, fit, nsim = 200L) {
                         paste("simulate/predict errored:",
                               conditionMessage(fuzz_or(sm$error, pm$error)))))
   }
-  means <- colMeans(as.matrix(sm$value))
+  S <- as.matrix(sm$value)
+  means <- colMeans(S)
   target <- mean(as.numeric(pm$value))
   se <- stats::sd(means) / sqrt(length(means))
-  if (!is.finite(se) || se <= 0) return(invisible())
-  z <- abs(mean(means) - target) / se
-  if (z > 4) {
-    fuzz_finding(recs, sp, "simulate_mean", "candidate",
-                 "mean of simulate() draws is far from mean(predict())",
-                 list(sim_mean = mean(means), predict_mean = target,
-                      se = se, z = z))
+  if (is.finite(se) && se > 0) {
+    z <- abs(mean(means) - target) / se
+    if (z > 4) {
+      fuzz_finding(recs, sp, "simulate_mean", "candidate",
+                   "mean of simulate() draws is far from mean(predict())",
+                   list(sim_mean = mean(means), predict_mean = target,
+                        se = se, z = z))
+    }
+  }
+
+  # Per observation, not just in total. Two scalars agree whenever the
+  # two vectors are permutations of each other, so the aggregate check
+  # is blind to exactly the row-order class of defect the rest of the
+  # harness hunts. simulate() conditions on the fitted modes (re.form =
+  # NULL), so each column is a draw from the same per-row distribution
+  # predict(type = "response") gives the mean of: row i's draw mean is
+  # then predict_i plus noise of a known size, and the standardized
+  # residuals are a chi-square with one degree of freedom per row.
+  p <- as.numeric(pm$value)
+  if (length(p) != nrow(S)) {
+    return(fuzz_finding(recs, sp, "simulate_rows", "candidate",
+                        "simulate() and predict() disagree on the number of rows",
+                        list(simulate = nrow(S), predict = length(p))))
+  }
+  rm_ <- rowMeans(S)
+  rsd <- apply(S, 1L, stats::sd) / sqrt(ncol(S))
+  use <- is.finite(rm_) & is.finite(p) & is.finite(rsd) & rsd > 0
+  if (sum(use) < 10L) return(invisible())
+  zz <- (rm_[use] - p[use]) / rsd[use]
+  chi <- sum(zz^2)
+  # a one-in-a-billion chi-square tail: the draw budget is small, so the
+  # threshold has to clear Monte Carlo noise by a wide margin
+  crit <- stats::qchisq(1 - 1e-9, df = sum(use))
+  if (chi > crit) {
+    worst <- which.max(abs(zz))
+    fuzz_finding(recs, sp, "simulate_mean_rows", "candidate",
+                 "per-row simulate() means disagree with predict(type = 'response')",
+                 list(chisq = chi, df = sum(use), crit = crit,
+                      max_abs_z = max(abs(zz)),
+                      worst_sim = rm_[use][worst],
+                      worst_predict = p[use][worst],
+                      cor = stats::cor(rm_[use], p[use])))
   }
 }
 
@@ -966,8 +1019,37 @@ fuzz_inv_vcov_summary <- function(recs, sp, fit) {
   }
 }
 
-# I9: Wald intervals are finite, ordered, and named.
-fuzz_inv_confint <- function(recs, sp, fit) {
+# Is the mean structure of this spec the one fuzz_eta() generated, so
+# that FUZZ_BETA_X is the truth the interval should cover?
+#
+# cens() clamps the response at its own quantiles, which attenuates the
+# slope; se() and weights() leave the slope right but change what the
+# reported standard error means, so a nominal 95% interval is no longer
+# a 95% interval. Ordinal responses are generated through a latent
+# logistic scale whose sign convention is the family's, not the
+# generator's. Everything else fits exactly the model it was drawn from.
+fuzz_slope_recoverable <- function(sp) {
+  !(sp$aterm %in% c("cens", "cens_chr", "se", "weights")) &&
+    !fuzz_families[[sp$family]]$ordinal
+}
+
+# The row of a confint()/vcov() result holding the coefficient on x.
+fuzz_x_row <- function(nm) {
+  hit <- which(nm == "x" | endsWith(nm, "_x"))
+  if (length(hit) == 1L) hit else integer(0)
+}
+
+# I9: Wald intervals are the interval arithmetic they claim to be.
+#
+# Three assertions. The first is the identity: a Wald interval IS
+# est +/- z * se, so it must reproduce from vcov() to the last digit.
+# (The previous version compared the estimate against its own interval
+# and the bounds against each other, which both reduce to se < 0 and so
+# could never fail.) The second is ordering. The third accumulates
+# coverage of the one coefficient the generator knows the truth of;
+# a single interval says nothing, so the plan is judged as a whole in
+# fuzz_coverage_finding().
+fuzz_inv_confint <- function(recs, sp, fit, cover = NULL) {
   ci <- fuzz_try(stats::confint(fit, method = "wald"))
   if (!ci$ok) {
     return(fuzz_finding(recs, sp, "confint_wald", "candidate",
@@ -979,20 +1061,73 @@ fuzz_inv_confint <- function(recs, sp, fit) {
     return(fuzz_finding(recs, sp, "confint_wald", "candidate",
                         "confint() returned no rows"))
   }
+  z <- stats::qnorm(0.975)
+
+  # vcov(full = TRUE) is the same sdreport covariance the Wald branch
+  # reads, so this is an arithmetic check, not a second opinion. Under
+  # REML and profile = TRUE the coefficients are inner parameters and
+  # vcov() cannot report the outer block, so the identity is unavailable.
+  if (!sp$mode %in% c("reml", "profile", "profile_reml", "quad_reml")) {
+    V <- fuzz_try(stats::vcov(fit, full = TRUE))
+    if (V$ok && identical(rownames(V$value), rownames(M))) {
+      se <- sqrt(diag(as.matrix(V$value)))
+      lwr <- M[, "est"] - z * se
+      upr <- M[, "est"] + z * se
+      ok <- is.finite(se) & is.finite(M[, "lwr"]) & is.finite(M[, "upr"])
+      if (any(ok)) {
+        dif <- max(abs(c(M[ok, "lwr"] - lwr[ok], M[ok, "upr"] - upr[ok])))
+        tol <- 1e-8 * max(1, max(abs(M[ok, "est"]), na.rm = TRUE))
+        if (!is.finite(dif) || dif > tol) {
+          fuzz_finding(recs, sp, "confint_wald", "candidate",
+                       "confint(method = 'wald') is not est +/- z * se from vcov()",
+                       list(max_abs_diff = dif,
+                            rows = rownames(M)[ok][which.max(
+                              pmax(abs(M[ok, "lwr"] - lwr[ok]),
+                                   abs(M[ok, "upr"] - upr[ok])))]))
+        }
+      }
+    }
+  }
+
   bad <- which(is.finite(M[, "lwr"]) & is.finite(M[, "upr"]) &
-                 M[, "lwr"] > M[, "upr"])
+                 M[, "lwr"] >= M[, "upr"])
   if (length(bad)) {
     fuzz_finding(recs, sp, "confint_wald", "candidate",
-                 "confint() lower bound above upper bound",
+                 "confint() lower bound not below upper bound",
                  list(rows = rownames(M)[bad]))
   }
-  inside <- is.finite(M[, "est"]) &
-    (M[, "est"] < M[, "lwr"] - 1e-6 | M[, "est"] > M[, "upr"] + 1e-6)
-  if (any(inside, na.rm = TRUE)) {
-    fuzz_finding(recs, sp, "confint_wald", "candidate",
-                 "estimate outside its own interval",
-                 list(rows = rownames(M)[which(inside)]))
+
+  if (!is.null(cover) && fuzz_slope_recoverable(sp)) {
+    i <- fuzz_x_row(rownames(M))
+    if (length(i) && all(is.finite(M[i, c("lwr", "upr")]))) {
+      cover$n <- cover$n + 1L
+      inside <- M[i, "lwr"] <= FUZZ_BETA_X && FUZZ_BETA_X <= M[i, "upr"]
+      cover$k <- cover$k + as.integer(inside)
+      if (!inside) cover$missed <- c(cover$missed, fuzz_spec_key(sp))
+    }
   }
+  invisible(NULL)
+}
+
+# The plan-level half of I9. A 95% interval that misses the truth is
+# ordinary; a set of them that misses far too often is not. The bound
+# is deliberately loose - a one-in-ten-thousand binomial tail - so that
+# only a broken interval, not an unlucky plan, can trip it.
+fuzz_coverage_finding <- function(recs, cover) {
+  if (cover$n < 20L) return(invisible(NULL))
+  floor_k <- stats::qbinom(1e-4, cover$n, 0.95)
+  if (cover$k >= floor_k) return(invisible(NULL))
+  recs$add(list(
+    id = NA_integer_, kind = "aggregate", seed = NA_integer_,
+    spec = "plan-wide Wald coverage of the generating slope",
+    invariant = "confint_coverage", class = "candidate",
+    detail = paste0("95% Wald intervals covered beta_x = ",
+                    FUZZ_BETA_X, " in ", cover$k, " of ", cover$n,
+                    " fits; the 1e-4 binomial floor is ", floor_k),
+    fit_warnings = character(0),
+    values = list(n = cover$n, covered = cover$k, floor = floor_k),
+    repro = paste(utils::head(cover$missed, 8), collapse = "\n")))
+  invisible(NULL)
 }
 
 # ---------------------------------------------------------------------
@@ -1001,9 +1136,12 @@ fuzz_inv_confint <- function(recs, sp, fit) {
 #
 # brms owns the meaning of this grammar, and make_standata() builds
 # every design object without touching Stan, so it is a millisecond
-# oracle. Estimation modes (REML, profile, quadrature, autoscale,
-# sparse_x) never reach the data layer, so they are compared through
-# their frame like any ML spec.
+# oracle. REML, profile, quadrature and autoscale never reach the data
+# layer, so those specs are compared through their frame like any ML
+# spec. sparse_x DOES reach it - frm() passes control$sparse_x into
+# assemble_frame() before dry_run = "frame" returns (R/fit.R) - so the
+# oracle has to build the frame under the spec's own control, or it
+# would compare brms against a dense design the spec never fits.
 
 fuzz_brms_translatable <- function(sp) {
   if (!requireNamespace("brms", quietly = TRUE)) return(FALSE)
@@ -1281,13 +1419,18 @@ fuzz_check_refusal <- function(recs, sp, res) {
 #' @param brms_oracle Compare designs against brms::make_standata().
 #' @param nsim Draws for the simulate-mean invariant.
 #' @param progress Print one line per spec.
-#' @return A list with `findings` (list of records) and `timing`.
+#' @return A list with `findings` (list of records), the timing, and
+#'   `coverage`, the plan-wide tally of Wald intervals that covered the
+#'   generating slope.
 fuzz_run <- function(plan, brms_oracle = TRUE, nsim = 200L,
                      progress = FALSE) {
   recs <- fuzz_recorder()
   use_brms <- brms_oracle && requireNamespace("brms", quietly = TRUE)
   t_start <- proc.time()[["elapsed"]]
   n_fit <- 0L
+  # interval coverage is a statement about the plan, not about one fit
+  cover <- new.env(parent = emptyenv())
+  cover$n <- 0L; cover$k <- 0L; cover$missed <- character(0)
   for (i in seq_len(nrow(plan))) {
     sp <- as.list(plan[i, ])
     t0 <- proc.time()[["elapsed"]]
@@ -1302,10 +1445,16 @@ fuzz_run <- function(plan, brms_oracle = TRUE, nsim = 200L,
     }
     res <- fuzz_fit_one(sp, d)
     n_fit <- n_fit + 1L
-    # every finding for this spec carries whatever the fit itself said,
+    # Every finding for this spec carries whatever the fit itself said,
     # so a "singular vcov" record can be read against a convergence
-    # warning that already fired
-    sp$.warned <- utils::head(res$warnings, 3)
+    # warning that already fired. check_convergence() warns LAST, after
+    # however much line-search chatter the optimizer produced, so the
+    # verdict is picked out before the list is trimmed: taking the
+    # first three warnings alone dropped it on exactly the fits that
+    # most needed it.
+    conv <- res$warnings[grepl(FUZZ_NONCONVERGENCE, res$warnings)]
+    sp$.warned <- unique(c(conv,
+                           utils::head(setdiff(res$warnings, conv), 3)))
 
     if (grepl("^refusal", sp$kind)) {
       fuzz_check_refusal(recs, sp, res)
@@ -1348,14 +1497,25 @@ fuzz_run <- function(plan, brms_oracle = TRUE, nsim = 200L,
         guard("simulate_mean", fuzz_inv_simulate_mean, fit, nsim)
       }
       if (sp$op == "vcov")    guard("vcov_psd", fuzz_inv_vcov_summary, fit)
-      if (sp$op == "confint") guard("confint_wald", fuzz_inv_confint, fit)
+      # The Wald invariant reads the same sdreport covariance vcov()
+      # just built, so it is nearly free on a vcov spec - and the
+      # coverage tally needs more than one op's worth of intervals
+      # before a binomial bound says anything.
+      if (sp$op %in% c("confint", "vcov")) {
+        guard("confint_wald", fuzz_inv_confint, fit, cover)
+      }
     }
 
     if (use_brms && fuzz_brms_translatable(sp)) {
       # grammar acceptance is a parse/assembly question, so the oracle
       # compares against dry_run = "frame", never against whether the
-      # optimizer succeeded: an estimation failure is not a refusal
+      # optimizer succeeded: an estimation failure is not a refusal.
+      # The spec's own control goes in because sparse_x is a frame-stage
+      # setting: without it a sparse_x spec would be judged against a
+      # dense design it never fits.
       fr <- fuzz_try(frm(eval(parse(text = fuzz_bf_text(sp))), data = d,
+                         control = eval(parse(
+                           text = fuzz_mode_args(sp)$control)),
                          dry_run = "frame"))
       bo <- fuzz_try(fuzz_inv_brms(recs, sp, d, fr$value, fr$ok))
       if (!bo$ok) {
@@ -1370,9 +1530,11 @@ fuzz_run <- function(plan, brms_oracle = TRUE, nsim = 200L,
       utils::flush.console()
     }
   }
+  fuzz_coverage_finding(recs, cover)
   list(findings = recs$get(),
        elapsed = proc.time()[["elapsed"]] - t_start,
-       n_specs = nrow(plan), n_fits = n_fit)
+       n_specs = nrow(plan), n_fits = n_fit,
+       coverage = list(n = cover$n, covered = cover$k))
 }
 
 # ---------------------------------------------------------------------
@@ -1410,9 +1572,16 @@ FUZZ_KNOWN_PENDING <- list(
          ((f$invariant %in% c("fit_error", "fit_crash") &&
              grepl("grouping factor", f$detail)) ||
             f$invariant == "brms_translation")),
+  # A refusal probe can fail three ways: the combination was accepted,
+  # the refusal came out as an internal crash, or the message does not
+  # name the reason. An in-flight rule may only claim the ONE symptom
+  # the pending fix addresses, or a genuine crash on the same spec
+  # would be triaged away as already known.
   list(id = "bar-crossed-star",
        why = "bar terms crossed with * are accepted instead of refused",
-       match = function(f) identical(f$kind, "refusal:bar_crossed")),
+       match = function(f) identical(f$kind, "refusal:bar_crossed") &&
+         identical(f$invariant, "refusal_is_error") &&
+         grepl("was accepted", f$detail)),
   list(id = "cens-character-codes",
        why = "character cens() codes fail",
        match = function(f) grepl("aterm=cens_chr", f$spec) &&
@@ -1420,28 +1589,53 @@ FUZZ_KNOWN_PENDING <- list(
          grepl("cens", f$detail)),
   list(id = "mo-factor-interaction",
        why = "mo() crossed with a factor is refused rather than fitted",
-       match = function(f) identical(f$kind, "refusal:mo_factor"))
+       match = function(f) identical(f$kind, "refusal:mo_factor") &&
+         identical(f$invariant, "refusal_is_error") &&
+         grepl("was accepted", f$detail))
+)
+
+# Divergences from brms's reading of the same formula. Each one is a
+# decision about the grammar, so it must be written down before the
+# tier will pass it; an unlisted divergence is a finding like any
+# other. (The list is empty of guesses on purpose: the only entry is
+# one the migration vignette documents.)
+FUZZ_KNOWN_DIVERGENCE <- list(
+  list(id = "binomial-without-trials",
+       why = paste("frmtmb follows stats::glm, where a 0/1 response",
+                   "under binomial() is Bernoulli; brms requires",
+                   "trials() or bernoulli(). Documented in",
+                   "vignettes/brms-migration.Rmd."),
+       match = function(f) identical(f$invariant, "brms_translation") &&
+         grepl("family=binomial", f$spec) &&
+         grepl("'trials' is required", f$detail))
 )
 
 # Invariants that only mean anything about a fit that actually reached
 # an optimum. A boundary or non-converged fit can violate them without
 # any code being wrong, so they are reported under "unconverged" and do
-# not compete with real defects. Everything else (assembly identities,
-# design agreement, refusals, crashes) is judged regardless.
-# loglik_identity belongs here because obj$fn re-solves the inner
-# problem from wherever the tape was last left, which only drifts when
-# that inner problem is ill-conditioned. finite_loglik deliberately
-# does NOT: reporting an infinite logLik is a defect whatever the
-# optimizer said about its gradient.
+# not compete with real defects. loglik_identity belongs here because
+# obj$fn re-solves the inner problem from wherever the tape was last
+# left, which only drifts when that inner problem is ill-conditioned.
+#
+# ASSEMBLY IDENTITIES ARE NOT HERE. predict_eq_fitted and vcov_dim hold
+# for any parameter vector at all - they say that two code paths read
+# the same design and the same bookkeeping - so a bad optimum is no
+# excuse for breaking them. Nor is finite_loglik: reporting an infinite
+# logLik is a defect whatever the optimizer said about its gradient.
 FUZZ_CONVERGENCE_SENSITIVE <- c(
-  "row_permutation", "vcov_psd", "vcov_dim", "confint_wald",
-  "simulate_mean", "predict_eq_fitted", "unit_weights",
-  "loglik_identity"
+  "row_permutation", "vcov_psd", "confint_wald", "simulate_mean",
+  "simulate_mean_rows", "unit_weights", "loglik_identity"
 )
 
+# Only the verdicts check_convergence() (R/fit.R) issues about the
+# optimum itself count as "the fit warned". nlminb prints "NA/NaN
+# function evaluation" whenever a line-search step lands outside the
+# support, which healthy fits do routinely, so treating it as a
+# convergence warning muted invariants on fits that converged cleanly.
 FUZZ_NONCONVERGENCE <- paste(
-  c("did not report convergence", "maximum absolute gradient",
-    "NA/NaN function evaluation", "singular", "not positive definite"),
+  c("Optimizer did not report convergence",
+    "Large maximum absolute gradient",
+    "Hessian is not positive definite"),
   collapse = "|")
 
 fuzz_triage <- function(findings) {
@@ -1453,6 +1647,18 @@ fuzz_triage <- function(findings) {
       f$known_id <- hit[[1]]$id
       f$known_why <- hit[[1]]$why
       return(f)
+    }
+    if (identical(f$class, "grammar_divergence")) {
+      # a divergence is a finding until someone writes down why it is
+      # acceptable; the tier used to record them and assert nothing
+      kd <- Filter(function(k) isTRUE(k$match(f)), FUZZ_KNOWN_DIVERGENCE)
+      if (length(kd)) {
+        f$class <- "known_divergence"
+        f$known_id <- kd[[1]]$id
+        f$known_why <- kd[[1]]$why
+        return(f)
+      }
+      f$class <- "candidate"
     }
     if (identical(f$class, "candidate")) {
       shaky <- length(f$fit_warnings) &&
@@ -1468,7 +1674,8 @@ fuzz_summary <- function(res) {
   tri <- fuzz_triage(res$findings)
   cls <- vapply(tri, function(f) f$class, "")
   list(triaged = tri, counts = table(cls),
-       elapsed = res$elapsed, n_specs = res$n_specs)
+       elapsed = res$elapsed, n_specs = res$n_specs,
+       coverage = res$coverage)
 }
 
 # Compact, greppable rendering of one finding.

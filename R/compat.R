@@ -113,19 +113,38 @@ frmtmb_compat_groups_lst <- list(
 
 # ------------------------------------------------------------------- rules
 
-# Patterns, from least to most specific:
-#   "*"                any feature
-#   "kind:<kind>"      any feature of that kind
-#   "group:<group>"    any feature in that named group
-#   "<name>"           exactly that feature
-# A pair takes the status of the most specific matching rule. Ties go to
-# the later rule, so overrides are appended, never inserted.
+# Patterns, from least to most specific, with the specificity each one
+# scores:
+#   "*"                any feature                            0
+#   "kind:<kind>"      any feature of that kind               1
+#   "group:<group>"    any feature in that named group        2
+#   "<name>"           exactly that feature                   3
+#
+# PRECEDENCE. A rule's signature is its two sides' specificities sorted
+# descending, and two rules are compared lexicographically on that
+# signature:
+#
+#   (3,3) > (3,2) > (3,1) > (3,0) > (2,2) > (2,1) > (2,0) > (1,1) > ...
+#
+# Adding the two sides instead would let unrelated pattern shapes tie -
+# "<name>" x "*", "group:" x "kind:" and "kind:" x "group:" all sum to
+# 3 - and file order, not specificity, would then decide. The sorted
+# pair keeps the property that matters: a rule that is strictly more
+# specific on one side and no less specific on the other always wins,
+# because sorting preserves that domination.
+#
+# Two rules can therefore tie only when their signatures are identical.
+# The later rule wins those, so an override is appended, never
+# inserted. A tie between rules that DISAGREE about the status is a
+# registry defect, not an override: frmtmb_compat_validate() (asserted
+# by test-compat.R) errors on it unless the winning rule is marked
+# override = TRUE and says in its note what it is overriding.
 frmtmb_compat_rules_tbl <- function() {
   rows <- list()
-  r <- function(a, b, status, note) {
+  r <- function(a, b, status, note, override = FALSE) {
     rows[[length(rows) + 1L]] <<- data.frame(
       feature_a = a, feature_b = b, status = status, note = note,
-      stringsAsFactors = FALSE)
+      override = override, stringsAsFactors = FALSE)
     invisible(NULL)
   }
 
@@ -142,8 +161,11 @@ frmtmb_compat_rules_tbl <- function() {
     "Estimation modes reparameterize the outer problem and do not read the family.")
   r("kind:family", "kind:method", "conditional",
     "Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function).")
-  r("kind:family", "kind:aterm", "untested",
-    "Addition terms are family-sensitive. See the specific rules.")
+  # No kind-level default for family x aterm: addition terms are
+  # family-sensitive, and every declared aterm states its own family
+  # rule below, so such a default could never win a pair. A new aterm
+  # added without one falls to the untested default, which is what the
+  # rule used to say anyway.
   r("kind:covstruct", "kind:covstruct", "works",
     "Separate bar terms give separate covariance blocks; the blocks do not interact.")
   r("kind:covstruct", "kind:special", "works",
@@ -156,8 +178,9 @@ frmtmb_compat_rules_tbl <- function() {
     "Addition terms change the likelihood, covariance structures change the predictor.")
   r("kind:aterm", "kind:special", "works",
     "Addition terms and predictor specials are independent.")
-  r("kind:mode", "kind:mode", "untested",
-    "Mode pairs need a specific rule; see below.")
+  # No kind-level default for mode x mode either: every pair of the
+  # eight declared modes is already named below, either by an explicit
+  # rule or by the verbose / sparse_x / autoscale sweeps.
   r("kind:mode", "kind:covstruct", "untested",
     "See the quadrature rules; the other modes are structure-agnostic.")
   r("kind:mode", "kind:special", "untested", "See the specific rules.")
@@ -165,9 +188,24 @@ frmtmb_compat_rules_tbl <- function() {
   r("kind:mode", "kind:structure", "untested", "See the specific rules.")
   r("kind:structure", "kind:method", "untested", "See the specific rules.")
 
-  ## modes that compose with everything -------------------------------
+  ## blanket feature defaults, weakest first --------------------------
+  #
+  # A "<name> x *" rule is one feature's default against everything not
+  # otherwise named. Two of them meeting have the same signature, so
+  # only file order separates them; the order below is the authority
+  # order, and every rule that relies on it carries override = TRUE:
+  #
+  #   permissive defaults (here) < untested defaults (vint, vreal)
+  #     < a structure's own condition < an outright refusal
+  #
+  # so a refusal is never lost to a permissive default, and a condition
+  # is never lost to "works".
   r("verbose", "*", "works",
     "verbose only prints progress. It does not change the model or the estimates.")
+  r("call_group", "*", "works",
+    "Call-valued grouping factors are supported: (1 | factor(x)) and (1 | interaction(a, b)) both build the grouping factor from the model frame.")
+  r("double_bar", "*", "works",
+    "(x || g) gives uncorrelated terms. With a factor on the left, (f || g) routes to diag, that is one independent effect per factor level.")
   # sparse_x and autoscale are claimed only where the model surface is
   # exercised. Structures and post-fit methods keep the untested
   # default until something checks them.
@@ -199,7 +237,8 @@ frmtmb_compat_rules_tbl <- function() {
     "Priors on fixed effects are accepted under REML while bounds on the same parameters are refused. The two surfaces are inconsistent. Priors on variance parameters behave as expected.")
   r("REML", "hypothesis_profile", "refused",
     "Refused: profile likelihood tests need an ML fit.")
-  r("REML", "kind:structure", "untested", "See the specific rules.")
+  # Every model structure carries its own REML rule below, so a
+  # kind-level REML x structure default could never win a pair.
   r("REML", "mixture", "refused",
     "Refused: a mixture likelihood is invariant to permuting its components, so it is multimodal in the fixed effects REML integrates out. The inner Laplace solve has no single mode to expand about; the fit used to stop with 'NA/NaN gradient evaluation' or report a gradient near 1e9.")
   r("REML", "mixture_mvn", "refused",
@@ -350,10 +389,14 @@ frmtmb_compat_rules_tbl <- function() {
     "Also accepted as the glm spelling cbind(successes, failures), which is rewritten to successes | trials(successes + failures); the two fits are identical. The two spellings cannot be combined.")
 
   ## vint() and vreal() --------------------------------------------------
+  # override: "nothing checks this" outranks the permissive blanket
+  # defaults (verbose, call_group, double_bar) at the same signature.
   r("vint()", "*", "untested",
-    "vint() passes integer covariates to a custom family; only the custom-family path uses them.")
+    "vint() passes integer covariates to a custom family; only the custom-family path uses them.",
+    override = TRUE)
   r("vreal()", "*", "untested",
-    "vreal() passes real covariates to a custom family; only the custom-family path uses them.")
+    "vreal() passes real covariates to a custom family; only the custom-family path uses them.",
+    override = TRUE)
   r("vint()", "vreal()", "works", "Both may appear on one response.")
   r("vint()", "mvbf", "untested",
     "Custom-family covariates inside a multivariate model are not exercised.")
@@ -372,21 +415,52 @@ frmtmb_compat_rules_tbl <- function() {
   r("rescor", "weights()", "refused", "Refused.")
   r("rescor", "mvbf", "works",
     "rescor = TRUE is only meaningful inside mvbf(); set_rescor() on a single formula is refused.")
-  r("rescor", "kind:method", "untested", "")
-  r("rescor", "fitted", "works", "")
-  r("rescor", "predict", "works", "")
+  # No rescor x kind:method default: every declared method now has an
+  # explicit rescor rule, so such a default could never win a pair.
+  r("rescor", "fitted", "refused",
+    "Refused: fitted() calls uni_resp() and stops with 'fitted() is not supported yet for multivariate fits'. Predict one response at a time instead: predict(fit, resp = ).")
+  r("rescor", "predict", "works",
+    "predict() takes resp = to choose the response, and defaults to the first.")
   r("rescor", "simulate", "refused",
     "Refused: simulate() is not supported for multivariate fits yet.")
+  r("rescor", "residuals", "refused",
+    "Refused: residuals() is not supported for multivariate fits yet.")
   r("rescor", "residuals_osa", "refused",
     "Refused: residuals() is not supported for multivariate fits yet.")
   r("rescor", "emmeans", "refused",
     "Refused: emmeans support is univariate-only for now.")
+  # confint(), hypothesis() and frm_sample() work on the outer
+  # parameter vector, which a multivariate fit has like any other:
+  # verified on a two-response gaussian fit, rescor = TRUE included.
+  r("rescor", "confint_profile", "works",
+    "Verified: the profiled and uniroot intervals for a per-response coefficient agree with the Wald interval on a two-response fit.")
+  r("rescor", "hypothesis_profile", "works",
+    "Verified: profile likelihood tests address the per-response coefficients by their vcov() names (y1_x and so on).")
+  r("rescor", "frm_sample", "works",
+    "Verified: tmbstan samples the multivariate outer parameters, the residual correlation included.")
 
   ## mvbf ------------------------------------------------------------------
   r("mvbf", "kind:method", "refused",
     "Refused: the post-fit methods below are univariate-only for now.")
-  r("mvbf", "fitted", "works", "")
-  r("mvbf", "predict", "works", "")
+  # residuals_osa x kind:structure claims "untested" at the same
+  # signature as the univariate-only refusal above, so the pair is
+  # named outright: residuals(type = "osa") goes through the same
+  # uni_resp() guard and stops.
+  r("mvbf", "residuals_osa", "refused",
+    "Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included.")
+  r("mvbf", "fitted", "refused",
+    "Refused: fitted() calls uni_resp() and stops with 'fitted() is not supported yet for multivariate fits'. Predict one response at a time instead: predict(fit, resp = ).")
+  r("mvbf", "predict", "works",
+    "predict() takes resp = to choose the response, and defaults to the first.")
+  # The inference surface reads the outer parameter vector rather than
+  # a single response, so the univariate-only refusal above does not
+  # reach it. Verified on a two-response gaussian fit.
+  r("mvbf", "confint_profile", "works",
+    "Verified: the profiled and uniroot intervals for a per-response coefficient agree with the Wald interval on a two-response fit.")
+  r("mvbf", "hypothesis_profile", "works",
+    "Verified: profile likelihood tests address the per-response coefficients by their vcov() names (y1_x and so on).")
+  r("mvbf", "frm_sample", "works",
+    "Verified: tmbstan samples the multivariate outer parameters. A boundary variance component still warns about mode initialization, as it does for a univariate fit.")
   r("mvbf", "kind:family", "works",
     "Each response carries its own family unless rescor = TRUE.")
   r("mvbf", "kind:aterm", "works",
@@ -436,11 +510,15 @@ frmtmb_compat_rules_tbl <- function() {
   ## specials ------------------------------------------------------------------
   r("mo()", "kind:family", "conditional",
     "The monotonic variable must be an ordered factor or an integer with at least 3 categories.")
-  r("mo()", "mo()", "refused",
-    "Refused: mo() cannot interact with another mo() or mi() term.")
+  # A rule may not name the same feature twice: the resolved table
+  # holds unordered pairs of DISTINCT features, so a self-pair row
+  # could never match. mo() x mo() lives in the note below instead.
   r("mo()", "mi_pred()", "refused",
-    "Refused: mo() cannot interact with another mo() or mi() term.")
-  r("mo()", "kind:mode", "untested", "")
+    "Refused: mo() cannot interact with another mo() or mi() term. Two mo() terms may appear in one formula, but not crossed with each other.")
+  # override: the sparse_x / autoscale sweeps claim "works" for every
+  # special at the same signature. Nothing checks mo(), s() or gp()
+  # under those modes, so the untested claim governs.
+  r("mo()", "kind:mode", "untested", "", override = TRUE)
   r("mo()", "REML", "works", "Verified by a tiny fit.")
   r("mo()", "profile", "works", "Verified by a tiny fit.")
   r("mo()", "predict", "conditional",
@@ -450,40 +528,65 @@ frmtmb_compat_rules_tbl <- function() {
   r("cs_pred()", "group:ordinal_cs", "works", "")
   r("cs_pred()", "cumulative", "refused",
     "Refused: category-specific effects are not identified under the cumulative parameterization.")
-  r("gp_pred()", "kind:mode", "untested", "")
-  r("gp_pred()", "kind:family", "works", "")
-  r("s()", "kind:mode", "untested", "")
+  r("gp_pred()", "kind:mode", "untested", "", override = TRUE)
+  # gp()'s own arity limits used to sit on a gp_pred() x gp_pred()
+  # self-pair row, which the resolved table cannot hold; every gp()
+  # model has a family, so they are stated here instead.
+  r("gp_pred()", "kind:family", "works",
+    "gp() takes 1 to 3 variables. The arguments k, c, and iso are evaluated in the formula environment, and c may be a vector with one entry per dimension. Several gp() terms may appear in one formula.")
+  r("s()", "kind:mode", "untested", "", override = TRUE)
   r("s()", "kind:family", "works", "")
   r("t2()", "kind:family", "works", "")
 
   ## covariance structures -------------------------------------------------------
+  #
+  # Each structure states its own condition against everything. The
+  # condition is a property of the structure, not of what it is paired
+  # with, so these carry override = TRUE: at the blanket signature they
+  # must outrank the permissive and untested defaults above, and a
+  # structure that needs num_factor() coordinates or a level order must
+  # not be reported as unconditionally working. They are written one
+  # name per rule rather than by group, so that every structure's
+  # condition carries the same authority.
   r("group:positional", "kind:special", "conditional",
     "Positional structures take the lag from the level order, not from the level value.")
   r("ar1", "*", "conditional",
-    "ar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. Use ou() over num_factor() for irregular spacing.")
+    "ar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. Use ou() over num_factor() for irregular spacing.",
+    override = TRUE)
   r("hetar1", "*", "conditional",
-    "hetar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns.")
+    "hetar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns.",
+    override = TRUE)
   r("ou", "*", "conditional",
-    "ou() is the irregular-spacing structure. Build the levels with num_factor() so the metric distance is recoverable.")
-  r("group:spatial", "*", "conditional",
-    "Spatial structures need coordinates built with num_factor(x, y).")
+    "ou() is the irregular-spacing structure. Build the levels with num_factor() so the metric distance is recoverable.",
+    override = TRUE)
+  for (cs in frmtmb_compat_groups_lst$spatial) {
+    r(cs, "*", "conditional",
+      "Spatial structures need coordinates built with num_factor(x, y).",
+      override = TRUE)
+  }
   r("gr_prec", "*", "conditional",
-    "gr(prec = Q) supports intercept-only terms: (1 | gr(g, prec = Q)).")
+    "gr(prec = Q) supports intercept-only terms: (1 | gr(g, prec = Q)).",
+    override = TRUE)
   r("gr_cov", "*", "conditional",
-    "gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level.")
+    "gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level.",
+    override = TRUE)
   r("equalto", "*", "conditional",
-    "equalto(x + 0 | g, V) fixes the term covariance to V, which must be square and match the term dimension.")
+    "equalto(x + 0 | g, V) fixes the term covariance to V, which must be square and match the term dimension.",
+    override = TRUE)
   r("rr", "*", "conditional",
-    "rr() gives a reduced-rank block; the rank d must not exceed the term dimension.")
+    "rr() gives a reduced-rank block; the rank d must not exceed the term dimension.",
+    override = TRUE)
   r("rr", "sparse_x", "works",
     "Verified: identical estimates with and without a sparse fixed-effect design.")
   r("rr", "REML", "works", "Verified by a tiny fit.")
   r("smooth", "*", "conditional",
-    "smooth is the internal structure behind s() and t2(); it is not written directly in a formula.")
-  r("group:latent_gp", "*", "conditional",
-    "gp() and hsgp() are predictor specials, not bar terms. Write gp(x), not (gp(x) | g).")
-  r("gp_pred()", "gp_pred()", "conditional",
-    "gp() takes 1 to 3 variables. The arguments k, c, and iso are evaluated in the formula environment, and c may be a vector with one entry per dimension.")
+    "smooth is the internal structure behind s() and t2(); it is not written directly in a formula.",
+    override = TRUE)
+  for (cs in frmtmb_compat_groups_lst$latent_gp) {
+    r(cs, "*", "conditional",
+      "gp() and hsgp() are predictor specials, not bar terms. Write gp(x), not (gp(x) | g).",
+      override = TRUE)
+  }
 
   ## post-fit methods --------------------------------------------------------------
   r("simulate", "kind:family", "works",
@@ -509,8 +612,11 @@ frmtmb_compat_rules_tbl <- function() {
     "Univariate fits only, and the mu predictor must be linear.")
   r("emmeans", "nl", "refused",
     "Refused: emmeans support needs a linear mu predictor.")
+  # override: the jitter condition holds wherever frm_sample() is used,
+  # so it outranks the permissive and untested blanket defaults.
   r("frm_sample", "*", "conditional",
-    "Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = \"random\" for a multimodal posterior.")
+    "Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = \"random\" for a multimodal posterior.",
+    override = TRUE)
   r("confint_profile", "kind:mode", "untested", "")
   r("hypothesis_profile", "kind:mode", "untested", "")
   r("predict", "kind:family", "conditional",
@@ -519,24 +625,32 @@ frmtmb_compat_rules_tbl <- function() {
     "Needs a family with a mean function.")
 
   ## formula grammar --------------------------------------------------------------
+  # The two permissive grammar defaults are declared with the other
+  # weak blanket rules near the top of the table; only the refusals
+  # belong here, at the authoritative end of the order.
   r("bar_crossing", "*", "refused",
-    "Refused: a bar term crossed with * or : (as in x * (1 | g)) is not a random-effect specification (lme4#196). Write the crossing inside the bar: (x | g). This spelling was once accepted with the crossing silently dropped.")
-  r("call_group", "*", "works",
-    "Call-valued grouping factors are supported: (1 | factor(x)) and (1 | interaction(a, b)) both build the grouping factor from the model frame.")
-  r("double_bar", "*", "works",
-    "(x || g) gives uncorrelated terms. With a factor on the left, (f || g) routes to diag, that is one independent effect per factor level.")
+    "Refused: a bar term crossed with * or : (as in x * (1 | g)) is not a random-effect specification (lme4#196). Write the crossing inside the bar: (x | g). This spelling was once accepted with the crossing silently dropped.",
+    override = TRUE)
   r("double_bar", "diag", "works",
     "diag is the structure (f || g) resolves to.")
   r("bar_crossing", "kind:covstruct", "refused",
     "Refused for every covariance structure. The crossing must go inside the bar.")
+  # The other two grammar rows are "*" rules of the same shape as the
+  # bar_crossing one, so without this the crossing refusal and the
+  # call_group / double_bar support rules would tie and file order
+  # would decide. The parser refuses the crossing before it ever looks
+  # at how the group or the bar is spelled: verified for
+  # x * (1 | factor(g)) and x * (1 + x || g), both of which stop with
+  # "A random-effect term cannot be crossed with '*'".
+  r("bar_crossing", "kind:grammar", "refused",
+    "Refused whatever the bar contains: the crossing is rejected before the grouping factor or the double bar is read. Write the crossing inside the bar.")
 
-  ## the family does not change a covariance structure's own condition ---------
-  for (cs in c("ar1", "hetar1", "ou", "exp", "gau", "mat", "rr",
-               "equalto", "gr_cov", "gr_prec", "smooth", "gp",
-               "hsgp")) {
-    r(cs, "kind:family", "works",
-      "The covariance structure acts on the linear predictor, so the response distribution does not change its conditions.")
-  }
+  # A covariance structure's own conditions (num_factor() coordinates
+  # for exp/gau/mat, level order for ar1, a rank for rr) hold whatever
+  # the response distribution is, so there is deliberately NO
+  # <covstruct> x kind:family rule granting "works" here. Such a rule
+  # would outrank each structure's own "<name> x *" condition and
+  # replace it with an unconditional claim.
 
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
@@ -555,6 +669,17 @@ compat_spec <- function(pat) {
                 ifelse(startsWith(pat, "group:"), 2L, 3L)))
 }
 
+# A rule's precedence, as one comparable integer: the two sides'
+# specificities sorted descending, then read as a two-digit base-4
+# number. Lexicographic order on the sorted pair is exactly numeric
+# order on the result, so the resolver can compare with `>=`. See the
+# PRECEDENCE note above frmtmb_compat_rules_tbl().
+compat_sig_rank <- function(pa, pb) {
+  a <- compat_spec(pa)
+  b <- compat_spec(pb)
+  4L * pmax(a, b) + pmin(a, b)
+}
+
 # Does `pat` cover the feature at position i of the feature table?
 compat_match <- function(pat, name, kind) {
   if (pat == "*") return(rep(TRUE, length(name)))
@@ -564,6 +689,81 @@ compat_match <- function(pat, name, kind) {
     return(name %in% g)
   }
   name == pat
+}
+
+# A rule is unordered: it may match a pair either way round.
+compat_hit <- function(pa, pb, pairs) {
+  (compat_match(pa, pairs$feature_a, pairs$kind_a) &
+     compat_match(pb, pairs$feature_b, pairs$kind_b)) |
+    (compat_match(pa, pairs$feature_b, pairs$kind_b) &
+       compat_match(pb, pairs$feature_a, pairs$kind_a))
+}
+
+# Unordered pairs of distinct features, minus family x family: a model
+# carries exactly one family, so those pairs mean nothing.
+frmtmb_compat_pairs_tbl <- function() {
+  ft <- frmtmb_compat_features_tbl()
+  ij <- utils::combn(nrow(ft), 2L)
+  keep <- !(ft$kind[ij[1, ]] == "family" & ft$kind[ij[2, ]] == "family")
+  ij <- ij[, keep, drop = FALSE]
+  data.frame(
+    feature_a = ft$name[ij[1, ]], kind_a = ft$kind[ij[1, ]],
+    feature_b = ft$name[ij[2, ]], kind_b = ft$kind[ij[2, ]],
+    stringsAsFactors = FALSE)
+}
+
+# Which rule wins each pair. Resolution always runs over the whole pair
+# table, never over the slice a caller asked for, so a rule's precedence
+# is judged against the registry rather than against the query.
+compat_resolve <- function(pairs, rules) {
+  rank <- compat_sig_rank(rules$feature_a, rules$feature_b)
+  best <- rep(-1L, nrow(pairs))
+  win <- rep(NA_integer_, nrow(pairs))
+  for (k in seq_len(nrow(rules))) {
+    # >= so a later rule of equal precedence overrides an earlier one
+    hit <- compat_hit(rules$feature_a[k], rules$feature_b[k], pairs) &
+      rank[k] >= best
+    win[hit] <- k
+    best[hit] <- rank[k]
+  }
+  list(win = win, best = best, rank = rank)
+}
+
+# Pairs whose winning precedence is shared by rules that disagree about
+# the status. Such a pair is decided by file order, which is the defect
+# the sorted-pair precedence exists to remove; the registry must have
+# none of them unless the winning rule says it is a deliberate
+# override. Run from test-compat.R rather than at load time: it costs a
+# pass over every rule x pair combination.
+frmtmb_compat_validate <- function() {
+  pairs <- frmtmb_compat_pairs_tbl()
+  rules <- frmtmb_compat_rules_tbl()
+  res <- compat_resolve(pairs, rules)
+  ovr <- if (is.null(rules$override)) rep(FALSE, nrow(rules)) else
+    rules$override
+  seen <- integer(nrow(pairs))       # rule index of the last top hitter
+  bad <- integer(0)
+  for (k in seq_len(nrow(rules))) {
+    hit <- compat_hit(rules$feature_a[k], rules$feature_b[k], pairs) &
+      res$rank[k] == res$best
+    if (!any(hit)) next
+    clash <- which(hit & seen > 0L)
+    if (length(clash)) {
+      clash <- clash[rules$status[seen[clash]] != rules$status[k]]
+      bad <- c(bad, clash)
+    }
+    seen[hit] <- k
+  }
+  bad <- unique(bad)
+  bad <- bad[!ovr[res$win[bad]]]
+  w <- res$win[bad]
+  data.frame(
+    feature_a = pairs$feature_a[bad], feature_b = pairs$feature_b[bad],
+    status = rules$status[w],
+    # paste() would recycle a zero-length index up to length one
+    rule = if (length(w)) paste(rules$feature_a[w], "x",
+                                rules$feature_b[w]) else character(0),
+    stringsAsFactors = FALSE)
 }
 
 #' Feature metadata for the compatibility registry
@@ -593,15 +793,26 @@ frm_compat_features <- function() {
 #'
 #' The registry stores rules, not one row per pair. A rule side is one
 #' of four patterns, from least to most specific: `"*"` for any
-#' feature, `"kind:<kind>"` for a whole kind, `"group:<group>"` for a
-#' named feature set, or a bare feature name. A pair takes the status
-#' of the most specific matching rule; ties go to the later rule.
+#' feature (specificity 0), `"kind:<kind>"` for a whole kind (1),
+#' `"group:<group>"` for a named feature set (2), or a bare feature
+#' name (3).
+#'
+#' A pair takes the status of the rule with the highest precedence,
+#' where precedence is the two sides' specificities sorted descending
+#' and compared lexicographically: `(3,3)` beats `(3,2)` beats `(3,1)`
+#' beats `(3,0)` beats `(2,2)` beats `(2,1)`, and so on. A rule that is
+#' strictly more specific on one side and no less specific on the other
+#' therefore always wins. Rules can tie only when their two
+#' specificities match exactly; the later rule wins those, so an
+#' override is appended rather than inserted, and a tie between rules
+#' that disagree about the status is a registry defect the test suite
+#' rejects.
 #'
 #' Use [frm_compat()] to read the resolved answer for a pair. Use this
 #' function to see which rule is doing the work.
 #'
 #' @return A data frame with columns `feature_a`, `feature_b`,
-#'   `status`, and `note`.
+#'   `status`, `note`, and `override`.
 #' @seealso [frm_compat()], [frm_compat_features()]
 #' @examples
 #' rules <- frm_compat_rules()
@@ -636,7 +847,9 @@ frm_compat_rules <- function() {
 #'
 #' @param feature_a,feature_b Feature names, as given by
 #'   [frm_compat_features()]. Supply both for one pair, one for every
-#'   pair involving that feature, or neither for the whole table.
+#'   pair involving that feature, or neither for the whole table. Both
+#'   accept a vector, which gives every pair in the cross of the two
+#'   sides; an empty vector is an error rather than an empty answer.
 #' @param status Optional character vector; keep only these statuses.
 #' @return A data frame with columns `feature_a`, `kind_a`,
 #'   `feature_b`, `kind_b`, `status`, and `note`. Family pairs are
@@ -655,12 +868,28 @@ frm_compat_rules <- function() {
 frm_compat <- function(feature_a = NULL, feature_b = NULL,
                        status = NULL) {
   ft <- frmtmb_compat_features_tbl()
-  for (nm in c(feature_a, feature_b)) {
-    if (!nm %in% ft$name) {
-      stop("Unknown feature: '", nm, "'. See frm_compat_features().",
+  # An empty selector is a caller mistake, not a query for nothing: it
+  # used to fall through the recycling below and return an empty table,
+  # which reads exactly like "this feature is involved in no pairs".
+  check_features <- function(x, arg) {
+    if (is.null(x)) return(NULL)
+    if (!is.character(x)) {
+      stop(arg, " must be a character vector of feature names.",
            call. = FALSE)
     }
+    if (!length(x)) {
+      stop(arg, " is empty. Supply at least one feature name, or NULL ",
+           "for every feature.", call. = FALSE)
+    }
+    bad <- setdiff(x, ft$name)
+    if (length(bad)) {
+      stop("Unknown feature: '", bad[1], "'. See frm_compat_features().",
+           call. = FALSE)
+    }
+    x
   }
+  feature_a <- check_features(feature_a, "feature_a")
+  feature_b <- check_features(feature_b, "feature_b")
   if (!is.null(status)) {
     bad <- setdiff(status, frmtmb_compat_statuses)
     if (length(bad)) {
@@ -671,56 +900,35 @@ frm_compat <- function(feature_a = NULL, feature_b = NULL,
     }
   }
 
-  # unordered pairs of distinct features, minus family x family: a
-  # model carries exactly one family, so those pairs mean nothing
-  n <- nrow(ft)
-  ij <- utils::combn(n, 2L)
-  keep <- !(ft$kind[ij[1, ]] == "family" & ft$kind[ij[2, ]] == "family")
-  ij <- ij[, keep, drop = FALSE]
-  pairs <- data.frame(
-    feature_a = ft$name[ij[1, ]], kind_a = ft$kind[ij[1, ]],
-    feature_b = ft$name[ij[2, ]], kind_b = ft$kind[ij[2, ]],
-    status = NA_character_, note = NA_character_,
-    stringsAsFactors = FALSE)
-
-  # Resolve before subsetting so a rule's specificity is judged against
+  # Resolve before subsetting so a rule's precedence is judged against
   # the whole table, never against the slice the caller asked for.
-  best <- rep(-1L, nrow(pairs))
+  pairs <- frmtmb_compat_pairs_tbl()
   rules <- frmtmb_compat_rules_tbl()
-  for (k in seq_len(nrow(rules))) {
-    pa <- rules$feature_a[k]
-    pb <- rules$feature_b[k]
-    spec <- compat_spec(pa) + compat_spec(pb)
-    # unordered: the rule may match the pair either way round
-    hit <- (compat_match(pa, pairs$feature_a, pairs$kind_a) &
-              compat_match(pb, pairs$feature_b, pairs$kind_b)) |
-      (compat_match(pa, pairs$feature_b, pairs$kind_b) &
-         compat_match(pb, pairs$feature_a, pairs$kind_a))
-    # >= so a later rule of equal specificity overrides an earlier one
-    hit <- hit & spec >= best
-    pairs$status[hit] <- rules$status[k]
-    pairs$note[hit] <- rules$note[k]
-    best[hit] <- spec
-  }
+  win <- compat_resolve(pairs, rules)$win
+  pairs$status <- rules$status[win]
+  pairs$note <- rules$note[win]
 
+  # Both sides take a vector, and the answer is the full cross: every
+  # pair with one member in feature_a and the other in feature_b.
   sel <- rep(TRUE, nrow(pairs))
   if (!is.null(feature_a) && !is.null(feature_b)) {
-    sel <- (pairs$feature_a == feature_a & pairs$feature_b == feature_b) |
-      (pairs$feature_a == feature_b & pairs$feature_b == feature_a)
+    sel <- (pairs$feature_a %in% feature_a &
+              pairs$feature_b %in% feature_b) |
+      (pairs$feature_a %in% feature_b & pairs$feature_b %in% feature_a)
   } else {
     one <- feature_a %||% feature_b
     if (!is.null(one)) {
-      sel <- pairs$feature_a == one | pairs$feature_b == one
+      sel <- pairs$feature_a %in% one | pairs$feature_b %in% one
     }
   }
   if (!is.null(status)) sel <- sel & pairs$status %in% status
   out <- pairs[sel, , drop = FALSE]
 
-  # read the queried feature first, so a one-feature slice reads down a
+  # read the queried side first, so a one-feature slice reads down a
   # single column
-  one <- if (is.null(feature_b)) feature_a else feature_b
-  if (!is.null(one) && (is.null(feature_a) || is.null(feature_b))) {
-    flip <- out$feature_b == one
+  lead <- feature_a %||% feature_b
+  if (!is.null(lead)) {
+    flip <- out$feature_b %in% lead & !(out$feature_a %in% lead)
     if (any(flip)) {
       out[flip, c("feature_a", "kind_a", "feature_b", "kind_b")] <-
         out[flip, c("feature_b", "kind_b", "feature_a", "kind_a")]
