@@ -43,6 +43,7 @@ Suggests:
     MASS,
     mice,
     minqa,
+    nlme,
     nloptr,
     nnet,
     posterior,
