@@ -14,6 +14,30 @@
 # form. A red line here is therefore a new defect, and the failure
 # message prints it.
 
+#' @srrstats {G5.6b} Parameter recovery is checked across many random
+#'   seeds. G5.6b allows this to live in an extended rather than a
+#'   regular test suite when it is long-running, which is the case here.
+#'   `fuzz_plan()` derives a distinct seed per generated model
+#'   (`seed + i * 977L`) from one plan seed, so a run is a sweep of
+#'   several hundred seeds, and the `confint_coverage` invariant pools
+#'   them: the 95% Wald intervals across the whole plan must cover the
+#'   known simulation truth `FUZZ_BETA_X = 0.4` at least
+#'   `qbinom(1e-4, n, 0.95)` times. That is a one-in-ten-thousand
+#'   binomial tail, so only a broken interval, not an unlucky plan, can
+#'   trip it.
+#' @srrstats {G5.9b} The same mechanism is the noise-susceptibility test
+#'   for seed variation: running under hundreds of different seeds and
+#'   initial conditions must not change the conclusion, and the
+#'   invariants (`predict_eq_fitted`, `loglik_identity`, `permutation`,
+#'   `unit_weights`, `simulate_mean`, `vcov_summary`, `confint_wald`) are
+#'   required to hold on every one of them. `permutation` is a
+#'   metamorphic version of the same idea: reordering the rows must not
+#'   change the likelihood. Stability under different initial conditions
+#'   is also checked outside the fuzzer, by `frm_allfit()` agreeing
+#'   across optimizers and by the profiled fit reproducing the plain one.
+#' @noRd
+NULL
+
 test_that("pairwise grammar fuzz finds no new invariant violations", {
   skip_if_not(identical(Sys.getenv("FRMTMB_FUZZ"), "true"),
               "set FRMTMB_FUZZ=true to run the grammar fuzz tier")

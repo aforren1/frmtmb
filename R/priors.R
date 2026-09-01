@@ -34,6 +34,17 @@
 #' @param group Restrict class `"sd"` to one grouping factor.
 #' @param lb,ub Optional hard bounds.
 #' @return A `frmtmb_priorlist`.
+#'
+#' @srrstats {G2.0,G2.1} `prior` is asserted to be a length-one character
+#'   vector before it is parsed, and the parsed distribution's arguments
+#'   are asserted to have the arity that distribution requires (two for
+#'   `normal`, three for `student_t`, one for `exponential`). A call that
+#'   supplies neither a distribution nor bounds errors instead of
+#'   producing an empty prior.
+#' @srrstats {G2.3a} `class` is restricted with `match.arg()` to
+#'   `"b"`, `"Intercept"`, `"sd"`, and `"theta"`, so an unexpected class
+#'   errors and names the permitted values.
+#'
 #' @export
 set_prior <- function(prior = "", class = "b", coef = "", dpar = "",
                       group = "", lb = NA, ub = NA) {

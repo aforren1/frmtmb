@@ -306,6 +306,8 @@ pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
 #'
 #' @param x A `frmtmb_draws` object.
 #' @param ... Unused.
+#' @return A `posterior::draws_matrix`: one column per sampled variable
+#'   and one row per draw.
 #' @export
 as_draws <- function(x, ...) {
   # own generic for the same reason as pp_check: posterior stays in

@@ -453,6 +453,27 @@ print.frmtmb_draws <- function(x, ...) {
 #' @return A data frame (one row per outer parameter) with columns
 #'   `ml`, `post_mean`, `wald_se`, `post_sd`, `z_shift`
 #'   ((post_mean - ml)/post_sd) and `sd_ratio` (post_sd/wald_se).
+#'
+#' @srrstats {RE1.4} The assumptions the fit rests on are documented, and
+#'   the consequences of violating them are both documented and testable.
+#'   Random effects are integrated out by the Laplace approximation,
+#'   which assumes the integrand is close to Gaussian around the
+#'   conditional mode, and Wald intervals assume the log-likelihood is
+#'   close to quadratic at the optimum. Both degrade in the same places:
+#'   variance components estimated from few groups, and binary data in
+#'   small clusters. `check_laplace()` measures the violation directly by
+#'   running NUTS on the same objective and reporting the shift of the
+#'   posterior mean from the maximum-likelihood estimate in posterior
+#'   standard deviations (`z_shift`) and the ratio of the posterior
+#'   standard deviation to the Wald standard error (`sd_ratio`), warning
+#'   when either leaves its tolerance. The documented remedies are
+#'   `confint(method = "profile")`, `frm_bootstrap()`, and
+#'   `frm(quadrature = TRUE)`, which replaces the approximation with
+#'   adaptive quadrature; the test suite checks that the quadrature fit
+#'   matches `lme4::glmer(nAGQ = 25)` and GLMMadaptive in exactly the
+#'   regime where the Laplace fit is biased.
+#'   `vignette("diagnostics")` works through this.
+#'
 #' @export
 check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
   ds <- frm_sample(fit, chains = chains, iter = iter, ...)
@@ -678,6 +699,19 @@ getME_flist <- function(object) {
 #' @param ... Unused.
 #' @return The requested component, or a named list when `name` names
 #'   several.
+#'
+#' @srrstats {RE4.13} Predictor variables and their metadata are
+#'   retrievable from the fitted object. `getME()` exposes the
+#'   fixed-effect design `X`, the random-effect design `Z` carrying the
+#'   row names of the input data, the grouping-factor structure, and the
+#'   parameter vectors, using lme4's vocabulary; `model.matrix()` returns
+#'   the design and `model.frame()` the stored model frame with its row
+#'   names. The frame also keeps the `terms`, `xlevels`, and `contrasts`
+#'   of each linear predictor, frozen at fit time and reapplied to
+#'   `newdata`, plus the frozen bases of data-dependent terms such as
+#'   `poly()` and `scale()`. A name outside the vocabulary errors and
+#'   lists the accepted names.
+#'
 #' @exportS3Method lme4::getME
 getME.frmtmb_fit <- function(object, name, resp = NULL, ...) {
   if (missing(name) || !is.character(name) || !length(name)) {

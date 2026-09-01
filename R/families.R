@@ -59,6 +59,24 @@
 #' )
 #' fit <- frm(bf(y | vint(size) ~ x) + fam, data = dd)
 #' fixef(fit)
+#' @srrstats {G2.0,G2.1} The family contract is asserted on both length
+#'   and type before anything is built: `family` must be a length-one
+#'   character vector, `dpars` a character vector of length at least one,
+#'   and `lpdf` a function. A family supplied as a `stats::family()`
+#'   object, a family constructor, or a name is dispatched to a single
+#'   internal representation, and an unrecognized value errors naming the
+#'   supported families.
+#' @srrstats {RE4.12} The transform used on each linear predictor and its
+#'   inverse are both available. Every distributional parameter carries a
+#'   link with `linkfun`, `linkinv`, and `mu_eta` (the derivative), and
+#'   `links` selects them per parameter. They are reachable through the
+#'   fit with `family()`, through `insight::link_function()` and
+#'   `insight::link_inverse()`, and are applied by `predict(type =)` to
+#'   move between the link and response scales. Link functions are
+#'   written out over plain arithmetic rather than taken from
+#'   `stats::make.link()`, because the latter clamps at C level in ways
+#'   the AD tape cannot see.
+#'
 #' @export
 frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           init_dpars = list(), type = "continuous",

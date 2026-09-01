@@ -354,6 +354,22 @@ ce_plot_one <- function(df, cond = NULL) {
 #' @param ask Whether to prompt between plots; defaults to the usual
 #'   interactive-device rule.
 #' @param ... Unused.
+#' @return `x`, invisibly. Called for the plots it draws.
+#'
+#' @srrstats {RE6.0} A `frmtmb_fit` has a default `plot()` method, so
+#'   `plot(fit)` works without the user naming a function. It draws the
+#'   two standard regression diagnostics: Pearson residuals against
+#'   fitted values with a lowess trend, and a normal QQ plot of those
+#'   residuals.
+#' @srrstats {RE6.1} The method is a real S3 method dispatched on the
+#'   class of the returned object (`plot.frmtmb_fit`), registered in
+#'   `NAMESPACE`, so the generic reaches it and no separate signposting
+#'   is needed. [conditional_effects()] and [pp_check()] have their own
+#'   plot methods for effect displays and posterior-predictive checks,
+#'   and this page points at [dharma_residuals()] and
+#'   `residuals(type = "osa")` for residuals that stay exact under
+#'   discrete families.
+#'
 #' @export
 plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
   r <- residuals(x, type = "pearson")
@@ -386,6 +402,8 @@ plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
 #'
 #' @param object A `frmtmb_fit` for a univariate model.
 #' @param ... Passed to the `ppc_*` function.
+#' @return A ggplot object, as returned by the bayesplot `ppc_*`
+#'   function that `type` selects.
 #' @export
 pp_check <- function(object, ...) {
   # frmtmb ships its own generic so pp_check(fit) works without

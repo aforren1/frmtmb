@@ -8,6 +8,125 @@
 \description{
 Fits regression models specified with a 'brms'-style formula grammar by maximum likelihood, with the Laplace approximation for random effects. Model objectives are generated as R closures and differentiated with 'RTMB', so no compilation happens at run time. Supports 'lme4'-style random effects with structured covariances, distributional regression, smooths, Gaussian processes, nonlinear formulas, multivariate models, finite mixtures, and in-model imputation of missing predictors.
 }
+\details{
+frmtmb fits regression models written in a 'brms'-style formula grammar
+by maximum likelihood. Random effects are integrated out with the
+Laplace approximation. Each model's objective is generated as an R
+closure and differentiated on the 'RTMB' tape, so no compilation
+happens at run time.
+
+Start with \code{\link[=frm]{frm()}} to fit a model, \code{\link[=bf]{bf()}} to write one, and
+\code{vignette("frmtmb")} for a tour. \code{vignette("diagnostics")} covers
+convergence, residuals, and the reliability of the approximation.
+}
+\section{Algorithm provenance}{
+
+frmtmb implements established methods; it introduces no new estimator.
+\itemize{
+\item The Laplace approximation to the marginal likelihood of a
+latent-variable model, and its automatic differentiation, come from
+'TMB' / 'RTMB' (Kristensen et al. 2016). frmtmb generates the
+objective; 'RTMB' differentiates and integrates it.
+\item The formula grammar follows brms (Buerkner 2017). frmtmb is a
+frequentist implementation of a documented subset of that grammar.
+Formulas port from brms without change.
+\item Random-effect syntax and the structured covariance vocabulary follow
+lme4 (Bates et al. 2015) and glmmTMB (Brooks et al. 2017).
+\item Smooth terms are built with mgcv (Wood 2017, 2011) through
+\code{smoothCon()} and \code{smooth2random()}.
+\item Approximate Gaussian processes use the Hilbert-space basis of
+Riutort-Mayol et al. (2023). Spatial Gaussian Markov random fields
+use the SPDE representation of Lindgren et al. (2011) and the BYM2
+parameterization of Riebler et al. (2016).
+\item One-step-ahead residuals come from Thygesen et al. (2017).
+\item Pooling across multiple imputations follows Rubin (1987) and the
+references given in \code{\link[=anova.frmtmb_multiple]{anova.frmtmb_multiple()}}.
+}
+
+The contribution is architectural, not statistical. Existing
+frequentist packages put a formula front end on one fixed likelihood;
+frmtmb compiles the formula into the objective. This makes several
+combinations ordinary code paths that are structural dead ends
+elsewhere: random effects in any distributional parameter, nonlinear
+predictors, per-response families in a multivariate model, monotonic
+effects, in-model imputation, latent-class mixtures, and custom
+families written as plain R log-densities. \code{vignette("compatibility")}
+reports which combinations are supported, and which are refused.
+}
+
+\section{Life cycle}{
+
+frmtmb is maturing and is not yet on CRAN.
+
+The formula grammar is stable, because it follows brms. The fitted
+object API is stable: \code{\link[=frm]{frm()}}, the accessor methods, and the family
+constructors keep their current behavior. Fields of the fitted object
+that no exported method reaches are internal and can change; use the
+accessors.
+
+Multivariate coverage of the post-fit methods, the mixture families,
+and \code{\link[=frm_sample]{frm_sample()}} still gain features between releases. Version
+numbers stay below 1.0 until the CRAN release. Breaking changes are
+listed in \code{NEWS.md}. The package is actively developed and maintained.
+}
+
+\references{
+Bates, D., Maechler, M., Bolker, B., and Walker, S. (2015). Fitting
+Linear Mixed-Effects Models Using lme4. \emph{Journal of Statistical
+Software}, 67(1), 1-48. \doi{10.18637/jss.v067.i01}
+
+Brooks, M. E., Kristensen, K., van Benthem, K. J., et al. (2017).
+glmmTMB Balances Speed and Flexibility Among Packages for Zero-inflated
+Generalized Linear Mixed Modeling. \emph{The R Journal}, 9(2), 378-400.
+\doi{10.32614/RJ-2017-066}
+
+Buerkner, P.-C. (2017). brms: An R Package for Bayesian Multilevel
+Models Using Stan. \emph{Journal of Statistical Software}, 80(1), 1-28.
+\doi{10.18637/jss.v080.i01}
+
+Kristensen, K., Nielsen, A., Berg, C. W., Skaug, H., and Bell, B. M.
+(2016). TMB: Automatic Differentiation and Laplace Approximation.
+\emph{Journal of Statistical Software}, 70(5), 1-21.
+\doi{10.18637/jss.v070.i05}
+
+Lindgren, F., Rue, H., and Lindstrom, J. (2011). An explicit link
+between Gaussian fields and Gaussian Markov random fields: the
+stochastic partial differential equation approach. \emph{Journal of the
+Royal Statistical Society: Series B}, 73(4), 423-498.
+\doi{10.1111/j.1467-9868.2011.00777.x}
+
+Riebler, A., Sorbye, S. H., Simpson, D., and Rue, H. (2016). An
+intuitive Bayesian spatial model for disease mapping that accounts for
+scaling. \emph{Statistical Methods in Medical Research}, 25(4), 1145-1165.
+\doi{10.1177/0962280216660421}
+
+Riutort-Mayol, G., Buerkner, P.-C., Andersen, M. R., Solin, A., and
+Vehtari, A. (2023). Practical Hilbert space approximate Bayesian
+Gaussian processes for probabilistic programming. \emph{Statistics and
+Computing}, 33(1), 17. \doi{10.1007/s11222-022-10167-2}
+
+Rubin, D. B. (1987). \emph{Multiple Imputation for Nonresponse in Surveys}.
+Wiley, New York. \doi{10.1002/9780470316696}
+
+Thygesen, U. H., Albertsen, C. M., Berg, C. W., Kristensen, K., and
+Nielsen, A. (2017). Validation of ecological state space models using
+the Laplace approximation. \emph{Environmental and Ecological Statistics},
+24(2), 317-339. \doi{10.1007/s10651-017-0372-4}
+
+Tierney, L., and Kadane, J. B. (1986). Accurate Approximations for
+Posterior Moments and Marginal Densities. \emph{Journal of the American
+Statistical Association}, 81(393), 82-86.
+\doi{10.1080/01621459.1986.10478240}
+
+Wood, S. N. (2011). Fast stable restricted maximum likelihood and
+marginal likelihood estimation of semiparametric generalized linear
+models. \emph{Journal of the Royal Statistical Society: Series B}, 73(1),
+3-36. \doi{10.1111/j.1467-9868.2010.00749.x}
+
+Wood, S. N. (2017). \emph{Generalized Additive Models: An Introduction with
+R}, 2nd edition. Chapman and Hall/CRC.
+\doi{10.1201/9781315370279}
+}
 \seealso{
 Useful links:
 \itemize{

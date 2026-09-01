@@ -14,6 +14,10 @@ as_draws(x, ...)
 
 \item{...}{Unused.}
 }
+\value{
+A \code{posterior::draws_matrix}: one column per sampled variable
+and one row per draw.
+}
 \description{
 Convert draws to a posterior draws object
 }

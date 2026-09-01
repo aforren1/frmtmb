@@ -33,6 +33,35 @@
 #' bf(y ~ x, shape = 2) + Gamma()
 #' # nonlinear models declare parameter formulas and nl = TRUE
 #' bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1 + (1 | g), nl = TRUE)
+#' @srrstats {G2.0} Inputs expected to be single-valued are asserted to be
+#'   so. A distributional parameter fixed to a constant must satisfy
+#'   `is.numeric(d) && length(d) == 1L`; the tuning arguments of the
+#'   special terms (`gp()`, `rr()`, `se()`, `car()`, `spde()`) go through
+#'   one validator that errors with the argument name and the length it
+#'   received when a scalar was expected.
+#' @srrstats {G2.1} Inputs are asserted to be of the expected type.
+#'   `formula` must inherit from `"formula"` and errors otherwise; the
+#'   special-term validator requires finite numeric tuning values; and
+#'   multipliers in a `mo()` or `mi()` interaction must be numeric, with
+#'   character and factor columns both refused rather than coerced to
+#'   all-`NA` and surfacing later as an optimizer failure.
+#' @srrstats {G2.14c} Missing predictor values can be replaced by imputed
+#'   ones inside the model rather than dropped. `bf(x | mi() ~ ...)`
+#'   declares an imputation model for a partially observed variable, and
+#'   `mi(x)` uses it in another formula, so the missing values become
+#'   latent parameters estimated jointly with everything else.
+#'   `mi(x, sdx)` handles measurement error the same way. For imputation
+#'   performed outside the model, [frm_multiple()] fits each completed
+#'   data set and pools by Rubin's rules.
+#' @srrstats {RE2.2} Missing values in the response and in the predictors
+#'   are processed differently and separately. Rows with a missing
+#'   predictor are removed by `na.action` before fitting, so a model can
+#'   be fitted on complete predictor data and used to generate values for
+#'   every associated response point; missing values in a variable
+#'   declared with `mi()` are not removed but imputed in-model. This is
+#'   why frame assembly builds the `mi()` branch with `stats::na.pass`
+#'   and drops rows only on the non-`mi()` columns.
+#'
 #' @export
 bf <- function(formula, ..., family = NULL, nl = FALSE) {
   if (!inherits(formula, "formula")) {

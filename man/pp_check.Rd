@@ -25,6 +25,10 @@ pp_check(object, ...)
 \item{re.form}{Passed to \code{\link[=simulate]{simulate()}}; the default \code{NA} simulates new
 random effects.}
 }
+\value{
+A ggplot object, as returned by the bayesplot \verb{ppc_*}
+function that \code{type} selects.
+}
 \description{
 The frequentist analog of brms's \code{pp_check()}: responses are
 simulated from the fitted model (marginally over the random effects)

@@ -53,6 +53,109 @@
 #'   `control = frmtmb_control(verbose =)`, whose value wins when both
 #'   are given. See [frmtmb_control()] for the levels and the output.
 #' @return An object of class `frmtmb_fit`.
+#'
+#' @srrstats {RE1.0} Models are specified through a formula interface:
+#'   [bf()] builds a `frmtmb_formula` from one or more R formulas and a
+#'   family attaches with `+`. A plain formula plus `family =` is also
+#'   accepted. There is no matrix-only entry point.
+#' @srrstats {G2.4,G2.4a,G2.4b,G2.4c,G2.4e} Type conversion during frame
+#'   assembly is explicit, never implicit. The response is converted with
+#'   `as.numeric()`, or `storage.mode(y) <- "double"` for a matrix
+#'   response; an ordinal factor response is converted from factor with
+#'   `as.numeric()` and a two-level binomial factor with
+#'   `as.numeric(y) - 1`; `mo()` category codes use `as.integer()`;
+#'   grouping factors use `as.integer()` for the level index and
+#'   `as.character()` for the level labels; addition terms other than
+#'   `cens()` use `as.numeric()`.
+#' @srrstats {G2.5} Where a factor input is expected, the expected kind is
+#'   checked and documented. `mo()` requires an ordered factor and errors
+#'   otherwise ("mo(): factor variables must be ordered factors"); the
+#'   ordinal families take level order as category order; a factor
+#'   response for a non-ordinal, non-binomial family is refused. The
+#'   compatibility registry states the requirement in prose and it is
+#'   rendered in `vignette("compatibility")`.
+#' @srrstats {G2.6} One-dimensional responses are pre-processed to a plain
+#'   numeric vector regardless of the class they arrive in: a factor, a
+#'   one-column matrix, a `scale()`d matrix carrying attributes, or a bare
+#'   vector all reach the objective as `as.numeric(as.vector(y))`.
+#' @srrstats {G2.8} Pre-processing funnels every input into two internal
+#'   classes before any analytic code runs: `parse_spec()` produces a
+#'   data-free `frmtmb_spec`, and `assemble_frame()` produces a
+#'   `frmtmb_frame` holding the design matrices and the parameter
+#'   template. Every sub-function downstream of assembly sees only those
+#'   two classes. Both are reachable for inspection through `dry_run`.
+#' @srrstats {G2.13} Missing data is checked during pre-processing, before
+#'   anything is passed to the optimizer. Rows are removed by `na.action`
+#'   inside `stats::model.frame()`; assembly then errors if any missing
+#'   value remains in a model variable, and errors if no complete
+#'   observation is left.
+#' @srrstats {G2.14,G2.14a} `na.action` lets the user choose how missing
+#'   data is handled, following [stats::lm()]. `stats::na.fail` errors on
+#'   missing data, `stats::na.omit` (the default) and `stats::na.exclude`
+#'   drop the affected rows, and `na.exclude` pads `fitted()`,
+#'   `residuals()`, `predict()`, and `simulate()` back to the input
+#'   length with `NA` in the original positions.
+#' @srrstats {G2.15} No function assumes non-missingness by inheriting a
+#'   default. The invariant is established once at the boundary: assembly
+#'   errors unless every model variable is free of missing values, so
+#'   downstream arithmetic operates on complete data by construction
+#'   rather than by defensive `na.rm` flags that would silently change
+#'   the estimand.
+#' @srrstats {G2.16} Undefined values are handled separately from missing
+#'   ones. The response check is explicitly written as
+#'   `any(!is.finite(y) & !is.na(y))`, so `Inf`, `-Inf`, and `NaN` are
+#'   rejected with their own message while `NA` is left to `na.action`.
+#' @srrstats {RE2.1} The processing of missing values is controlled by an
+#'   explicit parameter (`na.action`), and `NA`/`NaN` are distinguished
+#'   from `Inf` as described under G2.16.
+#' @srrstats {RE2.4,RE2.4a} Perfect collinearity among predictors is
+#'   detected during pre-processing. Each parametric fixed-effect design
+#'   is factorized with `qr()`; when the rank is short of the column
+#'   count the aliased columns are named in a `message()` and dropped,
+#'   and the null space of the design is stored on the fit so that
+#'   `predict()` can refuse rows of `newdata` that are not estimable. A
+#'   cheap sparse singular-value screen gates the dense check so that the
+#'   sparse and dense backends drop the same columns.
+#' @srrstats {RE3.0} Models that fail to converge raise warnings, one per
+#'   diagnostic: a nonzero optimizer status (with the optimizer's own
+#'   message and, for a nonlinear model, a hint that `start` was not
+#'   set), a maximum absolute gradient above `grad_tol`, a Hessian that
+#'   is not positive definite, and non-finite standard errors.
+#' @srrstats {RE3.1} Those diagnostics are `warning()` conditions, so
+#'   `suppressWarnings()` silences them, and the returned object still
+#'   carries enough to identify the failure: `fit$opt$convergence` and
+#'   `fit$opt$message` hold the optimizer verdict, and [diagnose()]
+#'   recomputes the gradient, the Hessian verdict, separation, singular
+#'   variance components, and predictor scaling on demand.
+#' @srrstats {RE4.0} The return value is a model object of class
+#'   `frmtmb_fit`, with the standard `stats` accessor methods defined
+#'   for it.
+#' @srrstats {RE4.1} `dry_run` generates the model object without fitting
+#'   it: `"spec"` returns the parsed representation without touching
+#'   `data`, and `"frame"` returns the assembled design matrices and the
+#'   parameter template. Both are useful for batch setup and for
+#'   inspecting what a formula compiled to.
+#' @srrstats {RE4.4} The model specification is recoverable as a formula
+#'   through `formula()`, and the original call through `fit$call`.
+#' @srrstats {RE4.5} The number of observations used is returned by
+#'   `nobs()`, and the rows dropped by `na.action` by `na.action()`.
+#' @srrstats {RE4.8} The response and its metadata are retained on the
+#'   fit: `fit$frame$y` holds the response per response name,
+#'   `fit$frame$y_levels` the original factor levels for ordinal and
+#'   categorical responses, and `fit$frame$aterm_values` the addition
+#'   terms (`weights`, `trials`, `cens`, `trunc`, `se`, `offset`).
+#'   `model.frame()` returns the stored model frame with its row names.
+#' @srrstats {RE4.17} `print()` on a `frmtmb_fit` summarizes the model
+#'   input (family, formula, grouping structure) and the fitted
+#'   coefficients.
+#' @srrstats {RE4.18} A distinct `summary()` method is implemented, and it
+#'   is computationally non-trivial: with the default `se = FALSE` it
+#'   triggers the deferred `RTMB::sdreport()` that produces the standard
+#'   errors, then forms z and p values, variance components, group
+#'   counts, information criteria, residual correlations, and smooth
+#'   effective degrees of freedom. The report is cached on the fit, so a
+#'   second `summary()` is cheap.
+#'
 #' @examples
 #' \dontrun{
 #' data(sleepstudy, package = "lme4")
@@ -722,6 +825,34 @@ sdr_of <- function(fit) {
 #'   `verbose` off, so a verbose fit does not make them print hundreds
 #'   of lines; [refit()] and [frm_multiple()] report normally.
 #' @return A list of control settings.
+#'
+#' @srrstats {RE2.0} Data transformations are documented and can be turned
+#'   off. `autoscale` is the only transformation of predictor values, it
+#'   is `FALSE` by default, and the documentation states exactly which
+#'   columns qualify, which are never touched (intercepts, factor
+#'   contrasts, smooth bases, `mo()`/`mi()` columns), and that results are
+#'   always mapped back and reported on the original scale. `sparse_x`
+#'   changes only the storage of the design and is documented as leaving
+#'   estimates identical. Factor handling is delegated to
+#'   `stats::model.matrix()` with the contrasts frozen at fit time and
+#'   reapplied to `newdata`.
+#' @srrstats {RE2.3} `autoscale = TRUE` centers and scales qualifying
+#'   continuous fixed-effect columns, that is, converts them to z-scores.
+#'   Centering is applied only where an intercept exists to absorb the
+#'   shift, and the effect is exercised in `tests/testthat/test-autoscale.R`,
+#'   which checks that the scaled and unscaled fits agree.
+#' @srrstats {RE3.2} Convergence thresholds have documented defaults:
+#'   `grad_tol = 1e-3` on the maximum absolute gradient at the optimum,
+#'   and `optCtrl = list(iter.max = 1000, eval.max = 1000)` for the
+#'   built-in optimizers. Both appear in the usage section of the manual
+#'   page with an `@param` describing them.
+#' @srrstats {RE3.3} Those thresholds can be set explicitly:
+#'   `grad_tol` for the gradient criterion, `optCtrl` for the optimizer's
+#'   own tolerances and iteration caps, `restarts` for how many times to
+#'   restart from the current optimum while the gradient is still above
+#'   `grad_tol`, and `optimizer` to substitute another optimizer
+#'   altogether.
+#'
 #' @export
 frmtmb_control <- function(optimizer = "nlminb",
                            optCtrl = list(iter.max = 1000, eval.max = 1000),

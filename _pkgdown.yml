@@ -55,7 +55,6 @@ reference:
   contents:
   - predict.frmtmb_fit
   - conditional_effects
-  - residuals.frmtmb_fit
   - simulate.frmtmb_fit
   - refit
   - coef.frmtmb_fit
@@ -71,6 +70,9 @@ reference:
   - frm_compat
   - frm_compat_features
   - frm_compat_rules
+- title: Package
+  contents:
+  - frmtmb-package
 
 articles:
 - title: Guides

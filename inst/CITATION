@@ -1,0 +1,16 @@
+citHeader("To cite frmtmb in publications, use:")
+
+bibentry(
+  bibtype = "Manual",
+  title   = "frmtmb: Formula-Based Regression Models via RTMB",
+  author  = person("Alex", "Forrence"),
+  year    = "2026",
+  note    = sprintf("R package version %s", meta$Version),
+  url     = "https://github.com/aforren1/frmtmb"
+)
+
+citFooter(
+  "frmtmb builds on RTMB and TMB. Please also cite Kristensen et al. ",
+  "(2016), doi:10.18637/jss.v070.i05, for the automatic differentiation ",
+  "and Laplace approximation machinery."
+)

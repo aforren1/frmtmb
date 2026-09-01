@@ -1,4 +1,5 @@
 ^\.github$
+^\.git$
 ^dev$
 ^_pkgdown\.yml$
 ^docs$
@@ -9,3 +10,7 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^\.claude$
+^CONTRIBUTING\.md$
+^CODE_OF_CONDUCT\.md$
+^codemeta\.json$
+^CRAN-SUBMISSION$
