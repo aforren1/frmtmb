@@ -116,50 +116,36 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   ci
 }
 
-#' Natural-scale confidence intervals for covariance parameters
-#'
-#' Wald intervals for random-effect standard deviations (on the log
-#' scale, back-transformed) and correlations (on the Fisher-z scale,
-#' back-transformed), delta-method-propagated from the internal `theta`
-#' covariance. One row per SD and per correlation of every block.
-#'
-#' @param fit A `frmtmb_fit`.
-#' @param level Confidence level.
-#' @return A data frame with columns `block`, `term`, `type`,
-#'   `estimate`, `lwr`, `upr`.
-#' @export
-confint_varcorr <- function(fit, level = 0.95) {
+# Transformed-scale Wald rows for the covariance parameters of one fit:
+# one row per SD/range (log scale) and per correlation (Fisher-z
+# scale), with the delta-method se on that scale. These scales are
+# where a normal approximation is defensible, which makes the rows the
+# right currency both for confint_varcorr's intervals and for Rubin
+# pooling across imputations in frm_multiple.
+varcorr_trans_rows <- function(fit) {
   sdr <- sdr_of(fit)
   Vfull <- sdr$cov.fixed
   th_pos <- which(rownames(Vfull) == "theta")
   th <- fit$estimates$theta
-  z <- stats::qnorm(1 - (1 - level) / 2)
   rows <- list()
+  add <- function(term, type, est_t, se_t, bk) {
+    rows[[length(rows) + 1L]] <<- data.frame(
+      block = bk$term_label, term = term, type = type,
+      est_t = est_t, se_t = se_t
+    )
+  }
   for (bk in fit$frame$re_blocks) {
     Vth <- Vfull[th_pos[bk$theta_idx], th_pos[bk$theta_idx],
                  drop = FALSE]
     t0 <- th[bk$theta_idx]
     if (bk$covstruct == "smooth") {
-      se1 <- sqrt(Vth[1, 1])
-      rows[[length(rows) + 1L]] <- data.frame(
-        block = bk$term_label, term = "sd(wiggle)", type = "sd",
-        estimate = exp(t0[1]),
-        lwr = exp(t0[1] - z * se1), upr = exp(t0[1] + z * se1)
-      )
+      add("sd(wiggle)", "sd", t0[1], sqrt(Vth[1, 1]), bk)
       next
     }
     if (bk$covstruct %in% c("gp", "hsgp")) {
       se_t <- sqrt(diag(Vth))
-      rows[[length(rows) + 1L]] <- data.frame(
-        block = bk$term_label, term = "sd(gp)", type = "sd",
-        estimate = exp(t0[1]),
-        lwr = exp(t0[1] - z * se_t[1]), upr = exp(t0[1] + z * se_t[1])
-      )
-      rows[[length(rows) + 1L]] <- data.frame(
-        block = bk$term_label, term = "range(gp)", type = "range",
-        estimate = exp(t0[2]),
-        lwr = exp(t0[2] - z * se_t[2]), upr = exp(t0[2] + z * se_t[2])
-      )
+      add("sd(gp)", "sd", t0[1], se_t[1], bk)
+      add("range(gp)", "range", t0[2], se_t[2], bk)
       next
     }
     if (bk$covstruct == "equalto") next   # nothing estimated
@@ -186,36 +172,50 @@ confint_varcorr <- function(fit, level = 0.95) {
     se_g <- sqrt(pmax(diag(J %*% Vth %*% t(J)), 0))
 
     d <- bk$dim
-    sd_names <- if (bk$covstruct == "smooth") "sd(wiggle)" else bk$cnms
     n_sd <- length(g0) - if (d > 1) d * (d - 1) / 2 else 0
     for (i in seq_len(n_sd)) {
-      rows[[length(rows) + 1L]] <- data.frame(
-        block = bk$term_label,
-        term = if (bk$covstruct == "smooth") "sd(wiggle)" else
-          sd_names[min(i, length(sd_names))],
-        type = "sd",
-        estimate = exp(g0[i]),
-        lwr = exp(g0[i] - z * se_g[i]),
-        upr = exp(g0[i] + z * se_g[i])
-      )
+      add(bk$cnms[min(i, length(bk$cnms))], "sd", g0[i], se_g[i], bk)
     }
-    if (d > 1 && bk$covstruct != "smooth") {
+    if (d > 1) {
       pairs <- which(lower.tri(diag(d)), arr.ind = TRUE)
       for (k in seq_len(nrow(pairs))) {
-        i <- n_sd + k
-        rows[[length(rows) + 1L]] <- data.frame(
-          block = bk$term_label,
-          term = paste0("cor(", bk$cnms[pairs[k, 2]], ",",
-                        bk$cnms[pairs[k, 1]], ")"),
-          type = "cor",
-          estimate = tanh(g0[i]),
-          lwr = tanh(g0[i] - z * se_g[i]),
-          upr = tanh(g0[i] + z * se_g[i])
-        )
+        add(paste0("cor(", bk$cnms[pairs[k, 2]], ",",
+                   bk$cnms[pairs[k, 1]], ")"),
+            "cor", g0[n_sd + k], se_g[n_sd + k], bk)
       }
     }
   }
-  do.call(rbind, rows)
+  if (!length(rows)) return(NULL)
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
+# Back-transform to the natural scale (elementwise over types).
+varcorr_untrans <- function(type, v) ifelse(type == "cor", tanh(v), exp(v))
+
+#' Natural-scale confidence intervals for covariance parameters
+#'
+#' Wald intervals for random-effect standard deviations (on the log
+#' scale, back-transformed) and correlations (on the Fisher-z scale,
+#' back-transformed), delta-method-propagated from the internal `theta`
+#' covariance. One row per SD and per correlation of every block.
+#'
+#' @param fit A `frmtmb_fit`.
+#' @param level Confidence level.
+#' @return A data frame with columns `block`, `term`, `type`,
+#'   `estimate`, `lwr`, `upr`.
+#' @export
+confint_varcorr <- function(fit, level = 0.95) {
+  tr <- varcorr_trans_rows(fit)
+  if (is.null(tr)) return(NULL)
+  z <- stats::qnorm(1 - (1 - level) / 2)
+  data.frame(
+    block = tr$block, term = tr$term, type = tr$type,
+    estimate = varcorr_untrans(tr$type, tr$est_t),
+    lwr = varcorr_untrans(tr$type, tr$est_t - z * tr$se_t),
+    upr = varcorr_untrans(tr$type, tr$est_t + z * tr$se_t)
+  )
 }
 
 # Effective degrees of freedom of the smooth blocks: for an iid wiggly
@@ -523,7 +523,13 @@ hyp_fd_grad <- function(f, v) {
 #'   Handles any expression, including the variance-component names,
 #'   whose sampling distributions Wald approximates poorly.
 #'
-#' @param x A `frmtmb_fit`.
+#' For a [frm_multiple()] result the Wald estimate and delta-method
+#' variance are computed per imputation and pooled by Rubin's rules
+#' with Barnard-Rubin degrees of freedom; the returned table carries
+#' `t` and `df` columns in place of `z` (reference t distribution, not
+#' normal), and only Wald inference is available.
+#'
+#' @param x A `frmtmb_fit`, or a `frmtmb_multiple` for pooled tests.
 #' @param hypothesis Character vector of hypotheses.
 #' @param alpha Test level; the reported interval covers `1 - alpha`
 #'   (brms spelling).
