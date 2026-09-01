@@ -502,6 +502,26 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #'   random-effect uncertainty). Exact `gp()` terms predict unseen
 #'   positions by kriging: the conditional mean at the fitted kernel,
 #'   with the GP conditional variance added to the standard errors.
+#' @section Standard errors of the expected response:
+#' For a family whose mean is the `mu` dpar, `se.fit` on
+#' `type = "response"` is the usual one-predictor delta method:
+#' `|dmu/deta| * se(eta)`.
+#'
+#' When the mean is a function of several dpars (zero-inflated and
+#' hurdle families, `lognormal`, a `trials()` binomial, or any
+#' `trunc()`ed response), the delta method runs jointly over every
+#' dpar's linear predictor: `se^2 = g' V g`, where row `i` of `g`
+#' stacks `dm_i/deta_k` times the design row of predictor `k`, and `V`
+#' is the joint covariance of all the coefficients (`vcov()`'s
+#' `jointPrecision` block, so the cross-predictor covariances and the
+#' shared random-effect block are included). The gradients
+#' `dm/deta_k` are central differences of the family mean, taken one
+#' predictor at a time with a relative step.
+#'
+#' Random effects enter conditional on their modes, the same convention
+#' `se.fit` uses for the linear predictor. Unseen grouping levels
+#' (`allow_new_levels = TRUE`) add their block's marginal variance,
+#' propagated through the same gradients.
 #' @param allow_new_levels Predict unseen grouping-factor levels at the
 #'   population level instead of erroring.
 #' @param ... Unused.
@@ -579,11 +599,8 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     # Per-dpar values stay available through dpar = or
     # type = "conditional".
     if (se.fit) {
-      stop("se.fit is not available for the expected response of ",
-           if (has_trunc(rspec)) "a truncated model" else
-             paste0("family '", rspec$family$family, "'"),
-           "; use type = \"conditional\" (the mu dpar) or a parametric ",
-           "bootstrap", call. = FALSE)
+      return(predict_mean_se(object, rspec, newdata, use_re,
+                             allow_new_levels))
     }
     return(predict_mean_response(object, rspec, newdata, re.form,
                                  allow_new_levels))
@@ -627,7 +644,53 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     return(if (is.null(newdata)) napred(object, out) else out)
   }
 
+  ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+  eta <- ed$eta
+  n <- ed$n
+
+  if (!se.fit) {
+    out <- if (type == "response") lp$link$linkinv(eta) else eta
+    return(if (is.null(newdata)) napred(object, out) else out)
+  }
+
+  has_rr <- isTRUE(object$frame$has_rr)
+  rrj <- if (has_rr) rr_jacobians(object)
+  jc <- get_joint_cov(object)
+  da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
+  V <- jc$V[da$coef_pos, da$coef_pos, drop = FALSE]
+  A <- as.matrix(da$A)
+  var_eta <- pmax(rowSums((A %*% V) * A), 0)
+  ev <- lp_extra_var(object, ed, use_re)
+  for (nl in ev$new_levels) {
+    Scc <- nl$S[nl$cols, nl$cols, drop = FALSE]
+    mmn <- nl$mm[nl$nas, , drop = FALSE]
+    var_eta[nl$nas] <- var_eta[nl$nas] + rowSums((mmn %*% Scc) * mmn)
+  }
+  for (gv in ev$gp) var_eta <- var_eta + gv
+  se_eta <- sqrt(var_eta)
+  # the kept columns still have a finite variance, but it is not the
+  # standard error of anything the fit estimates
+  if (any(ed$nonest)) se_eta[ed$nonest] <- NA_real_
+
+  out <- if (type == "response") {
+    list(fit = lp$link$linkinv(eta),
+         se.fit = abs(lp$link$mu_eta(eta)) * se_eta)
+  } else {
+    list(fit = eta, se.fit = se_eta)
+  }
+  if (is.null(newdata)) {
+    out$fit <- napred(object, out$fit)
+    out$se.fit <- napred(object, out$se.fit)
+  }
+  out
+}
+
+# eta and the design pieces of one linear predictor, in sample or on
+# newdata. Shared by predict() and by the joint delta method for the
+# expected response, so both see exactly the same eta.
+lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   est <- object$estimates
+  key <- linpred_key(lp$resp, lp$dpar)
   re_parts <- list()
   sm_parts <- list()
   nonest <- FALSE
@@ -682,21 +745,20 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
             "; predicting NA there", call. = FALSE)
     eta[nonest] <- NA_real_
   }
+  list(eta = eta, X = X, off = off, re_parts = re_parts,
+       sm_parts = sm_parts, sm_blocks = sm_blocks, nonest = nonest, n = n)
+}
 
-  if (!se.fit) {
-    out <- if (type == "response") lp$link$linkinv(eta) else eta
-    return(if (is.null(newdata)) napred(object, out) else out)
-  }
-
-  # Delta method: var(eta) = A V A' over the estimated coefficients (and b
-  # when random effects are included). For rr fits the Z matrices span
-  # the coefficient space, so the b columns go through the Jacobian of
-  # the loadings expansion, and the rr loading parameters (theta)
-  # contribute their own columns.
-  has_rr <- isTRUE(object$frame$has_rr)
-  rrj <- if (has_rr) rr_jacobians(object)
-  jc <- get_joint_cov(object)
+# Delta method: var(eta) = A V A' over the estimated coefficients (and b
+# when random effects are included). For rr fits the Z matrices span the
+# coefficient space, so the b columns go through the Jacobian of the
+# loadings expansion, and the rr loading parameters (theta) contribute
+# their own columns. Returns A and the positions of its columns in the
+# joint covariance, so several linear predictors can be combined.
+lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
+  est <- object$estimates
   rn <- jc$names
+  X <- ed$X
   add_b_cols <- function(A, coef_pos, Zc, b_pos, th_pos) {
     if (has_rr) {
       A <- Matrix::cbind2(A, Zc %*% rrj$Jb)
@@ -731,64 +793,184 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
         upd <- add_b_cols(A, coef_pos, lp$Z, b_pos, th_pos)
         A <- upd$A
         coef_pos <- upd$coef_pos
-      } else if (!use_re && length(sm_blocks) && !is.null(lp$Z)) {
-        for (bk in sm_blocks) {
+      } else if (!use_re && length(ed$sm_blocks) && !is.null(lp$Z)) {
+        for (bk in ed$sm_blocks) {
           A <- Matrix::cbind2(A, lp$Z[, bk$c_idx, drop = FALSE])
           coef_pos <- c(coef_pos, b_pos[bk$b_idx])
         }
       }
     } else {
-      if (use_re && length(re_parts)) {
-        Zn <- re_design_matrix(re_parts, n,
+      if (use_re && length(ed$re_parts)) {
+        Zn <- re_design_matrix(ed$re_parts, ed$n,
                                object$frame$n_c %||% length(est[["b"]]))
         upd <- add_b_cols(A, coef_pos, Zn, b_pos, th_pos)
         A <- upd$A
         coef_pos <- upd$coef_pos
       }
-      for (sp in sm_parts) {
+      for (sp in ed$sm_parts) {
         A <- Matrix::cbind2(A, sp$Xr)
         coef_pos <- c(coef_pos, b_pos[sp$bk$b_idx])
       }
     }
   }
-  V <- jc$V[coef_pos, coef_pos, drop = FALSE]
-  A <- as.matrix(A)
-  var_eta <- pmax(rowSums((A %*% V) * A), 0)
-  # new grouping levels (allow_new_levels) contribute their block's
-  # marginal variance: the population-prediction-interval convention.
-  # For |ID|-merged blocks this is the JOINT block's slice for this
-  # component.
-  if (use_re && length(re_parts)) {
+  list(A = A, coef_pos = coef_pos)
+}
+
+# Variance sources that are not coefficient uncertainty. A new grouping
+# level (allow_new_levels) contributes its block's marginal variance -
+# the population-prediction-interval convention; for |ID|-merged blocks
+# that is the JOINT block's slice for this component. An exact gp() at
+# an unseen position contributes the GP's own conditional variance
+# (zero at observed positions).
+lp_extra_var <- function(object, ed, use_re) {
+  nl <- list()
+  if (use_re && length(ed$re_parts)) {
     th <- object$estimates$theta
-    for (rp in re_parts) {
+    for (rp in ed$re_parts) {
       nas <- which(is.na(rp$j))
       if (!length(nas)) next
       bk <- rp$bk
-      if (bk$covstruct %in% c("gr_cov", "gr_prec")) next  # levels ARE the structure
-      S <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
-      cols <- rp$comp$offset + seq_len(rp$comp$dim)
-      Scc <- S[cols, cols, drop = FALSE]
-      mmn <- rp$mm[nas, , drop = FALSE]
-      var_eta[nas] <- var_eta[nas] + rowSums((mmn %*% Scc) * mmn)
+      # the levels ARE the structure there, so there is no marginal
+      # variance to hand an unseen one
+      if (bk$covstruct %in% c("gr_cov", "gr_prec")) next
+      nl[[length(nl) + 1L]] <- list(
+        bk = bk,
+        S = covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk),
+        cols = rp$comp$offset + seq_len(rp$comp$dim),
+        mm = rp$mm, nas = nas
+      )
     }
   }
-  # exact-gp kriging at unseen positions: the GP's own conditional
-  # variance adds to the delta-method variance (same convention as the
-  # new-level marginal variance above); zero at observed positions
-  for (sp in sm_parts) {
-    if (!is.null(sp$extra_var)) var_eta <- var_eta + sp$extra_var
+  gp <- list()
+  for (sp in ed$sm_parts) {
+    if (!is.null(sp$extra_var)) gp[[length(gp) + 1L]] <- sp$extra_var
   }
-  se_eta <- sqrt(var_eta)
-  # the kept columns still have a finite variance, but it is not the
-  # standard error of anything the fit estimates
-  if (any(nonest)) se_eta[nonest] <- NA_real_
+  list(new_levels = nl, gp = gp)
+}
 
-  out <- if (type == "response") {
-    list(fit = lp$link$linkinv(eta),
-         se.fit = abs(lp$link$mu_eta(eta)) * se_eta)
-  } else {
-    list(fit = eta, se.fit = se_eta)
+# Central-difference gradient of the expected response with respect to
+# one dpar's linear predictor. Analytic gradients exist for the simple
+# mean_fn forms, but the family set (and the truncated means) is wide
+# enough that one differencing rule beats a table of hand derivatives;
+# every mean_fn is elementwise, so a whole column of the Jacobian costs
+# two evaluations. The step is relative so it survives both tiny and
+# large etas.
+mean_eta_grad <- function(fam, dp, av, dnm, link, eta) {
+  h <- 1e-5 * pmax(1, abs(eta))
+  dp_hi <- dp
+  dp_lo <- dp
+  dp_hi[[dnm]] <- link$linkinv(eta + h)
+  dp_lo[[dnm]] <- link$linkinv(eta - h)
+  (response_mean(fam, dp_hi, av) - response_mean(fam, dp_lo, av)) / (2 * h)
+}
+
+# Delta-method SEs for the expected response of a family whose mean is
+# not the mu dpar (zero-inflation, hurdles, lognormal, trials-binomial,
+# or any truncated response). The mean runs through EVERY dpar's linear
+# predictor, so the gradient row stacks dm/deta_k times each predictor's
+# own A matrix and the quadratic form is taken over the JOINT
+# coefficient covariance - the cross-dpar covariances (and the shared b
+# block) are part of the answer, not an afterthought. Random effects
+# enter conditional on their modes, the same convention predict() uses
+# for eta.
+predict_mean_se <- function(object, rspec, newdata, use_re,
+                            allow_new_levels) {
+  fam <- rspec$family
+  rnm <- rspec$resp_name
+  jc <- get_joint_cov(object)
+  has_rr <- isTRUE(object$frame$has_rr)
+  rrj <- if (has_rr) rr_jacobians(object)
+  dnames <- names(rspec$dpars)
+  eds <- list()
+  das <- list()
+  evs <- list()
+  dp <- list()
+  for (dnm in dnames) {
+    lp <- object$frame$linpreds[[linpred_key(rnm, dnm)]]
+    if (!is.null(lp$nl_body)) {
+      stop("se.fit is not supported for the nonlinear predictor yet; ",
+           "request the nonlinear parameters (dpar = '",
+           rspec$nlpars[1], "', ...) instead", call. = FALSE)
+    }
+    ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+    eds[[dnm]] <- ed
+    das[[dnm]] <- lp_delta_A(object, lp, ed, newdata, use_re, jc,
+                             has_rr, rrj)
+    evs[[dnm]] <- lp_extra_var(object, ed, use_re)
+    dp[[dnm]] <- lp$link$linkinv(ed$eta)
   }
+  n <- eds[[1L]]$n
+  av <- if (is.null(newdata)) {
+    object$frame$aterm_values[[rnm]]
+  } else {
+    aterms_for_newdata(rspec, newdata)
+  }
+  m <- response_mean(fam, dp, av)
+  if (is.null(m) || !is.numeric(m) || !is.null(dim(m)) || length(m) != n) {
+    stop("se.fit is not available for the expected response of family '",
+         fam$family, "': its mean is not one number per observation",
+         call. = FALSE)
+  }
+
+  grad <- list()
+  for (dnm in dnames) {
+    lp <- object$frame$linpreds[[linpred_key(rnm, dnm)]]
+    grad[[dnm]] <- mean_eta_grad(fam, dp, av, dnm, lp$link, eds[[dnm]]$eta)
+  }
+
+  # one gradient row per observation over the union of coefficient
+  # positions; predictors that share a coefficient (the b block) add
+  pos_all <- unique(unlist(lapply(das, `[[`, "coef_pos")))
+  G <- matrix(0, n, length(pos_all))
+  for (dnm in dnames) {
+    cp <- das[[dnm]]$coef_pos
+    if (!length(cp)) next
+    cols <- match(cp, pos_all)
+    Ak <- as.matrix(das[[dnm]]$A) * grad[[dnm]]
+    if (anyDuplicated(cols)) {
+      for (j in seq_along(cols)) {
+        G[, cols[j]] <- G[, cols[j]] + Ak[, j]
+      }
+    } else {
+      G[, cols] <- G[, cols] + Ak
+    }
+  }
+  V <- jc$V[pos_all, pos_all, drop = FALSE]
+  var_m <- pmax(rowSums((G %*% V) * G), 0)
+
+  # New grouping levels: a block whose components sit in several linear
+  # predictors enters once, through the summed gradient over its own
+  # component space, so the within-block cross-dpar covariance is kept.
+  blocks <- list()
+  for (dnm in dnames) {
+    for (nl in evs[[dnm]]$new_levels) {
+      bkey <- as.character(nl$bk$c_idx[1])
+      B <- blocks[[bkey]] %||% list(S = nl$S,
+                                    M = matrix(0, n, nl$bk$dim),
+                                    rows = integer(0))
+      B$M[nl$nas, nl$cols] <- B$M[nl$nas, nl$cols] +
+        grad[[dnm]][nl$nas] * nl$mm[nl$nas, , drop = FALSE]
+      B$rows <- union(B$rows, nl$nas)
+      blocks[[bkey]] <- B
+    }
+  }
+  for (B in blocks) {
+    Mr <- B$M[B$rows, , drop = FALSE]
+    var_m[B$rows] <- var_m[B$rows] + rowSums((Mr %*% B$S) * Mr)
+  }
+  for (dnm in dnames) {
+    for (gv in evs[[dnm]]$gp) {
+      var_m <- var_m + grad[[dnm]]^2 * gv
+    }
+  }
+
+  se_m <- sqrt(var_m)
+  names(se_m) <- names(m)   # the one-predictor path labels both alike
+  nonest <- Reduce(`|`, lapply(eds, function(e) {
+    rep(e$nonest, length.out = n)
+  }))
+  if (any(nonest)) se_m[nonest] <- NA_real_
+  out <- list(fit = m, se.fit = se_m)
   if (is.null(newdata)) {
     out$fit <- napred(object, out$fit)
     out$se.fit <- napred(object, out$se.fit)
@@ -913,8 +1095,37 @@ osa_cens_domain <- function(av, y) {
 #' Ordinal responses use `"oneStepGeneric"` over the discrete support
 #' `1..K`, which makes the residuals randomized quantile residuals.
 #'
+#' @section Deviance residuals:
+#' `"deviance"` returns `sign(y - E[Y]) * sqrt(w * d)`, where the unit
+#' deviance `d = 2 * (loglik of the saturated fit - loglik at the fitted
+#' value)` is taken with the dispersion parameter held at its estimate,
+#' and `w` is the `weights()` addition term (1 by default). For the
+#' exponential-dispersion families this is the glm unit deviance, so a
+#' fixed-effect fit reproduces `residuals(glm(...), type = "deviance")`
+#' exactly.
+#'
+#' Supported families: `gaussian`, `poisson`, `binomial`, `bernoulli`,
+#' `Gamma`, `exponential`, `inverse.gaussian`, `negbinomial`
+#' (`nbinom2`), `nbinom1`, `geometric`, `beta`, and `tweedie`. Every
+#' other family is refused: ordinal, mixture, multinomial, hurdle,
+#' zero-inflated and location-shift families have no standard unit
+#' deviance. `nbinom1` follows glmmTMB and evaluates the
+#' negative-binomial size at the fitted row's `mu / phi`; letting the
+#' size follow the saturated mean is not a deviance (the difference goes
+#' negative). `trunc()`ed and `cens()`ed responses are refused as well,
+#' because the fitted likelihood there is not the family's own density.
+#'
+#' In a mixed model the residuals are conditional on the random-effect
+#' modes, the glmmTMB convention: `E[Y]` is [fitted()], not the
+#' population-level mean.
+#'
+#' `deviance(fit)` is unrelated: it stays `-2 * logLik(fit)` (the lme4
+#' convention), which for a mixed model is the Laplace-approximated
+#' marginal deviance and does **not** equal `sum(residuals(fit, type =
+#' "deviance")^2)`.
+#'
 #' @param object A `frmtmb_fit`.
-#' @param type `"response"`, `"pearson"`, or `"osa"`.
+#' @param type `"response"`, `"pearson"`, `"deviance"`, or `"osa"`.
 #' @param osa_method Method for [TMB::oneStepPredict()]; defaults to
 #'   `"fullGaussian"` for gaussian models and `"oneStepGeneric"`
 #'   otherwise. A truncated, censored or ordinal response always uses
@@ -926,7 +1137,7 @@ osa_cens_domain <- function(av, y) {
 #' @return A numeric vector, `NA` on censored rows.
 #' @export
 residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
-                                                  "osa"),
+                                                  "deviance", "osa"),
                                  osa_method = NULL, ...) {
   type <- match.arg(type)
   rspec <- uni_resp(object, "residuals()")
@@ -1011,10 +1222,15 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
   }
   dp <- eval_dpars(object)[[rspec$resp_name]]
   av <- object$frame$aterm_values[[rspec$resp_name]]
+  yv <- object$frame$y[[rspec$resp_name]]
+  if (type == "deviance") {
+    return(napred(object, deviance_residuals(fam, yv, dp, av,
+                                             object$frame$n_obs)))
+  }
   # on a truncated response the residual is against the truncated mean,
   # which is what the data were actually drawn from
   mu <- response_mean(fam, dp, av)
-  r <- object$frame$y[[rspec$resp_name]] - mu
+  r <- yv - mu
   if (type == "pearson") {
     if (is.null(fam$post$var_fn)) {
       stop("Family '", fam$family, "' has no variance function; ",

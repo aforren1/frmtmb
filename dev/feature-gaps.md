@@ -136,16 +136,31 @@ interface that can see family-level extras.
   fixed-likelihood. Deferred since v0.1; schedule on spatial
   demand.
 
-## Method-surface residue (v0.21 audit, deferred)
+## Method-surface residue (v0.21 audit)
 
-- Deviance residuals (`residuals(type = "deviance")`, lme4/glmmTMB):
-  needs a per-family unit-deviance function across ~30 families;
-  mechanical but wide. Dunn-Smyth covered via `dharma_residuals()`
-  and OSA.
-- `se.fit` for the expected response of non-identity-mean families:
-  needs the joint delta method across all dpar linear predictors
-  (gradient of mean_fn wrt each eta); single-dpar plumbing exists.
-  Currently errors with guidance.
+- ~~Deviance residuals (`residuals(type = "deviance")`,
+  lme4/glmmTMB)~~ DONE in v0.24 as a per-family `post$dev_fn` unit
+  deviance. Covers gaussian, poisson, binomial, bernoulli, Gamma,
+  exponential, inverse.gaussian, negbinomial/nbinom2, nbinom1,
+  geometric, beta, tweedie; every other family is refused by name
+  (ordinal/mixture/multinomial/zi/hurdle have no standard unit
+  deviance), as are `trunc()` and `cens()` responses. Exact vs
+  `stats::glm` (0 ulp at a shared optimum) for the five glm families,
+  exact vs glmmTMB's `dev.resids` for both nbinom parameterizations
+  (nbinom1 follows their convention: the size stays at the fitted
+  `mu / phi`), and vs the saturated log-likelihood for beta and
+  tweedie, which glmmTMB returns NA for. `deviance()` is unchanged:
+  still `-2 logLik` (lme4). Dunn-Smyth stays covered via
+  `dharma_residuals()` and OSA.
+- ~~`se.fit` for the expected response of non-identity-mean
+  families~~ DONE in v0.24: the delta method runs jointly over every
+  dpar linear predictor against the joint coefficient covariance, so
+  zi/hurdle, lognormal, trials-binomial and `trunc()`ed responses all
+  answer. Gradients `dm/deta_k` are central differences (one step per
+  predictor, relative), validated against the analytic zi-poisson and
+  lognormal forms to 1e-8 and against glmmTMB's own response-scale
+  delta method to ~1e-5 relative. The identity-mean path is
+  bit-identical to before.
 - `getME()`: small accessor vocabulary (X, Z, theta, beta, b) on the
   lme4 generic; low value until a concrete downstream consumer
   appears (design access exists via `fit$frame`).

@@ -20,9 +20,13 @@
 #'   response-scale starting value per dpar (applied to the intercept
 #'   through the link).
 #' @param type One of `"continuous"`, `"discrete"`, `"ordinal"`.
-#' @param post Named list of numeric helper functions `mean_fn(dpars,
-#'   aterms)` and `var_fn(dpars, aterms)`, used by [fitted()] and
-#'   [residuals()].
+#' @param post Named list of numeric helper functions used by
+#'   [fitted()], [predict()] and [residuals()]: `mean_fn(dpars,
+#'   aterms)` (the response mean), `var_fn(dpars, aterms)` (for pearson
+#'   residuals) and `dev_fn(y, dpars, aterms)` (the unit deviance
+#'   `2 * (loglik of the saturated fit - loglik at the fitted value)`,
+#'   for `residuals(type = "deviance")`). A family that omits one is
+#'   refused by the method that needs it.
 #' @param sim Optional numeric simulator `(dpars, aterms, n)` returning `n`
 #'   response draws; used by [simulate()].
 #' @param primary_dpars Which dpars receive the main model formula
@@ -153,6 +157,77 @@ response_mean <- function(fam, dpars, aterms) {
   tmf(dpars, aterms, tb$lb, tb$ub)
 }
 
+# --- Unit deviances ---
+#
+# d_i = 2 * (loglik of the saturated fit - loglik at the fitted value),
+# with the dispersion parameter held at its estimate, which is the
+# quantity glm() calls the unit deviance. Families that are exponential
+# dispersion models reproduce stats::glm()'s dev.resids exactly; the
+# rest (negbinomial, beta, tweedie) use the same saturated-likelihood
+# definition at a fixed shape.
+
+# y log(y / mu) under the 0 log 0 = 0 convention the saturated fit needs
+# at a zero count.
+ylogy_mu <- function(y, mu) ifelse(y > 0, y * log(y / mu), 0)
+
+# Negative-binomial unit deviance at a given size (shape). nbinom1 feeds
+# it the row's own size mu / phi.
+nbinom_deviance <- function(y, mu, size) {
+  2 * (ylogy_mu(y, mu) - (y + size) * log((y + size) / (mu + size)))
+}
+
+# Binomial unit deviance on COUNTS out of `size` trials; both terms
+# vanish at the boundaries y = 0 and y = size.
+binomial_deviance <- function(y, mu, size) {
+  2 * (ylogy_mu(y, size * mu) + ylogy_mu(size - y, size * (1 - mu)))
+}
+
+# Gamma unit deviance; also the exponential one (shape fixed at 1).
+gamma_deviance <- function(y, mu) 2 * ((y - mu) / mu - log(y / mu))
+
+# Families that define a unit deviance, for the residuals() refusal
+# message. Read off the registry so the list cannot drift; the
+# constructors that need arguments (multinomial) simply drop out.
+deviance_family_names <- function() {
+  nms <- names(family_registry)
+  ok <- vapply(nms, function(nm) {
+    fam <- tryCatch(family_registry[[nm]](), error = function(e) NULL)
+    !is.null(fam) && !is.null(fam$post$dev_fn)
+  }, TRUE)
+  sort(unique(nms[ok]))
+}
+
+# Deviance residuals: sign(y - E[Y]) * sqrt(w_i d_i). Weights multiply
+# the unit deviance, as in glm(). A truncated or censored response is
+# refused: the fitted likelihood is not the family's own density there,
+# so the saturated comparison the unit deviance is built on does not
+# describe the model that was estimated.
+deviance_residuals <- function(fam, y, dpars, aterms, n) {
+  dev <- fam$post$dev_fn
+  if (is.null(dev)) {
+    stop("residuals(type = \"deviance\") is not available for family '",
+         fam$family, "': it has no standard unit deviance. Families ",
+         "with one: ", paste(deviance_family_names(), collapse = ", "),
+         ". Use type = \"osa\" or dharma_residuals() instead.",
+         call. = FALSE)
+  }
+  if (!is.null(trunc_bounds(aterms, n))) {
+    stop("residuals(type = \"deviance\") is not defined for a trunc()ed ",
+         "response: the unit deviance compares against the untruncated ",
+         "family, not the likelihood the model was fitted with. Use ",
+         "type = \"osa\", which builds its CDF on [lb, ub]", call. = FALSE)
+  }
+  if (!is.null(aterms$cens) && any(aterms$cens != 0)) {
+    stop("residuals(type = \"deviance\") is not defined on a cens()ed ",
+         "response: a censored row observes an event, not a value, so it ",
+         "has no unit deviance. Use type = \"osa\"", call. = FALSE)
+  }
+  d <- dev(y, dpars, aterms)
+  w <- aterms$weights %||% 1
+  # rounding can push an exactly saturated row a few ulps below zero
+  sign(y - response_mean(fam, dpars, aterms)) * sqrt(pmax(w * d, 0))
+}
+
 # Per-observation subset of dpar / aterm vectors, for resampling the
 # rows a rejection step has not accepted yet.
 subset_obs <- function(x, idx, n) {
@@ -214,6 +289,8 @@ fam_gaussian <- function(link = "identity") {
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
       var_fn = function(dpars, aterms) resid_sd(dpars$sigma, aterms)^2,
+      # sigma is the dispersion, so it divides out of the unit deviance
+      dev_fn = function(y, dpars, aterms) (y - dpars$mu)^2,
       # mu + sigma * (phi(a) - phi(b)) / (Phi(b) - Phi(a))
       trunc_mean_fn = function(dpars, aterms, lb, ub) {
         s <- resid_sd(dpars$sigma, aterms)
@@ -246,6 +323,9 @@ fam_poisson <- function(link = "log") {
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
       var_fn = function(dpars, aterms) dpars$mu,
+      dev_fn = function(y, dpars, aterms) {
+        2 * (ylogy_mu(y, dpars$mu) - (y - dpars$mu))
+      },
       # sum_{lb}^{ub} y dpois(y) = mu * (F(ub-1) - F(lb-2)), over the
       # same F(ub) - F(lb-1) normalizer the likelihood uses: the
       # inclusive lower bound keeps its own mass (brms#1903)
@@ -287,6 +367,9 @@ fam_binomial <- function(link = "logit") {
       mean_fn = function(dpars, aterms) dpars$mu * (aterms$trials %||% 1),
       var_fn = function(dpars, aterms) {
         (aterms$trials %||% 1) * dpars$mu * (1 - dpars$mu)
+      },
+      dev_fn = function(y, dpars, aterms) {
+        binomial_deviance(y, dpars$mu, aterms$trials %||% 1)
       }
     ),
     sim = function(dpars, aterms, n) {
@@ -314,7 +397,9 @@ fam_Gamma <- function(link = "log") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu^2 / dpars$shape
+      var_fn = function(dpars, aterms) dpars$mu^2 / dpars$shape,
+      # 1 / shape is the dispersion and divides out
+      dev_fn = function(y, dpars, aterms) gamma_deviance(y, dpars$mu)
     ),
     sim = function(dpars, aterms, n) {
       stats::rgamma(n, shape = dpars$shape, scale = dpars$mu / dpars$shape)
@@ -411,7 +496,10 @@ fam_negbinomial <- function(link = "log") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu + dpars$mu^2 / dpars$shape
+      var_fn = function(dpars, aterms) dpars$mu + dpars$mu^2 / dpars$shape,
+      dev_fn = function(y, dpars, aterms) {
+        nbinom_deviance(y, dpars$mu, dpars$shape)
+      }
     ),
     sim = function(dpars, aterms, n) {
       stats::rnbinom(n, size = dpars$shape, mu = dpars$mu)
@@ -439,7 +527,15 @@ fam_nbinom1 <- function(link = "log") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu * (1 + dpars$phi)
+      var_fn = function(dpars, aterms) dpars$mu * (1 + dpars$phi),
+      # glmmTMB's convention: the negative-binomial unit deviance with
+      # the size held at the FITTED row's mu / phi. Letting the size
+      # follow the saturated mean instead is not a deviance at all - the
+      # nbinom1 log-likelihood in mu is not maximized at mu = y once the
+      # size moves with it, and the difference goes negative.
+      dev_fn = function(y, dpars, aterms) {
+        nbinom_deviance(y, dpars$mu, dpars$mu / dpars$phi)
+      }
     ),
     sim = function(dpars, aterms, n) {
       stats::rnbinom(n, size = dpars$mu / dpars$phi, mu = dpars$mu)
@@ -473,6 +569,16 @@ fam_beta <- function(link = "logit") {
       mean_fn = function(dpars, aterms) dpars$mu,
       var_fn = function(dpars, aterms) {
         dpars$mu * (1 - dpars$mu) / (1 + dpars$phi)
+      },
+      # 2 (ll(y; y, phi) - ll(y; mu, phi)); the terms in y alone cancel
+      # (the betareg deviance-residual definition). glmmTMB returns NA
+      # for beta, so there is nothing to match there.
+      dev_fn = function(y, dpars, aterms) {
+        mu <- dpars$mu
+        ph <- dpars$phi
+        2 * (lgamma(mu * ph) + lgamma((1 - mu) * ph) -
+               lgamma(y * ph) - lgamma((1 - y) * ph) +
+               (y - mu) * ph * log(y / (1 - y)))
       }
     ),
     sim = function(dpars, aterms, n) {
@@ -502,7 +608,16 @@ fam_tweedie <- function(link = "log") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$phi * dpars$mu^dpars$power
+      var_fn = function(dpars, aterms) dpars$phi * dpars$mu^dpars$power,
+      # the standard Tweedie unit deviance (phi is the dispersion and
+      # divides out); at y = 0 the first two terms vanish
+      dev_fn = function(y, dpars, aterms) {
+        mu <- dpars$mu
+        p <- dpars$power
+        2 * (y^(2 - p) / ((1 - p) * (2 - p)) -
+               y * mu^(1 - p) / (1 - p) +
+               mu^(2 - p) / (2 - p))
+      }
     )
   )
 }
@@ -635,7 +750,10 @@ fam_bernoulli <- function(link = "logit") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu * (1 - dpars$mu)
+      var_fn = function(dpars, aterms) dpars$mu * (1 - dpars$mu),
+      dev_fn = function(y, dpars, aterms) {
+        binomial_deviance(y, dpars$mu, 1)
+      }
     ),
     sim = function(dpars, aterms, n) stats::rbinom(n, 1, dpars$mu)
   )
@@ -654,7 +772,11 @@ fam_geometric <- function(link = "log") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu * (1 + dpars$mu)
+      var_fn = function(dpars, aterms) dpars$mu * (1 + dpars$mu),
+      # negbinomial with the shape fixed at 1
+      dev_fn = function(y, dpars, aterms) {
+        nbinom_deviance(y, dpars$mu, 1)
+      }
     ),
     sim = function(dpars, aterms, n) {
       stats::rnbinom(n, size = 1, mu = dpars$mu)
@@ -679,6 +801,8 @@ fam_exponential <- function(link = "log") {
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
       var_fn = function(dpars, aterms) dpars$mu^2,
+      # Gamma with the shape fixed at 1
+      dev_fn = function(y, dpars, aterms) gamma_deviance(y, dpars$mu),
       # int_lb^ub y f(y) dy = (lb + mu) e^{-lb/mu} - (ub + mu) e^{-ub/mu}
       trunc_mean_fn = function(dpars, aterms, lb, ub) {
         mu <- dpars$mu
@@ -1042,6 +1166,10 @@ fam_inverse_gaussian <- function(link = "log") {
     post = list(
       mean_fn = function(dpars, aterms) dpars$mu,
       var_fn = function(dpars, aterms) dpars$mu^3 / dpars$shape,
+      # 1 / shape is the dispersion and divides out
+      dev_fn = function(y, dpars, aterms) {
+        (y - dpars$mu)^2 / (y * dpars$mu^2)
+      },
       # Partial moment (Jorgensen): E[Y 1{Y <= x}] =
       # mu (Phi(z1) - e^{2 lambda / mu} Phi(-z2)), with the CDF the same
       # pair added instead of subtracted; the exponential factor

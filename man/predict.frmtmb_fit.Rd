@@ -85,3 +85,26 @@ and \code{se()} are: a literal bound carries over unchanged, and a bound
 given as a variable must be a column of \code{newdata} of the right length.
 }
 
+\section{Standard errors of the expected response}{
+
+For a family whose mean is the \code{mu} dpar, \code{se.fit} on
+\code{type = "response"} is the usual one-predictor delta method:
+\verb{|dmu/deta| * se(eta)}.
+
+When the mean is a function of several dpars (zero-inflated and
+hurdle families, \code{lognormal}, a \code{trials()} binomial, or any
+\code{trunc()}ed response), the delta method runs jointly over every
+dpar's linear predictor: \verb{se^2 = g' V g}, where row \code{i} of \code{g}
+stacks \code{dm_i/deta_k} times the design row of predictor \code{k}, and \code{V}
+is the joint covariance of all the coefficients (\code{vcov()}'s
+\code{jointPrecision} block, so the cross-predictor covariances and the
+shared random-effect block are included). The gradients
+\code{dm/deta_k} are central differences of the family mean, taken one
+predictor at a time with a relative step.
+
+Random effects enter conditional on their modes, the same convention
+\code{se.fit} uses for the linear predictor. Unseen grouping levels
+(\code{allow_new_levels = TRUE}) add their block's marginal variance,
+propagated through the same gradients.
+}
+

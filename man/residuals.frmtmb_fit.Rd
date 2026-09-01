@@ -6,7 +6,7 @@
 \usage{
 \method{residuals}{frmtmb_fit}(
   object,
-  type = c("response", "pearson", "osa"),
+  type = c("response", "pearson", "deviance", "osa"),
   osa_method = NULL,
   ...
 )
@@ -14,7 +14,7 @@
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
-\item{type}{\code{"response"}, \code{"pearson"}, or \code{"osa"}.}
+\item{type}{\code{"response"}, \code{"pearson"}, \code{"deviance"}, or \code{"osa"}.}
 
 \item{osa_method}{Method for \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}; defaults to
 \code{"fullGaussian"} for gaussian models and \code{"oneStepGeneric"}
@@ -54,3 +54,32 @@ observed censored values.
 Ordinal responses use \code{"oneStepGeneric"} over the discrete support
 \verb{1..K}, which makes the residuals randomized quantile residuals.
 }
+\section{Deviance residuals}{
+
+\code{"deviance"} returns \code{sign(y - E[Y]) * sqrt(w * d)}, where the unit
+deviance \verb{d = 2 * (loglik of the saturated fit - loglik at the fitted value)} is taken with the dispersion parameter held at its estimate,
+and \code{w} is the \code{weights()} addition term (1 by default). For the
+exponential-dispersion families this is the glm unit deviance, so a
+fixed-effect fit reproduces \code{residuals(glm(...), type = "deviance")}
+exactly.
+
+Supported families: \code{gaussian}, \code{poisson}, \code{binomial}, \code{bernoulli},
+\code{Gamma}, \code{exponential}, \code{inverse.gaussian}, \code{negbinomial}
+(\code{nbinom2}), \code{nbinom1}, \code{geometric}, \code{beta}, and \code{tweedie}. Every
+other family is refused: ordinal, mixture, multinomial, hurdle,
+zero-inflated and location-shift families have no standard unit
+deviance. \code{nbinom1} follows glmmTMB and evaluates the
+negative-binomial size at the fitted row's \code{mu / phi}; letting the
+size follow the saturated mean is not a deviance (the difference goes
+negative). \code{trunc()}ed and \code{cens()}ed responses are refused as well,
+because the fitted likelihood there is not the family's own density.
+
+In a mixed model the residuals are conditional on the random-effect
+modes, the glmmTMB convention: \code{E[Y]} is \code{\link[=fitted]{fitted()}}, not the
+population-level mean.
+
+\code{deviance(fit)} is unrelated: it stays \code{-2 * logLik(fit)} (the lme4
+convention), which for a mixed model is the Laplace-approximated
+marginal deviance and does \strong{not} equal \code{sum(residuals(fit, type = "deviance")^2)}.
+}
+
