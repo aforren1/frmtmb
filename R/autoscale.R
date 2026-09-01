@@ -91,6 +91,10 @@ autoscale_prefit <- function(spec, frame, bform, cl, REML, start,
                              plan) {
   ctl <- control
   ctl$autoscale <- FALSE
+  # the caller times and reports this whole stage as one "autoscale
+  # pre-fit" line; a nested copy of every stage line would only
+  # interleave with the fit that is actually reported
+  ctl$verbose <- FALSE
   if (!is.null(start)) {
     full <- frame$par_template
     for (nm in intersect(names(start), names(full))) {

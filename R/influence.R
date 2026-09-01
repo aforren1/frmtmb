@@ -59,6 +59,9 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
   full_fe <- get_coef.frmtmb_fit(model)
   full_th <- model$estimates$theta
   ctl <- model$control %||% frmtmb_control()
+  # one refit per unit: inheriting a verbose fit's control here would
+  # print hundreds of stage lines for a result that is already a table
+  ctl$verbose <- FALSE
   fe <- matrix(NA_real_, length(units), length(full_fe),
                dimnames = list(units, names(full_fe)))
   th <- matrix(NA_real_, length(units), length(full_th),

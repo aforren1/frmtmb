@@ -42,6 +42,9 @@
 #' @param dry_run `"spec"` returns the parsed intermediate representation
 #'   without touching `data`; `"frame"` returns the assembled design
 #'   matrices and parameter template without fitting.
+#' @param verbose Report fit progress; a shortcut for
+#'   `control = frmtmb_control(verbose =)`, whose value wins when both
+#'   are given. See [frmtmb_control()] for the levels and the output.
 #' @return An object of class `frmtmb_fit`.
 #' @examples
 #' \dontrun{
@@ -66,20 +69,104 @@
 frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 control = frmtmb_control(), se = FALSE,
                 na.action = stats::na.omit, lower = NULL, upper = NULL,
-                priors = NULL, quadrature = FALSE, dry_run = NULL) {
+                priors = NULL, quadrature = FALSE, dry_run = NULL,
+                verbose = FALSE) {
   cl <- match.call()
+  # frmtmb_control() leaves verbose unset (NULL), so an explicit control
+  # value always wins over the frm() shortcut
+  control$verbose <- control$verbose %||% verbose
+  vb <- verbose_level(control)
   bform <- as_bform(formula, family)
 
+  if (vb) t0 <- vb_now()
   spec <- parse_spec(bform)
+  if (vb) vb_stage("parse", t0)
   if (identical(dry_run, "spec")) return(spec)
 
+  if (vb) t0 <- vb_now()
   frame <- assemble_frame(spec, data, na.action = na.action,
                           sparse_x = isTRUE(control$sparse_x))
+  if (vb) vb_stage("frame", t0, vb_frame_detail(frame))
   if (identical(dry_run, "frame")) return(frame)
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
                 control = control, se = se, lower = lower, upper = upper,
                 priors = priors, quadrature = quadrature)
+}
+
+# --- verbose progress reporting --------------------------------------
+# Stage lines go through message(): suppressMessages() silences them and
+# they can never contaminate stdout results. Every call site is guarded
+# by an `if (vb)` so a default fit does no clock reads and builds no
+# strings. Nothing here reaches inside the tape - per-evaluation
+# printing would dominate the fit it is meant to measure.
+
+# Resolved level: 0 = silent, 1 = stage progress, 2 = also the
+# optimizer's own iteration trace.
+verbose_level <- function(control) {
+  v <- control$verbose
+  if (is.null(v) || isFALSE(v)) return(0L)
+  if (isTRUE(v)) return(1L)
+  v <- suppressWarnings(as.integer(v)[1L])
+  if (is.na(v) || v < 0L) 0L else v
+}
+
+vb_now <- function() proc.time()[["elapsed"]]
+
+vb_say <- function(...) message("frmtmb: ", ...)
+
+# "frmtmb: <stage> [1.23s]: <detail>"
+vb_stage <- function(stage, t0, detail = NULL) {
+  message("frmtmb: ", stage, " [", sprintf("%.2f", vb_now() - t0), "s]",
+          if (is.null(detail)) "" else paste0(": ", detail))
+}
+
+vb_plural <- function(n, what) {
+  paste0(n, " ", what, if (n != 1L) "s")
+}
+
+vb_frame_detail <- function(frame) {
+  paste0(frame$n_obs, " obs, ",
+         vb_plural(length(frame$linpreds), "linear predictor"), ", ",
+         vb_plural(length(frame$re_blocks), "random-effect block"))
+}
+
+# First line of a fit: the family and every mode that changes what the
+# optimizer is solving, so a slow log says which problem it is timing.
+vb_fit_detail <- function(spec, REML, control, quadrature, priors) {
+  fams <- vapply(spec$responses, function(r) r$family$family %||% "?", "")
+  opt <- control$optimizer %||% "nlminb"
+  if (is.function(opt)) opt <- "custom"
+  flags <- c(if (isTRUE(REML)) "REML" else "ML",
+             if (isTRUE(control$profile)) "profile",
+             if (isTRUE(quadrature)) "quadrature",
+             if (isTRUE(control$autoscale)) "autoscale",
+             if (!is.null(priors)) "priors")
+  paste0(paste(unique(fams), collapse = " + "), ", ",
+         paste(flags, collapse = ", "), ", ", opt)
+}
+
+vb_opt_detail <- function(opt) {
+  paste0("objective ", format(opt$objective, digits = 8),
+         if (opt$convergence != 0) {
+           paste0(", convergence ", opt$convergence)
+         })
+}
+
+# verbose >= 2 turns on the optimizer's own iteration trace, unless the
+# user already asked for one. That trace is printed by nlminb/optim
+# themselves and so goes to stdout, not through message(); a custom
+# optimizer receives optCtrl untouched.
+vb_trace_ctrl <- function(optCtrl, optimizer) {
+  optCtrl <- optCtrl %||% list()
+  if (!is.null(optCtrl[["trace"]])) return(optCtrl)
+  if (identical(optimizer, "nlminb")) {
+    optCtrl$trace <- 1L
+  } else if (identical(optimizer, "optim")) {
+    optCtrl$trace <- 1L
+    if (is.null(optCtrl[["REPORT"]])) optCtrl$REPORT <- 1L
+  }
+  optCtrl
 }
 
 # Fitting core shared by frm() and refit(): objective build through the
@@ -90,6 +177,12 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           template = NULL) {
   lower_arg <- lower
   upper_arg <- upper
+  vb <- verbose_level(control)
+  if (vb) {
+    t_fit <- vb_now()
+    vb_say("fit: ", vb_fit_detail(spec, REML, control, quadrature,
+                                  priors))
+  }
   ascale <- if (isTRUE(control$autoscale)) autoscale_plan(frame)
   if (!is.null(ascale) && is.null(template)) {
     # two-stage warm start: fit the standardized frame, back-transform
@@ -97,12 +190,15 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     # (see R/autoscale.R). Doubles the (cheap) optimization. A caller
     # template (refit and friends) skips the pre-fit but keeps the
     # plan, so the optimizer and sdreport still run in natural units.
+    if (vb) t0 <- vb_now()
     template <- autoscale_prefit(spec, frame, bform, cl, REML = REML,
                                  start = start, control = control,
                                  lower = lower, upper = upper,
                                  priors = priors,
                                  quadrature = quadrature, plan = ascale)
+    if (vb) vb_stage("autoscale pre-fit", t0)
   }
+  if (vb) t0 <- vb_now()
   nll <- build_objective(frame)
   if (!is.null(priors)) {
     # MAP / regularized ML: the optimized objective includes the prior
@@ -174,6 +270,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   obj <- RTMB::MakeADFun(nll, template, random = random,
                          map = frame$map, integrate = integrate,
                          profile = profile_arg, silent = TRUE)
+  if (vb) {
+    vb_stage("tape", t0,
+             paste0(length(obj$par), " outer, ",
+                    length(obj$env$random), " inner parameters"))
+  }
   # control must ride along: outer_par_names drops beta under
   # profile = TRUE, and a shim without it misaligns every bound
   bounds <- resolve_bounds(list(frame = frame, REML = REML,
@@ -183,7 +284,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   par_units <- if (!is.null(ascale)) {
     autoscale_units(frame, ascale, names(obj$par))
   }
-  opt <- optimize_obj(obj, control, bounds, par_units)
+  # the optimizer trace rides on the optimizer's own control list, so
+  # keep it out of the control stored on the fit (refit and friends
+  # reuse that list and must not inherit a trace)
+  ctl_opt <- control
+  if (vb >= 2L) {
+    ctl_opt$optCtrl <- vb_trace_ctrl(control$optCtrl, control$optimizer)
+  }
+  opt <- optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb)
 
   # Estimates come cheaply from the parameter list at the optimum;
   # sdreport (a quarter of typical fit time) is computed on demand
@@ -212,9 +320,17 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     class = "frmtmb_fit"
   )
   if (se) {
+    if (vb) t0 <- vb_now()
     fit$cache$sdr <- autoscale_sdreport(fit)
+    if (vb) vb_stage("sdreport", t0)
   }
-  check_convergence(fit, control)
+  chk <- check_convergence(fit, control)
+  if (vb) {
+    vb_stage("done", t_fit,
+             paste0("objective ", format(fit$opt$objective, digits = 8),
+                    ", max|grad| ", format(chk$grad, digits = 3), ", ",
+                    vb_plural(length(chk$warnings), "warning")))
+  }
   fit
 }
 
@@ -285,16 +401,38 @@ sdr_of <- function(fit) {
 #'   nothing qualifies. Compatible with `profile = TRUE`. Under
 #'   `priors` or bounds, the first stage applies them to the scaled
 #'   coefficients; the second stage is the fit that is reported.
+#' @param verbose Report fit progress through [message()], one terse
+#'   line per stage with its elapsed seconds, so a slow fit shows where
+#'   the time went. `FALSE` (default) is silent and costs nothing.
+#'   `TRUE` (or `1`) reports parsing, frame assembly, the autoscale
+#'   pre-fit, tape construction, each optimizer run and restart,
+#'   `sdreport()` when `se = TRUE`, and a closing line with the
+#'   objective, the maximum absolute gradient, and the number of
+#'   convergence warnings. The fit itself opens with a line naming the
+#'   family, the mode (ML or REML, plus profile, quadrature, autoscale,
+#'   priors), and the optimizer. `2` adds the optimizer's own trace, by
+#'   setting `optCtrl$trace` unless you set it yourself. That trace is
+#'   printed by [stats::nlminb()] / [stats::optim()] to standard
+#'   output, not through `message()`, and a custom optimizer function
+#'   receives `optCtrl` unchanged, so `verbose` does not reach it.
+#'
+#'   Use `suppressMessages()` to silence a verbose fit. The refit loops
+#'   in [frm_bootstrap()], [influence()], and [frm_allfit()] force
+#'   `verbose` off, so a verbose fit does not make them print hundreds
+#'   of lines; [refit()] and [frm_multiple()] report normally.
 #' @return A list of control settings.
 #' @export
 frmtmb_control <- function(optimizer = "nlminb",
                            optCtrl = list(iter.max = 1000, eval.max = 1000),
                            restarts = 1, grad_tol = 1e-3,
                            profile = FALSE, sparse_x = FALSE,
-                           autoscale = FALSE) {
+                           autoscale = FALSE, verbose = NULL) {
+  # verbose stays NULL when unset, which is how frm(verbose =) knows an
+  # explicit control value must win over its own shortcut
   list(optimizer = optimizer, optCtrl = optCtrl, restarts = restarts,
        grad_tol = grad_tol, profile = isTRUE(profile),
-       sparse_x = isTRUE(sparse_x), autoscale = isTRUE(autoscale))
+       sparse_x = isTRUE(sparse_x), autoscale = isTRUE(autoscale),
+       verbose = verbose)
 }
 
 # One optimizer invocation, normalized to nlminb's result shape.
@@ -320,7 +458,7 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
                            lower = lower, upper = upper),
     optim = {
       ctl <- control[names(control) %in%
-                       c("maxit", "factr", "pgtol", "trace")]
+                       c("maxit", "factr", "pgtol", "trace", "REPORT")]
       if (is.null(ctl$maxit)) ctl$maxit <- 1000
       # L-BFGS-B ignores parscale (see ?optim); par_units still govern
       # the gradient-based convergence checks
@@ -336,17 +474,25 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
 
 optimize_obj <- function(obj, control,
                          bounds = list(lower = -Inf, upper = Inf),
-                         par_units = NULL) {
+                         par_units = NULL, verbose = 0L) {
   optimizer <- control$optimizer %||% "nlminb"
+  if (verbose) t0 <- vb_now()
   opt <- run_optimizer(optimizer, obj$par, obj$fn, obj$gr,
                        bounds$lower, bounds$upper, control$optCtrl,
                        par_units)
+  if (verbose) vb_stage("optimize", t0, vb_opt_detail(opt))
   for (i in seq_len(control$restarts)) {
     g <- max(abs(obj$gr(opt$par) * (par_units %||% 1)))
     if (is.finite(g) && g < control$grad_tol) break
+    if (verbose) t0 <- vb_now()
     opt2 <- run_optimizer(optimizer, opt$par, obj$fn, obj$gr,
                           bounds$lower, bounds$upper, control$optCtrl,
                           par_units)
+    if (verbose) {
+      vb_stage(paste0("restart ", i), t0,
+               paste0(vb_opt_detail(opt2), ", from max|grad| ",
+                      format(g, digits = 3)))
+    }
     if (opt2$objective <= opt$objective) opt <- opt2
   }
   opt
@@ -382,29 +528,35 @@ make_start <- function(frame, start) {
 }
 
 check_convergence <- function(fit, control) {
+  # collected first, warned second, so the verbose summary line can
+  # report how many diagnostics the fit raised
+  msgs <- character(0)
   if (fit$opt$convergence != 0) {
-    warning("Optimizer did not report convergence: ", fit$opt$message,
-            call. = FALSE)
+    msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
+                           fit$opt$message))
   }
   # under autoscale the gradient is judged in the same natural units
   # the optimizer used (a 1e6-scale column bounds its coefficient's
   # absolute gradient near machine noise times 1e6)
   g <- try(max(abs(fit$obj$gr(fit$opt$par) * (fit$par_units %||% 1))),
            silent = TRUE)
-  if (!inherits(g, "try-error") && is.finite(g) && g > control$grad_tol) {
-    warning("Large maximum absolute gradient at the optimum (",
-            format(g, digits = 3), "); the fit may not have converged. ",
-            "diagnose() names the offending parameter; see the ",
-            "'Convergence problems' section of vignette('diagnostics') ",
-            "for the remedies", call. = FALSE)
+  if (inherits(g, "try-error")) g <- NA_real_
+  if (is.finite(g) && g > control$grad_tol) {
+    msgs <- c(msgs, paste0("Large maximum absolute gradient at the ",
+                           "optimum (", format(g, digits = 3),
+                           "); the fit may not have converged. ",
+                           "diagnose() names the offending parameter; ",
+                           "see the 'Convergence problems' section of ",
+                           "vignette('diagnostics') for the remedies"))
   }
   # pdHess is only known once sdreport has run (se = TRUE); the lazy
   # path surfaces it through summary()/diagnose() instead
   sdr <- fit$cache$sdr
   if (!is.null(sdr) && !is.null(sdr$pdHess) && !isTRUE(sdr$pdHess)) {
-    warning("Hessian is not positive definite; standard errors are ",
-            "unreliable. The model may be overparameterized",
-            call. = FALSE)
+    msgs <- c(msgs, paste0("Hessian is not positive definite; standard ",
+                           "errors are unreliable. The model may be ",
+                           "overparameterized"))
   }
-  invisible(fit)
+  for (m in msgs) warning(m, call. = FALSE)
+  invisible(list(grad = g, warnings = msgs))
 }

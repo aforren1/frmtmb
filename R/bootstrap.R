@@ -40,6 +40,9 @@ frm_bootstrap <- function(fit, FUN = function(f) unlist(fixef(f)),
     stop("FUN must return a numeric vector", call. = FALSE)
   }
   sims <- simulate(fit, nsim = nsim, re.form = re.form)
+  # nsim refits run off this fit's control; a verbose original would
+  # otherwise narrate every draw
+  if (!is.null(fit$control)) fit$control$verbose <- FALSE
   tmat <- matrix(NA_real_, nsim, length(t0))
   if (!is.null(names(t0))) colnames(tmat) <- names(t0)
   ok <- logical(nsim)

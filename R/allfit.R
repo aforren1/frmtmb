@@ -70,6 +70,9 @@ allfit_optimizers <- function() {
 frm_allfit <- function(fit, optimizers = NULL, ...) {
   optimizers <- optimizers %||% allfit_optimizers()
   ctl0 <- fit$control %||% frmtmb_control()
+  # print.frmtmb_allfit() already reports the per-optimizer timings, so
+  # a verbose original fit must not make every refit narrate itself
+  ctl0$verbose <- FALSE
   fits <- list()
   times <- numeric(length(optimizers))
   for (i in seq_along(optimizers)) {

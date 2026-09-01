@@ -11,7 +11,8 @@ frmtmb_control(
   grad_tol = 0.001,
   profile = FALSE,
   sparse_x = FALSE,
-  autoscale = FALSE
+  autoscale = FALSE,
+  verbose = NULL
 )
 }
 \arguments{
@@ -70,6 +71,26 @@ are never touched, and the whole step is a silent no-op when
 nothing qualifies. Compatible with \code{profile = TRUE}. Under
 \code{priors} or bounds, the first stage applies them to the scaled
 coefficients; the second stage is the fit that is reported.}
+
+\item{verbose}{Report fit progress through \code{\link[=message]{message()}}, one terse
+line per stage with its elapsed seconds, so a slow fit shows where
+the time went. \code{FALSE} (default) is silent and costs nothing.
+\code{TRUE} (or \code{1}) reports parsing, frame assembly, the autoscale
+pre-fit, tape construction, each optimizer run and restart,
+\code{sdreport()} when \code{se = TRUE}, and a closing line with the
+objective, the maximum absolute gradient, and the number of
+convergence warnings. The fit itself opens with a line naming the
+family, the mode (ML or REML, plus profile, quadrature, autoscale,
+priors), and the optimizer. \code{2} adds the optimizer's own trace, by
+setting \code{optCtrl$trace} unless you set it yourself. That trace is
+printed by \code{\link[stats:nlminb]{stats::nlminb()}} / \code{\link[stats:optim]{stats::optim()}} to standard
+output, not through \code{message()}, and a custom optimizer function
+receives \code{optCtrl} unchanged, so \code{verbose} does not reach it.
+
+Use \code{suppressMessages()} to silence a verbose fit. The refit loops
+in \code{\link[=frm_bootstrap]{frm_bootstrap()}}, \code{\link[=influence]{influence()}}, and \code{\link[=frm_allfit]{frm_allfit()}} force
+\code{verbose} off, so a verbose fit does not make them print hundreds
+of lines; \code{\link[=refit]{refit()}} and \code{\link[=frm_multiple]{frm_multiple()}} report normally.}
 }
 \value{
 A list of control settings.
