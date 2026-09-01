@@ -316,6 +316,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
         stop("mi() in a predictor takes one variable name: mi(x)",
              call. = FALSE)
       }
+      # the interaction branch below repeats this check with its own
+      # message, because there the offending mi() sits inside a `:`
       miterms[[length(miterms) + 1L]] <- list(expr = tm[[2]],
                                               mult = NULL)
     } else if (is.call(tm) &&
@@ -348,8 +350,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                                                    mult = NULL)
       } else {
         if (!is.name(sp[[2]])) {
-          stop("mi() in a predictor takes one variable name: mi(x)",
-               call. = FALSE)
+          stop("mi() in an interaction takes one variable name: ",
+               "mi(x):z", call. = FALSE)
         }
         miterms[[length(miterms) + 1L]] <- entry
         if (op_star) miterms[[length(miterms) + 1L]] <-
@@ -466,7 +468,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     if (cls %in% c("car", "spde")) {
       stop(cls, "() is not a bar term; write ",
            if (cls == "car") "car(M, gr = g)" else "spde(fem, gr = g)",
-           " as a predictor term", call. = FALSE)
+           " as a predictor term, not on the left of ( | )", call. = FALSE)
     }
     rank <- NULL
     if (cls == "rr") {
@@ -514,7 +516,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       nm <- as.character(bar[[3]][[1]])[1]
       stop(nm, "() is not a bar term; write ",
            if (nm == "car") "car(M, gr = g)" else "spde(fem, gr = g)",
-           " as a predictor term", call. = FALSE)
+           " as a predictor term, not as the grouping factor of ( | )",
+           call. = FALSE)
     }
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
          cov_expr = cov_expr, rank = rank)

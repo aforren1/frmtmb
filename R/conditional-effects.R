@@ -370,6 +370,19 @@ ce_plot_one <- function(df, cond = NULL) {
 #'   `residuals(type = "osa")` for residuals that stay exact under
 #'   discrete families.
 #'
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'
+#' # both panels, side by side
+#' op <- par(mfrow = c(1, 2))
+#' plot(fit, ask = FALSE)
+#' par(op)
+#'
+#' # just the QQ panel
+#' plot(fit, which = 2)
 #' @export
 plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
   r <- residuals(x, type = "pearson")
@@ -404,6 +417,22 @@ plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
 #' @param ... Passed to the `ppc_*` function.
 #' @return A ggplot object, as returned by the bayesplot `ppc_*`
 #'   function that `type` selects.
+#' @examples
+#' if (requireNamespace("bayesplot", quietly = TRUE)) {
+#'   set.seed(1)
+#'   dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+#'   dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+#'   fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+#'
+#'   # the observed density against draws from the fit
+#'   pp_check(fit, ndraws = 20)
+#'
+#'   # any bayesplot ppc_* check, named by its suffix. A statistic the
+#'   # model was not fitted to is the informative one: here, the share
+#'   # of zeros, which is how zero inflation shows up.
+#'   pp_check(fit, type = "stat", stat = function(y) mean(y == 0),
+#'            ndraws = 50)
+#' }
 #' @export
 pp_check <- function(object, ...) {
   # frmtmb ships its own generic so pp_check(fit) works without
@@ -426,7 +455,7 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   rspec <- uni_resp(object, "pp_check()")
   y <- object$frame$y[[1L]]
   if (is.matrix(y)) {
-    stop("pp_check() supports vector responses", call. = FALSE)
+    stop("pp_check() on a fit supports vector responses", call. = FALSE)
   }
   yrep <- t(as.matrix(na_unpad(
     object, simulate(object, nsim = ndraws, re.form = re.form))))

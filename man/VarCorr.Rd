@@ -20,3 +20,17 @@ A named list of covariance matrices, one per random-effect term.
 \description{
 Extract random-effect covariance matrices
 }
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
+u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.4))
+dd$y <- rnorm(200, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
+fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
+
+# the printed form shows SDs and correlations, as lme4 does
+VarCorr(fit)
+# the stored value is the covariance matrix itself
+VarCorr(fit)[["x | g"]]
+# tidy shape for broom.mixed-style code
+as.data.frame(VarCorr(fit))
+}

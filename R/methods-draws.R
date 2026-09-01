@@ -185,6 +185,29 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05, ...) {
 #' @param ndraws Number of draws to use (default: all).
 #' @param ... Unused.
 #' @return A draws-by-observations matrix.
+#' @examples
+#' \donttest{
+#' set.seed(9)
+#' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+#' dd$y <- rpois(80, exp(0.3 + 0.4 * dd$x + rnorm(8, 0, 0.5)[dd$g]))
+#' fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+#' ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
+#'
+#' nd <- data.frame(x = c(-1, 0, 1),
+#'                  g = factor(1, levels = levels(dd$g)))
+#'
+#' # the expected response per draw: uncertainty in the mean
+#' ep <- posterior_epred(ds, newdata = nd)
+#' apply(ep, 2, quantile, c(0.025, 0.5, 0.975))
+#'
+#' # the predictive distribution adds the family's own noise, so its
+#' # intervals are wider
+#' pp <- posterior_predict(ds, newdata = nd)
+#' apply(pp, 2, quantile, c(0.025, 0.5, 0.975))
+#'
+#' # the linear predictor itself, on the link scale by default
+#' head(posterior_linpred(ds, newdata = nd, ndraws = 5))
+#' }
 #' @export
 posterior_epred <- function(object, ...) UseMethod("posterior_epred")
 
@@ -249,8 +272,8 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
   if (is.null(rspec$family$sim)) {
-    stop("Family '", rspec$family$family, "' has no simulator yet",
-         call. = FALSE)
+    stop("posterior_predict(): family '", rspec$family$family,
+         "' has no simulator yet", call. = FALSE)
   }
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws)
@@ -295,7 +318,7 @@ pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
   rspec <- uni_resp(fit, "pp_check()")
   y <- fit$frame$y[[1L]]
   if (is.matrix(y)) {
-    stop("pp_check() supports vector responses", call. = FALSE)
+    stop("pp_check() on draws supports vector responses", call. = FALSE)
   }
   yrep <- posterior_predict(object, ndraws = ndraws)
   fun <- get(paste0("ppc_", type), envir = asNamespace("bayesplot"))
@@ -308,6 +331,23 @@ pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
 #' @param ... Unused.
 #' @return A `posterior::draws_matrix`: one column per sampled variable
 #'   and one row per draw.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("posterior", quietly = TRUE)) {
+#'   set.seed(9)
+#'   dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+#'   dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+#'   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#'   ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
+#'
+#'   # hands the draws to the posterior package, keeping the frmtmb
+#'   # parameter names
+#'   dm <- as_draws(ds)
+#'   posterior::summarise_draws(dm)
+#'   # which is what variables() lists
+#'   head(variables(ds))
+#' }
+#' }
 #' @export
 as_draws <- function(x, ...) {
   # own generic for the same reason as pp_check: posterior stays in

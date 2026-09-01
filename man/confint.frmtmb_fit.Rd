@@ -43,3 +43,23 @@ A matrix with columns \code{lwr}, \code{upr}, \code{est}.
 Covariance parameters (\verb{theta_*}) are reported on their internal
 (unconstrained) scale.
 }
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+# Wald intervals for every parameter, covariance ones included
+confint(fit)
+
+# the likelihood profile does not assume a quadratic log-likelihood,
+# so it is the one to trust for a variance component
+confint(fit, parm = "theta_1", method = "profile")
+
+# confint_varcorr() puts the same information on the SD scale
+confint_varcorr(fit)
+\donttest{
+# a parametric bootstrap, the lme4 confint(method = "boot") analog
+confint(fit, parm = "x", method = "boot", nsim = 50, seed = 1)
+}
+}

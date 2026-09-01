@@ -30,3 +30,17 @@ refits, and tabulates AIC (and likelihood-ratio tests with
 \code{drop1.merMod}. Random-effect, smooth, and \code{mo()}/\code{mi()} terms are
 not part of the deletion scope.
 }
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(100), z = rnorm(100),
+                 g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+fit <- frm(bf(y ~ x * z + (1 | g)) + gaussian(), data = dd)
+
+# marginality keeps the main effects out of scope while x:z is in it
+drop1(fit)
+drop1(fit, test = "Chisq")
+
+# name the terms to override the default scope
+drop1(fit, scope = ~ x + z, test = "Chisq")
+}

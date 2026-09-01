@@ -17,3 +17,16 @@ For an ordinary \code{\link[=mixture]{mixture()}} or \code{\link[=mixture_mvn]{m
 observation; for a group-level mixture (\code{groups = ~g}), one row per
 group.
 }
+\examples{
+set.seed(3)
+dd <- data.frame(y = c(rnorm(80, 0, 1), rnorm(80, 5, 1)))
+fit <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
+
+p <- mixture_probs(fit)
+head(p)
+rowSums(p)[1:3]                    # rows sum to one
+
+# the hard assignment, and how well it recovers the truth
+cl <- max.col(p)
+table(cl, truth = rep(1:2, each = 80))
+}

@@ -22,3 +22,22 @@ their link scale, and covariance parameters (\verb{theta_*}) are the
 unconstrained parameterization (log-SDs, scaled-Cholesky terms), so
 \code{prior_normal(0, 1)} on \code{theta_1} is a lognormal prior on that SD.
 }
+\examples{
+# the objects themselves are cheap descriptions
+prior_normal(0, 2)
+prior_t(df = 3, location = 0, scale = 1)
+
+\donttest{
+set.seed(9)
+dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+# names are parameter names as in the draws, or whole components.
+# theta_1 is a log-SD, so a normal there is a lognormal on the SD.
+ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0,
+                 priors = list(beta = prior_normal(0, 5),
+                               theta_1 = prior_t(3, 0, 1)))
+summary(ds)
+}
+}

@@ -21,3 +21,21 @@ and one row per draw.
 \description{
 Convert draws to a posterior draws object
 }
+\examples{
+\donttest{
+if (requireNamespace("posterior", quietly = TRUE)) {
+  set.seed(9)
+  dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+  dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+  ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
+
+  # hands the draws to the posterior package, keeping the frmtmb
+  # parameter names
+  dm <- as_draws(ds)
+  posterior::summarise_draws(dm)
+  # which is what variables() lists
+  head(variables(ds))
+}
+}
+}

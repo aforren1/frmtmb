@@ -102,3 +102,37 @@ Family constructors without a \link[stats:family]{stats::family} equivalent, fol
 brms naming. \code{gaussian()}, \code{poisson()}, \code{binomial()}, and \code{Gamma()}
 from 'stats' are accepted directly by \code{\link[=frm]{frm()}} and \code{+}.
 }
+\details{
+An ordinal family (\code{cumulative()}, \code{sratio()}, \code{cratio()}, \code{acat()})
+takes the response's level order as the category order. Supply an
+ordered factor, or integer codes \verb{1..K}: an unordered factor is
+accepted, as brms accepts it, but warns and names the order it is
+about to use, which is alphabetical unless the levels were set.
+}
+\examples{
+set.seed(4)
+n <- 120
+dd <- data.frame(x = rnorm(n))
+
+# heavier tails than gaussian(), with an estimated df
+dd$y <- 1 + 0.8 * dd$x + rt(n, df = 4)
+fixef(frm(bf(y ~ x) + student(), data = dd))
+
+# counts with more spread than poisson() allows
+dd$cnt <- rnbinom(n, mu = exp(0.5 + 0.4 * dd$x), size = 2)
+fit <- frm(bf(cnt ~ x) + negbinomial(), data = dd)
+fixef(fit)$mu
+
+# a zero-inflated count: the zi dpar gets its own predictor
+dd$zi <- ifelse(runif(n) < 0.3, 0, dd$cnt)
+frm(bf(zi ~ x, zi ~ 1) + zero_inflated_poisson(), data = dd)
+
+# an ordered response: level order is the category order
+dd$grade <- cut(1 + 0.8 * dd$x + rlogis(n), 3,
+                labels = c("low", "mid", "high"), ordered_result = TRUE)
+frm(bf(grade ~ x) + cumulative(), data = dd)
+
+# a proportion in (0, 1)
+dd$p <- plogis(0.2 + 0.6 * dd$x + rnorm(n, 0, 0.3))
+frm(bf(p ~ x) + Beta(), data = dd)
+}

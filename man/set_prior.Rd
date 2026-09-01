@@ -59,3 +59,28 @@ put class-wide priors first and coefficient-specific ones after.
 \code{lb}/\code{ub} become hard bounds (via Stan's constrained transforms in
 \code{\link[=frm_sample]{frm_sample()}}); for class \code{"sd"} they apply on the sd scale.
 }
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(100), z = rnorm(100),
+                 g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+
+# `+` combines specifications; the class-wide one goes first so the
+# coefficient-specific one can override it
+pr <- set_prior("normal(0, 1)", class = "b") +
+  set_prior("normal(0, 0.2)", class = "b", coef = "z") +
+  set_prior("exponential(1)", class = "sd", group = "g")
+pr
+
+# the priors penalize the likelihood: the fit is a MAP estimate
+fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, priors = pr)
+fixef(fit)$mu
+# the tight prior on z shrinks it toward zero
+fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
+
+# an empty distribution string sets a hard bound only
+set_prior("", class = "b", coef = "x", lb = 0)
+
+# get_prior() shows which rows a design offers
+get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
+}

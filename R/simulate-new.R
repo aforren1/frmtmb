@@ -437,8 +437,8 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
   }
   rspec <- spec$responses[[1L]]
   if (is.null(rspec$family$sim)) {
-    stop("Family '", rspec$family$family, "' has no simulator yet",
-         call. = FALSE)
+    stop("frm_simulate(): family '", rspec$family$family,
+         "' has no simulator yet", call. = FALSE)
   }
   if (is.null(newparams) && is.null(priors)) {
     stop("frm_simulate() needs newparams, priors, or both", call. = FALSE)

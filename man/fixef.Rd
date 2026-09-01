@@ -20,3 +20,16 @@ A named list of coefficient vectors, one per dpar.
 \description{
 Extract fixed effects
 }
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+
+# one entry per distributional parameter, each on its link scale
+fit <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
+fixef(fit)
+exp(fixef(fit)$sigma[["(Intercept)"]])   # sigma is modeled on the log
+
+# flatten to the vector confint() and hypothesis() name their rows by
+unlist(fixef(fit))
+}

@@ -28,3 +28,29 @@ against central finite differences. A mismatch usually means the lpdf
 uses operations the tape cannot see (base \code{matrix()}/\code{c()} on
 advectors, branching on parameter values, \code{min}/\code{max}, clamping).
 }
+\examples{
+set.seed(1)
+y <- rpois(50, 3)
+
+# a hand-written poisson: check it before fitting anything with it
+ok <- custom_family(
+  "my_poisson", dpars = "mu", links = list(mu = "log"),
+  lpdf = function(y, dpars, aterms) {
+    y * log(dpars$mu) - dpars$mu - lgamma(y + 1)
+  },
+  type = "discrete"
+)
+check_custom_family(ok, y = y, dpars = list(mu = rep(2.5, 50)))
+
+# base matrix() strips the advector class, so the tape sees constants
+# and the gradient is silently wrong. The check catches it.
+bad <- custom_family(
+  "bad", dpars = "mu", links = list(mu = "log"),
+  lpdf = function(y, dpars, aterms) {
+    m <- matrix(dpars$mu, ncol = 1)
+    y * log(m[, 1]) - m[, 1] - lgamma(y + 1)
+  },
+  type = "discrete"
+)
+try(check_custom_family(bad, y = y, dpars = list(mu = rep(2.5, 50))))
+}

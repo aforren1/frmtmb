@@ -525,7 +525,7 @@ hypothesis.frmtmb_multiple <- function(x, hypothesis, alpha = 0.05, ...) {
       val <- hyp_eval(fit, ex, pc$vals, pc$comp)
       if (!is.numeric(val) || length(val) != 1L) {
         stop("Hypothesis '", hypothesis[i], "' must evaluate to a ",
-             "single number", call. = FALSE)
+             "single number in imputation ", j, " of ", m, call. = FALSE)
       }
       g <- hyp_fd_grad(function(v) hyp_eval(fit, ex, v, pc$comp),
                        pc$vals)

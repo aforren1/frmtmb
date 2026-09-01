@@ -29,3 +29,20 @@ random-effect term. \code{as.data.frame()} gives the long form (with a
 \description{
 Extract random-effect modes
 }
+\examples{
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+# one matrix per random-effect term, levels by coefficients
+ranef(fit)
+
+# condVar adds the conditional SDs a caterpillar plot needs
+re <- as.data.frame(ranef(fit, condVar = TRUE))
+head(re)
+with(re[order(re$condval), ],
+     plot(condval, seq_along(condval), pch = 16,
+          xlim = range(condval - 2 * condsd, condval + 2 * condsd),
+          xlab = "conditional mode", ylab = "group"))
+}

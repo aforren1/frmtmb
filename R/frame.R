@@ -132,6 +132,20 @@ extract_y <- function(resp, mf) {
   }
   lv <- NULL
   if (is.factor(y) && identical(resp$family$type, "ordinal")) {
+    # brms accepts an unordered factor here and silently reads level
+    # order as category order, which is alphabetical unless the user set
+    # it. Match that behavior (refusing would break working brms code)
+    # but say so, because the ordering is the whole model. mo() takes the
+    # stricter route because there the variable is a predictor and the
+    # user can always relabel it.
+    if (!is.ordered(y)) {
+      warning("Ordinal response '", deparse1(resp$resp_expr),
+              "' is an unordered factor; its level order (",
+              paste(levels(y), collapse = " < "),
+              ") is taken as the category order. Use ",
+              "factor(..., ordered = TRUE) to state it explicitly",
+              call. = FALSE)
+    }
     # the codes carry no meaning without the labels, and simulate() has
     # to hand draws back in the response's own type
     lv <- levels(y)
@@ -348,9 +362,25 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                              drop.unused.levels = TRUE,
                              na.action = na.action)
   }
+  # Dropping rows changes the estimand and the n every later standard
+  # error is built on, so the loss is reported instead of being inferred
+  # from nobs(). One message per fit; suppressMessages() silences it.
+  n_dropped <- length(attr(mf, "na.action"))
+  if (n_dropped > 0L) {
+    message(n_dropped, if (n_dropped == 1L) " row" else " rows",
+            " removed because of missing values (na.action)")
+  }
   n <- nrow(mf)
-  if (n == 0L) stop("No complete observations after removing NAs",
-                    call. = FALSE)
+  if (n == 0L) {
+    # zero rows in and zero rows left are different faults, and the
+    # generic "after removing NAs" wording sends the second one hunting
+    # for missing values that were never there
+    stop(if (n_dropped > 0L) {
+           "No complete observations after removing NAs"
+         } else {
+           "`data` has no rows; nothing to fit"
+         }, call. = FALSE)
+  }
   if (anyNA(mf[setdiff(names(mf), mi_cols)])) {
     stop("NA values remain in the model variables after applying ",
          "na.action; use na.omit (default) or na.exclude", call. = FALSE)
