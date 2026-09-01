@@ -101,7 +101,14 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   tt <- patch_predvars(lp$terms, fit$frame$predvar_map)
   mfp <- stats::model.frame(tt, newdata, na.action = stats::na.pass,
                             xlev = xlev_for(lp$xlevels, tt))
-  X <- stats::model.matrix(tt, mfp, contrasts.arg = lp$contrasts)
+  # sparse_x fits keep newdata designs sparse too; NA rows must stay NA
+  # in eta, and sparse.model.matrix silently zeroes NA factor rows, so
+  # frames with NAs fall back to the dense builder
+  X <- if (isTRUE(fit$frame$sparse_x) && !anyNA(mfp)) {
+    sparse_mm(tt, mfp, contrasts.arg = lp$contrasts)
+  } else {
+    stats::model.matrix(tt, mfp, contrasts.arg = lp$contrasts)
+  }
   # frozen intercept-drop / rank-deficiency column set from fit time
   X <- X[, lp$param_colnames, drop = FALSE]
   off <- extract_offset(tt, mfp, env)

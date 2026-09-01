@@ -61,7 +61,8 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
   for (i in seq_along(units)) {
     fit_i <- tryCatch(suppressWarnings({
       frame_i <- assemble_frame(model$spec,
-                                data[unit_rows[[i]], , drop = FALSE])
+                                data[unit_rows[[i]], , drop = FALSE],
+                                sparse_x = isTRUE(ctl$sparse_x))
       tpl <- frame_i$par_template
       for (cp in setdiff(names(tpl), "b")) {
         if (length(model$estimates[[cp]]) == length(tpl[[cp]])) {

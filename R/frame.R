@@ -120,7 +120,43 @@ patch_predvars <- function(tt, map) {
   tt
 }
 
-assemble_frame <- function(spec, data, na.action = stats::na.omit) {
+# sparse.model.matrix names the columns of matrix-valued terms (poly,
+# ns, scale) by bare index instead of the term-prefixed dense names.
+# Names are load-bearing (frozen param_colnames, coefficient labels), so
+# take them from a one-row dense header over the same frame.
+sparse_mm <- function(tt, mf, contrasts.arg = NULL) {
+  X <- Matrix::sparse.model.matrix(tt, mf, contrasts.arg = contrasts.arg)
+  # keeping the frame's terms attribute on the one-row slice routes
+  # model.matrix through deparse-name column matching, never
+  # re-evaluating data-dependent bases (poly, scale) on a single row
+  mf1 <- mf[1L, , drop = FALSE]
+  attr(mf1, "terms") <- attr(mf, "terms")
+  hdr <- stats::model.matrix(tt, mf1, contrasts.arg = contrasts.arg)
+  if (ncol(hdr) != ncol(X)) {
+    stop("Internal error: sparse and dense fixed-effect designs disagree ",
+         "on columns; refit without frmtmb_control(sparse_x = TRUE)",
+         call. = FALSE)
+  }
+  colnames(X) <- colnames(hdr)
+  X
+}
+
+# Cheap rank screen for a sparse design: |diag(R)| of the sparse QR
+# collapses on aliased columns. The threshold is 100x looser than dense
+# qr()'s 1e-7 default, so anything the dense path would drop gets
+# flagged; a flagged design is re-checked densely, which decides the
+# exact drop set (identical to the dense path by construction).
+sparse_maybe_deficient <- function(X) {
+  d <- tryCatch(
+    abs(Matrix::diag(Matrix::qrR(Matrix::qr(X), backPermute = FALSE))),
+    error = function(e) NULL
+  )
+  is.null(d) || !all(is.finite(d)) || min(d) <= 0 ||
+    min(d) < 1e-5 * max(d)
+}
+
+assemble_frame <- function(spec, data, na.action = stats::na.omit,
+                           sparse_x = FALSE) {
   # One combined model frame holds every response, every variable of every
   # dpar of every response, and the aterm variables, so na.omit keeps rows
   # aligned. Responses go on the RHS of the frame formula (a multivariate
@@ -421,22 +457,30 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
       }
 
       tt <- stats::terms(dp$fixed)
-      X <- stats::model.matrix(tt, mf)
+      X <- if (sparse_x) sparse_mm(tt, mf) else stats::model.matrix(tt, mf)
       contr <- attr(X, "contrasts")   # subsetting X below drops the attr
       if (isTRUE(resp$family$drop_intercept) && is_primary) {
         # thresholds replace the intercept; a threshold-only model
         # (y ~ 1) leaves X with zero columns, which is fine
         X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
       }
-      # rank-deficient designs: drop aliased columns like lm() (lme4#144)
+      # rank-deficient designs: drop aliased columns like lm() (lme4#144).
+      # Sparse X densifies a copy only when the cheap screen flags a
+      # possible deficiency, so the dropped-column set never differs
+      # from the dense path.
       if (ncol(X) > 1L) {
-        qrX <- qr(X)
-        if (qrX$rank < ncol(X)) {
-          dropped <- colnames(X)[qrX$pivot[(qrX$rank + 1L):ncol(X)]]
-          message("Fixed-effect design of '", lp_key,
-                  "' is rank deficient; dropping column(s): ",
-                  paste(dropped, collapse = ", "))
-          X <- X[, setdiff(colnames(X), dropped), drop = FALSE]
+        Xq <- if (!sparse_x) X
+              else if (sparse_maybe_deficient(X)) as.matrix(X)
+              else NULL
+        if (!is.null(Xq)) {
+          qrX <- qr(Xq)
+          if (qrX$rank < ncol(X)) {
+            dropped <- colnames(X)[qrX$pivot[(qrX$rank + 1L):ncol(X)]]
+            message("Fixed-effect design of '", lp_key,
+                    "' is rank deficient; dropping column(s): ",
+                    paste(dropped, collapse = ", "))
+            X <- X[, setdiff(colnames(X), dropped), drop = FALSE]
+          }
         }
       }
       param_colnames <- colnames(X)
@@ -1002,6 +1046,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit) {
          betad_fixed_idx = betad_fixed_idx,
          extra_names = names(extras),
          predvar_map = predvar_map,
+         sparse_x = isTRUE(sparse_x),
          data_frame = mf,
          na_action = attr(mf, "na.action")),
     class = "frmtmb_frame"
