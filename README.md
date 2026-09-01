@@ -42,6 +42,13 @@ Pre-release (v0.25), working toward CRAN. Validation is layered:
   coordinates, reduced-rank `rr(d =)`, known structure
   `gr(g, cov = A)` / `gr(g, prec = Q)` / `equalto()`, and `|ID|`
   correlation across formulas.
+- Spatial Gaussian Markov random fields: `car(M, gr = g, type =)` with
+  brms's spelling and all four of its types (`escar`, `esicar`,
+  `icar`, `bym2`, the last with brms's scaling convention), and
+  `spde(fem, gr = node)` for a Matern field over a finite-element mesh
+  (`fmesher`/INLA matrices as fixed data). Precisions are assembled on
+  the tape from fixed sparse matrices and every normalizing constant
+  is analytic.
 - mgcv smooths `s()`/`t2()` in any linear predictor, including
   matrix-covariate terms: scalar-on-function, function-on-scalar, and
   function-on-function regression.

@@ -890,7 +890,7 @@ lp_extra_var <- function(object, ed, use_re) {
       bk <- rp$bk
       # the levels ARE the structure there, so there is no marginal
       # variance to hand an unseen one
-      if (bk$covstruct %in% c("gr_cov", "gr_prec")) next
+      if (bk$covstruct %in% c("gr_cov", "gr_prec", "car", "spde")) next
       nl[[length(nl) + 1L]] <- list(
         bk = bk,
         S = covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk),
@@ -1335,11 +1335,30 @@ draw_b <- function(fit) {
       next
     }
     if (bk$covstruct == "gr_prec") {
-      # x = sd * U^-1 z with U'U = Q has covariance sd^2 Q^-1
-      U <- Matrix::chol(bk$aux_Q)
-      z <- stats::rnorm(bk$n_levels)
-      b[bk$b_idx] <- exp(th[bk$theta_idx]) *
-        as.vector(Matrix::solve(U, z))
+      # x = U^-1 z with U'U = Q has covariance Q^-1; for correlated
+      # slopes Q is the level-major Kronecker precision Q (x) Sigma^-1
+      Qb <- if (bk$dim == 1L) {
+        exp(-2 * th[bk$theta_idx[1]]) * bk$aux_Q
+      } else {
+        S <- covstruct_registry$gr_prec$vcov(th[bk$theta_idx], bk)
+        Matrix::kronecker(bk$aux_Q, methods::as(solve(unname(S)),
+                                                "generalMatrix"))
+      }
+      U <- Matrix::chol(Qb)
+      b[bk$b_idx] <- as.vector(Matrix::solve(U,
+                                             stats::rnorm(length(bk$b_idx))))
+      next
+    }
+    if (bk$covstruct == "car") {
+      # the whole field is one draw from its (dense) covariance
+      K <- car_cov(th[bk$theta_idx], bk)
+      b[bk$b_idx] <- drop(crossprod(chol(K), stats::rnorm(nrow(K))))
+      next
+    }
+    if (bk$covstruct == "spde") {
+      U <- Matrix::chol(spde_prec(th[bk$theta_idx], bk))
+      b[bk$b_idx] <- as.vector(Matrix::solve(U,
+                                             stats::rnorm(bk$n_levels)))
       next
     }
     V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)

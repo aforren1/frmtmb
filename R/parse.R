@@ -160,6 +160,73 @@ eval_spec_arg <- function(expr, nm, env, fn = "gp") {
   as.numeric(val)
 }
 
+# Positional-or-named argument matching for the predictor specials that
+# take a fixed argument list (brms's car() and our spde()). R's own
+# partial matching is deliberately not reproduced: a misspelled name
+# should be an error, not a silent match.
+match_special_args <- function(call_expr, argn, fn) {
+  aa <- as.list(call_expr)[-1]
+  nms <- names(aa) %||% rep("", length(aa))
+  bad <- setdiff(nms[nzchar(nms)], argn)
+  if (length(bad)) {
+    stop(fn, "(): unknown argument(s) ", paste(bad, collapse = ", "),
+         " (takes ", paste(argn, collapse = ", "), ")", call. = FALSE)
+  }
+  out <- stats::setNames(vector("list", length(argn)), argn)
+  for (i in which(nzchar(nms))) out[[nms[i]]] <- aa[[i]]
+  free <- argn[vapply(out, is.null, TRUE)]
+  pos <- which(!nzchar(nms))
+  if (length(pos) > length(free)) {
+    stop(fn, "(): too many arguments (takes ",
+         paste(argn, collapse = ", "), ")", call. = FALSE)
+  }
+  for (i in seq_along(pos)) out[[free[i]]] <- aa[[pos[i]]]
+  out
+}
+
+# brms's car(M, gr, type): M is an adjacency matrix (looked up in the
+# data or the formula environment, as gr(cov = A) is), gr the grouping
+# variable naming the locations, type one of brms's four.
+parse_car_call <- function(tm, env) {
+  a <- match_special_args(tm, c("M", "gr", "type", "con_sd"), "car")
+  if (is.null(a$M) || is.null(a$gr)) {
+    stop("car() needs an adjacency matrix and a grouping variable: ",
+         "car(M, gr = g, type = \"icar\")", call. = FALSE)
+  }
+  # brms's gr = NA default (one location per observation) is deprecated
+  # there and never supported here: the field's levels come from the
+  # factor, so the call has to name one
+  if (identical(a$gr, NA) || identical(a$gr, quote(NA))) {
+    stop("car(): gr must name a grouping variable. brms's gr = NA ",
+         "(one location per observation) is deprecated; build the ",
+         "location factor and pass it", call. = FALSE)
+  }
+  type <- if (is.null(a$type)) "escar" else {
+    tp <- eval(a$type, env)
+    if (!is.character(tp) || length(tp) != 1L || !(tp %in% car_types)) {
+      stop("car(): type must be one of ",
+           paste0("\"", car_types, "\"", collapse = ", "), call. = FALSE)
+    }
+    tp
+  }
+  con_sd <- if (is.null(a$con_sd)) car_con_sd_default else {
+    eval_spec_arg(a$con_sd, "con_sd", env, fn = "car")
+  }
+  list(M_expr = a$M, gr_expr = a$gr, type = type, con_sd = con_sd,
+       label = deparse1(tm))
+}
+
+# spde(fem, gr): fem is a list of the mesh's finite-element matrices,
+# gr the factor mapping observations to mesh nodes.
+parse_spde_call <- function(tm, env) {
+  a <- match_special_args(tm, c("fem", "gr"), "spde")
+  if (is.null(a$fem) || is.null(a$gr)) {
+    stop("spde() needs the mesh matrices and a grouping variable: ",
+         "spde(fm_fem(mesh), gr = node)", call. = FALSE)
+  }
+  list(fem_expr = a$fem, gr_expr = a$gr, label = deparse1(tm))
+}
+
 # Drop redundant parentheses so a term can be inspected and re-split.
 strip_parens <- function(e) {
   while (is.call(e) && identical(e[[1]], as.name("("))) e <- e[[2]]
@@ -217,6 +284,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   miterms <- list()
   csterms <- list()
   gpterms <- list()
+  carterms <- list()
+  spdeterms <- list()
   rest <- list()
   for (tm in terms_list) {
     # `x * (1 | g)` and `x:(1 | g)` are almost always a typo for `+`.
@@ -308,6 +377,10 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
         iso = if (!is.null(aa$iso)) eval_spec_arg(aa$iso, "iso", env)
               else FALSE
       )
+    } else if (is.call(tm) && identical(tm[[1]], as.name("car"))) {
+      carterms[[length(carterms) + 1L]] <- parse_car_call(tm, env)
+    } else if (is.call(tm) && identical(tm[[1]], as.name("spde"))) {
+      spdeterms[[length(spdeterms) + 1L]] <- parse_spde_call(tm, env)
     } else if (is.call(tm) && identical(tm[[1]], as.name("cs")) &&
                !("|" %in% all.names(tm))) {
       # barless cs(x): category-specific ordinal effect (the bar form
@@ -390,6 +463,11 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       stop("gp() is not a bar term; write gp(x) or gp(x, k = 30)",
            call. = FALSE)
     }
+    if (cls %in% c("car", "spde")) {
+      stop(cls, "() is not a bar term; write ",
+           if (cls == "car") "car(M, gr = g)" else "spde(fem, gr = g)",
+           " as a predictor term", call. = FALSE)
+    }
     rank <- NULL
     if (cls == "rr") {
       aa <- as.list(addargs)[-1]
@@ -431,6 +509,13 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       bar <- call("|", bar[[2]], gvar[[1]])
       cls <- if (has_cov) "gr_cov" else "gr_prec"
     }
+    if (is.call(bar[[3]]) &&
+        as.character(bar[[3]][[1]])[1] %in% c("car", "spde")) {
+      nm <- as.character(bar[[3]][[1]])[1]
+      stop(nm, "() is not a bar term; write ",
+           if (nm == "car") "car(M, gr = g)" else "spde(fem, gr = g)",
+           " as a predictor term", call. = FALSE)
+    }
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
          cov_expr = cov_expr, rank = rank)
   }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs)
@@ -440,6 +525,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   environment(fixed) <- env_lp
   list(fixed = fixed, re = re, smooth = smooth, mo = mo,
        miterms = miterms, csterms = csterms, gpterms = gpterms,
+       carterms = carterms, spdeterms = spdeterms,
        rhs = rhs_form)
 }
 

@@ -162,23 +162,86 @@ family-level extras.
   scaling warnings to 0, logLik identical to manual standardization.
 - Sandwich/robust SEs (`vcovHC`, `bread`/`estfun`): still skipped;
   glmmTMB does cluster-level scores. Revisit only on demand.
-- `car(M, gr, type = "icar"/"bym2"/"escar")` (brms spelling) and an
-  SPDE-Matern covstruct (noted 2026-08-31, fMRI/spatial discussion).
-  The backend is ready: sparse GMRFs are TMB's home turf (dgmrf +
-  sparse Laplace Hessian; sdmTMB/VAST scale to 1e5+ latent nodes),
-  and `gr(g, prec = Q)` already tapes an advector-scaled sparse Q.
-  Missing pieces are grammar and hyperparameters, not capability:
-  (1) Q(theta) assembled on the tape as an AD-weighted linear
-  combination of fixed sparse matrices - ICAR from adjacency
-  (needs sum-to-zero constraint + the TMB normalize trick for the
-  parameter-dependent constant), BYM2 mixing, SPDE
-  tau^2(kappa^4 C + 2 kappa^2 G1 + G2); (2) `gr(prec=)` beyond
-  intercept-only. Mesh/adjacency construction stays out of scope
-  (fmesher/spdep are preprocessing, same posture as HRF
-  convolution). vs references: brms has car() under full MCMC
-  pricing; glmmTMB has no CAR; sdmTMB owns SPDE but is
-  fixed-likelihood. Deferred since v0.1; schedule on spatial
-  demand.
+- ~~`car(M, gr, type =)` (brms spelling) and an SPDE-Matern
+  covstruct~~ DONE in v0.28, together with `gr(prec=)` beyond
+  intercept-only. All three pieces shipped.
+
+  (1) `car(M, gr = g, type =, con_sd =)` is a predictor special (like
+  `gp()`), not a bar term, and carries brms's whole argument list and
+  all four types. The block looks like `(1 | g)` - one intercept per
+  location, `dim = 1`, a synthetic bar - so `ranef()`, `predict()`
+  with `newdata`, `VarCorr()`, `simulate()` and `draw_b()` ride the
+  existing machinery; only `confint_varcorr()` needed new rows
+  (`sd(car)` plus brms's `car` / `rhocar` on a new `"prop"`
+  back-transform, logit rather than log or Fisher-z).
+
+  No normalize trick is needed anywhere, because every
+  log-determinant is analytic in the parameters and the fixed part is
+  computed once at frame time. `escar`: log|Q| = n log tau +
+  sum log d_i + sum log(1 - rho e_i), with e the eigenvalues of
+  D^-1/2 W D^-1/2 (fixed). Intrinsic: the graph Laplacian is rank
+  n - c for c connected components, and the constrained precision
+  tau (L + sum_j kappa_j s_j s_j') is full rank with log|Q| = n log
+  tau + log|K| - so the density costs one sparse matrix-vector
+  product and NO on-tape factorization at all. `bym2` is the one
+  exception: the Riebler mixture has no sparse precision, so it uses
+  the dense marginal covariance sd^2[(1 - rho) I + (rho/scale) K^-1]
+  with brms's `.car_scale` (reproduced exactly, tested against the
+  formula).
+
+  CONSTRAINT. The intrinsic types take brms's soft sum-to-zero
+  constraint with its precision riding on tau (as in brms's
+  non-centered zcar), applied per connected component. That keeps the
+  density proper - which is what makes ranef/predict/simulate defined
+  on the block - and keeps log|Q| exact. `con_sd` (default brms's
+  1e-3) is the constraint sd relative to the field sd; the fit
+  converges quadratically onto the hard-constrained (esicar)
+  likelihood as it shrinks. Measured on a 4 x 4 lattice against a
+  hand-rolled hard sum-to-zero ML: 1e-3 off by 4.7e-4 in logLik
+  (3.6e-5 relative in sdcar), 1e-4 by 4.7e-6 (3.6e-7), 1e-5 by 4.5e-8
+  (3.7e-9), 1e-6 by 9.2e-10, 1e-7 lost to roundoff (1.1e-4). The
+  default stays at brms's value: the bias is four orders below the
+  parameter's own SE, and tighter settings cost optimizer robustness
+  (over 25 lattice refits nlminb reported false convergence 0 times
+  at 1e-3, once at 1e-4, 6 times at 1e-5). `esicar` selects the same
+  density as `icar` - the brms difference between them is a Stan
+  parameterization detail that ML does not see.
+
+  VALIDATION (tests/testthat/test-car-spde.R), all against a
+  hand-rolled marginal-gaussian direct ML with the same block
+  covariance, which the Laplace approximation reproduces exactly:
+  icar 4.8e-9 on the logLik, escar 1.1e-11, bym2 2.9e-12, spde
+  2.6e-11, plus a disconnected two-component graph (the rank
+  correction and the per-component constraint) and simulate-recover
+  over 15 lattice replicates for sdcar and rhocar. No opportunistic
+  cross-check was possible: neither CARBayes, spaMM, spdep, fmesher
+  nor INLA is installed here.
+
+  (2) `gr(g, prec = Q)` now takes correlated slopes. Precision-side
+  Kronecker: inv(A (x) Sigma) = A^-1 (x) Sigma^-1, so the block
+  precision is Q (x) Sigma^-1, assembled on the tape as an AD-weighted
+  sum of the d(d+1)/2 fixed sparse matrices Q (x) E_ab and staying as
+  sparse as Q. Exact against the dense `gr(cov = solve(Q))`
+  equivalent: 0 ulp on the logLik, 3e-15 on theta, 5e-16 on b.
+  `RTMB::solve`, not base's - the S4 advector method is not imported.
+
+  (3) `spde(fem, gr = node)` takes the mesh's finite-element triple
+  (fmesher `c0`/`g1`/`g2` or INLA `M0`/`M1`/`M2`) as fixed data and
+  tapes Q = tau^2 (kappa^4 M0 + 2 kappa^2 M1 + M2) as an AD-weighted
+  sparse sum through `RTMB::dgmrf`; theta = (log tau, log kappa), with
+  sd and range reported through the planar alpha = 2 identities.
+  Validated on a 1-D chain whose FEM matrices are known tridiagonals
+  (fmesher is not installed).
+
+  RESIDUE. Mesh and adjacency construction stay out of scope
+  (fmesher/spdep are preprocessing, same posture as HRF convolution).
+  `spde()` maps observations to mesh nodes through a grouping factor,
+  not through a general barycentric projector matrix `A`, which is
+  what a real fmesher workflow wants next. Any sum-to-zero constraint
+  puts a dense rank-c update in the block's Laplace Hessian, and
+  `bym2` is dense outright, so the practical field size is in the low
+  thousands rather than the 1e5 nodes sdmTMB/VAST reach. `car()`
+  refuses unseen locations at prediction time (as brms does).
 
 ## Method-surface residue (v0.21 audit)
 
