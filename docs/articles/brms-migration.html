@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.24.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.25.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/aforren1/frmtmb/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -61,7 +62,7 @@
       <h1>frmtmb for brms users</h1>
             
       
-
+      <small class="dont-index">Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/vignettes/brms-migration.Rmd" class="external-link"><code>vignettes/brms-migration.Rmd</code></a></small>
       <div class="d-none name"><code>brms-migration.Rmd</code></div>
     </div>
 
@@ -171,7 +172,16 @@ intervals, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-li
 <li>
 <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>;
 <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code> over <code>newdata</code> becomes
-<code>predict(newdata, type = "response")</code>.</li>
+<code>predict(newdata, type = "response")</code>. On a
+<code>cens()</code> response both draw the LATENT uncensored value, as
+brms does; <code>simulate(censored = TRUE)</code> applies the censoring
+mechanism instead.</li>
+<li>
+<code>sample_prior = "only"</code> plus
+<code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> becomes
+<code>frm_simulate(formula, data, priors = set_prior(...))</code>, which
+draws a parameter vector per simulation and returns it alongside the
+responses.</li>
 <li>
 <code>mo()</code> monotonic effects, <code>mi()</code> one-step
 imputation of continuous predictors, <code>mi(sdx)</code> measurement

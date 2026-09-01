@@ -16,10 +16,11 @@ fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
 
 ## Did the optimizer converge?
 
-[`diagnose()`](../reference/diagnose.md) reports the convergence code,
-the largest gradient component at the optimum, whether the Hessian is
-positive definite, and covariance parameters near a boundary (a variance
-component collapsing to zero is the common case):
+[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+reports the convergence code, the largest gradient component at the
+optimum, whether the Hessian is positive definite, and covariance
+parameters near a boundary (a variance component collapsing to zero is
+the common case):
 
 ``` r
 
@@ -41,9 +42,10 @@ step tells you something even when it does not fix the warning.
     gradient component and its name. A coefficient of a continuous
     predictor points to scaling; a `theta_*` component points to a
     variance-parameter problem, and
-    [`diagnose()`](../reference/diagnose.md) flags extreme values (a
-    log-SD far below zero is a variance collapsing to its boundary,
-    which is a model issue, not an optimizer issue).
+    [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+    flags extreme values (a log-SD far below zero is a variance
+    collapsing to its boundary, which is a model issue, not an optimizer
+    issue).
 2.  **Fix predictor scaling.** For a flagged coefficient,
     `frmtmb_control(autoscale = TRUE)` standardizes badly scaled columns
     internally and judges convergence in the rescaled units; rescaling
@@ -154,12 +156,12 @@ bayesplot::pp_check(fit, ndraws = 20)
 
 Wald standard errors and the Laplace approximation share failure modes:
 variance components with few groups, binary data with tiny clusters.
-[`check_laplace()`](../reference/check_laplace.md) samples the fitted
-objective with NUTS (initialized at the ML mode) and compares posterior
-means and SDs against the ML estimates and Wald SEs; large `z_shift` or
-`sd_ratio` far from 1 flags parameters where Wald intervals should not
-be trusted - use `confint(method = "profile")` or the posterior itself
-for those.
+[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+samples the fitted objective with NUTS (initialized at the ML mode) and
+compares posterior means and SDs against the ML estimates and Wald SEs;
+large `z_shift` or `sd_ratio` far from 1 flags parameters where Wald
+intervals should not be trusted - use `confint(method = "profile")` or
+the posterior itself for those.
 
 ``` r
 
@@ -178,16 +180,18 @@ bayesplot::mcmc_intervals(as.matrix(ds),
                           pars = c("(Intercept)", "x"))
 ```
 
-Without priors, [`frm_sample()`](../reference/frm_sample.md) samples
-with flat improper priors on the internal parameters; fine as a
+Without priors,
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+samples with flat improper priors on the internal parameters; fine as a
 diagnostic, fragile as inference. Supply priors (brms-style
-[`set_prior()`](../reference/set_prior.md)) for anything more.
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md))
+for anything more.
 
 ## Variance components on their natural scale
 
-[`confint_varcorr()`](../reference/confint_varcorr.md) reports
-random-effect SDs and correlations with delta-method intervals on
-interpretable scales:
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+reports random-effect SDs and correlations with delta-method intervals
+on interpretable scales:
 
 ``` r
 

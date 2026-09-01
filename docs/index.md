@@ -18,9 +18,10 @@ closed-form marginals, or hand-written ML) - see `tests/testthat/` and
 
 ## Model grammar
 
-- [`bf()`](reference/bf.md) with the brms spelling; families attach with
-  `+`. Ports of brms code drop the priors and change `brm()` to
-  [`frm()`](reference/frm.md).
+- [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) with the
+  brms spelling; families attach with `+`. Ports of brms code drop the
+  priors and change `brm()` to
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md).
 - Distributional regression: every distributional parameter takes its
   own formula with the full predictor grammar
   (`bf(y ~ s(x) + (1 | g), sigma ~ s(z) + (1 | g))`), or a constant.
@@ -46,14 +47,15 @@ closed-form marginals, or hand-written ML) - see `tests/testthat/` and
   beta-binomial, skew-normal, ex-gaussian, weibull, shifted lognormal,
   quantile regression (`asym_laplace`), zero-inflated and hurdle
   variants, four ordinal families, and finite
-  [`mixture()`](reference/mixture.md) families - including group-level
-  latent classes (`mixture(..., groups = ~g)`) with class-specific
-  random effects (growth-mixture models) and multivariate gaussian
-  components (`mixture_mvn(K, D)`, model-based clustering with
-  covariate-dependent means and gating).
-  [`custom_family()`](reference/frmtmb_family.md) takes a plain R
-  log-density (the test suite fits a Wiener drift-diffusion model in
-  about 15 lines).
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  families - including group-level latent classes
+  (`mixture(..., groups = ~g)`) with class-specific random effects
+  (growth-mixture models) and multivariate gaussian components
+  (`mixture_mvn(K, D)`, model-based clustering with covariate-dependent
+  means and gating).
+  [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  takes a plain R log-density (the test suite fits a Wiener
+  drift-diffusion model in about 15 lines).
 - Addition terms: [`weights()`](https://rdrr.io/r/stats/weights.html),
   `trials()` (counts or proportions), `cens()`,
   [`trunc()`](https://rdrr.io/r/base/Round.html), `se()`
@@ -63,31 +65,36 @@ closed-form marginals, or hand-written ML) - see `tests/testthat/` and
 
 - ML and REML; adaptive quadrature (`quadrature = TRUE`) for scalar
   random effects; MAP via brms-style
-  [`set_prior()`](reference/set_prior.md); hard bounds; pluggable
-  optimizers; `frmtmb_control(profile = TRUE)` for many-coefficient
-  models, `sparse_x = TRUE` for many-level fixed factors,
-  `autoscale = TRUE` for badly scaled predictors.
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md);
+  hard bounds; pluggable optimizers; `frmtmb_control(profile = TRUE)`
+  for many-coefficient models, `sparse_x = TRUE` for many-level fixed
+  factors, `autoscale = TRUE` for badly scaled predictors.
 - [`confint()`](https://rdrr.io/r/stats/confint.html)
   (Wald/profile/likelihood-root),
-  [`hypothesis()`](reference/hypothesis.md) (Wald/profile/bootstrap,
-  with natural-scale `sd_`/`cor_` names for ICC-type quantities),
-  [`anova()`](https://rdrr.io/r/stats/anova.html) LRTs,
-  [`frm_bootstrap()`](reference/frm_bootstrap.md),
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  (Wald/profile/bootstrap, with natural-scale `sd_`/`cor_` names for
+  ICC-type quantities), [`anova()`](https://rdrr.io/r/stats/anova.html)
+  LRTs,
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md),
   [`influence()`](https://rdrr.io/r/stats/lm.influence.html),
-  [`frm_allfit()`](reference/frm_allfit.md),
-  [`frm_multiple()`](reference/frm_multiple.md) (Rubin pooling),
-  [`frm_simulate()`](reference/frm_simulate.md) (power analysis).
+  [`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md),
+  [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
+  (Rubin pooling),
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+  (power analysis).
 - Post-hoc NUTS on the fitted objective:
-  [`frm_sample()`](reference/frm_sample.md) with a full draws method
-  surface ([`posterior_epred()`](reference/posterior_epred.md),
-  [`posterior_predict()`](reference/posterior_epred.md),
-  [`hypothesis()`](reference/hypothesis.md), `pp_check()`) and
-  [`check_laplace()`](reference/check_laplace.md) to audit the
-  approximation.
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  with a full draws method surface
+  ([`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
+  `pp_check()`) and
+  [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+  to audit the approximation.
 - Diagnostics: OSA residuals, DHARMa, `pp_check()`,
   [`plot()`](https://rdrr.io/r/graphics/plot.default.html),
-  [`conditional_effects()`](reference/conditional_effects.md); ecosystem
-  hooks for emmeans, marginaleffects, and insight/easystats.
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md);
+  ecosystem hooks for emmeans, marginaleffects, and insight/easystats.
 
 ## Example
 
@@ -125,4 +132,5 @@ likelihood, C++ TMB; frmtmb matches its fits where the models overlap)
 and [BayesRTMB](https://github.com/norimune/BayesRTMB) (a
 Bayesian-first, Stan-like modeling layer on the same RTMB backend).
 
-See [SPEC.md](SPEC.md) for the design and `NEWS.md` for the changelog.
+See [SPEC.md](https://aforren1.github.io/frmtmb/SPEC.md) for the design
+and `NEWS.md` for the changelog.

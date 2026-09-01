@@ -16,8 +16,10 @@ check_custom_family(family, y, dpars, aterms = list(), tol = 1e-04)
 
 - family:
 
-  A `frmtmb_family` (from [`frmtmb_family()`](frmtmb_family.md) /
-  [`custom_family()`](frmtmb_family.md)).
+  A `frmtmb_family` (from
+  [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  /
+  [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)).
 
 - y:
 

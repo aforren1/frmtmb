@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.24.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.25.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/aforren1/frmtmb/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -61,7 +62,7 @@
       <h1>Getting started with frmtmb</h1>
             
       
-
+      <small class="dont-index">Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/vignettes/frmtmb.Rmd" class="external-link"><code>vignettes/frmtmb.Rmd</code></a></small>
       <div class="d-none name"><code>frmtmb.Rmd</code></div>
     </div>
 
@@ -231,13 +232,60 @@ bootstrap, and <code>confint(fit, method = "profile")</code> profiles
 single parameters.</p>
 </div>
 <div class="section level2">
+<h2 id="simulating-from-a-design">Simulating from a design<a class="anchor" aria-label="anchor" href="#simulating-from-a-design"></a>
+</h2>
+<p><code><a href="../reference/frm_simulate.html">frm_simulate()</a></code> builds a design from a formula and data,
+sets the parameters, and simulates responses - no fit needed. This is
+the power analysis loop: simulate, refit, count. Parameters take the
+same names <code><a href="../reference/hypothesis.html">hypothesis()</a></code> and <code><a href="../reference/variables.html">variables()</a></code> use,
+on their natural scales (coefficients on the link scale,
+<code>sigma</code> as a residual SD,
+<code>sd_&lt;group&gt;__&lt;term&gt;</code> as a standard
+deviation):</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">120</span><span class="op">)</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">12</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>, y <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="va">form</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">sims</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_simulate.html">frm_simulate</a></span><span class="op">(</span><span class="va">form</span>, <span class="va">dd</span>, nsim <span class="op">=</span> <span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>                     newparams <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>Intercept <span class="op">=</span> <span class="fl">1</span>, x <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>                                      sigma <span class="op">=</span> <span class="fl">0.6</span>,</span>
+<span>                                      sd_g__Intercept <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sims</span>, max.level <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
+<span><span class="co">#&gt; 'data.frame':    120 obs. of  3 variables:</span></span></code></pre></div>
+<p>Give <code>priors</code> instead and every simulation draws its own
+parameter vector first - the analog of brms’s
+<code>sample_prior = "only"</code> followed by
+<code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>. The drawn parameters come back as an
+attribute, so a prior-predictive check can relate parameters to
+outcomes:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_simulate.html">frm_simulate</a></span><span class="op">(</span><span class="va">form</span>, <span class="va">dd</span>, nsim <span class="op">=</span> <span class="fl">50</span>, seed <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>                   priors <span class="op">=</span> <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>                     <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 2)"</span>, class <span class="op">=</span> <span class="st">"Intercept"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>                     <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>                     <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"Intercept"</span>,</span>
+<span>                               dpar <span class="op">=</span> <span class="st">"sigma"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">pars</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">pp</span>, <span class="st">"pars"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">pars</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;            x   Intercept sd_g__Intercept sigma_Intercept</span></span>
+<span><span class="co">#&gt; 1 -0.8969145  0.36969837      0.08952618      0.96788388</span></span>
+<span><span class="co">#&gt; 2 -0.5431617 -0.03157483      1.43689377      1.89509840</span></span>
+<span><span class="co">#&gt; 3  0.6668503  1.54729045      1.12473222     -0.03551988</span></span>
+<span><span class="co"># does the prior imply plausible data? slope against outcome spread</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">x</span>, <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">pp</span>, <span class="fl">2</span>, <span class="va">sd</span><span class="op">)</span>, xlab <span class="op">=</span> <span class="st">"slope"</span>, ylab <span class="op">=</span> <span class="st">"sd(y)"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="frmtmb_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" alt="" width="700"></p>
+<p>Every coefficient and every random-effect SD needs a value from
+<code>newparams</code> or a prior; leaving one out is an error rather
+than a silent zero effect.</p>
+</div>
+<div class="section level2">
 <h2 id="diagnostics">Diagnostics<a class="anchor" aria-label="anchor" href="#diagnostics"></a>
 </h2>
 <p><code>diagnose(fit)</code> reports convergence forensics.
 Simulation-based residuals come through DHARMa, predictive checks
 through <code>pp_check()</code>, and effect displays through
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code>:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="../reference/dharma_residuals.html">dharma_residuals</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="../reference/conditional_effects.html">conditional_effects</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>And the fitted objective can be handed to NUTS for full Bayes on the
@@ -246,7 +294,7 @@ method surface (<code><a href="../reference/posterior_epred.html">posterior_epre
 <code><a href="../reference/hypothesis.html">hypothesis()</a></code>, <code>pp_check()</code>), and
 <code><a href="../reference/check_laplace.html">check_laplace()</a></code> audits the Laplace approximation against
 them:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/check_laplace.html">check_laplace</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
 <p>See <code><a href="../articles/brms-migration.html">vignette("brms-migration")</a></code> for the brms feature map

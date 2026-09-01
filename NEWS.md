@@ -1,3 +1,65 @@
+# frmtmb 0.25.0
+
+Simulation-workflow ergonomics, the last deferred method-surface
+items, and CRAN readiness.
+
+## New
+
+* `frm_simulate()` accepts natural-scale parameter names - the same
+  vocabulary as `hypothesis()`/`variables()`: coefficients by name,
+  `sd_<group>__<term>`, `cor_<group>__<t1>__<t2>`, response-scale
+  `sigma` - inverted to the internal parameterization through the
+  covariance registry (us/diag/homdiag/smooth/gr structures;
+  others refuse by block name). The internal spelling still works
+  and is byte-identical.
+* Prior-predictive simulation, the `sample_prior = "only"` analog:
+  `frm_simulate(..., priors = set_prior(...))` draws a fresh
+  parameter vector per replicate on each prior class's documented
+  scale (natural SDs for class `sd`, truncation by rejection) and
+  attaches the drawn parameters for prior-predictive checks. Every
+  coefficient and SD must be pinned by a prior or `newparams`;
+  omissions error instead of silently becoming zero effects.
+* `simulate(censored = TRUE)` applies the fitted type-I censoring
+  mechanism to the draws; the default remains the latent uncensored
+  response, which is also brms's `posterior_predict` convention
+  (verified against brms source) and is now documented.
+* `residuals(type = "deviance")` across the GLM family set
+  (gaussian, poisson, binomial/bernoulli, Gamma, exponential,
+  inverse.gaussian, nbinom1/2, geometric, beta, tweedie), exact
+  against `stats::glm` where glm offers them; families without a
+  standard unit deviance refuse by name. `deviance()` itself stays
+  `-2 logLik` (lme4 convention).
+* `predict(type = "response", se.fit = TRUE)` now works for
+  non-identity-mean families (zi/hurdle, lognormal, trials-binomial,
+  truncated responses) through a joint delta method across all dpar
+  linear predictors, including cross-dpar covariance (agrees with
+  glmmTMB's response-scale standard errors to 1.2e-5 on a
+  zero-inflated poisson mixed model).
+
+## Corrected behavior
+
+* `conditional_effects(method = "predict")` evaluates addition terms
+  on the effect grid, so its bands respect `trials()` and `trunc()`
+  (binomial bands are counts in [0, n], not Bernoulli 0/1); aterm
+  variables must be pinned in `conditions`, and the error names the
+  variable.
+
+## CRAN and infrastructure
+
+* Heavy reference-validation test files are `skip_on_cran()`-gated:
+  the CRAN-condition suite drops from ~128s to ~72s on the
+  development machine while CI (NOT_CRAN=true) keeps full coverage.
+* nlme added to Suggests (a test uses `nlme::Soybean` as reference
+  data; CI's `--as-cran` unstated-dependency check halts without the
+  declaration).
+* Benchmark verdict recorded in dev/benchmarks.md: optimParallel is
+  not adopted - with exact AD gradients its concurrency caps at two
+  evaluations (measured 1.03-1.22x end to end, slower with cold
+  clusters), RTMB tapes cannot ship to PSOCK workers, and 100% of
+  InstEval's optimization time is inside the taped objective and the
+  inner sparse Cholesky. `frmtmb_control(profile = TRUE)` remains
+  the measured lever for many-coefficient models (1.6x there).
+
 # frmtmb 0.24.0
 
 The quadrature and OSA defect clusters surfaced by the fuzzer and

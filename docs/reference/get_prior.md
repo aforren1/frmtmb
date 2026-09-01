@@ -1,11 +1,14 @@
 # Enumerate the targetable prior slots
 
-The [`set_prior()`](set_prior.md) counterpart of brms's `get_prior()`:
-one row per slot a prior can target, with the class/coef/dpar/group
-values to pass to [`set_prior()`](set_prior.md). The default in every
-slot is flat (this is maximum likelihood until priors are set). Class
-`"sd"` is targeted by `group` only; class `"theta"` rows name the raw
-internal covariance parameters (escape hatch, including correlations).
+The
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+counterpart of brms's `get_prior()`: one row per slot a prior can
+target, with the class/coef/dpar/group values to pass to
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md).
+The default in every slot is flat (this is maximum likelihood until
+priors are set). Class `"sd"` is targeted by `group` only; class
+`"theta"` rows name the raw internal covariance parameters (escape
+hatch, including correlations).
 
 ## Usage
 
@@ -17,8 +20,8 @@ get_prior(formula, data = NULL, family = NULL)
 
 - formula:
 
-  A [`bf()`](bf.md) formula (with family), a plain formula, or an
-  already fitted `frmtmb_fit`.
+  A [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) formula
+  (with family), a plain formula, or an already fitted `frmtmb_fit`.
 
 - data:
 

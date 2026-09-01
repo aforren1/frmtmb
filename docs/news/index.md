@@ -1,5 +1,70 @@
 # Changelog
 
+## frmtmb 0.25.0
+
+Simulation-workflow ergonomics, the last deferred method-surface items,
+and CRAN readiness.
+
+### New
+
+- [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+  accepts natural-scale parameter names - the same vocabulary as
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)/[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md):
+  coefficients by name, `sd_<group>__<term>`, `cor_<group>__<t1>__<t2>`,
+  response-scale `sigma` - inverted to the internal parameterization
+  through the covariance registry (us/diag/homdiag/smooth/gr structures;
+  others refuse by block name). The internal spelling still works and is
+  byte-identical.
+- Prior-predictive simulation, the `sample_prior = "only"` analog:
+  `frm_simulate(..., priors = set_prior(...))` draws a fresh parameter
+  vector per replicate on each prior class’s documented scale (natural
+  SDs for class `sd`, truncation by rejection) and attaches the drawn
+  parameters for prior-predictive checks. Every coefficient and SD must
+  be pinned by a prior or `newparams`; omissions error instead of
+  silently becoming zero effects.
+- `simulate(censored = TRUE)` applies the fitted type-I censoring
+  mechanism to the draws; the default remains the latent uncensored
+  response, which is also brms’s `posterior_predict` convention
+  (verified against brms source) and is now documented.
+- `residuals(type = "deviance")` across the GLM family set (gaussian,
+  poisson, binomial/bernoulli, Gamma, exponential, inverse.gaussian,
+  nbinom1/2, geometric, beta, tweedie), exact against
+  [`stats::glm`](https://rdrr.io/r/stats/glm.html) where glm offers
+  them; families without a standard unit deviance refuse by name.
+  [`deviance()`](https://rdrr.io/r/stats/deviance.html) itself stays
+  `-2 logLik` (lme4 convention).
+- `predict(type = "response", se.fit = TRUE)` now works for
+  non-identity-mean families (zi/hurdle, lognormal, trials-binomial,
+  truncated responses) through a joint delta method across all dpar
+  linear predictors, including cross-dpar covariance (agrees with
+  glmmTMB’s response-scale standard errors to 1.2e-5 on a zero-inflated
+  poisson mixed model).
+
+### Corrected behavior
+
+- `conditional_effects(method = "predict")` evaluates addition terms on
+  the effect grid, so its bands respect `trials()` and
+  [`trunc()`](https://rdrr.io/r/base/Round.html) (binomial bands are
+  counts in \[0, n\], not Bernoulli 0/1); aterm variables must be pinned
+  in `conditions`, and the error names the variable.
+
+### CRAN and infrastructure
+
+- Heavy reference-validation test files are `skip_on_cran()`-gated: the
+  CRAN-condition suite drops from ~128s to ~72s on the development
+  machine while CI (NOT_CRAN=true) keeps full coverage.
+- nlme added to Suggests (a test uses
+  [`nlme::Soybean`](https://rdrr.io/pkg/nlme/man/Soybean.html) as
+  reference data; CI’s `--as-cran` unstated-dependency check halts
+  without the declaration).
+- Benchmark verdict recorded in dev/benchmarks.md: optimParallel is not
+  adopted - with exact AD gradients its concurrency caps at two
+  evaluations (measured 1.03-1.22x end to end, slower with cold
+  clusters), RTMB tapes cannot ship to PSOCK workers, and 100% of
+  InstEval’s optimization time is inside the taped objective and the
+  inner sparse Cholesky. `frmtmb_control(profile = TRUE)` remains the
+  measured lever for many-coefficient models (1.6x there).
+
 ## frmtmb 0.24.0
 
 The quadrature and OSA defect clusters surfaced by the fuzzer and
@@ -13,22 +78,24 @@ compatibility registry.
   frmtmb taped at the cold start. A plain Laplace fit now runs first and
   the quadrature tape is built at its optimum. This fixes: conditional
   modes returned as NA
-  ([`ranef()`](../reference/ranef.md)/[`fitted()`](https://rdrr.io/r/stats/fitted.values.html)/[`predict()`](https://rdrr.io/r/stats/predict.html)
+  ([`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md)/[`fitted()`](https://rdrr.io/r/stats/fitted.values.html)/[`predict()`](https://rdrr.io/r/stats/predict.html)
   were silently NA for all groups but the first, whose slot held a wrong
   value) - modes now come from the Laplace inner solve and match
-  `glmer(nAGQ = 25)`’s [`ranef()`](../reference/ranef.md) to 3e-5; and
-  bare “NA/NaN gradient evaluation” crashes for poisson/Gamma/Beta with
-  nested or even single scalar blocks - all now fit with gradients \<
-  3e-4.
+  `glmer(nAGQ = 25)`’s
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) to
+  3e-5; and bare “NA/NaN gradient evaluation” crashes for
+  poisson/Gamma/Beta with nested or even single scalar blocks - all now
+  fit with gradients \< 3e-4.
 - `quadrature` combined with
   [`trunc()`](https://rdrr.io/r/base/Round.html) produced logLik = +Inf
   as a successful fit; the combination is refused (the CDF difference
   underflows at quadrature nodes; a stable fix needs log-CDF forms).
-  [`mixture()`](../reference/mixture.md) with `REML` or `profile = TRUE`
-  is refused: both Laplace-expand the mu coefficients around a single
-  mode, and a mixture likelihood is permutation-multimodal in exactly
-  those coefficients. [`mixture()`](../reference/mixture.md) with
-  quadrature remains supported.
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  with `REML` or `profile = TRUE` is refused: both Laplace-expand the mu
+  coefficients around a single mode, and a mixture likelihood is
+  permutation-multimodal in exactly those coefficients.
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  with quadrature remains supported.
 - `residuals(type = "osa")` on censored fits was broken (raw LAPACK
   singularity or NaN for every censored row). Uncensored rows now get
   calibrated one-step residuals by conditioning on the censoring window
@@ -46,13 +113,15 @@ compatibility registry.
 - A singular joint precision under REML or `profile = TRUE` no longer
   throws a raw LAPACK error from
   [`vcov()`](https://rdrr.io/r/stats/vcov.html)/[`summary()`](https://rdrr.io/r/base/summary.html)/[`confint()`](https://rdrr.io/r/stats/confint.html)/
-  [`hypothesis()`](../reference/hypothesis.md): it degrades to NaN
-  standard errors with one warning pointing at
-  [`diagnose()`](../reference/diagnose.md), matching the ML branch.
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md):
+  it degrades to NaN standard errors with one warning pointing at
+  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md),
+  matching the ML branch.
 - The brms-migration vignette documents that
   [`binomial()`](https://rdrr.io/r/stats/family.html) without `trials()`
   means Bernoulli here (glm convention) where brms requires `trials()`
-  or [`bernoulli()`](../reference/frmtmb-families.md).
+  or
+  [`bernoulli()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md).
 
 The fuzz tier’s open findings drop from 28 to 16 on the identical plan;
 most of the remainder are now informative refusals on thin-data edge
@@ -72,9 +141,10 @@ feature-compatibility registry.
   truncated mean E\[Y \| lb \<= Y \<= ub\] (closed forms for all six CDF
   families, validated to 1e-15);
   [`simulate()`](https://rdrr.io/r/stats/simulate.html),
-  [`posterior_predict()`](../reference/posterior_epred.md), and
-  [`frm_simulate()`](../reference/frm_simulate.md) rejection-sample
-  within bounds; newdata re-evaluates variable bounds.
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+  and
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+  rejection-sample within bounds; newdata re-evaluates variable bounds.
   `residuals(type = "osa")` on truncated (and untruncated gaussian)
   responses was also miscalibrated and now integrates over the truncated
   support (KS uniformity restored from p ~ 1e-15 to 0.76-0.97).
@@ -89,8 +159,8 @@ feature-compatibility registry.
 - `ar1()`/`hetar1()` warn when the ordering factor’s integer levels have
   gaps: levels correlate by position (the glmmTMB reading, unchanged),
   so a gap counts as one step; the warning points at `ou()` over
-  [`num_factor()`](../reference/num_factor.md) for irregular spacing
-  (glmmTMB#1278).
+  [`num_factor()`](https://aforren1.github.io/frmtmb/reference/num_factor.md)
+  for irregular spacing (glmmTMB#1278).
 - Predictions at non-estimable points of a rank-deficient design return
   NA with one warning naming the aliased columns, instead of silently
   returning the partial sum (predict.lm semantics; lme4#303). Collinear
@@ -102,22 +172,22 @@ feature-compatibility registry.
   multipliers must be numeric (brms#1828);
   [`anova()`](https://rdrr.io/r/stats/anova.html) requires equal `nobs`
   (lme4#622).
-- [`frm_sample()`](../reference/frm_sample.md) chain initialization:
-  chain 1 anchors at the ML mode, further chains are jittered on the
-  unconstrained scale (`init_jitter`), restoring the overdispersion Rhat
-  needs; a boundary-mode warning fires for singular fits; mixture
-  posteriors are documented as needing `init = "random"`.
+- [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  chain initialization: chain 1 anchors at the ML mode, further chains
+  are jittered on the unconstrained scale (`init_jitter`), restoring the
+  overdispersion Rhat needs; a boundary-mode warning fires for singular
+  fits; mixture posteriors are documented as needing `init = "random"`.
 
 ### New
 
 - Feature compatibility registry:
-  [`frm_compat()`](../reference/frm_compat.md) answers what plays with
-  what (works / conditional / refused / broken / untested) across 3750
-  feature pairs, and the new “Feature compatibility” article is
-  generated from the registry at build time so it cannot drift.
-  Known-broken pairs are listed there; the registry probing itself
-  surfaced trunc x quadrature and cens x OSA as broken (queued for the
-  next fix wave).
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  answers what plays with what (works / conditional / refused / broken /
+  untested) across 3750 feature pairs, and the new “Feature
+  compatibility” article is generated from the registry at build time so
+  it cannot drift. Known-broken pairs are listed there; the registry
+  probing itself surfaced trunc x quadrature and cens x OSA as broken
+  (queued for the next fix wave).
 - An audit of 559 currently open brms/lme4/glmmTMB issues is recorded in
   dev/test-backlog.md, including the pathologies frmtmb is structurally
   immune to.
@@ -183,16 +253,16 @@ ergonomics.
   iteration trace. Bootstrap, influence, and allfit refit loops stay
   quiet.
 - The large-gradient warning now points to
-  [`diagnose()`](../reference/diagnose.md) and the new “Convergence
-  problems” remedy ladder in the diagnostics vignette (scaling,
-  restarts, optimizer comparison, profiles, boundary fits, and judging
-  marginal gradients).
-- [`frm_allfit()`](../reference/frm_allfit.md)’s nloptr optimizer
-  produced an empty row: nloptr rejects callbacks that declare `...`
-  (RTMB’s `obj$fn`/`obj$gr` do), and the error was swallowed;
-  separately, missing `ftol_rel` made NLopt report failure at the
-  converged optimum. Both fixed; the agreement test now requires every
-  optimizer to converge and match.
+  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+  and the new “Convergence problems” remedy ladder in the diagnostics
+  vignette (scaling, restarts, optimizer comparison, profiles, boundary
+  fits, and judging marginal gradients).
+- [`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)’s
+  nloptr optimizer produced an empty row: nloptr rejects callbacks that
+  declare `...` (RTMB’s `obj$fn`/`obj$gr` do), and the error was
+  swallowed; separately, missing `ftol_rel` made NLopt report failure at
+  the converged optimum. Both fixed; the agreement test now requires
+  every optimizer to converge and match.
 - The brms-migration vignette documents how to recover the model
   function (the `stancode()` analog): the objective closure via
   `build_objective(fit$frame)`, its joint-vs-marginal relationship to
@@ -226,7 +296,8 @@ code review.
   instead. Bounding a profiled coefficient now errors;
   covariance-parameter bounds land on the right slot.
 - [`confint()`](https://rdrr.io/r/stats/confint.html),
-  `vcov(full = TRUE)`, and [`diagnose()`](../reference/diagnose.md)
+  `vcov(full = TRUE)`, and
+  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
   labels were broken or misaligned on `mi()` fits: the latent imputation
   component was counted as an outer parameter.
 - `frm_sample(priors = )` failed on fixed-effects-only fits of
@@ -244,7 +315,7 @@ code review.
   instead of clobbering the global stream.
 - A covariate literally named `sigma` is no longer shadowed by the
   residual sigma in
-  [`hypothesis()`](../reference/hypothesis.md)/[`variables()`](../reference/variables.md).
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)/[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md).
 - In `predict(newdata = )`, an NA in a variable used only in a
   random-effect design now propagates to the prediction instead of being
   silently zeroed (only genuinely new levels predict at the population
@@ -272,8 +343,9 @@ code review.
 - [`predict()`](https://rdrr.io/r/stats/predict.html) accepts the
   lme4/glmmTMB `allow.new.levels` dot spelling.
 - On draws objects:
-  [`posterior_linpred()`](../reference/posterior_epred.md) and
-  [`ranef()`](../reference/ranef.md) (brms-shaped arrays).
+  [`posterior_linpred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+  and [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md)
+  (brms-shaped arrays).
 - [`emmeans::recover_data`](https://rvlenth.github.io/emmeans/reference/extending-emmeans.html)
   had been silently missing from NAMESPACE since v0.13 (orphaned export
   tag); emmeans support was broken.
@@ -297,11 +369,11 @@ code review.
   weights are multinomial-logit dpars with their own formulas. Validated
   against a hand-rolled ML fit to 1.3e-10 and against faithful-data
   cluster recovery. Limitations (documented in
-  [`?mixture_mvn`](../reference/mixture_mvn.md)): class covariances are
-  unstructured (`us`) and covariate-free - no mclust-style constrained
-  covariance taxonomy (EII..VEV);
+  [`?mixture_mvn`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)):
+  class covariances are unstructured (`us`) and covariate-free - no
+  mclust-style constrained covariance taxonomy (EII..VEV);
   `cens()`/[`trunc()`](https://rdrr.io/r/base/Round.html),
-  [`mvbf()`](../reference/mvbf.md), and
+  [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md), and
   [`simulate()`](https://rdrr.io/r/stats/simulate.html) are not
   supported.
 - Multi-dimensional Gaussian processes: `gp(x1, x2, ...)` takes up to
@@ -309,9 +381,9 @@ code review.
   (the brms convention) or one shared lengthscale via `iso = TRUE`, in
   both the exact and the Hilbert-space (`k =`) form. The tensor HSGP
   basis is capped at `k^D <= 1000` columns.
-  [`confint_varcorr()`](../reference/confint_varcorr.md) reports one
-  range row per dimension. Validated against a direct 2-D ML fit to
-  3.8e-11.
+  [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+  reports one range row per dimension. Validated against a direct 2-D ML
+  fit to 3.8e-11.
 - Kriging prediction for the exact `gp()`: `predict(newdata = )` at
   positions not seen at fit time now returns the GP conditional mean,
   and `se.fit = TRUE` adds the conditional variance, instead of
@@ -336,13 +408,14 @@ code review.
   warnings into 0 on the validation problem with a 0.0 log-likelihood
   difference against a manually standardized reference. Reported results
   are always on the original scale.
-- [`frm_multiple()`](../reference/frm_multiple.md) pooling extensions:
-  `$pooled_varcorr` pools random-effect SDs and correlations across
-  imputations on transformed scales (log for SDs and GP ranges, Fisher z
-  for correlations) with Barnard-Rubin degrees of freedom, and
-  [`hypothesis()`](../reference/hypothesis.md) on a `frmtmb_multiple`
-  object pools delta-method hypothesis estimates by Rubin’s rules with
-  t-based intervals. Fixed-effect pooling matches
+- [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
+  pooling extensions: `$pooled_varcorr` pools random-effect SDs and
+  correlations across imputations on transformed scales (log for SDs and
+  GP ranges, Fisher z for correlations) with Barnard-Rubin degrees of
+  freedom, and
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  on a `frmtmb_multiple` object pools delta-method hypothesis estimates
+  by Rubin’s rules with t-based intervals. Fixed-effect pooling matches
   [`mice::pool()`](https://amices.org/mice/reference/pool.html) to
   2.1e-6. Likelihood-ratio pooling across imputations (mice’s D3) is not
   implemented; [`anova()`](https://rdrr.io/r/stats/anova.html) on pooled
@@ -366,18 +439,20 @@ code review.
   intercepts couple.
   [`simulate()`](https://rdrr.io/r/stats/simulate.html) now draws one
   class per group and then simulates each observation from its group’s
-  component; [`mixture_probs()`](../reference/mixture_probs.md) gives
-  empirical-Bayes classification conditional on the modes.
-- [`variables()`](../reference/variables.md) (brms spelling): lists
-  every parameter name usable in
-  [`hypothesis()`](../reference/hypothesis.md) expressions
-  (coefficients, `sd_`/`cor_` summaries, `sigma`); on
-  [`frm_sample()`](../reference/frm_sample.md) output it lists the draw
-  columns.
-- [`get_prior()`](../reference/get_prior.md) (brms spelling): enumerates
-  every slot [`set_prior()`](../reference/set_prior.md) can target
-  (class/coef/dpar/group rows), from a formula plus data or from a fit;
-  the default in every slot is flat.
+  component;
+  [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
+  gives empirical-Bayes classification conditional on the modes.
+- [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+  (brms spelling): lists every parameter name usable in
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  expressions (coefficients, `sd_`/`cor_` summaries, `sigma`); on
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  output it lists the draw columns.
+- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  (brms spelling): enumerates every slot
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  can target (class/coef/dpar/group rows), from a formula plus data or
+  from a fit; the default in every slot is flat.
 - README rewritten for the current scope, with related-work pointers
   (glmmTMB, BayesRTMB); getting-started vignette extended to the full
   grammar; SPEC.md status and deviations brought current.
@@ -393,8 +468,8 @@ The last three roadmap features.
   direct GP marginal ML; the approximation converges to the exact answer
   and predicts at arbitrary positions (the exact form predicts at
   observed positions only).
-  [`confint_varcorr()`](../reference/confint_varcorr.md) reports
-  `sd(gp)` and `range(gp)`.
+  [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+  reports `sd(gp)` and `range(gp)`.
 - `mo()` and `mi()` interactions: `mo(x):z`, `mo(x)*z`, `mi(x):z`,
   `mi(x)*z` with numeric multipliers; `mo()` interactions share their
   variable’s simplex (brms convention). Both validated exact against
@@ -403,9 +478,10 @@ The last three roadmap features.
 - Group-level latent-class mixtures: `mixture(..., groups = ~g)` sums
   the class assignment per group (growth-mixture / latent-class
   regression; the tractable nested case of brms#1905). Exact against
-  direct ML; [`mixture_probs()`](../reference/mixture_probs.md) returns
-  posterior class probabilities per group, or per observation for
-  ordinary mixtures. Restrictions: no random effects or smooths
+  direct ML;
+  [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
+  returns posterior class probabilities per group, or per observation
+  for ordinary mixtures. Restrictions: no random effects or smooths
   alongside, mixing predictors evaluated at each group’s first row, no
   [`simulate()`](https://rdrr.io/r/stats/simulate.html) yet.
   Crossed-design group mixtures remain out of the Laplace class.
@@ -423,8 +499,8 @@ grammar gaps.
   formula. Exact against direct ML for gaussian and poisson mixtures.
   Component means initialize on spread response quantiles; the usual
   finite-mixture multimodality caveats apply
-  ([`frm_allfit()`](../reference/frm_allfit.md), or order intercepts via
-  bounds).
+  ([`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md),
+  or order intercepts via bounds).
 - `mi(sdx)` measurement error (brms `me()`): known per-observation
   measurement SDs make every true value latent, with the observed values
   entering through a measurement model. Exact against the closed-form
@@ -471,9 +547,9 @@ fits.
 
 - `mo()` monotonic effects (brms syntax): scale coefficient times an
   estimated simplex, exact against direct ML; works in prediction,
-  [`conditional_effects()`](../reference/conditional_effects.md), and
-  with ordered factors. No frequentist package offers this. Standalone
-  additive terms only for now.
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md),
+  and with ordered factors. No frequentist package offers this.
+  Standalone additive terms only for now.
 - Sequential ordinal families `sratio`, `cratio`, `acat`, validated
   against direct ML and collapsing to logistic regression at K = 2.
 - Covariance structures: `hetar1`, `homcs`, `homtoep` (glmmTMB
@@ -488,26 +564,31 @@ fits.
 - `influence(fit, groups = )` and
   [`cooks.distance()`](https://rdrr.io/r/stats/influence.measures.html):
   case-deletion diagnostics over warm-started refits.
-- [`frm_multiple()`](../reference/frm_multiple.md): fits across
-  multiply-imputed datasets (list or
+- [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md):
+  fits across multiply-imputed datasets (list or
   [`mice::mids`](https://amices.org/mice/reference/mids.html)) pooled by
   Rubin’s rules with Barnard-Rubin df.
-- [`conditional_effects()`](../reference/conditional_effects.md) gains
-  `method = "predict"` (prediction intervals) and data-frame
+- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  gains `method = "predict"` (prediction intervals) and data-frame
   `conditions` (one condition set per row, brms style).
 - `vint()`/`vreal()` addition terms pass arbitrary data vectors to
   custom families (brms custom-family convention). The test suite
   includes a full Wiener drift-diffusion model written as a
-  [`custom_family()`](../reference/frmtmb_family.md) in plain R - the
-  workflow brms needs raw Stan code for.
-- Method surface for [`frm_sample()`](../reference/frm_sample.md) draws:
-  [`summary()`](https://rdrr.io/r/base/summary.html) (with Rhat/ESS),
-  [`fixef()`](../reference/fixef.md),
-  [`VarCorr()`](../reference/VarCorr.md) (natural scale),
-  [`hypothesis()`](../reference/hypothesis.md) (exact posterior
-  version), [`posterior_epred()`](../reference/posterior_epred.md) /
-  [`posterior_predict()`](../reference/posterior_epred.md) (each draw
-  runs the full prediction machinery), `pp_check()`, and
+  [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  in plain R - the workflow brms needs raw Stan code for.
+- Method surface for
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  draws: [`summary()`](https://rdrr.io/r/base/summary.html) (with
+  Rhat/ESS),
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  (natural scale),
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  (exact posterior version),
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+  /
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+  (each draw runs the full prediction machinery), `pp_check()`, and
   [`posterior::as_draws()`](https://mc-stan.org/posterior/reference/draws.html).
 - Examples added across the reference (run by R CMD check).
 
@@ -534,13 +615,14 @@ vignettes (dev/feature-gaps.md).
   convention: fixed-effect uncertainty propagates), plus tidy
   [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) methods
   for `ranef` and `VarCorr` output.
-- [`frm_allfit()`](../reference/frm_allfit.md): refit under every
-  available optimizer (nlminb, optim, bobyqa, NLopt) and compare, the
-  lme4 `allFit()` analog.
-- [`frm_simulate()`](../reference/frm_simulate.md): de novo simulation
-  from a [`bf()`](../reference/bf.md) formula and supplied parameters
-  with no fitted model (power analysis; the glmmTMB `simulate_new()`
-  analog).
+- [`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md):
+  refit under every available optimizer (nlminb, optim, bobyqa, NLopt)
+  and compare, the lme4 `allFit()` analog.
+- [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md):
+  de novo simulation from a
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) formula
+  and supplied parameters with no fitted model (power analysis; the
+  glmmTMB `simulate_new()` analog).
 - `frmtmb_control(profile = TRUE)` (experimental): profile the
   primary-coefficient vector into the inner Laplace problem, the
   `glmmTMBControl(profile = TRUE)` / `glmer(nAGQ = 0)` speed
@@ -563,33 +645,36 @@ downstream packages and user muscle memory dispatch on.
   [`extractAIC()`](https://rdrr.io/r/stats/extractAIC.html) (enables
   [`step()`](https://rdrr.io/r/stats/step.html) /
   [`drop1()`](https://rdrr.io/r/stats/add1.html)),
-  [`ngrps()`](../reference/ngrps.md),
-  [`prior_summary()`](../reference/prior_summary.md), and a
-  [`profile()`](https://rdrr.io/r/stats/profile.html) method wrapping
+  [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md),
+  [`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md),
+  and a [`profile()`](https://rdrr.io/r/stats/profile.html) method
+  wrapping
   [`TMB::tmbprofile()`](https://rdrr.io/pkg/TMB/man/tmbprofile.html).
 - **Breaking**: [`coef()`](https://rdrr.io/r/stats/coef.html) now
   follows the lme4 / glmmTMB / brms convention (per-group coefficients:
   fixed effects broadcast over levels plus the conditional modes). Use
-  [`fixef()`](../reference/fixef.md) for the fixed effects alone. Fits
-  without random effects still return the coefficient vector.
-- [`conditional_effects()`](../reference/conditional_effects.md) with a
-  base-graphics [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
-  method: grid predictions per predictor (or `"x:z"` pair) with Wald
-  bands, smooths included, matrix covariates held at column means.
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) for
+  the fixed effects alone. Fits without random effects still return the
+  coefficient vector.
+- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  with a base-graphics
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method: grid
+  predictions per predictor (or `"x:z"` pair) with Wald bands, smooths
+  included, matrix covariates held at column means.
 - `plot(fit)`: Pearson-residual diagnostics (residuals vs fitted, normal
   QQ).
 - `pp_check()` (registered on the bayesplot generic): predictive checks
   from [`simulate()`](https://rdrr.io/r/stats/simulate.html) draws
   through any `ppc_*` function.
-- [`hypothesis()`](../reference/hypothesis.md): tests of arbitrary
-  expressions of the parameters, brms spelling, with three methods:
-  delta-method Wald (default), `"profile"` (profile-likelihood intervals
-  via [`TMB::tmbroot()`](https://rdrr.io/pkg/TMB/man/tmbroot.html)
-  lincombs; linear hypotheses, ML fits), and `"boot"` (parametric
-  bootstrap percentile intervals; any expression). The expression
-  environment includes natural-scale random-effect names
-  (`sd_<group>__<term>`, `cor_<group>__<t1>__<t2>`, `sigma`), so ICC
-  inference is
+- [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md):
+  tests of arbitrary expressions of the parameters, brms spelling, with
+  three methods: delta-method Wald (default), `"profile"`
+  (profile-likelihood intervals via
+  [`TMB::tmbroot()`](https://rdrr.io/pkg/TMB/man/tmbroot.html) lincombs;
+  linear hypotheses, ML fits), and `"boot"` (parametric bootstrap
+  percentile intervals; any expression). The expression environment
+  includes natural-scale random-effect names (`sd_<group>__<term>`,
+  `cor_<group>__<t1>__<t2>`, `sigma`), so ICC inference is
   `hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)", method = "boot")`.
   The result is a `frmtmb_hypothesis` data frame carrying the bootstrap
   draws or profile curves in attributes, with a
@@ -597,7 +682,8 @@ downstream packages and user muscle memory dispatch on.
   (bootstrap histogram, profile curve, or the implied Wald normal, per
   hypothesis).
 - `frm_bootstrap(fit, FUN, nsim)`: parametric bootstrap over
-  [`refit()`](../reference/refit.md)s (the `bootMer` analog), with
+  [`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md)s
+  (the `bootMer` analog), with
   [`confint()`](https://rdrr.io/r/stats/confint.html) percentile
   intervals.
 - `refit(fit, newresp)`: refit to a new response reusing the assembled
@@ -615,27 +701,30 @@ Pre-release consolidation toward CRAN. Highlights by milestone:
 
 ### Model grammar (brms-compatible spelling)
 
-- [`bf()`](../reference/bf.md) with distributional-parameter formulas
-  carrying the full predictor grammar (random effects and smooths in any
-  dpar), constant dpars, and addition terms
-  [`weights()`](https://rdrr.io/r/stats/weights.html), `trials()`,
+- [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) with
+  distributional-parameter formulas carrying the full predictor grammar
+  (random effects and smooths in any dpar), constant dpars, and addition
+  terms [`weights()`](https://rdrr.io/r/stats/weights.html), `trials()`,
   `cens()` (left / right / interval),
   [`trunc()`](https://rdrr.io/r/base/Round.html) (with the inclusive
   discrete correction).
 - Nonlinear formulas (`nl = TRUE`) with a full linear predictor per
   parameter.
-- Multivariate models: [`mvbf()`](../reference/mvbf.md) / `bf() + bf()`
-  / `mvbind()`, a family per response, gaussian residual correlation
-  ([`set_rescor()`](../reference/mvbf.md)), and `|ID|` random-effect
-  correlation across formulas.
+- Multivariate models:
+  [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md) /
+  `bf() + bf()` / `mvbind()`, a family per response, gaussian residual
+  correlation
+  ([`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)),
+  and `|ID|` random-effect correlation across formulas.
 - mgcv smooths `s()` / `t2()` in any linear predictor, including
   matrix-covariate summation-convention terms: scalar-on-function,
   function-on-scalar, and function-on-function regression validated
   against mgcv.
 - Covariance structures: `us`, `diag`, `homdiag`, `cs`, `ar1`, `toep`,
-  `ou` (positions via [`num_factor()`](../reference/num_factor.md)), and
-  known-structure terms `gr(g, cov = A)` (dense, with correlated slopes
-  via a Kronecker product) and `gr(g, prec = Q)` (sparse GMRF).
+  `ou` (positions via
+  [`num_factor()`](https://aforren1.github.io/frmtmb/reference/num_factor.md)),
+  and known-structure terms `gr(g, cov = A)` (dense, with correlated
+  slopes via a Kronecker product) and `gr(g, prec = Q)` (sparse GMRF).
 
 ### Families
 
@@ -643,10 +732,10 @@ gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial,
 nbinom1, beta, tweedie, compois, beta_binomial, skew_normal,
 inverse.gaussian, exgaussian, zero-inflated and hurdle counts,
 cumulative ordinal, matrix-response multinomial, and
-[`custom_family()`](../reference/frmtmb_family.md) as a plain R
-log-density with
-[`check_custom_family()`](../reference/check_custom_family.md) AD
-verification.
+[`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+as a plain R log-density with
+[`check_custom_family()`](https://aforren1.github.io/frmtmb/reference/check_custom_family.md)
+AD verification.
 
 ### Estimation and inference
 
@@ -654,28 +743,29 @@ verification.
   scalar random effects to adaptive Gauss-Kronrod marginalization
   (matches `glmer(nAGQ = 25)` and GLMMadaptive).
 - MAP / regularized ML via brms-style
-  [`set_prior()`](../reference/set_prior.md); hard bounds (`lower` /
-  `upper`, and per-prior `lb` / `ub`).
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md);
+  hard bounds (`lower` / `upper`, and per-prior `lb` / `ub`).
 - `sdreport` is deferred until standard errors are first needed (roughly
   a quarter off fit time; `se = TRUE` restores eager mode).
 - Pluggable optimizers (`frmtmb_control(optimizer = )`), including
   arbitrary user functions.
 - [`confint()`](https://rdrr.io/r/stats/confint.html) (Wald / profile /
   likelihood-root), natural-scale
-  [`confint_varcorr()`](../reference/confint_varcorr.md),
+  [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md),
   [`anova()`](https://rdrr.io/r/stats/anova.html) likelihood-ratio
-  tests, [`diagnose()`](../reference/diagnose.md).
+  tests,
+  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md).
 
 ### Diagnostics and ecosystem
 
 - Residuals: response, pearson, and one-step-ahead (`type = "osa"`).
 - DHARMa simulation-based residuals
-  ([`dharma_residuals()`](../reference/dharma_residuals.md)).
+  ([`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)).
 - NUTS on the fitted objective:
-  [`frm_sample()`](../reference/frm_sample.md) (ML-mode initialization,
-  named draws, priors, bounds) and
-  [`check_laplace()`](../reference/check_laplace.md); bayesplot works on
-  the draws.
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  (ML-mode initialization, named draws, priors, bounds) and
+  [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md);
+  bayesplot works on the draws.
 - emmeans and marginaleffects support, both verified against glmmTMB.
 
 ### Verification

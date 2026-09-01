@@ -36,7 +36,8 @@ dfbetas(model, ...)
 
 - groups:
 
-  Name of a random-effect grouping factor (see [`ngrps()`](ngrps.md)) to
+  Name of a random-effect grouping factor (see
+  [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md)) to
   delete level-wise; `NULL` deletes single observations (refuses for
   large n unless `force = TRUE`).
 

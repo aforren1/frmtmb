@@ -9,7 +9,8 @@ dpars are named `mu<k>d<j>` (class k, response column j) and are
 individually overridable, e.g. `bf(Y ~ x, mu2d1 ~ 1)` (all except the
 first, `mu1d1`). Mixing weights are `theta1 ... theta{K-1}`, multinomial
 logit against class K, each with its own linear predictor - so gating on
-covariates works like [`mixture()`](mixture.md).
+covariates works like
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md).
 
 ## Usage
 
@@ -41,13 +42,14 @@ Log-SDs start at the per-column response SDs and correlations at zero;
 class means start on spread-out per-column response quantiles to break
 the label symmetry. The usual finite-mixture ML caveats apply: the
 likelihood is invariant to relabeling and can be multimodal (compare
-starts via [`frm_allfit()`](frm_allfit.md)).
-[`mixture_probs()`](mixture_probs.md) returns posterior class
-probabilities per row;
+starts via
+[`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)).
+[`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
+returns posterior class probabilities per row;
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) returns the n x
 D mixture-mean matrix.
 `cens()`/[`trunc()`](https://rdrr.io/r/base/Round.html),
-[`mvbf()`](mvbf.md), and
+[`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md), and
 [`simulate()`](https://rdrr.io/r/stats/simulate.html) are not supported.
 
 ## Examples

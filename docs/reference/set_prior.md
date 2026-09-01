@@ -25,7 +25,7 @@ set_prior(
 - prior:
 
   Distribution string, e.g. `"normal(0, 5)"`, or a
-  [`prior_normal()`](frmtmb-priors.md)/[`prior_t()`](frmtmb-priors.md)
+  [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)/[`prior_t()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   object, or `""` for bounds only.
 
 - class:
@@ -73,5 +73,5 @@ Classes and their scales:
 When priors overlap, later specifications override earlier ones, so put
 class-wide priors first and coefficient-specific ones after. `lb`/`ub`
 become hard bounds (via Stan's constrained transforms in
-[`frm_sample()`](frm_sample.md)); for class `"sd"` they apply on the sd
-scale.
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md));
+for class `"sd"` they apply on the sd scale.

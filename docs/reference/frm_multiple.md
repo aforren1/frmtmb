@@ -15,7 +15,7 @@ frm_multiple(formula, data, level = 0.95, ...)
 
 - formula, ...:
 
-  As in [`frm()`](frm.md).
+  As in [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md).
 
 - data:
 
@@ -40,9 +40,10 @@ coefficients like `sigma` appear in `$pooled` on their link (log) scale,
 exactly as in [`vcov()`](https://rdrr.io/r/stats/vcov.html).
 Random-effect SDs and correlations are pooled on the scales where a Wald
 argument is defensible (log for SDs and GP ranges, Fisher z for
-correlations, the [`confint_varcorr()`](confint_varcorr.md) convention)
-and back-transformed, giving `$pooled_varcorr`. For missing-data
-mechanisms beyond imputation, see in-model `mi()`.
+correlations, the
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+convention) and back-transformed, giving `$pooled_varcorr`. For
+missing-data mechanisms beyond imputation, see in-model `mi()`.
 
 ## Examples
 

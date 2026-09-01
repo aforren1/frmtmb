@@ -113,11 +113,14 @@ frmtmb_control(
 
   Use [`suppressMessages()`](https://rdrr.io/r/base/message.html) to
   silence a verbose fit. The refit loops in
-  [`frm_bootstrap()`](frm_bootstrap.md),
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md),
   [`influence()`](https://rdrr.io/r/stats/lm.influence.html), and
-  [`frm_allfit()`](frm_allfit.md) force `verbose` off, so a verbose fit
-  does not make them print hundreds of lines; [`refit()`](refit.md) and
-  [`frm_multiple()`](frm_multiple.md) report normally.
+  [`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)
+  force `verbose` off, so a verbose fit does not make them print
+  hundreds of lines;
+  [`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md) and
+  [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
+  report normally.
 
 ## Value
 

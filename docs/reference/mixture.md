@@ -51,8 +51,10 @@ unit in typical well-separated problems). `quadrature = TRUE` makes the
 integral numerically exact when the per-group integrand is univariate
 (one scalar random intercept, in one class); with class-specific
 intercepts in several classes the coordinates couple and quadrature
-remains approximate - use [`check_laplace()`](check_laplace.md) to
-judge. Mixing-weight predictors are evaluated at each group's first row
-(use group-constant covariates). [`mixture_probs()`](mixture_probs.md)
+remains approximate - use
+[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+to judge. Mixing-weight predictors are evaluated at each group's first
+row (use group-constant covariates).
+[`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
 returns the posterior class probabilities per group (or per observation
 for ordinary mixtures), conditional on the random-effect modes.

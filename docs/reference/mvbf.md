@@ -18,8 +18,10 @@ set_rescor(rescor_value = TRUE)
 
 - ...:
 
-  [`bf()`](bf.md) formulas, each with a family attached (or supply one
-  `family` to [`frm()`](frm.md) for all of them).
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) formulas,
+  each with a family attached (or supply one `family` to
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) for all
+  of them).
 
 - rescor:
 

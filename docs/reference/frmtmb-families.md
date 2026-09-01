@@ -7,7 +7,8 @@ following brms naming.
 [`poisson()`](https://rdrr.io/r/stats/family.html),
 [`binomial()`](https://rdrr.io/r/stats/family.html), and
 [`Gamma()`](https://rdrr.io/r/stats/family.html) from 'stats' are
-accepted directly by [`frm()`](frm.md) and `+`.
+accepted directly by
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) and `+`.
 
 ## Usage
 

@@ -106,3 +106,25 @@ about the observed, truncated response. Bounds are re-evaluated on
 `newdata` the same way `trials()` and `se()` are: a literal bound
 carries over unchanged, and a bound given as a variable must be a column
 of `newdata` of the right length.
+
+## Standard errors of the expected response
+
+For a family whose mean is the `mu` dpar, `se.fit` on
+`type = "response"` is the usual one-predictor delta method:
+`|dmu/deta| * se(eta)`.
+
+When the mean is a function of several dpars (zero-inflated and hurdle
+families, `lognormal`, a `trials()` binomial, or any
+[`trunc()`](https://rdrr.io/r/base/Round.html)ed response), the delta
+method runs jointly over every dpar's linear predictor: `se^2 = g' V g`,
+where row `i` of `g` stacks `dm_i/deta_k` times the design row of
+predictor `k`, and `V` is the joint covariance of all the coefficients
+([`vcov()`](https://rdrr.io/r/stats/vcov.html)'s `jointPrecision` block,
+so the cross-predictor covariances and the shared random-effect block
+are included). The gradients `dm/deta_k` are central differences of the
+family mean, taken one predictor at a time with a relative step.
+
+Random effects enter conditional on their modes, the same convention
+`se.fit` uses for the linear predictor. Unseen grouping levels
+(`allow_new_levels = TRUE`) add their block's marginal variance,
+propagated through the same gradients.

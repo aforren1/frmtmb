@@ -27,9 +27,10 @@ dharma_residuals(fit, nsim = 250, re.form = NULL, seed = NULL, ...)
 
 - re.form:
 
-  Passed to [`simulate.frmtmb_fit()`](simulate.frmtmb_fit.md): `NULL`
-  (default) conditions on the estimated random effects; `NA` redraws
-  them.
+  Passed to
+  [`simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md):
+  `NULL` (default) conditions on the estimated random effects; `NA`
+  redraws them.
 
 - seed:
 

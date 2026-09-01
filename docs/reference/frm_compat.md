@@ -14,9 +14,9 @@ frm_compat(feature_a = NULL, feature_b = NULL, status = NULL)
 - feature_a, feature_b:
 
   Feature names, as given by
-  [`frm_compat_features()`](frm_compat_features.md). Supply both for one
-  pair, one for every pair involving that feature, or neither for the
-  whole table.
+  [`frm_compat_features()`](https://aforren1.github.io/frmtmb/reference/frm_compat_features.md).
+  Supply both for one pair, one for every pair involving that feature,
+  or neither for the whole table.
 
 - status:
 
@@ -41,8 +41,8 @@ one family.
 
 - `refused`:
 
-  [`frm()`](frm.md) or the post-fit method stops with an error. The
-  refusal is deliberate.
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) or the
+  post-fit method stops with an error. The refusal is deliberate.
 
 - `broken`:
 
@@ -61,8 +61,8 @@ was never evidence of support.
 
 ## See also
 
-[`frm_compat_rules()`](frm_compat_rules.md),
-[`frm_compat_features()`](frm_compat_features.md)
+[`frm_compat_rules()`](https://aforren1.github.io/frmtmb/reference/frm_compat_rules.md),
+[`frm_compat_features()`](https://aforren1.github.io/frmtmb/reference/frm_compat_features.md)
 
 ## Examples
 

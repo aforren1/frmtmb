@@ -51,7 +51,8 @@ posterior_predict(
 
 - object:
 
-  A `frmtmb_draws` from [`frm_sample()`](frm_sample.md).
+  A `frmtmb_draws` from
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md).
 
 - ...:
 
@@ -59,7 +60,8 @@ posterior_predict(
 
 - newdata, resp, re.form:
 
-  As in [`predict.frmtmb_fit()`](predict.frmtmb_fit.md).
+  As in
+  [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md).
 
 - ndraws:
 

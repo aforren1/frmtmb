@@ -1,13 +1,16 @@
 # Usable parameter names
 
-The names that [`hypothesis()`](hypothesis.md) expressions (and
-[`set_prior()`](set_prior.md) targeting) accept: fixed-effect
-coefficients under their [`vcov()`](https://rdrr.io/r/stats/vcov.html)
-names with parentheses stripped, natural-scale random-effect summaries
-(`sd_<group>__<term>`, `cor_<group>__<t1>__<t2>`), and `sigma` when the
-residual SD is a scalar. The brms spelling; for sampled fits,
-`variables()` on the [`frm_sample()`](frm_sample.md) result lists the
-draw columns instead.
+The names that
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+expressions (and
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+targeting) accept: fixed-effect coefficients under their
+[`vcov()`](https://rdrr.io/r/stats/vcov.html) names with parentheses
+stripped, natural-scale random-effect summaries (`sd_<group>__<term>`,
+`cor_<group>__<t1>__<t2>`), and `sigma` when the residual SD is a
+scalar. The brms spelling; for sampled fits, `variables()` on the
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+result lists the draw columns instead.
 
 ## Usage
 

@@ -4,7 +4,9 @@ Specifies a model with brms-compatible syntax. Distributional parameters
 (dpars) can get their own formulas with the full predictor grammar, or
 be fixed to constants: `bf(y ~ x + (1 | g), sigma ~ z + (1 | g))`,
 `bf(y ~ x, sigma = 1)`. Nonlinear formulas (`nl = TRUE`) and
-multivariate models (see [`mvbf()`](mvbf.md)) use the same grammar.
+multivariate models (see
+[`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)) use the
+same grammar.
 
 ## Usage
 
@@ -27,7 +29,7 @@ bf(formula, ..., family = NULL, nl = FALSE)
 - family:
 
   Optional family; can also be attached with `+` or passed to
-  [`frm()`](frm.md).
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md).
 
 - nl:
 

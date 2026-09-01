@@ -1,7 +1,9 @@
 # Fit a model
 
-Fits a model specified with [`bf()`](bf.md) by maximum likelihood, using
-the Laplace approximation for random effects through RTMB.
+Fits a model specified with
+[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) by maximum
+likelihood, using the Laplace approximation for random effects through
+RTMB.
 
 ## Usage
 
@@ -28,8 +30,10 @@ frm(
 
 - formula:
 
-  A `frmtmb_formula` from [`bf()`](bf.md) (with a family attached via
-  `+`), or a plain formula combined with the `family` argument.
+  A `frmtmb_formula` from
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) (with a
+  family attached via `+`), or a plain formula combined with the
+  `family` argument.
 
 - data:
 
@@ -55,7 +59,8 @@ frm(
 
 - control:
 
-  A list from [`frmtmb_control()`](frmtmb_control.md).
+  A list from
+  [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md).
 
 - se:
 
@@ -80,12 +85,14 @@ frm(
 
 - priors:
 
-  Optional [`set_prior()`](set_prior.md) specification. This makes the
-  fit MAP / regularized ML (glmmTMB's `priors=` in spirit): useful for
-  stabilizing singular variance components or separating binomials. The
-  reported logLik/AIC then include the prior terms and are penalized
-  quantities, and [`anova()`](https://rdrr.io/r/stats/anova.html)
-  comparisons across different priors are meaningless.
+  Optional
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  specification. This makes the fit MAP / regularized ML (glmmTMB's
+  `priors=` in spirit): useful for stabilizing singular variance
+  components or separating binomials. The reported logLik/AIC then
+  include the prior terms and are penalized quantities, and
+  [`anova()`](https://rdrr.io/r/stats/anova.html) comparisons across
+  different priors are meaningless.
 
 - quadrature:
 
@@ -100,7 +107,8 @@ frm(
   rescaling is fixed when the tape is built, so the starting point
   decides whether the marginalized objective is finite at all. That fit
   also supplies the conditional modes, which the marginalized objective
-  no longer carries, so [`ranef()`](ranef.md),
+  no longer carries, so
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
   [`predict()`](https://rdrr.io/r/stats/predict.html) work as usual.
 
@@ -114,8 +122,9 @@ frm(
 
   Report fit progress; a shortcut for
   `control = frmtmb_control(verbose =)`, whose value wins when both are
-  given. See [`frmtmb_control()`](frmtmb_control.md) for the levels and
-  the output.
+  given. See
+  [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md)
+  for the levels and the output.
 
 ## Value
 

@@ -37,9 +37,10 @@ summary(fit)
 #> (Intercept) 3.242273   0.058926  55.023 < 2.2e-16
 ```
 
-The usual methods work: [`fixef()`](../reference/fixef.md),
-[`ranef()`](../reference/ranef.md),
-[`VarCorr()`](../reference/VarCorr.md),
+The usual methods work:
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+[`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
+[`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md),
 [`predict()`](https://rdrr.io/r/stats/predict.html) (with `newdata`,
 `se.fit`, and `re.form`),
 [`confint()`](https://rdrr.io/r/stats/confint.html) (Wald, profile, or
@@ -163,9 +164,9 @@ head(mixture_probs(fmix), 3)
 
 ## Inference beyond Wald
 
-[`hypothesis()`](../reference/hypothesis.md) tests arbitrary parameter
-expressions (Wald, profile, or parametric bootstrap), with natural-scale
-random-effect names:
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+tests arbitrary parameter expressions (Wald, profile, or parametric
+bootstrap), with natural-scale random-effect names:
 
 ``` r
 
@@ -177,16 +178,71 @@ hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)")
 #>  0.08652 2.389 0.01688
 ```
 
-[`frm_bootstrap()`](../reference/frm_bootstrap.md) runs a warm-started
-parametric bootstrap, and `confint(fit, method = "profile")` profiles
-single parameters.
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+runs a warm-started parametric bootstrap, and
+`confint(fit, method = "profile")` profiles single parameters.
+
+## Simulating from a design
+
+[`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+builds a design from a formula and data, sets the parameters, and
+simulates responses - no fit needed. This is the power analysis loop:
+simulate, refit, count. Parameters take the same names
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+and
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+use, on their natural scales (coefficients on the link scale, `sigma` as
+a residual SD, `sd_<group>__<term>` as a standard deviation):
+
+``` r
+
+set.seed(1)
+dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, 10)), y = 0)
+form <- bf(y ~ x + (1 | g)) + gaussian()
+sims <- frm_simulate(form, dd, nsim = 3, seed = 1,
+                     newparams = list(Intercept = 1, x = 0.5,
+                                      sigma = 0.6,
+                                      sd_g__Intercept = 0.7))
+str(sims, max.level = 0)
+#> 'data.frame':    120 obs. of  3 variables:
+```
+
+Give `priors` instead and every simulation draws its own parameter
+vector first - the analog of brms’s `sample_prior = "only"` followed by
+[`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md).
+The drawn parameters come back as an attribute, so a prior-predictive
+check can relate parameters to outcomes:
+
+``` r
+
+pp <- frm_simulate(form, dd, nsim = 50, seed = 2,
+                   priors = set_prior("normal(0, 1)", class = "b") +
+                     set_prior("normal(0, 2)", class = "Intercept") +
+                     set_prior("exponential(1)", class = "sd") +
+                     set_prior("normal(0, 1)", class = "Intercept",
+                               dpar = "sigma"))
+pars <- attr(pp, "pars")
+head(pars, 3)
+#>            x   Intercept sd_g__Intercept sigma_Intercept
+#> 1 -0.8969145  0.36969837      0.08952618      0.96788388
+#> 2 -0.5431617 -0.03157483      1.43689377      1.89509840
+#> 3  0.6668503  1.54729045      1.12473222     -0.03551988
+# does the prior imply plausible data? slope against outcome spread
+plot(pars$x, apply(pp, 2, sd), xlab = "slope", ylab = "sd(y)")
+```
+
+![](frmtmb_files/figure-html/unnamed-chunk-11-1.png)
+
+Every coefficient and every random-effect SD needs a value from
+`newparams` or a prior; leaving one out is an error rather than a silent
+zero effect.
 
 ## Diagnostics
 
 `diagnose(fit)` reports convergence forensics. Simulation-based
 residuals come through DHARMa, predictive checks through `pp_check()`,
 and effect displays through
-[`conditional_effects()`](../reference/conditional_effects.md):
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md):
 
 ``` r
 
@@ -195,12 +251,14 @@ plot(conditional_effects(fit))
 ```
 
 And the fitted objective can be handed to NUTS for full Bayes on the
-same model - [`frm_sample()`](../reference/frm_sample.md) returns draws
-with the full method surface
-([`posterior_epred()`](../reference/posterior_epred.md),
-[`hypothesis()`](../reference/hypothesis.md), `pp_check()`), and
-[`check_laplace()`](../reference/check_laplace.md) audits the Laplace
-approximation against them:
+same model -
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+returns draws with the full method surface
+([`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
+`pp_check()`), and
+[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+audits the Laplace approximation against them:
 
 ``` r
 
@@ -208,7 +266,8 @@ ds <- frm_sample(fit, chains = 4)
 check_laplace(fit)
 ```
 
-See [`vignette("brms-migration")`](../articles/brms-migration.md) for
-the brms feature map and
-[`vignette("diagnostics")`](../articles/diagnostics.md) for the
-model-checking workflow.
+See
+[`vignette("brms-migration")`](https://aforren1.github.io/frmtmb/articles/brms-migration.md)
+for the brms feature map and
+[`vignette("diagnostics")`](https://aforren1.github.io/frmtmb/articles/diagnostics.md)
+for the model-checking workflow.

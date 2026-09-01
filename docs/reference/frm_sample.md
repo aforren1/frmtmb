@@ -7,9 +7,10 @@ warmup considerably), and returns the draws with frmtmb coefficient
 names. Without priors this samples the likelihood with flat improper
 priors on the outer parameters - the random effects get their proper
 hierarchical Gaussian terms - so treat the result as an ML diagnostic
-(see [`check_laplace()`](check_laplace.md)) rather than a full Bayesian
-analysis; posteriors can be improper for variance components with few
-groups.
+(see
+[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md))
+rather than a full Bayesian analysis; posteriors can be improper for
+variance components with few groups.
 
 ## Usage
 
@@ -40,10 +41,11 @@ frm_sample(
 - priors:
 
   Optional named list of priors (see
-  [`prior_normal()`](frmtmb-priors.md)); names are parameter names as in
-  the draws (or whole components: `"beta"`, `"theta"`, ...). Parameters
-  without a prior keep the flat improper default. The objective is
-  re-taped with the prior terms added; the ML fit itself is unchanged.
+  [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md));
+  names are parameter names as in the draws (or whole components:
+  `"beta"`, `"theta"`, ...). Parameters without a prior keep the flat
+  improper default. The objective is re-taped with the prior terms
+  added; the ML fit itself is unchanged.
 
 - lower, upper:
 
@@ -77,10 +79,12 @@ originating fit.
 
 ## Multimodal posteriors
 
-For [`mixture()`](mixture.md) fits the posterior is multimodal by
-construction (label switching at minimum). Mode-centered inits, jittered
-or not, leave every chain in one symmetry branch, so Rhat cannot flag
-the others; use `init = "random"` there and inspect chains individually.
+For
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+fits the posterior is multimodal by construction (label switching at
+minimum). Mode-centered inits, jittered or not, leave every chain in one
+symmetry branch, so Rhat cannot flag the others; use `init = "random"`
+there and inspect chains individually.
 
 ## Examples
 

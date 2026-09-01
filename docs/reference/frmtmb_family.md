@@ -1,6 +1,7 @@
 # Define a model family
 
-Constructs a family object for use with [`frm()`](frm.md). The
+Constructs a family object for use with
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md). The
 log-density function must be vectorized and AD-compatible: it is
 evaluated on RTMB 'advector' objects during taping, so it must use
 RTMB-overloaded operations (RTMB and RTMBdist `d*` functions, plain
@@ -80,10 +81,16 @@ custom_family(
 
 - post:
 
-  Named list of numeric helper functions `mean_fn(dpars, aterms)` and
-  `var_fn(dpars, aterms)`, used by
-  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
-  [`residuals()`](https://rdrr.io/r/stats/residuals.html).
+  Named list of numeric helper functions used by
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`predict()`](https://rdrr.io/r/stats/predict.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html):
+  `mean_fn(dpars, aterms)` (the response mean), `var_fn(dpars, aterms)`
+  (for pearson residuals) and `dev_fn(y, dpars, aterms)` (the unit
+  deviance
+  `2 * (loglik of the saturated fit - loglik at the fitted value)`, for
+  `residuals(type = "deviance")`). A family that omits one is refused by
+  the method that needs it.
 
 - sim:
 

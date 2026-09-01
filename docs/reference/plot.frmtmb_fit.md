@@ -3,8 +3,8 @@
 Panel 1: Pearson residuals against fitted values with a lowess trend.
 Panel 2: normal QQ plot of the Pearson residuals. For simulation-based
 residuals that are exact for discrete families, use
-[`dharma_residuals()`](dharma_residuals.md) or
-`residuals(type = "osa")`.
+[`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
+or `residuals(type = "osa")`.
 
 ## Usage
 

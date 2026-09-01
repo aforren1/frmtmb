@@ -64,8 +64,9 @@ head(frm_compat("se()", status = "works"), 3)
 #> 3       Addition terms change the likelihood, covariance structures change the predictor.
 ```
 
-[`frm_compat_features()`](../reference/frm_compat_features.md) lists the
-vocabulary. [`frm_compat_rules()`](../reference/frm_compat_rules.md)
+[`frm_compat_features()`](https://aforren1.github.io/frmtmb/reference/frm_compat_features.md)
+lists the vocabulary.
+[`frm_compat_rules()`](https://aforren1.github.io/frmtmb/reference/frm_compat_rules.md)
 shows the underlying rules, which are written per kind or per feature
 group rather than per pair.
 

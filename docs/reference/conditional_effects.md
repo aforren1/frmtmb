@@ -36,7 +36,8 @@ conditional_effects(
 
 - ...:
 
-  Passed to [`predict.frmtmb_fit()`](predict.frmtmb_fit.md).
+  Passed to
+  [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md).
 
 - effects:
 
@@ -49,7 +50,7 @@ conditional_effects(
 - resp, dpar:
 
   Response and distributional parameter, as in
-  [`predict.frmtmb_fit()`](predict.frmtmb_fit.md).
+  [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md).
 
 - resolution:
 
@@ -62,10 +63,19 @@ conditional_effects(
 - method:
 
   `"epred"` (default): Wald bands for the expected response.
-  `"predict"`: prediction intervals - the epred point estimate with
-  quantile bands from `ndraws` responses simulated from the family at
-  each grid point (observation noise; random effects stay excluded, as
-  in brms with `re_formula = NA`).
+  `"predict"`: prediction intervals - quantile bands from `ndraws`
+  responses simulated from the family at each grid point (observation
+  noise; random effects stay excluded, as in brms with
+  `re_formula = NA`), around the expected response on the same scale as
+  the draws (a count under `trials()`, the truncated mean under
+  [`trunc()`](https://rdrr.io/r/base/Round.html)). The draws respect the
+  response's addition terms: literal
+  [`trunc()`](https://rdrr.io/r/base/Round.html) bounds apply, and
+  `trials()`, `se()` or variable
+  [`trunc()`](https://rdrr.io/r/base/Round.html) bounds must be pinned
+  in `conditions` (a grid row is an artificial observation, so a
+  reference value for those is meaningless and is an error rather than a
+  silent default).
 
 - ndraws:
 

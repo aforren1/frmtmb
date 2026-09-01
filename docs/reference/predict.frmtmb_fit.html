@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.24.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.25.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -26,6 +26,7 @@
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/aforren1/frmtmb/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -35,7 +36,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Predictions from a frmtmb fit</h1>
-
+      <small class="dont-index">Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/R/predict.R" class="external-link"><code>R/predict.R</code></a></small>
       <div class="d-none name"><code>predict.frmtmb_fit.Rd</code></div>
     </div>
 
@@ -148,6 +149,28 @@ about the latent parameter, not about the observed, truncated
 response. Bounds are re-evaluated on <code>newdata</code> the same way <code>trials()</code>
 and <code>se()</code> are: a literal bound carries over unchanged, and a bound
 given as a variable must be a column of <code>newdata</code> of the right length.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="standard-errors-of-the-expected-response">Standard errors of the expected response<a class="anchor" aria-label="anchor" href="#standard-errors-of-the-expected-response"></a></h2>
+
+
+<p>For a family whose mean is the <code>mu</code> dpar, <code>se.fit</code> on
+<code>type = "response"</code> is the usual one-predictor delta method:
+<code>|dmu/deta| * se(eta)</code>.</p>
+<p>When the mean is a function of several dpars (zero-inflated and
+hurdle families, <code>lognormal</code>, a <code>trials()</code> binomial, or any
+<code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>ed response), the delta method runs jointly over every
+dpar's linear predictor: <code>se^2 = g' V g</code>, where row <code>i</code> of <code>g</code>
+stacks <code>dm_i/deta_k</code> times the design row of predictor <code>k</code>, and <code>V</code>
+is the joint covariance of all the coefficients (<code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>'s
+<code>jointPrecision</code> block, so the cross-predictor covariances and the
+shared random-effect block are included). The gradients
+<code>dm/deta_k</code> are central differences of the family mean, taken one
+predictor at a time with a relative step.</p>
+<p>Random effects enter conditional on their modes, the same convention
+<code>se.fit</code> uses for the linear predictor. Unseen grouping levels
+(<code>allow_new_levels = TRUE</code>) add their block's marginal variance,
+propagated through the same gradients.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

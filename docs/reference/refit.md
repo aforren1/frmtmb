@@ -32,8 +32,9 @@ refit(object, newresp, start = NULL, ...)
 
 - start:
 
-  Optional named start list (as in [`frm()`](frm.md)); when given it
-  replaces the warm start.
+  Optional named start list (as in
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md)); when
+  given it replaces the warm start.
 
 ## Value
 

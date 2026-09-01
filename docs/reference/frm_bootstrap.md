@@ -2,9 +2,10 @@
 
 Simulates `nsim` response vectors from the fitted model (by default with
 new random effects each draw), refits the model to each through
-[`refit()`](refit.md) (warm-started, no re-parsing), and collects `FUN`
-of every refit. Draws whose refit fails are kept as `NA` rows; draws
-whose optimizer does not report convergence are kept but flagged.
+[`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md)
+(warm-started, no re-parsing), and collects `FUN` of every refit. Draws
+whose refit fails are kept as `NA` rows; draws whose optimizer does not
+report convergence are kept but flagged.
 
 ## Usage
 

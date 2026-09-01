@@ -20,8 +20,8 @@ frm_allfit(fit, optimizers = NULL, ...)
 - optimizers:
 
   Named list of optimizers (names or functions, as in
-  [`frmtmb_control()`](frmtmb_control.md)). Default: everything
-  available.
+  [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md)).
+  Default: everything available.
 
 - ...:
 
@@ -43,9 +43,9 @@ fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
 frm_allfit(fit)
 #>     optimizer    logLik convergence seconds
 #>        nlminb -100.9269           0    0.02
-#>         optim -100.9269           0    0.03
-#>        bobyqa -100.9269           0    0.05
-#>  nloptr_lbfgs -100.9269           0    0.06
+#>         optim -100.9269           0    0.01
+#>        bobyqa -100.9269           0    0.03
+#>  nloptr_lbfgs -100.9269           0    0.03
 #> 
 #> logLik spread: 3.82e-11 
 #> max fixed-effect spread: 4.27e-07 

@@ -19,14 +19,15 @@ A data frame with columns `name`, `key`, and `kind`.
 
 `name` is how the feature is written in a formula or a call. `key` is
 the identifier the package uses internally, which is what lets the tests
-check the registry against [`frm()`](frm.md)'s real vocabulary. Three
-specials share a name with a covariance structure, so they carry the
-display names `mi_pred()`, `gp_pred()`, and `cs_pred()`.
+check the registry against
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md)'s real
+vocabulary. Three specials share a name with a covariance structure, so
+they carry the display names `mi_pred()`, `gp_pred()`, and `cs_pred()`.
 
 ## See also
 
-[`frm_compat()`](frm_compat.md),
-[`frm_compat_rules()`](frm_compat_rules.md)
+[`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md),
+[`frm_compat_rules()`](https://aforren1.github.io/frmtmb/reference/frm_compat_rules.md)
 
 ## Examples
 

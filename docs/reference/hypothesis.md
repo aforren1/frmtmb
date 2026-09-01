@@ -39,9 +39,10 @@ hypothesis(x, hypothesis, alpha = 0.05, ...)
   Backend controls: passed to
   [`TMB::tmbprofile()`](https://rdrr.io/pkg/TMB/man/tmbprofile.html) for
   `method = "profile"` (e.g. `ytol`, `ystep`, `maxit`, `parm.range`) and
-  to [`frm_bootstrap()`](frm_bootstrap.md) for `method = "boot"` (e.g.
-  `re.form = NULL` for a conditional bootstrap). Unused for `"wald"` (a
-  warning).
+  to
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+  for `method = "boot"` (e.g. `re.form = NULL` for a conditional
+  bootstrap). Unused for `"wald"` (a warning).
 
 - hypothesis:
 
@@ -84,7 +85,8 @@ random-effect summaries `sd_<group>__<term>` and
 `cor_<group>__<t1>__<t2>` (brms naming), and `sigma` when the residual
 SD is a scalar. So an ICC is
 `"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"`.
-[`variables()`](variables.md) lists every usable name for a fit.
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+lists every usable name for a fit.
 
 Methods:
 
@@ -99,17 +101,19 @@ Methods:
   the method changes the interval.
 
 - `"boot"`: parametric bootstrap through
-  [`frm_bootstrap()`](frm_bootstrap.md) (percentile interval; `p` is the
-  two-sided percentile p-value, whose resolution is limited by `nsim`;
-  `se` is the bootstrap SD). Handles any expression, including the
-  variance-component names, whose sampling distributions Wald
-  approximates poorly.
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+  (percentile interval; `p` is the two-sided percentile p-value, whose
+  resolution is limited by `nsim`; `se` is the bootstrap SD). Handles
+  any expression, including the variance-component names, whose sampling
+  distributions Wald approximates poorly.
 
-For a [`frm_multiple()`](frm_multiple.md) result the Wald estimate and
-delta-method variance are computed per imputation and pooled by Rubin's
-rules with Barnard-Rubin degrees of freedom; the returned table carries
-`t` and `df` columns in place of `z` (reference t distribution, not
-normal), and only Wald inference is available.
+For a
+[`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
+result the Wald estimate and delta-method variance are computed per
+imputation and pooled by Rubin's rules with Barnard-Rubin degrees of
+freedom; the returned table carries `t` and `df` columns in place of `z`
+(reference t distribution, not normal), and only Wald inference is
+available.
 
 ## Examples
 

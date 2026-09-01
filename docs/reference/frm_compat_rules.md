@@ -19,13 +19,15 @@ A data frame with columns `feature_a`, `feature_b`, `status`, and
 
 ## Details
 
-Use [`frm_compat()`](frm_compat.md) to read the resolved answer for a
-pair. Use this function to see which rule is doing the work.
+Use
+[`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+to read the resolved answer for a pair. Use this function to see which
+rule is doing the work.
 
 ## See also
 
-[`frm_compat()`](frm_compat.md),
-[`frm_compat_features()`](frm_compat_features.md)
+[`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md),
+[`frm_compat_features()`](https://aforren1.github.io/frmtmb/reference/frm_compat_features.md)
 
 ## Examples
 
