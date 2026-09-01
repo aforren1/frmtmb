@@ -279,8 +279,12 @@ all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
 #' variance components with few groups.
 #'
 #' @param fit A `frmtmb_fit`.
-#' @param ... Passed to [tmbstan::tmbstan()] (`chains`, `iter`, `laplace`,
-#'   `cores`, ...).
+#' @param ... Passed to [tmbstan::tmbstan()] (`chains`, `iter`,
+#'   `laplace`, `cores`, ...). On Windows `cores > 1` falls back to
+#'   sequential chains with a warning: parallel chains run on socket
+#'   workers, which can evaluate neither the RTMB tape nor the
+#'   objective closure (the known RTMB limitation of tmbstan,
+#'   tmbstan#27). Fork clusters on unix can, so `cores` works there.
 #' @param priors Optional named list of priors (see [prior_normal()]);
 #'   names are parameter names as in the draws (or whole components:
 #'   `"beta"`, `"theta"`, ...). Parameters without a prior keep the flat
@@ -385,6 +389,18 @@ frm_sample <- function(fit, ..., priors = NULL, lower = NULL,
                        mb$lower, mb$upper)
   }
   args <- list(obj = obj, init = init, ...)
+  # rstan runs parallel chains on PSOCK workers on Windows, and neither
+  # the RTMB tape's external pointer nor the objective closure's
+  # namespace survives the trip: every chain dies at the first internal
+  # function and rstan's error names neither. Known upstream as
+  # tmbstan#27; fork clusters (unix) inherit both, so only Windows
+  # needs the guard.
+  if (.Platform$OS.type == "windows" && (args$cores %||% 1) > 1) {
+    warning("cores > 1 is not available on Windows: parallel chains ",
+            "run on socket workers, which cannot evaluate the RTMB ",
+            "tape. Running the chains sequentially", call. = FALSE)
+    args$cores <- 1
+  }
   if (!is.null(bounds)) {
     args$lower <- bounds$lower
     args$upper <- bounds$upper

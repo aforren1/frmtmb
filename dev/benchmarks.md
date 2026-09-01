@@ -341,3 +341,18 @@ What would help on large problems, in order of measured effect:
   once and then runs **whole fits** amortizes the 2.4 s properly. That
   is parallelism at the fit level, which is where the concurrency
   actually is, and it does not need optimParallel.
+
+## Note: RTMBp (2026-09-01, unmeasured)
+
+kaskr packages an experimental PARALLEL build of RTMB as 'RTMBp'
+(r-universe only, not CRAN: install.packages('RTMBp', repos =
+c('https://kaskr.r-universe.dev', ...))). This targets exactly the
+gap the optimParallel benchmark identified: InstEval's optimize
+stage is 100% taped-objective evaluation, and TMB's OpenMP
+parallelizes the objective accumulation (the inner Cholesky stays
+serial). A follow-up measurement would swap RTMB -> RTMBp on the
+InstEval protocol above and compare fn/gr per-call costs across
+thread counts. Caveats before adopting anything: RTMBp is
+experimental and off-CRAN, so it could at most be an optional
+enhancement (namespace-conditional), never a dependency; and the
+"only real TMB-vs-RTMB gap is OpenMP" line in SPEC.md predates it.

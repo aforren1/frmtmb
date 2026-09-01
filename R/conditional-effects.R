@@ -381,18 +381,28 @@ plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
 #'
 #' The frequentist analog of brms's `pp_check()`: responses are
 #' simulated from the fitted model (marginally over the random effects)
-#' and handed to the corresponding bayesplot `ppc_*` function. Requires
-#' bayesplot; call as `bayesplot::pp_check(fit)` or load bayesplot
-#' first.
+#' and handed to the corresponding bayesplot `ppc_*` function
+#' (bayesplot must be installed, but not necessarily attached).
 #'
 #' @param object A `frmtmb_fit` for a univariate model.
+#' @param ... Passed to the `ppc_*` function.
+#' @export
+pp_check <- function(object, ...) {
+  # frmtmb ships its own generic so pp_check(fit) works without
+  # attaching bayesplot; the methods are ALSO registered on
+  # bayesplot::pp_check, so whichever generic sits in front on the
+  # search path dispatches to the same code
+  UseMethod("pp_check")
+}
+
+#' @rdname pp_check
 #' @param type The bayesplot check, i.e. the part after `ppc_`
 #'   (`"dens_overlay"`, `"hist"`, `"stat"`, `"scatter_avg"`, ...).
 #' @param ndraws Number of simulated response vectors.
 #' @param re.form Passed to [simulate()]; the default `NA` simulates new
 #'   random effects.
-#' @param ... Passed to the `ppc_*` function.
 #' @exportS3Method bayesplot::pp_check
+#' @export
 pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
                                 ndraws = 10, re.form = NA, ...) {
   rspec <- uni_resp(object, "pp_check()")

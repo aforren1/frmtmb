@@ -286,7 +286,9 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   out
 }
 
+#' @rdname pp_check
 #' @exportS3Method bayesplot::pp_check
+#' @export
 pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
                                   ndraws = 50, ...) {
   fit <- object$fit
@@ -300,7 +302,20 @@ pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
   fun(as.numeric(y), yrep, ...)
 }
 
+#' Convert draws to a posterior draws object
+#'
+#' @param x A `frmtmb_draws` object.
+#' @param ... Unused.
+#' @export
+as_draws <- function(x, ...) {
+  # own generic for the same reason as pp_check: posterior stays in
+  # Suggests, and as_draws(ds) must work without attaching it
+  UseMethod("as_draws")
+}
+
+#' @rdname as_draws
 #' @exportS3Method posterior::as_draws
+#' @export
 as_draws.frmtmb_draws <- function(x, ...) {
   posterior::as_draws_matrix(x$draws)
 }

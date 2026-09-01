@@ -224,3 +224,38 @@ interface that can see family-level extras.
   nothing ever compiles.
 - Group-level mixtures for crossed designs (see the mixture section:
   out of the Laplace class).
+
+## ODE models via RTMBode (user request 2026-09-01)
+
+RTMBode (kaskr, r-universe only, NOT CRAN) wraps deSolve's ode() with
+adjoint AD and taped dynamics: ode(y, times, func, parms, method,
+...) differentiates through BOTH the dynamics parameters and the
+initial states (its Lotka-Volterra example estimates pars, yini, and
+an observation SD through MakeADFun + nlminb + sdreport). brms has
+NO ODE grammar (stanvars + hand-written Stan is its answer), so this
+is union-coverage territory (pharmacokinetics, epidemic models,
+nlmixr-adjacent).
+
+Path: (1) feasibility probe - nl = TRUE bodies are arbitrary R
+evaluated on the tape, so RTMBode::ode() inside an nl body may
+already nearly work (population PK: nlpars with REs feeding the
+dynamics parameters, mu read off the solved trajectory); establish
+what breaks (times/data plumbing, matrix indexing on the tape,
+sdreport). (2) If viable, sugar later: an ode-aware term or an
+odefun = argument on bf(); keep deSolve method/atol/rtol
+passthrough.
+
+Packaging (the non-CRAN dependency): the established CRAN mechanism
+is Suggests + Additional_repositories, used ON CRAN today by brms,
+bayesplot and bridgesampling for cmdstanr (Additional_repositories:
+https://stan-dev.r-universe.dev/) and by the INLA ecosystem
+(inlabru, sdmTMB). So: Suggests: RTMBode (and RTMBp if the parallel
+backend ever ships), Additional_repositories:
+https://kaskr.r-universe.dev, every ODE feature behind
+requireNamespace("RTMBode") with an informative install message,
+tests skip_if_not_installed, compat registry rows conditional.
+CRAN's check farm does NOT install additional-repo packages, so all
+examples/vignettes must skip cleanly without it - the brms/cmdstanr
+posture exactly. The RTMB/RTMBp split (variant under a different
+package NAME) is the other pattern, for when the variant replaces
+rather than extends; not needed here.
