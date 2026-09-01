@@ -147,6 +147,47 @@ test_that("exact gp() kriging matches the closed form", {
   expect_lt(abs(pm$se.fit[4] - pk$se.fit[1]), 1e-8)
 })
 
+test_that("gp() k/c/iso resolve in the formula environment", {
+  dg <- gp2_data()
+  kk <- 10
+  cc <- 1.5
+
+  f_lit <- frm(bf(y ~ gp(x1, x2, k = 10, c = 1.5)) + gaussian(), data = dg)
+  f_var <- frm(bf(y ~ gp(x1, x2, k = kk, c = cc)) + gaussian(), data = dg)
+  expect_equal(as.numeric(logLik(f_var)), as.numeric(logLik(f_lit)))
+  expect_equal(coef(f_var), coef(f_lit))
+  # the spec keeps the evaluated scalars, so newdata prediction needs no
+  # access to kk/cc
+  ndg <- expand.grid(x1 = c(0.25, 2.25), x2 = c(0.75, 2.75))
+  expect_equal(predict(f_var, newdata = ndg),
+               predict(f_lit, newdata = ndg))
+
+  # arbitrary expressions, not just names
+  f_expr <- frm(bf(y ~ gp(x1, x2, k = 5 + 5, c = 1.5)) + gaussian(),
+                data = dg)
+  expect_equal(as.numeric(logLik(f_expr)), as.numeric(logLik(f_lit)))
+
+  use_iso <- TRUE
+  f_iso <- frm(bf(y ~ gp(x1, x2, k = 4, iso = use_iso)) + gaussian(),
+               data = dg)
+  expect_true(f_iso$frame$re_blocks[[1]]$gp_iso)
+  expect_equal(as.numeric(logLik(f_iso)),
+               as.numeric(logLik(frm(bf(y ~ gp(x1, x2, k = 4,
+                                               iso = TRUE)) + gaussian(),
+                                     data = dg))))
+
+  expect_error(frm(bf(y ~ gp(x1, x2, k = no_such_k)) + gaussian(),
+                   data = dg),
+               "cannot evaluate k")
+  expect_error(frm(bf(y ~ gp(x1, x2, k = c(4, 5))) + gaussian(),
+                   data = dg),
+               "must be a single value")
+  expect_error(frm(bf(y ~ gp(x1, x2, c = -1)) + gaussian(), data = dg),
+               "must be positive")
+  expect_error(frm(bf(y ~ gp(x1, x2, iso = 1)) + gaussian(), data = dg),
+               "must be TRUE or FALSE")
+})
+
 test_that("2-D Hilbert-space gp() approximates the exact fit", {
   dg <- gp2_data()
   f2 <- frm(bf(y ~ gp(x1, x2)) + gaussian(), data = dg)
@@ -161,4 +202,37 @@ test_that("2-D Hilbert-space gp() approximates the exact fit", {
   p_h <- predict(fh, newdata = ndg, se.fit = TRUE)
   expect_lt(max(abs(p_h$fit - p_e)), 0.3)
   expect_true(all(is.finite(p_h$se.fit)))
+})
+
+test_that("rr(d=) and se(sigma=) resolve in the formula environment", {
+  set.seed(31)
+  n <- 120
+  g <- factor(rep(1:12, each = 10))
+  x1 <- rnorm(n); x2 <- rnorm(n)
+  y <- rnorm(n, 1 + 0.5 * x1, 1)
+  dd <- data.frame(y = y, x1 = x1, x2 = x2, g = g)
+  rk <- 1L
+  f_var <- suppressWarnings(
+    frm(bf(y ~ x1 + rr(x1 + x2 | g, d = rk)) + gaussian(), data = dd))
+  f_lit <- suppressWarnings(
+    frm(bf(y ~ x1 + rr(x1 + x2 | g, d = 1)) + gaussian(), data = dd))
+  expect_equal(logLik(f_var), logLik(f_lit), tolerance = 1e-8)
+  expect_error(
+    frm(bf(y ~ x1 + rr(x1 + x2 | g, d = no_rank)) + gaussian(),
+        data = dd),
+    "cannot evaluate d")
+  expect_error(
+    frm(bf(y ~ x1 + rr(x1 + x2 | g, d = 0)) + gaussian(), data = dd),
+    "positive whole number")
+
+  dse <- data.frame(yi = rnorm(20, 0, 0.6), sei = runif(20, 0.3, 0.5))
+  flag <- TRUE
+  fs_var <- frm(bf(yi | se(sei, sigma = flag) ~ 1) + gaussian(),
+                data = dse)
+  fs_lit <- frm(bf(yi | se(sei, sigma = TRUE) ~ 1) + gaussian(),
+                data = dse)
+  expect_equal(logLik(fs_var), logLik(fs_lit), tolerance = 1e-8)
+  expect_error(
+    frm(bf(yi | se(sei, sigma = maybe) ~ 1) + gaussian(), data = dse),
+    "cannot evaluate sigma")
 })
