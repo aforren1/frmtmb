@@ -61,6 +61,9 @@ dpar_frame_rhs <- function(dp) {
   for (ent in dp$miterms %||% list()) {
     if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
   }
+  for (cexpr in dp$csterms %||% list()) {
+    for (v in all.vars(cexpr)) parts <- c(parts, list(as.name(v)))
+  }
   for (ge in dp$gpterms %||% list()) {
     for (ex in ge$exprs) {
       for (v in all.vars(ex)) parts <- c(parts, list(as.name(v)))

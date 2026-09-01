@@ -168,6 +168,18 @@ test_that("cs() category-specific effects match direct ML", {
                "sratio, cratio, or acat")
 })
 
+test_that("cs() variables reach the model frame on their own", {
+  # cs(z) with z absent from every other term: the combined model frame
+  # has to collect cs() variables too, or assembly fails on lookup
+  set.seed(96)
+  dd <- data.frame(y = sample(1:4, 300, TRUE), x = rnorm(300),
+                   z = rnorm(300))
+  fr <- frm(bf(y ~ x + cs(z)) + sratio(), data = dd, dry_run = "frame")
+  cs <- fr$linpreds[["y.mu"]]$cs
+  expect_length(cs, 1)
+  expect_vector_equal(cs[[1]]$vals, dd$z, tol = 1e-12)
+})
+
 test_that("rr() se.fit runs and is parameterization-invariant", {
   set.seed(97)
   n_site <- 50
