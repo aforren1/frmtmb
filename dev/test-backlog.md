@@ -104,19 +104,30 @@ regression tests in tests/testthat/test-open-issues.R.
 - `anova()` rejected fits with different `nobs`; previously it compared
   likelihoods across data sets and returned a negative Chisq.
   [lme4#622]
+- `||` over a factor produced a fully correlated `us` block (|cor| up to
+  0.99), the opposite of what the syntax promises. `parse_linpred()` now
+  expands each `||` term itself and tags every piece `diag()`, so a
+  factor's levels get independent variances; the fit is identical to an
+  explicit `diag(f | g)`. Numeric double bars keep lme4's block split
+  and their old estimates, because `diag` and `us` coincide at dimension
+  one. [lme4#818]
+
+### Mitigated
+
+- `ar1()`/`hetar1()` over an ordering factor with gaps still treat level
+  POSITION as time - dropping times 7-9 from a 1..10 series makes
+  cor(t6, t10) come back as rho, not rho^4, and biases rho itself. That
+  reading is glmmTMB's, and the glmmTMB agreement tests pin it down, so
+  the likelihood is unchanged and frame assembly warns instead: when the
+  ordering levels are whole numbers but not consecutive, the warning
+  names the gap and points at `ou()` over `num_factor()`, which is the
+  correct spelling for irregular spacing. Non-integer labels stay
+  silent, since position is then the only available meaning.
+  [glmmTMB#1278]
 
 ### Open - high priority
 
-1. `ar1()` over an ordering factor with gaps silently treats
-   consecutive *retained* levels as lag 1. Dropping times 7-9 from a
-   1..10 series makes cor(t6, t10) come back as rho, not rho^4 (0.73 vs
-   the true 0.41), and biases rho itself (0.79 -> 0.73 at rho = 0.8).
-   Root cause: `drop.unused.levels` in the model frame, so the block is
-   indexed by level position rather than by the level's value.
-   `ou()` over `num_factor()` coordinates is the correct spelling for
-   irregular spacing; ar1() should at minimum warn when the ordering
-   levels are non-consecutive integers. [glmmTMB#1278]
-2. Truncation is ignored by every post-fit mean: the likelihood
+1. Truncation is ignored by every post-fit mean: the likelihood
    normalizes correctly with F(lb-1), but `fitted()`, `predict(type =
    "response")` and `residuals()` return the *untruncated* family mean,
    and `simulate()` draws from the untruncated distribution (23% of
@@ -125,12 +136,6 @@ regression tests in tests/testthat/test-open-issues.R.
    entirely. Needs E[Y | lb <= Y <= ub] per family (only gaussian,
    lognormal and poisson accept trunc()) plus rejection sampling in
    `simulate()`. [brms#1923, #1903]
-3. `||` with a factor term expands to a full correlated block
-   (`(fD || g)` gives a 4x4 with |cor| up to 0.99), so users who write
-   `||` for uncorrelated effects get the opposite. lme4 cannot warn
-   because `expandDoubleVerts` has no model frame; we call it ourselves
-   in `parse_linpred()` and could defer the check to frame assembly,
-   where the term's type is known. [lme4#818]
 
 ### Open - medium
 

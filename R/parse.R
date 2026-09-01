@@ -129,13 +129,47 @@ eval_spec_arg <- function(expr, nm, env, fn = "gp") {
   as.numeric(val)
 }
 
+# Drop redundant parentheses so a term can be inspected and re-split.
+strip_parens <- function(e) {
+  while (is.call(e) && identical(e[[1]], as.name("("))) e <- e[[2]]
+  e
+}
+
+# `(x || g)` promises uncorrelated effects, but lme4's expansion is
+# purely syntactic: a FACTOR contributes a single term carrying all of
+# its contrast columns, which then lands in one default (`us`) block and
+# comes back fully correlated - the opposite of what was asked for
+# [lme4#818]. Expand each `||` term the way lme4 does, so the block
+# structure users already rely on is preserved, then tag every piece
+# `diag()`, the independent-variance structure for any column count. A
+# one-column piece has no correlation to lose, so `diag` and `us`
+# coincide there and numeric double bars are bit-identical to before.
+expand_double_verts <- function(form) {
+  raw <- split_plus(reformulas::RHSForm(form))
+  out <- list()
+  for (tm in raw) {
+    inner <- strip_parens(tm)
+    if (!(is.call(inner) && identical(inner[[1]], as.name("||")))) {
+      out[[length(out) + 1L]] <- tm
+      next
+    }
+    ex <- reformulas::expandDoubleVerts(
+      stats::as.formula(call("~", inner), env = environment(form)))
+    for (p in split_plus(strip_parens(reformulas::RHSForm(ex)))) {
+      out[[length(out) + 1L]] <- call("diag", strip_parens(p))
+    }
+  }
+  reformulas::RHSForm(form) <- Reduce(function(a, b) call("+", a, b), out)
+  form
+}
+
 # Split one linear-predictor RHS (a one-sided formula) into a parametric
 # fixed formula, random-effect terms (reformulas), and mgcv smooth
 # specifications. `shared` is the response-level environment that keeps
 # protected-function aliases visible to the combined model frame.
 parse_linpred <- function(rhs_form, env, shared = NULL) {
   environment(rhs_form) <- env
-  rhs_form <- reformulas::expandDoubleVerts(rhs_form)
+  rhs_form <- expand_double_verts(rhs_form)
 
   # Pull smooth terms out at the top level before splitForm sees them
   # (splitForm strips s()/t2() regardless of its specials argument).

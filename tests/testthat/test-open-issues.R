@@ -182,6 +182,90 @@ test_that("nonlinear fixed-effect SEs match nlme, not nlmer (lme4#819, #164)", {
   expect_equal(predict(fit, newdata = Soy), predict(fit), tolerance = 1e-8)
 })
 
+test_that("ar1() warns on gapped integer levels (glmmTMB#1278)", {
+  skip_if_not_installed("glmmTMB")
+  set.seed(101)
+  tv <- c(1:6, 10)          # times 7-9 never observed
+  gd <- expand.grid(t = tv, sub = factor(1:30))
+  gd$tim <- factor(gd$t)
+  S <- 0.8^abs(outer(seq_along(tv), seq_along(tv), "-"))
+  b <- t(chol(S)) %*% matrix(rnorm(length(tv) * 30), length(tv), 30)
+  gd$y <- 1 + as.vector(b) + rnorm(nrow(gd), sd = 0.5)
+
+  expect_warning(
+    fit <- frm(bf(y ~ 1 + ar1(tim + 0 | sub)) + gaussian(), data = gd),
+    "ou\\(num_factor\\(tim\\)"
+  )
+  expect_warning(
+    frm(bf(y ~ 1 + ar1(tim + 0 | sub)) + gaussian(), data = gd),
+    "'6' is followed by '10'"
+  )
+  # the warning is advisory: the positional likelihood is glmmTMB's and
+  # must stay bit-comparable to it
+  ref <- glmmTMB::glmmTMB(y ~ 1 + ar1(tim + 0 | sub), data = gd,
+                          REML = FALSE)
+  expect_loglik_equal(fit, ref, tol = 1e-5)
+  V <- VarCorr(fit)[[1]]
+  expect_equal(V[6, 7] / V[1, 1], V[1, 2] / V[1, 1], tolerance = 1e-8)
+
+  # consecutive integer levels: nothing to say
+  expect_no_warning(
+    frm(bf(y ~ 1 + ar1(tim + 0 | sub)) + gaussian(),
+        data = subset(gd, t <= 6))
+  )
+  # non-integer labels: position is the only available meaning
+  gd$lab <- factor(paste0("t", gd$t))
+  expect_no_warning(
+    frm(bf(y ~ 1 + ar1(lab + 0 | sub)) + gaussian(), data = gd)
+  )
+  gd$half <- factor(gd$t / 2)
+  expect_no_warning(
+    frm(bf(y ~ 1 + ar1(half + 0 | sub)) + gaussian(), data = gd)
+  )
+})
+
+test_that("|| over a factor gives independent effects (lme4#818)", {
+  set.seed(11)
+  dd <- data.frame(
+    g = factor(rep(1:40, each = 10)),
+    f = factor(rep(c("a", "b", "c"), length.out = 400)),
+    x = rnorm(400)
+  )
+  re <- matrix(rnorm(120, sd = c(0.8, 0.4, 1.2)), nrow = 3)
+  dd$y <- 2 + 0.5 * dd$x +
+    re[cbind(as.integer(dd$f), as.integer(dd$g))] + rnorm(400, sd = 0.7)
+
+  # lme4 expands the factor into ONE term carrying every level, which
+  # the default `us` class then correlates
+  dbar <- frm(bf(y ~ x + (0 + f || g)) + gaussian(), data = dd)
+  ref <- frm(bf(y ~ x + diag(0 + f | g)) + gaussian(), data = dd)
+  expect_equal(as.numeric(logLik(dbar)), as.numeric(logLik(ref)),
+               tolerance = 1e-12)
+  expect_equal(dbar$estimates$theta, ref$estimates$theta,
+               tolerance = 1e-12)
+  V <- VarCorr(dbar)[[1]]
+  expect_equal(V[upper.tri(V)], rep(0, 3))
+
+  # the intercept form expands to (1 | g) + diag(0 + f | g)
+  dbar_i <- frm(bf(y ~ x + (f || g)) + gaussian(), data = dd)
+  ref_i <- frm(bf(y ~ x + (1 | g) + diag(0 + f | g)) + gaussian(),
+               data = dd)
+  expect_equal(as.numeric(logLik(dbar_i)), as.numeric(logLik(ref_i)),
+               tolerance = 1e-12)
+  expect_length(VarCorr(dbar_i), 2L)
+
+  # numeric double bars keep lme4's block split and their old values
+  num <- frm(bf(y ~ x + (x || g)) + gaussian(), data = dd)
+  num_ref <- frm(bf(y ~ x + (1 | g) + (0 + x | g)) + gaussian(), data = dd)
+  expect_equal(num$estimates$theta, num_ref$estimates$theta,
+               tolerance = 1e-12)
+  expect_equal(names(VarCorr(num)), names(VarCorr(num_ref)))
+  mix <- frm(bf(y ~ x + (1 + x || g)) + gaussian(), data = dd)
+  expect_equal(mix$estimates$theta, num_ref$estimates$theta,
+               tolerance = 1e-12)
+  expect_length(VarCorr(mix), 2L)
+})
+
 test_that("tensor-product smooths are supported or refused clearly (glmmTMB#1082)", {
   set.seed(101)
   dd <- data.frame(x = runif(200), z = runif(200))

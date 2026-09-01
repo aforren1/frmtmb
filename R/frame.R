@@ -90,6 +90,32 @@ check_special_mult <- function(mult, expr, fn) {
   as.numeric(mult)
 }
 
+# ar1()/hetar1() correlate two levels by their POSITION in the ordering
+# factor, never by the distance between the labels: with times 1..6 and
+# 10 present, cor(t6, t10) is fitted as rho, not rho^4, and rho itself
+# comes out biased. glmmTMB reads the levels the same way and our
+# agreement tests pin that reading down, so the likelihood stays as it
+# is and the user gets told instead. Silence is right when the labels
+# carry no numbers: position is then the only meaning available.
+# [glmmTMB#1278]
+warn_ar1_level_gaps <- function(bar, mf, cs_name) {
+  v <- all.vars(bar[[2]])
+  if (length(v) != 1L || !is.factor(mf[[v]])) return(invisible(NULL))
+  lv <- levels(mf[[v]])
+  pos <- suppressWarnings(as.numeric(lv))
+  if (anyNA(pos) || any(pos != trunc(pos))) return(invisible(NULL))
+  gap <- which(abs(diff(pos)) != 1)
+  if (!length(gap)) return(invisible(NULL))
+  i <- gap[1L]
+  warning(cs_name, "(): the levels of '", v, "' are whole numbers but ",
+          "not consecutive ('", lv[i], "' is followed by '", lv[i + 1L],
+          "'), and ", cs_name, "() correlates levels by position, so ",
+          "that gap counts as a single step. For irregularly spaced ",
+          "positions use ou() over num_factor(): ou(num_factor(", v,
+          ") + 0 | ...)", call. = FALSE)
+  invisible(NULL)
+}
+
 extract_y <- function(resp, mf) {
   y <- mf[[deparse1(resp$resp_expr)]]
   if (is.null(y)) {
@@ -576,6 +602,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             stop(cs_name, "() requires a factor without intercept on ",
                  "the left of the bar, e.g. ", cs_name,
                  "(times + 0 | g)", call. = FALSE)
+          }
+          if (cs_name %in% c("ar1", "hetar1")) {
+            warn_ar1_level_gaps(bars[[k]], mf, cs_name)
           }
           fac <- rt$flist[[fassign[k]]]
           aux_A <- NULL
