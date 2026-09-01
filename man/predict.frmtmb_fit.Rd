@@ -58,6 +58,20 @@ A numeric vector, or a list when \code{se.fit = TRUE}.
 \description{
 Predictions from a frmtmb fit
 }
+\details{
+When the fixed-effect design was rank deficient, the aliased columns
+were dropped at fit time and some coefficient combinations are not
+estimable. Rows of \code{newdata} that load on a dropped direction get
+\code{NA} (and \code{NA} standard errors), with one warning naming the dropped
+columns; every other row is unaffected. The test is the one
+\code{\link[stats:predict.lm]{stats::predict.lm()}} uses: a row is non-estimable when it is not
+orthogonal to the null space of the fitted design, up to a relative
+tolerance of \code{1e-8}. Two limits follow. It is a numerical test, so
+near-aliased designs sit on a threshold rather than a clean
+yes/no. And it covers the parametric fixed-effect block only:
+smooth null-space, \code{gp()}, \code{mo()} and \code{mi()} columns are appended
+after the rank check and are never dropped.
+}
 \section{Truncated responses}{
 
 For a response with \code{trunc()} bounds, \code{type = "response"} (and

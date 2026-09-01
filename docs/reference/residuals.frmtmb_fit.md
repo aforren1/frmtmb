@@ -32,7 +32,11 @@ residuals(
   Method for
   [`TMB::oneStepPredict()`](https://rdrr.io/pkg/TMB/man/oneStepPredict.html);
   defaults to `"fullGaussian"` for gaussian models and
-  `"oneStepGeneric"` otherwise.
+  `"oneStepGeneric"` otherwise. A truncated response always uses
+  `"oneStepGeneric"` (a truncated gaussian is not gaussian) with the
+  integration domain and discrete support taken from the
+  [`trunc()`](https://rdrr.io/r/base/Round.html) bounds, which must then
+  be the same for every row.
 
 - ...:
 
@@ -42,3 +46,11 @@ residuals(
 ## Value
 
 A numeric vector.
+
+## Details
+
+On a [`trunc()`](https://rdrr.io/r/base/Round.html)ed response,
+`"response"` residuals are taken against the truncated mean
+`E[Y | lb <= Y <= ub]`. `"pearson"` divides by the untruncated family
+variance, so it is conservative there. `"osa"` builds its conditional
+CDF on `[lb, ub]` (see `osa_method`).

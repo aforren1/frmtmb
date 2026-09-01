@@ -1,6 +1,10 @@
 # Simulate responses from a frmtmb fit
 
-Simulate responses from a frmtmb fit
+A [`trunc()`](https://rdrr.io/r/base/Round.html)ed response simulates by
+rejection within its bounds, so every draw lies in `[lb, ub]` and
+posterior-predictive checks
+([`dharma_residuals()`](dharma_residuals.md), `pp_check()`) see the same
+support the likelihood was normalized on.
 
 ## Usage
 

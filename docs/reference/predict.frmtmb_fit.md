@@ -77,3 +77,32 @@ predict(
 ## Value
 
 A numeric vector, or a list when `se.fit = TRUE`.
+
+## Details
+
+When the fixed-effect design was rank deficient, the aliased columns
+were dropped at fit time and some coefficient combinations are not
+estimable. Rows of `newdata` that load on a dropped direction get `NA`
+(and `NA` standard errors), with one warning naming the dropped columns;
+every other row is unaffected. The test is the one
+[`stats::predict.lm()`](https://rdrr.io/r/stats/predict.lm.html) uses: a
+row is non-estimable when it is not orthogonal to the null space of the
+fitted design, up to a relative tolerance of `1e-8`. Two limits follow.
+It is a numerical test, so near-aliased designs sit on a threshold
+rather than a clean yes/no. And it covers the parametric fixed-effect
+block only: smooth null-space, `gp()`, `mo()` and `mi()` columns are
+appended after the rank check and are never dropped.
+
+## Truncated responses
+
+For a response with [`trunc()`](https://rdrr.io/r/base/Round.html)
+bounds, `type = "response"` (and
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html)) report the
+truncated mean `E[Y | lb <= Y <= ub]`, matching the likelihood the model
+was fitted with. Predictions of a distributional parameter
+(`type = "link"`, `dpar = `, or `type = "conditional"`) stay
+**untruncated**: they are statements about the latent parameter, not
+about the observed, truncated response. Bounds are re-evaluated on
+`newdata` the same way `trials()` and `se()` are: a literal bound
+carries over unchanged, and a bound given as a variable must be a column
+of `newdata` of the right length.

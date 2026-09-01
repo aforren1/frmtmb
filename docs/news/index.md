@@ -1,5 +1,77 @@
 # Changelog
 
+## frmtmb 0.23.0
+
+Defect wave driven by an open-issue sweep of brms/lme4/glmmTMB, plus a
+feature-compatibility registry.
+
+### Corrected behavior
+
+- Truncation now reaches the whole post-fit surface, not just the
+  likelihood: [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  `predict(type = "response")`, and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) report the
+  truncated mean E\[Y \| lb \<= Y \<= ub\] (closed forms for all six CDF
+  families, validated to 1e-15);
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html),
+  [`posterior_predict()`](../reference/posterior_epred.md), and
+  [`frm_simulate()`](../reference/frm_simulate.md) rejection-sample
+  within bounds; newdata re-evaluates variable bounds.
+  `residuals(type = "osa")` on truncated (and untruncated gaussian)
+  responses was also miscalibrated and now integrates over the truncated
+  support (KS uniformity restored from p ~ 1e-15 to 0.76-0.97).
+  Dpar-scale predictions stay untruncated by design. DHARMa/pp_check on
+  truncated models are meaningful again.
+- `(f || g)` with a factor now yields independent per-level effects (the
+  diag structure the syntax promises) instead of a silently fully
+  correlated block; identical to an explicit `diag(f | g)`. Numeric
+  double-bars are unchanged. Existing factor-double-bar fits change,
+  because the old ones were wrong (lme4 has the same open bug,
+  lme4#818).
+- `ar1()`/`hetar1()` warn when the ordering factor’s integer levels have
+  gaps: levels correlate by position (the glmmTMB reading, unchanged),
+  so a gap counts as one step; the warning points at `ou()` over
+  [`num_factor()`](../reference/num_factor.md) for irregular spacing
+  (glmmTMB#1278).
+- Predictions at non-estimable points of a rank-deficient design return
+  NA with one warning naming the aliased columns, instead of silently
+  returning the partial sum (predict.lm semantics; lme4#303). Collinear
+  restatements of kept columns stay exact.
+- Grouping factors written as calls work: `(1 | factor(x))`,
+  `(1 | interaction(a, b))` (lme4#464).
+- A random-effect term crossed with `*` or `:` errors instead of being
+  silently refit additively (lme4#196); `mo()`/`mi()` interaction
+  multipliers must be numeric (brms#1828);
+  [`anova()`](https://rdrr.io/r/stats/anova.html) requires equal `nobs`
+  (lme4#622).
+- [`frm_sample()`](../reference/frm_sample.md) chain initialization:
+  chain 1 anchors at the ML mode, further chains are jittered on the
+  unconstrained scale (`init_jitter`), restoring the overdispersion Rhat
+  needs; a boundary-mode warning fires for singular fits; mixture
+  posteriors are documented as needing `init = "random"`.
+
+### New
+
+- Feature compatibility registry:
+  [`frm_compat()`](../reference/frm_compat.md) answers what plays with
+  what (works / conditional / refused / broken / untested) across 3750
+  feature pairs, and the new “Feature compatibility” article is
+  generated from the registry at build time so it cannot drift.
+  Known-broken pairs are listed there; the registry probing itself
+  surfaced trunc x quadrature and cens x OSA as broken (queued for the
+  next fix wave).
+- An audit of 559 currently open brms/lme4/glmmTMB issues is recorded in
+  dev/test-backlog.md, including the pathologies frmtmb is structurally
+  immune to.
+- A pairwise grammar fuzzer (env-gated: `FRMTMB_FUZZ=true`): a 310-spec
+  covering array over the grammar with metamorphic invariants
+  (predict/fitted identity, permutation invariance, simulator support
+  membership, vcov sanity) and a brms `make_standata` structural oracle.
+  Its first run surfaced the quadrature defect cluster now queued for
+  fixing (conditional modes left NA, crashes with nested groups and
+  Beta, +Inf logLik with trunc()); the tier reports those as failures
+  until they are fixed.
+
 ## frmtmb 0.22.0
 
 Cross-validation against brms itself, closer brms compatibility, and fit

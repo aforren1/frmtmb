@@ -10,7 +10,6 @@ no compilation at run time.
 
 ``` r
 
-library(frmtmb)
 data(sleepstudy, package = "lme4")
 
 fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),

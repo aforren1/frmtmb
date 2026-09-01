@@ -21,7 +21,7 @@ variance components with few groups."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.22.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.23.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,7 @@ variance components with few groups."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -71,7 +72,8 @@ variance components with few groups.</p>
 <span>  priors <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  lower <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  upper <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  init <span class="op">=</span> <span class="st">"last.par.best"</span></span>
+<span>  init <span class="op">=</span> <span class="st">"last.par.best"</span>,</span>
+<span>  init_jitter <span class="op">=</span> <span class="fl">0.25</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -103,7 +105,19 @@ through Stan's constrained transforms.</p></dd>
 
 
 <dt id="arg-init">init<a class="anchor" aria-label="anchor" href="#arg-init"></a></dt>
-<dd><p>Initialization; defaults to the ML mode.</p></dd>
+<dd><p>Initialization; the default starts chain 1 exactly at
+the ML mode and every further chain at the mode plus a normal
+perturbation of sd <code>init_jitter</code> on the unconstrained scale.
+The mode anchor keeps warmup short; the jitter keeps the chains
+overdispersed enough for Rhat to retain power against
+multimodality (the standard objection to identical mode starts).
+<code>"random"</code> requests Stan's own overdispersed initialization.</p></dd>
+
+
+<dt id="arg-init-jitter">init_jitter<a class="anchor" aria-label="anchor" href="#arg-init-jitter"></a></dt>
+<dd><p>Per-chain perturbation sd for the default init;
+<code>0</code> starts every chain exactly at the mode. Draws from the R
+session's RNG, so <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> makes the inits reproducible.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -111,6 +125,16 @@ through Stan's constrained transforms.</p></dd>
     <p>An object of class <code>frmtmb_draws</code>: list with the <code>stanfit</code>,
 a draws matrix with named columns (<code><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix()</a></code> method), and the
 originating fit.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="multimodal-posteriors">Multimodal posteriors<a class="anchor" aria-label="anchor" href="#multimodal-posteriors"></a></h2>
+
+
+<p>For <code><a href="mixture.html">mixture()</a></code> fits the posterior is multimodal by construction
+(label switching at minimum). Mode-centered inits, jittered or
+not, leave every chain in one symmetry branch, so Rhat cannot
+flag the others; use <code>init = "random"</code> there and inspect chains
+individually.</p>
     </div>
 
     <div class="section level2">

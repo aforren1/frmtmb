@@ -1,0 +1,160 @@
+# Query the feature compatibility registry
+
+Gives the declared status of a pair of package features. The status is
+one of:
+
+## Usage
+
+``` r
+frm_compat(feature_a = NULL, feature_b = NULL, status = NULL)
+```
+
+## Arguments
+
+- feature_a, feature_b:
+
+  Feature names, as given by
+  [`frm_compat_features()`](frm_compat_features.md). Supply both for one
+  pair, one for every pair involving that feature, or neither for the
+  whole table.
+
+- status:
+
+  Optional character vector; keep only these statuses.
+
+## Value
+
+A data frame with columns `feature_a`, `kind_a`, `feature_b`, `kind_b`,
+`status`, and `note`. Family pairs are omitted, because a model carries
+one family.
+
+## Details
+
+- `works`:
+
+  The combination is supported and exercised.
+
+- `conditional`:
+
+  Supported, but the note states a condition that the combination must
+  meet.
+
+- `refused`:
+
+  [`frm()`](frm.md) or the post-fit method stops with an error. The
+  refusal is deliberate.
+
+- `broken`:
+
+  The combination is accepted but the result is wrong, or it fails with
+  an error that does not explain itself. Avoid the pair. The note gives
+  the evidence.
+
+- `untested`:
+
+  Nothing checks this pair. It may work. Treat a silent success as
+  unverified, not as support.
+
+The last status is the point of the registry. A guard that does not
+exist looks exactly like a guard that passed, so the absence of an error
+was never evidence of support.
+
+## See also
+
+[`frm_compat_rules()`](frm_compat_rules.md),
+[`frm_compat_features()`](frm_compat_features.md)
+
+## Examples
+
+``` r
+# one pair
+frm_compat("rescor", "cens()")
+#>   feature_a kind_a feature_b    kind_b  status
+#> 1    cens()  aterm    rescor structure refused
+#>                                                                        note
+#> 1 Refused. This pair was once accepted with the censoring silently dropped.
+
+# everything known about truncation
+frm_compat("trunc()", status = c("refused", "broken"))
+#>    feature_a kind_a                 feature_b    kind_b  status
+#> 1    trunc()  aterm                   student    family refused
+#> 2    trunc()  aterm         shifted_lognormal    family refused
+#> 3    trunc()  aterm               skew_normal    family refused
+#> 4    trunc()  aterm                exgaussian    family refused
+#> 5    trunc()  aterm              asym_laplace    family refused
+#> 6    trunc()  aterm                     Gamma    family refused
+#> 7    trunc()  aterm                      beta    family refused
+#> 8    trunc()  aterm                   tweedie    family refused
+#> 9    trunc()  aterm               negbinomial    family refused
+#> 10   trunc()  aterm                   nbinom1    family refused
+#> 11   trunc()  aterm                 geometric    family refused
+#> 12   trunc()  aterm                   compois    family refused
+#> 13   trunc()  aterm                  binomial    family refused
+#> 14   trunc()  aterm                 bernoulli    family refused
+#> 15   trunc()  aterm             beta_binomial    family refused
+#> 16   trunc()  aterm               multinomial    family refused
+#> 17   trunc()  aterm     zero_inflated_poisson    family refused
+#> 18   trunc()  aterm zero_inflated_negbinomial    family refused
+#> 19   trunc()  aterm    zero_inflated_binomial    family refused
+#> 20   trunc()  aterm        zero_inflated_beta    family refused
+#> 21   trunc()  aterm            hurdle_poisson    family refused
+#> 22   trunc()  aterm              hurdle_gamma    family refused
+#> 23   trunc()  aterm          hurdle_lognormal    family refused
+#> 24   trunc()  aterm                cumulative    family refused
+#> 25   trunc()  aterm                    sratio    family refused
+#> 26   trunc()  aterm                    cratio    family refused
+#> 27   trunc()  aterm                      acat    family refused
+#> 28   trunc()  aterm                      mi()     aterm refused
+#> 29   trunc()  aterm                quadrature      mode  broken
+#> 30   trunc()  aterm                    rescor structure refused
+#> 31   trunc()  aterm                   mixture structure refused
+#> 32   trunc()  aterm               mixture_mvn structure refused
+#> 33   trunc()  aterm              bar_crossing   grammar refused
+#>                                                                                                                                                                                                                                                                                                                       note
+#> 1                                                                                                                                                                                                                                                                      Refused: trunc() needs a family with an AD log-CDF.
+#> 2                                                                                                                                                                                                                                                                      Refused: trunc() needs a family with an AD log-CDF.
+#> 3                                                                                                                                                                                                                                                                      Refused: trunc() needs a family with an AD log-CDF.
+#> 4                                                                                                                                                                                                                                                                      Refused: trunc() needs a family with an AD log-CDF.
+#> 5                                                                                                                                                                                                                                                                      Refused: trunc() needs a family with an AD log-CDF.
+#> 6                                                                                                                                                                                                                                                                      Refused: trunc() needs a family with an AD log-CDF.
+#> 7                                                                                                                                                                                                                                                                      Refused: trunc() needs a family with an AD log-CDF.
+#> 8                                                                                                                                                                                                                                                                      Refused: trunc() needs a family with an AD log-CDF.
+#> 9                                                                                                                                                                                                                                                                      Refused: trunc() needs a family with an AD log-CDF.
+#> 10                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 11                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 12                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 13                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 14                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 15                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 16                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 17                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 18                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 19                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 20                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 21                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 22                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 23                                                                                                                                                                                                                                                                     Refused: trunc() needs a family with an AD log-CDF.
+#> 24                                                                                                                                                                                                                                                  Refused: ordinal families carry no AD log-CDF over the response scale.
+#> 25                                                                                                                                                                                                                                                  Refused: ordinal families carry no AD log-CDF over the response scale.
+#> 26                                                                                                                                                                                                                                                  Refused: ordinal families carry no AD log-CDF over the response scale.
+#> 27                                                                                                                                                                                                                                                  Refused: ordinal families carry no AD log-CDF over the response scale.
+#> 28                                                                                                                                                                                                                                    Refused: mi() cannot be combined with cens(), trunc(), or se() on the same response.
+#> 29 BROKEN. The truncation normalizer is dropped from the marginalized objective. The fit returns convergence 0 with slope estimates collapsed to zero, next to a correct 0.93 from ML, REML, and profile. A large-gradient warning is the only signal. Do not combine these; use REML or plain ML for truncated responses.
+#> 30                                                                                                                                                                                                                                              Refused. This pair was once accepted with the truncation silently dropped.
+#> 31                                                                                                                                                                                                                                                                                          Refused: mixture() has no CDF.
+#> 32                                                                                                                                                                                                                                                                                      Refused: mixture_mvn() has no CDF.
+#> 33                                                                                            Refused: a bar term crossed with * or : (as in x * (1 | g)) is not a random-effect specification (lme4#196). Write the crossing inside the bar: (x | g). This spelling was once accepted with the crossing silently dropped.
+
+# the pairs to avoid
+frm_compat(status = "broken")[, 1:5]
+#>    feature_a kind_a     feature_b    kind_b status
+#> 1 cumulative family residuals_osa    method broken
+#> 2     sratio family residuals_osa    method broken
+#> 3     cratio family residuals_osa    method broken
+#> 4       acat family residuals_osa    method broken
+#> 5     cens()  aterm residuals_osa    method broken
+#> 6    trunc()  aterm    quadrature      mode broken
+#> 7       REML   mode       mixture structure broken
+#> 8 quadrature   mode       mixture structure broken
+#> 9    profile   mode       mixture structure broken
+```

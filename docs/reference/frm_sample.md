@@ -20,7 +20,8 @@ frm_sample(
   priors = NULL,
   lower = NULL,
   upper = NULL,
-  init = "last.par.best"
+  init = "last.par.best",
+  init_jitter = 0.25
 )
 ```
 
@@ -52,7 +53,20 @@ frm_sample(
 
 - init:
 
-  Initialization; defaults to the ML mode.
+  Initialization; the default starts chain 1 exactly at the ML mode and
+  every further chain at the mode plus a normal perturbation of sd
+  `init_jitter` on the unconstrained scale. The mode anchor keeps warmup
+  short; the jitter keeps the chains overdispersed enough for Rhat to
+  retain power against multimodality (the standard objection to
+  identical mode starts). `"random"` requests Stan's own overdispersed
+  initialization.
+
+- init_jitter:
+
+  Per-chain perturbation sd for the default init; `0` starts every chain
+  exactly at the mode. Draws from the R session's RNG, so
+  [`set.seed()`](https://rdrr.io/r/base/Random.html) makes the inits
+  reproducible.
 
 ## Value
 
@@ -60,6 +74,13 @@ An object of class `frmtmb_draws`: list with the `stanfit`, a draws
 matrix with named columns
 ([`as.matrix()`](https://rdrr.io/r/base/matrix.html) method), and the
 originating fit.
+
+## Multimodal posteriors
+
+For [`mixture()`](mixture.md) fits the posterior is multimodal by
+construction (label switching at minimum). Mode-centered inits, jittered
+or not, leave every chain in one symmetry branch, so Rhat cannot flag
+the others; use `init = "random"` there and inspect chains individually.
 
 ## Examples
 

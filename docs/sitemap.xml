@@ -1,6 +1,7 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>/404.html</loc></url>
 <url><loc>/articles/brms-migration.html</loc></url>
+<url><loc>/articles/compatibility.html</loc></url>
 <url><loc>/articles/diagnostics.html</loc></url>
 <url><loc>/articles/frmtmb.html</loc></url>
 <url><loc>/articles/index.html</loc></url>
@@ -28,6 +29,9 @@
 <url><loc>/reference/frmtmb_family.html</loc></url>
 <url><loc>/reference/frm_allfit.html</loc></url>
 <url><loc>/reference/frm_bootstrap.html</loc></url>
+<url><loc>/reference/frm_compat.html</loc></url>
+<url><loc>/reference/frm_compat_features.html</loc></url>
+<url><loc>/reference/frm_compat_rules.html</loc></url>
 <url><loc>/reference/frm_multiple.html</loc></url>
 <url><loc>/reference/frm_sample.html</loc></url>
 <url><loc>/reference/frm_simulate.html</loc></url>

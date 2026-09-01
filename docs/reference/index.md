@@ -125,3 +125,12 @@
   of the fixed-effect estimates
 - [`sigma(`*`<frmtmb_fit>`*`)`](sigma.frmtmb_fit.md) : Residual standard
   deviation
+
+## Feature compatibility
+
+- [`frm_compat()`](frm_compat.md) : Query the feature compatibility
+  registry
+- [`frm_compat_features()`](frm_compat_features.md) : Feature metadata
+  for the compatibility registry
+- [`frm_compat_rules()`](frm_compat_rules.md) : Compatibility rules,
+  before resolution

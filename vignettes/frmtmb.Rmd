@@ -9,6 +9,10 @@ vignette: >
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+# the package load must sit in this unconditional chunk: the tangled
+# script skips eval-gated chunks, so a library() inside one leaves
+# every later unconditional chunk without frm()
+library(frmtmb)
 has_lme4 <- requireNamespace("lme4", quietly = TRUE)
 ```
 
@@ -21,7 +25,6 @@ no compilation at run time.
 ## A mixed model
 
 ```{r, eval = has_lme4}
-library(frmtmb)
 data(sleepstudy, package = "lme4")
 
 fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
