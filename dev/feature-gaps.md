@@ -324,14 +324,76 @@ NO ODE grammar (stanvars + hand-written Stan is its answer), so this
 is union-coverage territory (pharmacokinetics, epidemic models,
 nlmixr-adjacent).
 
-Path: (1) feasibility probe - nl = TRUE bodies are arbitrary R
-evaluated on the tape, so RTMBode::ode() inside an nl body may
-already nearly work (population PK: nlpars with REs feeding the
-dynamics parameters, mu read off the solved trajectory); establish
-what breaks (times/data plumbing, matrix indexing on the tape,
-sdreport). (2) If viable, sugar later: an ode-aware term or an
-odefun = argument on bf(); keep deSolve method/atol/rtol
-passthrough.
+PROBE DONE 2026-09-01, branch wt-odeprobe. Full write-up in
+dev/ode-feasibility.md; scripts in dev/ode/. Headline: it already
+works, with NO package change. A population PK model (12 subjects,
+one-compartment oral absorption, BSV on log ka and log ke) fits
+through the plain nl spelling
+
+  bf(conc ~ pk_ode(exp(lka), exp(lke), exp(lV), time, id, dose),
+     lka ~ 1 + (1|id), lke ~ 1 + (1|id), lV ~ 1, nl = TRUE)
+
+where pk_ode() is a user function looping RTMBode::ode() once per
+subject. The nl body sees row-wise nlpar advectors plus raw data
+columns and resolves helpers through the formula environment, which
+is all a per-group solve needs (a nlpar constant within group is read
+off the group's first row). Verified four ways: numeric vs closed
+form 2e-8; identical objective to a hand-rolled MakeADFun; IDENTICAL
+logLik to the same model with the analytic mu at n_id 6/12/25/50 (so
+the Laplace approximation is right THROUGH the adjoint node); and
+agreement with nlmixr2 FOCEi to 3 decimals on all six quantities
+(frmtmb finds a marginally better optimum, and needs no C compiler).
+
+Downstream all works: sdreport SEs, wald and profile confint,
+predict() in-sample AND on newdata (dense grids, new levels,
+re.form = NA - the nl branch re-evaluates the body against newdata's
+own columns, so the helper re-derives its groups), simulate() and
+refit, REML, ranef/VarCorr/coef. Only predict(se.fit = TRUE) fails,
+on the pre-existing "not supported for the nonlinear predictor" nl
+gap. Edge cases pass: t = 0 observations, duplicate times, ragged and
+row-shuffled designs, NA rows.
+
+Two hard findings that shape the design:
+
+1. NEVER stack subjects into one big system. The Laplace inner
+   Hessian through a single ode() node degrades with the state count:
+   lsoda goes silently NaN above ~8 states, lsode at 8, and
+   ode45/rk4/euler CRASH the R process (exit 127) at 32. adams
+   survives to 48 then hangs. Solve one small system per group -
+   which is the natural pharmacometric regime anyway. Minimal
+   frmtmb-free reproduction in dev/ode/probeE8-laplace-limit.R;
+   worth an upstream RTMBode issue. Related: a NaN ODE tape poisons
+   later MakeADFun objects in the same R session, so size sweeps and
+   tests need one process per case.
+2. Fixed-step integrators (rk4, euler) give a WRONG likelihood
+   (-63.93 vs -60.46). Every adaptive one agrees to 7 digits; lsoda
+   is fastest.
+
+Cost: linear in subjects, ~0.4 s per subject for a 2-state system
+(12 subjects 3.5 s, 50 subjects 20 s, all-in including sdreport),
+32x-181x the same model with a closed-form mu.
+
+Remaining work is ergonomics only. Recommended: ONE exported helper,
+frm_ode(dynamics, init, times, parms, group, method, ...), called
+from the nl body, owning the ADoverload("[<-")/("c") locals, the t0
+prepend, the within-group sort and scatter, an assertion that every
+parms/init column is constant within group (a within-group covariate
+is currently unidentified - coefficient pinned at its start, non-PD
+Hessian, NaN SEs), a fixed-step refusal, a state-count warning, and
+a tryCatch penalty for failed solves. Do NOT build an odefun = or
+ode() bf() grammar: it needs new machinery in parse/frame/objective/
+predict/simulate for capability the nl body already has, and would
+be a worse nlmixr2. Boundary: dosing EVENT tables (multiple doses,
+infusions, evid/amt) are out - that needs deSolve events = plumbed
+through RTMBode and was not probed. Sizing: 3-4 days total (helper
+1-1.5d, tests 0.5d, packaging 0.5d, PK vignette 0.5-1d).
+
+A custom_family() whose lpdf calls ode(), with times/ids/doses in
+vreal()/vint(), also works and reaches the identical objective, but
+is slower (optimize 5.4 s vs 3.3 s) and its predict() defaults to the
+primary dpar's link scale rather than the concentration. Keep it as a
+documented alternative for models where the ODE does not enter the
+mean.
 
 Packaging (the non-CRAN dependency): the established CRAN mechanism
 is Suggests + Additional_repositories, used ON CRAN today by brms,
