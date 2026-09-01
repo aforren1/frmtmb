@@ -11,7 +11,8 @@ frm_simulate(
   newparams = NULL,
   priors = NULL,
   nsim = 1,
-  seed = NULL
+  seed = NULL,
+  data2 = list()
 )
 }
 \arguments{
@@ -29,6 +30,8 @@ Details). Optional when \code{priors} pins everything.}
 once per simulation.}
 
 \item{nsim, seed}{As in \code{\link[=simulate]{simulate()}}.}
+
+\item{data2}{Structural objects, as in \code{\link[=frm]{frm()}}.}
 }
 \value{
 A data frame with \code{nsim} columns of simulated responses,

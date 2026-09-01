@@ -396,6 +396,7 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' @param priors A [set_prior()] specification to draw parameters from,
 #'   once per simulation.
 #' @param nsim,seed As in [simulate()].
+#' @param data2 Structural objects, as in [frm()].
 #' @return A data frame with `nsim` columns of simulated responses,
 #'   carrying the drawn parameters in `attr(., "pars")` when `priors`
 #'   is used.
@@ -427,11 +428,12 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' head(attr(pp, "pars"))
 #' @export
 frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
-                         priors = NULL, nsim = 1, seed = NULL) {
+                         priors = NULL, nsim = 1, seed = NULL,
+                         data2 = list()) {
   if (!is.null(seed)) set.seed(seed)
   bform <- as_bform(formula, family)
   spec <- parse_spec(bform)
-  frame <- assemble_frame(spec, data)
+  frame <- assemble_frame(spec, data, data2 = data2)
   if (length(spec$responses) > 1L) {
     stop("frm_simulate() supports univariate models", call. = FALSE)
   }

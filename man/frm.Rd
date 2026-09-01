@@ -17,6 +17,7 @@ frm(
   upper = NULL,
   priors = NULL,
   quadrature = FALSE,
+  data2 = list(),
   dry_run = NULL,
   verbose = FALSE
 )
@@ -75,6 +76,20 @@ starting point decides whether the marginalized objective is
 finite at all. That fit also supplies the conditional modes, which
 the marginalized objective no longer carries, so \code{ranef()},
 \code{fitted()} and \code{predict()} work as usual.}
+
+\item{data2}{A named list of objects that are not columns of \code{data}:
+the adjacency matrix of \code{car()}, the mesh triple of \code{spde()}, and
+the matrices of \code{gr(prec = )}, \code{gr(cov = )} and \code{equalto()}. This
+is brms's \code{data2} argument, with one deliberate extension: brms
+accepts a bare name only, while frmtmb also evaluates compound
+expressions with \code{data2} in front of the data mask, so
+\code{gr(g, cov = solve(Q))} finds \code{Q} there.
+Each structural expression resolves from \code{data2} first, then
+\code{data}, then the formula environment; that last step is what a
+model written before \code{data2} relied on, so old code keeps working.
+Prefer \code{data2}: its objects are stored on the fit, so \code{saveRDS()}
+and a later \code{refit()}, \code{influence()} or \code{update()} in a fresh
+session do not need the calling environment to still exist.}
 
 \item{dry_run}{\code{"spec"} returns the parsed intermediate representation
 without touching \code{data}; \code{"frame"} returns the assembled design

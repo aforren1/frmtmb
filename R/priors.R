@@ -140,6 +140,8 @@ print.frmtmb_priorlist <- function(x, ...) {
 #'   an already fitted `frmtmb_fit`.
 #' @param data Model data (ignored when `formula` is a fit).
 #' @param family Family, when `formula` does not carry one.
+#' @param data2 Structural objects, as in [frm()] (ignored when
+#'   `formula` is a fit, which carries its own).
 #' @return A data frame with columns `prior`, `class`, `coef`,
 #'   `group`, `dpar`, `resp`, `lb`, `ub`.
 #' @examples
@@ -147,14 +149,15 @@ print.frmtmb_priorlist <- function(x, ...) {
 #'                  g = factor(rep(1:6, 10)))
 #' get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 #' @export
-get_prior <- function(formula, data = NULL, family = NULL) {
+get_prior <- function(formula, data = NULL, family = NULL,
+                      data2 = list()) {
   if (inherits(formula, "frmtmb_fit")) {
     spec <- formula$spec
     frame <- formula$frame
   } else {
     bform <- as_bform(formula, family)
     spec <- parse_spec(bform)
-    frame <- assemble_frame(spec, data)
+    frame <- assemble_frame(spec, data, data2 = data2)
   }
 
   multi <- length(spec$responses) > 1L

@@ -67,11 +67,13 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
   th <- matrix(NA_real_, length(units), length(full_th),
                dimnames = list(units, names(outer_theta_names(model))))
 
+  data2 <- model$data2 %||% list()
   for (i in seq_along(units)) {
     fit_i <- tryCatch(suppressWarnings({
       frame_i <- assemble_frame(model$spec,
                                 data[unit_rows[[i]], , drop = FALSE],
-                                sparse_x = isTRUE(ctl$sparse_x))
+                                sparse_x = isTRUE(ctl$sparse_x),
+                                data2 = data2)
       tpl <- frame_i$par_template
       for (cp in setdiff(names(tpl), "b")) {
         if (length(model$estimates[[cp]]) == length(tpl[[cp]])) {
@@ -83,7 +85,7 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                     se = FALSE, lower = model$lower, upper = model$upper,
                     priors = model$priors,
                     quadrature = isTRUE(model$quadrature),
-                    template = tpl)
+                    template = tpl, data2 = data2)
     }), error = function(e) NULL)
     if (is.null(fit_i)) next
     fe_i <- get_coef.frmtmb_fit(fit_i)

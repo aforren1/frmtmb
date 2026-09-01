@@ -640,7 +640,8 @@ anova_refit_ml <- function(fit) {
                 lower = fit$lower, upper = fit$upper,
                 priors = fit$priors,
                 quadrature = isTRUE(fit$quadrature),
-                template = fit$estimates)
+                template = fit$estimates,
+                data2 = fit$data2 %||% list())
 }
 
 #' Likelihood-ratio tests between nested frmtmb fits
@@ -806,6 +807,10 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
     cl <- object$call
     cl$formula <- nb
     cl$data <- object$frame$data_frame
+    # same reason for data2: the stored structural objects go in by
+    # value, so the refit does not need the names the user passed to
+    # still resolve where the call is evaluated
+    if (length(object$data2)) cl$data2 <- object$data2
     fit_i <- eval(cl, environment(nb$formula) %||% parent.frame())
     ll_i <- logLik(fit_i)
     ddf[i] <- df0 - attr(ll_i, "df")
@@ -828,7 +833,14 @@ update.frmtmb_fit <- function(object, ..., evaluate = TRUE) {
   cl <- object$call
   extras <- match.call(expand.dots = FALSE)$...
   for (nm in names(extras)) cl[[nm]] <- extras[[nm]]
-  if (evaluate) eval(cl, parent.frame()) else cl
+  if (!evaluate) return(cl)
+  # the stored structural objects go into the call by value, so an
+  # update in a session where the original data2 names are gone still
+  # assembles; an explicit data2 = in the update wins
+  if (length(object$data2) && !("data2" %in% names(extras))) {
+    cl$data2 <- object$data2
+  }
+  eval(cl, parent.frame())
 }
 
 #' Likelihood profiles

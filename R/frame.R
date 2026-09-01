@@ -287,8 +287,75 @@ decode_cens <- function(v) {
   ifelse(is.na(num), out, num)
 }
 
+# data2 must be a named list; anything else is a user mistake that would
+# otherwise surface far away, inside one of the structural lookups.
+validate_data2 <- function(data2) {
+  if (is.null(data2)) return(list())
+  nms <- names(data2)
+  if (!is.list(data2) || (length(data2) && is.null(nms)) ||
+      any(!nzchar(nms))) {
+    stop("data2 must be a named list, e.g. data2 = list(W = W)",
+         call. = FALSE)
+  }
+  if (anyDuplicated(nms)) {
+    stop("data2 has duplicate names: ",
+         paste(unique(nms[duplicated(nms)]), collapse = ", "),
+         call. = FALSE)
+  }
+  data2
+}
+
+# Structural objects (adjacency matrices, precisions, covariance
+# matrices, FEM triples) resolve from data2 before anything else, so a
+# fit that names them there is self-contained: saveRDS() carries them on
+# the fit and a later refit never reaches back into the calling
+# environment that built them, which by then may be gone.
+#
+# brms accepts a bare name in data2 and nothing more. We keep that rule
+# and add one: a compound expression is evaluated with data2 in front of
+# the data mask, so car(solve(P)) finds P in data2 too. The historical
+# data-then-formula-env evaluation stays as the fallback, so models
+# written before data2 existed keep working.
+lookup_structural <- function(expr, data2, data, env, what) {
+  if (length(data2)) {
+    if (is.symbol(expr)) {
+      nm <- as.character(expr)
+      if (nm %in% names(data2)) return(data2[[nm]])
+    }
+    # the wrapper list separates "evaluated to NULL" from "failed"
+    val <- tryCatch(
+      list(v = eval(expr, data2, list2env(as.list(data), parent = env))),
+      error = function(e) NULL
+    )
+    if (!is.null(val)) return(val$v)
+  }
+  tryCatch(eval(expr, data, env), error = function(e) {
+    stop(structural_lookup_msg(expr, data2, what, e), call. = FALSE)
+  })
+}
+
+structural_lookup_msg <- function(expr, data2, what, e) {
+  txt <- deparse1(expr)
+  held <- if (length(data2)) {
+    paste0(" data2 holds: ", paste(names(data2), collapse = ", "), ".")
+  } else {
+    " data2 is empty."
+  }
+  if (is.symbol(expr)) {
+    paste0(what, ": cannot find '", txt, "'. Pass structural objects ",
+           "in data2, e.g. frm(..., data2 = list(", txt, " = ", txt,
+           ")); a fit whose matrices come from data2 also survives ",
+           "saveRDS() and refits in a new session.", held)
+  } else {
+    paste0(what, ": cannot evaluate '", txt, "' (", conditionMessage(e),
+           "). Put the objects it needs in data2, e.g. ",
+           "frm(..., data2 = list(...)).", held)
+  }
+}
+
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
-                           sparse_x = FALSE) {
+                           sparse_x = FALSE, data2 = list()) {
+  data2 <- validate_data2(data2)
   # One combined model frame holds every response, every variable of every
   # dpar of every response, and the aterm variables, so na.omit keeps rows
   # aligned. Responses go on the RHS of the frame formula (a multivariate
@@ -730,7 +797,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           aux_Q <- NULL
           aux_Qk <- NULL
           if (cs_name == "gr_prec") {
-            Q <- eval(dp$re[[k]]$cov_expr, data, resp$formula_env)
+            Q <- lookup_structural(dp$re[[k]]$cov_expr, data2, data,
+                                   resp$formula_env, "gr(prec = )")
             if (is.null(rownames(Q)) ||
                 !all(levels(fac) %in% rownames(Q))) {
               stop("gr(prec=): prec needs dimnames covering all ",
@@ -742,7 +810,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             if (d_k > 1L) aux_Qk <- kron_prec_parts(aux_Q, d_k)
           }
           if (cs_name == "gr_cov") {
-            A <- eval(dp$re[[k]]$cov_expr, data, resp$formula_env)
+            A <- lookup_structural(dp$re[[k]]$cov_expr, data2, data,
+                                   resp$formula_env, "gr(cov = )")
             if (!is.matrix(A) || nrow(A) != ncol(A)) {
               stop("gr(cov=): cov must be a square matrix", call. = FALSE)
             }
@@ -766,7 +835,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             }
           }
           if (cs_name == "equalto") {
-            V <- eval(dp$re[[k]]$cov_expr, data, resp$formula_env)
+            V <- lookup_structural(dp$re[[k]]$cov_expr, data2, data,
+                                   resp$formula_env, "equalto()")
             if (!is.matrix(V) || nrow(V) != d_k || ncol(V) != d_k) {
               stop("equalto(): V must be a ", d_k, " x ", d_k,
                    " matrix", call. = FALSE)
@@ -964,14 +1034,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             sort(unique(as.character(gv)))
           }
           j_loc <- match(as.character(gv), locs)
-          M <- eval(ce$M_expr, data, resp$formula_env)
+          M <- lookup_structural(ce$M_expr, data2, data,
+                                 resp$formula_env, "car()")
           W <- car_adjacency(M, locs)
           aux_car <- car_aux(W, ce$type, ce$con_sd)
         } else {
           # the mesh names nothing, so the block's levels ARE the mesh
           # rows and the data is permuted to them: every node gets a
           # column, observed or not (an unobserved one keeps its prior)
-          fem <- eval(ce$fem_expr, data, resp$formula_env)
+          fem <- lookup_structural(ce$fem_expr, data2, data,
+                                   resp$formula_env, "spde()")
           aux_spde <- spde_matrices(fem)
           n_node <- nrow(aux_spde[["M0"]])
           j_loc <- spde_node_index(gv, n_node, ce$gr_expr)

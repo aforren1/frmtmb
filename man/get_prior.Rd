@@ -4,7 +4,7 @@
 \alias{get_prior}
 \title{Enumerate the targetable prior slots}
 \usage{
-get_prior(formula, data = NULL, family = NULL)
+get_prior(formula, data = NULL, family = NULL, data2 = list())
 }
 \arguments{
 \item{formula}{A \code{bf()} formula (with family), a plain formula, or
@@ -13,6 +13,9 @@ an already fitted \code{frmtmb_fit}.}
 \item{data}{Model data (ignored when \code{formula} is a fit).}
 
 \item{family}{Family, when \code{formula} does not carry one.}
+
+\item{data2}{Structural objects, as in \code{\link[=frm]{frm()}} (ignored when
+\code{formula} is a fit, which carries its own).}
 }
 \value{
 A data frame with columns \code{prior}, \code{class}, \code{coef},
