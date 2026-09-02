@@ -11,6 +11,7 @@
   method = c("wald", "Wald", "profile", "uniroot", "boot"),
   nsim = 500,
   seed = NULL,
+  vcov = NULL,
   ...
 )
 }
@@ -45,6 +46,13 @@ like the other methods it works on the internal parameter scale).
 \code{"Wald"} is accepted as an alias for \code{"wald"}.}
 
 \item{nsim, seed}{Bootstrap draws and seed for \code{method = "boot"}.}
+
+\item{vcov}{\code{method = "wald"} only: a covariance matrix over the
+whole outer parameter vector to use in place of the model-based
+one - \code{\link[=vcov_cluster]{vcov_cluster()}} with \code{full = TRUE}, or a function of the
+fit returning such a matrix. A matrix that carries reference
+degrees of freedom (as \code{vcov_cluster()}'s does, \code{G - 1}) switches
+the interval from a normal to a \code{t} quantile.}
 
 \item{...}{Passed to the TMB profiling functions, or to
 \code{\link[=frm_bootstrap]{frm_bootstrap()}} for \code{method = "boot"} (e.g. \code{re.form}).}

@@ -1,0 +1,6 @@
+het only                           model 0.967  robust 0.950  (15.7 s)
+random slope 0.6                   model 0.750  robust 0.917  (14.4 s)
+random slope 0.6 + het             model 0.817  robust 0.983  (6.0 s)
+slope 0.8, x between 1.5, het      model 0.717  robust 0.883  (5.1 s)
+slope 0.8, x between 1.5, het, m=12 model 0.750  robust 0.967  (4.9 s)
+slope 1.0, x between 2, het, m=12  model 0.700  robust 0.967  (5.0 s)

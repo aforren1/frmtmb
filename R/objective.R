@@ -36,6 +36,17 @@ build_objective <- function(frame) {
 
   extra_names <- frame$extra_names %||% character(0)
 
+  # Cluster-robust scores (R/sandwich.R) need the per-cluster pieces of
+  # the objective as a function of one extra parameter each, so that
+  # `obj$gr()` at a cluster indicator IS that cluster's score. The hook
+  # is a per-response row -> cluster index; it is NULL for every
+  # ordinary fit and is only ever set on a private copy of the frame,
+  # never on the one stored in the fit. vcov_cluster() refuses every
+  # likelihood whose contribution is not the per-row `sum(w * ll)`
+  # below (autocor, hmm, mixtures, rescor), so this is the only place a
+  # cluster weight has to enter.
+  clw_idx <- frame[["cluster_w"]]
+
   function(pars) {
     "c" <- RTMB::ADoverload("c")
     "[<-" <- RTMB::ADoverload("[<-")
@@ -152,6 +163,7 @@ build_objective <- function(frame) {
       for (r in names(resps)) {
         fam <- resps[[r]]$family
         w <- atv[[r]]$weights %||% 1
+        if (!is.null(clw_idx)) w <- w * pars[["clw"]][clw_idx[[r]]]
         if (!is.null(acs[[r]])) {
           # R-side residual correlation: the response's density is a
           # joint (multivariate normal / t) one per group, not a

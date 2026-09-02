@@ -243,8 +243,12 @@ regression (logLik to 1.1e-7, gating coefficients to 9.9e-7).
   the two; (5) a `cov = FALSE` residual-regression form, if anyone
   actually wants brms's default rather than the marginal likelihood.
 
-- Sandwich/robust SEs (`vcovHC`, `bread`/`estfun`): still skipped;
-  glmmTMB does cluster-level scores. Revisit only on demand.
+- ~~Sandwich/robust SEs (`vcovHC`, `bread`/`estfun`)~~ DONE as
+  `vcov_cluster()` / `cluster_scores()`; see `dev/sandwich.md` for the
+  design record. The per-OBSERVATION half of this note stands: a
+  marginalized objective has no per-observation contribution, so there
+  is still no `estfun()` method. Per-CLUSTER scores are exact, and are
+  what shipped.
 - ~~`car(M, gr, type =)` (brms spelling) and an SPDE-Matern
   covstruct~~ DONE in v0.28, together with `gr(prec=)` beyond
   intercept-only. All three pieces shipped.
@@ -671,12 +675,14 @@ Four distinct items under the word "robust", none queued yet:
    legitimate, same working-likelihood caveats as asym_laplace
    (document, point at frm_bootstrap). Validate point estimates vs
    MASS::rlm(psi = psi.huber). Afternoon-scale.
-4. Cluster-robust (sandwich) vcov: per-OBSERVATION scores fight the
-   marginalized objective (why sandwich::estfun was skipped), but
-   per-CLUSTER scores are computable - the marginal likelihood
-   factors over independent groups. CR0/CR2 with clubSandwich as
-   reference. Highest practical demand of the four; changes
-   inference for every clustered model.
+4. ~~Cluster-robust (sandwich) vcov~~ DELIVERED, `dev/sandwich.md`.
+   The claim held: per-CLUSTER scores are exact and cheap, from one
+   tape carrying a per-cluster weight parameter (`obj$gr` at a cluster
+   indicator IS that cluster's score, because a data-free cluster
+   integrates its Gaussian prior to exactly 1). CR0/CR1/CR1p/CR1S ship
+   in the clubSandwich spelling; CR2/CR3 are refused, because
+   Bell-McCaffrey is defined through a hat matrix a Laplace-marginal
+   likelihood does not have.
 robustlmm-style bounded-influence estimating equations (DAStau) are
 NOT a likelihood and stay out of scope; item 2 is our answer to the
 same concern.

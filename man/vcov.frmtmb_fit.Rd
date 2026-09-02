@@ -4,7 +4,7 @@
 \alias{vcov.frmtmb_fit}
 \title{Covariance matrix of the fixed-effect estimates}
 \usage{
-\method{vcov}{frmtmb_fit}(object, full = FALSE, ...)
+\method{vcov}{frmtmb_fit}(object, full = FALSE, cluster = NULL, type = "CR0", ...)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
@@ -12,6 +12,13 @@
 \item{full}{If \code{TRUE}, include covariance parameters (\code{theta}),
 named as in \code{confint()} (the glmmTMB \code{vcov(full = TRUE)}
 convention).}
+
+\item{cluster}{Optional clustering factor. When given, the result is
+\code{\link[=vcov_cluster]{vcov_cluster()}}'s cluster-robust covariance instead of the
+model-based one.}
+
+\item{type}{Small-sample correction for \code{cluster}, see
+\code{\link[=vcov_cluster]{vcov_cluster()}}.}
 
 \item{...}{Unused.}
 }
@@ -40,6 +47,10 @@ part of \code{full = TRUE}; the block comes from the joint precision and
 carries exactly the parameters \code{\link[=confint.frmtmb_fit]{confint.frmtmb_fit()}} reports.
 \code{vcov(object)}
 is still the fixed-effect covariance there.
+
+Passing \code{cluster} forwards to \code{\link[=vcov_cluster]{vcov_cluster()}} for the
+cluster-robust (sandwich) covariance, in the \code{sandwich::vcovCL()}
+spelling: \code{vcov(fit, cluster = ~ g, type = "CR1")}.
 }
 \examples{
 set.seed(1)

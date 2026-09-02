@@ -1,0 +1,29 @@
+
+== poisson glm, cluster = row (n = 120, G = 120, p = 3) ==
+route A (re-tape per cluster)   0.330 s
+route B (weight parameter)     0.010 s
+max |A - B|                  0.000e+00
+max |colSums(A) - obj$gr|    3.005e-15
+max |obj$gr| at optimum      4.781e-04
+max |scores - sandwich::estfun(glm)| 8.911e-05
+
+== gaussian lmm, cluster = g (n = 240, G = 30, p = 4) ==
+route A (re-tape per cluster)   0.200 s
+route B (weight parameter)     0.020 s
+max |A - B|                  0.000e+00
+max |colSums(A) - obj$gr|    3.612e-13
+max |obj$gr| at optimum      1.626e-04
+
+== bernoulli glmm, G = 100 (n = 600, G = 100, p = 3) ==
+route A (re-tape per cluster)   0.920 s
+route B (weight parameter)     0.160 s
+max |A - B|                  4.263e-14
+max |colSums(A) - obj$gr|    1.611e-08
+max |obj$gr| at optimum      2.950e-04
+
+== nested re, cluster = school (n = 240, G = 20, p = 5) ==
+route A (re-tape per cluster)   0.190 s
+route B (weight parameter)     0.030 s
+max |A - B|                  7.105e-14
+max |colSums(A) - obj$gr|    1.185e-12
+max |obj$gr| at optimum      2.834e-06

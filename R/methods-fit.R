@@ -5,8 +5,25 @@
 #' by lp$idx valid; mapped-out entries get SE = NA.
 #'
 #' @noRd
-par_est_se <- function(fit) {
+par_est_se <- function(fit, vcov = NULL) {
   est <- fit$estimates
+  if (!is.null(vcov)) {
+    # a supplied covariance (vcov_cluster(), say) replaces the SEs of
+    # the outer parameters only; the inner ones have none to replace
+    rv <- resolve_vcov_arg(fit, vcov, "summary")
+    om <- outer_par_map(fit)
+    se <- lapply(est, function(v) rep(NA_real_, length(v)))
+    sd_all <- sqrt(pmax(0, diag(rv$V)))
+    for (cp in unique(om$comp)) {
+      i <- om$comp == cp
+      pos <- seq_along(est[[cp]])
+      if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
+        pos <- setdiff(pos, fit$frame$betad_fixed_idx)
+      }
+      se[[cp]][pos] <- sd_all[i]
+    }
+    return(list(est = est, se = se))
+  }
   # A degenerate fit (no free outer parameters, no random effects) gives
   # sdreport an empty summary, and as.list() has no rows to reshape
   degenerate <- !length(fit$opt$par) && !length(fit$obj$env$random)
@@ -63,16 +80,34 @@ coef_block_key <- function(fit, lp) {
   }
 }
 
+# `vcov` takes a covariance over the whole outer parameter vector -
+# vcov_cluster(full = TRUE), or a function of the fit returning one -
+# and reports its standard errors in the coefficient table, with a t
+# reference when the matrix carries degrees of freedom. Documented on
+# the vcov_cluster() page; the variance components keep the
+# model-based standard errors either way.
 #' @export
-summary.frmtmb_fit <- function(object, ...) {
-  ps <- par_est_se(object)
+summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
+  rdf <- NULL
+  if (!is.null(vcov)) {
+    # resolve once: `vcov` may be a function of the fit
+    rv <- resolve_vcov_arg(object, vcov, "summary")
+    vcov <- rv$V
+    rdf <- rv$df
+  }
+  ps <- par_est_se(object, vcov)
   coefs <- list()
   for (lp in object$frame$linpreds) {
     est <- ps$est[[lp$par]][lp$idx]
     se <- ps$se[[lp$par]][lp$idx]
     z <- est / se
-    cm <- cbind(Estimate = est, `Std. Error` = se, `z value` = z,
-                `Pr(>|z|)` = 2 * stats::pnorm(-abs(z)))
+    cm <- if (is.null(rdf)) {
+      cbind(Estimate = est, `Std. Error` = se, `z value` = z,
+            `Pr(>|z|)` = 2 * stats::pnorm(-abs(z)))
+    } else {
+      cbind(Estimate = est, `Std. Error` = se, `t value` = z,
+            `Pr(>|t|)` = 2 * stats::pt(-abs(z), rdf))
+    }
     rownames(cm) <- colnames(lp$X)
     coefs[[coef_block_key(object, lp)]] <- cm
   }
@@ -281,10 +316,19 @@ estimated_coef_names <- function(fit) {
 #' `vcov(object)`
 #' is still the fixed-effect covariance there.
 #'
+#' Passing `cluster` forwards to [vcov_cluster()] for the
+#' cluster-robust (sandwich) covariance, in the `sandwich::vcovCL()`
+#' spelling: `vcov(fit, cluster = ~ g, type = "CR1")`.
+#'
 #' @param object A `frmtmb_fit`.
 #' @param full If `TRUE`, include covariance parameters (`theta`),
 #'   named as in `confint()` (the glmmTMB `vcov(full = TRUE)`
 #'   convention).
+#' @param cluster Optional clustering factor. When given, the result is
+#'   [vcov_cluster()]'s cluster-robust covariance instead of the
+#'   model-based one.
+#' @param type Small-sample correction for `cluster`, see
+#'   [vcov_cluster()].
 #' @param ... Unused.
 #' @return A covariance matrix.
 #' @seealso [confint_varcorr()] for natural-scale intervals on the same
@@ -315,7 +359,11 @@ estimated_coef_names <- function(fit) {
 #' a <- c(1, 2)                       # prediction at x = 2, no group
 #' sqrt(drop(t(a) %*% V[1:2, 1:2] %*% a))
 #' @export
-vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
+vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
+                            type = "CR0", ...) {
+  if (!is.null(cluster)) {
+    return(vcov_cluster(object, cluster, type = type, full = full))
+  }
   nm <- estimated_coef_names(object)
   if (!object$REML && !isTRUE(object$control$profile)) {
     V <- sdr_of(object)$cov.fixed

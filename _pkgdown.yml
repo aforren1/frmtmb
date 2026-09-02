@@ -41,6 +41,8 @@ reference:
   contents:
   - confint.frmtmb_fit
   - confint_varcorr
+  - vcov_cluster
+  - cluster_scores
   - autocor_matrix
   - profile.frmtmb_fit
   - hypothesis

@@ -1,0 +1,6 @@
+mixture fit ok, mix_g present: TRUE
+G rows: 30
+max |colSums(S) + obj$gr| = 1.42e-13
+max |obj$gr| = 0.000225
+coarser cluster: ok, 15 rows, max err 7.11e-14
+splitting cluster: the group-level mixture grouping for response y crosses `cluster`: one mixture group spans more than one cluster, so the likelihood does not factor. Cluster at that grouping factor or coarser
