@@ -1099,9 +1099,13 @@ missing_arg <- function(x) is.name(x) && !nzchar(as.character(x))
 #' @noRd
 check_ode_constancy <- function(spec, linpreds, mf) {
   for (resp in spec$responses) {
-    nl <- resp$dpars$mu$nl_body
-    if (is.null(nl)) next
-    calls <- Filter(Negate(is.null), find_ode_calls(nl))
+    # every nonlinear body of the response, not just mu's: nlf() can put
+    # a solve behind any parameter
+    bodies <- Filter(Negate(is.null),
+                     lapply(resp$dpars, function(dp) dp[["nl_body"]]))
+    calls <- unlist(lapply(bodies, function(nl) {
+      Filter(Negate(is.null), find_ode_calls(nl))
+    }), recursive = FALSE)
     if (!length(calls)) next
     nlpars <- resp$nlpars %||% character(0)
     for (cl in calls) {

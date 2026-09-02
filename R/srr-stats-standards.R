@@ -39,8 +39,8 @@
 #' @srrstatsVerbose TRUE
 #'
 #' @srrstats {G5.2a} Every condition message raised in `R/` is unique.
-#'   The 529 `stop()` calls that carry literal text produce 529 distinct
-#'   messages (mechanically re-verified at v0.35.0 by an AST walk), so a
+#'   The 537 `stop()` calls that carry literal text produce 537 distinct
+#'   messages (mechanically re-verified at v0.36.0 by an AST walk), so a
 #'   message a user reports names one line of source. Two
 #'   calls that would otherwise read the same are separated by the
 #'   context that tells the two faults apart, for example `car()` on the

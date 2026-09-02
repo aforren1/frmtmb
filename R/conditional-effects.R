@@ -123,15 +123,23 @@ ce_lp_vars <- function(lp) {
 #' Enumerating the `mu` terms alone therefore found nothing to plot on
 #' exactly the fits whose display is most wanted.
 #'
+#' The walk follows the parameters a body names rather than the whole
+#' `nlpars` set, and recurses, so a chain of `nlf()` formulas reaches
+#' the covariates at its far end and a nonlinear `sigma` does not pull
+#' in the parameters of an unrelated nonlinear `mu`.
+#'
 #' @noRd
-ce_plot_vars <- function(x, rspec, lp, resp) {
+ce_plot_vars <- function(x, rspec, lp, resp, seen = character(0)) {
   v <- ce_lp_vars(lp)
   if (!is.null(lp$nl_body)) {
     v <- c(v, names(lp$data_list),
            setdiff(all.vars(lp$nl_body), rspec$nlpars))
-    for (np in rspec$nlpars) {
+    reach <- c(lp$nl_pars %||% rspec$nlpars, lp$nl_dpar_refs)
+    for (np in setdiff(reach, seen)) {
       lpn <- x$frame$linpreds[[linpred_key(resp, np)]]
-      if (!is.null(lpn)) v <- c(v, ce_lp_vars(lpn))
+      if (!is.null(lpn)) {
+        v <- c(v, ce_plot_vars(x, rspec, lpn, resp, c(seen, np)))
+      }
     }
   }
   unique(v)

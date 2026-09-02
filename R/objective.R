@@ -80,8 +80,16 @@ build_objective <- function(frame) {
     for (lp in lps) {
       if (!is.null(lp$nl_body)) {
         # nonlinear predictor: arbitrary R code over the nlpar values and
-        # raw data columns, evaluated straight onto the tape
-        ev <- c(dparv[[lp$resp]], lp$data_list)
+        # raw data columns, evaluated straight onto the tape. The linear
+        # predictors were put in dependency order at parse time, so
+        # every parameter this body names already has a value; only the
+        # ones it names are in scope, which keeps a data column that
+        # shares a name with another dpar meaning the column - what the
+        # same body means in brms. `nl_dpar_refs` are the names that had
+        # no column behind them and read another parameter's per-row
+        # value instead (a variance function of the fitted mean).
+        ev <- c(dparv[[lp$resp]][c(lp$nl_pars, lp$nl_dpar_refs)],
+                lp$data_list)
         # the body is taped once, so the handler costs nothing per
         # gradient; it exists because a body name that resolved to an
         # environment object instead of a column fails here, far from

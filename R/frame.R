@@ -690,16 +690,53 @@ nl_lexical_only <- function(obj) {
 drop_nl_lexical_datavars <- function(spec, data) {
   dn <- names(data)
   for (i in seq_along(spec$responses)) {
-    dp <- spec$responses[[i]]$dpars$mu
-    if (is.null(dp$nl_body) || !length(dp$datavars)) next
-    keep <- vapply(dp$datavars, function(v) {
-      if (v %in% dn) return(TRUE)
-      obj <- tryCatch(get0(v, envir = dp$nl_env, ifnotfound = NULL),
-                      error = function(e) NULL)
-      !nl_lexical_only(obj)
-    }, TRUE)
-    spec$responses[[i]]$dpars$mu$datavars <- dp$datavars[keep]
-    spec$responses[[i]]$dpars$mu$nl_lexical <- dp$datavars[!keep]
+    for (nm in names(spec$responses[[i]]$dpars)) {
+      dp <- spec$responses[[i]]$dpars[[nm]]
+      if (is.null(dp$nl_body) || !length(dp$datavars)) next
+      keep <- vapply(dp$datavars, function(v) {
+        if (v %in% dn) return(TRUE)
+        obj <- tryCatch(get0(v, envir = dp$nl_env, ifnotfound = NULL),
+                        error = function(e) NULL)
+        !nl_lexical_only(obj)
+      }, TRUE)
+      spec$responses[[i]]$dpars[[nm]]$datavars <- dp$datavars[keep]
+      spec$responses[[i]]$dpars[[nm]]$nl_lexical <- dp$datavars[!keep]
+    }
+  }
+  spec
+}
+
+#' Decide which names in a nonlinear body are references to another
+#' distributional parameter's value.
+#'
+#' `nl_dpar()` marks every body name that matches one of the family's
+#' dpars as a CANDIDATE reference and leaves it in `datavars` as well,
+#' because the formula alone cannot tell the two apart. A column of the
+#' data wins: that keeps every body brms accepts meaning exactly what it
+#' means there (in brms a body name is a column or a nonlinear
+#' parameter, never a dpar). Only a name with no column behind it reads
+#' the other parameter's per-row value, which is what a variance
+#' function of the model's own mean needs -
+#' `nlf(sigma ~ ls + th * log(abs(mu)))`, nlme's
+#' `varPower(form = ~ fitted(.))`.
+#'
+#' Dropping the resolved names from `datavars` also keeps them out of
+#' the combined model frame, which would otherwise ask `model.frame()`
+#' for a column called `mu` and fail before the body ever runs.
+#'
+#' @noRd
+resolve_nl_dpar_refs <- function(spec, data) {
+  dn <- names(data)
+  for (i in seq_along(spec$responses)) {
+    for (nm in names(spec$responses[[i]]$dpars)) {
+      dp <- spec$responses[[i]]$dpars[[nm]]
+      refs <- dp[["nl_dpar_refs"]] %||% character(0)
+      if (!length(refs)) next
+      refs <- setdiff(refs, dn)
+      spec$responses[[i]]$dpars[[nm]]$nl_dpar_refs <- refs
+      spec$responses[[i]]$dpars[[nm]]$datavars <-
+        setdiff(dp$datavars, refs)
+    }
   }
   spec
 }
@@ -850,6 +887,7 @@ report_datetime_columns <- function(mf, exclude = character(0)) {
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE, data2 = list()) {
   data2 <- validate_data2(data2)
+  spec <- resolve_nl_dpar_refs(spec, data)
   spec <- drop_nl_lexical_datavars(spec, data)
   # One combined model frame holds every response, every variable of every
   # dpar of every response, and the aterm variables, so na.omit keeps rows
@@ -1252,8 +1290,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
 
       if (!is.null(dp$nl_body)) {
-        # nonlinear mu: no design of its own; evaluated from the nlpar
-        # values and raw data columns inside the objective
+        # a nonlinear dpar has no design of its own: it is evaluated
+        # from the nonlinear-parameter values and the raw data columns
+        # inside the objective, after the parameters it names
         data_list <- lapply(stats::setNames(dp$datavars, dp$datavars),
                             function(v) {
                               val <- mf[[v]]
@@ -1270,7 +1309,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           offset = NULL, link = dp$link, terms = NULL, xlevels = NULL,
           contrasts = NULL, smooths = list(), comp_ids = integer(0),
           constant = NULL, nl_body = dp$nl_body, data_list = data_list,
-          nl_env = dp$nl_env, nl_lexical = dp$nl_lexical
+          nl_env = dp$nl_env, nl_lexical = dp$nl_lexical,
+          nl_pars = dp$nl_pars %||% character(0),
+          nl_dpar_refs = dp$nl_dpar_refs %||% character(0)
         )
         next
       }

@@ -1262,7 +1262,12 @@ update_delta_formula <- function(object, f) {
          "response it changes. Pass the complete mvbf() as `formula`",
          call. = FALSE)
   }
-  if (isTRUE(bform$nl)) {
+  # nlf() on mu makes the response formula's right-hand side a body too,
+  # whether or not nl = TRUE was written
+  nl_mu <- isTRUE(bform$nl) ||
+    length(intersect(all.vars(reformulas::RHSForm(bform$formula)),
+                     names(bform$nlforms %||% list()))) > 0L
+  if (nl_mu) {
     stop("An update formula written as a delta cannot be applied to a ",
          "nonlinear formula, whose right-hand side is an expression ",
          "and not a sum of terms. Pass the complete ",
