@@ -13,13 +13,22 @@ confint_varcorr(fit, level = 0.95)
 }
 \value{
 A data frame with columns \code{block}, \code{term}, \code{type},
-\code{estimate}, \code{lwr}, \code{upr}.
+\code{estimate}, \code{lwr}, \code{upr}. Boundary components carry \code{NA} bounds.
 }
 \description{
 Wald intervals for random-effect standard deviations (on the log
 scale, back-transformed) and correlations (on the Fisher-z scale,
 back-transformed), delta-method-propagated from the internal \code{theta}
 covariance. One row per SD and per correlation of every block.
+}
+\details{
+A component sitting on the boundary of its parameter space - a
+standard deviation collapsed to zero, or a correlation at \verb{+/-1} -
+has no interval on these scales, because the transform is infinite
+there. Those rows report the estimate with \code{NA} bounds and warn,
+rather than a zero-width interval at an arbitrary clamp. A
+bootstrap (\code{\link[=hypothesis]{hypothesis()}} with \code{method = "boot"}) or a likelihood
+profile of the underlying \code{theta} is the alternative.
 }
 \examples{
 set.seed(1)

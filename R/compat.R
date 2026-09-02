@@ -486,6 +486,10 @@ frmtmb_compat_rules_tbl <- function() {
   r("|ID|", "us", "works", "")
   r("|ID|", "rr", "refused",
     "Refused: rr() terms cannot share an |ID| key.")
+  for (cs in c("gr_cov", "gr_prec")) {
+    r("|ID|", cs, "refused",
+      "Refused when the key is SHARED with another term: the linked terms merge into one unstructured block, which has no place for the relationship matrix and would drop it silently. An |ID| key used by a single term is a no-op and still fits with its own structure. For correlated traits over a known relationship matrix write the long format, where one gr() term carries the whole covariance through the verified Kronecker path: bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), sigma ~ 0 + trait).")
+  }
 
   ## nl ----------------------------------------------------------------------
   r("nl", "kind:family", "refused",
@@ -521,7 +525,7 @@ frmtmb_compat_rules_tbl <- function() {
 
   ## specials ------------------------------------------------------------------
   r("mo()", "kind:family", "conditional",
-    "The monotonic variable must be an ordered factor or an integer with at least 3 categories.")
+    "The monotonic variable must be an ordered factor or an integer with at least 3 categories. An interaction multiplier (mo(x):z) must be a single numeric column: factor and character multipliers are refused, because the simplex carries one coefficient and a contrast expansion has no column to go in. Expand the factor to numeric indicators first. brms refuses the same spelling (brms#1828).")
   # A rule may not name the same feature twice: the resolved table
   # holds unordered pairs of DISTINCT features, so a self-pair row
   # could never match. mo() x mo() lives in the note below instead.
@@ -645,8 +649,12 @@ frmtmb_compat_rules_tbl <- function() {
   r("hypothesis_profile", "kind:mode", "untested", "")
   r("predict", "kind:family", "conditional",
     "Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns.")
+  r("predict", "group:ordinal", "conditional",
+    "type = \"response\" returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response's own levels), not a vector: an ordinal response has no mean. cs() terms are honored and re-evaluated on newdata. type = \"link\" gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale.")
   r("fitted", "kind:family", "conditional",
     "Needs a family with a mean function.")
+  r("fitted", "group:ordinal", "conditional",
+    "Returns the latent linear predictor, so the usual predict(type = \"response\") == fitted() identity does not hold for an ordinal family. Use predict(fit, type = \"response\") for the n x K category probabilities.")
 
   ## formula grammar --------------------------------------------------------------
   # The two permissive grammar defaults are declared with the other

@@ -68,6 +68,51 @@ row names with parentheses stripped (\code{Intercept}, \code{x},
 and \code{sigma} when the residual SD is a scalar. So an ICC is
 \code{"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"}.
 \code{\link[=variables]{variables()}} lists every usable name for a fit.
+}
+\section{Which random-effect blocks contribute names}{
+
+Every block whose covariance parameters ARE standard deviations and
+correlations: the plain structures (\code{us}, \code{diag}, \code{homdiag}, \code{cs},
+\code{ar1}, \code{toep}, the spatial and reduced-rank ones) and the
+known-structure blocks \code{gr(cov = )}, \code{gr(prec = )} and \code{equalto()},
+whose \code{sd_}/\code{cor_} names describe the WITHIN-level covariance that
+multiplies the fixed relationship matrix. That is what makes
+heritability-as-ICC writable directly:
+\code{"sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)"} on an animal
+model fitted with \code{(1 | gr(id, cov = A))}. An \code{equalto()} block
+estimates nothing, so its names are constants with zero variance.
+
+Two blocks on the same grouping factor with the same term name - an
+animal model's \code{(1 | gr(id, cov = A)) + (1 | id)}, where the genetic
+and permanent-environment terms both name the group \code{id} - collide
+on one \code{sd_id__Intercept}, and the first block in formula order
+claims it. Give the second term its own grouping column (a copy of
+the factor under another name) when both are wanted by name.
+
+Excluded: \code{s()}/\code{t2()} smooths, \code{gp()}/\code{hsgp()}, \code{car()} and \code{spde()}.
+Their theta segments are not standard deviations - an inverse
+smoothing parameter, lengthscales, a mixing proportion, a precision
+and an inverse range - so there is no \verb{sd_<group>__<term>} to name.
+Read those off \code{\link[=confint_varcorr]{confint_varcorr()}}, which reports each under its own
+label (\code{sd(gp)}, \code{range(gp)}, \code{sd(car)}, ...).
+}
+
+\examples{
+set.seed(4)
+dd <- data.frame(x1 = rnorm(120), x2 = rnorm(120),
+                 g = factor(rep(1:10, 12)))
+dd$y <- rnorm(120, 1 + 0.6 * dd$x1 + 0.4 * dd$x2 +
+                rnorm(10, 0, 0.5)[dd$g], 1)
+fit <- frm(bf(y ~ x1 + x2 + (1 | g)) + gaussian(), data = dd)
+hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept)"))
+# variance-component expressions: an ICC with bootstrap intervals
+hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
+           method = "boot", nsim = 20, seed = 1)
+}
+\seealso{
+\code{\link[=vcov.frmtmb_fit]{vcov.frmtmb_fit()}} with \code{full = TRUE} for the same joint covariance
+(fixed effects plus covariance parameters, on their internal
+scale) as a matrix, which is what the \code{"wald"} method uses here.
 
 Methods:
 \itemize{
@@ -90,16 +135,4 @@ variance are computed per imputation and pooled by Rubin's rules
 with Barnard-Rubin degrees of freedom; the returned table carries
 \code{t} and \code{df} columns in place of \code{z} (reference t distribution, not
 normal), and only Wald inference is available.
-}
-\examples{
-set.seed(4)
-dd <- data.frame(x1 = rnorm(120), x2 = rnorm(120),
-                 g = factor(rep(1:10, 12)))
-dd$y <- rnorm(120, 1 + 0.6 * dd$x1 + 0.4 * dd$x2 +
-                rnorm(10, 0, 0.5)[dd$g], 1)
-fit <- frm(bf(y ~ x1 + x2 + (1 | g)) + gaussian(), data = dd)
-hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept)"))
-# variance-component expressions: an ICC with bootstrap intervals
-hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
-           method = "boot", nsim = 20, seed = 1)
 }

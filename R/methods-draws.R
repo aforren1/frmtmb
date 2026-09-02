@@ -189,11 +189,25 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05, ...) {
 #' condition on each draw's own random effects (`re.form = NA` drops
 #' them).
 #'
+#' @section Categorical outcomes:
+#' An ordinal family (and `multinomial()`) predicts a DISTRIBUTION per
+#' observation, not one number, so `posterior_epred()` returns a
+#' `draws x (n * K)` matrix: each draw's `n x K` prediction flattened
+#' column by column, so the columns run category by category
+#' (`obs1.cat1, obs2.cat1, ..., obs1.cat2, ...`). The columns are named
+#' `"<observation>.<category>"`; `dim(.) <- c(ndraws, n, K)` recovers
+#' the array shape. `posterior_predict()` is unaffected - it draws one
+#' category per observation - and so is `posterior_linpred()`, which is
+#' a statement about one distributional parameter and stays an
+#' `n`-column matrix of the latent predictor.
+#'
 #' @param object A `frmtmb_draws` from [frm_sample()].
 #' @param newdata,resp,re.form As in [predict.frmtmb_fit()].
 #' @param ndraws Number of draws to use (default: all).
 #' @param ... Unused.
-#' @return A draws-by-observations matrix.
+#' @return A draws-by-observations matrix; for a categorical outcome
+#'   `posterior_epred()` returns draws by `n * K` (see the section
+#'   below).
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
@@ -231,13 +245,26 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws)
   out <- NULL
+  cn <- NULL
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
     p <- predict(sh, newdata = newdata, resp = resp, re.form = re.form,
                  type = "response")
-    if (is.null(out)) out <- matrix(NA_real_, length(rows), length(p))
+    if (is.null(out)) {
+      out <- matrix(NA_real_, length(rows), length(p))
+      # A categorical outcome predicts a matrix per draw (an ordinal
+      # family's category probabilities, a multinomial's cell means).
+      # It is flattened column by column, so the columns run category by
+      # category and each needs a name to be readable at all.
+      if (is.matrix(p)) {
+        cn <- paste(rep(rownames(p) %||% seq_len(nrow(p)), ncol(p)),
+                    rep(colnames(p) %||% seq_len(ncol(p)), each = nrow(p)),
+                    sep = ".")
+      }
+    }
     out[k, ] <- p
   }
+  if (!is.null(cn)) colnames(out) <- cn
   out
 }
 
@@ -259,16 +286,33 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                                            ndraws = NULL, ...) {
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws)
+  # This function is about ONE distributional parameter, so the dpar is
+  # resolved here rather than left to predict()'s type dispatch: on an
+  # ordinal fit `type = "response"` with no dpar is the whole category
+  # distribution (posterior_epred()'s quantity), not the mu predictor
+  # this promises.
+  dpar <- dpar %||% draws_default_dpar(object$fit, resp)
   out <- NULL
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
     p <- predict(sh, newdata = newdata, resp = resp, dpar = dpar,
                  re.form = re.form,
-                 type = if (transform) "conditional" else "link")
+                 type = if (transform) "response" else "link")
     if (is.null(out)) out <- matrix(NA_real_, length(rows), length(p))
     out[k, ] <- p
   }
   out
+}
+
+#' The dpar `predict()` defaults to for one response: `mu` when the
+#' family has it, the first primary dpar otherwise (the resolution in
+#' `predict.frmtmb_fit()`, kept in one place).
+#'
+#' @noRd
+draws_default_dpar <- function(fit, resp) {
+  rs <- fit$spec$responses[[resp %||% names(fit$spec$responses)[1L]]]
+  if (is.null(rs)) return(NULL)
+  if ("mu" %in% names(rs$dpars)) "mu" else rs$primary_dpars[1L]
 }
 
 #' @rdname posterior_epred

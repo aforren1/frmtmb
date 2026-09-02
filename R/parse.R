@@ -721,6 +721,62 @@ parse_one_response <- function(bform) {
 #' before any data arrives; `assemble_frame(spec, data)` is the next
 #' step and produces the design matrices.
 #'
+#' Refuse an |ID| key SHARED by a `gr(cov = )` / `gr(prec = )` term.
+#'
+#' The guard inside `parse_linpred()` runs before the `gr()` rewrite
+#' turns `cls` from `"us"` into `"gr_cov"`/`"gr_prec"`, so those two
+#' structures are the only ones that get past it. That matters, because
+#' linked terms merge into ONE unstructured block in phase 2 of frame
+#' assembly: the merged block is a `us` density, whose nll never reads
+#' the block's `aux_A`/`aux_Q`, so the relationship matrix is silently
+#' discarded and the model is fitted as a plain iid one. The likelihood
+#' is bit-identical to the same formula with `cov = diag(n)` or with no
+#' `gr()` at all, which is a wrong answer with no symptom.
+#'
+#' The check lives here rather than in `parse_linpred()` because
+#' "shared" is a property of the whole spec: an |ID| key used by a
+#' single term is a no-op, takes the length-1 branch of the phase-2
+#' loop, and keeps its own covariance structure, so it fits correctly
+#' and stays allowed.
+#'
+#' The Kronecker path for merged groups is a future feature; until then
+#' the long-format spelling gives the same model through the verified
+#' `d > 1` path of one `gr()` block.
+#'
+#' @noRd
+check_id_covstructs <- function(spec) {
+  ids <- character(0)
+  cls <- character(0)
+  labs <- character(0)
+  for (resp in spec$responses) {
+    for (dp in resp$dpars) {
+      for (z in dp$re %||% list()) {
+        if (is.null(z$id)) next
+        ids <- c(ids, z$id)
+        cls <- c(cls, z$covstruct)
+        labs <- c(labs, paste0(resp$resp_name, " ", dp$name, ": (",
+                               deparse1(z$bar), ") [", z$covstruct, "]"))
+      }
+    }
+  }
+  if (!length(ids)) return(invisible(NULL))
+  shared <- ids %in% ids[duplicated(ids)]
+  bad <- which(shared & cls != "us")
+  if (!length(bad)) return(invisible(NULL))
+  stop("|ID| correlation is not supported for gr(cov = ) / gr(prec = ) ",
+       "terms whose key is shared with another term: ",
+       paste(labs[bad], collapse = "; "),
+       ". Linked terms merge into one unstructured block, which has no ",
+       "place for the relationship matrix, so it would be dropped ",
+       "without a trace. Write the model in long format instead, where ",
+       "a single gr() term carries the whole covariance and takes the ",
+       "verified Kronecker path:\n",
+       "  bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), ",
+       "sigma ~ 0 + trait)\n",
+       "An |ID| key used by only one term is unaffected.",
+       call. = FALSE)
+}
+
 #' @noRd
 parse_spec <- function(bform) {
   if (inherits(bform, "frmtmb_mvformula")) {
@@ -739,18 +795,22 @@ parse_spec <- function(bform) {
              call. = FALSE)
       }
     }
-    return(structure(
+    out <- structure(
       list(responses = resps, rescor = rescor),
       class = "frmtmb_spec"
-    ))
+    )
+    check_id_covstructs(out)
+    return(out)
   }
   stopifnot(inherits(bform, "frmtmb_formula"))
   resp <- parse_one_response(bform)
-  structure(
+  out <- structure(
     list(responses = stats::setNames(list(resp), resp$resp_name),
          rescor = FALSE),
     class = "frmtmb_spec"
   )
+  check_id_covstructs(out)
+  out
 }
 
 #' @export

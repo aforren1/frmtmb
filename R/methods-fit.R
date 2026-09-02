@@ -239,12 +239,33 @@ estimated_coef_names <- function(fit) {
 #' Covers the estimated coefficients of every linear predictor; dpars
 #' fixed to constants are excluded.
 #'
+#' `full = TRUE` is the joint covariance of the whole outer parameter
+#' vector on its internal scale: the fixed-effect coefficients, the
+#' covariance parameters `theta` (log standard deviations, Fisher-z
+#' correlations, and whatever else a structure keeps there), and any
+#' extra parameters such as the ordinal thresholds. It is the matrix a
+#' delta-method calculation on a variance component needs, and it is
+#' what [hypothesis()] uses for `method = "wald"` - so an ICC or a
+#' heritability is usually easier to ask for through `hypothesis()`,
+#' which names the components for you, than to assemble by hand from
+#' this matrix.
+#'
+#' Under `REML = TRUE` (or `frmtmb_control(profile = TRUE)`) the fixed
+#' effects are integrated out of the outer problem, so they are not
+#' part of `full = TRUE`; the block comes from the joint precision and
+#' carries exactly the parameters [confint.frmtmb_fit()] reports.
+#' `vcov(object)`
+#' is still the fixed-effect covariance there.
+#'
 #' @param object A `frmtmb_fit`.
 #' @param full If `TRUE`, include covariance parameters (`theta`),
 #'   named as in `confint()` (the glmmTMB `vcov(full = TRUE)`
 #'   convention).
 #' @param ... Unused.
 #' @return A covariance matrix.
+#' @seealso [confint_varcorr()] for natural-scale intervals on the same
+#'   covariance parameters, and [hypothesis()] for delta-method tests of
+#'   expressions in them.
 #'
 #' @srrstats {RE4.6} The variance-covariance matrix of the model
 #'   parameters is returned by `vcov()`: the fixed-effect block by
@@ -294,12 +315,28 @@ vcov.frmtmb_fit <- function(object, full = FALSE, ...) {
     Q <- sdr_of(object)$jointPrecision
     Vall <- solve_joint_precision(Q, object$cache)
     rn <- rownames(Q)
-    ord <- c(which(rn == "beta"), which(rn == "betad"))
-    V <- as.matrix(Vall[ord, ord, drop = FALSE])
     if (full) {
-      warning("full = TRUE is not supported under REML; returning the ",
+      # The outer parameter vector under REML (or control profile =
+      # TRUE) does not contain beta: it is integrated out. So
+      # full = TRUE returns exactly the parameters confint() reports,
+      # which is what the naming invariant asks for, and the block
+      # comes out of the joint precision rather than cov.fixed. Use
+      # vcov(object) for the fixed-effect covariance.
+      comps <- setdiff(names(object$frame$par_template),
+                       c("b", "miss", "beta"))
+      keep <- unlist(lapply(comps, function(cp) which(rn == cp)))
+      onm <- outer_par_names(object)
+      if (length(keep) == length(onm)) {
+        Vf <- as.matrix(Vall[keep, keep, drop = FALSE])
+        dimnames(Vf) <- list(onm, onm)
+        return(Vf)
+      }
+      warning("full = TRUE could not align the joint-precision blocks ",
+              "with the outer parameter names; returning the ",
               "fixed-effect block", call. = FALSE)
     }
+    ord <- c(which(rn == "beta"), which(rn == "betad"))
+    V <- as.matrix(Vall[ord, ord, drop = FALSE])
   }
   dimnames(V) <- list(nm, nm)
   V
@@ -490,16 +527,20 @@ ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
       dimnames(S) <- dimnames(M)
       attr(M, "condSD") <- S
     }
-    out[[bk$term_label]] <- M
+    # appended, then named: `out[[label]] <- M` would DROP a block whose
+    # label repeats (an animal model's (1 | gr(id, cov = A)) and its
+    # permanent-environment (1 | id) both deparse to "1 | id")
+    out[[length(out) + 1L]] <- M
   }
+  names(out) <- vapply(object$frame$re_blocks, `[[`, "", "term_label")
   structure(out, class = "ranef_frmtmb")
 }
 
 #' @export
 print.ranef_frmtmb <- function(x, ...) {
-  for (nm in names(x)) {
-    cat("$", nm, "\n", sep = "")
-    print(`attr<-`(x[[nm]], "condSD", NULL))
+  for (i in seq_along(x)) {           # by position: labels can repeat
+    cat("$", names(x)[i], "\n", sep = "")
+    print(`attr<-`(x[[i]], "condSD", NULL))
     cat("\n")
   }
   invisible(x)
@@ -507,8 +548,9 @@ print.ranef_frmtmb <- function(x, ...) {
 
 #' @export
 as.data.frame.ranef_frmtmb <- function(x, ...) {
-  rows <- lapply(names(x), function(nm) {
-    M <- x[[nm]]
+  rows <- lapply(seq_along(x), function(i) {   # by position: see print()
+    nm <- names(x)[i]
+    M <- x[[i]]
     S <- attr(M, "condSD")
     lv <- rownames(M) %||% as.character(seq_len(nrow(M)))
     df <- data.frame(
@@ -528,8 +570,13 @@ as.data.frame.ranef_frmtmb <- function(x, ...) {
 #' @export
 as.data.frame.VarCorr_frmtmb <- function(x, ...) {
   rows <- list()
-  for (nm in names(x)) {
-    V <- x[[nm]]
+  # by position, not by name: two blocks can share a term label (an
+  # animal model's (1 | gr(id, cov = A)) and its permanent-environment
+  # (1 | id) both deparse to "1 | id"), and x[[nm]] would then return
+  # the first block once per duplicate name
+  for (i in seq_along(x)) {
+    nm <- names(x)[i]
+    V <- x[[i]]
     sds <- sqrt(diag(V))
     cn <- colnames(V)
     for (i in seq_along(sds)) {
@@ -558,7 +605,11 @@ as.data.frame.VarCorr_frmtmb <- function(x, ...) {
 #' Extract random-effect covariance matrices
 #' @param x A `frmtmb_fit`.
 #' @param ... Unused.
-#' @return A named list of covariance matrices, one per random-effect term.
+#' @return A named list of covariance matrices, one per random-effect
+#'   term. The names are the term labels, which can repeat when two
+#'   blocks deparse the same way (`(1 | gr(id, cov = A)) + (1 | id)`, the
+#'   animal model's genetic and permanent-environment terms). Index by
+#'   position, not by name, when that is possible in your model.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
@@ -598,8 +649,12 @@ VarCorr.frmtmb_fit <- function(x, ...) {
 
 #' @export
 print.VarCorr_frmtmb <- function(x, ...) {
-  for (nm in names(x)) {
-    V <- x[[nm]]
+  # by position: duplicate term labels are legal (see
+  # as.data.frame.VarCorr_frmtmb), and name lookup would print the
+  # first block once per duplicate and never print the others
+  for (i in seq_along(x)) {
+    nm <- names(x)[i]
+    V <- x[[i]]
     sdv <- sqrt(diag(V))
     cat(" ", nm, "\n")
     tab <- data.frame(Name = colnames(V), `Std.Dev.` = signif(sdv, 5),

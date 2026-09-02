@@ -62,7 +62,9 @@ response mean for zero-inflated and similar families).}
 parameter's linear predictor to evaluate.}
 }
 \value{
-A draws-by-observations matrix.
+A draws-by-observations matrix; for a categorical outcome
+\code{posterior_epred()} returns draws by \code{n * K} (see the section
+below).
 }
 \description{
 \code{posterior_epred()} evaluates the response-scale expectation per
@@ -71,6 +73,20 @@ the family, giving the posterior predictive distribution. Both
 condition on each draw's own random effects (\code{re.form = NA} drops
 them).
 }
+\section{Categorical outcomes}{
+
+An ordinal family (and \code{multinomial()}) predicts a DISTRIBUTION per
+observation, not one number, so \code{posterior_epred()} returns a
+\verb{draws x (n * K)} matrix: each draw's \verb{n x K} prediction flattened
+column by column, so the columns run category by category
+(\verb{obs1.cat1, obs2.cat1, ..., obs1.cat2, ...}). The columns are named
+\code{"<observation>.<category>"}; \code{dim(.) <- c(ndraws, n, K)} recovers
+the array shape. \code{posterior_predict()} is unaffected - it draws one
+category per observation - and so is \code{posterior_linpred()}, which is
+a statement about one distributional parameter and stays an
+\code{n}-column matrix of the latent predictor.
+}
+
 \examples{
 \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&
