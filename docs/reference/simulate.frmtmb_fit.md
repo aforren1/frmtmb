@@ -49,6 +49,41 @@ simulate(object, nsim = 1, seed = NULL, re.form = NULL, censored = FALSE, ...)
 
 A data frame with `nsim` columns and a `"seed"` attribute.
 
+## Structured draws
+
+Most families draw each row on its own. Some cannot, and those go
+through one implementation that
+[`simulate()`](https://rdrr.io/r/stats/simulate.html),
+[`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+and
+[`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+all reach (see `sim_ctx` in
+[`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)):
+
+- an [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) draw
+  walks the hidden Markov chain forward per sequence and then emits from
+  each row's state;
+
+- a `mixture(groups = ~g)` draw takes one class per GROUP and then
+  simulates each row from its group's component;
+
+- a
+  [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
+  draw takes a class per row and then a multivariate normal with that
+  class's own covariance;
+
+- a residual correlation term
+  ([`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `cosy()`, ...) is
+  one multivariate residual draw per group added to the mean predictor,
+  so the draws carry the fitted autocorrelation.
+
+A structured draw covers whole sequences or groups, so
+[`trunc()`](https://rdrr.io/r/base/Round.html) rejection cannot resample
+single rows within it (every structured model refuses
+[`trunc()`](https://rdrr.io/r/base/Round.html) when the frame is
+assembled) and `posterior_predict(newdata =)` is refused: the structure
+indexes the rows the model was fitted on.
+
 ## Censored responses
 
 On a `cens()` fit the default draws the LATENT, uncensored response: the

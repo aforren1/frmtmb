@@ -21,6 +21,7 @@ hypothesis(
   seed = NULL,
   class = NULL,
   group = NULL,
+  vcov = NULL,
   ...
 )
 
@@ -74,6 +75,16 @@ hypothesis(x, hypothesis, alpha = 0.05, class = NULL, group = NULL, ...)
   bare names and `class` (and `group`, for the `sd_`/`cor_` summaries)
   supplies the prefix. The default `NULL` (like brms's `class = "b"`)
   takes the names as written.
+
+- vcov:
+
+  `method = "wald"` only: a covariance matrix over the whole outer
+  parameter vector to use in place of the model-based one -
+  [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md)
+  with `full = TRUE`, or a function of the fit returning such a matrix.
+  The delta-method standard error is then the cluster-robust one, and a
+  matrix carrying reference degrees of freedom switches the test to a
+  `t` reference.
 
 ## Value
 

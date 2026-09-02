@@ -90,12 +90,12 @@ rescor_matrix(fit_rc)
 
 # set_rescor() turns it on after the fact, and `+` also combines bf()s
 mvbf(bf(y1 ~ x), bf(y2 ~ x)) + set_rescor(TRUE)
-#> y1 ~ x 
-#> y2 ~ x 
+#> y1 ~ x
+#> y2 ~ x
 #> rescor: TRUE 
 bf(y1 ~ x) + bf(y2 ~ x)
-#> y1 ~ x 
-#> y2 ~ x 
+#> y1 ~ x
+#> y2 ~ x
 #> rescor: FALSE 
 
 # |ID| correlates the random effects of the two responses

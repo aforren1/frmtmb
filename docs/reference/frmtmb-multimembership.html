@@ -17,7 +17,7 @@ of a random slope over it. Both spellings follow brms."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -145,8 +145,11 @@ observation row; an <code>mm()</code> row loads several at once.</p></dd>
 <dt>brms's other <code>mm()</code> arguments</dt>
 <dd><p><code>cor = FALSE</code> is
 <code>diag(x | mm(g1, g2))</code>, <code>id =</code> is the <code>|ID|</code> key, and <code>cov =</code> is
-<code>gr(g, cov = A)</code> over a single-membership factor. <code>by =</code>, <code>pw =</code>
-and <code>dist =</code> have no equivalent yet.</p></dd>
+<code>gr(g, cov = A)</code> over a single-membership factor, and <code>dist =</code> is
+<code>gr(g, dist = "student")</code> over one (see
+<a href="frmtmb-student-re.html">frmtmb-student-re</a>), though not over a membership design, whose
+rows load several levels at once. <code>by =</code> and <code>pw =</code> have no
+equivalent yet.</p></dd>
 
 <dt>Non-name members</dt>
 <dd><p><code>mm()</code> reads its membership variables as

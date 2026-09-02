@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -154,23 +154,32 @@ unsupported</td>
 <td>provide <code>start</code>; se.fit on the nonlinear mu not yet</td>
 </tr>
 <tr class="odd">
+<td>
+<code><a href="../reference/lf.html">lf()</a></code>, <code><a href="../reference/nlf.html">nlf()</a></code>
+</td>
+<td>same</td>
+<td>
+<code><a href="../reference/nlf.html">nlf()</a></code> on any dpar, bodies chain to any depth
+(below)</td>
+</tr>
+<tr class="even">
 <td><code><a href="../reference/frmtmb_family.html">custom_family()</a></code></td>
 <td>same idea</td>
 <td>the lpdf is plain R over RTMB advectors, not Stan code</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>
 <code><a href="../reference/frmtmb-families.html">cumulative()</a></code>, <code><a href="../reference/frmtmb-families.html">multinomial()</a></code>
 </td>
 <td>same</td>
 <td>multinomial takes <code>K</code> explicitly</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>car(M, gr = g, type =)</code></td>
 <td>same</td>
 <td>all four types</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>
 <code>(1 \| mm(g1, g2))</code>, <code>mmc(x1, x2)</code>
 </td>
@@ -178,7 +187,7 @@ unsupported</td>
 <td>multi-membership, <code>weights =</code> and <code>scale =</code>
 included (below)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>
 <code>ar(t, g, cov = TRUE)</code>, <code>ma()</code>,
 <code>arma()</code>, <code>cosy()</code>, <code>unstr()</code>
@@ -186,7 +195,7 @@ included (below)</td>
 <td>same</td>
 <td>gaussian/student only; <code>cov = TRUE</code> required (below)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>data2 = list(W = W)</code></td>
 <td>same</td>
 <td>also resolves compound expressions (below)</td>
@@ -264,6 +273,44 @@ arguments have different spellings here (below).</li>
 </ul>
 </div>
 <div class="section level2">
+<h2 id="nonlinear-formulas-nl-true-and-nlf">Nonlinear formulas: <code>nl = TRUE</code> and
+<code>nlf()</code><a class="anchor" aria-label="anchor" href="#nonlinear-formulas-nl-true-and-nlf"></a>
+</h2>
+<p><code>nl = TRUE</code> says the RESPONSE formula is a nonlinear body,
+so only <code>mu</code> can be nonlinear. <code><a href="../reference/nlf.html">nlf()</a></code> names the
+parameter instead, so any of them can be, and the two spellings meet in
+the same place:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># the same model, both ways</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">b</span> <span class="op">*</span> <span class="va">x</span><span class="op">)</span>, <span class="va">b</span> <span class="op">~</span> <span class="fl">1</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">a</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="../reference/nlf.html">nlf</a></span><span class="op">(</span><span class="va">a</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">b</span> <span class="op">*</span> <span class="va">x</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="../reference/lf.html">lf</a></span><span class="op">(</span><span class="va">b</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># and the model nl = TRUE cannot spell: a nonlinear sigma, linear mu</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="../reference/nlf.html">nlf</a></span><span class="op">(</span><span class="va">sigma</span> <span class="op">~</span> <span class="va">a</span> <span class="op">+</span> <span class="va">b</span> <span class="op">*</span> <span class="va">z</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="../reference/lf.html">lf</a></span><span class="op">(</span><span class="va">a</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">b</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></code></pre></div>
+<p>A parameter’s link is applied to its body’s value, as in brms: the
+<code>sigma</code> above is <code>exp(a + b * z)</code>. Bodies chain to
+any depth (<code>nlf(a ~ cc * x) + nlf(cc ~ exp(b))</code>), are
+computed in dependency order, and a cycle is refused by name.</p>
+<p>Two deliberate differences from brms, both supersets:</p>
+<ul>
+<li>brms requires <code>nl = TRUE</code> on the <code><a href="../reference/bf.html">bf()</a></code>
+whenever the response formula names a nonlinear parameter. Here
+<code><a href="../reference/nlf.html">nlf()</a></code> has already declared the name, so
+<code>bf(y ~ a) + nlf(a ~ ...)</code> is enough; the flag still works
+and means the same thing.</li>
+<li>A body may name another distributional parameter of the same
+response, which reads that parameter’s per-row value. brms reads such a
+name as a data column and refuses the model when no column has it. A
+column still wins here, so a ported body keeps its meaning. This is the
+spelling for a variance function of the model’s own mean, which nlme
+writes <code>varPower(form = ~ fitted(.))</code>:</li>
+</ul>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># sd = exp(ls) * |mu|^th, one joint maximum likelihood</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="../reference/nlf.html">nlf</a></span><span class="op">(</span><span class="va">sigma</span> <span class="op">~</span> <span class="va">ls</span> <span class="op">+</span> <span class="va">th</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">mu</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>      <span class="fu"><a href="../reference/lf.html">lf</a></span><span class="op">(</span><span class="va">ls</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">th</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="multi-membership">Multi-membership<a class="anchor" aria-label="anchor" href="#multi-membership"></a>
 </h2>
 <p><code>(1 | mm(g1, g2))</code> means what it means in brms: the
@@ -277,7 +324,7 @@ matrix.</p>
 <p><code>mmc(x1, x2)</code> also ports: it is one random-slope
 coefficient of the term whose covariate value is member specific, member
 <code>k</code> taking argument <code>k</code>.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># brms and frmtmb, identical spelling</span></span>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="fu">mm</span><span class="op">(</span><span class="va">school1</span>, <span class="va">school2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="fu">mm</span><span class="op">(</span><span class="va">school1</span>, <span class="va">school2</span>,</span>
@@ -347,7 +394,7 @@ not implemented. The call is refused rather than reinterpreted, so a
 brms model written with the default has to be changed deliberately.
 <code>cosy()</code> and <code>unstr()</code> have no <code>cov</code>
 argument in brms either and port unchanged.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># brms</span></span>
 <span><span class="fu">brm</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span>, cov <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="co"># frmtmb</span></span>
@@ -369,7 +416,7 @@ real residual covariance. brms accepts the same spelling for poisson,
 binomial and the rest, but fits a latent Gaussian AR process added to
 the linear predictor instead - which is a random effect, and is spelled
 as one here:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># brms, poisson: a latent AR process on the linear predictor</span></span>
 <span><span class="fu">brm</span><span class="op">(</span><span class="va">cnt</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co"># frmtmb: the same idea as a random effect over the time factor</span></span>
@@ -395,6 +442,60 @@ brms refuses the same core set. Random effects alongside the correlated
 residual are the point of the feature and are supported.</p>
 </div>
 <div class="section level2">
+<h2 id="variance-functions-nlme-weights-varfunc">Variance functions (nlme <code>weights = varFunc</code>)<a class="anchor" aria-label="anchor" href="#variance-functions-nlme-weights-varfunc"></a>
+</h2>
+<p>There are no <code>varFunc</code> objects. The <code>sigma</code>
+formula is the variance function: <code>sigma</code> uses a log link, so
+most of the nlme vocabulary is a direct translation, and the translation
+was verified against <code><a href="https://rdrr.io/pkg/nlme/man/gls.html" class="external-link">nlme::gls()</a></code> under ML (log-likelihood
+agreement 1e-10 or better).</p>
+<table class="table">
+<thead><tr class="header">
+<th>nlme</th>
+<th>frmtmb</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>varIdent(form = ~ 1 \| g)</code></td>
+<td><code>sigma ~ 0 + g</code></td>
+</tr>
+<tr class="even">
+<td><code>varExp(form = ~ v)</code></td>
+<td><code>sigma ~ v</code></td>
+</tr>
+<tr class="odd">
+<td><code>varPower(form = ~ v)</code></td>
+<td><code>sigma ~ log(abs(v))</code></td>
+</tr>
+<tr class="even">
+<td><code>varFixed(~ v)</code></td>
+<td><code>sigma ~ offset(0.5 * log(v))</code></td>
+</tr>
+<tr class="odd">
+<td><code>varComb(A, B)</code></td>
+<td>the two terms in one <code>sigma</code> formula</td>
+</tr>
+</tbody>
+</table>
+<p>The coefficient of <code>log(abs(v))</code> is nlme’s power
+<code>theta</code>. The translation is also more general than a
+<code>varFunc</code>: <code>sigma</code> takes the full predictor
+grammar, so random effects and smooths in the variance are ordinary
+spellings.</p>
+<p><code>varPower(form = ~ fitted(.))</code>, variance as a function of
+the model’s own mean, is spelled with <code><a href="../reference/nlf.html">nlf()</a></code> (see the
+nonlinear-formulas section):
+<code>nlf(sigma ~ ls + th * log(abs(mu))) + lf(ls ~ 1, th ~ 1)</code> is
+<code>sd = exp(ls) * |mu|^th</code>, estimated by one joint maximum
+likelihood. Expect agreement with <code>gls</code> near 1e-2 rather than
+1e-10: <code>gls</code> alternates the mean fit against iteratively
+updated fitted values and stops without a gradient check, while this is
+one joint maximization of the same likelihood. For a positive response
+the coupling often belongs in the family instead: <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">Gamma()</a></code>
+has sd proportional to the mean, and <code><a href="../reference/frmtmb-families.html">tweedie()</a></code> estimates
+the power in <code>Var = phi * mu^p</code> directly.</p>
+</div>
+<div class="section level2">
 <h2 id="structural-objects-data2">Structural objects: <code>data2</code><a class="anchor" aria-label="anchor" href="#structural-objects-data2"></a>
 </h2>
 <p>Matrices that are not columns of <code>data</code> go in
@@ -402,7 +503,7 @@ residual are the point of the feature and are supported.</p>
 <code>car()</code>, the mesh triple of <code>spde()</code>, and the
 matrices of <code>gr(prec = )</code>, <code>gr(cov = )</code> and
 <code>equalto()</code>.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu">car</span><span class="op">(</span><span class="va">W</span>, gr <span class="op">=</span> <span class="va">loc</span>, type <span class="op">=</span> <span class="st">"icar"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    data <span class="op">=</span> <span class="va">d</span>, data2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>W <span class="op">=</span> <span class="va">W</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">phen</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="fu">gr</span><span class="op">(</span><span class="va">species</span>, cov <span class="op">=</span> <span class="va">A</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -470,7 +571,7 @@ for simulation-based residual checks use
 <code>stancode(fit)</code>. The frmtmb analog is the objective function
 itself: an ordinary R closure that <code>RTMB::MakeADFun()</code> tapes,
 rebuilt deterministically from the fitted frame.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nll</span> <span class="op">&lt;-</span> <span class="fu">frmtmb</span><span class="fu">:::</span><span class="fu">build_objective</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">frame</span><span class="op">)</span></span>
 <span><span class="fu">nll</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">estimates</span><span class="op">)</span>   <span class="co"># joint negative log density at the estimates</span></span></code></pre></div>
 <p>Two properties matter when reading it:</p>

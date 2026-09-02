@@ -58,7 +58,7 @@ if (requireNamespace("posterior", quietly = TRUE)) {
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#> [1] "(Intercept)"       "x"                 "sigma_(Intercept)"
-#> [4] "b[1]"              "b[2]"              "b[3]"             
+#> [1] "Intercept"       "x"               "sigma_Intercept" "b[1]"           
+#> [5] "b[2]"            "b[3]"           
 # }
 ```

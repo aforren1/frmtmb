@@ -1107,3 +1107,23 @@ Gaps for another day, in modeling-importance order:
    possibly mvbf with per-response bodies each calling frm_ode -
    untested, likely guarded; no dvid counterpart.
 6. ii/addl/ss dosing-table sugar once 1-2 land.
+
+## Next-round small items (queued 2026-09-02)
+
+- plot.frmtmb_influence: index plot of Cook's distances with top
+  cases labeled + dfbetas panels, from the refit-based quantities
+  influence() already computes exactly. Deliberately NOT
+  car::influencePlot compatibility: hatvalues/rstudent are
+  OLS-geometry approximations that are ill-defined for a
+  marginalized Laplace fit, and our refit-based deletion is the
+  exact version of what those approximate. Afternoon-scale.
+- Reserved-name shadowing disambiguation: a covariate literally
+  named sigma fits fine (names namespace apart: mu.sigma vs
+  sigma.(Intercept)), but hypothesis(fit, "sigma = 0") silently
+  resolves to the COVARIATE coefficient via the v0.21 shadowing
+  guard. Add a one-time message when shadowing occurs in the
+  hypothesis env, and a naming-collisions paragraph in
+  vignette("inputs") (probe results in the 2026-09-02 session:
+  nlpar/dpar collisions error; undeclared dpars error; .eta_
+  reserved names are unreachable from data; nlf bodies use
+  column-wins deliberately).

@@ -21,6 +21,7 @@ likelihood-ratio tests, AIC).
 | `mvbind(y1, y2) ~ x`, [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md), [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md) | same | per-response families; `rescor` gaussian-only |
 | `y \| trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family |
 | `nl = TRUE` | same | provide `start`; se.fit on the nonlinear mu not yet |
+| [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md), [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) | same | [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) on any dpar, bodies chain to any depth (below) |
 | [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md) | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md), [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md) | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |
@@ -92,6 +93,51 @@ likelihood-ratio tests, AIC).
   `gr(g, cov = A)`.
 - `mm()` ports with its `weights =` and `scale =` arguments and with
   `mmc()`; its other arguments have different spellings here (below).
+
+## Nonlinear formulas: `nl = TRUE` and `nlf()`
+
+`nl = TRUE` says the RESPONSE formula is a nonlinear body, so only `mu`
+can be nonlinear.
+[`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) names the
+parameter instead, so any of them can be, and the two spellings meet in
+the same place:
+
+``` r
+
+# the same model, both ways
+frm(bf(y ~ exp(b * x), b ~ 1, nl = TRUE), data = d)
+frm(bf(y ~ a) + nlf(a ~ exp(b * x)) + lf(b ~ 1), data = d)
+
+# and the model nl = TRUE cannot spell: a nonlinear sigma, linear mu
+frm(bf(y ~ x) + nlf(sigma ~ a + b * z) + lf(a ~ 1, b ~ 1), data = d)
+```
+
+A parameter’s link is applied to its body’s value, as in brms: the
+`sigma` above is `exp(a + b * z)`. Bodies chain to any depth
+(`nlf(a ~ cc * x) + nlf(cc ~ exp(b))`), are computed in dependency
+order, and a cycle is refused by name.
+
+Two deliberate differences from brms, both supersets:
+
+- brms requires `nl = TRUE` on the
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) whenever
+  the response formula names a nonlinear parameter. Here
+  [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) has
+  already declared the name, so `bf(y ~ a) + nlf(a ~ ...)` is enough;
+  the flag still works and means the same thing.
+- A body may name another distributional parameter of the same response,
+  which reads that parameter’s per-row value. brms reads such a name as
+  a data column and refuses the model when no column has it. A column
+  still wins here, so a ported body keeps its meaning. This is the
+  spelling for a variance function of the model’s own mean, which nlme
+  writes `varPower(form = ~ fitted(.))`:
+
+``` r
+
+# sd = exp(ls) * |mu|^th, one joint maximum likelihood
+frm(bf(y ~ x) + nlf(sigma ~ ls + th * log(abs(mu))) +
+      lf(ls ~ 1, th ~ 1), data = d)
+```
 
 ## Multi-membership
 
@@ -203,6 +249,42 @@ returns the fitted correlation matrix.
 the likelihood no longer factorizes over rows - brms refuses the same
 core set. Random effects alongside the correlated residual are the point
 of the feature and are supported.
+
+## Variance functions (nlme `weights = varFunc`)
+
+There are no `varFunc` objects. The `sigma` formula is the variance
+function: `sigma` uses a log link, so most of the nlme vocabulary is a
+direct translation, and the translation was verified against
+[`nlme::gls()`](https://rdrr.io/pkg/nlme/man/gls.html) under ML
+(log-likelihood agreement 1e-10 or better).
+
+| nlme                        | frmtmb                               |
+|-----------------------------|--------------------------------------|
+| `varIdent(form = ~ 1 \| g)` | `sigma ~ 0 + g`                      |
+| `varExp(form = ~ v)`        | `sigma ~ v`                          |
+| `varPower(form = ~ v)`      | `sigma ~ log(abs(v))`                |
+| `varFixed(~ v)`             | `sigma ~ offset(0.5 * log(v))`       |
+| `varComb(A, B)`             | the two terms in one `sigma` formula |
+
+The coefficient of `log(abs(v))` is nlme’s power `theta`. The
+translation is also more general than a `varFunc`: `sigma` takes the
+full predictor grammar, so random effects and smooths in the variance
+are ordinary spellings.
+
+`varPower(form = ~ fitted(.))`, variance as a function of the model’s
+own mean, is spelled with
+[`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) (see the
+nonlinear-formulas section):
+`nlf(sigma ~ ls + th * log(abs(mu))) + lf(ls ~ 1, th ~ 1)` is
+`sd = exp(ls) * |mu|^th`, estimated by one joint maximum likelihood.
+Expect agreement with `gls` near 1e-2 rather than 1e-10: `gls`
+alternates the mean fit against iteratively updated fitted values and
+stops without a gradient check, while this is one joint maximization of
+the same likelihood. For a positive response the coupling often belongs
+in the family instead: [`Gamma()`](https://rdrr.io/r/stats/family.html)
+has sd proportional to the mean, and
+[`tweedie()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+estimates the power in `Var = phi * mu^p` directly.
 
 ## Structural objects: `data2`
 

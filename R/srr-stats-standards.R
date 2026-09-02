@@ -46,7 +46,7 @@
 #' @srrstatsVerbose TRUE
 #'
 #' @srrstats {G5.2a} Every condition message raised in `R/` is unique.
-#'   The 538 `stop()` calls that carry literal text produce 538 distinct
+#'   The 581 `stop()` calls that carry literal text produce 581 distinct
 #'   messages (mechanically re-counted by an AST walk; 529 at v0.35.0,
 #'   plus nine net from the structured simulator contract and the
 #'   formula interface of `frm_sample()` with its default priors), so a

@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -77,6 +77,8 @@ not branch on parameter values.</p>
 <span>  type <span class="op">=</span> <span class="st">"continuous"</span>,</span>
 <span>  post <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  sim <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  sim_ctx <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  sim_refusal <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  primary_dpars <span class="op">=</span> <span class="st">"mu"</span>,</span>
 <span>  lcdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -93,6 +95,8 @@ not branch on parameter values.</p>
 <span>  type <span class="op">=</span> <span class="st">"continuous"</span>,</span>
 <span>  post <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  sim <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  sim_ctx <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  sim_refusal <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  primary_dpars <span class="op">=</span> <span class="st">"mu"</span>,</span>
 <span>  lcdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -155,7 +159,23 @@ refused by the method that needs it.</p></dd>
 
 <dt id="arg-sim">sim<a class="anchor" aria-label="anchor" href="#arg-sim"></a></dt>
 <dd><p>Optional numeric simulator <code>(dpars, aterms, n)</code> returning <code>n</code>
-response draws; used by <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>.</p></dd>
+response draws; used by <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, <code><a href="posterior_epred.html">posterior_predict()</a></code> and
+<code><a href="frm_simulate.html">frm_simulate()</a></code>. It is stateless and rowwise: it sees the
+distributional parameters and nothing else. A family whose extra
+parameters (<code>extra_pars</code>) enter the draw declares a fourth
+argument <code>extra</code> instead.</p></dd>
+
+
+<dt id="arg-sim-ctx">sim_ctx<a class="anchor" aria-label="anchor" href="#arg-sim-ctx"></a></dt>
+<dd><p>Optional structured simulator <code>(ctx)</code> for a family
+whose draws are not rowwise (see Structured simulators). It takes
+precedence over <code>sim</code>.</p></dd>
+
+
+<dt id="arg-sim-refusal">sim_refusal<a class="anchor" aria-label="anchor" href="#arg-sim-refusal"></a></dt>
+<dd><p>Optional one-sentence reason why the family has no
+simulator, appended to the refusal each entry point raises. Use it
+when the omission is a decision rather than a gap.</p></dd>
 
 
 <dt id="arg-primary-dpars">primary_dpars<a class="anchor" aria-label="anchor" href="#arg-primary-dpars"></a></dt>
@@ -189,6 +209,30 @@ its place).</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>frmtmb_family</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="structured-simulators">Structured simulators<a class="anchor" aria-label="anchor" href="#structured-simulators"></a></h2>
+
+
+<p>Some families cannot draw a response one row at a time: a group-level
+<code><a href="mixture.html">mixture()</a></code> draws one class per group, an <code><a href="hmm.html">hmm()</a></code> walks a Markov
+chain per sequence, and a <code><a href="mixture_mvn.html">mixture_mvn()</a></code> draw needs the class
+covariances, which are family-level extras rather than dpars. Those
+families supply <code>sim_ctx(ctx)</code> instead of <code>sim(dpars, aterms, n)</code>.</p>
+<p><code>ctx</code> is a list with <code>fit</code> (any object carrying <code>spec</code>, <code>frame</code> and
+<code>estimates</code> - a fitted model, one posterior draw, or the de novo
+shim), <code>family</code>, <code>rspec</code>, <code>resp</code>, <code>dpars</code> (the evaluated numeric
+distributional parameters), <code>aterms</code>, <code>n</code>, <code>extra</code> (the family-level
+extra parameters) and the frame structures <code>autocor</code> and <code>mix_g</code>.
+Read its fields with <code>[[ ]]</code>.</p>
+<p>The same <code>sim_ctx()</code> serves [simulate()], [posterior_predict()] and
+[frm_simulate()]. Because a structured draw covers whole sequences or
+groups, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> rejection and <code>newdata</code> cannot apply to it and are
+refused.</p>
+<p>[ ]: R:%20
+[simulate()]: R:simulate()
+[posterior_predict()]: R:posterior_predict()
+[frm_simulate()]: R:frm_simulate()</p>
     </div>
 
     <div class="section level2">

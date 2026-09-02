@@ -204,7 +204,7 @@ value.
 | x | categorical + residuals_osa | Refused with residuals() as a whole: a one-step-ahead residual is a CDF value, and a nominal response has no CDF. |
 | x | von_mises + residuals_osa | Refused upstream: RTMBdist::dvm() rejects the osa observation object, because a wrapped support has no one-step CDF on the line. |
 | x | cox + fitted | Refused: a survival time has no mean on the response scale here. Use predict(type = “link”) for the log hazard ratio. |
-| x | cox + simulate | Refused: drawing a survival time means inverting the cumulative baseline hazard, which this family does not carry a quantile function for. |
+| x | cox + simulate | Refused: drawing a survival time means inverting the cumulative baseline hazard, which this family does not carry a quantile function for. simulate(), posterior_predict() and frm_simulate() each say so in their own words and then repeat the family’s reason. |
 
 ## Estimation modes
 
@@ -286,6 +286,8 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | hsgp    |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 | car     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
 | spde    |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
+| us_t    |  \+  |     ~      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
+| diag_t  |  \+  |     ~      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -302,6 +304,7 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | ~ | gp + priors; gp + bounds; gp + verbose; hsgp + priors; hsgp + bounds; hsgp + verbose | gp() and hsgp() are predictor specials, not bar terms. Write gp(x), not (gp(x) \| g). |
 | ~ | car + priors; car + bounds; car + verbose | car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = “escar” is the proper CAR, “icar”/“esicar” the intrinsic one under a soft sum-to-zero constraint (con_sd), “bym2” the scaled mixture; escar needs every location to have a neighbor. M belongs in data2 = list(M = M). |
 | ~ | spde + priors; spde + bounds; spde + verbose | spde(fem, gr = node) is a predictor special taking a mesh’s finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes BY ROW NUMBER (whole numbers in 1..nrow(M0), as integers or as a factor/character spelling of them), because the matrices carry no dimnames to match labels against. Unobserved nodes keep their column; a general projector matrix is not supported yet. The matrices belong in data2 = list(fem = fem). |
+| ~ | us_t + quadrature; diag_t + quadrature | Allowed for one-dimensional blocks, and RECOMMENDED there: the Gauss-Kronrod rule marginalizes a scalar t latent EXACTLY, where the Laplace default is approximate. Verified against adaptive Gauss-Hermite quadrature to 1e-6 in the log-likelihood and in every estimate. Correlated slopes are refused, as they are for a gaussian block. |
 | x | cs + quadrature; ar1 + quadrature; hetar1 + quadrature; ou + quadrature; toep + quadrature; and 14 more | Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term. |
 
 ## Model structures
@@ -357,7 +360,7 @@ other.
 | \|ID\| | ? | ? | ? | ? | ? | ? | ~ | ? | ? |
 | nl | \+ | ~ | ? | ? | ? | x | ? | ? | ? |
 | mixture | ? | ? | ~ | ? | ? | ? | ~ | ? | ? |
-| mixture_mvn | ? | ? | x | ? | ? | ? | ~ | ? | ? |
+| mixture_mvn | ? | ? | \+ | ? | ? | ? | ~ | ? | ? |
 | hmm | \+ | ~ | ~ | ~ | x | ? | \+ | ? | ? |
 | lca | x | ~ | \+ | x | x | ? | \+ | \+ | ? |
 
@@ -368,7 +371,7 @@ other.
 | ~ | mixture + simulate | Works only when every component family has a simulator. |
 | ~ | mixture + frm_sample | Mixture posteriors are multimodal. Sample with init = “random” rather than the mode-anchored default. |
 | ~ | hmm + predict | type = “link” and dpar = work normally, including the transition logits. type = “response” equals fitted() in sample; it is refused for newdata (state occupancy conditions on the observed responses of a whole sequence) and se.fit is refused on the response scale. |
-| ~ | hmm + simulate | A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. |
+| ~ | hmm + simulate | A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. Since v0.36 the chain walk is the family’s structured simulator (fam\$sim_ctx), so posterior_predict() and frm_simulate() reach it too; posterior_predict(newdata =) is refused, because the sequence structure indexes the fitted rows. |
 | ~ | hmm + residuals | type = “response” and “pearson” are computed against the occupancy-weighted mean, with the pearson scale the law-of-total-variance mixture variance. type = “deviance” is refused: there is no per-row likelihood to saturate. |
 | ~ | lca + predict | predict() returns the gating linear predictor (theta1 by default, any theta with dpar =), including on newdata. type = “response” is refused with the fitted() message. |
 | x | mvbf + fitted; rescor + fitted | Refused: fitted() calls uni_resp() and stops with ‘fitted() is not supported yet for multivariate fits’. Predict one response at a time instead: predict(fit, resp = ). |
@@ -378,7 +381,6 @@ other.
 | x | rescor + residuals; rescor + residuals_osa | Refused: residuals() is not supported for multivariate fits yet. |
 | x | rescor + emmeans | Refused: emmeans support is univariate-only for now. |
 | x | nl + emmeans | Refused: emmeans support needs a linear mu predictor. |
-| x | mixture_mvn + simulate | Refused: mixture_mvn() has no simulator yet. |
 | x | hmm + residuals_osa | Refused: one-step prediction needs the taped density of one observation given the earlier ones, and the tape holds a forward recursion over each whole sequence with no registered observation vector. |
 | x | lca + fitted | Refused: the response is a matrix of nominal item codes, so there is no mean to fit. lca_probs() and lca_profiles() are the post-fit surface. |
 | x | lca + residuals | Refused for the same reason as fitted(): no fitted mean, so no residual. |
@@ -487,11 +489,11 @@ row; see `?frmtmb-multimembership`.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1516 | 30%   |
-| conditional |  1827 | 36%   |
-| refused     |   753 | 15%   |
+| works       |  1664 | 32%   |
+| conditional |  1861 | 35%   |
+| refused     |   764 | 15%   |
 | broken      |     0 | 0%    |
-| untested    |   945 | 19%   |
+| untested    |   967 | 18%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To

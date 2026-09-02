@@ -14,6 +14,7 @@ confint(
   method = c("wald", "Wald", "profile", "uniroot", "boot"),
   nsim = 500,
   seed = NULL,
+  vcov = NULL,
   ...
 )
 ```
@@ -67,6 +68,16 @@ confint(
 - nsim, seed:
 
   Bootstrap draws and seed for `method = "boot"`.
+
+- vcov:
+
+  `method = "wald"` only: a covariance matrix over the whole outer
+  parameter vector to use in place of the model-based one -
+  [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md)
+  with `full = TRUE`, or a function of the fit returning such a matrix.
+  A matrix that carries reference degrees of freedom (as
+  [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md)'s
+  does, `G - 1`) switches the interval from a normal to a `t` quantile.
 
 - ...:
 

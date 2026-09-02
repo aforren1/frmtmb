@@ -15,7 +15,7 @@ formula."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -95,15 +95,15 @@ of the response it belongs to, before the responses are combined.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># the two spellings are the same model</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu">lf</span><span class="op">(</span><span class="va">sigma</span> <span class="op">~</span> <span class="va">z</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> sigma ~ z </span>
 <span class="r-in"><span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="va">sigma</span> <span class="op">~</span> <span class="va">z</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> sigma ~ z </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># nonlinear parameter formulas can arrive the same way</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">a</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">b</span> <span class="op">*</span> <span class="va">x</span><span class="op">)</span>, <span class="va">a</span> <span class="op">~</span> <span class="fl">1</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="fu">lf</span><span class="op">(</span><span class="va">b</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> y ~ a * exp(-b * x) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y ~ a * exp(-b * x) (nonlinear)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> a ~ 1 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> b ~ 1 + (1 | g) </span>
 </code></pre></div>

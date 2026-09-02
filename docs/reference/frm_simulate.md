@@ -66,6 +66,28 @@ drawn parameters in `attr(., "pars")` when `priors` is used.
 `data` must contain a response column with values that are valid for the
 family (any dummy values do; they only anchor the design).
 
+Draws come back in the response's own type, exactly as
+[`simulate()`](https://rdrr.io/r/stats/simulate.html)'s do: an ordered
+factor for an ordinal family, an unordered one for a categorical family,
+and a matrix column for a matrix response
+([`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md),
+[`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md)).
+
+The structured families draw here through the same implementation
+[`simulate()`](https://rdrr.io/r/stats/simulate.html) uses (see its
+Structured draws section):
+[`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) walks its
+chain per sequence, `mixture(groups = ~g)` takes one class per group,
+[`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
+uses its class covariances, and a residual correlation term
+([`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, ...) contributes one
+correlated residual per group. The de novo frame carries those
+structures, so nothing is lost relative to a fit;
+[`ar()`](https://rdrr.io/r/stats/ar.html) and friends need their
+`thetaac` entry in the internal `newparams` spelling, since a
+correlation parameter has no natural-scale name here.
+
 ## Two spellings for `newparams`
 
 *Natural scale* (recommended): the names
@@ -133,13 +155,13 @@ sims <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
                                       sd_g__Intercept = 0.5),
                      nsim = 3, seed = 1)
 head(sims)
-#>      sim_1      sim_2      sim_3
-#> 1 1.007314 0.50436944  0.7886221
-#> 2 1.731551 1.20181120  0.3238773
-#> 3 0.817993 0.03184368 -0.3540123
-#> 4 1.327337 2.03378663  0.7988518
-#> 5 1.936121 0.64057031 -0.6028489
-#> 6 1.028016 0.81116086  0.5767491
+#>       sim_1     sim_2      sim_3
+#> 1 1.2395400 0.7365957 1.02084829
+#> 2 1.8014212 1.2716813 0.39374746
+#> 3 1.3753279 0.5891786 0.20332262
+#> 4 1.5944320 2.3008817 1.06594687
+#> 5 2.6140092 1.3184590 0.07503977
+#> 6 0.6230005 0.4061450 0.17173320
 # the same thing on the internal scale
 frm(bf(y ~ x + (1 | g)) + gaussian(), dd,
     dry_run = "frame")$par_template   # the required layout

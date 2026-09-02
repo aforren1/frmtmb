@@ -1,5 +1,259 @@
 # Changelog
 
+## frmtmb 0.36.0
+
+Robustness in three senses (numerical, distributional, inferential),
+per-parameter nonlinear formulas, one simulator per family, direct
+sampling, and t2() newdata prediction.
+
+### Behavior changes
+
+- Draws objects use parenthesis-free parameter names throughout
+  (`Intercept`, not `(Intercept)`), matching brms and what
+  [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+  and
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  already spoke. This changes `summary(ds)`, `fixef(ds)`, `as_draws(ds)`
+  and
+  [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+  output; fits are unchanged, and both spellings still resolve in
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  and `frm_sample(priors =)`.
+
+### Nonlinear formulas per parameter
+
+- [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) declares
+  a nonlinear formula for one parameter, as in brms:
+  `bf(y ~ a) + nlf(a ~ exp(b * x)) + lf(b ~ 1)`, and any parameter can
+  carry one - `nlf(sigma ~ a + b * z)` is a nonlinear model for the
+  residual SD with a linear mean, which `nl = TRUE` cannot spell.
+  Nonlinearity is now a property of one parameter; bodies chain to any
+  depth in dependency order, cycles are refused by name, and the old
+  `nl = TRUE` models are bit-for-bit unchanged.
+- A body may read another distributional parameter’s per-row value: the
+  spelling for nlme’s `varPower(form = ~ fitted(.))`. A data column
+  still wins over a parameter name, so ported brms bodies keep their
+  meaning.
+  [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
+  works inside
+  [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) bodies.
+
+### Simulation and sampling
+
+- [`simulate()`](https://rdrr.io/r/stats/simulate.html),
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+  and
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+  now share one simulator per family. Three previously silent wrongs are
+  fixed: `mixture(groups =)` drew a class per ROW instead of per group
+  in
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+  and
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md),
+  and residual autocorrelation draws were independent there.
+  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) and
+  [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
+  gained simulators on all three paths;
+  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  explains its refusal at each entry point.
+- [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  accepts a formula and samples without a maximum- likelihood fit first:
+  `frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian())`
+  tapes the model and starts from random inits. The formula route
+  defaults to brms 2.23’s weakly informative priors (replicated against
+  [`brms::default_prior()`](https://paulbuerkner.com/brms/reference/default_prior.html)
+  exactly, zero-shift rule included), announces every default and every
+  deliberate gap (thresholds, shapes, correlations) in one message, and
+  `priors = "flat"` opts out.
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  on a FITTED model is unchanged - flat, likelihood-shaped - which is
+  what keeps
+  [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+  meaningful.
+- `frm(dry_run = "objective")` returns the taped model unfitted.
+
+### t2() smooths
+
+- `predict(newdata = )` works for `t2()` smooths, including
+  function-on-function terms and `t2(..., by = )`. A t2 basis carries a
+  second, prediction-only constraint that the fit does not; smooths are
+  now built with `smoothCon(modCon = 3)`, which drops it and leaves the
+  design, penalties and log-likelihood bit-identical. The refusal is
+  gone.
+
+### Student-t random effects
+
+- `(x | gr(g, dist = "student"))` gives a grouping term a Student-t
+  latent instead of a gaussian one, brms’s spelling. An outlying group
+  then costs the variance component far less: with one group of 30
+  displaced by 10 standard deviations, the gaussian latent SD inflates
+  to 1.85 against a truth of 1 while a `t(5)` latent holds at 1.25, and
+  the intercept’s RMSE falls from 0.298 to 0.180. Correlated and
+  [`diag()`](https://rdrr.io/r/base/diag.html) blocks are one
+  multivariate t with a single mixing variable per level, which is
+  brms’s construction and is verified against
+  [`mvtnorm::dmvt()`](https://rdrr.io/pkg/mvtnorm/man/Mvt.html) to
+  1e-10.
+- The degrees of freedom are FIXED, at `dist_nu` (default 5), not
+  estimated. brms estimates `nu` under a `gamma(2, 0.1)` prior, and the
+  prior is carrying it: by maximum likelihood the whole grid from 2.1 to
+  500 sits inside the 95% profile interval at 20 groups, and joint ML
+  runs to a boundary in 24% to 41% of replicates there. This is the
+  frequentist analogue of brms’s own `prior(constant(3), class = "df")`.
+  Compare a few values with
+  [`logLik()`](https://rdrr.io/r/stats/logLik.html) instead.
+- The reported quantity is the t’s SCALE, not its standard deviation -
+  which is also what brms’s `sd_<group>__<term>` is.
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  stores the scale matrix, tags it with `nu`, and prints a `Scale`
+  column, a converted `Std.Dev.` column (`scale * sqrt(nu/(nu-2))`) and
+  the fixed `nu`, so the convention is visible instead of silent.
+- `quadrature = TRUE` accepts scalar t blocks and marginalizes them
+  EXACTLY, agreeing with adaptive Gauss-Hermite quadrature to 1e-6. It
+  is the recommended check: the Laplace approximation over a t latent
+  biases the estimated scale UPWARD, by under 2% of a standard error at
+  8 observations per group but by a factor of three where a near-null
+  variance component meets two-observation groups.
+  `dev/tre-feasibility.md` has the measurements.
+- [`simulate()`](https://rdrr.io/r/stats/simulate.html) and
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+  draw a multivariate t; `predict(allow_new_levels = TRUE)` inflates the
+  unseen level’s variance by `nu/(nu-2)`; `REML = TRUE`,
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
+  [`confint()`](https://rdrr.io/r/stats/confint.html) and
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+  work unchanged. Refused with their own messages, and documented in
+  `?frmtmb-student-re` and
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md):
+  `gr(cov = )`/`gr(prec = )`, `mm()`, `|ID|` keys, and every covariance
+  structure but `us` and `diag`.
+
+### Cluster-robust (sandwich) standard errors
+
+- `vcov_cluster(fit, cluster = ~ g, type = "CR0")` gives the
+  cluster-robust covariance of the estimates: the inverse observed
+  information of the marginal likelihood sandwiching the outer product
+  of the per-cluster scores. `type` takes `"CR0"`, `"CR1"`, `"CR1p"` and
+  `"CR1S"`, spelled and defined as in `clubSandwich`.
+  `vcov(fit, cluster = ~ g, type = )` is the same thing in the
+  [`sandwich::vcovCL()`](https://zeileis.codeberg.page/sandwich/reference/vcovCL.html)
+  spelling.
+- `cluster_scores(fit, ~ g)` returns the per-cluster scores themselves,
+  one row per cluster, so any other sandwich can be built from them.
+  This is what
+  [`sandwich::estfun()`](https://zeileis.codeberg.page/sandwich/reference/estfun.html)
+  would return if a marginalized objective had per-observation
+  contributions; it does not, which is why frmtmb still ships no
+  `estfun()` method.
+- [`confint()`](https://rdrr.io/r/stats/confint.html),
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  and [`summary()`](https://rdrr.io/r/base/summary.html) take `vcov =`:
+  a covariance over the whole outer parameter vector, or a function of
+  the fit returning one. A matrix from
+  [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md)
+  carries `G - 1` reference degrees of freedom, so those methods switch
+  from a normal to a `t` reference automatically.
+- The estimator is refused, with the reason, wherever the marginal
+  likelihood does not factor over the clustering factor: a random effect
+  whose level spans two clusters (crossed effects, `mm()` pooled levels,
+  a global smooth, `gp()`, `car()`, `spde()`), a group-level mixture
+  whose groups span clusters, `autocor()`,
+  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md),
+  `rescor = TRUE`, `mi()`/`me()`, `REML = TRUE`,
+  `frmtmb_control(profile = TRUE)`, `quadrature = TRUE`, and any fit
+  made with priors.
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+  is the documented fallback.
+- `"CR2"`/`"CR3"` are refused rather than approximated: the
+  Bell-McCaffrey family is defined through the hat matrix of a linear or
+  GLS model, which a Laplace-marginal likelihood with a nonlinear link
+  does not have.
+
+### Numerical robustness of the family log-densities
+
+The log-densities now evaluate from the LINEAR-PREDICTOR scale wherever
+an exact form exists, instead of undoing the link and recomputing. An
+inverse link saturates - `plogis(40)` is exactly 1 in double precision,
+and `1 - exp(-exp(4))` is too - so a density written over `1 - mu`
+returned `-Inf` with an unusable gradient in a region the linear
+predictor describes perfectly well. A fit that converges never visits
+it; an optimizer step that overshoots, a separated predictor, a wide
+quadrature node and a
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+tail draw all do.
+
+- [`bernoulli()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`binomial()`](https://rdrr.io/r/stats/family.html) and
+  [`zero_inflated_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  use
+  [`RTMB::dbinom_robust()`](https://rdrr.io/pkg/RTMB/man/Distributions.html),
+  the log-odds parameterization glmmTMB fits with. They were wrong in
+  the second decimal at a linear predictor of 30 and gave `-Inf` at 40;
+  they are now exact over the whole line. With the `cloglog` link the
+  old form had no gradient past a SINGLE-DIGIT linear predictor.
+- [`negbinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`nbinom1()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`geometric()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  use
+  [`RTMB::dnbinom_robust()`](https://rdrr.io/pkg/RTMB/man/Distributions.html),
+  which takes `log(mu)` and never forms `mu / var`. The old form gave
+  `NaN` at a linear predictor of -40.
+- Every `zi` and `hu` gate, and
+  [`asym_laplace()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)’s
+  `quantile`, run in log space, so a separated zero-inflation predictor
+  stays differentiable.
+- [`Beta()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`zero_inflated_beta()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`beta_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  take both shapes off the log-odds, so the second one no longer
+  collapses to zero.
+- [`hurdle_poisson()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)’s
+  zero-truncation normalizer `log(1 - exp(-mu))` uses `expm1`, which
+  keeps it at a tiny mean.
+- [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  with the logit link compute their CDF differences in log space.
+  [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  accumulate their denominators with `logspace_add()` instead of summing
+  [`exp()`](https://rdrr.io/r/base/Log.html), which used to overflow at
+  a linear predictor of 709 / (K - 1).
+- Values and gradients at ordinary linear predictors are unchanged to
+  1e-15, and every fitted model in the regression set lands on the same
+  estimates (largest coefficient change 9.5e-9, largest log-likelihood
+  change 4e-12). `cumulative(probit)` keeps the plain CDF difference,
+  which has no exact log-space form; it is fragile past a linear
+  predictor of 8, so prefer the logit link. New file
+  `tests/testthat/test-numerical-robustness.R` pins the behavior.
+
+### New family
+
+- [`huber()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fits Huber’s least-favorable distribution: gaussian within `k`
+  residual standard deviations of `mu` and Laplace outside, so an
+  outlier pulls on the fit with bounded influence. It is a proper
+  normalized density, so this is ordinary maximum likelihood and
+  [`logLik()`](https://rdrr.io/r/stats/logLik.html) and
+  [`AIC()`](https://rdrr.io/r/stats/AIC.html) mean what they say.
+  Huber’s tuning constant is a fixed argument, `huber(k = 1.345)`, not
+  an estimated parameter, matching how
+  [`MASS::rlm()`](https://rdrr.io/pkg/MASS/man/rlm.html) treats it.
+  Point estimates track `MASS::rlm(psi = psi.huber)`; the remaining gap
+  is the scale (`rlm()` fixes it at a MAD-type estimate,
+  [`huber()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  estimates `sigma` by ML), and holding `sigma` there reproduces `rlm()`
+  to 1e-5. The
+  [`asym_laplace()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  working-likelihood caveat applies: Wald standard errors under a
+  misspecified error distribution are not calibrated, so use
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md).
+
 ## frmtmb 0.35.0
 
 Hidden Markov models, latent class analysis, multi-membership random

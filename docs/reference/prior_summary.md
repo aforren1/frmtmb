@@ -1,10 +1,18 @@
 # Priors used in a fit
 
-Priors used in a fit
+On draws from
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+this reports the priors the sampler applied, which on the formula
+interface includes the brms default priors it chose (see the Default
+priors section of
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)).
 
 ## Usage
 
 ``` r
+# S3 method for class 'frmtmb_draws'
+prior_summary(object, ...)
+
 prior_summary(object, ...)
 
 # S3 method for class 'frmtmb_fit'
@@ -15,7 +23,8 @@ prior_summary(object, ...)
 
 - object:
 
-  A `frmtmb_fit`.
+  A `frmtmb_fit`, or `frmtmb_draws` from
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md).
 
 - ...:
 
@@ -23,8 +32,8 @@ prior_summary(object, ...)
 
 ## Value
 
-The `frmtmb_priorlist` the fit was penalized with, or (invisibly) `NULL`
-for a plain maximum-likelihood fit.
+The `frmtmb_priorlist` the fit was penalized with, or that the sampler
+used, or (invisibly) `NULL` when there were none.
 
 ## Examples
 

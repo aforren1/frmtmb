@@ -15,7 +15,7 @@ brms's directional &quot;lhs &amp;gt; rhs&quot; / &quot;lhs &amp;lt; rhs&quot;."
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,6 +79,7 @@ brms's directional <code>"lhs &gt; rhs"</code> / <code>"lhs &lt; rhs"</code>.</p
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  class <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  group <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  vcov <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -132,6 +133,15 @@ share one bootstrap run.</p></dd>
 hypothesis is written with bare names and <code>class</code> (and <code>group</code>,
 for the <code>sd_</code>/<code>cor_</code> summaries) supplies the prefix. The default
 <code>NULL</code> (like brms's <code>class = "b"</code>) takes the names as written.</p></dd>
+
+
+<dt id="arg-vcov">vcov<a class="anchor" aria-label="anchor" href="#arg-vcov"></a></dt>
+<dd><p><code>method = "wald"</code> only: a covariance matrix over the
+whole outer parameter vector to use in place of the model-based
+one - <code><a href="vcov_cluster.html">vcov_cluster()</a></code> with <code>full = TRUE</code>, or a function of the
+fit returning such a matrix. The delta-method standard error is
+then the cluster-robust one, and a matrix carrying reference
+degrees of freedom switches the test to a <code>t</code> reference.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -243,12 +243,17 @@ translation is also more general than a `varFunc`: `sigma` takes the
 full predictor grammar, so random effects and smooths in the variance
 are ordinary spellings.
 
-The one form with no translation is `varPower(form = ~ fitted(.))`,
-variance as a function of the model's own mean. For a positive
-response that coupling usually belongs in the family: `Gamma()` has
-sd proportional to the mean, and `tweedie()` estimates the power in
-`Var = phi * mu^p` directly. A gaussian response with mean-dependent
-variance has no frmtmb spelling.
+`varPower(form = ~ fitted(.))`, variance as a function of the model's
+own mean, is spelled with `nlf()` (see the nonlinear-formulas
+section): `nlf(sigma ~ ls + th * log(abs(mu))) + lf(ls ~ 1, th ~ 1)`
+is `sd = exp(ls) * |mu|^th`, estimated by one joint maximum
+likelihood. Expect agreement with `gls` near 1e-2 rather than 1e-10:
+`gls` alternates the mean fit against iteratively updated fitted
+values and stops without a gradient check, while this is one joint
+maximization of the same likelihood. For a positive response the
+coupling often belongs in the family instead: `Gamma()` has sd
+proportional to the mean, and `tweedie()` estimates the power in
+`Var = phi * mu^p` directly.
 
 ## Structural objects: `data2`
 

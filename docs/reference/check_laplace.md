@@ -36,6 +36,16 @@ A data frame (one row per outer parameter) with columns `ml`,
 `post_mean`, `wald_se`, `post_sd`, `z_shift` ((post_mean - ml)/post_sd)
 and `sd_ratio` (post_sd/wald_se).
 
+## Details
+
+This is a diagnostic tool: it explores the LIKELIHOOD, with flat priors,
+which is what makes the comparison against the ML mode and its Wald
+standard errors meaningful.
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+on a formula is the sampling tool instead: it samples a POSTERIOR, under
+brms's default priors. A default prior here would change the very thing
+being measured, so `check_laplace()` never sets one.
+
 ## Examples
 
 ``` r
@@ -56,10 +66,7 @@ cl
 # whose Wald interval to replace with a profile or bootstrap one
 cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
 }
-#> Warning: There were 1 chains where the estimated Bayesian Fraction of Missing Information was low. See
-#> https://mc-stan.org/misc/warnings.html#bfmi-low
-#> Warning: Examine the pairs() plot to diagnose sampling problems
-#> Warning: The largest R-hat is 1.42, indicating chains have not mixed.
+#> Warning: The largest R-hat is 1.08, indicating chains have not mixed.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#r-hat
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
@@ -68,8 +75,7 @@ cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#> Laplace/Wald approximation questionable for: theta_1
-#>   parameter         ml post_mean   wald_se   post_sd    z_shift sd_ratio
-#> 3   theta_1 0.09859697  0.105007 0.3522135 0.5948881 0.01077513 1.688998
+#> [1] parameter ml        post_mean wald_se   post_sd   z_shift   sd_ratio 
+#> <0 rows> (or 0-length row.names)
 # }
 ```

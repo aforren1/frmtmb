@@ -144,7 +144,12 @@ frm(
 
   `"spec"` returns the parsed intermediate representation without
   touching `data`; `"frame"` returns the assembled design matrices and
-  parameter template without fitting.
+  parameter template without fitting; `"objective"` additionally tapes
+  the objective and returns an UNFITTED object carrying it, which is
+  what
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  samples when it is given a formula rather than a fit. Methods that
+  report a maximum-likelihood quantity refuse on that object.
 
 - verbose:
 

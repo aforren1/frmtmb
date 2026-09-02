@@ -106,13 +106,17 @@ and produces the matrices.
   [`reformulas::mkReTrms()`](https://rdrr.io/pkg/reformulas/man/mkReTrms.html),
   which returns lme4’s transposed `Zt`. frmtmb transposes each term’s
   slice back out and stores `Z` with observations in rows.
-- Smooths go through `mgcv::smoothCon(absorb.cons = TRUE)` and
-  `mgcv::smooth2random(type = 2)`. The fixed part is appended to `X`;
-  the wiggly part becomes a one-variance block in `Z`, so the smoothing
-  parameter is estimated as a variance component. Prediction uses
+- Smooths go through `mgcv::smoothCon(absorb.cons = TRUE, modCon = 3)`
+  and `mgcv::smooth2random(type = 2)`. The fixed part is appended to
+  `X`; the wiggly part becomes a one-variance block in `Z`, so the
+  smoothing parameter is estimated as a variance component. Prediction
+  uses
   [`mgcv::PredictMat()`](https://rdrr.io/pkg/mgcv/man/smoothCon.html)
-  with the stored transforms. `s()` and `t2()` are supported, `te()` is
-  not.
+  with the stored transforms. `modCon = 3` makes that basis the fitted
+  basis: a `t2()` smooth otherwise carries a second, sum-to-zero
+  prediction constraint that `PredictMat()` honors and the fit does not.
+  It changes no fitted quantity. `s()` and `t2()` are supported, `te()`
+  is not.
 - Gaussian processes, `car()` and `spde()` build their own sparse
   columns and carry their auxiliary data (distances, adjacency,
   finite-element matrices) on the block.

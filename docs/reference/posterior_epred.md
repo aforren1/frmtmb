@@ -105,10 +105,31 @@ functions. Any family whose per-draw response-scale prediction is a
 matrix takes the array shape; every family that predicts one number per
 observation keeps the plain `draws x observations` matrix.
 
-`posterior_predict()` is unaffected - it draws one category per
-observation - and so is `posterior_linpred()`, which is a statement
-about one distributional parameter and stays an `n`-column matrix of the
-latent predictor.
+`posterior_predict()` is unaffected for an ordinal or categorical
+family - it draws one category per observation - and so is
+`posterior_linpred()`, which is a statement about one distributional
+parameter and stays an `n`-column matrix of the latent predictor. What
+does take the array shape in `posterior_predict()` is a matrix-valued
+RESPONSE:
+[`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+counts,
+[`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
+draws and [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md)
+item codes give one row per observation, so the draws stack into
+`draws x observations x columns`.
+
+## Structured draws
+
+`posterior_predict()` uses the same simulator
+[`simulate()`](https://rdrr.io/r/stats/simulate.html) does, including
+the structured families
+([`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md),
+`mixture(groups = )`,
+[`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md))
+and residual correlation terms - see the Structured draws section of
+[`simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md).
+Those draws index the rows the model was fitted on, so `newdata` is
+refused for them.
 
 ## Examples
 

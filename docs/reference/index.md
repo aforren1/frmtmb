@@ -8,6 +8,9 @@
 - [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md) : Add
   parameter formulas to a model formula
 
+- [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) : Add a
+  nonlinear parameter formula to a model formula
+
 - [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   : Combine formulas into a multivariate model
@@ -77,6 +80,7 @@
   [`zero_inflated_beta()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`asym_laplace()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`zero_inflated_asym_laplace()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  [`huber()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
@@ -125,6 +129,9 @@
   The fitted item profiles of an
   [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) fit
 
+- [`frmtmb-student-re`](https://aforren1.github.io/frmtmb/reference/frmtmb-student-re.md)
+  : Student-t distributed random effects
+
 - [`check_custom_family()`](https://aforren1.github.io/frmtmb/reference/check_custom_family.md)
   : Check a custom family's log-density for AD safety
 
@@ -134,6 +141,10 @@
   : Confidence intervals for frmtmb fits
 - [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
   : Natural-scale confidence intervals for covariance parameters
+- [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md)
+  : Cluster-robust (sandwich) covariance
+- [`cluster_scores()`](https://aforren1.github.io/frmtmb/reference/cluster_scores.md)
+  : Per-cluster score matrix
 - [`autocor_matrix()`](https://aforren1.github.io/frmtmb/reference/autocor_matrix.md)
   : Estimated within-group residual correlation matrix
 - [`profile(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/profile.frmtmb_fit.md)
@@ -163,7 +174,7 @@
 - [`as_tmbstan()`](https://aforren1.github.io/frmtmb/reference/as_tmbstan.md)
   : Sample from a frmtmb fit with tmbstan (NUTS)
 - [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
-  : Sample the fitted model with NUTS
+  : Sample a model with NUTS
 - [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
   [`posterior_linpred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)

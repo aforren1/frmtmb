@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -181,13 +181,17 @@ differ.</li>
 which returns lme4’s transposed <code>Zt</code>. frmtmb transposes each
 term’s slice back out and stores <code>Z</code> with observations in
 rows.</li>
-<li>Smooths go through <code>mgcv::smoothCon(absorb.cons = TRUE)</code>
-and <code>mgcv::smooth2random(type = 2)</code>. The fixed part is
-appended to <code>X</code>; the wiggly part becomes a one-variance block
-in <code>Z</code>, so the smoothing parameter is estimated as a variance
+<li>Smooths go through
+<code>mgcv::smoothCon(absorb.cons = TRUE, modCon = 3)</code> and
+<code>mgcv::smooth2random(type = 2)</code>. The fixed part is appended
+to <code>X</code>; the wiggly part becomes a one-variance block in
+<code>Z</code>, so the smoothing parameter is estimated as a variance
 component. Prediction uses <code><a href="https://rdrr.io/pkg/mgcv/man/smoothCon.html" class="external-link">mgcv::PredictMat()</a></code> with the
-stored transforms. <code>s()</code> and <code>t2()</code> are supported,
-<code>te()</code> is not.</li>
+stored transforms. <code>modCon = 3</code> makes that basis the fitted
+basis: a <code>t2()</code> smooth otherwise carries a second,
+sum-to-zero prediction constraint that <code>PredictMat()</code> honors
+and the fit does not. It changes no fitted quantity. <code>s()</code>
+and <code>t2()</code> are supported, <code>te()</code> is not.</li>
 <li>Gaussian processes, <code>car()</code> and <code>spde()</code> build
 their own sparse columns and carry their auxiliary data (distances,
 adjacency, finite-element matrices) on the block.</li>

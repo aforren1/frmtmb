@@ -9,7 +9,7 @@ fixed to constants are excluded."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,7 +59,7 @@ fixed to constants are excluded.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'frmtmb_fit'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov</a></span><span class="op">(</span><span class="va">object</span>, full <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov</a></span><span class="op">(</span><span class="va">object</span>, full <span class="op">=</span> <span class="cn">FALSE</span>, cluster <span class="op">=</span> <span class="cn">NULL</span>, type <span class="op">=</span> <span class="st">"CR0"</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -74,6 +74,17 @@ fixed to constants are excluded.</p>
 <dd><p>If <code>TRUE</code>, include covariance parameters (<code>theta</code>),
 named as in <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> (the glmmTMB <code>vcov(full = TRUE)</code>
 convention).</p></dd>
+
+
+<dt id="arg-cluster">cluster<a class="anchor" aria-label="anchor" href="#arg-cluster"></a></dt>
+<dd><p>Optional clustering factor. When given, the result is
+<code><a href="vcov_cluster.html">vcov_cluster()</a></code>'s cluster-robust covariance instead of the
+model-based one.</p></dd>
+
+
+<dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
+<dd><p>Small-sample correction for <code>cluster</code>, see
+<code><a href="vcov_cluster.html">vcov_cluster()</a></code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -102,6 +113,9 @@ part of <code>full = TRUE</code>; the block comes from the joint precision and
 carries exactly the parameters <code><a href="confint.frmtmb_fit.html">confint.frmtmb_fit()</a></code> reports.
 <code>vcov(object)</code>
 is still the fixed-effect covariance there.</p>
+<p>Passing <code>cluster</code> forwards to <code><a href="vcov_cluster.html">vcov_cluster()</a></code> for the
+cluster-robust (sandwich) covariance, in the <code><a href="https://zeileis.codeberg.page/sandwich/reference/vcovCL.html" class="external-link">sandwich::vcovCL()</a></code>
+spelling: <code>vcov(fit, cluster = ~ g, type = "CR1")</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

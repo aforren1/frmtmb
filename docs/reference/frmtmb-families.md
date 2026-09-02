@@ -65,6 +65,8 @@ asym_laplace(link = "identity")
 
 zero_inflated_asym_laplace(link = "identity")
 
+huber(link = "identity", k = 1.345)
+
 sratio(link = "logit")
 
 cratio(link = "logit")
@@ -88,6 +90,14 @@ cox(link = "log", df = 5, degree = 3, intercept = TRUE)
 
   For `multinomial()`: number of response categories (columns of the
   count-matrix response); category 1 is the reference.
+
+- k:
+
+  For `huber()`: Huber's tuning constant, the residual size in units of
+  `sigma` where the density stops being gaussian and becomes Laplace. It
+  is FIXED, not estimated - the default 1.345 is
+  [`MASS::rlm()`](https://rdrr.io/pkg/MASS/man/rlm.html)'s, which gives
+  95% efficiency against a gaussian.
 
 - levels:
 
@@ -229,6 +239,55 @@ a benign false-convergence warning near the optimum;
 [`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)
 confirms the fit when in doubt.
 
+## Robust regression
+
+`huber()` fits Huber's least-favorable distribution: gaussian within `k`
+residual standard deviations of `mu` and Laplace outside, so a far-out
+point pulls on the fit with a bounded influence instead of its squared
+distance. It is a proper normalized density, not a penalty, so this is
+ordinary maximum likelihood and
+[`logLik()`](https://rdrr.io/r/stats/logLik.html),
+[`AIC()`](https://rdrr.io/r/stats/AIC.html) and the likelihood-ratio
+machinery all mean what they say.
+
+`k` is a fixed constant of the family, `huber(k = 1.345)`, not a
+distributional parameter. It states where the analyst draws the line
+between a residual and an outlier, which is a modelling choice rather
+than something the data identifies;
+[`MASS::rlm()`](https://rdrr.io/pkg/MASS/man/rlm.html) treats it the
+same way. Estimating it would let the likelihood buy fit by widening the
+gaussian core, which is the opposite of the point. As `k` grows the
+family collapses to [`gaussian()`](https://rdrr.io/r/stats/family.html).
+
+Point estimates track `MASS::rlm(psi = psi.huber)` closely but not
+exactly, and the difference is the scale: `rlm()` fixes the scale at a
+MAD-type estimate and iterates the location, while `huber()` estimates
+`sigma` by maximum likelihood jointly with `mu`. The coefficients agree
+to about `1e-2` on well-behaved data; the `sigma` estimates need not.
+
+The working-likelihood caveat that applies to `asym_laplace()` applies
+here for the same reason. If the data are not actually
+Huber-distributed - and the family is chosen precisely because the error
+distribution is unknown - then the model is misspecified, the
+information matrix is not the variance of the score, and Wald standard
+errors and [`confint()`](https://rdrr.io/r/stats/confint.html) intervals
+from it are not calibrated. The point estimates stay consistent for the
+location. Use
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+for intervals you can defend. `cens()` and
+[`trunc()`](https://rdrr.io/r/base/Round.html) are unavailable: the CDF
+is a three-piece function of a parameter-dependent residual and has no
+branch-free form for the tape.
+
+`rho` has a kink at `|u| = k`, so the objective is only piecewise smooth
+and the optimizer often stops with a maximum absolute gradient around
+`1e-4` and the accompanying false-convergence warning. That is the kink,
+not a bad fit: the same thing happens to `asym_laplace()`. The estimates
+satisfy Huber's own estimating equations, `X' psi(u) = 0` with
+`psi(u) = min(max(u, -k), k)`, to the same order.
+[`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)
+confirms the fit when in doubt.
+
 ## Examples
 
 ``` r
@@ -302,6 +361,16 @@ frm(bf(p ~ x) + Beta(), data = dd)
 #> (Intercept) 
 #>       3.921 
 
+# bounded influence: a few wild points barely move the slope
+dd$rob <- 1 + 0.8 * dd$x + rnorm(n)
+dd$rob[1:5] <- dd$rob[1:5] + 30
+fixef(frm(bf(rob ~ x), family = huber(), data = dd))$mu
+#> (Intercept)           x 
+#>   1.1663906   0.8551163 
+fixef(frm(bf(rob ~ x), family = gaussian(), data = dd))$mu
+#> (Intercept)           x 
+#>    2.231839    1.490395 
+
 # an unordered factor: one predictor per non-reference category,
 # named after the level it belongs to
 dd$pick <- factor(sample(c("ale", "stout", "lager"), n, TRUE))
@@ -309,36 +378,36 @@ cat_fit <- frm(bf(pick ~ x), family = categorical(), data = dd)
 fixef(cat_fit)                     # mulager and mustout; ale is the
 #> $mulager
 #> (Intercept)           x 
-#>   0.3644546  -0.1122166 
+#>  0.28202930 -0.08958449 
 #> 
 #> $mustout
 #> (Intercept)           x 
-#> -0.06738302 -0.30584099 
+#>   0.5645427  -0.4373896 
 #> 
                                    # reference
 head(fitted(cat_fit))              # n x K category probabilities
 #>         ale     lager     stout
-#> 1 0.3048775 0.4283931 0.2667294
-#> 2 0.2752055 0.4210911 0.3037034
-#> 3 0.3317258 0.4321454 0.2361288
-#> 4 0.3199327 0.4308183 0.2492490
-#> 5 0.3616400 0.4333564 0.2050036
-#> 6 0.3236542 0.4312905 0.2450553
+#> 1 0.2564172 0.3334248 0.4101580
+#> 2 0.2163825 0.3011704 0.4824471
+#> 3 0.2928210 0.3584389 0.3487401
+#> 4 0.2768567 0.3479778 0.3751655
+#> 5 0.3327697 0.3810589 0.2861714
+#> 6 0.2819019 0.3513701 0.3667279
 
 # one category may take its own predictor
 dd$w <- rnorm(n)
 frm(bf(pick ~ x, mustout ~ w), family = categorical(), data = dd)
 #> frmtmb fit: pick ~ x 
 #> Family: categorical   Method: ML 
-#> logLik: -129.366  AIC: 266.732  nobs: 120 
+#> logLik: -128.572  AIC: 265.145  nobs: 120 
 #> 
 #> Fixed effects:
 #>  mulager:
 #> (Intercept)           x 
-#>     0.34532     0.03655 
+#>      0.2429      0.1853 
 #>  mustout:
 #> (Intercept)           w 
-#>     -0.1019     -0.1376 
+#>       0.515       0.101 
 
 # an angle: mu is the mean direction, kappa the concentration
 dd$angle <- atan2(sin(0.5 + dd$x), cos(0.5 + dd$x))
@@ -353,8 +422,8 @@ dd$out <- rbinom(n, 1, 0.3)        # 1 = right censored
 cox_fit <- frm(bf(time | cens(out) ~ x), family = cox(), data = dd)
 fixef(cox_fit)$mu                  # log hazard ratios
 #> (Intercept)           x 
-#>   2.4319804   0.9064254 
+#>   2.1265524   0.7045597 
 cox_baseline(cox_fit)              # the baseline hazard weights
 #>           s1           s2           s3           s4           s5 
-#> 1.292303e-02 1.489409e-01 4.591886e-01 4.732665e-09 3.789474e-01 
+#> 3.668968e-03 1.910337e-01 2.186349e-01 4.645067e-09 5.866624e-01 
 ```

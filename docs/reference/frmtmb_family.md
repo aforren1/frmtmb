@@ -20,6 +20,8 @@ frmtmb_family(
   type = "continuous",
   post = list(),
   sim = NULL,
+  sim_ctx = NULL,
+  sim_refusal = NULL,
   primary_dpars = "mu",
   lcdf = NULL,
   extra_pars = NULL,
@@ -36,6 +38,8 @@ custom_family(
   type = "continuous",
   post = list(),
   sim = NULL,
+  sim_ctx = NULL,
+  sim_refusal = NULL,
   primary_dpars = "mu",
   lcdf = NULL,
   extra_pars = NULL,
@@ -101,7 +105,24 @@ custom_family(
 - sim:
 
   Optional numeric simulator `(dpars, aterms, n)` returning `n` response
-  draws; used by [`simulate()`](https://rdrr.io/r/stats/simulate.html).
+  draws; used by [`simulate()`](https://rdrr.io/r/stats/simulate.html),
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+  and
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md).
+  It is stateless and rowwise: it sees the distributional parameters and
+  nothing else. A family whose extra parameters (`extra_pars`) enter the
+  draw declares a fourth argument `extra` instead.
+
+- sim_ctx:
+
+  Optional structured simulator `(ctx)` for a family whose draws are not
+  rowwise (see Structured simulators). It takes precedence over `sim`.
+
+- sim_refusal:
+
+  Optional one-sentence reason why the family has no simulator, appended
+  to the refusal each entry point raises. Use it when the omission is a
+  decision rather than a gap.
 
 - primary_dpars:
 
@@ -131,6 +152,33 @@ custom_family(
 ## Value
 
 An object of class `frmtmb_family`.
+
+## Structured simulators
+
+Some families cannot draw a response one row at a time: a group-level
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+draws one class per group, an
+[`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) walks a
+Markov chain per sequence, and a
+[`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
+draw needs the class covariances, which are family-level extras rather
+than dpars. Those families supply `sim_ctx(ctx)` instead of
+`sim(dpars, aterms, n)`.
+
+`ctx` is a list with `fit` (any object carrying `spec`, `frame` and
+`estimates` - a fitted model, one posterior draw, or the de novo shim),
+`family`, `rspec`, `resp`, `dpars` (the evaluated numeric distributional
+parameters), `aterms`, `n`, `extra` (the family-level extra parameters)
+and the frame structures `autocor` and `mix_g`. Read its fields with
+`[[ ]]`.
+
+The same `sim_ctx()` serves \[simulate()\], \[posterior_predict()\] and
+\[frm_simulate()\]. Because a structured draw covers whole sequences or
+groups, [`trunc()`](https://rdrr.io/r/base/Round.html) rejection and
+`newdata` cannot apply to it and are refused.
+
+\[ \]: R:%20 \[simulate()\]: R:simulate() \[posterior_predict()\]:
+R:posterior_predict() \[frm_simulate()\]: R:frm_simulate()
 
 ## Examples
 

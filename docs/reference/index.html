@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,6 +70,13 @@
 
         </dt>
         <dd>Add parameter formulas to a model formula</dd>
+
+        <dt>
+
+          <code><a href="nlf.html">nlf()</a></code>
+
+        </dt>
+        <dd>Add a nonlinear parameter formula to a model formula</dd>
 
         <dt>
 
@@ -175,7 +182,7 @@
 
         <dt>
 
-          <code><a href="frmtmb-families.html">student()</a></code> <code><a href="frmtmb-families.html">lognormal()</a></code> <code><a href="frmtmb-families.html">negbinomial()</a></code> <code><a href="frmtmb-families.html">nbinom1()</a></code> <code><a href="frmtmb-families.html">Beta()</a></code> <code><a href="frmtmb-families.html">tweedie()</a></code> <code><a href="frmtmb-families.html">compois()</a></code> <code><a href="frmtmb-families.html">zero_inflated_poisson()</a></code> <code><a href="frmtmb-families.html">zero_inflated_negbinomial()</a></code> <code><a href="frmtmb-families.html">hurdle_poisson()</a></code> <code><a href="frmtmb-families.html">multinomial()</a></code> <code><a href="frmtmb-families.html">cumulative()</a></code> <code><a href="frmtmb-families.html">beta_binomial()</a></code> <code><a href="frmtmb-families.html">skew_normal()</a></code> <code><a href="frmtmb-families.html">exgaussian()</a></code> <code><a href="frmtmb-families.html">bernoulli()</a></code> <code><a href="frmtmb-families.html">geometric()</a></code> <code><a href="frmtmb-families.html">exponential()</a></code> <code><a href="frmtmb-families.html">weibull()</a></code> <code><a href="frmtmb-families.html">shifted_lognormal()</a></code> <code><a href="frmtmb-families.html">hurdle_gamma()</a></code> <code><a href="frmtmb-families.html">hurdle_lognormal()</a></code> <code><a href="frmtmb-families.html">zero_inflated_binomial()</a></code> <code><a href="frmtmb-families.html">zero_inflated_beta()</a></code> <code><a href="frmtmb-families.html">asym_laplace()</a></code> <code><a href="frmtmb-families.html">zero_inflated_asym_laplace()</a></code> <code><a href="frmtmb-families.html">sratio()</a></code> <code><a href="frmtmb-families.html">cratio()</a></code> <code><a href="frmtmb-families.html">acat()</a></code> <code><a href="frmtmb-families.html">von_mises()</a></code> <code><a href="frmtmb-families.html">categorical()</a></code> <code><a href="frmtmb-families.html">cox()</a></code>
+          <code><a href="frmtmb-families.html">student()</a></code> <code><a href="frmtmb-families.html">lognormal()</a></code> <code><a href="frmtmb-families.html">negbinomial()</a></code> <code><a href="frmtmb-families.html">nbinom1()</a></code> <code><a href="frmtmb-families.html">Beta()</a></code> <code><a href="frmtmb-families.html">tweedie()</a></code> <code><a href="frmtmb-families.html">compois()</a></code> <code><a href="frmtmb-families.html">zero_inflated_poisson()</a></code> <code><a href="frmtmb-families.html">zero_inflated_negbinomial()</a></code> <code><a href="frmtmb-families.html">hurdle_poisson()</a></code> <code><a href="frmtmb-families.html">multinomial()</a></code> <code><a href="frmtmb-families.html">cumulative()</a></code> <code><a href="frmtmb-families.html">beta_binomial()</a></code> <code><a href="frmtmb-families.html">skew_normal()</a></code> <code><a href="frmtmb-families.html">exgaussian()</a></code> <code><a href="frmtmb-families.html">bernoulli()</a></code> <code><a href="frmtmb-families.html">geometric()</a></code> <code><a href="frmtmb-families.html">exponential()</a></code> <code><a href="frmtmb-families.html">weibull()</a></code> <code><a href="frmtmb-families.html">shifted_lognormal()</a></code> <code><a href="frmtmb-families.html">hurdle_gamma()</a></code> <code><a href="frmtmb-families.html">hurdle_lognormal()</a></code> <code><a href="frmtmb-families.html">zero_inflated_binomial()</a></code> <code><a href="frmtmb-families.html">zero_inflated_beta()</a></code> <code><a href="frmtmb-families.html">asym_laplace()</a></code> <code><a href="frmtmb-families.html">zero_inflated_asym_laplace()</a></code> <code><a href="frmtmb-families.html">huber()</a></code> <code><a href="frmtmb-families.html">sratio()</a></code> <code><a href="frmtmb-families.html">cratio()</a></code> <code><a href="frmtmb-families.html">acat()</a></code> <code><a href="frmtmb-families.html">von_mises()</a></code> <code><a href="frmtmb-families.html">categorical()</a></code> <code><a href="frmtmb-families.html">cox()</a></code>
 
         </dt>
         <dd>Additional response families</dd>
@@ -252,6 +259,13 @@
 
         <dt>
 
+          <code><a href="frmtmb-student-re.html">frmtmb-student-re</a></code>
+
+        </dt>
+        <dd>Student-t distributed random effects</dd>
+
+        <dt>
+
           <code><a href="check_custom_family.html">check_custom_family()</a></code>
 
         </dt>
@@ -279,6 +293,20 @@
 
         </dt>
         <dd>Natural-scale confidence intervals for covariance parameters</dd>
+
+        <dt>
+
+          <code><a href="vcov_cluster.html">vcov_cluster()</a></code>
+
+        </dt>
+        <dd>Cluster-robust (sandwich) covariance</dd>
+
+        <dt>
+
+          <code><a href="cluster_scores.html">cluster_scores()</a></code>
+
+        </dt>
+        <dd>Per-cluster score matrix</dd>
 
         <dt>
 
@@ -383,7 +411,7 @@
           <code><a href="frm_sample.html">frm_sample()</a></code>
 
         </dt>
-        <dd>Sample the fitted model with NUTS</dd>
+        <dd>Sample a model with NUTS</dd>
 
         <dt>
 

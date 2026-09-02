@@ -7,7 +7,7 @@ to constants are excluded.
 
 ``` r
 # S3 method for class 'frmtmb_fit'
-vcov(object, full = FALSE, ...)
+vcov(object, full = FALSE, cluster = NULL, type = "CR0", ...)
 ```
 
 ## Arguments
@@ -21,6 +21,17 @@ vcov(object, full = FALSE, ...)
   If `TRUE`, include covariance parameters (`theta`), named as in
   [`confint()`](https://rdrr.io/r/stats/confint.html) (the glmmTMB
   `vcov(full = TRUE)` convention).
+
+- cluster:
+
+  Optional clustering factor. When given, the result is
+  [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md)'s
+  cluster-robust covariance instead of the model-based one.
+
+- type:
+
+  Small-sample correction for `cluster`, see
+  [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md).
 
 - ...:
 
@@ -51,6 +62,12 @@ effects are integrated out of the outer problem, so they are not part of
 exactly the parameters
 [`confint.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/confint.frmtmb_fit.md)
 reports. `vcov(object)` is still the fixed-effect covariance there.
+
+Passing `cluster` forwards to
+[`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md)
+for the cluster-robust (sandwich) covariance, in the
+[`sandwich::vcovCL()`](https://zeileis.codeberg.page/sandwich/reference/vcovCL.html)
+spelling: `vcov(fit, cluster = ~ g, type = "CR1")`.
 
 ## See also
 

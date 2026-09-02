@@ -21,6 +21,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/bf.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/check_custom_family.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/check_laplace.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/cluster_scores.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/coef.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/conditional_effects.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/confint.frmtmb_fit.html</loc></url>
@@ -37,6 +38,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-multimembership.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-package.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-priors.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-student-re.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_control.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_family.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_allfit.html</loc></url>
@@ -66,6 +68,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/mixture_probs.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/mvbf.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/ngrps.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/nlf.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/num_factor.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/plot.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/posterior_epred.html</loc></url>
@@ -84,6 +87,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/VarCorr.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/variables.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/vcov.frmtmb_fit.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/vcov_cluster.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/SPEC.html</loc></url>
 </urlset>
 

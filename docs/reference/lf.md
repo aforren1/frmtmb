@@ -40,15 +40,15 @@ response it belongs to, before the responses are combined.
 ``` r
 # the two spellings are the same model
 bf(y ~ x) + lf(sigma ~ z)
-#> y ~ x 
+#> y ~ x
 #> sigma ~ z 
 bf(y ~ x, sigma ~ z)
-#> y ~ x 
+#> y ~ x
 #> sigma ~ z 
 
 # nonlinear parameter formulas can arrive the same way
 bf(y ~ a * exp(-b * x), a ~ 1, nl = TRUE) + lf(b ~ 1 + (1 | g))
-#> y ~ a * exp(-b * x) 
+#> y ~ a * exp(-b * x) (nonlinear)
 #> a ~ 1 
 #> b ~ 1 + (1 | g) 
 ```

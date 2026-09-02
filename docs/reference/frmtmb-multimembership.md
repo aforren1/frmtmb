@@ -77,8 +77,11 @@ covariate is the same for every member.
 - brms's other `mm()` arguments:
 
   `cor = FALSE` is `diag(x | mm(g1, g2))`, `id =` is the `|ID|` key, and
-  `cov =` is `gr(g, cov = A)` over a single-membership factor. `by =`,
-  `pw =` and `dist =` have no equivalent yet.
+  `cov =` is `gr(g, cov = A)` over a single-membership factor, and
+  `dist =` is `gr(g, dist = "student")` over one (see
+  [frmtmb-student-re](https://aforren1.github.io/frmtmb/reference/frmtmb-student-re.md)),
+  though not over a membership design, whose rows load several levels at
+  once. `by =` and `pw =` have no equivalent yet.
 
 - Non-name members:
 

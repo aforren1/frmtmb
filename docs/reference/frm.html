@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -183,7 +183,11 @@ session do not need the calling environment to still exist.</p></dd>
 <dt id="arg-dry-run">dry_run<a class="anchor" aria-label="anchor" href="#arg-dry-run"></a></dt>
 <dd><p><code>"spec"</code> returns the parsed intermediate representation
 without touching <code>data</code>; <code>"frame"</code> returns the assembled design
-matrices and parameter template without fitting.</p></dd>
+matrices and parameter template without fitting; <code>"objective"</code>
+additionally tapes the objective and returns an UNFITTED object
+carrying it, which is what <code><a href="frm_sample.html">frm_sample()</a></code> samples when it is given
+a formula rather than a fit. Methods that report a
+maximum-likelihood quantity refuse on that object.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>

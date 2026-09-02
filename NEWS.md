@@ -1,7 +1,61 @@
 # frmtmb 0.36.0
 
-# frmtmb 0.36.0
+Robustness in three senses (numerical, distributional, inferential),
+per-parameter nonlinear formulas, one simulator per family, direct
+sampling, and t2() newdata prediction.
 
+## Behavior changes
+
+* Draws objects use parenthesis-free parameter names throughout
+  (`Intercept`, not `(Intercept)`), matching brms and what
+  `variables()` and `hypothesis()` already spoke. This changes
+  `summary(ds)`, `fixef(ds)`, `as_draws(ds)` and `check_laplace()`
+  output; fits are unchanged, and both spellings still resolve in
+  `hypothesis()` and `frm_sample(priors =)`.
+
+## Nonlinear formulas per parameter
+
+* `nlf()` declares a nonlinear formula for one parameter, as in
+  brms: `bf(y ~ a) + nlf(a ~ exp(b * x)) + lf(b ~ 1)`, and any
+  parameter can carry one - `nlf(sigma ~ a + b * z)` is a nonlinear
+  model for the residual SD with a linear mean, which `nl = TRUE`
+  cannot spell. Nonlinearity is now a property of one parameter;
+  bodies chain to any depth in dependency order, cycles are refused
+  by name, and the old `nl = TRUE` models are bit-for-bit unchanged.
+* A body may read another distributional parameter's per-row value:
+  the spelling for nlme's `varPower(form = ~ fitted(.))`. A data
+  column still wins over a parameter name, so ported brms bodies
+  keep their meaning. `frm_ode()` works inside `nlf()` bodies.
+
+## Simulation and sampling
+
+* `simulate()`, `posterior_predict()` and `frm_simulate()` now share
+  one simulator per family. Three previously silent wrongs are
+  fixed: `mixture(groups =)` drew a class per ROW instead of per
+  group in `posterior_predict()` and `frm_simulate()`, and residual
+  autocorrelation draws were independent there. `hmm()` and
+  `mixture_mvn()` gained simulators on all three paths; `cox()`
+  explains its refusal at each entry point.
+* `frm_sample()` accepts a formula and samples without a maximum-
+  likelihood fit first: `frm_sample(bf(y ~ x + (1 | g)), data = dd,
+  family = gaussian())` tapes the model and starts from random
+  inits. The formula route defaults to brms 2.23's weakly
+  informative priors (replicated against `brms::default_prior()`
+  exactly, zero-shift rule included), announces every default and
+  every deliberate gap (thresholds, shapes, correlations) in one
+  message, and `priors = "flat"` opts out. `frm_sample()` on a
+  FITTED model is unchanged - flat, likelihood-shaped - which is
+  what keeps `check_laplace()` meaningful.
+* `frm(dry_run = "objective")` returns the taped model unfitted.
+
+## t2() smooths
+
+* `predict(newdata = )` works for `t2()` smooths, including
+  function-on-function terms and `t2(..., by = )`. A t2 basis
+  carries a second, prediction-only constraint that the fit does
+  not; smooths are now built with `smoothCon(modCon = 3)`, which
+  drops it and leaves the design, penalties and log-likelihood
+  bit-identical. The refusal is gone.
 
 ## Student-t random effects
 
