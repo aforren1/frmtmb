@@ -57,7 +57,12 @@ invalid responses. Called once at assembly time.}
 response-scale starting value per dpar (applied to the intercept
 through the link).}
 
-\item{type}{One of \code{"continuous"}, \code{"discrete"}, \code{"ordinal"}.}
+\item{type}{One of \code{"continuous"}, \code{"discrete"}, \code{"ordinal"},
+\code{"categorical"}. The last two say the modelled response is a
+distribution over \verb{1..K} categories rather than a number, so
+\code{\link[=fitted]{fitted()}} returns an \verb{n x K} probability matrix; \code{"ordinal"}
+shares one latent predictor across the categories and
+\code{"categorical"} gives each non-reference category its own.}
 
 \item{post}{Named list of numeric helper functions used by
 \code{\link[=fitted]{fitted()}}, \code{\link[=predict]{predict()}} and \code{\link[=residuals]{residuals()}}: \code{mean_fn(dpars, aterms)} (the response mean), \code{var_fn(dpars, aterms)} (for pearson

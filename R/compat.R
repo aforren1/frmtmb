@@ -42,7 +42,7 @@ frmtmb_compat_features_tbl <- function() {
             "zero_inflated_negbinomial", "zero_inflated_binomial",
             "zero_inflated_beta", "hurdle_poisson", "hurdle_gamma",
             "hurdle_lognormal", "cumulative", "sratio", "cratio",
-            "acat")
+            "acat", "categorical", "von_mises", "cox")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
             "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
@@ -89,10 +89,14 @@ frmtmb_compat_groups_lst <- list(
   # the six families carrying an AD log-CDF, which is what cens() and
   # trunc() need to form their likelihood contributions
   cdf = c("gaussian", "poisson", "lognormal", "exponential", "weibull",
-          "inverse.gaussian"),
+          "inverse.gaussian", "cox"),
   # cens() additionally refuses discrete responses, so poisson drops out
   cdf_continuous = c("gaussian", "lognormal", "exponential", "weibull",
-                     "inverse.gaussian"),
+                     "inverse.gaussian", "cox"),
+  # families whose modelled response is a distribution over categories
+  # rather than a number, so fitted() returns an n x K matrix
+  categorical_probs = c("cumulative", "sratio", "cratio", "acat",
+                        "categorical"),
   gaussian_like = c("gaussian", "student"),
   ordinal = c("cumulative", "sratio", "cratio", "acat"),
   # cs() category-specific effects are undefined under the cumulative
@@ -102,7 +106,7 @@ frmtmb_compat_groups_lst <- list(
                "compois", "binomial", "bernoulli", "beta_binomial",
                "zero_inflated_poisson", "zero_inflated_negbinomial",
                "zero_inflated_binomial", "hurdle_poisson"),
-  no_simulator = c("tweedie", "compois", "hurdle_poisson"),
+  no_simulator = c("tweedie", "compois", "hurdle_poisson", "cox"),
   matrix_response = c("multinomial"),
   trials_families = c("binomial", "beta_binomial",
                       "zero_inflated_binomial", "multinomial"),
@@ -370,6 +374,14 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: mixture_mvn() has no CDF.")
   r("trunc()", "mixture_mvn", "refused",
     "Refused: mixture_mvn() has no CDF.")
+  r("cens()", "cox", "works",
+    "The reason the family exists. An event contributes the density log h0(t) + eta - H0(t) exp(eta) and a censored row the survivor function, which is what cox()'s log-density and log-CDF already are, so right, left and interval censoring all run through the ordinary cens() machinery. Verified against a hand-rolled M-spline PH likelihood exactly and against survival::coxph() to 2e-2 on the log hazard ratio.")
+  r("cens()", "categorical", "refused",
+    "Refused: a nominal response carries no order, so it has no CDF for a censored row to contribute.")
+  r("trunc()", "categorical", "refused",
+    "Refused for the same reason: no order, no CDF, no truncation window.")
+  r("trunc()", "cox", "conditional",
+    "Runs through the same log-CDF the censoring uses, so trunc(lb = ) is delayed entry. The truncation bound is evaluated against the SAME spline basis the response is, which means a bound outside the boundary knots is clamped to them rather than extrapolated. Untested against an external left-truncated reference.")
   r("cens()", "group:ordinal", "refused",
     "Refused: ordinal families carry no AD log-CDF over the response scale.")
   r("trunc()", "group:ordinal", "refused",
@@ -636,8 +648,20 @@ frmtmb_compat_rules_tbl <- function() {
     "Draws come back as an ordered factor carrying the response's own levels, not as 1..K codes.")
   r("simulate", "multinomial", "works",
     "Draws come back as an n x K count matrix carrying the response's column names; needs trials().")
+  r("simulate", "categorical", "works",
+    "Draws come back as an UNORDERED factor carrying the response's own levels: the categories have no order, so restoring them as an ordered factor would claim one the model never used.")
+  r("simulate", "von_mises", "works",
+    "Best and Fisher's rejection sampler, vectorized over per-row mu and kappa, so a distributional kappa simulates. RTMBdist::rvm() takes scalar parameters only and is not used.")
+  r("simulate", "cox", "refused",
+    "Refused: drawing a survival time means inverting the cumulative baseline hazard, which this family does not carry a quantile function for.")
   r("residuals_osa", "kind:family", "conditional",
     "One-step-ahead residuals need the family to register its observation through OBS().")
+  r("residuals_osa", "categorical", "refused",
+    "Refused with residuals() as a whole: a one-step-ahead residual is a CDF value, and a nominal response has no CDF.")
+  r("residuals", "categorical", "refused",
+    "Refused: the categories carry no order, so no residual has a scale to live on. Compare fitted(fit), the n x K category probabilities, against the observed categories instead.")
+  r("residuals_osa", "von_mises", "refused",
+    "Refused upstream: RTMBdist::dvm() rejects the osa observation object, because a wrapped support has no one-step CDF on the line.")
   r("residuals_osa", "group:ordinal", "works",
     "oneStepGeneric over the discrete support 1..K; the result is a randomized quantile residual and matches the analytic one to 1e-13.")
   r("residuals_osa", "cens()", "conditional",
@@ -664,8 +688,18 @@ frmtmb_compat_rules_tbl <- function() {
     "Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns.")
   r("predict", "group:ordinal", "conditional",
     "type = \"response\" returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response's own levels), not a vector: an ordinal response has no mean. It equals fitted(). cs() terms are honored and re-evaluated on newdata. type = \"link\" gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale.")
+  r("predict", "categorical", "conditional",
+    "type = \"response\" returns an n x K matrix of category probabilities, columns named by the response's own levels and rows summing to 1, exactly as for the ordinal families; it equals fitted(). se.fit is refused there. Each category's latent predictor is predict(type = \"link\", dpar = \"mu<Level>\"), which is where se.fit works.")
+  r("predict", "cox", "conditional",
+    "type = \"response\" and fitted() are refused: a survival time has no mean the censored rows identify. type = \"link\" gives the log hazard ratio, and cox_baseline() the fitted baseline weights.")
   r("fitted", "kind:family", "conditional",
     "Needs a family with a mean function.")
+  r("fitted", "categorical", "conditional",
+    "Returns the n x K matrix of category probabilities, not a vector: a nominal response has no mean, so the modelled response is the category distribution. The predict(type = \"response\") == fitted() identity holds.")
+  r("fitted", "cox", "refused",
+    "Refused: a survival time has no mean on the response scale here. Use predict(type = \"link\") for the log hazard ratio.")
+  r("fitted", "von_mises", "conditional",
+    "Returns the mean DIRECTION in radians on (-pi, pi], which is what brms's posterior_epred() reports for this family; a circular response has no arithmetic mean.")
   r("fitted", "group:ordinal", "conditional",
     "Returns the same n x K matrix of category probabilities predict(type = \"response\") returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The predict(type = \"response\") == fitted() identity holds. The latent linear predictor is predict(fit, type = \"link\"), which is also what emmeans and insight see.")
   r("residuals", "group:ordinal", "conditional",

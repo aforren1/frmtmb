@@ -217,6 +217,10 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   control$verbose <- control$verbose %||% verbose
   vb <- verbose_level(control)
   bform <- as_bform(formula, family)
+  # a family whose parameter vocabulary is a property of the data
+  # (categorical()'s one predictor per observed category) becomes
+  # concrete here, before the grammar that names those dpars is parsed
+  bform <- resolve_deferred_families(bform, data)
 
   if (vb) t0 <- vb_now()
   spec <- parse_spec(bform)

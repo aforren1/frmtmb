@@ -1,3 +1,71 @@
+# frmtmb 0.35.0
+
+Three brms families that had no frmtmb spelling: nominal responses,
+circular responses, and proportional hazards.
+
+## New
+
+* `categorical()` fits a multinomial logit to an unordered factor,
+  brms's spelling of the likelihood `multinomial(K)` already carried
+  on a count-matrix response. The first level is the reference and
+  each remaining level gets its own linear predictor named
+  `mu<Level>`, as in brms; the main formula applies to all of them
+  unless a dpar formula overrides one, so `bf(y ~ x, mustout ~ w)`
+  gives one category its own predictor. `fitted()` and
+  `predict(type = "response")` return the `n x K` matrix of category
+  probabilities with the response's own levels as column names, the
+  same convention the ordinal families follow, and `simulate()` draws
+  factor levels. Validated against `nnet::multinom` (4e-10 in the
+  log-likelihood) and against `multinomial(K)` on the one-hot
+  response (1e-8). The categories are read off the data by `frm()`
+  before the formula is parsed; `categorical(levels =)` or
+  `categorical(K =)` states them for the paths that have no data.
+  `residuals()` is refused: a nominal response has no scale for one.
+
+* `von_mises(link = "tan_half")` for a circular response in
+  `(-pi, pi]`, with the mean direction `mu` through the tan-half link
+  and the concentration `kappa` through a log link - brms's
+  parameterization. The normalizing constant's `log I0(kappa)` is
+  differentiated exactly by RTMB's own `besselI` method, so nothing
+  is a series approximation. `kappa ~ x` distributional models work,
+  and the simulator is a vectorized Best-Fisher sampler that varies
+  both parameters per row. Validated against a hand-rolled RTMB
+  likelihood (1e-6) and `circular::mle.vonmises()`.
+
+* `cox()` fits proportional hazards with brms's flexible baseline: an
+  M-spline baseline hazard over a simplex of weights, with the
+  cumulative baseline hazard the I-spline integral of the same basis
+  (`df = 5` cubic splines with an intercept, brms's `bhaz()` default).
+  Censoring runs through the ordinary `cens()` addition term - an
+  event contributes the density and a censored row the survivor
+  function - so right, left, and interval censoring all work, and
+  frailty models come free through the Laplace approximation:
+  `time | cens(c) ~ x + (1 | g)`. New `cox_baseline()` returns the
+  fitted baseline weights. Validated exactly against a hand-rolled
+  M-spline PH likelihood (1e-6 in the log-likelihood, 1e-4 in the
+  coefficients) and against `survival::coxph()` to 2e-2 on the log
+  hazard ratio, which is the honest claim: `coxph()` leaves the
+  baseline fully nonparametric. `fitted()`, `predict(type =
+  "response")` and `simulate()` are refused - a survival time has no
+  mean the censored rows identify, and brms refuses the same
+  question. Unpenalized maximum likelihood often puts a baseline
+  weight on the simplex boundary, which the optimizer reports as
+  singular convergence even at the optimum; `?frmtmb-families`
+  explains it and lowering `df` is the remedy.
+
+* New `tan_half` link, for `von_mises()`.
+
+## Internal
+
+* A family may declare `aterm_data(y, aterms)`, family-level data that
+  no addition term supplies, built once at frame assembly from the
+  validated response. `cox()`'s spline bases use it.
+
+* A family's `lcdf()` may take the family-level extra parameters as a
+  fourth argument, which is what lets a survival family's survivor
+  function reach its baseline. The three-argument contract is
+  unchanged for every other family.
+
 # frmtmb 0.34.0
 
 Within-group residual correlation (R-side effects), quantile

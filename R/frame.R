@@ -157,7 +157,28 @@ extract_y <- function(resp, mf) {
     y <- eval(resp$resp_expr, mf, resp$formula_env)
   }
   lv <- NULL
-  if (is.factor(y) && identical(resp$family$type, "ordinal")) {
+  if (identical(resp$family$type, "categorical")) {
+    # a nominal response: the level order fixes the reference category
+    # and the dpar names, and the codes carry no meaning without the
+    # labels, so simulate() and the probability columns can restore them
+    known <- resp$family$cat_levels
+    lv <- if (!is.null(known)) {
+      # frm() already read the levels off this response (and said so, if
+      # coercing a character vector); repeating the message here would
+      # print it twice for one fit
+      obs <- levels(factor(y))
+      if (!all(obs %in% known)) {
+        stop("categorical(): the response holds values (",
+             paste(setdiff(obs, known), collapse = ", "),
+             ") that are not among the family's categories (",
+             paste(known, collapse = ", "), ")", call. = FALSE)
+      }
+      known
+    } else {
+      categorical_y_levels(y, deparse1(resp$resp_expr))
+    }
+    if (!is.null(lv)) y <- as.numeric(factor(y, levels = lv))
+  } else if (is.factor(y) && identical(resp$family$type, "ordinal")) {
     # brms accepts an unordered factor here and silently reads level
     # order as category order, which is alphabetical unless the user set
     # it. Match that behavior (refusing would break working brms code)
@@ -1055,7 +1076,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (is.null(resp$family$lcdf)) {
         stop("cens()/trunc() need a family with a CDF (currently: ",
              "gaussian, lognormal, poisson, exponential, weibull, ",
-             "inverse.gaussian)", call. = FALSE)
+             "inverse.gaussian, cox)", call. = FALSE)
       }
       if (!is.null(av$cens) && identical(resp$family$type, "discrete")) {
         stop("cens() is not supported for discrete families yet ",
@@ -1160,6 +1181,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     if (!is.null(resp$family$valid_y)) {
       resp$family$valid_y(y[[resp$resp_name]], av)
+    }
+    # Family-level DATA a likelihood needs but no addition term supplies
+    # (the Cox baseline's spline bases). It is a function of the
+    # validated response, so it is built here, once, and rides with the
+    # addition-term values the objective already bakes into the tape.
+    if (!is.null(resp$family$aterm_data)) {
+      av <- c(av, resp$family$aterm_data(y[[resp$resp_name]], av))
     }
     if (!is.null(resp$family$extra_pars)) {
       if (length(spec$responses) > 1) {

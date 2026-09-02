@@ -29,6 +29,7 @@ reference:
   - mixture
   - mixture_mvn
   - mixture_probs
+  - cox_baseline
   - check_custom_family
 - title: Inference and diagnostics
   contents:

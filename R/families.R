@@ -19,7 +19,12 @@
 #' @param init_dpars Optional named list of functions `(y, aterms)` giving a
 #'   response-scale starting value per dpar (applied to the intercept
 #'   through the link).
-#' @param type One of `"continuous"`, `"discrete"`, `"ordinal"`.
+#' @param type One of `"continuous"`, `"discrete"`, `"ordinal"`,
+#'   `"categorical"`. The last two say the modelled response is a
+#'   distribution over `1..K` categories rather than a number, so
+#'   [fitted()] returns an `n x K` probability matrix; `"ordinal"`
+#'   shares one latent predictor across the categories and
+#'   `"categorical"` gives each non-reference category its own.
 #' @param post Named list of numeric helper functions used by
 #'   [fitted()], [predict()] and [residuals()]: `mean_fn(dpars,
 #'   aterms)` (the response mean), `var_fn(dpars, aterms)` (for pearson
@@ -2475,6 +2480,556 @@ mixture_mvn <- function(K, D, model = "VVV") {
   fam
 }
 
+#' von Mises family for a circular response in `(-pi, pi]`, dpars `mu`
+#' (the mean direction, through the tan-half link) and `kappa` (the
+#' concentration, log link). brms's parameterization exactly.
+#'
+#' The density needs `log I0(kappa)`, the modified Bessel function of the
+#' first kind of order zero. `base::besselI()` is not AD-safe, but RTMB
+#' carries its own `besselI` method for advectors, and `RTMBdist::dvm()`
+#' already uses it in the exponentially scaled form
+#' (`log I0(k) = log besselI(k, 0, expon.scaled = TRUE) + k`), which is
+#' what keeps a large concentration from overflowing. So the whole
+#' density, and its exact derivative, come off the tape with no series
+#' approximation of our own.
+#'
+#' @noRd
+fam_von_mises <- function(link = "tan_half") {
+  frmtmb_family(
+    "von_mises",
+    dpars = c("mu", "kappa"),
+    links = list(mu = link, kappa = "log"),
+    lpdf = function(y, dpars, aterms) {
+      RTMBdist::dvm(y, dpars$mu, dpars$kappa, log = TRUE)
+    },
+    valid_y = function(y, aterms) {
+      if (any(y < -pi) || any(y > pi)) {
+        stop("von_mises: response must be angles in radians on ",
+             "(-pi, pi]; wrap the response first, for example ",
+             "atan2(sin(y), cos(y))", call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      # the resultant vector's direction and length: the circular
+      # analogues of the mean and (through Fisher's approximation of
+      # A(kappa) = I1/I0) the precision
+      mu = function(y, aterms) atan2(mean(sin(y)), mean(cos(y))),
+      kappa = function(y, aterms) {
+        rbar <- sqrt(mean(sin(y))^2 + mean(cos(y))^2)
+        rbar <- min(max(rbar, 0.02), 0.99)
+        if (rbar < 0.53) {
+          2 * rbar + rbar^3 + 5 * rbar^5 / 6
+        } else if (rbar < 0.85) {
+          -0.4 + 1.39 * rbar + 0.43 / (1 - rbar)
+        } else {
+          1 / (rbar^3 - 4 * rbar^2 + 3 * rbar)
+        }
+      }
+    ),
+    type = "continuous",
+    post = list(
+      # the mean DIRECTION, which is what brms's posterior_epred()
+      # reports for this family; a circular response has no mean in the
+      # arithmetic sense
+      mean_fn = function(dpars, aterms) dpars$mu,
+      # the circular variance 1 - A(kappa), on (0, 1)
+      var_fn = function(dpars, aterms) {
+        k <- dpars$kappa
+        1 - besselI(k, 1, expon.scaled = TRUE) /
+          besselI(k, 0, expon.scaled = TRUE)
+      }
+    ),
+    sim = function(dpars, aterms, n) {
+      rvon_mises(n, rep(dpars$mu, length.out = n),
+                 rep(dpars$kappa, length.out = n))
+    }
+  )
+}
+
+#' von Mises draws with a per-row mean direction and concentration, by
+#' Best and Fisher's (1979) wrapped-Cauchy rejection scheme. `RTMBdist`
+#' ships `rvm()`, but it takes scalar parameters only, and a
+#' distributional fit (or `dharma_residuals()`, which draws hundreds of
+#' replicates) needs one draw per row of a varying `kappa`. Rejection
+#' runs vectorized over the rows still outstanding.
+#'
+#' @noRd
+rvon_mises <- function(n, mu, kappa) {
+  mu <- rep(mu, length.out = n)
+  kappa <- rep(kappa, length.out = n)
+  out <- numeric(n)
+  # kappa near zero is the uniform distribution on the circle, and the
+  # rejection constants below divide by it
+  flat <- kappa < 1e-8
+  if (any(flat)) out[flat] <- stats::runif(sum(flat), -pi, pi)
+  todo <- which(!flat)
+  if (!length(todo)) return(out)
+  k <- kappa[todo]
+  a <- 1 + sqrt(1 + 4 * k^2)
+  b <- (a - sqrt(2 * a)) / (2 * k)
+  r <- (1 + b^2) / (2 * b)
+  left <- seq_along(todo)
+  it <- 0L
+  while (length(left)) {
+    it <- it + 1L
+    if (it > 1000L) {
+      stop("von Mises simulation did not converge for ", length(left),
+           " of ", n, " rows", call. = FALSE)
+    }
+    m <- length(left)
+    z <- cos(pi * stats::runif(m))
+    f <- (1 + r[left] * z) / (r[left] + z)
+    c_ <- k[left] * (r[left] - f)
+    u2 <- stats::runif(m)
+    ok <- c_ * (2 - c_) - u2 > 0 | log(c_ / u2) + 1 - c_ >= 0
+    if (any(ok)) {
+      idx <- left[ok]
+      sgn <- sign(stats::runif(sum(ok)) - 0.5)
+      out[todo[idx]] <- mu[todo[idx]] + sgn * acos(pmin(pmax(f[ok], -1), 1))
+    }
+    left <- left[!ok]
+  }
+  # back onto (-pi, pi], the support the family declares
+  (out + pi) %% (2 * pi) - pi
+}
+
+# --- categorical (nominal) responses ---------------------------------
+
+#' Multinomial-logit log-density over a CATEGORY INDEX response `1..K`.
+#' `eta` is the list of K-1 non-reference linear predictors in category
+#' order, category 1 being the reference with `eta_1 = 0`; the shared
+#' code is factored out so the taped path (`ord_cat_sel`, which needs no
+#' comparison operators) and the data path agree term for term.
+#'
+#' @noRd
+cat_logit_lpdf <- function(y, eta, K, sel = NULL) {
+  if (is.null(sel)) sel <- lapply(seq_len(K), function(k) {
+    as.numeric(y == k)
+  })
+  # denominator first, so a wide predictor cannot overflow before the
+  # reference category's implicit zero enters
+  den <- 1
+  num <- 0
+  for (j in seq_len(K - 1L)) {
+    den <- den + exp(eta[[j]])
+    num <- num + sel[[j + 1L]] * eta[[j]]
+  }
+  num - log(den)
+}
+
+#' Categorical (nominal) family over a `1..K` category index, category 1
+#' the reference. One linear predictor per non-reference category, all
+#' receiving the main model formula unless overridden.
+#'
+#' `dpar_names` is the brms spelling `mu<Level>` when the levels are
+#' known and the positional `mu2 ... muK` when only `K` is.
+#'
+#' @noRd
+fam_categorical_impl <- function(dpar_names, levels = NULL,
+                                 link = "logit") {
+  if (!identical(link, "logit")) {
+    stop("categorical: the multinomial logit is the only link, so a ",
+         "family object carrying link '", link, "' cannot be used here",
+         call. = FALSE)
+  }
+  K <- length(dpar_names) + 1L
+  fam <- frmtmb_family(
+    "categorical",
+    dpars = dpar_names,
+    links = stats::setNames(rep(list("identity"), K - 1L), dpar_names),
+    lpdf = function(y, dpars, aterms) {
+      eta <- lapply(dpar_names, function(nm) dpars[[nm]])
+      ov <- osa_unwrap(y)
+      if (!is.null(ov)) {
+        # the response is on the tape: pick the category arithmetically
+        return(cat_logit_lpdf(NULL, eta, K,
+                              sel = ord_cat_sel(ov$y, K)) * ov$keep)
+      }
+      cat_logit_lpdf(y, eta, K)
+    },
+    valid_y = function(y, aterms) {
+      if (any(y < 1) || any(y > K) || any(y != round(y))) {
+        stop("categorical: response must be a factor with ", K,
+             " levels, or integer category codes 1..", K, call. = FALSE)
+      }
+      if (length(unique(y)) < 2) {
+        stop("categorical: the response takes only one value; there is ",
+             "nothing to model", call. = FALSE)
+      }
+    },
+    type = "categorical",
+    sim = function(dpars, aterms, n) {
+      eta <- lapply(dpar_names, function(nm) {
+        rep(dpars[[nm]], length.out = n)
+      })
+      E <- cbind(0, do.call(cbind, eta))
+      P <- exp(E - apply(E, 1L, max))
+      P <- P / rowSums(P)
+      cp <- t(apply(P, 1L, cumsum))
+      if (n == 1L) cp <- matrix(cp, 1L, K)
+      pmin(1L + rowSums(cp < stats::runif(n)), K)
+    },
+    primary_dpars = dpar_names
+  )
+  fam$cat_levels <- levels
+  fam$cat_K <- K
+  fam
+}
+
+#' Placeholder returned by a bare `categorical()`: the category count is
+#' a property of the data, and the formula grammar is resolved before any
+#' data arrives, so `frm()` swaps this for the real family through
+#' `resolve_deferred_families()` once it can see the response. It carries
+#' one `mu` so a spec built from it is still well formed; anything that
+#' reaches the likelihood with it in place says so.
+#'
+#' @noRd
+fam_categorical_deferred <- function(link = "logit") {
+  fam <- frmtmb_family(
+    "categorical",
+    dpars = "mu",
+    links = list(mu = "identity"),
+    lpdf = function(y, dpars, aterms) {
+      stop("categorical(): the response categories were never resolved. ",
+           "They are read from the data by frm(); on another entry point ",
+           "name them, categorical(levels = c(\"a\", \"b\", \"c\")) or ",
+           "categorical(K = 3)", call. = FALSE)
+    },
+    type = "categorical"
+  )
+  fam$defer <- function(formula, data) {
+    lv <- categorical_levels(formula, data)
+    fam_categorical_impl(paste0("mu", lv[-1L]), levels = lv, link = link)
+  }
+  fam
+}
+
+#' The response's category levels, for the deferred `categorical()`. The
+#' response expression is evaluated against the data with the addition
+#' terms stripped; a character response becomes a factor here, and says
+#' which order it took.
+#'
+#' @noRd
+categorical_levels <- function(formula, data) {
+  ri <- parse_response(formula)
+  y <- tryCatch(eval(ri$resp, data, environment(formula) %||% globalenv()),
+                error = function(e) NULL)
+  if (is.null(y)) {
+    stop("categorical(): the response '", deparse1(ri$resp),
+         "' could not be evaluated on the data to find its categories. ",
+         "Name them instead: categorical(levels = c(\"a\", \"b\"))",
+         call. = FALSE)
+  }
+  lv <- categorical_y_levels(y, deparse1(ri$resp))
+  if (length(lv) < 2L) {
+    stop("categorical(): the response '", deparse1(ri$resp),
+         "' has fewer than two categories", call. = FALSE)
+  }
+  lv
+}
+
+#' The category labels of a categorical response, in the order that fixes
+#' the reference category and the dpar names. A character vector is
+#' coerced with a message naming the order it took, because that order is
+#' the model; a factor keeps its own levels.
+#'
+#' @noRd
+categorical_y_levels <- function(y, label) {
+  if (is.character(y) || is.logical(y)) {
+    lv <- levels(factor(y))
+    message("Categorical response '", label, "' is a ",
+            if (is.logical(y)) "logical" else "character",
+            " vector; it is read as a factor with levels ",
+            paste(lv, collapse = ", "), " and '", lv[1L],
+            "' as the reference category. Set the order with factor() ",
+            "if that is not what you want.")
+    return(lv)
+  }
+  if (is.factor(y)) return(levels(y))
+  NULL
+}
+
+#' Swap every deferred family of a bform for the concrete one its data
+#' implies. Called by `frm()` before parsing, so a per-category dpar
+#' formula (`bf(y ~ x, mub ~ z)`) reaches the parser with the dpar
+#' already in the family's vocabulary.
+#'
+#' @noRd
+resolve_deferred_families <- function(bform, data) {
+  if (is.null(data)) return(bform)
+  one <- function(f) {
+    if (is.null(f$family) || is.null(f$family$defer)) return(f)
+    f$family <- f$family$defer(f$formula, data)
+    f
+  }
+  if (inherits(bform, "frmtmb_mvformula")) {
+    bform$forms <- lapply(bform$forms, one)
+  } else {
+    bform <- one(bform)
+  }
+  bform
+}
+
+# --- Cox proportional hazards ----------------------------------------
+
+#' B-spline basis of a given order (degree + 1) over a full knot vector,
+#' by the Cox-de Boor recursion. Written out rather than taken from
+#' `splines::splineDesign()` so the baseline hazard needs no dependency
+#' outside the ones the package already carries; it agrees with
+#' `splines2` to machine precision, which the tests assert.
+#'
+#' @noRd
+bspline_basis <- function(x, knots, order) {
+  n <- length(x)
+  nb1 <- length(knots) - 1L
+  # order 1: the indicator of [t_j, t_{j+1}); the last non-degenerate
+  # interval closes on the right so the upper boundary is covered
+  B <- matrix(0, n, nb1)
+  last <- max(which(knots < knots[length(knots)]))
+  for (j in seq_len(nb1)) {
+    B[, j] <- if (j == last) {
+      as.numeric(x >= knots[j] & x <= knots[j + 1L])
+    } else {
+      as.numeric(x >= knots[j] & x < knots[j + 1L])
+    }
+  }
+  if (order == 1L) return(B[, seq_len(length(knots) - order), drop = FALSE])
+  for (k in 2:order) {
+    Bn <- matrix(0, n, length(knots) - k)
+    for (j in seq_len(ncol(Bn))) {
+      d1 <- knots[j + k - 1L] - knots[j]
+      d2 <- knots[j + k] - knots[j + 1L]
+      # a repeated knot gives a zero-width span; its term drops out
+      t1 <- if (d1 > 0) (x - knots[j]) / d1 * B[, j] else 0
+      t2 <- if (d2 > 0) (knots[j + k] - x) / d2 * B[, j + 1L] else 0
+      Bn[, j] <- t1 + t2
+    }
+    B <- Bn
+  }
+  B
+}
+
+#' The knot placement brms uses for the Cox baseline: internal knots on
+#' equally spaced response quantiles, boundary knots just outside the
+#' observed range so every observation sits strictly inside the basis
+#' (`splines2`'s default through brms's `bhaz_basis_matrix()`).
+#'
+#' @noRd
+bhaz_spec <- function(y, df, degree, intercept) {
+  n_int <- df - degree - as.integer(intercept)
+  if (n_int < 0L) {
+    stop("cox(): df must be at least degree + 1 (", degree + 1L,
+         ") with an intercept in the baseline basis", call. = FALSE)
+  }
+  rng <- range(y)
+  d <- rng[2L] - rng[1L]
+  boundary <- c(max(rng[1L] - d / 50, 0), rng[2L] + d / 50)
+  internal <- if (n_int > 0L) {
+    p <- seq(0, 1, length.out = n_int + 2L)[-c(1L, n_int + 2L)]
+    unname(stats::quantile(y, probs = p))
+  } else {
+    numeric(0)
+  }
+  list(internal = internal, boundary = boundary, degree = degree,
+       intercept = intercept, df = df)
+}
+
+#' The full knot vector of a baseline-hazard spec: boundary knots
+#' repeated to the spline's order at each end.
+#'
+#' @noRd
+bhaz_knots <- function(sp, extra = 0L) {
+  k <- sp$degree + 1L + extra
+  c(rep(sp$boundary[1L], k), sp$internal, rep(sp$boundary[2L], k))
+}
+
+#' The M-spline basis of the baseline hazard: the B-spline basis scaled
+#' so each function integrates to one over its support, which is what
+#' makes a simplex of coefficients a density-like hazard.
+#'
+#' @noRd
+mspline_design <- function(x, sp) {
+  k <- sp$degree + 1L
+  tt <- bhaz_knots(sp)
+  N <- bspline_basis(x, tt, k)
+  M <- N
+  for (j in seq_len(ncol(N))) M[, j] <- N[, j] * k / (tt[j + k] - tt[j])
+  if (!sp$intercept) M <- M[, -1L, drop = FALSE]
+  M
+}
+
+#' The I-spline basis: `I_j(x)` is the integral of `M_j` from the lower
+#' boundary knot, so it is the CUMULATIVE baseline hazard's basis and it
+#' is monotone by construction. It equals the reverse cumulative sum of
+#' the order-(degree + 2) B-spline basis on the once-more-repeated
+#' boundary knots (Ramsay 1988); the tests check it against both
+#' `splines2::iSpline()` and a numeric integral of `mspline_design()`.
+#'
+#' @noRd
+ispline_design <- function(x, sp) {
+  N2 <- bspline_basis(x, bhaz_knots(sp, extra = 1L), sp$degree + 2L)
+  R <- t(apply(N2, 1L, function(v) rev(cumsum(rev(v)))))
+  if (length(x) == 1L) R <- matrix(R, 1L, ncol(N2))
+  I <- R[, -1L, drop = FALSE]
+  if (!sp$intercept) I <- I[, -1L, drop = FALSE]
+  I
+}
+
+#' Cox proportional hazards with a flexible (M-spline) baseline hazard,
+#' brms's construction. The baseline hazard is `Zbhaz %*% s` and the
+#' cumulative baseline hazard `Zcbhaz %*% s` over the SAME simplex `s`,
+#' with `Zcbhaz` the I-spline integral of the M-spline `Zbhaz`. The
+#' simplex is what identifies the baseline against the intercept, and it
+#' rides in the parameter vector as `K - 1` unconstrained values through
+#' a softmax with the first component pinned at zero.
+#'
+#' @noRd
+fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
+  df <- as.integer(df)
+  degree <- as.integer(degree)
+  intercept <- isTRUE(intercept)
+  # the simplex from its K-1 free coordinates; softmax with the first
+  # component pinned at zero covers the whole open simplex
+  sbhaz <- function(raw) {
+    "c" <- RTMB::ADoverload("c")   # base c() strips the advector class
+    e <- exp(c(0, raw))
+    e / sum(e)
+  }
+  fam <- frmtmb_family(
+    "cox",
+    dpars = "mu",
+    links = list(mu = link),
+    lpdf = function(y, dpars, aterms, extra) {
+      s <- sbhaz(extra$sbhaz_raw)
+      bhaz <- as.vector(aterms$Zbhaz %*% s)
+      cbhaz <- as.vector(aterms$Zcbhaz %*% s)
+      # log h(t) + log S(t), with h(t) = h0(t) * mu and mu = exp(eta)
+      log(bhaz) + log(dpars$mu) - cbhaz * dpars$mu
+    },
+    lcdf = function(q, dpars, aterms, extra) {
+      # F(t) = 1 - exp(-H0(t) * mu). Every bound a censored or truncated
+      # row asks about is plain data, so its I-spline row block was
+      # built once at frame assembly and is looked up by value here.
+      cbhaz <- as.vector(cox_cbhaz_design(q, aterms) %*%
+                           sbhaz(extra$sbhaz_raw))
+      1 - exp(-cbhaz * dpars$mu)
+    },
+    valid_y = function(y, aterms) {
+      if (any(y <= 0)) {
+        stop("cox: the response is a survival time and must be ",
+             "strictly positive", call. = FALSE)
+      }
+      if (length(unique(y)) < df) {
+        stop("cox: fewer distinct event times (", length(unique(y)),
+             ") than baseline basis functions (", df,
+             "); lower df in cox(df = )", call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      # the baseline integrates to one over the observed window, so the
+      # hazard ratio starts at the crude event rate
+      mu = function(y, aterms) {
+        ev <- if (is.null(aterms$cens)) 1 else mean(aterms$cens == 0)
+        max(ev, 0.05) / mean(y)
+      }
+    ),
+    type = "continuous",
+    post = list(
+      # mu is the hazard RATIO, not a mean, and reporting it as one is
+      # exactly the mistake this family invites. brms refuses the same
+      # question (posterior_epred has no cox method).
+      mean_fn = function(dpars, aterms) {
+        stop("cox: a survival time has no mean on the response scale ",
+             "here - the model fits a hazard, and the mean survival ",
+             "time would be an integral over the baseline that the ",
+             "censored rows do not identify. predict(type = \"link\") ",
+             "gives the log hazard ratio and cox_baseline() the fitted ",
+             "baseline weights", call. = FALSE)
+      }
+    ),
+    extra_pars = function(y, aterms) {
+      list(sbhaz_raw = rep(0, ncol(aterms$Zbhaz) - 1L))
+    }
+  )
+  # the baseline bases are data, not parameters: they are built once
+  # from the observed times and ride with the response's addition terms
+  fam$aterm_data <- function(y, aterms) {
+    sp <- bhaz_spec(y, df, degree, intercept)
+    out <- list(Zbhaz = mspline_design(y, sp), bhaz_spec = sp,
+                cox_cb = list(cox_cb_entry(y, sp)))
+    for (nm in c("cens_y2", "trunc_lb", "trunc_ub")) {
+      if (!is.null(aterms[[nm]])) {
+        out$cox_cb[[length(out$cox_cb) + 1L]] <-
+          cox_cb_entry(aterms[[nm]], sp)
+      }
+    }
+    out$Zcbhaz <- out$cox_cb[[1L]]$Z
+    out
+  }
+  fam$cox_sbhaz <- sbhaz
+  fam
+}
+
+#' One cached (bound, I-spline design) pair. A bound outside the
+#' boundary knots is clamped first: below the lower knot the cumulative
+#' baseline hazard is zero and above the upper one it is its total, and
+#' the raw B-spline recursion returns an all-zero row for both, which
+#' would read as "no risk accumulated" at an upper bound.
+#'
+#' @noRd
+cox_cb_entry <- function(q, sp) {
+  qq <- pmin(pmax(as.numeric(q), sp$boundary[1L]), sp$boundary[2L])
+  list(q = as.numeric(q), Z = ispline_design(qq, sp))
+}
+
+#' The cumulative-baseline-hazard design for a bound the Cox likelihood
+#' asks about. Frame assembly cached one per bound; anything else (a
+#' post-fit query) is built on the spot.
+#'
+#' @noRd
+cox_cbhaz_design <- function(q, aterms) {
+  qn <- as.numeric(q)
+  for (e in aterms$cox_cb %||% list()) {
+    if (identical(e$q, qn)) return(e$Z)
+  }
+  cox_cb_entry(qn, aterms$bhaz_spec)$Z
+}
+
+#' Call a family's log-CDF, passing the family-level extra parameters to
+#' the families that declare them. The Cox baseline lives there, so its
+#' survivor function needs them; every other CDF keeps the three-argument
+#' contract.
+#'
+#' @noRd
+fam_lcdf <- function(fam, q, dpars, aterms, extra) {
+  if (length(formals(fam$lcdf)) >= 4L) {
+    fam$lcdf(q, dpars, aterms, extra)
+  } else {
+    fam$lcdf(q, dpars, aterms)
+  }
+}
+
+#' The fitted baseline-hazard simplex of a `cox()` fit.
+#'
+#' @param fit A `frmtmb_fit` with a [cox()] family.
+#' @return The `Kbhaz` M-spline weights, summing to one.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(200))
+#' dd$time <- rexp(200, exp(-0.5 + 0.7 * dd$x))
+#' fit <- frm(bf(time ~ x), family = cox(), data = dd)
+#' cox_baseline(fit)
+#' @export
+cox_baseline <- function(fit) {
+  rspec <- uni_resp(fit, "cox_baseline()")
+  fam <- rspec$family
+  if (is.null(fam$cox_sbhaz)) {
+    stop("cox_baseline() needs a cox() family fit", call. = FALSE)
+  }
+  s <- fam$cox_sbhaz(fit$estimates[["sbhaz_raw"]])
+  stats::setNames(s, paste0("s", seq_along(s)))
+}
+
 #' Matrix-response multinomial: y is an n x K count matrix, category 1
 #' is the reference. One linear predictor per non-reference category
 #' (`mu2`, ..., `muK`), all receiving the main model formula unless
@@ -2578,7 +3133,10 @@ family_registry <- list(
   zero_inflated_asym_laplace = fam_zi_asym_laplace,
   sratio                    = fam_sratio,
   cratio                    = fam_cratio,
-  acat                      = fam_acat
+  acat                      = fam_acat,
+  von_mises                 = fam_von_mises,
+  cox                       = fam_cox,
+  categorical               = fam_categorical_deferred
 )
 
 #' Turn a family given as a `frmtmb_family`, a `stats::family()` object,
@@ -2635,6 +3193,85 @@ as_frmtmb_family <- function(x) {
 #' accepted, as brms accepts it, but warns and names the order it is
 #' about to use, which is alphabetical unless the levels were set.
 #'
+#' @section Categorical (nominal) responses:
+#' `categorical()` fits a multinomial logit to an unordered factor. The
+#' FIRST level is the reference category, its linear predictor is held
+#' at zero, and each remaining level gets its own predictor named
+#' `mu<Level>`, as in brms. The main model formula applies to every one
+#' of them, and any single category is overridden by naming it:
+#' `bf(y ~ x, mub ~ z)` gives category `"b"` its own predictor and
+#' leaves the rest on `~ x`.
+#'
+#' The categories come from the data, so `frm()` reads them off the
+#' response before it parses the formula. Constructing the family away
+#' from a data set (to inspect it, or to reach the parser through
+#' another entry point) needs them stated: `categorical(levels = c("a",
+#' "b", "c"))`, or `categorical(K = 3)` for a response already coded
+#' `1..K`, which names the dpars `mu2 ... muK`. A character or logical
+#' response is coerced to a factor with a message naming the level
+#' order, because that order is the model.
+#'
+#' `fitted()` and `predict(type = "response")` return the `n x K` matrix
+#' of category probabilities, columns named by the response's own
+#' levels and rows summing to one - the same convention the ordinal
+#' families follow. `predict(type = "link")` and `predict(dpar =)` give
+#' the per-category latent predictors, which is where `se.fit` lives.
+#' `simulate()` draws factor levels. The same likelihood is available on
+#' a count-matrix response as `multinomial(K)`, and a one-hot matrix
+#' gives an identical log-likelihood.
+#'
+#' @section Circular responses:
+#' `von_mises()` models an angle in radians on `(-pi, pi]`. Its `mu` is
+#' the mean direction and takes the `tan_half` link, which maps the
+#' whole line onto that interval; `kappa` is the concentration and takes
+#' a log link, with `kappa = 0` the uniform distribution on the circle.
+#' Both are brms's choices. `fitted()` and `predict(type = "response")`
+#' report the mean direction. The normalizing constant needs
+#' `log I0(kappa)`, which RTMB differentiates exactly through its own
+#' `besselI` method, so nothing here is a series approximation.
+#' Residuals are differences of angles and are NOT wrapped, so read
+#' `residuals()` on a von Mises fit with that in mind.
+#'
+#' @section Cox proportional hazards:
+#' `cox()` is the flexible-parametric proportional hazards model brms
+#' fits: the baseline hazard is an M-spline in time,
+#' `h0(t) = sum_j s_j M_j(t)`, and the cumulative baseline hazard is the
+#' I-spline integral of the same basis over the same weights, which
+#' makes it monotone by construction. The weights `s` form a simplex -
+#' that is what identifies the baseline against the intercept - and are
+#' estimated as `sbhaz_raw`, their `Kbhaz - 1` free softmax
+#' coordinates; [cox_baseline()] returns the simplex itself. The
+#' default basis is brms's: `df = 5` cubic M-splines with an intercept,
+#' internal knots on response quantiles and boundary knots just outside
+#' the observed range.
+#'
+#' The hazard is `h0(t) exp(eta)`, so a coefficient is a log hazard
+#' ratio, exactly as in `survival::coxph()`. Right, left, and interval
+#' censoring come through the ordinary `cens()` addition term: an event
+#' contributes the density and a censored observation the survivor
+#' function, which is what this family's log-density and log-CDF are.
+#' Random effects are the point: `time | cens(c) ~ x + (1 | g)` is a
+#' frailty model, and the Laplace approximation integrates the frailties
+#' out.
+#'
+#' The baseline is semiparametric only in spirit - it has `df`
+#' parameters, not one per event time - so coefficients agree with
+#' `coxph()` closely rather than exactly. A survival response has no
+#' mean, so `fitted()` and `predict(type = "response")` are refused;
+#' `predict(type = "link")` gives the log hazard ratio. `simulate()` is
+#' not available.
+#'
+#' Maximum likelihood often puts one or more baseline weights ON the
+#' simplex boundary, at exactly zero. Their softmax coordinates then run
+#' off to minus infinity along a flat ridge, the Hessian is singular in
+#' those directions, and the optimizer reports singular convergence even
+#' though the gradient is zero and the regression coefficients are at
+#' their optimum - [diagnose()] names `sbhaz_raw` as the culprit. This
+#' is what an unpenalized flexible baseline does; brms does not meet it
+#' because its Dirichlet prior keeps the weights interior. Lower `df`
+#' until the baseline is one the data supports, and read
+#' [cox_baseline()] to see which weights collapsed.
+#'
 #' @section Quantile regression inference:
 #' `asym_laplace()` and `zero_inflated_asym_laplace()` fit quantile
 #' regression through a WORKING likelihood: at a fixed `quantile` the
@@ -2676,6 +3313,30 @@ as_frmtmb_family <- function(x) {
 #' # a proportion in (0, 1)
 #' dd$p <- plogis(0.2 + 0.6 * dd$x + rnorm(n, 0, 0.3))
 #' frm(bf(p ~ x) + Beta(), data = dd)
+#'
+#' # an unordered factor: one predictor per non-reference category,
+#' # named after the level it belongs to
+#' dd$pick <- factor(sample(c("ale", "stout", "lager"), n, TRUE))
+#' cat_fit <- frm(bf(pick ~ x), family = categorical(), data = dd)
+#' fixef(cat_fit)                     # mulager and mustout; ale is the
+#'                                    # reference
+#' head(fitted(cat_fit))              # n x K category probabilities
+#'
+#' # one category may take its own predictor
+#' dd$w <- rnorm(n)
+#' frm(bf(pick ~ x, mustout ~ w), family = categorical(), data = dd)
+#'
+#' # an angle: mu is the mean direction, kappa the concentration
+#' dd$angle <- atan2(sin(0.5 + dd$x), cos(0.5 + dd$x))
+#' vm_fit <- frm(bf(angle ~ x), family = von_mises(), data = dd)
+#' head(fitted(vm_fit))               # the mean direction, in radians
+#'
+#' # proportional hazards with a spline baseline; (1 | g) is a frailty
+#' dd$time <- rexp(n, exp(-0.5 + 0.7 * dd$x))
+#' dd$out <- rbinom(n, 1, 0.3)        # 1 = right censored
+#' cox_fit <- frm(bf(time | cens(out) ~ x), family = cox(), data = dd)
+#' fixef(cox_fit)$mu                  # log hazard ratios
+#' cox_baseline(cox_fit)              # the baseline hazard weights
 #' @name frmtmb-families
 NULL
 
@@ -2798,6 +3459,52 @@ cratio <- function(link = "logit") fam_cratio(link)
 #' @rdname frmtmb-families
 #' @export
 acat <- function(link = "logit") fam_acat(link)
+
+#' @rdname frmtmb-families
+#' @export
+von_mises <- function(link = "tan_half") fam_von_mises(link)
+
+#' @rdname frmtmb-families
+#' @param levels For `categorical()`: the response's category labels, in
+#'   the order that fixes the reference category (the first) and the
+#'   dpar names. Only needed when the family is built away from the
+#'   data; [frm()] reads them off the response.
+#' @export
+categorical <- function(link = "logit", levels = NULL, K = NULL) {
+  if (!identical(link, "logit")) {
+    stop("categorical() supports the 'logit' link only", call. = FALSE)
+  }
+  if (!is.null(levels)) {
+    levels <- as.character(levels)
+    if (length(levels) < 2L || anyDuplicated(levels)) {
+      stop("categorical(levels =): needs at least two distinct category ",
+           "labels", call. = FALSE)
+    }
+    return(fam_categorical_impl(paste0("mu", levels[-1L]), levels, link))
+  }
+  if (!is.null(K)) {
+    if (length(K) != 1L || is.na(K) || K < 2) {
+      stop("categorical(K =): needs at least two categories",
+           call. = FALSE)
+    }
+    K <- as.integer(K)
+    return(fam_categorical_impl(paste0("mu", seq_len(K)[-1L]),
+                                levels = NULL, link = link))
+  }
+  fam_categorical_deferred(link)
+}
+
+#' @rdname frmtmb-families
+#' @param df For `cox()`: the number of M-spline basis functions in the
+#'   baseline hazard (brms's `bhaz(df = 5)` default).
+#' @param degree For `cox()`: the spline degree of that basis (cubic by
+#'   default).
+#' @param intercept For `cox()`: keep the basis function that is
+#'   non-zero at the lower boundary knot.
+#' @export
+cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
+  fam_cox(link, df = df, degree = degree, intercept = intercept)
+}
 
 #' @export
 print.frmtmb_family <- function(x, ...) {

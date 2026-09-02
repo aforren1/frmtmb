@@ -821,6 +821,21 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     return(predict_ordinal(object, rspec, newdata, use_re,
                            allow_new_levels))
   }
+  # A nominal response has no mean either: "response" is the K-vector of
+  # category probabilities, the same convention the ordinal families and
+  # brms both follow.
+  if (identical(rspec$family$type, "categorical") && is.null(dpar) &&
+      type %in% c("response", "conditional")) {
+    if (se.fit) {
+      stop("se.fit is not supported on the response scale for a ",
+           "categorical family: the prediction is a K-vector of category ",
+           "probabilities per row, not one number. Use type = \"link\" ",
+           "with dpar = for the standard error of one category's latent ",
+           "predictor", call. = FALSE)
+    }
+    return(predict_categorical(object, rspec, newdata, use_re,
+                               allow_new_levels))
+  }
   # glmmTMB type aliases resolve to a dpar plus scale
   if (type %in% c("zprob", "zlink", "disp")) {
     if (!is.null(dpar)) {
@@ -1355,6 +1370,10 @@ fitted.frmtmb_fit <- function(object, ...) {
     # distribution, and predict(type = "response") agrees by construction
     return(predict_ordinal(object, rspec, NULL, TRUE, FALSE))
   }
+  if (identical(rspec$family$type, "categorical")) {
+    # same reasoning: the modelled response IS the category distribution
+    return(predict_categorical(object, rspec, NULL, TRUE, FALSE))
+  }
   dp <- eval_dpars(object)[[rspec$resp_name]]
   if (!"mu" %in% names(dp) && is.null(rspec$family$post$mean_fn)) {
     stop("fitted() is not defined for family '", rspec$family$family, "'",
@@ -1476,6 +1495,58 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
 predict_ordinal <- function(object, rspec, newdata, use_re,
                             allow_new_levels) {
   P <- ord_probs(object, rspec, newdata, use_re, allow_new_levels)
+  if (is.null(newdata)) P <- napred(object, P)
+  P
+}
+
+#' `n x K` category probabilities of a categorical fit, in fitted-row
+#' space.
+#'
+#' Unlike the ordinal families, which share one latent predictor, a
+#' categorical fit carries K-1 of them - one per non-reference category,
+#' in category order - so the softmax runs over the whole set. The
+#' reference category's column is the pinned zero, and the row maximum
+#' comes out before `exp()` so a wide predictor cannot overflow.
+#'
+#' @noRd
+cat_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
+                      allow_new_levels = FALSE) {
+  dpn <- rspec$primary_dpars
+  K <- length(dpn) + 1L
+  E <- NULL
+  nonest <- NULL
+  rn <- NULL
+  for (j in seq_along(dpn)) {
+    lp <- object$frame$linpreds[[linpred_key(rspec$resp_name, dpn[j])]]
+    if (!is.null(lp$nl_body)) {
+      stop("type = \"response\" is not supported for a categorical ",
+           "family with a nonlinear predictor", call. = FALSE)
+    }
+    ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+    if (is.null(E)) {
+      n <- length(ed$eta)
+      E <- matrix(0, n, K)
+      nonest <- rep(FALSE, n)
+      rn <- names(ed$eta)
+    }
+    E[, j + 1L] <- unname(ed$eta)
+    nonest <- nonest | ed$nonest
+  }
+  P <- exp(E - apply(E, 1L, max))
+  P <- P / rowSums(P)
+  colnames(P) <- object$frame$y_levels[[rspec$resp_name]] %||%
+    as.character(seq_len(K))
+  if (is.null(rn) && is.null(newdata)) {
+    rn <- rownames(object$frame$data_frame)
+  }
+  if (!is.null(rn) && length(rn) == nrow(P)) rownames(P) <- rn
+  if (any(nonest)) P[nonest, ] <- NA_real_
+  P
+}
+
+predict_categorical <- function(object, rspec, newdata, use_re,
+                                allow_new_levels) {
+  P <- cat_probs(object, rspec, newdata, use_re, allow_new_levels)
   if (is.null(newdata)) P <- napred(object, P)
   P
 }
@@ -1792,6 +1863,14 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
   type <- match.arg(type)
   rspec <- uni_resp(object, "residuals()")
   fam <- rspec$family
+  if (identical(fam$type, "categorical")) {
+    # nothing here is defined on a nominal scale: the categories carry
+    # no order, so there is no y - E[Y] to form and no CDF to invert
+    stop("residuals() is not defined for a categorical family: the ",
+         "categories carry no order, so a residual has no scale to live ",
+         "on. Compare fitted(fit) (the n x K category probabilities) ",
+         "against the observed categories instead", call. = FALSE)
+  }
   if (type == "osa") {
     if (!is.null(object$frame$autocor[[rspec$resp_name]])) {
       # oneStepPredict needs the taped density of ONE observation given
@@ -2202,7 +2281,10 @@ with_cs_offsets <- function(fit, rspec, dpv) {
 sim_restore_type <- function(fit, rspec, v) {
   lv <- fit$frame$y_levels[[rspec$resp_name]]
   if (!is.null(lv)) {
-    v <- factor(lv[v], levels = lv, ordered = TRUE)
+    # a categorical response's levels are nominal: ordering the draws
+    # would claim an order the model never used
+    v <- factor(lv[v], levels = lv,
+                ordered = !identical(rspec$family$type, "categorical"))
   } else if (is.matrix(v)) {
     yv <- fit$frame$y[[rspec$resp_name]]
     if (is.matrix(yv) && !is.null(colnames(yv))) colnames(v) <- colnames(yv)
