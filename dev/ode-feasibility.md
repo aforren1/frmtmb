@@ -3,6 +3,57 @@
 Date: 2026-09-01. Branch `wt-odeprobe`, frmtmb 0.29.0, RTMBode 1.0,
 deSolve 1.42, R 4.6.1, Windows 11.
 
+> **Status: implemented.** `frm_ode()` (`R/ode.R`) is the "one exported
+> helper" of section 8, with all seven guards. `tests/testthat/test-ode.R`
+> reproduces the probe A2 numbers exactly (logLik -60.46293086 against
+> -60.462931, AIC 132.9259 against 132.926), and `vignettes/ode.Rmd` is
+> the tutorial. Two departures from the sketch and one addition:
+>
+> - `init` and `parms` are lists of **columns**, not `cbind()`. `cbind()`
+>   on advectors does work, but a bare `c(100, 0)` cannot be told apart
+>   from one column of two observations, so lists remove the ambiguity
+>   and read better next to the state names.
+> - `output = "central"` (with `states =`) replaces `frm_ode(...)[, 2]`.
+>   Character indexing of an advector matrix fails - RTMB drops
+>   `colnames` - so the name is resolved to a position by the helper.
+>   The matrix form still works when `output` is omitted.
+> - Guard 4 (within-group constancy) had to move. It cannot be done on
+>   the tape for a linear predictor: RTMB refuses comparison on AD types,
+>   and a value-based check would miss the probe G trap anyway, because
+>   the offending coefficient starts at exactly 0. It is done instead at
+>   frame assembly (`check_ode_constancy()`), against the design matrices
+>   and the grouping column, which is exact and start-value independent.
+>   Plain data columns are still checked inside `frm_ode()`.
+>
+> Guard 7 (`tryCatch` a failed solve into a penalty) is real but reaches
+> much less far than section 6 assumed, and the help page and the
+> vignette now say so. On the tape `RTMBode::ode()` returns an advector
+> and raises nothing when a trajectory diverges, and RTMB refuses
+> comparison on AD types, so a non-finite solution cannot be tested for:
+> a bad region of the parameter space still surfaces only as the
+> optimizer's `NA/NaN gradient evaluation`, and `on_error = "error"`
+> cannot name the group. What the guard does catch on the tape is a
+> short solution matrix and an R error raised by the dynamics function.
+> Off the tape - `predict()`, `simulate()`, `residuals()`, and a body
+> whose `init` and `parms` hold no estimated parameter, which is
+> evaluated numerically as the tape is built - every check applies, and
+> there the penalty warns and names the groups; `frm_ode_failures()`
+> reads the record back. A third numeric-path check had to be added:
+> deSolve reports "integration was not successful" as a *warning* and
+> still returns a full-length matrix of finite garbage (1e85 in the
+> test), so neither the row count nor `is.finite()` sees that one.
+>
+> One hook was needed in `R/frame.R`: `all.vars()` on the nl body puts
+> the *dynamics function* in `datavars`, so `model.frame()` was asked for
+> a column named `pk_dyn`. `drop_nl_lexical_datavars()` leaves a body
+> name that resolves to a function and is not a column of `data` to
+> resolve lexically, which is what the body's own environment does
+> anyway. A column always wins over a same-named function. The cost is
+> that a misspelled column sharing a name with a base function (`t`,
+> `c`, `df`) is no longer caught by `model.frame()`, so the objective
+> re-raises the late coercion error with those names attached
+> (`nl_body_error()`).
+
 **No package code was changed.** Every result below comes from user
 code in the `nl = TRUE` body or in a `custom_family()`, both of which
 are already arbitrary R evaluated on the AD tape. Probe scripts are in

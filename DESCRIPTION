@@ -37,6 +37,7 @@ Suggests:
     bayesplot,
     brms,
     data.table,
+    deSolve,
     DHARMa,
     emmeans,
     GLMMadaptive,
@@ -56,10 +57,12 @@ Suggests:
     quantreg,
     rmarkdown,
     rstan,
+    RTMBode,
     survival,
     testthat (>= 3.0.0),
     tibble,
     tmbstan
+Additional_repositories: https://kaskr.r-universe.dev
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.0

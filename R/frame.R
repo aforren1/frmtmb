@@ -408,6 +408,153 @@ structural_lookup_msg <- function(expr, data2, what, e) {
   }
 }
 
+#' Drop nonlinear-body names that are functions, not data.
+#'
+#' `parse_one_response()` collects every symbol of the nonlinear body
+#' that is not a nonlinear parameter and asks the combined model frame
+#' for it. That is right for `pk_ode(exp(lka), time, dose)`, where only
+#' the arguments are symbols, and wrong as soon as a helper takes
+#' another function as an argument - `frm_ode(pk_dyn, ...)` would ask
+#' `model.frame()` for a column named `pk_dyn`. The body is evaluated in
+#' its own formula environment anyway, so a name that resolves there to
+#' a function and is not a column of `data` is left to resolve
+#' lexically. A column always wins over a same-named function, so a
+#' variable called `t` or `c` is unaffected.
+#'
+#' The names left to resolve lexically are recorded, because they are
+#' also the suspects when the body later fails. A misspelled column that
+#' shares a name with a base function (`t`, `c`, `df`) is no longer
+#' caught by `model.frame()`, so the symptom moves to a coercion error
+#' deep in the objective; `nl_body_error()` turns that back into a
+#' message that names the candidates.
+#'
+#' @noRd
+drop_nl_lexical_datavars <- function(spec, data) {
+  dn <- names(data)
+  for (i in seq_along(spec$responses)) {
+    dp <- spec$responses[[i]]$dpars$mu
+    if (is.null(dp$nl_body) || !length(dp$datavars)) next
+    keep <- vapply(dp$datavars, function(v) {
+      if (v %in% dn) return(TRUE)
+      obj <- tryCatch(get0(v, envir = dp$nl_env, ifnotfound = NULL),
+                      error = function(e) NULL)
+      !is.function(obj)
+    }, TRUE)
+    spec$responses[[i]]$dpars$mu$datavars <- dp$datavars[keep]
+    spec$responses[[i]]$dpars$mu$nl_lexical <- dp$datavars[!keep]
+  }
+  spec
+}
+
+#' Re-raise a nonlinear-body failure with the lexical names attached.
+#'
+#' @noRd
+nl_body_error <- function(e, lp) {
+  lex <- lp$nl_lexical %||% character(0)
+  extra <- if (length(lex)) {
+    paste0(" These names in the body are not columns of `data` and were ",
+           "resolved to functions in the formula environment instead: ",
+           paste(lex, collapse = ", "),
+           ". A misspelled column name that happens to match a function ",
+           "fails exactly this way.")
+  } else {
+    ""
+  }
+  stop("The nonlinear formula body could not be evaluated: ",
+       conditionMessage(e), extra, call. = FALSE)
+}
+
+#' Model-frame columns that are not predictors: responses, and the
+#' grouping variables of random-effect, mixture, `car()` and `spde()`
+#' terms.
+#'
+#' @noRd
+nonpredictor_frame_vars <- function(spec) {
+  out <- character(0)
+  for (resp in spec$responses) {
+    out <- c(out, deparse1(resp$resp_expr))
+    if (!is.null(resp$family$mix_groups)) {
+      out <- c(out, deparse1(resp$family$mix_groups[[2L]]))
+    }
+    for (dp in resp$dpars) {
+      for (rt in dp$re %||% list()) out <- c(out, deparse1(rt$bar[[3L]]))
+      for (ce in c(dp$carterms %||% list(), dp$spdeterms %||% list())) {
+        out <- c(out, all.vars(ce$gr_expr))
+      }
+    }
+  }
+  unique(out)
+}
+
+#' Report date and time columns, which reach the design as a number.
+#'
+#' `model.matrix()` reduces a `Date`, a `POSIXct` or a `difftime` to its
+#' underlying number, so the model that is fitted is the right one, but
+#' it is expressed in an origin and a unit the user did not choose. The
+#' coefficient is per day (`Date`) or per second (`POSIXct`), and the
+#' intercept is the fitted value at 1970-01-01, tens of thousands of
+#' units away from any modern data. That extrapolated intercept is what
+#' breaks the fit: a `Date` predictor of about 18000 makes the objective
+#' badly conditioned, and the same model on days-since-the-first-day
+#' converges where the raw column reports false convergence.
+#'
+#' Only predictors are reported. The combined model frame also holds the
+#' responses and the grouping factors, and neither has the problem the
+#' message describes: a response is converted by an explicit
+#' `as.numeric()` and a location shift of it is absorbed by the
+#' intercept, and a grouping variable is used for its distinct levels,
+#' where a `Date` behaves exactly like a factor. Advice about
+#' coefficients and intercepts on either of those would be wrong.
+#'
+#' It is a `message()`, not a warning: the coercion is deliberate and
+#' correct in meaning, and `suppressMessages()` silences it for a caller
+#' who has already centered the column or wants the epoch origin.
+#'
+#' @srrstats {G2.5} `Date`, `POSIXct` and `difftime` predictors are
+#'   accepted, and the class they are silently reduced to is surfaced
+#'   rather than left to be discovered: frame assembly names each such
+#'   column, states the unit and the origin its coefficient will be in,
+#'   and points at centering. `vignette("inputs")` documents the same in
+#'   its "Predictor classes" table.
+#' @srrstats {G2.9} This is the package's diagnostic for a conversion
+#'   that loses information. `Date`, `POSIXct` and `difftime` are the
+#'   only predictor classes `model.matrix()` reduces to a bare number,
+#'   dropping the class, the calendar and the unit; the number that
+#'   survives is measured from an origin (1970-01-01) that the user did
+#'   not choose and that is far outside modern data. Rather than let
+#'   that be discovered through a non-converging fit, assembly emits one
+#'   message per fit naming each affected column, the unit and origin
+#'   its coefficient and intercept will be expressed in, and the
+#'   centering that avoids the loss of conditioning. No other accepted
+#'   class is reduced this way: factors keep their contrasts, matrix
+#'   terms keep their frozen basis, and a response is converted by an
+#'   explicit documented `as.numeric()`.
+#' @noRd
+report_datetime_columns <- function(mf, exclude = character(0)) {
+  kind <- function(v) {
+    if (inherits(v, "Date")) "Date, days since 1970-01-01"
+    else if (inherits(v, "POSIXt")) "POSIXct, seconds since 1970-01-01"
+    else if (inherits(v, "difftime")) {
+      paste0("difftime, ", attr(v, "units") %||% "unknown units")
+    } else NA_character_
+  }
+  mf <- mf[setdiff(names(mf), exclude)]
+  if (!length(mf)) return(invisible(NULL))
+  hits <- vapply(mf, kind, "")
+  hits <- hits[!is.na(hits)]
+  if (!length(hits)) return(invisible(NULL))
+  message(
+    "Date/time column", if (length(hits) > 1L) "s" else "",
+    " used as ", if (length(hits) > 1L) "numbers" else "a number", ": ",
+    paste0(names(hits), " (", hits, ")", collapse = ", "),
+    ". The coefficient is per unit of that origin and the intercept is ",
+    "the value at it, which is far outside the data and can stop the ",
+    "optimizer converging. Center the column, for example ",
+    "as.numeric(x - min(x)), to put the intercept back in range."
+  )
+  invisible(NULL)
+}
+
 #' Turn a parsed spec plus data into the numeric `frmtmb_frame` the
 #' objective is built from. This is the second and last stage of the
 #' formula-to-design-matrix pipeline: `parse_spec()` reads the formulas,
@@ -437,6 +584,7 @@ structural_lookup_msg <- function(expr, data2, what, e) {
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE, data2 = list()) {
   data2 <- validate_data2(data2)
+  spec <- drop_nl_lexical_datavars(spec, data)
   # One combined model frame holds every response, every variable of every
   # dpar of every response, and the aterm variables, so na.omit keeps rows
   # aligned. Responses go on the RHS of the frame formula (a multivariate
@@ -519,6 +667,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     stop("NA values remain in the model variables after applying ",
          "na.action; use na.omit (default) or na.exclude", call. = FALSE)
   }
+  report_datetime_columns(mf, exclude = nonpredictor_frame_vars(spec))
   # freeze data-dependent bases: map deparsed variable -> predvar call
   predvar_map <- local({
     tt_all <- attr(mf, "terms")
@@ -797,7 +946,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           offset = NULL, link = dp$link, terms = NULL, xlevels = NULL,
           contrasts = NULL, smooths = list(), comp_ids = integer(0),
           constant = NULL, nl_body = dp$nl_body, data_list = data_list,
-          nl_env = dp$nl_env
+          nl_env = dp$nl_env, nl_lexical = dp$nl_lexical
         )
         next
       }
@@ -1525,6 +1674,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
     }
   }
+
+  # frm_ode() reads its dynamics inputs off each group's first row, and
+  # cannot see whether they vary inside the group once they are AD
+  # values; here the designs and the grouping column are both in hand
+  check_ode_constancy(spec, linpreds, mf)
 
   structure(
     list(spec = spec, n_obs = n, y = y, y_levels = y_levels,

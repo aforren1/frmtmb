@@ -9,6 +9,8 @@ reference:
   - mvbf
   - set_rescor
   - num_factor
+  - frm_ode
+  - frm_ode_failures
 - title: Fitting
   contents:
   - frm
@@ -82,4 +84,5 @@ articles:
   - inputs
   - brms-migration
   - diagnostics
+  - ode
   - compatibility
