@@ -24,11 +24,14 @@ model_label <- function(fit) {
   }
 }
 
-#' Names of the outer (optimized) parameters, in obj$par order: template
-#' component order, minus `random` components, minus mapped entries.
+#' Names of the outer (optimized) parameters, in obj$par order, with the
+#' template component each one came from: template component order,
+#' minus `random` components, minus mapped entries. The component is
+#' what lets a natural-scale alias (a `theta` or `thetaac` position) be
+#' turned into a position in this vector.
 #'
 #' @noRd
-outer_par_names <- function(fit) {
+outer_par_map <- function(fit) {
   tpl <- fit$frame$par_template
   # mirror the MakeADFun random= construction in fit_assembled: b and
   # the mi() latent component are always inner, beta under REML or
@@ -38,6 +41,7 @@ outer_par_names <- function(fit) {
     random <- c(random, "beta")
   }
   nm <- character(0)
+  comp <- character(0)
   for (cp in names(tpl)) {
     if (cp %in% random) next
     v <- names(tpl[[cp]])
@@ -46,8 +50,164 @@ outer_par_names <- function(fit) {
       v <- v[-fit$frame$betad_fixed_idx]
     }
     nm <- c(nm, v)
+    comp <- c(comp, rep(cp, length(v)))
   }
-  nm
+  list(names = nm, comp = comp)
+}
+
+#' @noRd
+outer_par_names <- function(fit) outer_par_map(fit)$names
+
+## Addressing a parameter by name. Three vocabularies meet here: the
+## internal names of outer_par_map() (`tarsus_(Intercept)`, `theta_1`),
+## the parenthesis-free spelling hypothesis() and variables() use
+## (`tarsus_Intercept`), and the natural-scale summaries
+## (`sd_dam__tarsus.muIntercept`). Every parm-style argument accepts all
+## three; output rows keep the internal name.
+
+#' The comparison form of a parameter name: parentheses dropped, which
+#' is the only difference between the internal spelling and the one
+#' hypothesis() expressions must use (a name in an R expression cannot
+#' carry parentheses).
+#'
+#' @noRd
+par_name_bare <- function(x) gsub("[()]", "", x)
+
+#' Positions of `x` in `nm`, exact first and then with parentheses
+#' dropped on both sides. `NA` where nothing matches. Parentheses only
+#' ever wrap `Intercept`, so a stripped match is unique in practice; the
+#' ambiguity check guards the case rather than assuming it.
+#'
+#' @noRd
+match_par_name <- function(x, nm) {
+  idx <- match(x, nm)
+  if (!anyNA(idx)) return(idx)
+  bare <- par_name_bare(nm)
+  for (k in which(is.na(idx))) {
+    hit <- which(bare == par_name_bare(x[k]))
+    if (length(hit) > 1L) {
+      stop("Parameter name '", x[k], "' is ambiguous once parentheses ",
+           "are dropped: it matches ", paste(nm[hit], collapse = ", "),
+           ". Write the full internal name", call. = FALSE)
+    }
+    if (length(hit) == 1L) idx[k] <- hit
+  }
+  idx
+}
+
+#' Natural-scale names that address exactly ONE internal parameter, as
+#' positions in `outer_par_map()`. A standard deviation is one log-sd
+#' entry of `theta` (`sd_idx` from the covariance-structure registry).
+#' A correlation is one internal parameter only when the block has a
+#' single non-sd `theta` entry - true of a 2x2 `us` block, `cs` and
+#' `ar1`, false of a wider `us` whose Cholesky terms mix - and an
+#' autocorrelation parameter only when its block has one `thetaac`
+#' entry. Anything else is a function of several internal parameters
+#' and is refused rather than aliased to one of them.
+#'
+#' @noRd
+par_alias_index <- function(fit) {
+  map <- outer_par_map(fit)
+  th_pos <- which(map$comp == "theta")
+  ac_pos <- which(map$comp == "thetaac")
+  nms <- character(0)
+  pos <- integer(0)
+  add <- function(nm, p) {
+    if (nm %in% nms || is.na(p) || length(p) != 1L) return(invisible())
+    nms <<- c(nms, nm)
+    pos <<- c(pos, p)
+  }
+  for (bk in fit$frame$re_blocks %||% list()) {
+    # the same blocks hyp_env_vals names, for the same reason
+    if (bk$covstruct %in% c("smooth", "gp", "hsgp", "car", "spde")) next
+    reg <- covstruct_registry[[bk$covstruct]]
+    if (is.null(reg) || is.null(reg$sd_idx)) next
+    si <- tryCatch(as.integer(reg$sd_idx(bk$dim)),
+                   error = function(e) integer(0))
+    if (!length(si)) next
+    g <- hyp_san(bk$group_name)
+    tn <- hyp_san(bk$cnms)
+    at <- function(i) {
+      ti <- bk$theta_idx[i]
+      if (is.na(ti) || ti < 1L || ti > length(th_pos)) NA_integer_ else
+        th_pos[ti]
+    }
+    for (j in seq_along(tn)) {
+      add(paste0("sd_", g, "__", tn[j]), at(si[min(j, length(si))]))
+    }
+    if (length(tn) > 1L) {
+      rest <- setdiff(seq_len(reg$npar(bk$dim)), si)
+      if (length(rest) == 1L) {
+        for (j in seq_len(length(tn) - 1L)) {
+          for (k in seq(j + 1L, length(tn))) {
+            add(paste0("cor_", g, "__", tn[j], "__", tn[k]), at(rest))
+          }
+        }
+      }
+    }
+  }
+  for (ac in fit$frame$autocor %||% list()) {
+    if (length(ac$theta_idx) != 1L) next
+    nat <- autocor_natural(fit$estimates$thetaac[ac$theta_idx], ac)
+    if (length(nat) != 1L) next
+    p <- ac$theta_idx[1L]
+    add(hyp_san(names(nat)[1L]),
+        if (p >= 1L && p <= length(ac_pos)) ac_pos[p] else NA_integer_)
+  }
+  stats::setNames(pos, nms)
+}
+
+#' Resolve a `parm`-style argument to positions in `outer_par_map()`,
+#' accepting the internal names, their parenthesis-free spelling, and
+#' the one-to-one natural-scale aliases. An alias is reported, because
+#' what gets profiled and returned is the internal parameter it names,
+#' on the internal scale.
+#'
+#' @noRd
+resolve_par_index <- function(fit, parm, what) {
+  map <- outer_par_map(fit)
+  nm <- map$names
+  if (is.numeric(parm)) return(as.integer(parm))
+  idx <- match_par_name(parm, nm)
+  if (anyNA(idx)) {
+    alias <- par_alias_index(fit)
+    hit <- match(parm, names(alias))
+    took <- which(is.na(idx) & !is.na(hit))
+    idx[took] <- alias[hit[took]]
+    if (length(took)) {
+      message(what, "(): ",
+              paste0("'", parm[took], "' is ", nm[idx[took]],
+                     collapse = ", "),
+              ". The result is on that parameter's internal ",
+              "(unconstrained) scale, not the natural one; ",
+              "confint_varcorr() and hypothesis() report the natural ",
+              "scale.")
+    }
+  }
+  if (anyNA(idx)) {
+    bad <- parm[is.na(idx)]
+    known <- variables(fit)
+    if (any(bad %in% known)) {
+      b <- bad[bad %in% known][1L]
+      stop("'", b, "' is a natural-scale summary rather than a fitted ",
+           "parameter, and it does not stand for a single internal one ",
+           "here (a correlation of a wider us() block mixes several, ",
+           "and a response-scale summary such as sigma is a transform ",
+           "of one). Use hypothesis(fit, \"", b, "\", method = ",
+           "'profile'), which profiles the combination itself, read ",
+           "confint_varcorr() for natural-scale variance components, ",
+           "or name the internal parameter: confint(fit) lists them",
+           call. = FALSE)
+    }
+    stop("Unknown parameter(s) in ", what, "(parm =): ",
+         paste(bad, collapse = ", "), ". Available: ",
+         paste(nm, collapse = ", "),
+         ". Parentheses may be dropped, and the one-to-one natural-scale ",
+         "names of variables() (sd_<group>__<term>, and a correlation ",
+         "with a single internal parameter) are accepted as aliases",
+         call. = FALSE)
+  }
+  idx
 }
 
 #' Confidence intervals for frmtmb fits
@@ -58,7 +218,20 @@ outer_par_names <- function(fit) {
 #' @param object A `frmtmb_fit`.
 #' @param parm Parameter names (see `rownames` of the Wald result) or
 #'   indices. Required for `"profile"` and `"uniroot"`; defaults to all
-#'   parameters for `"wald"` and `"boot"`.
+#'   parameters for `"wald"` and `"boot"`. Three spellings address the
+#'   same parameter: the internal name (`tarsus_(Intercept)`,
+#'   `theta_1`), that name without its parentheses
+#'   (`tarsus_Intercept`, the spelling [hypothesis()] and [variables()]
+#'   use), and a natural-scale name that stands for exactly one
+#'   internal parameter, `sd_<group>__<term>` and a correlation whose
+#'   block has a single internal correlation parameter. An alias is
+#'   reported and the row keeps the internal name, because the interval
+#'   is on the internal scale: see [confint_varcorr()] and
+#'   [hypothesis()] for natural-scale intervals. A natural-scale
+#'   summary that is a function of several internal parameters (the
+#'   correlations of a wider `us` block, an ICC) has no single
+#'   parameter to work on and is refused, naming
+#'   `hypothesis(method = "profile")`.
 #' @param level Confidence level.
 #' @param method `"wald"` (fast, from the sdreport covariance),
 #'   `"profile"` (likelihood profile via [TMB::tmbprofile()]),
@@ -109,18 +282,11 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   est <- object$opt$par
   a <- (1 - level) / 2
 
-  resolve_parm <- function(parm) {
-    if (is.null(parm)) return(seq_along(nm))
-    if (is.numeric(parm)) return(as.integer(parm))
-    idx <- match(parm, nm)
-    if (anyNA(idx)) {
-      stop("Unknown parameter(s) in confint(parm =): ",
-           paste(parm[is.na(idx)], collapse = ", "),
-           ". Available: ", paste(nm, collapse = ", "), call. = FALSE)
-    }
-    idx
+  idx <- if (is.null(parm)) {
+    seq_along(nm)
+  } else {
+    resolve_par_index(object, parm, "confint")
   }
-  idx <- resolve_parm(parm)
 
   if (method == "wald") {
     sdr <- sdr_of(object)
@@ -1063,11 +1229,110 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
                         paste("Model:", model_label(object)), ""))
 }
 
+#' Does a formula carry a `.` term, which is what makes it a delta
+#' against an existing formula rather than a complete one? Both
+#' [stats::update()] spellings have one: the one-sided `~ . + z` and
+#' the dotted-LHS `. ~ . + z`.
+#'
+#' @noRd
+formula_has_dot <- function(f) {
+  has <- function(e) {
+    if (is.name(e)) return(identical(as.character(e), "."))
+    if (!is.call(e)) return(FALSE)
+    parts <- as.list(e)[-1L]
+    for (p in parts) {
+      if (identical(p, quote(expr = ))) next
+      if (has(p)) return(TRUE)
+    }
+    FALSE
+  }
+  has(f)
+}
+
+#' Apply an update formula (`~ . + z` or `. ~ . + z`, the
+#' [stats::update.formula] and brms spellings) to the stored model
+#' formula. The whole `bf()` goes back into the call, so dpar formulas,
+#' fixed dpar values and the family survive the update.
+#'
+#' @noRd
+update_delta_formula <- function(object, f) {
+  bform <- object$bform
+  if (inherits(bform, "frmtmb_mvformula")) {
+    stop("An update formula written as a delta does not say which ",
+         "response it changes. Pass the complete mvbf() as `formula`",
+         call. = FALSE)
+  }
+  if (isTRUE(bform$nl)) {
+    stop("An update formula written as a delta cannot be applied to a ",
+         "nonlinear formula, whose right-hand side is an expression ",
+         "and not a sum of terms. Pass the complete ",
+         "bf(..., nl = TRUE) as `formula`", call. = FALSE)
+  }
+  new <- stats::update.formula(bform$formula, f)
+  environment(new) <- environment(bform$formula)
+  bform$formula <- new
+  bform
+}
+
+#' Update and refit a model
+#'
+#' Re-evaluates the stored [frm()] call with the given arguments
+#' replaced. Any `frm()` argument can be updated by name.
+#'
+#' The formula argument is `formula.`, as in [stats::update()] and in
+#' brms; `formula = ` reaches it by partial matching. A formula
+#' carrying a `.` is a delta applied to the stored `mu` formula with
+#' [stats::update.formula] semantics - one-sided `~ . + z`, dotted
+#' `. ~ . + z`, or a changed response `z ~ . + x` - and keeps the dpar
+#' formulas, the fixed dpar values and the family. A formula with no
+#' `.` replaces the stored one. brms's `newdata` is accepted as a
+#' synonym for `data`.
+#'
+#' @param object A `frmtmb_fit`.
+#' @param formula. A complete formula or [bf()], or a delta such as
+#'   `~ . + z` or `. ~ . + z`.
+#' @param ... Arguments of [frm()] to replace, e.g. `data`, `family`,
+#'   `REML`. `newdata` is accepted for `data`.
+#' @param evaluate If `FALSE`, return the updated call instead of the
+#'   refitted model.
+#' @return A `frmtmb_fit`, or the updated call when
+#'   `evaluate = FALSE`.
+#' @examples
+#' set.seed(3)
+#' dd <- data.frame(x = rnorm(60), z = rnorm(60))
+#' dd$y <- rnorm(60, 1 + 0.5 * dd$x, 1)
+#' fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
+#'
+#' # a delta on the stored formula, in either spelling
+#' fit2 <- update(fit, ~ . + z)
+#' formula(fit2)
+#' formula(update(fit, . ~ . + z))
+#' fit3 <- update(fit, formula. = ~ . - x, newdata = dd[1:40, ])
+#' nobs(fit3)
 #' @export
-update.frmtmb_fit <- function(object, ..., evaluate = TRUE) {
+update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
   cl <- object$call
   extras <- match.call(expand.dots = FALSE)$...
+  # brms spells the data argument of update() `newdata`
+  if ("newdata" %in% names(extras)) {
+    if ("data" %in% names(extras)) {
+      stop("Give the updated data once: as `data`, or as brms's ",
+           "`newdata`, but not both", call. = FALSE)
+    }
+    names(extras)[names(extras) == "newdata"] <- "data"
+  }
   for (nm in names(extras)) cl[[nm]] <- extras[[nm]]
+  if (!missing(formula.)) {
+    # a complete formula goes in unevaluated, so the stored call stays
+    # readable; a delta has to be resolved against the stored one
+    cl$formula <- if (inherits(formula., "formula") &&
+                      (length(formula.) == 2L ||
+                         formula_has_dot(formula.))) {
+      update_delta_formula(object, formula.)
+    } else {
+      substitute(formula.)
+    }
+  }
   if (!evaluate) return(cl)
   # the stored structural objects go into the call by value, so an
   # update in a session where the original data2 names are gone still
@@ -1084,9 +1349,16 @@ update.frmtmb_fit <- function(object, ..., evaluate = TRUE) {
 #' `plot()` and `confint()` methods (from TMB).
 #'
 #' @param fitted A `frmtmb_fit`.
-#' @param parm Parameter names (as in `confint()` rownames) or indices.
-#'   Required; profiling is not free, so there is no all-parameters
-#'   default.
+#' @param parm Parameter names or indices. Required; profiling is not
+#'   free, so there is no all-parameters default. The names are the
+#'   ones [confint()] takes, in any of its three spellings: internal
+#'   (`theta_1`, `tarsus_(Intercept)`), parenthesis-free
+#'   (`tarsus_Intercept`), or a one-to-one natural-scale alias
+#'   (`sd_dam__Intercept`). The profile is of the internal parameter
+#'   either way - a log standard deviation, not a standard deviation -
+#'   and the returned element keeps the internal name. For a profile of
+#'   a natural-scale quantity itself, including one that mixes several
+#'   parameters, use `hypothesis(method = "profile")`.
 #' @param ... Passed to [TMB::tmbprofile()].
 #' @return A `tmbprofile` data frame, or a named list of them when
 #'   `parm` has length above one.
@@ -1096,9 +1368,11 @@ update.frmtmb_fit <- function(object, ..., evaluate = TRUE) {
 #' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
 #' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 #'
-#' # parameter names are the confint() row names
+#' # parameter names are the confint() row names, with or without the
+#' # parentheses, or a one-to-one natural-scale alias
 #' rownames(confint(fit))
 #' pr <- profile(fit, "theta_1")
+#' identical(profile(fit, "(Intercept)"), profile(fit, "Intercept"))
 #' plot(pr)
 #' # TMB's confint() reads the interval off the profile
 #' confint(pr)
@@ -1109,12 +1383,7 @@ update.frmtmb_fit <- function(object, ..., evaluate = TRUE) {
 #' @export
 profile.frmtmb_fit <- function(fitted, parm, ...) {
   nm <- outer_par_names(fitted)
-  idx <- if (is.numeric(parm)) as.integer(parm) else match(parm, nm)
-  if (anyNA(idx)) {
-    stop("Unknown parameter(s) in profile(parm =): ",
-         paste(parm[is.na(match(parm, nm))], collapse = ", "),
-         ". Available: ", paste(nm, collapse = ", "), call. = FALSE)
-  }
+  idx <- resolve_par_index(fitted, parm, "profile")
   out <- lapply(idx, function(i) {
     TMB::tmbprofile(fitted$obj, name = i, trace = FALSE, ...)
   })
@@ -1195,8 +1464,16 @@ hyp_par_cov <- function(fit) {
 hyp_env_vals <- function(fit, vals, comp) {
   env <- list()
   cf <- c(vals[comp == "beta"], vals[comp == "betad"])
-  cn <- gsub("[()]", "", estimated_coef_names(fit))
+  raw <- estimated_coef_names(fit)
+  cn <- gsub("[()]", "", raw)
   for (i in seq_along(cn)) env[[cn[i]]] <- cf[i]
+  # the internal spelling as an alias, so a name copied from confint()
+  # or vcov() also resolves when it is backquoted in the expression.
+  # variables() keeps listing the parenthesis-free names, which are the
+  # ones an expression can carry unquoted
+  for (i in seq_along(raw)) {
+    if (raw[i] != cn[i] && is.null(env[[raw[i]]])) env[[raw[i]]] <- cf[i]
+  }
 
   th <- vals[comp == "theta"]
   for (bk in fit$frame$re_blocks) {
@@ -1264,12 +1541,33 @@ hyp_env_vals <- function(fit, vals, comp) {
   env
 }
 
-#' Turn one hypothesis string into a language object to evaluate. An
-#' `"lhs = rhs"` hypothesis becomes the difference of the two sides, so
-#' every hypothesis is then tested against zero.
+#' Turn one hypothesis string into the language object to evaluate plus
+#' the alternative it asks for. An `"lhs = rhs"` hypothesis becomes the
+#' difference of the two sides, so every hypothesis is then tested
+#' against zero; brms's directional `"lhs > rhs"` and `"lhs < rhs"`
+#' become the same difference with a one-sided alternative.
 #'
 #' @noRd
 hyp_parse <- function(h) {
+  ops <- unlist(gregexpr("[<>]", h))
+  ops <- ops[ops > 0L]
+  if (length(ops)) {
+    if (length(ops) > 1L) {
+      stop("A hypothesis has at most one '<' or '>': '", h, "'",
+           call. = FALSE)
+    }
+    op <- substr(h, ops, ops)
+    lhs <- substr(h, 1L, ops - 1L)
+    # ">=" and "<=" read as ">" and "<": the boundary has probability
+    # zero under every sampling distribution used here
+    rhs <- sub("^[[:space:]]*=", "", substring(h, ops + 1L))
+    if (grepl("=", lhs, fixed = TRUE) || grepl("=", rhs, fixed = TRUE)) {
+      stop("A hypothesis is directional ('<', '>') or an equality ",
+           "('='), not both: '", h, "'", call. = FALSE)
+    }
+    return(list(expr = str2lang(paste0("(", lhs, ") - (", rhs, ")")),
+                dir = if (op == ">") "greater" else "less"))
+  }
   eq <- strsplit(h, "=", fixed = TRUE)[[1L]]
   txt <- if (length(eq) == 2L) {
     paste0("(", eq[1L], ") - (", eq[2L], ")")
@@ -1278,8 +1576,114 @@ hyp_parse <- function(h) {
   } else {
     stop("A hypothesis has at most one '=': '", h, "'", call. = FALSE)
   }
-  str2lang(txt)
+  list(expr = str2lang(txt), dir = "two.sided")
 }
+
+#' The name prefix implied by brms's `class` and `group` shorthand.
+#' Class `"b"` (brms's default) and no class both mean the plain
+#' coefficient names; a class with a group is the `sd_<group>__` /
+#' `cor_<group>__` naming of the natural-scale random-effect
+#' summaries; a class without a group is a dpar prefix such as
+#' `sigma_`.
+#'
+#' @noRd
+hyp_class_prefix <- function(class = NULL, group = NULL) {
+  if (is.null(class) || !nzchar(class) || identical(class, "b")) return("")
+  if (!is.null(group) && nzchar(group)) {
+    return(paste0(class, "_", group, "__"))
+  }
+  paste0(class, "_")
+}
+
+#' Rewrite the bare names of a hypothesis expression under a `class` /
+#' `group` prefix. A name already written in full keeps its spelling,
+#' and a name that is neither is left for the evaluator to report; but
+#' a name that exists WITHOUT the prefix and not with it is refused
+#' rather than silently tested under the wrong class, which is the one
+#' way this shorthand can quietly answer a different question.
+#'
+#' @noRd
+hyp_prefix_names <- function(ex, prefix, known) {
+  if (!nzchar(prefix)) return(ex)
+  rec <- function(e) {
+    if (is.name(e)) {
+      s <- as.character(e)
+      cand <- paste0(prefix, s)
+      if (cand %in% known) return(as.name(cand))
+      if (s %in% known && !startsWith(s, prefix)) {
+        stop("'", cand, "' is not a parameter of this model, while '",
+             s, "' is: the `class`/`group` shorthand would be ignored ",
+             "for it. Drop them, or correct them; variables() lists ",
+             "every usable name", call. = FALSE)
+      }
+      return(e)
+    }
+    if (is.call(e)) {
+      for (i in seq_along(e)[-1L]) {
+        if (!identical(e[[i]], quote(expr = ))) e[[i]] <- rec(e[[i]])
+      }
+    }
+    e
+  }
+  rec(ex)
+}
+
+#' Parse every hypothesis string of one call: the shared front end of
+#' the `frmtmb_fit`, `frmtmb_draws` and `frmtmb_multiple` methods.
+#' Returns the expressions and their alternatives.
+#'
+#' @noRd
+hyp_parse_all <- function(hypothesis, known, class = NULL, group = NULL) {
+  prefix <- hyp_class_prefix(class, group)
+  ps <- lapply(hypothesis, hyp_parse)
+  list(exprs = lapply(ps, function(p) {
+         hyp_prefix_names(p$expr, prefix, known)
+       }),
+       dir = vapply(ps, function(p) p$dir, ""))
+}
+
+#' One-sided quantile bookkeeping: the interval bound and the p-value a
+#' given alternative asks for, from an estimate, a standard error and a
+#' normal (or t) reference.
+#'
+#' @noRd
+hyp_wald_row <- function(est, se, dir, alpha, qfun, pfun) {
+  z <- est / se
+  q <- qfun(1 - if (dir == "two.sided") alpha / 2 else alpha)
+  list(
+    lwr = if (dir == "less") -Inf else est - q * se,
+    upr = if (dir == "greater") Inf else est + q * se,
+    stat = z,
+    p = switch(dir,
+               two.sided = 2 * pfun(-abs(z)),
+               greater = pfun(-z),
+               less = pfun(z))
+  )
+}
+
+#' Tail proportion of a draws vector against zero, in the direction the
+#' hypothesis asks for, with the (1 + k) / (1 + n) correction that
+#' keeps a p-value away from exactly zero.
+#'
+#' @noRd
+hyp_tail_p <- function(t, dir) {
+  n <- length(t)
+  switch(dir,
+         two.sided = min(1, 2 * min((1 + sum(t <= 0)) / (1 + n),
+                                    (1 + sum(t >= 0)) / (1 + n))),
+         greater = (1 + sum(t <= 0)) / (1 + n),
+         less = (1 + sum(t >= 0)) / (1 + n))
+}
+
+#' The names of a hypothesis environment that are worth listing: the
+#' parenthesis-free spelling of every parameter. The internal spellings
+#' are in the environment as aliases (they need backquotes in an
+#' expression), and listing both would double the vocabulary a reader
+#' has to scan.
+#'
+#' @noRd
+hyp_public_names <- function(ev) grep("[()]", names(ev), invert = TRUE,
+                                      value = TRUE)
 
 #' Evaluate a parsed hypothesis at one parameter vector. A failure lists
 #' the available names, because an unknown name is the usual cause.
@@ -1289,7 +1693,9 @@ hyp_eval <- function(fit, ex, vals, comp) {
   ev <- hyp_env_vals(fit, vals, comp)
   tryCatch(eval(ex, ev), error = function(e) {
     stop(conditionMessage(e), "\nAvailable names: ",
-         paste(names(ev), collapse = ", "), call. = FALSE)
+         paste(hyp_public_names(ev), collapse = ", "),
+         "\n(the internal spellings of confint() work too, backquoted)",
+         call. = FALSE)
   })
 }
 
@@ -1311,8 +1717,38 @@ hyp_fd_grad <- function(f, v) {
 #'
 #' The frequentist analog of brms's `hypothesis()`: evaluates
 #' expressions of the model parameters at the estimates and tests them
-#' against zero. A hypothesis is `"expr"` (tested against 0) or
-#' `"expr = rhs"`, e.g. `"x1 - x2 = 0"` or `"exp(Intercept) = 1"`.
+#' against zero. A hypothesis is `"expr"` (tested against 0),
+#' `"expr = rhs"`, e.g. `"x1 - x2 = 0"` or `"exp(Intercept) = 1"`, or
+#' brms's directional `"lhs > rhs"` / `"lhs < rhs"`.
+#'
+#' @section Directional hypotheses:
+#' `"lhs > rhs"` and `"lhs < rhs"` test the same difference
+#' `(lhs) - (rhs)` against zero with a one-sided alternative, so the
+#' reported `p` is the one-sided tail probability and the interval is
+#' one-sided at level `1 - alpha`: the unbounded end prints as `Inf`
+#' or `-Inf`. `p` is `pnorm()` of the signed z statistic for `"wald"`
+#' and, as in the two-sided case where `se`, `z` and `p` stay
+#' Wald-based, for `"profile"` too - the profile changes the BOUND,
+#' which is the matching endpoint of the two-sided `1 - 2 * alpha`
+#' profile interval, and nothing else. For `"boot"` and the draws
+#' method `p` is the tail proportion of the draws with the
+#' `(1 + k) / (1 + n)` correction. Where brms reports the posterior
+#' probability of the direction, this reports its frequentist
+#' complement: small `p` is evidence for the stated direction.
+#' `">="` and `"<="` read as `">"` and `"<"`.
+#'
+#' @section brms class and group shorthand:
+#' `class` and `group` prefix the bare names in the hypothesis, so
+#' `hypothesis(fit, "Intercept - age > 0", class = "sd",
+#' group = "patient")` tests
+#' `sd_patient__Intercept - sd_patient__age`. `class = "b"` (brms's
+#' default) and `class = NULL` leave the names alone; a `class`
+#' without a `group` prefixes `<class>_`, which is how a
+#' distributional coefficient such as `sigma_Intercept` is named. A
+#' name already written in full keeps its spelling, so the two can be
+#' mixed; but a name that exists only WITHOUT the prefix is an error
+#' rather than a test of the unprefixed parameter, so a wrong `class`
+#' or `group` cannot quietly answer a different question.
 #'
 #' Available names: the fixed-effect coefficients under their `vcov()`
 #' row names with parentheses stripped (`Intercept`, `x`,
@@ -1320,7 +1756,12 @@ hyp_fd_grad <- function(f, v) {
 #' `sd_<group>__<term>` and `cor_<group>__<t1>__<t2>` (brms naming),
 #' and `sigma` when the residual SD is a scalar. So an ICC is
 #' `"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"`.
-#' [variables()] lists every usable name for a fit.
+#' [variables()] lists every usable name for a fit. The internal
+#' spelling that [confint()] and [vcov()] print is accepted as well,
+#' backquoted because it carries parentheses:
+#' `` "`(Intercept)` - x" ``. The traffic runs the other way too:
+#' `confint(parm = )` and `profile(parm = )` take these names,
+#' whenever one of them stands for a single internal parameter.
 #'
 #' @section Which random-effect blocks contribute names:
 #' Every block whose covariance parameters ARE standard deviations and
@@ -1388,6 +1829,10 @@ hyp_fd_grad <- function(f, v) {
 #' @param nsim Bootstrap draws for `method = "boot"`; all hypotheses
 #'   share one bootstrap run.
 #' @param seed Optional seed for `method = "boot"`.
+#' @param class,group brms shorthand for the parameter names: the
+#'   hypothesis is written with bare names and `class` (and `group`,
+#'   for the `sd_`/`cor_` summaries) supplies the prefix. The default
+#'   `NULL` (like brms's `class = "b"`) takes the names as written.
 #' @param ... Backend controls: passed to [TMB::tmbprofile()] for
 #'   `method = "profile"` (e.g. `ytol`, `ystep`, `maxit`,
 #'   `parm.range`) and to [frm_bootstrap()] for `method = "boot"`
@@ -1409,6 +1854,10 @@ hyp_fd_grad <- function(f, v) {
 #'                 rnorm(10, 0, 0.5)[dd$g], 1)
 #' fit <- frm(bf(y ~ x1 + x2 + (1 | g)) + gaussian(), data = dd)
 #' hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept)"))
+#' # brms's directional form: one-sided p, one-sided interval
+#' hypothesis(fit, "x1 > x2")
+#' # class/group name the natural-scale random-effect summaries
+#' hypothesis(fit, "Intercept > 0", class = "sd", group = "g")
 #' # variance-component expressions: an ICC with bootstrap intervals
 #' hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
 #'            method = "boot", nsim = 20, seed = 1)
@@ -1450,22 +1899,24 @@ variables <- function(x, ...) UseMethod("variables")
 #' @export
 variables.frmtmb_fit <- function(x, ...) {
   vo <- hyp_vals_only(x)
-  names(hyp_env_vals(x, vo$vals, vo$comp))
+  hyp_public_names(hyp_env_vals(x, vo$vals, vo$comp))
 }
 
 #' @rdname hypothesis
 #' @export
 hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
                                   method = c("wald", "profile", "boot"),
-                                  nsim = 500, seed = NULL, ...) {
+                                  nsim = 500, seed = NULL, class = NULL,
+                                  group = NULL, ...) {
   method <- match.arg(method)
   if (method == "wald" && ...length()) {
     warning("ignoring arguments unused by method = 'wald': ",
             paste(...names(), collapse = ", "), call. = FALSE)
   }
-  z_q <- stats::qnorm(1 - alpha / 2)
-  exs <- lapply(hypothesis, hyp_parse)
   vo <- hyp_vals_only(x)
+  known <- names(hyp_env_vals(x, vo$vals, vo$comp))
+  hp <- hyp_parse_all(hypothesis, known, class, group)
+  exs <- hp$exprs
   vals0 <- vapply(seq_along(exs), function(i) {
     val <- hyp_eval(x, exs[[i]], vo$vals, vo$comp)
     if (!is.numeric(val) || length(val) != 1L) {
@@ -1479,6 +1930,7 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
     rownames(out) <- NULL
     attr(out, "method") <- method
     attr(out, "alpha") <- alpha
+    attr(out, "direction") <- hp$dir
     for (nm in names(extra)) attr(out, nm) <- extra[[nm]]
     class(out) <- c("frmtmb_hypothesis", "data.frame")
     out
@@ -1495,15 +1947,16 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
     rows <- lapply(seq_along(exs), function(i) {
       t_i <- bs$t[, i]
       t_i <- t_i[is.finite(t_i)]
-      nb <- length(t_i)
       se <- stats::sd(t_i)
-      p <- min(1, 2 * min((1 + sum(t_i <= 0)) / (1 + nb),
-                          (1 + sum(t_i >= 0)) / (1 + nb)))
+      dir <- hp$dir[i]
+      lo <- if (dir == "two.sided") alpha / 2 else alpha
       data.frame(hypothesis = hypothesis[i], estimate = vals0[i],
                  se = se,
-                 lwr = unname(stats::quantile(t_i, alpha / 2)),
-                 upr = unname(stats::quantile(t_i, 1 - alpha / 2)),
-                 z = vals0[i] / se, p = p)
+                 lwr = if (dir == "less") -Inf else
+                   unname(stats::quantile(t_i, lo)),
+                 upr = if (dir == "greater") Inf else
+                   unname(stats::quantile(t_i, 1 - lo)),
+                 z = vals0[i] / se, p = hyp_tail_p(t_i, dir))
     })
     return(hyp_result(do.call(rbind, rows),
                       list(draws = bs$t, nsim = nsim,
@@ -1518,9 +1971,12 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
     fn <- function(v) hyp_eval(x, ex, v, pc$comp)
     g <- hyp_fd_grad(fn, pc$vals)
     se <- sqrt(max(0, drop(t(g) %*% pc$V %*% g)))
-    zv <- vals0[i] / se
-    lwr <- vals0[i] - z_q * se
-    upr <- vals0[i] + z_q * se
+    dir <- hp$dir[i]
+    wr <- hyp_wald_row(vals0[i], se, dir, alpha, stats::qnorm,
+                       stats::pnorm)
+    zv <- wr$stat
+    lwr <- wr$lwr
+    upr <- wr$upr
     if (method == "profile") {
       if (x$REML) {
         stop("method = 'profile' requires an ML fit (REML integrates ",
@@ -1539,22 +1995,29 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
       v <- numeric(pc$n_outer)
       v[pc$outer_pos] <- g
       const <- vals0[i] - sum(g * pc$vals)
+      # a one-sided bound at level 1 - alpha is the matching endpoint of
+      # the two-sided 1 - 2 * alpha profile interval
+      lev <- if (dir == "two.sided") 1 - alpha else 1 - 2 * alpha
+      if (lev <= 0) {
+        stop("A one-sided profile bound needs alpha below 0.5",
+             call. = FALSE)
+      }
       pargs <- utils::modifyList(
         list(obj = x$obj, lincomb = v, trace = FALSE,
-             ytol = 0.5 * stats::qchisq(1 - alpha, 1) + 1),
+             ytol = 0.5 * stats::qchisq(lev, 1) + 1),
         list(...)
       )
       pr <- do.call(TMB::tmbprofile, pargs)
-      ci <- stats::confint(pr, level = 1 - alpha)
+      ci <- stats::confint(pr, level = lev)
       pr[[1L]] <- pr[[1L]] + const
       profiles[[i]] <- pr
-      lwr <- unname(ci[1]) + const
-      upr <- unname(ci[2]) + const
+      lwr <- if (dir == "less") -Inf else unname(ci[1]) + const
+      upr <- if (dir == "greater") Inf else unname(ci[2]) + const
     }
     rows[[i]] <- data.frame(hypothesis = hypothesis[i],
                             estimate = vals0[i], se = se,
                             lwr = lwr, upr = upr, z = zv,
-                            p = 2 * stats::pnorm(-abs(zv)))
+                            p = wr$p)
   }
   hyp_result(do.call(rbind, rows),
              if (method == "profile") {
@@ -1577,6 +2040,12 @@ print.frmtmb_hypothesis <- function(x, digits = 4, ...) {
   class(df) <- "data.frame"
   df[-1] <- lapply(df[-1], signif, digits)
   print(df, row.names = FALSE)
+  dir <- attr(x, "direction") %||% rep("two.sided", nrow(x))
+  if (any(dir != "two.sided")) {
+    cat("  rows written with '<' or '>' are one-sided: p and the ",
+        "finite interval\n  bound hold at level ",
+        signif(1 - (attr(x, "alpha") %||% 0.05), 3), "\n", sep = "")
+  }
   invisible(x)
 }
 

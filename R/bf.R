@@ -13,14 +13,16 @@
 #' `(1 + x | g)`, `(x || g)`, and explicit covariance-structure wrappers
 #' `us(x | g)` and `diag(x | g)`.
 #'
-#' Attach a family with `+`, for example `bf(y ~ x) + gaussian()`.
+#' Attach a family with `+`, for example `bf(y ~ x) + gaussian()`, or
+#' pass one to [frm()]. A model that names no family is gaussian.
 #'
 #' @param formula The model formula for `mu`.
-#' @param ... Two-sided formulas for other dpars (the left-hand side names
-#'   the dpar, e.g. `sigma ~ z`), or named scalars fixing a dpar to a
-#'   constant on the response scale (e.g. `sigma = 1`).
-#' @param family Optional family; can also be attached with `+` or passed
-#'   to [frm()].
+#' @param ... Two-sided formulas for other dpars (the left-hand side
+#'   names the dpar, e.g. `sigma ~ z`, or several sharing one
+#'   right-hand side, e.g. `b1 + b2 ~ 1`), or named scalars fixing a
+#'   dpar to a constant on the response scale (e.g. `sigma = 1`).
+#' @param family Optional family; can also be attached with `+` or
+#'   passed to [frm()], which uses `gaussian()` when nothing names one.
 #' @param nl Nonlinear-formula flag: the main formula becomes a
 #'   nonlinear expression of named parameters, each given its own
 #'   `...` formula with the full predictor grammar.
@@ -89,16 +91,14 @@ bf <- function(formula, ..., family = NULL, nl = FALSE) {
         stop("dpar formulas must be two-sided, naming the dpar on the ",
              "left: e.g. sigma ~ x", call. = FALSE)
       }
-      dpar <- deparse1(d[[2]])
-      if (!grepl("^[a-zA-Z][a-zA-Z0-9]*$", dpar)) {
-        stop("Invalid parameter name '", dpar, "': names must be ",
-             "alphanumeric without dots or underscores (they collide ",
-             "with coefficient naming)", call. = FALSE)
+      for (dpar in lhs_dpar_names(d[[2]])) {
+        if (dpar %in% c(names(pforms), names(pfix))) {
+          stop("Duplicated dpar formula: '", dpar, "'", call. = FALSE)
+        }
+        di <- d
+        di[[2]] <- as.name(dpar)
+        pforms[[dpar]] <- di
       }
-      if (dpar %in% c(names(pforms), names(pfix))) {
-        stop("Duplicated dpar formula: '", dpar, "'", call. = FALSE)
-      }
-      pforms[[dpar]] <- d
     } else if (is.numeric(d) && length(d) == 1L) {
       if (nm == "") {
         stop("Constant dpar values must be named, e.g. bf(y ~ x, sigma = 1)",
@@ -126,11 +126,105 @@ bf <- function(formula, ..., family = NULL, nl = FALSE) {
   )
 }
 
+#' The left-hand side of a dpar or nonlinear-parameter formula, checked
+#' once for `bf()` and `lf()`: it becomes part of a coefficient name, so
+#' dots and underscores are refused rather than allowed to collide with
+#' the `dpar_term` separator.
+#'
+#' @noRd
+check_dpar_name <- function(dpar) {
+  if (!grepl("^[a-zA-Z][a-zA-Z0-9]*$", dpar)) {
+    stop("Invalid parameter name '", dpar, "': names must be ",
+         "alphanumeric without dots or underscores (they collide ",
+         "with coefficient naming)", call. = FALSE)
+  }
+  dpar
+}
+
+#' The parameter names on the left of one dpar formula. brms lets a
+#' single formula name several nonlinear parameters (`b1 + b2 ~ 1`);
+#' each name then gets its own copy of the right-hand side, which is
+#' the same model as writing the formulas out.
+#'
+#' @noRd
+lhs_dpar_names <- function(lhs) {
+  if (is.call(lhs) && identical(lhs[[1L]], as.name("+")) &&
+      length(lhs) == 3L) {
+    return(c(lhs_dpar_names(lhs[[2L]]), lhs_dpar_names(lhs[[3L]])))
+  }
+  check_dpar_name(deparse1(lhs))
+}
+
+#' Add parameter formulas to a model formula
+#'
+#' brms's `lf()`: one or more two-sided formulas for distributional or
+#' nonlinear parameters, added to a [bf()] with `+`. It is sugar for
+#' passing the same formulas to `bf()` directly, and is useful when the
+#' parameter formulas are built somewhere else than the response
+#' formula.
+#'
+#' `bf(y ~ x) + lf(sigma ~ z)` and `bf(y ~ x, sigma ~ z)` give the same
+#' model. In a multivariate model an `lf()` must be added to the `bf()`
+#' of the response it belongs to, before the responses are combined.
+#'
+#' @param ... Two-sided formulas naming the parameter on the left, e.g.
+#'   `sigma ~ x` or (with `nl = TRUE` on the `bf()`) a nonlinear
+#'   parameter's formula `a ~ 1 + (1 | g)`.
+#' @return An object of class `frmtmb_lf`, to be added to a [bf()].
+#' @examples
+#' # the two spellings are the same model
+#' bf(y ~ x) + lf(sigma ~ z)
+#' bf(y ~ x, sigma ~ z)
+#'
+#' # nonlinear parameter formulas can arrive the same way
+#' bf(y ~ a * exp(-b * x), a ~ 1, nl = TRUE) + lf(b ~ 1 + (1 | g))
+#' @export
+lf <- function(...) {
+  dots <- list(...)
+  pforms <- list()
+  for (d in dots) {
+    if (!inherits(d, "formula") || length(d) != 3L) {
+      stop("lf() takes two-sided formulas naming the parameter on the ",
+           "left: e.g. lf(sigma ~ x)", call. = FALSE)
+    }
+    for (dpar in lhs_dpar_names(d[[2]])) {
+      if (dpar %in% names(pforms)) {
+        stop("Duplicated parameter formula in lf(): '", dpar, "'",
+             call. = FALSE)
+      }
+      di <- d
+      di[[2]] <- as.name(dpar)
+      pforms[[dpar]] <- di
+    }
+  }
+  if (!length(pforms)) {
+    stop("lf() needs at least one parameter formula, e.g. lf(sigma ~ x)",
+         call. = FALSE)
+  }
+  structure(list(pforms = pforms), class = "frmtmb_lf")
+}
+
+#' @export
+print.frmtmb_lf <- function(x, ...) {
+  for (f in x$pforms) cat(deparse1(f), "\n")
+  invisible(x)
+}
+
 #' @export
 "+.frmtmb_formula" <- function(e1, e2) {
   if (missing(e2)) return(e1)
   if (inherits(e2, "frmtmb_formula")) {
     return(mvbf(e1, e2))
+  }
+  if (inherits(e2, "frmtmb_lf")) {
+    for (nm in names(e2$pforms)) {
+      if (nm %in% c(names(e1$pforms), names(e1$pfix))) {
+        stop("lf() sets '", nm, "', which the bf() it is added to ",
+             "already sets", call. = FALSE)
+      }
+      e1$pforms[[nm]] <- e2$pforms[[nm]]
+    }
+    return(e1)
   }
   if (inherits(e2, "frmtmb_rescor")) {
     stop("set_rescor() applies to multivariate formulas; combine ",
@@ -228,6 +322,11 @@ set_rescor <- function(rescor_value = TRUE) {
 #' @export
 "+.frmtmb_mvformula" <- function(e1, e2) {
   if (missing(e2)) return(e1)
+  if (inherits(e2, "frmtmb_lf")) {
+    stop("lf() does not say which response it belongs to. Put it ",
+         "directly after the bf() it modifies, e.g. ",
+         "bf(y1 ~ x) + lf(sigma ~ z) + bf(y2 ~ x)", call. = FALSE)
+  }
   if (inherits(e2, "frmtmb_rescor")) {
     e1$rescor <- e2$rescor
     return(e1)
@@ -272,8 +371,10 @@ print.frmtmb_formula <- function(x, ...) {
 #' Normalize a plain formula or `bf()`/`mvbf()` object plus an optional
 #' family argument into a bform with families attached: the argument
 #' fills empty per-response slots of a multivariate form and overrides
-#' a univariate one. Shared by `frm()`, `get_prior()`, and
-#' `frm_simulate()` so the coercion cannot drift between entry points.
+#' a univariate one. A response left without a family after that gets
+#' `gaussian()`, the brms/lme4/glmmTMB convention. Shared by `frm()`,
+#' `get_prior()`, and `frm_simulate()` so the coercion cannot drift
+#' between entry points.
 #'
 #' @noRd
 as_bform <- function(formula, family = NULL) {
@@ -294,5 +395,21 @@ as_bform <- function(formula, family = NULL) {
       bform$family <- fam
     }
   }
+  # Silent, like glmmTMB and lme4: a message here would fire on every
+  # linear mixed model, which is the most common fit there is.
+  if (inherits(bform, "frmtmb_mvformula")) {
+    bform$forms <- lapply(bform$forms, function(f) {
+      if (is.null(f$family)) f$family <- default_family()
+      f
+    })
+  } else if (is.null(bform$family)) {
+    bform$family <- default_family()
+  }
   bform
 }
+
+#' The family a model gets when neither the `family` argument nor a `+`
+#' attachment names one.
+#'
+#' @noRd
+default_family <- function() as_frmtmb_family(stats::gaussian())

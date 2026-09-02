@@ -7,6 +7,7 @@ reference:
 - title: Model specification
   contents:
   - bf
+  - lf
   - mvbf
   - set_rescor
   - num_factor
@@ -63,6 +64,7 @@ reference:
   - conditional_effects
   - simulate.frmtmb_fit
   - refit
+  - update.frmtmb_fit
   - coef.frmtmb_fit
   - fixef
   - ranef

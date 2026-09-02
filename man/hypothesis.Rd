@@ -16,12 +16,14 @@ hypothesis(x, ...)
   method = c("wald", "profile", "boot"),
   nsim = 500,
   seed = NULL,
+  class = NULL,
+  group = NULL,
   ...
 )
 
-\method{hypothesis}{frmtmb_draws}(x, hypothesis, alpha = 0.05, ...)
+\method{hypothesis}{frmtmb_draws}(x, hypothesis, alpha = 0.05, class = NULL, group = NULL, ...)
 
-\method{hypothesis}{frmtmb_multiple}(x, hypothesis, alpha = 0.05, ...)
+\method{hypothesis}{frmtmb_multiple}(x, hypothesis, alpha = 0.05, class = NULL, group = NULL, ...)
 }
 \arguments{
 \item{x}{A \code{frmtmb_fit}, or a \code{frmtmb_multiple} for pooled tests.}
@@ -43,6 +45,11 @@ hypothesis(x, ...)
 share one bootstrap run.}
 
 \item{seed}{Optional seed for \code{method = "boot"}.}
+
+\item{class, group}{brms shorthand for the parameter names: the
+hypothesis is written with bare names and \code{class} (and \code{group},
+for the \code{sd_}/\code{cor_} summaries) supplies the prefix. The default
+\code{NULL} (like brms's \code{class = "b"}) takes the names as written.}
 }
 \value{
 A \code{frmtmb_hypothesis} object: a data frame with one row per
@@ -57,18 +64,55 @@ plotting.
 \description{
 The frequentist analog of brms's \code{hypothesis()}: evaluates
 expressions of the model parameters at the estimates and tests them
-against zero. A hypothesis is \code{"expr"} (tested against 0) or
-\code{"expr = rhs"}, e.g. \code{"x1 - x2 = 0"} or \code{"exp(Intercept) = 1"}.
+against zero. A hypothesis is \code{"expr"} (tested against 0),
+\code{"expr = rhs"}, e.g. \code{"x1 - x2 = 0"} or \code{"exp(Intercept) = 1"}, or
+brms's directional \code{"lhs > rhs"} / \code{"lhs < rhs"}.
 }
-\details{
+\section{Directional hypotheses}{
+
+\code{"lhs > rhs"} and \code{"lhs < rhs"} test the same difference
+\code{(lhs) - (rhs)} against zero with a one-sided alternative, so the
+reported \code{p} is the one-sided tail probability and the interval is
+one-sided at level \code{1 - alpha}: the unbounded end prints as \code{Inf}
+or \code{-Inf}. \code{p} is \code{pnorm()} of the signed z statistic for \code{"wald"}
+and, as in the two-sided case where \code{se}, \code{z} and \code{p} stay
+Wald-based, for \code{"profile"} too - the profile changes the BOUND,
+which is the matching endpoint of the two-sided \code{1 - 2 * alpha}
+profile interval, and nothing else. For \code{"boot"} and the draws
+method \code{p} is the tail proportion of the draws with the
+\code{(1 + k) / (1 + n)} correction. Where brms reports the posterior
+probability of the direction, this reports its frequentist
+complement: small \code{p} is evidence for the stated direction.
+\code{">="} and \code{"<="} read as \code{">"} and \code{"<"}.
+}
+
+\section{brms class and group shorthand}{
+
+\code{class} and \code{group} prefix the bare names in the hypothesis, so
+\code{hypothesis(fit, "Intercept - age > 0", class = "sd", group = "patient")} tests
+\code{sd_patient__Intercept - sd_patient__age}. \code{class = "b"} (brms's
+default) and \code{class = NULL} leave the names alone; a \code{class}
+without a \code{group} prefixes \verb{<class>_}, which is how a
+distributional coefficient such as \code{sigma_Intercept} is named. A
+name already written in full keeps its spelling, so the two can be
+mixed; but a name that exists only WITHOUT the prefix is an error
+rather than a test of the unprefixed parameter, so a wrong \code{class}
+or \code{group} cannot quietly answer a different question.
+
 Available names: the fixed-effect coefficients under their \code{vcov()}
 row names with parentheses stripped (\code{Intercept}, \code{x},
 \code{sigma_Intercept}, ...), natural-scale random-effect summaries
 \verb{sd_<group>__<term>} and \verb{cor_<group>__<t1>__<t2>} (brms naming),
 and \code{sigma} when the residual SD is a scalar. So an ICC is
 \code{"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"}.
-\code{\link[=variables]{variables()}} lists every usable name for a fit.
+\code{\link[=variables]{variables()}} lists every usable name for a fit. The internal
+spelling that \code{\link[=confint]{confint()}} and \code{\link[=vcov]{vcov()}} print is accepted as well,
+backquoted because it carries parentheses:
+\code{"`(Intercept)` - x"}. The traffic runs the other way too:
+\code{confint(parm = )} and \code{profile(parm = )} take these names,
+whenever one of them stands for a single internal parameter.
 }
+
 \section{Which random-effect blocks contribute names}{
 
 Every block whose covariance parameters ARE standard deviations and
@@ -113,6 +157,10 @@ dd$y <- rnorm(120, 1 + 0.6 * dd$x1 + 0.4 * dd$x2 +
                 rnorm(10, 0, 0.5)[dd$g], 1)
 fit <- frm(bf(y ~ x1 + x2 + (1 | g)) + gaussian(), data = dd)
 hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept)"))
+# brms's directional form: one-sided p, one-sided interval
+hypothesis(fit, "x1 > x2")
+# class/group name the natural-scale random-effect summaries
+hypothesis(fit, "Intercept > 0", class = "sd", group = "g")
 # variance-component expressions: an ICC with bootstrap intervals
 hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
            method = "boot", nsim = 20, seed = 1)

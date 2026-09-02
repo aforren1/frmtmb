@@ -581,3 +581,18 @@ being both the largest piece and the reason to build rung 2 at all,
 since it is what makes `fitted()` mean something. Refuse initially:
 weights/cens/trunc/mi, rescor/mvbf, quadrature, OSA, REML, and
 `predict(se.fit = TRUE)` on the response scale.
+
+## `nlf()`: recorded, not implemented (v0.34.x, wt-polish)
+
+`lf()` shipped with the brms-portability batch: it is sugar over the
+dpar formulas `bf()` already takes, so `+.frmtmb_formula` merges its
+formulas into `pforms`. `nlf()` is not the same shape. In brms it
+declares a NONLINEAR formula for one parameter,
+`bf(y ~ a) + nlf(a ~ exp(b * x)) + lf(b ~ 1)`, which needs a per-dpar
+`nl` flag. frmtmb's `nl` is one flag on the whole `bf()`, and the
+nonlinear branch of `parse_one_response()` reads the main formula's
+right-hand side as the body with every `pforms` entry as a linear
+nonlinear-parameter formula. Supporting `nlf()` means a nonlinearity
+flag per dpar and a nested body in the objective, which is real work in
+`parse.R` and `objective.R`, not sugar. The existing spelling stays
+`bf(y ~ exp(b * x), b ~ 1, nl = TRUE)`.

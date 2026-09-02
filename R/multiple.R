@@ -543,12 +543,17 @@ d3_stat <- function(dbar, dtilde, k, m) {
 
 #' @rdname hypothesis
 #' @export
-hypothesis.frmtmb_multiple <- function(x, hypothesis, alpha = 0.05, ...) {
+hypothesis.frmtmb_multiple <- function(x, hypothesis, alpha = 0.05,
+                                       class = NULL, group = NULL, ...) {
   if (...length()) {
     warning("ignoring arguments unused by pooled hypothesis tests: ",
             paste(...names(), collapse = ", "), call. = FALSE)
   }
-  exs <- lapply(hypothesis, hyp_parse)
+  vo <- hyp_vals_only(x$fits[[1]])
+  hp <- hyp_parse_all(hypothesis,
+                      names(hyp_env_vals(x$fits[[1]], vo$vals, vo$comp)),
+                      class, group)
+  exs <- hp$exprs
   m <- x$m
   Q <- matrix(NA_real_, length(exs), m)
   U <- matrix(NA_real_, length(exs), m)
@@ -569,16 +574,89 @@ hypothesis.frmtmb_multiple <- function(x, hypothesis, alpha = 0.05, ...) {
     }
   }
   pl <- rubin_pool(Q, U, df.residual(x$fits[[1]]))
-  tq <- stats::qt(1 - alpha / 2, pl$df)
-  tstat <- pl$estimate / pl$se
-  out <- data.frame(
-    hypothesis = hypothesis, estimate = pl$estimate, se = pl$se,
-    lwr = pl$estimate - tq * pl$se, upr = pl$estimate + tq * pl$se,
-    t = tstat, df = pl$df, p = 2 * stats::pt(-abs(tstat), pl$df)
-  )
+  rows <- lapply(seq_along(exs), function(i) {
+    # the reference is the Barnard-Rubin t of this row, so the
+    # quantile and tail functions go in per row
+    df_i <- pl$df[i]
+    wr <- hyp_wald_row(pl$estimate[i], pl$se[i], hp$dir[i], alpha,
+                       function(p) stats::qt(p, df_i),
+                       function(q) stats::pt(q, df_i))
+    data.frame(hypothesis = hypothesis[i], estimate = pl$estimate[i],
+               se = pl$se[i], lwr = wr$lwr, upr = wr$upr,
+               t = wr$stat, df = df_i, p = wr$p)
+  })
+  out <- do.call(rbind, rows)
   rownames(out) <- NULL
   attr(out, "method") <- "wald"
   attr(out, "alpha") <- alpha
+  attr(out, "direction") <- hp$dir
   class(out) <- c("frmtmb_hypothesis", "data.frame")
   out
+}
+
+## Post-processing entry points that a pooled fit cannot serve.
+##
+## A frm_multiple() result is m maximum-likelihood fits plus the Rubin
+## pooling of their coefficients. It has no draws, no chains, and no
+## pooled predictive distribution, so the brms/posterior entry points
+## that assume one of those are refused by name rather than left to
+## fail inside base graphics or a posterior-package default method.
+
+#' The one refusal for the posterior-package entry points: name the
+#' function the user called, say why there is nothing to hand over, and
+#' name what to call instead.
+#'
+#' @noRd
+multiple_no_draws <- function(fn) {
+  stop(fn, "() needs draws, and a frm_multiple() result has none: it ",
+       "is m maximum-likelihood fits pooled by Rubin's rules, with no ",
+       "chains. Read the pooled tables from `x$pooled` and ",
+       "`x$pooled_varcorr` or test with hypothesis(), and use ",
+       "frm_sample() on one imputation's fit (`x$fits[[1]]`) for draws",
+       call. = FALSE)
+}
+
+#' @rdname as_draws
+#' @exportS3Method posterior::as_draws
+#' @export
+as_draws.frmtmb_multiple <- function(x, ...) multiple_no_draws("as_draws")
+
+#' @exportS3Method posterior::as_draws_array
+as_draws_array.frmtmb_multiple <- function(x, ...) {
+  multiple_no_draws("as_draws_array")
+}
+
+#' @exportS3Method posterior::as_draws_matrix
+as_draws_matrix.frmtmb_multiple <- function(x, ...) {
+  multiple_no_draws("as_draws_matrix")
+}
+
+#' @exportS3Method posterior::as_draws_df
+as_draws_df.frmtmb_multiple <- function(x, ...) {
+  multiple_no_draws("as_draws_df")
+}
+
+# posterior's nchains() and ndraws() generics take x alone, so these
+# methods do too
+#' @exportS3Method posterior::nchains
+nchains.frmtmb_multiple <- function(x) multiple_no_draws("nchains")
+
+#' @exportS3Method posterior::ndraws
+ndraws.frmtmb_multiple <- function(x) multiple_no_draws("ndraws")
+
+#' @export
+plot.frmtmb_multiple <- function(x, ...) {
+  stop("plot() has no pooled display for a frm_multiple() result. ",
+       "Plot one imputation's fit, `plot(x$fits[[1]])`, or print the ",
+       "object for the pooled coefficients and variance components",
+       call. = FALSE)
+}
+
+#' @export
+conditional_effects.frmtmb_multiple <- function(x, ...) {
+  stop("conditional_effects() has no pooled version for a ",
+       "frm_multiple() result: an effect curve would have to be ",
+       "pooled across imputations, which is not implemented. Compute ",
+       "it on one imputation's fit, `conditional_effects(x$fits[[1]])`",
+       call. = FALSE)
 }

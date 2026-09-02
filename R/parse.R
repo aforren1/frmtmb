@@ -662,8 +662,12 @@ plain_dpar <- function(dp, fam, constant = NULL) {
 parse_one_response <- function(bform) {
   fam <- bform$family
   if (is.null(fam)) {
-    stop("No family specified. Attach one with `bf(...) + gaussian()` or ",
-         "the `family` argument of frm()", call. = FALSE)
+    # Not reachable through frm(), get_prior() or frm_simulate(): all
+    # three normalize with as_bform(), which defaults an unnamed family
+    # to gaussian. It guards direct internal use of parse_spec().
+    stop("No family specified. Pass one as the `family` argument of ",
+         "frm(), or attach it with `bf(...) + gaussian()`",
+         call. = FALSE)
   }
   f <- bform$formula
   if (length(f) != 3L) {
