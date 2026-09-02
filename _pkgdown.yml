@@ -27,6 +27,9 @@ reference:
   - mixture
   - mixture_mvn
   - mixture_probs
+  - lca
+  - lca_probs
+  - lca_profiles
   - check_custom_family
 - title: Inference and diagnostics
   contents:

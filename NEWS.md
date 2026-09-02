@@ -1,3 +1,58 @@
+# frmtmb 0.35.0 (development)
+
+## New
+
+* Latent class analysis, the poLCA measurement model, as the family
+  `lca(K)`. The response is a matrix of polytomous item codes, one row
+  per subject and one column per item; the items are conditionally
+  independent given a subject's latent class, and each class carries
+  its own item-response profile. Class membership is the `theta1 ...
+  theta{K-1}` dpars with full linear predictors, so a covariate on the
+  model formula gives poLCA's latent class regression for free, with
+  `fixef()`, `confint()`, `hypothesis()`, `set_prior()` and
+  `frm_sample()` on the gating coefficients. Items may have different
+  numbers of categories; `ncat` declares them, and by default they are
+  inferred as the largest observed code per item, as poLCA does. The
+  item profiles are family extra parameters, one vector `pi<j>` per
+  item holding its `K * (C_j - 1)` reference-category logits, so they
+  appear per item in `summary()` and as `pi<j>_<i>` in `confint()`.
+  Validated against poLCA on its own shipped data: the carcinoma
+  3-class model agrees to 4.2e-8 in log-likelihood, 2.8e-8 in item
+  profiles, 6.2e-9 in class sizes and 9.9e-8 in posterior membership,
+  and the election latent class regression agrees to 1.1e-7 in
+  log-likelihood, 1.1e-7 in item profiles and 9.9e-7 in gating
+  coefficients. A hand-rolled
+  `optim()` reference on simulated data agrees to 1.5e-9, and a
+  one-item fit reaches the saturated single-categorical likelihood to
+  5.6e-11.
+* `lca_profiles()` returns the class-conditional item-response
+  probability tables (poLCA's `probs`) with the estimated class sizes
+  attached, and prints them. `lca_probs()` returns posterior class
+  membership per subject (poLCA's `posterior`) with the relative
+  entropy of the classification attached; it is `mixture_probs()`
+  under an LCA-specific name and check.
+* `lca(na.rm = FALSE)` keeps subjects with missing items and masks
+  each missing item out of that subject's likelihood, poLCA's
+  `na.rm = FALSE` behavior. The default drops incomplete subjects
+  through the usual `na.action`, which is poLCA's default.
+
+## Notes
+
+* `lca()` starting values are deterministic: subjects are scored by
+  the mean of their item codes rescaled to `[0, 1]`, cut into `K`
+  equal-count slices, and each slice's smoothed category proportions
+  seed one class. Class 1 is the low-score end, so a data set always
+  gets the same labeling. Multimodality is unchanged; `?lca` shows the
+  perturbed-`start` loop that replaces poLCA's `nrep`.
+* `lca()` v1 refuses random effects, smooths and `gp()` anywhere in
+  the model (that is the growth-mixture shape, which
+  `mixture(..., groups = ~g)` fits), `REML`, `profile = TRUE`,
+  `quadrature`, every addition term, `mvbf()`, and
+  `residuals(type = "osa")`. `fitted()`, `residuals()` and
+  `predict(type = "response")` are refused because a matrix of nominal
+  item codes has no mean; `predict()` returns the gating linear
+  predictor.
+
 # frmtmb 0.34.0
 
 Within-group residual correlation (R-side effects), quantile

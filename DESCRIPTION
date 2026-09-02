@@ -56,6 +56,7 @@ Suggests:
     nlme,
     nloptr,
     nnet,
+    poLCA,
     posterior,
     quantreg,
     rmarkdown,

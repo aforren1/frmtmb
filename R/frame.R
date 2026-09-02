@@ -687,9 +687,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   env <- spec$responses[[1]]$formula_env
   fr_formula <- stats::as.formula(call("~", rhs_comb), env = env)
   # x | mi() responses may carry NAs (they become latent parameters);
-  # rows are dropped only for NAs in every OTHER variable
+  # rows are dropped only for NAs in every OTHER variable. A family that
+  # declares `na_response` reads the NAs itself (lca(na.rm = FALSE)
+  # masks a missing item out of that subject's likelihood) and takes the
+  # same exemption.
   mi_cols <- vapply(
-    Filter(function(r) isTRUE(r$aterms$mi), spec$responses),
+    Filter(function(r) {
+      isTRUE(r$aterms$mi) || isTRUE(r$family$na_response)
+    }, spec$responses),
     function(r) deparse1(r$resp_expr), ""
   )
   if (length(mi_cols)) {
@@ -1806,6 +1811,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # cannot see whether they vary inside the group once they are AD
   # values; here the designs and the grouping column are both in hand
   check_ode_constancy(spec, linpreds, mf)
+
+  # lca() refuses random effects and mvbf(); both are properties of the
+  # assembled predictors rather than of the response, so the family's
+  # own valid_y() cannot see them
+  check_lca_structure(spec, linpreds)
 
   structure(
     list(spec = spec, n_obs = n, y = y, y_levels = y_levels,
