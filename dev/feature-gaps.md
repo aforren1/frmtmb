@@ -428,3 +428,85 @@ examples/vignettes must skip cleanly without it - the brms/cmdstanr
 posture exactly. The RTMB/RTMBp split (variant under a different
 package NAME) is the other pattern, for when the variant replaces
 rather than extends; not needed here.
+
+## Hidden Markov models (user request 2026-09-02)
+
+Union-coverage territory: brms has NO HMM grammar. The reference the
+user pointed at (cas-bioinf/covid19retrospective, manuscript/hmm.Rmd)
+injects a hand-written forward algorithm into brms through `stanvars`
+with a custom family - raw Stan, not grammar.
+
+Statistical position: HMM latent states are discrete, so the Laplace
+approximation does not apply to them and does not need to. The forward
+algorithm marginalizes the state sequence EXACTLY, as a per-group
+recursion of small matrix products, which tapes in RTMB. This is
+hmmTMB's architecture. Composition with random effects is the v0.19
+insight again: sum the discrete states inside (forward algorithm, exact
+given b), integrate the Gaussian b outside (Laplace).
+
+PROBE DONE 2026-09-02, branch wt-hmmprobe. Full write-up in
+dev/hmm-feasibility.md; scripts in dev/hmm/. Headline: the thesis holds
+and rung 1 already works, with NO package change.
+
+Rung 1 - `custom_family()` + `vint(g, t)` payloads, the lpdf running
+the forward recursion per sequence and scattering each sequence's log
+likelihood onto its first row with a constant sparse indicator - fits a
+gaussian HMM with covariate-dependent transitions and per-state random
+effects. `check_custom_family()` PASSES unmodified. Validated four
+ways: identical to a hand-rolled MakeADFun (4.2e-9 on logLik, 8.4e-6 on
+the coefficients); depmixS4 to 2.1e-8 (single sequence) and 1.3e-6 (30
+sequences with transition covariates, every coefficient to 4 decimals);
+hmmTMB to 8.7e-10 on logLik and 2.8e-7 on the parameters (fixed
+effects, stationary initial distribution); and, with `(1|g)` on a state
+mean, adaptive Gauss-Hermite quadrature over the per-group scalar b,
+which puts the Laplace bias at 0.126 in logLik (8.9e-5 relative) and
+4.4e-4 in the parameters - an order of magnitude better than v0.19's
+group mixtures. Categorical emissions (the covid model class) work
+identically: exact against the numeric forward (1.1e-13) and an
+independent BFGS (1.5e-8 on the parameters).
+
+Cost is linear in ROWS and free in the number of sequences: 5000 rows
+cost the same cut as 1x5000 or 1000x5 (tape 543 vs 653 ms, fn 0.70 vs
+0.88 ms). Tape build is the part that grows slightly faster than linear
+and is what becomes annoying above T ~ 20000 (1.9 s per build against
+5 ms to evaluate). Log-space via `logspace_add` and Zucchini scaling
+both tape and agree to 2.8e-13; scaling is 1.8x faster on the gradient,
+log-space is the robust default. The `[<-` gotcha costs only 1.5x on
+the tape build here, because the assigned vector is length K, not n.
+
+Three sharp edges, all measured. (1) The post-fit surface SILENTLY
+LIES: `fitted()`, `residuals()` and `predict(type = "response")` return
+state 1's mean at every row, because `response_mean()` falls back to
+`dpars$mu`; no per-row `mean_fn` could be right, since E[y_t] needs the
+state-occupancy probability from forward-backward. (2) The cold start
+converges to a LOCAL optimum 8.1 logLik below the global one on the
+random-effect model, with convergence code 0, max|grad| 3.5e-4, a PD
+Hessian and `diagnose()` reporting nothing. (3) REML runs and should
+not: it integrates only `mu`'s fixed effects, leaving the transition
+and SD dpars outer - a partial restricted likelihood matching no
+standard definition. Also: a start with both state means at the median
+is a fixed point of the label symmetry and stalls at the one-state
+solution; sequences of length 1 reproduce `mixture()` to 3.4e-13 but
+report 2 unidentified transition parameters in `df`; NA responses must
+be masked with a `vint` flag rather than dropped by `na.omit`, which
+silently shortens the chain; and the stationary initial distribution
+tapes fine through `RTMB::solve` (4.6e-13 vs numeric) but only when the
+transitions are constant.
+
+Found while validating, worth an upstream note: hmmTMB silently treats
+a data column named `state` as KNOWN STATES and maximizes the
+complete-data likelihood (-1247.25 against -1216.40 on the same data),
+with no message. Drop the column before comparing.
+
+Rung 2 (`hmm(K, family, time =, group =, init =)`) is recommended and
+sized at 7-9 days in dev/hmm-feasibility.md. Most of it is `mixture()`
+machinery verbatim - suffixed per-state dpars with the full formula
+grammar, the multinomial-logit weight block (K copies of it, one per
+source state), logsumexp, quantile-spread inits, the `mix_g` group
+structure, and the sum-inside-integral objective branch. The genuinely
+new work is the time/group contract in the frame, the taped forward
+recursion, and forward-backward/Viterbi post-processing - the last
+being both the largest piece and the reason to build rung 2 at all,
+since it is what makes `fitted()` mean something. Refuse initially:
+weights/cens/trunc/mi, rescor/mvbf, quadrature, OSA, REML, and
+`predict(se.fit = TRUE)` on the response scale.
