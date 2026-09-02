@@ -157,6 +157,19 @@ Read those off \code{\link[=confint_varcorr]{confint_varcorr()}}, which reports 
 label (\code{sd(gp)}, \code{range(gp)}, \code{sd(car)}, ...).
 }
 
+\section{When a coefficient shadows a natural-scale name}{
+
+Model terms and natural-scale summaries share one namespace here, and
+the coefficient wins: a covariate literally named \code{sigma} makes
+\code{"sigma = 0"} a test on ITS coefficient, not on the residual standard
+deviation. The same holds for a coefficient that spells out
+\verb{sd_<group>__<term>}, \code{cor_...} or an autocorrelation name such as
+\code{ar1}. The shadowed quantity keeps a name: prefix it with a dot,
+\code{.sigma}, \code{.sd_g__Intercept}, \code{.ar1}. The dot spelling exists only
+where a collision does, and \code{hypothesis()} says so once per call when
+one is in play. \code{variables()} lists both names in that case.
+}
+
 \examples{
 set.seed(4)
 dd <- data.frame(x1 = rnorm(120), x2 = rnorm(120),

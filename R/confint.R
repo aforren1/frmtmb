@@ -157,6 +157,76 @@ par_alias_index <- function(fit) {
   stats::setNames(pos, nms)
 }
 
+#' Bare nonlinear-parameter names, as positions in `outer_par_map()`.
+#' An `nl` parameter declared `la ~ 1` has exactly one coefficient,
+#' `la_(Intercept)`, so the bare `la` names it without ambiguity. That
+#' is the one-to-one rule the `sd_`/`ar1` aliases already follow. A
+#' parameter
+#' with a design matrix wider than one column names several, and is
+#' reported in `ambiguous` for the caller to refuse by name.
+#'
+#' Only nonlinear parameters, deliberately: a distributional parameter's
+#' bare name (`sigma`) is already the NATURAL-scale summary that
+#' [hypothesis()] reports, and aliasing it to the internal
+#' `sigma_(Intercept)` would make the same word mean a value and its
+#' link transform in two neighbouring arguments.
+#'
+#' @noRd
+nlpar_bare_alias <- function(fit) {
+  spec <- fit$frame$spec
+  nm <- outer_par_names(fit)
+  tpl <- fit$frame$par_template
+  mv <- length(spec$responses) > 1L
+  pos <- integer(0)
+  pnm <- character(0)
+  amb <- list()
+  for (resp in spec$responses) {
+    for (np in resp$nlpars %||% character(0)) {
+      bare <- if (mv) paste0(resp$resp_name, "_", np) else np
+      # never displace a real parameter name, and never claim a bare
+      # name twice (two responses can declare the same nlpar)
+      if (bare %in% nm || bare %in% pnm || bare %in% names(amb)) next
+      for (lp in fit$frame$linpreds) {
+        if (!identical(lp$resp, resp$resp_name) ||
+            !identical(lp$dpar, np)) {
+          next
+        }
+        full <- names(tpl[[lp$par]])[lp$idx]
+        hit <- stats::na.omit(match(full, nm))
+        if (length(hit) == 1L) {
+          pnm <- c(pnm, bare)
+          pos <- c(pos, hit)
+        } else if (length(hit) > 1L) {
+          amb[[bare]] <- nm[hit]
+        }
+        break
+      }
+    }
+  }
+  list(pos = stats::setNames(pos, pnm), ambiguous = amb)
+}
+
+#' Fold the bare nonlinear-parameter aliases into a partly resolved
+#' index vector, refusing a bare name that stands for several
+#' coefficients rather than picking one of them.
+#'
+#' @noRd
+apply_nlpar_alias <- function(fit, x, idx) {
+  if (!anyNA(idx)) return(idx)
+  al <- nlpar_bare_alias(fit)
+  hit <- match(x, names(al$pos))
+  took <- which(is.na(idx) & !is.na(hit))
+  idx[took] <- al$pos[hit[took]]
+  bad <- intersect(x[is.na(idx)], names(al$ambiguous))
+  if (length(bad)) {
+    stop("Nonlinear parameter '", bad[1L], "' has more than one ",
+         "coefficient, so the bare name does not identify one of them. ",
+         "Name the coefficient in full: ",
+         paste(al$ambiguous[[bad[1L]]], collapse = ", "), call. = FALSE)
+  }
+  idx
+}
+
 #' Resolve a `parm`-style argument to positions in `outer_par_map()`,
 #' accepting the internal names, their parenthesis-free spelling, and
 #' the one-to-one natural-scale aliases. An alias is reported, because
@@ -169,6 +239,10 @@ resolve_par_index <- function(fit, parm, what) {
   nm <- map$names
   if (is.numeric(parm)) return(as.integer(parm))
   idx <- match_par_name(parm, nm)
+  # a bare nlpar is a SPELLING of one internal parameter, like dropping
+  # the parentheses, so it resolves silently; the natural-scale aliases
+  # below name a different scale and say so
+  idx <- apply_nlpar_alias(fit, parm, idx)
   if (anyNA(idx)) {
     alias <- par_alias_index(fit)
     hit <- match(parm, names(alias))
@@ -202,7 +276,8 @@ resolve_par_index <- function(fit, parm, what) {
     stop("Unknown parameter(s) in ", what, "(parm =): ",
          paste(bad, collapse = ", "), ". Available: ",
          paste(nm, collapse = ", "),
-         ". Parentheses may be dropped, and the one-to-one natural-scale ",
+         ". Parentheses may be dropped, intercept-only nonlinear ",
+         "parameters may be named bare, and the one-to-one natural-scale ",
          "names of variables() (sd_<group>__<term>, and a correlation ",
          "with a single internal parameter) are accepted as aliases",
          call. = FALSE)
@@ -224,7 +299,11 @@ resolve_par_index <- function(fit, parm, what) {
 #'   (`tarsus_Intercept`, the spelling [hypothesis()] and [variables()]
 #'   use), and a natural-scale name that stands for exactly one
 #'   internal parameter, `sd_<group>__<term>` and a correlation whose
-#'   block has a single internal correlation parameter. An alias is
+#'   block has a single internal correlation parameter. The bare name of
+#'   an intercept-only nonlinear parameter (`la` for `la_(Intercept)`)
+#'   is a fourth spelling of the same internal parameter, so it resolves
+#'   silently; a nonlinear parameter with several coefficients is
+#'   refused rather than resolved to one of them. An alias is
 #'   reported and the row keeps the internal name, because the interval
 #'   is on the internal scale: see [confint_varcorr()] and
 #'   [hypothesis()] for natural-scale intervals. A natural-scale
@@ -1479,10 +1558,57 @@ hyp_par_cov <- function(fit) {
   }
 }
 
+# Shadowing note bookkeeping. hyp_env_vals() is rebuilt for every
+# hypothesis, and once per finite-difference step inside the delta
+# method, so the note has to be armed and deduplicated by the call that
+# a user actually typed rather than emitted where it is detected.
+hyp_shadow_state <- new.env(parent = emptyenv())
+
+#' Arm the shadowing note for one user-level call and return the state
+#' to restore afterwards (nested calls therefore stay one-shot too).
+#'
+#' @noRd
+hyp_shadow_arm <- function() {
+  old <- list(armed = hyp_shadow_state$armed, seen = hyp_shadow_state$seen)
+  hyp_shadow_state$armed <- TRUE
+  hyp_shadow_state$seen <- character(0)
+  old
+}
+
+#' @noRd
+hyp_shadow_disarm <- function(old) {
+  hyp_shadow_state$armed <- old$armed
+  hyp_shadow_state$seen <- old$seen
+  invisible(NULL)
+}
+
+#' Report the natural-scale names a fixed-effect coefficient has taken
+#' over, once per armed call and once per name.
+#'
+#' @noRd
+hyp_shadow_note <- function(shadow) {
+  if (!length(shadow) || !isTRUE(hyp_shadow_state$armed)) return(invisible(NULL))
+  new <- setdiff(names(shadow), hyp_shadow_state$seen)
+  if (!length(new)) return(invisible(NULL))
+  hyp_shadow_state$seen <- c(hyp_shadow_state$seen, new)
+  message("hypothesis() reads ",
+          paste0("'", new, "' as the coefficient of the model term of ",
+                 "that name, not ", unlist(shadow[new]), "; that ",
+                 "quantity is available as '.", new, "'",
+                 collapse = ", and "), ".")
+}
+
 #' Named list the hypothesis expressions are evaluated in: fixed
 #' coefficients under their vcov() names (parentheses stripped),
 #' natural-scale random-effect summaries (`sd_<group>__<term>`,
 #' `cor_<group>__<t1>__<t2>`), and `sigma` when it is a scalar.
+#'
+#' A coefficient name wins any collision with a natural-scale name (the
+#' v0.21 guard: a covariate literally named `sigma` must stay
+#' addressable). The shadowed quantity is then registered under a
+#' leading dot (`.sigma`, `.sd_g__Intercept`) and named in a one-time
+#' message, so the other meaning is reachable rather than merely
+#' documented.
 #'
 #' @noRd
 hyp_env_vals <- function(fit, vals, comp) {
@@ -1497,6 +1623,23 @@ hyp_env_vals <- function(fit, vals, comp) {
   # ones an expression can carry unquoted
   for (i in seq_along(raw)) {
     if (raw[i] != cn[i] && is.null(env[[raw[i]]])) env[[raw[i]]] <- cf[i]
+  }
+
+  # every name in the environment at this point came from a coefficient,
+  # so a later collision is a shadow rather than two natural-scale
+  # summaries competing (the latter keeps the first writer, as before)
+  coef_names <- names(env)
+  shadow <- list()
+  put <- function(nm, val, meaning) {
+    if (is.null(env[[nm]])) {
+      env[[nm]] <<- val
+      return(invisible(NULL))
+    }
+    if (!nm %in% coef_names) return(invisible(NULL))
+    dn <- paste0(".", nm)
+    if (is.null(env[[dn]])) env[[dn]] <<- val
+    if (is.null(shadow[[nm]])) shadow[[nm]] <<- meaning
+    invisible(NULL)
   }
 
   th <- vals[comp == "theta"]
@@ -1521,14 +1664,14 @@ hyp_env_vals <- function(fit, vals, comp) {
     sds <- sqrt(diag(V))
     for (j in seq_along(sds)) {
       nm <- paste0("sd_", g, "__", tn[j])
-      if (is.null(env[[nm]])) env[[nm]] <- sds[j]
+      put(nm, sds[j], "the random-effect standard deviation")
     }
     if (nrow(V) > 1L) {
       C <- stats::cov2cor(V)
       for (j in seq_len(nrow(V) - 1L)) {
         for (k in seq(j + 1L, nrow(V))) {
           nm <- paste0("cor_", g, "__", tn[j], "__", tn[k])
-          if (is.null(env[[nm]])) env[[nm]] <- C[j, k]
+          put(nm, C[j, k], "the random-effect correlation")
         }
       }
     }
@@ -1541,16 +1684,17 @@ hyp_env_vals <- function(fit, vals, comp) {
     nat <- autocor_natural(thac[ac$theta_idx], ac)
     for (j in seq_along(nat)) {
       nm <- hyp_san(names(nat)[j])
-      if (is.null(env[[nm]])) env[[nm]] <- unname(nat[j])
+      put(nm, unname(nat[j]), "the residual autocorrelation")
     }
   }
 
-  if (length(fit$spec$responses) == 1L && is.null(env[["sigma"]])) {
-    # the guard keeps a covariate literally named `sigma` visible
+  if (length(fit$spec$responses) == 1L) {
+    # put() keeps a covariate literally named `sigma` visible under that
+    # name (the v0.21 guard) and files the residual SD under `.sigma`
     for (lp in fit$frame$linpreds) {
       if (lp$dpar != "sigma") next
       if (!is.null(lp$constant)) {
-        env[["sigma"]] <- lp$constant
+        put("sigma", lp$constant, "the residual standard deviation")
       } else if (ncol(lp$X) == 1L &&
                  identical(colnames(lp$X), "(Intercept)") &&
                  is.null(lp$Z) && lp$par == "betad") {
@@ -1558,10 +1702,14 @@ hyp_env_vals <- function(fit, vals, comp) {
         rk <- match(lp$idx, setdiff(seq_len(tpl_len),
                                     fit$frame$betad_fixed_idx))
         bd <- vals[comp == "betad"]
-        if (!is.na(rk)) env[["sigma"]] <- lp$link$linkinv(bd[rk])
+        if (!is.na(rk)) {
+          put("sigma", lp$link$linkinv(bd[rk]),
+              "the residual standard deviation")
+        }
       }
     }
   }
+  hyp_shadow_note(shadow)
   env
 }
 
@@ -1718,8 +1866,9 @@ hyp_eval <- function(fit, ex, vals, comp) {
   tryCatch(eval(ex, ev), error = function(e) {
     stop(conditionMessage(e), "\nAvailable names: ",
          paste(hyp_public_names(ev), collapse = ", "),
-         "\n(the internal spellings of confint() work too, backquoted)",
-         call. = FALSE)
+         "\n(the internal spellings of confint() work too, backquoted; ",
+         "a natural-scale name a coefficient has taken over carries a ",
+         "leading dot)", call. = FALSE)
   })
 }
 
@@ -1821,6 +1970,17 @@ hyp_fd_grad <- function(f, v) {
 #' Read those off [confint_varcorr()], which reports each under its own
 #' label (`sd(gp)`, `range(gp)`, `sd(car)`, ...).
 #'
+#' @section When a coefficient shadows a natural-scale name:
+#' Model terms and natural-scale summaries share one namespace here, and
+#' the coefficient wins: a covariate literally named `sigma` makes
+#' `"sigma = 0"` a test on ITS coefficient, not on the residual standard
+#' deviation. The same holds for a coefficient that spells out
+#' `sd_<group>__<term>`, `cor_...` or an autocorrelation name such as
+#' `ar1`. The shadowed quantity keeps a name: prefix it with a dot,
+#' `.sigma`, `.sd_g__Intercept`, `.ar1`. The dot spelling exists only
+#' where a collision does, and `hypothesis()` says so once per call when
+#' one is in play. `variables()` lists both names in that case.
+#'
 #' @seealso [vcov.frmtmb_fit()] with `full = TRUE` for the same joint covariance
 #'   (fixed effects plus covariance parameters, on their internal
 #'   scale) as a matrix, which is what the `"wald"` method uses here.
@@ -1892,7 +2052,14 @@ hyp_fd_grad <- function(f, v) {
 #' hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
 #'            method = "boot", nsim = 20, seed = 1)
 #' @export
-hypothesis <- function(x, ...) UseMethod("hypothesis")
+hypothesis <- function(x, ...) {
+  # the shadowing note belongs to the call the user typed, not to any of
+  # the many environment rebuilds it triggers, so it is armed here and
+  # restored when the method returns (on.exit survives UseMethod)
+  old <- hyp_shadow_arm()
+  on.exit(hyp_shadow_disarm(old))
+  UseMethod("hypothesis")
+}
 
 #' Usable parameter names
 #'

@@ -65,6 +65,7 @@ reference:
   - getME.frmtmb_fit
   - check_laplace
   - influence.frmtmb_fit
+  - plot.frmtmb_influence
   - set_prior
   - get_prior
   - frmtmb-priors

@@ -46,7 +46,11 @@
 #' @param lower,upper Optional named numeric vectors of hard box
 #'   constraints on outer parameters (brms `lb`/`ub`), on the internal
 #'   scale, e.g. `lower = c(b = 0)` for a nonlinear rate parameter.
-#'   Names as in `confint()` rows.
+#'   Names as in `confint()` rows, with parentheses optional; a
+#'   nonlinear parameter declared intercept-only (`b ~ 1`) may be named
+#'   bare, as in that example, which resolves to `b_(Intercept)`. One
+#'   that carries several coefficients is refused rather than resolved
+#'   to one of them.
 #' @param priors Optional [set_prior()] specification. This makes the
 #'   fit MAP / regularized ML (glmmTMB's `priors=` in spirit): useful
 #'   for stabilizing singular variance components or separating

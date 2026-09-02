@@ -46,10 +46,12 @@
 #' @srrstatsVerbose TRUE
 #'
 #' @srrstats {G5.2a} Every condition message raised in `R/` is unique.
-#'   The 582 `stop()` calls that carry literal text produce 582 distinct
+#'   The 584 `stop()` calls that carry literal text produce 584 distinct
 #'   messages (mechanically re-counted by an AST walk; 529 at v0.35.0,
 #'   plus nine net from the structured simulator contract and the
-#'   formula interface of `frm_sample()` with its default priors), so a
+#'   formula interface of `frm_sample()` with its default priors, plus
+#'   two from the influence plot and the ambiguous bare nonlinear
+#'   parameter), so a
 #'   message a user reports names one line of source. Two calls that
 #'   would otherwise read the
 #'   same are separated by the context that tells the two faults apart,
