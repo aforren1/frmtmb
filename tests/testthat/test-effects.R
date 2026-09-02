@@ -146,3 +146,36 @@ test_that("hypothesis reproduces Wald results and the delta method", {
   expect_equal(nrow(hh), 3L)
   expect_error(hypothesis(fit, "x1 = 0 = 1"), "at most one")
 })
+
+test_that("the default effects include fitted two-way interactions", {
+  # the epilepsy shape: brms plots zAge, zBase, Trt AND zBase:Trt by
+  # default; enumerating variables alone hid the fitted interaction
+  set.seed(31)
+  dd <- data.frame(zAge = stats::rnorm(80), zBase = stats::rnorm(80),
+                   Trt = factor(rep(0:1, 40)),
+                   patient = factor(rep(1:20, each = 4)))
+  dd$count <- stats::rpois(80, exp(1 + 0.2 * dd$zAge + 0.4 * dd$zBase -
+                                     0.3 * (dd$Trt == "1")))
+  fit <- frm(bf(count ~ zAge + zBase * Trt + (1 | patient)),
+             family = poisson(), data = dd)
+  ce <- conditional_effects(fit, resolution = 5)
+  expect_setequal(names(ce), c("zAge", "zBase", "Trt", "zBase:Trt"))
+  # the pair display varies zBase at Trt's levels
+  expect_true(all(c("zBase", "Trt") %in% names(ce$`zBase:Trt`)))
+  expect_equal(nlevels(factor(ce$`zBase:Trt`$Trt)), 2L)
+  # a model with no interaction gains no pair
+  fit0 <- frm(bf(count ~ zAge + zBase + (1 | patient)),
+              family = poisson(), data = dd)
+  expect_setequal(names(conditional_effects(fit0, resolution = 5)),
+                  c("zAge", "zBase"))
+  # explicit effects = still overrides the default entirely
+  expect_named(conditional_effects(fit, effects = "zAge",
+                                   resolution = 5), "zAge")
+  # a three-way term contributes its leading pair, not nothing
+  dd$w <- stats::rnorm(80)
+  fit3 <- frm(bf(count ~ zBase * Trt * w + (1 | patient)),
+              family = poisson(), data = dd)
+  nm3 <- names(conditional_effects(fit3, resolution = 5))
+  expect_true(all(c("zBase:Trt", "zBase:w", "Trt:w") %in% nm3))
+  expect_false("zBase:Trt:w" %in% nm3)
+})

@@ -44,13 +44,16 @@ the log scale.
 
 The system itself is a plain R function in the **deSolve** convention:
 it takes the time, the state vector and the parameter vector, and it
-returns the derivatives in a list. Index `y` and `p` by position.
+returns the derivatives in a list. Index `y` and `p` by position. RTMB’s
+tape-safe [`c()`](https://rdrr.io/r/base/c.html) and `[<-` replacements
+are in scope automatically, so the function needs no
+[`RTMB::ADoverload()`](https://rdrr.io/pkg/RTMB/man/ADoverload.html)
+boilerplate; only a helper function it calls, defined elsewhere, still
+needs its own bindings.
 
 ``` r
 
 pk_dyn <- function(t, y, p) {
-  # base c() drops the automatic-differentiation class; this restores it
-  "c" <- RTMB::ADoverload("c")
   list(c(-p[1] * y[1],
          p[1] * y[1] / p[3] - p[2] * y[2]))
 }
@@ -478,7 +481,6 @@ the exact steady-state trough is known:
 ``` r
 
 decay <- function(t, y, p) {
-  "c" <- RTMB::ADoverload("c")
   list(c(-p[1] * y[1]))
 }
 iv_ss <- data.frame(time = 0, value = 100, ii = 12, ss = TRUE)
@@ -541,7 +543,6 @@ tt <- c(1, 3, 6, 9, 12)
 ke_t <- ifelse(tt < 6, 0.2, 0.4)         # elimination doubles at hour 6
 
 pk_tv <- function(t, y, p) {
-  "c" <- RTMB::ADoverload("c")
   # `tv` values follow `parms`, so ka is p[1], V is p[2], and the
   # time-varying ke is p[3]
   list(c(-p[1] * y[1],

@@ -600,3 +600,38 @@ test_that("a penalty reached through predict() warns and names the group", {
   expect_equal(unname(p[2]), 1e6)
   expect_identical(frm_ode_failures()$groups, "2")
 })
+
+test_that("dynamics need no ADoverload boilerplate of their own", {
+  skip_if_not_installed("RTMBode")
+  # base c() and dy[i] <- in a user function, no ADoverload lines: the
+  # wrap in frm_ode() puts the overloads in scope, and a pre-compiled
+  # function is the worst case for it
+  set.seed(41)
+  d1 <- data.frame(t = rep(seq(0.5, 6, by = 0.5), 4),
+                   id = factor(rep(1:4, each = 12)))
+  d1$y <- 10 * exp(-0.3 * d1$t) * exp(stats::rnorm(nrow(d1), 0, 0.05))
+  bare <- compiler::cmpfun(function(t, y, p) {
+    dy <- numeric(1)
+    dy[1] <- -p[1] * y[1]
+    list(c(dy[1]))
+  })
+  boiler <- function(t, y, p) {
+    "c" <- RTMB::ADoverload("c")
+    "[<-" <- RTMB::ADoverload("[<-")
+    dy <- numeric(1)
+    dy[1] <- -p[1] * y[1]
+    list(c(dy[1]))
+  }
+  mk <- function(dyn) frm(
+    bf(y ~ log(frm_ode(dyn, init = list(exp(lv0)), times = t,
+                       parms = list(exp(lk)), group = id)),
+       lk ~ 1, lv0 ~ 1, nl = TRUE),
+    family = lognormal(), data = d1,
+    start = list(beta = log(c(0.3, 10))))
+  f1 <- mk(bare)
+  f2 <- mk(boiler)
+  expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f2)),
+               tolerance = 1e-10)
+  expect_equal(unname(unlist(fixef(f1))), unname(unlist(fixef(f2))),
+               tolerance = 1e-8)
+})

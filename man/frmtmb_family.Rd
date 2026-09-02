@@ -146,6 +146,17 @@ refused.
 [frm_simulate()]: R:frm_simulate()
 }
 
+\section{Tape-safe scope}{
+
+\code{lpdf} and \code{lcdf} run with RTMB's tape-safe \code{c()}, \verb{[<-} and
+\verb{diag<-} in scope automatically (the
+\code{"c" <- RTMB::ADoverload("c")} boilerplate is spliced in unless the
+function already binds it), so base spellings keep the
+automatic-differentiation class. A helper the density CALLS still
+needs its own bindings: lexical scope does not travel into other
+functions.
+}
+
 \examples{
 # a custom family is a plain R log-density over taped parameters
 dd <- data.frame(y = rbinom(100, 5, 0.4),

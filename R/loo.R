@@ -205,6 +205,7 @@ log_lik <- function(object, ...) {
 }
 
 #' @rdname log_lik
+#' @exportS3Method rstantools::log_lik
 #' @export
 log_lik.frmtmb_draws <- function(object, ndraws = NULL, resp = NULL,
                                  ...) {
@@ -428,6 +429,7 @@ psis.frmtmb_draws <- function(log_ratios, ndraws = NULL, resp = NULL,
 LOO <- function(x, ...) UseMethod("LOO")
 
 #' @rdname loo
+#' @exportS3Method brms::LOO
 #' @export
 LOO.frmtmb_draws <- function(x, ...) {
   stop("LOO() is the deprecated brms spelling and frmtmb never had it. ",
@@ -441,6 +443,7 @@ LOO.frmtmb_draws <- function(x, ...) {
 WAIC <- function(x, ...) UseMethod("WAIC")
 
 #' @rdname loo
+#' @exportS3Method brms::WAIC
 #' @export
 WAIC.frmtmb_draws <- function(x, ...) {
   stop("WAIC() is the deprecated brms spelling and frmtmb never had ",
@@ -493,6 +496,7 @@ WAIC.frmtmb_draws <- function(x, ...) {
 bayes_R2 <- function(object, ...) UseMethod("bayes_R2")
 
 #' @rdname bayes_R2
+#' @exportS3Method rstantools::bayes_R2
 #' @export
 bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
                                   probs = c(0.025, 0.975),
@@ -555,6 +559,20 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
 #'
 #' @param x,... Ignored; these methods always stop.
 #' @return These functions never return; they signal an error.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
+#'   set.seed(1)
+#'   dd <- data.frame(x = rnorm(40))
+#'   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+#'   fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
+#'   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
+#'   # each refusal names its reason and the replacement
+#'   try(reloo(ds))
+#'   try(bayes_factor(ds, ds))
+#' }
+#' }
 #' @name frmtmb-loo-refusals
 NULL
 
@@ -563,6 +581,7 @@ NULL
 loo_moment_match <- function(x, ...) UseMethod("loo_moment_match")
 
 #' @rdname frmtmb-loo-refusals
+#' @exportS3Method loo::loo_moment_match
 #' @export
 loo_moment_match.frmtmb_draws <- function(x, ...) {
   stop("loo_moment_match() is not implemented for frmtmb draws: it ",
@@ -579,6 +598,7 @@ loo_moment_match.frmtmb_draws <- function(x, ...) {
 loo_subsample <- function(x, ...) UseMethod("loo_subsample")
 
 #' @rdname frmtmb-loo-refusals
+#' @exportS3Method loo::loo_subsample
 #' @export
 loo_subsample.frmtmb_draws <- function(x, ...) {
   stop("loo_subsample() is not implemented for frmtmb draws: its ",
@@ -595,6 +615,7 @@ loo_subsample.frmtmb_draws <- function(x, ...) {
 reloo <- function(x, ...) UseMethod("reloo")
 
 #' @rdname frmtmb-loo-refusals
+#' @exportS3Method brms::reloo
 #' @export
 reloo.frmtmb_draws <- function(x, ...) {
   stop("reloo() is not implemented for frmtmb draws: it re-runs the ",
@@ -611,6 +632,7 @@ reloo.frmtmb_draws <- function(x, ...) {
 kfold <- function(x, ...) UseMethod("kfold")
 
 #' @rdname frmtmb-loo-refusals
+#' @exportS3Method loo::kfold
 #' @export
 kfold.frmtmb_draws <- function(x, ...) {
   stop("kfold() is not implemented for frmtmb draws: K refits of the ",
@@ -626,6 +648,7 @@ kfold.frmtmb_draws <- function(x, ...) {
 bridge_sampler <- function(x, ...) UseMethod("bridge_sampler")
 
 #' @rdname frmtmb-loo-refusals
+#' @exportS3Method bridgesampling::bridge_sampler
 #' @export
 bridge_sampler.frmtmb_draws <- function(x, ...) {
   stop("bridge_sampler() is not available for frmtmb draws. A marginal ",
@@ -642,6 +665,7 @@ bridge_sampler.frmtmb_draws <- function(x, ...) {
 bayes_factor <- function(x, ...) UseMethod("bayes_factor")
 
 #' @rdname frmtmb-loo-refusals
+#' @exportS3Method bridgesampling::bayes_factor
 #' @export
 bayes_factor.frmtmb_draws <- function(x, ...) {
   stop("bayes_factor() is not available for frmtmb draws: it is a ",
@@ -657,6 +681,7 @@ bayes_factor.frmtmb_draws <- function(x, ...) {
 post_prob <- function(x, ...) UseMethod("post_prob")
 
 #' @rdname frmtmb-loo-refusals
+#' @exportS3Method bridgesampling::post_prob
 #' @export
 post_prob.frmtmb_draws <- function(x, ...) {
   stop("post_prob() is not available for frmtmb draws: a posterior ",

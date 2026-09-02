@@ -49,7 +49,9 @@ conditional_effects(x, ...)
 for a pair, the first variable is varied over its range while the
 second is held at its levels (factors) or at mean and mean plus or
 minus one SD (numeric). Default: every fixed-effect and smooth
-variable of the selected linear predictor.}
+variable of the selected linear predictor, plus one \code{"a:b"} pair
+per fitted interaction (brms's default); a term of order three or
+more contributes its leading pair.}
 
 \item{resp, dpar}{Response and distributional parameter, as in
 \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}.}
@@ -227,7 +229,13 @@ the term itself). On a nonlinear fit they live one level down - the
 covariates the nonlinear formula reads, plus the terms of each
 nonlinear parameter's own predictor - and all of those are collected
 too. Matrix-valued columns are excluded, a grid over a matrix
-covariate not being a curve. Naming \verb{effects =} overrides the search.
+covariate not being a curve. Every fitted interaction whose
+components are single plottable variables adds an \code{"a:b"} display,
+as in brms: a fitted interaction hidden by default invites reading
+the main-effect curves as the whole story. The display takes two
+variables, so a three-way or deeper term contributes its leading
+pair, with the remaining variables at their reference values until
+\verb{conditions =} pins them. Naming \verb{effects =} overrides the search.
 }
 
 \examples{

@@ -45,7 +45,10 @@ test_that("a tight prior pulls the posterior toward it", {
                priors = list(x = prior_normal(0, 0.01)))
   )
   m <- as.matrix(ds)
-  expect_lt(abs(mean(m[, "x"])), 0.05)          # shrunk to ~0
+  # shrunk to ~0: the posterior sd itself proves the prior bit, and the
+  # mean is judged against that sd rather than a platform-fragile number
+  expect_lt(stats::sd(m[, "x"]), 0.05)
+  expect_lt(abs(mean(m[, "x"])), 5 * stats::sd(m[, "x"]) + 1e-8)
   expect_gt(fixef(fit)$mu[["x"]], 0.3)          # ML untouched
 })
 

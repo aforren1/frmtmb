@@ -79,6 +79,52 @@ for upstream.
   [`rhat()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md),
   [`neff_ratio()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md).
   65 of the 96 `brmsfit` methods now resolve.
+- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  on draws evaluates the effect grids once per posterior draw and bands
+  the curves with their own quantiles: no `band =` or `method =` to
+  choose, nonlinear predictors and nominal per-category displays work
+  without a delta method, and it runs on formula-route draws that have
+  no maximum-likelihood fit behind them. `ndraws` thins the draws for a
+  cheaper curve.
+- The default `effects` of
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  now include one `"a:b"` display per fitted interaction, as in brms; a
+  term of order three or more contributes its leading pair, with the
+  remaining variables at reference values until `conditions =` pins
+  them.
+
+### Living beside brms
+
+- Attaching brms (or rstantools, nlme, lme4, loo, posterior,
+  bridgesampling) after frmtmb no longer breaks dispatch: every frmtmb
+  method on a generic those packages also export is additionally
+  registered into the foreign generic’s own table, so
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md),
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+  [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md),
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+  and forty-odd others resolve regardless of attach order. Verified
+  against the full surface with brms attached.
+- [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) is a plain
+  function and IS masked by
+  [`library(brms)`](https://github.com/paul-buerkner/brms); a brms-built
+  formula reaching
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) now says
+  exactly that and names the two ways out
+  ([`frmtmb::bf()`](https://aforren1.github.io/frmtmb/reference/bf.md),
+  or attach brms first).
+
+### Tape-safe scope for user code
+
+- An ODE `dynamics` function and a
+  [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  density no longer need the `"c" <- RTMB::ADoverload("c")` boilerplate:
+  RTMB’s tape-safe [`c()`](https://rdrr.io/r/base/c.html), `[<-` and
+  `diag<-` are spliced into the function’s own body (unless it already
+  binds them), and nonlinear formula bodies evaluate with the same names
+  in scope. A helper such a function CALLS still needs its own bindings,
+  because lexical scope does not travel into other functions.
 - The brms methods frmtmb does not have fail with the reason and the
   replacement instead of “could not find function”:
   [`loo_moment_match()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md),

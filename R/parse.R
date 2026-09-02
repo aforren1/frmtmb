@@ -320,6 +320,11 @@ parse_spde_call <- function(tm, env) {
 #' population value while the row's remaining members still contribute
 #' their fitted effects.
 #'
+#' @return `mm()` and `mmc()` are formula terms, not free-standing
+#'   functions: `bf()` reads them at parse time, and the value they
+#'   contribute is the shared multi-membership random-effect block of
+#'   the model, reachable through [ranef()] and [VarCorr()]. This page
+#'   itself documents the term grammar and returns nothing.
 #' @name frmtmb-multimembership
 #' @seealso [ranef()] and [VarCorr()] for the fitted block,
 #'   `vignette("brms-migration")` for the porting notes, and

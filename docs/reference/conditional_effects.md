@@ -31,6 +31,20 @@ conditional_effects(
   data = NULL,
   ...
 )
+
+# S3 method for class 'frmtmb_draws'
+conditional_effects(
+  x,
+  effects = NULL,
+  resp = NULL,
+  dpar = NULL,
+  resolution = 100,
+  prob = 0.95,
+  ndraws = NULL,
+  conditions = list(),
+  data = NULL,
+  ...
+)
 ```
 
 ## Arguments
@@ -50,7 +64,9 @@ conditional_effects(
   first variable is varied over its range while the second is held at
   its levels (factors) or at mean and mean plus or minus one SD
   (numeric). Default: every fixed-effect and smooth variable of the
-  selected linear predictor.
+  selected linear predictor, plus one `"a:b"` pair per fitted
+  interaction (brms's default); a term of order three or more
+  contributes its leading pair.
 
 - resp, dpar:
 
@@ -91,7 +107,9 @@ conditional_effects(
 
 - ndraws:
 
-  Simulated responses per grid point for `method = "predict"`.
+  Simulated responses per grid point for `method = "predict"`. For the
+  draws method: how many evenly spaced posterior draws the curves are
+  computed over (default all).
 
 - boot:
 
@@ -223,6 +241,20 @@ at all, so `band = "boot"` is its only band and the other two are
 refused. The same holds for the per-category display of a nominal
 family, whose probabilities have no threshold Jacobian to differentiate.
 
+## Draws objects
+
+On a `frmtmb_draws` object from
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+the same grids are evaluated once per posterior draw, and `estimate__`,
+`lower__`, `upper__` and `se__` are the pointwise mean, quantiles and
+standard deviation of the drawn curves. There is no `band =` or
+`method =` to choose (the band IS the posterior quantile band), a
+nonlinear predictor and a nominal per-category display work without a
+delta method, and the method runs on formula-route draws that have no
+maximum-likelihood fit behind them. `ndraws` thins the draws evenly for
+a cheaper curve. Draws from `frm_sample(laplace = TRUE)` are refused:
+the sampled vector no longer aligns with the model's parameter template.
+
 ## Which predictors are plotted by default
 
 Every variable of the selected linear predictor that the display can
@@ -232,7 +264,13 @@ term itself). On a nonlinear fit they live one level down - the
 covariates the nonlinear formula reads, plus the terms of each nonlinear
 parameter's own predictor - and all of those are collected too.
 Matrix-valued columns are excluded, a grid over a matrix covariate not
-being a curve. Naming `effects =` overrides the search.
+being a curve. Every fitted interaction whose components are single
+plottable variables adds an `"a:b"` display, as in brms: a fitted
+interaction hidden by default invites reading the main-effect curves as
+the whole story. The display takes two variables, so a three-way or
+deeper term contributes its leading pair, with the remaining variables
+at their reference values until `conditions =` pins them. Naming
+`effects =` overrides the search.
 
 ## Examples
 

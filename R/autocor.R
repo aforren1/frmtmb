@@ -171,6 +171,12 @@
 #' of ARMA structures is only possible for effects of maximal order
 #' one"); higher `p` and `q` are supported here.
 #'
+#' @return `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are formula
+#'   terms, not free-standing functions: `bf()` reads them at parse
+#'   time, and the value they contribute is the fitted autocorrelation
+#'   block of the model, reachable through [autocor_matrix()],
+#'   [VarCorr()] and [confint_varcorr()]. This page itself documents
+#'   the term grammar and returns nothing.
 #' @name frmtmb-autocor
 #' @seealso [autocor_matrix()] for the fitted correlation matrix,
 #'   [confint_varcorr()] for natural-scale intervals, and

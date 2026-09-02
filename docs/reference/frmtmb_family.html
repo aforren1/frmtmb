@@ -234,6 +234,18 @@ refused.</p>
 [posterior_predict()]: R:posterior_predict()
 [frm_simulate()]: R:frm_simulate()</p>
     </div>
+    <div class="section level2">
+    <h2 id="tape-safe-scope">Tape-safe scope<a class="anchor" aria-label="anchor" href="#tape-safe-scope"></a></h2>
+
+
+<p><code>lpdf</code> and <code>lcdf</code> run with RTMB's tape-safe <code><a href="https://rdrr.io/r/base/c.html" class="external-link">c()</a></code>, <code>[&lt;-</code> and
+<code>diag&lt;-</code> in scope automatically (the
+<code>"c" &lt;- RTMB::ADoverload("c")</code> boilerplate is spliced in unless the
+function already binds it), so base spellings keep the
+automatic-differentiation class. A helper the density CALLS still
+needs its own bindings: lexical scope does not travel into other
+functions.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

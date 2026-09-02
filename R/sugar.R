@@ -129,6 +129,8 @@ extractAIC.frmtmb_fit <- function(fit, scale = 0, k = 2, ...) {
 ngrps <- function(object, ...) UseMethod("ngrps")
 
 #' @rdname ngrps
+#' @exportS3Method brms::ngrps
+#' @exportS3Method lme4::ngrps
 #' @export
 ngrps.frmtmb_fit <- function(object, ...) {
   bks <- Filter(function(bk) bk$covstruct != "smooth",
@@ -166,6 +168,7 @@ ngrps.frmtmb_fit <- function(object, ...) {
 prior_summary <- function(object, ...) UseMethod("prior_summary")
 
 #' @rdname prior_summary
+#' @exportS3Method rstantools::prior_summary
 #' @export
 prior_summary.frmtmb_fit <- function(object, ...) {
   if (is.null(object$priors)) {

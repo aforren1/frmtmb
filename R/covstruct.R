@@ -213,6 +213,11 @@ homogeneous_sd <- function(sds, what) {
 #' interval, so it is not the right quantile far into the tail. Use
 #' `simulate()` for that.
 #'
+#' @return `gr(g, dist = "student")` is a formula term, not a
+#'   free-standing function: `bf()` reads it at parse time, and the
+#'   value it contributes is the heavy-tailed random-effect block of
+#'   the model, reachable through [ranef()] and [VarCorr()]. This page
+#'   itself documents the term grammar and returns nothing.
 #' @name frmtmb-student-re
 #' @seealso [VarCorr()] for the scale matrix, [frm_compat()] for what a
 #'   `dist = "student"` block may be combined with, and

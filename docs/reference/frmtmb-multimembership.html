@@ -70,6 +70,14 @@ of a random slope over it. Both spellings follow brms.</p>
 
 
     <div class="section level2">
+    <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
+    <p><code>mm()</code> and <code>mmc()</code> are formula terms, not free-standing
+functions: <code><a href="bf.html">bf()</a></code> reads them at parse time, and the value they
+contribute is the shared multi-membership random-effect block of
+the model, reachable through <code><a href="ranef.html">ranef()</a></code> and <code><a href="VarCorr.html">VarCorr()</a></code>. This page
+itself documents the term grammar and returns nothing.</p>
+    </div>
+    <div class="section level2">
     <h2 id="what-mm-changes">What mm() changes<a class="anchor" aria-label="anchor" href="#what-mm-changes"></a></h2>
 
 

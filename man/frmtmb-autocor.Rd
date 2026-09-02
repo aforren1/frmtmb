@@ -3,6 +3,14 @@
 \name{frmtmb-autocor}
 \alias{frmtmb-autocor}
 \title{Within-group residual correlation (R-side autocorrelation)}
+\value{
+\code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} and \code{unstr()} are formula
+terms, not free-standing functions: \code{bf()} reads them at parse
+time, and the value they contribute is the fitted autocorrelation
+block of the model, reachable through \code{\link[=autocor_matrix]{autocor_matrix()}},
+\code{\link[=VarCorr]{VarCorr()}} and \code{\link[=confint_varcorr]{confint_varcorr()}}. This page itself documents
+the term grammar and returns nothing.
+}
 \description{
 \code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} and \code{unstr()} are written as terms
 of the model formula, next to the fixed and random effects, and make

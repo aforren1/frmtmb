@@ -7,6 +7,16 @@ argument `dist`). A group far from the others then costs the variance
 component much less than it does under a gaussian latent, because the
 t's tail can hold it.
 
+## Value
+
+`gr(g, dist = "student")` is a formula term, not a free-standing
+function: [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md)
+reads it at parse time, and the value it contributes is the heavy-tailed
+random-effect block of the model, reachable through
+[`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) and
+[`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md).
+This page itself documents the term grammar and returns nothing.
+
 ## Parameterization
 
 A level's coefficients are drawn as `b_j = sqrt(nu * u_j) W z_j` with

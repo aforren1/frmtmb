@@ -69,3 +69,23 @@ These functions never return; they signal an error.
   `frm_sample(fit)` uses, and even with proper `priors =` the
   bridge-sampling estimator needs a normalized log-posterior evaluator
   that the RTMB tape does not expose.
+
+## Examples
+
+``` r
+# \donttest{
+if (requireNamespace("tmbstan", quietly = TRUE) &&
+    requireNamespace("rstan", quietly = TRUE)) {
+  set.seed(1)
+  dd <- data.frame(x = rnorm(40))
+  dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+  fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
+  ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
+  # each refusal names its reason and the replacement
+  try(reloo(ds))
+  try(bayes_factor(ds, ds))
+}
+#> Error : reloo() is not implemented for frmtmb draws: it re-runs the sampler once per observation with a high Pareto k, and frm_sample() has no stored program to re-run on modified data. Read loo()'s Pareto k table and treat a bad k as the diagnostic it is (usually a flat prior on many group-level parameters; see the prior section of ?loo), or compare the maximum-likelihood fits with AIC()
+#> Error : bayes_factor() is not available for frmtmb draws: it is a ratio of the marginal likelihoods bridge_sampler() would have to estimate, and those are undefined under flat priors and unavailable from the tape. hypothesis() gives the posterior probability of a directional claim, and loo() the predictive comparison
+# }
+```

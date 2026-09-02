@@ -180,6 +180,15 @@ groups, [`trunc()`](https://rdrr.io/r/base/Round.html) rejection and
 \[ \]: R:%20 \[simulate()\]: R:simulate() \[posterior_predict()\]:
 R:posterior_predict() \[frm_simulate()\]: R:frm_simulate()
 
+## Tape-safe scope
+
+`lpdf` and `lcdf` run with RTMB's tape-safe
+[`c()`](https://rdrr.io/r/base/c.html), `[<-` and `diag<-` in scope
+automatically (the `"c" <- RTMB::ADoverload("c")` boilerplate is spliced
+in unless the function already binds it), so base spellings keep the
+automatic-differentiation class. A helper the density CALLS still needs
+its own bindings: lexical scope does not travel into other functions.
+
 ## Examples
 
 ``` r

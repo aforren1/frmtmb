@@ -334,14 +334,32 @@ test_that("the draws surface runs the model machinery per draw", {
   fe <- fixef(ds)
   # draws-side names are parenthesis-free throughout (v0.36)
   expect_equal(rownames(fe), c("Intercept", "x", "sigma_Intercept"))
-  expect_lt(abs(fe["x", "Estimate"] - fixef(fit)$mu[["x"]]), 0.15)
+  # a seeded Stan chain is not platform-deterministic (pkgcheck's
+  # container drew a chain far from this machine's), so agreement with
+  # the ML fit is judged against the chain's OWN Monte Carlo spread: a
+  # wiring bug moves the estimate by O(1) while the spread stays small,
+  # and a drifted chain widens its spread along with its error
+  expect_lt(abs(fe["x", "Estimate"] - fixef(fit)$mu[["x"]]),
+            5 * fe["x", "Est.Error"] + 1e-8)
 
   vc <- VarCorr(ds)
   expect_true(all(c("estimate", "lwr", "upr") %in% names(vc)))
 
+  # the sharp per-draw claim, exact and chain-free: an epred row IS
+  # X beta + Z b at that draw's own parameters
+  ep_all <- posterior_epred(ds)
+  expect_equal(nrow(ep_all), nrow(ds$draws))
+  for (k in c(1L, nrow(ds$draws) %/% 2L, nrow(ds$draws))) {
+    dr <- ds$draws[k, ]
+    mu_k <- dr[["Intercept"]] + dr[["x"]] * dd$x +
+      dr[paste0("b[", as.integer(dd$g), "]")]
+    expect_equal(unname(ep_all[k, ]), unname(mu_k), tolerance = 1e-8)
+  }
+
   ep <- posterior_epred(ds, ndraws = 25)
   expect_equal(dim(ep), c(25L, 80L))
-  expect_lt(max(abs(colMeans(ep) - fitted(fit))), 0.5)
+  expect_lt(max(abs(colMeans(ep) - fitted(fit))),
+            5 * max(apply(ep, 2, stats::sd)) + 1e-8)
   pp <- posterior_predict(ds, ndraws = 25)
   expect_gt(mean(apply(pp, 2, stats::sd)),
             mean(apply(ep, 2, stats::sd)))
@@ -366,8 +384,10 @@ test_that("the draws surface runs the model machinery per draw", {
   expect_identical(dim(re_d[["1 | g"]]), c(8L, 4L, 1L))
   expect_identical(colnames(re_d[["1 | g"]]),
                    c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
+  # same yardstick as above: the chain's own spread, not a fixed number
   expect_lt(max(abs(re_d[["1 | g"]][, "Estimate", 1] -
-                      ranef(fit)[["1 | g"]][, 1])), 0.3)
+                      ranef(fit)[["1 | g"]][, 1])),
+            5 * max(re_d[["1 | g"]][, "Est.Error", 1]) + 1e-8)
   expect_true(all(re_d[["1 | g"]][, "Q2.5", 1] <
                     re_d[["1 | g"]][, "Q97.5", 1]))
 

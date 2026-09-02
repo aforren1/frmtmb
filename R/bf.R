@@ -66,6 +66,12 @@
 #'
 #' @export
 bf <- function(formula, ..., family = NULL, nl = FALSE) {
+  if (inherits(formula, c("brmsformula", "bform"))) {
+    stop("this formula was built by brms::bf(): attaching brms after ",
+         "frmtmb masks frmtmb's bf(), so a bare bf() call now reaches ",
+         "brms. Call frmtmb::bf() explicitly, or attach brms before ",
+         "frmtmb", call. = FALSE)
+  }
   if (!inherits(formula, "formula")) {
     stop("`formula` must be a formula", call. = FALSE)
   }

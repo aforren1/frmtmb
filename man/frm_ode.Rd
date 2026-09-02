@@ -32,9 +32,12 @@ frm_ode(
 derivatives, following the \pkg{deSolve} convention: \code{t} is the
 scalar time, \code{y} the state vector, \code{parms} the parameter vector,
 and the return value is \code{list(dydt)}. A bare derivative vector is
-also accepted. Index \code{y} and \code{parms} by position; use
-\code{"c" <- RTMB::ADoverload("c")} inside the function so that \code{c()}
-keeps the automatic-differentiation class.}
+also accepted. Index \code{y} and \code{parms} by position. RTMB's
+tape-safe \code{c()}, \verb{[<-} and \verb{diag<-} are put in scope
+automatically, so the function needs no
+\code{"c" <- RTMB::ADoverload("c")} boilerplate; only a HELPER it
+calls, defined elsewhere, still needs its own (lexical scope does
+not travel into other functions).}
 
 \item{init}{Initial states, one column per state: a list, a matrix,
 or a single vector for a one-state system. Each column is either
@@ -447,7 +450,6 @@ with \code{predict(dpar = )} instead.
 #   dA/dt = -ka A            A(0) = dose
 #   dC/dt =  ka A / V - ke C C(0) = 0
 pk_dyn <- function(t, y, p) {
-  "c" <- RTMB::ADoverload("c")
   list(c(-p[1] * y[1], p[1] * y[1] / p[3] - p[2] * y[2]))
 }
 
@@ -497,7 +499,6 @@ if (requireNamespace("RTMBode", quietly = TRUE)) {
   # dynamics reads ka at p[1], V at p[2] and the time-varying ke at
   # p[3].
   pk_tv <- function(t, y, p) {
-    "c" <- RTMB::ADoverload("c")
     list(c(-p[1] * y[1], p[1] * y[1] / p[2] - p[3] * y[2]))
   }
   tt <- c(1, 3, 6, 9, 12)

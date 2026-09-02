@@ -60,3 +60,18 @@ the replacement rather than "could not find function", which is what
 the vignette-port audit measured most of its post-processing failures
 as.
 }
+\examples{
+\donttest{
+if (requireNamespace("tmbstan", quietly = TRUE) &&
+    requireNamespace("rstan", quietly = TRUE)) {
+  set.seed(1)
+  dd <- data.frame(x = rnorm(40))
+  dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+  fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
+  ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
+  # each refusal names its reason and the replacement
+  try(stancode(ds))
+  try(nsamples(ds))
+}
+}
+}

@@ -3,6 +3,13 @@
 \name{frmtmb-student-re}
 \alias{frmtmb-student-re}
 \title{Student-t distributed random effects}
+\value{
+\code{gr(g, dist = "student")} is a formula term, not a
+free-standing function: \code{bf()} reads it at parse time, and the
+value it contributes is the heavy-tailed random-effect block of
+the model, reachable through \code{\link[=ranef]{ranef()}} and \code{\link[=VarCorr]{VarCorr()}}. This page
+itself documents the term grammar and returns nothing.
+}
 \description{
 \code{(x | gr(g, dist = "student"))} gives a grouping term a Student-t
 latent instead of a gaussian one, which is brms's spelling

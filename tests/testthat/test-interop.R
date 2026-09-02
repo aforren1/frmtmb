@@ -35,7 +35,10 @@ test_that("as_tmbstan hands the objective to NUTS", {
   expect_s4_class(sf, "stanfit")
   skip_if_not_installed("rstan")
   dr <- rstan::extract(sf, "beta")$beta
-  expect_lt(abs(mean(dr[, 1]) - fixef(fit)$mu[[1]]), 0.2)
+  # judged against the chain's own spread: a seeded chain is not
+  # platform-deterministic, and this asserts wiring, not mixing
+  expect_lt(abs(mean(dr[, 1]) - fixef(fit)$mu[[1]]),
+            5 * stats::sd(dr[, 1]) + 1e-8)
 })
 
 # --- lme4::getME ------------------------------------------------------

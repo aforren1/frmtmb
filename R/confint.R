@@ -2109,6 +2109,7 @@ hypothesis <- function(x, ...) {
 variables <- function(x, ...) UseMethod("variables")
 
 #' @rdname variables
+#' @exportS3Method posterior::variables
 #' @export
 variables.frmtmb_fit <- function(x, ...) {
   vo <- hyp_vals_only(x)
@@ -2116,6 +2117,7 @@ variables.frmtmb_fit <- function(x, ...) {
 }
 
 #' @rdname hypothesis
+#' @exportS3Method brms::hypothesis
 #' @export
 hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
                                   method = c("wald", "profile", "boot"),

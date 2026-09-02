@@ -399,7 +399,7 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
     if (!is.null(lp$nl_body)) {
       ev <- c(out[[lp$resp]][c(lp$nl_pars, lp$nl_dpar_refs)],
               lp$data_list)
-      eta <- eval(lp$nl_body, ev, lp$nl_env)
+      eta <- eval(lp$nl_body, ev, ad_overload_env(lp$nl_env))
       out[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
       next
     }
@@ -963,7 +963,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
                newdata[[v]]
              })
     }
-    eta <- eval(lp$nl_body, c(vals, dl), lp$nl_env)
+    eta <- eval(lp$nl_body, c(vals, dl), ad_overload_env(lp$nl_env))
     out <- if (type == "response") lp$link$linkinv(eta) else eta
     return(if (is.null(newdata)) napred(object, out) else out)
   }

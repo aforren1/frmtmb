@@ -93,6 +93,20 @@ terms are included, so this also covers what brms calls
 <span>  surface <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
+<span><span class="fu">conditional_effects</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  effects <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  resolution <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  prob <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  conditions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -113,7 +127,9 @@ terms are included, so this also covers what brms calls
 for a pair, the first variable is varied over its range while the
 second is held at its levels (factors) or at mean and mean plus or
 minus one SD (numeric). Default: every fixed-effect and smooth
-variable of the selected linear predictor.</p></dd>
+variable of the selected linear predictor, plus one <code>"a:b"</code> pair
+per fitted interaction (brms's default); a term of order three or
+more contributes its leading pair.</p></dd>
 
 
 <dt id="arg-resp-dpar">resp, dpar<a class="anchor" aria-label="anchor" href="#arg-resp-dpar"></a></dt>
@@ -154,7 +170,8 @@ percentiles). See the band section. Only for <code>method = "epred"</code>.</p><
 
 <dt id="arg-ndraws">ndraws<a class="anchor" aria-label="anchor" href="#arg-ndraws"></a></dt>
 <dd><p>Simulated responses per grid point for
-<code>method = "predict"</code>.</p></dd>
+<code>method = "predict"</code>. For the draws method: how many evenly spaced
+posterior draws the curves are computed over (default all).</p></dd>
 
 
 <dt id="arg-boot">boot<a class="anchor" aria-label="anchor" href="#arg-boot"></a></dt>
@@ -277,6 +294,22 @@ family, whose probabilities have no threshold Jacobian to
 differentiate.</p>
     </div>
     <div class="section level2">
+    <h2 id="draws-objects">Draws objects<a class="anchor" aria-label="anchor" href="#draws-objects"></a></h2>
+
+
+<p>On a <code>frmtmb_draws</code> object from <code><a href="frm_sample.html">frm_sample()</a></code> the same grids are
+evaluated once per posterior draw, and <code>estimate__</code>, <code>lower__</code>,
+<code>upper__</code> and <code>se__</code> are the pointwise mean, quantiles and standard
+deviation of the drawn curves. There is no <code>band =</code> or <code>method =</code> to
+choose (the band IS the posterior quantile band), a nonlinear
+predictor and a nominal per-category display work without a delta
+method, and the method runs on formula-route draws that have no
+maximum-likelihood fit behind them. <code>ndraws</code> thins the draws
+evenly for a cheaper curve. Draws from <code>frm_sample(laplace = TRUE)</code>
+are refused: the sampled vector no longer aligns with the model's
+parameter template.</p>
+    </div>
+    <div class="section level2">
     <h2 id="which-predictors-are-plotted-by-default">Which predictors are plotted by default<a class="anchor" aria-label="anchor" href="#which-predictors-are-plotted-by-default"></a></h2>
 
 
@@ -287,7 +320,13 @@ the term itself). On a nonlinear fit they live one level down - the
 covariates the nonlinear formula reads, plus the terms of each
 nonlinear parameter's own predictor - and all of those are collected
 too. Matrix-valued columns are excluded, a grid over a matrix
-covariate not being a curve. Naming <code>effects =</code> overrides the search.</p>
+covariate not being a curve. Every fitted interaction whose
+components are single plottable variables adds an <code>"a:b"</code> display,
+as in brms: a fitted interaction hidden by default invites reading
+the main-effect curves as the whole story. The display takes two
+variables, so a three-way or deeper term contributes its leading
+pair, with the remaining variables at their reference values until
+<code>conditions =</code> pins them. Naming <code>effects =</code> overrides the search.</p>
     </div>
 
     <div class="section level2">

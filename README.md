@@ -1,5 +1,9 @@
 # frmtmb
 
+[![R-CMD-check](https://github.com/aforren1/frmtmb/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/aforren1/frmtmb/actions/workflows/R-CMD-check.yaml)
+[![test-coverage](https://github.com/aforren1/frmtmb/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/aforren1/frmtmb/actions/workflows/test-coverage.yaml)
+[![pkgcheck](https://github.com/aforren1/frmtmb/actions/workflows/pkgcheck.yaml/badge.svg)](https://github.com/aforren1/frmtmb/actions/workflows/pkgcheck.yaml)
+
 frmtmb fits regression models that you specify with a brms-style
 formula grammar. Estimation is maximum likelihood, with the Laplace
 approximation for latent effects. The backend is

@@ -91,6 +91,7 @@ summary.frmtmb_draws <- function(object, ...) {
   tab
 }
 
+#' @exportS3Method nlme::fixef
 #' @export
 fixef.frmtmb_draws <- function(object, ...) {
   # the draws-side spelling: parenthesis-free, matching the draws
@@ -109,6 +110,7 @@ fixef.frmtmb_draws <- function(object, ...) {
   out
 }
 
+#' @exportS3Method nlme::VarCorr
 #' @export
 VarCorr.frmtmb_draws <- function(x, ...) {
   # a structural template only: every number in `base` is replaced by a
@@ -133,6 +135,7 @@ VarCorr.frmtmb_draws <- function(x, ...) {
 }
 
 #' @rdname prior_summary
+#' @exportS3Method rstantools::prior_summary
 #' @export
 prior_summary.frmtmb_draws <- function(object, ...) {
   pl <- object$fit$priors
@@ -146,6 +149,7 @@ prior_summary.frmtmb_draws <- function(object, ...) {
 }
 
 #' @rdname ranef
+#' @exportS3Method nlme::ranef
 #' @export
 ranef.frmtmb_draws <- function(object, ...) {
   fit <- object$fit
@@ -176,6 +180,7 @@ ranef.frmtmb_draws <- function(object, ...) {
 }
 
 #' @rdname hypothesis
+#' @exportS3Method brms::hypothesis
 #' @export
 hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
                                     class = NULL, group = NULL, ...) {
@@ -301,6 +306,7 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 posterior_epred <- function(object, ...) UseMethod("posterior_epred")
 
 #' @rdname posterior_epred
+#' @exportS3Method rstantools::posterior_epred
 #' @export
 posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
                                          resp = NULL, re.form = NULL,
@@ -344,6 +350,7 @@ posterior_linpred <- function(object, ...) UseMethod("posterior_linpred")
 #'   response mean for zero-inflated and similar families).
 #' @param dpar For `posterior_linpred()`: which distributional
 #'   parameter's linear predictor to evaluate.
+#' @exportS3Method rstantools::posterior_linpred
 #' @export
 posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                                            newdata = NULL, resp = NULL,
@@ -385,6 +392,7 @@ draws_default_dpar <- function(fit, resp) {
 posterior_predict <- function(object, ...) UseMethod("posterior_predict")
 
 #' @rdname posterior_epred
+#' @exportS3Method rstantools::posterior_predict
 #' @export
 posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
                                            resp = NULL, re.form = NULL,
@@ -509,6 +517,7 @@ as_draws.frmtmb_draws <- function(x, ...) {
 }
 
 #' @rdname variables
+#' @exportS3Method posterior::variables
 #' @export
 variables.frmtmb_draws <- function(x, ...) {
   colnames(x$draws)
@@ -745,6 +754,7 @@ posterior_summary.default <- function(object, probs = c(0.025, 0.975),
 }
 
 #' @rdname posterior_summary
+#' @exportS3Method brms::posterior_summary
 #' @export
 posterior_summary.frmtmb_draws <- function(object, probs = c(0.025, 0.975),
                                            robust = FALSE,
@@ -781,6 +791,7 @@ draws_columns <- function(x, variable = NULL) {
 posterior_interval <- function(object, ...) UseMethod("posterior_interval")
 
 #' @rdname posterior_summary
+#' @exportS3Method rstantools::posterior_interval
 #' @export
 posterior_interval.frmtmb_draws <- function(object, prob = 0.95,
                                             variable = NULL, ...) {
@@ -794,6 +805,7 @@ posterior_interval.frmtmb_draws <- function(object, prob = 0.95,
 predictive_interval <- function(object, ...) UseMethod("predictive_interval")
 
 #' @rdname posterior_summary
+#' @exportS3Method rstantools::predictive_interval
 #' @export
 predictive_interval.frmtmb_draws <- function(object, prob = 0.9,
                                              newdata = NULL, resp = NULL,
@@ -817,6 +829,7 @@ predictive_interval.frmtmb_draws <- function(object, prob = 0.9,
 predictive_error <- function(object, ...) UseMethod("predictive_error")
 
 #' @rdname posterior_summary
+#' @exportS3Method rstantools::predictive_error
 #' @export
 predictive_error.frmtmb_draws <- function(object, resp = NULL,
                                           re.form = NULL, ndraws = NULL,
@@ -900,6 +913,8 @@ family.frmtmb_draws <- function(object, ...) {
 getCall.frmtmb_draws <- function(x, ...) x$fit$call
 
 #' @rdname ngrps
+#' @exportS3Method brms::ngrps
+#' @exportS3Method lme4::ngrps
 #' @export
 ngrps.frmtmb_draws <- function(object, ...) {
   ngrps(draws_base_fit(object))
@@ -996,6 +1011,7 @@ NULL
 mcmc_plot <- function(object, ...) UseMethod("mcmc_plot")
 
 #' @rdname draws-diagnostics
+#' @exportS3Method brms::mcmc_plot
 #' @export
 mcmc_plot.frmtmb_draws <- function(object, type = "intervals",
                                    variable = NULL, ...) {
@@ -1135,6 +1151,7 @@ draws_bayesplot_ns <- function(what) {
 pp_mixture <- function(x, ...) UseMethod("pp_mixture")
 
 #' @rdname pp_mixture
+#' @exportS3Method brms::pp_mixture
 #' @export
 pp_mixture.frmtmb_draws <- function(x, summary = TRUE, ndraws = NULL,
                                     ...) {
@@ -1174,6 +1191,20 @@ pp_mixture.frmtmb_draws <- function(x, summary = TRUE, ndraws = NULL,
 #'
 #' @param object,x,... Ignored; these functions always stop.
 #' @return These functions never return; they signal an error.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
+#'   set.seed(1)
+#'   dd <- data.frame(x = rnorm(40))
+#'   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+#'   fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
+#'   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
+#'   # each refusal names its reason and the replacement
+#'   try(stancode(ds))
+#'   try(nsamples(ds))
+#' }
+#' }
 #' @name frmtmb-draws-refusals
 NULL
 
@@ -1182,6 +1213,7 @@ NULL
 stancode <- function(object, ...) UseMethod("stancode")
 
 #' @rdname frmtmb-draws-refusals
+#' @exportS3Method brms::stancode
 #' @export
 stancode.frmtmb_draws <- function(object, ...) {
   stop("stancode() has no meaning for frmtmb: there is no Stan ",
@@ -1197,6 +1229,7 @@ stancode.frmtmb_draws <- function(object, ...) {
 standata <- function(object, ...) UseMethod("standata")
 
 #' @rdname frmtmb-draws-refusals
+#' @exportS3Method brms::standata
 #' @export
 standata.frmtmb_draws <- function(object, ...) {
   stop("standata() has no meaning for frmtmb: nothing is exported to a ",
@@ -1212,6 +1245,7 @@ standata.frmtmb_draws <- function(object, ...) {
 expose_functions <- function(x, ...) UseMethod("expose_functions")
 
 #' @rdname frmtmb-draws-refusals
+#' @exportS3Method brms::expose_functions
 #' @export
 expose_functions.frmtmb_draws <- function(x, ...) {
   stop("expose_functions() has nothing to expose: brms compiles Stan ",
@@ -1226,6 +1260,7 @@ expose_functions.frmtmb_draws <- function(x, ...) {
 restructure <- function(x, ...) UseMethod("restructure")
 
 #' @rdname frmtmb-draws-refusals
+#' @exportS3Method brms::restructure
 #' @export
 restructure.frmtmb_draws <- function(x, ...) {
   stop("restructure() is brms's upgrade path for objects saved by an ",
@@ -1239,6 +1274,7 @@ restructure.frmtmb_draws <- function(x, ...) {
 posterior_samples <- function(x, ...) UseMethod("posterior_samples")
 
 #' @rdname frmtmb-draws-refusals
+#' @exportS3Method brms::posterior_samples
 #' @export
 posterior_samples.frmtmb_draws <- function(x, ...) {
   stop("posterior_samples() is the deprecated brms spelling. Use ",
@@ -1251,6 +1287,7 @@ posterior_samples.frmtmb_draws <- function(x, ...) {
 nsamples <- function(object, ...) UseMethod("nsamples")
 
 #' @rdname frmtmb-draws-refusals
+#' @exportS3Method rstantools::nsamples
 #' @export
 nsamples.frmtmb_draws <- function(object, ...) {
   stop("nsamples() is the deprecated brms spelling. Use ndraws(x) for ",
@@ -1263,6 +1300,7 @@ nsamples.frmtmb_draws <- function(object, ...) {
 parnames <- function(x, ...) UseMethod("parnames")
 
 #' @rdname frmtmb-draws-refusals
+#' @exportS3Method brms::parnames
 #' @export
 parnames.frmtmb_draws <- function(x, ...) {
   stop("parnames() is the deprecated brms spelling. Use variables(x), ",

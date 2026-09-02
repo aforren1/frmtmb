@@ -120,11 +120,13 @@ All three must be positive, so they are estimated on the log scale.</p>
 <p>The system itself is a plain R function in the
 <strong>deSolve</strong> convention: it takes the time, the state vector
 and the parameter vector, and it returns the derivatives in a list.
-Index <code>y</code> and <code>p</code> by position.</p>
+Index <code>y</code> and <code>p</code> by position. RTMB’s tape-safe
+<code><a href="https://rdrr.io/r/base/c.html" class="external-link">c()</a></code> and <code>[&lt;-</code> replacements are in scope
+automatically, so the function needs no <code><a href="https://rdrr.io/pkg/RTMB/man/ADoverload.html" class="external-link">RTMB::ADoverload()</a></code>
+boilerplate; only a helper function it calls, defined elsewhere, still
+needs its own bindings.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pk_dyn</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span>, <span class="va">y</span>, <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># base c() drops the automatic-differentiation class; this restores it</span></span>
-<span>  <span class="st">"c"</span> <span class="op">&lt;-</span> <span class="fu">RTMB</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/RTMB/man/ADoverload.html" class="external-link">ADoverload</a></span><span class="op">(</span><span class="st">"c"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="va">p</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
 <span>         <span class="va">p</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">/</span> <span class="va">p</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span> <span class="op">-</span> <span class="va">p</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
@@ -541,7 +543,6 @@ one-compartment system is <code>exp(-n * k * ii)</code>.</p>
 there the exact steady-state trough is known:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">decay</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span>, <span class="va">y</span>, <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="st">"c"</span> <span class="op">&lt;-</span> <span class="fu">RTMB</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/RTMB/man/ADoverload.html" class="external-link">ADoverload</a></span><span class="op">(</span><span class="st">"c"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="va">p</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="va">iv_ss</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fl">0</span>, value <span class="op">=</span> <span class="fl">100</span>, ii <span class="op">=</span> <span class="fl">12</span>, ss <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -599,7 +600,6 @@ is where those go.</p>
 <span><span class="va">ke_t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">tt</span> <span class="op">&lt;</span> <span class="fl">6</span>, <span class="fl">0.2</span>, <span class="fl">0.4</span><span class="op">)</span>         <span class="co"># elimination doubles at hour 6</span></span>
 <span></span>
 <span><span class="va">pk_tv</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span>, <span class="va">y</span>, <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="st">"c"</span> <span class="op">&lt;-</span> <span class="fu">RTMB</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/RTMB/man/ADoverload.html" class="external-link">ADoverload</a></span><span class="op">(</span><span class="st">"c"</span><span class="op">)</span></span>
 <span>  <span class="co"># `tv` values follow `parms`, so ka is p[1], V is p[2], and the</span></span>
 <span>  <span class="co"># time-varying ke is p[3]</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="va">p</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>

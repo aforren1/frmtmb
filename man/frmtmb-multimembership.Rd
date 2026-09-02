@@ -3,6 +3,13 @@
 \name{frmtmb-multimembership}
 \alias{frmtmb-multimembership}
 \title{Multi-membership random effects}
+\value{
+\code{mm()} and \code{mmc()} are formula terms, not free-standing
+functions: \code{bf()} reads them at parse time, and the value they
+contribute is the shared multi-membership random-effect block of
+the model, reachable through \code{\link[=ranef]{ranef()}} and \code{\link[=VarCorr]{VarCorr()}}. This page
+itself documents the term grammar and returns nothing.
+}
 \description{
 \code{(x | mm(g1, g2, ...))} says that one observation belongs to SEVERAL
 levels of one grouping factor at once: a pupil taught in more than

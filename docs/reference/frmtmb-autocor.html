@@ -64,6 +64,15 @@ independent ones:</p>
 
 
     <div class="section level2">
+    <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
+    <p><code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>, <code>cosy()</code> and <code>unstr()</code> are formula
+terms, not free-standing functions: <code><a href="bf.html">bf()</a></code> reads them at parse
+time, and the value they contribute is the fitted autocorrelation
+block of the model, reachable through <code><a href="autocor_matrix.html">autocor_matrix()</a></code>,
+<code><a href="VarCorr.html">VarCorr()</a></code> and <code><a href="confint_varcorr.html">confint_varcorr()</a></code>. This page itself documents
+the term grammar and returns nothing.</p>
+    </div>
+    <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>$$y_g \sim N(\mu_g,\; D_g R D_g), \qquad
       D_g = \mathrm{diag}(\sigma_i, i \in g).$$</p>

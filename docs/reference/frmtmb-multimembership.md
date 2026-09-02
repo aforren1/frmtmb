@@ -7,6 +7,16 @@ one author. `mm()` is written where the grouping factor of a bar term
 goes, and `mmc()` supplies the member-specific covariate of a random
 slope over it. Both spellings follow brms.
 
+## Value
+
+`mm()` and `mmc()` are formula terms, not free-standing functions:
+[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) reads them
+at parse time, and the value they contribute is the shared
+multi-membership random-effect block of the model, reachable through
+[`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) and
+[`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md).
+This page itself documents the term grammar and returns nothing.
+
 ## What mm() changes
 
 Only the random-effect design matrix. The membership variables are

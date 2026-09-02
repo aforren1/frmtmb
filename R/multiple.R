@@ -542,6 +542,7 @@ d3_stat <- function(dbar, dtilde, k, m) {
 }
 
 #' @rdname hypothesis
+#' @exportS3Method brms::hypothesis
 #' @export
 hypothesis.frmtmb_multiple <- function(x, hypothesis, alpha = 0.05,
                                        class = NULL, group = NULL, ...) {
@@ -652,6 +653,7 @@ plot.frmtmb_multiple <- function(x, ...) {
        call. = FALSE)
 }
 
+#' @exportS3Method brms::conditional_effects
 #' @export
 conditional_effects.frmtmb_multiple <- function(x, ...) {
   stop("conditional_effects() has no pooled version for a ",

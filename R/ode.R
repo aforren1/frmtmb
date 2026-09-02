@@ -1073,9 +1073,12 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #'   derivatives, following the \pkg{deSolve} convention: `t` is the
 #'   scalar time, `y` the state vector, `parms` the parameter vector,
 #'   and the return value is `list(dydt)`. A bare derivative vector is
-#'   also accepted. Index `y` and `parms` by position; use
-#'   `"c" <- RTMB::ADoverload("c")` inside the function so that `c()`
-#'   keeps the automatic-differentiation class.
+#'   also accepted. Index `y` and `parms` by position. RTMB's
+#'   tape-safe `c()`, `[<-` and `diag<-` are put in scope
+#'   automatically, so the function needs no
+#'   `"c" <- RTMB::ADoverload("c")` boilerplate; only a HELPER it
+#'   calls, defined elsewhere, still needs its own (lexical scope does
+#'   not travel into other functions).
 #' @param init Initial states, one column per state: a list, a matrix,
 #'   or a single vector for a one-state system. Each column is either
 #'   one value per observation (constant within group) or one value
@@ -1163,7 +1166,6 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #' #   dA/dt = -ka A            A(0) = dose
 #' #   dC/dt =  ka A / V - ke C C(0) = 0
 #' pk_dyn <- function(t, y, p) {
-#'   "c" <- RTMB::ADoverload("c")
 #'   list(c(-p[1] * y[1], p[1] * y[1] / p[3] - p[2] * y[2]))
 #' }
 #'
@@ -1213,7 +1215,6 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #'   # dynamics reads ka at p[1], V at p[2] and the time-varying ke at
 #'   # p[3].
 #'   pk_tv <- function(t, y, p) {
-#'     "c" <- RTMB::ADoverload("c")
 #'     list(c(-p[1] * y[1], p[1] * y[1] / p[2] - p[3] * y[2]))
 #'   }
 #'   tt <- c(1, 3, 6, 9, 12)
@@ -1241,6 +1242,9 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
     stop("`dynamics` must be a function(t, y, parms) returning the ",
          "derivatives", call. = FALSE)
   }
+  # user code runs with the AD overloads in scope, so a dynamics
+  # function need not carry the ADoverload boilerplate itself
+  dynamics <- ad_overload_fn(dynamics)
   if (length(method) != 1L || !is.character(method) ||
         !method %in% ode_adaptive_methods) {
     stop("`method` must name an adaptive integrator, one of: ",

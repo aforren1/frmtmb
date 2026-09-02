@@ -110,6 +110,15 @@
 #'   `stats::make.link()`, because the latter clamps at C level in ways
 #'   the AD tape cannot see.
 #'
+#' @section Tape-safe scope:
+#' `lpdf` and `lcdf` run with RTMB's tape-safe `c()`, `[<-` and
+#' `diag<-` in scope automatically (the
+#' `"c" <- RTMB::ADoverload("c")` boilerplate is spliced in unless the
+#' function already binds it), so base spellings keep the
+#' automatic-differentiation class. A helper the density CALLS still
+#' needs its own bindings: lexical scope does not travel into other
+#' functions.
+#'
 #' @export
 frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           init_dpars = list(), type = "continuous",
@@ -127,6 +136,10 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
     stop("`links` must name every dpar exactly once", call. = FALSE)
   }
   links <- lapply(links, get_link)
+  # user-written densities run with the AD overloads in scope; a
+  # function that already binds them itself is left untouched
+  lpdf <- ad_overload_fn(lpdf)
+  if (!is.null(lcdf)) lcdf <- ad_overload_fn(lcdf)
   structure(
     list(family = family, dpars = dpars, links = links, lpdf = lpdf,
          valid_y = valid_y, init_dpars = init_dpars, type = type,

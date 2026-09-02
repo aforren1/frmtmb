@@ -5,6 +5,19 @@ and `unstr()` are written as terms of the model formula, next to the
 fixed and random effects, and make the residuals of one group a single
 correlated draw instead of independent ones:
 
+## Value
+
+[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`, `cosy()`
+and `unstr()` are formula terms, not free-standing functions:
+[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) reads them
+at parse time, and the value they contribute is the fitted
+autocorrelation block of the model, reachable through
+[`autocor_matrix()`](https://aforren1.github.io/frmtmb/reference/autocor_matrix.md),
+[`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+and
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md).
+This page itself documents the term grammar and returns nothing.
+
 ## Details
 
 \$\$y_g \sim N(\mu_g,\\ D_g R D_g), \qquad D_g = \mathrm{diag}(\sigma_i,

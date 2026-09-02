@@ -43,9 +43,11 @@ frm_ode(
   the deSolve convention: `t` is the scalar time, `y` the state vector,
   `parms` the parameter vector, and the return value is `list(dydt)`. A
   bare derivative vector is also accepted. Index `y` and `parms` by
-  position; use `"c" <- RTMB::ADoverload("c")` inside the function so
-  that [`c()`](https://rdrr.io/r/base/c.html) keeps the
-  automatic-differentiation class.
+  position. RTMB's tape-safe [`c()`](https://rdrr.io/r/base/c.html),
+  `[<-` and `diag<-` are put in scope automatically, so the function
+  needs no `"c" <- RTMB::ADoverload("c")` boilerplate; only a HELPER it
+  calls, defined elsewhere, still needs its own (lexical scope does not
+  travel into other functions).
 
 - init:
 
@@ -500,7 +502,6 @@ for a worked population pharmacokinetic model.
 #   dA/dt = -ka A            A(0) = dose
 #   dC/dt =  ka A / V - ke C C(0) = 0
 pk_dyn <- function(t, y, p) {
-  "c" <- RTMB::ADoverload("c")
   list(c(-p[1] * y[1], p[1] * y[1] / p[3] - p[2] * y[2]))
 }
 
@@ -550,7 +551,6 @@ if (requireNamespace("RTMBode", quietly = TRUE)) {
   # dynamics reads ka at p[1], V at p[2] and the time-varying ke at
   # p[3].
   pk_tv <- function(t, y, p) {
-    "c" <- RTMB::ADoverload("c")
     list(c(-p[1] * y[1], p[1] * y[1] / p[2] - p[3] * y[2]))
   }
   tt <- c(1, 3, 6, 9, 12)

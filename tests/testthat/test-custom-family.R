@@ -51,3 +51,36 @@ test_that("check_custom_family catches tape-unsafe code", {
                                    dpars = list(mu = rep(2.5, 50))),
                "tape|differently|gradient")
 })
+
+test_that("a custom lpdf needs no ADoverload boilerplate of its own", {
+  # numeric-first c() and pad[i] <- on advectors, no ADoverload lines:
+  # frmtmb_family() splices the overloads onto the body
+  cf <- custom_family(
+    "gauss_bare", dpars = c("mu", "sigma"),
+    links = list(mu = "identity", sigma = "log"),
+    lpdf = function(y, dpars, aterms) {
+      pad <- c(0, dpars$mu)
+      pad[1] <- pad[2]
+      RTMB::dnorm(y, pad[-1], dpars$sigma, log = TRUE)
+    })
+  # the wrap is visible on the stored function, and a function that
+  # binds the overloads itself is left untouched
+  expect_true("ADoverload" %in% all.names(body(cf$lpdf)))
+  own <- function(y, dpars, aterms) {
+    "c" <- RTMB::ADoverload("c")
+    RTMB::dnorm(y, dpars$mu, dpars$sigma, log = TRUE)
+  }
+  cf2 <- custom_family("gauss_own", dpars = c("mu", "sigma"),
+                       links = list(mu = "identity", sigma = "log"),
+                       lpdf = own)
+  expect_identical(cf2$lpdf, own)
+  set.seed(2)
+  dd <- data.frame(x = stats::rnorm(120))
+  dd$y <- stats::rnorm(120, 1 + 0.5 * dd$x, 1.3)
+  fc <- frm(bf(y ~ x), family = cf, data = dd)
+  ref <- frm(bf(y ~ x), family = gaussian(), data = dd)
+  expect_equal(as.numeric(logLik(fc)), as.numeric(logLik(ref)),
+               tolerance = 1e-6)
+  expect_equal(unname(unlist(fixef(fc)$mu)),
+               unname(unlist(fixef(ref)$mu)), tolerance = 1e-4)
+})

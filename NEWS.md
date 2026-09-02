@@ -51,6 +51,33 @@ patches for upstream.
   per-category displays work without a delta method, and it runs on
   formula-route draws that have no maximum-likelihood fit behind
   them. `ndraws` thins the draws for a cheaper curve.
+* The default `effects` of `conditional_effects()` now include one
+  `"a:b"` display per fitted interaction, as in brms; a term of order
+  three or more contributes its leading pair, with the remaining
+  variables at reference values until `conditions =` pins them.
+
+## Living beside brms
+
+* Attaching brms (or rstantools, nlme, lme4, loo, posterior,
+  bridgesampling) after frmtmb no longer breaks dispatch: every frmtmb
+  method on a generic those packages also export is additionally
+  registered into the foreign generic's own table, so
+  `conditional_effects()`, `hypothesis()`, `fixef()`, `log_lik()`,
+  `posterior_epred()` and forty-odd others resolve regardless of
+  attach order. Verified against the full surface with brms attached.
+* `bf()` is a plain function and IS masked by `library(brms)`; a
+  brms-built formula reaching `frm()` now says exactly that and names
+  the two ways out (`frmtmb::bf()`, or attach brms first).
+
+## Tape-safe scope for user code
+
+* An ODE `dynamics` function and a `custom_family()` density no longer
+  need the `"c" <- RTMB::ADoverload("c")` boilerplate: RTMB's
+  tape-safe `c()`, `[<-` and `diag<-` are spliced into the function's
+  own body (unless it already binds them), and nonlinear formula
+  bodies evaluate with the same names in scope. A helper such a
+  function CALLS still needs its own bindings, because lexical scope
+  does not travel into other functions.
 * The brms methods frmtmb does not have fail with the reason and the
   replacement instead of "could not find function":
   `loo_moment_match()`, `loo_subsample()`, `reloo()`, `kfold()`,

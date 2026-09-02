@@ -145,6 +145,56 @@ ce_plot_vars <- function(x, rspec, lp, resp, seen = character(0)) {
   unique(v)
 }
 
+#' Fitted interactions of ONE linear predictor as `"a:b"` effect
+#' pairs. brms plots interaction displays by default alongside the main
+#' effects, and a display that hides a fitted interaction invites
+#' reading the main-effect curves as the whole story. The display
+#' itself takes two variables, so a term of order three or more
+#' contributes the pair of its leading two variables (the rest sit at
+#' reference values, and `conditions =` pins them elsewhere). Term
+#' labels are parsed back to variables so `log(x):f` still yields the
+#' `x:f` pair; a component that is not one variable (a matrix column)
+#' drops its term from the default.
+#'
+#' @noRd
+ce_lp_pairs <- function(lp) {
+  tt <- lp$terms
+  if (is.null(tt)) return(character(0))
+  ord <- attr(tt, "order")
+  fac <- attr(tt, "factors")
+  if (is.null(ord) || !any(ord >= 2L)) return(character(0))
+  out <- character(0)
+  for (k in which(ord >= 2L)) {
+    lbls <- rownames(fac)[fac[, k] > 0]
+    vs <- lapply(lbls, function(l) all.vars(str2lang(l)))
+    if (!all(lengths(vs) == 1L)) next
+    vv <- unique(unlist(vs))
+    if (length(vv) >= 2L) {
+      out <- c(out, paste(vv[1L], vv[2L], sep = ":"))
+    }
+  }
+  unique(out)
+}
+
+#' The default interaction displays, walking nonlinear parameters the
+#' way ce_plot_vars() does so a chain of nlf() formulas contributes the
+#' interactions of the predictors at its far end.
+#'
+#' @noRd
+ce_plot_pairs <- function(x, rspec, lp, resp, seen = character(0)) {
+  p <- ce_lp_pairs(lp)
+  if (!is.null(lp$nl_body)) {
+    reach <- c(lp$nl_pars %||% rspec$nlpars, lp$nl_dpar_refs)
+    for (np in setdiff(reach, seen)) {
+      lpn <- x$frame$linpreds[[linpred_key(resp, np)]]
+      if (!is.null(lpn)) {
+        p <- c(p, ce_plot_pairs(x, rspec, lpn, resp, c(seen, np)))
+      }
+    }
+  }
+  unique(p)
+}
+
 #' Whether the display is per response CATEGORY rather than one curve.
 #'
 #' The contract, not the family name: a family whose `type` says the
@@ -491,7 +541,9 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   for a pair, the first variable is varied over its range while the
 #'   second is held at its levels (factors) or at mean and mean plus or
 #'   minus one SD (numeric). Default: every fixed-effect and smooth
-#'   variable of the selected linear predictor.
+#'   variable of the selected linear predictor, plus one `"a:b"` pair
+#'   per fitted interaction (brms's default); a term of order three or
+#'   more contributes its leading pair.
 #' @param resp,dpar Response and distributional parameter, as in
 #'   [predict.frmtmb_fit()].
 #' @param resolution Number of grid points for a varied numeric
@@ -636,7 +688,13 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' covariates the nonlinear formula reads, plus the terms of each
 #' nonlinear parameter's own predictor - and all of those are collected
 #' too. Matrix-valued columns are excluded, a grid over a matrix
-#' covariate not being a curve. Naming `effects =` overrides the search.
+#' covariate not being a curve. Every fitted interaction whose
+#' components are single plottable variables adds an `"a:b"` display,
+#' as in brms: a fitted interaction hidden by default invites reading
+#' the main-effect curves as the whole story. The display takes two
+#' variables, so a three-way or deeper term contributes its leading
+#' pair, with the remaining variables at their reference values until
+#' `conditions =` pins them. Naming `effects =` overrides the search.
 #' @examples
 #' set.seed(5)
 #' dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))
@@ -691,7 +749,13 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
   vars <- vars[vars %in% names(base)]
   vars <- vars[!vapply(vars, function(v) is.matrix(base[[v]]), TRUE)]
   if (is.null(effects)) {
-    effects <- vars
+    # brms's default: the main effects AND the fitted two-way
+    # interactions, each side of a pair having survived the same
+    # plottability filter as the main effects
+    prs <- ce_plot_pairs(x, rspec, lp, resp)
+    prs <- prs[vapply(strsplit(prs, ":", fixed = TRUE),
+                      function(v) all(v %in% vars), TRUE)]
+    effects <- c(vars, prs)
     if (!length(effects)) {
       stop("No plottable predictors found for dpar '", dpar, "'",
            call. = FALSE)
@@ -772,6 +836,7 @@ ce_finalize <- function(dfs_by_eff, effects, rspec, resp, dpar, band,
 }
 
 #' @rdname conditional_effects
+#' @exportS3Method brms::conditional_effects
 #' @export
 conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                                            dpar = NULL, resolution = 100,
@@ -979,6 +1044,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
 }
 
 #' @rdname conditional_effects
+#' @exportS3Method brms::conditional_effects
 #' @export
 conditional_effects.frmtmb_draws <- function(x, effects = NULL,
                                              resp = NULL, dpar = NULL,

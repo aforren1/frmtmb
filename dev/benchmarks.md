@@ -387,3 +387,43 @@ brms/cmdstanr posture), never a dependency. Users with
 accumulation-heavy models can already benefit by hand-rolling
 against RTMBp directly; the objective recipe is in
 dev/bench-rtmbp-core.R.
+
+# Single-chain NUTS throughput vs brms (2026-09-02, measured)
+
+frm_sample() (tmbstan on the RTMB tape) vs brm() (rstan backend), one
+chain, iter = 2000 (1000 warmup), three seeds per side per model,
+matched default priors (the formula route applies brms's defaults;
+posterior means agreed within 0.21 posterior-sd units everywhere).
+Median over seeds; Stan's own elapsed time (warmup + sample), not wall
+clock. Script: scratchpad bench-suite.R. Windows 10 x64, R 4.6.1,
+rstan 2.32.7, brms 2.23.0, RTMB 1.9, tmbstan 1.2.0.
+
+| model                        | tape | compile | frm stan s | brms stan s | frm minESS/s | brms minESS/s |
+|------------------------------|------|---------|-----------|-------------|--------------|---------------|
+| epilepsy poisson GLMM        | 0.05 | 43      | 2.5       | 6.2         | 56           | 26            |
+| sleepstudy (Days\|Subject)   | 0.02 | 52      | 3.6       | 2.8         | 39           | 122           |
+| cbpp binomial + trials()     | 0.02 | 47      | 0.7       | 0.5         | 637          | 586           |
+| distributional sigma ~ x     | 0.02 | 45      | 0.8       | 0.7         | 783          | 933           |
+
+Reading:
+- The structural win is COLD START: taping is 0.02-0.05 s where Stan
+  compilation is 43-52 s, so the first posterior arrives ~10x sooner
+  and every re-specification repays the same gap. Quote this one
+  confidently.
+- Sampling throughput is model-dependent, not a blanket win. The
+  epilepsy GLMM runs ~2x better ESS/s here; the small binomial and
+  distributional models are at parity; and the correlated-slopes LMM
+  (sleepstudy) is ~3x WORSE with heavy seed variance (stan time
+  3.6/30.5/2.0 s across seeds, min-ESS 31 on the bad one). That is
+  the centered-vs-non-centered story: tmbstan samples the latent b
+  directly (centered), while brms reparameterizes, and on models
+  whose group sds are weakly identified the centered chain visits the
+  funnel. Expect brms to look better wherever its non-centering
+  matters, and frmtmb wherever gradient cost dominates geometry.
+- brms wall clock also carries ~0.2-0.3 s per call of R-side overhead
+  that tmbstan does not; immaterial beyond the smallest models.
+- Not measured: cmdstanr backend (often faster than rstan), multiple
+  chains/threads, within-chain parallelization on either side, larger
+  n. A tmbstan laplace = TRUE run (sampling only the outer
+  parameters) would likely fix the sleepstudy geometry and is the
+  natural follow-up probe.

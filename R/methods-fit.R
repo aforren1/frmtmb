@@ -534,6 +534,7 @@ coef.frmtmb_fit <- function(object, ...) {
 fixef <- function(object, ...) UseMethod("fixef")
 
 #' @rdname fixef
+#' @exportS3Method nlme::fixef
 #' @export
 fixef.frmtmb_fit <- function(object, ...) {
   require_fitted(object, "fixef()")
@@ -576,6 +577,7 @@ fixef.frmtmb_fit <- function(object, ...) {
 ranef <- function(object, ...) UseMethod("ranef")
 
 #' @rdname ranef
+#' @exportS3Method nlme::ranef
 #' @export
 ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
   require_fitted(object, "ranef()")
@@ -703,6 +705,7 @@ as.data.frame.VarCorr_frmtmb <- function(x, ...) {
 VarCorr <- function(x, ...) UseMethod("VarCorr")
 
 #' @rdname VarCorr
+#' @exportS3Method nlme::VarCorr
 #' @export
 VarCorr.frmtmb_fit <- function(x, ...) {
   require_fitted(x, "VarCorr()")
