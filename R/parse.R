@@ -489,6 +489,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # brms |ID| syntax: (x | p | g) parses as ((x | p) | g); the middle
     # element keys random-effect correlation across formulas
     id <- NULL
+    id_label <- NULL
+    id_group <- NULL
     cov_expr <- NULL
     if (cls %in% c("gp", "hsgp")) {
       stop("gp() is not a bar term; write gp(x) or gp(x, k = 30)",
@@ -520,7 +522,14 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
         stop("|ID| correlation is only supported for default (us) ",
              "random-effect terms", call. = FALSE)
       }
-      id <- paste0(deparse1(bar[[2]][[3]]), "|", deparse1(bar[[3]]))
+      id_label <- deparse1(bar[[2]][[3]])
+      # the merge key carries the grouping expression as well, so two
+      # terms only ever merge when they name the same factor (and, for
+      # gr(), the same relationship matrix). check_id_covstructs()
+      # refuses one label spread over several grouping expressions
+      # rather than letting them drift into separate blocks.
+      id_group <- bar[[3]]
+      id <- paste0(id_label, "|", deparse1(id_group))
       bar <- call("|", bar[[2]][[2]], bar[[3]])
     }
     # brms (x | gr(g, cov = A)): known covariance over the levels;
@@ -549,6 +558,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
            call. = FALSE)
     }
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
+         id_label = id_label, id_group = id_group,
          cov_expr = cov_expr, rank = rank)
   }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs)
   names(re) <- vapply(re, function(z) deparse1(z$bar), "")
@@ -721,31 +731,44 @@ parse_one_response <- function(bform) {
 #' before any data arrives; `assemble_frame(spec, data)` is the next
 #' step and produces the design matrices.
 #'
-#' Refuse an |ID| key SHARED by a `gr(cov = )` / `gr(prec = )` term.
+#' Spec-level consistency of the |ID| keys.
 #'
-#' The guard inside `parse_linpred()` runs before the `gr()` rewrite
-#' turns `cls` from `"us"` into `"gr_cov"`/`"gr_prec"`, so those two
-#' structures are the only ones that get past it. That matters, because
-#' linked terms merge into ONE unstructured block in phase 2 of frame
-#' assembly: the merged block is a `us` density, whose nll never reads
-#' the block's `aux_A`/`aux_Q`, so the relationship matrix is silently
-#' discarded and the model is fitted as a plain iid one. The likelihood
-#' is bit-identical to the same formula with `cov = diag(n)` or with no
-#' `gr()` at all, which is a wrong answer with no symptom.
+#' Two rules, both properties of the whole spec rather than of one
+#' linear predictor, which is why they live here and not in
+#' `parse_linpred()`.
 #'
-#' The check lives here rather than in `parse_linpred()` because
-#' "shared" is a property of the whole spec: an |ID| key used by a
-#' single term is a no-op, takes the length-1 branch of the phase-2
-#' loop, and keeps its own covariance structure, so it fits correctly
-#' and stays allowed.
+#' 1. One `|ID|` label, one grouping specification. The merge key is the
+#'    label PLUS the deparsed grouping expression, so terms that write
+#'    the same label over different grouping expressions land in
+#'    different keys and quietly fail to correlate at all - the user
+#'    asked for a link and got none. Refusing is the only honest answer:
+#'    `(1 | q | g1)` with `(1 | q | g2)`, or `(1 | q | gr(g, cov = A))`
+#'    with `(1 | q | gr(g, cov = B))`, name one link over two different
+#'    structures.
 #'
-#' The Kronecker path for merged groups is a future feature; until then
-#' the long-format spelling gives the same model through the verified
-#' `d > 1` path of one `gr()` block.
+#' 2. One `|ID|` key, one covariance structure. The guard inside
+#'    `parse_linpred()` runs before the `gr()` rewrite turns `cls` from
+#'    `"us"` into `"gr_cov"`/`"gr_prec"`, so those two are the only
+#'    structures that reach a shared key. Since v0.32 a shared key whose
+#'    terms are ALL `gr(cov = )` (or all `gr(prec = )`) over the same
+#'    grouping factor and the same matrix is supported: the merged block
+#'    is built as one `gr_cov`/`gr_prec` block of the total merged
+#'    dimension, so its covariance is `A (x) Sigma` with `Sigma` the
+#'    unstructured covariance across the merged coefficients - the same
+#'    joint density as the long-format spelling. Rule 1 already forces
+#'    the grouping expressions to agree; this rule catches the residue
+#'    (a key whose terms disagree on the structure itself), and frame
+#'    assembly re-checks that the two `cov =` expressions RESOLVE to the
+#'    same matrix, which formula environments can make them not do.
+#'
+#' A key used by a single term is a no-op either way: it takes the
+#' length-1 branch of the phase-2 loop and keeps its own structure.
 #'
 #' @noRd
 check_id_covstructs <- function(spec) {
   ids <- character(0)
+  id_labels <- character(0)
+  groups <- character(0)
   cls <- character(0)
   labs <- character(0)
   for (resp in spec$responses) {
@@ -753,6 +776,8 @@ check_id_covstructs <- function(spec) {
       for (z in dp$re %||% list()) {
         if (is.null(z$id)) next
         ids <- c(ids, z$id)
+        id_labels <- c(id_labels, z$id_label)
+        groups <- c(groups, deparse1(z$id_group))
         cls <- c(cls, z$covstruct)
         labs <- c(labs, paste0(resp$resp_name, " ", dp$name, ": (",
                                deparse1(z$bar), ") [", z$covstruct, "]"))
@@ -760,21 +785,43 @@ check_id_covstructs <- function(spec) {
     }
   }
   if (!length(ids)) return(invisible(NULL))
+  for (lb in unique(id_labels)) {
+    at <- which(id_labels == lb)
+    gs <- unique(groups[at])
+    if (length(gs) > 1L) {
+      stop("The |", lb, "| key is used over more than one grouping ",
+           "specification (", paste(gs, collapse = ", "), "): ",
+           paste(labs[at], collapse = "; "),
+           ". Terms keyed by the same |ID| merge into one covariance ",
+           "block, which needs a single grouping factor and, for ",
+           "gr(cov = ) / gr(prec = ), a single relationship matrix. ",
+           "Use one spelling for all of them, or give the terms ",
+           "different |ID| labels. Both spellings of a multi-trait ",
+           "model over ONE relationship matrix are supported and give ",
+           "the same fit:\n",
+           "  mvbf(bf(y1 ~ (1 | q | gr(id, cov = A))), ",
+           "bf(y2 ~ (1 | q | gr(id, cov = A))))\n",
+           "  bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), ",
+           "sigma ~ 0 + trait)", call. = FALSE)
+    }
+  }
   shared <- ids %in% ids[duplicated(ids)]
-  bad <- which(shared & cls != "us")
-  if (!length(bad)) return(invisible(NULL))
-  stop("|ID| correlation is not supported for gr(cov = ) / gr(prec = ) ",
-       "terms whose key is shared with another term: ",
-       paste(labs[bad], collapse = "; "),
-       ". Linked terms merge into one unstructured block, which has no ",
-       "place for the relationship matrix, so it would be dropped ",
-       "without a trace. Write the model in long format instead, where ",
-       "a single gr() term carries the whole covariance and takes the ",
-       "verified Kronecker path:\n",
-       "  bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), ",
-       "sigma ~ 0 + trait)\n",
-       "An |ID| key used by only one term is unaffected.",
-       call. = FALSE)
+  for (k in unique(ids[shared])) {
+    at <- which(ids == k)
+    cs <- unique(cls[at])
+    if (length(cs) == 1L) next
+    stop("Terms sharing the |ID| key '", k, "' mix covariance ",
+         "structures (", paste(cs, collapse = ", "), "): ",
+         paste(labs[at], collapse = "; "),
+         ". A merged block has one structure. Either give them all the ",
+         "same structure, or split the |ID| label. A key whose terms ",
+         "are all gr(cov = ) (or all gr(prec = )) over the same factor ",
+         "and the same matrix is supported and fits the same model as ",
+         "the long-format spelling, ",
+         "bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), ",
+         "sigma ~ 0 + trait).", call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' @noRd

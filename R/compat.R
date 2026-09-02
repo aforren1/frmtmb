@@ -486,10 +486,10 @@ frmtmb_compat_rules_tbl <- function() {
   r("|ID|", "us", "works", "")
   r("|ID|", "rr", "refused",
     "Refused: rr() terms cannot share an |ID| key.")
-  for (cs in c("gr_cov", "gr_prec")) {
-    r("|ID|", cs, "refused",
-      "Refused when the key is SHARED with another term: the linked terms merge into one unstructured block, which has no place for the relationship matrix and would drop it silently. An |ID| key used by a single term is a no-op and still fits with its own structure. For correlated traits over a known relationship matrix write the long format, where one gr() term carries the whole covariance through the verified Kronecker path: bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), sigma ~ 0 + trait).")
-  }
+  r("|ID|", "gr_cov", "conditional",
+    "Works when every term sharing the key is gr(cov = ) over the SAME grouping factor and the SAME matrix: the linked terms merge into one Kronecker block whose covariance is A (x) Sigma, with Sigma unstructured across the merged coefficients. That is the same joint density as the long format, bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), sigma ~ 0 + trait), so the two spellings agree to optimizer tolerance. Refused when the key mixes structures (us with gr_cov, cov with prec), spans different grouping specifications, or resolves cov = to different matrices in different formula environments. Put the matrix in data2 so every formula resolves the same object.")
+  r("|ID|", "gr_prec", "conditional",
+    "Works when every term sharing the key is gr(prec = ) over the SAME grouping factor and the SAME matrix: the merged block precision is Q (x) Sigma^-1, assembled sparsely exactly as for a single correlated-slopes gr(prec = ) term. Refused when the key mixes structures (us with gr_prec, cov with prec), spans different grouping specifications, or resolves prec = to different matrices in different formula environments. Put the matrix in data2 so every formula resolves the same object.")
 
   ## nl ----------------------------------------------------------------------
   r("nl", "kind:family", "refused",
@@ -581,7 +581,7 @@ frmtmb_compat_rules_tbl <- function() {
       override = TRUE)
   }
   r("gr_prec", "*", "conditional",
-    "gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q).",
+    "gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q). Terms sharing an |ID| key over the same factor and the same Q merge into one such block.",
     override = TRUE)
   r("car", "*", "conditional",
     "car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = \"escar\" is the proper CAR, \"icar\"/\"esicar\" the intrinsic one under a soft sum-to-zero constraint (con_sd), \"bym2\" the scaled mixture; escar needs every location to have a neighbor. M belongs in data2 = list(M = M).",
@@ -596,7 +596,7 @@ frmtmb_compat_rules_tbl <- function() {
       "Locations outside the fitted set have no marginal variance of their own; allow_new_levels predicts them at the population level with no block contribution.")
   }
   r("gr_cov", "*", "conditional",
-    "gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level, and belongs in data2 = list(A = A).",
+    "gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level, and belongs in data2 = list(A = A). Terms sharing an |ID| key over the same factor and the same A merge into one such block, which is the same model as writing the traits long with a single gr() term.",
     override = TRUE)
   r("equalto", "*", "conditional",
     "equalto(x + 0 | g, V) fixes the term covariance to V, which must be square and match the term dimension, and belongs in data2 = list(V = V).",

@@ -442,9 +442,13 @@ test_that("blocks sharing a term label are all reported, not the first twice", {
 ## F1 (follow-up) --------------------------------------------------------
 # The |ID| guard in parse_linpred() runs BEFORE the gr() rewrite turns
 # cls from "us" into "gr_cov"/"gr_prec", so exactly those two slipped
-# through; the merged block is then a us density that never reads aux_A,
-# and the relationship matrix vanished without a symptom. The Kronecker
-# path for merged groups is future work, so the construct is refused.
+# through; the merged block was then a us density that never read aux_A,
+# and the relationship matrix vanished without a symptom. v0.29 refused
+# the construct; v0.32 fits it, by building the merged block as one
+# gr_cov/gr_prec Kronecker block of the total merged dimension. The
+# equivalence with the long-format spelling lives in test-id-kron.R;
+# what stays here is that the matrix is genuinely read and that the
+# neighboring constructs are unchanged.
 
 v29_mv_gr_data <- function(seed = 6, ng = 20, per = 6) {
   set.seed(seed)
@@ -461,45 +465,77 @@ v29_mv_gr_data <- function(seed = 6, ng = 20, per = 6) {
   list(dd = dd, A = A)
 }
 
-test_that("a SHARED |ID| key on a gr() term is refused", {
+test_that("a SHARED |ID| key on a gr() term keeps the matrix", {
   d <- v29_mv_gr_data()
   A <- d$A
   # across responses
-  expect_error(
-    frm(mvbf(bf(y1 ~ x + (1 | q | gr(id, cov = A))) + gaussian(),
-             bf(y2 ~ x + (1 | q | gr(id, cov = A))) + gaussian()),
-        data = d$dd, data2 = list(A = A)),
-    "shared with another term"
-  )
-  # the message names the construct and the long-format way out
-  msg <- tryCatch(
-    frm(mvbf(bf(y1 ~ x + (1 | q | gr(id, cov = A))) + gaussian(),
-             bf(y2 ~ x + (1 | q | gr(id, cov = A))) + gaussian()),
-        data = d$dd, data2 = list(A = A)),
-    error = conditionMessage
-  )
-  expect_match(msg, "gr_cov", fixed = TRUE)
-  expect_match(msg, "0 + trait | gr(id, cov = A)", fixed = TRUE)
+  f <- frm(mvbf(bf(y1 ~ x + (1 | q | gr(id, cov = A))) + gaussian(),
+                bf(y2 ~ x + (1 | q | gr(id, cov = A))) + gaussian()),
+           data = d$dd, data2 = list(A = A))
+  expect_length(f$frame$re_blocks, 1L)
+  expect_equal(f$frame$re_blocks[[1]]$covstruct, "gr_cov")
+  expect_equal(f$frame$re_blocks[[1]]$dim, 2L)
+  # the v0.29 symptom: fitting as a plain us block made the likelihood
+  # bit-identical to cov = diag(n). It must not be.
+  Imat <- diag(nrow(A))
+  dimnames(Imat) <- dimnames(A)
+  f_I <- frm(mvbf(bf(y1 ~ x + (1 | q | gr(id, cov = Imat))) + gaussian(),
+                  bf(y2 ~ x + (1 | q | gr(id, cov = Imat))) + gaussian()),
+             data = d$dd, data2 = list(Imat = Imat))
+  expect_gt(abs(as.numeric(logLik(f)) - as.numeric(logLik(f_I))), 0.1)
 
   # across dpars of one response
-  expect_error(
+  # the sigma component is barely identified here, so the merged
+  # correlation runs to the boundary; the block structure is the point
+  f_dp <- suppressWarnings(
     frm(bf(y1 ~ x + (1 | q | gr(id, cov = A)),
            sigma ~ (1 | q | gr(id, cov = A))) + gaussian(),
-        data = d$dd, data2 = list(A = A)),
-    "shared with another term"
-  )
+        data = d$dd, data2 = list(A = A)))
+  expect_equal(f_dp$frame$re_blocks[[1]]$covstruct, "gr_cov")
   # the precision side is the same construct
   Q <- solve(A)
   dimnames(Q) <- dimnames(A)
-  expect_error(
-    frm(mvbf(bf(y1 ~ x + (1 | q | gr(id, prec = Q))) + gaussian(),
-             bf(y2 ~ x + (1 | q | gr(id, prec = Q))) + gaussian()),
-        data = d$dd, data2 = list(Q = Q)),
-    "shared with another term"
-  )
+  f_q <- frm(mvbf(bf(y1 ~ x + (1 | q | gr(id, prec = Q))) + gaussian(),
+                  bf(y2 ~ x + (1 | q | gr(id, prec = Q))) + gaussian()),
+             data = d$dd, data2 = list(Q = Q))
+  expect_equal(f_q$frame$re_blocks[[1]]$covstruct, "gr_prec")
+  expect_equal(as.numeric(logLik(f_q)), as.numeric(logLik(f)),
+               tolerance = 1e-6)
   # and the compatibility table says so
-  expect_equal(frm_compat("|ID|", "gr_cov")$status, "refused")
-  expect_equal(frm_compat("|ID|", "gr_prec")$status, "refused")
+  expect_equal(frm_compat("|ID|", "gr_cov")$status, "conditional")
+  expect_equal(frm_compat("|ID|", "gr_prec")$status, "conditional")
+})
+
+test_that("one |ID| label over two grouping specifications is refused", {
+  d <- v29_mv_gr_data()
+  A <- d$A
+  dd <- d$dd
+  # a merged block has room for one structure; the key must not name a
+  # plain factor in one formula and a relationship matrix in another
+  expect_error(
+    frm(mvbf(bf(y1 ~ x + (1 | q | id)) + gaussian(),
+             bf(y2 ~ x + (1 | q | gr(id, cov = A))) + gaussian()),
+        data = dd, data2 = list(A = A)),
+    "more than one grouping specification"
+  )
+  # cov against prec is the same mistake
+  Q <- solve(A)
+  dimnames(Q) <- dimnames(A)
+  expect_error(
+    frm(mvbf(bf(y1 ~ x + (1 | q | gr(id, cov = A))) + gaussian(),
+             bf(y2 ~ x + (1 | q | gr(id, prec = Q))) + gaussian()),
+        data = dd, data2 = list(A = A, Q = Q)),
+    "more than one grouping specification"
+  )
+  # and so is two different matrices
+  B <- diag(nrow(A))
+  dimnames(B) <- dimnames(A)
+  expect_error(
+    frm(mvbf(bf(y1 ~ x + (1 | q | gr(id, cov = A))) + gaussian(),
+             bf(y2 ~ x + (1 | q | gr(id, cov = B))) + gaussian()),
+        data = dd, data2 = list(A = A, B = B)),
+    "more than one grouping specification"
+  )
 })
 
 test_that("an UNSHARED |ID| key keeps its structure and still fits", {
@@ -523,7 +559,7 @@ test_that("an UNSHARED |ID| key keeps its structure and still fits", {
   expect_gt(abs(as.numeric(logLik(f_id)) - as.numeric(logLik(f_I))), 0.1)
 })
 
-test_that("plain |ID| us terms are unaffected by the refusal", {
+test_that("plain |ID| us terms are unaffected by the gr() merge", {
   d <- v29_mv_gr_data()
   f_us <- frm(mvbf(bf(y1 ~ x + (1 | q | id)) + gaussian(),
                    bf(y2 ~ x + (1 | q | id)) + gaussian()), data = d$dd)
@@ -533,7 +569,7 @@ test_that("plain |ID| us terms are unaffected by the refusal", {
   expect_equal(frm_compat("|ID|", "us")$status, "works")
 })
 
-test_that("the long-format spelling the error suggests actually fits", {
+test_that("the long-format spelling fits through the same path", {
   d <- v29_mv_gr_data()
   A <- d$A
   ld <- data.frame(

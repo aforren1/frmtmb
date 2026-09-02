@@ -1313,6 +1313,14 @@ hyp_fd_grad <- function(f, v) {
 #' model fitted with `(1 | gr(id, cov = A))`. An `equalto()` block
 #' estimates nothing, so its names are constants with zero variance.
 #'
+#' An `|ID|`-merged block is ONE block, so it contributes one name per
+#' merged coefficient, and the names carry the linear predictor they
+#' came from just as correlated slopes do. A two-trait animal model
+#' written `(1 | q | gr(id, cov = A))` in both formulas of an [mvbf()]
+#' gives `sd_id__y1.muIntercept`, `sd_id__y2.muIntercept` and
+#' `cor_id__y1.muIntercept__y2.muIntercept` - the last being the
+#' genetic correlation between the traits. [variables()] prints them.
+#'
 #' Two blocks on the same grouping factor with the same term name - an
 #' animal model's `(1 | gr(id, cov = A)) + (1 | id)`, where the genetic
 #' and permanent-environment terms both name the group `id` - collide

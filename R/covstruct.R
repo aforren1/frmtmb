@@ -482,6 +482,27 @@ covstruct_registry$gr_prec <- list(
   start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
 )
 
+#' Index maps for the level-major dense Kronecker covariance
+#' `A (x) Sigma`: entry `(i, j)` of the `d * n_levels` square is
+#' `A[level(i), level(j)] * Sigma[coef(i), coef(j)]`, so the matrix is
+#' one elementwise product of two gathers from `as.vector(A)` and
+#' `as.vector(Sigma)`. The gather indices are data constants, so they
+#' are built once here; on the tape only `Sigma` moves, and indexing a
+#' vector keeps the advector class that `kronecker()` would strip.
+#'
+#' Used both for a single `gr(cov = )` term with correlated slopes and
+#' for an `|ID|`-merged group, where `d` is the TOTAL merged dimension.
+#'
+#' @noRd
+kron_cov_index <- function(d, n_levels) {
+  r <- seq_len(d * n_levels)
+  l1 <- (r - 1L) %/% d + 1L
+  c1 <- (r - 1L) %% d + 1L
+  list(ia = as.vector(outer(l1, l1,
+                            function(a, b) (b - 1L) * n_levels + a)),
+       is = as.vector(outer(c1, c1, function(a, b) (b - 1L) * d + a)))
+}
+
 #' Fixed sparse pieces of the level-major Kronecker precision
 #' Q (x) Sigma^-1: one matrix per entry (a, b) of the d x d within-level
 #' precision, so the tape only ever multiplies them by a scalar. The

@@ -29,6 +29,19 @@ requested with \code{rescor = TRUE} or \code{\link[=set_rescor]{set_rescor()}}. 
 correlation across responses uses the brms \verb{|ID|} syntax, e.g.
 \code{(1 | p | g)} in several formulas correlates their \code{g} effects.
 }
+\details{
+The linked terms merge into one covariance block, so they must all
+name the same grouping specification. When they all write
+\code{gr(g, cov = A)} (or all \code{gr(g, prec = Q)}) with the same matrix, the
+merged block keeps it: its covariance is \verb{A (x) Sigma}, with \code{Sigma}
+unstructured across the merged coefficients. A two-trait animal model
+is therefore the same fit whether written across two responses with
+\code{(1 | q | gr(id, cov = A))} or in long format as a single
+\code{(0 + trait | gr(id, cov = A))}. Mixing structures under one key -
+a plain \code{g} in one formula and \code{gr(g, cov = A)} in another, or
+\verb{cov =} against \verb{prec =} - is refused, because a merged block has
+room for one structure.
+}
 \examples{
 set.seed(2)
 n <- 160

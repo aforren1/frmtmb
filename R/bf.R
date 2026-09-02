@@ -153,6 +153,18 @@ bf <- function(formula, ..., family = NULL, nl = FALSE) {
 #' correlation across responses uses the brms `|ID|` syntax, e.g.
 #' `(1 | p | g)` in several formulas correlates their `g` effects.
 #'
+#' The linked terms merge into one covariance block, so they must all
+#' name the same grouping specification. When they all write
+#' `gr(g, cov = A)` (or all `gr(g, prec = Q)`) with the same matrix, the
+#' merged block keeps it: its covariance is `A (x) Sigma`, with `Sigma`
+#' unstructured across the merged coefficients. A two-trait animal model
+#' is therefore the same fit whether written across two responses with
+#' `(1 | q | gr(id, cov = A))` or in long format as a single
+#' `(0 + trait | gr(id, cov = A))`. Mixing structures under one key -
+#' a plain `g` in one formula and `gr(g, cov = A)` in another, or
+#' `cov =` against `prec =` - is refused, because a merged block has
+#' room for one structure.
+#'
 #' @param ... `bf()` formulas, each with a family attached (or supply one
 #'   `family` to [frm()] for all of them).
 #' @param rescor Model residual correlation between the responses
