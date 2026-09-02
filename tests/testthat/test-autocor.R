@@ -527,10 +527,15 @@ test_that("post-fit paths that need a per-row density are refused", {
   d <- ac_sim(seed = 2, G = 8, K = 4)
   f <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(), data = d)
   expect_error(residuals(f, type = "osa"), "not available")
-  expect_error(
-    frm_simulate(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
-                 data = d, newparams = list(beta = c(0, 1))),
-    "does not support residual correlation")
+  # frm_simulate() DOES draw the correlated residual since v0.36: the
+  # de novo shim carries the frame's autocor block, and the simulator
+  # contract reads it there exactly as simulate() does
+  s <- frm_simulate(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
+                    data = d, nsim = 2, seed = 1,
+                    newparams = list(beta = c(0, 1),
+                                     betad = as.numeric(f$estimates$betad),
+                                     thetaac = as.numeric(f$estimates$thetaac)))
+  expect_equal(dim(s), c(nrow(d), 2L))
 })
 
 test_that("the time / group argument order is brms's, and says so", {

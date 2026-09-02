@@ -68,7 +68,11 @@
 #'   `fitted()` and `predict()` work as usual.
 #' @param dry_run `"spec"` returns the parsed intermediate representation
 #'   without touching `data`; `"frame"` returns the assembled design
-#'   matrices and parameter template without fitting.
+#'   matrices and parameter template without fitting; `"objective"`
+#'   additionally tapes the objective and returns an UNFITTED object
+#'   carrying it, which is what [frm_sample()] samples when it is given
+#'   a formula rather than a fit. Methods that report a
+#'   maximum-likelihood quantity refuse on that object.
 #' @param verbose Report fit progress; a shortcut for
 #'   `control = frmtmb_control(verbose =)`, whose value wins when both
 #'   are given. See [frmtmb_control()] for the levels and the output.
@@ -237,7 +241,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
                 control = control, se = se, lower = lower, upper = upper,
-                priors = priors, quadrature = quadrature, data2 = data2)
+                priors = priors, quadrature = quadrature, data2 = data2,
+                objective_only = identical(dry_run, "objective"))
 }
 
 # --- verbose progress reporting --------------------------------------
@@ -346,10 +351,19 @@ vb_trace_ctrl <- function(optCtrl, optimizer) {
 #' convergence check. A non-NULL `template` bypasses make_start (warm
 #' starts when refitting to a new response).
 #'
+#' `objective_only = TRUE` stops one step before the optimizer and hands
+#' back an UNFITTED object carrying the taped objective, the starting
+#' template and the resolved bounds. `frm_sample()` on a formula needs
+#' exactly that: NUTS wants the density, not the mode, and every guard
+#' above the optimizer (REML, quadrature and mixture refusals, the hmm
+#' checks) still has to run. The autoscale pre-fit is skipped, because
+#' it is an optimization and there is nothing here to warm-start.
+#'
 #' @noRd
 fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           se, lower, upper, priors, quadrature,
-                          template = NULL, data2 = list()) {
+                          template = NULL, data2 = list(),
+                          objective_only = FALSE) {
   lower_arg <- lower
   upper_arg <- upper
   vb <- verbose_level(control)
@@ -358,7 +372,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     vb_say("fit: ", vb_fit_detail(spec, REML, control, quadrature,
                                   priors))
   }
-  ascale <- if (isTRUE(control$autoscale)) autoscale_plan(frame)
+  ascale <- if (isTRUE(control$autoscale) && !objective_only) {
+    autoscale_plan(frame)
+  }
   if (!is.null(ascale) && is.null(template)) {
     # two-stage warm start: fit the standardized frame, back-transform
     # the optimum, and continue below as the ordinary unscaled fit
@@ -524,6 +540,17 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
              paste0(length(obj$par), " outer, ",
                     length(obj$env$random), " inner parameters"))
   }
+  if (objective_only) {
+    if (isTRUE(quadrature)) {
+      stop("quadrature = TRUE has no unfitted form: the Gauss-Kronrod ",
+           "tape is calibrated at a Laplace OPTIMUM, and stopping ",
+           "before the optimizer leaves nothing to calibrate it at. ",
+           "Sample the Laplace objective instead (quadrature = FALSE)",
+           call. = FALSE)
+    }
+    return(unfitted_object(spec, frame, obj, template, bform, cl, REML,
+                           priors, data2, control, lower_arg, upper_arg))
+  }
   # control must ride along: outer_par_names drops beta under
   # profile = TRUE, and a shim without it misaligns every bound
   bounds <- resolve_bounds(list(frame = frame, REML = REML,
@@ -617,6 +644,52 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                     vb_plural(length(chk$warnings), "warning")))
   }
   fit
+}
+
+#' The unfitted counterpart of a `frmtmb_fit`: the same spec, frame and
+#' taped objective, with the STARTING values in the `estimates` slot and
+#' no `opt`, no sdreport and no convergence check.
+#'
+#' It carries `frmtmb_fit` as a second class on purpose. Everything that
+#' reads only `spec`, `frame` and `estimates` - `eval_dpars()`,
+#' `predict()`, the whole draws surface through `draws_fit_at()` - is
+#' correct on it once a real parameter vector has been written in, which
+#' is exactly what a posterior draw does. What is NOT correct is reading
+#' the slot as an estimate, so `require_fitted()` guards the accessors
+#' that would.
+#'
+#' @noRd
+unfitted_object <- function(spec, frame, obj, template, bform, cl, REML,
+                            priors, data2, control, lower, upper) {
+  est <- template
+  for (nm in names(frame$par_template)) {
+    names(est[[nm]]) <- names(frame$par_template[[nm]])
+  }
+  structure(
+    list(spec = spec, frame = frame, obj = obj, opt = NULL, sdr = NULL,
+         REML = REML, estimates = est, priors = priors,
+         bform = bform, call = cl, data2 = data2,
+         control = control, quadrature = FALSE,
+         lower = lower, upper = upper, par_units = NULL,
+         cache = new.env(parent = emptyenv())),
+    class = c("frmtmb_unfitted", "frmtmb_fit")
+  )
+}
+
+#' Refuse a method that reports a maximum-likelihood quantity on an
+#' object that has none. `what` names the method, so the one message
+#' still tells the user which call to change.
+#'
+#' @noRd
+require_fitted <- function(fit, what) {
+  if (!inherits(fit, "frmtmb_unfitted")) return(invisible(NULL))
+  stop(what, " needs a fitted model. This object was assembled by ",
+       "frm_sample() from a formula, for sampling only: it holds the ",
+       "objective and the starting values, but no optimizer result, no ",
+       "mode and no sdreport, so there is no estimate to report. Use ",
+       "the draws (summary(), fixef(), VarCorr(), hypothesis(), ",
+       "posterior_*()), or fit the model with frm() first",
+       call. = FALSE)
 }
 
 #' Does any response carry a mixture() family?
@@ -830,6 +903,8 @@ needs_jp <- function(fit) {
 #'
 #' @noRd
 sdr_of <- function(fit) {
+  require_fitted(fit, paste("The standard-error machinery (summary(),",
+                            "vcov(), confint(), predict(se.fit =))"))
   cache <- fit$cache
   if (is.null(cache$sdr)) {
     cache$sdr <- autoscale_sdreport(fit)

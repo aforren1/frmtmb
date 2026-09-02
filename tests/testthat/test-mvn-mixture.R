@@ -156,7 +156,11 @@ test_that("mixture_mvn validation and guards", {
 
   fit <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dd)
   expect_error(residuals(fit, type = "pearson"), "variance function")
-  expect_error(simulate(fit), "no simulator")
+  # v0.36 gave the family a structured simulator; a draw is an n x D
+  # matrix, one column per response column (test-simulators.R validates
+  # its moments)
+  s <- simulate(fit, nsim = 2)
+  expect_equal(dim(s[[1L]]), dim(dd$Y))
 
   expect_error(mixture_mvn(2, 2, model = "VEV"),
                "unknown covariance model 'VEV'")

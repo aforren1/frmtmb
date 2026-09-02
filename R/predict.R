@@ -387,6 +387,11 @@ sm_eta <- function(sm_parts, cvec) {
 #'
 #' @noRd
 eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
+  # the chokepoint every prediction, fitted value, residual and
+  # simulated draw passes through, so one guard covers them all. A
+  # posterior draw has real parameters written in and drops the marker
+  # (draws_fit_at), so the draws surface is unaffected.
+  require_fitted(fit, "predict() / fitted() / residuals() / simulate()")
   est <- fit$estimates
   if (!is.null(b)) b <- expand_b(fit$frame, b, est$theta)
   out <- list()
@@ -798,6 +803,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     warning("ignoring unknown arguments to predict(): ",
             paste(names(dots), collapse = ", "), call. = FALSE)
   }
+  require_fitted(object, "predict()")
   type <- match.arg(type)
   use_re <- is.null(re.form) ||
     (inherits(re.form, "formula") && !identical(deparse1(re.form[[2]]), "0"))
@@ -2224,6 +2230,27 @@ apply_censoring <- function(y, win) {
 #' ([dharma_residuals()], `pp_check()`) see the same support the
 #' likelihood was normalized on.
 #'
+#' @section Structured draws:
+#' Most families draw each row on its own. Some cannot, and those go
+#' through one implementation that [simulate()], [posterior_predict()]
+#' and [frm_simulate()] all reach (see `sim_ctx` in
+#' [frmtmb_family()]):
+#' - an [hmm()] draw walks the hidden Markov chain forward per
+#'   sequence and then emits from each row's state;
+#' - a `mixture(groups = ~g)` draw takes one class per GROUP and then
+#'   simulates each row from its group's component;
+#' - a [mixture_mvn()] draw takes a class per row and then a
+#'   multivariate normal with that class's own covariance;
+#' - a residual correlation term (`ar()`, `ma()`, `cosy()`, ...) is one
+#'   multivariate residual draw per group added to the mean predictor,
+#'   so the draws carry the fitted autocorrelation.
+#'
+#' A structured draw covers whole sequences or groups, so `trunc()`
+#' rejection cannot resample single rows within it (every structured
+#' model refuses `trunc()` when the frame is assembled) and
+#' `posterior_predict(newdata =)` is refused: the structure indexes the
+#' rows the model was fitted on.
+#'
 #' @section Censored responses:
 #' On a `cens()` fit the default draws the LATENT, uncensored response:
 #' the model describes the latent distribution, and censoring is a
@@ -2296,9 +2323,8 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   rspec <- uni_resp(object, "simulate()")
   fam <- rspec$family
   if (!is.null(fam[["hmm"]])) {
-    # a draw walks the chain forward per sequence and then emits, which
-    # the per-row family simulator cannot do: it never sees the
-    # transition dpars
+    # the chain walk itself is the family's sim_ctx (R/hmm.R); what is
+    # hmm-specific here is only what the two options would mean
     if (!is.null(re.form)) {
       stop("simulate(re.form =) is not supported for an hmm() fit: the ",
            "state path is drawn at the random-effect modes. Drop ",
@@ -2309,18 +2335,11 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
            "fit, because cens() is refused on an hmm() response",
            call. = FALSE)
     }
-    out <- lapply(seq_len(nsim), function(s) hmm_simulate_rows(object))
-    names(out) <- paste0("sim_", seq_len(nsim))
-    out <- lapply(out, function(v) sim_restore_type(object, rspec, v))
-    out <- sim_as_data_frame(out)
-    attr(out, "seed") <- rng_state
-    return(out)
   }
-  if (is.null(fam$sim)) {
+  if (!sim_can(fam)) {
     stop("simulate(): family '", fam$family, "' has no simulator yet",
-         call. = FALSE)
+         sim_note(fam), call. = FALSE)
   }
-  mg <- object$frame$mix_g[[rspec$resp_name]]
   marginal <- !is.null(re.form) && !inherits(re.form, "formula") &&
     is.na(re.form)
   n <- stats::nobs(object)
@@ -2343,41 +2362,9 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     dp <- with_cs_offsets(object, rspec, eval_dpars(object,
                                                     b = b_use))
     dp <- dp[[rspec$resp_name]]
-    ac <- object$frame$autocor[[rspec$resp_name]]
-    if (!is.null(ac)) {
-      # the residual of a group is one multivariate draw, so the family
-      # simulator (which draws rows independently) is bypassed
-      R <- autocor_cor(object$estimates$thetaac[ac$theta_idx], ac)
-      out[[s]] <- dp$mu + autocor_draw_resid(
-        ac, R, rep(dp$sigma, length.out = n), n,
-        nu = if (isTRUE(ac$student)) dp$nu[1] else NULL)
-      next
-    }
-    out[[s]] <- if (is.null(mg)) {
-      sim_response(fam, dp, av, n, extra = fit_extras(object))
-    } else {
-      # latent-class mixture: one class draw per group, then each
-      # observation simulates from its group's component
-      lps <- fam$mix$log_pi(dp)
-      Pg <- vapply(lps, function(l) {
-        exp(rep(l, length.out = n)[mg$first])
-      }, numeric(length(mg$first)))
-      kg <- vapply(seq_len(nrow(Pg)), function(g_) {
-        sample.int(fam$mix$K, 1L, prob = Pg[g_, ])
-      }, integer(1))
-      kk <- kg[mg$gindex]
-      ys <- numeric(n)
-      for (k in seq_len(fam$mix$K)) {
-        idx <- which(kk == k)
-        if (length(idx)) {
-          dk <- lapply(fam$mix$comp_dpars(dp, k), function(v) {
-            rep(v, length.out = n)[idx]
-          })
-          ys[idx] <- fam$mix$comp_sim(dk, av, length(idx), k)
-        }
-      }
-      ys
-    }
+    out[[s]] <- sim_draw(sim_context(object, rspec, dp, aterms = av,
+                                     n = n,
+                                     extra = fit_extras(object)))
     if (!is.null(cwin)) out[[s]] <- apply_censoring(out[[s]], cwin)
   }
   names(out) <- paste0("sim_", seq_len(nsim))

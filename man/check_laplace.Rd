@@ -26,6 +26,14 @@ intervals; a posterior SD much larger than the Wald SE, or a shifted
 mean, flags parameters where they are unreliable (typically variance
 components with few groups).
 }
+\details{
+This is a diagnostic tool: it explores the LIKELIHOOD, with flat
+priors, which is what makes the comparison against the ML mode and
+its Wald standard errors meaningful. \code{frm_sample()} on a formula is
+the sampling tool instead: it samples a POSTERIOR, under brms's
+default priors. A default prior here would change the very thing
+being measured, so \code{check_laplace()} never sets one.
+}
 \examples{
 \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&

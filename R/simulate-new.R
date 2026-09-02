@@ -361,6 +361,21 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' `data` must contain a response column with values that are valid for
 #' the family (any dummy values do; they only anchor the design).
 #'
+#' Draws come back in the response's own type, exactly as
+#' [simulate()]'s do: an ordered factor for an ordinal family, an
+#' unordered one for a categorical family, and a matrix column for a
+#' matrix response ([multinomial()], [mixture_mvn()], [lca()]).
+#'
+#' The structured families draw here through the same implementation
+#' [simulate()] uses (see its Structured draws section): [hmm()] walks
+#' its chain per sequence, `mixture(groups = ~g)` takes one class per
+#' group, [mixture_mvn()] uses its class covariances, and a residual
+#' correlation term (`ar()`, `ma()`, ...) contributes one correlated
+#' residual per group. The de novo frame carries those structures, so
+#' nothing is lost relative to a fit; `ar()` and friends need their
+#' `thetaac` entry in the internal `newparams` spelling, since a
+#' correlation parameter has no natural-scale name here.
+#'
 #' @section Two spellings for `newparams`:
 #' *Natural scale* (recommended): the names [variables()] and
 #' [hypothesis()] use, one number each.
@@ -459,19 +474,9 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
     stop("frm_simulate() supports univariate models", call. = FALSE)
   }
   rspec <- spec$responses[[1L]]
-  if (is.null(rspec$family$sim)) {
+  if (!sim_can(rspec$family)) {
     stop("frm_simulate(): family '", rspec$family$family,
-         "' has no simulator yet", call. = FALSE)
-  }
-  if (length(frame$autocor %||% list())) {
-    # the de novo path draws each row from the family simulator and has
-    # nowhere to put a group-level residual draw; simulate() on a
-    # FITTED model does draw correlated residuals
-    stop("frm_simulate() does not support residual correlation terms (",
-         frame$autocor[[1L]]$label, ") yet: the de novo simulator draws ",
-         "rows independently. Fit the model first and call simulate() ",
-         "on the fit, which draws one correlated residual per group",
-         call. = FALSE)
+         "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
   }
   if (is.null(newparams) && is.null(priors)) {
     stop("frm_simulate() needs newparams, priors, or both", call. = FALSE)
@@ -531,8 +536,10 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
       est_s <- dr$est
       pars[s, ] <- dr$vals
     }
-    # a minimal fit-shaped object: eval_dpars and draw_b only touch
-    # spec / frame / estimates
+    # a minimal fit-shaped object: eval_dpars, draw_b and the simulator
+    # contract only touch spec / frame / estimates, so the shim carries
+    # the group, sequence and residual-correlation structures the
+    # structured simulators read straight off the assembled frame
     shim <- list(spec = spec, frame = frame, estimates = est_s)
     b_use <- if (is.null(est_s[["b"]])) {
       NULL
@@ -541,13 +548,16 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
     } else {
       draw_b(shim)
     }
-    dp <- eval_dpars(shim, b = b_use)[[rspec$resp_name]]
+    dp <- with_cs_offsets(shim, rspec,
+                          eval_dpars(shim, b = b_use))[[rspec$resp_name]]
     ex <- frame$extra_names %||% character(0)
-    out[[s]] <- sim_response(rspec$family, dp, av, n,
-                             extra = if (length(ex)) est_s[ex])
+    out[[s]] <- sim_draw(sim_context(
+      shim, rspec, dp, aterms = av, n = n,
+      extra = if (length(ex)) est_s[ex]))
+    out[[s]] <- sim_restore_type(shim, rspec, out[[s]])
   }
   names(out) <- paste0("sim_", seq_len(nsim))
-  out <- as.data.frame(out)
+  out <- sim_as_data_frame(out)
   if (!is.null(pars)) attr(out, "pars") <- as.data.frame(pars)
   out
 }

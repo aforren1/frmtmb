@@ -332,8 +332,8 @@ test_that("the draws surface runs the model machinery per draw", {
   s <- summary(ds)
   expect_true(all(c("mean", "sd", "Rhat") %in% colnames(s)))
   fe <- fixef(ds)
-  expect_equal(rownames(fe),
-               c("(Intercept)", "x", "sigma_(Intercept)"))
+  # draws-side names are parenthesis-free throughout (v0.36)
+  expect_equal(rownames(fe), c("Intercept", "x", "sigma_Intercept"))
   expect_lt(abs(fe["x", "Estimate"] - fixef(fit)$mu[["x"]]), 0.15)
 
   vc <- VarCorr(ds)

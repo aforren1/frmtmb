@@ -8,14 +8,21 @@
 #' maximum-likelihood package: parameters are point estimates found by
 #' numerical optimization, and random effects are integrated out with the
 #' Laplace approximation, not sampled. Inference is Wald, profile
-#' likelihood, likelihood-root, or nonparametric bootstrap. The optional
-#' `frm_sample()` sampler runs NUTS on the already-fitted objective
-#' through tmbstan, but it is a diagnostic for the Laplace approximation
-#' (see `check_laplace()`), not the inferential path: there is no prior
-#' specification requirement, no posterior as the primary output, and no
-#' chain-convergence contract of the kind the Bayesian standards assume.
-#' `set_prior()` produces penalized (MAP) point estimates, which is
-#' regularization, not Bayesian inference.
+#' likelihood, likelihood-root, or nonparametric bootstrap. `set_prior()`
+#' produces penalized (MAP) point estimates, which is regularization,
+#' not Bayesian inference.
+#'
+#' The optional `frm_sample()` sampler runs NUTS through tmbstan. On a
+#' fitted model it explores the same objective the fit maximized, with
+#' flat priors, which is a diagnostic for the Laplace and Wald
+#' approximations (see `check_laplace()`) rather than the inferential
+#' path. From a formula it does sample a posterior, under weakly
+#' informative default priors matching brms, and it reports `n_eff` and
+#' `Rhat` for every parameter; it is nonetheless an adjunct rather than
+#' the package's inferential surface, which is why the Bayesian
+#' standards' requirements on prior specification, posterior output and
+#' chain-convergence contracts are not claimed here. A model whose
+#' primary answer is a posterior is better served by brms and Stan.
 #'
 #' The Time Series, Spatial, Dimensionality Reduction, Machine Learning,
 #' Probability Distributions, Unsupervised Learning, and Exploratory Data
@@ -39,18 +46,29 @@
 #' @srrstatsVerbose TRUE
 #'
 #' @srrstats {G5.2a} Every condition message raised in `R/` is unique.
-#'   The 554 `stop()` calls that carry literal text produce 554 distinct
-#'   messages (re-verified after the cluster-robust batch by the AST
-#'   walk in `dev/sandwich/count-messages.R`), so a
-#'   message a user reports names one line of source. Two
-#'   calls that would otherwise read the same are separated by the
-#'   context that tells the two faults apart, for example `car()` on the
-#'   left of a bar term versus `car()` as its grouping factor,
-#'   `posterior_predict()` versus `simulate()` versus `frm_simulate()`
-#'   meeting a family with no simulator, and `confint(parm =)` versus
-#'   `profile(parm =)` rejecting an unknown parameter name. The property
-#'   is mechanically checkable: parse `R/`, collect the literal argument
-#'   text of every `stop()`, and require no duplicates.
+#'   The 538 `stop()` calls that carry literal text produce 538 distinct
+#'   messages (mechanically re-counted by an AST walk; 529 at v0.35.0,
+#'   plus nine net from the structured simulator contract and the
+#'   formula interface of `frm_sample()` with its default priors), so a
+#'   message a user reports names one line of source. Two calls that
+#'   would otherwise read the
+#'   same are separated by the context that tells the two faults apart,
+#'   for example `car()` on the left of a bar term versus `car()` as its
+#'   grouping factor, `posterior_predict()` versus `simulate()` versus
+#'   `frm_simulate()` meeting a family with no simulator - each names
+#'   itself and then repeats the family's own reason, so the three read
+#'   consistently and stay distinguishable - and `confint(parm =)`
+#'   versus `profile(parm =)` rejecting an unknown parameter name.
+#'   Where one refusal serves many callers it is written once and told
+#'   which caller it speaks for rather than copied: `require_fitted()`
+#'   raises a single message naming the method that called it, which
+#'   keeps the source line unique while the user still reads their own
+#'   call back. The property is mechanically checkable: parse `R/`,
+#'   collect the literal argument text of every `stop()`, and require
+#'   no duplicates. The count is a whole-package property, so a
+#'   development lane that adds or removes a refusal must re-run the
+#'   walk and update the number here; concurrent lanes editing this
+#'   file therefore conflict on this paragraph by design.
 #'
 #' @noRd
 NULL

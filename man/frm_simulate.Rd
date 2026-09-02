@@ -48,6 +48,21 @@ them.
 \details{
 \code{data} must contain a response column with values that are valid for
 the family (any dummy values do; they only anchor the design).
+
+Draws come back in the response's own type, exactly as
+\code{\link[=simulate]{simulate()}}'s do: an ordered factor for an ordinal family, an
+unordered one for a categorical family, and a matrix column for a
+matrix response (\code{\link[=multinomial]{multinomial()}}, \code{\link[=mixture_mvn]{mixture_mvn()}}, \code{\link[=lca]{lca()}}).
+
+The structured families draw here through the same implementation
+\code{\link[=simulate]{simulate()}} uses (see its Structured draws section): \code{\link[=hmm]{hmm()}} walks
+its chain per sequence, \code{mixture(groups = ~g)} takes one class per
+group, \code{\link[=mixture_mvn]{mixture_mvn()}} uses its class covariances, and a residual
+correlation term (\code{ar()}, \code{ma()}, ...) contributes one correlated
+residual per group. The de novo frame carries those structures, so
+nothing is lost relative to a fit; \code{ar()} and friends need their
+\code{thetaac} entry in the internal \code{newparams} spelling, since a
+correlation parameter has no natural-scale name here.
 }
 \section{Two spellings for \code{newparams}}{
 

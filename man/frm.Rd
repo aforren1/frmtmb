@@ -100,7 +100,11 @@ session do not need the calling environment to still exist.}
 
 \item{dry_run}{\code{"spec"} returns the parsed intermediate representation
 without touching \code{data}; \code{"frame"} returns the assembled design
-matrices and parameter template without fitting.}
+matrices and parameter template without fitting; \code{"objective"}
+additionally tapes the objective and returns an UNFITTED object
+carrying it, which is what \code{\link[=frm_sample]{frm_sample()}} samples when it is given
+a formula rather than a fit. Methods that report a
+maximum-likelihood quantity refuse on that object.}
 
 \item{verbose}{Report fit progress; a shortcut for
 \code{control = frmtmb_control(verbose =)}, whose value wins when both

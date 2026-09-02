@@ -33,6 +33,31 @@ every draw lies in \verb{[lb, ub]} and posterior-predictive checks
 (\code{\link[=dharma_residuals]{dharma_residuals()}}, \code{pp_check()}) see the same support the
 likelihood was normalized on.
 }
+\section{Structured draws}{
+
+Most families draw each row on its own. Some cannot, and those go
+through one implementation that \code{\link[=simulate]{simulate()}}, \code{\link[=posterior_predict]{posterior_predict()}}
+and \code{\link[=frm_simulate]{frm_simulate()}} all reach (see \code{sim_ctx} in
+\code{\link[=frmtmb_family]{frmtmb_family()}}):
+\itemize{
+\item an \code{\link[=hmm]{hmm()}} draw walks the hidden Markov chain forward per
+sequence and then emits from each row's state;
+\item a \code{mixture(groups = ~g)} draw takes one class per GROUP and then
+simulates each row from its group's component;
+\item a \code{\link[=mixture_mvn]{mixture_mvn()}} draw takes a class per row and then a
+multivariate normal with that class's own covariance;
+\item a residual correlation term (\code{ar()}, \code{ma()}, \code{cosy()}, ...) is one
+multivariate residual draw per group added to the mean predictor,
+so the draws carry the fitted autocorrelation.
+}
+
+A structured draw covers whole sequences or groups, so \code{trunc()}
+rejection cannot resample single rows within it (every structured
+model refuses \code{trunc()} when the frame is assembled) and
+\code{posterior_predict(newdata =)} is refused: the structure indexes the
+rows the model was fitted on.
+}
+
 \section{Censored responses}{
 
 On a \code{cens()} fit the default draws the LATENT, uncensored response:

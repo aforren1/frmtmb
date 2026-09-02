@@ -15,6 +15,8 @@ frmtmb_family(
   type = "continuous",
   post = list(),
   sim = NULL,
+  sim_ctx = NULL,
+  sim_refusal = NULL,
   primary_dpars = "mu",
   lcdf = NULL,
   extra_pars = NULL,
@@ -31,6 +33,8 @@ custom_family(
   type = "continuous",
   post = list(),
   sim = NULL,
+  sim_ctx = NULL,
+  sim_refusal = NULL,
   primary_dpars = "mu",
   lcdf = NULL,
   extra_pars = NULL,
@@ -72,7 +76,19 @@ for \code{residuals(type = "deviance")}). A family that omits one is
 refused by the method that needs it.}
 
 \item{sim}{Optional numeric simulator \verb{(dpars, aterms, n)} returning \code{n}
-response draws; used by \code{\link[=simulate]{simulate()}}.}
+response draws; used by \code{\link[=simulate]{simulate()}}, \code{\link[=posterior_predict]{posterior_predict()}} and
+\code{\link[=frm_simulate]{frm_simulate()}}. It is stateless and rowwise: it sees the
+distributional parameters and nothing else. A family whose extra
+parameters (\code{extra_pars}) enter the draw declares a fourth
+argument \code{extra} instead.}
+
+\item{sim_ctx}{Optional structured simulator \code{(ctx)} for a family
+whose draws are not rowwise (see Structured simulators). It takes
+precedence over \code{sim}.}
+
+\item{sim_refusal}{Optional one-sentence reason why the family has no
+simulator, appended to the refusal each entry point raises. Use it
+when the omission is a decision rather than a gap.}
 
 \item{primary_dpars}{Which dpars receive the main model formula
 (default \code{"mu"}). Families with several location predictors (for
@@ -104,6 +120,32 @@ function must be vectorized and AD-compatible: it is evaluated on RTMB
 operations (RTMB and RTMBdist \verb{d*} functions, plain arithmetic) and must
 not branch on parameter values.
 }
+\section{Structured simulators}{
+
+Some families cannot draw a response one row at a time: a group-level
+\code{\link[=mixture]{mixture()}} draws one class per group, an \code{\link[=hmm]{hmm()}} walks a Markov
+chain per sequence, and a \code{\link[=mixture_mvn]{mixture_mvn()}} draw needs the class
+covariances, which are family-level extras rather than dpars. Those
+families supply \code{sim_ctx(ctx)} instead of \code{sim(dpars, aterms, n)}.
+
+\code{ctx} is a list with \code{fit} (any object carrying \code{spec}, \code{frame} and
+\code{estimates} - a fitted model, one posterior draw, or the de novo
+shim), \code{family}, \code{rspec}, \code{resp}, \code{dpars} (the evaluated numeric
+distributional parameters), \code{aterms}, \code{n}, \code{extra} (the family-level
+extra parameters) and the frame structures \code{autocor} and \code{mix_g}.
+Read its fields with \verb{[[ ]]}.
+
+The same \code{sim_ctx()} serves [simulate()], [posterior_predict()] and
+[frm_simulate()]. Because a structured draw covers whole sequences or
+groups, \code{trunc()} rejection and \code{newdata} cannot apply to it and are
+refused.
+
+[ ]: R:\%20
+[simulate()]: R:simulate()
+[posterior_predict()]: R:posterior_predict()
+[frm_simulate()]: R:frm_simulate()
+}
+
 \examples{
 # a custom family is a plain R log-density over taped parameters
 dd <- data.frame(y = rbinom(100, 5, 0.4),

@@ -93,10 +93,23 @@ prediction is a matrix takes the array shape; every family that
 predicts one number per observation keeps the plain
 \verb{draws x observations} matrix.
 
-\code{posterior_predict()} is unaffected - it draws one category per
-observation - and so is \code{posterior_linpred()}, which is a statement
-about one distributional parameter and stays an \code{n}-column matrix of
-the latent predictor.
+\code{posterior_predict()} is unaffected for an ordinal or categorical
+family - it draws one category per observation - and so is
+\code{posterior_linpred()}, which is a statement about one distributional
+parameter and stays an \code{n}-column matrix of the latent predictor.
+What does take the array shape in \code{posterior_predict()} is a
+matrix-valued RESPONSE: \code{\link[=multinomial]{multinomial()}} counts, \code{\link[=mixture_mvn]{mixture_mvn()}}
+draws and \code{\link[=lca]{lca()}} item codes give one row per observation, so the
+draws stack into \verb{draws x observations x columns}.
+}
+
+\section{Structured draws}{
+
+\code{posterior_predict()} uses the same simulator \code{\link[=simulate]{simulate()}} does,
+including the structured families (\code{\link[=hmm]{hmm()}}, \code{mixture(groups = )},
+\code{\link[=mixture_mvn]{mixture_mvn()}}) and residual correlation terms - see the Structured
+draws section of \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}}. Those draws index the rows
+the model was fitted on, so \code{newdata} is refused for them.
 }
 
 \examples{
