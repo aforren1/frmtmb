@@ -54,7 +54,11 @@ specification leaves alone (see Default priors), and
 outer parameters (brms \code{lb}/\code{ub}), applied on the internal scale
 through Stan's constrained transforms. Chain starting values are
 clamped strictly inside the bounds; a bound that excludes the ML
-mode itself warns, because the chains then no longer start there.}
+mode itself warns, because the chains then no longer start there.
+Names as in \code{confint()} rows, with parentheses optional; a
+nonlinear parameter declared intercept-only (\code{la ~ 1}) may be named
+bare, \code{lower = c(la = 0)} for \code{la_(Intercept)}. One that carries
+several coefficients is refused rather than resolved to one.}
 
 \item{init}{Initialization. On a fit the default
 (\code{"last.par.best"}) starts chain 1 exactly at the ML mode and every

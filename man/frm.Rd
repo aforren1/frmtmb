@@ -61,7 +61,11 @@ silence it.}
 \item{lower, upper}{Optional named numeric vectors of hard box
 constraints on outer parameters (brms \code{lb}/\code{ub}), on the internal
 scale, e.g. \code{lower = c(b = 0)} for a nonlinear rate parameter.
-Names as in \code{confint()} rows.}
+Names as in \code{confint()} rows, with parentheses optional; a
+nonlinear parameter declared intercept-only (\code{b ~ 1}) may be named
+bare, as in that example, which resolves to \code{b_(Intercept)}. One
+that carries several coefficients is refused rather than resolved
+to one of them.}
 
 \item{priors}{Optional \code{\link[=set_prior]{set_prior()}} specification. This makes the
 fit MAP / regularized ML (glmmTMB's \verb{priors=} in spirit): useful

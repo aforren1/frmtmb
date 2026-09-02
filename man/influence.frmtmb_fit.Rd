@@ -42,6 +42,7 @@ the result gives the scaled fixed-effect displacement (calling it on
 the fit itself runs \code{influence()} first); \code{dfbeta()} and \code{dfbetas()}
 give the per-unit coefficient changes, raw and scaled by the
 coefficient standard errors (the lme4 influence surface).
+\code{\link[=plot.frmtmb_influence]{plot.frmtmb_influence()}} draws all three.
 }
 \examples{
 \donttest{

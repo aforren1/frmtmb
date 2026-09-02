@@ -219,13 +219,17 @@ resolve_bounds <- function(fit, lower, upper) {
            "lower = c(x = 0)", call. = FALSE)
     }
     # the paren-tolerant addressing of confint(parm =), so a name copied
-    # out of a hypothesis() expression works here too
-    pos <- match_par_name(names(x), nm)
+    # out of a hypothesis() expression works here too, plus the bare
+    # name of an intercept-only nonlinear parameter: bounds on an ODE
+    # model are written against the parameters of the dynamics (la),
+    # not against their design-matrix spelling (la_(Intercept))
+    pos <- apply_nlpar_alias(fit, names(x), match_par_name(names(x), nm))
     if (anyNA(pos)) {
       stop("Unknown parameter(s) in bounds: ",
            paste(names(x)[is.na(pos)], collapse = ", "), ". Available: ",
            paste(nm, collapse = ", "),
-           " (parentheses may be dropped)", call. = FALSE)
+           " (parentheses may be dropped, and intercept-only nonlinear ",
+           "parameters may be named bare)", call. = FALSE)
     }
     out[pos] <- as.numeric(x)
     out
@@ -814,6 +818,10 @@ sample_resolve_priors <- function(fit, priors, announce = TRUE) {
 #'   through Stan's constrained transforms. Chain starting values are
 #'   clamped strictly inside the bounds; a bound that excludes the ML
 #'   mode itself warns, because the chains then no longer start there.
+#'   Names as in `confint()` rows, with parentheses optional; a
+#'   nonlinear parameter declared intercept-only (`la ~ 1`) may be named
+#'   bare, `lower = c(la = 0)` for `la_(Intercept)`. One that carries
+#'   several coefficients is refused rather than resolved to one.
 #' @param init Initialization. On a fit the default
 #'   (`"last.par.best"`) starts chain 1 exactly at the ML mode and every
 #'   further chain at the mode plus a normal perturbation of sd

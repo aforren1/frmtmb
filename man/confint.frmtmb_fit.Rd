@@ -26,7 +26,11 @@ same parameter: the internal name (\code{tarsus_(Intercept)},
 (\code{tarsus_Intercept}, the spelling \code{\link[=hypothesis]{hypothesis()}} and \code{\link[=variables]{variables()}}
 use), and a natural-scale name that stands for exactly one
 internal parameter, \verb{sd_<group>__<term>} and a correlation whose
-block has a single internal correlation parameter. An alias is
+block has a single internal correlation parameter. The bare name of
+an intercept-only nonlinear parameter (\code{la} for \code{la_(Intercept)})
+is a fourth spelling of the same internal parameter, so it resolves
+silently; a nonlinear parameter with several coefficients is
+refused rather than resolved to one of them. An alias is
 reported and the row keeps the internal name, because the interval
 is on the internal scale: see \code{\link[=confint_varcorr]{confint_varcorr()}} and
 \code{\link[=hypothesis]{hypothesis()}} for natural-scale intervals. A natural-scale
