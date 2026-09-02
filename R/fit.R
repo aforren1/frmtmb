@@ -435,6 +435,17 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       stop("quadrature = TRUE cannot be combined with REML = TRUE",
            call. = FALSE)
     }
+    if (length(frame$autocor %||% list())) {
+      # the Gauss-Kronrod rule integrates one scalar random effect
+      # against a PRODUCT of per-row densities; an R-side residual is a
+      # joint density over each group, so no per-row integrand exists
+      stop("quadrature = TRUE cannot be combined with the residual ",
+           "correlation term ", frame$autocor[[1L]]$label,
+           ": the rule integrates a random effect against ",
+           "per-observation densities, and this residual is a joint ",
+           "density over each group. Use quadrature = FALSE (Laplace) ",
+           "or REML = TRUE", call. = FALSE)
+    }
     # The truncation normalizer is log(F(ub) - F(lb)) over plain CDFs.
     # The Gauss-Kronrod nodes reach random-effect values where that
     # difference underflows to exactly zero while the density itself is

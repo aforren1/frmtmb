@@ -54,6 +54,12 @@ frmtmb_compat_features_tbl <- function() {
              "mi()", "vint()", "vreal()"), f, kind = "aterm"),
     lapply(c("s()", "t2()", "mo()", "mi_pred()", "gp_pred()",
              "cs_pred()"), f, kind = "special"),
+    # R-side (within-group residual) correlation terms. They carry no
+    # random effect, so they are not a covariance structure, and they
+    # contribute no design column, so they are not a predictor special:
+    # they replace the response's density. Hence a kind of their own.
+    lapply(c("ar()", "ma()", "arma()", "cosy()", "unstr()"), f,
+           kind = "autocor"),
     lapply(c("REML", "quadrature", "profile", "autoscale", "sparse_x",
              "priors", "bounds", "verbose"), f, kind = "mode"),
     lapply(c("mvbf", "rescor", "|ID|", "nl", "mixture",
@@ -109,6 +115,11 @@ frmtmb_compat_groups_lst <- list(
                   "car", "spde"),
   # sparse Gaussian Markov random fields written as predictor specials
   gmrf = c("car", "spde"),
+  # the R-side residual correlation terms, which share every guard
+  autocor = c("ar()", "ma()", "arma()", "cosy()", "unstr()"),
+  # the two of them brms also treats as true residual covariance (its
+  # "natural residuals" families)
+  autocor_families = c("gaussian", "student"),
   # structures over a metric coordinate rather than positional levels
   spatial = c("exp", "gau", "mat"),
   # positional structures: the level order sets the lag, not the value
@@ -659,6 +670,60 @@ frmtmb_compat_rules_tbl <- function() {
     "Returns the same n x K matrix of category probabilities predict(type = \"response\") returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The predict(type = \"response\") == fitted() identity holds. The latent linear predictor is predict(fit, type = \"link\"), which is also what emmeans and insight see.")
   r("residuals", "group:ordinal", "conditional",
     "\"response\" and \"pearson\" score the categories by the same codes 1..K the likelihood uses: y - sum_k k * P(y = k), standardized by that distribution's own sd. That is a residual on a SCORE, not on the ordinal scale; \"osa\" and dharma_residuals() use only the order. \"deviance\" is refused, as for every family without a standard unit deviance.")
+
+  ## R-side residual correlation -----------------------------------------------
+  # Everything refused here is refused for one reason: the likelihood
+  # is a joint density over each group, so it no longer factorizes into
+  # per-row contributions. brms refuses the same core set.
+  r("group:autocor", "kind:family", "refused",
+    "Refused: a residual correlation needs a family with a real residual. brms accepts the same spelling for other families but fits a different model there - a latent gaussian AR process added to the linear predictor - which is spelled here as a random effect over the time factor: + ar1(factor(week) + 0 | subj), or toep()/us() for a freer lag structure.")
+  r("group:autocor", "group:autocor_families", "works",
+    "Written as a formula term - ar(week, subj, cov = TRUE), cosy(gr = subj), unstr(week, subj) - it makes the residuals of one group a single correlated draw, y_g ~ N(mu_g, D R D) with D the diagonal of that group's sigma values; student() gets the multivariate-t analog. These are exactly the two families brms treats this way. brms's default cov = FALSE (the residual-regression formulation) is a different likelihood and is refused; the call must say cov = TRUE. The lag is the distance between the rows' positions in the GLOBAL set of time levels, so a group missing a time point gets the wider lag (nlme's reading, not brms's). Validated against nlme::gls (corAR1, corARMA, corCompSymm, corSymm) under ML and REML: log-likelihoods agree to 1e-9 or better and the correlation parameters to 1e-5 or better.")
+  r("group:autocor", "student", "conditional",
+    "The multivariate-t has one shape parameter per group, so nu must be constant; a predicted nu ~ ... is refused. The density is brms's multi_student_t with scale matrix D R D, verified against mvtnorm::dmvt exactly.")
+  r("group:autocor", "kind:aterm", "refused",
+    "Refused: the group's density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with 'Invalid addition arguments for this model'.")
+  r("group:autocor", "rescor", "refused",
+    "Refused: both describe the residual covariance - one across time, one across responses - and the joint structure is their Kronecker product, which is not implemented. brms refuses the same pair.")
+  r("group:autocor", "mixture", "refused",
+    "Refused: a mixture likelihood has no single residual to correlate. The term is rejected as sitting on mu1 rather than mu, which is also how brms rejects it.")
+  r("group:autocor", "mixture_mvn", "refused",
+    "Refused for the same reason as mixture().")
+  r("group:autocor", "nl", "refused",
+    "Refused: a nonlinear mu is arbitrary R code, so the term would be evaluated rather than read. brms reaches this model through acformula(), which has no analog here.")
+  r("group:autocor", "quadrature", "refused",
+    "Refused: the Gauss-Kronrod rule integrates a random effect against per-observation densities, and this residual is a joint density over each group.")
+  r("group:autocor", "REML", "works",
+    "The correlation parameters are covariance parameters and stay in the outer problem, exactly as theta does. Verified against gls(method = \"REML\") and lme(method = \"REML\") to 1e-10 in the log-likelihood.")
+  r("group:autocor", "profile", "works",
+    "Verified: the same log-likelihood as the plain ML fit.")
+  r("group:autocor", "sparse_x", "works", "Verified by a tiny fit.")
+  r("group:autocor", "autoscale", "works", "Verified by a tiny fit.")
+  r("group:autocor", "bounds", "works",
+    "The parameters are the thetaac_* rows of the outer vector and can be bounded by that name.")
+  r("group:autocor", "priors", "conditional",
+    "Priors on the fixed effects and on random-effect covariance parameters work as usual. set_prior() cannot target the residual-correlation parameters themselves yet; bounds on thetaac_* are the available lever.")
+  r("group:autocor", "kind:covstruct", "works",
+    "Random effects alongside a correlated residual are the point of the feature: the marginal likelihood is a Laplace approximation over the modes with the multivariate residual density inside. Verified against nlme::lme(random = ~ 1 | subj, correlation = corAR1()) under ML and REML.")
+  r("group:autocor", "mvbf", "works",
+    "One residual correlation term per response, each with its own parameters. Only with rescor = FALSE.")
+  r("group:autocor", "|ID|", "untested", "")
+  r("group:autocor", "simulate", "works",
+    "simulate() draws one correlated residual per group (a Cholesky factor of that group's correlation submatrix applied to standard normal, or scaled-t, innovations), so the draws carry the fitted autocorrelation. dharma_residuals() therefore works too. frm_simulate(), which draws de novo row by row, is refused.")
+  r("group:autocor", "residuals_osa", "refused",
+    "Refused: one-step-ahead residuals need the taped density of one observation given the previous ones, and the tape holds a joint density per group. Use type = \"pearson\", which divides by the marginal residual SD (the diagonal of the residual covariance is sigma^2, because R is unit-diagonal), or dharma_residuals().")
+  r("group:autocor", "kind:method", "untested", "")
+  r("group:autocor", "fitted", "works",
+    "The mean structure is untouched: the term changes the residual density, not the linear predictor.")
+  r("group:autocor", "predict", "works",
+    "Unchanged, newdata and se.fit included: se.fit is the uncertainty of the MEAN, which the residual correlation does not enter.")
+  r("group:autocor", "residuals", "conditional",
+    "\"response\" and \"pearson\" are unchanged, and pearson is still the right standardization: R is unit-diagonal, so the marginal residual SD is sigma. They do NOT decorrelate the residuals, so a plot of them against time still shows the fitted autocorrelation; that is the intended reading.")
+  r("group:autocor", "confint_profile", "works",
+    "tmbprofile() addresses the residual-correlation parameters under their thetaac_* names.")
+  r("group:autocor", "kind:special", "untested", "")
+  r("group:autocor", "kind:autocor", "refused",
+    "Refused: a response has one residual covariance, so it carries one such term. brms refuses the same with 'Can only model one time-series term'.")
 
   ## formula grammar --------------------------------------------------------------
   # The two permissive grammar defaults are declared with the other

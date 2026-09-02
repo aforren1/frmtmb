@@ -317,20 +317,28 @@ varcorr_trans_rows <- function(fit) {
       }
     }
   }
-  if (!length(rows)) return(NULL)
-  out <- do.call(rbind, rows)
+  acr <- autocor_trans_rows(fit)
+  if (!length(rows) && is.null(acr)) return(NULL)
+  out <- if (length(rows)) do.call(rbind, rows) else NULL
+  out <- if (is.null(out)) acr else if (is.null(acr)) out else {
+    rbind(out, acr)
+  }
   rownames(out) <- NULL
   out
 }
 
 #' Back-transform to the natural scale (elementwise over types): log for
 #' scales, Fisher-z for correlations, logit for the CAR mixing
-#' proportions (which live on (0, 1), as they do in brms).
+#' proportions (which live on (0, 1), as they do in brms), and the
+#' identity for the "raw" components - the AR/MA coefficients of a
+#' higher-order residual process, which are bounded by stationarity as a
+#' SET but not one at a time.
 #'
 #' @noRd
 varcorr_untrans <- function(type, v) {
-  ifelse(type == "cor", tanh(v),
-         ifelse(type == "prop", 1 / (1 + exp(-v)), exp(v)))
+  ifelse(type == "raw", v,
+         ifelse(type == "cor", tanh(v),
+                ifelse(type == "prop", 1 / (1 + exp(-v)), exp(v))))
 }
 
 #' Natural-scale confidence intervals for covariance parameters
@@ -1132,21 +1140,23 @@ hyp_vals_only <- function(fit) {
   bd <- est$betad
   if (length(fx <- fit$frame$betad_fixed_idx)) bd <- bd[-fx]
   list(
-    vals = c(est$beta, bd, est$theta, est$thetar),
+    vals = c(est$beta, bd, est$theta, est$thetaac, est$thetar),
     comp = c(rep("beta", length(est$beta)), rep("betad", length(bd)),
              rep("theta", length(est$theta)),
+             rep("thetaac", length(est$thetaac)),
              rep("thetar", length(est$thetar)))
   )
 }
 
 #' Values plus joint covariance of (beta, estimated betad, theta,
-#' thetar). ML: straight from cov.fixed in opt$par order (outer_pos maps
-#' back into the full outer vector for tmbroot lincombs). REML: beta is
-#' integrated out, so the blocks come from the joint precision.
+#' thetaac, thetar). ML: straight from cov.fixed in opt$par order
+#' (outer_pos maps back into the full outer vector for tmbroot
+#' lincombs). REML: beta is integrated out, so the blocks come from the
+#' joint precision.
 #'
 #' @noRd
 hyp_par_cov <- function(fit) {
-  comps <- c("beta", "betad", "theta", "thetar")
+  comps <- c("beta", "betad", "theta", "thetaac", "thetar")
   if (!fit$REML && !isTRUE(fit$control$profile)) {
     sdr <- sdr_of(fit)
     V <- sdr$cov.fixed
@@ -1220,6 +1230,17 @@ hyp_env_vals <- function(fit, vals, comp) {
           if (is.null(env[[nm]])) env[[nm]] <- C[j, k]
         }
       }
+    }
+  }
+
+  # R-side residual correlation: brms's own names, sanitized the way
+  # every other name here is (ar[1] -> ar1, cortime__1__2 unchanged)
+  thac <- vals[comp == "thetaac"]
+  for (ac in fit$frame$autocor %||% list()) {
+    nat <- autocor_natural(thac[ac$theta_idx], ac)
+    for (j in seq_along(nat)) {
+      nm <- hyp_san(names(nat)[j])
+      if (is.null(env[[nm]])) env[[nm]] <- unname(nat[j])
     }
   }
 
@@ -1403,6 +1424,10 @@ hypothesis <- function(x, ...) UseMethod("hypothesis")
 #' `sigma` when the residual SD is a scalar. The brms spelling; for
 #' sampled fits, `variables()` on the [frm_sample()] result lists the
 #' draw columns instead.
+#'
+#' A residual correlation term ([frmtmb-autocor]) contributes its
+#' natural-scale parameters under brms's names, sanitized the same way:
+#' `ar1`, `ar2`, `ma1`, `cosy`, `cortime__<t1>__<t2>`.
 #'
 #' `gr(cov = )`, `gr(prec = )` and `equalto()` blocks contribute
 #' `sd_`/`cor_` names for their within-level covariance. Smooths,

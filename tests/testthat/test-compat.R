@@ -24,8 +24,8 @@ test_that("feature names are unique and every kind is populated", {
   expect_true(all(nzchar(ft$name)), all(nzchar(ft$key)))
   expect_setequal(
     unique(ft$kind),
-    c("family", "covstruct", "aterm", "special", "mode", "structure",
-      "method", "grammar"))
+    c("family", "covstruct", "aterm", "autocor", "special", "mode",
+      "structure", "method", "grammar"))
 })
 
 test_that("no rule is stated twice for the same unordered pattern pair", {
@@ -176,6 +176,24 @@ test_that("declared specials still parse", {
                       dry_run = "frame"), "frmtmb_frame")
   expect_s3_class(frm(o ~ cs(x), data = d, family = sratio(),
                       dry_run = "frame"), "frmtmb_frame")
+})
+
+test_that("declared autocorrelation terms parse", {
+  ft <- frm_compat_features()
+  expect_setequal(ft$key[ft$kind == "autocor"],
+                  c("ar", "ma", "arma", "cosy", "unstr"))
+  set.seed(1)
+  d <- expand.grid(week = 1:4, subj = factor(1:8))
+  d$y <- rnorm(32)
+  d$x <- rnorm(32)
+  for (tm in c("ar(week, subj, cov = TRUE)", "ma(week, subj, cov = TRUE)",
+               "arma(week, subj, cov = TRUE)", "cosy(week, subj)",
+               "unstr(week, subj)")) {
+    fr <- frm(stats::as.formula(paste("y ~ x +", tm)), data = d,
+              family = gaussian(), dry_run = "frame")
+    expect_s3_class(fr, "frmtmb_frame")
+    expect_length(fr$autocor, 1L)
+  }
 })
 
 test_that("declared modes are arguments of frm() or frmtmb_control()", {

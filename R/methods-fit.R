@@ -84,6 +84,23 @@ summary.frmtmb_fit <- function(object, ...) {
          BIC = stats::BIC(object), REML = object$REML,
          coefficients = coefs, varcor = VarCorr(object),
          rescor = rescor_matrix(object),
+         # R-side residual correlation, on the natural scale with the
+         # same delta-method interval confint_varcorr() reports
+         autocor = local({
+           tr <- autocor_trans_rows(object)
+           if (is.null(tr)) NULL else {
+             z <- stats::qnorm(0.975)
+             m <- cbind(
+               Estimate = varcorr_untrans(tr$type, tr$est_t),
+               `2.5 %` = varcorr_untrans(tr$type, tr$est_t - z * tr$se_t),
+               `97.5 %` = varcorr_untrans(tr$type, tr$est_t + z * tr$se_t))
+             rownames(m) <- if (length(unique(tr$block)) > 1L) {
+               paste(tr$block, tr$term)
+             } else tr$term
+             attr(m, "label") <- tr$block[1L]
+             m
+           }
+         }),
          smooth_edf = smooth_edf(object),
          extras = local({
            ex <- list()
@@ -127,6 +144,13 @@ print.summary.frmtmb_fit <- function(x, ...) {
   if (!is.null(x$rescor)) {
     cat("\nResidual correlation:\n")
     print(signif(x$rescor, 4))
+  }
+  if (!is.null(x$autocor)) {
+    cat("\nWithin-group residual correlation: ",
+        attr(x$autocor, "label"), "\n", sep = "")
+    m_ac <- x$autocor
+    attr(m_ac, "label") <- NULL
+    print(signif(m_ac, 4))
   }
   if (!is.null(x$smooth_edf)) {
     cat("\nSmooth terms (edf of the penalized part):\n")

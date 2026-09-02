@@ -537,6 +537,8 @@ nonpredictor_frame_vars <- function(spec) {
     if (!is.null(resp$family$mix_groups)) {
       out <- c(out, deparse1(resp$family$mix_groups[[2L]]))
     }
+    out <- c(out, all.vars(resp$autocor$time_expr),
+             all.vars(resp$autocor$gr_expr))
     for (dp in resp$dpars) {
       for (rt in dp$re %||% list()) out <- c(out, deparse1(rt$bar[[3L]]))
       for (ce in c(dp$carterms %||% list(), dp$spdeterms %||% list())) {
@@ -657,6 +659,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   for (resp in spec$responses) {
     add_part(resp$resp_expr)
     for (dp in resp$dpars) add_part(dpar_frame_rhs(dp))
+    # the time and grouping variables of a residual correlation term
+    # live on the RESPONSE (the term is not part of any dpar's design),
+    # so they are added here rather than in dpar_frame_rhs()
+    for (v in c(all.vars(resp$autocor$time_expr),
+                all.vars(resp$autocor$gr_expr))) {
+      add_part(as.name(v))
+    }
     if (!is.null(resp$family$mix_groups)) {
       add_part(resp$family$mix_groups[[2L]])
     }
@@ -746,6 +755,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   n_miss <- 0L
   miss_init <- numeric(0)
   mix_g <- list()    # per response: latent-class grouping structure
+  autocor <- list()  # per response: R-side residual correlation block
+  n_thetaac <- 0L
   for (resp in spec$responses) {
     # A name that is both a nonlinear parameter and a data column is
     # ambiguous, and the nonlinear body resolves it to the PARAMETER,
@@ -955,6 +966,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                                       first = match(levels(gv), gv),
                                       gindex = as.integer(gv),
                                       levels = levels(gv))
+    }
+    if (!is.null(resp$autocor)) {
+      ac <- check_autocor_response(resp, spec, av, y[[resp$resp_name]])
+      ac <- autocor_block(ac, resp$resp_name, mf, resp$formula_env, n)
+      ac$theta_idx <- n_thetaac + seq_len(ac$npar)
+      ac$block_label <- if (length(spec$responses) > 1L) {
+        paste0(resp$resp_name, " ", ac$label)
+      } else ac$label
+      ac$student <- identical(resp$family$family, "student")
+      n_thetaac <- n_thetaac + ac$npar
+      autocor[[resp$resp_name]] <- ac
     }
     if (!is.null(resp$family$valid_y)) {
       resp$family$valid_y(y[[resp$resp_name]], av)
@@ -1746,6 +1768,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     par_template$theta <- th0
   }
+  if (n_thetaac) {
+    # R-side residual correlation parameters. They are covariance
+    # parameters, so they stay OUTER under REML exactly as theta does:
+    # REML integrates the mu fixed effects and nothing else.
+    thac0 <- numeric(n_thetaac)
+    for (ac in autocor) thac0[ac$theta_idx] <- autocor_start(ac)
+    par_template$thetaac <- thac0
+  }
   if (spec$rescor) {
     K <- length(spec$responses)
     par_template$thetar <- numeric(K * (K - 1L) / 2L)
@@ -1782,6 +1812,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
          n_c = n_c, has_rr = has_rr, mi_map = mi_map, mix_g = mix_g,
+         autocor = autocor,
          par_template = par_template, map = map,
          betad_fixed_idx = betad_fixed_idx,
          extra_names = names(extras),
@@ -1809,6 +1840,11 @@ print.frmtmb_frame <- function(x, ...) {
   for (bk in x$re_blocks) {
     cat("  RE block: ", bk$term_label, " [", bk$covstruct, "] dim=", bk$dim,
         " levels=", bk$n_levels, "\n", sep = "")
+  }
+  for (ac in x$autocor %||% list()) {
+    cat("  R-side: ", ac$block_label, " [", ac$struct, "] times=", ac$d,
+        " groups=", ac$n_groups, " patterns=", length(ac$patterns),
+        "\n", sep = "")
   }
   cat("  parameters:",
       paste0(names(x$par_template), "(",

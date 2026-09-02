@@ -463,6 +463,16 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
     stop("frm_simulate(): family '", rspec$family$family,
          "' has no simulator yet", call. = FALSE)
   }
+  if (length(frame$autocor %||% list())) {
+    # the de novo path draws each row from the family simulator and has
+    # nowhere to put a group-level residual draw; simulate() on a
+    # FITTED model does draw correlated residuals
+    stop("frm_simulate() does not support residual correlation terms (",
+         frame$autocor[[1L]]$label, ") yet: the de novo simulator draws ",
+         "rows independently. Fit the model first and call simulate() ",
+         "on the fit, which draws one correlated residual per group",
+         call. = FALSE)
+  }
   if (is.null(newparams) && is.null(priors)) {
     stop("frm_simulate() needs newparams, priors, or both", call. = FALSE)
   }

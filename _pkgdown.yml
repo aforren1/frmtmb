@@ -10,6 +10,7 @@ reference:
   - mvbf
   - set_rescor
   - num_factor
+  - frmtmb-autocor
   - frm_ode
   - frm_ode_failures
 - title: Fitting
@@ -31,6 +32,7 @@ reference:
   contents:
   - confint.frmtmb_fit
   - confint_varcorr
+  - autocor_matrix
   - profile.frmtmb_fit
   - hypothesis
   - variables

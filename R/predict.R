@@ -1620,6 +1620,18 @@ osa_cens_domain <- function(av, y) {
 #' modes, the glmmTMB convention: `E[Y]` is [fitted()], not the
 #' population-level mean.
 #'
+#' @section Residual correlation terms:
+#' Under an `ar()`, `ma()`, `arma()`, `cosy()` or `unstr()` term (see
+#' [frmtmb-autocor]) the residual covariance of a group is `D R D` with
+#' `R` unit-diagonal, so the marginal residual SD of a row is still
+#' `sigma` and `"pearson"` is unchanged - it divides by exactly that.
+#' What `"response"` and `"pearson"` do NOT do is decorrelate: plotted
+#' against time within a group they still show the fitted
+#' autocorrelation, which is the intended reading. `"osa"` is refused,
+#' because the taped likelihood is a joint density per group rather
+#' than a product of per-observation terms; [dharma_residuals()] works,
+#' since [simulate()] draws one correlated residual per group.
+#'
 #' `deviance(fit)` is unrelated: it stays `-2 * logLik(fit)` (the lme4
 #' convention), which for a mixed model is the Laplace-approximated
 #' marginal deviance and does **not** equal `sum(residuals(fit, type =
@@ -1679,6 +1691,20 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
   rspec <- uni_resp(object, "residuals()")
   fam <- rspec$family
   if (type == "osa") {
+    if (!is.null(object$frame$autocor[[rspec$resp_name]])) {
+      # oneStepPredict needs the taped density of ONE observation given
+      # the previous ones; under an R-side residual the tape holds a
+      # joint density per group and never registers an observation
+      # vector (no OBS() call), so there is nothing to step through
+      stop("residuals(type = \"osa\") is not available for a fit with a ",
+           "residual correlation term (",
+           object$frame$autocor[[rspec$resp_name]]$label,
+           "): the likelihood is a joint density per group, not a ",
+           "product of per-observation terms. Use type = \"pearson\", ",
+           "which divides by the marginal residual SD, or ",
+           "dharma_residuals(), which uses simulate() and does draw ",
+           "correlated residuals", call. = FALSE)
+    }
     av0 <- object$frame$aterm_values[[rspec$resp_name]]
     tb <- trunc_bounds(av0, object$frame$n_obs)
     cb <- osa_cens_domain(av0, object$frame$y[[rspec$resp_name]])
@@ -1993,6 +2019,16 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     dp <- with_cs_offsets(object, rspec, eval_dpars(object,
                                                     b = b_use))
     dp <- dp[[rspec$resp_name]]
+    ac <- object$frame$autocor[[rspec$resp_name]]
+    if (!is.null(ac)) {
+      # the residual of a group is one multivariate draw, so the family
+      # simulator (which draws rows independently) is bypassed
+      R <- autocor_cor(object$estimates$thetaac[ac$theta_idx], ac)
+      out[[s]] <- dp$mu + autocor_draw_resid(
+        ac, R, rep(dp$sigma, length.out = n), n,
+        nu = if (isTRUE(ac$student)) dp$nu[1] else NULL)
+      next
+    }
     out[[s]] <- if (is.null(mg)) {
       sim_response(fam, dp, av, n, extra = fit_extras(object))
     } else {

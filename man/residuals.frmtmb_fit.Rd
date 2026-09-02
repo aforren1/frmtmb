@@ -105,6 +105,20 @@ known-variance weighted fit.
 In a mixed model the residuals are conditional on the random-effect
 modes, the glmmTMB convention: \code{E[Y]} is \code{\link[=fitted]{fitted()}}, not the
 population-level mean.
+}
+
+\section{Residual correlation terms}{
+
+Under an \code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} or \code{unstr()} term (see
+\link{frmtmb-autocor}) the residual covariance of a group is \verb{D R D} with
+\code{R} unit-diagonal, so the marginal residual SD of a row is still
+\code{sigma} and \code{"pearson"} is unchanged - it divides by exactly that.
+What \code{"response"} and \code{"pearson"} do NOT do is decorrelate: plotted
+against time within a group they still show the fitted
+autocorrelation, which is the intended reading. \code{"osa"} is refused,
+because the taped likelihood is a joint density per group rather
+than a product of per-observation terms; \code{\link[=dharma_residuals]{dharma_residuals()}} works,
+since \code{\link[=simulate]{simulate()}} draws one correlated residual per group.
 
 \code{deviance(fit)} is unrelated: it stays \code{-2 * logLik(fit)} (the lme4
 convention), which for a mixed model is the Laplace-approximated
