@@ -1205,3 +1205,78 @@ skeleton in the write-up.
 Our side, future: auto-derived containment bounds (mode +/- k*SE)
 for sampling ODE fits once a patched RTMBode makes failure
 rejectable. Bare-nlpar bound aliases: DONE in v0.37 (wt-smallitems).
+
+## Functional data analysis: probed 2026-09-02 (lane wt-vignettes)
+
+Probed while writing sections 10 to 12 of `vignette("case-studies")`.
+Verdicts, with the numbers that produced them.
+
+**Function-on-scalar regression: WORKS, no gap in the model.** Long
+format plus `s(t) + s(t, by = x)` is the mgcv reduction, and frmtmb
+reproduces `mgcv::gam(method = "ML")` on the same data: the fitted
+coefficient functions agree to 2e-6, the smoothing parameters to 9e-5
+relative, and frmtmb's marginal `logLik()` equals mgcv's ML
+smoothness-selection score (`-gam$gcv.ubre`) to 1e-8. Note for anyone
+comparing again: `logLik.gam` is NOT that quantity (it is the
+unpenalized likelihood at the fit), so comparing `logLik()` to
+`logLik()` across the two packages looks like a 30-point disagreement
+and is not one.
+
+**`bs = "fs"` factor-smooth interactions: WORK, undocumented until
+now.** `s(t, subject, bs = "fs", k = 5)` survives
+`smoothCon()` + `smooth2random()` and comes out as three variance
+components (the wiggly part plus the two null-space directions).
+Agreement with `mgcv::gam` on the same term: coefficient functions to
+2.4e-6, marginal logLik to 1.4e-10. This is the honest FoSR spelling
+for a per-subject curve, and it beats `(1 + t | subject)` on the same
+parameter count (AIC 899.86 against 901.65 on the vignette's data).
+Nothing in `?frm` or `vignette("inputs")` said `fs` was available.
+
+**Scalar-on-function regression: WORKS.** `s(Smat, by = LX)` with
+MATRIX columns in the data frame survives frame assembly, fitting and
+`predict(newdata =)` with a matrix column. Fitted values match
+`mgcv::gam` to 9e-8 and the recovered coefficient function to four
+decimals. The earlier expectation that this would fail was wrong.
+
+### The gaps that are real
+
+- **`conditional_effects()` on a matrix covariate says the wrong
+  thing.** The refusal is correct (a matrix column has no single value
+  to hold the other predictors at, so it is excluded from the grid),
+  but the message is the generic "No plottable predictors found for
+  dpar 'mu'", which does not name the cause or say what to do instead.
+  A term-specific message ("`s(Smat, by = LX)` is built on matrix
+  columns, which conditional_effects() excludes; draw the coefficient
+  function with predict()") would cost one branch. Small.
+- **No population-level prediction for a random smooth.** mgcv has
+  `predict(exclude = )` to drop the `fs` term and draw the population
+  curve. frmtmb has `re.form`, which drops the random-effect blocks,
+  but a smooth's wiggly part is also a random-effect block, so
+  `re.form = NA` on a model with smooths does not mean "drop the
+  subject curve, keep the population smooth". The vignette works
+  around it by taking the `x = 1` minus `x = 0` contrast at a fixed
+  subject, where the subject term cancels. A per-term exclusion
+  argument would be the fix. Medium.
+- **`predict()` needs the grouping column in `newdata` for an `fs`
+  term** even when only the population part is wanted, and the failure
+  without it is an mgcv internal message
+  (`names(dat) <- object$term ... must be the same length`), not a
+  frmtmb one. Same fix as above.
+- **No functional-response object.** There is no `refund::pffr`
+  equivalent: no `ff()` term, no automatic long-format reshape, and no
+  penalty that couples `b0(t)` with `b1(t)`. This is a genuine
+  difference in scope, not a defect, and the long-format spelling
+  covers the models the short course teaches.
+
+### A custom link with a data-dependent bound: works, thinly documented
+
+`frmtmb_family(links = )` accepts a link OBJECT as well as a name
+(`get_link()` passes a list through), so a scaled logit onto `(0, U)`
+with `U` read off the data at family-construction time is expressible
+and is what the vignette's Wiener family uses for `ndt`, whose support
+constraint is `rt > ndt`. The contract a custom link must satisfy is
+`name`, `linkfun`, `linkinv`, `mu_eta`, and it is stated only in the
+`@param links` line of `?frmtmb_family`. Worth an example in the
+custom-family docs. Note also that such a link saturates in double
+precision past a linear predictor near 37, so the bound is exact in
+algebra and only nearly exact in arithmetic.
