@@ -42,6 +42,15 @@ frmtmb_links <- list(
     linkinv = function(eta) 1 + exp(eta),
     mu_eta  = function(eta) exp(eta)
   ),
+  # tan of the half angle: maps the whole line onto the circle
+  # (-pi, pi), which is the support of a von Mises mean direction
+  # (brms's tan_half link)
+  tan_half = list(
+    name    = "tan_half",
+    linkfun = function(mu) tan(mu / 2),
+    linkinv = function(eta) 2 * atan(eta),
+    mu_eta  = function(eta) 2 / (1 + eta^2)
+  ),
   # logit onto (1, 2): the tweedie power parameter's valid range
   power12 = list(
     name    = "power12",

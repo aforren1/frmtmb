@@ -452,7 +452,7 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
                          priors = NULL, nsim = 1, seed = NULL,
                          data2 = list()) {
   if (!is.null(seed)) set.seed(seed)
-  bform <- as_bform(formula, family)
+  bform <- resolve_deferred_families(as_bform(formula, family), data)
   spec <- parse_spec(bform)
   frame <- assemble_frame(spec, data, data2 = data2)
   if (length(spec$responses) > 1L) {

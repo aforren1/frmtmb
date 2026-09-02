@@ -185,7 +185,7 @@ get_prior <- function(formula, data = NULL, family = NULL,
     spec <- formula$spec
     frame <- formula$frame
   } else {
-    bform <- as_bform(formula, family)
+    bform <- resolve_deferred_families(as_bform(formula, family), data)
     spec <- parse_spec(bform)
     frame <- assemble_frame(spec, data, data2 = data2)
   }

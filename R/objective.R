@@ -228,10 +228,11 @@ build_objective <- function(frame) {
             lb <- lb - 1
           }
           if (!is.null(atv[[r]]$trunc_ub)) {
-            Fub <- fam$lcdf(atv[[r]]$trunc_ub, dparv[[r]], atv[[r]])
+            Fub <- fam_lcdf(fam, atv[[r]]$trunc_ub, dparv[[r]], atv[[r]],
+                            extra)
           }
           if (!is.null(lb)) {
-            Flb <- fam$lcdf(lb, dparv[[r]], atv[[r]])
+            Flb <- fam_lcdf(fam, lb, dparv[[r]], atv[[r]], extra)
           }
         }
         if (!is.null(atv[[r]]$cens)) {
@@ -245,14 +246,15 @@ build_objective <- function(frame) {
           # F(y) already includes the point y, which is what a
           # left-censored count observes.
           cen <- atv[[r]]$cens
-          Fv <- fam$lcdf(y[[r]], dparv[[r]], atv[[r]])
+          Fv <- fam_lcdf(fam, y[[r]], dparv[[r]], atv[[r]], extra)
           i_r <- which(cen == 1)
           i_l <- which(cen == -1)
           i_i <- which(cen == 2)
           if (length(i_r)) ll[i_r] <- log(bound_rows(Fub, i_r) - Fv[i_r])
           if (length(i_l)) ll[i_l] <- log(Fv[i_l] - bound_rows(Flb, i_l))
           if (length(i_i)) {
-            F2 <- fam$lcdf(atv[[r]]$cens_y2, dparv[[r]], atv[[r]])
+            F2 <- fam_lcdf(fam, atv[[r]]$cens_y2, dparv[[r]],
+                             atv[[r]], extra)
             # an interval is already a windowed difference of CDFs, so
             # only the division by the window mass below is missing; an
             # interval reaching outside [lb, ub] is a data contradiction

@@ -581,3 +581,138 @@ being both the largest piece and the reason to build rung 2 at all,
 since it is what makes `fitted()` mean something. Refuse initially:
 weights/cens/trunc/mi, rescor/mvbf, quadrature, OSA, REML, and
 `predict(se.fit = TRUE)` on the response scale.
+
+## Three family gaps closed (v0.35, 2026-09-02)
+
+`categorical()`, `von_mises()` and `cox()` were the brms families with
+no frmtmb spelling. All three shipped. What each cost, and what stayed
+out.
+
+### categorical()
+
+The likelihood was already here as `multinomial(K)` on a count-matrix
+response; what was missing was the brms spelling on a bare factor.
+Shipped as a `type = "categorical"` family over a `1..K` category
+index: `K - 1` linear predictors, category 1 the reference, dpars named
+`mu<Level>` as brms names them (confirmed from
+`make_stancode(bf(y ~ x), family = categorical())`, which emits `b_mub`
+/ `b_muc` for levels `a < b < c` and calls
+`categorical_logit_glm_lpmf`). The main formula applies to every
+category unless a dpar formula overrides one, again as brms does.
+Validated to 4e-10 in the log-likelihood against `nnet::multinom` and
+to 1e-8 against `multinomial(K = 3)` on the one-hot response.
+
+The one place brms and frmtmb genuinely differ is WHEN the categories
+are known. brms builds Stan code after seeing data; `parse_spec()` here
+is deliberately data-free, so a dpar named `muc` would be rejected as
+unknown before any response is read. Resolved with a `defer` hook on
+the family and one line in `frm()` (mirrored in `get_prior()` and
+`frm_simulate()`): a bare `categorical()` is a placeholder that
+`resolve_deferred_families()` swaps for the concrete family once the
+response is in hand. `categorical(levels =)` and `categorical(K =)`
+build it directly for the paths that have no data.
+
+Not done: `conditional_effects()` and `dharma_residuals()` branch on
+`type == "ordinal"` and take the wrong path for a nominal response.
+Both live outside this lane; the compat registry leaves them at the
+untested default rather than claiming they work. `residuals()` is
+refused outright - a nominal response has no scale for one.
+
+### von_mises()
+
+Nearly free, and the Bessel blocker in the brief turned out not to
+exist. `RTMB` exports an S4 `besselI` method for advectors:
+`MakeTape(function(x) besselI(x, 0))` tapes and differentiates, and
+`RTMBdist::dvm()` already builds the von Mises density on it in the
+exponentially scaled form (`log I0(k) = log besselI(k, 0,
+expon.scaled = TRUE) + k`, which is what keeps a large concentration
+from overflowing). So no series approximation, no accuracy caveat, and
+no refusal: the family is three lines of lpdf plus the `tan_half` link
+(`linkfun = tan(mu/2)`, `linkinv = 2 atan(eta)`), brms's
+parameterization exactly.
+
+The one thing that had to be written was the SIMULATOR.
+`RTMBdist::rvm()` delegates to `circular::rvonmises()`, which takes
+scalar parameters only, so a distributional `kappa ~ x` could not
+simulate. Replaced with a vectorized Best-Fisher (1979) rejection
+sampler over per-row `mu` and `kappa`, with the `kappa -> 0` uniform
+case split out (the rejection constants divide by it).
+
+Validated against a hand-rolled RTMB likelihood to 1e-6 (both for
+constant and for distributional kappa) and against
+`circular::mle.vonmises()` to 1e-5 on mu and 1e-2 on kappa (its kappa
+comes from a different root finder). `residuals()` runs but the
+differences are NOT wrapped; `residuals(type = "osa")` is refused
+upstream by `dvm()` itself.
+
+### cox()
+
+brms's exact construction, read off `make_stancode()` for
+`bf(t | cens(c) ~ x + (1|g))` with `family = cox()`:
+
+    bhaz  = Zbhaz  * sbhaz      // M-spline basis, simplex weights
+    cbhaz = Zcbhaz * sbhaz      // I-spline basis, the SAME weights
+    cox_log_lpdf  = log(bhaz) + eta - cbhaz * exp(eta)
+    cox_log_lccdf =                  - cbhaz * exp(eta)
+
+with `simplex[Kbhaz] sbhaz`, a `dirichlet(1)` prior, and the basis from
+`brms:::bhaz_basis_matrix()`: `splines2::mSpline` / `iSpline`, default
+`bhaz(df = 5, intercept = TRUE)` (cubic), internal knots on response
+quantiles and boundary knots at
+`c(max(min(y) - diff(range(y))/50, 0), max(y) + diff(range(y))/50)`.
+
+Reproduced without taking `splines2` as a dependency: the M-spline and
+I-spline bases are built here from a hand-rolled Cox-de Boor recursion
+(`bspline_basis()`), with `I_j` the reverse cumulative sum of the
+order-(degree + 2) B-spline basis on the once-more-repeated boundary
+knots. They agree with `splines2` to 1e-16 in both the intercept and
+no-intercept cases, and the tests also check `I_j` against a numeric
+integral of `M_j` and that each M-spline integrates to one. The simplex
+rides in the parameter vector as `sbhaz_raw`, its `Kbhaz - 1` softmax
+coordinates with the first pinned at zero.
+
+Two small contract changes carried it:
+
+- `family$aterm_data(y, aterms)`, an optional hook in `assemble_frame()`
+  returning family-level DATA that no addition term supplies. The
+  spline bases are a function of the validated response, so they are
+  built once there and ride with the addition-term values the objective
+  already bakes into the tape. Nothing else uses the hook yet.
+- `fam_lcdf()`, an arity dispatcher, because the Cox survivor function
+  needs the family-level extra parameters and the three-argument
+  `lcdf(q, dpars, aterms)` contract had no room for them. Every other
+  family keeps the old signature.
+
+`cens()` then needed no new machinery at all: the objective already
+replaces a censored row's density with a windowed CDF difference, which
+for this family is exactly the survivor function. Right, left and
+interval censoring all run. Frailty models come free through Laplace,
+which is the point of the family: `time | cens(c) ~ x + (1 | g)`
+recovers a frailty SD of 0.8 within 0.3 and agrees with
+`coxph(... + frailty(g, distribution = "gaussian"))` to 0.1 on the
+coefficient.
+
+Validated exactly (1e-6 in the log-likelihood, 1e-4 in the
+coefficients and the baseline simplex) against a hand-rolled M-spline
+PH likelihood built independently in the test, and approximately
+(2e-2) against `survival::coxph`, which is the right claim: coxph
+leaves the baseline fully nonparametric while this spends `df` spline
+weights on it.
+
+KNOWN AND DOCUMENTED: ML routinely drives one or more baseline weights
+to the simplex boundary, so their softmax coordinates run to minus
+infinity along a flat ridge and the optimizer reports singular
+convergence. The gradient is zero there and the regression
+coefficients are at their optimum - a test asserts both - but the
+warning is real and brms does not meet it, because its Dirichlet prior
+keeps the weights interior. Lowering `df` is the remedy. A penalized
+or bounded baseline would remove the warning; it would also stop being
+maximum likelihood, so it was not done.
+
+Refused, deliberately: `fitted()` and `predict(type = "response")` (a
+survival time has no mean the censored rows identify - brms refuses the
+same question, `posterior_epred` has no cox method) and `simulate()`
+(no quantile function for the cumulative baseline). `trunc(lb = )` runs
+as delayed entry through the same log-CDF but is declared conditional,
+not verified: there is no external left-truncated reference in the
+suite yet.

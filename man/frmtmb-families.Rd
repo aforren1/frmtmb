@@ -31,6 +31,9 @@
 \alias{sratio}
 \alias{cratio}
 \alias{acat}
+\alias{von_mises}
+\alias{categorical}
+\alias{cox}
 \title{Additional response families}
 \usage{
 student(link = "identity")
@@ -90,12 +93,32 @@ sratio(link = "logit")
 cratio(link = "logit")
 
 acat(link = "logit")
+
+von_mises(link = "tan_half")
+
+categorical(link = "logit", levels = NULL, K = NULL)
+
+cox(link = "log", df = 5, degree = 3, intercept = TRUE)
 }
 \arguments{
 \item{link}{Link for \code{mu}.}
 
 \item{K}{For \code{multinomial()}: number of response categories (columns
 of the count-matrix response); category 1 is the reference.}
+
+\item{levels}{For \code{categorical()}: the response's category labels, in
+the order that fixes the reference category (the first) and the
+dpar names. Only needed when the family is built away from the
+data; \code{\link[=frm]{frm()}} reads them off the response.}
+
+\item{df}{For \code{cox()}: the number of M-spline basis functions in the
+baseline hazard (brms's \code{bhaz(df = 5)} default).}
+
+\item{degree}{For \code{cox()}: the spline degree of that basis (cubic by
+default).}
+
+\item{intercept}{For \code{cox()}: keep the basis function that is
+non-zero at the lower boundary knot.}
 }
 \value{
 A \code{frmtmb_family} object.
@@ -112,6 +135,90 @@ ordered factor, or integer codes \verb{1..K}: an unordered factor is
 accepted, as brms accepts it, but warns and names the order it is
 about to use, which is alphabetical unless the levels were set.
 }
+\section{Categorical (nominal) responses}{
+
+\code{categorical()} fits a multinomial logit to an unordered factor. The
+FIRST level is the reference category, its linear predictor is held
+at zero, and each remaining level gets its own predictor named
+\verb{mu<Level>}, as in brms. The main model formula applies to every one
+of them, and any single category is overridden by naming it:
+\code{bf(y ~ x, mub ~ z)} gives category \code{"b"} its own predictor and
+leaves the rest on \code{~ x}.
+
+The categories come from the data, so \code{frm()} reads them off the
+response before it parses the formula. Constructing the family away
+from a data set (to inspect it, or to reach the parser through
+another entry point) needs them stated: \code{categorical(levels = c("a", "b", "c"))}, or \code{categorical(K = 3)} for a response already coded
+\verb{1..K}, which names the dpars \verb{mu2 ... muK}. A character or logical
+response is coerced to a factor with a message naming the level
+order, because that order is the model.
+
+\code{fitted()} and \code{predict(type = "response")} return the \verb{n x K} matrix
+of category probabilities, columns named by the response's own
+levels and rows summing to one - the same convention the ordinal
+families follow. \code{predict(type = "link")} and \code{predict(dpar =)} give
+the per-category latent predictors, which is where \code{se.fit} lives.
+\code{simulate()} draws factor levels. The same likelihood is available on
+a count-matrix response as \code{multinomial(K)}, and a one-hot matrix
+gives an identical log-likelihood.
+}
+
+\section{Circular responses}{
+
+\code{von_mises()} models an angle in radians on \verb{(-pi, pi]}. Its \code{mu} is
+the mean direction and takes the \code{tan_half} link, which maps the
+whole line onto that interval; \code{kappa} is the concentration and takes
+a log link, with \code{kappa = 0} the uniform distribution on the circle.
+Both are brms's choices. \code{fitted()} and \code{predict(type = "response")}
+report the mean direction. The normalizing constant needs
+\verb{log I0(kappa)}, which RTMB differentiates exactly through its own
+\code{besselI} method, so nothing here is a series approximation.
+Residuals are differences of angles and are NOT wrapped, so read
+\code{residuals()} on a von Mises fit with that in mind.
+}
+
+\section{Cox proportional hazards}{
+
+\code{cox()} is the flexible-parametric proportional hazards model brms
+fits: the baseline hazard is an M-spline in time,
+\verb{h0(t) = sum_j s_j M_j(t)}, and the cumulative baseline hazard is the
+I-spline integral of the same basis over the same weights, which
+makes it monotone by construction. The weights \code{s} form a simplex -
+that is what identifies the baseline against the intercept - and are
+estimated as \code{sbhaz_raw}, their \code{Kbhaz - 1} free softmax
+coordinates; \code{\link[=cox_baseline]{cox_baseline()}} returns the simplex itself. The
+default basis is brms's: \code{df = 5} cubic M-splines with an intercept,
+internal knots on response quantiles and boundary knots just outside
+the observed range.
+
+The hazard is \verb{h0(t) exp(eta)}, so a coefficient is a log hazard
+ratio, exactly as in \code{survival::coxph()}. Right, left, and interval
+censoring come through the ordinary \code{cens()} addition term: an event
+contributes the density and a censored observation the survivor
+function, which is what this family's log-density and log-CDF are.
+Random effects are the point: \code{time | cens(c) ~ x + (1 | g)} is a
+frailty model, and the Laplace approximation integrates the frailties
+out.
+
+The baseline is semiparametric only in spirit - it has \code{df}
+parameters, not one per event time - so coefficients agree with
+\code{coxph()} closely rather than exactly. A survival response has no
+mean, so \code{fitted()} and \code{predict(type = "response")} are refused;
+\code{predict(type = "link")} gives the log hazard ratio. \code{simulate()} is
+not available.
+
+Maximum likelihood often puts one or more baseline weights ON the
+simplex boundary, at exactly zero. Their softmax coordinates then run
+off to minus infinity along a flat ridge, the Hessian is singular in
+those directions, and the optimizer reports singular convergence even
+though the gradient is zero and the regression coefficients are at
+their optimum - \code{\link[=diagnose]{diagnose()}} names \code{sbhaz_raw} as the culprit. This
+is what an unpenalized flexible baseline does; brms does not meet it
+because its Dirichlet prior keeps the weights interior. Lower \code{df}
+until the baseline is one the data supports, and read
+\code{\link[=cox_baseline]{cox_baseline()}} to see which weights collapsed.
+}
+
 \section{Quantile regression inference}{
 
 \code{asym_laplace()} and \code{zero_inflated_asym_laplace()} fit quantile
@@ -153,4 +260,28 @@ frm(bf(grade ~ x) + cumulative(), data = dd)
 # a proportion in (0, 1)
 dd$p <- plogis(0.2 + 0.6 * dd$x + rnorm(n, 0, 0.3))
 frm(bf(p ~ x) + Beta(), data = dd)
+
+# an unordered factor: one predictor per non-reference category,
+# named after the level it belongs to
+dd$pick <- factor(sample(c("ale", "stout", "lager"), n, TRUE))
+cat_fit <- frm(bf(pick ~ x), family = categorical(), data = dd)
+fixef(cat_fit)                     # mulager and mustout; ale is the
+                                   # reference
+head(fitted(cat_fit))              # n x K category probabilities
+
+# one category may take its own predictor
+dd$w <- rnorm(n)
+frm(bf(pick ~ x, mustout ~ w), family = categorical(), data = dd)
+
+# an angle: mu is the mean direction, kappa the concentration
+dd$angle <- atan2(sin(0.5 + dd$x), cos(0.5 + dd$x))
+vm_fit <- frm(bf(angle ~ x), family = von_mises(), data = dd)
+head(fitted(vm_fit))               # the mean direction, in radians
+
+# proportional hazards with a spline baseline; (1 | g) is a frailty
+dd$time <- rexp(n, exp(-0.5 + 0.7 * dd$x))
+dd$out <- rbinom(n, 1, 0.3)        # 1 = right censored
+cox_fit <- frm(bf(time | cens(out) ~ x), family = cox(), data = dd)
+fixef(cox_fit)$mu                  # log hazard ratios
+cox_baseline(cox_fit)              # the baseline hazard weights
 }
