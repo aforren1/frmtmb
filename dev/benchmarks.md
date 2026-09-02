@@ -427,3 +427,13 @@ Reading:
   n. A tmbstan laplace = TRUE run (sampling only the outer
   parameters) would likely fix the sleepstudy geometry and is the
   natural follow-up probe.
+
+Addendum (same day): the laplace = TRUE follow-up probe is a dead end,
+not a fix. On the sleepstudy funnel case (centered joint chain: 639
+divergences and min-ESS 1 on the bad seed), tmbstan with laplace =
+TRUE took 95.6 s for one 2000-iteration chain (~45x the joint chain;
+every leapfrog step runs the inner Newton solve) and still returned
+min-ESS 1. It also surrenders the draws surface (no b draws, so
+log_lik and friends refuse). The answer to the funnel is non-centered
+reparameterization of the sampling tape, in progress on wt-reparam.
+Script: scratchpad laplace-probe.R.
