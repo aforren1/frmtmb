@@ -13,6 +13,8 @@ frm_ode(
   output = NULL,
   states = NULL,
   t0 = 0,
+  events = NULL,
+  event_scale = 1,
   method = "lsoda",
   atol = 1e-08,
   rtol = 1e-08,
@@ -53,6 +55,18 @@ column per selected state. Character selection requires \code{states}.}
 
 \item{t0}{Initial time, a scalar or one value per row (constant
 within group). Every observation time must be at or after it.}
+
+\item{events}{Optional dosing table: a data.frame with columns
+\code{time}, \code{value} and \code{state}, and optional \code{group}, \code{method} and
+\code{duration}, or a function of no arguments returning one. See
+"Dosing events" below. \code{NULL} (the default) is a model driven only
+by its initial conditions.}
+
+\item{event_scale}{A multiplier on every \code{events$value}, one value per
+observation (constant within group) or a single value shared by
+every group. This is the one estimated quantity that can reach a
+dose, and it is how a bioavailability is written. Only for a table
+whose rows are all \code{method = "add"}.}
 
 \item{method}{Integrator, passed to \code{\link[deSolve:ode]{deSolve::ode()}}. Must be
 adaptive; fixed-step integrators such as \code{"rk4"} and \code{"euler"}
@@ -153,11 +167,99 @@ optimizer's probing steps and are usually not fatal. Judge the fit by
 the gradient at the optimum, not by whether the solver complained.
 }
 
+\section{Dosing events}{
+\code{events} is a data.frame of doses, one row per dose, with columns:
+\itemize{
+\item \code{group} (optional): which group the row applies to, matching the
+values of \code{group}. Leave the column out and the schedule applies to
+every group.
+\item \code{time}: when the dose happens. At or after \code{t0}.
+\item \code{state}: the state it goes into, by name (requires \code{states}) or by
+position, resolved exactly as \code{output} is. Optional for a
+one-state system.
+\item \code{value}: how much.
+\item \code{method} (optional, default \code{"add"}): \code{"add"} puts \code{value} into the
+state, \code{"replace"} sets the state to \code{value}, \code{"multiply"} scales
+it. These are the \pkg{deSolve} event methods.
+\item \code{duration} (optional, default \code{0}): a positive value makes the row
+an infusion, delivering \code{value} at the constant rate
+\code{value / duration} over \verb{[time, time + duration]}. Infusions must
+use \code{"add"}.
+}
+
+Inside a \code{bf(nl = TRUE)} body, write the table \strong{inline} or hold it
+in a function of no arguments:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{conc ~ frm_ode(pk_dyn, ..., events = data.frame(
+         time = seq(12, 48, by = 12), state = "depot", value = 100))
+
+schedule <- function() read.csv("doses.csv")
+conc ~ frm_ode(pk_dyn, ..., events = schedule)
+}\if{html}{\out{</div>}}
+
+A bare data.frame name will not do there. Every name in a nonlinear
+body is a request for a column of \code{data}, so \code{events = my_doses}
+asks the model frame for a column called \code{my_doses} and fails. The
+restriction is on the formula, not on \code{frm_ode()}: a direct call takes
+the data.frame itself.
+
+In NONMEM terms an \code{"add"} row is a dosing record (\code{evid = 1}) with
+\code{amt = value} into \code{cmt = state}; a row with \code{duration} is the same
+record with \code{rate = amt / duration}. \code{frm_ode()} does not read NONMEM
+column names, and there is no \code{evid} column: observation rows are the
+rows of \code{data}, and dose rows are the rows of \code{events}, which is a
+separate table. A NONMEM-shaped dataset has to be split into the two.
+
+An observation at exactly a dose time reads the state \strong{before} the
+dose, which is the trough, matching both the \pkg{deSolve} convention
+and the usual reading of a pre-dose sample. That includes an
+observation at \code{t0} with a dose at \code{t0}: it reads \code{init}.
+
+The doses are not handed to \pkg{deSolve} as events. \code{frm_ode()}
+splits the integration at the event times and chains one solve per
+interval, carrying the state across the break itself. That is a
+correctness requirement, not a style choice: \pkg{RTMBode} solves an
+augmented system carrying the derivatives of the states with respect
+to the parameters, and a \pkg{deSolve} event jumps the state without
+jumping those derivatives, which gives a wrong gradient for
+\code{"replace"} and \code{"multiply"} (measured at 42\% and 59\% relative error).
+Splitting the solve is exact for every method. It costs one solve per
+dosing interval per group, so an intensively dosed design is
+proportionally slower.
+}
+
+\section{Doses that depend on a parameter}{
+\code{events} is data: \code{value} is a numeric column, so it cannot hold an
+estimated quantity. \code{event_scale} is the way in. It is one value per
+observation (constant within group, like \code{init} and \code{parms}), and it
+multiplies the \code{value} of every event in that group, so a
+bioavailability written as a nonlinear parameter estimates a dose
+scale that carries covariates and random effects like any other:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{frm_ode(pk_dyn, init = list(0, 0), times = time, parms = ...,
+        group = id, events = doses, event_scale = plogis(logitF))
+}\if{html}{\out{</div>}}
+
+Because scaling only makes sense for a dose, \code{event_scale} is refused
+on a table containing \code{"replace"} or \code{"multiply"} rows.
+}
+
 \section{Boundaries}{
-Dosing event tables (\code{evid}/\code{amt} records, repeated doses,
-infusions) are out of scope. Only models driven by their initial
-conditions are supported. For event-driven population
-pharmacokinetics use a dedicated tool such as \code{nlmixr2}.
+Time-varying input other than dosing is out of scope, and the reason
+is worth knowing. \pkg{RTMBode} tapes \code{dynamics} once, so \code{t} is an
+automatic-differentiation value inside it. A branch on time
+(\code{if (t < t_end) rate else 0}) raises "Comparison is generally unsafe
+for AD types", and an \code{approxfun()} forcing table silently returns
+the value at the taping point instead of failing. Smooth arithmetic in
+\code{t} is fine. A piecewise-constant input belongs in \code{events} as an
+infusion, where it is carried as a parameter over each interval and
+differentiated exactly; \pkg{deSolve}'s own \code{forcings} argument is not
+reachable, because \pkg{RTMBode}'s compiled derivative shim has no
+forcing hook.
+
+Estimated event times, lag times and inter-dose intervals are not
+supported: the event times decide where the solve is split, which is
+settled before the tape is built.
 
 \code{predict(se.fit = TRUE)} is not available for a nonlinear predictor,
 including one containing \code{frm_ode()}; request a nonlinear parameter
@@ -209,6 +311,14 @@ if (requireNamespace("RTMBode", quietly = TRUE)) {
     data = dd, start = list(beta = c(0, log(0.25), log(8))))
   fixef(fit)
   }
+
+  # Repeated dosing: 100 into the depot every 12 hours. The dose at
+  # time 0 is the initial condition, the rest are events.
+  doses <- data.frame(time = c(12, 24, 36), state = "depot",
+                      value = 100)
+  frm_ode(pk_dyn, init = list(100, 0), times = c(6, 18, 30, 42),
+          parms = list(1, 0.2, 10), states = c("depot", "central"),
+          output = "central", events = doses)
 }
 }
 \seealso{

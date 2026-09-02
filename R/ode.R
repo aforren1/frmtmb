@@ -151,6 +151,306 @@ ode_check_constant <- function(cols, groups, arg, labels) {
   invisible(TRUE)
 }
 
+# ---------------------------------------------------------------------
+# Dosing events.
+#
+# deSolve has an `events` argument, and RTMBode forwards `...` to it, but
+# that route is unusable here for two separate reasons, both established
+# in dev/ode-feasibility.md section 9:
+#
+#   1. It errors on the automatic-differentiation path. RTMBode hands
+#      deSolve an unnamed state vector, deSolve bounds the event `var`
+#      index by length(names(y)), and that bound is zero: "too many state
+#      variables in 'event'; should be < 0". Upstream defect.
+#   2. Worse, if that were fixed it would be silently wrong for two of
+#      the three methods. RTMBode solves an AUGMENTED system whose tail
+#      carries d(state)/d(parameter); an event row jumps the state and
+#      leaves the sensitivity block alone. That is right for "add"
+#      (adding a constant does not change a derivative) and wrong for
+#      "replace" and "multiply", which measured 42% and 59% relative
+#      gradient error against finite differences.
+#
+# So frm_ode() does not use deSolve events at all. It splits the
+# integration at the event times and chains one solve per interval,
+# carrying the end state forward and applying the jump in ordinary RTMB
+# arithmetic. RTMBode is already differentiable through the initial
+# state, so the adjoint is correct by construction for every method, and
+# the dose amount is allowed to be an estimated quantity.
+ode_event_methods <- c("add", "replace", "multiply")
+
+#' Resolve a state selector (`output`, or an event's `state`) to positions.
+#'
+#' @noRd
+ode_state_index <- function(x, states, n_state, what) {
+  if (is.factor(x)) x <- as.character(x)
+  if (is.character(x)) {
+    if (is.null(states)) {
+      stop("`", what, "` is character, so `states` must name the states",
+           call. = FALSE)
+    }
+    i <- match(x, states)
+    if (anyNA(i)) {
+      stop("`", what, "` names a state that is not in `states`: ",
+           paste(unique(x[is.na(i)]), collapse = ", "),
+           " (states: ", paste(states, collapse = ", "), ")",
+           call. = FALSE)
+    }
+    return(i)
+  }
+  i <- suppressWarnings(as.integer(x))
+  if (anyNA(i) || any(i < 1L) || any(i > n_state)) {
+    stop("`", what, "` must index states 1 to ", n_state, call. = FALSE)
+  }
+  i
+}
+
+#' Validate a dosing table and split it per group.
+#'
+#' Returns a list, one element per group label, holding that group's
+#' events sorted by time, or `NULL` for a group with none. Everything
+#' here is data: the table fixes the breakpoints of the solve, which are
+#' chosen before the tape is built.
+#'
+#' @noRd
+ode_split_events <- function(events, labels, n_state, states) {
+  # A bare object name inside a nonlinear body is a request for a column
+  # of `data`, so a schedule held in a variable cannot be named there
+  # directly. Writing the table inline, or holding it in a function of no
+  # arguments, both keep the name out of the model frame.
+  if (is.function(events)) {
+    events <- tryCatch(events(), error = function(e) {
+      stop("`events` is a function and calling it failed: ",
+           conditionMessage(e), call. = FALSE)
+    })
+    if (!is.data.frame(events)) {
+      stop("`events` is a function, so it must return a data.frame of ",
+           "doses; it returned ", class(events)[1L], call. = FALSE)
+    }
+  }
+  if (inherits(events, "advector")) {
+    stop("`events` is an estimated quantity. The event times fix where ",
+         "the solve is split, which is decided before the tape is built, ",
+         "so the table must be data. An estimated dose AMOUNT is ",
+         "supported through `event_scale`", call. = FALSE)
+  }
+  if (!is.data.frame(events)) {
+    stop("`events` must be a data.frame with columns time, value and ",
+         "state (plus optional group, method and duration), one row per ",
+         "dose", call. = FALSE)
+  }
+  if (!nrow(events)) {
+    stop("`events` has no rows; pass NULL for a model without doses",
+         call. = FALSE)
+  }
+  nms <- names(events)
+  miss <- setdiff(c("time", "value"), nms)
+  if (length(miss)) {
+    stop("`events` is missing the ", paste(miss, collapse = " and "),
+         " column", if (length(miss) > 1L) "s" else "",
+         ". The columns are: group, time, state, value, method, ",
+         "duration", call. = FALSE)
+  }
+  known <- c("group", "time", "state", "value", "method", "duration")
+  extra <- setdiff(nms, known)
+  if (length(extra)) {
+    stop("`events` has unknown column", if (length(extra) > 1L) "s" else "",
+         ": ", paste(extra, collapse = ", "),
+         ". The columns are: ", paste(known, collapse = ", "),
+         ". frm_ode() does not read NONMEM records: an `evid`/`amt`/`cmt` ",
+         "table has to be reshaped to these names first",
+         call. = FALSE)
+  }
+
+  time <- events[["time"]]
+  if (!is.numeric(time) || anyNA(time) || any(!is.finite(time))) {
+    stop("`events$time` must be finite and numeric", call. = FALSE)
+  }
+  value <- events[["value"]]
+  if (!is.numeric(value) || anyNA(value) || any(!is.finite(value))) {
+    stop("`events$value` must be finite and numeric. A dose that ",
+         "depends on an estimated parameter goes in `event_scale`, not ",
+         "here", call. = FALSE)
+  }
+
+  state <- if ("state" %in% nms) events[["state"]] else {
+    if (n_state != 1L) {
+      stop("`events` has no `state` column and the system has ", n_state,
+           " states, so there is no state to dose. Name the compartment ",
+           "each row goes into", call. = FALSE)
+    }
+    rep(1L, nrow(events))
+  }
+  state <- ode_state_index(state, states, n_state, "events$state")
+
+  method <- if ("method" %in% nms) {
+    m <- events[["method"]]
+    if (is.factor(m)) m <- as.character(m)
+    if (!is.character(m)) {
+      stop("`events$method` must be one of ",
+           paste(ode_event_methods, collapse = ", "), call. = FALSE)
+    }
+    bad <- setdiff(unique(m), ode_event_methods)
+    if (length(bad)) {
+      stop("`events$method` has unknown method",
+           if (length(bad) > 1L) "s" else "", ": ",
+           paste(bad, collapse = ", "), ". It must be one of ",
+           paste(ode_event_methods, collapse = ", "), call. = FALSE)
+    }
+    m
+  } else rep("add", nrow(events))
+
+  duration <- if ("duration" %in% nms) {
+    dur <- events[["duration"]]
+    if (!is.numeric(dur)) {
+      stop("`events$duration` must be numeric", call. = FALSE)
+    }
+    dur[is.na(dur)] <- 0
+    if (any(!is.finite(dur)) || any(dur < 0)) {
+      stop("`events$duration` must be finite and not negative. Use 0 or ",
+           "NA for an instantaneous dose", call. = FALSE)
+    }
+    if (any(dur > 0 & method != "add")) {
+      stop("`events$duration` is positive on a row whose method is not ",
+           "\"add\". An infusion delivers `value` at a constant rate ",
+           "into the state, which is an addition; \"replace\" and ",
+           "\"multiply\" are instantaneous only", call. = FALSE)
+    }
+    dur
+  } else rep(0, nrow(events))
+
+  grp <- if ("group" %in% nms) {
+    g <- events[["group"]]
+    g <- if (is.factor(g)) as.character(g) else as.character(g)
+    bad <- setdiff(unique(g), labels)
+    if (length(bad)) {
+      stop("`events$group` names ", length(bad), " group",
+           if (length(bad) > 1L) "s" else "", " that ",
+           if (length(bad) > 1L) "are" else "is",
+           " not in `group`: ",
+           paste(utils::head(bad, 5L), collapse = ", "),
+           if (length(bad) > 5L) ", ..." else "", call. = FALSE)
+    }
+    g
+  } else {
+    # no group column: the same schedule for every subject
+    NULL
+  }
+
+  tab <- data.frame(time = as.numeric(time), state = as.integer(state),
+                    value = as.numeric(value),
+                    method = as.character(method),
+                    duration = as.numeric(duration),
+                    row = seq_len(nrow(events)),
+                    stringsAsFactors = FALSE)
+
+  per <- if (is.null(grp)) {
+    stats::setNames(rep(list(tab), length(labels)), labels)
+  } else {
+    s <- split(tab, factor(grp, levels = labels))
+    stats::setNames(lapply(labels, function(l) s[[l]]), labels)
+  }
+  lapply(per, function(x) {
+    if (is.null(x) || !nrow(x)) return(NULL)
+    x <- x[order(x$time, x$row), , drop = FALSE]
+    # two rows on the same state at the same instant compose only when
+    # both are additions; "replace" and "multiply" would depend on the
+    # order of the rows, which is not a model the table can express
+    key <- paste(x$time, x$state)
+    dup <- key %in% key[duplicated(key)]
+    if (any(dup & x$method != "add")) {
+      i <- which(dup & x$method != "add")[1L]
+      stop("`events` has more than one row for state ", x$state[i],
+           " at time ", format(x$time[i]),
+           " and one of them is \"", x$method[i],
+           "\". Their order would decide the result, so the table is ",
+           "ambiguous. Only repeated \"add\" rows compose",
+           call. = FALSE)
+    }
+    rownames(x) <- NULL
+    x
+  })
+}
+
+#' Solve one group's system, split at its dosing events.
+#'
+#' `run` performs one `RTMBode::ode()` call with the shared solver
+#' settings and the failure checks. The state is carried across
+#' breakpoints by hand, so the derivative of a later observation with
+#' respect to a dose amount flows through the initial state of the
+#' following segment, which RTMBode already differentiates exactly.
+#'
+#' @noRd
+ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
+                             n_parm, dyn_rate, scale) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  "c" <- RTMB::ADoverload("c")
+
+  # scaling only means anything for an amount, so frm_ode() has already
+  # refused a scale on a table carrying any method but "add"; here the
+  # whole column can be scaled unconditionally
+  val <- ev$value * scale
+  ev_end <- ev$time + ev$duration
+  inf <- ev$duration > 0
+  tmax <- tvals[length(tvals)]
+
+  # Every breakpoint is an exact double taken from `ev$time`,
+  # `ev_end` or `tvals`, so the equality tests below are identity
+  # tests, not tolerance tests.
+  bps <- sort(unique(c(tstart, ev$time[ev$time <= tmax],
+                       ev_end[inf & ev_end <= tmax], tmax)))
+  bps <- bps[bps >= tstart]
+  n_seg <- length(bps) - 1L
+
+  out <- lapply(seq_len(n_state), function(k) numeric(length(tvals)))
+  # findInterval(left.open) sends t == tstart to 0: an observation at the
+  # origin reads the initial state, before any event at the origin, the
+  # same pre-dose reading deSolve gives at a dose time
+  seg <- findInterval(tvals, bps, left.open = TRUE)
+  at0 <- which(seg == 0L)
+  if (length(at0)) {
+    for (k in seq_len(n_state)) {
+      z <- out[[k]]
+      z[at0] <- y0[k]
+      out[[k]] <- z
+    }
+  }
+
+  y <- y0
+  for (s in seq_len(n_seg)) {
+    a <- bps[s]
+    b <- bps[s + 1L]
+    for (h in which(ev$time == a & !inf)) {
+      k <- ev$state[h]
+      y[k] <- switch(ev$method[h],
+                     add = y[k] + val[h],
+                     replace = val[h],
+                     multiply = y[k] * val[h])
+    }
+    rate <- numeric(n_state)
+    for (h in which(inf & ev$time <= a & ev_end > a)) {
+      k <- ev$state[h]
+      rate[k] <- rate[k] + val[h] / ev$duration[h]
+    }
+    rows <- which(seg == s)
+    grid <- c(a, tvals[rows])
+    if (grid[length(grid)] < b) grid <- c(grid, b)
+    if (is.null(dyn_rate)) {
+      sol <- run(y, grid, pv, NULL)
+    } else {
+      sol <- run(y, grid, c(pv, rate), dyn_rate)
+    }
+    if (length(rows)) {
+      for (k in seq_len(n_state)) {
+        z <- out[[k]]
+        z[rows] <- sol[1L + seq_along(rows), k + 1L]
+        out[[k]] <- z
+      }
+    }
+    y <- sol[nrow(sol), 1L + seq_len(n_state)]
+  }
+  out
+}
+
 #' Solve an ODE once per group inside a nonlinear predictor
 #'
 #' Evaluates a system of ordinary differential equations separately for
@@ -228,12 +528,101 @@ ode_check_constant <- function(cols, groups, arg, labels) {
 #' optimizer's probing steps and are usually not fatal. Judge the fit by
 #' the gradient at the optimum, not by whether the solver complained.
 #'
+#' # Dosing events
+#'
+#' `events` is a data.frame of doses, one row per dose, with columns:
+#'
+#' - `group` (optional): which group the row applies to, matching the
+#'   values of `group`. Leave the column out and the schedule applies to
+#'   every group.
+#' - `time`: when the dose happens. At or after `t0`.
+#' - `state`: the state it goes into, by name (requires `states`) or by
+#'   position, resolved exactly as `output` is. Optional for a
+#'   one-state system.
+#' - `value`: how much.
+#' - `method` (optional, default `"add"`): `"add"` puts `value` into the
+#'   state, `"replace"` sets the state to `value`, `"multiply"` scales
+#'   it. These are the \pkg{deSolve} event methods.
+#' - `duration` (optional, default `0`): a positive value makes the row
+#'   an infusion, delivering `value` at the constant rate
+#'   `value / duration` over `[time, time + duration]`. Infusions must
+#'   use `"add"`.
+#'
+#' Inside a `bf(nl = TRUE)` body, write the table **inline** or hold it
+#' in a function of no arguments:
+#'
+#' ```r
+#' conc ~ frm_ode(pk_dyn, ..., events = data.frame(
+#'          time = seq(12, 48, by = 12), state = "depot", value = 100))
+#'
+#' schedule <- function() read.csv("doses.csv")
+#' conc ~ frm_ode(pk_dyn, ..., events = schedule)
+#' ```
+#'
+#' A bare data.frame name will not do there. Every name in a nonlinear
+#' body is a request for a column of `data`, so `events = my_doses`
+#' asks the model frame for a column called `my_doses` and fails. The
+#' restriction is on the formula, not on `frm_ode()`: a direct call takes
+#' the data.frame itself.
+#'
+#' In NONMEM terms an `"add"` row is a dosing record (`evid = 1`) with
+#' `amt = value` into `cmt = state`; a row with `duration` is the same
+#' record with `rate = amt / duration`. `frm_ode()` does not read NONMEM
+#' column names, and there is no `evid` column: observation rows are the
+#' rows of `data`, and dose rows are the rows of `events`, which is a
+#' separate table. A NONMEM-shaped dataset has to be split into the two.
+#'
+#' An observation at exactly a dose time reads the state **before** the
+#' dose, which is the trough, matching both the \pkg{deSolve} convention
+#' and the usual reading of a pre-dose sample. That includes an
+#' observation at `t0` with a dose at `t0`: it reads `init`.
+#'
+#' The doses are not handed to \pkg{deSolve} as events. `frm_ode()`
+#' splits the integration at the event times and chains one solve per
+#' interval, carrying the state across the break itself. That is a
+#' correctness requirement, not a style choice: \pkg{RTMBode} solves an
+#' augmented system carrying the derivatives of the states with respect
+#' to the parameters, and a \pkg{deSolve} event jumps the state without
+#' jumping those derivatives, which gives a wrong gradient for
+#' `"replace"` and `"multiply"` (measured at 42% and 59% relative error).
+#' Splitting the solve is exact for every method. It costs one solve per
+#' dosing interval per group, so an intensively dosed design is
+#' proportionally slower.
+#'
+#' # Doses that depend on a parameter
+#'
+#' `events` is data: `value` is a numeric column, so it cannot hold an
+#' estimated quantity. `event_scale` is the way in. It is one value per
+#' observation (constant within group, like `init` and `parms`), and it
+#' multiplies the `value` of every event in that group, so a
+#' bioavailability written as a nonlinear parameter estimates a dose
+#' scale that carries covariates and random effects like any other:
+#'
+#' ```r
+#' frm_ode(pk_dyn, init = list(0, 0), times = time, parms = ...,
+#'         group = id, events = doses, event_scale = plogis(logitF))
+#' ```
+#'
+#' Because scaling only makes sense for a dose, `event_scale` is refused
+#' on a table containing `"replace"` or `"multiply"` rows.
+#'
 #' # Boundaries
 #'
-#' Dosing event tables (`evid`/`amt` records, repeated doses,
-#' infusions) are out of scope. Only models driven by their initial
-#' conditions are supported. For event-driven population
-#' pharmacokinetics use a dedicated tool such as `nlmixr2`.
+#' Time-varying input other than dosing is out of scope, and the reason
+#' is worth knowing. \pkg{RTMBode} tapes `dynamics` once, so `t` is an
+#' automatic-differentiation value inside it. A branch on time
+#' (`if (t < t_end) rate else 0`) raises "Comparison is generally unsafe
+#' for AD types", and an `approxfun()` forcing table silently returns
+#' the value at the taping point instead of failing. Smooth arithmetic in
+#' `t` is fine. A piecewise-constant input belongs in `events` as an
+#' infusion, where it is carried as a parameter over each interval and
+#' differentiated exactly; \pkg{deSolve}'s own `forcings` argument is not
+#' reachable, because \pkg{RTMBode}'s compiled derivative shim has no
+#' forcing hook.
+#'
+#' Estimated event times, lag times and inter-dose intervals are not
+#' supported: the event times decide where the solve is split, which is
+#' settled before the tape is built.
 #'
 #' `predict(se.fit = TRUE)` is not available for a nonlinear predictor,
 #' including one containing `frm_ode()`; request a nonlinear parameter
@@ -263,6 +652,16 @@ ode_check_constant <- function(cols, groups, arg, labels) {
 #' @param states Optional state names, one per column of `init`.
 #' @param t0 Initial time, a scalar or one value per row (constant
 #'   within group). Every observation time must be at or after it.
+#' @param events Optional dosing table: a data.frame with columns
+#'   `time`, `value` and `state`, and optional `group`, `method` and
+#'   `duration`, or a function of no arguments returning one. See
+#'   "Dosing events" below. `NULL` (the default) is a model driven only
+#'   by its initial conditions.
+#' @param event_scale A multiplier on every `events$value`, one value per
+#'   observation (constant within group) or a single value shared by
+#'   every group. This is the one estimated quantity that can reach a
+#'   dose, and it is how a bioavailability is written. Only for a table
+#'   whose rows are all `method = "add"`.
 #' @param method Integrator, passed to [deSolve::ode()]. Must be
 #'   adaptive; fixed-step integrators such as `"rk4"` and `"euler"`
 #'   return a different likelihood and are refused.
@@ -329,10 +728,19 @@ ode_check_constant <- function(cols, groups, arg, labels) {
 #'     data = dd, start = list(beta = c(0, log(0.25), log(8))))
 #'   fixef(fit)
 #'   }
+#'
+#'   # Repeated dosing: 100 into the depot every 12 hours. The dose at
+#'   # time 0 is the initial condition, the rest are events.
+#'   doses <- data.frame(time = c(12, 24, 36), state = "depot",
+#'                       value = 100)
+#'   frm_ode(pk_dyn, init = list(100, 0), times = c(6, 18, 30, 42),
+#'           parms = list(1, 0.2, 10), states = c("depot", "central"),
+#'           output = "central", events = doses)
 #' }
 #' @export
 frm_ode <- function(dynamics, init, times, parms, group = NULL,
                     output = NULL, states = NULL, t0 = 0,
+                    events = NULL, event_scale = 1,
                     method = "lsoda", atol = 1e-8, rtol = 1e-8,
                     on_error = c("penalize", "error"),
                     penalty = 1e6, ...) {
@@ -421,24 +829,37 @@ frm_ode <- function(dynamics, init, times, parms, group = NULL,
   }
 
   # which states to return
-  if (is.null(output)) {
-    out_idx <- seq_len(n_state)
-  } else if (is.character(output)) {
-    if (is.null(states)) {
-      stop("`output` is character, so `states` must name the states",
-           call. = FALSE)
-    }
-    out_idx <- match(output, states)
-    if (anyNA(out_idx)) {
-      stop("`output` names a state that is not in `states`: ",
-           paste(output[is.na(out_idx)], collapse = ", "),
-           " (states: ", paste(states, collapse = ", "), ")",
-           call. = FALSE)
+  out_idx <- if (is.null(output)) seq_len(n_state) else
+    ode_state_index(output, states, n_state, "output")
+
+  # dosing events, and the one estimated quantity allowed to reach them
+  ev_by_group <- NULL
+  scale_cols <- NULL
+  if (!is.null(events)) {
+    ev_by_group <- ode_split_events(events, labels, n_state, states)
+    has_infusion <- any(vapply(ev_by_group, function(x)
+      !is.null(x) && any(x$duration > 0), TRUE))
+    if (!identical(event_scale, 1)) {
+      meths <- unique(unlist(lapply(ev_by_group, function(x) x$method)))
+      if (!all(meths == "add")) {
+        stop("`event_scale` scales a dose, so it applies only to ",
+             "\"add\" rows, but `events` also has ",
+             paste(setdiff(meths, "add"), collapse = " and "),
+             " rows. Scaling those would change what they mean. Split ",
+             "the model, or fold the scale into the state itself",
+             call. = FALSE)
+      }
+      scale_cols <- ode_columns(event_scale, n_obs, "event_scale")
+      if (length(scale_cols) != 1L) {
+        stop("`event_scale` must be a single column", call. = FALSE)
+      }
+      ode_check_constant(scale_cols, groups, "event_scale", labels)
     }
   } else {
-    out_idx <- as.integer(output)
-    if (anyNA(out_idx) || any(out_idx < 1L) || any(out_idx > n_state)) {
-      stop("`output` must index states 1 to ", n_state, call. = FALSE)
+    has_infusion <- FALSE
+    if (!identical(event_scale, 1)) {
+      stop("`event_scale` was given but `events` was not; there is ",
+           "nothing to scale", call. = FALSE)
     }
   }
 
@@ -449,7 +870,63 @@ frm_ode <- function(dynamics, init, times, parms, group = NULL,
     if (is.list(r)) r else list(r)
   }
 
+  # An infusion is a constant rate added to the derivative over one
+  # segment. It rides along as `n_state` extra parameters rather than as
+  # a closure constant or a forcing function: parameters are tape inputs,
+  # so an estimated rate is differentiated exactly, and a constant one is
+  # dropped from the sensitivity system by RTMBode itself. A branch on
+  # `t` inside the dynamics would be the obvious alternative and is not
+  # available - RTMBode tapes the derivative function once, so `t` is an
+  # advector and RTMB refuses the comparison.
+  n_parm <- length(parm_cols)
+  dyn_rate <- if (!has_infusion) NULL else function(t, y, p) {
+    r <- dynamics(t, y, p[seq_len(n_parm)])
+    if (!is.list(r)) return(list(r + p[n_parm + seq_len(n_state)]))
+    r[[1L]] <- r[[1L]] + p[n_parm + seq_len(n_state)]
+    r
+  }
+
   col_at <- function(cl, i) if (length(cl) == 1L) cl else cl[i]
+
+  # One RTMBode call plus the failure checks, shared by the single-solve
+  # path and by every segment of a dosing solve.
+  #
+  # deSolve reports "integration was not successful" as a warning and
+  # still returns a full-length matrix of whatever it reached, so the
+  # warning is the only evidence that the numbers are not a solution. It
+  # is left to propagate as well: during a fit it is the user's signal,
+  # and there it is all we have.
+  run_solve <- function(y, grid, pvals, fn) {
+    gave_up <- NULL
+    s <- withCallingHandlers(
+      RTMBode::ode(y = y, times = grid, func = fn %||% func, parms = pvals,
+                   method = method, atol = atol, rtol = rtol, ...),
+      warning = function(w) {
+        if (grepl(ode_giveup_pattern, conditionMessage(w))) {
+          gave_up <<- conditionMessage(w)
+        }
+      }
+    )
+    # a solver that gives up can also return a short matrix; that must be
+    # a failure, not a length error later
+    if (nrow(s) != length(grid)) {
+      stop("the integrator returned ", nrow(s), " of ", length(grid),
+           " requested time points", call. = FALSE)
+    }
+    # The remaining two checks work on numbers only: RTMB refuses
+    # comparison on AD types, so on the tape a diverging trajectory
+    # cannot be seen at all. See the "Failed solves" section of the help
+    # page for what that means for on_error.
+    if (!inherits(s, "advector")) {
+      if (!is.null(gave_up)) {
+        stop("the integrator did not converge: ", gave_up, call. = FALSE)
+      }
+      if (!all(is.finite(s))) {
+        stop("the integrator returned non-finite values", call. = FALSE)
+      }
+    }
+    s
+  }
 
   outs <- lapply(out_idx, function(k) numeric(n_obs))
   failed <- character(0)
@@ -464,51 +941,28 @@ frm_ode <- function(dynamics, init, times, parms, group = NULL,
            format(times[idx[1L]]), ") before t0 (", format(tstart),
            "); frm_ode() integrates forward from t0", call. = FALSE)
     }
-    # deSolve requires times[1] to be the initial time; the duplicate
-    # that an observation at t0 creates is tolerated, and the extra row
-    # is dropped from the solution
-    grid <- c(tstart, times[idx])
     y0 <- do.call(c, lapply(init_cols, col_at, i = i1))
     pv <- do.call(c, lapply(parm_cols, col_at, i = i1))
+    ev <- if (is.null(ev_by_group)) NULL else ev_by_group[[labels[[g]]]]
+    if (!is.null(ev) && any(ev$time < tstart)) {
+      j <- which(ev$time < tstart)[1L]
+      stop("group '", labels[[g]], "' has an event at time ",
+           format(ev$time[j]), ", before t0 (", format(tstart),
+           "); frm_ode() integrates forward from t0", call. = FALSE)
+    }
 
-    gave_up <- NULL
     sol <- tryCatch(
-      {
-        # deSolve reports "integration was not successful" as a warning
-        # and still returns a full-length matrix of whatever it reached,
-        # so the warning is the only evidence that the numbers are not a
-        # solution. It is left to propagate as well: during a fit it is
-        # the user's signal, and there it is all we have.
-        s <- withCallingHandlers(
-          RTMBode::ode(y = y0, times = grid, func = func, parms = pv,
-                       method = method, atol = atol, rtol = rtol, ...),
-          warning = function(w) {
-            if (grepl(ode_giveup_pattern, conditionMessage(w))) {
-              gave_up <<- conditionMessage(w)
-            }
-          }
-        )
-        # a solver that gives up can also return a short matrix; that
-        # must be a failure, not a length error later
-        if (nrow(s) != length(grid)) {
-          stop("the integrator returned ", nrow(s), " of ",
-               length(grid), " requested time points", call. = FALSE)
-        }
-        # The remaining two checks work on numbers only: RTMB refuses
-        # comparison on AD types, so on the tape a diverging trajectory
-        # cannot be seen at all. See the "Failed solves" section of the
-        # help page for what that means for on_error.
-        if (!inherits(s, "advector")) {
-          if (!is.null(gave_up)) {
-            stop("the integrator did not converge: ", gave_up,
-                 call. = FALSE)
-          }
-          if (!all(is.finite(s))) {
-            stop("the integrator returned non-finite values",
-                 call. = FALSE)
-          }
-        }
-        s
+      if (is.null(ev)) {
+        # deSolve requires times[1] to be the initial time; the duplicate
+        # that an observation at t0 creates is tolerated, and the extra
+        # row is dropped from the solution
+        s <- run_solve(y0, c(tstart, times[idx]), pv, NULL)
+        lapply(seq_len(n_state), function(k) s[-1L, k + 1L])
+      } else {
+        scale_g <- if (is.null(scale_cols)) 1 else
+          col_at(scale_cols[[1L]], i1)
+        ode_solve_events(run_solve, y0, pv, times[idx], ev, tstart,
+                         n_state, n_parm, dyn_rate, scale_g)
       },
       error = function(e) e
     )
@@ -529,7 +983,7 @@ frm_ode <- function(dynamics, init, times, parms, group = NULL,
 
     for (k in seq_along(out_idx)) {
       z <- outs[[k]]
-      z[idx] <- sol[-1L, out_idx[k] + 1L]
+      z[idx] <- sol[[out_idx[k]]]
       outs[[k]] <- z
     }
   }
@@ -650,7 +1104,7 @@ check_ode_constancy <- function(spec, linpreds, mf) {
       gv <- mf[[gname]]
       if (is.null(gv) || is.matrix(gv)) next
       gi <- as.integer(factor(gv))
-      for (arg in c("init", "parms", "t0")) {
+      for (arg in c("init", "parms", "t0", "event_scale")) {
         aexpr <- cl[[arg]]
         if (is.null(aexpr)) next
         for (np in intersect(all.vars(aexpr), nlpars)) {

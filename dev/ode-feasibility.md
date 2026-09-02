@@ -481,3 +481,186 @@ For comparison, a dedicated `bf()` ODE grammar with event tables is
 | `dev/ode/probeE9-integrator-laplace.R` | the same, swept over integrators |
 | `dev/ode/probeF-nlmixr2.R` | nlmixr2 FOCEi cross-check |
 | `dev/ode/probeG-integrator-and-trap.R` | integrator sweep, within-group trap |
+
+## 9. Dosing events
+
+Date: 2026-09-01. Branch `wt-dose`, frmtmb 0.31.0, RTMBode 1.0,
+deSolve 1.42, R 4.6.1, Windows 11. Probes `dev/ode/probeH1`..`probeH4`.
+
+> **Status: implemented.** `frm_ode(events = , event_scale = )` ships
+> the segmented-solve route of 9.4. deSolve's own `events` argument is
+> not used, and must not be: 9.2 and 9.3 say why.
+
+### 9.1 Numerically, deSolve events work through RTMBode
+
+`probeH1-events-numeric.R`. On the **numeric** path `RTMBode::ode()`
+forwards `...` to `deSolve::ode()`, so `events = list(data = )` reaches
+the solver and the trajectory is right. Against the analytic multi-dose
+superposition for the one-compartment oral model (three bolus additions
+into the depot, ten observation times):
+
+| check | result |
+|---|---|
+| `lsoda`, max abs error vs closed form | 1.8e-10 |
+| max relative error | 2.7e-11 |
+| the other 11 adaptive integrators | 1.1e-10 to 1.3e-08 |
+| `var` by name vs by index | identical |
+
+The contract, established by probe:
+
+- **Event times need not be in `times`.** deSolve warns "Not all event
+  times were in output times so they are automatically included" and
+  solves correctly. The warning does not match `ode_giveup_pattern`, so
+  it would not have been mistaken for a failure, but it is noise once
+  per solve per subject.
+- **An observation exactly at a dose time reads the PRE-dose value.**
+  Depot at t = 5.999999 was 0.24787547, at t = 6.0 (the dose time)
+  0.24787522, at t = 6.000001 100.24777. That is the trough, and it is
+  the convention `frm_ode()` now reproduces.
+- **A duplicated time at a dose instant returns both sides**: the first
+  row pre-dose, the second post-dose.
+
+### 9.2 On the AD path, deSolve event data is an upstream defect
+
+```
+Error: too many state variables in 'event'; should be < 0
+```
+
+and with named states,
+`Error: unknown state variable in 'event': depot`.
+
+The chain, from `probeH2` section 0b:
+
+1. `RTMBode:::func2tape()` builds `x` with
+   `names(x) <- c("t", names(y), names(parms))`, but
+   `MakeTape(...)$par()` returns that vector **unnamed**.
+2. `RTMBode:::addInfo()` therefore sets an unnamed `info$state` and
+   `info$augstate`.
+3. `ODEadjoint()$updateSolution()` passes that unnamed vector to
+   `deSolve::ode()`, which computes `vars <- attr(y, "names")`.
+4. `deSolve:::checkevents()` bounds the event `var` index by
+   `length(vars)`, which is 0.
+
+Only the order-0 forward solve is affected. The order-1 augmented state
+built by `augment()` *is* named (`y1 y2 dy1 ... dy6`), because it is
+assembled with `c(y = ..., dy = ...)`.
+
+**Upstream fix**: attach `names(y)` to `info$state` in `addInfo()`, or
+re-attach them in `updateSolution()` before the `deSolve::ode()` call.
+Minimal reproduction: `dev/ode/probeH2-events-adjoint.R` section 0.
+
+### 9.3 Even fixed, deSolve events are silently wrong for two methods
+
+This is the finding that decided the design. RTMBode differentiates by
+integrating an **augmented** system carrying the states and their
+derivatives with respect to the parameters. A deSolve event row jumps a
+state and leaves the sensitivity block alone. So:
+
+| method | state jump | correct sensitivity jump | what deSolve does |
+|---|---|---|---|
+| `add` | y := y + a | dy := dy | correct |
+| `replace` | y := v | dy := 0 | **wrong** |
+| `multiply` | y := f y | dy := f dy | **wrong** |
+
+Measured (`probeH2` section 2), by emulating a fixed events table with
+an event **function** that touches only the first `nstate` entries,
+against central differences of the numeric solve:
+
+| method | AD d/d(lka) | finite differences | max relative error |
+|---|---|---|---|
+| `add` | 1.9931038 | 1.993096 | 3.9e-06 (agrees) |
+| `replace` | 0.85369576 | 1.460373 | **0.415** |
+| `multiply` | -0.27782693 | -0.67921062 | **0.591** |
+
+The *values* agree to ten digits in all three cases. Only the gradient
+is wrong, which is exactly the shape of a wrong-likelihood hazard: an
+optimum found with those gradients is not the maximum likelihood
+estimate, and nothing warns.
+
+Because 9.2 makes the spelling unreachable, no user could have hit this
+today. It becomes reachable the moment 9.2 is fixed, so the upstream
+report should carry both.
+
+### 9.4 What was shipped: the segmented solve
+
+Split the integration at the event times, chain one `RTMBode::ode()`
+call per interval, carry the end state forward, and apply the jump in
+ordinary RTMB arithmetic. RTMBode is already differentiable through the
+initial state, so the adjoint is correct by construction for every
+method, and the amount is allowed to be an estimated quantity.
+
+`probeH2` sections 0d and 0e, then `probeH4` end to end:
+
+| check | max relative gradient error |
+|---|---|
+| repeated bolus, d/d(lka, lke, lV) | 9.5e-11 |
+| `event_scale` (bioavailability), d/d(..., logitF) | 1.4e-10 |
+| `replace`, d/d(log ke) | 3.5e-12 |
+| `multiply`, d/d(log ke) | 5.3e-11 |
+| infusion rate, d/d(log ke, logitF) | 2.3e-11 |
+
+Trajectory accuracy against closed forms: 2.0e-10 (multi-dose
+superposition), 4.3e-09 (constant-rate infusion), 2.9e-09 (repeated
+infusions).
+
+Cost, `probeH3` section 6: 0.35 ms per gradient for one segment,
+0.60 ms for two, that is **1.7x for 2x the solves**. Linear, as
+expected; the tape build is amortized. A 20-subject, 240-row, 3-dose
+population fit with two random effects took 33.9 s.
+
+The event-**function** route also works and is adjoint-correct for
+`add` (`probeH2` section 0c, max relative error 6.1e-10), because
+`checkevents()` returns before it looks at the state names. It was not
+chosen: it cannot do `replace` or `multiply` correctly, and it cannot
+take an estimated amount, because the event function runs inside the
+numeric solve.
+
+### 9.5 Time-dependent input: what is and is not possible
+
+`probeH3-forcings-infusion.R`. `func2tape()` tapes the derivative
+function **once**, at an all-zero point, and does so on **both**
+branches of `RTMBode::ode()`. `t` is therefore an advector even in a
+numeric solve.
+
+| spelling | plain deSolve | through RTMBode |
+|---|---|---|
+| `if (t < Tinf) rate else 0` | correct (7.5e-09) | **Error: Comparison is generally unsafe for AD types**, numeric and taped alike |
+| `approxfun(...)(t)` in the dynamics | correct (1.7e-08) | **silently wrong**: 464.63 where the truth is 278.66, exactly the frozen-at-zero answer, with only `Warning: imaginary parts discarded in coercion` |
+| `p[2] * exp(-p[3] * t)` | correct | correct |
+| `forcings =` | compiled models only | `Error: initforc should be loaded if there are forcing functions`; RTMBode's `desolve_derivs` shim has no forcing hook |
+
+The branch being refused rather than frozen is the good outcome. The
+`approxfun()` case is the trap, and it is now documented in `?frm_ode`
+and in `vignette("ode")`.
+
+The route that works, and that `frm_ode()` uses for infusions: carry the
+constant rate as `nstate` **extra parameters** appended to `parms`, held
+constant over one segment. Parameters are tape inputs, so an estimated
+rate is differentiated exactly (2.5e-11 against finite differences), and
+a constant one is dropped from the sensitivity system by RTMBode's own
+`getVariables()` filter, so it costs nothing.
+
+### 9.6 Remaining boundaries
+
+- Estimated event times, lag times and inter-dose intervals. The event
+  times decide where the solve is split, which is settled before the
+  tape is built.
+- Steady-state dosing records (NONMEM `ss` and `ii`).
+- A data.frame named by a bare symbol inside a `bf(nl = TRUE)` body.
+  Every name in a nonlinear body is a request for a column of `data`,
+  and `drop_nl_lexical_datavars()` (R/frame.R) only exempts names that
+  resolve to **functions**. So `events = my_doses` fails with
+  `model.frame`'s `invalid type (list) for variable 'my_doses'`. Both
+  the inline `data.frame(...)` spelling and a nullary function work
+  today. Widening that exemption to any non-column object of the wrong
+  length, with a message that names the culprit, belongs to the frame
+  lane.
+
+### Probe scripts, part 2
+
+| file | what |
+|---|---|
+| `dev/ode/probeH1-events-numeric.R` | deSolve events through RTMBode, numerically; the event-time contract |
+| `dev/ode/probeH2-events-adjoint.R` | the adjoint question; the names defect; the sensitivity-block defect; the two workarounds |
+| `dev/ode/probeH3-forcings-infusion.R` | branching on time, `approxfun`, `forcings`, rate-as-parameter, cost |
+| `dev/ode/probeH4-frm-ode-events.R` | `frm_ode(events = )` end to end, against closed forms, plus a population fit |
