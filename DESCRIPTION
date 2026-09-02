@@ -70,6 +70,7 @@ Suggests:
     rstan,
     rstantools,
     RTMBode,
+    RWiener,
     sandwich,
     splines2,
     survival,
