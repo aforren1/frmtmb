@@ -584,11 +584,15 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' to one. `cs()` category-specific terms are honored: they enter each
 #' threshold separately and are re-evaluated on `newdata`.
 #'
+#' [fitted()] returns the same matrix, so the usual
+#' `predict(type = "response") == fitted()` identity holds here too.
+#'
 #' `type = "link"` (the default) and `dpar = "mu"` still give the latent
 #' linear predictor, which is where the fixed-effect coefficients live
 #' and where `se.fit` is available. `se.fit` on the response scale is
 #' refused: the prediction is a K-vector per row, not one number.
-#' [fitted()] keeps returning the latent predictor for these families.
+#' `emmeans` and `insight::get_predicted()` stay on that latent scale,
+#' which is the `mode = "latent"` convention for `clm`-like models.
 #'
 #' `type = "conditional"` is glmmTMB's name for the conditional MEAN, so
 #' it gives the category probabilities here too rather than the linear
@@ -663,10 +667,12 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #'   them; and the stored model frame keeps the input row names.
 #' @srrstats {RE4.9} Modelled values of the response are returned by
 #'   `fitted()`, and by `predict(type = "response")`, which is asserted to
-#'   equal `fitted()` on the training data. The ordinal families are the
-#'   documented exception: a category distribution is not a mean, so
-#'   `predict(type = "response")` returns the `n x K` probability matrix
-#'   there while `fitted()` stays on the latent predictor.
+#'   equal `fitted()` on the training data for every family, with no
+#'   exception. On an ordinal family the modelled response is a category
+#'   distribution rather than a mean, so both return the same `n x K`
+#'   matrix of category probabilities (the brms convention), named by the
+#'   response's own levels; the latent linear predictor stays reachable
+#'   as `predict(type = "link")`.
 #' @srrstats {RE4.14} Uncertainty is available away from the observed
 #'   data. `se.fit = TRUE` returns delta-method standard errors that
 #'   include fixed-effect and random-effect uncertainty; unseen grouping
@@ -1214,9 +1220,39 @@ napred <- function(fit, x) {
   stats::napredict(fit$frame$na_action, x)
 }
 
+#' Fitted values
+#'
+#' The modelled response at the estimates, conditional on the
+#' random-effect modes. Equal to `predict(object, type = "response")` on
+#' the training data, for every family.
+#'
+#' @param object A `frmtmb_fit`.
+#' @param ... Unused.
+#' @return A numeric vector of expected responses; for an ordinal family
+#'   (`cumulative()`, `sratio()`, `cratio()`, `acat()`) an `n x K` matrix
+#'   of category probabilities.
+#' @section Ordinal responses:
+#' An ordinal response has no mean, so `fitted()` returns the `n x K`
+#' matrix of category probabilities, with the response's own factor
+#' levels as column names and rows summing to one - the brms `fitted()`
+#' convention. `cs()` terms are honored. The latent linear predictor,
+#' which is where the coefficients live and where `se.fit` is available,
+#' is `predict(object, type = "link")`.
+#' @seealso [predict.frmtmb_fit()], [residuals.frmtmb_fit()]
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100))
+#' dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x))
+#' fit <- frm(bf(y ~ x) + poisson(), data = dd)
+#' max(abs(fitted(fit) - predict(fit, type = "response")))
 #' @export
 fitted.frmtmb_fit <- function(object, ...) {
   rspec <- uni_resp(object, "fitted()")
+  if (identical(rspec$family$type, "ordinal")) {
+    # no mean exists; the modelled response IS the category
+    # distribution, and predict(type = "response") agrees by construction
+    return(predict_ordinal(object, rspec, NULL, TRUE, FALSE))
+  }
   dp <- eval_dpars(object)[[rspec$resp_name]]
   if (!"mu" %in% names(dp) && is.null(rspec$family$post$mean_fn)) {
     stop("fitted() is not defined for family '", rspec$family$family, "'",
@@ -1248,12 +1284,11 @@ ordinal_ncat <- function(fit) {
 #' the deparsed expression).
 #'
 #' @noRd
-ord_cs_offsets <- function(object, lp, newdata, n, K1) {
+ord_cs_values <- function(object, lp, newdata, n) {
   cst <- lp$cs %||% list()
-  if (!length(cst)) return(NULL)
+  if (!length(cst)) return(list())
   env <- object$spec$responses[[lp$resp]]$formula_env
-  CS <- matrix(0, n, K1)
-  for (ct in cst) {
+  lapply(cst, function(ct) {
     v <- if (is.null(newdata)) {
       ct$vals
     } else {
@@ -1265,8 +1300,15 @@ ord_cs_offsets <- function(object, lp, newdata, n, K1) {
       stop("cs() term '", ct$label, "' evaluated to ", length(v),
            " value(s) on ", n, " rows of newdata", call. = FALSE)
     }
-    CS <- CS + outer(v, object$estimates[[ct$par]])
-  }
+    list(par = ct$par, vals = v, label = ct$label)
+  })
+}
+
+ord_cs_offsets <- function(object, lp, newdata, n, K1) {
+  cv <- ord_cs_values(object, lp, newdata, n)
+  if (!length(cv)) return(NULL)
+  CS <- matrix(0, n, K1)
+  for (ct in cv) CS <- CS + outer(ct$vals, object$estimates[[ct$par]])
   CS
 }
 
@@ -1282,8 +1324,26 @@ ord_cs_offsets <- function(object, lp, newdata, n, K1) {
 #' custom ordinal family gets the same treatment for free.
 #'
 #' @noRd
-predict_ordinal <- function(object, rspec, newdata, use_re,
-                            allow_new_levels) {
+ord_probs_from_eta <- function(fam, eta, cs, extra, K) {
+  n <- length(eta)
+  dp <- list(mu = eta)
+  if (!is.null(cs)) dp[[".cs"]] <- cs
+  P <- matrix(NA_real_, n, K)
+  for (k in seq_len(K)) {
+    P[, k] <- exp(as.numeric(fam$lpdf(rep.int(k, n), dp, list(), extra)))
+  }
+  # analytically the rows already sum to one; the division only removes
+  # the last bit of rounding, and turns an overflowed row into NaN
+  # instead of a silent zero vector
+  P / rowSums(P)
+}
+
+#' `n x K` category probabilities in FITTED-row space (no `na.exclude`
+#' padding), for the internal consumers that work alongside `y`.
+#'
+#' @noRd
+ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
+                      allow_new_levels = FALSE) {
   fam <- rspec$family
   lp <- object$frame$linpreds[[linpred_key(rspec$resp_name, "mu")]]
   if (!is.null(lp$nl_body)) {
@@ -1294,20 +1354,10 @@ predict_ordinal <- function(object, rspec, newdata, use_re,
   eta <- unname(ed$eta)
   n <- length(eta)
   K <- ordinal_ncat(object)
-  dp <- list(mu = eta)
   cs <- ord_cs_offsets(object, lp, newdata, n, K - 1L)
-  if (!is.null(cs)) dp[[".cs"]] <- cs
   # the ordinal lpdfs read only `extra` (the thresholds and the cs
   # coefficients); no addition term enters a category probability
-  extra <- fit_extras(object)
-  P <- matrix(NA_real_, n, K)
-  for (k in seq_len(K)) {
-    P[, k] <- exp(as.numeric(fam$lpdf(rep.int(k, n), dp, list(), extra)))
-  }
-  # analytically the rows already sum to one; the division only removes
-  # the last bit of rounding, and turns an overflowed row into NaN
-  # instead of a silent zero vector
-  P <- P / rowSums(P)
+  P <- ord_probs_from_eta(fam, eta, cs, fit_extras(object), K)
   colnames(P) <- object$frame$y_levels[[rspec$resp_name]] %||%
     as.character(seq_len(K))
   rn <- names(ed$eta)
@@ -1318,8 +1368,122 @@ predict_ordinal <- function(object, rspec, newdata, use_re,
   # a row that cannot be estimated from the retained design columns has
   # no category distribution either
   if (any(ed$nonest)) P[ed$nonest, ] <- NA_real_
+  P
+}
+
+predict_ordinal <- function(object, rspec, newdata, use_re,
+                            allow_new_levels) {
+  P <- ord_probs(object, rspec, newdata, use_re, allow_new_levels)
   if (is.null(newdata)) P <- napred(object, P)
   P
+}
+
+#' Delta-method standard errors of the `n x K` category probabilities on
+#' a prediction grid.
+#'
+#' A category probability runs through the linear predictor AND through
+#' the thresholds (and the `cs()` coefficients), so the gradient is
+#' taken over all of them jointly and the quadratic form uses the joint
+#' covariance: thresholds are estimated too, and pretending otherwise
+#' would understate every band. The eta part reuses `lp_delta_A()`, so
+#' the coefficient bookkeeping is exactly `predict(se.fit = TRUE)`'s;
+#' the derivative of `p_k` with respect to eta and with respect to each
+#' extra parameter is a central difference of the family's own lpdf,
+#' the same differencing rule `mean_eta_grad()` uses and for the same
+#' reason (a custom ordinal family gets it for free).
+#'
+#' @noRd
+ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re) {
+  fam <- rspec$family
+  K <- ordinal_ncat(object)
+  eta <- unname(ed$eta)
+  n <- length(eta)
+  extra <- fit_extras(object)
+  csv <- ord_cs_values(object, lp, newdata, n)
+  CS <- if (length(csv)) {
+    M <- matrix(0, n, K - 1L)
+    for (ct in csv) M <- M + outer(ct$vals, object$estimates[[ct$par]])
+    M
+  }
+  probs <- function(e, cs, ex) ord_probs_from_eta(fam, e, cs, ex, K)
+  P0 <- probs(eta, CS, extra)
+
+  jc <- get_joint_cov(object)
+  has_rr <- isTRUE(object$frame$has_rr)
+  rrj <- if (has_rr) rr_jacobians(object)
+  da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
+  A <- as.matrix(da$A)
+  pos <- da$coef_pos
+
+  h <- 1e-5 * pmax(1, abs(eta))
+  dPde <- (probs(eta + h, CS, extra) - probs(eta - h, CS, extra)) /
+    (2 * h)
+
+  # one n x K derivative block per estimated extra parameter, paired
+  # with its row in the joint covariance
+  extra_d <- list()
+  extra_pos <- integer(0)
+  cs_par <- vapply(csv, `[[`, "", "par")
+  for (nm in names(extra)) {
+    ep <- which(jc$names == nm)
+    val <- extra[[nm]]
+    ci <- match(nm, cs_par)
+    for (j in seq_along(val)) {
+      if (j > length(ep)) next
+      hj <- 1e-5 * max(1, abs(val[j]))
+      d <- if (is.na(ci)) {
+        ehi <- extra
+        elo <- extra
+        ehi[[nm]][j] <- val[j] + hj
+        elo[[nm]][j] <- val[j] - hj
+        (probs(eta, CS, ehi) - probs(eta, CS, elo)) / (2 * hj)
+      } else {
+        chi <- CS
+        clo <- CS
+        chi[, j] <- chi[, j] + hj * csv[[ci]]$vals
+        clo[, j] <- clo[, j] - hj * csv[[ci]]$vals
+        (probs(eta, chi, extra) - probs(eta, clo, extra)) / (2 * hj)
+      }
+      extra_d[[length(extra_d) + 1L]] <- d
+      extra_pos <- c(extra_pos, ep[j])
+    }
+  }
+  n_beta <- ncol(A)
+  V <- jc$V[c(pos, extra_pos), c(pos, extra_pos), drop = FALSE]
+  SE <- matrix(NA_real_, n, K)
+  G <- matrix(0, n, n_beta + length(extra_d))
+  for (k in seq_len(K)) {
+    G[, seq_len(n_beta)] <- dPde[, k] * A
+    for (i in seq_along(extra_d)) G[, n_beta + i] <- extra_d[[i]][, k]
+    SE[, k] <- sqrt(pmax(rowSums((G %*% V) * G), 0))
+  }
+  if (any(ed$nonest)) {
+    P0[ed$nonest, ] <- NA_real_
+    SE[ed$nonest, ] <- NA_real_
+  }
+  colnames(P0) <- colnames(SE) <-
+    object$frame$y_levels[[rspec$resp_name]] %||% as.character(seq_len(K))
+  list(P = P0, se = SE)
+}
+
+#' Mean and variance of the CATEGORY INDEX under the fitted category
+#' distribution, `E[Y] = sum_k k p_k` and `Var[Y]`, in fitted-row space.
+#'
+#' An ordinal response has no mean, but every consumer that needs one
+#' number per observation (a residual, a residuals-versus-fitted plot,
+#' DHARMa's `fittedPredictedResponse`) needs one anyway. Scoring the
+#' categories by their own integer codes is the standard fallback: it is
+#' what `y - E[Y]` means in brms's `residuals()` (which subtracts drawn
+#' categories from the observed ones) and it is monotone in the latent
+#' predictor, which is all the plots and the rank transform use it for.
+#'
+#' @noRd
+ord_cat_moments <- function(object, rspec) {
+  P <- ord_probs(object, rspec)
+  k <- seq_len(ncol(P))
+  m <- as.numeric(P %*% k)
+  v <- as.numeric(P %*% (k^2)) - m^2
+  list(mean = m, var = v, P = P)
 }
 
 #' OSA integration window and row split for a censored response, or NULL
@@ -1406,8 +1570,23 @@ osa_cens_domain <- function(av, y) {
 #' resulting point mass at each censoring point is not a distribution
 #' DHARMa's rank transform can use.
 #'
-#' Ordinal responses use `"oneStepGeneric"` over the discrete support
-#' `1..K`, which makes the residuals randomized quantile residuals.
+#' @section Ordinal responses:
+#' An ordinal response has no mean, so `"response"` and `"pearson"`
+#' score the categories by the integer codes `1..K` the likelihood
+#' itself uses: `"response"` is `y - E[Y]` with
+#' `E[Y] = sum_k k * P(y = k)` taken from [fitted()]'s category
+#' probabilities, and `"pearson"` divides by the standard deviation of
+#' that same distribution. This is the frequentist point-estimate form
+#' of what brms's `residuals()` reports on an ordinal fit (there, the
+#' observed category minus a drawn one). It is a residual on a SCORE,
+#' not on the ordinal scale, so read it for gross lack of fit and
+#' pattern, not as a calibrated quantity: `"osa"` and
+#' [dharma_residuals()] give residuals that use only the order.
+#' `"deviance"` is refused, as it is for every family without a
+#' standard unit deviance.
+#'
+#' `"osa"` uses `"oneStepGeneric"` over the discrete support `1..K`,
+#' which makes the residuals randomized quantile residuals.
 #'
 #' @section Deviance residuals:
 #' `"deviance"` returns `sign(y - E[Y]) * sqrt(w * d)`, where the unit
@@ -1575,6 +1754,15 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
       full[cb$subset] <- r
       r <- full
     }
+    return(napred(object, r))
+  }
+  if (identical(fam$type, "ordinal") &&
+      type %in% c("response", "pearson")) {
+    # scored by the category codes the likelihood itself uses; see
+    # ord_cat_moments()
+    mom <- ord_cat_moments(object, rspec)
+    r <- object$frame$y[[rspec$resp_name]] - mom$mean
+    if (type == "pearson") r <- r / sqrt(mom$var)
     return(napred(object, r))
   }
   dp <- eval_dpars(object)[[rspec$resp_name]]

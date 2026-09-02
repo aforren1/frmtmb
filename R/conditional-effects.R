@@ -127,7 +127,27 @@ ce_second_values <- function(col) {
 #' @param ... Passed to [predict.frmtmb_fit()].
 #' @return A named list of data frames (one per effect) with the varied
 #'   variable(s) plus `estimate__`, `se__` (link scale), `lower__`, and
-#'   `upper__`; printing it draws the plots.
+#'   `upper__`; printing it draws the plots. An ordinal fit adds a
+#'   `cats__` column and one block of rows per response category.
+#' @section Ordinal responses:
+#' `cumulative()`, `sratio()`, `cratio()` and `acat()` have no mean, so
+#' the display is per CATEGORY, as brms's `categorical = TRUE` is: each
+#' effect data frame gains a `cats__` factor of the response's own
+#' levels and carries the fitted category probability in `estimate__`,
+#' with one curve per category in the plot (a second predictor gets a
+#' panel of its own).
+#'
+#' `se__` is then on the probability scale, and the band is a Wald
+#' interval on the logit of the probability so it cannot leave `[0, 1]`.
+#' The standard errors are the delta method over the joint covariance of
+#' the coefficients, the thresholds AND the `cs()` coefficients: a
+#' category probability depends on all of them, and holding the
+#' thresholds fixed would understate every band.
+#'
+#' `method = "predict"` is refused there (the category probabilities are
+#' already the whole predictive distribution). Naming a distributional
+#' parameter, `dpar = "mu"`, opts back into the ordinary display of the
+#' latent linear predictor.
 #' @examples
 #' set.seed(5)
 #' dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))
@@ -152,6 +172,16 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   method <- match.arg(method)
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
+  # an ordinal effect display is per CATEGORY, not on the latent scale;
+  # naming a dpar explicitly is the way back to the linear predictor
+  categorical <- identical(rspec$family$type, "ordinal") && is.null(dpar)
+  if (categorical && method == "predict") {
+    stop("method = \"predict\" has no meaning on an ordinal family: the ",
+         "category probabilities conditional_effects() draws ARE the ",
+         "predictive distribution, so there is no further observation ",
+         "noise to add. Use method = \"epred\" (the default), or ask ",
+         "for the latent predictor with dpar = \"mu\"", call. = FALSE)
+  }
   dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
     rspec$primary_dpars[1]
   lp <- find_linpred(x, resp, dpar)
@@ -224,6 +254,31 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       if (length(ev) == 2L) nd[[ev[2L]]] <- rep(v2, each = n1)
       nd$.ce_row <- NULL
 
+      if (categorical) {
+        ed <- lp_eta_design(x, lp, nd, FALSE, FALSE)
+        ps <- ord_prob_se(x, rspec, lp, ed, nd, FALSE)
+        cats <- colnames(ps$P)
+        df <- do.call(rbind, lapply(seq_along(cats), function(k) {
+          d <- nd[ev]
+          pk <- ps$P[, k]
+          sk <- ps$se[, k]
+          d$estimate__ <- pk
+          d$se__ <- sk
+          # the band is a Wald interval on the LOGIT of the probability:
+          # on the probability scale itself it would leave [0, 1] near a
+          # category that is nearly certain or nearly impossible
+          sl <- sk / pmax(pk * (1 - pk), .Machine$double.eps)
+          d$lower__ <- stats::plogis(stats::qlogis(pk) - z * sl)
+          d$upper__ <- stats::plogis(stats::qlogis(pk) + z * sl)
+          d$cats__ <- factor(cats[k], levels = cats)
+          d
+        }))
+        if (length(cond_sets) > 1L) {
+          df$cond__ <- names(cond_sets)[ci] %||% as.character(ci)
+        }
+        dfs[[ci]] <- df
+        next
+      }
       p <- predict(x, newdata = nd, type = "link", dpar = dpar,
                    resp = resp, re.form = NA, se.fit = TRUE, ...)
       df <- nd[ev]
@@ -308,11 +363,42 @@ plot.frmtmb_conditional_effects <- function(x, ask = NULL, ...) {
 #' @noRd
 ce_plot_one <- function(df, cond = NULL) {
   ev <- attr(df, "effects")
+  if (!is.null(df[["cats__"]])) {
+    # an ordinal display carries one curve per response category, so the
+    # category takes the grouping slot; a second predictor then needs a
+    # panel of its own rather than a second set of colors
+    ylab <- paste0("P(", attr(df, "response"), ")")
+    if (!is.null(cond)) ylab <- paste0(ylab, " | ", cond)
+    ylim <- range(df$lower__, df$upper__, na.rm = TRUE)
+    if (length(ev) == 2L) {
+      for (lv in unique(df[[ev[2L]]])) {
+        sub <- df[df[[ev[2L]]] == lv, , drop = FALSE]
+        ce_draw_panel(sub, ev[1L], factor(sub$cats__,
+                                          levels = levels(df$cats__)),
+                      "category",
+                      paste0(ylab, " | ", ev[2L], " = ", lv), ylim)
+      }
+    } else {
+      ce_draw_panel(df, ev[1L], df$cats__, "category", ylab, ylim)
+    }
+    return(invisible(NULL))
+  }
   ylab <- paste0(attr(df, "response"), " (", attr(df, "dpar"), ")")
   if (!is.null(cond)) ylab <- paste0(ylab, " | ", cond)
-  v1 <- df[[ev[1L]]]
   grp <- if (length(ev) == 2L) factor(df[[ev[2L]]])
-  ylim <- range(df$lower__, df$upper__)
+  ce_draw_panel(df, ev[1L], grp, ev[2L], ylab,
+                range(df$lower__, df$upper__))
+}
+
+#' Draw one panel: the estimate over the varied predictor `xv` with its
+#' band, lines and a shaded band for a numeric predictor, points and
+#' error bars for a discrete one, split by the optional grouping factor
+#' `grp`.
+#'
+#' @noRd
+ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim) {
+  v1 <- df[[xv]]
+  ev <- c(xv, grp_title)
 
   if (is.numeric(v1)) {
     graphics::plot(range(v1), ylim, type = "n", xlab = ev[1L],
@@ -363,6 +449,11 @@ ce_plot_one <- function(df, cond = NULL) {
 #' simulation-based residuals that are exact for discrete families, use
 #' [dharma_residuals()] or `residuals(type = "osa")`.
 #'
+#' On an ordinal fit [fitted()] is a matrix of category probabilities,
+#' so panel 1 uses the expected category index `sum_k k * P(y = k)` -
+#' the same scalar the Pearson residual is taken against - and labels
+#' the axis accordingly.
+#'
 #' @param x A `frmtmb_fit`.
 #' @param which Subset of `1:2`.
 #' @param ask Whether to prompt between plots; defaults to the usual
@@ -411,8 +502,19 @@ plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
     on.exit(grDevices::devAskNewPage(oask))
   }
   if (1L %in% which) {
-    ft <- fitted(x)
-    graphics::plot(ft, r, xlab = "Fitted values",
+    # fitted() is a K-column probability matrix on an ordinal fit, and
+    # the panel needs one number per row: the expected category index,
+    # which is what the residual on the vertical axis was taken against
+    rspec <- x$spec$responses[[1L]]
+    ordinal <- identical(rspec$family$type, "ordinal")
+    ft <- if (ordinal) {
+      napred(x, ord_cat_moments(x, rspec)$mean)
+    } else {
+      fitted(x)
+    }
+    graphics::plot(ft, r,
+                   xlab = if (ordinal) "Expected category" else
+                     "Fitted values",
                    ylab = "Pearson residuals")
     graphics::abline(h = 0, lty = 2)
     ok <- is.finite(ft) & is.finite(r)
@@ -476,8 +578,17 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   if (is.matrix(y)) {
     stop("pp_check() on a fit supports vector responses", call. = FALSE)
   }
-  yrep <- t(as.matrix(na_unpad(
-    object, simulate(object, nsim = ndraws, re.form = re.form))))
+  sims <- na_unpad(object, simulate(object, nsim = ndraws,
+                                    re.form = re.form))
+  # ordinal draws come back as ordered factors carrying the response's
+  # levels; bayesplot compares them with y, which is the 1..K codes
+  yrep <- if (identical(rspec$family$type, "ordinal")) {
+    matrix(unlist(lapply(sims, as.integer), use.names = FALSE),
+           nrow = nrow(sims))
+  } else {
+    as.matrix(sims)
+  }
+  yrep <- t(yrep)
   fun <- get(paste0("ppc_", type), envir = asNamespace("bayesplot"))
   fun(as.numeric(y), yrep, ...)
 }

@@ -68,7 +68,8 @@ does not store a raw variable (e.g. a variable used only inside
 \value{
 A named list of data frames (one per effect) with the varied
 variable(s) plus \code{estimate__}, \code{se__} (link scale), \code{lower__}, and
-\code{upper__}; printing it draws the plots.
+\code{upper__}; printing it draws the plots. An ordinal fit adds a
+\code{cats__} column and one block of rows per response category.
 }
 \description{
 For each requested effect, predicts over a grid of that predictor
@@ -79,6 +80,28 @@ intervals computed on the link scale and back-transformed. Smooth
 terms are included, so this also covers what brms calls
 \code{conditional_smooths()}.
 }
+\section{Ordinal responses}{
+
+\code{cumulative()}, \code{sratio()}, \code{cratio()} and \code{acat()} have no mean, so
+the display is per CATEGORY, as brms's \code{categorical = TRUE} is: each
+effect data frame gains a \code{cats__} factor of the response's own
+levels and carries the fitted category probability in \code{estimate__},
+with one curve per category in the plot (a second predictor gets a
+panel of its own).
+
+\code{se__} is then on the probability scale, and the band is a Wald
+interval on the logit of the probability so it cannot leave \verb{[0, 1]}.
+The standard errors are the delta method over the joint covariance of
+the coefficients, the thresholds AND the \code{cs()} coefficients: a
+category probability depends on all of them, and holding the
+thresholds fixed would understate every band.
+
+\code{method = "predict"} is refused there (the category probabilities are
+already the whole predictive distribution). Naming a distributional
+parameter, \code{dpar = "mu"}, opts back into the ordinary display of the
+latent linear predictor.
+}
+
 \examples{
 set.seed(5)
 dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))

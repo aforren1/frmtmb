@@ -97,11 +97,15 @@ with the response's own factor levels as column names. The rows sum
 to one. \code{cs()} category-specific terms are honored: they enter each
 threshold separately and are re-evaluated on \code{newdata}.
 
+\code{\link[=fitted]{fitted()}} returns the same matrix, so the usual
+\code{predict(type = "response") == fitted()} identity holds here too.
+
 \code{type = "link"} (the default) and \code{dpar = "mu"} still give the latent
 linear predictor, which is where the fixed-effect coefficients live
 and where \code{se.fit} is available. \code{se.fit} on the response scale is
 refused: the prediction is a K-vector per row, not one number.
-\code{\link[=fitted]{fitted()}} keeps returning the latent predictor for these families.
+\code{emmeans} and \code{insight::get_predicted()} stay on that latent scale,
+which is the \code{mode = "latent"} convention for \code{clm}-like models.
 
 \code{type = "conditional"} is glmmTMB's name for the conditional MEAN, so
 it gives the category probabilities here too rather than the linear

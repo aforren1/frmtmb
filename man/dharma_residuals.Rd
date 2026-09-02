@@ -28,6 +28,18 @@ model. Plot the result with \code{plot()}, or run
 \code{\link[DHARMa:testUniformity]{DHARMa::testUniformity()}}, \code{\link[DHARMa:testDispersion]{DHARMa::testDispersion()}},
 \code{\link[DHARMa:testZeroInflation]{DHARMa::testZeroInflation()}} and friends on it.
 }
+\section{Ordinal responses}{
+
+An ordinal fit is supported: the draws are the simulated categories
+and the response is its own integer codes, so the rank transform runs
+on the order alone (\code{integerResponse = TRUE}, which is what makes
+DHARMa randomize within ties). The \code{fittedPredictedResponse} DHARMa
+plots against is the expected category index \verb{sum_k k * P(y = k)},
+the same scalar \code{\link[=residuals]{residuals()}} scores an ordinal fit by; it sets the
+horizontal axis of the display and nothing else, since the residuals
+themselves come from the ranks of the draws.
+}
+
 \examples{
 if (requireNamespace("DHARMa", quietly = TRUE)) {
   set.seed(1)

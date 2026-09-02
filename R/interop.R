@@ -647,6 +647,14 @@ as_tmbstan <- function(fit, ...) {
 #' emmeans support: registered in .onLoad, only for the parametric fixed
 #' part of the mu linear predictor of univariate, non-nl fits.
 #'
+#' An ordinal fit therefore lands on the LATENT scale, which is
+#' emmeans's own `mode = "latent"` convention for `clm`-like models: the
+#' K-1 thresholds are not coefficients of this design, so the basis has
+#' no intercept and the marginal means are the latent predictor without
+#' a threshold offset. Contrasts are unaffected by that offset;
+#' category probabilities are a different question, answered by
+#' `predict(type = "response")` and `conditional_effects()`.
+#'
 #' @noRd
 emm_mu_linpred <- function(object) {
   if (length(object$spec$responses) > 1) {
@@ -729,6 +737,21 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ...) {
   m <- stats::model.frame(trms, grid, na.action = stats::na.pass,
                           xlev = xlev)
   X <- stats::model.matrix(trms, m, contrasts.arg = lp$contrasts)
+  # The fitted design is not always model.matrix()'s: an ordinal family
+  # drops the intercept (the K-1 thresholds take its place), and a
+  # rank-deficient fit drops aliased columns. Select the fitted columns
+  # by name, or the basis is not conformable with bhat and emmeans fails
+  # with "Non-conformable elements in reference grid".
+  pn <- lp$param_colnames[seq_len(lp$n_param_cols)]
+  if (!identical(colnames(X), pn)) {
+    keep <- match(pn, colnames(X))
+    if (anyNA(keep)) {
+      stop("emmeans support cannot rebuild the fitted design: column(s) ",
+           paste(pn[is.na(keep)], collapse = ", "),
+           " are missing from the reference grid", call. = FALSE)
+    }
+    X <- X[, keep, drop = FALSE]
+  }
   idx <- lp$idx[seq_len(lp$n_param_cols)]
   bhat <- object$estimates[[lp$par]][idx]
   V <- vcov(object)[idx, idx, drop = FALSE]
