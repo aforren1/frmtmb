@@ -100,6 +100,7 @@ build_objective <- function(frame) {
         eta <- tryCatch(eval(lp$nl_body, ev, lp$nl_env),
                         error = function(e) nl_body_error(e, lp))
         dparv[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
+        dparv[[lp$resp]][[paste0(".eta_", lp$dpar)]] <- eta
         next
       }
       # as.vector, not drop: it collapses both Matrix and advector results
@@ -142,6 +143,19 @@ build_objective <- function(frame) {
         dparv[[lp$resp]][[".cs"]] <- CS
       }
       dparv[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
+      # The linear predictor rides along beside the inverse-linked value
+      # under a reserved `.eta_` name. An inverse link saturates -
+      # plogis(40) is exactly 1, exp(-800) is exactly 0 - so a density
+      # that recomputes 1 - mu or log(mu) from the dpar reads -Inf or
+      # NaN with a useless gradient in a region the linear predictor
+      # itself describes perfectly well. The families that can use the
+      # eta scale (see `robust_logit()`, `robust_logmu()`,
+      # `gate_logs()`) read it from here, and undoing the link to
+      # recover it would defeat the purpose. Only the taped objective
+      # supplies it: the numeric post-fit paths (fitted(), simulate(),
+      # the CDFs) pass the dpar values alone, and there nothing is
+      # differentiated, so the saturation is harmless.
+      dparv[[lp$resp]][[paste0(".eta_", lp$dpar)]] <- eta
     }
 
     if (rescor) {

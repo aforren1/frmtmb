@@ -1,5 +1,7 @@
 # frmtmb 0.36.0
 
+# frmtmb 0.36.0
+
 
 ## Student-t random effects
 
@@ -71,6 +73,63 @@
   Bell-McCaffrey family is defined through the hat matrix of a linear
   or GLS model, which a Laplace-marginal likelihood with a nonlinear
   link does not have.
+
+## Numerical robustness of the family log-densities
+
+The log-densities now evaluate from the LINEAR-PREDICTOR scale wherever
+an exact form exists, instead of undoing the link and recomputing. An
+inverse link saturates - `plogis(40)` is exactly 1 in double precision,
+and `1 - exp(-exp(4))` is too - so a density written over `1 - mu`
+returned `-Inf` with an unusable gradient in a region the linear
+predictor describes perfectly well. A fit that converges never visits
+it; an optimizer step that overshoots, a separated predictor, a wide
+quadrature node and a `frm_sample()` tail draw all do.
+
+* `bernoulli()`, `binomial()` and `zero_inflated_binomial()` use
+  `RTMB::dbinom_robust()`, the log-odds parameterization glmmTMB fits
+  with. They were wrong in the second decimal at a linear predictor of
+  30 and gave `-Inf` at 40; they are now exact over the whole line.
+  With the `cloglog` link the old form had no gradient past a
+  SINGLE-DIGIT linear predictor.
+* `negbinomial()`, `nbinom1()` and `geometric()` use
+  `RTMB::dnbinom_robust()`, which takes `log(mu)` and never forms
+  `mu / var`. The old form gave `NaN` at a linear predictor of -40.
+* Every `zi` and `hu` gate, and `asym_laplace()`'s `quantile`, run in
+  log space, so a separated zero-inflation predictor stays
+  differentiable.
+* `Beta()`, `zero_inflated_beta()` and `beta_binomial()` take both
+  shapes off the log-odds, so the second one no longer collapses to
+  zero.
+* `hurdle_poisson()`'s zero-truncation normalizer `log(1 - exp(-mu))`
+  uses `expm1`, which keeps it at a tiny mean.
+* `cumulative()`, `sratio()` and `cratio()` with the logit link compute
+  their CDF differences in log space. `acat()`, `categorical()` and
+  `multinomial()` accumulate their denominators with `logspace_add()`
+  instead of summing `exp()`, which used to overflow at a linear
+  predictor of 709 / (K - 1).
+* Values and gradients at ordinary linear predictors are unchanged to
+  1e-15, and every fitted model in the regression set lands on the same
+  estimates (largest coefficient change 9.5e-9, largest log-likelihood
+  change 4e-12). `cumulative(probit)` keeps the plain CDF difference,
+  which has no exact log-space form; it is fragile past a linear
+  predictor of 8, so prefer the logit link. New file
+  `tests/testthat/test-numerical-robustness.R` pins the behavior.
+
+## New family
+
+* `huber()` fits Huber's least-favorable distribution: gaussian within
+  `k` residual standard deviations of `mu` and Laplace outside, so an
+  outlier pulls on the fit with bounded influence. It is a proper
+  normalized density, so this is ordinary maximum likelihood and
+  `logLik()` and `AIC()` mean what they say. Huber's tuning constant is
+  a fixed argument, `huber(k = 1.345)`, not an estimated parameter,
+  matching how `MASS::rlm()` treats it. Point estimates track
+  `MASS::rlm(psi = psi.huber)`; the remaining gap is the scale
+  (`rlm()` fixes it at a MAD-type estimate, `huber()` estimates `sigma`
+  by ML), and holding `sigma` there reproduces `rlm()` to 1e-5. The
+  `asym_laplace()` working-likelihood caveat applies: Wald standard
+  errors under a misspecified error distribution are not calibrated, so
+  use `frm_bootstrap()`.
 
 # frmtmb 0.35.0
 
