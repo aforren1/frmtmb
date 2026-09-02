@@ -821,6 +821,38 @@ report_datetime_columns <- function(mf, exclude = character(0)) {
   invisible(NULL)
 }
 
+#' Column permutation taking the smooth's own basis to the
+#' `smooth2random()` layout, for smooths that have no `trans.U`.
+#'
+#' `smooth2random(type = 2)` reports the split of a t2 basis as
+#' `pen.ind` (which penalty each original column belongs to, 0 = the
+#' unpenalized null space) instead of a `trans.U` rotation, so the
+#' mapping is a scaling by `trans.D` followed by a stable sort that puts
+#' penalty 1, penalty 2, ... first and the null-space columns last. The
+#' identity is verified here on a few rows rather than asserted, so a
+#' smooth class that reaches this path with some other meaning of
+#' `pen.ind` returns NULL and prediction refuses instead of quietly
+#' returning wrong numbers.
+#'
+#' @noRd
+smooth_pen_order <- function(sm, re2) {
+  if (!is.null(re2$trans.U)) return(NULL)
+  pen <- re2$pen.ind
+  if (is.null(pen) || is.null(re2$trans.D) ||
+      length(pen) != ncol(sm$X) || length(re2$trans.D) != ncol(sm$X)) {
+    return(NULL)
+  }
+  ord <- order(ifelse(pen == 0L, max(pen) + 1L, pen), seq_along(pen))
+  rows <- seq_len(min(nrow(sm$X), 50L))
+  Z <- cbind(do.call(cbind, re2$rand), re2$Xf)[rows, , drop = FALSE]
+  if (ncol(Z) != ncol(sm$X)) return(NULL)
+  rec <- sweep(sm$X[rows, , drop = FALSE], 2, re2$trans.D, `*`)
+  if (max(abs(rec[, ord, drop = FALSE] - Z)) > 1e-8 * max(1, max(abs(Z)))) {
+    return(NULL)
+  }
+  ord
+}
+
 #' Turn a parsed spec plus data into the numeric `frmtmb_frame` the
 #' objective is built from. This is the second and last stage of the
 #' formula-to-design-matrix pipeline: `parse_spec()` reads the formulas,
@@ -1462,7 +1494,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # parameter.
       sm_info <- list()
       for (sspec in dp$smooth %||% list()) {
-        scl <- mgcv::smoothCon(sspec, data = mf, absorb.cons = TRUE)
+        # modCon = 3 ("set fit and predict constraint to fit constraint").
+        # A t2 smooth carries two identifiability constraints: `C`, absorbed
+        # into `X`/`S` for fitting, and `Cp`, absorbed into `Xp`/`Sp` and
+        # honored by PredictMat. Left at the default the two differ, so
+        # PredictMat does not rebuild the fitted basis and newdata
+        # prediction is impossible. gamm4 keeps both and maps the fitted
+        # coefficients into the predict parameterization afterwards (its
+        # `G$P`, "important for t2 smooths, where fit constraint is not
+        # good for component wise prediction s.e.s"); we have no component
+        # wise s.e. to protect, so dropping `Cp` is simpler. This does not
+        # change the fit: for t2 `X` and `S` are bit-identical either way
+        # (`modCon >= 3` only sets `sm$Cp <- NULL`), and for s() `Cp` is
+        # already NULL so the argument is inert.
+        scl <- mgcv::smoothCon(sspec, data = mf, absorb.cons = TRUE,
+                               modCon = 3)
         for (sm in scl) {
           re2 <- mgcv::smooth2random(sm, names(mf), type = 2)
           if (isTRUE(re2$fixed)) {
@@ -1497,6 +1543,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           }
           sm_info[[length(sm_info) + 1L]] <- list(
             sm = sm, U = re2$trans.U, D = re2$trans.D,
+            ord = smooth_pen_order(sm, re2),
             nr = nr, nf = nf, xf_idx = xf_idx,
             comp_ids = sm_comp_ids, block_ids = NULL,
             label = sm$label

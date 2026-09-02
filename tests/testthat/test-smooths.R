@@ -70,6 +70,63 @@ test_that("t2 tensor smooths fit and match gam ML", {
   expect_lt(max(abs(fitted(fit) - fitted(ref))), 0.1)
 })
 
+test_that("t2 smooths predict on newdata", {
+  set.seed(45)
+  n <- 400
+  dd <- data.frame(x = runif(n), w = runif(n))
+  dd$y <- sin(2 * dd$x) * cos(2 * dd$w) + rnorm(n, 0, 0.3)
+  fit <- frm(bf(y ~ t2(x, w)) + gaussian(), data = dd)
+
+  # a t2 basis carries a separate prediction constraint (mgcv `Cp`) that
+  # PredictMat honors; the frame drops it (smoothCon modCon = 3) so the
+  # newdata basis IS the fit basis and the round-trip is exact
+  expect_equal(predict(fit, newdata = dd), predict(fit), tolerance = 1e-10)
+  expect_equal(predict(fit, newdata = dd, re.form = NA), predict(fit),
+               tolerance = 1e-10)
+  s_in <- predict(fit, se.fit = TRUE)
+  s_nd <- predict(fit, newdata = dd, se.fit = TRUE)
+  expect_equal(s_nd$se.fit, s_in$se.fit, tolerance = 1e-10)
+
+  # off the training grid, against the same model fitted by mgcv
+  ref <- mgcv::gam(y ~ t2(x, w), data = dd, method = "ML")
+  nd <- expand.grid(x = seq(0.05, 0.95, length.out = 11),
+                    w = seq(0.05, 0.95, length.out = 11))
+  p <- predict(fit, newdata = nd, se.fit = TRUE)
+  expect_lt(max(abs(p$fit - as.numeric(predict(ref, newdata = nd)))), 1e-3)
+  expect_true(all(is.finite(p$se.fit)) && all(p$se.fit > 0))
+  # se blows up under extrapolation
+  expect_gt(predict(fit, newdata = data.frame(x = 1.6, w = 1.6),
+                    se.fit = TRUE)$se.fit,
+            max(p$se.fit))
+})
+
+test_that("t2 newdata prediction survives by=, dpars and random effects", {
+  set.seed(7)
+  n <- 500
+  dd <- data.frame(x = runif(n), z = runif(n),
+                   f = factor(sample(c("a", "b"), n, TRUE)),
+                   g = factor(sample(letters[1:8], n, TRUE)),
+                   u = rnorm(n))
+  dd$y <- sin(3 * dd$x) * dd$z + 0.5 * dd$u +
+    as.numeric(dd$f) + rnorm(n, 0, 0.3)
+  fit <- frm(bf(y ~ u + t2(x, z, by = f) + (1 | g)) + gaussian(), data = dd)
+  expect_equal(predict(fit, newdata = dd), predict(fit), tolerance = 1e-10)
+  nd <- dd[1:20, ]
+  nd$x <- nd$x * 0.5
+  expect_true(all(is.finite(predict(fit, newdata = nd, se.fit = TRUE)$se.fit)))
+  # a two-variable conditional effect goes through the same newdata path
+  ce <- conditional_effects(fit, effects = "x:z")
+  expect_true(all(is.finite(ce[[1]]$estimate__)))
+
+  set.seed(8)
+  d3 <- data.frame(x = runif(400), z = runif(400))
+  d3$y <- rnorm(400, sin(3 * d3$x), exp(-1 + 0.5 * d3$z))
+  f3 <- frm(bf(y ~ t2(x, z), sigma ~ s(z)) + gaussian(), data = d3)
+  expect_equal(predict(f3, newdata = d3), predict(f3), tolerance = 1e-10)
+  expect_equal(predict(f3, dpar = "sigma", newdata = d3),
+               predict(f3, dpar = "sigma"), tolerance = 1e-10)
+})
+
 test_that("te() errors with guidance; smooth predictions round-trip", {
   expect_error(frm(bf(y ~ te(x, w)) + gaussian(),
                    data = NULL, dry_run = "spec"),

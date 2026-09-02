@@ -594,34 +594,53 @@ since it is what makes `fitted()` mean something. Refuse initially:
 weights/cens/trunc/mi, rescor/mvbf, quadrature, OSA, REML, and
 `predict(se.fit = TRUE)` on the response scale.
 
-## t2() newdata prediction defect (found 2026-09-02, refused not fixed)
+## t2() newdata prediction defect (found and FIXED 2026-09-02)
 
-`predict(newdata = )` on any `t2()` smooth has failed since the
-prediction path was written: `smooth2random(type = 2)` returns no
-`trans.U` for t2 (the s() path's `PredictMat %*% U * D` multiplies by
-NULL). Now an informative refusal; in-sample fitted()/predict() are
-unaffected (they use the fit-time design matrices).
+`predict(newdata = )` on any `t2()` smooth failed from the day the
+prediction path was written until v0.35.1. Fixed; kept here because the
+root cause is a genuinely obscure mgcv contract.
 
-What the investigation established (probe scripts in scratchpad,
-findings preserved here):
-- The correct column mapping is NOT identity: `smooth2random.t2`
-  returns `pen.ind` (penalty index per original basis column, 0 =
-  fixed), and `sweep(sm$X, 2, trans.D, "*")` followed by grouping
-  columns as (pen 1, pen 2, ..., pen 0) reproduces
-  `cbind(rand[[1]], rand[[2]], ..., Xf)` EXACTLY (diff 0).
-- BUT `mgcv::PredictMat(sm, data)` does not reproduce `sm$X` on the
-  TRAINING rows for a t2 smooth built with
-  `smoothCon(absorb.cons = TRUE)` (max diff 5.9 on the probe), while
-  it does for s(). So the newdata basis needs more than the pen.ind
-  mapping; the discrepancy (likely a t2-specific reparameterization
-  smoothCon applies to `sm$X` that PredictMat does not, or a
-  constraint-absorption ordering issue) must be understood before a
-  fix ships. Compare how gamm4 predicts t2 terms.
-- Fix sketch: store `ord = order-by-pen.ind` and `trans.D` on sm_info
-  at frame time, resolve the PredictMat basis question, then newdata
-  M = PredictMat-equivalent basis, scaled and permuted. Validate
-  newdata == in-sample rows at 1e-10 and against
-  mgcv::predict.gam on the same model.
+Two separate things were wrong.
+
+1. `smooth2random(type = 2)` returns no `trans.U` for a t2 smooth, so
+   the s() path's `PredictMat %*% U` multiplied by NULL. The t2 split is
+   reported as `pen.ind` instead (penalty index per original basis
+   column, 0 = the unpenalized null space): scale `sm$X` by `trans.D`,
+   then stable-sort the columns as penalty 1, penalty 2, ..., penalty 0
+   and you get `cbind(rand[[1]], ..., Xf)` exactly.
+2. That mapping alone was still not enough, because
+   `mgcv::PredictMat(sm, data)` did not reproduce `sm$X` on the TRAINING
+   rows (max diff 6.2), while for s() it did. ROOT CAUSE: a t2 smooth
+   carries TWO identifiability constraints. `smooth.construct.t2.smooth.spec`
+   sets `object$C` (the fit constraint, which keeps the penalty blocks
+   separable so `pen.ind` means anything) and, separately,
+   `object$Cp <- matrix(colSums(X), 1, ncol(X))` (the conventional
+   sum-to-zero PREDICTION constraint). `smoothCon(absorb.cons = TRUE)`
+   absorbs `C` into `X`/`S` and `Cp` into `Xp`/`Sp`, and `PredictMat`
+   honors the `Cp` parameterization. s() has no `Cp`, hence no
+   discrepancy there.
+
+   gamm4 hits the same wall and solves it the other way round: it fits in
+   the `C` parameterization and then maps the fitted coefficients into
+   the `Cp` parameterization before predicting -- `gamm4.r`,
+   `object$coefficients <- G$P %*% object$coefficients`, commented "If
+   prediction parameterization differs from fit parameterization,
+   transform now... (important for t2 smooths, where fit constraint is
+   not good for component wise prediction s.e.s)". frmtmb has no
+   component-wise smooth s.e. to protect, so it drops `Cp` instead:
+   `smoothCon(..., modCon = 3)`, documented as "set fit and predict
+   constraint to fit constraint". `modCon >= 3` only does
+   `sm$Cp <- NULL`, so `X` and `S` come out bit-identical (diff 0) and
+   the fit, including logLik, does not move.
+
+FIX (v0.35.1): `R/frame.R` builds smooths with `modCon = 3` and stores
+the pen.ind permutation on `sm_info` via `smooth_pen_order()`, which
+verifies the scale-and-permute identity on the training rows rather than
+asserting it. `R/predict.R` takes the t2 branch
+`sweep(PredictMat, 2, D, "*")[, ord]`. The refusal that remains is
+narrow: only if `smooth_pen_order()` returns NULL, i.e. some future
+smooth class reaches the no-`trans.U` path with a `pen.ind` that does
+not mean what t2's means.
 
 ## Robustness items (user discussion 2026-09-02, HELD for later)
 
