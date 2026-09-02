@@ -161,7 +161,7 @@ family-level extras.
   warm start, optimizer/convergence/Hessian in scaled units. 12
   scaling warnings to 0, logLik identical to manual standardization.
 - ~~brms R-side autocorrelation (`ar()`, `ma()`, `arma()`, `cosy()`,
-  `unstr()`)~~ DONE in v0.33. The residual of a group becomes one
+  `unstr()`)~~ DONE in v0.34. The residual of a group becomes one
   multivariate draw, `y_g ~ N(mu_g, D R D)` with `D` the diagonal of
   that group's `sigma` values, so a `sigma ~ x` distributional model
   enters through the diagonal and a scalar `sigma` is the homogeneous

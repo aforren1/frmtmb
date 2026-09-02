@@ -98,7 +98,11 @@ conditional_effects(
 A named list of data frames (one per effect) with the varied variable(s)
 plus `estimate__`, `se__` (link scale), `lower__`, and `upper__`;
 printing it draws the plots. An ordinal fit adds a `cats__` column and
-one block of rows per response category.
+one block of rows per response category. `plot(ce, points = TRUE)`
+overlays the raw observations (the brms argument): all observations are
+shown regardless of `conditions`, and no points are drawn for a
+per-category ordinal display, a non-mean `dpar`, or a matrix response (a
+message says so).
 
 ## Ordinal responses
 

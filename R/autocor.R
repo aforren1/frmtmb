@@ -148,7 +148,7 @@
 #' @section Where the parameters appear:
 #' On the internal (unconstrained) scale they are the `thetaac_*` rows
 #' of [confint.frmtmb_fit()] and of `vcov(full = TRUE)`. On the natural
-#' scale, [summary()] prints them under "Within-group residual
+#' scale, `summary()` prints them under "Within-group residual
 #' correlation" and [confint_varcorr()] reports one row per parameter
 #' under brms's names - `ar[1]`, `ma[1]`, `cosy`,
 #' `cortime__<t1>__<t2>` - with a delta-method interval (Fisher-z for

@@ -42,6 +42,8 @@ head(frm_compat_features())
 #> 6        exgaussian        exgaussian family
 table(frm_compat_features()$kind)
 #> 
-#>     aterm covstruct    family   grammar    method      mode   special structure 
-#>         8        22        33         3         9         8         6         6 
+#>     aterm   autocor covstruct    family   grammar    method      mode   special 
+#>         8         5        22        33         3         9         8         6 
+#> structure 
+#>         6 
 ```

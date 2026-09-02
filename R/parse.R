@@ -328,6 +328,18 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
            as.character(tm[[1]])[1], "': ", deparse1(tm),
            ". Did you mean '+'?", call. = FALSE)
     }
+    # same trap for the autocor terms: without this, ar(...) inside an
+    # interaction reaches the model matrix and dies inside stats::ar
+    # with a message that points nowhere near the mistake
+    if (is.call(tm) &&
+        as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
+        any(autocor_structs %in% all.names(tm))) {
+      stop("An autocorrelation term cannot be crossed with '",
+           as.character(tm[[1]])[1], "': ", deparse1(tm),
+           ". Write it as a separate term: y ~ ... + ",
+           intersect(autocor_structs, all.names(tm))[1L], "(...)",
+           call. = FALSE)
+    }
     if (is_smooth_call(tm)) {
       fn <- as.character(tm[[1]])[1]
       if (fn %in% c("te", "ti")) {

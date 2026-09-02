@@ -570,3 +570,17 @@ test_that("REML keeps the correlation parameters in the outer problem", {
   expect_true("thetaac_1" %in% outer_par_names(f))
   expect_true("thetaac_1" %in% rownames(confint(f)))
 })
+
+test_that("an autocor term inside an interaction is refused by name", {
+  d <- ac_sim(seed = 3, G = 6, K = 4)
+  expect_error(
+    frm(bf(y ~ x:ar(week, subj, cov = TRUE)) + gaussian(), data = d,
+        dry_run = "frame"),
+    "cannot be crossed"
+  )
+  expect_error(
+    frm(bf(y ~ x * cosy(week, subj)) + gaussian(), data = d,
+        dry_run = "frame"),
+    "separate term"
+  )
+})

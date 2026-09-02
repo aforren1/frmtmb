@@ -13,7 +13,7 @@ mislead.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.33.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -172,6 +172,21 @@ known-variance weighted fit.</p>
 <p>In a mixed model the residuals are conditional on the random-effect
 modes, the glmmTMB convention: <code>E[Y]</code> is <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, not the
 population-level mean.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="residual-correlation-terms">Residual correlation terms<a class="anchor" aria-label="anchor" href="#residual-correlation-terms"></a></h2>
+
+
+<p>Under an <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>, <code>cosy()</code> or <code>unstr()</code> term (see
+<a href="frmtmb-autocor.html">frmtmb-autocor</a>) the residual covariance of a group is <code>D R D</code> with
+<code>R</code> unit-diagonal, so the marginal residual SD of a row is still
+<code>sigma</code> and <code>"pearson"</code> is unchanged - it divides by exactly that.
+What <code>"response"</code> and <code>"pearson"</code> do NOT do is decorrelate: plotted
+against time within a group they still show the fitted
+autocorrelation, which is the intended reading. <code>"osa"</code> is refused,
+because the taped likelihood is a joint density per group rather
+than a product of per-observation terms; <code><a href="dharma_residuals.html">dharma_residuals()</a></code> works,
+since <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws one correlated residual per group.</p>
 <p><code>deviance(fit)</code> is unrelated: it stays <code>-2 * logLik(fit)</code> (the lme4
 convention), which for a mixed model is the Laplace-approximated
 marginal deviance and does <strong>not</strong> equal <code>sum(residuals(fit, type = "deviance")^2)</code>.</p>

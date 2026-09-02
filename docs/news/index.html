@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.33.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,19 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.34.0" id="frmtmb-0340">frmtmb 0.34.0<a class="anchor" aria-label="anchor" href="#frmtmb-0340"></a></h2>
+<p>Within-group residual correlation (R-side effects), quantile regression completions, and plot conveniences.</p>
+<div class="section level3">
+<h3 id="new-0-34-0">New<a class="anchor" aria-label="anchor" href="#new-0-34-0"></a></h3>
+<ul><li>Within-group residual correlation, brms’s R-side autocorrelation, as formula terms <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>, <code>cosy()</code> and <code>unstr()</code> for <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code> and <code><a href="../reference/frmtmb-families.html">student()</a></code>. The residuals of a group become one multivariate draw, <code>y_g ~ N(mu_g, D R D)</code>, with a <code>sigma ~ x</code> distributional model entering through the diagonal. The ARMA autocorrelation function is exact and orders above one are supported (brms caps its covariance form at one). Validated against <code><a href="https://rdrr.io/pkg/nlme/man/gls.html" class="external-link">nlme::gls</a></code> and <code><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">nlme::lme</a></code> under ML and REML to 1e-9 or better across all five structures, on balanced and ragged data, and with random effects alongside the correlated residual. New <code><a href="../reference/autocor_matrix.html">autocor_matrix()</a></code> returns the fitted correlation matrix; the parameters appear in <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> and <code><a href="../reference/hypothesis.html">hypothesis()</a></code> under brms’s names. See <code>?frmtmb-autocor</code> for the deliberate divergences: <code>sigma</code> is the MARGINAL residual SD (brms uses the innovation SD for ar/ma/arma; the migration vignette gives the conversion), lags count gaps in the global time-level set (nlme semantics), and brms’s default <code>cov = FALSE</code> residual-regression form is refused rather than reinterpreted. <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws correlated residuals, so DHARMa and <code><a href="../reference/pp_check.html">pp_check()</a></code> see the fitted autocorrelation. Combinations that stop the likelihood factorizing over rows (weights, cens/trunc, se, mi, rescor, mixtures, quadrature, nl, OSA residuals, other families) are refused with the alternative named.</li>
+<li>
+<code><a href="../reference/frmtmb-families.html">zero_inflated_asym_laplace()</a></code> (brms spelling): a point mass at zero mixed with the asymmetric Laplace, for zero-inflated quantile regression. A new “Quantile regression inference” section on the families page states plainly that ALD-based Wald intervals are not calibrated (a property shared with brms) and points at <code><a href="../reference/frm_bootstrap.html">frm_bootstrap()</a></code>.</li>
+<li>
+<code>plot(conditional_effects(fit), points = TRUE)</code> overlays the raw observations, the brms argument, previously ignored. Points are drawn under the bands; displays where raw observations are not meaningful (per-category ordinal, non-mean dpars, matrix responses) say so instead of failing silently.</li>
+<li>Hidden Markov models: a feasibility study (dev/hmm-feasibility.md) establishes that the forward algorithm tapes in RTMB, composes with the Laplace approximation over random effects, and is expressible today through <code><a href="../reference/frmtmb_family.html">custom_family()</a></code> with <code>vint()</code> payloads, validated against depmixS4 and hmmTMB. No user-facing grammar yet; the design for a first-class <code>hmm()</code> family is recorded.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.33.0" id="frmtmb-0330">frmtmb 0.33.0<a class="anchor" aria-label="anchor" href="#frmtmb-0330"></a></h2>
 <p>Two residue fixes, a documentation dark mode, and CI repairs.</p>

@@ -40,6 +40,11 @@ A character vector.
 
 ## Details
 
+A residual correlation term
+([frmtmb-autocor](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.md))
+contributes its natural-scale parameters under brms's names, sanitized
+the same way: `ar1`, `ar2`, `ma1`, `cosy`, `cortime__<t1>__<t2>`.
+
 `gr(cov = )`, `gr(prec = )` and `equalto()` blocks contribute
 `sd_`/`cor_` names for their within-level covariance. Smooths,
 `gp()`/`hsgp()`, `car()` and `spde()` blocks contribute none: their

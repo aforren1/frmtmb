@@ -125,6 +125,22 @@ modes, the glmmTMB convention: `E[Y]` is
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html), not the
 population-level mean.
 
+## Residual correlation terms
+
+Under an [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`,
+`cosy()` or `unstr()` term (see
+[frmtmb-autocor](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.md))
+the residual covariance of a group is `D R D` with `R` unit-diagonal, so
+the marginal residual SD of a row is still `sigma` and `"pearson"` is
+unchanged - it divides by exactly that. What `"response"` and
+`"pearson"` do NOT do is decorrelate: plotted against time within a
+group they still show the fitted autocorrelation, which is the intended
+reading. `"osa"` is refused, because the taped likelihood is a joint
+density per group rather than a product of per-observation terms;
+[`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
+works, since [`simulate()`](https://rdrr.io/r/stats/simulate.html) draws
+one correlated residual per group.
+
 `deviance(fit)` is unrelated: it stays `-2 * logLik(fit)` (the lme4
 convention), which for a mixed model is the Laplace-approximated
 marginal deviance and does **not** equal

@@ -138,8 +138,9 @@ was the whole cost.
   line, including the ones called from inside an `lpdf`.
 - The `[<-` gotcha is much milder here than the >1000x folklore. Writing
   the recursion with per-cell `new[j] <- ...` instead of the vectorized
-  fold costs **1.54x on the tape build and nothing at all on `fn`/`gr`**
-  (T = 200, K = 2), and gives a bit-identical value. The >1000x figure
+  fold costs roughly **1.4-1.5x on the tape build and at most ~1.4x on
+  `gr`** (T = 200, K = 2; sub-0.1 ms timings, so run-to-run noise is
+  large), and gives a bit-identical value. The >1000x figure
   is about assigning into n-length vectors; here the assigned vector is
   length K, so the cost scales with `K * T` extra tape nodes, not
   `n * T`. It would still bite at K = 10.

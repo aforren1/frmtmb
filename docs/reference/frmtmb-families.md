@@ -63,6 +63,8 @@ zero_inflated_beta(link = "logit")
 
 asym_laplace(link = "identity")
 
+zero_inflated_asym_laplace(link = "identity")
+
 sratio(link = "logit")
 
 cratio(link = "logit")
@@ -92,6 +94,22 @@ takes the response's level order as the category order. Supply an
 ordered factor, or integer codes `1..K`: an unordered factor is
 accepted, as brms accepts it, but warns and names the order it is about
 to use, which is alphabetical unless the levels were set.
+
+## Quantile regression inference
+
+`asym_laplace()` and `zero_inflated_asym_laplace()` fit quantile
+regression through a WORKING likelihood: at a fixed `quantile` the point
+estimates are consistent quantile estimates (they match
+[`quantreg::rq()`](https://rdrr.io/pkg/quantreg/man/rq.html)), but the
+asymmetric Laplace is not the data's true density, so Wald standard
+errors and [`confint()`](https://rdrr.io/r/stats/confint.html) intervals
+computed from it are not calibrated. This is a property of the
+asymmetric-Laplace approach, shared by brms. Use
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+for intervals you can defend. The check function's kink can also produce
+a benign false-convergence warning near the optimum;
+[`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)
+confirms the fit when in doubt.
 
 ## Examples
 

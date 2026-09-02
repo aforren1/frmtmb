@@ -19,7 +19,7 @@ conditional_smooths()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.33.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -163,7 +163,11 @@ does not store a raw variable (e.g. a variable used only inside
     <p>A named list of data frames (one per effect) with the varied
 variable(s) plus <code>estimate__</code>, <code>se__</code> (link scale), <code>lower__</code>, and
 <code>upper__</code>; printing it draws the plots. An ordinal fit adds a
-<code>cats__</code> column and one block of rows per response category.</p>
+<code>cats__</code> column and one block of rows per response category.
+<code>plot(ce, points = TRUE)</code> overlays the raw observations (the brms
+argument): all observations are shown regardless of <code>conditions</code>,
+and no points are drawn for a per-category ordinal display, a
+non-mean <code>dpar</code>, or a matrix response (a message says so).</p>
     </div>
     <div class="section level2">
     <h2 id="ordinal-responses">Ordinal responses<a class="anchor" aria-label="anchor" href="#ordinal-responses"></a></h2>

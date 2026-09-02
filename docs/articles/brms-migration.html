@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.33.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -171,6 +171,14 @@ unsupported</td>
 <td>all four types</td>
 </tr>
 <tr class="even">
+<td>
+<code>ar(t, g, cov = TRUE)</code>, <code>ma()</code>,
+<code>arma()</code>, <code>cosy()</code>, <code>unstr()</code>
+</td>
+<td>same</td>
+<td>gaussian/student only; <code>cov = TRUE</code> required (below)</td>
+</tr>
+<tr class="odd">
 <td><code>data2 = list(W = W)</code></td>
 <td>same</td>
 <td>also resolves compound expressions (below)</td>
@@ -229,8 +237,10 @@ rejects it and asks for <code>trials()</code> or
 <code><a href="../reference/frmtmb-families.html">bernoulli()</a></code>. The divergence is permissive, so brms code
 ports unchanged, but frmtmb code written this way does not port
 back.</li>
-<li>Not supported: <code>ar()/ma()</code> residual autocorrelation terms
-(use the <code>ar1()</code> random-effect structure).</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>,
+<code>cosy()</code> and <code>unstr()</code> are supported in their
+covariance form only; see the next section.</li>
 <li>glmer’s proportion-response idiom (<code>weights = size</code>)
 becomes <code>y | trials(size)</code> with either proportions or counts;
 <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code> in the formula stays a frequency weight, as in
@@ -242,6 +252,72 @@ brms.</li>
 </ul>
 </div>
 <div class="section level2">
+<h2 id="within-group-residual-correlation">Within-group residual correlation<a class="anchor" aria-label="anchor" href="#within-group-residual-correlation"></a>
+</h2>
+<p><code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>,
+<code>cosy()</code> and <code>unstr()</code> are written where brms
+writes them, in the model formula, and mean what brms means under
+<code>cov = TRUE</code>: the residuals of one group become a single
+correlated draw, <code>y_g ~ N(mu_g, D R D)</code> with <code>D</code>
+the diagonal of that group’s <code>sigma</code> values.
+<code>?frmtmb-autocor</code> has the full page; four things matter when
+porting.</p>
+<p><strong><code>cov = TRUE</code> is required for <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>,
+<code>ma()</code> and <code>arma()</code>.</strong> brms defaults to
+<code>cov = FALSE</code>, which is a different likelihood - a residual
+regression that conditions on each group’s first rows - and that form is
+not implemented. The call is refused rather than reinterpreted, so a
+brms model written with the default has to be changed deliberately.
+<code>cosy()</code> and <code>unstr()</code> have no <code>cov</code>
+argument in brms either and port unchanged.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># brms</span></span>
+<span><span class="fu">brm</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span>, cov <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
+<span><span class="co"># frmtmb</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span>, cov <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></code></pre></div>
+<p><strong><code>sigma</code> is the marginal residual SD, not the
+innovation SD.</strong> brms’s <code>cholesky_cor_ar1()</code> divides
+by <code>1 - ar^2</code>, so its <code>sigma</code> under
+<code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>/<code>ma()</code>/<code>arma()</code> is the
+innovation scale, while under <code>cosy()</code> and
+<code>unstr()</code> it is the marginal one. Here every structure uses
+the marginal scale, so <code><a href="https://rdrr.io/r/stats/sigma.html" class="external-link">sigma()</a></code>, pearson residuals and a
+<code>sigma ~ x</code> model mean one thing throughout. The correlation
+parameters agree exactly; convert the scales with
+<code>sigma_marginal = sigma_innovation / sqrt(1 - phi^2)</code> for
+AR(1).</p>
+<p><strong>Only <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code> and
+<code><a href="../reference/frmtmb-families.html">student()</a></code>.</strong> These are the two families brms gives a
+real residual covariance. brms accepts the same spelling for poisson,
+binomial and the rest, but fits a latent Gaussian AR process added to
+the linear predictor instead - which is a random effect, and is spelled
+as one here:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># brms, poisson: a latent AR process on the linear predictor</span></span>
+<span><span class="fu">brm</span><span class="op">(</span><span class="va">cnt</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># frmtmb: the same idea as a random effect over the time factor</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">cnt</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu">ar1</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">week</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0</span> <span class="op">|</span> <span class="va">subj</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Higher orders are allowed, and gaps are honored.</strong>
+brms limits <code>cov = TRUE</code> to order one; <code>ar(p = 3)</code>
+and <code>arma(p = 2, q = 1)</code> work here. And the lag between two
+rows is the distance between their positions in the global set of time
+levels, so a subject missing week 3 gets
+<code>cor(week2, week4) = rho^2</code>; brms indexes
+<code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>/<code>ma()</code>/<code>arma()</code>/
+<code>cosy()</code> by position within the group and treats the missing
+row as no gap. On complete balanced groups the two agree.</p>
+<p>The parameters appear in <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> under “Within-group
+residual correlation” and in <code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> under brms’s
+names (<code>ar[1]</code>, <code>cosy</code>,
+<code>cortime__1__2</code>); <code><a href="../reference/autocor_matrix.html">autocor_matrix()</a></code> returns the
+fitted correlation matrix. <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>cens()</code>,
+<code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code>se()</code>, <code>mi()</code>,
+<code>rescor = TRUE</code>, mixtures and <code>quadrature = TRUE</code>
+are refused, because the likelihood no longer factorizes over rows -
+brms refuses the same core set. Random effects alongside the correlated
+residual are the point of the feature and are supported.</p>
+</div>
+<div class="section level2">
 <h2 id="structural-objects-data2">Structural objects: <code>data2</code><a class="anchor" aria-label="anchor" href="#structural-objects-data2"></a>
 </h2>
 <p>Matrices that are not columns of <code>data</code> go in
@@ -249,7 +325,7 @@ brms.</li>
 <code>car()</code>, the mesh triple of <code>spde()</code>, and the
 matrices of <code>gr(prec = )</code>, <code>gr(cov = )</code> and
 <code>equalto()</code>.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu">car</span><span class="op">(</span><span class="va">W</span>, gr <span class="op">=</span> <span class="va">loc</span>, type <span class="op">=</span> <span class="st">"icar"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    data <span class="op">=</span> <span class="va">d</span>, data2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>W <span class="op">=</span> <span class="va">W</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">phen</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="fu">gr</span><span class="op">(</span><span class="va">species</span>, cov <span class="op">=</span> <span class="va">A</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -317,7 +393,7 @@ for simulation-based residual checks use
 <code>stancode(fit)</code>. The frmtmb analog is the objective function
 itself: an ordinary R closure that <code>RTMB::MakeADFun()</code> tapes,
 rebuilt deterministically from the fitted frame.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nll</span> <span class="op">&lt;-</span> <span class="fu">frmtmb</span><span class="fu">:::</span><span class="fu">build_objective</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">frame</span><span class="op">)</span></span>
 <span><span class="fu">nll</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">estimates</span><span class="op">)</span>   <span class="co"># joint negative log density at the estimates</span></span></code></pre></div>
 <p>Two properties matter when reading it:</p>

@@ -24,6 +24,7 @@ likelihood-ratio tests, AIC).
 | [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md) | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md), [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md) | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |
+| `ar(t, g, cov = TRUE)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; `cov = TRUE` required (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 
 ## What changes
@@ -78,8 +79,9 @@ likelihood-ratio tests, AIC).
   [`bernoulli()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md).
   The divergence is permissive, so brms code ports unchanged, but frmtmb
   code written this way does not port back.
-- Not supported: `ar()/ma()` residual autocorrelation terms (use the
-  `ar1()` random-effect structure).
+- [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`, `cosy()`
+  and `unstr()` are supported in their covariance form only; see the
+  next section.
 - glmer’s proportion-response idiom (`weights = size`) becomes
   `y | trials(size)` with either proportions or counts;
   [`weights()`](https://rdrr.io/r/stats/weights.html) in the formula
@@ -87,6 +89,80 @@ likelihood-ratio tests, AIC).
 - `se()` works as in brms (meta-analysis), including
   `se(x, sigma = TRUE)` and the phylogenetic version with
   `gr(g, cov = A)`.
+
+## Within-group residual correlation
+
+[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`, `cosy()`
+and `unstr()` are written where brms writes them, in the model formula,
+and mean what brms means under `cov = TRUE`: the residuals of one group
+become a single correlated draw, `y_g ~ N(mu_g, D R D)` with `D` the
+diagonal of that group’s `sigma` values. `?frmtmb-autocor` has the full
+page; four things matter when porting.
+
+**`cov = TRUE` is required for
+[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and `arma()`.** brms
+defaults to `cov = FALSE`, which is a different likelihood - a residual
+regression that conditions on each group’s first rows - and that form is
+not implemented. The call is refused rather than reinterpreted, so a
+brms model written with the default has to be changed deliberately.
+`cosy()` and `unstr()` have no `cov` argument in brms either and port
+unchanged.
+
+``` r
+
+# brms
+brm(y ~ x + ar(week, subj, cov = TRUE), data = d)
+# frmtmb
+frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(), data = d)
+```
+
+**`sigma` is the marginal residual SD, not the innovation SD.** brms’s
+`cholesky_cor_ar1()` divides by `1 - ar^2`, so its `sigma` under
+[`ar()`](https://rdrr.io/r/stats/ar.html)/`ma()`/`arma()` is the
+innovation scale, while under `cosy()` and `unstr()` it is the marginal
+one. Here every structure uses the marginal scale, so
+[`sigma()`](https://rdrr.io/r/stats/sigma.html), pearson residuals and a
+`sigma ~ x` model mean one thing throughout. The correlation parameters
+agree exactly; convert the scales with
+`sigma_marginal = sigma_innovation / sqrt(1 - phi^2)` for AR(1).
+
+**Only [`gaussian()`](https://rdrr.io/r/stats/family.html) and
+[`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md).**
+These are the two families brms gives a real residual covariance. brms
+accepts the same spelling for poisson, binomial and the rest, but fits a
+latent Gaussian AR process added to the linear predictor instead - which
+is a random effect, and is spelled as one here:
+
+``` r
+
+# brms, poisson: a latent AR process on the linear predictor
+brm(cnt ~ x + ar(week, subj), data = d, family = poisson())
+# frmtmb: the same idea as a random effect over the time factor
+frm(bf(cnt ~ x + ar1(factor(week) + 0 | subj)) + poisson(), data = d)
+```
+
+**Higher orders are allowed, and gaps are honored.** brms limits
+`cov = TRUE` to order one; `ar(p = 3)` and `arma(p = 2, q = 1)` work
+here. And the lag between two rows is the distance between their
+positions in the global set of time levels, so a subject missing week 3
+gets `cor(week2, week4) = rho^2`; brms indexes
+[`ar()`](https://rdrr.io/r/stats/ar.html)/`ma()`/`arma()`/ `cosy()` by
+position within the group and treats the missing row as no gap. On
+complete balanced groups the two agree.
+
+The parameters appear in
+[`summary()`](https://rdrr.io/r/base/summary.html) under “Within-group
+residual correlation” and in
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+under brms’s names (`ar[1]`, `cosy`, `cortime__1__2`);
+[`autocor_matrix()`](https://aforren1.github.io/frmtmb/reference/autocor_matrix.md)
+returns the fitted correlation matrix.
+[`weights()`](https://rdrr.io/r/stats/weights.html), `cens()`,
+[`trunc()`](https://rdrr.io/r/base/Round.html), `se()`, `mi()`,
+`rescor = TRUE`, mixtures and `quadrature = TRUE` are refused, because
+the likelihood no longer factorizes over rows - brms refuses the same
+core set. Random effects alongside the correlated residual are the point
+of the feature and are supported.
 
 ## Structural objects: `data2`
 

@@ -135,7 +135,7 @@ prior_t <- function(df = 3, location = 0, scale = 1) {
 
 #' Resolve a named prior list to per-component index/parameter vectors.
 #' Names may be individual parameters (as in outer_par_names()) or whole
-#' components ("beta", "betad", "theta", "thetar").
+#' components ("beta", "betad", "theta", "thetar", "thetaac").
 #'
 #' @noRd
 resolve_priors <- function(fit, priors) {

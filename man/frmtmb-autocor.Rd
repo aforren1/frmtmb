@@ -113,7 +113,7 @@ correlated residual density inside, which reproduces
 
 On the internal (unconstrained) scale they are the \verb{thetaac_*} rows
 of \code{\link[=confint.frmtmb_fit]{confint.frmtmb_fit()}} and of \code{vcov(full = TRUE)}. On the natural
-scale, \code{\link[=summary]{summary()}} prints them under "Within-group residual
+scale, \code{summary()} prints them under "Within-group residual
 correlation" and \code{\link[=confint_varcorr]{confint_varcorr()}} reports one row per parameter
 under brms's names - \code{ar[1]}, \code{ma[1]}, \code{cosy},
 \verb{cortime__<t1>__<t2>} - with a delta-method interval (Fisher-z for

@@ -348,6 +348,67 @@ other.
 | x | nl + emmeans | Refused: emmeans support needs a linear mu predictor. |
 | x | mixture_mvn + simulate | Refused: mixture_mvn() has no simulator yet. |
 
+## Within-group residual correlation
+
+[`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`, `cosy()`
+and `unstr()` replace the response’s per-row density with one joint
+density per group. That is what decides almost every pair below: a
+family needs a real residual to correlate, and an addition term that
+reshapes a per-row contribution has nothing left to reshape.
+
+|  | gaussian | student | lognormal | shifted_lognormal | skew_normal | exgaussian | asym_laplace | Gamma | weibull | exponential | inverse.gaussian | beta | tweedie | poisson | negbinomial | nbinom1 | geometric | compois | binomial | bernoulli | beta_binomial | multinomial | zero_inflated_poisson | zero_inflated_negbinomial | zero_inflated_binomial | zero_inflated_beta | hurdle_poisson | hurdle_gamma | hurdle_lognormal | cumulative | sratio | cratio | acat |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| ar() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| ma() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| arma() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| cosy() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| unstr() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+
+| Status | Pairs | Note |
+|:---|:---|:---|
+| ~ | ar() + student; ma() + student; arma() + student; cosy() + student; unstr() + student | The multivariate-t has one shape parameter per group, so nu must be constant; a predicted nu ~ … is refused. The density is brms’s multi_student_t with scale matrix D R D, verified against mvtnorm::dmvt exactly. |
+| x | ar() + lognormal; ma() + lognormal; arma() + lognormal; cosy() + lognormal; unstr() + lognormal; and 150 more | Refused: a residual correlation needs a family with a real residual. brms accepts the same spelling for other families but fits a different model there - a latent gaussian AR process added to the linear predictor - which is spelled here as a random effect over the time factor: + ar1(factor(week) + 0 \| subj), or toep()/us() for a freer lag structure. |
+
+|         | weights() | trials() | cens() | trunc() | se() | mi() | vint() | vreal() |
+|:--------|:---------:|:--------:|:------:|:-------:|:----:|:----:|:------:|:-------:|
+| ar()    |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |
+| ma()    |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |
+| arma()  |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |
+| cosy()  |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |
+| unstr() |     x     |    x     |   x    |    x    |  x   |  x   |   ?    |    ?    |
+
+| Status | Pairs | Note |
+|:---|:---|:---|
+| x | ar() + weights(); ma() + weights(); arma() + weights(); cosy() + weights(); unstr() + weights(); and 25 more | Refused: the group’s density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with ‘Invalid addition arguments for this model’. |
+
+|         | REML | quadrature | profile | autoscale | sparse_x | priors | bounds | verbose |
+|:--------|:----:|:----------:|:-------:|:---------:|:--------:|:------:|:------:|:-------:|
+| ar()    |  \+  |     x      |   \+    |    \+     |    \+    |   ~    |   \+   |   \+    |
+| ma()    |  \+  |     x      |   \+    |    \+     |    \+    |   ~    |   \+   |   \+    |
+| arma()  |  \+  |     x      |   \+    |    \+     |    \+    |   ~    |   \+   |   \+    |
+| cosy()  |  \+  |     x      |   \+    |    \+     |    \+    |   ~    |   \+   |   \+    |
+| unstr() |  \+  |     x      |   \+    |    \+     |    \+    |   ~    |   \+   |   \+    |
+
+| Status | Pairs | Note |
+|:---|:---|:---|
+| ~ | ar() + priors; ma() + priors; arma() + priors; cosy() + priors; unstr() + priors | Priors on the fixed effects and on random-effect covariance parameters work as usual. set_prior() cannot target the residual-correlation parameters themselves yet; bounds on thetaac\_\* are the available lever. |
+| x | ar() + quadrature; ma() + quadrature; arma() + quadrature; cosy() + quadrature; unstr() + quadrature | Refused: the Gauss-Kronrod rule integrates a random effect against per-observation densities, and this residual is a joint density over each group. |
+
+|         | mvbf | rescor | \|ID\| | nl  | mixture | mixture_mvn |
+|:--------|:----:|:------:|:------:|:---:|:-------:|:-----------:|
+| ar()    |  \+  |   x    |   ?    |  x  |    x    |      x      |
+| ma()    |  \+  |   x    |   ?    |  x  |    x    |      x      |
+| arma()  |  \+  |   x    |   ?    |  x  |    x    |      x      |
+| cosy()  |  \+  |   x    |   ?    |  x  |    x    |      x      |
+| unstr() |  \+  |   x    |   ?    |  x  |    x    |      x      |
+
+| Status | Pairs | Note |
+|:---|:---|:---|
+| x | ar() + rescor; ma() + rescor; arma() + rescor; cosy() + rescor; unstr() + rescor | Refused: both describe the residual covariance - one across time, one across responses - and the joint structure is their Kronecker product, which is not implemented. brms refuses the same pair. |
+| x | ar() + nl; ma() + nl; arma() + nl; cosy() + nl; unstr() + nl | Refused: a nonlinear mu is arbitrary R code, so the term would be evaluated rather than read. brms reaches this model through acformula(), which has no analog here. |
+| x | ar() + mixture; ma() + mixture; arma() + mixture; cosy() + mixture; unstr() + mixture | Refused: a mixture likelihood has no single residual to correlate. The term is rejected as sitting on mu1 rather than mu, which is also how brms rejects it. |
+| x | ar() + mixture_mvn; ma() + mixture_mvn; arma() + mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn | Refused for the same reason as mixture(). |
+
 ## Predictor specials
 
 |           | REML | quadrature | profile | autoscale | sparse_x | priors | bounds | verbose |
@@ -383,11 +444,11 @@ Three spellings have restrictions of their own.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1259 | 32%   |
-| conditional |  1532 | 39%   |
-| refused     |   393 | 10%   |
+| works       |  1364 | 31%   |
+| conditional |  1627 | 37%   |
+| refused     |   623 | 14%   |
 | broken      |     0 | 0%    |
-| untested    |   753 | 19%   |
+| untested    |   808 | 18%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To

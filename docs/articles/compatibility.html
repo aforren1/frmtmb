@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.33.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -2301,6 +2301,625 @@ predictor.</td>
 </div>
 </div>
 <div class="section level2">
+<h2 id="within-group-residual-correlation">Within-group residual correlation<a class="anchor" aria-label="anchor" href="#within-group-residual-correlation"></a>
+</h2>
+<p><code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>,
+<code>cosy()</code> and <code>unstr()</code> replace the response’s
+per-row density with one joint density per group. That is what decides
+almost every pair below: a family needs a real residual to correlate,
+and an addition term that reshapes a per-row contribution has nothing
+left to reshape.</p>
+<table class="table">
+<colgroup>
+<col width="1%">
+<col width="2%">
+<col width="2%">
+<col width="2%">
+<col width="4%">
+<col width="2%">
+<col width="2%">
+<col width="3%">
+<col width="1%">
+<col width="2%">
+<col width="2%">
+<col width="4%">
+<col width="1%">
+<col width="2%">
+<col width="2%">
+<col width="2%">
+<col width="2%">
+<col width="2%">
+<col width="2%">
+<col width="2%">
+<col width="2%">
+<col width="3%">
+<col width="2%">
+<col width="5%">
+<col width="6%">
+<col width="5%">
+<col width="4%">
+<col width="3%">
+<col width="3%">
+<col width="4%">
+<col width="2%">
+<col width="1%">
+<col width="1%">
+<col width="1%">
+</colgroup>
+<thead><tr class="header">
+<th align="left"></th>
+<th align="center">gaussian</th>
+<th align="center">student</th>
+<th align="center">lognormal</th>
+<th align="center">shifted_lognormal</th>
+<th align="center">skew_normal</th>
+<th align="center">exgaussian</th>
+<th align="center">asym_laplace</th>
+<th align="center">Gamma</th>
+<th align="center">weibull</th>
+<th align="center">exponential</th>
+<th align="center">inverse.gaussian</th>
+<th align="center">beta</th>
+<th align="center">tweedie</th>
+<th align="center">poisson</th>
+<th align="center">negbinomial</th>
+<th align="center">nbinom1</th>
+<th align="center">geometric</th>
+<th align="center">compois</th>
+<th align="center">binomial</th>
+<th align="center">bernoulli</th>
+<th align="center">beta_binomial</th>
+<th align="center">multinomial</th>
+<th align="center">zero_inflated_poisson</th>
+<th align="center">zero_inflated_negbinomial</th>
+<th align="center">zero_inflated_binomial</th>
+<th align="center">zero_inflated_beta</th>
+<th align="center">hurdle_poisson</th>
+<th align="center">hurdle_gamma</th>
+<th align="center">hurdle_lognormal</th>
+<th align="center">cumulative</th>
+<th align="center">sratio</th>
+<th align="center">cratio</th>
+<th align="center">acat</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">ar()</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="even">
+<td align="left">ma()</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="odd">
+<td align="left">arma()</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="even">
+<td align="left">cosy()</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="odd">
+<td align="left">unstr()</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<colgroup>
+<col width="1%">
+<col width="23%">
+<col width="75%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Status</th>
+<th align="left">Pairs</th>
+<th align="left">Note</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">~</td>
+<td align="left">ar() + student; ma() + student; arma() + student;
+cosy() + student; unstr() + student</td>
+<td align="left">The multivariate-t has one shape parameter per group,
+so nu must be constant; a predicted nu ~ … is refused. The density is
+brms’s multi_student_t with scale matrix D R D, verified against
+mvtnorm::dmvt exactly.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">ar() + lognormal; ma() + lognormal; arma() + lognormal;
+cosy() + lognormal; unstr() + lognormal; and 150 more</td>
+<td align="left">Refused: a residual correlation needs a family with a
+real residual. brms accepts the same spelling for other families but
+fits a different model there - a latent gaussian AR process added to the
+linear predictor - which is spelled here as a random effect over the
+time factor: + ar1(factor(week) + 0 | subj), or toep()/us() for a freer
+lag structure.</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<colgroup>
+<col width="10%">
+<col width="14%">
+<col width="13%">
+<col width="10%">
+<col width="12%">
+<col width="8%">
+<col width="8%">
+<col width="10%">
+<col width="12%">
+</colgroup>
+<thead><tr class="header">
+<th align="left"></th>
+<th align="center">weights()</th>
+<th align="center">trials()</th>
+<th align="center">cens()</th>
+<th align="center">trunc()</th>
+<th align="center">se()</th>
+<th align="center">mi()</th>
+<th align="center">vint()</th>
+<th align="center">vreal()</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">ar()</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">?</td>
+</tr>
+<tr class="even">
+<td align="left">ma()</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">?</td>
+</tr>
+<tr class="odd">
+<td align="left">arma()</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">?</td>
+</tr>
+<tr class="even">
+<td align="left">cosy()</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">?</td>
+</tr>
+<tr class="odd">
+<td align="left">unstr()</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">?</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<colgroup>
+<col width="1%">
+<col width="24%">
+<col width="74%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Status</th>
+<th align="left">Pairs</th>
+<th align="left">Note</th>
+</tr></thead>
+<tbody><tr class="odd">
+<td align="left">x</td>
+<td align="left">ar() + weights(); ma() + weights(); arma() + weights();
+cosy() + weights(); unstr() + weights(); and 25 more</td>
+<td align="left">Refused: the group’s density is joint, so there is no
+per-row contribution for a frequency weight to repeat, a censoring
+indicator to replace with a tail probability, a truncation bound to
+renormalize, or a known standard error to add to. brms refuses
+weights(), cens() and trunc() here with ‘Invalid addition arguments for
+this model’.</td>
+</tr></tbody>
+</table>
+<table class="table">
+<colgroup>
+<col width="9%">
+<col width="7%">
+<col width="14%">
+<col width="11%">
+<col width="13%">
+<col width="12%">
+<col width="9%">
+<col width="9%">
+<col width="11%">
+</colgroup>
+<thead><tr class="header">
+<th align="left"></th>
+<th align="center">REML</th>
+<th align="center">quadrature</th>
+<th align="center">profile</th>
+<th align="center">autoscale</th>
+<th align="center">sparse_x</th>
+<th align="center">priors</th>
+<th align="center">bounds</th>
+<th align="center">verbose</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">ar()</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">+</td>
+<td align="center">+</td>
+</tr>
+<tr class="even">
+<td align="left">ma()</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">+</td>
+<td align="center">+</td>
+</tr>
+<tr class="odd">
+<td align="left">arma()</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">+</td>
+<td align="center">+</td>
+</tr>
+<tr class="even">
+<td align="left">cosy()</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">+</td>
+<td align="center">+</td>
+</tr>
+<tr class="odd">
+<td align="left">unstr()</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">+</td>
+<td align="center">+</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<colgroup>
+<col width="2%">
+<col width="31%">
+<col width="65%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Status</th>
+<th align="left">Pairs</th>
+<th align="left">Note</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">~</td>
+<td align="left">ar() + priors; ma() + priors; arma() + priors; cosy() +
+priors; unstr() + priors</td>
+<td align="left">Priors on the fixed effects and on random-effect
+covariance parameters work as usual. set_prior() cannot target the
+residual-correlation parameters themselves yet; bounds on thetaac_* are
+the available lever.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">ar() + quadrature; ma() + quadrature; arma() +
+quadrature; cosy() + quadrature; unstr() + quadrature</td>
+<td align="left">Refused: the Gauss-Kronrod rule integrates a random
+effect against per-observation densities, and this residual is a joint
+density over each group.</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<thead><tr class="header">
+<th align="left"></th>
+<th align="center">mvbf</th>
+<th align="center">rescor</th>
+<th align="center">|ID|</th>
+<th align="center">nl</th>
+<th align="center">mixture</th>
+<th align="center">mixture_mvn</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">ar()</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="even">
+<td align="left">ma()</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="odd">
+<td align="left">arma()</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="even">
+<td align="left">cosy()</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+<tr class="odd">
+<td align="left">unstr()</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
+</tbody>
+</table>
+<table class="table">
+<colgroup>
+<col width="2%">
+<col width="34%">
+<col width="63%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Status</th>
+<th align="left">Pairs</th>
+<th align="left">Note</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">ar() + rescor; ma() + rescor; arma() + rescor; cosy() +
+rescor; unstr() + rescor</td>
+<td align="left">Refused: both describe the residual covariance - one
+across time, one across responses - and the joint structure is their
+Kronecker product, which is not implemented. brms refuses the same
+pair.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">ar() + nl; ma() + nl; arma() + nl; cosy() + nl; unstr()
++ nl</td>
+<td align="left">Refused: a nonlinear mu is arbitrary R code, so the
+term would be evaluated rather than read. brms reaches this model
+through acformula(), which has no analog here.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">ar() + mixture; ma() + mixture; arma() + mixture;
+cosy() + mixture; unstr() + mixture</td>
+<td align="left">Refused: a mixture likelihood has no single residual to
+correlate. The term is rejected as sitting on mu1 rather than mu, which
+is also how brms rejects it.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">ar() + mixture_mvn; ma() + mixture_mvn; arma() +
+mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
+<td align="left">Refused for the same reason as mixture().</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
 <h2 id="predictor-specials">Predictor specials<a class="anchor" aria-label="anchor" href="#predictor-specials"></a>
 </h2>
 <table class="table">
@@ -2486,18 +3105,18 @@ level.</td>
 <tbody>
 <tr class="odd">
 <td align="left">works</td>
-<td align="right">1259</td>
-<td align="left">32%</td>
+<td align="right">1364</td>
+<td align="left">31%</td>
 </tr>
 <tr class="even">
 <td align="left">conditional</td>
-<td align="right">1532</td>
-<td align="left">39%</td>
+<td align="right">1627</td>
+<td align="left">37%</td>
 </tr>
 <tr class="odd">
 <td align="left">refused</td>
-<td align="right">393</td>
-<td align="left">10%</td>
+<td align="right">623</td>
+<td align="left">14%</td>
 </tr>
 <tr class="even">
 <td align="left">broken</td>
@@ -2506,8 +3125,8 @@ level.</td>
 </tr>
 <tr class="odd">
 <td align="left">untested</td>
-<td align="right">753</td>
-<td align="left">19%</td>
+<td align="right">808</td>
+<td align="left">18%</td>
 </tr>
 </tbody>
 </table>

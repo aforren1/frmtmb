@@ -19,7 +19,7 @@ draw columns instead."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.33.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -100,7 +100,10 @@ draw columns instead.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><code>gr(cov = )</code>, <code>gr(prec = )</code> and <code>equalto()</code> blocks contribute
+    <p>A residual correlation term (<a href="frmtmb-autocor.html">frmtmb-autocor</a>) contributes its
+natural-scale parameters under brms's names, sanitized the same way:
+<code>ar1</code>, <code>ar2</code>, <code>ma1</code>, <code>cosy</code>, <code>cortime__&lt;t1&gt;__&lt;t2&gt;</code>.</p>
+<p><code>gr(cov = )</code>, <code>gr(prec = )</code> and <code>equalto()</code> blocks contribute
 <code>sd_</code>/<code>cor_</code> names for their within-level covariance. Smooths,
 <code>gp()</code>/<code>hsgp()</code>, <code>car()</code> and <code>spde()</code> blocks contribute none: their
 parameters are not standard deviations. See the "Which random-effect

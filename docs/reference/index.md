@@ -13,6 +13,9 @@
   : Factor with numeric-coded levels for coordinate covariance
   structures
 
+- [`frmtmb-autocor`](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.md)
+  : Within-group residual correlation (R-side autocorrelation)
+
 - [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
   : Solve an ODE once per group inside a nonlinear predictor
 
@@ -66,6 +69,7 @@
   [`zero_inflated_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`zero_inflated_beta()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`asym_laplace()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  [`zero_inflated_asym_laplace()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
@@ -85,6 +89,8 @@
   : Confidence intervals for frmtmb fits
 - [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
   : Natural-scale confidence intervals for covariance parameters
+- [`autocor_matrix()`](https://aforren1.github.io/frmtmb/reference/autocor_matrix.md)
+  : Estimated within-group residual correlation matrix
 - [`profile(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/profile.frmtmb_fit.md)
   : Likelihood profiles
 - [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)

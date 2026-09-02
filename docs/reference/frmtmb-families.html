@@ -11,7 +11,7 @@ from 'stats' are accepted directly by frm() and +."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.33.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -111,6 +111,8 @@ from 'stats' are accepted directly by <code><a href="frm.html">frm()</a></code> 
 <span></span>
 <span><span class="fu">asym_laplace</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
 <span></span>
+<span><span class="fu">zero_inflated_asym_laplace</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
+<span></span>
 <span><span class="fu">sratio</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">cratio</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
@@ -142,6 +144,22 @@ takes the response's level order as the category order. Supply an
 ordered factor, or integer codes <code>1..K</code>: an unordered factor is
 accepted, as brms accepts it, but warns and names the order it is
 about to use, which is alphabetical unless the levels were set.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="quantile-regression-inference">Quantile regression inference<a class="anchor" aria-label="anchor" href="#quantile-regression-inference"></a></h2>
+
+
+<p><code>asym_laplace()</code> and <code>zero_inflated_asym_laplace()</code> fit quantile
+regression through a WORKING likelihood: at a fixed <code>quantile</code> the
+point estimates are consistent quantile estimates (they match
+<code><a href="https://rdrr.io/pkg/quantreg/man/rq.html" class="external-link">quantreg::rq()</a></code>), but the asymmetric Laplace is not the data's
+true density, so Wald standard errors and <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> intervals
+computed from it are not calibrated. This is a property of the
+asymmetric-Laplace approach, shared by brms. Use
+<code><a href="frm_bootstrap.html">frm_bootstrap()</a></code> for intervals you can defend. The check
+function's kink can also produce a benign false-convergence
+warning near the optimum; <code><a href="frm_allfit.html">frm_allfit()</a></code> confirms the fit when in
+doubt.</p>
     </div>
 
     <div class="section level2">

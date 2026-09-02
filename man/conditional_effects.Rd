@@ -70,6 +70,10 @@ A named list of data frames (one per effect) with the varied
 variable(s) plus \code{estimate__}, \code{se__} (link scale), \code{lower__}, and
 \code{upper__}; printing it draws the plots. An ordinal fit adds a
 \code{cats__} column and one block of rows per response category.
+\code{plot(ce, points = TRUE)} overlays the raw observations (the brms
+argument): all observations are shown regardless of \code{conditions},
+and no points are drawn for a per-category ordinal display, a
+non-mean \code{dpar}, or a matrix response (a message says so).
 }
 \description{
 For each requested effect, predicts over a grid of that predictor

@@ -1,5 +1,67 @@
 # Changelog
 
+## frmtmb 0.34.0
+
+Within-group residual correlation (R-side effects), quantile regression
+completions, and plot conveniences.
+
+### New
+
+- Within-group residual correlation, brms’s R-side autocorrelation, as
+  formula terms [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`,
+  `arma()`, `cosy()` and `unstr()` for
+  [`gaussian()`](https://rdrr.io/r/stats/family.html) and
+  [`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md).
+  The residuals of a group become one multivariate draw,
+  `y_g ~ N(mu_g, D R D)`, with a `sigma ~ x` distributional model
+  entering through the diagonal. The ARMA autocorrelation function is
+  exact and orders above one are supported (brms caps its covariance
+  form at one). Validated against
+  [`nlme::gls`](https://rdrr.io/pkg/nlme/man/gls.html) and
+  [`nlme::lme`](https://rdrr.io/pkg/nlme/man/lme.html) under ML and REML
+  to 1e-9 or better across all five structures, on balanced and ragged
+  data, and with random effects alongside the correlated residual. New
+  [`autocor_matrix()`](https://aforren1.github.io/frmtmb/reference/autocor_matrix.md)
+  returns the fitted correlation matrix; the parameters appear in
+  [`summary()`](https://rdrr.io/r/base/summary.html),
+  [`confint()`](https://rdrr.io/r/stats/confint.html),
+  [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+  and
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  under brms’s names. See `?frmtmb-autocor` for the deliberate
+  divergences: `sigma` is the MARGINAL residual SD (brms uses the
+  innovation SD for ar/ma/arma; the migration vignette gives the
+  conversion), lags count gaps in the global time-level set (nlme
+  semantics), and brms’s default `cov = FALSE` residual-regression form
+  is refused rather than reinterpreted.
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) draws correlated
+  residuals, so DHARMa and
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  see the fitted autocorrelation. Combinations that stop the likelihood
+  factorizing over rows (weights, cens/trunc, se, mi, rescor, mixtures,
+  quadrature, nl, OSA residuals, other families) are refused with the
+  alternative named.
+- [`zero_inflated_asym_laplace()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  (brms spelling): a point mass at zero mixed with the asymmetric
+  Laplace, for zero-inflated quantile regression. A new “Quantile
+  regression inference” section on the families page states plainly that
+  ALD-based Wald intervals are not calibrated (a property shared with
+  brms) and points at
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md).
+- `plot(conditional_effects(fit), points = TRUE)` overlays the raw
+  observations, the brms argument, previously ignored. Points are drawn
+  under the bands; displays where raw observations are not meaningful
+  (per-category ordinal, non-mean dpars, matrix responses) say so
+  instead of failing silently.
+- Hidden Markov models: a feasibility study (dev/hmm-feasibility.md)
+  establishes that the forward algorithm tapes in RTMB, composes with
+  the Laplace approximation over random effects, and is expressible
+  today through
+  [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  with `vint()` payloads, validated against depmixS4 and hmmTMB. No
+  user-facing grammar yet; the design for a first-class `hmm()` family
+  is recorded.
+
 ## frmtmb 0.33.0
 
 Two residue fixes, a documentation dark mode, and CI repairs.
