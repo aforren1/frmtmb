@@ -27,6 +27,9 @@ reference:
   - mixture
   - mixture_mvn
   - mixture_probs
+  - hmm
+  - hmm_probs
+  - hmm_viterbi
   - check_custom_family
 - title: Inference and diagnostics
   contents:

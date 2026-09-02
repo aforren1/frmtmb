@@ -63,7 +63,7 @@ frmtmb_compat_features_tbl <- function() {
     lapply(c("REML", "quadrature", "profile", "autoscale", "sparse_x",
              "priors", "bounds", "verbose"), f, kind = "mode"),
     lapply(c("mvbf", "rescor", "|ID|", "nl", "mixture",
-             "mixture_mvn"), f, kind = "structure"),
+             "mixture_mvn", "hmm"), f, kind = "structure"),
     lapply(c("fitted", "predict", "simulate", "residuals",
              "residuals_osa", "emmeans", "frm_sample",
              "confint_profile", "hypothesis_profile"), f,
@@ -533,6 +533,64 @@ frmtmb_compat_rules_tbl <- function() {
   r("mixture_mvn", "mvbf", "refused",
     "Refused: the family already takes a matrix response.")
   r("mixture_mvn", "kind:aterm", "untested", "")
+
+  ## hmm ---------------------------------------------------------------------
+  # An HMM's likelihood is a per-SEQUENCE forward recursion, not a
+  # product of per-row densities. Everything that reshapes a row's
+  # contribution therefore has nothing to act on and is refused; the
+  # decoding methods replace the row-wise ones.
+  r("hmm", "mvbf", "refused",
+    "Refused: hmm() supports univariate models only. A joint state process across responses is a different model.")
+  r("hmm", "rescor", "refused",
+    "Refused for the same reason as mvbf(): the forward recursion is a likelihood over one response's sequences.")
+  r("hmm", "weights()", "refused",
+    "Refused: weights() scales a per-row log-density, and an HMM's contribution is per sequence.")
+  r("hmm", "cens()", "refused",
+    "Refused: censoring replaces a row's density with a CDF difference, which the forward recursion has no room for.")
+  r("hmm", "trunc()", "refused", "Refused for the same reason as cens().")
+  r("hmm", "se()", "refused",
+    "Refused: a known measurement SD is a per-row modification of the emission density; combining it with the state sum is not implemented.")
+  r("hmm", "mi()", "refused",
+    "Refused: an NA response is handled by hmm() itself - the row is kept and its emission masked, so the chain keeps its length - and needs no latent parameter.")
+  r("hmm", "trials()", "works",
+    "The emission family's addition terms reach it unchanged; a binomial() emission uses trials() normally.")
+  r("hmm", "REML", "refused",
+    "Refused: REML would integrate out the location coefficients of the states only, leaving the transition and dispersion parameters outside. That partial restricted likelihood matches no standard definition, and it used to run silently (probe F5 of dev/hmm-feasibility.md).")
+  r("hmm", "quadrature", "refused",
+    "Refused: the Gauss-Kronrod rule integrates a random effect against a product of per-row densities; an HMM's likelihood is a forward recursion, not such a product.")
+  r("hmm", "profile", "refused",
+    "Refused: profiling moves the state means into the inner Laplace problem, and the likelihood is multimodal in them because the states are exchangeable.")
+  r("hmm", "fitted", "works",
+    "The occupancy-weighted mean, sum_k P(S_t = k | y) mu_k, from a forward-backward pass. Not any single state's mean.")
+  r("hmm", "predict", "conditional",
+    "type = \"link\" and dpar = work normally, including the transition logits. type = \"response\" equals fitted() in sample; it is refused for newdata (state occupancy conditions on the observed responses of a whole sequence) and se.fit is refused on the response scale.")
+  r("hmm", "residuals", "conditional",
+    "type = \"response\" and \"pearson\" are computed against the occupancy-weighted mean, with the pearson scale the law-of-total-variance mixture variance. type = \"deviance\" is refused: there is no per-row likelihood to saturate.")
+  r("hmm", "residuals_osa", "refused",
+    "Refused: one-step prediction needs the taped density of one observation given the earlier ones, and the tape holds a forward recursion over each whole sequence with no registered observation vector.")
+  r("hmm", "simulate", "conditional",
+    "A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused.")
+  r("hmm", "emmeans", "untested", "")
+  r("hmm", "frm_sample", "works",
+    "Verified by a short run. The posterior is multimodal in the state labels, as a mixture's is.")
+  r("hmm", "confint_profile", "untested", "")
+  r("hmm", "hypothesis_profile", "untested", "")
+  r("hmm", "priors", "works",
+    "set_prior() on an emission or transition logit is the remedy for a probability driven to the 0 boundary by a rare category.")
+  r("hmm", "bounds", "untested", "")
+  r("hmm", "autoscale", "untested", "")
+  r("hmm", "sparse_x", "untested", "")
+  r("hmm", "verbose", "works", "")
+  r("hmm", "nl", "refused",
+    "Refused: nl = TRUE needs a family with a single 'mu' location parameter, and an hmm() family has one per state.")
+  r("hmm", "mixture", "refused",
+    "Refused: an hmm() component that is itself a mixture is not identified against the state.")
+  r("hmm", "mixture_mvn", "refused", "Refused for the same reason as mixture().")
+  r("hmm", "group:autocor", "refused",
+    "Refused: a residual correlation term is rejected as sitting on mu1 rather than mu, exactly as it is for mixture(), and for the same reason - there is no single residual to correlate.")
+  r("hmm", "kind:covstruct", "conditional",
+    "A random effect in a state's linear predictor is integrated by the Laplace approximation OUTSIDE the exact state sum. The integrand is a mixture over state sequences and is not Gaussian, so the approximation is genuinely approximate: the measured bias was -0.126 in the log-likelihood and 4.4e-4 in the parameters against adaptive quadrature (probe D1).")
+  r("hmm", "|ID|", "untested", "")
 
   ## specials ------------------------------------------------------------------
   r("mo()", "kind:family", "conditional",

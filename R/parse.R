@@ -767,6 +767,17 @@ parse_one_response <- function(bform) {
   main_lp <- parse_linpred(reformulas::RHSForm(f, as.form = TRUE), env,
                            shared_env)
 
+  # A family may ship a DEFAULT formula for some of its own dpars, which
+  # stands in wherever the user wrote neither a formula nor a fixed
+  # value: hmm(trans = ~x) gives every transition cell the same
+  # predictor without making the user spell out K * (K - 1) of them. It
+  # is a default, so an explicit `tr12 ~ z` or `tr12 = 0` still wins.
+  for (dp in names(fam[["default_forms"]] %||% list())) {
+    if (dp %in% fam$dpars && !dp %in% extra) {
+      bform$pforms[[dp]] <- fam[["default_forms"]][[dp]]
+    }
+  }
+
   dpars <- list()
   for (dp in fam$dpars) {
     if (dp %in% names(bform$pforms)) {

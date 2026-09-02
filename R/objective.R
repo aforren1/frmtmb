@@ -167,6 +167,18 @@ build_objective <- function(frame) {
           nll <- nll - autocor_loglik(z, R, ac, lsig, nu)
           next
         }
+        if (!is.null(fam[["hmm"]]) && !is.null(frame[["hmm_g"]][[r]])) {
+          # hidden Markov: the discrete state sequence is summed out
+          # EXACTLY by the forward recursion, per sequence, inside the
+          # Laplace approximation that integrates any random effects in
+          # the state predictors. Nothing here is per row, so none of
+          # the aterm machinery below applies - the frame refused every
+          # term that would have needed it.
+          nll <- nll - hmm_loglik_ad(fam, dparv[[r]],
+                                     frame[["hmm_g"]][[r]],
+                                     atv[[r]], extra)
+          next
+        }
         if (!is.null(fam$mix) && !is.null(frame$mix_g[[r]])) {
           # latent-class (group-level) mixture: one class draw per
           # group, so the group's per-observation log-densities sum

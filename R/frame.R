@@ -537,6 +537,8 @@ nonpredictor_frame_vars <- function(spec) {
     if (!is.null(resp$family$mix_groups)) {
       out <- c(out, deparse1(resp$family$mix_groups[[2L]]))
     }
+    hs_ <- resp$family[["hmm"]]
+    out <- c(out, all.vars(hs_$time_expr), all.vars(hs_$group_expr))
     out <- c(out, all.vars(resp$autocor$time_expr),
              all.vars(resp$autocor$gr_expr))
     for (dp in resp$dpars) {
@@ -669,6 +671,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (!is.null(resp$family$mix_groups)) {
       add_part(resp$family$mix_groups[[2L]])
     }
+    # hmm(): the time and grouping variables define the sequences, so
+    # they belong to the response and not to any dpar's design
+    hs_ <- resp$family[["hmm"]]
+    for (ex in list(hs_$time_expr, hs_$group_expr)) {
+      if (!is.null(ex)) add_part(ex)
+    }
     for (nm_at in names(resp$aterms)) {
       # literal constants (e.g. trials(10)) are not frame variables, and
       # interval bounds (cens_y2) may be NA on non-interval rows, so they
@@ -692,6 +700,15 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     Filter(function(r) isTRUE(r$aterms$mi), spec$responses),
     function(r) deparse1(r$resp_expr), ""
   )
+  # An hmm() response keeps its NA rows for the same reason an mi() one
+  # does, but for a different fate: the row is a time point the chain
+  # passes through without emitting, so dropping it would SHORTEN the
+  # chain and let one transition stand in for several. The emission is
+  # masked instead (hmm_frame_block()).
+  mi_cols <- c(mi_cols, vapply(
+    Filter(function(r) !is.null(r$family[["hmm"]]), spec$responses),
+    function(r) deparse1(r$resp_expr), ""
+  ))
   if (length(mi_cols)) {
     mf <- stats::model.frame(fr_formula, data = data,
                              drop.unused.levels = TRUE,
@@ -755,6 +772,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   n_miss <- 0L
   miss_init <- numeric(0)
   mix_g <- list()    # per response: latent-class grouping structure
+  hmm_g <- list()    # per response: hidden-Markov sequence structure
   autocor <- list()  # per response: R-side residual correlation block
   n_thetaac <- 0L
   for (resp in spec$responses) {
@@ -788,6 +806,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (!is.null(resp$aterms$se_sigma)) {
       av$se_sigma <- resp$aterms$se_sigma   # logical flag, not data
     }
+    # before the generic aterm guards, so an hmm() response is refused
+    # for being an HMM rather than for its family's missing CDF
+    hmm_check_aterms(resp, spec, av)
     if (isTRUE(resp$aterms$mi)) {
       if (!resp$family$family %in% c("gaussian", "student")) {
         stop("mi() responses need a gaussian or student model",
@@ -966,6 +987,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                                       first = match(levels(gv), gv),
                                       gindex = as.integer(gv),
                                       levels = levels(gv))
+    }
+    if (!is.null(resp$family[["hmm"]])) {
+      hb <- hmm_frame_block(resp, spec, av, mf, y[[resp$resp_name]], n)
+      # NA responses were kept above; the masked placeholder is what
+      # every later stage (valid_y, the tape, the decoding passes) sees
+      y[[resp$resp_name]] <- hb$y
+      hmm_g[[resp$resp_name]] <- hb
     }
     if (!is.null(resp$autocor)) {
       ac <- check_autocor_response(resp, spec, av, y[[resp$resp_name]])
@@ -1812,7 +1840,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
          n_c = n_c, has_rr = has_rr, mi_map = mi_map, mix_g = mix_g,
-         autocor = autocor,
+         hmm_g = hmm_g, autocor = autocor,
          par_template = par_template, map = map,
          betad_fixed_idx = betad_fixed_idx,
          extra_names = names(extras),

@@ -758,6 +758,40 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     return(predict_ordinal(object, rspec, newdata, use_re,
                            allow_new_levels))
   }
+  # An hmm() response's expected value is the OCCUPANCY-WEIGHTED mean,
+  # sum_k P(S_t = k | y) mu_k(x_t). No per-row family mean can produce
+  # it: the state probability conditions on the whole sequence. Without
+  # this branch `type = "response"` falls through to the first location
+  # dpar and reports state 1's mean at every row, silently.
+  if (!is.null(rspec$family[["hmm"]]) && is.null(dpar) &&
+      type %in% c("response", "conditional")) {
+    if (se.fit) {
+      stop("se.fit is not supported on the response scale for an hmm() ",
+           "family: the expected response weights the state means by ",
+           "posterior occupancy probabilities, and the delta method ",
+           "would need the gradient of those probabilities, which the ",
+           "forward-backward pass does not produce. Use type = ",
+           "\"link\" with dpar = for a state's own predictor",
+           call. = FALSE)
+    }
+    if (!is.null(newdata)) {
+      stop("predict(type = \"response\") on an hmm() fit is not ",
+           "available for newdata: the state occupancy at a row is ",
+           "conditional on the observed RESPONSES of its whole ",
+           "sequence, which newdata does not carry. Predict a state's ",
+           "own linear predictor with dpar = (for example dpar = ",
+           "\"mu2\"), or use hmm_probs() on the training data",
+           call. = FALSE)
+    }
+    if (!is.null(re.form)) {
+      stop("re.form is not supported on the response scale for an hmm() ",
+           "family: the state probabilities are computed at the ",
+           "random-effect modes, so a different random-effect ",
+           "conditioning would need a second forward-backward pass. ",
+           "Use type = \"link\" with dpar =", call. = FALSE)
+    }
+    return(napred(object, hmm_mean_response(object)))
+  }
   # glmmTMB type aliases resolve to a dpar plus scale
   if (type %in% c("zprob", "zlink", "disp")) {
     if (!is.null(dpar)) {
@@ -1248,6 +1282,10 @@ napred <- function(fit, x) {
 #' @export
 fitted.frmtmb_fit <- function(object, ...) {
   rspec <- uni_resp(object, "fitted()")
+  if (!is.null(rspec$family[["hmm"]])) {
+    # E[y_t | y] = sum_k P(S_t = k | y) mu_k(x_t); see hmm_probs()
+    return(napred(object, hmm_mean_response(object)))
+  }
   if (identical(rspec$family$type, "ordinal")) {
     # no mean exists; the modelled response IS the category
     # distribution, and predict(type = "response") agrees by construction
@@ -1690,6 +1728,40 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
   type <- match.arg(type)
   rspec <- uni_resp(object, "residuals()")
   fam <- rspec$family
+  if (!is.null(fam[["hmm"]])) {
+    if (type == "osa") {
+      stop("residuals(type = \"osa\") is not available for an hmm() ",
+           "fit: one-step prediction needs the taped density of a ",
+           "single observation given the earlier ones, and the tape ",
+           "holds a forward recursion over each whole sequence with no ",
+           "registered observation vector. Use type = \"pearson\", ",
+           "which divides by the occupancy-weighted response variance",
+           call. = FALSE)
+    }
+    if (type == "deviance") {
+      stop("residuals(type = \"deviance\") is not available for an ",
+           "hmm() fit: the unit deviance compares a row's likelihood ",
+           "with its saturated fit, and an HMM has no per-row ",
+           "likelihood to saturate. Use type = \"response\" or ",
+           "type = \"pearson\"", call. = FALSE)
+    }
+    r <- object$frame$y[[rspec$resp_name]] - hmm_mean_response(object)
+    if (type == "pearson") {
+      v <- hmm_var_response(object)
+      if (is.null(v)) {
+        stop("The state-dependent family '",
+             fam[["hmm"]][["comp"]]$family,
+             "' of this hmm() fit has no variance function, so pearson ",
+             "residuals are unavailable", call. = FALSE)
+      }
+      r <- r / sqrt(v)
+    }
+    hg <- object$frame[["hmm_g"]][[rspec$resp_name]]
+    # a masked (NA) response has no residual, and the placeholder value
+    # standing in for it on the tape must never look like one
+    if (!is.null(hg[["mask"]])) r[hg[["miss"]]] <- NA_real_
+    return(napred(object, r))
+  }
   if (type == "osa") {
     if (!is.null(object$frame$autocor[[rspec$resp_name]])) {
       # oneStepPredict needs the taped density of ONE observation given
@@ -1992,6 +2064,27 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   }
   rspec <- uni_resp(object, "simulate()")
   fam <- rspec$family
+  if (!is.null(fam[["hmm"]])) {
+    # a draw walks the chain forward per sequence and then emits, which
+    # the per-row family simulator cannot do: it never sees the
+    # transition dpars
+    if (!is.null(re.form)) {
+      stop("simulate(re.form =) is not supported for an hmm() fit: the ",
+           "state path is drawn at the random-effect modes. Drop ",
+           "re.form to simulate conditionally on them", call. = FALSE)
+    }
+    if (isTRUE(censored)) {
+      stop("simulate(censored = TRUE) is not supported for an hmm() ",
+           "fit, because cens() is refused on an hmm() response",
+           call. = FALSE)
+    }
+    out <- lapply(seq_len(nsim), function(s) hmm_simulate_rows(object))
+    names(out) <- paste0("sim_", seq_len(nsim))
+    out <- lapply(out, function(v) sim_restore_type(object, rspec, v))
+    out <- sim_as_data_frame(out)
+    attr(out, "seed") <- rng_state
+    return(out)
+  }
   if (is.null(fam$sim)) {
     stop("simulate(): family '", fam$family, "' has no simulator yet",
          call. = FALSE)

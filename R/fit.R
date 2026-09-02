@@ -394,6 +394,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (REML) random <- c(random, "beta")
   if (!length(random)) random <- NULL
 
+  # An hmm() fit refuses REML, quadrature and profile for reasons of
+  # its own, and checks the starting values for the label-symmetry trap
+  hmm_check_fit(spec, frame, template, REML, quadrature, control)
+
   # A mixture likelihood is invariant to permuting its components, so
   # the mu coefficients enter a multimodal objective. Both REML and
   # profile = TRUE integrate those coefficients out with a Laplace
