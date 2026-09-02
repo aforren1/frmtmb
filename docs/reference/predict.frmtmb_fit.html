@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -166,11 +166,14 @@ probabilities instead of a vector - the brms <code><a href="https://rdrr.io/r/st
 with the response's own factor levels as column names. The rows sum
 to one. <code>cs()</code> category-specific terms are honored: they enter each
 threshold separately and are re-evaluated on <code>newdata</code>.</p>
+<p><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> returns the same matrix, so the usual
+<code>predict(type = "response") == fitted()</code> identity holds here too.</p>
 <p><code>type = "link"</code> (the default) and <code>dpar = "mu"</code> still give the latent
 linear predictor, which is where the fixed-effect coefficients live
 and where <code>se.fit</code> is available. <code>se.fit</code> on the response scale is
 refused: the prediction is a K-vector per row, not one number.
-<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> keeps returning the latent predictor for these families.</p>
+<code>emmeans</code> and <code><a href="https://easystats.github.io/insight/reference/get_predicted.html" class="external-link">insight::get_predicted()</a></code> stay on that latent scale,
+which is the <code>mode = "latent"</code> convention for <code>clm</code>-like models.</p>
 <p><code>type = "conditional"</code> is glmmTMB's name for the conditional MEAN, so
 it gives the category probabilities here too rather than the linear
 predictor: an ordinal response has no mean, and answering a question

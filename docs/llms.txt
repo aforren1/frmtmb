@@ -34,10 +34,10 @@ hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)",
 
 ## Status
 
-Pre-release (v0.30). The goal is a CRAN release. Validation has three
+Pre-release (v0.32). The goal is a CRAN release. Validation has three
 layers:
 
-- The suite contains about 2700 tests. Every model class is compared
+- The suite contains about 3200 tests. Every model class is compared
   with an exact reference: glmmTMB, lme4, mgcv, MASS, survival, nnet,
   GLMMadaptive, quantreg, mice, closed-form marginals, or hand-written
   ML.
@@ -372,6 +372,8 @@ and `NEWS.md` for the changelog.
 
 - [`predict(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
   : Predictions from a frmtmb fit
+- [`fitted(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/fitted.frmtmb_fit.md)
+  : Fitted values
 - [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
   : Conditional effects of predictors
 - [`simulate(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md)

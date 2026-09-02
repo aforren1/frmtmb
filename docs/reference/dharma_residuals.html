@@ -15,7 +15,7 @@ DHARMa::testZeroInflation() and friends on it."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -92,6 +92,19 @@ conditions on the estimated random effects; <code>NA</code> redraws them.</p></d
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>DHARMa</code> object.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="ordinal-responses">Ordinal responses<a class="anchor" aria-label="anchor" href="#ordinal-responses"></a></h2>
+
+
+<p>An ordinal fit is supported: the draws are the simulated categories
+and the response is its own integer codes, so the rank transform runs
+on the order alone (<code>integerResponse = TRUE</code>, which is what makes
+DHARMa randomize within ties). The <code>fittedPredictedResponse</code> DHARMa
+plots against is the expected category index <code>sum_k k * P(y = k)</code>,
+the same scalar <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> scores an ordinal fit by; it sets the
+horizontal axis of the display and nothing else, since the residuals
+themselves come from the ranks of the draws.</p>
     </div>
 
     <div class="section level2">

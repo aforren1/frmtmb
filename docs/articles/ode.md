@@ -159,6 +159,35 @@ predict(fit, newdata = nd)
 #> [1] 0.000000 7.257109 5.663743 4.420213 3.449711
 ```
 
+The same call on a dense time grid draws the fitted curve for every
+subject over that subject’s own observations. Each curve carries that
+subject’s random effects, which is why they differ in both height and
+shape.
+
+``` r
+
+grid <- do.call(rbind, lapply(split(d, d$Subject), function(s) {
+  data.frame(Subject = s$Subject[1],
+             Time = seq(0, max(d$Time), length.out = 100),
+             Dose = s$Dose[1])
+}))
+grid$conc <- predict(fit, newdata = grid)
+
+tinyplot::tinyplot(conc ~ Time | Subject, data = d, pch = 16, cex = 0.7,
+                   legend = FALSE, xlab = "Time (h)",
+                   ylab = "Concentration (mg/L)",
+                   main = "Theophylline, fitted per subject")
+tinyplot::tinyplot_add(conc ~ Time | Subject, data = grid, type = "l")
+```
+
+![Theophylline concentration against time for twelve subjects, with the
+fitted curve of each subject drawn through its own
+points.](ode_files/figure-html/fig-theoph-1.png)
+
+Each subject is observed once, so the curve and the points share a
+colour. The absorption peak moves between subjects because `lka` has a
+random effect.
+
 ## How the arguments work
 
 [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
@@ -174,6 +203,7 @@ then puts the results back in the row order of the data.
 | `group` | The unit that owns one system: a subject, a reactor, a batch. |
 | `states`, `output` | State names, and which of them the body returns. |
 | `t0` | The initial time. Defaults to 0. |
+| `events`, `event_scale` | A dosing table, and an estimated multiplier on its amounts. |
 | `method`, `atol`, `rtol` | Integrator and tolerances. |
 
 `init` and `parms` are given as lists of **columns**, not as one row of
@@ -186,6 +216,199 @@ cannot be told apart from one column of two observations.
 With no `output` the result is a matrix with one column per state, so
 `frm_ode(...)[, 2]` also works. Naming the states and selecting one by
 name is clearer and is what the example above does.
+
+## Repeated dosing
+
+Theophylline is a single dose, and a single dose is just an initial
+condition. A course of treatment is not: the depot is refilled at each
+dose time, and the trajectory is the sum of what every dose so far has
+contributed. `events` is the table of those doses.
+
+``` r
+
+doses <- data.frame(time = c(12, 24, 36), state = "depot", value = 100)
+doses
+#>   time state value
+#> 1   12 depot   100
+#> 2   24 depot   100
+#> 3   36 depot   100
+```
+
+One row per dose. `time` is when, `state` is which compartment (by name
+if `states` names them, otherwise by position), `value` is how much, and
+the default `method = "add"` puts the amount into the state. Give a row
+a positive `duration` and it becomes an infusion instead, delivering
+`value` at a constant rate over `[time, time + duration]`. A `group`
+column restricts a row to one subject; leave the column out and the
+schedule applies to every subject.
+
+In NONMEM terms an `"add"` row is a dosing record, `value` is `amt`,
+`state` is `cmt`, and `duration` sets `rate = amt / duration`. There is
+no `evid` column, because observations and doses live in two separate
+tables here: the rows of `data` are the observations, the rows of
+`events` are the doses.
+
+Solving directly, with the first dose as the initial condition and three
+more as events:
+
+``` r
+
+tt <- seq(0, 60, by = 0.25)
+traj <- frm_ode(pk_dyn, init = list(100, 0), times = tt,
+                parms = list(1, 0.2, 10),
+                states = c("depot", "central"), output = "central",
+                events = doses)
+range(traj)
+#> [1] 0.000000 7.522638
+```
+
+``` r
+
+tinyplot::tinyplot(tt, traj, type = "l", lwd = 2,
+                   xlab = "Time (h)", ylab = "Concentration (mg/L)",
+                   main = "Four doses, twelve hours apart")
+abline(v = c(0, doses$time), lty = 3, col = "grey40")
+```
+
+![Concentration against time for four doses given twelve hours apart,
+rising to a plateau, with a vertical line at each dose
+time.](ode_files/figure-html/fig-doses-1.png)
+
+Each peak is higher than the last and the troughs level off, so the
+course approaches a steady state instead of repeating the first dose.
+That accumulation is why a dosing schedule cannot be faked with one
+larger dose.
+
+### Inside a formula
+
+A nonlinear body looks up every bare name in `data`, so a data.frame
+held in a variable cannot be named there. Write the table inline, or
+hold it in a function of no arguments:
+
+``` r
+
+conc ~ frm_ode(pk_dyn, init = list(0, 0), times = time,
+               parms = list(exp(lka), exp(lke), exp(lV)),
+               group = id, states = c("depot", "central"),
+               output = "central",
+               events = data.frame(time = c(0, 12, 24), state = "depot",
+                                   value = 100))
+
+schedule <- function() read.csv("doses.csv")
+conc ~ frm_ode(pk_dyn, ..., events = schedule)
+```
+
+A fit is otherwise unchanged. Here is a small simulated course of three
+doses twelve hours apart, with between-subject variability on `lka` and
+`lke`:
+
+``` r
+
+set.seed(4)
+n_id <- 8
+tt_obs <- c(0.5, 2, 6, 11.9, 14, 20, 23.9, 26, 32, 40)
+dd <- data.frame(id = factor(rep(seq_len(n_id), each = length(tt_obs))),
+                 time = rep(tt_obs, n_id))
+ka_i <- exp(rnorm(n_id, 0, 0.3))[as.integer(dd$id)]
+ke_i <- exp(rnorm(n_id, log(0.2), 0.25))[as.integer(dd$id)]
+super <- function(t, ka, ke, V, amt, at) {
+  u <- t - at[at <= t]
+  sum(amt * ka / (V * (ka - ke)) * (exp(-ke * u) - exp(-ka * u)))
+}
+dd$conc <- vapply(seq_len(nrow(dd)), function(i)
+  super(dd$time[i], ka_i[i], ke_i[i], 10, 100, c(0, 12, 24)), 0) +
+  rnorm(nrow(dd), 0, 0.3)
+
+dose_fit <- frm(
+  bf(conc ~ frm_ode(pk_dyn, init = list(100, 0), times = time,
+                    parms = list(exp(lka), exp(lke), exp(lV)),
+                    group = id, states = c("depot", "central"),
+                    output = "central",
+                    events = data.frame(time = c(12, 24),
+                                        state = "depot", value = 100)),
+     lka ~ 1 + (1 | id), lke ~ 1 + (1 | id), lV ~ 1, nl = TRUE) +
+    gaussian(),
+  data = dd, start = list(beta = c(0, log(0.25), log(8))))
+unlist(fixef(dose_fit))
+#>   lka.(Intercept)   lke.(Intercept)    lV.(Intercept) sigma.(Intercept) 
+#>        0.04225596       -1.44209990        2.28231919       -1.30575528
+```
+
+The truth is `lka = 0`, `lke = -1.61` and `lV = 2.30`, with a residual
+standard deviation of 0.3, which is `-1.20` on the log scale `sigma` is
+reported on.
+
+``` r
+
+show <- levels(dd$id)[1:4]
+sub <- dd[dd$id %in% show, ]
+sub$id <- droplevels(sub$id)
+gr <- do.call(rbind, lapply(show, function(s)
+  data.frame(id = factor(s, levels = levels(dd$id)),
+             time = seq(0, 40, length.out = 200))))
+gr$conc <- predict(dose_fit, newdata = gr)
+gr$id <- droplevels(gr$id)
+
+tinyplot::tinyplot(conc ~ time | id, data = sub, pch = 16,
+                   xlab = "Time (h)", ylab = "Concentration (mg/L)",
+                   main = "Three doses, four subjects")
+tinyplot::tinyplot_add(conc ~ time | id, data = gr, type = "l")
+abline(v = c(0, 12, 24), lty = 3, col = "grey40")
+```
+
+![Observed concentrations and fitted curves for four subjects on a three
+dose course, with a vertical line at each dose
+time.](ode_files/figure-html/fig-dosefit-1.png)
+
+### Doses that depend on a parameter
+
+`events$value` is a numeric column, so it cannot hold something being
+estimated. `event_scale` is the way in: one value per observation,
+constant within group, multiplying every amount in that group. A
+bioavailability is then an ordinary nonlinear parameter, free to carry
+covariates and random effects:
+
+``` r
+
+bf(conc ~ frm_ode(pk_dyn, init = list(0, 0), times = time,
+                  parms = list(exp(lka), exp(lke), exp(lV)),
+                  group = id, states = c("depot", "central"),
+                  output = "central",
+                  events = data.frame(time = c(0, 12, 24),
+                                      state = "depot", value = 100),
+                  event_scale = 1 / (1 + exp(-logitF))),
+   lka ~ 1 + (1 | id), lke ~ 1 + (1 | id), lV ~ 1, logitF ~ 1, nl = TRUE)
+```
+
+Because scaling is only meaningful for an amount, `event_scale` is
+refused on a table containing `"replace"` or `"multiply"` rows.
+
+### An observation at a dose time is the trough
+
+An observation whose time equals a dose time reads the state **before**
+that dose, which is the pre-dose sample a study protocol asks for. That
+also covers an observation at `t0` when a dose is given at `t0`: it
+reads `init`. If you want the post-dose value, ask for a time just
+after.
+
+### How the doses are applied
+
+[`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
+does not hand the table to **deSolve**’s own `events` argument. It
+splits the integration at the event times instead, and chains one solve
+per interval, carrying the state across the break itself.
+
+That is a correctness requirement. **RTMBode** integrates an augmented
+system that carries the derivative of each state with respect to each
+parameter alongside the states. A deSolve event jumps the state and
+leaves those derivatives untouched, which is right for an addition and
+wrong for the other two methods: measured against finite differences,
+`"replace"` and `"multiply"` came out 42% and 59% off. Splitting the
+solve is exact for all three, and it is what makes `event_scale`
+possible at all.
+
+The price is one solve per dosing interval per group. A twice-daily
+regimen over a fortnight is 28 solves per subject, not one.
 
 ## Three things that will bite
 
@@ -264,12 +487,30 @@ it gives the same answer roughly a hundred times faster.
 
 ## What is out of scope
 
-Dosing **event tables** are not supported: repeated doses, infusions,
-`evid`/`amt` records.
-[`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
-covers models driven by their initial conditions, which is the
-single-dose case. For event-driven population pharmacokinetics use a
-dedicated tool such as **nlmixr2**.
+**Time-varying input other than dosing.** A branch on time inside the
+derivative function does not work, and it is worth knowing why.
+**RTMBode** tapes that function once, so `t` is an
+automatic-differentiation value inside it. Writing
+`if (t < t_end) rate else 0` raises
+
+    Error: Comparison is generally unsafe for AD types
+
+which is the good outcome. An
+[`approxfun()`](https://rdrr.io/r/stats/approxfun.html) forcing table is
+the bad one: it silently returns the value at the taping point, so the
+model you fit is not the model you wrote. Smooth arithmetic in `t`, such
+as `p[2] * exp(-p[3] * t)`, is fine. A piecewise-constant input belongs
+in `events` as an infusion, where it rides along as a parameter over
+each interval and is differentiated exactly. deSolve’s own `forcings`
+argument is not reachable through **RTMBode**.
+
+**Estimated event times.** Lag times, estimated inter-dose intervals and
+estimated observation times are not supported. The event times decide
+where the solve is split, and that is settled before the tape is built.
+
+**Steady-state dosing records.** There is no equivalent of NONMEM’s
+`ss`/`ii`: write out the doses that led to the steady state, or start
+the solve from a steady-state initial condition you compute yourself.
 
 `predict(se.fit = TRUE)` is not available for any nonlinear predictor,
 [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)

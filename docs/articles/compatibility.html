@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -1079,8 +1079,8 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <table class="table">
 <colgroup>
 <col width="1%">
-<col width="30%">
-<col width="68%">
+<col width="28%">
+<col width="70%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -1108,7 +1108,7 @@ NA and warns.</td>
 <td align="left">~</td>
 <td align="left">gaussian + residuals; gaussian + confint_profile;
 gaussian + hypothesis_profile; student + residuals; student +
-confint_profile; and 94 more</td>
+confint_profile; and 90 more</td>
 <td align="left">Depends on which post-fit ingredients the family
 supplies (CDF, simulator, variance function).</td>
 </tr>
@@ -1123,7 +1123,7 @@ its observation through OBS().</td>
 <tr class="odd">
 <td align="left">~</td>
 <td align="left">gaussian + emmeans; student + emmeans; lognormal +
-emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 28
+emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 24
 more</td>
 <td align="left">Univariate fits only, and the mu predictor must be
 linear.</td>
@@ -1141,10 +1141,12 @@ posterior.</td>
 <td align="left">~</td>
 <td align="left">cumulative + fitted; sratio + fitted; cratio + fitted;
 acat + fitted</td>
-<td align="left">Returns the latent linear predictor, so the usual
-predict(type = “response”) == fitted() identity does not hold for an
-ordinal family. Use predict(fit, type = “response”) for the n x K
-category probabilities.</td>
+<td align="left">Returns the same n x K matrix of category probabilities
+predict(type = “response”) returns, not a vector: an ordinal response
+has no mean, so the modelled response is the category distribution. The
+predict(type = “response”) == fitted() identity holds. The latent linear
+predictor is predict(fit, type = “link”), which is also what emmeans and
+insight see.</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>
@@ -1152,10 +1154,33 @@ category probabilities.</td>
 predict; acat + predict</td>
 <td align="left">type = “response” returns an n x K matrix of category
 probabilities (rows summing to 1, columns named by the response’s own
-levels), not a vector: an ordinal response has no mean. cs() terms are
-honored and re-evaluated on newdata. type = “link” gives the latent
-predictor, which is where se.fit is available; se.fit is refused on the
-response scale.</td>
+levels), not a vector: an ordinal response has no mean. It equals
+fitted(). cs() terms are honored and re-evaluated on newdata. type =
+“link” gives the latent predictor, which is where se.fit is available;
+se.fit is refused on the response scale.</td>
+</tr>
+<tr class="odd">
+<td align="left">~</td>
+<td align="left">cumulative + residuals; sratio + residuals; cratio +
+residuals; acat + residuals</td>
+<td align="left">“response” and “pearson” score the categories by the
+same codes 1..K the likelihood uses: y - sum_k k * P(y = k),
+standardized by that distribution’s own sd. That is a residual on a
+SCORE, not on the ordinal scale; “osa” and dharma_residuals() use only
+the order. “deviance” is refused, as for every family without a standard
+unit deviance.</td>
+</tr>
+<tr class="even">
+<td align="left">~</td>
+<td align="left">cumulative + emmeans; sratio + emmeans; cratio +
+emmeans; acat + emmeans</td>
+<td align="left">Works on the LATENT linear predictor, emmeans’s mode =
+“latent” convention for clm-like models: the intercept is dropped there
+(the K-1 thresholds take its place), so contrasts are on the latent
+scale and absolute means carry no threshold offset. For category
+probabilities use predict(fit, type = “response”) or
+conditional_effects(), which are on a different scale from these
+means.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
@@ -1845,7 +1870,9 @@ which must be square and match the term dimension, and belongs in data2
 <td align="left">gr(cov = A) accepts correlated slopes; the block
 covariance is the Kronecker product of A and the term covariance. A
 needs dimnames covering every grouping level, and belongs in data2 =
-list(A = A).</td>
+list(A = A). Terms sharing an |ID| key over the same factor and the same
+A merge into one such block, which is the same model as writing the
+traits long with a single gr() term.</td>
 </tr>
 <tr class="odd">
 <td align="left">~</td>
@@ -1854,7 +1881,8 @@ verbose</td>
 <td align="left">gr(prec = Q) takes correlated slopes; the block
 precision is the Kronecker product of Q and the inverse term covariance,
 so it stays as sparse as Q. Q needs dimnames covering every grouping
-level, and belongs in data2 = list(Q = Q).</td>
+level, and belongs in data2 = list(Q = Q). Terms sharing an |ID| key
+over the same factor and the same Q merge into one such block.</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>
@@ -2455,12 +2483,12 @@ level.</td>
 </tr>
 <tr class="even">
 <td align="left">conditional</td>
-<td align="right">1530</td>
+<td align="right">1532</td>
 <td align="left">39%</td>
 </tr>
 <tr class="odd">
 <td align="left">refused</td>
-<td align="right">395</td>
+<td align="right">393</td>
 <td align="left">10%</td>
 </tr>
 <tr class="even">

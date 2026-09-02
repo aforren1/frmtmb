@@ -21,7 +21,7 @@ solver's adjoint."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,6 +79,8 @@ solver's adjoint.</p>
 <span>  output <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  states <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  t0 <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  events <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  event_scale <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  method <span class="op">=</span> <span class="st">"lsoda"</span>,</span>
 <span>  atol <span class="op">=</span> <span class="fl">1e-08</span>,</span>
 <span>  rtol <span class="op">=</span> <span class="fl">1e-08</span>,</span>
@@ -138,6 +140,22 @@ column per selected state. Character selection requires <code>states</code>.</p>
 <dt id="arg-t-">t0<a class="anchor" aria-label="anchor" href="#arg-t-"></a></dt>
 <dd><p>Initial time, a scalar or one value per row (constant
 within group). Every observation time must be at or after it.</p></dd>
+
+
+<dt id="arg-events">events<a class="anchor" aria-label="anchor" href="#arg-events"></a></dt>
+<dd><p>Optional dosing table: a data.frame with columns
+<code>time</code>, <code>value</code> and <code>state</code>, and optional <code>group</code>, <code>method</code> and
+<code>duration</code>, or a function of no arguments returning one. See
+"Dosing events" below. <code>NULL</code> (the default) is a model driven only
+by its initial conditions.</p></dd>
+
+
+<dt id="arg-event-scale">event_scale<a class="anchor" aria-label="anchor" href="#arg-event-scale"></a></dt>
+<dd><p>A multiplier on every <code>events$value</code>, one value per
+observation (constant within group) or a single value shared by
+every group. This is the one estimated quantity that can reach a
+dose, and it is how a bioavailability is written. Only for a table
+whose rows are all <code>method = "add"</code>.</p></dd>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
@@ -234,11 +252,85 @@ optimizer's probing steps and are usually not fatal. Judge the fit by
 the gradient at the optimum, not by whether the solver complained.</p>
     </div>
     <div class="section level2">
+    <h2 id="dosing-events">Dosing events<a class="anchor" aria-label="anchor" href="#dosing-events"></a></h2>
+    <p><code>events</code> is a data.frame of doses, one row per dose, with columns:</p><ul><li><p><code>group</code> (optional): which group the row applies to, matching the
+values of <code>group</code>. Leave the column out and the schedule applies to
+every group.</p></li>
+<li><p><code>time</code>: when the dose happens. At or after <code>t0</code>.</p></li>
+<li><p><code>state</code>: the state it goes into, by name (requires <code>states</code>) or by
+position, resolved exactly as <code>output</code> is. Optional for a
+one-state system.</p></li>
+<li><p><code>value</code>: how much.</p></li>
+<li><p><code>method</code> (optional, default <code>"add"</code>): <code>"add"</code> puts <code>value</code> into the
+state, <code>"replace"</code> sets the state to <code>value</code>, <code>"multiply"</code> scales
+it. These are the <span class="pkg">deSolve</span> event methods.</p></li>
+<li><p><code>duration</code> (optional, default <code>0</code>): a positive value makes the row
+an infusion, delivering <code>value</code> at the constant rate
+<code>value / duration</code> over <code>[time, time + duration]</code>. Infusions must
+use <code>"add"</code>.</p></li>
+</ul><p>Inside a <code>bf(nl = TRUE)</code> body, write the table <strong>inline</strong> or hold it
+in a function of no arguments:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, <span class="va">...</span>, events <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>         time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">12</span>, <span class="fl">48</span>, by <span class="op">=</span> <span class="fl">12</span><span class="op">)</span>, state <span class="op">=</span> <span class="st">"depot"</span>, value <span class="op">=</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">schedule</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"doses.csv"</span><span class="op">)</span></span>
+<span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, <span class="va">...</span>, events <span class="op">=</span> <span class="va">schedule</span><span class="op">)</span></span></code></pre><p></p></div>
+<p>A bare data.frame name will not do there. Every name in a nonlinear
+body is a request for a column of <code>data</code>, so <code>events = my_doses</code>
+asks the model frame for a column called <code>my_doses</code> and fails. The
+restriction is on the formula, not on <code>frm_ode()</code>: a direct call takes
+the data.frame itself.</p>
+<p>In NONMEM terms an <code>"add"</code> row is a dosing record (<code>evid = 1</code>) with
+<code>amt = value</code> into <code>cmt = state</code>; a row with <code>duration</code> is the same
+record with <code>rate = amt / duration</code>. <code>frm_ode()</code> does not read NONMEM
+column names, and there is no <code>evid</code> column: observation rows are the
+rows of <code>data</code>, and dose rows are the rows of <code>events</code>, which is a
+separate table. A NONMEM-shaped dataset has to be split into the two.</p>
+<p>An observation at exactly a dose time reads the state <strong>before</strong> the
+dose, which is the trough, matching both the <span class="pkg">deSolve</span> convention
+and the usual reading of a pre-dose sample. That includes an
+observation at <code>t0</code> with a dose at <code>t0</code>: it reads <code>init</code>.</p>
+<p>The doses are not handed to <span class="pkg">deSolve</span> as events. <code>frm_ode()</code>
+splits the integration at the event times and chains one solve per
+interval, carrying the state across the break itself. That is a
+correctness requirement, not a style choice: <span class="pkg">RTMBode</span> solves an
+augmented system carrying the derivatives of the states with respect
+to the parameters, and a <span class="pkg">deSolve</span> event jumps the state without
+jumping those derivatives, which gives a wrong gradient for
+<code>"replace"</code> and <code>"multiply"</code> (measured at 42% and 59% relative error).
+Splitting the solve is exact for every method. It costs one solve per
+dosing interval per group, so an intensively dosed design is
+proportionally slower.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="doses-that-depend-on-a-parameter">Doses that depend on a parameter<a class="anchor" aria-label="anchor" href="#doses-that-depend-on-a-parameter"></a></h2>
+    <p><code>events</code> is data: <code>value</code> is a numeric column, so it cannot hold an
+estimated quantity. <code>event_scale</code> is the way in. It is one value per
+observation (constant within group, like <code>init</code> and <code>parms</code>), and it
+multiplies the <code>value</code> of every event in that group, so a
+bioavailability written as a nonlinear parameter estimates a dose
+scale that carries covariates and random effects like any other:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>, parms <span class="op">=</span> <span class="va">...</span>,</span>
+<span>        group <span class="op">=</span> <span class="va">id</span>, events <span class="op">=</span> <span class="va">doses</span>, event_scale <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="va">logitF</span><span class="op">)</span><span class="op">)</span></span></code></pre><p></p></div>
+<p>Because scaling only makes sense for a dose, <code>event_scale</code> is refused
+on a table containing <code>"replace"</code> or <code>"multiply"</code> rows.</p>
+    </div>
+    <div class="section level2">
     <h2 id="boundaries">Boundaries<a class="anchor" aria-label="anchor" href="#boundaries"></a></h2>
-    <p>Dosing event tables (<code>evid</code>/<code>amt</code> records, repeated doses,
-infusions) are out of scope. Only models driven by their initial
-conditions are supported. For event-driven population
-pharmacokinetics use a dedicated tool such as <code>nlmixr2</code>.</p>
+    <p>Time-varying input other than dosing is out of scope, and the reason
+is worth knowing. <span class="pkg">RTMBode</span> tapes <code>dynamics</code> once, so <code>t</code> is an
+automatic-differentiation value inside it. A branch on time
+(<code>if (t &lt; t_end) rate else 0</code>) raises "Comparison is generally unsafe
+for AD types", and an <code><a href="https://rdrr.io/r/stats/approxfun.html" class="external-link">approxfun()</a></code> forcing table silently returns
+the value at the taping point instead of failing. Smooth arithmetic in
+<code>t</code> is fine. A piecewise-constant input belongs in <code>events</code> as an
+infusion, where it is carried as a parameter over each interval and
+differentiated exactly; <span class="pkg">deSolve</span>'s own <code>forcings</code> argument is not
+reachable, because <span class="pkg">RTMBode</span>'s compiled derivative shim has no
+forcing hook.</p>
+<p>Estimated event times, lag times and inter-dose intervals are not
+supported: the event times decide where the solve is split, which is
+settled before the tape is built.</p>
 <p><code>predict(se.fit = TRUE)</code> is not available for a nonlinear predictor,
 including one containing <code>frm_ode()</code>; request a nonlinear parameter
 with <code>predict(dpar = )</code> instead.</p>
@@ -295,26 +387,16 @@ into, <code><a href="bf.html">bf()</a></code> for the nonlinear formula grammar,
 <span class="r-in"><span>    data <span class="op">=</span> <span class="va">dd</span>, start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.25</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">8</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="co"># }</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co"># Repeated dosing: 100 into the depot every 12 hours. The dose at</span></span></span>
+<span class="r-in"><span>  <span class="co"># time 0 is the initial condition, the rest are events.</span></span></span>
+<span class="r-in"><span>  <span class="va">doses</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">12</span>, <span class="fl">24</span>, <span class="fl">36</span><span class="op">)</span>, state <span class="op">=</span> <span class="st">"depot"</span>,</span></span>
+<span class="r-in"><span>                      value <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu">frm_ode</span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">6</span>, <span class="fl">18</span>, <span class="fl">30</span>, <span class="fl">42</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>          parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0.2</span>, <span class="fl">10</span><span class="op">)</span>, states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"depot"</span>, <span class="st">"central"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>          output <span class="op">=</span> <span class="st">"central"</span>, events <span class="op">=</span> <span class="va">doses</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $lka</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  -0.2014577 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $lke</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   -1.743724 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $lV</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    2.298439 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> numeric(0)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   -1.293758 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 3.733943 4.075490 4.106474 4.109285</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

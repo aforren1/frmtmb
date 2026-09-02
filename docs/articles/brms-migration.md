@@ -147,7 +147,15 @@ the stats/lme4 spelling for standard generics:
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
   [`residuals()`](https://rdrr.io/r/stats/residuals.html) return
   vectors; [`confint()`](https://rdrr.io/r/stats/confint.html) takes
-  `level =`, not `probs =`; `re.form` replaces `re_formula`.
+  `level =`, not `probs =`; `re.form` replaces `re_formula`. The
+  exception is an ordinal family, where
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) follows brms
+  and returns the `n` by `K` matrix of category probabilities named by
+  the response levels, exactly as `predict(type = "response")` does; the
+  latent linear predictor is `predict(type = "link")`.
+- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  on an ordinal fit draws one probability curve per response category,
+  which is what brms draws under `categorical = TRUE`.
 - [`coef()`](https://rdrr.io/r/stats/coef.html) is the per-group
   convention shared by all three packages: fixed effects plus
   conditional modes per grouping level.

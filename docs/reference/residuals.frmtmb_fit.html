@@ -13,7 +13,7 @@ mislead.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -115,8 +115,26 @@ does) and those draws are not comparable with the observed censored
 values; <code>simulate(censored = TRUE)</code> makes them comparable, but the
 resulting point mass at each censoring point is not a distribution
 DHARMa's rank transform can use.</p>
-<p>Ordinal responses use <code>"oneStepGeneric"</code> over the discrete support
-<code>1..K</code>, which makes the residuals randomized quantile residuals.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="ordinal-responses">Ordinal responses<a class="anchor" aria-label="anchor" href="#ordinal-responses"></a></h2>
+
+
+<p>An ordinal response has no mean, so <code>"response"</code> and <code>"pearson"</code>
+score the categories by the integer codes <code>1..K</code> the likelihood
+itself uses: <code>"response"</code> is <code>y - E[Y]</code> with
+<code>E[Y] = sum_k k * P(y = k)</code> taken from <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>'s category
+probabilities, and <code>"pearson"</code> divides by the standard deviation of
+that same distribution. This is the frequentist point-estimate form
+of what brms's <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> reports on an ordinal fit (there, the
+observed category minus a drawn one). It is a residual on a SCORE,
+not on the ordinal scale, so read it for gross lack of fit and
+pattern, not as a calibrated quantity: <code>"osa"</code> and
+<code><a href="dharma_residuals.html">dharma_residuals()</a></code> give residuals that use only the order.
+<code>"deviance"</code> is refused, as it is for every family without a
+standard unit deviance.</p>
+<p><code>"osa"</code> uses <code>"oneStepGeneric"</code> over the discrete support <code>1..K</code>,
+which makes the residuals randomized quantile residuals.</p>
     </div>
     <div class="section level2">
     <h2 id="deviance-residuals">Deviance residuals<a class="anchor" aria-label="anchor" href="#deviance-residuals"></a></h2>

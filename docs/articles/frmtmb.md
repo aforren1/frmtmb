@@ -48,6 +48,31 @@ likelihood-root), [`simulate()`](https://rdrr.io/r/stats/simulate.html),
 [`anova()`](https://rdrr.io/r/stats/anova.html) for likelihood-ratio
 tests, and `emmeans` for marginal means.
 
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) gives the fit
+its own picture. One panel per subject shows what the random slopes
+bought: the lines share a population trend, but each subject keeps its
+own intercept and its own slope.
+
+``` r
+
+sleepstudy$yhat <- fitted(fit)
+tinyplot::tinyplot(Reaction ~ Days, data = sleepstudy, facet = ~Subject,
+                   type = "p", pch = 16, cex = 0.7, col = "gray40",
+                   theme = "clean2", facet.args = list(nrow = 3))
+tinyplot::plt_add(yhat ~ Days, data = sleepstudy, facet = ~Subject,
+                  type = "l", col = "firebrick", lwd = 1.5)
+```
+
+![Eighteen small panels, one for each subject of the sleep deprivation
+study. Gray points are the observed reaction times against days of sleep
+deprivation. A red line in each panel is the fitted value for that
+subject. Most lines rise, and their slopes differ from panel to panel.
+One subject has a flat line.](frmtmb_files/figure-html/sleep-fig-1.png)
+
+The figures on this page use
+[tinyplot](https://cran.r-project.org/package=tinyplot), which is a
+suggested package. They are skipped when it is not installed.
+
 ## Distributional regression
 
 Every distributional parameter can get its own formula with the full
@@ -62,6 +87,34 @@ fixef(fit2)$sigma
 #> (Intercept)        Days 
 #>  2.81184862  0.08463401
 ```
+
+The coefficient on `Days` is positive, so the model says that reaction
+times scatter more widely late in the study. Compare the fitted residual
+standard deviation with the standard deviation of the residuals on each
+day.
+
+``` r
+
+day_sd <- as.numeric(tapply(residuals(fit2), sleepstudy$Days, sd))
+sig <- as.numeric(predict(fit2, dpar = "sigma", type = "response",
+                          newdata = data.frame(Days = 0:9,
+                                               Subject = "308")))
+tinyplot::tinyplot(x = 0:9, y = day_sd, type = "p", pch = 16,
+                   col = "gray30", theme = "clean2", xlab = "Days",
+                   ylab = "residual standard deviation",
+                   ylim = range(c(day_sd, sig)))
+tinyplot::plt_add(x = 0:9, y = sig, type = "l", col = "firebrick",
+                  lwd = 2)
+```
+
+![Scatter plot of residual standard deviation against days of sleep
+deprivation. Ten gray points are the observed standard deviations, one
+for each day. A red curve is the fitted residual standard deviation.
+Both rise from about 17 on day zero to about 36 on day
+nine.](frmtmb_files/figure-html/sigma-fig-1.png)
+
+The daily standard deviations are noisy, because each one comes from 18
+observations. The trend they show is the trend the model fits.
 
 ## Nonlinear formulas
 
@@ -310,7 +363,10 @@ head(pars, 3)
 plot(pars$x, apply(pp, 2, sd), xlab = "slope", ylab = "sd(y)")
 ```
 
-![](frmtmb_files/figure-html/unnamed-chunk-12-1.png)
+![Scatter plot of the standard deviation of each simulated response set
+against the slope that generated it. The points form a U shape, because
+a larger slope of either sign spreads the outcome
+more.](frmtmb_files/figure-html/prior-pred-1.png)
 
 Every coefficient and every random-effect SD needs a value from
 `newparams` or a prior; leaving one out is an error rather than a silent

@@ -178,12 +178,14 @@ value.
 |:---|:---|:---|
 | ~ | gaussian + fitted; student + fitted; lognormal + fitted; shifted_lognormal + fitted; skew_normal + fitted; and 24 more | Needs a family with a mean function. |
 | ~ | gaussian + predict; student + predict; lognormal + predict; shifted_lognormal + predict; skew_normal + predict; and 24 more | Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns. |
-| ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; student + residuals; student + confint_profile; and 94 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
+| ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; student + residuals; student + confint_profile; and 90 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
 | ~ | gaussian + residuals_osa; student + residuals_osa; lognormal + residuals_osa; shifted_lognormal + residuals_osa; skew_normal + residuals_osa; and 24 more | One-step-ahead residuals need the family to register its observation through OBS(). |
-| ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 28 more | Univariate fits only, and the mu predictor must be linear. |
+| ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 24 more | Univariate fits only, and the mu predictor must be linear. |
 | ~ | gaussian + frm_sample; student + frm_sample; lognormal + frm_sample; shifted_lognormal + frm_sample; skew_normal + frm_sample; and 28 more | Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = “random” for a multimodal posterior. |
-| ~ | cumulative + fitted; sratio + fitted; cratio + fitted; acat + fitted | Returns the latent linear predictor, so the usual predict(type = “response”) == fitted() identity does not hold for an ordinal family. Use predict(fit, type = “response”) for the n x K category probabilities. |
-| ~ | cumulative + predict; sratio + predict; cratio + predict; acat + predict | type = “response” returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response’s own levels), not a vector: an ordinal response has no mean. cs() terms are honored and re-evaluated on newdata. type = “link” gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale. |
+| ~ | cumulative + fitted; sratio + fitted; cratio + fitted; acat + fitted | Returns the same n x K matrix of category probabilities predict(type = “response”) returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The predict(type = “response”) == fitted() identity holds. The latent linear predictor is predict(fit, type = “link”), which is also what emmeans and insight see. |
+| ~ | cumulative + predict; sratio + predict; cratio + predict; acat + predict | type = “response” returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response’s own levels), not a vector: an ordinal response has no mean. It equals fitted(). cs() terms are honored and re-evaluated on newdata. type = “link” gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale. |
+| ~ | cumulative + residuals; sratio + residuals; cratio + residuals; acat + residuals | “response” and “pearson” score the categories by the same codes 1..K the likelihood uses: y - sum_k k \* P(y = k), standardized by that distribution’s own sd. That is a residual on a SCORE, not on the ordinal scale; “osa” and dharma_residuals() use only the order. “deviance” is refused, as for every family without a standard unit deviance. |
+| ~ | cumulative + emmeans; sratio + emmeans; cratio + emmeans; acat + emmeans | Works on the LATENT linear predictor, emmeans’s mode = “latent” convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use predict(fit, type = “response”) or conditional_effects(), which are on a different scale from these means. |
 | x | tweedie + simulate; compois + simulate; hurdle_poisson + simulate | Refused: this family has no simulator yet. |
 
 ## Estimation modes
@@ -276,8 +278,8 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | ~ | exp + priors; exp + bounds; exp + verbose; gau + priors; gau + bounds; and 4 more | Spatial structures need coordinates built with num_factor(x, y). |
 | ~ | rr + priors; rr + bounds; rr + verbose | rr() gives a reduced-rank block; the rank d must not exceed the term dimension. |
 | ~ | equalto + priors; equalto + bounds; equalto + verbose | equalto(x + 0 \| g, V) fixes the term covariance to V, which must be square and match the term dimension, and belongs in data2 = list(V = V). |
-| ~ | gr_cov + priors; gr_cov + bounds; gr_cov + verbose | gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level, and belongs in data2 = list(A = A). |
-| ~ | gr_prec + priors; gr_prec + bounds; gr_prec + verbose | gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q). |
+| ~ | gr_cov + priors; gr_cov + bounds; gr_cov + verbose | gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level, and belongs in data2 = list(A = A). Terms sharing an \|ID\| key over the same factor and the same A merge into one such block, which is the same model as writing the traits long with a single gr() term. |
+| ~ | gr_prec + priors; gr_prec + bounds; gr_prec + verbose | gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q). Terms sharing an \|ID\| key over the same factor and the same Q merge into one such block. |
 | ~ | smooth + priors; smooth + bounds; smooth + verbose | smooth is the internal structure behind s() and t2(); it is not written directly in a formula. |
 | ~ | gp + priors; gp + bounds; gp + verbose; hsgp + priors; hsgp + bounds; hsgp + verbose | gp() and hsgp() are predictor specials, not bar terms. Write gp(x), not (gp(x) \| g). |
 | ~ | car + priors; car + bounds; car + verbose | car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = “escar” is the proper CAR, “icar”/“esicar” the intrinsic one under a soft sum-to-zero constraint (con_sd), “bym2” the scaled mixture; escar needs every location to have a neighbor. M belongs in data2 = list(M = M). |
@@ -382,8 +384,8 @@ Three spellings have restrictions of their own.
 | Status      | Pairs | Share |
 |:------------|------:|:------|
 | works       |  1259 | 32%   |
-| conditional |  1530 | 39%   |
-| refused     |   395 | 10%   |
+| conditional |  1532 | 39%   |
+| refused     |   393 | 10%   |
 | broken      |     0 | 0%    |
 | untested    |   753 | 19%   |
 

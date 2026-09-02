@@ -20,6 +20,8 @@ frm_ode(
   output = NULL,
   states = NULL,
   t0 = 0,
+  events = NULL,
+  event_scale = 1,
   method = "lsoda",
   atol = 1e-08,
   rtol = 1e-08,
@@ -77,6 +79,21 @@ frm_ode(
 
   Initial time, a scalar or one value per row (constant within group).
   Every observation time must be at or after it.
+
+- events:
+
+  Optional dosing table: a data.frame with columns `time`, `value` and
+  `state`, and optional `group`, `method` and `duration`, or a function
+  of no arguments returning one. See "Dosing events" below. `NULL` (the
+  default) is a model driven only by its initial conditions.
+
+- event_scale:
+
+  A multiplier on every `events$value`, one value per observation
+  (constant within group) or a single value shared by every group. This
+  is the one estimated quantity that can reach a dose, and it is how a
+  bioavailability is written. Only for a table whose rows are all
+  `method = "add"`.
 
 - method:
 
@@ -187,12 +204,101 @@ Solver warnings from deSolve ("corrector convergence failed repeatedly",
 steps and are usually not fatal. Judge the fit by the gradient at the
 optimum, not by whether the solver complained.
 
+## Dosing events
+
+`events` is a data.frame of doses, one row per dose, with columns:
+
+- `group` (optional): which group the row applies to, matching the
+  values of `group`. Leave the column out and the schedule applies to
+  every group.
+
+- `time`: when the dose happens. At or after `t0`.
+
+- `state`: the state it goes into, by name (requires `states`) or by
+  position, resolved exactly as `output` is. Optional for a one-state
+  system.
+
+- `value`: how much.
+
+- `method` (optional, default `"add"`): `"add"` puts `value` into the
+  state, `"replace"` sets the state to `value`, `"multiply"` scales it.
+  These are the deSolve event methods.
+
+- `duration` (optional, default `0`): a positive value makes the row an
+  infusion, delivering `value` at the constant rate `value / duration`
+  over `[time, time + duration]`. Infusions must use `"add"`.
+
+Inside a `bf(nl = TRUE)` body, write the table **inline** or hold it in
+a function of no arguments:
+
+    conc ~ frm_ode(pk_dyn, ..., events = data.frame(
+             time = seq(12, 48, by = 12), state = "depot", value = 100))
+
+    schedule <- function() read.csv("doses.csv")
+    conc ~ frm_ode(pk_dyn, ..., events = schedule)
+
+A bare data.frame name will not do there. Every name in a nonlinear body
+is a request for a column of `data`, so `events = my_doses` asks the
+model frame for a column called `my_doses` and fails. The restriction is
+on the formula, not on `frm_ode()`: a direct call takes the data.frame
+itself.
+
+In NONMEM terms an `"add"` row is a dosing record (`evid = 1`) with
+`amt = value` into `cmt = state`; a row with `duration` is the same
+record with `rate = amt / duration`. `frm_ode()` does not read NONMEM
+column names, and there is no `evid` column: observation rows are the
+rows of `data`, and dose rows are the rows of `events`, which is a
+separate table. A NONMEM-shaped dataset has to be split into the two.
+
+An observation at exactly a dose time reads the state **before** the
+dose, which is the trough, matching both the deSolve convention and the
+usual reading of a pre-dose sample. That includes an observation at `t0`
+with a dose at `t0`: it reads `init`.
+
+The doses are not handed to deSolve as events. `frm_ode()` splits the
+integration at the event times and chains one solve per interval,
+carrying the state across the break itself. That is a correctness
+requirement, not a style choice: RTMBode solves an augmented system
+carrying the derivatives of the states with respect to the parameters,
+and a deSolve event jumps the state without jumping those derivatives,
+which gives a wrong gradient for `"replace"` and `"multiply"` (measured
+at 42% and 59% relative error). Splitting the solve is exact for every
+method. It costs one solve per dosing interval per group, so an
+intensively dosed design is proportionally slower.
+
+## Doses that depend on a parameter
+
+`events` is data: `value` is a numeric column, so it cannot hold an
+estimated quantity. `event_scale` is the way in. It is one value per
+observation (constant within group, like `init` and `parms`), and it
+multiplies the `value` of every event in that group, so a
+bioavailability written as a nonlinear parameter estimates a dose scale
+that carries covariates and random effects like any other:
+
+    frm_ode(pk_dyn, init = list(0, 0), times = time, parms = ...,
+            group = id, events = doses, event_scale = plogis(logitF))
+
+Because scaling only makes sense for a dose, `event_scale` is refused on
+a table containing `"replace"` or `"multiply"` rows.
+
 ## Boundaries
 
-Dosing event tables (`evid`/`amt` records, repeated doses, infusions)
-are out of scope. Only models driven by their initial conditions are
-supported. For event-driven population pharmacokinetics use a dedicated
-tool such as `nlmixr2`.
+Time-varying input other than dosing is out of scope, and the reason is
+worth knowing. RTMBode tapes `dynamics` once, so `t` is an
+automatic-differentiation value inside it. A branch on time
+(`if (t < t_end) rate else 0`) raises "Comparison is generally unsafe
+for AD types", and an
+[`approxfun()`](https://rdrr.io/r/stats/approxfun.html) forcing table
+silently returns the value at the taping point instead of failing.
+Smooth arithmetic in `t` is fine. A piecewise-constant input belongs in
+`events` as an infusion, where it is carried as a parameter over each
+interval and differentiated exactly; deSolve's own `forcings` argument
+is not reachable, because RTMBode's compiled derivative shim has no
+forcing hook.
+
+Estimated event times, lag times and inter-dose intervals are not
+supported: the event times decide where the solve is split, which is
+settled before the tape is built.
 
 `predict(se.fit = TRUE)` is not available for a nonlinear predictor,
 including one containing `frm_ode()`; request a nonlinear parameter with
@@ -252,24 +358,14 @@ if (requireNamespace("RTMBode", quietly = TRUE)) {
     data = dd, start = list(beta = c(0, log(0.25), log(8))))
   fixef(fit)
   # }
+
+  # Repeated dosing: 100 into the depot every 12 hours. The dose at
+  # time 0 is the initial condition, the rest are events.
+  doses <- data.frame(time = c(12, 24, 36), state = "depot",
+                      value = 100)
+  frm_ode(pk_dyn, init = list(100, 0), times = c(6, 18, 30, 42),
+          parms = list(1, 0.2, 10), states = c("depot", "central"),
+          output = "central", events = doses)
 }
-#> $lka
-#> (Intercept) 
-#>  -0.2014577 
-#> 
-#> $lke
-#> (Intercept) 
-#>   -1.743724 
-#> 
-#> $lV
-#> (Intercept) 
-#>    2.298439 
-#> 
-#> $mu
-#> numeric(0)
-#> 
-#> $sigma
-#> (Intercept) 
-#>   -1.293758 
-#> 
+#> [1] 3.733943 4.075490 4.106474 4.109285
 ```

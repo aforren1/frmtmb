@@ -36,6 +36,14 @@ plot(x, which = 1:2, ask = NULL, ...)
 
 `x`, invisibly. Called for the plots it draws.
 
+## Details
+
+On an ordinal fit
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) is a matrix of
+category probabilities, so panel 1 uses the expected category index
+`sum_k k * P(y = k)` - the same scalar the Pearson residual is taken
+against - and labels the axis accordingly.
+
 ## Examples
 
 ``` r

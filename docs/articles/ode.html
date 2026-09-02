@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -205,6 +205,27 @@ times, <code><a href="../reference/ranef.html">ranef()</a></code> for the subjec
 <span>                 Time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">25</span>, length.out <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>, Dose <span class="op">=</span> <span class="fl">4.02</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.000000 7.257109 5.663743 4.420213 3.449711</span></span></code></pre></div>
+<p>The same call on a dense time grid draws the fitted curve for every
+subject over that subject’s own observations. Each curve carries that
+subject’s random effects, which is why they differ in both height and
+shape.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="va">d</span>, <span class="va">d</span><span class="op">$</span><span class="va">Subject</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Subject <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">Subject</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
+<span>             Time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">Time</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>,</span>
+<span>             Dose <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">Dose</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">grid</span><span class="op">$</span><span class="va">conc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">grid</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="va">Time</span> <span class="op">|</span> <span class="va">Subject</span>, data <span class="op">=</span> <span class="va">d</span>, pch <span class="op">=</span> <span class="fl">16</span>, cex <span class="op">=</span> <span class="fl">0.7</span>,</span>
+<span>                   legend <span class="op">=</span> <span class="cn">FALSE</span>, xlab <span class="op">=</span> <span class="st">"Time (h)"</span>,</span>
+<span>                   ylab <span class="op">=</span> <span class="st">"Concentration (mg/L)"</span>,</span>
+<span>                   main <span class="op">=</span> <span class="st">"Theophylline, fitted per subject"</span><span class="op">)</span></span>
+<span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot_add.html" class="external-link">tinyplot_add</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="va">Time</span> <span class="op">|</span> <span class="va">Subject</span>, data <span class="op">=</span> <span class="va">grid</span>, type <span class="op">=</span> <span class="st">"l"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="ode_files/figure-html/fig-theoph-1.png" class="r-plt" alt="Theophylline concentration against time for twelve subjects, with the fitted curve of each subject drawn through its own points." width="672"></p>
+<p>Each subject is observed once, so the curve and the points share a
+colour. The absorption peak moves between subjects because
+<code>lka</code> has a random effect.</p>
 </div>
 <div class="section level2">
 <h2 id="how-the-arguments-work">How the arguments work<a class="anchor" aria-label="anchor" href="#how-the-arguments-work"></a>
@@ -255,6 +276,12 @@ order the derivative function indexes them.</td>
 </tr>
 <tr class="even">
 <td>
+<code>events</code>, <code>event_scale</code>
+</td>
+<td>A dosing table, and an estimated multiplier on its amounts.</td>
+</tr>
+<tr class="odd">
+<td>
 <code>method</code>, <code>atol</code>, <code>rtol</code>
 </td>
 <td>Integrator and tolerances.</td>
@@ -274,6 +301,174 @@ states and selecting one by name is clearer and is what the example
 above does.</p>
 </div>
 <div class="section level2">
+<h2 id="repeated-dosing">Repeated dosing<a class="anchor" aria-label="anchor" href="#repeated-dosing"></a>
+</h2>
+<p>Theophylline is a single dose, and a single dose is just an initial
+condition. A course of treatment is not: the depot is refilled at each
+dose time, and the trajectory is the sum of what every dose so far has
+contributed. <code>events</code> is the table of those doses.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">doses</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">12</span>, <span class="fl">24</span>, <span class="fl">36</span><span class="op">)</span>, state <span class="op">=</span> <span class="st">"depot"</span>, value <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="va">doses</span></span>
+<span><span class="co">#&gt;   time state value</span></span>
+<span><span class="co">#&gt; 1   12 depot   100</span></span>
+<span><span class="co">#&gt; 2   24 depot   100</span></span>
+<span><span class="co">#&gt; 3   36 depot   100</span></span></code></pre></div>
+<p>One row per dose. <code>time</code> is when, <code>state</code> is
+which compartment (by name if <code>states</code> names them, otherwise
+by position), <code>value</code> is how much, and the default
+<code>method = "add"</code> puts the amount into the state. Give a row a
+positive <code>duration</code> and it becomes an infusion instead,
+delivering <code>value</code> at a constant rate over
+<code>[time, time + duration]</code>. A <code>group</code> column
+restricts a row to one subject; leave the column out and the schedule
+applies to every subject.</p>
+<p>In NONMEM terms an <code>"add"</code> row is a dosing record,
+<code>value</code> is <code>amt</code>, <code>state</code> is
+<code>cmt</code>, and <code>duration</code> sets
+<code>rate = amt / duration</code>. There is no <code>evid</code>
+column, because observations and doses live in two separate tables here:
+the rows of <code>data</code> are the observations, the rows of
+<code>events</code> are the doses.</p>
+<p>Solving directly, with the first dose as the initial condition and
+three more as events:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">60</span>, by <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span></span>
+<span><span class="va">traj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">tt</span>,</span>
+<span>                parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0.2</span>, <span class="fl">10</span><span class="op">)</span>,</span>
+<span>                states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"depot"</span>, <span class="st">"central"</span><span class="op">)</span>, output <span class="op">=</span> <span class="st">"central"</span>,</span>
+<span>                events <span class="op">=</span> <span class="va">doses</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="va">traj</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 0.000000 7.522638</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span><span class="va">tt</span>, <span class="va">traj</span>, type <span class="op">=</span> <span class="st">"l"</span>, lwd <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>                   xlab <span class="op">=</span> <span class="st">"Time (h)"</span>, ylab <span class="op">=</span> <span class="st">"Concentration (mg/L)"</span>,</span>
+<span>                   main <span class="op">=</span> <span class="st">"Four doses, twelve hours apart"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>v <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">doses</span><span class="op">$</span><span class="va">time</span><span class="op">)</span>, lty <span class="op">=</span> <span class="fl">3</span>, col <span class="op">=</span> <span class="st">"grey40"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="ode_files/figure-html/fig-doses-1.png" class="r-plt" alt="Concentration against time for four doses given twelve hours apart, rising to a plateau, with a vertical line at each dose time." width="672"></p>
+<p>Each peak is higher than the last and the troughs level off, so the
+course approaches a steady state instead of repeating the first dose.
+That accumulation is why a dosing schedule cannot be faked with one
+larger dose.</p>
+<div class="section level3">
+<h3 id="inside-a-formula">Inside a formula<a class="anchor" aria-label="anchor" href="#inside-a-formula"></a>
+</h3>
+<p>A nonlinear body looks up every bare name in <code>data</code>, so a
+data.frame held in a variable cannot be named there. Write the table
+inline, or hold it in a function of no arguments:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
+<span>               parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>               group <span class="op">=</span> <span class="va">id</span>, states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"depot"</span>, <span class="st">"central"</span><span class="op">)</span>,</span>
+<span>               output <span class="op">=</span> <span class="st">"central"</span>,</span>
+<span>               events <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">12</span>, <span class="fl">24</span><span class="op">)</span>, state <span class="op">=</span> <span class="st">"depot"</span>,</span>
+<span>                                   value <span class="op">=</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">schedule</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"doses.csv"</span><span class="op">)</span></span>
+<span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, <span class="va">...</span>, events <span class="op">=</span> <span class="va">schedule</span><span class="op">)</span></span></code></pre></div>
+<p>A fit is otherwise unchanged. Here is a small simulated course of
+three doses twelve hours apart, with between-subject variability on
+<code>lka</code> and <code>lke</code>:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">n_id</span> <span class="op">&lt;-</span> <span class="fl">8</span></span>
+<span><span class="va">tt_obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">2</span>, <span class="fl">6</span>, <span class="fl">11.9</span>, <span class="fl">14</span>, <span class="fl">20</span>, <span class="fl">23.9</span>, <span class="fl">26</span>, <span class="fl">32</span>, <span class="fl">40</span><span class="op">)</span></span>
+<span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">n_id</span><span class="op">)</span>, each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">tt_obs</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                 time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">tt_obs</span>, <span class="va">n_id</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ka_i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n_id</span>, <span class="fl">0</span>, <span class="fl">0.3</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">ke_i</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n_id</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.2</span><span class="op">)</span>, <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">super</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span>, <span class="va">ka</span>, <span class="va">ke</span>, <span class="va">V</span>, <span class="va">amt</span>, <span class="va">at</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">u</span> <span class="op">&lt;-</span> <span class="va">t</span> <span class="op">-</span> <span class="va">at</span><span class="op">[</span><span class="va">at</span> <span class="op">&lt;=</span> <span class="va">t</span><span class="op">]</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">amt</span> <span class="op">*</span> <span class="va">ka</span> <span class="op">/</span> <span class="op">(</span><span class="va">V</span> <span class="op">*</span> <span class="op">(</span><span class="va">ka</span> <span class="op">-</span> <span class="va">ke</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">ke</span> <span class="op">*</span> <span class="va">u</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">ka</span> <span class="op">*</span> <span class="va">u</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">dd</span><span class="op">$</span><span class="va">conc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dd</span><span class="op">)</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span></span>
+<span>  <span class="fu">super</span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">time</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="va">ka_i</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="va">ke_i</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="fl">10</span>, <span class="fl">100</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">12</span>, <span class="fl">24</span><span class="op">)</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dd</span><span class="op">)</span>, <span class="fl">0</span>, <span class="fl">0.3</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">dose_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
+<span>                    parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                    group <span class="op">=</span> <span class="va">id</span>, states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"depot"</span>, <span class="st">"central"</span><span class="op">)</span>,</span>
+<span>                    output <span class="op">=</span> <span class="st">"central"</span>,</span>
+<span>                    events <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">12</span>, <span class="fl">24</span><span class="op">)</span>,</span>
+<span>                                        state <span class="op">=</span> <span class="st">"depot"</span>, value <span class="op">=</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>     <span class="va">lka</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">lke</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">lV</span> <span class="op">~</span> <span class="fl">1</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">dd</span>, start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.25</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">8</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">dose_fit</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   lka.(Intercept)   lke.(Intercept)    lV.(Intercept) sigma.(Intercept) </span></span>
+<span><span class="co">#&gt;        0.04225596       -1.44209990        2.28231919       -1.30575528</span></span></code></pre></div>
+<p>The truth is <code>lka = 0</code>, <code>lke = -1.61</code> and
+<code>lV = 2.30</code>, with a residual standard deviation of 0.3, which
+is <code>-1.20</code> on the log scale <code>sigma</code> is reported
+on.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">show</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span></span>
+<span><span class="va">sub</span> <span class="op">&lt;-</span> <span class="va">dd</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">show</span>, <span class="op">]</span></span>
+<span><span class="va">sub</span><span class="op">$</span><span class="va">id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/droplevels.html" class="external-link">droplevels</a></span><span class="op">(</span><span class="va">sub</span><span class="op">$</span><span class="va">id</span><span class="op">)</span></span>
+<span><span class="va">gr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">show</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">s</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">40</span>, length.out <span class="op">=</span> <span class="fl">200</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">gr</span><span class="op">$</span><span class="va">conc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">dose_fit</span>, newdata <span class="op">=</span> <span class="va">gr</span><span class="op">)</span></span>
+<span><span class="va">gr</span><span class="op">$</span><span class="va">id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/droplevels.html" class="external-link">droplevels</a></span><span class="op">(</span><span class="va">gr</span><span class="op">$</span><span class="va">id</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="va">time</span> <span class="op">|</span> <span class="va">id</span>, data <span class="op">=</span> <span class="va">sub</span>, pch <span class="op">=</span> <span class="fl">16</span>,</span>
+<span>                   xlab <span class="op">=</span> <span class="st">"Time (h)"</span>, ylab <span class="op">=</span> <span class="st">"Concentration (mg/L)"</span>,</span>
+<span>                   main <span class="op">=</span> <span class="st">"Three doses, four subjects"</span><span class="op">)</span></span>
+<span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot_add.html" class="external-link">tinyplot_add</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="va">time</span> <span class="op">|</span> <span class="va">id</span>, data <span class="op">=</span> <span class="va">gr</span>, type <span class="op">=</span> <span class="st">"l"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>v <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">12</span>, <span class="fl">24</span><span class="op">)</span>, lty <span class="op">=</span> <span class="fl">3</span>, col <span class="op">=</span> <span class="st">"grey40"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="ode_files/figure-html/fig-dosefit-1.png" class="r-plt" alt="Observed concentrations and fitted curves for four subjects on a three dose course, with a vertical line at each dose time." width="672"></p>
+</div>
+<div class="section level3">
+<h3 id="doses-that-depend-on-a-parameter">Doses that depend on a parameter<a class="anchor" aria-label="anchor" href="#doses-that-depend-on-a-parameter"></a>
+</h3>
+<p><code>events$value</code> is a numeric column, so it cannot hold
+something being estimated. <code>event_scale</code> is the way in: one
+value per observation, constant within group, multiplying every amount
+in that group. A bioavailability is then an ordinary nonlinear
+parameter, free to carry covariates and random effects:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
+<span>                  parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                  group <span class="op">=</span> <span class="va">id</span>, states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"depot"</span>, <span class="st">"central"</span><span class="op">)</span>,</span>
+<span>                  output <span class="op">=</span> <span class="st">"central"</span>,</span>
+<span>                  events <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">12</span>, <span class="fl">24</span><span class="op">)</span>,</span>
+<span>                                      state <span class="op">=</span> <span class="st">"depot"</span>, value <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>,</span>
+<span>                  event_scale <span class="op">=</span> <span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">logitF</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>   <span class="va">lka</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">lke</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">lV</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">logitF</span> <span class="op">~</span> <span class="fl">1</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>Because scaling is only meaningful for an amount,
+<code>event_scale</code> is refused on a table containing
+<code>"replace"</code> or <code>"multiply"</code> rows.</p>
+</div>
+<div class="section level3">
+<h3 id="an-observation-at-a-dose-time-is-the-trough">An observation at a dose time is the trough<a class="anchor" aria-label="anchor" href="#an-observation-at-a-dose-time-is-the-trough"></a>
+</h3>
+<p>An observation whose time equals a dose time reads the state
+<strong>before</strong> that dose, which is the pre-dose sample a study
+protocol asks for. That also covers an observation at <code>t0</code>
+when a dose is given at <code>t0</code>: it reads <code>init</code>. If
+you want the post-dose value, ask for a time just after.</p>
+</div>
+<div class="section level3">
+<h3 id="how-the-doses-are-applied">How the doses are applied<a class="anchor" aria-label="anchor" href="#how-the-doses-are-applied"></a>
+</h3>
+<p><code><a href="../reference/frm_ode.html">frm_ode()</a></code> does not hand the table to
+<strong>deSolve</strong>’s own <code>events</code> argument. It splits
+the integration at the event times instead, and chains one solve per
+interval, carrying the state across the break itself.</p>
+<p>That is a correctness requirement. <strong>RTMBode</strong>
+integrates an augmented system that carries the derivative of each state
+with respect to each parameter alongside the states. A deSolve event
+jumps the state and leaves those derivatives untouched, which is right
+for an addition and wrong for the other two methods: measured against
+finite differences, <code>"replace"</code> and <code>"multiply"</code>
+came out 42% and 59% off. Splitting the solve is exact for all three,
+and it is what makes <code>event_scale</code> possible at all.</p>
+<p>The price is one solve per dosing interval per group. A twice-daily
+regimen over a fortnight is 28 solves per subject, not one.</p>
+</div>
+</div>
+<div class="section level2">
 <h2 id="three-things-that-will-bite">Three things that will bite<a class="anchor" aria-label="anchor" href="#three-things-that-will-bite"></a>
 </h2>
 <div class="section level3">
@@ -284,7 +479,7 @@ above does.</p>
 A covariate that changes between an early and a late observation of the
 same subject therefore describes a model this helper cannot solve, and
 it is refused by name at frame assembly:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span><span class="op">$</span><span class="va">phase</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">Time</span> <span class="op">&lt;=</span> <span class="fl">2</span>, <span class="st">"early"</span>, <span class="st">"late"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">Dose</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">Time</span>,</span>
 <span>                      parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -379,12 +574,28 @@ instead: it gives the same answer roughly a hundred times faster.</p>
 <div class="section level2">
 <h2 id="what-is-out-of-scope">What is out of scope<a class="anchor" aria-label="anchor" href="#what-is-out-of-scope"></a>
 </h2>
-<p>Dosing <strong>event tables</strong> are not supported: repeated
-doses, infusions, <code>evid</code>/<code>amt</code> records.
-<code><a href="../reference/frm_ode.html">frm_ode()</a></code> covers models driven by their initial conditions,
-which is the single-dose case. For event-driven population
-pharmacokinetics use a dedicated tool such as
-<strong>nlmixr2</strong>.</p>
+<p><strong>Time-varying input other than dosing.</strong> A branch on
+time inside the derivative function does not work, and it is worth
+knowing why. <strong>RTMBode</strong> tapes that function once, so
+<code>t</code> is an automatic-differentiation value inside it. Writing
+<code>if (t &lt; t_end) rate else 0</code> raises</p>
+<pre><code>Error: Comparison is generally unsafe for AD types</code></pre>
+<p>which is the good outcome. An <code><a href="https://rdrr.io/r/stats/approxfun.html" class="external-link">approxfun()</a></code> forcing table
+is the bad one: it silently returns the value at the taping point, so
+the model you fit is not the model you wrote. Smooth arithmetic in
+<code>t</code>, such as <code>p[2] * exp(-p[3] * t)</code>, is fine. A
+piecewise-constant input belongs in <code>events</code> as an infusion,
+where it rides along as a parameter over each interval and is
+differentiated exactly. deSolve’s own <code>forcings</code> argument is
+not reachable through <strong>RTMBode</strong>.</p>
+<p><strong>Estimated event times.</strong> Lag times, estimated
+inter-dose intervals and estimated observation times are not supported.
+The event times decide where the solve is split, and that is settled
+before the tape is built.</p>
+<p><strong>Steady-state dosing records.</strong> There is no equivalent
+of NONMEM’s <code>ss</code>/<code>ii</code>: write out the doses that
+led to the steady state, or start the solve from a steady-state initial
+condition you compute yourself.</p>
 <p><code>predict(se.fit = TRUE)</code> is not available for any
 nonlinear predictor, <code><a href="../reference/frm_ode.html">frm_ode()</a></code> included. Ask for a
 nonlinear parameter instead, with
@@ -419,7 +630,7 @@ detected, and by default its rows are filled with
 <p>A penalty is never written silently. <code><a href="../reference/frm_ode.html">frm_ode()</a></code> warns and
 names the groups, and <code><a href="../reference/frm_ode_failures.html">frm_ode_failures()</a></code> reads the record
 back afterwards:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: frm_ode(): the solve failed for 1 of 3 groups (2). Their rows</span></span>
 <span><span class="co">#&gt; hold penalty = 1e+06, not a solution. ...</span></span>

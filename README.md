@@ -33,10 +33,10 @@ hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)",
 
 ## Status
 
-Pre-release (v0.30). The goal is a CRAN release. Validation has
+Pre-release (v0.32). The goal is a CRAN release. Validation has
 three layers:
 
-- The suite contains about 2700 tests. Every model class is compared
+- The suite contains about 3200 tests. Every model class is compared
   with an exact reference: glmmTMB, lme4, mgcv, MASS, survival,
   nnet, GLMMadaptive, quantreg, mice, closed-form marginals, or
   hand-written ML.

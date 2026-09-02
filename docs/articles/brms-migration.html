@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -283,7 +283,16 @@ through bayesplot’s <code>ppc_*</code> functions),
 <code>Estimate</code>/<code>Q2.5</code> columns; <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>
 and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> return vectors; <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>
 takes <code>level =</code>, not <code>probs =</code>;
-<code>re.form</code> replaces <code>re_formula</code>.</li>
+<code>re.form</code> replaces <code>re_formula</code>. The exception is
+an ordinal family, where <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> follows brms and returns
+the <code>n</code> by <code>K</code> matrix of category probabilities
+named by the response levels, exactly as
+<code>predict(type = "response")</code> does; the latent linear
+predictor is <code>predict(type = "link")</code>.</li>
+<li>
+<code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> on an ordinal fit draws one
+probability curve per response category, which is what brms draws under
+<code>categorical = TRUE</code>.</li>
 <li>
 <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> is the per-group convention shared by all three
 packages: fixed effects plus conditional modes per grouping level.</li>

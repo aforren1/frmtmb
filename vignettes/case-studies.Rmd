@@ -167,10 +167,11 @@ matrix `G`, and `cov = A` makes the full covariance the Kronecker
 product of `G` with the relatedness matrix. `sigma ~ 0 + trait` gives
 each trait its own residual standard deviation.
 
-The long format is the supported spelling for a multi-trait model with
-a known covariance. Do not reach for `mvbf()` with the `|ID|`
-identifier: frmtmb refuses that combination, because the cross-formula
-merge cannot carry a `gr(cov = )` matrix through.
+The `mvbf()` spelling with the `|ID|` identifier over the same
+`gr(id, cov = A)` term fits the same joint density: the cross-formula
+merge builds one Kronecker block, and the two spellings agree in the
+log likelihood to about 1e-9. The long format shown here keeps both
+traits in one formula, which is the shorter call.
 
 ```{r animal-mv-data}
 set.seed(4)
@@ -823,10 +824,11 @@ each one is handled above:
   observation-level random effect warning, although the covariance
   matrix identifies the two variances. Use
   `frmtmb_control(check_olre = "ignore")`.
-- A multi-trait model with a known covariance takes the long format of
-  section 1. `mvbf()` with the `|ID|` identifier over a `gr(cov = )`
-  block is refused, because the cross-formula merge cannot carry the
-  covariance matrix through.
+- A multi-trait model with a known covariance can use the long format
+  of section 1 or `mvbf()` with the `|ID|` identifier over the same
+  `gr(cov = )` term; the two spellings are the same joint density. One
+  `|ID|` label must name one grouping specification, and the matrix
+  must resolve identically in every formula.
 
 The identity-refit check of section 1 belongs in any model that reads a
 matrix from `data2`. It is the one test that a structured covariance

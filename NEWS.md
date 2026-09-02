@@ -1,3 +1,79 @@
+# frmtmb 0.32.0
+
+The merged-|ID| Kronecker path, the ordinal prediction surface, ODE
+dosing, and vignette figures.
+
+## New
+
+* `frm_ode()` gains `events`, a per-dataset dosing table (`time`,
+  `value`, `state`, optional `group`, `method` of add/replace/
+  multiply, `duration` for constant-rate infusions) supporting
+  repeated doses, and `event_scale`, an estimated multiplier on
+  every dose amount, so bioavailability is an ordinary nonlinear
+  parameter with covariates and random effects. Dosing splits the
+  solve at the event times instead of using deSolve's `events`
+  argument: deSolve events do not differentiate correctly through
+  RTMBode's augmented system (`replace` and `multiply` measured 42
+  and 59 percent relative gradient error; reported upstream). A
+  branch on time inside a derivative function is refused by RTMB,
+  and an `approxfun()` forcing table inside one is silently wrong;
+  both are documented. `vignette("ode")` gains a repeated-dosing
+  section.
+* Terms sharing an `|ID|` key whose grouping is `gr(g, cov = A)` or
+  `gr(g, prec = Q)` now merge into one Kronecker block instead of
+  being refused: `mvbf(bf(y1 ~ (1 | q | gr(id, cov = A))), bf(y2 ~
+  (1 | q | gr(id, cov = A))))` is the same joint density as the
+  long format `(0 + trait | gr(id, cov = A))`, verified to 7e-10 on
+  the log likelihood under ML and REML and on both the covariance
+  and precision sides. The compatibility rows move from refused to
+  conditional.
+* Vignettes carry figures where a picture beats a table: a forest
+  plot for the meta-analysis, the monotonic step shape, the
+  location-scale band with the mgcv overlay, growth-mixture
+  trajectories by recovered class, the sleepstudy small multiple,
+  and concentration-time curves in the ODE vignette. Figures use
+  the suggested tinyplot package and are skipped when it is not
+  installed.
+
+## Behavior changes
+
+* `fitted()` on an ordinal family returns the n x K matrix of
+  category probabilities (the brms convention), exactly as
+  `predict(type = "response")` does; it previously returned the
+  latent linear predictor. The invariant `predict(type =
+  "response") == fitted()` now holds for every family with no
+  documented exception. `predict(type = "link")` keeps the latent
+  predictor.
+* `residuals(type = "response")` and `type = "pearson"` on an
+  ordinal fit score the categories by their codes: `y - sum_k k *
+  P(y = k)`, standardized by that distribution's own sd.
+  `"response"` previously returned the observed code minus the
+  latent predictor without saying so, and `"pearson"` errored.
+* One `|ID|` label spread over more than one grouping specification
+  is now an error. Previously the merge key included the deparsed
+  grouping call, so `(1 | q | g)` next to `(1 | q | gr(g, cov =
+  A)))` landed in separate blocks and silently did not correlate at
+  all, which is not what the shared label asks. `|ID|`-linked
+  `gr()` terms whose matrices resolve to different objects are
+  refused at frame assembly, comparing the resolved matrices.
+
+## Corrected behavior
+
+* `emmeans()` on an ordinal fit no longer fails with
+  "Non-conformable elements in reference grid"; the basis is built
+  by column name (marginal means stay on the latent scale, the
+  emmeans convention for `clm`-like models). `pp_check()` and
+  `dharma_residuals()` work on ordinal fits (simulated ordered
+  factors are compared on their integer codes; DHARMa's rank
+  transform runs on simulated categories with `integerResponse =
+  TRUE`). `plot()` works on an ordinal fit.
+* `conditional_effects()` on an ordinal fit draws one probability
+  curve per response category (a `cats__` column), with
+  delta-method standard errors over the joint covariance of
+  coefficients, thresholds, and `cs()` terms, and bands on the
+  logit scale so they cannot leave [0, 1]. `method = "predict"` is
+  refused there; `dpar = "mu"` gives the latent display.
+
 # frmtmb 0.31.0
 
 ODE models, an exotic-models case-study vignette, and the defect wave

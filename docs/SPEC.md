@@ -49,9 +49,13 @@ fit function is
 
 Multivariate design notes: every linear predictor’s Z spans the full b
 vector (sparse), so Z column indices are b indices and \|ID\| merging is
-only column placement; \|ID\|-linked terms merge into one us block whose
-per-level coefficient vector concatenates the component terms. rescor
-standardizes per-response residuals and evaluates one constant
+only column placement; \|ID\|-linked terms merge into one block whose
+per-level coefficient vector concatenates the component terms. That
+block is unstructured by default, and a gr_cov/gr_prec Kronecker block
+of the merged dimension when every linked term names the same grouping
+factor and the same relationship matrix, which makes the \|ID\| spelling
+of a multi-trait animal model the same fit as the long-format one.
+rescor standardizes per-response residuals and evaluates one constant
 correlation matrix (plus a log-sigma Jacobian), which stays vectorized
 under distributional sigma. Matrix responses (multinomial) use
 `primary_dpars`: families whose location predictors are mu2..muK all

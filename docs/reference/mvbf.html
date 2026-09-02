@@ -15,7 +15,7 @@ correlation across responses uses the brms |ID| syntax, e.g.
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,6 +88,20 @@ or off.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>frmtmb_mvformula</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The linked terms merge into one covariance block, so they must all
+name the same grouping specification. When they all write
+<code>gr(g, cov = A)</code> (or all <code>gr(g, prec = Q)</code>) with the same matrix, the
+merged block keeps it: its covariance is <code>A (x) Sigma</code>, with <code>Sigma</code>
+unstructured across the merged coefficients. A two-trait animal model
+is therefore the same fit whether written across two responses with
+<code>(1 | q | gr(id, cov = A))</code> or in long format as a single
+<code>(0 + trait | gr(id, cov = A))</code>. Mixing structures under one key -
+a plain <code>g</code> in one formula and <code>gr(g, cov = A)</code> in another, or
+<code>cov =</code> against <code>prec =</code> - is refused, because a merged block has
+room for one structure.</p>
     </div>
 
     <div class="section level2">

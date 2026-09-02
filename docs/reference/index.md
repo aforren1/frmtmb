@@ -142,6 +142,8 @@
 
 - [`predict(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
   : Predictions from a frmtmb fit
+- [`fitted(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/fitted.frmtmb_fit.md)
+  : Fitted values
 - [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
   : Conditional effects of predictors
 - [`simulate(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md)

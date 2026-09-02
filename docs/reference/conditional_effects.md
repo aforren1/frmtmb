@@ -97,7 +97,33 @@ conditional_effects(
 
 A named list of data frames (one per effect) with the varied variable(s)
 plus `estimate__`, `se__` (link scale), `lower__`, and `upper__`;
-printing it draws the plots.
+printing it draws the plots. An ordinal fit adds a `cats__` column and
+one block of rows per response category.
+
+## Ordinal responses
+
+[`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+and
+[`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+have no mean, so the display is per CATEGORY, as brms's
+`categorical = TRUE` is: each effect data frame gains a `cats__` factor
+of the response's own levels and carries the fitted category probability
+in `estimate__`, with one curve per category in the plot (a second
+predictor gets a panel of its own).
+
+`se__` is then on the probability scale, and the band is a Wald interval
+on the logit of the probability so it cannot leave `[0, 1]`. The
+standard errors are the delta method over the joint covariance of the
+coefficients, the thresholds AND the `cs()` coefficients: a category
+probability depends on all of them, and holding the thresholds fixed
+would understate every band.
+
+`method = "predict"` is refused there (the category probabilities are
+already the whole predictive distribution). Naming a distributional
+parameter, `dpar = "mu"`, opts back into the ordinary display of the
+latent linear predictor.
 
 ## Examples
 

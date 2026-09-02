@@ -71,8 +71,24 @@ values; `simulate(censored = TRUE)` makes them comparable, but the
 resulting point mass at each censoring point is not a distribution
 DHARMa's rank transform can use.
 
-Ordinal responses use `"oneStepGeneric"` over the discrete support
-`1..K`, which makes the residuals randomized quantile residuals.
+## Ordinal responses
+
+An ordinal response has no mean, so `"response"` and `"pearson"` score
+the categories by the integer codes `1..K` the likelihood itself uses:
+`"response"` is `y - E[Y]` with `E[Y] = sum_k k * P(y = k)` taken from
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html)'s category
+probabilities, and `"pearson"` divides by the standard deviation of that
+same distribution. This is the frequentist point-estimate form of what
+brms's [`residuals()`](https://rdrr.io/r/stats/residuals.html) reports
+on an ordinal fit (there, the observed category minus a drawn one). It
+is a residual on a SCORE, not on the ordinal scale, so read it for gross
+lack of fit and pattern, not as a calibrated quantity: `"osa"` and
+[`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
+give residuals that use only the order. `"deviance"` is refused, as it
+is for every family without a standard unit deviance.
+
+`"osa"` uses `"oneStepGeneric"` over the discrete support `1..K`, which
+makes the residuals randomized quantile residuals.
 
 ## Deviance residuals
 

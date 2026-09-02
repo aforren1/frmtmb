@@ -123,12 +123,17 @@ with the response's own factor levels as column names. The rows sum to
 one. `cs()` category-specific terms are honored: they enter each
 threshold separately and are re-evaluated on `newdata`.
 
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) returns the
+same matrix, so the usual `predict(type = "response") == fitted()`
+identity holds here too.
+
 `type = "link"` (the default) and `dpar = "mu"` still give the latent
 linear predictor, which is where the fixed-effect coefficients live and
 where `se.fit` is available. `se.fit` on the response scale is refused:
-the prediction is a K-vector per row, not one number.
-[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) keeps returning
-the latent predictor for these families.
+the prediction is a K-vector per row, not one number. `emmeans` and
+[`insight::get_predicted()`](https://easystats.github.io/insight/reference/get_predicted.html)
+stay on that latent scale, which is the `mode = "latent"` convention for
+`clm`-like models.
 
 `type = "conditional"` is glmmTMB's name for the conditional MEAN, so it
 gives the category probabilities here too rather than the linear

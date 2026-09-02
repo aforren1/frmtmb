@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,6 +42,32 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.32.0" id="frmtmb-0320">frmtmb 0.32.0<a class="anchor" aria-label="anchor" href="#frmtmb-0320"></a></h2>
+<p>The merged-|ID| Kronecker path, the ordinal prediction surface, ODE dosing, and vignette figures.</p>
+<div class="section level3">
+<h3 id="new-0-32-0">New<a class="anchor" aria-label="anchor" href="#new-0-32-0"></a></h3>
+<ul><li>
+<code><a href="../reference/frm_ode.html">frm_ode()</a></code> gains <code>events</code>, a per-dataset dosing table (<code>time</code>, <code>value</code>, <code>state</code>, optional <code>group</code>, <code>method</code> of add/replace/ multiply, <code>duration</code> for constant-rate infusions) supporting repeated doses, and <code>event_scale</code>, an estimated multiplier on every dose amount, so bioavailability is an ordinary nonlinear parameter with covariates and random effects. Dosing splits the solve at the event times instead of using deSolve’s <code>events</code> argument: deSolve events do not differentiate correctly through RTMBode’s augmented system (<code>replace</code> and <code>multiply</code> measured 42 and 59 percent relative gradient error; reported upstream). A branch on time inside a derivative function is refused by RTMB, and an <code><a href="https://rdrr.io/r/stats/approxfun.html" class="external-link">approxfun()</a></code> forcing table inside one is silently wrong; both are documented. <code><a href="../articles/ode.html">vignette("ode")</a></code> gains a repeated-dosing section.</li>
+<li>Terms sharing an <code>|ID|</code> key whose grouping is <code>gr(g, cov = A)</code> or <code>gr(g, prec = Q)</code> now merge into one Kronecker block instead of being refused: <code>mvbf(bf(y1 ~ (1 | q | gr(id, cov = A))), bf(y2 ~ (1 | q | gr(id, cov = A))))</code> is the same joint density as the long format <code>(0 + trait | gr(id, cov = A))</code>, verified to 7e-10 on the log likelihood under ML and REML and on both the covariance and precision sides. The compatibility rows move from refused to conditional.</li>
+<li>Vignettes carry figures where a picture beats a table: a forest plot for the meta-analysis, the monotonic step shape, the location-scale band with the mgcv overlay, growth-mixture trajectories by recovered class, the sleepstudy small multiple, and concentration-time curves in the ODE vignette. Figures use the suggested tinyplot package and are skipped when it is not installed.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="behavior-changes-0-32-0">Behavior changes<a class="anchor" aria-label="anchor" href="#behavior-changes-0-32-0"></a></h3>
+<ul><li>
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> on an ordinal family returns the n x K matrix of category probabilities (the brms convention), exactly as <code>predict(type = "response")</code> does; it previously returned the latent linear predictor. The invariant <code>predict(type = "response") == fitted()</code> now holds for every family with no documented exception. <code>predict(type = "link")</code> keeps the latent predictor.</li>
+<li>
+<code>residuals(type = "response")</code> and <code>type = "pearson"</code> on an ordinal fit score the categories by their codes: <code>y - sum_k k * P(y = k)</code>, standardized by that distribution’s own sd. <code>"response"</code> previously returned the observed code minus the latent predictor without saying so, and <code>"pearson"</code> errored.</li>
+<li>One <code>|ID|</code> label spread over more than one grouping specification is now an error. Previously the merge key included the deparsed grouping call, so <code>(1 | q | g)</code> next to <code>(1 | q | gr(g, cov = A)))</code> landed in separate blocks and silently did not correlate at all, which is not what the shared label asks. <code>|ID|</code>-linked <code>gr()</code> terms whose matrices resolve to different objects are refused at frame assembly, comparing the resolved matrices.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="corrected-behavior-0-32-0">Corrected behavior<a class="anchor" aria-label="anchor" href="#corrected-behavior-0-32-0"></a></h3>
+<ul><li>
+<code>emmeans()</code> on an ordinal fit no longer fails with “Non-conformable elements in reference grid”; the basis is built by column name (marginal means stay on the latent scale, the emmeans convention for <code>clm</code>-like models). <code><a href="../reference/pp_check.html">pp_check()</a></code> and <code><a href="../reference/dharma_residuals.html">dharma_residuals()</a></code> work on ordinal fits (simulated ordered factors are compared on their integer codes; DHARMa’s rank transform runs on simulated categories with <code>integerResponse = TRUE</code>). <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> works on an ordinal fit.</li>
+<li>
+<code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> on an ordinal fit draws one probability curve per response category (a <code>cats__</code> column), with delta-method standard errors over the joint covariance of coefficients, thresholds, and <code>cs()</code> terms, and bands on the logit scale so they cannot leave [0, 1]. <code>method = "predict"</code> is refused there; <code>dpar = "mu"</code> gives the latent display.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.31.0" id="frmtmb-0310">frmtmb 0.31.0<a class="anchor" aria-label="anchor" href="#frmtmb-0310"></a></h2>
 <p>ODE models, an exotic-models case-study vignette, and the defect wave the vignette work exposed.</p>

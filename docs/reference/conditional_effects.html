@@ -19,7 +19,7 @@ conditional_smooths()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -156,7 +156,29 @@ does not store a raw variable (e.g. a variable used only inside
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A named list of data frames (one per effect) with the varied
 variable(s) plus <code>estimate__</code>, <code>se__</code> (link scale), <code>lower__</code>, and
-<code>upper__</code>; printing it draws the plots.</p>
+<code>upper__</code>; printing it draws the plots. An ordinal fit adds a
+<code>cats__</code> column and one block of rows per response category.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="ordinal-responses">Ordinal responses<a class="anchor" aria-label="anchor" href="#ordinal-responses"></a></h2>
+
+
+<p><code><a href="frmtmb-families.html">cumulative()</a></code>, <code><a href="frmtmb-families.html">sratio()</a></code>, <code><a href="frmtmb-families.html">cratio()</a></code> and <code><a href="frmtmb-families.html">acat()</a></code> have no mean, so
+the display is per CATEGORY, as brms's <code>categorical = TRUE</code> is: each
+effect data frame gains a <code>cats__</code> factor of the response's own
+levels and carries the fitted category probability in <code>estimate__</code>,
+with one curve per category in the plot (a second predictor gets a
+panel of its own).</p>
+<p><code>se__</code> is then on the probability scale, and the band is a Wald
+interval on the logit of the probability so it cannot leave <code>[0, 1]</code>.
+The standard errors are the delta method over the joint covariance of
+the coefficients, the thresholds AND the <code>cs()</code> coefficients: a
+category probability depends on all of them, and holding the
+thresholds fixed would understate every band.</p>
+<p><code>method = "predict"</code> is refused there (the category probabilities are
+already the whole predictive distribution). Naming a distributional
+parameter, <code>dpar = "mu"</code>, opts back into the ordinary display of the
+latent linear predictor.</p>
     </div>
 
     <div class="section level2">

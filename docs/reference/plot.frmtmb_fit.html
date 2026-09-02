@@ -13,7 +13,7 @@ dharma_residuals() or residuals(type = "osa").'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,6 +86,13 @@ interactive-device rule.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p><code>x</code>, invisibly. Called for the plots it draws.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>On an ordinal fit <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> is a matrix of category probabilities,
+so panel 1 uses the expected category index <code>sum_k k * P(y = k)</code> -
+the same scalar the Pearson residual is taken against - and labels
+the axis accordingly.</p>
     </div>
 
     <div class="section level2">

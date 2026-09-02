@@ -56,6 +56,7 @@ reference:
 - title: Extractors and prediction
   contents:
   - predict.frmtmb_fit
+  - fitted.frmtmb_fit
   - conditional_effects
   - simulate.frmtmb_fit
   - refit

@@ -381,7 +381,7 @@ ode_split_events <- function(events, labels, n_state, states) {
 #'
 #' @noRd
 ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
-                             n_parm, dyn_rate, scale) {
+                             dyn_rate, scale) {
   "[<-" <- RTMB::ADoverload("[<-")
   "c" <- RTMB::ADoverload("c")
 
@@ -962,7 +962,7 @@ frm_ode <- function(dynamics, init, times, parms, group = NULL,
         scale_g <- if (is.null(scale_cols)) 1 else
           col_at(scale_cols[[1L]], i1)
         ode_solve_events(run_solve, y0, pv, times[idx], ev, tstart,
-                         n_state, n_parm, dyn_rate, scale_g)
+                         n_state, dyn_rate, scale_g)
       },
       error = function(e) e
     )

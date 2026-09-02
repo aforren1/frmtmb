@@ -97,7 +97,9 @@ r <- residuals(fit, type = "osa")
 qqnorm(r); abline(0, 1)
 ```
 
-![](diagnostics_files/figure-html/unnamed-chunk-4-1.png)
+![Normal quantile-quantile plot of the one-step-ahead residuals. The
+points follow the identity line over most of the range, with small
+departures in the tails.](diagnostics_files/figure-html/osa-qq-1.png)
 
 Simulation-based residuals through DHARMa cover the same ground with a
 richer test suite (dispersion, zero-inflation, outliers) and better
@@ -109,7 +111,11 @@ dh <- dharma_residuals(fit, nsim = 200, seed = 1)
 plot(dh)
 ```
 
-![](diagnostics_files/figure-html/unnamed-chunk-5-1.png)
+![The standard DHARMa panel pair. The left panel is a uniform
+quantile-quantile plot of the scaled residuals with its three
+goodness-of-fit tests. The right panel plots the scaled residuals
+against the rank-transformed model
+predictions.](diagnostics_files/figure-html/dharma-plot-1.png)
 
 ``` r
 
@@ -150,7 +156,10 @@ through bayesplot’s `ppc_*` functions (brms users know this display):
 bayesplot::pp_check(fit, ndraws = 20)
 ```
 
-![](diagnostics_files/figure-html/unnamed-chunk-7-1.png)
+![Posterior predictive check. A thick dark density curve is the observed
+count response. Twenty thin light curves are responses simulated from
+the fitted model. The simulated curves surround the observed
+one.](diagnostics_files/figure-html/pp-check-1.png)
 
 ## Are the standard errors trustworthy?
 

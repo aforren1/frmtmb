@@ -45,6 +45,17 @@ dharma_residuals(fit, nsim = 250, re.form = NULL, seed = NULL, ...)
 
 A `DHARMa` object.
 
+## Ordinal responses
+
+An ordinal fit is supported: the draws are the simulated categories and
+the response is its own integer codes, so the rank transform runs on the
+order alone (`integerResponse = TRUE`, which is what makes DHARMa
+randomize within ties). The `fittedPredictedResponse` DHARMa plots
+against is the expected category index `sum_k k * P(y = k)`, the same
+scalar [`residuals()`](https://rdrr.io/r/stats/residuals.html) scores an
+ordinal fit by; it sets the horizontal axis of the display and nothing
+else, since the residuals themselves come from the ranks of the draws.
+
 ## Examples
 
 ``` r
