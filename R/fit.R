@@ -417,16 +417,18 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # it marginalizes the random effects, not the coefficients.
   if (has_mixture(spec)) {
     if (REML) {
-      stop("REML = TRUE cannot be combined with mixture(): the ",
-           "mixture likelihood is multimodal in the fixed effects ",
-           "REML integrates out, so the restricted likelihood is not ",
-           "defined. Use REML = FALSE", call. = FALSE)
+      stop("REML = TRUE cannot be combined with a mixture-type family ",
+           "(mixture(), mixture_mvn(), lca()): the mixture likelihood ",
+           "is multimodal in the fixed effects REML integrates out, so ",
+           "the restricted likelihood is not defined. Use REML = FALSE",
+           call. = FALSE)
     }
     if (isTRUE(control$profile)) {
-      stop("frmtmb_control(profile = TRUE) cannot be combined with ",
-           "mixture(): profiling moves the fixed effects into the ",
-           "inner Laplace problem, and the mixture likelihood is ",
-           "multimodal in them. Use profile = FALSE", call. = FALSE)
+      stop("frmtmb_control(profile = TRUE) cannot be combined with a ",
+           "mixture-type family (mixture(), mixture_mvn(), lca()): ",
+           "profiling moves the fixed effects into the inner Laplace ",
+           "problem, and the mixture likelihood is multimodal in them. ",
+           "Use profile = FALSE", call. = FALSE)
     }
   }
 

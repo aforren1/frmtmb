@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -136,7 +136,12 @@ through the link).</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
-<dd><p>One of <code>"continuous"</code>, <code>"discrete"</code>, <code>"ordinal"</code>.</p></dd>
+<dd><p>One of <code>"continuous"</code>, <code>"discrete"</code>, <code>"ordinal"</code>,
+<code>"categorical"</code>. The last two say the modelled response is a
+distribution over <code>1..K</code> categories rather than a number, so
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> returns an <code>n x K</code> probability matrix; <code>"ordinal"</code>
+shares one latent predictor across the categories and
+<code>"categorical"</code> gives each non-reference category its own.</p></dd>
 
 
 <dt id="arg-post">post<a class="anchor" aria-label="anchor" href="#arg-post"></a></dt>

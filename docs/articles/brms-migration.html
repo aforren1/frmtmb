@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -172,13 +172,21 @@ unsupported</td>
 </tr>
 <tr class="even">
 <td>
+<code>(1 \| mm(g1, g2))</code>, <code>mmc(x1, x2)</code>
+</td>
+<td>same</td>
+<td>multi-membership, <code>weights =</code> and <code>scale =</code>
+included (below)</td>
+</tr>
+<tr class="odd">
+<td>
 <code>ar(t, g, cov = TRUE)</code>, <code>ma()</code>,
 <code>arma()</code>, <code>cosy()</code>, <code>unstr()</code>
 </td>
 <td>same</td>
 <td>gaussian/student only; <code>cov = TRUE</code> required (below)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>data2 = list(W = W)</code></td>
 <td>same</td>
 <td>also resolves compound expressions (below)</td>
@@ -249,7 +257,76 @@ brms.</li>
 <code>se()</code> works as in brms (meta-analysis), including
 <code>se(x, sigma = TRUE)</code> and the phylogenetic version with
 <code>gr(g, cov = A)</code>.</li>
+<li>
+<code>mm()</code> ports with its <code>weights =</code> and
+<code>scale =</code> arguments and with <code>mmc()</code>; its other
+arguments have different spellings here (below).</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="multi-membership">Multi-membership<a class="anchor" aria-label="anchor" href="#multi-membership"></a>
+</h2>
+<p><code>(1 | mm(g1, g2))</code> means what it means in brms: the
+observation belongs to several levels of one grouping factor, and its
+design row averages those levels’ effects. The pooled level set, the
+<code>1/J</code> default weights and the <code>scale = TRUE</code>
+normalization of a supplied weight matrix are brms’s, checked against
+<code>make_standata()</code>’s <code>J_*</code>, <code>W_*</code> and
+<code>Z_*</code> arrays, so a ported model builds the same design
+matrix.</p>
+<p><code>mmc(x1, x2)</code> also ports: it is one random-slope
+coefficient of the term whose covariate value is member specific, member
+<code>k</code> taking argument <code>k</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># brms and frmtmb, identical spelling</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="fu">mm</span><span class="op">(</span><span class="va">school1</span>, <span class="va">school2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="fu">mm</span><span class="op">(</span><span class="va">school1</span>, <span class="va">school2</span>,</span>
+<span>                       weights <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">share1</span>, <span class="va">share2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>    data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="op">(</span><span class="fu">mmc</span><span class="op">(</span><span class="va">hours1</span>, <span class="va">hours2</span><span class="op">)</span> <span class="op">|</span> <span class="fu">mm</span><span class="op">(</span><span class="va">school1</span>, <span class="va">school2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>    data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></code></pre></div>
+<p>brms’s remaining <code>mm()</code> arguments are spelled the way any
+other grouping term spells them here, and the parser names the
+replacement when it refuses one:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>brms</th>
+<th>frmtmb</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>mm(g1, g2, cor = FALSE)</code></td>
+<td>
+<code>diag(x \| mm(g1, g2))</code>, or
+<code>(x \|\| mm(g1, g2))</code>
+</td>
+</tr>
+<tr class="even">
+<td><code>mm(g1, g2, id = "q")</code></td>
+<td>the <code>\|ID\|</code> key, <code>(x \| q \| g)</code> - not yet
+over <code>mm()</code>
+</td>
+</tr>
+<tr class="odd">
+<td><code>mm(g1, g2, cov = A)</code></td>
+<td>
+<code>gr(g, cov = A)</code> - not yet over <code>mm()</code>
+</td>
+</tr>
+<tr class="even">
+<td>
+<code>mm(g1, g2, by = )</code>, <code>pw =</code>,
+<code>dist =</code>
+</td>
+<td>no equivalent yet</td>
+</tr>
+</tbody>
+</table>
+<p><code>?frmtmb-multimembership</code> is the full page.</p>
 </div>
 <div class="section level2">
 <h2 id="within-group-residual-correlation">Within-group residual correlation<a class="anchor" aria-label="anchor" href="#within-group-residual-correlation"></a>
@@ -270,7 +347,7 @@ not implemented. The call is refused rather than reinterpreted, so a
 brms model written with the default has to be changed deliberately.
 <code>cosy()</code> and <code>unstr()</code> have no <code>cov</code>
 argument in brms either and port unchanged.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># brms</span></span>
 <span><span class="fu">brm</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span>, cov <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="co"># frmtmb</span></span>
@@ -292,7 +369,7 @@ real residual covariance. brms accepts the same spelling for poisson,
 binomial and the rest, but fits a latent Gaussian AR process added to
 the linear predictor instead - which is a random effect, and is spelled
 as one here:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># brms, poisson: a latent AR process on the linear predictor</span></span>
 <span><span class="fu">brm</span><span class="op">(</span><span class="va">cnt</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar</a></span><span class="op">(</span><span class="va">week</span>, <span class="va">subj</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co"># frmtmb: the same idea as a random effect over the time factor</span></span>
@@ -325,7 +402,7 @@ residual are the point of the feature and are supported.</p>
 <code>car()</code>, the mesh triple of <code>spde()</code>, and the
 matrices of <code>gr(prec = )</code>, <code>gr(cov = )</code> and
 <code>equalto()</code>.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu">car</span><span class="op">(</span><span class="va">W</span>, gr <span class="op">=</span> <span class="va">loc</span>, type <span class="op">=</span> <span class="st">"icar"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    data <span class="op">=</span> <span class="va">d</span>, data2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>W <span class="op">=</span> <span class="va">W</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">phen</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="fu">gr</span><span class="op">(</span><span class="va">species</span>, cov <span class="op">=</span> <span class="va">A</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -393,7 +470,7 @@ for simulation-based residual checks use
 <code>stancode(fit)</code>. The frmtmb analog is the objective function
 itself: an ordinary R closure that <code>RTMB::MakeADFun()</code> tapes,
 rebuilt deterministically from the fitted frame.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nll</span> <span class="op">&lt;-</span> <span class="fu">frmtmb</span><span class="fu">:::</span><span class="fu">build_objective</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">frame</span><span class="op">)</span></span>
 <span><span class="fu">nll</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">estimates</span><span class="op">)</span>   <span class="co"># joint negative log density at the estimates</span></span></code></pre></div>
 <p>Two properties matter when reading it:</p>

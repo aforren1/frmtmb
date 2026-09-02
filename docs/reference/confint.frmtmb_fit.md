@@ -28,7 +28,24 @@ confint(
 
   Parameter names (see `rownames` of the Wald result) or indices.
   Required for `"profile"` and `"uniroot"`; defaults to all parameters
-  for `"wald"` and `"boot"`.
+  for `"wald"` and `"boot"`. Three spellings address the same parameter:
+  the internal name (`tarsus_(Intercept)`, `theta_1`), that name without
+  its parentheses (`tarsus_Intercept`, the spelling
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  and
+  [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+  use), and a natural-scale name that stands for exactly one internal
+  parameter, `sd_<group>__<term>` and a correlation whose block has a
+  single internal correlation parameter. An alias is reported and the
+  row keeps the internal name, because the interval is on the internal
+  scale: see
+  [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+  and
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  for natural-scale intervals. A natural-scale summary that is a
+  function of several internal parameters (the correlations of a wider
+  `us` block, an ICC) has no single parameter to work on and is refused,
+  naming `hypothesis(method = "profile")`.
 
 - level:
 

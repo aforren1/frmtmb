@@ -498,8 +498,15 @@ test_that("a nominal family gets bootstrap bands and honest refusals", {
   skip_if_not(exists("categorical", envir = asNamespace("frmtmb")),
               "categorical() arrives with the families lane")
   set.seed(1)
-  d <- data.frame(x = rnorm(90))
-  d$y <- factor(c("a", "b", "c")[1 + (d$x > -0.4) + (d$x > 0.6)])
+  d <- data.frame(x = rnorm(120))
+  # draw from a real multinomial logit: a deterministic threshold rule
+  # separates the classes perfectly and the coefficients diverge
+  eta2 <- -0.3 + 1.1 * d$x
+  eta3 <- 0.4 - 0.8 * d$x
+  pr <- cbind(1, exp(eta2), exp(eta3))
+  pr <- pr / rowSums(pr)
+  d$y <- factor(c("a", "b", "c")[
+    apply(pr, 1, function(p) sample.int(3, 1, prob = p))])
   fc <- frm(y ~ x, data = d, family = get("categorical",
                                           envir = asNamespace("frmtmb"))())
 
@@ -523,8 +530,15 @@ test_that("dharma_residuals() refuses a nominal response", {
   skip_if_not(exists("categorical", envir = asNamespace("frmtmb")),
               "categorical() arrives with the families lane")
   set.seed(1)
-  d <- data.frame(x = rnorm(90))
-  d$y <- factor(c("a", "b", "c")[1 + (d$x > -0.4) + (d$x > 0.6)])
+  d <- data.frame(x = rnorm(120))
+  # draw from a real multinomial logit: a deterministic threshold rule
+  # separates the classes perfectly and the coefficients diverge
+  eta2 <- -0.3 + 1.1 * d$x
+  eta3 <- 0.4 - 0.8 * d$x
+  pr <- cbind(1, exp(eta2), exp(eta3))
+  pr <- pr / rowSums(pr)
+  d$y <- factor(c("a", "b", "c")[
+    apply(pr, 1, function(p) sample.int(3, 1, prob = p))])
   fc <- frm(y ~ x, data = d, family = get("categorical",
                                           envir = asNamespace("frmtmb"))())
   # a quantile residual is a CDF evaluation, and a nominal category has

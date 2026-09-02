@@ -21,8 +21,13 @@ conditional_effects(
   resolution = 100,
   prob = 0.95,
   method = c("epred", "predict"),
+  band = c("wald", "profile", "boot"),
   ndraws = 400,
+  boot = NULL,
+  profile_points = 25,
+  seed = NULL,
   conditions = list(),
+  surface = FALSE,
   data = NULL,
   ...
 )
@@ -77,15 +82,47 @@ conditional_effects(
   reference value for those is meaningless and is an error rather than a
   silent default).
 
+- band:
+
+  How the confidence band is built: `"wald"` (default, the delta method
+  on the link scale), `"profile"` (likelihood-root inversion per grid
+  point) or `"boot"` (parametric-bootstrap percentiles). See the band
+  section. Only for `method = "epred"`.
+
 - ndraws:
 
   Simulated responses per grid point for `method = "predict"`.
+
+- boot:
+
+  For `band = "boot"`: `NULL` (default) runs one
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+  of 200 refits and says so, a number runs that many, and a
+  `frmtmb_boot` object from an earlier identical call
+  (`attr(ce, "boot")`) is reused without refitting anything.
+
+- profile_points:
+
+  For `band = "profile"`: how many points of a numeric grid are
+  profiled, the band being interpolated between them on the link scale.
+
+- seed:
+
+  Seed for `band = "boot"`, passed to
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md).
 
 - conditions:
 
   Named list overriding reference values, e.g. `list(x2 = 1, g = "b")`;
   or a data frame whose rows define multiple condition sets (brms
   style), labeled by a `cond__` column from its row names.
+
+- surface:
+
+  Accepted for brms compatibility. `TRUE` (a fitted surface over two
+  predictors) is refused: ask for the two-variable effect `"x1:x2"`
+  instead, which varies the first predictor at three values of the
+  second.
 
 - data:
 
@@ -129,17 +166,96 @@ already the whole predictive distribution). Naming a distributional
 parameter, `dpar = "mu"`, opts back into the ordinary display of the
 latent linear predictor.
 
+## Confidence bands
+
+`band` picks how `lower__` and `upper__` are found. The estimate is the
+same curve in all three cases; only the band changes.
+
+- `"wald"` (default, and free): the delta-method standard error on the
+  link scale, back-transformed. Symmetric on the link scale by
+  construction.
+
+- `"profile"`: one likelihood-root search
+  ([`TMB::tmbroot()`](https://rdrr.io/pkg/TMB/man/tmbroot.html)) per
+  grid point. A grid point's linear predictor is a linear combination of
+  the coefficients, so the search inverts the likelihood ratio along
+  that combination; the link is monotone, so the two endpoints map
+  through it. The band is not symmetric and does not assume a quadratic
+  log-likelihood, which is what makes it worth its cost near a boundary
+  or at a small sample size.
+
+- `"boot"`: percentiles of the grid predictions across the refits of ONE
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+  (`re.form = NA`, the same population-level grid). One bootstrap serves
+  every effect, condition set and ordinal category of the call;
+  `attr(ce, "boot")` returns it, and passing it back as `boot =` costs
+  no refits at all.
+
+What `se__` means follows the band: the Wald standard error (link scale,
+or the probability scale on the ordinal display) for `"wald"` and
+`"profile"` - the profile changes the endpoints, not the standard
+error - and the standard deviation of the bootstrap draws, on the
+displayed scale, for `"boot"`.
+
+Cost, and how it is capped. A root search is two constrained
+optimizations, so `band = "profile"` profiles at most `profile_points`
+(default 25) of a numeric grid, spread over its range and including both
+ends, and interpolates the endpoints linearly between them on the link
+scale. `resolution` still governs the estimate curve. A factor grid is
+profiled at every level. Points whose search does not converge become
+`NA` and one warning names how many. `band = "boot"` costs its refits
+once, however many effects are asked for.
+
+Refusals. `band` other than `"wald"` needs `method = "epred"`: a
+prediction interval is already a simulation quantile. `band = "profile"`
+additionally needs the displayed quantity to BE a linear combination of
+the parameters, so it is refused (naming `"boot"`) for an ordinal
+category probability, for an expected response that runs through several
+distributional parameters or through truncation bounds (`dpar =` names
+one predictor and opts back in), for a nonlinear predictor, for a
+predictor carrying `s()`, `gp()` or `hsgp()` (basis coefficients are
+inner parameters), and for a REML fit or
+`frmtmb_control(profile = TRUE)` (the coefficients are not outer
+parameters there).
+
+A nonlinear predictor (`nl = TRUE`) has no delta-method standard error
+at all, so `band = "boot"` is its only band and the other two are
+refused. The same holds for the per-category display of a nominal
+family, whose probabilities have no threshold Jacobian to differentiate.
+
+## Which predictors are plotted by default
+
+Every variable of the selected linear predictor that the display can
+vary: its fixed-effect terms, its smooth terms and its `mo()` terms
+(whose design columns are placeholders, so the variable is read from the
+term itself). On a nonlinear fit they live one level down - the
+covariates the nonlinear formula reads, plus the terms of each nonlinear
+parameter's own predictor - and all of those are collected too.
+Matrix-valued columns are excluded, a grid over a matrix covariate not
+being a curve. Naming `effects =` overrides the search.
+
 ## Examples
 
 ``` r
 set.seed(5)
 dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))
 dd$y <- rnorm(120, 1 + 0.5 * dd$x + (dd$f == "b"), 1)
-fit <- frm(bf(y ~ x * f) + gaussian(), data = dd)
+fit <- frm(bf(y ~ x * f), family = gaussian(), data = dd)
 ce <- conditional_effects(fit, effects = c("x", "x:f"))
 plot(ce, ask = FALSE)
 
 
 # prediction intervals instead of epred bands
 ce_p <- conditional_effects(fit, effects = "x", method = "predict")
+# \donttest{
+# a likelihood-profile band: asymmetric, and no quadratic assumption
+ce_pr <- conditional_effects(fit, effects = "x", band = "profile",
+                             resolution = 20, profile_points = 5)
+
+# a bootstrap band, reused for a second effect without refitting
+ce_b <- conditional_effects(fit, effects = "x", band = "boot",
+                            boot = 25, seed = 1)
+ce_b2 <- conditional_effects(fit, effects = "x", band = "boot",
+                             boot = attr(ce_b, "boot"))
+# }
 ```

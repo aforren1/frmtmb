@@ -17,7 +17,7 @@ mvbf()) use the same grammar."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,14 +82,15 @@ Nonlinear formulas (<code>nl = TRUE</code>) and multivariate models (see
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Two-sided formulas for other dpars (the left-hand side names
-the dpar, e.g. <code>sigma ~ z</code>), or named scalars fixing a dpar to a
-constant on the response scale (e.g. <code>sigma = 1</code>).</p></dd>
+<dd><p>Two-sided formulas for other dpars (the left-hand side
+names the dpar, e.g. <code>sigma ~ z</code>, or several sharing one
+right-hand side, e.g. <code>b1 + b2 ~ 1</code>), or named scalars fixing a
+dpar to a constant on the response scale (e.g. <code>sigma = 1</code>).</p></dd>
 
 
 <dt id="arg-family">family<a class="anchor" aria-label="anchor" href="#arg-family"></a></dt>
-<dd><p>Optional family; can also be attached with <code>+</code> or passed
-to <code><a href="frm.html">frm()</a></code>.</p></dd>
+<dd><p>Optional family; can also be attached with <code>+</code> or
+passed to <code><a href="frm.html">frm()</a></code>, which uses <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code> when nothing names one.</p></dd>
 
 
 <dt id="arg-nl">nl<a class="anchor" aria-label="anchor" href="#arg-nl"></a></dt>
@@ -109,7 +110,8 @@ nonlinear expression of named parameters, each given its own
 Every linear predictor accepts lme4-style random effects <code>(1 | g)</code>,
 <code>(1 + x | g)</code>, <code>(x || g)</code>, and explicit covariance-structure wrappers
 <code>us(x | g)</code> and <code>diag(x | g)</code>.</p>
-<p>Attach a family with <code>+</code>, for example <code>bf(y ~ x) + gaussian()</code>.</p>
+<p>Attach a family with <code>+</code>, for example <code>bf(y ~ x) + gaussian()</code>, or
+pass one to <code><a href="frm.html">frm()</a></code>. A model that names no family is gaussian.</p>
     </div>
 
     <div class="section level2">

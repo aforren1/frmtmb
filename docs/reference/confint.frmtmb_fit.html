@@ -9,7 +9,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,7 +81,20 @@
 <dt id="arg-parm">parm<a class="anchor" aria-label="anchor" href="#arg-parm"></a></dt>
 <dd><p>Parameter names (see <code>rownames</code> of the Wald result) or
 indices. Required for <code>"profile"</code> and <code>"uniroot"</code>; defaults to all
-parameters for <code>"wald"</code> and <code>"boot"</code>.</p></dd>
+parameters for <code>"wald"</code> and <code>"boot"</code>. Three spellings address the
+same parameter: the internal name (<code>tarsus_(Intercept)</code>,
+<code>theta_1</code>), that name without its parentheses
+(<code>tarsus_Intercept</code>, the spelling <code><a href="hypothesis.html">hypothesis()</a></code> and <code><a href="variables.html">variables()</a></code>
+use), and a natural-scale name that stands for exactly one
+internal parameter, <code>sd_&lt;group&gt;__&lt;term&gt;</code> and a correlation whose
+block has a single internal correlation parameter. An alias is
+reported and the row keeps the internal name, because the interval
+is on the internal scale: see <code><a href="confint_varcorr.html">confint_varcorr()</a></code> and
+<code><a href="hypothesis.html">hypothesis()</a></code> for natural-scale intervals. A natural-scale
+summary that is a function of several internal parameters (the
+correlations of a wider <code>us</code> block, an ICC) has no single
+parameter to work on and is refused, naming
+<code>hypothesis(method = "profile")</code>.</p></dd>
 
 
 <dt id="arg-level">level<a class="anchor" aria-label="anchor" href="#arg-level"></a></dt>

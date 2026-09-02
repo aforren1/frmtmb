@@ -24,6 +24,7 @@ likelihood-ratio tests, AIC).
 | [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md) | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md), [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md) | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |
+| `(1 \| mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
 | `ar(t, g, cov = TRUE)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; `cov = TRUE` required (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 
@@ -89,6 +90,45 @@ likelihood-ratio tests, AIC).
 - `se()` works as in brms (meta-analysis), including
   `se(x, sigma = TRUE)` and the phylogenetic version with
   `gr(g, cov = A)`.
+- `mm()` ports with its `weights =` and `scale =` arguments and with
+  `mmc()`; its other arguments have different spellings here (below).
+
+## Multi-membership
+
+`(1 | mm(g1, g2))` means what it means in brms: the observation belongs
+to several levels of one grouping factor, and its design row averages
+those levels’ effects. The pooled level set, the `1/J` default weights
+and the `scale = TRUE` normalization of a supplied weight matrix are
+brms’s, checked against `make_standata()`’s `J_*`, `W_*` and `Z_*`
+arrays, so a ported model builds the same design matrix.
+
+`mmc(x1, x2)` also ports: it is one random-slope coefficient of the term
+whose covariate value is member specific, member `k` taking argument
+`k`.
+
+``` r
+
+# brms and frmtmb, identical spelling
+frm(bf(y ~ x + (1 | mm(school1, school2))) + gaussian(), data = d)
+frm(bf(y ~ x + (1 | mm(school1, school2,
+                       weights = cbind(share1, share2)))) + gaussian(),
+    data = d)
+frm(bf(y ~ (mmc(hours1, hours2) | mm(school1, school2))) + gaussian(),
+    data = d)
+```
+
+brms’s remaining `mm()` arguments are spelled the way any other grouping
+term spells them here, and the parser names the replacement when it
+refuses one:
+
+| brms | frmtmb |
+|----|----|
+| `mm(g1, g2, cor = FALSE)` | `diag(x \| mm(g1, g2))`, or `(x \|\| mm(g1, g2))` |
+| `mm(g1, g2, id = "q")` | the `\|ID\|` key, `(x \| q \| g)` - not yet over `mm()` |
+| `mm(g1, g2, cov = A)` | `gr(g, cov = A)` - not yet over `mm()` |
+| `mm(g1, g2, by = )`, `pw =`, `dist =` | no equivalent yet |
+
+`?frmtmb-multimembership` is the full page.
 
 ## Within-group residual correlation
 

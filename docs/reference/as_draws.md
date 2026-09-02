@@ -9,6 +9,9 @@ as_draws(x, ...)
 
 # S3 method for class 'frmtmb_draws'
 as_draws(x, ...)
+
+# S3 method for class 'frmtmb_multiple'
+as_draws(x, ...)
 ```
 
 ## Arguments

@@ -12,7 +12,7 @@ no compilation at run time.
 
 data(sleepstudy, package = "lme4")
 
-fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
+fit <- frm(bf(Reaction ~ Days + (Days | Subject)), family = gaussian(),
            data = sleepstudy)
 summary(fit)
 #> Family: gaussian 
@@ -81,7 +81,7 @@ predictor grammar, including random effects and smooths:
 ``` r
 
 fit2 <- frm(bf(Reaction ~ Days + (Days | Subject),
-               sigma ~ Days) + gaussian(),
+               sigma ~ Days), family = gaussian(),
             data = sleepstudy)
 fixef(fit2)$sigma
 #> (Intercept)        Days 
@@ -169,8 +169,8 @@ stay in data units.
 set.seed(2)
 ds <- data.frame(x = runif(200, 0, 10))
 ds$y <- sin(ds$x) + rnorm(200, 0, 0.4)
-fs <- frm(bf(y ~ s(x)) + gaussian(), data = ds)
-fg <- frm(bf(y ~ gp(x, k = 25)) + gaussian(), data = ds)
+fs <- frm(bf(y ~ s(x)), family = gaussian(), data = ds)
+fg <- frm(bf(y ~ gp(x, k = 25)), family = gaussian(), data = ds)
 c(smooth = AIC(fs), gp = AIC(fg))
 #>   smooth       gp 
 #> 250.6414 250.1495
@@ -207,7 +207,7 @@ phi <- 0.7 * as.numeric(scale(grid$r + grid$c)) + 0.7 * rnorm(nloc)
 dc <- data.frame(loc = factor(rep(rownames(W), each = 8),
                               levels = rownames(W)))
 dc$y <- 1 + phi[as.integer(dc$loc)] + rnorm(nrow(dc), 0, 0.5)
-fc <- frm(bf(y ~ car(W, gr = loc, type = "escar")) + gaussian(),
+fc <- frm(bf(y ~ car(W, gr = loc, type = "escar")), family = gaussian(),
           data = dc)
 confint_varcorr(fc)
 #>                              block    term type estimate       lwr       upr
@@ -246,7 +246,7 @@ field is still smoothed across it.
 ``` r
 
 # node holds the mesh row of each observation, 1..nrow(fem$c0)
-frm(bf(y ~ x + spde(fmesher::fm_fem(mesh), gr = node)) + gaussian(),
+frm(bf(y ~ x + spde(fmesher::fm_fem(mesh), gr = node)), family = gaussian(),
     data = d)
 ```
 
@@ -266,7 +266,7 @@ measurement error), and `se()` gives meta-analysis:
 set.seed(3)
 dm <- data.frame(inc = sample(0:3, 300, TRUE), z = rnorm(300))
 dm$y <- 1 + c(0, 1, 1.6, 2)[dm$inc + 1] + 0.3 * dm$z + rnorm(300)
-fmo <- frm(bf(y ~ mo(inc) + z) + gaussian(), data = dm)
+fmo <- frm(bf(y ~ mo(inc) + z), family = gaussian(), data = dm)
 predict(fmo, newdata = data.frame(inc = 0:3, z = 0))
 #>         1         2         3         4 
 #> 0.9227861 1.8599425 2.5575740 2.9094146

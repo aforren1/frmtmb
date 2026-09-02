@@ -18,13 +18,13 @@ Documentation: <https://aforren1.github.io/frmtmb/>
 library(frmtmb)
 data(sleepstudy, package = "lme4")
 
-fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
+fit <- frm(bf(Reaction ~ Days + (Days | Subject)), family = gaussian(),
            data = sleepstudy)
 summary(fit)
 
 # distributional regression: model the residual SD too
 fit2 <- frm(bf(Reaction ~ Days + (Days | Subject),
-               sigma ~ Days + (1 | Subject)) + gaussian(),
+               sigma ~ Days + (1 | Subject)), family = gaussian(),
             data = sleepstudy)
 anova(fit, fit2)
 
@@ -34,10 +34,10 @@ hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)",
 
 ## Status
 
-Pre-release (v0.32). The goal is a CRAN release. Validation has three
+Pre-release (v0.35). The goal is a CRAN release. Validation has three
 layers:
 
-- The suite contains about 3200 tests. Every model class is compared
+- The suite contains about 4000 tests. Every model class is compared
   with an exact reference: glmmTMB, lme4, mgcv, MASS, survival, nnet,
   GLMMadaptive, quantreg, mice, closed-form marginals, or hand-written
   ML.
@@ -57,9 +57,14 @@ layers:
 ## Model grammar
 
 - [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) uses the
-  brms spelling. Families attach with `+`. To port brms code, remove the
-  priors and change `brm()` to
-  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md).
+  brms spelling, and the family is a separate argument:
+  `frm(bf(y ~ x), family = poisson(), data = d)`. With no family,
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) fits
+  gaussian, as brms and glmmTMB do. To port brms code, remove the priors
+  and change `brm()` to
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md); a
+  measured audit of the brms vignettes puts about 7 of 10 of their model
+  calls through that mechanical transform unchanged.
 - Every distributional parameter can take its own formula with the full
   predictor grammar (`bf(y ~ s(x) + (1 | g), sigma ~ s(z) + (1 | g))`),
   or a constant.
@@ -68,7 +73,15 @@ layers:
   `homtoep`, `ou`, spatial `exp`/`gau`/`mat` over `num_factor(x, y)`
   coordinates, reduced-rank `rr(d =)`, and known structure
   `gr(g, cov = A)` / `gr(g, prec = Q)` / `equalto()`. The `|ID|` syntax
-  correlates effects across formulas.
+  correlates effects across formulas, including known-matrix blocks (a
+  multi-trait animal model is one Kronecker block). Multi-membership
+  terms use `mm(g1, g2)` with weights and member-specific `mmc()`
+  covariates.
+- Within-group residual correlation uses brms’s R-side terms:
+  [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`, `cosy()`,
+  and `unstr()`, for gaussian and student responses, validated against
+  [`nlme::gls`](https://rdrr.io/pkg/nlme/man/gls.html) under ML and
+  REML.
 - `car(M, gr = g, type =)` fits spatial Gaussian Markov random fields
   with brms’s spelling and all four of its types (`escar`, `esicar`,
   `icar`, and `bym2` with brms’s scaling convention).
@@ -101,9 +114,26 @@ layers:
   growth-mixture models. `mixture_mvn(K, D, model =)` fits multivariate
   gaussian components over mclust’s covariance taxonomy, with
   covariate-dependent means and gating.
+  [`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fits nominal responses,
+  [`von_mises()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  circular ones, and
+  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  proportional hazards with a flexible baseline and Laplace frailties.
+  `hmm(K)` fits hidden Markov models with covariate-dependent
+  transitions and forward-backward decoding
+  ([`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md),
+  [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/reference/hmm_viterbi.md));
+  `lca(K)` fits poLCA-style latent class analysis with class-membership
+  regression.
   [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
   takes a plain R log-density. The test suite fits a Wiener
   drift-diffusion model in about 15 lines.
+- Ordinary differential equations:
+  [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
+  solves compartment models inside nonlinear formulas (population
+  pharmacokinetics), with repeated dosing, infusions, and estimated
+  bioavailability.
 - The addition terms are
   [`weights()`](https://rdrr.io/r/stats/weights.html), `trials()`
   (counts or proportions), `cens()`,

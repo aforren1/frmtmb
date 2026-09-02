@@ -6,7 +6,7 @@
 \usage{
 hmm(
   K,
-  family = gaussian(),
+  family = stats::gaussian(),
   time = NULL,
   group = NULL,
   init = c("stationary", "estimated", "uniform"),

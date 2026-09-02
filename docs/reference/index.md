@@ -5,6 +5,9 @@
 - [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) : Set up a
   model formula
 
+- [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md) : Add
+  parameter formulas to a model formula
+
 - [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   : Combine formulas into a multivariate model
@@ -15,6 +18,9 @@
 
 - [`frmtmb-autocor`](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.md)
   : Within-group residual correlation (R-side autocorrelation)
+
+- [`frmtmb-multimembership`](https://aforren1.github.io/frmtmb/reference/frmtmb-multimembership.md)
+  : Multi-membership random effects
 
 - [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
   : Solve an ODE once per group inside a nonlinear predictor
@@ -44,6 +50,7 @@
 - [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
   [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
   : Define a model family
+
 - [`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`lognormal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`negbinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
@@ -73,13 +80,51 @@
   [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  [`von_mises()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  [`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   : Additional response families
+
 - [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
   : Finite mixture families
+
 - [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
   : Multivariate gaussian mixture family
+
 - [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
   : Posterior class probabilities of a mixture fit
+
+- [`cox_baseline()`](https://aforren1.github.io/frmtmb/reference/cox_baseline.md)
+  :
+
+  The fitted baseline-hazard simplex of a
+  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fit.
+
+- [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) : Hidden
+  Markov models
+
+- [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md)
+  : Posterior state probabilities of an hmm fit
+
+- [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/reference/hmm_viterbi.md)
+  : Most likely state path of an hmm fit (Viterbi)
+
+- [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) : Latent
+  class analysis
+
+- [`lca_probs()`](https://aforren1.github.io/frmtmb/reference/lca_probs.md)
+  :
+
+  Posterior class membership of an
+  [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) fit
+
+- [`lca_profiles()`](https://aforren1.github.io/frmtmb/reference/lca_profiles.md)
+  :
+
+  The fitted item profiles of an
+  [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) fit
+
 - [`check_custom_family()`](https://aforren1.github.io/frmtmb/reference/check_custom_family.md)
   : Check a custom family's log-density for AD safety
 
@@ -156,6 +201,8 @@
   : Simulate responses from a frmtmb fit
 - [`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md) :
   Refit a model to a new response
+- [`update(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/update.frmtmb_fit.md)
+  : Update and refit a model
 - [`coef(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/coef.frmtmb_fit.md)
   : Per-group coefficients (fixed effects plus conditional modes)
 - [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) :

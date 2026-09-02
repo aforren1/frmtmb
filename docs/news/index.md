@@ -1,5 +1,314 @@
 # Changelog
 
+## frmtmb 0.35.0
+
+Hidden Markov models, latent class analysis, multi-membership random
+effects, three new families (nominal, circular, proportional hazards),
+profile and bootstrap effect bands, and a brms-portability batch
+measured against the brms vignettes themselves.
+
+### Behavior changes
+
+- [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) defaults
+  to `family = gaussian()` when neither the `family` argument nor a `+`
+  attachment supplies one, the brms/lme4/glmmTMB convention.
+  `frm(y ~ x, data = d)` was an error and is now a linear model. The
+  `family` argument overrides a family attached to a univariate
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) and fills
+  only the empty responses of an
+  [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md).
+- Documentation and examples now lead with the separate-family spelling
+  `frm(bf(y ~ x), family = gaussian(), data = d)`; the `+` attachment
+  stays valid and documented as the alternative.
+
+### Portability (measured against the brms vignettes)
+
+- A scorecard audit ports every model call of the brms vignettes through
+  the mechanical `brm` to `frm` transform (dev/brms-vignette-port.md):
+  with this release’s fixes the measured tally is 30 of 42 model calls
+  running mechanically, the remaining spelling changes documented in the
+  porting guide.
+- [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  accepts brms’s directional form (`"a > b"`) with one-sided p-values
+  and bounds across every method, plus the `class=`/`group=` naming
+  shorthand. [`update()`](https://rdrr.io/r/stats/update.html) speaks
+  `formula.`/`newdata` and dotted deltas (`. ~ . + z`).
+  [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md) composes
+  dpar formulas onto
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md). One
+  formula may name several parameters (`a + b ~ 1`). A bare constructor
+  (`family = cumulative`) works.
+- One parameter-addressing vocabulary across
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
+  [`profile()`](https://rdrr.io/r/stats/profile.html), `confint(parm =)`
+  and bounds: parenthesized and paren-stripped spellings are
+  interchangeable, and one-to-one natural-scale names (`sd_g__x`, `ar1`)
+  reach their internal parameter with the scale stated. Ambiguous
+  natural-scale names are refused with the alternatives named.
+
+### Multi-membership and effect bands
+
+- Multi-membership random effects:
+  `(x | mm(g1, g2, weights =, scale =))` and `mmc()` member-specific
+  covariates, following brms; the pooled-level Z construction matches
+  [`brms::make_standata()`](https://paulbuerkner.com/brms/reference/standata.html)
+  exactly, and every post-fit method reads the block unchanged.
+  New-level prediction variance distinguishes a shared new level (one
+  draw, weights add) from distinct new levels (independent draws).
+- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  gains `band = c("wald", "profile", "boot")`: likelihood-ratio bands
+  inverted per grid point, and pointwise percentile bands from one
+  shared parametric bootstrap (reused across effects and verified
+  against the grid it was run over). Effect discovery now works on
+  nonlinear and `mo()`/`mi()` fits, and
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+  works on ordinal fits (previously all NA).
+
+### New families
+
+- [`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fits a multinomial logit to an unordered factor, brms’s spelling of
+  the likelihood `multinomial(K)` already carried on a count-matrix
+  response. The first level is the reference and each remaining level
+  gets its own linear predictor named `mu<Level>`, as in brms; the main
+  formula applies to all of them unless a dpar formula overrides one, so
+  `bf(y ~ x, mustout ~ w)` gives one category its own predictor.
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  `predict(type = "response")` return the `n x K` matrix of category
+  probabilities with the response’s own levels as column names, the same
+  convention the ordinal families follow, and
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) draws factor
+  levels. Validated against
+  [`nnet::multinom`](https://rdrr.io/pkg/nnet/man/multinom.html) (4e-10
+  in the log-likelihood) and against `multinomial(K)` on the one-hot
+  response (1e-8). The categories are read off the data by
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) before
+  the formula is parsed; `categorical(levels =)` or `categorical(K =)`
+  states them for the paths that have no data.
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) is refused: a
+  nominal response has no scale for one.
+
+- `von_mises(link = "tan_half")` for a circular response in `(-pi, pi]`,
+  with the mean direction `mu` through the tan-half link and the
+  concentration `kappa` through a log link - brms’s parameterization.
+  The normalizing constant’s `log I0(kappa)` is differentiated exactly
+  by RTMB’s own `besselI` method, so nothing is a series approximation.
+  `kappa ~ x` distributional models work, and the simulator is a
+  vectorized Best-Fisher sampler that varies both parameters per row.
+  Validated against a hand-rolled RTMB likelihood (1e-6) and
+  [`circular::mle.vonmises()`](https://rdrr.io/pkg/circular/man/mle.vonmises.html).
+
+- [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fits proportional hazards with brms’s flexible baseline: an M-spline
+  baseline hazard over a simplex of weights, with the cumulative
+  baseline hazard the I-spline integral of the same basis (`df = 5`
+  cubic splines with an intercept, brms’s `bhaz()` default). Censoring
+  runs through the ordinary `cens()` addition term - an event
+  contributes the density and a censored row the survivor function - so
+  right, left, and interval censoring all work, and frailty models come
+  free through the Laplace approximation:
+  `time | cens(c) ~ x + (1 | g)`. New
+  [`cox_baseline()`](https://aforren1.github.io/frmtmb/reference/cox_baseline.md)
+  returns the fitted baseline weights. Validated exactly against a
+  hand-rolled M-spline PH likelihood (1e-6 in the log-likelihood, 1e-4
+  in the coefficients) and against
+  [`survival::coxph()`](https://rdrr.io/pkg/survival/man/coxph.html) to
+  2e-2 on the log hazard ratio, which is the honest claim: `coxph()`
+  leaves the baseline fully nonparametric.
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  `predict(type = "response")` and
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) are refused - a
+  survival time has no mean the censored rows identify, and brms refuses
+  the same question. Unpenalized maximum likelihood often puts a
+  baseline weight on the simplex boundary, which the optimizer reports
+  as singular convergence even at the optimum; `?frmtmb-families`
+  explains it and lowering `df` is the remedy.
+
+- New `tan_half` link, for
+  [`von_mises()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md).
+
+### Internal
+
+- A family may declare `aterm_data(y, aterms)`, family-level data that
+  no addition term supplies, built once at frame assembly from the
+  validated response.
+  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)’s
+  spline bases use it.
+
+- A family’s `lcdf()` may take the family-level extra parameters as a
+  fourth argument, which is what lets a survival family’s survivor
+  function reach its baseline. The three-argument contract is unchanged
+  for every other family.
+
+Hidden Markov models as a first-class family.
+
+### New
+
+- `hmm(K, family, time =, group =, init =, trans =)` fits a `K`-state
+  hidden Markov model. The response at each time point comes from one of
+  `K` state-dependent copies of `family`, and the unobserved state
+  follows a first-order Markov chain along `time` within `group`. The
+  state sequence is summed out EXACTLY by the forward algorithm,
+  evaluated on the same AD tape as everything else, so nothing about the
+  Laplace machinery changes: a random effect in a state’s linear
+  predictor is integrated outside the exact state sum. Each of the
+  wrapped family’s parameters is copied per state and suffixed (`mu1`,
+  `sigma1`, `mu2`, …) with the full formula grammar, random effects
+  included, exactly as
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  does. Transition probabilities are a row-wise multinomial logit named
+  `tr{i}{j}` with state 1 the reference cell of every row, and
+  `trans = ~x` gives every cell a predictor at once. Validated against
+  `depmixS4` (logLik to 1e-8 or better and every parameter to five
+  decimals, on gaussian, poisson and categorical emissions with and
+  without transition covariates) and against `hmmTMB` (1e-12 on the
+  stationary fixed-effect model).
+- `init = "stationary"` (the default) solves the chain’s stationary
+  distribution on the tape and costs no parameters; `"estimated"` adds
+  `K - 1` free logits, `"uniform"` fixes them. Stationary is refused
+  when a transition cell carries a predictor, because a time-varying
+  chain has no single stationary distribution.
+- [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md)
+  returns the smoothed state occupancies `P(S_t = k | y)` from a
+  forward-backward pass - the
+  [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
+  analog - and
+  [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/reference/hmm_viterbi.md)
+  the maximum-a-posteriori state path.
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  `predict(type = "response")` and the response and pearson residuals
+  all route through
+  [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md),
+  so they report the occupancy-weighted mean
+  `sum_k P(S_t = k | y) mu_k(x_t)` rather than any single state’s.
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) walks the chain
+  forward per sequence and then emits, so DHARMa and
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  see the fitted persistence.
+- A missing response is a time point the chain passes through without
+  emitting:
+  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) keeps
+  the row and masks its emission instead of letting `na.action` drop it,
+  which would shorten the chain and bias the transition matrix.
+  [`nobs()`](https://rdrr.io/r/stats/nobs.html) counts every row;
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) are `NA` there
+  while
+  [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md)
+  is not.
+
+### Refusals
+
+- `REML`, `quadrature = TRUE` and `frmtmb_control(profile = TRUE)` are
+  refused on an
+  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) fit,
+  each with the reason. REML in particular used to run and produce a
+  partial restricted likelihood matching no standard definition.
+- [`weights()`](https://rdrr.io/r/stats/weights.html), `cens()`,
+  [`trunc()`](https://rdrr.io/r/base/Round.html), `se()` and `mi()` on
+  the response, multivariate models and `rescor`,
+  `residuals(type = "osa")`, `residuals(type = "deviance")`,
+  `predict(se.fit = TRUE)` and `predict(newdata =)` on the response
+  scale, and
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  are refused, all naming the per-sequence likelihood as the reason.
+- A grouping in which every sequence has length 1 is refused: the
+  transition parameters are then flat directions the reported `df` would
+  still count, and the model is a
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md).
+  Holding every transition dpar at a constant lifts the refusal, and the
+  fit then reproduces
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  to 1e-12.
+- A start with every state’s location predictor at the same value warns:
+  it sits on the label-symmetry axis, where the optimizer cannot
+  separate the states. The default quantile-spread starts never do this.
+
+### Known limits
+
+- Multimodality is real and no convergence diagnostic reports it. On a
+  random-effect model the default cold start has been measured
+  converging 8.1 log-likelihood units below the global optimum with
+  `convergence == 0`, `max|grad| == 3.5e-4` and a positive-definite
+  Hessian. Compare starts before reporting.
+- With random effects the Laplace approximation is genuinely approximate
+  even for a gaussian response, because the integrand is a mixture over
+  state sequences: the measured bias is -0.126 in the log-likelihood
+  (8.9e-5 relative) and 4.4e-4 in the parameters against adaptive
+  quadrature.
+  [`?hmm`](https://aforren1.github.io/frmtmb/reference/hmm.md) says so.
+- The tape build grows slightly faster than linearly in the number of
+  rows: about 1.9 s at 20 000 rows, against milliseconds to evaluate it.
+  Below 5 000 rows nothing is noticeable.
+
+### New
+
+- Latent class analysis, the poLCA measurement model, as the family
+  `lca(K)`. The response is a matrix of polytomous item codes, one row
+  per subject and one column per item; the items are conditionally
+  independent given a subject’s latent class, and each class carries its
+  own item-response profile. Class membership is the
+  `theta1 ... theta{K-1}` dpars with full linear predictors, so a
+  covariate on the model formula gives poLCA’s latent class regression
+  for free, with
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+  [`confint()`](https://rdrr.io/r/stats/confint.html),
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  and
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  on the gating coefficients. Items may have different numbers of
+  categories; `ncat` declares them, and by default they are inferred as
+  the largest observed code per item, as poLCA does. The item profiles
+  are family extra parameters, one vector `pi<j>` per item holding its
+  `K * (C_j - 1)` reference-category logits, so they appear per item in
+  [`summary()`](https://rdrr.io/r/base/summary.html) and as `pi<j>_<i>`
+  in [`confint()`](https://rdrr.io/r/stats/confint.html). Validated
+  against poLCA on its own shipped data: the carcinoma 3-class model
+  agrees to 4.2e-8 in log-likelihood, 2.8e-8 in item profiles, 6.2e-9 in
+  class sizes and 9.9e-8 in posterior membership, and the election
+  latent class regression agrees to 1.1e-7 in log-likelihood, 1.1e-7 in
+  item profiles and 9.9e-7 in gating coefficients. A hand-rolled
+  [`optim()`](https://rdrr.io/r/stats/optim.html) reference on simulated
+  data agrees to 1.5e-9, and a one-item fit reaches the saturated
+  single-categorical likelihood to 5.6e-11.
+- [`lca_profiles()`](https://aforren1.github.io/frmtmb/reference/lca_profiles.md)
+  returns the class-conditional item-response probability tables
+  (poLCA’s `probs`) with the estimated class sizes attached, and prints
+  them.
+  [`lca_probs()`](https://aforren1.github.io/frmtmb/reference/lca_probs.md)
+  returns posterior class membership per subject (poLCA’s `posterior`)
+  with the relative entropy of the classification attached; it is
+  [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
+  under an LCA-specific name and check.
+- `lca(na.rm = FALSE)` keeps subjects with missing items and masks each
+  missing item out of that subject’s likelihood, poLCA’s `na.rm = FALSE`
+  behavior. The default drops incomplete subjects through the usual
+  `na.action`, which is poLCA’s default.
+
+### Notes
+
+- [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) starting
+  values are deterministic: subjects are scored by the mean of their
+  item codes rescaled to `[0, 1]`, cut into `K` equal-count slices, and
+  each slice’s smoothed category proportions seed one class. Class 1 is
+  the low-score end, so a data set always gets the same labeling.
+  Multimodality is unchanged;
+  [`?lca`](https://aforren1.github.io/frmtmb/reference/lca.md) shows the
+  perturbed-`start` loop that replaces poLCA’s `nrep`.
+- [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) v1
+  refuses random effects, smooths and `gp()` anywhere in the model (that
+  is the growth-mixture shape, which `mixture(..., groups = ~g)` fits),
+  `REML`, `profile = TRUE`, `quadrature`, every addition term,
+  [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md), and
+  `residuals(type = "osa")`.
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) and
+  `predict(type = "response")` are refused because a matrix of nominal
+  item codes has no mean;
+  [`predict()`](https://rdrr.io/r/stats/predict.html) returns the gating
+  linear predictor.
+
 ## frmtmb 0.34.0
 
 Within-group residual correlation (R-side effects), quantile regression
@@ -59,7 +368,8 @@ completions, and plot conveniences.
   today through
   [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
   with `vint()` payloads, validated against depmixS4 and hmmTMB. No
-  user-facing grammar yet; the design for a first-class `hmm()` family
+  user-facing grammar yet; the design for a first-class
+  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) family
   is recorded.
 
 ## frmtmb 0.33.0

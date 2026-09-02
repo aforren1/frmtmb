@@ -23,13 +23,16 @@ bf(formula, ..., family = NULL, nl = FALSE)
 - ...:
 
   Two-sided formulas for other dpars (the left-hand side names the dpar,
-  e.g. `sigma ~ z`), or named scalars fixing a dpar to a constant on the
+  e.g. `sigma ~ z`, or several sharing one right-hand side, e.g.
+  `b1 + b2 ~ 1`), or named scalars fixing a dpar to a constant on the
   response scale (e.g. `sigma = 1`).
 
 - family:
 
   Optional family; can also be attached with `+` or passed to
-  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md).
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md), which
+  uses [`gaussian()`](https://rdrr.io/r/stats/family.html) when nothing
+  names one.
 
 - nl:
 
@@ -49,7 +52,9 @@ accepts lme4-style random effects `(1 | g)`, `(1 + x | g)`, `(x || g)`,
 and explicit covariance-structure wrappers `us(x | g)` and
 `diag(x | g)`.
 
-Attach a family with `+`, for example `bf(y ~ x) + gaussian()`.
+Attach a family with `+`, for example `bf(y ~ x) + gaussian()`, or pass
+one to [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md). A
+model that names no family is gaussian.
 
 ## Examples
 

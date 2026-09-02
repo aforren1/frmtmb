@@ -25,6 +25,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/conditional_effects.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/confint.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/confint_varcorr.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/cox_baseline.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/dharma_residuals.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/diagnose.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/drop1.frmtmb_fit.html</loc></url>
@@ -33,6 +34,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-families.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-multimembership.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-package.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-priors.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_control.html</loc></url>
@@ -49,9 +51,16 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_simulate.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/getME.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/get_prior.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/hmm.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/hmm_probs.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/hmm_viterbi.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/hypothesis.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/lca.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/lca_probs.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/lca_profiles.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/lf.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/mixture.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/mixture_mvn.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/mixture_probs.html</loc></url>
@@ -71,6 +80,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/set_prior.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/sigma.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/update.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/VarCorr.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/variables.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/vcov.frmtmb_fit.html</loc></url>

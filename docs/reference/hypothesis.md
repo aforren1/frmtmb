@@ -2,8 +2,9 @@
 
 The frequentist analog of brms's `hypothesis()`: evaluates expressions
 of the model parameters at the estimates and tests them against zero. A
-hypothesis is `"expr"` (tested against 0) or `"expr = rhs"`, e.g.
-`"x1 - x2 = 0"` or `"exp(Intercept) = 1"`.
+hypothesis is `"expr"` (tested against 0), `"expr = rhs"`, e.g.
+`"x1 - x2 = 0"` or `"exp(Intercept) = 1"`, or brms's directional
+`"lhs > rhs"` / `"lhs < rhs"`.
 
 ## Usage
 
@@ -18,14 +19,16 @@ hypothesis(
   method = c("wald", "profile", "boot"),
   nsim = 500,
   seed = NULL,
+  class = NULL,
+  group = NULL,
   ...
 )
 
 # S3 method for class 'frmtmb_draws'
-hypothesis(x, hypothesis, alpha = 0.05, ...)
+hypothesis(x, hypothesis, alpha = 0.05, class = NULL, group = NULL, ...)
 
 # S3 method for class 'frmtmb_multiple'
-hypothesis(x, hypothesis, alpha = 0.05, ...)
+hypothesis(x, hypothesis, alpha = 0.05, class = NULL, group = NULL, ...)
 ```
 
 ## Arguments
@@ -65,6 +68,13 @@ hypothesis(x, hypothesis, alpha = 0.05, ...)
 
   Optional seed for `method = "boot"`.
 
+- class, group:
+
+  brms shorthand for the parameter names: the hypothesis is written with
+  bare names and `class` (and `group`, for the `sd_`/`cor_` summaries)
+  supplies the prefix. The default `NULL` (like brms's `class = "b"`)
+  takes the names as written.
+
 ## Value
 
 A `frmtmb_hypothesis` object: a data frame with one row per hypothesis
@@ -76,7 +86,35 @@ bootstrap distribution, the profile curve, or the implied Wald normal
 density, one panel per hypothesis. Subsetting with `[` drops the
 attributes; keep the full object for plotting.
 
-## Details
+## Directional hypotheses
+
+`"lhs > rhs"` and `"lhs < rhs"` test the same difference `(lhs) - (rhs)`
+against zero with a one-sided alternative, so the reported `p` is the
+one-sided tail probability and the interval is one-sided at level
+`1 - alpha`: the unbounded end prints as `Inf` or `-Inf`. `p` is
+[`pnorm()`](https://rdrr.io/r/stats/Normal.html) of the signed z
+statistic for `"wald"` and, as in the two-sided case where `se`, `z` and
+`p` stay Wald-based, for `"profile"` too - the profile changes the
+BOUND, which is the matching endpoint of the two-sided `1 - 2 * alpha`
+profile interval, and nothing else. For `"boot"` and the draws method
+`p` is the tail proportion of the draws with the `(1 + k) / (1 + n)`
+correction. Where brms reports the posterior probability of the
+direction, this reports its frequentist complement: small `p` is
+evidence for the stated direction. `">="` and `"<="` read as `">"` and
+`"<"`.
+
+## brms class and group shorthand
+
+`class` and `group` prefix the bare names in the hypothesis, so
+`hypothesis(fit, "Intercept - age > 0", class = "sd", group = "patient")`
+tests `sd_patient__Intercept - sd_patient__age`. `class = "b"` (brms's
+default) and `class = NULL` leave the names alone; a `class` without a
+`group` prefixes `<class>_`, which is how a distributional coefficient
+such as `sigma_Intercept` is named. A name already written in full keeps
+its spelling, so the two can be mixed; but a name that exists only
+WITHOUT the prefix is an error rather than a test of the unprefixed
+parameter, so a wrong `class` or `group` cannot quietly answer a
+different question.
 
 Available names: the fixed-effect coefficients under their
 [`vcov()`](https://rdrr.io/r/stats/vcov.html) row names with parentheses
@@ -86,7 +124,13 @@ random-effect summaries `sd_<group>__<term>` and
 SD is a scalar. So an ICC is
 `"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"`.
 [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
-lists every usable name for a fit.
+lists every usable name for a fit. The internal spelling that
+[`confint()`](https://rdrr.io/r/stats/confint.html) and
+[`vcov()`](https://rdrr.io/r/stats/vcov.html) print is accepted as well,
+backquoted because it carries parentheses: `` "`(Intercept)` - x" ``.
+The traffic runs the other way too: `confint(parm = )` and
+`profile(parm = )` take these names, whenever one of them stands for a
+single internal parameter.
 
 ## Which random-effect blocks contribute names
 
@@ -175,6 +219,20 @@ hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept)"))
 #>      hypothesis estimate     se   lwr    upr     z         p
 #>     x1 - x2 = 0    0.370 0.1280 0.119 0.6209 2.889 3.859e-03
 #>  exp(Intercept)    2.507 0.4829 1.561 3.4540 5.192 2.079e-07
+# brms's directional form: one-sided p, one-sided interval
+hypothesis(fit, "x1 > x2")
+#> Hypothesis tests (method = wald)
+#>  hypothesis estimate    se    lwr upr     z       p
+#>     x1 > x2     0.37 0.128 0.1594 Inf 2.889 0.00193
+#>   rows written with '<' or '>' are one-sided: p and the finite interval
+#>   bound hold at level 0.95
+# class/group name the natural-scale random-effect summaries
+hypothesis(fit, "Intercept > 0", class = "sd", group = "g")
+#> Hypothesis tests (method = wald)
+#>     hypothesis estimate    se    lwr upr     z         p
+#>  Intercept > 0   0.5494 0.152 0.2993 Inf 3.614 0.0001508
+#>   rows written with '<' or '>' are one-sided: p and the finite interval
+#>   bound hold at level 0.95
 # variance-component expressions: an ICC with bootstrap intervals
 hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
            method = "boot", nsim = 20, seed = 1)

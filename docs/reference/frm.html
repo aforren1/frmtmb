@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -83,7 +83,8 @@ Laplace approximation for random effects through RTMB.</p>
 
 <dl><dt id="arg-formula">formula<a class="anchor" aria-label="anchor" href="#arg-formula"></a></dt>
 <dd><p>A <code>frmtmb_formula</code> from <code><a href="bf.html">bf()</a></code> (with a family attached
-via <code>+</code>), or a plain formula combined with the <code>family</code> argument.</p></dd>
+via <code>+</code>), or a plain formula combined with the <code>family</code> argument.
+With neither, the family is <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code>.</p></dd>
 
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
@@ -91,10 +92,14 @@ via <code>+</code>), or a plain formula combined with the <code>family</code> ar
 
 
 <dt id="arg-family">family<a class="anchor" aria-label="anchor" href="#arg-family"></a></dt>
-<dd><p>A family: a <code>frmtmb_family</code>, a <a href="https://rdrr.io/r/stats/family.html" class="external-link">stats::family</a> object or
-constructor (for example <code>gaussian</code>, <code>poisson</code>, <code>binomial</code>), or a
-family name as a string. Overrides a family already attached to
-<code>formula</code>.</p></dd>
+<dd><p>A family: a <code>frmtmb_family</code>, a <a href="https://rdrr.io/r/stats/family.html" class="external-link">stats::family</a> object,
+a family constructor with or without its parentheses (for example
+<code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code>, <code>poisson</code>, <code>cumulative</code>), or a family name as a
+string. It overrides a family already attached to <code>formula</code>; in a
+multivariate model it fills only the responses that have none.
+The default, <code>NULL</code>, means <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code> - the brms, <code>lme4</code> and
+<code>glmmTMB</code> convention - so <code>frm(y ~ x, data = d)</code> is a linear
+model.</p></dd>
 
 
 <dt id="arg-reml">REML<a class="anchor" aria-label="anchor" href="#arg-reml"></a></dt>

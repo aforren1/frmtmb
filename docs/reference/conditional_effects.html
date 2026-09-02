@@ -19,7 +19,7 @@ conditional_smooths()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,8 +84,13 @@ terms are included, so this also covers what brms calls
 <span>  resolution <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  prob <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"epred"</span>, <span class="st">"predict"</span><span class="op">)</span>,</span>
+<span>  band <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wald"</span>, <span class="st">"profile"</span>, <span class="st">"boot"</span><span class="op">)</span>,</span>
 <span>  ndraws <span class="op">=</span> <span class="fl">400</span>,</span>
+<span>  boot <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  profile_points <span class="op">=</span> <span class="fl">25</span>,</span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  conditions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  surface <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -140,9 +145,33 @@ observation, so a reference value for those is meaningless and is
 an error rather than a silent default).</p></dd>
 
 
+<dt id="arg-band">band<a class="anchor" aria-label="anchor" href="#arg-band"></a></dt>
+<dd><p>How the confidence band is built: <code>"wald"</code> (default,
+the delta method on the link scale), <code>"profile"</code> (likelihood-root
+inversion per grid point) or <code>"boot"</code> (parametric-bootstrap
+percentiles). See the band section. Only for <code>method = "epred"</code>.</p></dd>
+
+
 <dt id="arg-ndraws">ndraws<a class="anchor" aria-label="anchor" href="#arg-ndraws"></a></dt>
 <dd><p>Simulated responses per grid point for
 <code>method = "predict"</code>.</p></dd>
+
+
+<dt id="arg-boot">boot<a class="anchor" aria-label="anchor" href="#arg-boot"></a></dt>
+<dd><p>For <code>band = "boot"</code>: <code>NULL</code> (default) runs one
+<code><a href="frm_bootstrap.html">frm_bootstrap()</a></code> of 200 refits and says so, a number runs that
+many, and a <code>frmtmb_boot</code> object from an earlier identical call
+(<code>attr(ce, "boot")</code>) is reused without refitting anything.</p></dd>
+
+
+<dt id="arg-profile-points">profile_points<a class="anchor" aria-label="anchor" href="#arg-profile-points"></a></dt>
+<dd><p>For <code>band = "profile"</code>: how many points of a
+numeric grid are profiled, the band being interpolated between them
+on the link scale.</p></dd>
+
+
+<dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
+<dd><p>Seed for <code>band = "boot"</code>, passed to <code><a href="frm_bootstrap.html">frm_bootstrap()</a></code>.</p></dd>
 
 
 <dt id="arg-conditions">conditions<a class="anchor" aria-label="anchor" href="#arg-conditions"></a></dt>
@@ -150,6 +179,13 @@ an error rather than a silent default).</p></dd>
 <code>list(x2 = 1, g = "b")</code>; or a data frame whose rows define
 multiple condition sets (brms style), labeled by a <code>cond__</code>
 column from its row names.</p></dd>
+
+
+<dt id="arg-surface">surface<a class="anchor" aria-label="anchor" href="#arg-surface"></a></dt>
+<dd><p>Accepted for brms compatibility. <code>TRUE</code> (a fitted
+surface over two predictors) is refused: ask for the two-variable
+effect <code>"x1:x2"</code> instead, which varies the first predictor at three
+values of the second.</p></dd>
 
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
@@ -190,19 +226,93 @@ already the whole predictive distribution). Naming a distributional
 parameter, <code>dpar = "mu"</code>, opts back into the ordinary display of the
 latent linear predictor.</p>
     </div>
+    <div class="section level2">
+    <h2 id="confidence-bands">Confidence bands<a class="anchor" aria-label="anchor" href="#confidence-bands"></a></h2>
+
+
+<p><code>band</code> picks how <code>lower__</code> and <code>upper__</code> are found. The estimate is
+the same curve in all three cases; only the band changes.</p><ul><li><p><code>"wald"</code> (default, and free): the delta-method standard error on
+the link scale, back-transformed. Symmetric on the link scale by
+construction.</p></li>
+<li><p><code>"profile"</code>: one likelihood-root search (<code><a href="https://rdrr.io/pkg/TMB/man/tmbroot.html" class="external-link">TMB::tmbroot()</a></code>) per grid
+point. A grid point's linear predictor is a linear combination of
+the coefficients, so the search inverts the likelihood ratio along
+that combination; the link is monotone, so the two endpoints map
+through it. The band is not symmetric and does not assume a
+quadratic log-likelihood, which is what makes it worth its cost
+near a boundary or at a small sample size.</p></li>
+<li><p><code>"boot"</code>: percentiles of the grid predictions across the refits of
+ONE <code><a href="frm_bootstrap.html">frm_bootstrap()</a></code> (<code>re.form = NA</code>, the same population-level
+grid). One bootstrap serves every effect, condition set and ordinal
+category of the call; <code>attr(ce, "boot")</code> returns it, and passing it
+back as <code>boot =</code> costs no refits at all.</p></li>
+</ul><p>What <code>se__</code> means follows the band: the Wald standard error (link
+scale, or the probability scale on the ordinal display) for <code>"wald"</code>
+and <code>"profile"</code> - the profile changes the endpoints, not the standard
+error - and the standard deviation of the bootstrap draws, on the
+displayed scale, for <code>"boot"</code>.</p>
+<p>Cost, and how it is capped. A root search is two constrained
+optimizations, so <code>band = "profile"</code> profiles at most
+<code>profile_points</code> (default 25) of a numeric grid, spread over its
+range and including both ends, and interpolates the endpoints
+linearly between them on the link scale. <code>resolution</code> still governs
+the estimate curve. A factor grid is profiled at every level. Points
+whose search does not converge become <code>NA</code> and one warning names how
+many. <code>band = "boot"</code> costs its refits once, however many effects are
+asked for.</p>
+<p>Refusals. <code>band</code> other than <code>"wald"</code> needs <code>method = "epred"</code>: a
+prediction interval is already a simulation quantile. <code>band = "profile"</code> additionally needs the displayed quantity to BE a linear
+combination of the parameters, so it is refused (naming <code>"boot"</code>) for
+an ordinal category probability, for an expected response that runs
+through several distributional parameters or through truncation
+bounds (<code>dpar =</code> names one predictor and opts back in), for a
+nonlinear predictor, for a predictor carrying <code>s()</code>, <code>gp()</code> or
+<code>hsgp()</code> (basis coefficients are inner parameters), and for a REML
+fit or <code>frmtmb_control(profile = TRUE)</code> (the coefficients are not
+outer parameters there).</p>
+<p>A nonlinear predictor (<code>nl = TRUE</code>) has no delta-method standard
+error at all, so <code>band = "boot"</code> is its only band and the other two
+are refused. The same holds for the per-category display of a nominal
+family, whose probabilities have no threshold Jacobian to
+differentiate.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="which-predictors-are-plotted-by-default">Which predictors are plotted by default<a class="anchor" aria-label="anchor" href="#which-predictors-are-plotted-by-default"></a></h2>
+
+
+<p>Every variable of the selected linear predictor that the display can
+vary: its fixed-effect terms, its smooth terms and its <code>mo()</code> terms
+(whose design columns are placeholders, so the variable is read from
+the term itself). On a nonlinear fit they live one level down - the
+covariates the nonlinear formula reads, plus the terms of each
+nonlinear parameter's own predictor - and all of those are collected
+too. Matrix-valued columns are excluded, a grid over a matrix
+covariate not being a curve. Naming <code>effects =</code> overrides the search.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">120</span><span class="op">)</span>, f <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="st">"b"</span><span class="op">)</span>, <span class="fl">60</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">120</span>, <span class="fl">1</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">f</span> <span class="op">==</span> <span class="st">"b"</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">*</span> <span class="va">f</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">*</span> <span class="va">f</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ce</span> <span class="op">&lt;-</span> <span class="fu">conditional_effects</span><span class="op">(</span><span class="va">fit</span>, effects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"x:f"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ce</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="conditional_effects-1.png" alt="" width="700" height="433"></span>
 <span class="r-plt img"><img src="conditional_effects-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="co"># prediction intervals instead of epred bands</span></span></span>
 <span class="r-in"><span><span class="va">ce_p</span> <span class="op">&lt;-</span> <span class="fu">conditional_effects</span><span class="op">(</span><span class="va">fit</span>, effects <span class="op">=</span> <span class="st">"x"</span>, method <span class="op">=</span> <span class="st">"predict"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="co"># a likelihood-profile band: asymmetric, and no quadratic assumption</span></span></span>
+<span class="r-in"><span><span class="va">ce_pr</span> <span class="op">&lt;-</span> <span class="fu">conditional_effects</span><span class="op">(</span><span class="va">fit</span>, effects <span class="op">=</span> <span class="st">"x"</span>, band <span class="op">=</span> <span class="st">"profile"</span>,</span></span>
+<span class="r-in"><span>                             resolution <span class="op">=</span> <span class="fl">20</span>, profile_points <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># a bootstrap band, reused for a second effect without refitting</span></span></span>
+<span class="r-in"><span><span class="va">ce_b</span> <span class="op">&lt;-</span> <span class="fu">conditional_effects</span><span class="op">(</span><span class="va">fit</span>, effects <span class="op">=</span> <span class="st">"x"</span>, band <span class="op">=</span> <span class="st">"boot"</span>,</span></span>
+<span class="r-in"><span>                            boot <span class="op">=</span> <span class="fl">25</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">ce_b2</span> <span class="op">&lt;-</span> <span class="fu">conditional_effects</span><span class="op">(</span><span class="va">fit</span>, effects <span class="op">=</span> <span class="st">"x"</span>, band <span class="op">=</span> <span class="st">"boot"</span>,</span></span>
+<span class="r-in"><span>                             boot <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">ce_b</span>, <span class="st">"boot"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

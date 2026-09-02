@@ -77,7 +77,13 @@ custom_family(
 
 - type:
 
-  One of `"continuous"`, `"discrete"`, `"ordinal"`.
+  One of `"continuous"`, `"discrete"`, `"ordinal"`, `"categorical"`. The
+  last two say the modelled response is a distribution over `1..K`
+  categories rather than a number, so
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) returns an
+  `n x K` probability matrix; `"ordinal"` shares one latent predictor
+  across the categories and `"categorical"` gives each non-reference
+  category its own.
 
 - post:
 

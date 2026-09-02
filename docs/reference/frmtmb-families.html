@@ -11,7 +11,7 @@ from 'stats' are accepted directly by frm() and +."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -117,7 +117,13 @@ from 'stats' are accepted directly by <code><a href="frm.html">frm()</a></code> 
 <span></span>
 <span><span class="fu">cratio</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">acat</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">acat</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">von_mises</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"tan_half"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">categorical</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span>, levels <span class="op">=</span> <span class="cn">NULL</span>, K <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">cox</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, df <span class="op">=</span> <span class="fl">5</span>, degree <span class="op">=</span> <span class="fl">3</span>, intercept <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -132,6 +138,28 @@ from 'stats' are accepted directly by <code><a href="frm.html">frm()</a></code> 
 <dd><p>For <code>multinomial()</code>: number of response categories (columns
 of the count-matrix response); category 1 is the reference.</p></dd>
 
+
+<dt id="arg-levels">levels<a class="anchor" aria-label="anchor" href="#arg-levels"></a></dt>
+<dd><p>For <code>categorical()</code>: the response's category labels, in
+the order that fixes the reference category (the first) and the
+dpar names. Only needed when the family is built away from the
+data; <code><a href="frm.html">frm()</a></code> reads them off the response.</p></dd>
+
+
+<dt id="arg-df">df<a class="anchor" aria-label="anchor" href="#arg-df"></a></dt>
+<dd><p>For <code>cox()</code>: the number of M-spline basis functions in the
+baseline hazard (brms's <code>bhaz(df = 5)</code> default).</p></dd>
+
+
+<dt id="arg-degree">degree<a class="anchor" aria-label="anchor" href="#arg-degree"></a></dt>
+<dd><p>For <code>cox()</code>: the spline degree of that basis (cubic by
+default).</p></dd>
+
+
+<dt id="arg-intercept">intercept<a class="anchor" aria-label="anchor" href="#arg-intercept"></a></dt>
+<dd><p>For <code>cox()</code>: keep the basis function that is
+non-zero at the lower boundary knot.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -144,6 +172,88 @@ takes the response's level order as the category order. Supply an
 ordered factor, or integer codes <code>1..K</code>: an unordered factor is
 accepted, as brms accepts it, but warns and names the order it is
 about to use, which is alphabetical unless the levels were set.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="categorical-nominal-responses">Categorical (nominal) responses<a class="anchor" aria-label="anchor" href="#categorical-nominal-responses"></a></h2>
+
+
+<p><code>categorical()</code> fits a multinomial logit to an unordered factor. The
+FIRST level is the reference category, its linear predictor is held
+at zero, and each remaining level gets its own predictor named
+<code>mu&lt;Level&gt;</code>, as in brms. The main model formula applies to every one
+of them, and any single category is overridden by naming it:
+<code>bf(y ~ x, mub ~ z)</code> gives category <code>"b"</code> its own predictor and
+leaves the rest on <code>~ x</code>.</p>
+<p>The categories come from the data, so <code><a href="frm.html">frm()</a></code> reads them off the
+response before it parses the formula. Constructing the family away
+from a data set (to inspect it, or to reach the parser through
+another entry point) needs them stated: <code>categorical(levels = c("a", "b", "c"))</code>, or <code>categorical(K = 3)</code> for a response already coded
+<code>1..K</code>, which names the dpars <code>mu2 ... muK</code>. A character or logical
+response is coerced to a factor with a message naming the level
+order, because that order is the model.</p>
+<p><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code> return the <code>n x K</code> matrix
+of category probabilities, columns named by the response's own
+levels and rows summing to one - the same convention the ordinal
+families follow. <code>predict(type = "link")</code> and <code>predict(dpar =)</code> give
+the per-category latent predictors, which is where <code>se.fit</code> lives.
+<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws factor levels. The same likelihood is available on
+a count-matrix response as <code>multinomial(K)</code>, and a one-hot matrix
+gives an identical log-likelihood.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="circular-responses">Circular responses<a class="anchor" aria-label="anchor" href="#circular-responses"></a></h2>
+
+
+<p><code>von_mises()</code> models an angle in radians on <code>(-pi, pi]</code>. Its <code>mu</code> is
+the mean direction and takes the <code>tan_half</code> link, which maps the
+whole line onto that interval; <code>kappa</code> is the concentration and takes
+a log link, with <code>kappa = 0</code> the uniform distribution on the circle.
+Both are brms's choices. <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code>
+report the mean direction. The normalizing constant needs
+<code>log I0(kappa)</code>, which RTMB differentiates exactly through its own
+<code>besselI</code> method, so nothing here is a series approximation.
+Residuals are differences of angles and are NOT wrapped, so read
+<code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> on a von Mises fit with that in mind.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="cox-proportional-hazards">Cox proportional hazards<a class="anchor" aria-label="anchor" href="#cox-proportional-hazards"></a></h2>
+
+
+<p><code>cox()</code> is the flexible-parametric proportional hazards model brms
+fits: the baseline hazard is an M-spline in time,
+<code>h0(t) = sum_j s_j M_j(t)</code>, and the cumulative baseline hazard is the
+I-spline integral of the same basis over the same weights, which
+makes it monotone by construction. The weights <code>s</code> form a simplex -
+that is what identifies the baseline against the intercept - and are
+estimated as <code>sbhaz_raw</code>, their <code>Kbhaz - 1</code> free softmax
+coordinates; <code><a href="cox_baseline.html">cox_baseline()</a></code> returns the simplex itself. The
+default basis is brms's: <code>df = 5</code> cubic M-splines with an intercept,
+internal knots on response quantiles and boundary knots just outside
+the observed range.</p>
+<p>The hazard is <code>h0(t) exp(eta)</code>, so a coefficient is a log hazard
+ratio, exactly as in <code><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">survival::coxph()</a></code>. Right, left, and interval
+censoring come through the ordinary <code>cens()</code> addition term: an event
+contributes the density and a censored observation the survivor
+function, which is what this family's log-density and log-CDF are.
+Random effects are the point: <code>time | cens(c) ~ x + (1 | g)</code> is a
+frailty model, and the Laplace approximation integrates the frailties
+out.</p>
+<p>The baseline is semiparametric only in spirit - it has <code>df</code>
+parameters, not one per event time - so coefficients agree with
+<code>coxph()</code> closely rather than exactly. A survival response has no
+mean, so <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code> are refused;
+<code>predict(type = "link")</code> gives the log hazard ratio. <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> is
+not available.</p>
+<p>Maximum likelihood often puts one or more baseline weights ON the
+simplex boundary, at exactly zero. Their softmax coordinates then run
+off to minus infinity along a flat ridge, the Hessian is singular in
+those directions, and the optimizer reports singular convergence even
+though the gradient is zero and the regression coefficients are at
+their optimum - <code><a href="diagnose.html">diagnose()</a></code> names <code>sbhaz_raw</code> as the culprit. This
+is what an unpenalized flexible baseline does; brms does not meet it
+because its Dirichlet prior keeps the weights interior. Lower <code>df</code>
+until the baseline is one the data supports, and read
+<code><a href="cox_baseline.html">cox_baseline()</a></code> to see which weights collapsed.</p>
     </div>
     <div class="section level2">
     <h2 id="quantile-regression-inference">Quantile regression inference<a class="anchor" aria-label="anchor" href="#quantile-regression-inference"></a></h2>
@@ -233,6 +343,62 @@ doubt.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  phi:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       3.921 </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># an unordered factor: one predictor per non-reference category,</span></span></span>
+<span class="r-in"><span><span class="co"># named after the level it belongs to</span></span></span>
+<span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">pick</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ale"</span>, <span class="st">"stout"</span>, <span class="st">"lager"</span><span class="op">)</span>, <span class="va">n</span>, <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">cat_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">pick</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">categorical</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">cat_fit</span><span class="op">)</span>                     <span class="co"># mulager and mustout; ale is the</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $mulager</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.3644546  -0.1122166 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $mustout</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -0.06738302 -0.30584099 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span>                                   <span class="co"># reference</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">cat_fit</span><span class="op">)</span><span class="op">)</span>              <span class="co"># n x K category probabilities</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         ale     lager     stout</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.3048775 0.4283931 0.2667294</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 0.2752055 0.4210911 0.3037034</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.3317258 0.4321454 0.2361288</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.3199327 0.4308183 0.2492490</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 0.3616400 0.4333564 0.2050036</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.3236542 0.4312905 0.2450553</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># one category may take its own predictor</span></span></span>
+<span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">pick</span> <span class="op">~</span> <span class="va">x</span>, <span class="va">mustout</span> <span class="op">~</span> <span class="va">w</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">categorical</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: pick ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Family: categorical   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -129.366  AIC: 266.732  nobs: 120 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  mulager:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     0.34532     0.03655 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  mustout:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           w </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     -0.1019     -0.1376 </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># an angle: mu is the mean direction, kappa the concentration</span></span></span>
+<span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">angle</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">atan2</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="fl">0.5</span> <span class="op">+</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">cos</a></span><span class="op">(</span><span class="fl">0.5</span> <span class="op">+</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">vm_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">angle</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">von_mises</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">vm_fit</span><span class="op">)</span><span class="op">)</span>               <span class="co"># the mean direction, in radians</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           1           2           3           4           5           6 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  0.82530547 -0.05745388  1.41150621  1.18172554  1.83731815  1.25871540 </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># proportional hazards with a spline baseline; (1 | g) is a frailty</span></span></span>
+<span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="va">n</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.5</span> <span class="op">+</span> <span class="fl">0.7</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">1</span>, <span class="fl">0.3</span><span class="op">)</span>        <span class="co"># 1 = right censored</span></span></span>
+<span class="r-in"><span><span class="va">cox_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">time</span> <span class="op">|</span> <span class="fu">cens</span><span class="op">(</span><span class="va">out</span><span class="op">)</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">cox</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">cox_fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span>                  <span class="co"># log hazard ratios</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2.4319804   0.9064254 </span>
+<span class="r-in"><span><span class="fu"><a href="cox_baseline.html">cox_baseline</a></span><span class="op">(</span><span class="va">cox_fit</span><span class="op">)</span>              <span class="co"># the baseline hazard weights</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           s1           s2           s3           s4           s5 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1.292303e-02 1.489409e-01 4.591886e-01 4.732665e-09 3.789474e-01 </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

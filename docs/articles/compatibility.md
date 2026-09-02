@@ -118,18 +118,24 @@ gaussian or student model.
 | sratio | \+ | ? | x | x | x | x | ? | ? |
 | cratio | \+ | ? | x | x | x | x | ? | ? |
 | acat | \+ | ? | x | x | x | x | ? | ? |
+| categorical | \+ | ? | x | x | x | x | ? | ? |
+| von_mises | \+ | ? | x | x | x | x | ? | ? |
+| cox | \+ | ? | \+ | ~ | x | x | ? | ? |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | ~ | poisson + trunc() | Discrete truncation needs a lower bound of at least 1; trunc(lb = 0) is not truncation and is refused. |
 | ~ | multinomial + trials() | Required. The row sums of the response matrix must equal the trials. |
-| x | student + cens(); shifted_lognormal + cens(); skew_normal + cens(); exgaussian + cens(); asym_laplace + cens(); and 7 more | Refused: cens() needs a family with an AD log-CDF. |
-| x | student + trunc(); shifted_lognormal + trunc(); skew_normal + trunc(); exgaussian + trunc(); asym_laplace + trunc(); and 18 more | Refused: trunc() needs a family with an AD log-CDF. |
-| x | lognormal + se(); shifted_lognormal + se(); skew_normal + se(); exgaussian + se(); asym_laplace + se(); and 26 more | Refused: known standard errors are added to the residual variance, which only the gaussian and student families have. |
-| x | lognormal + mi(); shifted_lognormal + mi(); skew_normal + mi(); exgaussian + mi(); asym_laplace + mi(); and 26 more | Refused: an imputation model must be gaussian or student. |
+| ~ | cox + trunc() | Runs through the same log-CDF the censoring uses, so trunc(lb = ) is delayed entry. The truncation bound is evaluated against the SAME spline basis the response is, which means a bound outside the boundary knots is clamped to them rather than extrapolated. Untested against an external left-truncated reference. |
+| x | student + cens(); shifted_lognormal + cens(); skew_normal + cens(); exgaussian + cens(); asym_laplace + cens(); and 8 more | Refused: cens() needs a family with an AD log-CDF. |
+| x | student + trunc(); shifted_lognormal + trunc(); skew_normal + trunc(); exgaussian + trunc(); asym_laplace + trunc(); and 19 more | Refused: trunc() needs a family with an AD log-CDF. |
+| x | lognormal + se(); shifted_lognormal + se(); skew_normal + se(); exgaussian + se(); asym_laplace + se(); and 29 more | Refused: known standard errors are added to the residual variance, which only the gaussian and student families have. |
+| x | lognormal + mi(); shifted_lognormal + mi(); skew_normal + mi(); exgaussian + mi(); asym_laplace + mi(); and 29 more | Refused: an imputation model must be gaussian or student. |
 | x | poisson + cens() | Refused: censoring is not supported for discrete families yet, even though poisson carries a CDF. |
 | x | negbinomial + cens(); nbinom1 + cens(); geometric + cens(); compois + cens(); binomial + cens(); and 6 more | Refused: censoring is not supported for discrete families yet. |
 | x | cumulative + cens(); cumulative + trunc(); sratio + cens(); sratio + trunc(); cratio + cens(); and 3 more | Refused: ordinal families carry no AD log-CDF over the response scale. |
+| x | categorical + cens() | Refused: a nominal response carries no order, so it has no CDF for a censored row to contribute. |
+| x | categorical + trunc() | Refused for the same reason: no order, no CDF, no truncation window. |
 
 ## Response distributions and post-fit methods
 
@@ -173,20 +179,32 @@ value.
 | sratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
 | cratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
 | acat | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
+| categorical | ~ | ~ | \+ | x | x | ~ | ~ | ~ | ~ |
+| von_mises | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
+| cox | x | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | ~ | gaussian + fitted; student + fitted; lognormal + fitted; shifted_lognormal + fitted; skew_normal + fitted; and 24 more | Needs a family with a mean function. |
-| ~ | gaussian + predict; student + predict; lognormal + predict; shifted_lognormal + predict; skew_normal + predict; and 24 more | Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns. |
-| ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; student + residuals; student + confint_profile; and 90 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
-| ~ | gaussian + residuals_osa; student + residuals_osa; lognormal + residuals_osa; shifted_lognormal + residuals_osa; skew_normal + residuals_osa; and 24 more | One-step-ahead residuals need the family to register its observation through OBS(). |
-| ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 24 more | Univariate fits only, and the mu predictor must be linear. |
-| ~ | gaussian + frm_sample; student + frm_sample; lognormal + frm_sample; shifted_lognormal + frm_sample; skew_normal + frm_sample; and 28 more | Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = “random” for a multimodal posterior. |
+| ~ | gaussian + predict; student + predict; lognormal + predict; shifted_lognormal + predict; skew_normal + predict; and 25 more | Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns. |
+| ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; student + residuals; student + confint_profile; and 98 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
+| ~ | gaussian + residuals_osa; student + residuals_osa; lognormal + residuals_osa; shifted_lognormal + residuals_osa; skew_normal + residuals_osa; and 25 more | One-step-ahead residuals need the family to register its observation through OBS(). |
+| ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 27 more | Univariate fits only, and the mu predictor must be linear. |
+| ~ | gaussian + frm_sample; student + frm_sample; lognormal + frm_sample; shifted_lognormal + frm_sample; skew_normal + frm_sample; and 31 more | Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = “random” for a multimodal posterior. |
 | ~ | cumulative + fitted; sratio + fitted; cratio + fitted; acat + fitted | Returns the same n x K matrix of category probabilities predict(type = “response”) returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The predict(type = “response”) == fitted() identity holds. The latent linear predictor is predict(fit, type = “link”), which is also what emmeans and insight see. |
 | ~ | cumulative + predict; sratio + predict; cratio + predict; acat + predict | type = “response” returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response’s own levels), not a vector: an ordinal response has no mean. It equals fitted(). cs() terms are honored and re-evaluated on newdata. type = “link” gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale. |
 | ~ | cumulative + residuals; sratio + residuals; cratio + residuals; acat + residuals | “response” and “pearson” score the categories by the same codes 1..K the likelihood uses: y - sum_k k \* P(y = k), standardized by that distribution’s own sd. That is a residual on a SCORE, not on the ordinal scale; “osa” and dharma_residuals() use only the order. “deviance” is refused, as for every family without a standard unit deviance. |
 | ~ | cumulative + emmeans; sratio + emmeans; cratio + emmeans; acat + emmeans | Works on the LATENT linear predictor, emmeans’s mode = “latent” convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use predict(fit, type = “response”) or conditional_effects(), which are on a different scale from these means. |
+| ~ | categorical + fitted | Returns the n x K matrix of category probabilities, not a vector: a nominal response has no mean, so the modelled response is the category distribution. The predict(type = “response”) == fitted() identity holds. |
+| ~ | categorical + predict | type = “response” returns an n x K matrix of category probabilities, columns named by the response’s own levels and rows summing to 1, exactly as for the ordinal families; it equals fitted(). se.fit is refused there. Each category’s latent predictor is predict(type = “link”, dpar = “mu”), which is where se.fit works. |
+| ~ | von_mises + fitted | Returns the mean DIRECTION in radians on (-pi, pi\], which is what brms’s posterior_epred() reports for this family; a circular response has no arithmetic mean. |
+| ~ | cox + predict | type = “response” and fitted() are refused: a survival time has no mean the censored rows identify. type = “link” gives the log hazard ratio, and cox_baseline() the fitted baseline weights. |
 | x | tweedie + simulate; compois + simulate; hurdle_poisson + simulate | Refused: this family has no simulator yet. |
+| x | categorical + residuals | Refused: the categories carry no order, so no residual has a scale to live on. Compare fitted(fit), the n x K category probabilities, against the observed categories instead. |
+| x | categorical + residuals_osa | Refused with residuals() as a whole: a one-step-ahead residual is a CDF value, and a nominal response has no CDF. |
+| x | von_mises + residuals_osa | Refused upstream: RTMBdist::dvm() rejects the osa observation object, because a wrapped support has no one-step CDF on the line. |
+| x | cox + fitted | Refused: a survival time has no mean on the response scale here. Use predict(type = “link”) for the log hazard ratio. |
+| x | cox + simulate | Refused: drawing a survival time means inverting the cumulative baseline hazard, which this family does not carry a quantile function for. |
 
 ## Estimation modes
 
@@ -296,18 +314,26 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | nl          |     ?     |    ?     |   \+   |    ?    |  ?   |  ?   |   ?    |    ?    |
 | mixture     |    \+     |    ?     |   x    |    x    |  x   |  x   |   ?    |    ?    |
 | mixture_mvn |     ?     |    ?     |   x    |    x    |  ?   |  ?   |   ?    |    ?    |
+| hmm         |     x     |    \+    |   x    |    x    |  x   |  x   |   ?    |    ?    |
+| lca         |     x     |    x     |   x    |    x    |  x   |  x   |   x    |    x    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | x | rescor + weights(); rescor + se() | Refused. |
+| x | hmm + weights() | Refused: weights() scales a per-row log-density, and an HMM’s contribution is per sequence. |
+| x | lca + weights(); lca + trials(); lca + cens(); lca + trunc(); lca + se(); and 3 more | Refused: an lca() response is a matrix of item codes with no per-row weight, censoring window, trial count or known standard error to attach an addition term to. One message covers the whole set. |
 | x | rescor + cens() | Refused. This pair was once accepted with the censoring silently dropped. |
 | x | mixture + cens() | Refused: mixture() has no CDF, so the CDF guard rejects cens(). |
 | x | mixture_mvn + cens(); mixture_mvn + trunc() | Refused: mixture_mvn() has no CDF. |
+| x | hmm + cens() | Refused: censoring replaces a row’s density with a CDF difference, which the forward recursion has no room for. |
 | x | rescor + trunc() | Refused. This pair was once accepted with the truncation silently dropped. |
 | x | mixture + trunc() | Refused: mixture() has no CDF. |
+| x | hmm + trunc() | Refused for the same reason as cens(). |
 | x | mixture + se() | Refused: se() is supported for gaussian and student families only. |
+| x | hmm + se() | Refused: a known measurement SD is a per-row modification of the emission density; combining it with the state sum is not implemented. |
 | x | rescor + mi() | Refused: mi() cannot be combined with rescor = TRUE. |
 | x | mixture + mi() | Refused: mi() on the mixture response is not supported. |
+| x | hmm + mi() | Refused: an NA response is handled by hmm() itself - the row is kept and its emission masked, so the chain keeps its length - and needs no latent parameter. |
 
 ### Structures and post-fit methods
 
@@ -332,6 +358,8 @@ other.
 | nl | \+ | ~ | ? | ? | ? | x | ? | ? | ? |
 | mixture | ? | ? | ~ | ? | ? | ? | ~ | ? | ? |
 | mixture_mvn | ? | ? | x | ? | ? | ? | ~ | ? | ? |
+| hmm | \+ | ~ | ~ | ~ | x | ? | \+ | ? | ? |
+| lca | x | ~ | \+ | x | x | ? | \+ | \+ | ? |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -339,6 +367,10 @@ other.
 | ~ | nl + predict | Point predictions work. se.fit is not supported for the nonlinear predictor; request a nonlinear parameter with dpar instead. |
 | ~ | mixture + simulate | Works only when every component family has a simulator. |
 | ~ | mixture + frm_sample | Mixture posteriors are multimodal. Sample with init = “random” rather than the mode-anchored default. |
+| ~ | hmm + predict | type = “link” and dpar = work normally, including the transition logits. type = “response” equals fitted() in sample; it is refused for newdata (state occupancy conditions on the observed responses of a whole sequence) and se.fit is refused on the response scale. |
+| ~ | hmm + simulate | A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. |
+| ~ | hmm + residuals | type = “response” and “pearson” are computed against the occupancy-weighted mean, with the pearson scale the law-of-total-variance mixture variance. type = “deviance” is refused: there is no per-row likelihood to saturate. |
+| ~ | lca + predict | predict() returns the gating linear predictor (theta1 by default, any theta with dpar =), including on newdata. type = “response” is refused with the fitted() message. |
 | x | mvbf + fitted; rescor + fitted | Refused: fitted() calls uni_resp() and stops with ‘fitted() is not supported yet for multivariate fits’. Predict one response at a time instead: predict(fit, resp = ). |
 | x | mvbf + simulate; mvbf + residuals; mvbf + emmeans | Refused: the post-fit methods below are univariate-only for now. |
 | x | mvbf + residuals_osa | Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included. |
@@ -347,6 +379,10 @@ other.
 | x | rescor + emmeans | Refused: emmeans support is univariate-only for now. |
 | x | nl + emmeans | Refused: emmeans support needs a linear mu predictor. |
 | x | mixture_mvn + simulate | Refused: mixture_mvn() has no simulator yet. |
+| x | hmm + residuals_osa | Refused: one-step prediction needs the taped density of one observation given the earlier ones, and the tape holds a forward recursion over each whole sequence with no registered observation vector. |
+| x | lca + fitted | Refused: the response is a matrix of nominal item codes, so there is no mean to fit. lca_probs() and lca_profiles() are the post-fit surface. |
+| x | lca + residuals | Refused for the same reason as fitted(): no fitted mean, so no residual. |
+| x | lca + residuals_osa | Refused: one observation is a subject’s whole item response pattern, not a value with a univariate conditional CDF to step through. |
 
 ## Within-group residual correlation
 
@@ -356,18 +392,18 @@ density per group. That is what decides almost every pair below: a
 family needs a real residual to correlate, and an addition term that
 reshapes a per-row contribution has nothing left to reshape.
 
-|  | gaussian | student | lognormal | shifted_lognormal | skew_normal | exgaussian | asym_laplace | Gamma | weibull | exponential | inverse.gaussian | beta | tweedie | poisson | negbinomial | nbinom1 | geometric | compois | binomial | bernoulli | beta_binomial | multinomial | zero_inflated_poisson | zero_inflated_negbinomial | zero_inflated_binomial | zero_inflated_beta | hurdle_poisson | hurdle_gamma | hurdle_lognormal | cumulative | sratio | cratio | acat |
-|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| ar() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
-| ma() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
-| arma() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
-| cosy() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
-| unstr() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+|  | gaussian | student | lognormal | shifted_lognormal | skew_normal | exgaussian | asym_laplace | Gamma | weibull | exponential | inverse.gaussian | beta | tweedie | poisson | negbinomial | nbinom1 | geometric | compois | binomial | bernoulli | beta_binomial | multinomial | zero_inflated_poisson | zero_inflated_negbinomial | zero_inflated_binomial | zero_inflated_beta | hurdle_poisson | hurdle_gamma | hurdle_lognormal | cumulative | sratio | cratio | acat | categorical | von_mises | cox |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| ar() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| ma() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| arma() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| cosy() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
+| unstr() | \+ | ~ | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x | x |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | ~ | ar() + student; ma() + student; arma() + student; cosy() + student; unstr() + student | The multivariate-t has one shape parameter per group, so nu must be constant; a predicted nu ~ … is refused. The density is brms’s multi_student_t with scale matrix D R D, verified against mvtnorm::dmvt exactly. |
-| x | ar() + lognormal; ma() + lognormal; arma() + lognormal; cosy() + lognormal; unstr() + lognormal; and 150 more | Refused: a residual correlation needs a family with a real residual. brms accepts the same spelling for other families but fits a different model there - a latent gaussian AR process added to the linear predictor - which is spelled here as a random effect over the time factor: + ar1(factor(week) + 0 \| subj), or toep()/us() for a freer lag structure. |
+| x | ar() + lognormal; ma() + lognormal; arma() + lognormal; cosy() + lognormal; unstr() + lognormal; and 165 more | Refused: a residual correlation needs a family with a real residual. brms accepts the same spelling for other families but fits a different model there - a latent gaussian AR process added to the linear predictor - which is spelled here as a random effect over the time factor: + ar1(factor(week) + 0 \| subj), or toep()/us() for a freer lag structure. |
 
 |         | weights() | trials() | cens() | trunc() | se() | mi() | vint() | vreal() |
 |:--------|:---------:|:--------:|:------:|:-------:|:----:|:----:|:------:|:-------:|
@@ -394,13 +430,13 @@ reshapes a per-row contribution has nothing left to reshape.
 | ~ | ar() + priors; ma() + priors; arma() + priors; cosy() + priors; unstr() + priors | Priors on the fixed effects and on random-effect covariance parameters work as usual. set_prior() cannot target the residual-correlation parameters themselves yet; bounds on thetaac\_\* are the available lever. |
 | x | ar() + quadrature; ma() + quadrature; arma() + quadrature; cosy() + quadrature; unstr() + quadrature | Refused: the Gauss-Kronrod rule integrates a random effect against per-observation densities, and this residual is a joint density over each group. |
 
-|         | mvbf | rescor | \|ID\| | nl  | mixture | mixture_mvn |
-|:--------|:----:|:------:|:------:|:---:|:-------:|:-----------:|
-| ar()    |  \+  |   x    |   ?    |  x  |    x    |      x      |
-| ma()    |  \+  |   x    |   ?    |  x  |    x    |      x      |
-| arma()  |  \+  |   x    |   ?    |  x  |    x    |      x      |
-| cosy()  |  \+  |   x    |   ?    |  x  |    x    |      x      |
-| unstr() |  \+  |   x    |   ?    |  x  |    x    |      x      |
+|         | mvbf | rescor | \|ID\| | nl  | mixture | mixture_mvn | hmm | lca |
+|:--------|:----:|:------:|:------:|:---:|:-------:|:-----------:|:---:|:---:|
+| ar()    |  \+  |   x    |   ?    |  x  |    x    |      x      |  x  |  ?  |
+| ma()    |  \+  |   x    |   ?    |  x  |    x    |      x      |  x  |  ?  |
+| arma()  |  \+  |   x    |   ?    |  x  |    x    |      x      |  x  |  ?  |
+| cosy()  |  \+  |   x    |   ?    |  x  |    x    |      x      |  x  |  ?  |
+| unstr() |  \+  |   x    |   ?    |  x  |    x    |      x      |  x  |  ?  |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -408,6 +444,7 @@ reshapes a per-row contribution has nothing left to reshape.
 | x | ar() + nl; ma() + nl; arma() + nl; cosy() + nl; unstr() + nl | Refused: a nonlinear mu is arbitrary R code, so the term would be evaluated rather than read. brms reaches this model through acformula(), which has no analog here. |
 | x | ar() + mixture; ma() + mixture; arma() + mixture; cosy() + mixture; unstr() + mixture | Refused: a mixture likelihood has no single residual to correlate. The term is rejected as sitting on mu1 rather than mu, which is also how brms rejects it. |
 | x | ar() + mixture_mvn; ma() + mixture_mvn; arma() + mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn | Refused for the same reason as mixture(). |
+| x | ar() + hmm; ma() + hmm; arma() + hmm; cosy() + hmm; unstr() + hmm | Refused: a residual correlation term is rejected as sitting on mu1 rather than mu, exactly as it is for mixture(), and for the same reason - there is no single residual to correlate. |
 
 ## Predictor specials
 
@@ -432,23 +469,29 @@ structure. The registry writes the predictor forms as `mi_pred()`,
 
 ## Formula grammar
 
-Three spellings have restrictions of their own.
+Five spellings have restrictions of their own. `mm()` and `mmc()` are
+the multi-membership pair: `(1 | mm(g1, g2))` averages the member
+levels’ effects into one design row, and `mmc()` gives that row a
+member-specific covariate. Their full rule set is longer than one table
+row; see `?frmtmb-multimembership`.
 
 | Spelling | Status | Note |
 |:---|:---|:---|
 | x \* (1 \| g) | x | Refused: a bar term crossed with \* or : (as in x \* (1 \| g)) is not a random-effect specification (lme4#196). Write the crossing inside the bar: (x \| g). This spelling was once accepted with the crossing silently dropped. |
 | (1 \| factor(x)) | \+ | Call-valued grouping factors are supported: (1 \| factor(x)) and (1 \| interaction(a, b)) both build the grouping factor from the model frame. |
 | (x \|\| g) | \+ | (x \|\| g) gives uncorrelated terms. With a factor on the left, (f \|\| g) routes to diag, that is one independent effect per factor level. |
+| (1 \| mm(g1, g2)) | \+ | The membership design is built before the family sees it, exactly as an ordinary grouping factor’s is. |
+| (mmc(x1, x2) \| mm(g1, g2)) | ~ | mmc() only means something on the left of a multi-membership bar, where it supplies one covariate value per member. Anywhere else it is refused, including over a single-membership grouping factor. Inside an mm() term it composes like any other random-slope column. |
 
 ## Coverage
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1364 | 31%   |
-| conditional |  1627 | 37%   |
-| refused     |   623 | 14%   |
+| works       |  1516 | 30%   |
+| conditional |  1827 | 36%   |
+| refused     |   753 | 15%   |
 | broken      |     0 | 0%    |
-| untested    |   808 | 18%   |
+| untested    |   945 | 19%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To

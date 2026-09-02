@@ -15,7 +15,7 @@ DHARMa::testZeroInflation() and friends on it."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -111,6 +111,16 @@ plots against is the expected category index <code>sum_k k * P(y = k)</code>,
 the same scalar <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> scores an ordinal fit by; it sets the
 horizontal axis of the display and nothing else, since the residuals
 themselves come from the ranks of the draws.</p>
+<p>A NOMINAL response (the <code><a href="frmtmb-families.html">categorical()</a></code> family) is refused. A scaled
+quantile residual is the predictive CDF evaluated at the observation,
+and a CDF needs an ordered support. Ordinal categories have one, so
+their codes carry real information; nominal ones do not, and their
+1..K codes are an arbitrary labeling - relabel the levels and every
+residual moves, which is not a diagnostic. DHARMa says the same of
+multinomial responses in its own vignette. Check a nominal fit with
+<code><a href="pp_check.html">pp_check()</a></code> instead (<code>type = "bars"</code> compares the observed category
+counts with the simulated ones), or read the per-category
+probabilities through <code><a href="conditional_effects.html">conditional_effects()</a></code>.</p>
     </div>
 
     <div class="section level2">

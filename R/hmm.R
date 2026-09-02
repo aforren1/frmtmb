@@ -316,7 +316,7 @@ hmm_tr_init <- function(i, j) {
 #'     data = dd)
 #' }
 #' @export
-hmm <- function(K, family = gaussian(), time = NULL, group = NULL,
+hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
                 init = c("stationary", "estimated", "uniform"),
                 trans = ~1) {
   time_expr <- hmm_capture(substitute(time), "time")

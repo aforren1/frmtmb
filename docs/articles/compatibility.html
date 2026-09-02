@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.35.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -575,13 +575,46 @@ a gaussian or student model.</p>
 <td align="center">?</td>
 <td align="center">?</td>
 </tr>
+<tr class="even">
+<td align="left">categorical</td>
+<td align="center">+</td>
+<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">?</td>
+</tr>
+<tr class="odd">
+<td align="left">von_mises</td>
+<td align="center">+</td>
+<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">?</td>
+</tr>
+<tr class="even">
+<td align="left">cox</td>
+<td align="center">+</td>
+<td align="center">?</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">?</td>
+</tr>
 </tbody>
 </table>
 <table class="table">
 <colgroup>
-<col width="2%">
-<col width="50%">
-<col width="46%">
+<col width="1%">
+<col width="28%">
+<col width="69%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -602,54 +635,75 @@ trunc(lb = 0) is not truncation and is refused.</td>
 equal the trials.</td>
 </tr>
 <tr class="odd">
-<td align="left">x</td>
-<td align="left">student + cens(); shifted_lognormal + cens();
-skew_normal + cens(); exgaussian + cens(); asym_laplace + cens(); and 7
-more</td>
-<td align="left">Refused: cens() needs a family with an AD log-CDF.</td>
+<td align="left">~</td>
+<td align="left">cox + trunc()</td>
+<td align="left">Runs through the same log-CDF the censoring uses, so
+trunc(lb = ) is delayed entry. The truncation bound is evaluated against
+the SAME spline basis the response is, which means a bound outside the
+boundary knots is clamped to them rather than extrapolated. Untested
+against an external left-truncated reference.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
-<td align="left">student + trunc(); shifted_lognormal + trunc();
-skew_normal + trunc(); exgaussian + trunc(); asym_laplace + trunc(); and
-18 more</td>
-<td align="left">Refused: trunc() needs a family with an AD
-log-CDF.</td>
+<td align="left">student + cens(); shifted_lognormal + cens();
+skew_normal + cens(); exgaussian + cens(); asym_laplace + cens(); and 8
+more</td>
+<td align="left">Refused: cens() needs a family with an AD log-CDF.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
+<td align="left">student + trunc(); shifted_lognormal + trunc();
+skew_normal + trunc(); exgaussian + trunc(); asym_laplace + trunc(); and
+19 more</td>
+<td align="left">Refused: trunc() needs a family with an AD
+log-CDF.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
 <td align="left">lognormal + se(); shifted_lognormal + se(); skew_normal
-+ se(); exgaussian + se(); asym_laplace + se(); and 26 more</td>
++ se(); exgaussian + se(); asym_laplace + se(); and 29 more</td>
 <td align="left">Refused: known standard errors are added to the
 residual variance, which only the gaussian and student families
 have.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">lognormal + mi(); shifted_lognormal + mi(); skew_normal
-+ mi(); exgaussian + mi(); asym_laplace + mi(); and 26 more</td>
++ mi(); exgaussian + mi(); asym_laplace + mi(); and 29 more</td>
 <td align="left">Refused: an imputation model must be gaussian or
 student.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">poisson + cens()</td>
 <td align="left">Refused: censoring is not supported for discrete
 families yet, even though poisson carries a CDF.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">negbinomial + cens(); nbinom1 + cens(); geometric +
 cens(); compois + cens(); binomial + cens(); and 6 more</td>
 <td align="left">Refused: censoring is not supported for discrete
 families yet.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">cumulative + cens(); cumulative + trunc(); sratio +
 cens(); sratio + trunc(); cratio + cens(); and 3 more</td>
 <td align="left">Refused: ordinal families carry no AD log-CDF over the
 response scale.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">categorical + cens()</td>
+<td align="left">Refused: a nominal response carries no order, so it has
+no CDF for a censored row to contribute.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">categorical + trunc()</td>
+<td align="left">Refused for the same reason: no order, no CDF, no
+truncation window.</td>
 </tr>
 </tbody>
 </table>
@@ -1082,6 +1136,42 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 </tr>
+<tr class="even">
+<td align="left">categorical</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+</tr>
+<tr class="odd">
+<td align="left">von_mises</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">x</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+</tr>
+<tr class="even">
+<td align="left">cox</td>
+<td align="center">x</td>
+<td align="center">~</td>
+<td align="center">x</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+</tr>
 </tbody>
 </table>
 <table class="table">
@@ -1106,7 +1196,7 @@ more</td>
 <tr class="even">
 <td align="left">~</td>
 <td align="left">gaussian + predict; student + predict; lognormal +
-predict; shifted_lognormal + predict; skew_normal + predict; and 24
+predict; shifted_lognormal + predict; skew_normal + predict; and 25
 more</td>
 <td align="left">Rank-deficient designs drop aliased columns at fit
 time. New data that is not estimable from the retained columns predicts
@@ -1116,7 +1206,7 @@ NA and warns.</td>
 <td align="left">~</td>
 <td align="left">gaussian + residuals; gaussian + confint_profile;
 gaussian + hypothesis_profile; student + residuals; student +
-confint_profile; and 90 more</td>
+confint_profile; and 98 more</td>
 <td align="left">Depends on which post-fit ingredients the family
 supplies (CDF, simulator, variance function).</td>
 </tr>
@@ -1124,14 +1214,14 @@ supplies (CDF, simulator, variance function).</td>
 <td align="left">~</td>
 <td align="left">gaussian + residuals_osa; student + residuals_osa;
 lognormal + residuals_osa; shifted_lognormal + residuals_osa;
-skew_normal + residuals_osa; and 24 more</td>
+skew_normal + residuals_osa; and 25 more</td>
 <td align="left">One-step-ahead residuals need the family to register
 its observation through OBS().</td>
 </tr>
 <tr class="odd">
 <td align="left">~</td>
 <td align="left">gaussian + emmeans; student + emmeans; lognormal +
-emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 24
+emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 27
 more</td>
 <td align="left">Univariate fits only, and the mu predictor must be
 linear.</td>
@@ -1140,7 +1230,7 @@ linear.</td>
 <td align="left">~</td>
 <td align="left">gaussian + frm_sample; student + frm_sample; lognormal
 + frm_sample; shifted_lognormal + frm_sample; skew_normal + frm_sample;
-and 28 more</td>
+and 31 more</td>
 <td align="left">Chains start jittered around the fitted mode. Use
 init_jitter to widen the spread, or init = “random” for a multimodal
 posterior.</td>
@@ -1191,10 +1281,76 @@ conditional_effects(), which are on a different scale from these
 means.</td>
 </tr>
 <tr class="odd">
+<td align="left">~</td>
+<td align="left">categorical + fitted</td>
+<td align="left">Returns the n x K matrix of category probabilities, not
+a vector: a nominal response has no mean, so the modelled response is
+the category distribution. The predict(type = “response”) == fitted()
+identity holds.</td>
+</tr>
+<tr class="even">
+<td align="left">~</td>
+<td align="left">categorical + predict</td>
+<td align="left">type = “response” returns an n x K matrix of category
+probabilities, columns named by the response’s own levels and rows
+summing to 1, exactly as for the ordinal families; it equals fitted().
+se.fit is refused there. Each category’s latent predictor is
+predict(type = “link”, dpar = “mu<level>”), which is where se.fit
+works.</level>
+</td>
+</tr>
+<tr class="odd">
+<td align="left">~</td>
+<td align="left">von_mises + fitted</td>
+<td align="left">Returns the mean DIRECTION in radians on (-pi, pi],
+which is what brms’s posterior_epred() reports for this family; a
+circular response has no arithmetic mean.</td>
+</tr>
+<tr class="even">
+<td align="left">~</td>
+<td align="left">cox + predict</td>
+<td align="left">type = “response” and fitted() are refused: a survival
+time has no mean the censored rows identify. type = “link” gives the log
+hazard ratio, and cox_baseline() the fitted baseline weights.</td>
+</tr>
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">tweedie + simulate; compois + simulate; hurdle_poisson
 + simulate</td>
 <td align="left">Refused: this family has no simulator yet.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">categorical + residuals</td>
+<td align="left">Refused: the categories carry no order, so no residual
+has a scale to live on. Compare fitted(fit), the n x K category
+probabilities, against the observed categories instead.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">categorical + residuals_osa</td>
+<td align="left">Refused with residuals() as a whole: a one-step-ahead
+residual is a CDF value, and a nominal response has no CDF.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">von_mises + residuals_osa</td>
+<td align="left">Refused upstream: RTMBdist::dvm() rejects the osa
+observation object, because a wrapped support has no one-step CDF on the
+line.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">cox + fitted</td>
+<td align="left">Refused: a survival time has no mean on the response
+scale here. Use predict(type = “link”) for the log hazard ratio.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">cox + simulate</td>
+<td align="left">Refused: drawing a survival time means inverting the
+cumulative baseline hazard, which this family does not carry a quantile
+function for.</td>
 </tr>
 </tbody>
 </table>
@@ -2033,13 +2189,35 @@ homdiag term.</td>
 <td align="center">?</td>
 <td align="center">?</td>
 </tr>
+<tr class="odd">
+<td align="left">hmm</td>
+<td align="center">x</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">?</td>
+</tr>
+<tr class="even">
+<td align="left">lca</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+</tr>
 </tbody>
 </table>
 <table class="table">
 <colgroup>
-<col width="5%">
-<col width="34%">
-<col width="59%">
+<col width="2%">
+<col width="29%">
+<col width="68%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -2051,6 +2229,21 @@ homdiag term.</td>
 <td align="left">x</td>
 <td align="left">rescor + weights(); rescor + se()</td>
 <td align="left">Refused.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">hmm + weights()</td>
+<td align="left">Refused: weights() scales a per-row log-density, and an
+HMM’s contribution is per sequence.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">lca + weights(); lca + trials(); lca + cens(); lca +
+trunc(); lca + se(); and 3 more</td>
+<td align="left">Refused: an lca() response is a matrix of item codes
+with no per-row weight, censoring window, trial count or known standard
+error to attach an addition term to. One message covers the whole
+set.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
@@ -2071,14 +2264,25 @@ cens().</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
+<td align="left">hmm + cens()</td>
+<td align="left">Refused: censoring replaces a row’s density with a CDF
+difference, which the forward recursion has no room for.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
 <td align="left">rescor + trunc()</td>
 <td align="left">Refused. This pair was once accepted with the
 truncation silently dropped.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">mixture + trunc()</td>
 <td align="left">Refused: mixture() has no CDF.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">hmm + trunc()</td>
+<td align="left">Refused for the same reason as cens().</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
@@ -2088,15 +2292,29 @@ families only.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
+<td align="left">hmm + se()</td>
+<td align="left">Refused: a known measurement SD is a per-row
+modification of the emission density; combining it with the state sum is
+not implemented.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
 <td align="left">rescor + mi()</td>
 <td align="left">Refused: mi() cannot be combined with rescor =
 TRUE.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">mixture + mi()</td>
 <td align="left">Refused: mi() on the mixture response is not
 supported.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">hmm + mi()</td>
+<td align="left">Refused: an NA response is handled by hmm() itself -
+the row is kept and its emission masked, so the chain keeps its length -
+and needs no latent parameter.</td>
 </tr>
 </tbody>
 </table>
@@ -2208,13 +2426,37 @@ parameter vector, which a multivariate fit has like any other.</p>
 <td align="center">?</td>
 <td align="center">?</td>
 </tr>
+<tr class="odd">
+<td align="left">hmm</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">~</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">+</td>
+<td align="center">?</td>
+<td align="center">?</td>
+</tr>
+<tr class="even">
+<td align="left">lca</td>
+<td align="center">x</td>
+<td align="center">~</td>
+<td align="center">+</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">?</td>
+</tr>
 </tbody>
 </table>
 <table class="table">
 <colgroup>
-<col width="3%">
-<col width="23%">
-<col width="73%">
+<col width="2%">
+<col width="16%">
+<col width="81%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -2247,6 +2489,37 @@ simulator.</td>
 <td align="left">mixture + frm_sample</td>
 <td align="left">Mixture posteriors are multimodal. Sample with init =
 “random” rather than the mode-anchored default.</td>
+</tr>
+<tr class="odd">
+<td align="left">~</td>
+<td align="left">hmm + predict</td>
+<td align="left">type = “link” and dpar = work normally, including the
+transition logits. type = “response” equals fitted() in sample; it is
+refused for newdata (state occupancy conditions on the observed
+responses of a whole sequence) and se.fit is refused on the response
+scale.</td>
+</tr>
+<tr class="even">
+<td align="left">~</td>
+<td align="left">hmm + simulate</td>
+<td align="left">A draw walks the chain forward per sequence and then
+emits, so it needs the emission family to have a simulator. re.form and
+censored = TRUE are refused.</td>
+</tr>
+<tr class="odd">
+<td align="left">~</td>
+<td align="left">hmm + residuals</td>
+<td align="left">type = “response” and “pearson” are computed against
+the occupancy-weighted mean, with the pearson scale the
+law-of-total-variance mixture variance. type = “deviance” is refused:
+there is no per-row likelihood to saturate.</td>
+</tr>
+<tr class="even">
+<td align="left">~</td>
+<td align="left">lca + predict</td>
+<td align="left">predict() returns the gating linear predictor (theta1
+by default, any theta with dpar =), including on newdata. type =
+“response” is refused with the fitted() message.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
@@ -2296,6 +2569,34 @@ predictor.</td>
 <td align="left">mixture_mvn + simulate</td>
 <td align="left">Refused: mixture_mvn() has no simulator yet.</td>
 </tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">hmm + residuals_osa</td>
+<td align="left">Refused: one-step prediction needs the taped density of
+one observation given the earlier ones, and the tape holds a forward
+recursion over each whole sequence with no registered observation
+vector.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">lca + fitted</td>
+<td align="left">Refused: the response is a matrix of nominal item
+codes, so there is no mean to fit. lca_probs() and lca_profiles() are
+the post-fit surface.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">lca + residuals</td>
+<td align="left">Refused for the same reason as fitted(): no fitted
+mean, so no residual.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">lca + residuals_osa</td>
+<td align="left">Refused: one observation is a subject’s whole item
+response pattern, not a value with a univariate conditional CDF to step
+through.</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -2313,37 +2614,40 @@ left to reshape.</p>
 <colgroup>
 <col width="1%">
 <col width="2%">
-<col width="2%">
+<col width="1%">
 <col width="2%">
 <col width="4%">
 <col width="2%">
 <col width="2%">
 <col width="3%">
 <col width="1%">
-<col width="2%">
-<col width="2%">
-<col width="4%">
 <col width="1%">
 <col width="2%">
+<col width="3%">
+<col width="1%">
+<col width="1%">
+<col width="1%">
 <col width="2%">
+<col width="1%">
 <col width="2%">
-<col width="2%">
-<col width="2%">
-<col width="2%">
+<col width="1%">
 <col width="2%">
 <col width="2%">
 <col width="3%">
 <col width="2%">
+<col width="4%">
 <col width="5%">
-<col width="6%">
 <col width="5%">
 <col width="4%">
 <col width="3%">
 <col width="3%">
-<col width="4%">
+<col width="3%">
 <col width="2%">
 <col width="1%">
 <col width="1%">
+<col width="1%">
+<col width="2%">
+<col width="2%">
 <col width="1%">
 </colgroup>
 <thead><tr class="header">
@@ -2381,12 +2685,18 @@ left to reshape.</p>
 <th align="center">sratio</th>
 <th align="center">cratio</th>
 <th align="center">acat</th>
+<th align="center">categorical</th>
+<th align="center">von_mises</th>
+<th align="center">cox</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td align="left">ar()</td>
 <td align="center">+</td>
 <td align="center">~</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
@@ -2454,11 +2764,17 @@ left to reshape.</p>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">arma()</td>
 <td align="center">+</td>
 <td align="center">~</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
@@ -2526,11 +2842,17 @@ left to reshape.</p>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">unstr()</td>
 <td align="center">+</td>
 <td align="center">~</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
@@ -2589,7 +2911,7 @@ mvtnorm::dmvt exactly.</td>
 <tr class="even">
 <td align="left">x</td>
 <td align="left">ar() + lognormal; ma() + lognormal; arma() + lognormal;
-cosy() + lognormal; unstr() + lognormal; and 150 more</td>
+cosy() + lognormal; unstr() + lognormal; and 165 more</td>
 <td align="left">Refused: a residual correlation needs a family with a
 real residual. brms accepts the same spelling for other families but
 fits a different model there - a latent gaussian AR process added to the
@@ -2816,6 +3138,17 @@ density over each group.</td>
 </tbody>
 </table>
 <table class="table">
+<colgroup>
+<col width="10%">
+<col width="8%">
+<col width="10%">
+<col width="21%">
+<col width="5%">
+<col width="12%">
+<col width="17%">
+<col width="6%">
+<col width="6%">
+</colgroup>
 <thead><tr class="header">
 <th align="left"></th>
 <th align="center">mvbf</th>
@@ -2824,6 +3157,8 @@ density over each group.</td>
 <th align="center">nl</th>
 <th align="center">mixture</th>
 <th align="center">mixture_mvn</th>
+<th align="center">hmm</th>
+<th align="center">lca</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
@@ -2834,6 +3169,8 @@ density over each group.</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
 </tr>
 <tr class="even">
 <td align="left">ma()</td>
@@ -2843,6 +3180,8 @@ density over each group.</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
 </tr>
 <tr class="odd">
 <td align="left">arma()</td>
@@ -2852,6 +3191,8 @@ density over each group.</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
 </tr>
 <tr class="even">
 <td align="left">cosy()</td>
@@ -2861,6 +3202,8 @@ density over each group.</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
 </tr>
 <tr class="odd">
 <td align="left">unstr()</td>
@@ -2870,6 +3213,8 @@ density over each group.</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
+<td align="center">x</td>
+<td align="center">?</td>
 </tr>
 </tbody>
 </table>
@@ -2915,6 +3260,14 @@ is also how brms rejects it.</td>
 <td align="left">ar() + mixture_mvn; ma() + mixture_mvn; arma() +
 mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
 <td align="left">Refused for the same reason as mixture().</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">ar() + hmm; ma() + hmm; arma() + hmm; cosy() + hmm;
+unstr() + hmm</td>
+<td align="left">Refused: a residual correlation term is rejected as
+sitting on mu1 rather than mu, exactly as it is for mixture(), and for
+the same reason - there is no single residual to correlate.</td>
 </tr>
 </tbody>
 </table>
@@ -3055,12 +3408,17 @@ apart.</p>
 <div class="section level2">
 <h2 id="formula-grammar">Formula grammar<a class="anchor" aria-label="anchor" href="#formula-grammar"></a>
 </h2>
-<p>Three spellings have restrictions of their own.</p>
+<p>Five spellings have restrictions of their own. <code>mm()</code> and
+<code>mmc()</code> are the multi-membership pair:
+<code>(1 | mm(g1, g2))</code> averages the member levels’ effects into
+one design row, and <code>mmc()</code> gives that row a member-specific
+covariate. Their full rule set is longer than one table row; see
+<code>?frmtmb-multimembership</code>.</p>
 <table class="table">
 <colgroup>
-<col width="8%">
+<col width="10%">
 <col width="2%">
-<col width="89%">
+<col width="87%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Spelling</th>
@@ -3090,6 +3448,21 @@ from the model frame.</td>
 left, (f || g) routes to diag, that is one independent effect per factor
 level.</td>
 </tr>
+<tr class="even">
+<td align="left">(1 | mm(g1, g2))</td>
+<td align="left">+</td>
+<td align="left">The membership design is built before the family sees
+it, exactly as an ordinary grouping factor’s is.</td>
+</tr>
+<tr class="odd">
+<td align="left">(mmc(x1, x2) | mm(g1, g2))</td>
+<td align="left">~</td>
+<td align="left">mmc() only means something on the left of a
+multi-membership bar, where it supplies one covariate value per member.
+Anywhere else it is refused, including over a single-membership grouping
+factor. Inside an mm() term it composes like any other random-slope
+column.</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -3105,18 +3478,18 @@ level.</td>
 <tbody>
 <tr class="odd">
 <td align="left">works</td>
-<td align="right">1364</td>
-<td align="left">31%</td>
+<td align="right">1516</td>
+<td align="left">30%</td>
 </tr>
 <tr class="even">
 <td align="left">conditional</td>
-<td align="right">1627</td>
-<td align="left">37%</td>
+<td align="right">1827</td>
+<td align="left">36%</td>
 </tr>
 <tr class="odd">
 <td align="left">refused</td>
-<td align="right">623</td>
-<td align="left">14%</td>
+<td align="right">753</td>
+<td align="left">15%</td>
 </tr>
 <tr class="even">
 <td align="left">broken</td>
@@ -3125,8 +3498,8 @@ level.</td>
 </tr>
 <tr class="odd">
 <td align="left">untested</td>
-<td align="right">808</td>
-<td align="left">18%</td>
+<td align="right">945</td>
+<td align="left">19%</td>
 </tr>
 </tbody>
 </table>

@@ -1,9 +1,61 @@
 # frmtmb 0.35.0
 
-Three brms families that had no frmtmb spelling: nominal responses,
-circular responses, and proportional hazards.
+Hidden Markov models, latent class analysis, multi-membership random
+effects, three new families (nominal, circular, proportional
+hazards), profile and bootstrap effect bands, and a brms-portability
+batch measured against the brms vignettes themselves.
 
-## New
+## Behavior changes
+
+* `frm()` defaults to `family = gaussian()` when neither the `family`
+  argument nor a `+` attachment supplies one, the brms/lme4/glmmTMB
+  convention. `frm(y ~ x, data = d)` was an error and is now a linear
+  model. The `family` argument overrides a family attached to a
+  univariate `bf()` and fills only the empty responses of an
+  `mvbf()`.
+* Documentation and examples now lead with the separate-family
+  spelling `frm(bf(y ~ x), family = gaussian(), data = d)`; the `+`
+  attachment stays valid and documented as the alternative.
+
+## Portability (measured against the brms vignettes)
+
+* A scorecard audit ports every model call of the brms vignettes
+  through the mechanical `brm` to `frm` transform
+  (dev/brms-vignette-port.md): with this release's fixes the
+  measured tally is 30 of 42 model calls running mechanically, the
+  remaining spelling changes documented in the porting guide.
+* `hypothesis()` accepts brms's directional form (`"a > b"`) with
+  one-sided p-values and bounds across every method, plus the
+  `class=`/`group=` naming shorthand. `update()` speaks
+  `formula.`/`newdata` and dotted deltas (`. ~ . + z`). `lf()`
+  composes dpar formulas onto `bf()`. One formula may name several
+  parameters (`a + b ~ 1`). A bare constructor (`family =
+  cumulative`) works.
+* One parameter-addressing vocabulary across `hypothesis()`,
+  `profile()`, `confint(parm =)` and bounds: parenthesized and
+  paren-stripped spellings are interchangeable, and one-to-one
+  natural-scale names (`sd_g__x`, `ar1`) reach their internal
+  parameter with the scale stated. Ambiguous natural-scale names are
+  refused with the alternatives named.
+
+## Multi-membership and effect bands
+
+* Multi-membership random effects: `(x | mm(g1, g2, weights =,
+  scale =))` and `mmc()` member-specific covariates, following brms;
+  the pooled-level Z construction matches `brms::make_standata()`
+  exactly, and every post-fit method reads the block unchanged.
+  New-level prediction variance distinguishes a shared new level
+  (one draw, weights add) from distinct new levels (independent
+  draws).
+* `conditional_effects()` gains `band = c("wald", "profile",
+  "boot")`: likelihood-ratio bands inverted per grid point, and
+  pointwise percentile bands from one shared parametric bootstrap
+  (reused across effects and verified against the grid it was run
+  over). Effect discovery now works on nonlinear and `mo()`/`mi()`
+  fits, and `frm_bootstrap()` works on ordinal fits (previously all
+  NA).
+
+## New families
 
 * `categorical()` fits a multinomial logit to an unordered factor,
   brms's spelling of the likelihood `multinomial(K)` already carried

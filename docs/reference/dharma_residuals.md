@@ -56,6 +56,20 @@ scalar [`residuals()`](https://rdrr.io/r/stats/residuals.html) scores an
 ordinal fit by; it sets the horizontal axis of the display and nothing
 else, since the residuals themselves come from the ranks of the draws.
 
+A NOMINAL response (the
+[`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+family) is refused. A scaled quantile residual is the predictive CDF
+evaluated at the observation, and a CDF needs an ordered support.
+Ordinal categories have one, so their codes carry real information;
+nominal ones do not, and their 1..K codes are an arbitrary labeling -
+relabel the levels and every residual moves, which is not a diagnostic.
+DHARMa says the same of multinomial responses in its own vignette. Check
+a nominal fit with
+[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+instead (`type = "bars"` compares the observed category counts with the
+simulated ones), or read the per-category probabilities through
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md).
+
 ## Examples
 
 ``` r

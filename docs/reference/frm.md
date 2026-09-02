@@ -34,7 +34,8 @@ frm(
   A `frmtmb_formula` from
   [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) (with a
   family attached via `+`), or a plain formula combined with the
-  `family` argument.
+  `family` argument. With neither, the family is
+  [`gaussian()`](https://rdrr.io/r/stats/family.html).
 
 - data:
 
@@ -43,10 +44,15 @@ frm(
 - family:
 
   A family: a `frmtmb_family`, a
-  [stats::family](https://rdrr.io/r/stats/family.html) object or
-  constructor (for example `gaussian`, `poisson`, `binomial`), or a
-  family name as a string. Overrides a family already attached to
-  `formula`.
+  [stats::family](https://rdrr.io/r/stats/family.html) object, a family
+  constructor with or without its parentheses (for example
+  [`gaussian()`](https://rdrr.io/r/stats/family.html), `poisson`,
+  `cumulative`), or a family name as a string. It overrides a family
+  already attached to `formula`; in a multivariate model it fills only
+  the responses that have none. The default, `NULL`, means
+  [`gaussian()`](https://rdrr.io/r/stats/family.html) - the brms, `lme4`
+  and `glmmTMB` convention - so `frm(y ~ x, data = d)` is a linear
+  model.
 
 - REML:
 

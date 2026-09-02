@@ -445,8 +445,8 @@ without a refit. Tapes do not serialize; `strip_tape(fit)` and
 
 frmtmb reimplements a documented subset of the brms grammar with
 identical spelling:
-[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md), `lf()`,
-`nlf()`,
+[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md),
+[`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md), `nlf()`,
 [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md),
 [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md),
 dpar formulas, `nl = TRUE`, aterm names (`weights`, `trials`, `cens`,
