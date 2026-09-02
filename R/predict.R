@@ -1167,9 +1167,15 @@ lp_extra_var <- function(object, ed, use_re) {
       # the levels ARE the structure there, so there is no marginal
       # variance to hand an unseen one
       if (bk$covstruct %in% c("gr_cov", "gr_prec", "car", "spde")) next
+      S <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
+      # a Student-t block's registry vcov() is the SCALE matrix; the
+      # variance an unseen level contributes is nu/(nu-2) times it. The
+      # interval is still built as a gaussian one, so it is the right
+      # variance around a heavier-tailed truth, not the right quantile
+      if (is_student_block(bk)) S <- S * student_var_factor(bk$dist_nu)
       nl[[length(nl) + 1L]] <- list(
         bk = bk,
-        S = covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk),
+        S = S,
         cols = rp$comp$offset + seq_len(rp$comp$dim),
         mm = rp$mm, nas = nas, new_key = rp$new_key
       )
@@ -2082,7 +2088,8 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
 }
 
 #' One draw of the full b vector from its estimated distribution
-#' `N(0, Sigma)`.
+#' `N(0, Sigma)`, or the multivariate t with scale `Sigma` on a
+#' `gr(dist = "student")` block.
 #'
 #' @noRd
 draw_b <- function(fit) {
@@ -2132,6 +2139,13 @@ draw_b <- function(fit) {
     V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
     L <- chol(V)
     U <- matrix(stats::rnorm(bk$n_levels * bk$dim), bk$n_levels) %*% L
+    if (is_student_block(bk)) {
+      # V is the SCALE matrix, and the mixing variable is per LEVEL -
+      # shared across that level's coefficients, which is what makes the
+      # draw a multivariate t rather than d independent ones
+      nu <- bk$dist_nu
+      U <- U * sqrt(nu / stats::rchisq(bk$n_levels, df = nu))
+    }
     b[bk$b_idx] <- as.vector(t(U))   # level-major
   }
   b

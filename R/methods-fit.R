@@ -664,7 +664,15 @@ VarCorr.frmtmb_fit <- function(x, ...) {
       matrix(exp(th[bk$theta_idx[1]])^2, 1, 1,
              dimnames = list("sd(gp)", "sd(gp)"))
     } else {
-      covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
+      V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
+      if (is_student_block(bk)) {
+        # On a gr(dist = "student") block this is the SCALE matrix, not
+        # the covariance: brms names the same quantity `sd_<group>__...`
+        # and frmtmb keeps that name, so the matrix is tagged instead of
+        # silently converted. The variance is `nu/(nu-2)` times it.
+        attr(V, "dist_nu") <- bk$dist_nu
+      }
+      V
     }
   })
   names(out) <- vapply(x$frame$re_blocks, `[[`, "", "term_label")
@@ -680,9 +688,18 @@ print.VarCorr_frmtmb <- function(x, ...) {
     nm <- names(x)[i]
     V <- x[[i]]
     sdv <- sqrt(diag(V))
+    nu <- attr(V, "dist_nu")
     cat(" ", nm, "\n")
-    tab <- data.frame(Name = colnames(V), `Std.Dev.` = signif(sdv, 5),
-                      check.names = FALSE)
+    # a t block's diagonal is the SCALE, so the column is not headed
+    # Std.Dev.: sd = scale * sqrt(nu/(nu-2)), printed alongside
+    tab <- if (is.null(nu)) {
+      data.frame(Name = colnames(V), `Std.Dev.` = signif(sdv, 5),
+                 check.names = FALSE)
+    } else {
+      data.frame(Name = colnames(V), Scale = signif(sdv, 5),
+                 `Std.Dev.` = signif(sdv * sqrt(nu / (nu - 2)), 5),
+                 check.names = FALSE)
+    }
     if (ncol(V) > 1) {
       C <- stats::cov2cor(V)
       corr <- format(signif(C, 3))
@@ -690,6 +707,10 @@ print.VarCorr_frmtmb <- function(x, ...) {
       tab <- cbind(tab, Corr = corr[, -ncol(corr), drop = FALSE])
     }
     print(tab, row.names = FALSE)
+    if (!is.null(nu)) {
+      cat("   Student-t latent, nu = ", format(nu),
+          " (fixed); the stored matrix is the scale\n", sep = "")
+    }
   }
   invisible(x)
 }

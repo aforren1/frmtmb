@@ -438,8 +438,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       stop("quadrature = TRUE cannot be combined with mi()",
            call. = FALSE)
     }
+    # The Gauss-Kronrod rule integrates whatever density the tape
+    # produces, so a scalar Student-t latent is in scope. There the
+    # result is EXACT rather than approximate, which makes
+    # quadrature = TRUE the recommended check on a t-block Laplace fit
+    # (see ?frmtmb-student-re and dev/tre-feasibility.md section 4).
     scalar_iid <- vapply(frame$re_blocks, function(bk) {
-      bk$dim == 1L && bk$covstruct %in% c("us", "diag", "homdiag")
+      bk$dim == 1L &&
+        bk$covstruct %in% c("us", "diag", "homdiag", "us_t", "diag_t")
     }, TRUE)
     if (!length(scalar_iid) || !all(scalar_iid)) {
       stop("quadrature = TRUE currently supports scalar random ",

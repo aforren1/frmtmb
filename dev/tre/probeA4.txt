@@ -1,0 +1,43 @@
+Probe A4: convergence codes and the small-scale constant
+========================================================
+
+1. Gradient norms at the optima A2 flagged as non-converged.
+
+nu     n     conv code  max|grad| lap max|grad| exact nlminb message
+2.5    3             2       1.94e-05       8.24e-05 singular convergence (7)
+2.5    8             1       1.45e-06       3.29e-03 relative convergence (4) / singular convergence (7)
+3      3             1       4.27e-07       3.78e-05 relative convergence (4) / singular convergence (7)
+3      8             2       1.31e-06       2.69e-04 singular convergence (7)
+10     3             1       1.39e-05       2.92e-05 singular convergence (7) / relative convergence (4)
+10     8             2       4.04e-06       4.71e-04 singular convergence (7)
+
+2. The small-scale limit constant, closed form against the
+   measured per-group error at s/sigma = 0.02.
+
+nu       closed form c(nu) measured / group         diff
+2.5             -0.265937        -0.263706     2.23e-03
+3               -0.225791        -0.225111     6.80e-04
+4               -0.173462        -0.172820     6.43e-04
+5               -0.140842        -0.140397     4.45e-04
+7               -0.102361        -0.101998     3.63e-04
+10              -0.072614        -0.072380     2.34e-04
+20              -0.036890        -0.036752     1.38e-04
+30              -0.024727        -0.024632     9.43e-05
+100             -0.007475        -0.007446     2.95e-05
+
+3. What that constant does to AIC. Sum over G groups; the two
+   models being compared by AIC would each carry their own.
+
+nu              c(nu)         G=20        G=100       G=1000
+2.5          -0.26594       -5.319      -26.594     -265.937
+3            -0.22579       -4.516      -22.579     -225.791
+5            -0.14084       -2.817      -14.084     -140.842
+10           -0.07261       -1.452       -7.261      -72.614
+30           -0.02473       -0.495       -2.473      -24.727
+
+4. And the gaussian limit: c(nu) -> 0 as nu -> Inf.
+
+nu = 100         c(nu) =   -7.475e-03
+nu = 1000        c(nu) =   -7.498e-04
+nu = 10000       c(nu) =   -7.500e-05
+nu = 1e+06       c(nu) =   -7.496e-07

@@ -1,0 +1,69 @@
+Probe D: the robustness payoff, measured
+========================================
+
+Truth: 39 clean groups with b ~ N(0, 1), one contaminated group
+shifted by `delta`; n = 8 per group, sigma = 1, beta = (1, 0.5).
+The t fit reports the latent SCALE s; the SD it implies is
+s * sqrt(nu / (nu - 2)), which is what compares with the
+gaussian fit's SD.
+
+A. Latent SD of the CLEAN process (truth 1) as the contaminating
+   group moves away. Mean over 60 replicates.
+
+delta      gaussian    t(nu=3)    t(nu=5)     t(nu free)     nu_hat
+0.0          1.0131     1.3538     1.1072         1.0185 9711144.42
+2.0          1.0576     1.4081     1.1522         1.0643 5172550.94
+5.0          1.2730     1.4678     1.2231         1.4273       4.28
+10.0         1.8522     1.4806     1.2477         6.4090       2.46
+
+B. Latent SCALE the t fits report (what VarCorr would print if
+   the scale were reported unconverted).
+
+delta        t(3) s     t(5) s
+0.0          0.7816     0.8576
+2.0          0.8130     0.8925
+5.0          0.8474     0.9474
+10.0         0.8548     0.9664
+
+C. Residual SD (truth 1).
+
+delta      gaussian       t(3)       t(5)
+0.0          0.9923     0.9928     0.9924
+2.0          0.9923     0.9927     0.9924
+5.0          0.9922     0.9922     0.9918
+10.0         0.9922     0.9920     0.9915
+
+D. Fixed effects: RMSE against the truth (beta0 = 1, beta1 = 0.5).
+
+delta    coef       gaussian       t(3)       t(5)
+0.0      beta0        0.1655     0.1796     0.1732
+0.0      beta1        0.0504     0.0507     0.0506
+2.0      beta0        0.1724     0.1874     0.1805
+2.0      beta1        0.0502     0.0508     0.0506
+5.0      beta0        0.2063     0.1882     0.1838
+5.0      beta1        0.0499     0.0507     0.0506
+10.0     beta0        0.2982     0.1853     0.1801
+10.0     beta1        0.0498     0.0507     0.0506
+
+E. The cost when there is NO contamination (delta = 0): the t
+   fit's efficiency loss relative to the correctly specified
+   gaussian fit, as a ratio of RMSEs (>1 means the t costs).
+
+beta0   t(3)/gaussian 1.0850   t(5)/gaussian 1.0463
+beta1   t(3)/gaussian 1.0053   t(5)/gaussian 1.0035
+sd      t(3)/gaussian 2.9116   t(5)/gaussian 1.3221
+
+F. One dataset in detail (delta = 10, seed 4001): where the
+   contaminated group's own predicted latent lands.
+
+true b[40]              9.5855
+gaussian b_hat[40]      9.1598   latent SD 1.8233
+t(3)     b_hat[40]      9.6912   latent SD 1.4527 (scale 0.8387)
+gaussian b_hat[1:5]     0.522  0.671  0.460  0.031 -0.632
+t(3)     b_hat[1:5]     0.692  0.834  0.635  0.252 -0.318
+true     b[1:5]         0.520  1.247  0.468  0.606 -0.344
+
+shrinkage of the clean groups, RMSE(b_hat - b_true):
+  gaussian 0.5616   t(3) 0.4058
+
+elapsed:  30.58932 secs 

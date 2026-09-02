@@ -1,0 +1,77 @@
+
+####  test-tre 
+  pass 98  fail 0  error 0  warn 0  skip 0
+
+####  test-covstruct 
+  pass 7  fail 0  error 0  warn 0  skip 0
+
+####  test-parse 
+  pass 28  fail 0  error 0  warn 0  skip 0
+
+####  test-frame 
+  pass 22  fail 0  error 0  warn 0  skip 0
+
+####  test-methods 
+  pass 27  fail 0  error 0  warn 0  skip 0
+
+####  test-methods-audit 
+  pass 57  fail 0  error 0  warn 0  skip 0
+
+####  test-simulate-ergonomics 
+  pass 41  fail 0  error 0  warn 0  skip 0
+
+####  test-priors-bounds-grcov 
+  pass 18  fail 0  error 0  warn 0  skip 0
+
+####  test-id-kron 
+  pass 58  fail 0  error 0  warn 0  skip 0
+
+####  test-data2 
+  pass 30  fail 0  error 0  warn 0  skip 0
+
+####  test-compat 
+  pass 258  fail 0  error 0  warn 0  skip 0
+
+####  test-review-v29 
+  pass 166  fail 0  error 0  warn 0  skip 0
+
+####  test-mm 
+  pass 116  fail 0  error 0  warn 0  skip 0
+
+####  test-portability 
+  pass 91  fail 0  error 0  warn 0  skip 0
+
+####  test-functional 
+  pass 3  fail 0  error 0  warn 0  skip 0
+
+####  test-edgecases 
+  pass 60  fail 0  error 0  warn 0  skip 0
+
+####  test-interop 
+  pass 46  fail 0  error 0  warn 0  skip 0
+
+####  test-quadrature-defects 
+  pass 59  fail 0  error 0  warn 0  skip 0
+
+==== totals ====
+                     file pass fail err skip
+                 test-tre   98    0   0    0
+           test-covstruct    7    0   0    0
+               test-parse   28    0   0    0
+               test-frame   22    0   0    0
+             test-methods   27    0   0    0
+       test-methods-audit   57    0   0    0
+ test-simulate-ergonomics   41    0   0    0
+ test-priors-bounds-grcov   18    0   0    0
+             test-id-kron   58    0   0    0
+               test-data2   30    0   0    0
+              test-compat  258    0   0    0
+          test-review-v29  166    0   0    0
+                  test-mm  116    0   0    0
+         test-portability   91    0   0    0
+          test-functional    3    0   0    0
+           test-edgecases   60    0   0    0
+             test-interop   46    0   0    0
+  test-quadrature-defects   59    0   0    0
+
+TOTAL pass 1185 fail 0 error 0 skip 0

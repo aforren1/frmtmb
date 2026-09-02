@@ -1,0 +1,78 @@
+1. us_t / diag_t against mvtnorm's dmvt at matched theta.
+
+us_t   d 1 nu 2.5     -10.366680995   -10.366680995  diff 1.78e-15
+diag_t d 1 nu 2.5      -9.166322786    -9.166322786  diff 1.78e-15
+us_t   d 1 nu 3       -11.357605122   -11.357605122  diff 0.00e+00
+diag_t d 1 nu 3       -11.056237887   -11.056237887  diff 1.78e-15
+us_t   d 1 nu 5        -9.709879687    -9.709879687  diff 1.78e-15
+diag_t d 1 nu 5        -8.490940305    -8.490940305  diff 0.00e+00
+us_t   d 1 nu 30      -10.290210741   -10.290210741  diff 5.33e-15
+diag_t d 1 nu 30      -10.597068646   -10.597068646  diff 3.55e-15
+us_t   d 2 nu 2.5     -19.149550052   -19.149550052  diff 3.55e-15
+diag_t d 2 nu 2.5     -19.317040339   -19.317040339  diff 0.00e+00
+us_t   d 2 nu 3       -18.303218512   -18.303218512  diff 3.55e-15
+diag_t d 2 nu 3       -18.966231316   -18.966231316  diff 0.00e+00
+us_t   d 2 nu 5       -24.377719902   -24.377719902  diff 3.55e-15
+diag_t d 2 nu 5       -23.562422329   -23.562422329  diff 0.00e+00
+us_t   d 2 nu 30      -19.088119171   -19.088119171  diff 1.07e-14
+diag_t d 2 nu 30      -17.838454026   -17.838454026  diff 7.11e-15
+us_t   d 3 nu 2.5     -26.843265837   -26.843265837  diff 0.00e+00
+diag_t d 3 nu 2.5     -28.573664615   -28.573664615  diff 0.00e+00
+us_t   d 3 nu 3       -28.807083644   -28.807083644  diff 3.55e-15
+diag_t d 3 nu 3       -28.199767391   -28.199767391  diff 0.00e+00
+us_t   d 3 nu 5       -32.115132806   -32.115132806  diff 0.00e+00
+diag_t d 3 nu 5       -30.844261438   -30.844261438  diff 0.00e+00
+us_t   d 3 nu 30      -35.244629345   -35.244629345  diff 0.00e+00
+diag_t d 3 nu 30      -34.596594221   -34.596594221  diff 0.00e+00
+
+2. The gaussian limit of the DENSITY (no optimizer involved).
+
+nu       d       |us_t - us| |diag_t - diag|
+1e+04    1         4.867e-04      2.866e-03
+1e+04    2         7.151e-03      2.304e-03
+1e+04    3         1.307e-02      7.582e-03
+1e+06    1         6.384e-06      1.547e-05
+1e+06    2         1.863e-06      5.122e-06
+1e+06    3         5.893e-05      1.836e-05
+1e+08    1         1.313e-07      3.489e-07
+1e+08    2         2.770e-06      2.663e-06
+1e+08    3         8.711e-07      6.064e-07
+1e+10    1         1.113e-05      1.113e-05
+1e+10    2         2.225e-05      2.225e-05
+1e+10    3         3.337e-05      3.338e-05
+
+3. AD gradient of each entry against finite differences.
+
+us_t    d 1 nu 2.5    max|AD - FD| 4.62e-10
+us_t    d 1 nu 5      max|AD - FD| 2.39e-08
+us_t    d 1 nu 30     max|AD - FD| 1.23e-10
+us_t    d 2 nu 2.5    max|AD - FD| 7.53e-10
+us_t    d 2 nu 5      max|AD - FD| 7.20e-10
+us_t    d 2 nu 30     max|AD - FD| 1.63e-09
+us_t    d 3 nu 2.5    max|AD - FD| 4.05e-09
+us_t    d 3 nu 5      max|AD - FD| 1.10e-09
+us_t    d 3 nu 30     max|AD - FD| 1.89e-09
+diag_t  d 1 nu 2.5    max|AD - FD| 2.92e-10
+diag_t  d 1 nu 5      max|AD - FD| 6.86e-10
+diag_t  d 1 nu 30     max|AD - FD| 2.53e-10
+diag_t  d 2 nu 2.5    max|AD - FD| 8.60e-10
+diag_t  d 2 nu 5      max|AD - FD| 2.01e-09
+diag_t  d 2 nu 30     max|AD - FD| 1.07e-08
+diag_t  d 3 nu 2.5    max|AD - FD| 1.20e-09
+diag_t  d 3 nu 5      max|AD - FD| 1.70e-09
+diag_t  d 3 nu 30     max|AD - FD| 2.39e-09
+
+4. draw_b(): does simulate() draw a multivariate t?
+
+KS of b^2/scale^2 against F(1, 4): D = 0.00092, p = 0.6876
+sample var 1.2661, theory scale^2*nu/(nu-2) = 1.2555
+gaussian control: KS D = 0.00104, p = 0.5401
+
+5. Correlated draw: is the mixing variable shared per level?
+
+KS of q/d against F(2, 5): D = 0.00634, p = 0.3966
+empirical cor -0.1095, scale cor -0.1159
+
+6. Unknown structure name around a bar (pre-existing?).
+  foo(x | g) :  NO ERROR 
+  us_t(x | g):  NO ERROR 

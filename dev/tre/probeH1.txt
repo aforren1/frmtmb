@@ -1,0 +1,48 @@
+Probe H: REML with t-distributed latents
+========================================
+
+A. REML objective at a fixed (sigma, s): TMB against the exact
+   two-stage quadrature. G = 15 groups of n = 4.
+
+nu         exact REML       TMB REML        error     ML error
+2.5       -102.390709    -102.499766     -0.10906     -0.04959
+3         -101.721451    -101.830682     -0.10923     -0.05287
+5         -101.295383    -101.367638     -0.07225     -0.03883
+10         -98.581977     -98.642968     -0.06099     -0.03393
+30         -97.943922     -97.967661     -0.02374     -0.01380
+
+B. The whole REML fit: TMB against the exact objective
+   maximized by grid refinement over (log sigma, log s).
+
+nu     fit               sigma      scale s       logLik
+3      exact          1.109238     0.615377  -100.377110
+3      TMB REML       1.089876     0.669294  -100.711129
+                  difference: sigma -0.019362  scale +0.053917
+5      exact          1.026268     1.043384  -101.248955
+5      TMB REML       1.023609     1.053786  -101.319892
+                  difference: sigma -0.002659  scale +0.010402
+10     exact          1.084673     0.580322   -97.003832
+10     TMB REML       1.074524     0.615501   -97.229931
+                  difference: sigma -0.010149  scale +0.035180
+
+C. The gaussian limit: REML with nu large against gaussian REML.
+
+nu                    sigma        scale s      d sigma          d s
+gaussian        1.008357786    0.913614465            -            -
+1e+04           1.008357741    0.913548769     4.54e-08     6.57e-05
+1e+06           1.008357786    0.913613808     4.48e-10     6.57e-07
+1e+08           1.008357786    0.913614458     8.24e-12     6.57e-09
+
+D. Does REML move the scale in the right direction? Small G,
+   where the ML variance component is most downward-biased.
+   Mean over 60 replicates, true scale 1.
+
+nu     G          ML scale   REML scale
+3      8           0.98853      1.09090
+3      15          1.00015      1.05131
+3      40          0.98837      1.00655
+5      8           0.91079      0.99561
+5      15          0.97204      1.01899
+5      40          0.98683      1.00360
+
+elapsed:  1.73027 mins 

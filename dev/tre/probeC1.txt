@@ -1,0 +1,62 @@
+Probe C: identifiability of the latent degrees of freedom
+=========================================================
+
+C3. RTMB tapes dt() with an AD `df`.
+
+AD gradient  :    -8.388e-07   1.779e-04   6.187e-05  -1.601e-05   2.135e-05 
+FD gradient  :    -8.384e-07   1.779e-04   6.187e-05  -1.600e-05   2.136e-05 
+max abs diff :  8.563e-09 
+nu_hat       :  4.4714  (true 3)
+
+
+C1. Profile log-likelihood in nu (Laplace), true nu = 3,
+    n = 5 observations per group. Reported as the drop from the
+    profile maximum; a 1.92 drop is the 95% profile interval.
+
+G = 20   peak nu = 3       95% profile interval [2.1, 500]
+  drop: 2.1:0.16  2.5:0.04  3:0.00  4:0.05  5:0.15  7:0.32  10:0.50  15:0.67  25:0.82  50:0.94  100:1.00  500:1.05
+
+G = 40   peak nu = 5       95% profile interval [2.1, 500]
+  drop: 2.1:0.90  2.5:0.54  3:0.29  4:0.07  5:0.00  7:0.01  10:0.08  15:0.18  25:0.30  50:0.41  100:0.48  500:0.53
+
+G = 100  peak nu = 3       95% profile interval [2.1, 5]
+  drop: 2.1:0.41  2.5:0.06  3:0.00  4:0.38  5:0.96  7:2.08  10:3.38  15:4.76  25:6.18  50:7.48  100:8.21  500:8.85
+
+G = 400  peak nu = 5       95% profile interval [4, 10]
+  drop: 2.1:7.52  2.5:4.33  3:2.10  4:0.33  5:0.00  7:0.55  10:1.85  15:3.58  25:5.58  50:7.58  100:8.79  500:9.87
+
+
+C2. Joint ML for nu, 100 replicates. nu = 2 + exp(log_nu), so
+    'at ceiling' means the optimizer walked off toward the
+    gaussian limit and 'at floor' means it collapsed on nu = 2.
+
+true nu 3    G 20    median     4.53  IQR [   2.26, 10628068.23]  ceiling(>100)  41.0%  floor(<2.1)  24.0%  failed 0
+true nu 3    G 40    median     3.79  IQR [   2.39,     9.97]  ceiling(>100)  14.0%  floor(<2.1)  16.0%  failed 0
+true nu 3    G 100   median     3.33  IQR [   2.47,     4.71]  ceiling(>100)   5.0%  floor(<2.1)   9.0%  failed 0
+true nu 5    G 20    median     8.10  IQR [   3.47, 10097691.33]  ceiling(>100)  44.0%  floor(<2.1)   9.0%  failed 0
+true nu 5    G 40    median     7.68  IQR [   3.90, 5861280.26]  ceiling(>100)  30.0%  floor(<2.1)   1.0%  failed 0
+true nu 5    G 100   median     6.35  IQR [   4.60,    13.40]  ceiling(>100)  21.0%  floor(<2.1)   0.0%  failed 0
+true nu 10   G 20    median 7903297.70  IQR [   7.69, 16093679.38]  ceiling(>100)  61.0%  floor(<2.1)   0.0%  failed 0
+true nu 10   G 40    median 6820635.25  IQR [   9.14, 13052756.10]  ceiling(>100)  61.0%  floor(<2.1)   1.0%  failed 0
+true nu 10   G 100   median    26.92  IQR [   8.51, 8348203.70]  ceiling(>100)  39.0%  floor(<2.1)   0.0%  failed 0
+
+
+C4. Detecting a t latent at all: 2*(logLik(nu free) -
+    logLik(gaussian)). The boundary-free comparison is against
+    nu = 500 rather than a separate gaussian fit.
+
+true nu  G        median LR   P(LR>3.84)   P(LR>0.01)
+3        20           0.290        17.5%        75.0%
+3        40           2.556        47.5%        87.5%
+3        100          9.991        77.5%       100.0%
+5        20           0.013         7.5%        60.0%
+5        40           0.170        20.0%        95.0%
+5        100          2.449        37.5%        92.5%
+10       20           0.012         5.0%        57.5%
+10       40           0.023         5.0%        77.5%
+10       100          0.047         7.5%        87.5%
+Inf      20           0.012         2.5%        60.0%
+Inf      40           0.019         0.0%        80.0%
+Inf      100          0.027         2.5%        87.5%
+
+elapsed:  1.289803 mins 

@@ -1,0 +1,36 @@
+Probe A5: full-joint NUTS against Laplace NUTS on the same tape
+===============================================================
+tmbstan 1.2.0, rstan 2.32.7
+
+
+nu = 3, n = 3 per group, 40 groups    (min n_eff 2084, max Rhat 1.000)
+parameter    joint mean   lap mean   joint sd     lap sd Laplace ML         d/sd
+beta[1]         0.99902    0.99942    0.23476    0.23989    1.00193        0.17%
+beta[2]         0.52054    0.51883    0.09907    0.09693    0.51842       -1.73%
+log_sigma      -0.06843   -0.07130    0.08010    0.07946   -0.08515       -3.59%
+log_s           0.05922    0.07162    0.17649    0.17965    0.05966        7.03%
+b[18]        joint posterior mean  -3.2168 sd  0.6241; Laplace mode  -3.2258; true  -3.5564
+
+nu = 3, n = 8 per group, 40 groups    (min n_eff 958, max Rhat 1.001)
+parameter    joint mean   lap mean   joint sd     lap sd Laplace ML         d/sd
+beta[1]         1.29619    1.29898    0.30296    0.30693    1.28809        0.92%
+beta[2]         0.48378    0.48424    0.05937    0.05894    0.48414        0.77%
+log_sigma      -0.03127   -0.03162    0.04272    0.04281   -0.03540       -0.83%
+log_s           0.42480    0.42581    0.17092    0.16972    0.40313        0.59%
+b[9]         joint posterior mean  11.4958 sd  0.4568; Laplace mode  11.5056; true  11.8588
+
+nu = 5, n = 3 per group, 40 groups    (min n_eff 2523, max Rhat 1.001)
+parameter    joint mean   lap mean   joint sd     lap sd Laplace ML         d/sd
+beta[1]         1.01078    1.01471    0.21508    0.21333    1.01443        1.83%
+beta[2]         0.53833    0.53827    0.10085    0.10111    0.53909       -0.06%
+log_sigma      -0.00904   -0.01439    0.08219    0.08035   -0.02744       -6.51%
+log_s           0.00686    0.01937    0.17138    0.16592    0.00687        7.30%
+b[18]        joint posterior mean  -1.9411 sd  0.6200; Laplace mode  -1.9436; true  -3.0205
+
+nu = 5, n = 8 per group, 40 groups    (min n_eff 1153, max Rhat 1.002)
+parameter    joint mean   lap mean   joint sd     lap sd Laplace ML         d/sd
+beta[1]         1.07020    1.07513    0.21993    0.21472    1.07207        2.24%
+beta[2]         0.47405    0.47405    0.05806    0.05835    0.47392       -0.01%
+log_sigma      -0.05586   -0.05569    0.04237    0.04297   -0.05903        0.40%
+log_s           0.10752    0.10849    0.15284    0.15124    0.08739        0.63%
+b[9]         joint posterior mean   4.4018 sd  0.4060; Laplace mode   4.3961; true   4.8931

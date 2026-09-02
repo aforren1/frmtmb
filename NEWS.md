@@ -1,3 +1,44 @@
+# frmtmb (development version)
+
+## Student-t random effects
+
+* `(x | gr(g, dist = "student"))` gives a grouping term a Student-t
+  latent instead of a gaussian one, brms's spelling. An outlying group
+  then costs the variance component far less: with one group of 30
+  displaced by 10 standard deviations, the gaussian latent SD inflates
+  to 1.85 against a truth of 1 while a `t(5)` latent holds at 1.25, and
+  the intercept's RMSE falls from 0.298 to 0.180. Correlated and
+  `diag()` blocks are one multivariate t with a single mixing variable
+  per level, which is brms's construction and is verified against
+  `mvtnorm::dmvt()` to 1e-10.
+* The degrees of freedom are FIXED, at `dist_nu` (default 5), not
+  estimated. brms estimates `nu` under a `gamma(2, 0.1)` prior, and the
+  prior is carrying it: by maximum likelihood the whole grid from 2.1 to
+  500 sits inside the 95% profile interval at 20 groups, and joint ML
+  runs to a boundary in 24% to 41% of replicates there. This is the
+  frequentist analogue of brms's own
+  `prior(constant(3), class = "df")`. Compare a few values with
+  `logLik()` instead.
+* The reported quantity is the t's SCALE, not its standard deviation -
+  which is also what brms's `sd_<group>__<term>` is. `VarCorr()` stores
+  the scale matrix, tags it with `nu`, and prints a `Scale` column, a
+  converted `Std.Dev.` column (`scale * sqrt(nu/(nu-2))`) and the fixed
+  `nu`, so the convention is visible instead of silent.
+* `quadrature = TRUE` accepts scalar t blocks and marginalizes them
+  EXACTLY, agreeing with adaptive Gauss-Hermite quadrature to 1e-6. It
+  is the recommended check: the Laplace approximation over a t latent
+  biases the estimated scale UPWARD, by under 2% of a standard error at
+  8 observations per group but by a factor of three where a near-null
+  variance component meets two-observation groups.
+  `dev/tre-feasibility.md` has the measurements.
+* `simulate()` and `frm_simulate()` draw a multivariate t;
+  `predict(allow_new_levels = TRUE)` inflates the unseen level's
+  variance by `nu/(nu-2)`; `REML = TRUE`, `ranef()`, `confint()` and
+  `frm_bootstrap()` work unchanged. Refused with their own messages, and
+  documented in `?frmtmb-student-re` and `frm_compat()`:
+  `gr(cov = )`/`gr(prec = )`, `mm()`, `|ID|` keys, and every covariance
+  structure but `us` and `diag`.
+
 # frmtmb 0.35.0
 
 Hidden Markov models, latent class analysis, multi-membership random

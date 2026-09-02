@@ -1,0 +1,98 @@
+== scalar t intercept ==
+Family: gaussian 
+Formula: y ~ x + (1 | gr(g, dist = "student")) 
+Method: ML   nobs: 320 
+Groups: g, 40 
+logLik: -500.032  AIC: 1008.06  BIC: 1023.14 
+
+Random effects:
+  1 | g 
+        Name  Scale Std.Dev.
+ (Intercept) 1.1107   1.4339
+   Student-t latent, nu = 5 (fixed); the stored matrix is the scale
+
+Coefficients (mu):
+            Estimate Std. Error z value  Pr(>|z|)
+(Intercept) 1.067176   0.214548  4.9741 6.557e-07
+x           0.477527   0.059945  7.9661 1.637e-15
+
+Coefficients (sigma):
+             Estimate Std. Error z value Pr(>|z|)
+(Intercept) -0.027659   0.042289  -0.654   0.5131
+
+covstruct:  us_t   dist_nu:  5 
+  1 | g 
+        Name  Scale Std.Dev.
+ (Intercept) 1.1107   1.4339
+   Student-t latent, nu = 5 (fixed); the stored matrix is the scale
+logLik  -500.0315  AIC  1008.063 
+
+== dist_nu = 3 ==
+  1 | g 
+        Name  Scale Std.Dev.
+ (Intercept) 1.0271    1.779
+   Student-t latent, nu = 3 (fixed); the stored matrix is the scale
+
+== gaussian limit ==
+gaussian theta  0.1049648 
+gauss  :  1.078772810027 0.478293454143 0.237392493326 
+nu=1e8 :  1.078772810710 0.478293453906 0.237392486574 
+max abs diff:  6.752194e-09 
+logLik diff :  3.526434e-07 
+
+== correlated slopes ==
+  x | g 
+        Name   Scale Std.Dev. (Intercept)
+ (Intercept) 1.11070  1.43390            
+           x 0.16101  0.20786       0.242
+   Student-t latent, nu = 5 (fixed); the stored matrix is the scale
+covstruct  us_t 
+corr-slope gaussian limit max diff:  0.005425966 
+
+== diag ==
+covstruct  diag_t 
+  x | g 
+        Name   Scale Std.Dev. (Intercept)
+ (Intercept) 1.11210  1.43570            
+           x 0.16449  0.21235           0
+   Student-t latent, nu = 5 (fixed); the stored matrix is the scale
+diag gaussian limit max diff:  3.102041e-05 
+
+== downstream ==
+  (Intercept)
+1   0.9983210
+2   1.9081251
+3   0.4202478
+       1        2        3 
+1.766348 2.153191 1.666461 
+       1        2        3 
+1.766348 2.153191 1.666461 
+               lwr       upr       est
+theta_1 -0.1776501 0.3875797 0.1049648
+simulate: [1] 320   2
+$fit
+       1 
+1.067176 
+
+$se.fit
+       1 
+1.449833 
+
+
+== quadrature ==
+Laplace  :  1.0671758240 0.4775271866 0.1049647751  ll  -500.0315 
+quadrature:  1.0670061187 0.4775186523 0.1041878702  ll  -500.0166 
+
+== REML ==
+ML theta    0.1049648 
+REML theta  0.118197 
+
+== guards ==
+1  gr(dist = ) takes "gaussian" or "student" (brms's two), got "poisson" 
+2  gr(dist_nu = ) must exceed 2 so the latent has a finite variance to report and to predict with; got 1 
+3  gr(cov = ) / gr(prec = ) with dist = "student" is not supported: a relationship matrix correlates the LEVELS, and the t's mixing variable is per level, so the joint density over the field is not a multivariate t and has no closed form here. Use dist = "gaussian" with the relationship matrix, or the t latent without one 
+4  gr(dist_nu = ) sets the degrees of freedom of a Student-t latent, so it only means something next to dist = "student": gr(g, dist_nu = 4) 
+5  dist = "student" is supported for the default (us) and diag structures only; cs(x | gr(g, dist = "student")) asks for a t-tailed cs block, whose density is not the multivariate t brms builds 
+6  An |ID|-keyed term cannot take dist = "student" yet: 1 | gr(g, dist = "student") is keyed |q|, and merged blocks are assembled as gaussian ones. Write the merged coefficients as one term, (x1 + x2 | gr(g, dist = "student")), which is the same multivariate-t block 
+7  NO ERROR 
+8  NO ERROR 
