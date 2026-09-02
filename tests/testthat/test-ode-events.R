@@ -405,6 +405,328 @@ test_that("a bolus and an infusion into different states coexist", {
                tolerance = 1e-7)
 })
 
+# --- ii / addl: compact repetition ----------------------------------
+
+test_that("ii and addl expand to the hand-written rows exactly", {
+  skip_if_not_installed("RTMBode")
+  obs <- c(1, 6, 13, 20, 26, 34, 40, 50)
+  compact <- frm_ode(decay1, init = list(0), times = obs,
+                     parms = list(0.2),
+                     events = data.frame(time = 0, value = 100, ii = 12,
+                                         addl = 3),
+                     atol = 1e-12, rtol = 1e-12)
+  written <- frm_ode(decay1, init = list(0), times = obs,
+                     parms = list(0.2),
+                     events = data.frame(time = c(0, 12, 24, 36),
+                                         value = 100),
+                     atol = 1e-12, rtol = 1e-12)
+  expect_identical(compact, written)
+
+  # the expansion keeps every other column of the row it came from
+  ev <- data.frame(group = "a", time = 2, state = 1L, value = 60,
+                   method = "add", duration = 3, ii = 10, addl = 2)
+  a <- frm_ode(decay1, init = list(0), times = obs, parms = list(0.2),
+               group = rep("a", length(obs)), events = ev,
+               atol = 1e-12, rtol = 1e-12)
+  b <- frm_ode(decay1, init = list(0), times = obs, parms = list(0.2),
+               events = data.frame(time = c(2, 12, 22), value = 60,
+                                   duration = 3),
+               atol = 1e-12, rtol = 1e-12)
+  expect_identical(a, b)
+})
+
+test_that("ii and addl are validated", {
+  skip_if_not_installed("RTMBode")
+  call_ev <- function(ev) {
+    frm_ode(decay1, init = list(0), times = c(1, 2), parms = list(0.2),
+            events = ev)
+  }
+  expect_error(call_ev(data.frame(time = 0, value = 1, addl = 2)),
+               "is positive on a row whose `ii` is not")
+  expect_error(call_ev(data.frame(time = 0, value = 1, ii = -1)),
+               "`events\\$ii` must be finite and not negative")
+  expect_error(call_ev(data.frame(time = 0, value = 1, ii = 5,
+                                  addl = 1.5)),
+               "must be a whole number")
+  expect_error(call_ev(data.frame(time = 0, value = 1, ii = "x")),
+               "`events\\$ii` must be numeric")
+})
+
+# --- reset events (NONMEM EVID 3, rxode2 evid 3) --------------------
+
+test_that("a reset zeroes every compartment", {
+  skip_if_not_installed("RTMBode")
+  tt <- c(1, 2, 3, 4)
+  got <- frm_ode(decay1, init = list(100), times = tt, parms = list(0.2),
+                 events = data.frame(time = 2, value = 0,
+                                     method = "reset"),
+                 atol = 1e-12, rtol = 1e-12)
+  # the observation at the reset time is still the pre-event reading
+  expect_equal(got, c(100 * exp(-0.2), 100 * exp(-0.4), 0, 0),
+               tolerance = 1e-9)
+
+  # every state, not the one a `state` column would name
+  m <- frm_ode(pk_dyn2, init = list(100, 0), times = tt,
+               parms = list(1, 0.2, 10),
+               states = c("depot", "central"),
+               events = data.frame(time = 2, value = 0,
+                                   method = "reset"),
+               atol = 1e-12, rtol = 1e-12)
+  expect_equal(unname(m[3:4, 1]), c(0, 0))
+  expect_equal(unname(m[3:4, 2]), c(0, 0))
+
+  # a reset needs no compartment even when the system has several
+  expect_silent(frm_ode(pk_dyn2, init = list(100, 0), times = tt,
+                        parms = list(1, 0.2, 10),
+                        events = data.frame(time = 2, value = 0,
+                                            method = "reset")))
+})
+
+test_that("a reset beside a dose is EVID 4, in that order", {
+  skip_if_not_installed("RTMBode")
+  tt <- c(1, 2, 3, 4)
+  got <- frm_ode(decay1, init = list(100), times = tt, parms = list(0.2),
+                 events = data.frame(time = c(2, 2), value = c(0, 50),
+                                     method = c("reset", "add")),
+                 atol = 1e-12, rtol = 1e-12)
+  expect_equal(got, c(100 * exp(-0.2), 100 * exp(-0.4),
+                      50 * exp(-0.2), 50 * exp(-0.4)),
+               tolerance = 1e-9)
+  # the row order in the table does not decide it
+  rev <- frm_ode(decay1, init = list(100), times = tt, parms = list(0.2),
+                 events = data.frame(time = c(2, 2), value = c(50, 0),
+                                     method = c("add", "reset")),
+                 atol = 1e-12, rtol = 1e-12)
+  expect_identical(got, rev)
+})
+
+test_that("a reset to a non-zero level sets every state to it", {
+  skip_if_not_installed("RTMBode")
+  tt <- c(1, 3)
+  got <- frm_ode(decay1, init = list(100), times = tt, parms = list(0.2),
+                 events = data.frame(time = 2, value = 7,
+                                     method = "reset"),
+                 atol = 1e-12, rtol = 1e-12)
+  expect_equal(got[2], 7 * exp(-0.2), tolerance = 1e-9)
+})
+
+test_that("event_scale does not scale a reset", {
+  skip_if_not_installed("RTMBode")
+  tt <- c(1, 3, 5)
+  ev <- data.frame(time = c(2, 4), value = c(7, 100),
+                   method = c("reset", "add"))
+  half <- frm_ode(decay1, init = list(100), times = tt, parms = list(0.2),
+                  events = ev, event_scale = 0.5,
+                  atol = 1e-12, rtol = 1e-12)
+  full <- frm_ode(decay1, init = list(100), times = tt, parms = list(0.2),
+                  events = ev, atol = 1e-12, rtol = 1e-12)
+  # the reset level is the same either way, the dose is halved
+  expect_equal(half[2], full[2], tolerance = 1e-10)
+  expect_equal(half[3], (7 * exp(-0.4) + 50) * exp(-0.2),
+               tolerance = 1e-9)
+  expect_equal(full[3], (7 * exp(-0.4) + 100) * exp(-0.2),
+               tolerance = 1e-9)
+})
+
+test_that("the gradient through a reset is exact", {
+  skip_if_not_installed("RTMBode")
+  skip_on_cran()
+  tt <- c(1, 2, 3, 4)
+  tp <- RTMB::MakeTape(function(th) {
+    "c" <- RTMB::ADoverload("c")
+    sum(frm_ode(decay1, init = list(100), times = tt,
+                parms = list(exp(th[1])),
+                events = data.frame(time = c(2, 2), value = c(0, 50),
+                                    method = c("reset", "add")),
+                atol = 1e-11, rtol = 1e-11))
+  }, log(0.25))
+  ref <- function(th) {
+    k <- exp(th[1])
+    sum(c(100 * exp(-k), 100 * exp(-2 * k), 50 * exp(-k), 50 * exp(-2 * k)))
+  }
+  expect_equal(tp(log(0.25)), ref(log(0.25)), tolerance = 1e-7)
+  expect_equal(as.numeric(tp$jacfun()(log(0.25))),
+               central_fd(ref, log(0.25)), tolerance = 1e-6)
+})
+
+# --- steady-state dosing --------------------------------------------
+
+# The exact steady state of a one-compartment system under a bolus D
+# every tau: the trough is a geometric series, D e^-k tau / (1 - e^-k tau).
+ss_trough <- function(D, k, tau) D * exp(-k * tau) / (1 - exp(-k * tau))
+
+test_that("a steady-state row matches the analytic superposition", {
+  skip_if_not_installed("RTMBode")
+  k <- 0.2
+  tt <- c(0, 1, 3, 6, 11.999)
+  got <- frm_ode(decay1, init = list(0), times = tt, parms = list(k),
+                 events = data.frame(time = 0, value = 100, ii = 12,
+                                     ss = TRUE),
+                 atol = 1e-12, rtol = 1e-12)
+  tr <- ss_trough(100, k, 12)
+  ref <- (tr + 100) * exp(-k * tt)
+  ref[1] <- tr            # the record's own time reads the trough
+  expect_equal(got, ref, tolerance = 1e-8)
+
+  # the run-in replaces `init`, whatever it held
+  got2 <- frm_ode(decay1, init = list(500), times = tt, parms = list(k),
+                  events = data.frame(time = 0, value = 100, ii = 12,
+                                      ss = TRUE),
+                  atol = 1e-12, rtol = 1e-12)
+  expect_equal(got2, ref, tolerance = 1e-8)
+})
+
+test_that("a steady-state row continues into ordinary doses", {
+  skip_if_not_installed("RTMBode")
+  k <- 0.2
+  tt <- c(0, 6, 12, 18, 24)
+  got <- frm_ode(decay1, init = list(0), times = tt, parms = list(k),
+                 events = data.frame(time = 0, value = 100, ii = 12,
+                                     addl = 2, ss = TRUE),
+                 atol = 1e-12, rtol = 1e-12)
+  tr <- ss_trough(100, k, 12)
+  # at steady state the cycle repeats, so every trough and every
+  # mid-interval point is the same number
+  expect_equal(got, c(tr, (tr + 100) * exp(-6 * k), tr,
+                      (tr + 100) * exp(-6 * k), tr), tolerance = 1e-8)
+})
+
+test_that("a steady-state infusion matches the infinite superposition", {
+  skip_if_not_installed("RTMBode")
+  k <- 0.2
+  dur <- 3
+  tau <- 12
+  tt <- c(0, 1, 3, 6, 11)
+  got <- frm_ode(decay1, init = list(0), times = tt, parms = list(k),
+                 events = data.frame(time = 0, value = 100,
+                                     duration = dur, ii = tau, ss = TRUE),
+                 n_ss = 30, atol = 1e-12, rtol = 1e-12)
+  one <- function(t) {
+    R <- 100 / dur
+    ifelse(t <= dur, R / k * (1 - exp(-k * t)),
+           R / k * (1 - exp(-k * dur)) * exp(-k * (t - dur)))
+  }
+  ref <- vapply(tt, function(t) sum(vapply(0:400, function(j)
+    one(t + j * tau), 0)), 0)
+  expect_equal(got, ref, tolerance = 1e-7)
+})
+
+test_that("n_ss controls the run-in and its error falls off geometrically", {
+  skip_if_not_installed("RTMBode")
+  k <- 0.2
+  tr <- ss_trough(100, k, 12)
+  # ss_tol = 1 silences the shortfall warning that is the point of the
+  # next test; here the shortfall itself is what is being measured
+  err <- vapply(c(2L, 4L, 8L), function(n) {
+    g <- frm_ode(decay1, init = list(0), times = 0, parms = list(k),
+                 events = data.frame(time = 0, value = 100, ii = 12,
+                                     ss = TRUE),
+                 n_ss = n, ss_tol = 1, atol = 1e-12, rtol = 1e-12)
+    abs(g - tr) / tr
+  }, 0)
+  # exactly exp(-n k tau) for linear kinetics
+  expect_equal(err, exp(-c(2, 4, 8) * k * 12), tolerance = 1e-6)
+  expect_error(
+    frm_ode(decay1, init = list(0), times = 0, parms = list(k),
+            events = data.frame(time = 0, value = 100, ii = 12,
+                                ss = TRUE), n_ss = 0),
+    "`n_ss` must be one whole number"
+  )
+})
+
+test_that("an unconverged run-in warns on the numeric path", {
+  skip_if_not_installed("RTMBode")
+  # a drug whose half-life is long against its interval: three cycles is
+  # nowhere near the steady state, and only the numeric path can say so
+  expect_warning(
+    frm_ode(decay1, init = list(0), times = c(0, 5), parms = list(0.005),
+            events = data.frame(time = 0, value = 100, ii = 6,
+                                ss = TRUE), n_ss = 3),
+    "steady-state run-in cycles"
+  )
+  expect_silent(
+    frm_ode(decay1, init = list(0), times = c(0, 5), parms = list(0.005),
+            events = data.frame(time = 0, value = 100, ii = 6,
+                                ss = TRUE), n_ss = 3, ss_tol = 1)
+  )
+})
+
+test_that("the gradient through a steady-state run-in is exact", {
+  skip_if_not_installed("RTMBode")
+  skip_on_cran()
+  obs <- c(0, 2, 6, 11)
+  x0 <- c(log(0.2), 0.4)
+  tp <- RTMB::MakeTape(function(th) {
+    "c" <- RTMB::ADoverload("c")
+    sum(frm_ode(decay1, init = list(0), times = obs,
+                parms = list(exp(th[1])),
+                events = data.frame(time = 0, value = 100, ii = 12,
+                                    ss = TRUE),
+                event_scale = 1 / (1 + exp(-th[2])),
+                n_ss = 25, atol = 1e-12, rtol = 1e-12))
+  }, x0)
+  ref <- function(th) {
+    k <- exp(th[1])
+    D <- 100 / (1 + exp(-th[2]))
+    tr <- ss_trough(D, k, 12)
+    v <- (tr + D) * exp(-k * obs)
+    v[1] <- tr
+    sum(v)
+  }
+  expect_equal(tp(x0), ref(x0), tolerance = 1e-6)
+  expect_equal(as.numeric(tp$jacfun()(x0)), central_fd(ref, x0),
+               tolerance = 1e-5)
+})
+
+test_that("steady-state rows are validated", {
+  skip_if_not_installed("RTMBode")
+  call_ev <- function(ev) {
+    frm_ode(decay1, init = list(0), times = c(1, 2), parms = list(0.2),
+            events = ev)
+  }
+  expect_error(call_ev(data.frame(time = 0, value = 1, ss = TRUE)),
+               "whose `ii` is not positive")
+  expect_error(call_ev(data.frame(time = 0, value = 1, ii = 6, ss = TRUE,
+                                  method = "replace")),
+               "whose method is not")
+  expect_error(call_ev(data.frame(time = 0, value = 1, ii = 6, ss = TRUE,
+                                  duration = 9)),
+               "longer than")
+  expect_error(call_ev(data.frame(time = c(0, 3), value = 1, ii = 6,
+                                  ss = TRUE)),
+               "more than one row `ss = TRUE`")
+  expect_error(call_ev(data.frame(time = 0, value = 1, ii = 6,
+                                  ss = "yes")),
+               "must be TRUE/FALSE")
+})
+
+test_that("a steady-state population fit recovers the truth", {
+  skip_if_not_installed("RTMBode")
+  skip_on_cran()
+  set.seed(31)
+  n_id <- 8
+  tau <- 12
+  tt <- c(0, 0.5, 2, 4, 8, 11.9)
+  d <- data.frame(id = factor(rep(seq_len(n_id), each = length(tt))),
+                  time = rep(tt, n_id))
+  k_i <- exp(stats::rnorm(n_id, log(0.2), 0.25))[as.integer(d$id)]
+  tr <- ss_trough(100, k_i, tau)
+  mu <- (tr + 100) * exp(-k_i * d$time)
+  mu[d$time == 0] <- tr[d$time == 0]
+  d$conc <- mu + stats::rnorm(nrow(d), 0, 0.5)
+
+  fit <- frm(
+    bf(conc ~ frm_ode(decay1, init = list(0), times = time,
+                      parms = list(exp(lk)), group = id, output = 1L,
+                      events = data.frame(time = 0, value = 100, ii = 12,
+                                          ss = TRUE)),
+       lk ~ 1 + (1 | id), nl = TRUE) + gaussian(),
+    data = d, start = list(beta = log(0.25)))
+  fx <- unlist(fixef(fit))
+  expect_equal(unname(fx[["lk.(Intercept)"]]), log(0.2), tolerance = 0.15)
+  expect_lt(unname(exp(fx[["sigma.(Intercept)"]])), 1.5)
+})
+
 # --- the adjoint ----------------------------------------------------
 
 test_that("the gradient through repeated doses matches finite differences", {
