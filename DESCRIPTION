@@ -34,6 +34,7 @@ Imports:
     TMB,
     utils
 Suggests:
+    ape,
     bayesplot,
     brms,
     DHARMa,
@@ -46,6 +47,7 @@ Suggests:
     marginaleffects,
     MASS,
     mclust,
+    metafor,
     mice,
     minqa,
     nlme,
