@@ -15,7 +15,7 @@ them)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.37.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -165,7 +165,7 @@ prediction is a matrix takes the array shape; every family that
 predicts one number per observation keeps the plain
 <code>draws x observations</code> matrix.</p>
 <p><code>posterior_predict()</code> is unaffected for an ordinal or categorical
-family - it draws one category per observation - and so is
+family (it draws one category per observation), and so is
 <code>posterior_linpred()</code>, which is a statement about one distributional
 parameter and stays an <code>n</code>-column matrix of the latent predictor.
 What does take the array shape in <code>posterior_predict()</code> is a
@@ -179,7 +179,7 @@ draws stack into <code>draws x observations x columns</code>.</p>
 
 <p><code>posterior_predict()</code> uses the same simulator <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> does,
 including the structured families (<code><a href="hmm.html">hmm()</a></code>, <code>mixture(groups = )</code>,
-<code><a href="mixture_mvn.html">mixture_mvn()</a></code>) and residual correlation terms - see the Structured
+<code><a href="mixture_mvn.html">mixture_mvn()</a></code>) and residual correlation terms; see the Structured
 draws section of <code><a href="simulate.frmtmb_fit.html">simulate.frmtmb_fit()</a></code>. Those draws index the rows
 the model was fitted on, so <code>newdata</code> is refused for them.</p>
     </div>

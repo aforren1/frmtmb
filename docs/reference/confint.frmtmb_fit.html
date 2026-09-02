@@ -9,7 +9,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.37.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,7 +88,11 @@ same parameter: the internal name (<code>tarsus_(Intercept)</code>,
 (<code>tarsus_Intercept</code>, the spelling <code><a href="hypothesis.html">hypothesis()</a></code> and <code><a href="variables.html">variables()</a></code>
 use), and a natural-scale name that stands for exactly one
 internal parameter, <code>sd_&lt;group&gt;__&lt;term&gt;</code> and a correlation whose
-block has a single internal correlation parameter. An alias is
+block has a single internal correlation parameter. The bare name of
+an intercept-only nonlinear parameter (<code>la</code> for <code>la_(Intercept)</code>)
+is a fourth spelling of the same internal parameter, so it resolves
+silently; a nonlinear parameter with several coefficients is
+refused rather than resolved to one of them. An alias is
 reported and the row keeps the internal name, because the interval
 is on the internal scale: see <code><a href="confint_varcorr.html">confint_varcorr()</a></code> and
 <code><a href="hypothesis.html">hypothesis()</a></code> for natural-scale intervals. A natural-scale

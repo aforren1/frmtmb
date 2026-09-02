@@ -62,7 +62,7 @@ function on these draws"; \code{pairs()} is \code{bayesplot::mcmc_pairs()}.
 \details{
 The parameter names bayesplot sees are the frmtmb draws-side names
 (no parentheses), not Stan's \code{par[1]}, because \code{as.array()} relabels
-them - except in \code{nuts_params()}, \code{rhat()} and \code{neff_ratio()}, which
+them, except in \code{nuts_params()}, \code{rhat()} and \code{neff_ratio()}, which
 read the \code{stanfit} directly and therefore show Stan's own names.
 }
 \examples{

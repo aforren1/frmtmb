@@ -204,6 +204,8 @@ then puts the results back in the row order of the data.
 | `states`, `output` | State names, and which of them the body returns. |
 | `t0` | The initial time. Defaults to 0. |
 | `events`, `event_scale` | A dosing table, and an estimated multiplier on its amounts. |
+| `tv`, `tv_break` | Constants that change with time, and where they change. |
+| `n_ss`, `ss_tol` | The length of a steady-state run-in, and when to complain about it. |
 | `method`, `atol`, `rtol` | Integrator and tolerances. |
 
 `init` and `parms` are given as lists of **columns**, not as one row of
@@ -242,11 +244,31 @@ a positive `duration` and it becomes an infusion instead, delivering
 column restricts a row to one subject; leave the column out and the
 schedule applies to every subject.
 
+A regular course does not have to be written out. `ii` is the interdose
+interval and `addl` the number of doses that follow the row’s own, so
+these two tables are the same table:
+
+``` r
+
+data.frame(time = 0, state = "depot", value = 100, ii = 12, addl = 3)
+#>   time state value ii addl
+#> 1    0 depot   100 12    3
+data.frame(time = c(0, 12, 24, 36), state = "depot", value = 100)
+#>   time state value
+#> 1    0 depot   100
+#> 2   12 depot   100
+#> 3   24 depot   100
+#> 4   36 depot   100
+```
+
+The expansion happens before anything else looks at the table, so the
+two give bit-identical results.
+
 In NONMEM terms an `"add"` row is a dosing record, `value` is `amt`,
-`state` is `cmt`, and `duration` sets `rate = amt / duration`. There is
-no `evid` column, because observations and doses live in two separate
-tables here: the rows of `data` are the observations, the rows of
-`events` are the doses.
+`state` is `cmt`, `duration` sets `rate = amt / duration`, and `ii` and
+`addl` are spelled the same way. There is no `evid` column, because
+observations and doses live in two separate tables here: the rows of
+`data` are the observations, the rows of `events` are the doses.
 
 Solving directly, with the first dose as the initial condition and three
 more as events:
@@ -418,6 +440,232 @@ possible at all.
 The price is one solve per dosing interval per group. A twice-daily
 regimen over a fortnight is 28 solves per subject, not one.
 
+### Starting at steady state
+
+A patient on maintenance therapy was not dosed for the first time this
+morning. `ss = TRUE` on a row says the cycle it describes has already
+been running long enough to settle, and the row’s `ii` says how often:
+
+``` r
+
+ss_ev <- data.frame(time = 0, state = "depot", value = 100,
+                    ii = 12, ss = TRUE)
+tt <- c(0, 1, 3, 6, 11.9)
+frm_ode(pk_dyn, init = list(0, 0), times = tt, parms = list(1, 0.2, 10),
+        states = c("depot", "central"), output = "central",
+        events = ss_ev)
+#> [1] 1.247033 6.656660 6.922232 4.109565 1.272218
+```
+
+The steady state is reached by simulation, not by a formula, so it works
+for any dynamics: every compartment is set to zero, which is how NONMEM
+and rxode2 read a steady-state record and why the row overrides `init`,
+and the cycle is then repeated `n_ss` times before the record’s time.
+The record’s own dose lands afterwards, so an observation at the
+record’s time is the steady-state trough.
+
+`n_ss` is where the honesty is. A real steady state is “repeat until the
+state at the start of the cycle stops moving”, and that test branches on
+a value, which the tape cannot do: the number of solves has to be fixed
+before the tape is built. So `n_ss` cycles is an **approximation**. Its
+error is geometric: for linear kinetics the shortfall after `n` cycles
+is the accumulation factor to the power `n`, which for a one-compartment
+system is `exp(-n * k * ii)`.
+
+A one-compartment intravenous model shows the size of it, because there
+the exact steady-state trough is known:
+
+``` r
+
+decay <- function(t, y, p) {
+  "c" <- RTMB::ADoverload("c")
+  list(c(-p[1] * y[1]))
+}
+iv_ss <- data.frame(time = 0, value = 100, ii = 12, ss = TRUE)
+tr <- 100 * exp(-0.2 * 12) / (1 - exp(-0.2 * 12))    # the exact trough
+
+vapply(c(2, 4, 8, 20), function(n) {
+  g <- frm_ode(decay, init = list(0), times = 0, parms = list(0.2),
+               events = iv_ss, n_ss = n, ss_tol = 1)
+  abs(g - tr) / tr
+}, 0)
+#> [1] 8.229741e-03 6.772261e-05 1.543656e-09 6.130838e-09
+```
+
+Two cycles are 0.8% short, which is `exp(-2 * 0.2 * 12)` exactly; by
+eight the run-in error is under the integrator’s own tolerance, and the
+last two columns are solver noise, not run-in error. The shortfall
+matters only when the half-life is long against the dosing interval, and
+there
+[`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
+says so: off the tape it compares the last two cycles and warns when
+they still differ by more than `ss_tol`. During a fit that comparison
+cannot run at all, so read the warning from a
+[`predict()`](https://rdrr.io/r/stats/predict.html) or a direct call and
+raise `n_ss` if it fires.
+
+The cost is `n_ss` extra solves per group, so a steady-state population
+fit is several times a plain one.
+
+### Resetting the system
+
+`method = "reset"` sets **every** compartment to `value`. With
+`value = 0` that is NONMEM’s and rxode2’s `evid = 3`: washout, a new
+period of a crossover, a dropped-and-restarted infusion.
+
+``` r
+
+frm_ode(pk_dyn, init = list(100, 0), times = c(1, 2, 3, 4),
+        parms = list(1, 0.2, 10), output = 2L,
+        events = data.frame(time = 2, value = 0, method = "reset"))
+#> [1] 5.635641 6.687310 0.000000 0.000000
+```
+
+A reset and a dose at the same time is `evid = 4`, a reset dose. The
+reset is always applied first, so the order of the two rows in the table
+does not change the answer. A reset row names no compartment, so it
+needs no `state` even in a multi-state system, and `event_scale` leaves
+it alone: it sets a level, not an amount.
+
+## Covariates that change with time
+
+`init` and `parms` are read off each group’s first row, so a covariate
+that changes within a subject cannot enter them. That is the right
+refusal for a constant, and the wrong answer for renal function, body
+weight over a long study, or an infusion of a second drug that changes
+the elimination of the first. `tv` is where those go.
+
+``` r
+
+tt <- c(1, 3, 6, 9, 12)
+ke_t <- ifelse(tt < 6, 0.2, 0.4)         # elimination doubles at hour 6
+
+pk_tv <- function(t, y, p) {
+  "c" <- RTMB::ADoverload("c")
+  # `tv` values follow `parms`, so ka is p[1], V is p[2], and the
+  # time-varying ke is p[3]
+  list(c(-p[1] * y[1],
+         p[1] * y[1] / p[2] - p[3] * y[2]))
+}
+
+frm_ode(pk_tv, init = list(100, 0), times = tt, parms = list(1, 10),
+        tv = list(ke_t), states = c("depot", "central"),
+        output = "central")
+#> [1] 5.6356414 6.2378071 3.7339432 1.1350284 0.3423811
+```
+
+The solve is split at each change point, exactly as it is split at a
+dose time, and each segment’s dynamics see that segment’s value. Nothing
+in the derivative function learns that anything changed: within a
+segment `p[3]` is an ordinary constant.
+
+**The step is last observation carried forward**, which is the rule
+rxode2 uses for covariates. A row’s value is in force from that row’s
+time until the next change, and the first row’s value reaches back to
+`t0`. One consequence is worth stating, because it differs from a dose:
+the state is *continuous* across a change point, since a covariate moves
+the derivative and not the state. An observation exactly at a change
+point therefore reads what the pre-change dynamics produced, and the
+difference appears only afterwards. At a dose time the same observation
+reads the trough, because a dose does jump the state.
+
+### An estimated time-varying parameter
+
+The values may be estimated. The change points may not: they decide
+where the solve is split, and that is settled before the tape is built.
+When a `tv` column carries estimated values there is nothing to compare,
+because RTMB refuses comparison on AD types, so `tv_break` names the
+data column whose changes mark them.
+
+``` r
+
+set.seed(77)
+n_id <- 10
+tt_obs <- c(0.5, 2, 4, 8, 11.9, 13, 16, 20)
+dv <- data.frame(id = factor(rep(seq_len(n_id), each = length(tt_obs))),
+                 time = rep(tt_obs, n_id))
+dv$phase <- factor(ifelse(dv$time < 12, "early", "late"))
+b_i <- rnorm(n_id, 0, 0.25)[as.integer(dv$id)]
+k_e <- exp(log(0.15) + b_i)
+k_l <- exp(log(0.15) + log(2) + b_i)
+dv$conc <- ifelse(dv$time < 12,
+                  100 * exp(-k_e * dv$time),
+                  100 * exp(-k_e * 12) * exp(-k_l * (dv$time - 12))) +
+  rnorm(nrow(dv), 0, 0.6)
+
+tv_fit <- frm(
+  bf(conc ~ frm_ode(decay, init = list(100), times = time,
+                    tv = list(exp(lk)), tv_break = phase,
+                    group = id, output = 1L),
+     lk ~ 1 + phase + (1 | id), nl = TRUE) + gaussian(),
+  data = dv, start = list(beta = c(log(0.2), 0)))
+unlist(fixef(tv_fit))
+#>    lk.(Intercept)      lk.phaselate sigma.(Intercept) 
+#>       -1.78812648        0.75055986       -0.08544209
+```
+
+`lk` is a linear predictor that varies within a subject, which `parms`
+would refuse by name. In `tv` it is the whole point. The truth is
+`lk = -1.90` early and a shift of `log(2) = 0.69` late.
+
+A `tv` column has no constant to be read off the first row, so `parms`
+may be left out entirely when every input varies with time.
+
+## Two measurements from one solve
+
+A parent drug and its metabolite are measured on the same assay, one
+column of concentrations with a compartment label beside it. Two species
+of a predator-prey series stack the same way. Given one `output` value
+per row,
+[`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
+solves the system once per group and each row reads the state its label
+names:
+
+``` r
+
+bf(y ~ frm_ode(pm_dyn, init = list(dose, 0, 0), times = time,
+               parms = list(exp(lka), exp(lkm), exp(lke)),
+               group = id, output = cmt),      # cmt is 2 or 3 per row
+   lka ~ 1, lkm ~ 1, lke ~ 1, nl = TRUE)
+```
+
+Without this the model is written as two calls, one per state, selected
+by an indicator: the same likelihood at twice the solves. A per-row
+`output` is told apart from a selection of states by length: it needs
+one value per row, and more rows than the system has states.
+
+## A combined error model
+
+Assay error in pharmacokinetics is rarely purely additive. The usual
+model is proportional plus additive,
+
+``` math
+\mathrm{sd} = \sqrt{a^2 + (b\,\mu)^2},
+```
+
+which [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md)
+writes directly, because an
+[`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) body may
+read another parameter’s per-row value. `sigma` is reported on the log
+scale, so the body is half the log of the variance:
+
+``` r
+
+bf(conc ~ frm_ode(pk_dyn, init = list(dose, 0), times = time,
+                  parms = list(exp(lka), exp(lke), exp(lV)),
+                  group = id, output = 2L),
+   lka ~ 1 + (1 | id), lke ~ 1 + (1 | id), lV ~ 1, nl = TRUE) +
+  nlf(sigma ~ 0.5 * log(exp(2 * ladd) + exp(2 * lprop) * mu^2)) +
+  lf(ladd ~ 1, lprop ~ 1) + gaussian()
+```
+
+`exp(ladd)` is the additive component and `exp(lprop)` the proportional
+one, both on the log scale so both stay positive. This needs no new
+machinery: it is
+[`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) plus the
+ODE body, and the two components come back separately in
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md).
+
 ## Three things that will bite
 
 ### A covariate must not vary inside a group
@@ -442,7 +690,10 @@ frm(bf(conc ~ frm_ode(pk_dyn, init = list(Dose, 0), times = Time,
 ```
 
 A covariate that is constant within a subject, such as weight or
-treatment arm, is the intended case: `lV ~ 1 + Wt` is fine.
+treatment arm, is the intended case: `lV ~ 1 + Wt` is fine. A covariate
+that really does change with time goes in `tv` instead, where the solve
+is split at each change; the refusal is for `init` and `parms`, which
+are read once.
 
 Without the check the fit is quietly wrong rather than loud. The
 coefficient stays at its starting value, the log-likelihood does not
@@ -495,9 +746,9 @@ it gives the same answer roughly a hundred times faster.
 
 ## What is out of scope
 
-**Time-varying input other than dosing.** A branch on time inside the
-derivative function does not work, and it is worth knowing why.
-**RTMBode** tapes that function once, so `t` is an
+**Time-varying input that is not a step function.** A branch on time
+inside the derivative function does not work, and it is worth knowing
+why. **RTMBode** tapes that function once, so `t` is an
 automatic-differentiation value inside it. Writing
 `if (t < t_end) rate else 0` raises
 
@@ -508,17 +759,17 @@ which is the good outcome. An
 the bad one: it silently returns the value at the taping point, so the
 model you fit is not the model you wrote. Smooth arithmetic in `t`, such
 as `p[2] * exp(-p[3] * t)`, is fine. A piecewise-constant input belongs
-in `events` as an infusion, where it rides along as a parameter over
-each interval and is differentiated exactly. deSolve’s own `forcings`
-argument is not reachable through **RTMBode**.
+in `tv`, or in `events` as an infusion, where it rides along as a
+parameter over each interval and is differentiated exactly. deSolve’s
+own `forcings` argument is not reachable through **RTMBode**. Linear
+interpolation between measured covariate values, which rxode2 offers, is
+not available either: the value inside a segment would have to depend on
+`t`.
 
-**Estimated event times.** Lag times, estimated inter-dose intervals and
-estimated observation times are not supported. The event times decide
-where the solve is split, and that is settled before the tape is built.
-
-**Steady-state dosing records.** There is no equivalent of NONMEM’s
-`ss`/`ii`: write out the doses that led to the steady state, or start
-the solve from a steady-state initial condition you compute yourself.
+**Estimated event times.** Lag times, estimated inter-dose intervals,
+estimated observation times and estimated `tv` change points are not
+supported. They decide where the solve is split, and that is settled
+before the tape is built.
 
 `predict(se.fit = TRUE)` is not available for any nonlinear predictor,
 [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)

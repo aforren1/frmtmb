@@ -1129,7 +1129,18 @@ Left open after this round:
 - More than one ss row per group (a second run-in would discard the
   first); write the later doses out with ii/addl.
 
-## Next-round small items (queued 2026-09-02)
+## Next-round small items (queued 2026-09-02, DELIVERED same day, branch wt-smallitems)
+
+All three shipped in v0.37: plot.frmtmb_influence (Cook's + dfbetas
+panels, 2/sqrt(n) band, car::influencePlot refusal documented),
+the one-time shadowing message with leading-dot aliases (.sigma,
+registered only on collision), and bare-nlpar bound aliases. One
+probe claim below was corrected in the process: nlpar-vs-dpar names
+do NOT collide-and-error - a name in an nl body that matches a dpar
+is a dpar REFERENCE by construction (nlpars is setdiff'd against
+fam$dpars), and vignette("inputs") now records the actual precedence
+(nlpar, then data column, then dpar). Original queue entry kept for
+the record:
 
 - plot.frmtmb_influence: index plot of Cook's distances with top
   cases labeled + dfbetas panels, from the refit-based quantities
@@ -1172,11 +1183,25 @@ frmtmb side (done): frm_sample now raises an informative error when
 the sampler returns no draws, naming this case, instead of a
 seq_len(NA) error from the extraction code.
 
-Upstream items for the RTMBode issue (joins the events x2 and
->8-state items): (1) tryCatch the deSolve call inside the adjoint
-node and return NaN - converts sampler aborts into ordinary Stan
-proposal rejections AND stops the arena corruption; (2) the static-
-pointer sequencing under tmbstan. Our side, future: auto-derived
-containment bounds (mode +/- k*SE) for sampling ODE fits once
-upstream failure becomes rejectable; bare-nlpar bound aliases for
-intercept-only nlpars (la for la_(Intercept)).
+ROOT CAUSE FOUND (2026-09-02, branch wt-rtmbode; dev/upstream/ holds
+the full analysis, a three-patch series against kaskr/RTMB@5242257,
+13 repro scripts and issue/PR skeletons). NOT static pointers, NOT
+tmbstan, NOT gc - all three eliminated experimentally. RTMBode's
+updateSolution() calls deSolve unguarded; deSolve fails two ways
+that both escape as R errors (a hard "illegal input" error when a
+rate reaches Inf through exp(), and an EARLY RETURN with fewer rows
+than requested, which the fixed-length ADjoint node reports as
+"Wrong output length"). Stan reaches such parameters by construction
+(unconstrained initial step size 1 against a gradient of order 1e2+
+at the mode), so warmup iteration 1 fails deterministically; both
+signatures reproduce from a plain obj$fn() call with no sampler.
+Patch 01 (NaN fill + mapping the solution onto the requested times)
+makes the LV model sample end to end, 0 divergences. Bonus finding:
+the >8-state ceiling is a deSolve integer overflow (lsoda's lrw
+formula overflows R integers at neq = 46337; order-3 sensitivities
+for a Laplace gradient get there fast); separate deSolve issue
+skeleton in the write-up.
+
+Our side, future: auto-derived containment bounds (mode +/- k*SE)
+for sampling ODE fits once a patched RTMBode makes failure
+rejectable. Bare-nlpar bound aliases: DONE in v0.37 (wt-smallitems).

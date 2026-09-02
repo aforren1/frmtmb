@@ -182,6 +182,20 @@ range - so there is no `sd_<group>__<term>` to name. Read those off
 which reports each under its own label (`sd(gp)`, `range(gp)`,
 `sd(car)`, ...).
 
+## When a coefficient shadows a natural-scale name
+
+Model terms and natural-scale summaries share one namespace here, and
+the coefficient wins: a covariate literally named `sigma` makes
+`"sigma = 0"` a test on ITS coefficient, not on the residual standard
+deviation. The same holds for a coefficient that spells out
+`sd_<group>__<term>`, `cor_...` or an autocorrelation name such as
+`ar1`. The shadowed quantity keeps a name: prefix it with a dot,
+`.sigma`, `.sd_g__Intercept`, `.ar1`. The dot spelling exists only where
+a collision does, and `hypothesis()` says so once per call when one is
+in play.
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+lists both names in that case.
+
 ## See also
 
 [`vcov.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/vcov.frmtmb_fit.md)

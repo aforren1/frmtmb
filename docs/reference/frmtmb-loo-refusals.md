@@ -1,0 +1,71 @@
+# Refusals for the refit-based and marginal-likelihood brmsfit methods
+
+These `brmsfit` methods have frmtmb spellings that do not exist yet.
+They are defined so that a ported script fails with the reason and the
+alternative rather than with "could not find function", and they are
+documented so the reason is findable.
+
+## Usage
+
+``` r
+loo_moment_match(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+loo_moment_match(x, ...)
+
+loo_subsample(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+loo_subsample(x, ...)
+
+reloo(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+reloo(x, ...)
+
+kfold(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+kfold(x, ...)
+
+bridge_sampler(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+bridge_sampler(x, ...)
+
+bayes_factor(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+bayes_factor(x, ...)
+
+post_prob(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+post_prob(x, ...)
+```
+
+## Arguments
+
+- x, ...:
+
+  Ignored; these methods always stop.
+
+## Value
+
+These functions never return; they signal an error.
+
+## Details
+
+- `loo_moment_match()`, `loo_subsample()`, `reloo()` and `kfold()` all
+  need to refit the model on modified data.
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+  is the resampling machinery frmtmb does have, and
+  [`AIC()`](https://rdrr.io/r/stats/AIC.html) on the maximum-likelihood
+  fits answers the comparison question directly.
+
+- `bridge_sampler()`, `bayes_factor()` and `post_prob()` are
+  marginal-likelihood quantities. A marginal likelihood is an integral
+  against the PRIOR, so it is undefined under the flat improper priors
+  `frm_sample(fit)` uses, and even with proper `priors =` the
+  bridge-sampling estimator needs a normalized log-posterior evaluator
+  that the RTMB tape does not expose.

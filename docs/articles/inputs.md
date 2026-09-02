@@ -327,6 +327,78 @@ of `cens()`. There, `"right"`, `"Right"` and `"R"` are the same code,
 because a capitalized word reads as a spelling variant rather than as
 garbage. The numeric codes `0`, `-1`, `1`, `2` mean the same thing.
 
+## Naming collisions
+
+Four vocabularies meet in a model: the columns of `data`, the
+distributional parameters of the family, the nonlinear parameters a
+formula declares, and the display names that
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+and
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+use. They namespace apart by construction, so a column may carry any
+name at all. The rules below say what happens where two of them do meet.
+
+**Columns and coefficients never collide.** A coefficient is stored
+under its dpar prefix, so a covariate named `sigma` in the mean is
+`sigma` in `fixef(fit)$mu` while the residual standard deviation is
+`(Intercept)` in `fixef(fit)$sigma`. Both fit, and neither reads the
+other.
+
+**A nonlinear parameter may not also be a column.**
+`bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE)` on data that has a
+column `a` is refused: the body would use the parameter and ignore the
+column silently. Rename one of them. A declared nonlinear parameter that
+no body uses is refused too, and so is a dpar formula for a parameter
+the family does not have (`bf(y ~ x, shape ~ 1)` on
+[`gaussian()`](https://rdrr.io/r/stats/family.html), which names `sigma`
+as the one available).
+
+**In a nonlinear body, a column wins over a distributional parameter.**
+A name in an
+[`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) body
+resolves in this order: a nonlinear parameter of the model, then a
+column of `data`, then another distributional parameter of the same
+response (read per row, after its link inverse). The dpar reference is
+an extension of brms, which has only the first two; putting the column
+ahead of it is what keeps every body brms accepts meaning here what it
+means there. So `nlf(sigma ~ ls + th * log(abs(mu)))` is a variance
+function of the model’s own mean, unless `data` carries a column `mu`,
+in which case it is a variance function of that column.
+
+**The internal `.eta_<dpar>` names are unreachable from `data`.** The
+objective keeps each linear predictor beside its parameter under a
+reserved `.eta_` name, for the families that need the untransformed
+scale. Those live in an internal list rather than in the model frame, so
+a column named `.eta_mu` is an ordinary covariate and gets an ordinary
+coefficient.
+
+**In
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
+a coefficient shadows a natural-scale name.**
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+evaluates expressions in one flat namespace that holds the coefficients
+and the natural-scale summaries together, and the coefficient wins:
+
+``` r
+
+# a covariate literally named sigma
+fit <- frm(bf(y ~ sigma + (1 | g)), family = gaussian(), data = dd)
+hypothesis(fit, "sigma = 0")
+#> hypothesis() reads 'sigma' as the coefficient of the model term of
+#> that name, not the residual standard deviation; that quantity is
+#> available as '.sigma'.
+```
+
+The message names both meanings and fires once per call. The shadowed
+quantity keeps a name of its own: prefix it with a dot. The same holds
+for a coefficient that spells out `sd_<group>__<term>`, `cor_...`, or an
+autocorrelation name such as `ar1`; `.sd_g__Intercept` and `.ar1` then
+reach the natural-scale value. The dot spelling exists only where a
+collision does, and
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+lists both names in that case.
+
 ## What reaches the output
 
 ### Preserved

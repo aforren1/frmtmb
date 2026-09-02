@@ -1595,11 +1595,18 @@ hyp_shadow_note <- function(shadow) {
   new <- setdiff(names(shadow), hyp_shadow_state$seen)
   if (!length(new)) return(invisible(NULL))
   hyp_shadow_state$seen <- c(hyp_shadow_state$seen, new)
-  message("hypothesis() reads ",
-          paste0("'", new, "' as the coefficient of the model term of ",
-                 "that name, not ", unlist(shadow[new]), "; that ",
-                 "quantity is available as '.", new, "'",
-                 collapse = ", and "), ".")
+  parts <- vapply(new, function(nm) {
+    sh <- shadow[[nm]]
+    tail <- if (isTRUE(sh$dot)) {
+      paste0("; that quantity is available as '.", nm, "'")
+    } else {
+      paste0("; '.", nm, "' is a coefficient too, so read the shadowed ",
+             "quantity from summary() or VarCorr() instead")
+    }
+    paste0("'", nm, "' as the coefficient of the model term of that ",
+           "name, not ", sh$meaning, tail)
+  }, character(1))
+  message("hypothesis() reads ", paste0(parts, collapse = ", and "), ".")
 }
 
 #' Named list the hypothesis expressions are evaluated in: fixed
@@ -1641,8 +1648,13 @@ hyp_env_vals <- function(fit, vals, comp) {
     }
     if (!nm %in% coef_names) return(invisible(NULL))
     dn <- paste0(".", nm)
-    if (is.null(env[[dn]])) env[[dn]] <<- val
-    if (is.null(shadow[[nm]])) shadow[[nm]] <<- meaning
+    # the dot slot itself can be taken by a coefficient literally named
+    # `.sigma`; the note must then not claim the quantity is reachable
+    filed <- !dn %in% coef_names
+    if (filed && is.null(env[[dn]])) env[[dn]] <<- val
+    if (is.null(shadow[[nm]])) {
+      shadow[[nm]] <<- list(meaning = meaning, dot = filed)
+    }
     invisible(NULL)
   }
 

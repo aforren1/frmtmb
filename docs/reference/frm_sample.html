@@ -17,7 +17,7 @@ formula)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.37.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -135,7 +135,11 @@ specification leaves alone (see Default priors), and
 outer parameters (brms <code>lb</code>/<code>ub</code>), applied on the internal scale
 through Stan's constrained transforms. Chain starting values are
 clamped strictly inside the bounds; a bound that excludes the ML
-mode itself warns, because the chains then no longer start there.</p></dd>
+mode itself warns, because the chains then no longer start there.
+Names as in <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> rows, with parentheses optional; a
+nonlinear parameter declared intercept-only (<code>la ~ 1</code>) may be named
+bare, <code>lower = c(la = 0)</code> for <code>la_(Intercept)</code>. One that carries
+several coefficients is refused rather than resolved to one.</p></dd>
 
 
 <dt id="arg-init">init<a class="anchor" aria-label="anchor" href="#arg-init"></a></dt>

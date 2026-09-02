@@ -5,6 +5,9 @@ Number of levels per random-effect grouping factor
 ## Usage
 
 ``` r
+# S3 method for class 'frmtmb_draws'
+ngrps(object, ...)
+
 ngrps(object, ...)
 
 # S3 method for class 'frmtmb_fit'

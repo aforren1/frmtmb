@@ -144,9 +144,11 @@ list(mode))`:
 | at the mode | 200 draws | 0 | 23.6 |
 | over-dispersed, `sd = 1.5` | 200 draws | 0 | 25.8 |
 
-Both chains reach the same posterior mean to three digits, and the run
-log shows deSolve `Returning early` warnings during warmup, so the
-sampler is passing over failed solves rather than avoiding them.
+Both chains reach the same posterior mean to two digits (the smallest
+components agree less tightly), and the short-run log
+(`logs-01-g1-patched.log`; the long run defers its R warnings) shows
+deSolve `Returning early` warnings during warmup, so the sampler is
+passing over failed solves rather than avoiding them.
 
 `repro/03-infparm.R` on the patched build: every one of the nine
 parameter settings above returns non-finite rather than raising.
@@ -327,8 +329,20 @@ with `adams` succeeding at every size, because its work array is linear
 in `neq`. The R-level warning that accompanies the failure is `NAs
 introduced by coercion to integer range`.
 
-So the ceiling has two parts. The overflow is a **deSolve** defect and
-should be filed there. The reason RTMBode reaches those sizes at all is
+So the ceiling has two parts. The overflow itself is the expected face
+of deSolve's 32-bit Fortran work-array interface, not a defect: `lrw`
+is an `INTEGER` on the Fortran side, so the limit is structural. What
+is worth raising with deSolve is the failure mode (the R-side
+arithmetic overflows silently and the user gets a nonsense allocator
+message instead of a validation error). The quadratic workspace is
+also avoidable: it comes from the full-Jacobian default, and deSolve
+already exposes the ways around it, a banded `jactype` where the
+coupling structure permits and `lsodes` with a sparse Jacobian. The
+augmented sensitivity system is a natural fit for the sparse route:
+its Jacobian is block-structured (copies of the nstate x nstate state
+Jacobian on the diagonal, coupling only back to the state block), so
+`lsodes` can discover a Jacobian that is almost empty where `lsoda`
+allocates `neq^2`. The reason RTMBode reaches those sizes at all is
 the cubic growth of the augmented system, which is by design and only
 needs to be said out loud.
 
@@ -514,11 +528,18 @@ issued and the gradient is still correct.
 > `method = "adams"`). It warns rather than stops because an error at
 > that point is swallowed by the Laplace machinery and reappears as the
 > same unexplained `NaN`.
+>
+> A third route may be worth more than the warning: the augmented
+> system's Jacobian is block-structured (the state Jacobian repeated on
+> the diagonal, coupling only back to the state block), so passing the
+> solve to `lsodes` with a sparse Jacobian, or a banded `jactype` under
+> a favorable state ordering, would remove the `neq^2` workspace
+> entirely rather than warn about it. `ode()` could expose `method` and
+> `jactype`/`sparsetype` pass-through for the augmented solve.
 
-### 5.4 Issue to file against deSolve, not RTMBode
+### 5.4 Issue to file against deSolve, not RTMBode (a message request, not a bug report)
 
-> **Title**: `lsoda`: `lrw` is computed in integer arithmetic and
-> overflows above `neq = 46337`
+> **Title**: `lsoda`: validate `lrw` before it overflows integer range
 >
 > ```r
 > deSolve::ode(rep(1, 46000), c(0, 1), function(t, y, p) list(-y), NULL)  # ok
@@ -527,11 +548,16 @@ issued and the gradient is still correct.
 > # Error: cannot allocate memory block of size 134217728 Tb
 > ```
 >
-> `lrw = 22 + neq * max(16, neq + 9)` exceeds `.Machine$integer.max` at
-> `neq = 46337`. Computing it as a double, and refusing with a clear
-> message when it cannot be allocated, would turn a nonsense allocator
-> message into an actionable one. `adams` is unaffected because its work
-> array is linear in `neq`.
+> The limit itself is understood to be structural: `lrw` is a Fortran
+> `INTEGER`, so a full-Jacobian workspace past `2^31 - 1` doubles is
+> out of reach by design, and the intended routes for systems this
+> large are a banded `jactype` or `lsodes` with a sparse Jacobian.
+> The request is only about the failure mode: `lrw = 22 + neq *
+> max(16, neq + 9)` is computed in R integer arithmetic and overflows
+> silently at `neq = 46337`, after which the allocator prints a
+> nonsense size. Computing it as a double and refusing with a message
+> that names the limit and points at the banded and sparse options
+> would turn the dead end into an actionable one.
 
 ---
 
@@ -568,7 +594,8 @@ R CMD INSTALL --no-multiarch --library=lib RTMB/RTMBode
 
 Then pass `dev/upstream/lib` as the library argument to any script.
 
-`R CMD check` on the patched package is clean: examples pass, and the two
-warnings and three notes it reports are all present on the stock package
-(build artifacts in `src/`, a period in the `Title` field, `:::` calls
-into RTMB, and the `local()` bindings in `ODEadjoint`).
+`R CMD check` on the patched package is clean: examples pass. The two
+warnings it reports are artifacts of the in-tree build that preceded the
+check (RTMBode.dll and odesolve.o left in `src/`), and the three notes
+(a period in the `Title` field, `:::` calls into RTMB, the `local()`
+bindings in `ODEadjoint`) concern code the patches do not touch.

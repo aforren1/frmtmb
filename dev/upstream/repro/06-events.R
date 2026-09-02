@@ -94,7 +94,9 @@ r <- tryCatch({
 }, error = function(e) conditionMessage(e))
 cat(if (is.numeric(r)) paste("ACCEPTED (value", r, ")") else paste("REFUSED:", gsub("\\s+", " ", r)), "\n")
 
-## An event function cannot be validated, so it is refused too.
+## An event function cannot be validated against the sensitivity block,
+## so the patched build accepts it with a warning that the gradient is
+## the user's responsibility.
 cat("\n== events$func ==\n")
 r <- tryCatch({
     f <- function(pl) {

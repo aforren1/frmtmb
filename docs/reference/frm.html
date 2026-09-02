@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.37.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -136,7 +136,11 @@ silence it.</p></dd>
 <dd><p>Optional named numeric vectors of hard box
 constraints on outer parameters (brms <code>lb</code>/<code>ub</code>), on the internal
 scale, e.g. <code>lower = c(b = 0)</code> for a nonlinear rate parameter.
-Names as in <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> rows.</p></dd>
+Names as in <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> rows, with parentheses optional; a
+nonlinear parameter declared intercept-only (<code>b ~ 1</code>) may be named
+bare, as in that example, which resolves to <code>b_(Intercept)</code>. One
+that carries several coefficients is refused rather than resolved
+to one of them.</p></dd>
 
 
 <dt id="arg-priors">priors<a class="anchor" aria-label="anchor" href="#arg-priors"></a></dt>

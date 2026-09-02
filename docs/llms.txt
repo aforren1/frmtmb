@@ -440,7 +440,66 @@ and `NEWS.md` for the changelog.
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
   : Expected-value and predictive draws from sampled parameters
 - [`as_draws()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  [`as.array(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  [`as_draws_matrix()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  [`as_draws_array()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  [`as_draws_df()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  [`as_draws_list()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  [`as_draws_rvars()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  [`as.mcmc()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
   : Convert draws to a posterior draws object
+- [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
+  : Pointwise log-likelihood of posterior draws
+- [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md)
+  [`waic()`](https://aforren1.github.io/frmtmb/reference/loo.md)
+  [`loo_compare()`](https://aforren1.github.io/frmtmb/reference/loo.md)
+  [`psis()`](https://aforren1.github.io/frmtmb/reference/loo.md)
+  [`LOO()`](https://aforren1.github.io/frmtmb/reference/loo.md)
+  [`WAIC()`](https://aforren1.github.io/frmtmb/reference/loo.md) :
+  Approximate leave-one-out cross-validation
+- [`bayes_R2()`](https://aforren1.github.io/frmtmb/reference/bayes_R2.md)
+  : Bayesian R-squared
+- [`posterior_summary()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
+  [`posterior_interval()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
+  [`predictive_interval()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
+  [`predictive_error()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
+  : Summaries and intervals of draws
+- [`pp_mixture()`](https://aforren1.github.io/frmtmb/reference/pp_mixture.md)
+  : Posterior mixture-component probabilities
+- [`ndraws()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
+  [`nchains()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
+  [`niterations()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
+  [`nvariables()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
+  : Size of a draws object
+- [`nobs(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-structure.md)
+  [`formula(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-structure.md)
+  [`family(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-structure.md)
+  [`getCall(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-structure.md)
+  [`coef(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-structure.md)
+  : Model structure behind a set of draws
+- [`mcmc_plot()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
+  [`pairs(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
+  [`nuts_params()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
+  [`log_posterior()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
+  [`rhat()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
+  [`neff_ratio()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
+  : Sampler diagnostics and MCMC plots
+- [`loo_moment_match()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
+  [`loo_subsample()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
+  [`reloo()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
+  [`kfold()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
+  [`bridge_sampler()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
+  [`bayes_factor()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
+  [`post_prob()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
+  : Refusals for the refit-based and marginal-likelihood brmsfit methods
+- [`stancode()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
+  [`standata()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
+  [`expose_functions()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
+  [`restructure()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
+  [`posterior_samples()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
+  [`nsamples()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
+  [`parnames()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
+  : Methods a ported brms script may call that frmtmb does not have
 - [`getME(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/getME.frmtmb_fit.md)
   : Extract components of a fit, lme4 style
 - [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
@@ -450,6 +509,8 @@ and `NEWS.md` for the changelog.
   [`dfbeta(`*`<frmtmb_influence>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
   [`dfbetas(`*`<frmtmb_influence>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
   : Influence measures by case deletion
+- [`plot(`*`<frmtmb_influence>`*`)`](https://aforren1.github.io/frmtmb/reference/plot.frmtmb_influence.md)
+  : Plot case-deletion influence
 - [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
   : Set up priors brms-style
 - [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)

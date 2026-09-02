@@ -41,7 +41,7 @@ likelihood-ratio tests, AIC).
   profile intervals, [`anova()`](https://rdrr.io/r/stats/anova.html)
   gives likelihood-ratio tests, and
   [`AIC()`](https://rdrr.io/r/stats/AIC.html)/[`BIC()`](https://rdrr.io/r/stats/AIC.html)
-  replace `loo()`.
+  replace [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md).
 - [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
   becomes [`simulate()`](https://rdrr.io/r/stats/simulate.html);
   [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)

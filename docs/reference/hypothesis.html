@@ -15,7 +15,7 @@ brms's directional &quot;lhs &amp;gt; rhs&quot; / &quot;lhs &amp;lt; rhs&quot;."
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.37.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -234,6 +234,20 @@ smoothing parameter, lengthscales, a mixing proportion, a precision
 and an inverse range - so there is no <code>sd_&lt;group&gt;__&lt;term&gt;</code> to name.
 Read those off <code><a href="confint_varcorr.html">confint_varcorr()</a></code>, which reports each under its own
 label (<code>sd(gp)</code>, <code>range(gp)</code>, <code>sd(car)</code>, ...).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="when-a-coefficient-shadows-a-natural-scale-name">When a coefficient shadows a natural-scale name<a class="anchor" aria-label="anchor" href="#when-a-coefficient-shadows-a-natural-scale-name"></a></h2>
+
+
+<p>Model terms and natural-scale summaries share one namespace here, and
+the coefficient wins: a covariate literally named <code>sigma</code> makes
+<code>"sigma = 0"</code> a test on ITS coefficient, not on the residual standard
+deviation. The same holds for a coefficient that spells out
+<code>sd_&lt;group&gt;__&lt;term&gt;</code>, <code>cor_...</code> or an autocorrelation name such as
+<code>ar1</code>. The shadowed quantity keeps a name: prefix it with a dot,
+<code>.sigma</code>, <code>.sd_g__Intercept</code>, <code>.ar1</code>. The dot spelling exists only
+where a collision does, and <code>hypothesis()</code> says so once per call when
+one is in play. <code><a href="variables.html">variables()</a></code> lists both names in that case.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

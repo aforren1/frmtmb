@@ -64,10 +64,11 @@ one response's contribution alone.
 A model whose smallest independent unit is a group has no
 per-observation column to leave out, and this refuses rather than
 inventing one: R-side residual correlation (\link{frmtmb-autocor}), a
-\code{\link[=hmm]{hmm()}} sequence, and a group-level latent class (\code{\link[=lca]{lca()}},
-\code{mixture(groups = )}). In-model imputation (\code{mi()}, \code{me()}) is
-refused for the same kind of reason - a latent value is a parameter,
-not an observation. Use \code{AIC()} on the maximum-likelihood fits or
+\code{\link[=hmm]{hmm()}} sequence, and a group-level mixture (\code{mixture(groups = )}).
+An \code{\link[=lca]{lca()}} subject is one row, so its column is well defined and is
+not refused. In-model imputation (\code{mi()}, \code{me()}) is refused for the
+same kind of reason: a latent value is a parameter, not an
+observation. Use \code{AIC()} on the maximum-likelihood fits or
 \code{\link[=frm_bootstrap]{frm_bootstrap()}} for those.
 }
 

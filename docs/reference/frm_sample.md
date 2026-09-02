@@ -80,7 +80,12 @@ frm_sample(
   (brms `lb`/`ub`), applied on the internal scale through Stan's
   constrained transforms. Chain starting values are clamped strictly
   inside the bounds; a bound that excludes the ML mode itself warns,
-  because the chains then no longer start there.
+  because the chains then no longer start there. Names as in
+  [`confint()`](https://rdrr.io/r/stats/confint.html) rows, with
+  parentheses optional; a nonlinear parameter declared intercept-only
+  (`la ~ 1`) may be named bare, `lower = c(la = 0)` for
+  `la_(Intercept)`. One that carries several coefficients is refused
+  rather than resolved to one.
 
 - init:
 

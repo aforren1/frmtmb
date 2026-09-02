@@ -249,7 +249,7 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' `draws x observations` matrix.
 #'
 #' `posterior_predict()` is unaffected for an ordinal or categorical
-#' family - it draws one category per observation - and so is
+#' family (it draws one category per observation), and so is
 #' `posterior_linpred()`, which is a statement about one distributional
 #' parameter and stays an `n`-column matrix of the latent predictor.
 #' What does take the array shape in `posterior_predict()` is a
@@ -260,7 +260,7 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' @section Structured draws:
 #' `posterior_predict()` uses the same simulator [simulate()] does,
 #' including the structured families ([hmm()], `mixture(groups = )`,
-#' [mixture_mvn()]) and residual correlation terms - see the Structured
+#' [mixture_mvn()]) and residual correlation terms; see the Structured
 #' draws section of [simulate.frmtmb_fit()]. Those draws index the rows
 #' the model was fitted on, so `newdata` is refused for them.
 #'
@@ -440,7 +440,7 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
     if (is.null(out)) {
       # a matrix-valued response (multinomial counts, mixture_mvn draws,
       # lca item codes) gives a ROW per observation, so the draws stack
-      # into a draws x observations x columns array - the shape
+      # into a draws x observations x columns array, the shape
       # posterior_epred() already uses for a category distribution
       arr <- is.matrix(ys)
       out <- if (arr) {
@@ -962,7 +962,7 @@ draws_summarize_coef <- function(per) {
 #'
 #' The parameter names bayesplot sees are the frmtmb draws-side names
 #' (no parentheses), not Stan's `par[1]`, because `as.array()` relabels
-#' them - except in `nuts_params()`, `rhat()` and `neff_ratio()`, which
+#' them, except in `nuts_params()`, `rhat()` and `neff_ratio()`, which
 #' read the `stanfit` directly and therefore show Stan's own names.
 #'
 #' @param object,x A `frmtmb_draws` from [frm_sample()].
@@ -1187,7 +1187,7 @@ stancode.frmtmb_draws <- function(object, ...) {
   stop("stancode() has no meaning for frmtmb: there is no Stan ",
        "program. The model is an R closure built by build_objective() ",
        "from the assembled frame and differentiated by RTMB, and the ",
-       "closure IS the source - print `ds$fit$obj$fn` for the ",
+       "closure IS the source: print `ds$fit$obj$fn` for the ",
        "evaluator and `ds$fit$frame` for everything baked into it",
        call. = FALSE)
 }
@@ -1201,8 +1201,8 @@ standata <- function(object, ...) UseMethod("standata")
 standata.frmtmb_draws <- function(object, ...) {
   stop("standata() has no meaning for frmtmb: nothing is exported to a ",
        "Stan data list. The assembled frame `ds$fit$frame` holds the ",
-       "same content - the response, the design matrices, the sparse Z, ",
-       "the addition terms - and model.matrix(), getME() and ",
+       "same content (the response, the design matrices, the sparse Z, ",
+       "the addition terms), and model.matrix(), getME() and ",
        "model.frame() read the pieces of it individually",
        call. = FALSE)
 }
@@ -1216,7 +1216,7 @@ expose_functions <- function(x, ...) UseMethod("expose_functions")
 expose_functions.frmtmb_draws <- function(x, ...) {
   stop("expose_functions() has nothing to expose: brms compiles Stan ",
        "functions and this makes them callable from R, while a frmtmb ",
-       "custom family is already plain R - the lpdf you passed to ",
+       "custom family is already plain R: the lpdf you passed to ",
        "custom_family() is an R function you can call directly",
        call. = FALSE)
 }

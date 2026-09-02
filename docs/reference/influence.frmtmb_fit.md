@@ -11,6 +11,8 @@ fit itself runs
 [`dfbetas()`](https://rdrr.io/r/stats/influence.measures.html) give the
 per-unit coefficient changes, raw and scaled by the coefficient standard
 errors (the lme4 influence surface).
+[`plot.frmtmb_influence()`](https://aforren1.github.io/frmtmb/reference/plot.frmtmb_influence.md)
+draws all three.
 
 ## Usage
 

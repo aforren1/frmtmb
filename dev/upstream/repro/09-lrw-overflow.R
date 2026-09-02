@@ -3,7 +3,7 @@
 ## deSolve sizes lsoda's real work array as
 ##   lrw = 22 + neq * max(16, neq + 9)
 ## in R *integer* arithmetic.  That exceeds .Machine$integer.max at
-##   neq = 46341  (46341 * 46350 = 2.148e9 > 2^31 - 1)
+##   neq = 46337  (22 + 46337 * 46346 = 2,147,534,624 > 2^31 - 1)
 ## after which the length reaching the allocator is NA, and the call dies with
 ## a nonsense message ("cannot allocate memory block of size 134217728 Tb").
 ## Below the overflow the call succeeds but still allocates 8*neq^2 bytes.

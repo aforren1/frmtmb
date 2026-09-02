@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.37.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -422,10 +422,80 @@
 
         <dt>
 
-          <code><a href="as_draws.html">as_draws()</a></code>
+          <code><a href="as_draws.html">as_draws()</a></code> <code><a href="as_draws.html">as.array(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="as_draws.html">as_draws_matrix()</a></code> <code><a href="as_draws.html">as_draws_array()</a></code> <code><a href="as_draws.html">as_draws_df()</a></code> <code><a href="as_draws.html">as_draws_list()</a></code> <code><a href="as_draws.html">as_draws_rvars()</a></code> <code><a href="as_draws.html">as.mcmc()</a></code>
 
         </dt>
         <dd>Convert draws to a posterior draws object</dd>
+
+        <dt>
+
+          <code><a href="log_lik.html">log_lik()</a></code>
+
+        </dt>
+        <dd>Pointwise log-likelihood of posterior draws</dd>
+
+        <dt>
+
+          <code><a href="loo.html">loo()</a></code> <code><a href="loo.html">waic()</a></code> <code><a href="loo.html">loo_compare()</a></code> <code><a href="loo.html">psis()</a></code> <code><a href="loo.html">LOO()</a></code> <code><a href="loo.html">WAIC()</a></code>
+
+        </dt>
+        <dd>Approximate leave-one-out cross-validation</dd>
+
+        <dt>
+
+          <code><a href="bayes_R2.html">bayes_R2()</a></code>
+
+        </dt>
+        <dd>Bayesian R-squared</dd>
+
+        <dt>
+
+          <code><a href="posterior_summary.html">posterior_summary()</a></code> <code><a href="posterior_summary.html">posterior_interval()</a></code> <code><a href="posterior_summary.html">predictive_interval()</a></code> <code><a href="posterior_summary.html">predictive_error()</a></code>
+
+        </dt>
+        <dd>Summaries and intervals of draws</dd>
+
+        <dt>
+
+          <code><a href="pp_mixture.html">pp_mixture()</a></code>
+
+        </dt>
+        <dd>Posterior mixture-component probabilities</dd>
+
+        <dt>
+
+          <code><a href="draws-dimensions.html">ndraws()</a></code> <code><a href="draws-dimensions.html">nchains()</a></code> <code><a href="draws-dimensions.html">niterations()</a></code> <code><a href="draws-dimensions.html">nvariables()</a></code>
+
+        </dt>
+        <dd>Size of a draws object</dd>
+
+        <dt>
+
+          <code><a href="draws-structure.html">nobs(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="draws-structure.html">formula(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="draws-structure.html">family(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="draws-structure.html">getCall(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="draws-structure.html">coef(<i>&lt;frmtmb_draws&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Model structure behind a set of draws</dd>
+
+        <dt>
+
+          <code><a href="draws-diagnostics.html">mcmc_plot()</a></code> <code><a href="draws-diagnostics.html">pairs(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="draws-diagnostics.html">nuts_params()</a></code> <code><a href="draws-diagnostics.html">log_posterior()</a></code> <code><a href="draws-diagnostics.html">rhat()</a></code> <code><a href="draws-diagnostics.html">neff_ratio()</a></code>
+
+        </dt>
+        <dd>Sampler diagnostics and MCMC plots</dd>
+
+        <dt>
+
+          <code><a href="frmtmb-loo-refusals.html">loo_moment_match()</a></code> <code><a href="frmtmb-loo-refusals.html">loo_subsample()</a></code> <code><a href="frmtmb-loo-refusals.html">reloo()</a></code> <code><a href="frmtmb-loo-refusals.html">kfold()</a></code> <code><a href="frmtmb-loo-refusals.html">bridge_sampler()</a></code> <code><a href="frmtmb-loo-refusals.html">bayes_factor()</a></code> <code><a href="frmtmb-loo-refusals.html">post_prob()</a></code>
+
+        </dt>
+        <dd>Refusals for the refit-based and marginal-likelihood brmsfit methods</dd>
+
+        <dt>
+
+          <code><a href="frmtmb-draws-refusals.html">stancode()</a></code> <code><a href="frmtmb-draws-refusals.html">standata()</a></code> <code><a href="frmtmb-draws-refusals.html">expose_functions()</a></code> <code><a href="frmtmb-draws-refusals.html">restructure()</a></code> <code><a href="frmtmb-draws-refusals.html">posterior_samples()</a></code> <code><a href="frmtmb-draws-refusals.html">nsamples()</a></code> <code><a href="frmtmb-draws-refusals.html">parnames()</a></code>
+
+        </dt>
+        <dd>Methods a ported brms script may call that frmtmb does not have</dd>
 
         <dt>
 
@@ -447,6 +517,13 @@
 
         </dt>
         <dd>Influence measures by case deletion</dd>
+
+        <dt>
+
+          <code><a href="plot.frmtmb_influence.html">plot(<i>&lt;frmtmb_influence&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Plot case-deletion influence</dd>
 
         <dt>
 

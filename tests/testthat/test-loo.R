@@ -355,14 +355,14 @@ test_that("log_lik() refuses likelihoods with no per-observation column", {
   expect_error(log_lik(fake_draws(ua)), "residual correlation")
   expect_error(loo(fake_draws(ua)), "residual correlation")
 
-  # a group-level latent class: the smallest unit is the group
+  # a group-level mixture: the smallest unit is the group
   set.seed(5)
   dm <- data.frame(id = factor(rep(1:20, each = 4)))
   dm$y <- stats::rnorm(80, rep(c(0, 4), each = 40))
   um <- frm(bf(y ~ 1),
             family = mixture(gaussian(), gaussian(), groups = ~id),
             data = dm, dry_run = "objective")
-  expect_error(log_lik(fake_draws(um)), "group-level latent class")
+  expect_error(log_lik(fake_draws(um)), "group-level mixture")
 })
 
 test_that("log_lik() refuses in-model imputation and unknown responses", {

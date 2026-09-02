@@ -10,6 +10,39 @@ as_draws(x, ...)
 # S3 method for class 'frmtmb_draws'
 as_draws(x, ...)
 
+# S3 method for class 'frmtmb_draws'
+as.array(x, ...)
+
+as_draws_matrix(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+as_draws_matrix(x, ...)
+
+as_draws_array(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+as_draws_array(x, ...)
+
+as_draws_df(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+as_draws_df(x, ...)
+
+as_draws_list(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+as_draws_list(x, ...)
+
+as_draws_rvars(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+as_draws_rvars(x, ...)
+
+as.mcmc(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+as.mcmc(x, combine_chains = FALSE, ...)
+
 # S3 method for class 'frmtmb_multiple'
 as_draws(x, ...)
 ```
@@ -23,6 +56,12 @@ as_draws(x, ...)
 - ...:
 
   Unused.
+
+- combine_chains:
+
+  If `TRUE`, one `mcmc` object over the pooled draws; otherwise an
+  `mcmc.list` with one component per chain, which is what coda's
+  diagnostics (`gelman.diag()`) need.
 
 ## Value
 

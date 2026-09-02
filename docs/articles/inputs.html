@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.36.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.37.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -686,6 +686,67 @@ numeric codes <code>0</code>, <code>-1</code>, <code>1</code>,
 <code>2</code> mean the same thing.</p>
 </div>
 <div class="section level2">
+<h2 id="naming-collisions">Naming collisions<a class="anchor" aria-label="anchor" href="#naming-collisions"></a>
+</h2>
+<p>Four vocabularies meet in a model: the columns of <code>data</code>,
+the distributional parameters of the family, the nonlinear parameters a
+formula declares, and the display names that <code><a href="../reference/hypothesis.html">hypothesis()</a></code>,
+<code><a href="../reference/variables.html">variables()</a></code> and <code><a href="../reference/set_prior.html">set_prior()</a></code> use. They
+namespace apart by construction, so a column may carry any name at all.
+The rules below say what happens where two of them do meet.</p>
+<p><strong>Columns and coefficients never collide.</strong> A
+coefficient is stored under its dpar prefix, so a covariate named
+<code>sigma</code> in the mean is <code>sigma</code> in
+<code>fixef(fit)$mu</code> while the residual standard deviation is
+<code>(Intercept)</code> in <code>fixef(fit)$sigma</code>. Both fit, and
+neither reads the other.</p>
+<p><strong>A nonlinear parameter may not also be a column.</strong>
+<code>bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE)</code> on data
+that has a column <code>a</code> is refused: the body would use the
+parameter and ignore the column silently. Rename one of them. A declared
+nonlinear parameter that no body uses is refused too, and so is a dpar
+formula for a parameter the family does not have
+(<code>bf(y ~ x, shape ~ 1)</code> on <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code>, which
+names <code>sigma</code> as the one available).</p>
+<p><strong>In a nonlinear body, a column wins over a distributional
+parameter.</strong> A name in an <code><a href="../reference/nlf.html">nlf()</a></code> body resolves in
+this order: a nonlinear parameter of the model, then a column of
+<code>data</code>, then another distributional parameter of the same
+response (read per row, after its link inverse). The dpar reference is
+an extension of brms, which has only the first two; putting the column
+ahead of it is what keeps every body brms accepts meaning here what it
+means there. So <code>nlf(sigma ~ ls + th * log(abs(mu)))</code> is a
+variance function of the model’s own mean, unless <code>data</code>
+carries a column <code>mu</code>, in which case it is a variance
+function of that column.</p>
+<p><strong>The internal <code>.eta_&lt;dpar&gt;</code> names are
+unreachable from <code>data</code>.</strong> The objective keeps each
+linear predictor beside its parameter under a reserved
+<code>.eta_</code> name, for the families that need the untransformed
+scale. Those live in an internal list rather than in the model frame, so
+a column named <code>.eta_mu</code> is an ordinary covariate and gets an
+ordinary coefficient.</p>
+<p><strong>In <code><a href="../reference/hypothesis.html">hypothesis()</a></code>, a coefficient shadows a
+natural-scale name.</strong> <code><a href="../reference/hypothesis.html">hypothesis()</a></code> evaluates
+expressions in one flat namespace that holds the coefficients and the
+natural-scale summaries together, and the coefficient wins:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># a covariate literally named sigma</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">sigma</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sigma = 0"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; hypothesis() reads 'sigma' as the coefficient of the model term of</span></span>
+<span><span class="co">#&gt; that name, not the residual standard deviation; that quantity is</span></span>
+<span><span class="co">#&gt; available as '.sigma'.</span></span></code></pre></div>
+<p>The message names both meanings and fires once per call. The shadowed
+quantity keeps a name of its own: prefix it with a dot. The same holds
+for a coefficient that spells out
+<code>sd_&lt;group&gt;__&lt;term&gt;</code>, <code>cor_...</code>, or an
+autocorrelation name such as <code>ar1</code>;
+<code>.sd_g__Intercept</code> and <code>.ar1</code> then reach the
+natural-scale value. The dot spelling exists only where a collision
+does, and <code><a href="../reference/variables.html">variables()</a></code> lists both names in that case.</p>
+</div>
+<div class="section level2">
 <h2 id="what-reaches-the-output">What reaches the output<a class="anchor" aria-label="anchor" href="#what-reaches-the-output"></a>
 </h2>
 <div class="section level3">
@@ -718,7 +779,7 @@ fitted centering, scaling and knots.</li>
 is padded back to the input length with <code>NA</code> in the dropped
 positions.</li>
 </ul>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "obs1" "obs2" "obs3"</span></span>
@@ -984,14 +1045,14 @@ them.</p>
 </tbody>
 </table>
 <p>The comparison table is one command:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="ex">Rscript</span> dev/bench-op-context.R</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="ex">Rscript</span> dev/bench-op-context.R</span></code></pre></div>
 <p>Run <code>Rscript dev/bench-setup.R</code> once first, and edit the
 scratch library path at the top of each script to a directory you can
 write to. Run the timing scripts one at a time; the numbers move by
 about 15 percent with another R process on the machine.</p>
 <p>The headline frmtmb against lme4 comparison does not need the
 harness. This one line reproduces it from an installed frmtmb:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'library(frmtmb); data(InstEval, package = "lme4"); print(system.time(frm(bf(y ~ service + (1 | s) + (1 | d)) + gaussian(), data = InstEval))); print(system.time(lme4::lmer(y ~ service + (1 | s) + (1 | d), data = InstEval, REML = FALSE)))'</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'library(frmtmb); data(InstEval, package = "lme4"); print(system.time(frm(bf(y ~ service + (1 | s) + (1 | d)) + gaussian(), data = InstEval))); print(system.time(lme4::lmer(y ~ service + (1 | s) + (1 | d), data = InstEval, REML = FALSE)))'</span></span></code></pre></div>
 <p>The findings behind these numbers, including why parallelizing the
 outer optimizer does not help and why an RTMB tape cannot be shipped to
 a worker process, are written up in <code>dev/benchmarks.md</code>.</p>

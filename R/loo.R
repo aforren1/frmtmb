@@ -43,7 +43,7 @@ draws_require_b <- function(x, what) {
 #' Refuse the likelihoods that do not factor into one term per row.
 #'
 #' The columns of a `log_lik()` matrix are observations, and every
-#' consumer of it - `loo()`, `waic()`, PSIS - leaves ONE of them out. A
+#' consumer of it (`loo()`, `waic()`, PSIS) leaves ONE of them out. A
 #' likelihood whose smallest independent unit is a group (an R-side
 #' autocorrelation block, a hidden-Markov sequence, a group-level latent
 #' class) has no such column: dropping one row of a sequence is not a
@@ -63,7 +63,7 @@ draws_loglik_factors <- function(fit, what) {
     } else if (!is.null((frame[["hmm_g"]] %||% list())[[r]])) {
       "a hidden-Markov sequence"
     } else if (!is.null((frame[["mix_g"]] %||% list())[[r]])) {
-      "a group-level latent class (mixture(groups =) or lca())"
+      "a group-level mixture (mixture(groups = ))"
     } else {
       next
     }
@@ -164,10 +164,11 @@ draws_row_loglik <- function(fit, resp) {
 #' A model whose smallest independent unit is a group has no
 #' per-observation column to leave out, and this refuses rather than
 #' inventing one: R-side residual correlation ([frmtmb-autocor]), a
-#' [hmm()] sequence, and a group-level latent class ([lca()],
-#' `mixture(groups = )`). In-model imputation (`mi()`, `me()`) is
-#' refused for the same kind of reason - a latent value is a parameter,
-#' not an observation. Use `AIC()` on the maximum-likelihood fits or
+#' [hmm()] sequence, and a group-level mixture (`mixture(groups = )`).
+#' An [lca()] subject is one row, so its column is well defined and is
+#' not refused. In-model imputation (`mi()`, `me()`) is refused for the
+#' same kind of reason: a latent value is a parameter, not an
+#' observation. Use `AIC()` on the maximum-likelihood fits or
 #' [frm_bootstrap()] for those.
 #'
 #' @param object A `frmtmb_draws` from [frm_sample()].
@@ -248,8 +249,8 @@ log_lik.frmtmb_draws <- function(object, ndraws = NULL, resp = NULL,
 #' @section Priors, and what these numbers mean:
 #' These are posterior quantities, and they inherit the standing of the
 #' draws they are computed from. `frm_sample(fit)` samples the
-#' LIKELIHOOD under flat improper priors - that route is a diagnostic
-#' for the Laplace approximation, not a Bayesian analysis - so an elpd
+#' LIKELIHOOD under flat improper priors (that route is a diagnostic
+#' for the Laplace approximation, not a Bayesian analysis), so an elpd
 #' computed from it is likelihood-shaped and unregularized. Expect
 #' Pareto k warnings there for models with many group-level parameters,
 #' because a flat prior leaves those to be identified by the data alone,
@@ -345,8 +346,8 @@ loo_compare <- function(x, ...) UseMethod("loo_compare")
 #' @export
 loo_compare.default <- function(x, ...) {
   # frmtmb's generic would otherwise mask loo's own function for anyone
-  # who attaches both, and `loo_compare(loo(d1), loo(d2))` - the
-  # spelling this help page recommends - would stop at "no applicable
+  # who attaches both, and `loo_compare(loo(d1), loo(d2))`, the
+  # spelling this help page recommends, would stop at "no applicable
   # method", because loo does not export its default method for the
   # search path to find. Reaching for loo's METHOD rather than calling
   # loo::loo_compare() is deliberate: dispatch from inside this
@@ -601,7 +602,7 @@ reloo.frmtmb_draws <- function(x, ...) {
        "frm_sample() has no stored program to re-run on modified ",
        "data. Read loo()'s Pareto k table and treat a bad k as the ",
        "diagnostic it is (usually a flat prior on many group-level ",
-       "parameters - see the prior section of ?loo), or compare the ",
+       "parameters; see the prior section of ?loo), or compare the ",
        "maximum-likelihood fits with AIC()", call. = FALSE)
 }
 

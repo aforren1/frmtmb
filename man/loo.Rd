@@ -83,8 +83,8 @@ are defined only to name their replacements.
 
 These are posterior quantities, and they inherit the standing of the
 draws they are computed from. \code{frm_sample(fit)} samples the
-LIKELIHOOD under flat improper priors - that route is a diagnostic
-for the Laplace approximation, not a Bayesian analysis - so an elpd
+LIKELIHOOD under flat improper priors (that route is a diagnostic
+for the Laplace approximation, not a Bayesian analysis), so an elpd
 computed from it is likelihood-shaped and unregularized. Expect
 Pareto k warnings there for models with many group-level parameters,
 because a flat prior leaves those to be identified by the data alone,
