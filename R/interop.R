@@ -697,6 +697,20 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
                                    ...) {
   type <- if (identical(type, "link")) "link" else "response"
   p <- predict(model, newdata = newdata, type = type)
+  if (is.matrix(p)) {
+    # A categorical outcome predicts a DISTRIBUTION per row (an ordinal
+    # family's K category probabilities, a multinomial's D cell means),
+    # so one newdata row is several predictions. marginaleffects keys
+    # those with a `group` column and repeats the rowid; without it the
+    # flattened matrix was handed back as n * K unrelated rows numbered
+    # 1..nK, which silently misaligns every downstream contrast.
+    g <- colnames(p) %||% as.character(seq_len(ncol(p)))
+    return(data.frame(
+      rowid = rep(seq_len(nrow(p)), times = ncol(p)),
+      group = rep(g, each = nrow(p)),
+      estimate = as.numeric(p)
+    ))
+  }
   data.frame(rowid = seq_along(p), estimate = as.numeric(p))
 }
 

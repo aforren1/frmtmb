@@ -92,7 +92,12 @@ only their sum is identified and the split between them is
 arbitrary. The check is skipped when \code{sigma} is not free to absorb
 it - a \code{se()} response or a constant \code{sigma} - which is the
 random-effects meta-analysis, and for discrete families, where an
-observation-level term is the usual overdispersion model.}
+observation-level term is the usual overdispersion model. It is
+also skipped for the known-structure blocks \code{gr(cov = )},
+\code{gr(prec = )} and \code{equalto()}: their level covariance is not
+proportional to the identity, so the block and the residual are
+separately identified. That is the animal model with one
+measurement per individual.}
 
 \item{verbose}{Report fit progress through \code{\link[=message]{message()}}, one terse
 line per stage with its elapsed seconds, so a slow fit shows where

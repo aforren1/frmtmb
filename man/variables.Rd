@@ -29,6 +29,13 @@ summaries (\verb{sd_<group>__<term>}, \verb{cor_<group>__<t1>__<t2>}), and
 sampled fits, \code{variables()} on the \code{\link[=frm_sample]{frm_sample()}} result lists the
 draw columns instead.
 }
+\details{
+\code{gr(cov = )}, \code{gr(prec = )} and \code{equalto()} blocks contribute
+\code{sd_}/\code{cor_} names for their within-level covariance. Smooths,
+\code{gp()}/\code{hsgp()}, \code{car()} and \code{spde()} blocks contribute none: their
+parameters are not standard deviations. See the "Which random-effect
+blocks contribute names" section of \code{\link[=hypothesis]{hypothesis()}}.
+}
 \examples{
 dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
 dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)

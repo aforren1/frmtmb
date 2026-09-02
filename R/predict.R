@@ -575,6 +575,27 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' response. Bounds are re-evaluated on `newdata` the same way `trials()`
 #' and `se()` are: a literal bound carries over unchanged, and a bound
 #' given as a variable must be a column of `newdata` of the right length.
+#' @section Ordinal responses:
+#' `cumulative()`, `sratio()`, `cratio()` and `acat()` have no mean on
+#' the response scale, so `type = "response"` (and its alias
+#' `type = "conditional"`) returns an `n x K` matrix of category
+#' probabilities instead of a vector - the brms `fitted()` convention -
+#' with the response's own factor levels as column names. The rows sum
+#' to one. `cs()` category-specific terms are honored: they enter each
+#' threshold separately and are re-evaluated on `newdata`.
+#'
+#' `type = "link"` (the default) and `dpar = "mu"` still give the latent
+#' linear predictor, which is where the fixed-effect coefficients live
+#' and where `se.fit` is available. `se.fit` on the response scale is
+#' refused: the prediction is a K-vector per row, not one number.
+#' [fitted()] keeps returning the latent predictor for these families.
+#'
+#' `type = "conditional"` is glmmTMB's name for the conditional MEAN, so
+#' it gives the category probabilities here too rather than the linear
+#' predictor: an ordinal response has no mean, and answering a question
+#' about a mean with a latent predictor is the confusion this section
+#' exists to remove. Ask for the predictor by name (`type = "link"`, or
+#' `dpar = "mu"`) when that is what you want.
 #' @param resp For multivariate fits: which response to predict (defaults
 #'   to the first).
 #' @param re.form `NULL` (default) includes random effects; `NA` or `~0`
@@ -620,7 +641,9 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' yes/no. And it covers the parametric fixed-effect block only:
 #' smooth null-space, `gp()`, `mo()` and `mi()` columns are appended
 #' after the rank check and are never dropped.
-#' @return A numeric vector, or a list when `se.fit = TRUE`.
+#' @return A numeric vector, or a list when `se.fit = TRUE`. For an
+#'   ordinal family with `type = "response"`, an `n x K` matrix of
+#'   category probabilities.
 #'
 #' @srrstats {G2.3,G2.3a} `type` is a univariate character parameter and
 #'   is restricted with `match.arg()` to the documented set, so an
@@ -640,7 +663,10 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #'   them; and the stored model frame keeps the input row names.
 #' @srrstats {RE4.9} Modelled values of the response are returned by
 #'   `fitted()`, and by `predict(type = "response")`, which is asserted to
-#'   equal `fitted()` on the training data.
+#'   equal `fitted()` on the training data. The ordinal families are the
+#'   documented exception: a category distribution is not a mean, so
+#'   `predict(type = "response")` returns the `n x K` probability matrix
+#'   there while `fitted()` stays on the latent predictor.
 #' @srrstats {RE4.14} Uncertainty is available away from the observed
 #'   data. `se.fit = TRUE` returns delta-method standard errors that
 #'   include fixed-effect and random-effect uncertainty; unseen grouping
@@ -709,6 +735,22 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     stop("Unknown response: '", resp, "'. Available: ",
          paste(names(object$spec$responses), collapse = ", "),
          call. = FALSE)
+  }
+  # An ordinal response has no mean on the response scale: what
+  # "response" means there is the category distribution, one row of K
+  # probabilities per observation (the brms fitted()/epred convention).
+  # The mu predictor is still reachable as type = "link" or dpar = "mu".
+  if (identical(rspec$family$type, "ordinal") && is.null(dpar) &&
+      type %in% c("response", "conditional")) {
+    if (se.fit) {
+      stop("se.fit is not supported on the response scale for an ",
+           "ordinal family: the prediction is a K-vector of category ",
+           "probabilities per row, not one number, and the thresholds ",
+           "enter every one of them. Use type = \"link\" for the ",
+           "standard error of the latent predictor", call. = FALSE)
+    }
+    return(predict_ordinal(object, rspec, newdata, use_re,
+                           allow_new_levels))
   }
   # glmmTMB type aliases resolve to a dpar plus scale
   if (type %in% c("zprob", "zlink", "disp")) {
@@ -1197,6 +1239,87 @@ ordinal_ncat <- function(fit) {
     return(max(fit$frame$y[[rspec$resp_name]]))
   }
   length(raw) + 1L
+}
+
+#' The `n x (K-1)` matrix of threshold-specific offsets a `cs()` term
+#' contributes, or NULL when the predictor has none. In sample the
+#' column values were kept at frame time; on newdata the term has to be
+#' re-evaluated, which is what `label` carries (it is `"cs"` followed by
+#' the deparsed expression).
+#'
+#' @noRd
+ord_cs_offsets <- function(object, lp, newdata, n, K1) {
+  cst <- lp$cs %||% list()
+  if (!length(cst)) return(NULL)
+  env <- object$spec$responses[[lp$resp]]$formula_env
+  CS <- matrix(0, n, K1)
+  for (ct in cst) {
+    v <- if (is.null(newdata)) {
+      ct$vals
+    } else {
+      ex <- ct$expr %||% str2lang(sub("^cs", "", ct$label))
+      as.numeric(eval(ex, newdata, env))
+    }
+    if (length(v) == 1L) v <- rep(v, n)
+    if (length(v) != n) {
+      stop("cs() term '", ct$label, "' evaluated to ", length(v),
+           " value(s) on ", n, " rows of newdata", call. = FALSE)
+    }
+    CS <- CS + outer(v, object$estimates[[ct$par]])
+  }
+  CS
+}
+
+#' `n x K` category probabilities of an ordinal fit.
+#'
+#' The probabilities come out of the family's OWN log-density, one
+#' category at a time: `P(y = k) = exp(lpdf(k, eta, thresholds))`. The
+#' four ordinal lpdfs are proper pmfs on `1..K`, so this is exact, it
+#' cannot drift away from the likelihood the model was fitted with, and
+#' it needs no second copy of the cumulative / sequential /
+#' adjacent-category algebra (it agrees with the simulators'
+#' `ord_cat_probs()` to machine precision, which the tests assert). A
+#' custom ordinal family gets the same treatment for free.
+#'
+#' @noRd
+predict_ordinal <- function(object, rspec, newdata, use_re,
+                            allow_new_levels) {
+  fam <- rspec$family
+  lp <- object$frame$linpreds[[linpred_key(rspec$resp_name, "mu")]]
+  if (!is.null(lp$nl_body)) {
+    stop("type = \"response\" is not supported for an ordinal family ",
+         "with a nonlinear predictor", call. = FALSE)
+  }
+  ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+  eta <- unname(ed$eta)
+  n <- length(eta)
+  K <- ordinal_ncat(object)
+  dp <- list(mu = eta)
+  cs <- ord_cs_offsets(object, lp, newdata, n, K - 1L)
+  if (!is.null(cs)) dp[[".cs"]] <- cs
+  # the ordinal lpdfs read only `extra` (the thresholds and the cs
+  # coefficients); no addition term enters a category probability
+  extra <- fit_extras(object)
+  P <- matrix(NA_real_, n, K)
+  for (k in seq_len(K)) {
+    P[, k] <- exp(as.numeric(fam$lpdf(rep.int(k, n), dp, list(), extra)))
+  }
+  # analytically the rows already sum to one; the division only removes
+  # the last bit of rounding, and turns an overflowed row into NaN
+  # instead of a silent zero vector
+  P <- P / rowSums(P)
+  colnames(P) <- object$frame$y_levels[[rspec$resp_name]] %||%
+    as.character(seq_len(K))
+  rn <- names(ed$eta)
+  if (is.null(rn) && is.null(newdata)) {
+    rn <- rownames(object$frame$data_frame)
+  }
+  if (!is.null(rn) && length(rn) == n) rownames(P) <- rn
+  # a row that cannot be estimated from the retained design columns has
+  # no category distribution either
+  if (any(ed$nonest)) P[ed$nonest, ] <- NA_real_
+  if (is.null(newdata)) P <- napred(object, P)
+  P
 }
 
 #' OSA integration window and row split for a censored response, or NULL

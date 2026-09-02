@@ -179,6 +179,16 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
 #' right currency both for confint_varcorr's intervals and for Rubin
 #' pooling across imputations in frm_multiple.
 #'
+#' The correlation the Fisher-z transform is clamped at inside the
+#' finite-difference jacobian. A correlation this close to +/-1 is on
+#' the boundary of the parameter space: `atanh` runs away there and the
+#' clamp flattens the jacobian row, so those rows report NA bounds
+#' rather than a zero-width interval at the clamp value. One constant so
+#' the clamp and the boundary test cannot drift apart.
+#'
+#' @noRd
+varcorr_cor_clamp <- 0.9999
+
 #' @noRd
 varcorr_trans_rows <- function(fit) {
   sdr <- sdr_of(fit)
@@ -241,14 +251,19 @@ varcorr_trans_rows <- function(fit) {
       next
     }
     if (bk$covstruct == "equalto") next   # nothing estimated
-    # g(theta): log-sds then atanh-correlations, via the block's vcov
+    # g(theta): log-sds then atanh-correlations, via the block's vcov.
+    # The clamp keeps the CENTRAL DIFFERENCES finite; it must not reach
+    # the reported estimate, which is why est0 below is computed
+    # separately from the covariance itself.
     gfun <- function(tt) {
       V <- covstruct_registry[[bk$covstruct]]$vcov(tt, bk)
       sds <- sqrt(diag(V))
       out <- log(sds)
       if (nrow(V) > 1) {
         C <- stats::cov2cor(V)
-        out <- c(out, atanh(pmin(pmax(C[lower.tri(C)], -0.9999), 0.9999)))
+        out <- c(out, atanh(pmin(pmax(C[lower.tri(C)],
+                                      -varcorr_cor_clamp),
+                                 varcorr_cor_clamp)))
       }
       out
     }
@@ -264,16 +279,41 @@ varcorr_trans_rows <- function(fit) {
     se_g <- sqrt(pmax(diag(J %*% Vth %*% t(J)), 0))
 
     d <- bk$dim
+    # Transformed-scale estimates read off the covariance without the
+    # clamp. A component ON the boundary of its parameter space - a
+    # standard deviation collapsed to zero, a correlation at +/-1 - maps
+    # to +/-Inf here, which is the honest answer: the estimate
+    # back-transforms to 0 or to +/-1, and the Wald interval around an
+    # infinite point does not exist. Without this the clamp inside gfun
+    # flattened the jacobian row to zero and the block reported
+    # lwr == est == upr == 0.9999, a zero-width interval AT the clamp.
+    V0 <- covstruct_registry[[bk$covstruct]]$vcov(t0, bk)
+    sds0 <- sqrt(diag(V0))
+    est0 <- log(sds0)
+    bd <- sds0 <= 0
+    if (d > 1L) {
+      C0 <- stats::cov2cor(V0)
+      r0 <- C0[lower.tri(C0)]
+      est0 <- c(est0, atanh(r0))
+      # the same threshold the clamp uses, on purpose: a correlation the
+      # clamp touches has a zero jacobian row and would otherwise report
+      # a zero-width interval AT the clamp
+      bd <- c(bd, abs(r0) >= varcorr_cor_clamp)
+    }
+    # A non-finite se (an inverted Hessian that did not invert) is no
+    # more usable than a boundary estimate; both become NA bounds.
+    se_g[bd | !is.finite(est0) | !is.finite(se_g)] <- NA_real_
+
     n_sd <- length(g0) - if (d > 1) d * (d - 1) / 2 else 0
     for (i in seq_len(n_sd)) {
-      add(bk$cnms[min(i, length(bk$cnms))], "sd", g0[i], se_g[i], bk)
+      add(bk$cnms[min(i, length(bk$cnms))], "sd", est0[i], se_g[i], bk)
     }
     if (d > 1) {
       pairs <- which(lower.tri(diag(d)), arr.ind = TRUE)
       for (k in seq_len(nrow(pairs))) {
         add(paste0("cor(", bk$cnms[pairs[k, 2]], ",",
                    bk$cnms[pairs[k, 1]], ")"),
-            "cor", g0[n_sd + k], se_g[n_sd + k], bk)
+            "cor", est0[n_sd + k], se_g[n_sd + k], bk)
       }
     }
   }
@@ -300,10 +340,18 @@ varcorr_untrans <- function(type, v) {
 #' back-transformed), delta-method-propagated from the internal `theta`
 #' covariance. One row per SD and per correlation of every block.
 #'
+#' A component sitting on the boundary of its parameter space - a
+#' standard deviation collapsed to zero, or a correlation at `+/-1` -
+#' has no interval on these scales, because the transform is infinite
+#' there. Those rows report the estimate with `NA` bounds and warn,
+#' rather than a zero-width interval at an arbitrary clamp. A
+#' bootstrap ([hypothesis()] with `method = "boot"`) or a likelihood
+#' profile of the underlying `theta` is the alternative.
+#'
 #' @param fit A `frmtmb_fit`.
 #' @param level Confidence level.
 #' @return A data frame with columns `block`, `term`, `type`,
-#'   `estimate`, `lwr`, `upr`.
+#'   `estimate`, `lwr`, `upr`. Boundary components carry `NA` bounds.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
@@ -325,12 +373,49 @@ confint_varcorr <- function(fit, level = 0.95) {
   tr <- varcorr_trans_rows(fit)
   if (is.null(tr)) return(NULL)
   z <- stats::qnorm(1 - (1 - level) / 2)
-  data.frame(
+  out <- data.frame(
     block = tr$block, term = tr$term, type = tr$type,
     estimate = varcorr_untrans(tr$type, tr$est_t),
     lwr = varcorr_untrans(tr$type, tr$est_t - z * tr$se_t),
     upr = varcorr_untrans(tr$type, tr$est_t + z * tr$se_t)
   )
+  label <- function(i) paste0(tr$block[i], " ", tr$term[i])
+  bad <- which(is.na(tr$se_t))
+  if (length(bad)) {
+    warning("No interval for ", length(bad), " component",
+            if (length(bad) > 1L) "s" else "",
+            " on the boundary of the parameter space (a standard ",
+            "deviation at zero, or a correlation at +/-1). The interval ",
+            "is a Wald interval on the log / Fisher-z scale, which is ",
+            "infinite there, so it is reported as NA rather than as a ",
+            "zero-width interval at an arbitrary clamp. The estimates ",
+            "stand; for an interval use hypothesis(method = \"boot\") ",
+            "or confint(method = \"profile\") on the theta parameter. ",
+            "Affected: ",
+            paste(vapply(bad, label, ""), collapse = "; "), call. = FALSE)
+  }
+  # An se above 10 on the LOG scale spans more than 17 orders of
+  # magnitude each way: the component is not identified by the data, and
+  # the numbers are noise dressed as an interval. Reporting them is
+  # still better than dropping them (the point estimate is usually
+  # fine), but saying nothing is not. The bounded types are exempt: a
+  # correlation and a mixing proportion back-transform into (-1, 1) and
+  # (0, 1), so a huge se there widens the interval to the whole
+  # parameter space and stops, which reads as the non-identification it
+  # is.
+  wide <- which(!is.na(tr$se_t) & tr$type %in% c("sd", "range") &
+                  tr$se_t > 10)
+  if (length(wide)) {
+    warning("Uninformative interval for ", length(wide), " component",
+            if (length(wide) > 1L) "s" else "",
+            ": the standard error on the log scale exceeds 10, so the ",
+            "reported bounds span many orders of magnitude and the ",
+            "data do not identify the component. diagnose() reports ",
+            "the boundary and curvature checks. Affected: ",
+            paste(vapply(wide, label, ""), collapse = "; "),
+            call. = FALSE)
+  }
+  out
 }
 
 #' Effective degrees of freedom of the smooth blocks: for an iid wiggly
@@ -732,6 +817,22 @@ anova_refit_ml <- function(fit) {
                 data2 = fit$data2 %||% list())
 }
 
+#' Chi-square tail probability for a likelihood-ratio statistic, with a
+#' zero degree-of-freedom difference reported as NA.
+#'
+#' `pchisq(0, df = 0, lower.tail = FALSE)` is 0, so two models of the
+#' same dimension - a reparameterization, or the same model passed
+#' twice - used to print "< 2.2e-16 ***" for a test that was never run.
+#' A chi-square with no degrees of freedom is a point mass at zero and
+#' has no p-value; NA says so, and drops the significance stars with it.
+#'
+#' @noRd
+lrt_pvalue <- function(chisq, ddf) {
+  p <- stats::pchisq(chisq, ddf, lower.tail = FALSE)
+  p[!is.na(ddf) & ddf <= 0] <- NA_real_
+  p
+}
+
 #' Likelihood-ratio tests between nested frmtmb fits
 #'
 #' ML fits compare freely. REML fits compare only with each other, and
@@ -850,7 +951,7 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   fits <- fits[ord]; ll <- ll[ord]; df <- df[ord]
   chisq <- c(NA, 2 * diff(ll))
   ddf <- c(NA, diff(df))
-  p <- stats::pchisq(chisq, ddf, lower.tail = FALSE)
+  p <- lrt_pvalue(chisq, ddf)
   tab <- data.frame(
     Df = df, logLik = ll, AIC = -2 * ll + 2 * df,
     Chisq = chisq, `Chi Df` = ddf, `Pr(>Chisq)` = p,
@@ -947,7 +1048,7 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
                     row.names = c("<none>", scope), check.names = FALSE)
   if (test == "Chisq") {
     tab$LRT <- c(NA, lrt)
-    tab$`Pr(>Chi)` <- c(NA, stats::pchisq(lrt, ddf, lower.tail = FALSE))
+    tab$`Pr(>Chi)` <- c(NA, lrt_pvalue(lrt, ddf))
   }
   structure(tab, class = c("anova", "data.frame"),
             heading = c("Single term deletions\n",
@@ -1089,8 +1190,20 @@ hyp_env_vals <- function(fit, vals, comp) {
 
   th <- vals[comp == "theta"]
   for (bk in fit$frame$re_blocks) {
-    if (bk$covstruct %in% c("smooth", "gr_cov", "gr_prec",
-                            "gp", "hsgp", "equalto", "car", "spde")) next
+    # Excluded: the structures whose theta segment is not a set of
+    # standard deviations and correlations at all. `smooth` carries one
+    # inverse smoothing parameter, `gp`/`hsgp` a marginal sd plus
+    # lengthscales, `car` an sd plus a mixing proportion, `spde` a
+    # precision and an inverse range. Their summaries live in
+    # confint_varcorr() under their own names.
+    #
+    # Included (since v0.29): gr_cov, gr_prec and equalto. Their
+    # registry vcov() is the WITHIN-level covariance - a plain sd for a
+    # scalar block, sds plus correlations for the correlated-slopes
+    # Kronecker path - which is exactly the quantity brms names
+    # sd_<group>__<term>. equalto contributes fixed constants (it
+    # estimates nothing), so its names read as knowns.
+    if (bk$covstruct %in% c("smooth", "gp", "hsgp", "car", "spde")) next
     V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
     tn <- hyp_san(bk$cnms)
     g <- hyp_san(bk$group_name)
@@ -1188,6 +1301,36 @@ hyp_fd_grad <- function(f, v) {
 #' `"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"`.
 #' [variables()] lists every usable name for a fit.
 #'
+#' @section Which random-effect blocks contribute names:
+#' Every block whose covariance parameters ARE standard deviations and
+#' correlations: the plain structures (`us`, `diag`, `homdiag`, `cs`,
+#' `ar1`, `toep`, the spatial and reduced-rank ones) and the
+#' known-structure blocks `gr(cov = )`, `gr(prec = )` and `equalto()`,
+#' whose `sd_`/`cor_` names describe the WITHIN-level covariance that
+#' multiplies the fixed relationship matrix. That is what makes
+#' heritability-as-ICC writable directly:
+#' `"sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)"` on an animal
+#' model fitted with `(1 | gr(id, cov = A))`. An `equalto()` block
+#' estimates nothing, so its names are constants with zero variance.
+#'
+#' Two blocks on the same grouping factor with the same term name - an
+#' animal model's `(1 | gr(id, cov = A)) + (1 | id)`, where the genetic
+#' and permanent-environment terms both name the group `id` - collide
+#' on one `sd_id__Intercept`, and the first block in formula order
+#' claims it. Give the second term its own grouping column (a copy of
+#' the factor under another name) when both are wanted by name.
+#'
+#' Excluded: `s()`/`t2()` smooths, `gp()`/`hsgp()`, `car()` and `spde()`.
+#' Their theta segments are not standard deviations - an inverse
+#' smoothing parameter, lengthscales, a mixing proportion, a precision
+#' and an inverse range - so there is no `sd_<group>__<term>` to name.
+#' Read those off [confint_varcorr()], which reports each under its own
+#' label (`sd(gp)`, `range(gp)`, `sd(car)`, ...).
+#'
+#' @seealso [vcov.frmtmb_fit()] with `full = TRUE` for the same joint covariance
+#'   (fixed effects plus covariance parameters, on their internal
+#'   scale) as a matrix, which is what the `"wald"` method uses here.
+#'
 #' Methods:
 #' - `"wald"` (default): delta-method z-test, finite-difference
 #'   gradient against the joint parameter covariance (under REML, from
@@ -1252,6 +1395,12 @@ hypothesis <- function(x, ...) UseMethod("hypothesis")
 #' `sigma` when the residual SD is a scalar. The brms spelling; for
 #' sampled fits, `variables()` on the [frm_sample()] result lists the
 #' draw columns instead.
+#'
+#' `gr(cov = )`, `gr(prec = )` and `equalto()` blocks contribute
+#' `sd_`/`cor_` names for their within-level covariance. Smooths,
+#' `gp()`/`hsgp()`, `car()` and `spde()` blocks contribute none: their
+#' parameters are not standard deviations. See the "Which random-effect
+#' blocks contribute names" section of [hypothesis()].
 #'
 #' @param x A `frmtmb_fit` or `frmtmb_draws`.
 #' @param ... Unused.

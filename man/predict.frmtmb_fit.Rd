@@ -53,7 +53,9 @@ population level instead of erroring.}
 \item{...}{Unused.}
 }
 \value{
-A numeric vector, or a list when \code{se.fit = TRUE}.
+A numeric vector, or a list when \code{se.fit = TRUE}. For an
+ordinal family with \code{type = "response"}, an \verb{n x K} matrix of
+category probabilities.
 }
 \description{
 Predictions from a frmtmb fit
@@ -83,6 +85,30 @@ about the latent parameter, not about the observed, truncated
 response. Bounds are re-evaluated on \code{newdata} the same way \code{trials()}
 and \code{se()} are: a literal bound carries over unchanged, and a bound
 given as a variable must be a column of \code{newdata} of the right length.
+}
+
+\section{Ordinal responses}{
+
+\code{cumulative()}, \code{sratio()}, \code{cratio()} and \code{acat()} have no mean on
+the response scale, so \code{type = "response"} (and its alias
+\code{type = "conditional"}) returns an \verb{n x K} matrix of category
+probabilities instead of a vector - the brms \code{fitted()} convention -
+with the response's own factor levels as column names. The rows sum
+to one. \code{cs()} category-specific terms are honored: they enter each
+threshold separately and are re-evaluated on \code{newdata}.
+
+\code{type = "link"} (the default) and \code{dpar = "mu"} still give the latent
+linear predictor, which is where the fixed-effect coefficients live
+and where \code{se.fit} is available. \code{se.fit} on the response scale is
+refused: the prediction is a K-vector per row, not one number.
+\code{\link[=fitted]{fitted()}} keeps returning the latent predictor for these families.
+
+\code{type = "conditional"} is glmmTMB's name for the conditional MEAN, so
+it gives the category probabilities here too rather than the linear
+predictor: an ordinal response has no mean, and answering a question
+about a mean with a latent predictor is the confusion this section
+exists to remove. Ask for the predictor by name (\code{type = "link"}, or
+\code{dpar = "mu"}) when that is what you want.
 }
 
 \section{Standard errors of the expected response}{

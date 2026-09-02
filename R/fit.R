@@ -873,7 +873,12 @@ sdr_of <- function(fit) {
 #'   arbitrary. The check is skipped when `sigma` is not free to absorb
 #'   it - a `se()` response or a constant `sigma` - which is the
 #'   random-effects meta-analysis, and for discrete families, where an
-#'   observation-level term is the usual overdispersion model.
+#'   observation-level term is the usual overdispersion model. It is
+#'   also skipped for the known-structure blocks `gr(cov = )`,
+#'   `gr(prec = )` and `equalto()`: their level covariance is not
+#'   proportional to the identity, so the block and the residual are
+#'   separately identified. That is the animal model with one
+#'   measurement per individual.
 #' @param verbose Report fit progress through [message()], one terse
 #'   line per stage with its elapsed seconds, so a slow fit shows where
 #'   the time went. `FALSE` (default) is silent and costs nothing.
@@ -1019,7 +1024,17 @@ check_re_structure <- function(spec, frame, control) {
     # observation-level term IS the between-study variance.
     sigma_free <- is.null(resp$aterms$se) &&
       is.null(frame$linpreds[[linpred_key(lp$resp, "sigma")]]$constant)
-    if (sigma_free && bk$n_levels == frame$n_obs && bk$dim == 1L &&
+    # A known-structure block is not an OLRE even with one row per
+    # level. Its levels are correlated through the fixed relationship
+    # matrix (gr(cov = A), gr(prec = Q)) or its covariance is fixed
+    # outright (equalto), so the block covariance is no longer
+    # proportional to the identity and the residual sd is not a
+    # reparameterization of it. That is the animal model: the additive
+    # genetic variance and the residual variance are separately
+    # identified precisely BECAUSE A is not the identity.
+    structured <- bk$covstruct %in% c("gr_cov", "gr_prec", "equalto")
+    if (sigma_free && !structured &&
+        bk$n_levels == frame$n_obs && bk$dim == 1L &&
         fam$family %in% gaussian_like &&
         bk$dpar %in% (fam$primary_dpars %||% "mu")) {
       re_check_act(

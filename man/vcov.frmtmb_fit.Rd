@@ -22,6 +22,25 @@ A covariance matrix.
 Covers the estimated coefficients of every linear predictor; dpars
 fixed to constants are excluded.
 }
+\details{
+\code{full = TRUE} is the joint covariance of the whole outer parameter
+vector on its internal scale: the fixed-effect coefficients, the
+covariance parameters \code{theta} (log standard deviations, Fisher-z
+correlations, and whatever else a structure keeps there), and any
+extra parameters such as the ordinal thresholds. It is the matrix a
+delta-method calculation on a variance component needs, and it is
+what \code{\link[=hypothesis]{hypothesis()}} uses for \code{method = "wald"} - so an ICC or a
+heritability is usually easier to ask for through \code{hypothesis()},
+which names the components for you, than to assemble by hand from
+this matrix.
+
+Under \code{REML = TRUE} (or \code{frmtmb_control(profile = TRUE)}) the fixed
+effects are integrated out of the outer problem, so they are not
+part of \code{full = TRUE}; the block comes from the joint precision and
+carries exactly the parameters \code{\link[=confint.frmtmb_fit]{confint.frmtmb_fit()}} reports.
+\code{vcov(object)}
+is still the fixed-effect covariance there.
+}
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
@@ -37,4 +56,9 @@ rownames(vcov(fit, full = TRUE))
 V <- vcov(fit)
 a <- c(1, 2)                       # prediction at x = 2, no group
 sqrt(drop(t(a) \%*\% V[1:2, 1:2] \%*\% a))
+}
+\seealso{
+\code{\link[=confint_varcorr]{confint_varcorr()}} for natural-scale intervals on the same
+covariance parameters, and \code{\link[=hypothesis]{hypothesis()}} for delta-method tests of
+expressions in them.
 }
