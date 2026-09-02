@@ -1,5 +1,77 @@
 # Changelog
 
+## frmtmb 0.38.0
+
+Non-centered sampling with the funnel diagnosed as a prior, and four
+case studies: hidden Markov, functional regression, Wiener diffusion,
+and circular.
+
+### Non-centered sampling
+
+- [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  gains `reparameterize` (default `TRUE`): a random-effect block whose
+  every parameter is a standard deviation carrying a prior is sampled
+  non-centered, `b = L(theta) z`, and mapped back per draw. The draws
+  matrix is unchanged in every respect (same `b[i]` columns, same names,
+  same order), so
+  [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md),
+  [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md),
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  and
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  cannot tell the routes apart. Seeded formula-route draws differ from
+  v0.37; `reparameterize = FALSE` reproduces the old chains exactly, and
+  the fit route, and with it
+  [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md),
+  is unchanged.
+- Where each group’s own data say little (the regime the funnel lives
+  in) the gain is decisive: a binary GLMM with 80 groups of 2
+  observations goes from a min bulk-ESS of 5 to 236. Where groups are
+  informative it is a wash, and it is not offered as a blanket speed-up.
+- A block is non-centered only when every parameter it has is a standard
+  deviation carrying a prior, and
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  names every block it left centered, with the reason. This is measured,
+  not conservatism: under a flat prior the reparameterization hands the
+  chain a flat tail the centered geometry was blocking.
+- The correlated-slopes sampling deficit against brms is diagnosed, and
+  it was not the centering: the flat prior frmtmb puts on a
+  correlation’s unbounded parameter is `(1 - rho^2)^(-3/2)`, improper,
+  and a proper prior on that parameter fixes it in the CENTERED
+  parameterization, beating the matched brms throughput. brms is ahead
+  there because `lkj(1)` is proper, not because it non-centers. An LKJ
+  default on correlations is the queued follow-up; `dev/benchmarks.md`
+  carries the measurements.
+- [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+  reports each parameter’s bulk effective sample size and says so when
+  the chain mixed too poorly to judge the approximation, instead of
+  letting a sick chain read as a Laplace problem.
+
+### Case studies
+
+- [`vignette("case-studies")`](https://aforren1.github.io/frmtmb/articles/case-studies.md)
+  gains four sections: a two-state gaussian hidden Markov model on an
+  animal track, validated against hmmTMB from generic starts (5.9e-10 in
+  the log likelihood) and depmixS4 (9.7e-8); function-on-scalar
+  regression through `s(t)`, `s(t, by = x)` and a `bs = "fs"` factor
+  smooth, plus scalar-on-function regression through a matrix-column
+  linear functional term, both validated against
+  [`mgcv::gam()`](https://rdrr.io/pkg/mgcv/man/gam.html) under ML; the
+  Wiener first-passage density written as a
+  [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  (RWiener agreement 8.7e-11 over 162 settings), with a data-bounded
+  non-decision time through a link object; and von Mises circular
+  regression with a cyclic-basis mean and distributional kappa, against
+  the closed-form circular MLE to 6 decimals.
+- Documented along the way: a smooth model’s
+  [`logLik()`](https://rdrr.io/r/stats/logLik.html) equals mgcv’s ML
+  smoothness-selection score `-gam$gcv.ubre` (not `logLik.gam`);
+  `frmtmb_family(links = )` accepts a link object, which is how a
+  bounded parameter keeps its support without a tape branch. RWiener
+  joins Suggests, used only by the vignette and its density test.
+
 ## frmtmb 0.37.0
 
 Leave-one-out cross-validation and the brmsfit method surface on draws,

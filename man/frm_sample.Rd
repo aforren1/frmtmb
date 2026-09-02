@@ -92,7 +92,7 @@ the formula path.}
 \value{
 An object of class \code{frmtmb_draws}: list with the \code{stanfit},
 a draws matrix with named columns (\code{as.matrix()} method), the
-originating fit, and - when any block was non-centered - a
+originating fit, and, when any block was non-centered, a
 \code{reparam} note saying which. The \code{stanfit} holds the parameters as
 Stan sampled them, so on a non-centered run its random-effect
 columns are \code{z} while the draws matrix holds \code{b}.
@@ -152,12 +152,12 @@ ends of it.
 
 \code{reparameterize = TRUE} (the default) samples \code{z ~ N(0, I)} instead
 and computes \verb{b = L(theta) z} on the tape, with \code{L} the block's own
-Cholesky factor - brms's construction. Each draw is mapped back
+Cholesky factor, which is brms's construction. Each draw is mapped back
 through ITS OWN \code{theta}, so the \code{b[i]} columns of the draws matrix
 hold the same quantity in the same order under the same names as
-\code{reparameterize = FALSE} gives, and every method downstream -
-\code{\link[=posterior_epred]{posterior_epred()}}, \code{\link[=ranef]{ranef()}}, \code{\link[=log_lik]{log_lik()}}, \code{\link[=loo]{loo()}},
-\code{\link[=conditional_effects]{conditional_effects()}}, \code{\link[=hypothesis]{hypothesis()}} - reads them without knowing
+\code{reparameterize = FALSE} gives, and every method downstream
+(\code{\link[=posterior_epred]{posterior_epred()}}, \code{\link[=ranef]{ranef()}}, \code{\link[=log_lik]{log_lik()}}, \code{\link[=loo]{loo()}},
+\code{\link[=conditional_effects]{conditional_effects()}}, \code{\link[=hypothesis]{hypothesis()}}) reads them without knowing
 which route produced them. Only the \code{stanfit} inside the object
 carries \code{z}.
 
@@ -178,12 +178,18 @@ without closing those off first trades a slow chain for a wrong one.
 
 In practice that means the FORMULA interface, whose default priors
 cover every standard deviation, non-centers \code{(1 | g)} and any block
-written one term at a time, \code{diag()} and \code{homdiag()} blocks, \code{\link[=s]{s()}}
-smooths, the \verb{k =} Hilbert-space \code{\link[brms:gp]{gp()}} blocks, \code{equalto()}, and
-\code{gr(cov = )} with one term. \code{rr()} is already non-centered by
+written one term at a time, \code{diag()} and \code{homdiag()} blocks, \code{\link[mgcv:s]{mgcv::s()}}
+smooths, \code{equalto()}, and
+\code{gr(cov = )} with one term. A \verb{k =} Hilbert-space \code{\link[brms:gp]{gp()}} block stays
+centered on the formula route even though its factor is diagonal:
+its LENGTHSCALES share the block's \code{theta}, the default priors cover
+only standard deviations, and the gate wants every parameter of a
+block priored. Prior the whole block by hand
+(\code{set_prior(class = "theta")}) to non-center it.
+\code{rr()} is already non-centered by
 construction, since its own coefficients are the standard normal
 factors. A fitted model sampled with \code{frm_sample(fit)} has flat
-priors by design (it is a diagnostic - see above), so it stays
+priors by design (it is a diagnostic; see above), so it stays
 centered unless you give its variance parameters a prior.
 
 The call \code{message()}s every block it left centered, with the reason.
@@ -193,13 +199,13 @@ rather than failing. The reasons:
 \item A FLAT PRIOR on the block's standard deviation. Send \code{sd} down with
 \code{z} where it is: \verb{b = sd z} goes to zero, the likelihood settles on
 the model without that random effect, and the density stops
-changing - a flat tail with nothing to stop a chain in it. Measured
+changing: a flat tail with nothing to stop a chain in it. Measured
 on a six-group random-intercept model, one chain of 2000, three
 seeds: from the fit, with flat priors, the non-centered chain walks
 \code{theta} to -1e15 at a bulk-ESS of 1; from the formula, where the
 default \code{student_t(3, 0, s)} makes that tail integrable, 174 to 284
 against 3 to 48 centered.
-\item A CORRELATION parameter - \code{(Days | Subject)}, \code{cs()}, \code{ar1()} and
+\item A CORRELATION parameter: \code{(Days | Subject)}, \code{cs()}, \code{ar1()} and
 the rest. Not a limit of the arithmetic: the factor exists and is
 exact. It is that a correlation here is parameterized by an
 unbounded \code{theta} whose flat prior is \code{(1 - rho^2)^-3/2} on the
@@ -213,7 +219,7 @@ chain run divergence-free at 142 min-ESS per second there, against
 28 with the flat prior and 122 for the matched brms model.
 \item A Student-t latent (\code{gr(dist = "student")}): a scale mixture, not a
 linear factor.
-\item \code{\link[brms:car]{car()}}, \code{\link[=spde]{spde()}} and \code{gr(prec = )}: sparse precisions whose factor
+\item \code{\link[brms:car]{car()}}, \code{spde()} and \code{gr(prec = )}: sparse precisions whose factor
 is dense.
 \item The exact \code{\link[brms:gp]{gp()}} and the spatial covariances (\code{ou}, \code{exp}, \code{gau},
 \code{mat}): a full factorization per gradient evaluation.
@@ -222,8 +228,8 @@ so \verb{b = L z} is not a bijection there.
 }
 
 \emph{What it is worth.} One chain of 2000 iterations, three seeds
-(dev/benchmarks.md). Where each group's own data say little - the
-regime the funnel lives in - it is decisive: 80 groups of 2 binary
+(dev/benchmarks.md). Where each group's own data say little (the
+regime the funnel lives in) it is decisive: 80 groups of 2 binary
 observations run at a min-ESS of 236 against 5 centered, 55 times the
 effective draws per second. Where the groups are informative it is a
 wash: the \code{epilepsy} GLMM and an uncorrelated \code{sleepstudy} are within

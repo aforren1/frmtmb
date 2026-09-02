@@ -524,7 +524,7 @@ Three things follow.
   parameterization: 142 median min-ESS/s against 28 flat, and against
   122 for the matched brms model. brms is not ahead here because it
   non-centers; it is ahead because lkj(1) is proper.
-- So the real follow-up is a default prior on correlations - the LKJ
+- So the real follow-up is a default prior on correlations: the LKJ
   density on the row-normalized Cholesky parameterization, which
   ?frm_sample currently names as a deliberate gap. Until then
   correlated blocks stay centered and frm_sample() says so.

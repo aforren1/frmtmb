@@ -6,9 +6,9 @@ it can do, and fits it with
 section says where the model comes from, gives the frmtmb call, reads
 the output, and then checks the numbers against a package or a closed
 form that computes the same thing a different way. The datasets are
-small so that this page rebuilds in seconds.
+small so that this page rebuilds in under a minute.
 
-Four sections carry a figure. The figures use
+Eight sections carry a figure. The figures use
 [tinyplot](https://cran.r-project.org/package=tinyplot), which is a
 suggested package, and they are skipped when it is not installed.
 
@@ -967,16 +967,1023 @@ anova(frm(bf(y ~ x) + sratio(), data = dord), fcs)
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
+## 9. Hidden Markov models for an animal track
+
+An animal alternates between behavioral modes. While it forages it takes
+short, undirected steps; while it travels it takes long ones. The mode
+is not observed, but it persists, so the movement package literature
+models it as a Markov chain over the steps and the step length as a
+state-dependent distribution (Michelot, Langrock and Patterson 2016,
+*Methods in Ecology and Evolution* 7, the moveHMM paper; Michelot 2022,
+the hmmTMB paper; Zucchini, MacDonald and Langrock 2016).
+`hmm(K, family)` writes that model as a family, so the state sequence is
+summed out exactly by the forward algorithm and every other part of the
+grammar still applies.
+
+The simulated track below has 12 animals, 60 steps each, and two states
+with well separated log step lengths.
+
+``` r
+
+set.seed(2001)
+G <- matrix(c(0.92, 0.08, 0.18, 0.82), 2, 2, byrow = TRUE)
+one_track <- function(id, nt = 60L) {
+  s <- integer(nt); s[1] <- 1L
+  for (t in 2:nt) s[t] <- sample.int(2L, 1L, prob = G[s[t - 1L], ])
+  data.frame(track = id, step = seq_len(nt), state = s,
+             logstep = rnorm(nt, c(1.4, 3.1)[s], c(0.45, 0.55)[s]))
+}
+mv <- do.call(rbind, lapply(1:12, one_track))
+```
+
+`time =` says which column orders the chain and `group =` says which
+column cuts it into sequences. Both take a bare name or a one-sided
+formula. `init = "stationary"` gives the chain the stationary
+distribution of its own transition matrix, which costs no parameters.
+
+``` r
+
+fhmm <- frm(bf(logstep ~ 1),
+            family = hmm(K = 2, gaussian(), time = step, group = track,
+                         init = "stationary"),
+            data = mv)
+e <- unlist(fixef(fhmm))
+rbind(estimated = c(exp(e[["sigma1.(Intercept)"]]), e[["mu1.(Intercept)"]],
+                    e[["mu2.(Intercept)"]], exp(e[["sigma2.(Intercept)"]])),
+      simulated = c(0.45, 1.4, 3.1, 0.55))[, c(2, 1, 3, 4)] |>
+  `colnames<-`(c("mean1", "sd1", "mean2", "sd2")) |> round(4)
+#>            mean1    sd1  mean2    sd2
+#> estimated 1.3969 0.4503 3.0883 0.4785
+#> simulated 1.4000 0.4500 3.1000 0.5500
+```
+
+The transition matrix is a row-wise multinomial logit with state 1 as
+the reference cell of every row, which is depmixS4’s convention. Turn
+the two free logits `tr12` and `tr22` back into probabilities by hand.
+
+``` r
+
+tpm_row <- function(z) { p <- exp(c(0, z)); p / sum(p) }
+Ghat <- rbind(tpm_row(e[["tr12.(Intercept)"]]),
+              tpm_row(e[["tr22.(Intercept)"]]))
+dimnames(Ghat) <- list(paste0("from", 1:2), paste0("to", 1:2))
+round(Ghat, 4)
+#>          to1    to2
+#> from1 0.9219 0.0781
+#> from2 0.2070 0.7930
+round(G, 4)
+#>      [,1] [,2]
+#> [1,] 0.92 0.08
+#> [2,] 0.18 0.82
+```
+
+[`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md)
+gives the smoothed state probability of every row from a
+forward-backward pass, and
+[`hmm_viterbi()`](https://aforren1.github.io/frmtmb/reference/hmm_viterbi.md)
+gives the most probable whole path. The two answer different questions:
+the first is marginal per row, the second is joint over the sequence.
+
+``` r
+
+c(occupancy_state1 = mean(hmm_probs(fhmm)[, 1]),
+  viterbi_accuracy = mean(hmm_viterbi(fhmm) == mv$state))
+#> occupancy_state1 viterbi_accuracy 
+#>        0.7125368        0.9791667
+```
+
+### Cross-check against hmmTMB and depmixS4
+
+The same model has two reference implementations. hmmTMB fits the
+stationary-start version, and depmixS4 fits the free-start version by
+expectation maximization. Fit each on the same track and compare the
+maximized log likelihood.
+
+``` r
+
+dh <- data.frame(ID = mv$track, step = mv$step, logstep = mv$logstep)
+hid <- hmmTMB::MarkovChain$new(data = dh, n_states = 2,
+                               initial_state = "stationary")
+hid$update_tpm(matrix(c(0.9, 0.1, 0.1, 0.9), 2, 2, byrow = TRUE))
+obs <- hmmTMB::Observation$new(
+  data = dh, n_states = 2, dists = list(logstep = "norm"),
+  par = list(logstep = list(mean = c(1.5, 3.0), sd = c(0.5, 0.5))))
+hm <- hmmTMB::HMM$new(obs = obs, hid = hid)
+hm$fit(silent = TRUE)
+c(frmtmb = as.numeric(logLik(fhmm)), hmmTMB = hm$llk(),
+  difference = as.numeric(logLik(fhmm)) - hm$llk())
+#>        frmtmb        hmmTMB    difference 
+#> -6.858536e+02 -6.858536e+02 -5.921947e-10
+```
+
+``` r
+
+stopifnot(abs(as.numeric(logLik(fhmm)) - hm$llk()) < 1e-6,
+          max(abs(sort(as.numeric(hm$par()$obspar["logstep.mean", , 1])) -
+                    sort(c(e[["mu1.(Intercept)"]],
+                           e[["mu2.(Intercept)"]])))) < 1e-4)
+```
+
+hmmTMB starts from generic values rather than from the frmtmb answer, so
+this is a check of the optimum and not only of the likelihood.
+
+depmixS4 leaves the initial distribution free, so compare it with
+`init = "estimated"`. Its expectation-maximization run is multimodal, so
+take the best of several random starts.
+
+``` r
+
+fest <- frm(bf(logstep ~ 1),
+            family = hmm(K = 2, gaussian(), time = step, group = track,
+                         init = "estimated"), data = mv)
+dm <- depmixS4::depmix(logstep ~ 1, data = mv, nstates = 2,
+                       ntimes = as.integer(table(mv$track)))
+set.seed(3)
+best <- -Inf
+sink(nullfile())          # depmixS4 reports every EM run on stdout
+for (i in 1:5) {
+  ff <- try(suppressMessages(depmixS4::fit(
+    dm, verbose = FALSE, emcontrol = depmixS4::em.control(
+      random.start = TRUE, tol = 1e-12, maxit = 5000))), silent = TRUE)
+  if (!inherits(ff, "try-error")) {
+    best <- max(best, as.numeric(depmixS4::logLik(ff)))
+  }
+}
+sink()
+c(frmtmb = as.numeric(logLik(fest)), depmixS4 = best,
+  difference = as.numeric(logLik(fest)) - best)
+#>        frmtmb      depmixS4    difference 
+#> -6.821394e+02 -6.821394e+02 -9.678115e-08
+```
+
+``` r
+
+stopifnot(abs(as.numeric(logLik(fest)) - best) < 1e-6)
+```
+
+The three packages agree on the maximum to better than 1e-6. The free
+start costs one parameter and buys about 3.7 log-likelihood points on 12
+sequences, which is what a free start usually buys when the chain is
+sticky.
+
+One track, drawn against time and colored by its decoded state, is the
+picture the model is for.
+
+``` r
+
+one <- mv[mv$track == 1, ]
+one$decoded <- factor(hmm_viterbi(fhmm)[mv$track == 1],
+                      labels = c("state 1", "state 2"))
+tinyplot::tinyplot(logstep ~ step | decoded, data = one, type = "p",
+                   pch = 16, theme = "clean2", xlab = "step",
+                   ylab = "log step length")
+abline(h = c(e[["mu1.(Intercept)"]], e[["mu2.(Intercept)"]]), lty = 2,
+       col = "gray40")
+```
+
+![Plot of log step length against step number for one 60-step track. The
+points are colored by the decoded state: low points near 1.4 in one
+color and high points near 3.1 in the other. Two horizontal dashed lines
+mark the two fitted state means. The colors come in runs rather than
+alternating, which is the persistence of the Markov
+chain.](case-studies_files/figure-html/hmm-fig-1.png)
+
+The colors come in runs. That persistence is the whole difference
+between an HMM and the two-component mixture of section 6, and it is
+what the transition matrix measures.
+
+### What the HMM surface refuses
+
+The refusals below are documented rather than worked around. Each one
+has a reason that a workaround would hide.
+
+``` r
+
+conditional_effects(fhmm)
+#> Error:
+#> ! conditional_effects() is not available for an hmm() fit: the expected response weights the state means by posterior state occupancies, which depend on the observed responses of a whole sequence and are therefore undefined on the synthetic grid this function builds. Plot one state's own predictor from predict(dpar = "mu2"), or the occupancies from hmm_probs()
+residuals(fhmm, type = "deviance")
+#> Error:
+#> ! residuals(type = "deviance") is not available for an hmm() fit: the unit deviance compares a row's likelihood with its saturated fit, and an HMM has no per-row likelihood to saturate. Use type = "response" or type = "pearson"
+```
+
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+needs an expected response on a synthetic covariate grid. Under an HMM
+the expected response weights the state means by the posterior
+occupancies, and those depend on the observed responses of a whole
+sequence, so they do not exist on a grid. Plot one state’s own predictor
+with `predict(dpar = "mu2")`, or the occupancies from
+[`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md).
+
+`residuals(type = "deviance")`,
+[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
+and [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) all
+need a likelihood that factors into one term per observation. An HMM’s
+smallest independent unit is a sequence, so a per-observation column
+would be a group and leaving one out would drop a whole track. Compare
+HMM fits with [`AIC()`](https://rdrr.io/r/stats/AIC.html) or
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md).
+
+This section also does not cover the parts of the surface that do work:
+transition covariates (`trans = ~x`, or `bf(y ~ 1, tr12 ~ x)` for one
+cell), non-gaussian emissions, and random effects inside a state’s
+linear predictor. The last one is approximate: the Laplace approximation
+integrates the random effect outside the exact state sum, and the
+integrand is a mixture over state sequences rather than a gaussian.
+[`?hmm`](https://aforren1.github.io/frmtmb/reference/hmm.md) gives the
+measured size of that bias.
+
+## 10. Function-on-scalar regression
+
+In functional data analysis the response of one subject is a whole curve
+rather than a number. Function-on-scalar regression puts a regression on
+such a response: `y_i(t) = b0(t) + x_i * b1(t) + e_i(t)`, where the
+coefficients are functions of `t` and `x_i` is an ordinary scalar
+covariate. This is the model of Goldsmith’s IWAFDA short course and of
+`refund::pffr`.
+
+frmtmb has no functional-response data structure, and does not need one.
+Put the curves in long format, one row per subject and time point, and
+the coefficient functions become smooths: `s(t)` is `b0(t)` and
+`s(t, by = x)` is `b1(t)`. That is the same reduction mgcv uses, so mgcv
+is the exact reference.
+
+``` r
+
+set.seed(101)
+N <- 40L
+tt <- seq(0, 1, length.out = 21)
+x <- rbinom(N, 1, 0.5)
+b0 <- function(t) 1 + 2 * sin(2 * pi * t)
+b1 <- function(t) 1.5 - 12 * (t - 0.5)^2
+bi <- matrix(rnorm(N * 2, 0, 0.6), N, 2)      # a per-subject curve
+Y <- outer(rep(1, N), b0(tt)) + outer(x, b1(tt)) +
+  bi[, 1] + outer(bi[, 2], tt - 0.5) * 2 +
+  matrix(rnorm(N * length(tt), 0, 0.35), N, length(tt))
+fos <- data.frame(subject = factor(rep(seq_len(N), each = length(tt))),
+                  t = rep(tt, N), x = rep(x, each = length(tt)),
+                  y = as.vector(t(Y)))
+str(fos, give.attr = FALSE)
+#> 'data.frame':    840 obs. of  4 variables:
+#>  $ subject: Factor w/ 40 levels "1","2","3","4",..: 1 1 1 1 1 1 1 1 1 1 ...
+#>  $ t      : num  0 0.05 0.1 0.15 0.2 0.25 0.3 0.35 0.4 0.45 ...
+#>  $ x      : int  0 0 0 0 0 0 0 0 0 0 ...
+#>  $ y      : num  1.15 1.34 2.52 3.07 2.8 ...
+```
+
+### The fixed coefficient functions
+
+``` r
+
+ffix <- frm(bf(y ~ s(t, k = 10) + s(t, by = x, k = 10)),
+            family = gaussian(), data = fos)
+VarCorr(ffix)
+#>   s(t) 
+#>        Name Std.Dev.
+#>  sd(wiggle)   4.6871
+#>   s(t):x 
+#>        Name Std.Dev.
+#>  sd(wiggle)   2.1311
+```
+
+Each smooth contributes one variance component, and its smoothing
+parameter is `sigma^2` divided by that variance. Read the coefficient
+functions off [`predict()`](https://rdrr.io/r/stats/predict.html):
+`b0(t)` is the prediction at `x = 0` and `b1(t)` is the contrast between
+`x = 1` and `x = 0` at the same `t`.
+
+``` r
+
+sg <- seq(0, 1, length.out = 9)
+g0 <- data.frame(t = sg, x = 0, subject = fos$subject[1])
+g1 <- data.frame(t = sg, x = 1, subject = fos$subject[1])
+gfix <- mgcv::gam(y ~ s(t, k = 10) + s(t, by = x, k = 10), data = fos,
+                  method = "ML")
+b1_frm <- predict(ffix, newdata = g1) - predict(ffix, newdata = g0)
+b1_gam <- predict(gfix, newdata = g1) - predict(gfix, newdata = g0)
+out <- rbind(frmtmb = as.numeric(b1_frm), mgcv = as.numeric(b1_gam),
+             truth = b1(sg))
+colnames(out) <- paste0("t=", round(sg, 3))
+round(out, 4)
+#>          t=0 t=0.125 t=0.25 t=0.375  t=0.5 t=0.625 t=0.75 t=0.875     t=1
+#> frmtmb -1.58 -0.2949 0.6985  1.3498 1.5806  1.3865 0.8644 -0.0411 -1.1534
+#> mgcv   -1.58 -0.2949 0.6985  1.3498 1.5806  1.3865 0.8644 -0.0411 -1.1533
+#> truth  -1.50 -0.1875 0.7500  1.3125 1.5000  1.3125 0.7500 -0.1875 -1.5000
+```
+
+``` r
+
+c(max_abs_difference = max(abs(b1_frm - b1_gam)),
+  frmtmb_logLik = as.numeric(logLik(ffix)),
+  mgcv_ML_score = unname(-gfix$gcv.ubre),
+  smoothing_par_ratio = max(abs(
+    sigma(ffix)^2 / vapply(VarCorr(ffix), function(v) v[1, 1], 0) /
+      gfix$sp - 1)))
+#>  max_abs_difference       frmtmb_logLik       mgcv_ML_score smoothing_par_ratio 
+#>        1.725568e-06       -9.809097e+02       -9.809097e+02        8.639424e-05
+stopifnot(max(abs(b1_frm - b1_gam)) < 1e-4,
+          abs(as.numeric(logLik(ffix)) + gfix$gcv.ubre) < 1e-5)
+```
+
+The two fitted coefficient functions agree to about 2e-6, and the
+smoothing parameters to about 1e-4 relative. The middle line is the
+stronger check. frmtmb reports the *marginal* log likelihood, with the
+smooth coefficients integrated out as random effects, and that is
+exactly the quantity mgcv maximizes when `method = "ML"` selects the
+smoothing parameters. The two numbers match to 1e-8. Note that
+[`logLik()`](https://rdrr.io/r/stats/logLik.html) on a `gam` object is
+not this quantity: it is the unpenalized likelihood at the fit, so it is
+the larger number and it is not comparable across the two packages.
+
+### The subject-level functional random effect
+
+A curve per subject is a random effect that is itself a function of `t`.
+mgcv writes it as a factor-smooth interaction, `bs = "fs"`, which gives
+every level of the factor its own smooth with one shared set of
+smoothing parameters. That basis survives frmtmb’s smooth machinery,
+which is
+[`mgcv::smoothCon()`](https://rdrr.io/pkg/mgcv/man/smoothCon.html)
+followed by
+[`mgcv::smooth2random()`](https://rdrr.io/pkg/mgcv/man/smooth2random.html),
+so the honest FoSR spelling has it:
+
+``` r
+
+ffs <- frm(bf(y ~ s(t, k = 10) + s(t, by = x, k = 10) +
+                s(t, subject, bs = "fs", k = 5)),
+           family = gaussian(), data = fos)
+VarCorr(ffs)
+#>   s(t) 
+#>        Name Std.Dev.
+#>  sd(wiggle)   4.5736
+#>   s(t):x 
+#>        Name Std.Dev.
+#>  sd(wiggle)   2.2367
+#>   s(t,subject) 
+#>        Name Std.Dev.
+#>  sd(wiggle)  0.18987
+#>   s(t,subject) 
+#>        Name Std.Dev.
+#>  sd(wiggle)   2.4227
+#>   s(t,subject) 
+#>        Name Std.Dev.
+#>  sd(wiggle)   4.0774
+```
+
+The `fs` term expands into three variance components, which is how
+`smooth2random()` splits the wiggly part from the two null-space
+directions of the per-subject curve. mgcv chooses three smoothing
+parameters for the same term, and the fits still agree.
+
+``` r
+
+gfs <- mgcv::gam(y ~ s(t, k = 10) + s(t, by = x, k = 10) +
+                   s(t, subject, bs = "fs", k = 5), data = fos,
+                 method = "ML")
+#> Warning in gam.side(sm, X, tol = .Machine$double.eps^0.5): model has repeated
+#> 1-d smooths of same variable.
+b1_frm2 <- predict(ffs, newdata = g1) - predict(ffs, newdata = g0)
+b1_gam2 <- predict(gfs, newdata = g1) - predict(gfs, newdata = g0)
+c(max_abs_difference = max(abs(b1_frm2 - b1_gam2)),
+  frmtmb_logLik = as.numeric(logLik(ffs)),
+  mgcv_ML_score = unname(-gfs$gcv.ubre),
+  sigma_frmtmb = sigma(ffs), sigma_mgcv = sqrt(gfs$sig2))
+#> max_abs_difference      frmtmb_logLik      mgcv_ML_score       sigma_frmtmb 
+#>       2.444950e-06      -4.399321e+02      -4.399321e+02       3.265995e-01 
+#>         sigma_mgcv 
+#>       3.270417e-01
+```
+
+``` r
+
+stopifnot(max(abs(b1_frm2 - b1_gam2)) < 1e-4,
+          abs(as.numeric(logLik(ffs)) + gfs$gcv.ubre) < 1e-5)
+```
+
+mgcv warns that the model has repeated one-dimensional smooths of the
+same variable. That is its identifiability check on `s(t)` against the
+per-subject term, and the two are separated here by the sum-to-zero
+constraint the factor-smooth basis carries. The warning is mgcv’s, not
+frmtmb’s, and both packages fit the same model in spite of it.
+
+The per-subject curve is worth having. It takes three parameters and
+moves AIC by about 1000.
+
+``` r
+
+fre <- frm(bf(y ~ s(t, k = 10) + s(t, by = x, k = 10) + (1 + t | subject)),
+           family = gaussian(), data = fos)
+c(fixed_only = AIC(ffix), factor_smooth = AIC(ffs),
+  random_line = AIC(fre))
+#>    fixed_only factor_smooth   random_line 
+#>     1975.8194      899.8642      901.6500
+```
+
+The third fit is the cheaper alternative: a random intercept and a
+random slope in `t` per subject, which is a straight line per subject
+rather than a curve. It costs the same three parameters here and is
+close behind. Use it when the per-subject departures are near linear,
+and use `bs = "fs"` when they are not.
+
+``` r
+
+xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0,
+                 subject = fos$subject[1])
+xg1 <- transform(xg, x = 1)
+f0 <- as.numeric(predict(ffs, newdata = xg))
+f1 <- as.numeric(predict(ffs, newdata = xg1)) - f0
+f0 <- f0 - mean(f0) + mean(b0(xg$t))       # the fs term shifts the level
+tinyplot::tinyplot(x = xg$t, y = f0, type = "l", col = "steelblue4",
+                   lwd = 2, theme = "clean2", xlab = "t",
+                   ylab = "coefficient function",
+                   ylim = range(c(f0, f1, b0(xg$t), b1(xg$t))))
+tinyplot::plt_add(x = xg$t, y = f1, type = "l", col = "firebrick", lwd = 2)
+lines(xg$t, b0(xg$t), lty = 2, col = "gray40")
+lines(xg$t, b1(xg$t), lty = 2, col = "gray40")
+```
+
+![Plot of the two functional coefficients against t on the unit
+interval. A blue line is the fitted intercept function, which rises to
+about 3 near t equal to 0.25 and falls to about minus 1 near t equal to
+0.75. A red line is the fitted slope function, an inverted parabola
+peaking near 1.5 at t equal to 0.5. Dashed gray lines are the simulated
+truth, and each fitted line follows its own dashed line
+closely.](case-studies_files/figure-html/fosr-fig-1.png)
+
+### Scalar-on-function regression
+
+The mirror model has a scalar response and a functional predictor:
+`y_i = a + integral of b(s) X_i(s) ds`. Approximate the integral by a
+quadrature sum and it becomes a smooth of `s` weighted by the
+observations, which mgcv spells `s(S, by = L)` where `S` and `L` are
+**matrix** columns of the data frame: `S` holds the grid and `L` holds
+the quadrature weight times the observed function.
+
+Matrix columns are accepted in a frmtmb design matrix, so this spelling
+works unchanged.
+
+``` r
+
+set.seed(202)
+n <- 150L; nS <- 30L
+S <- seq(0, 1, length.out = nS)
+beta_f <- function(s) 2 * sin(2 * pi * s)
+Xf <- t(replicate(n, cumsum(rnorm(nS, 0, 0.4)) + rnorm(nS, 0, 0.2)))
+sof <- data.frame(y = 1 + as.vector((Xf / nS) %*% beta_f(S)) +
+                    rnorm(n, 0, 0.4))
+sof$Smat <- matrix(S, n, nS, byrow = TRUE)      # the grid, one row per case
+sof$LX <- Xf / nS                               # weight times observation
+vapply(sof, function(z) sprintf("%s, %d column(s)", class(z)[1], NCOL(z)), "")
+#>                      y                   Smat                     LX 
+#> "numeric, 1 column(s)" "matrix, 30 column(s)" "matrix, 30 column(s)"
+```
+
+``` r
+
+fsof <- frm(bf(y ~ s(Smat, by = LX, k = 12)), family = gaussian(),
+            data = sof)
+gsof <- mgcv::gam(y ~ s(Smat, by = LX, k = 12), data = sof, method = "ML")
+c(frmtmb_sigma = sigma(fsof), mgcv_sigma = sqrt(gsof$sig2),
+  max_abs_fitted_difference = max(abs(as.numeric(fitted(fsof)) -
+                                        as.numeric(fitted(gsof)))))
+#>              frmtmb_sigma                mgcv_sigma max_abs_fitted_difference 
+#>              3.879617e-01              3.898877e-01              9.076064e-08
+```
+
+Recover `b(s)` by predicting at a synthetic case whose weight vector is
+one in a single grid cell and zero elsewhere. The linear functional term
+then reduces to `b(s)` at that cell.
+
+``` r
+
+sgrid <- seq(0, 1, length.out = 9)
+nd <- sof[rep(1, length(sgrid)), "y", drop = FALSE]
+nd$Smat <- matrix(sgrid, length(sgrid), nS)
+nd$LX <- cbind(1, matrix(0, length(sgrid), nS - 1))
+out <- rbind(frmtmb = as.numeric(predict(fsof, newdata = nd)),
+             mgcv = as.numeric(predict(gsof, newdata = nd)),
+             truth_plus_intercept = beta_f(sgrid) + 1)
+colnames(out) <- paste0("s=", round(sgrid, 3))
+round(out, 4)
+#>                         s=0 s=0.125 s=0.25 s=0.375  s=0.5 s=0.625  s=0.75
+#> frmtmb               2.6383  3.0372 2.8772  2.0599 0.7948 -0.4055 -0.9728
+#> mgcv                 2.6383  3.0372 2.8772  2.0599 0.7948 -0.4055 -0.9728
+#> truth_plus_intercept 1.0000  2.4142 3.0000  2.4142 1.0000 -0.4142 -1.0000
+#>                      s=0.875   s=1
+#> frmtmb               -0.3896 1.064
+#> mgcv                 -0.3896 1.064
+#> truth_plus_intercept -0.4142 1.000
+stopifnot(max(abs(as.numeric(fitted(fsof)) -
+                    as.numeric(fitted(gsof)))) < 1e-5)
+```
+
+The two coefficient functions are the same to four decimal places, and
+the fitted values to 1e-7. Both depart from the truth at `s = 0`, which
+is the usual endpoint behavior of a linear functional term: the
+quadrature gives the first grid cell one weight out of thirty, so the
+data say little about the curve there.
+
+What this does not cover. There is no functional-response object, so the
+grid must be in long format and an irregular grid is simply an irregular
+`t` column. There is no penalty that couples `b0(t)` and `b1(t)`. And
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+will not draw a term built on matrix columns:
+
+``` r
+
+conditional_effects(fsof)
+#> Error:
+#> ! No plottable predictors found for dpar 'mu'
+```
+
+A matrix covariate has no single value to hold the other predictors at,
+so it is excluded from the conditional-effects grid. Draw the
+coefficient function from
+[`predict()`](https://rdrr.io/r/stats/predict.html) as above.
+
+## 11. A drift-diffusion model as a custom family
+
+The drift-diffusion model is the standard account of a two-choice
+decision: evidence accumulates as a Wiener process with drift until it
+reaches one of two boundaries, and the crossing time and the boundary
+are the response time and the choice (Ratcliff 1978; Ratcliff and McKoon
+2008). Its first-passage density is a research-grade special function,
+and the point of this section is that in frmtmb it is a plain R
+function.
+
+The density itself is Navarro and Fuss (2009, *Journal of Mathematical
+Psychology* 53). Write the lower-boundary density with drift `v`,
+boundary separation `a` and relative start point `w` as a scale change
+onto a normalized time `u = t / a^2`, and give the normalized density as
+the small-time series. The tape cannot branch on a parameter, so the
+number of terms is **fixed** at `K = 10` rather than chosen from the
+error bound at each evaluation. The accuracy that buys is measured
+below.
+
+``` r
+
+# log first-passage density at the LOWER boundary, Navarro and Fuss
+# (2009) small-time series with a fixed 2K + 1 terms. Plain arithmetic
+# only, so the same function serves the tape and the figure.
+wiener_lpdf1 <- function(t, v, a, w, K = 10L) {
+  u <- t / a^2
+  s <- 0
+  for (k in -K:K) s <- s + (w + 2 * k) * exp(-(w + 2 * k)^2 / (2 * u))
+  -v * a * w - v^2 * t / 2 - 2 * log(a) -
+    0.5 * (log(2 * pi) + 3 * log(u)) + log(s)
+}
+```
+
+The upper boundary needs no second series. Reflecting the process maps
+an upper crossing onto a lower one with `w -> 1 - w` and `v -> -v`, and
+the reflection is driven by a column of the **data**, not by a
+parameter, so it is arithmetic on the tape rather than a branch. The
+boundary indicator travels as `vint()`, which is the addition term that
+hands integer covariates to a custom family.
+
+The non-decision time `ndt` is the awkward parameter, because the
+support of the density depends on it: the density is defined only for
+`rt > ndt`. A log link would let the optimizer step past `min(rt)` and
+produce [`log()`](https://rdrr.io/r/base/Log.html) of a negative number.
+Instead give `ndt` a scaled logit link onto `(0, U)`, with `U` fixed at
+family-construction time. The support then holds for every value of the
+linear predictor, and the tape still never branches. The one caveat is
+arithmetic rather than algebra: past a linear predictor near 37 the
+logit saturates in double precision and `ndt` rounds to `U` exactly. The
+density is what keeps the optimizer away from that corner, because a
+first-passage density goes to zero faster than any power of the decision
+time and the log likelihood falls off well before the link saturates.
+
+``` r
+
+wiener <- function(max_ndt) {
+  force(max_ndt)
+  ndt_link <- list(
+    name = "scaled_logit",
+    linkfun = function(mu) log(mu / (max_ndt - mu)),
+    linkinv = function(eta) max_ndt / (1 + exp(-eta)),
+    mu_eta = function(eta) {
+      p <- 1 / (1 + exp(-eta)); max_ndt * p * (1 - p)
+    })
+  custom_family(
+    "wiener",
+    dpars = c("mu", "bs", "ndt", "bias"),
+    links = list(mu = "identity", bs = "log", ndt = ndt_link,
+                 bias = "logit"),
+    lpdf = function(y, dpars, aterms) {
+      up <- aterms$vint1                        # 1 for an upper response
+      wiener_lpdf1(y - dpars$ndt,
+                   dpars$mu * (1 - 2 * up),
+                   dpars$bs,
+                   dpars$bias + up * (1 - 2 * dpars$bias))
+    },
+    init_dpars = list(mu = function(y, aterms) 0.5,
+                      bs = function(y, aterms) 1.5,
+                      ndt = function(y, aterms) 0.5 * min(y),
+                      bias = function(y, aterms) 0.5),
+    type = "continuous")
+}
+```
+
+`mu` is the drift rate, `bs` the boundary separation, and `bias` the
+relative start point. The names follow brms, which calls the same family
+`wiener(link_bs, link_ndt, link_bias)` with a `dec()` addition term for
+the boundary:
+
+``` r
+
+# brms, for comparison. Not run here: it compiles Stan code.
+brms::brm(brms::bf(rt | dec(response) ~ x, bs ~ 1, ndt ~ 1, bias ~ 1),
+          family = brms::wiener(), data = dat)
+# frmtmb: the boundary is a vint() payload the lpdf reads itself
+frm(bf(rt | vint(upper) ~ x, bias = 0.5),
+    family = wiener(max_ndt = min(dat$rt)), data = dat)
+```
+
+[`check_custom_family()`](https://aforren1.github.io/frmtmb/reference/check_custom_family.md)
+compares the density against a finite- difference gradient and against a
+re-taped evaluation, which catches the usual tape-safety mistakes before
+any fitting.
+
+``` r
+
+set.seed(9)
+probe_y <- runif(50, 0.4, 1.5)
+c(tape_check = check_custom_family(
+  wiener(max_ndt = 0.4), y = probe_y,
+  dpars = list(mu = rep(1, 50), bs = rep(1.6, 50), ndt = rep(0.2, 50),
+               bias = rep(0.5, 50)),
+  aterms = list(vint1 = rep(0:1, 25))))
+#> tape_check 
+#>       TRUE
+```
+
+### Simulating and fitting
+
+The generating process is the definition of the model, so simulate it
+directly: step a two-boundary diffusion forward until it is absorbed.
+This uses no package. Two conditions differ in drift, which is the
+standard experimental manipulation.
+
+``` r
+
+r_ddm <- function(n, v, a, w, ndt, dt = 1e-4, tmax = 5) {
+  v <- rep_len(v, n); x <- rep(a * w, n); live <- rep(TRUE, n)
+  tt <- numeric(n); up <- integer(n); step <- 0L
+  while (any(live) && step * dt < tmax) {
+    step <- step + 1L
+    x[live] <- x[live] + v[live] * dt + rnorm(sum(live), 0, sqrt(dt))
+    hi <- live & x >= a; lo <- live & x <= 0
+    tt[hi | lo] <- step * dt; up[hi] <- 1L
+    live <- live & !hi & !lo
+  }
+  data.frame(rt = tt + ndt, upper = up)[!live, ]
+}
+set.seed(404)
+cond <- rep(c(-1, 1), each = 350)
+dat <- r_ddm(700, v = 0.4 + 0.9 * cond, a = 1.4, w = 0.5, ndt = 0.28)
+dat$x <- cond
+c(n = nrow(dat), p_upper = mean(dat$upper), min_rt = min(dat$rt))
+#>           n     p_upper      min_rt 
+#> 700.0000000   0.5657143   0.3338000
+```
+
+The step size `dt = 1e-4` makes the simulated crossing times accurate to
+about a percent in the recovered parameters, which is inside the
+sampling noise of 700 trials.
+
+``` r
+
+fddm <- frm(bf(rt | vint(upper) ~ x, bias = 0.5),
+            family = wiener(max_ndt = min(dat$rt)), data = dat)
+e <- unlist(fixef(fddm))
+ndt_hat <- min(dat$rt) / (1 + exp(-e[["ndt.(Intercept)"]]))
+se <- sqrt(diag(vcov(fddm)))
+out <- rbind(
+  estimated = c(e[["mu.(Intercept)"]], e[["mu.x"]],
+                exp(e[["bs.(Intercept)"]]), ndt_hat),
+  simulated = c(0.4, 0.9, 1.4, 0.28),
+  # vcov() leaves mu's coefficients bare and prefixes every other
+  # dpar; the last two errors go through the links by the delta method
+  standard_error = c(se[["(Intercept)"]], se[["x"]],
+                     exp(e[["bs.(Intercept)"]]) * se[["bs_(Intercept)"]],
+                     ndt_hat * (1 - ndt_hat / min(dat$rt)) *
+                       se[["ndt_(Intercept)"]]))
+colnames(out) <- c("drift_intercept", "drift_slope", "boundary", "ndt")
+round(out, 4)
+#>                drift_intercept drift_slope boundary    ndt
+#> estimated               0.3139      0.8876   1.4240 0.2788
+#> simulated               0.4000      0.9000   1.4000 0.2800
+#> standard_error          0.0570      0.0584   0.0282 0.0051
+```
+
+The boundary, the non-decision time and the drift slope come back inside
+one standard error. The drift intercept sits about one and a half
+standard errors low, which is ordinary sampling behavior at 700 trials
+and not evidence about the density. The two checks below pin the density
+itself.
+
+`bias = 0.5` on the right of
+[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) fixes that
+distributional parameter at a constant on the **response** scale, which
+is the unbiased start point of the simple story.
+
+The truncation is fixed, so report the largest normalized time the fit
+actually reached. The series is exact to 1e-9 for `u` up to about 4 and
+degrades past 6, and the degradation is cancellation in double precision
+rather than truncation: a larger `K` does not fix it.
+
+``` r
+
+c(max_normalized_time = max((dat$rt - ndt_hat) /
+                              exp(e[["bs.(Intercept)"]])^2))
+#> max_normalized_time 
+#>            1.554543
+```
+
+### Cross-check against RWiener
+
+RWiener implements the same density in C with an adaptive term count.
+Check the R function against it pointwise first.
+
+``` r
+
+gr <- expand.grid(t = c(0.05, 0.15, 0.4, 0.8, 1.5, 2.5),
+                  a = c(0.8, 1.4, 2.2), w = c(0.35, 0.5, 0.7),
+                  v = c(-1.5, 0, 1.5))
+rel <- mapply(function(t, a, w, v) {
+  ref <- log(RWiener::dwiener(t + 0.2, a, 0.2, w, v, resp = "lower"))
+  abs(wiener_lpdf1(t, v, a, w) - ref) / abs(ref)
+}, gr$t, gr$a, gr$w, gr$v)
+c(cases = length(rel), max_relative_error = max(rel))
+#>              cases max_relative_error 
+#>       1.620000e+02       8.728694e-11
+```
+
+``` r
+
+stopifnot(max(rel) < 1e-8)
+```
+
+Then check the fitted log likelihood: evaluate RWiener’s density at the
+frmtmb estimates on the same 700 trials and add the logs.
+
+``` r
+
+drift <- e[["mu.(Intercept)"]] + e[["mu.x"]] * dat$x
+ll_ref <- sum(mapply(function(q, up, v) {
+  log(RWiener::dwiener(q, exp(e[["bs.(Intercept)"]]), ndt_hat, 0.5, v,
+                       resp = if (up == 1) "upper" else "lower"))
+}, dat$rt, dat$upper, drift))
+c(frmtmb = as.numeric(logLik(fddm)), RWiener = ll_ref,
+  difference = as.numeric(logLik(fddm)) - ll_ref)
+#>        frmtmb       RWiener    difference 
+#> -4.096528e+02 -4.096528e+02 -1.705303e-13
+```
+
+``` r
+
+stopifnot(abs(as.numeric(logLik(fddm)) - ll_ref) < 1e-8)
+```
+
+The density agrees with the C implementation to better than 1e-10
+relative over 162 parameter settings, and the two log likelihoods on the
+fitted data agree to 1e-12.
+
+``` r
+
+tg <- seq(min(dat$rt), quantile(dat$rt, 0.99), length.out = 200)
+dens <- function(up) {
+  v <- (e[["mu.(Intercept)"]] + e[["mu.x"]] * 0) * (1 - 2 * up)
+  w <- 0.5
+  exp(wiener_lpdf1(tg - ndt_hat, v, exp(e[["bs.(Intercept)"]]), w))
+}
+br <- seq(min(dat$rt), max(dat$rt) + 0.05, by = 0.05)
+hu <- hist(dat$rt[dat$upper == 1], breaks = br, plot = FALSE)
+hl <- hist(dat$rt[dat$upper == 0], breaks = br, plot = FALSE)
+sc <- nrow(dat) * 0.05
+tinyplot::tinyplot(x = hu$mids, y = hu$counts / sc, type = "h", lwd = 6,
+                   col = "gray70", theme = "clean2",
+                   ylim = c(-max(hl$counts / sc) - 0.2,
+                            max(hu$counts / sc) + 0.2),
+                   xlab = "response time (s)", ylab = "density")
+tinyplot::plt_add(x = hl$mids, y = -hl$counts / sc, type = "h", lwd = 6,
+                  col = "gray85")
+lines(tg, dens(1), col = "steelblue4", lwd = 2)
+lines(tg, -dens(0), col = "firebrick", lwd = 2)
+abline(h = 0, col = "gray40")
+```
+
+![Two histograms of response time back to back. The upper half of the
+plot holds the upper-boundary responses as bars rising from zero, with a
+fitted density curve over them. The lower half holds the lower-boundary
+responses as bars hanging below zero, with its own fitted density curve.
+Both curves rise steeply after the non-decision time near 0.28 seconds
+and decay with a long right tail. The upper histogram is much taller,
+because most responses hit the upper
+boundary.](case-studies_files/figure-html/ddm-fig-1.png)
+
+The two curves are the same density at the two boundaries. Their areas
+are the two choice proportions, which is why the lower-boundary curve is
+the smaller one: the drift points up.
+
+What this showcase does not do. There is no trial-to-trial variability
+in drift, start point or non-decision time, so it is the pure Wiener
+model and not the full Ratcliff model, whose likelihood needs an
+integral over the drift distribution at every row. There is no
+contaminant mixture for fast guesses and slow lapses. And the fixed
+truncation is a real constraint: check `max_normalized_time` above on
+your own data, because a small boundary separation with long response
+times will leave the range where the series is exact.
+
+## 12. Circular regression
+
+Wind direction, the phase of a circadian rhythm and the bearing of a
+migrating bird are angles. Their arithmetic wraps, so a linear model of
+the number is wrong at the wrap point: 359 degrees and 1 degree are two
+degrees apart, not 358.
+[`von_mises()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+is the natural exponential family on the circle, with a mean direction
+`mu` and a concentration `kappa` (Fisher 1993; Mardia and Jupp 2000).
+
+The example is the sea breeze: wind direction at a coastal station
+rotates through the day, and the breeze is both steadier and stronger in
+the afternoon. Both facts are in the model, because `kappa` takes a
+formula of its own.
+
+``` r
+
+# exact rejection sampling from a von Mises, uniform proposal
+rvon_mises <- function(n, mu, kappa) {
+  mu <- rep_len(mu, n); kappa <- rep_len(kappa, n)
+  th <- numeric(n); todo <- seq_len(n)
+  while (length(todo)) {
+    z <- runif(length(todo), -pi, pi)
+    ok <- runif(length(todo)) < exp(kappa[todo] * (cos(z) - 1))
+    th[todo[ok]] <- z[ok]
+    todo <- todo[!ok]
+  }
+  ((th + mu + pi) %% (2 * pi)) - pi
+}
+set.seed(77)
+nw <- 600
+hour <- runif(nw, 0, 24)
+mu_true <- 2 * atan(0.6 * sin(2 * pi * hour / 24))
+kappa_true <- exp(0.7 + 0.8 * cos(2 * pi * (hour - 15) / 24))
+wind <- data.frame(hour = hour,
+                   angle = rvon_mises(nw, mu_true, kappa_true))
+```
+
+`bs = "cc"` is mgcv’s cyclic cubic spline, whose value and first two
+derivatives match at the ends of the range. That is the right basis for
+a covariate that is itself periodic, and it saves the model from
+predicting a jump at midnight.
+
+``` r
+
+fvm <- frm(bf(angle ~ s(hour, bs = "cc", k = 8),
+              kappa ~ s(hour, bs = "cc", k = 8)),
+           family = von_mises(), data = wind)
+nd <- data.frame(hour = c(0, 6, 12, 18))
+out <- rbind(
+  mu_estimated = as.numeric(predict(fvm, newdata = nd, type = "response")),
+  mu_simulated = 2 * atan(0.6 * sin(2 * pi * nd$hour / 24)),
+  kappa_estimated = as.numeric(predict(fvm, newdata = nd, dpar = "kappa",
+                                       type = "response")),
+  kappa_simulated = exp(0.7 + 0.8 * cos(2 * pi * (nd$hour - 15) / 24)))
+colnames(out) <- paste0("hour ", nd$hour)
+round(out, 3)
+#>                 hour 0 hour 6 hour 12 hour 18
+#> mu_estimated     0.101  1.083   0.097  -1.118
+#> mu_simulated     0.000  1.081   0.000  -1.081
+#> kappa_estimated  1.341  1.060   3.924   3.782
+#> kappa_simulated  1.144  1.144   3.546   3.546
+```
+
+The mean direction is reported in radians on `(-pi, pi)`. The link is
+`tan_half`, `mu = 2 * atan(eta)`, which maps the whole line onto that
+interval, so the linear predictor is not itself an angle.
+
+### Cross-check against the closed-form circular MLE
+
+For an intercept-only model the maximum likelihood estimates are known
+in closed form. The mean direction is the direction of the mean
+resultant vector, and the concentration solves
+`A1(kappa) = I1(kappa) / I0(kappa) = Rbar`, where `Rbar` is the length
+of that vector. Neither expression uses any part of frmtmb.
+
+``` r
+
+set.seed(78)
+w0 <- data.frame(angle = rvon_mises(500, 0.8, 2.2))
+f0 <- frm(bf(angle ~ 1), family = von_mises(), data = w0)
+Rbar <- sqrt(mean(sin(w0$angle))^2 + mean(cos(w0$angle))^2)
+out <- rbind(
+  frmtmb = c(as.numeric(predict(f0, newdata = w0[1, , drop = FALSE],
+                                type = "response")),
+             exp(unlist(fixef(f0)$kappa))),
+  closed_form = c(atan2(mean(sin(w0$angle)), mean(cos(w0$angle))),
+                  uniroot(function(k) besselI(k, 1) / besselI(k, 0) - Rbar,
+                          c(1e-8, 500), tol = 1e-12)$root),
+  simulated = c(0.8, 2.2))
+colnames(out) <- c("mean_direction", "kappa")
+round(out, 6)
+#>             mean_direction    kappa
+#> frmtmb            0.823811 2.289763
+#> closed_form       0.823811 2.289763
+#> simulated         0.800000 2.200000
+```
+
+``` r
+
+stopifnot(
+  abs(as.numeric(predict(f0, newdata = w0[1, , drop = FALSE],
+                         type = "response")) -
+        atan2(mean(sin(w0$angle)), mean(cos(w0$angle)))) < 1e-6,
+  abs(exp(unlist(fixef(f0)$kappa)) -
+        uniroot(function(k) besselI(k, 1) / besselI(k, 0) - Rbar,
+                c(1e-8, 500), tol = 1e-12)$root) < 1e-5)
+```
+
+Both estimates match the closed form to six decimal places.
+[`circular::mle.vonmises()`](https://rdrr.io/pkg/circular/man/mle.vonmises.html)
+gives the same mean direction and a concentration that differs in the
+fourth decimal, because it applies a small-sample bias correction to
+`kappa` by default.
+
+``` r
+
+m <- circular::mle.vonmises(circular::circular(w0$angle))
+c(circular_mu = as.numeric(m$mu), circular_kappa = as.numeric(m$kappa))
+#>    circular_mu circular_kappa 
+#>      0.8238112      2.2829061
+```
+
+The daily cycle is easier to see on the circle than in a table.
+
+``` r
+
+hg <- data.frame(hour = seq(0, 24, length.out = 200))
+mu_g <- as.numeric(predict(fvm, newdata = hg, type = "response"))
+kp_g <- as.numeric(predict(fvm, newdata = hg, dpar = "kappa",
+                           type = "response"))
+op <- par(mfrow = c(2, 1), mar = c(4, 4, 1, 1))
+tinyplot::tinyplot(angle ~ hour, data = wind, type = "p", pch = 16,
+                   cex = 0.5, col = "gray55", theme = "clean2",
+                   xlab = "", ylab = "direction (rad)")
+lines(hg$hour, mu_g, col = "steelblue4", lwd = 2)
+lines(hg$hour, 2 * atan(0.6 * sin(2 * pi * hg$hour / 24)), lty = 2,
+      col = "gray30")
+tinyplot::tinyplot(x = hg$hour, y = kp_g, type = "l", col = "firebrick",
+                   lwd = 2, theme = "clean2", xlab = "hour of day",
+                   ylab = "kappa", ylim = c(0, max(kp_g) * 1.1))
+lines(hg$hour, exp(0.7 + 0.8 * cos(2 * pi * (hg$hour - 15) / 24)),
+      lty = 2, col = "gray30")
+```
+
+![Two stacked panels against hour of day from 0 to 24. The upper panel
+holds 600 gray points of wind direction in radians, with a blue fitted
+curve that rises to about 1 radian near hour 6, crosses zero near hour
+12, and falls to about minus 1 near hour 18. The lower panel holds the
+fitted concentration as a red curve, low near hour 3 and peaking above 4
+near hour 15. The gray points scatter widely where the red curve is low
+and tightly where it is
+high.](case-studies_files/figure-html/vm-fig-1.png)
+
+``` r
+
+par(op)
+```
+
+The points crowd around the blue line in the afternoon and spread out
+before dawn, which is the red curve read off the data.
+
+What this does not cover.
+[`von_mises()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+is the only circular family here: there is no wrapped normal, wrapped
+Cauchy or projected normal. The response must be in radians on
+`(-pi, pi]`; a response in degrees or on `[0, 2 pi)` fits a different
+model and is refused. The predictor is a number rather than an angle, so
+this is circular-linear regression, not circular-circular regression; a
+periodic covariate enters through a cyclic basis as above. And the
+`tan_half` link puts a mean direction near the ends of the range at the
+ends of the link’s range too, so a phenomenon centered near `pi` should
+be rotated to the middle of the interval before fitting.
+
 ## Where the checks live
 
 Every cross-check on this page runs when the page is built, and the
 [`stopifnot()`](https://rdrr.io/r/base/stopifnot.html) calls fail the
 build if a number moves. The strongest of them are also pinned in
 `tests/testthat/test-case-studies.R`, so they run in the test suite as
-well.
+well. The Wiener density of section 11 has a file of its own,
+`tests/testthat/test-vignette-wiener.R`: a page that writes a
+research-grade density and validates it deserves a test that holds the
+same numbers, and that file also measures where the fixed truncation
+stops being exact.
 
-Two points of friction showed up while writing these case studies, and
-each one is handled above:
+Several points of friction showed up while writing these case studies,
+and each one is handled above:
 
 - A `gr(cov = )` block with one row per level triggers the
   observation-level random effect warning, although the covariance
@@ -989,6 +1996,33 @@ each one is handled above:
   spellings are the same joint density. One `|ID|` label must name one
   grouping specification, and the matrix must resolve identically in
   every formula.
+- [`logLik()`](https://rdrr.io/r/stats/logLik.html) means different
+  things in frmtmb and in mgcv. frmtmb reports the marginal likelihood
+  with the smooth coefficients integrated out, which is what mgcv
+  maximizes under `method = "ML"` and reports as `-gam$gcv.ubre`.
+  `logLik.gam` is the unpenalized likelihood at the fit and is the wrong
+  number to compare against. Section 10 compares the right pair.
+- A model with an `fs` factor-smooth needs the grouping column in
+  `newdata`, even to draw the population curve. Section 10 works around
+  it by taking a contrast at one level, where the level’s own curve
+  cancels.
+- A custom family may pass a link OBJECT rather than a link name, which
+  is how section 11 bounds the non-decision time by the data. The object
+  needs `name`, `linkfun`, `linkinv` and `mu_eta`.
+
+Three model classes on this page are refused by parts of the
+post-fitting surface, and the refusals are deliberate. An
+[`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) fit has no
+per-observation likelihood, so
+[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md),
+[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md),
+`residuals(type = "deviance")` and
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+all say so instead of inventing one. A term built on matrix columns is
+excluded from
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md),
+because a matrix covariate has no single value to hold the other
+predictors at.
 
 The identity-refit check of section 1 belongs in any model that reads a
 matrix from `data2`. It is the one test that a structured covariance

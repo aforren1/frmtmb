@@ -76,15 +76,10 @@ summary(ds)
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#>                        mean         sd       2.5%      97.5%     n_eff
-#> Intercept        0.86727138 0.22383644  0.4705373  1.2908627  65.81962
-#> x                0.60890639 0.11494112  0.3919374  0.8098386 166.17303
-#> sigma_Intercept -0.04449472 0.07919443 -0.2126601  0.1180956 331.91295
-#> theta_1         -1.23438073 0.55239525 -2.2943477 -0.1414038  55.11599
-#>                      Rhat
-#> Intercept       1.0199300
-#> x               1.0056924
-#> sigma_Intercept 1.0043718
-#> theta_1         0.9991041
+#>                        mean         sd       2.5%      97.5%    n_eff      Rhat
+#> Intercept        0.85276138 0.13582704  0.5625223  1.1209474 111.4628 0.9961619
+#> x                0.61282556 0.10893028  0.4246522  0.8233411 219.5038 1.0043144
+#> sigma_Intercept -0.04262745 0.08395983 -0.2119155  0.1364832 200.6217 1.0152033
+#> theta_1         -1.50527252 0.96086982 -3.9788596 -0.3289263 141.6968 1.0097685
 # }
 ```

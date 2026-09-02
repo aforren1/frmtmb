@@ -17,7 +17,7 @@ formula)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.37.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.38.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,6 +80,7 @@ formula).</p>
 <span>  upper <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  init <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  init_jitter <span class="op">=</span> <span class="fl">0.25</span>,</span>
+<span>  reparameterize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  data2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  start <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="frmtmb_control.html">frmtmb_control</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -160,6 +161,19 @@ where there is no mode to start at.</p></dd>
 session's RNG, so <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> makes the inits reproducible.</p></dd>
 
 
+<dt id="arg-reparameterize">reparameterize<a class="anchor" aria-label="anchor" href="#arg-reparameterize"></a></dt>
+<dd><p>Sample the qualifying random-effect blocks in
+their non-centered form (<code>b = L(theta) z</code>), which removes the
+funnel of the centered joint posterior. <code>TRUE</code> by default. Not
+every block qualifies, and the call says which did not and why;
+see Reparameterization, which also explains why nothing downstream
+can tell the two routes apart. The mode-anchored <code>init</code> still
+starts at the ML mode: it is mapped through
+<code>z0 = L(theta_hat)^-1 b_hat</code>. Seeded draws differ between the two
+routes, so <code>reparameterize = FALSE</code> is also the way to reproduce a
+run made before this default existed.</p></dd>
+
+
 <dt id="arg-data-start-control-na-action-reml">data2, start, control, na.action, REML<a class="anchor" aria-label="anchor" href="#arg-data-start-control-na-action-reml"></a></dt>
 <dd><p>As in <code><a href="frm.html">frm()</a></code>; used only on
 the formula path.</p></dd>
@@ -168,8 +182,11 @@ the formula path.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>frmtmb_draws</code>: list with the <code>stanfit</code>,
-a draws matrix with named columns (<code><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix()</a></code> method), and the
-originating fit.</p>
+a draws matrix with named columns (<code><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix()</a></code> method), the
+originating fit, and, when any block was non-centered, a
+<code>reparam</code> note saying which. The <code>stanfit</code> holds the parameters as
+Stan sampled them, so on a non-centered run its random-effect
+columns are <code>z</code> while the draws matrix holds <code>b</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -207,6 +224,100 @@ compares NUTS against a mode that does not exist here), and on the
 embedded object reachable as <code>x$fit</code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>,
 <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>, <code><a href="fixef.html">fixef()</a></code>, <code><a href="ranef.html">ranef()</a></code>, <code><a href="VarCorr.html">VarCorr()</a></code>,
 <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="reparameterization">Reparameterization<a class="anchor" aria-label="anchor" href="#reparameterization"></a></h2>
+
+
+<p>A random-effect block has a FUNNEL in its centered joint posterior:
+the width of the prior on <code>b</code> is a standard deviation that is being
+sampled at the same time, so the region NUTS must explore narrows as
+that standard deviation shrinks, and one step size cannot fit both
+ends of it.</p>
+<p><code>reparameterize = TRUE</code> (the default) samples <code>z ~ N(0, I)</code> instead
+and computes <code>b = L(theta) z</code> on the tape, with <code>L</code> the block's own
+Cholesky factor, which is brms's construction. Each draw is mapped back
+through ITS OWN <code>theta</code>, so the <code>b[i]</code> columns of the draws matrix
+hold the same quantity in the same order under the same names as
+<code>reparameterize = FALSE</code> gives, and every method downstream
+(<code><a href="posterior_epred.html">posterior_epred()</a></code>, <code><a href="ranef.html">ranef()</a></code>, <code><a href="log_lik.html">log_lik()</a></code>, <code><a href="loo.html">loo()</a></code>,
+<code><a href="conditional_effects.html">conditional_effects()</a></code>, <code><a href="hypothesis.html">hypothesis()</a></code>) reads them without knowing
+which route produced them. Only the <code>stanfit</code> inside the object
+carries <code>z</code>.</p>
+<p>Priors are unaffected. They are declared on the OUTER parameters
+(<code>beta</code>, <code>theta</code>, <code>betad</code>), and <code>theta</code> means the same thing on both
+routes; nothing prior-able is reparameterized. What priors DO decide
+is which blocks are eligible, below.</p>
+<p><em>Which blocks, and why not all of them.</em> A block is non-centered when
+two things hold, and they are the same thing twice: every parameter it
+has is a standard deviation with a Cholesky factor registered for its
+structure, and every one of those parameters carries a PRIOR. Both
+are about not handing the sampler a direction it can run away in.
+Non-centering gives NUTS the run of <code>theta</code>'s whole range, and the
+centered funnel is what was keeping a chain out of the parts of that
+range where the posterior is flat or improper. Removing the funnel
+without closing those off first trades a slow chain for a wrong one.</p>
+<p>In practice that means the FORMULA interface, whose default priors
+cover every standard deviation, non-centers <code>(1 | g)</code> and any block
+written one term at a time, <code><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag()</a></code> and <code>homdiag()</code> blocks, <code><a href="https://rdrr.io/pkg/mgcv/man/s.html" class="external-link">mgcv::s()</a></code>
+smooths, <code>equalto()</code>, and
+<code>gr(cov = )</code> with one term. A <code>k =</code> Hilbert-space <code><a href="https://paulbuerkner.com/brms/reference/gp.html" class="external-link">gp()</a></code> block stays
+centered on the formula route even though its factor is diagonal:
+its LENGTHSCALES share the block's <code>theta</code>, the default priors cover
+only standard deviations, and the gate wants every parameter of a
+block priored. Prior the whole block by hand
+(<code>set_prior(class = "theta")</code>) to non-center it.
+<code>rr()</code> is already non-centered by
+construction, since its own coefficients are the standard normal
+factors. A fitted model sampled with <code>frm_sample(fit)</code> has flat
+priors by design (it is a diagnostic; see above), so it stays
+centered unless you give its variance parameters a prior.</p>
+<p>The call <code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code>s every block it left centered, with the reason.
+A model made only of those samples centered throughout and says so
+rather than failing. The reasons:</p><ul><li><p>A FLAT PRIOR on the block's standard deviation. Send <code>sd</code> down with
+<code>z</code> where it is: <code>b = sd z</code> goes to zero, the likelihood settles on
+the model without that random effect, and the density stops
+changing: a flat tail with nothing to stop a chain in it. Measured
+on a six-group random-intercept model, one chain of 2000, three
+seeds: from the fit, with flat priors, the non-centered chain walks
+<code>theta</code> to -1e15 at a bulk-ESS of 1; from the formula, where the
+default <code>student_t(3, 0, s)</code> makes that tail integrable, 174 to 284
+against 3 to 48 centered.</p></li>
+<li><p>A CORRELATION parameter: <code>(Days | Subject)</code>, <code>cs()</code>, <code>ar1()</code> and
+the rest. Not a limit of the arithmetic: the factor exists and is
+exact. It is that a correlation here is parameterized by an
+unbounded <code>theta</code> whose flat prior is <code>(1 - rho^2)^-3/2</code> on the
+correlation itself - improper, with all its mass at <code>|rho| = 1</code>.
+Measured on <code>sleepstudy (Days | Subject)</code>: the profile
+log-likelihood is flat in that <code>theta</code> past <code>|theta| = 100</code> and
+only 4.4 nats below the peak, and a non-centered chain reaches
+<code>theta = 2e6</code> at a bulk-ESS of 1. The fix is again a prior:
+<code>priors = list(theta_3 = prior_normal(0, 1))</code> makes the CENTERED
+chain run divergence-free at 142 min-ESS per second there, against
+28 with the flat prior and 122 for the matched brms model.</p></li>
+<li><p>A Student-t latent (<code>gr(dist = "student")</code>): a scale mixture, not a
+linear factor.</p></li>
+<li><p><code><a href="https://paulbuerkner.com/brms/reference/car.html" class="external-link">car()</a></code>, <code>spde()</code> and <code>gr(prec = )</code>: sparse precisions whose factor
+is dense.</p></li>
+<li><p>The exact <code><a href="https://paulbuerkner.com/brms/reference/gp.html" class="external-link">gp()</a></code> and the spatial covariances (<code>ou</code>, <code>exp</code>, <code>gau</code>,
+<code>mat</code>): a full factorization per gradient evaluation.</p></li>
+<li><p><code>toep()</code>: not positive definite everywhere in its parameterization,
+so <code>b = L z</code> is not a bijection there.</p></li>
+</ul><p><em>What it is worth.</em> One chain of 2000 iterations, three seeds
+(dev/benchmarks.md). Where each group's own data say little (the
+regime the funnel lives in) it is decisive: 80 groups of 2 binary
+observations run at a min-ESS of 236 against 5 centered, 55 times the
+effective draws per second. Where the groups are informative it is a
+wash: the <code>epilepsy</code> GLMM and an uncorrelated <code>sleepstudy</code> are within
+noise of the centered chain either way. It is not a blanket speed-up,
+and the blocks it declines to touch are the ones where it would have
+done harm.</p>
+<p><code>laplace = TRUE</code> integrates the random effects out, which removes the
+funnel by itself, so that route ignores <code>reparameterize</code> entirely.</p>
+<p>The ML fit is untouched either way. The Laplace approximation
+integrates <code>b</code> out, and that integral is invariant under a linear
+change of the integrated variable, so <code><a href="frm.html">frm()</a></code> has nothing to change
+and no fitted object ever carries a non-centered tape.</p>
     </div>
     <div class="section level2">
     <h2 id="default-priors">Default priors<a class="anchor" aria-label="anchor" href="#default-priors"></a></h2>
@@ -302,6 +413,8 @@ individually.</p>
 <span class="r-in"><span>                  priors <span class="op">=</span> <span class="fu"><a href="set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="prior_summary.html">prior_summary</a></span><span class="op">(</span><span class="va">ds3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>There were 3 divergent transitions after warmup. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> to find out why this is a problem and how to eliminate them.</span>
@@ -317,11 +430,7 @@ individually.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   sd                 student_t(3, 0, 2.5)  [natural sd scale]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   b                  (flat), as brms leaves slopes</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>There were 3 divergent transitions after warmup. See</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> to find out why this is a problem and how to eliminate them.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Examine the pairs() plot to diagnose sampling problems</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The largest R-hat is 1.14, indicating chains have not mixed.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The largest R-hat is 1.07, indicating chains have not mixed.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#r-hat</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span>
@@ -334,10 +443,6 @@ individually.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 1, 2.5)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   b                  (flat), as brms leaves slopes</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>There were 2 divergent transitions after warmup. See</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> to find out why this is a problem and how to eliminate them.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Examine the pairs() plot to diagnose sampling problems</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#bulk-ess</span>

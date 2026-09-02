@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.37.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.38.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,26 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.38.0" id="frmtmb-0380">frmtmb 0.38.0<a class="anchor" aria-label="anchor" href="#frmtmb-0380"></a></h2>
+<p>Non-centered sampling with the funnel diagnosed as a prior, and four case studies: hidden Markov, functional regression, Wiener diffusion, and circular.</p>
+<div class="section level3">
+<h3 id="non-centered-sampling-0-38-0">Non-centered sampling<a class="anchor" aria-label="anchor" href="#non-centered-sampling-0-38-0"></a></h3>
+<ul><li>
+<code><a href="../reference/frm_sample.html">frm_sample()</a></code> gains <code>reparameterize</code> (default <code>TRUE</code>): a random-effect block whose every parameter is a standard deviation carrying a prior is sampled non-centered, <code>b = L(theta) z</code>, and mapped back per draw. The draws matrix is unchanged in every respect (same <code>b[i]</code> columns, same names, same order), so <code><a href="../reference/log_lik.html">log_lik()</a></code>, <code><a href="../reference/loo.html">loo()</a></code>, <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code>, <code><a href="../reference/ranef.html">ranef()</a></code>, <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> and <code><a href="../reference/hypothesis.html">hypothesis()</a></code> cannot tell the routes apart. Seeded formula-route draws differ from v0.37; <code>reparameterize = FALSE</code> reproduces the old chains exactly, and the fit route, and with it <code><a href="../reference/check_laplace.html">check_laplace()</a></code>, is unchanged.</li>
+<li>Where each group’s own data say little (the regime the funnel lives in) the gain is decisive: a binary GLMM with 80 groups of 2 observations goes from a min bulk-ESS of 5 to 236. Where groups are informative it is a wash, and it is not offered as a blanket speed-up.</li>
+<li>A block is non-centered only when every parameter it has is a standard deviation carrying a prior, and <code><a href="../reference/frm_sample.html">frm_sample()</a></code> names every block it left centered, with the reason. This is measured, not conservatism: under a flat prior the reparameterization hands the chain a flat tail the centered geometry was blocking.</li>
+<li>The correlated-slopes sampling deficit against brms is diagnosed, and it was not the centering: the flat prior frmtmb puts on a correlation’s unbounded parameter is <code>(1 - rho^2)^(-3/2)</code>, improper, and a proper prior on that parameter fixes it in the CENTERED parameterization, beating the matched brms throughput. brms is ahead there because <code>lkj(1)</code> is proper, not because it non-centers. An LKJ default on correlations is the queued follow-up; <code>dev/benchmarks.md</code> carries the measurements.</li>
+<li>
+<code><a href="../reference/check_laplace.html">check_laplace()</a></code> reports each parameter’s bulk effective sample size and says so when the chain mixed too poorly to judge the approximation, instead of letting a sick chain read as a Laplace problem.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="case-studies-0-38-0">Case studies<a class="anchor" aria-label="anchor" href="#case-studies-0-38-0"></a></h3>
+<ul><li>
+<code><a href="../articles/case-studies.html">vignette("case-studies")</a></code> gains four sections: a two-state gaussian hidden Markov model on an animal track, validated against hmmTMB from generic starts (5.9e-10 in the log likelihood) and depmixS4 (9.7e-8); function-on-scalar regression through <code>s(t)</code>, <code>s(t, by = x)</code> and a <code>bs = "fs"</code> factor smooth, plus scalar-on-function regression through a matrix-column linear functional term, both validated against <code><a href="https://rdrr.io/pkg/mgcv/man/gam.html" class="external-link">mgcv::gam()</a></code> under ML; the Wiener first-passage density written as a <code><a href="../reference/frmtmb_family.html">custom_family()</a></code> (RWiener agreement 8.7e-11 over 162 settings), with a data-bounded non-decision time through a link object; and von Mises circular regression with a cyclic-basis mean and distributional kappa, against the closed-form circular MLE to 6 decimals.</li>
+<li>Documented along the way: a smooth model’s <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> equals mgcv’s ML smoothness-selection score <code>-gam$gcv.ubre</code> (not <code>logLik.gam</code>); <code>frmtmb_family(links = )</code> accepts a link object, which is how a bounded parameter keeps its support without a tape branch. RWiener joins Suggests, used only by the vignette and its density test.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.37.0" id="frmtmb-0370">frmtmb 0.37.0<a class="anchor" aria-label="anchor" href="#frmtmb-0370"></a></h2>
 <p>Leave-one-out cross-validation and the brmsfit method surface on draws, the frm_ode() pharmacometrics tier, influence plots and naming ergonomics, and the root cause of the ODE sampling defect, with patches for upstream.</p>

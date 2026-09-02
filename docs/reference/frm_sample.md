@@ -22,6 +22,7 @@ frm_sample(
   upper = NULL,
   init = NULL,
   init_jitter = 0.25,
+  reparameterize = TRUE,
   data2 = list(),
   start = NULL,
   control = frmtmb_control(),
@@ -105,6 +106,18 @@ frm_sample(
   [`set.seed()`](https://rdrr.io/r/base/Random.html) makes the inits
   reproducible.
 
+- reparameterize:
+
+  Sample the qualifying random-effect blocks in their non-centered form
+  (`b = L(theta) z`), which removes the funnel of the centered joint
+  posterior. `TRUE` by default. Not every block qualifies, and the call
+  says which did not and why; see Reparameterization, which also
+  explains why nothing downstream can tell the two routes apart. The
+  mode-anchored `init` still starts at the ML mode: it is mapped through
+  `z0 = L(theta_hat)^-1 b_hat`. Seeded draws differ between the two
+  routes, so `reparameterize = FALSE` is also the way to reproduce a run
+  made before this default existed.
+
 - data2, start, control, na.action, REML:
 
   As in [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md);
@@ -114,8 +127,11 @@ frm_sample(
 
 An object of class `frmtmb_draws`: list with the `stanfit`, a draws
 matrix with named columns
-([`as.matrix()`](https://rdrr.io/r/base/matrix.html) method), and the
-originating fit.
+([`as.matrix()`](https://rdrr.io/r/base/matrix.html) method), the
+originating fit, and, when any block was non-centered, a `reparam` note
+saying which. The `stanfit` holds the parameters as Stan sampled them,
+so on a non-centered run its random-effect columns are `z` while the
+draws matrix holds `b`.
 
 ## Details
 
@@ -174,6 +190,118 @@ embedded object reachable as `x$fit`,
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
 [`residuals()`](https://rdrr.io/r/stats/residuals.html) and
 [`simulate()`](https://rdrr.io/r/stats/simulate.html).
+
+## Reparameterization
+
+A random-effect block has a FUNNEL in its centered joint posterior: the
+width of the prior on `b` is a standard deviation that is being sampled
+at the same time, so the region NUTS must explore narrows as that
+standard deviation shrinks, and one step size cannot fit both ends of
+it.
+
+`reparameterize = TRUE` (the default) samples `z ~ N(0, I)` instead and
+computes `b = L(theta) z` on the tape, with `L` the block's own Cholesky
+factor, which is brms's construction. Each draw is mapped back through
+ITS OWN `theta`, so the `b[i]` columns of the draws matrix hold the same
+quantity in the same order under the same names as
+`reparameterize = FALSE` gives, and every method downstream
+([`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+[`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
+[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md),
+[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md),
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md),
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md))
+reads them without knowing which route produced them. Only the `stanfit`
+inside the object carries `z`.
+
+Priors are unaffected. They are declared on the OUTER parameters
+(`beta`, `theta`, `betad`), and `theta` means the same thing on both
+routes; nothing prior-able is reparameterized. What priors DO decide is
+which blocks are eligible, below.
+
+*Which blocks, and why not all of them.* A block is non-centered when
+two things hold, and they are the same thing twice: every parameter it
+has is a standard deviation with a Cholesky factor registered for its
+structure, and every one of those parameters carries a PRIOR. Both are
+about not handing the sampler a direction it can run away in.
+Non-centering gives NUTS the run of `theta`'s whole range, and the
+centered funnel is what was keeping a chain out of the parts of that
+range where the posterior is flat or improper. Removing the funnel
+without closing those off first trades a slow chain for a wrong one.
+
+In practice that means the FORMULA interface, whose default priors cover
+every standard deviation, non-centers `(1 | g)` and any block written
+one term at a time, [`diag()`](https://rdrr.io/r/base/diag.html) and
+`homdiag()` blocks, [`mgcv::s()`](https://rdrr.io/pkg/mgcv/man/s.html)
+smooths, `equalto()`, and `gr(cov = )` with one term. A `k =`
+Hilbert-space [`gp()`](https://paulbuerkner.com/brms/reference/gp.html)
+block stays centered on the formula route even though its factor is
+diagonal: its LENGTHSCALES share the block's `theta`, the default priors
+cover only standard deviations, and the gate wants every parameter of a
+block priored. Prior the whole block by hand
+(`set_prior(class = "theta")`) to non-center it. `rr()` is already
+non-centered by construction, since its own coefficients are the
+standard normal factors. A fitted model sampled with `frm_sample(fit)`
+has flat priors by design (it is a diagnostic; see above), so it stays
+centered unless you give its variance parameters a prior.
+
+The call [`message()`](https://rdrr.io/r/base/message.html)s every block
+it left centered, with the reason. A model made only of those samples
+centered throughout and says so rather than failing. The reasons:
+
+- A FLAT PRIOR on the block's standard deviation. Send `sd` down with
+  `z` where it is: `b = sd z` goes to zero, the likelihood settles on
+  the model without that random effect, and the density stops changing:
+  a flat tail with nothing to stop a chain in it. Measured on a
+  six-group random-intercept model, one chain of 2000, three seeds: from
+  the fit, with flat priors, the non-centered chain walks `theta` to
+  -1e15 at a bulk-ESS of 1; from the formula, where the default
+  `student_t(3, 0, s)` makes that tail integrable, 174 to 284 against 3
+  to 48 centered.
+
+- A CORRELATION parameter: `(Days | Subject)`, `cs()`, `ar1()` and the
+  rest. Not a limit of the arithmetic: the factor exists and is exact.
+  It is that a correlation here is parameterized by an unbounded `theta`
+  whose flat prior is `(1 - rho^2)^-3/2` on the correlation itself -
+  improper, with all its mass at `|rho| = 1`. Measured on
+  `sleepstudy (Days | Subject)`: the profile log-likelihood is flat in
+  that `theta` past `|theta| = 100` and only 4.4 nats below the peak,
+  and a non-centered chain reaches `theta = 2e6` at a bulk-ESS of 1. The
+  fix is again a prior: `priors = list(theta_3 = prior_normal(0, 1))`
+  makes the CENTERED chain run divergence-free at 142 min-ESS per second
+  there, against 28 with the flat prior and 122 for the matched brms
+  model.
+
+- A Student-t latent (`gr(dist = "student")`): a scale mixture, not a
+  linear factor.
+
+- [`car()`](https://paulbuerkner.com/brms/reference/car.html), `spde()`
+  and `gr(prec = )`: sparse precisions whose factor is dense.
+
+- The exact [`gp()`](https://paulbuerkner.com/brms/reference/gp.html)
+  and the spatial covariances (`ou`, `exp`, `gau`, `mat`): a full
+  factorization per gradient evaluation.
+
+- `toep()`: not positive definite everywhere in its parameterization, so
+  `b = L z` is not a bijection there.
+
+*What it is worth.* One chain of 2000 iterations, three seeds
+(dev/benchmarks.md). Where each group's own data say little (the regime
+the funnel lives in) it is decisive: 80 groups of 2 binary observations
+run at a min-ESS of 236 against 5 centered, 55 times the effective draws
+per second. Where the groups are informative it is a wash: the
+`epilepsy` GLMM and an uncorrelated `sleepstudy` are within noise of the
+centered chain either way. It is not a blanket speed-up, and the blocks
+it declines to touch are the ones where it would have done harm.
+
+`laplace = TRUE` integrates the random effects out, which removes the
+funnel by itself, so that route ignores `reparameterize` entirely.
+
+The ML fit is untouched either way. The Laplace approximation integrates
+`b` out, and that integral is invariant under a linear change of the
+integrated variable, so
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) has
+nothing to change and no fitted object ever carries a non-centered tape.
 
 ## Default priors
 
@@ -292,6 +420,8 @@ ds3 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
                   priors = set_prior("exponential(1)", class = "sd"))
 prior_summary(ds3)
 }
+#> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
+#>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you
 #> Warning: There were 3 divergent transitions after warmup. See
 #> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
 #> to find out why this is a problem and how to eliminate them.
@@ -307,11 +437,7 @@ prior_summary(ds3)
 #>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
 #>   b                  (flat), as brms leaves slopes
-#> Warning: There were 3 divergent transitions after warmup. See
-#> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
-#> to find out why this is a problem and how to eliminate them.
-#> Warning: Examine the pairs() plot to diagnose sampling problems
-#> Warning: The largest R-hat is 1.14, indicating chains have not mixed.
+#> Warning: The largest R-hat is 1.07, indicating chains have not mixed.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#r-hat
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
@@ -324,10 +450,6 @@ prior_summary(ds3)
 #>   Intercept          student_t(3, 1, 2.5)
 #>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
 #>   b                  (flat), as brms leaves slopes
-#> Warning: There were 2 divergent transitions after warmup. See
-#> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
-#> to find out why this is a problem and how to eliminate them.
-#> Warning: Examine the pairs() plot to diagnose sampling problems
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess

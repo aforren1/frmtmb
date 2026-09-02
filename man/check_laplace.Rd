@@ -41,7 +41,7 @@ flat prior that makes the comparison meaningful is exactly the one
 that leaves a flat tail at \code{sd = 0} for a non-centered chain to walk
 into. So the default costs this function nothing and changes nothing
 about it. Give the variance parameters a prior through \verb{priors =}
-and the run non-centers - but then it is measuring the Laplace
+and the run non-centers; but then it is measuring the Laplace
 approximation of a different posterior, which is usually not the
 question.
 }

@@ -46,6 +46,17 @@ on a formula is the sampling tool instead: it samples a POSTERIOR, under
 brms's default priors. A default prior here would change the very thing
 being measured, so `check_laplace()` never sets one.
 
+That is also why it samples CENTERED.
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)'s
+non-centered parameterization (see Reparameterization there) is offered
+only for blocks whose variance parameters carry a prior, and here none
+do: the flat prior that makes the comparison meaningful is exactly the
+one that leaves a flat tail at `sd = 0` for a non-centered chain to walk
+into. So the default costs this function nothing and changes nothing
+about it. Give the variance parameters a prior through `priors =` and
+the run non-centers; but then it is measuring the Laplace approximation
+of a different posterior, which is usually not the question.
+
 ## Examples
 
 ``` r
@@ -66,6 +77,8 @@ cl
 # whose Wald interval to replace with a profile or bootstrap one
 cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
 }
+#> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
+#>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you
 #> Warning: The largest R-hat is 1.08, indicating chains have not mixed.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#r-hat
@@ -75,7 +88,9 @@ cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
+#> check_laplace(): the chain mixed too poorly to judge the approximation (bulk ESS under 100 for Intercept, theta_1). Rerun with more iterations before reading z_shift or sd_ratio
 #> [1] parameter ml        post_mean wald_se   post_sd   z_shift   sd_ratio 
+#> [8] ess_bulk 
 #> <0 rows> (or 0-length row.names)
 # }
 ```

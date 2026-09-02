@@ -292,7 +292,7 @@ test_that("a correlated block stays centered, and says why", {
   expect_null(ds$reparam)
   expect_equal(unname(ds$draws), unname(raw_stan_matrix(ds)))
 
-  # the factor itself is still there and still exact - only the gate is
+  # the factor itself is still there and still exact; only the gate is
   # off, so a proper prior on the correlation is all that stands between
   # this block and the non-centered lane
   bk <- fit$frame$re_blocks[[1L]]

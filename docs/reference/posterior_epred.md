@@ -158,6 +158,8 @@ apply(pp, 2, quantile, c(0.025, 0.5, 0.975))
 # the linear predictor itself, on the link scale by default
 head(posterior_linpred(ds, newdata = nd, ndraws = 5))
 }
+#> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
+#>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you
 #> Warning: There were 1 divergent transitions after warmup. See
 #> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
 #> to find out why this is a problem and how to eliminate them.

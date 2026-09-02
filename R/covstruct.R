@@ -1594,8 +1594,8 @@ expand_b <- function(frame, b, theta) {
 #
 # `frm_sample(reparameterize = TRUE)` samples z ~ N(0, I) in place of a
 # block's own coefficients and computes b = L(theta) z on the tape. The
-# centered joint posterior of (b, theta) is a funnel - the width of b's
-# prior is itself being sampled - and NUTS cannot adapt one step size to
+# centered joint posterior of (b, theta) is a funnel (the width of b's
+# prior is itself being sampled), and NUTS cannot adapt one step size to
 # both ends of it. The non-centered pair (z, theta) is a product of
 # independent-ish pieces, which is why brms writes every block that way.
 #
@@ -1618,7 +1618,7 @@ expand_b <- function(frame, b, theta) {
 #   chol_A(blk)          lower-triangular `LA` with `LA LA' = A`.
 #
 # The whole block is then `B = L Z LA'` on the d x n_levels layout,
-# which is `vec(B) = (LA (x) L) vec(Z)` - the Cholesky factor of the
+# which is `vec(B) = (LA (x) L) vec(Z)`: the Cholesky factor of the
 # Kronecker covariance, assembled from its two small factors instead of
 # factorized as one big one.
 #
@@ -1760,8 +1760,8 @@ covstruct_registry$gr_cov$chol_A <- function(blk) {
 #
 # The funnel is made by the SCALE: `b | sd ~ N(0, sd^2 C)` narrows as
 # `sd` shrinks, and pulling the factor out of the density removes it.
-# A CORRELATION parameter makes no funnel - it is bounded, and its
-# effect on the width of `b` is bounded with it - so non-centering one
+# A CORRELATION parameter makes no funnel (it is bounded, and its
+# effect on the width of `b` is bounded with it), so non-centering one
 # buys no geometry. What it does buy is measured, and it is bad.
 #
 # frmtmb parameterizes a correlation by an unbounded row-normalized
@@ -1771,8 +1771,8 @@ covstruct_registry$gr_cov$chol_A <- function(blk) {
 # log-likelihood is flat in that theta beyond |theta| ~ 100 and only 4.4
 # nats below the peak (dev/benchmarks.md), so the posterior really does
 # have infinite mass out there. Centered sampling never finds it: the
-# funnel neck is in the way. Remove the neck - by the full factor or by
-# the scale alone, both were measured - and the chain walks straight
+# funnel neck is in the way. Remove the neck (by the full factor or by
+# the scale alone, both were measured) and the chain walks straight
 # down the tail to theta = 2e6 with a bulk-ESS of 1.
 #
 # So the rule is: a block is non-centered only when EVERY parameter it
