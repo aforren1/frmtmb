@@ -33,6 +33,9 @@ jobs:
         with:
           extra-packages: any::rcmdcheck
           needs: check
+          # RTMBode (Suggests) lives on r-universe, not CRAN; pak does
+          # not read Additional_repositories from DESCRIPTION
+          extra-repositories: 'https://kaskr.r-universe.dev'
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true

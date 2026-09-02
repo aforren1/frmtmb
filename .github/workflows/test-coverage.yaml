@@ -28,6 +28,9 @@ jobs:
         with:
           extra-packages: any::covr, any::xml2
           needs: coverage
+          # RTMBode (Suggests) lives on r-universe, not CRAN; pak does
+          # not read Additional_repositories from DESCRIPTION
+          extra-repositories: 'https://kaskr.r-universe.dev'
       - name: Measure coverage
         run: |
           cov <- covr::package_coverage(quiet = FALSE, clean = FALSE,
