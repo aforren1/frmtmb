@@ -28,6 +28,7 @@
 \alias{zero_inflated_beta}
 \alias{asym_laplace}
 \alias{zero_inflated_asym_laplace}
+\alias{huber}
 \alias{sratio}
 \alias{cratio}
 \alias{acat}
@@ -88,6 +89,8 @@ asym_laplace(link = "identity")
 
 zero_inflated_asym_laplace(link = "identity")
 
+huber(link = "identity", k = 1.345)
+
 sratio(link = "logit")
 
 cratio(link = "logit")
@@ -105,6 +108,11 @@ cox(link = "log", df = 5, degree = 3, intercept = TRUE)
 
 \item{K}{For \code{multinomial()}: number of response categories (columns
 of the count-matrix response); category 1 is the reference.}
+
+\item{k}{For \code{huber()}: Huber's tuning constant, the residual size in
+units of \code{sigma} where the density stops being gaussian and becomes
+Laplace. It is FIXED, not estimated - the default 1.345 is
+\code{MASS::rlm()}'s, which gives 95\% efficiency against a gaussian.}
 
 \item{levels}{For \code{categorical()}: the response's category labels, in
 the order that fixes the reference category (the first) and the
@@ -234,6 +242,51 @@ warning near the optimum; \code{frm_allfit()} confirms the fit when in
 doubt.
 }
 
+\section{Robust regression}{
+
+\code{huber()} fits Huber's least-favorable distribution: gaussian within
+\code{k} residual standard deviations of \code{mu} and Laplace outside, so a
+far-out point pulls on the fit with a bounded influence instead of
+its squared distance. It is a proper normalized density, not a
+penalty, so this is ordinary maximum likelihood and \code{logLik()},
+\code{AIC()} and the likelihood-ratio machinery all mean what they say.
+
+\code{k} is a fixed constant of the family, \code{huber(k = 1.345)}, not a
+distributional parameter. It states where the analyst draws the line
+between a residual and an outlier, which is a modelling choice rather
+than something the data identifies; \code{MASS::rlm()} treats it the same
+way. Estimating it would let the likelihood buy fit by widening the
+gaussian core, which is the opposite of the point. As \code{k} grows the
+family collapses to \code{gaussian()}.
+
+Point estimates track \code{MASS::rlm(psi = psi.huber)} closely but not
+exactly, and the difference is the scale: \code{rlm()} fixes the scale at
+a MAD-type estimate and iterates the location, while \code{huber()}
+estimates \code{sigma} by maximum likelihood jointly with \code{mu}. The
+coefficients agree to about \code{1e-2} on well-behaved data; the
+\code{sigma} estimates need not.
+
+The working-likelihood caveat that applies to \code{asym_laplace()}
+applies here for the same reason. If the data are not actually
+Huber-distributed - and the family is chosen precisely because the
+error distribution is unknown - then the model is misspecified, the
+information matrix is not the variance of the score, and Wald
+standard errors and \code{confint()} intervals from it are not
+calibrated. The point estimates stay consistent for the location.
+Use \code{\link[=frm_bootstrap]{frm_bootstrap()}} for intervals you can defend.
+\code{cens()} and \code{trunc()} are unavailable: the CDF is a three-piece
+function of a parameter-dependent residual and has no branch-free
+form for the tape.
+
+\code{rho} has a kink at \verb{|u| = k}, so the objective is only piecewise
+smooth and the optimizer often stops with a maximum absolute
+gradient around \code{1e-4} and the accompanying false-convergence
+warning. That is the kink, not a bad fit: the same thing happens to
+\code{asym_laplace()}. The estimates satisfy Huber's own estimating
+equations, \verb{X' psi(u) = 0} with \code{psi(u) = min(max(u, -k), k)}, to
+the same order. \code{\link[=frm_allfit]{frm_allfit()}} confirms the fit when in doubt.
+}
+
 \examples{
 set.seed(4)
 n <- 120
@@ -260,6 +313,12 @@ frm(bf(grade ~ x) + cumulative(), data = dd)
 # a proportion in (0, 1)
 dd$p <- plogis(0.2 + 0.6 * dd$x + rnorm(n, 0, 0.3))
 frm(bf(p ~ x) + Beta(), data = dd)
+
+# bounded influence: a few wild points barely move the slope
+dd$rob <- 1 + 0.8 * dd$x + rnorm(n)
+dd$rob[1:5] <- dd$rob[1:5] + 30
+fixef(frm(bf(rob ~ x), family = huber(), data = dd))$mu
+fixef(frm(bf(rob ~ x), family = gaussian(), data = dd))$mu
 
 # an unordered factor: one predictor per non-reference category,
 # named after the level it belongs to

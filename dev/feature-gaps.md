@@ -623,35 +623,19 @@ findings preserved here):
   newdata == in-sample rows at 1e-10 and against
   mgcv::predict.gam on the same model.
 
-## Robustness items (user discussion 2026-09-02, HELD for later)
+## Robustness items (user discussion 2026-09-02)
 
-Four distinct items under the word "robust", none queued yet:
+Four distinct items under the word "robust". Items 1 and 3 are
+delivered (below); items 2 and 4 remain queued.
 
-1. NUMERICAL robustness audit (the user's original point): TMB/RTMB
-   ship dbinom_robust(x, size, logit_p) and dnbinom_robust, which
-   evaluate the log-density directly from the linear-predictor scale
-   and stay finite and differentiable at extreme eta, where
-   dbinom(y, n, plogis(eta)) saturates to -Inf with garbage
-   gradients. glmmTMB uses the robust forms internally, so our
-   at-the-optimum agreement tests would NOT have caught off-mode
-   fragility. Audit every family lpdf whose parameterization
-   round-trips through an inverse link (bernoulli/binomial via
-   plogis, negbinomial small-mu, zi gates at extreme zi, ordinal
-   threshold differences) and switch to the robust RTMB forms where
-   exposed; probe with extreme-eta gradient checks (the regime:
-   separation, GK quadrature nodes, frm_sample tails, mixture
-   gating). Check what RTMB exports before assuming.
+1. NUMERICAL robustness audit - DELIVERED, see the next section.
 2. t-distributed random effects, brms spelling gr(g, dist =
    "student") (brms#1876 - brms has it, so this is grammar-matching
    not invention). TMB latents need not be Gaussian; registry blocks
    would swap dnorm for dt. Open question: Laplace accuracy over the
    non-log-concave t latent density - feasibility probe vs adaptive
    quadrature and frm_sample BEFORE shipping.
-3. huber() family: Huber's least-favorable distribution is a real
-   density (gaussian center, Laplace tails), so ML with it is
-   legitimate, same working-likelihood caveats as asym_laplace
-   (document, point at frm_bootstrap). Validate point estimates vs
-   MASS::rlm(psi = psi.huber). Afternoon-scale.
+3. huber() family - DELIVERED, see the next section.
 4. Cluster-robust (sandwich) vcov: per-OBSERVATION scores fight the
    marginalized objective (why sandwich::estfun was skipped), but
    per-CLUSTER scores are computable - the marginal likelihood
@@ -661,6 +645,93 @@ Four distinct items under the word "robust", none queued yet:
 robustlmm-style bounded-influence estimating equations (DAStau) are
 NOT a likelihood and stay out of scope; item 2 is our answer to the
 same concern.
+
+## Numerical robustness audit (item 1, delivered)
+
+The concern was right and the damage was wider than the two RTMB
+robust densities cover. RTMB 1.9 exports exactly `dbinom_robust(x,
+size, logit_p)` and `dnbinom_robust(x, log_mu, log_var_minus_mu)`;
+RTMBdist ships no `_robust` form at all. Everything else had to be
+rewritten in log space by hand.
+
+What the probe found at the BASE commit (per-observation nll taped as a
+function of one dpar's linear predictor; value finiteness plus gradient
+against a central difference):
+
+- every logit-scale dpar - `mu` for bernoulli / binomial /
+  beta_binomial / beta / zero_inflated_binomial, and every `zi`, `hu`
+  and `quantile` gate - was already wrong in the second decimal at
+  eta = +30 and returned -Inf (NaN gradient) at +40. Asymmetric,
+  because only `1 - plogis(eta)` cancels.
+- `cloglog` was far worse: `1 - exp(-exp(eta))` is exactly 1 from
+  eta = 4, so a cloglog binomial had NO gradient past a single-digit
+  linear predictor.
+- negbinomial and geometric gave NaN at eta = -40: `dnbinom2` forms
+  `p = mu / var`, which is 0 / 0 once exp(eta) underflows.
+- cumulative and sratio died at eta = -40, cratio at +40 (mirrored
+  floating-point failure of what is, for the logit link, the same
+  density); cumulative with near-coincident thresholds died at -30.
+- cumulative(probit) was the worst survivor: a difference of two
+  saturated `pnorm` values is 0 from |eta| = 8.
+- acat / categorical / multinomial summed `exp(eta)` and overflowed at
+  |eta| = 709 / (K - 1).
+
+The eta-scale design. The dpar contract hands the lpdf the
+INVERSE-LINKED value, which is what every numeric post-fit path wants,
+and recomputing eta with `qlogis()` inside the lpdf would just
+reintroduce the round trip. So `build_objective()` now stores the
+linear predictor beside each dpar under a reserved `.eta_<dpar>` name
+(the `.cs` precedent), and the accessors `robust_logit()`,
+`robust_logmu()`, `log_dpar()`, `gate_logs()` and `mu_pair()` in
+R/families.R read it. Off the tape the entries are simply absent, every
+accessor returns NULL, and the family falls back to the plain form -
+correct there, because nothing off the tape is differentiated. No
+family contract changed and no post-fit path was touched. Whether a
+robust form EXISTS is a property of the link, so R/links.R grew
+optional `logit_eta` (logit, cloglog) and `log_eta` (log) fields; a
+link without one leaves the family on the plain path automatically,
+which is why `identity`-link binomials still work.
+
+Why not hand-roll a log-space Poisson while we were there: `RTMB::dpois`
+dispatches on `osa` and `simref` objects, so replacing it with plain
+arithmetic would silently break `oneStepPredict()` residuals and
+tape-side `simulate()`. The RTMB `_robust` densities keep that dispatch,
+which is the other reason to prefer them. dpois is finite and correct
+through |eta| = 700 anyway.
+
+Known remaining limits, all documented and pinned by tests:
+- `cumulative(probit)` keeps the plain CDF difference. There is no
+  exact log-space form: `RTMB::pnorm` carries no `log.p`, and the
+  mirrored `pnorm(-b) - pnorm(-a)` trick needs a branch on the sign of
+  a parameter-dependent quantity. Use the logit link.
+- `nbinom1` at |eta| > 709: its negative-binomial size is `mu / phi`,
+  so the size itself underflows with the mean. Intrinsic to the
+  parameterization, unchanged by this work.
+- The ordinal families' `osa` re-tape branches keep the plain forms.
+  `oneStepPredict()` runs at the fitted values, where they are fine.
+
+## huber() (item 3, delivered)
+
+`k` is a fixed argument of the constructor, `huber(k = 1.345)`, not a
+dpar. It states where the analyst draws the line between a residual and
+an outlier, which is a modelling choice; `MASS::rlm()` treats it the
+same way, and estimating it would let the likelihood buy fit by
+widening the gaussian core. The normalizer
+`sqrt(2 pi) (2 Phi(k) - 1) + (2 / k) exp(-k^2 / 2)` agrees with a
+numeric integral to 1.8e-14 and the density integrates to one to the
+same order. `rho` is written branch-free as
+`(u^2 - max(|u| - k, 0)^2) / 2` with `max(x, 0) = (x + |x|) / 2`,
+because the regime switch has to happen on the tape.
+
+`rlm()` fixes the scale at a MAD-type estimate and iterates the
+location; `huber()` estimates `sigma` by ML jointly with `mu`. That is
+the whole difference: coefficients agree to 5e-3 .. 9e-3 on ordinary
+data (7e-2 under 5% gross contamination, where the ML scale doubles),
+and to 6e-6 .. 1.3e-5 when `sigma` is held at `rlm`'s own scale with
+`bf(y ~ x, sigma = rl$s)`. `rho`'s kink stops any optimizer around a
+maximum absolute gradient of 1e-4, so the sharp check is Huber's own
+estimating equations, `X' psi(u) = 0` and `sum(u psi(u)) = n`, which
+the fit satisfies to the same order.
 ## `nlf()`: recorded, not implemented (v0.34.x, wt-polish)
 
 `lf()` shipped with the brms-portability batch: it is sugar over the
