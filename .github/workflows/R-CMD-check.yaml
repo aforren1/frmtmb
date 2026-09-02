@@ -29,13 +29,14 @@ jobs:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
+          # RTMBode (Suggests) lives on r-universe, not CRAN; pak does
+          # not read Additional_repositories from DESCRIPTION, but it
+          # honors the repos option this input writes to the Rprofile
+          extra-repositories: 'https://kaskr.r-universe.dev'
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::rcmdcheck
           needs: check
-          # RTMBode (Suggests) lives on r-universe, not CRAN; pak does
-          # not read Additional_repositories from DESCRIPTION
-          extra-repositories: 'https://kaskr.r-universe.dev'
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
