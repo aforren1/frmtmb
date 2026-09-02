@@ -72,7 +72,8 @@ Suggests:
     testthat (>= 3.0.0),
     tibble,
     tinyplot,
-    tmbstan
+    tmbstan,
+    withr
 Additional_repositories: https://kaskr.r-universe.dev
 VignetteBuilder: knitr
 Config/testthat/edition: 3
