@@ -649,16 +649,15 @@ test_that("posterior_linpred stays on the mu predictor for an ordinal fit", {
   # the ordinal mu link is the identity, so the two agree exactly
   expect_vector_equal(as.vector(plt), as.vector(pl), tol = 1e-12)
 
-  # posterior_epred is the one that carries the category distribution
+  # posterior_epred is the one that carries the category distribution,
+  # as a draws x observations x categories array (brms's convention)
   ep <- posterior_epred(ds, newdata = nd, ndraws = 10)
-  expect_equal(dim(ep), c(10L, 9L))
-  expect_equal(colnames(ep),
-               c("1.1", "2.1", "3.1", "1.2", "2.2", "3.2",
-                 "1.3", "2.3", "3.3"))
-  # each draw reshapes back to a 3 x 3 matrix of distributions
-  for (k in seq_len(nrow(ep))) {
-    expect_vector_equal(rowSums(matrix(ep[k, ], 3L, 3L)), rep(1, 3),
-                        tol = 1e-12)
+  expect_equal(dim(ep), c(10L, 3L, 3L))
+  expect_null(dimnames(ep)[[1]])
+  expect_equal(dimnames(ep)[[3]], levels(dd$y))
+  # each draw's slice is a 3 x 3 matrix of distributions
+  for (k in seq_len(dim(ep)[1])) {
+    expect_vector_equal(rowSums(ep[k, , ]), rep(1, 3), tol = 1e-12)
   }
 
   # a non-ordinal fit keeps the documented behavior exactly
@@ -671,5 +670,7 @@ test_that("posterior_linpred stays on the mu predictor for an ordinal fit", {
   lp <- posterior_linpred(dp, newdata = nd, ndraws = 5)
   lpt <- posterior_linpred(dp, newdata = nd, ndraws = 5, transform = TRUE)
   expect_vector_equal(as.vector(lpt), exp(as.vector(lp)), tol = 1e-10)
-  expect_null(colnames(posterior_epred(dp, newdata = nd, ndraws = 5)))
+  epp <- posterior_epred(dp, newdata = nd, ndraws = 5)
+  expect_equal(dim(epp), c(5L, 3L))
+  expect_null(colnames(epp))
 })

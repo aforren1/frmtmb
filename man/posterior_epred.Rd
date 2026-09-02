@@ -63,8 +63,8 @@ parameter's linear predictor to evaluate.}
 }
 \value{
 A draws-by-observations matrix; for a categorical outcome
-\code{posterior_epred()} returns draws by \code{n * K} (see the section
-below).
+\code{posterior_epred()} returns a draws-by-observations-by-categories
+array (see the section below).
 }
 \description{
 \code{posterior_epred()} evaluates the response-scale expectation per
@@ -75,16 +75,28 @@ them).
 }
 \section{Categorical outcomes}{
 
-An ordinal family (and \code{multinomial()}) predicts a DISTRIBUTION per
-observation, not one number, so \code{posterior_epred()} returns a
-\verb{draws x (n * K)} matrix: each draw's \verb{n x K} prediction flattened
-column by column, so the columns run category by category
-(\verb{obs1.cat1, obs2.cat1, ..., obs1.cat2, ...}). The columns are named
-\code{"<observation>.<category>"}; \code{dim(.) <- c(ndraws, n, K)} recovers
-the array shape. \code{posterior_predict()} is unaffected - it draws one
-category per observation - and so is \code{posterior_linpred()}, which is
-a statement about one distributional parameter and stays an
-\code{n}-column matrix of the latent predictor.
+An ordinal family predicts a DISTRIBUTION per observation, not one
+number: each draw's \code{predict(type = "response")} is an \verb{n x K}
+matrix of category probabilities. Those stack into a 3-D
+\verb{draws x observations x categories} array. \code{dimnames} are
+\verb{list(NULL, <observation names or NULL>, <category levels>)}, so
+\code{ep[, , "high"]} is the draws-by-observations matrix for one
+category and \code{ep[k, , ]} is draw \code{k}'s own \verb{n x K} prediction, the
+matrix \code{predict(type = "response")} returns. Every \code{ep[k, i, ]}
+sums to 1 for an ordinal family.
+
+This is brms's convention: \code{?brms::posterior_epred.brmsfit}
+documents "an S x N x C array" for categorical and ordinal models
+and an S x N matrix otherwise, and frmtmb follows brms spelling for
+brms-origin functions. Any family whose per-draw response-scale
+prediction is a matrix takes the array shape; every family that
+predicts one number per observation keeps the plain
+\verb{draws x observations} matrix.
+
+\code{posterior_predict()} is unaffected - it draws one category per
+observation - and so is \code{posterior_linpred()}, which is a statement
+about one distributional parameter and stays an \code{n}-column matrix of
+the latent predictor.
 }
 
 \examples{

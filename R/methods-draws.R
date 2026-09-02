@@ -190,24 +190,36 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05, ...) {
 #' them).
 #'
 #' @section Categorical outcomes:
-#' An ordinal family (and `multinomial()`) predicts a DISTRIBUTION per
-#' observation, not one number, so `posterior_epred()` returns a
-#' `draws x (n * K)` matrix: each draw's `n x K` prediction flattened
-#' column by column, so the columns run category by category
-#' (`obs1.cat1, obs2.cat1, ..., obs1.cat2, ...`). The columns are named
-#' `"<observation>.<category>"`; `dim(.) <- c(ndraws, n, K)` recovers
-#' the array shape. `posterior_predict()` is unaffected - it draws one
-#' category per observation - and so is `posterior_linpred()`, which is
-#' a statement about one distributional parameter and stays an
-#' `n`-column matrix of the latent predictor.
+#' An ordinal family predicts a DISTRIBUTION per observation, not one
+#' number: each draw's `predict(type = "response")` is an `n x K`
+#' matrix of category probabilities. Those stack into a 3-D
+#' `draws x observations x categories` array. `dimnames` are
+#' `list(NULL, <observation names or NULL>, <category levels>)`, so
+#' `ep[, , "high"]` is the draws-by-observations matrix for one
+#' category and `ep[k, , ]` is draw `k`'s own `n x K` prediction, the
+#' matrix `predict(type = "response")` returns. Every `ep[k, i, ]`
+#' sums to 1 for an ordinal family.
+#'
+#' This is brms's convention: `?brms::posterior_epred.brmsfit`
+#' documents "an S x N x C array" for categorical and ordinal models
+#' and an S x N matrix otherwise, and frmtmb follows brms spelling for
+#' brms-origin functions. Any family whose per-draw response-scale
+#' prediction is a matrix takes the array shape; every family that
+#' predicts one number per observation keeps the plain
+#' `draws x observations` matrix.
+#'
+#' `posterior_predict()` is unaffected - it draws one category per
+#' observation - and so is `posterior_linpred()`, which is a statement
+#' about one distributional parameter and stays an `n`-column matrix of
+#' the latent predictor.
 #'
 #' @param object A `frmtmb_draws` from [frm_sample()].
 #' @param newdata,resp,re.form As in [predict.frmtmb_fit()].
 #' @param ndraws Number of draws to use (default: all).
 #' @param ... Unused.
 #' @return A draws-by-observations matrix; for a categorical outcome
-#'   `posterior_epred()` returns draws by `n * K` (see the section
-#'   below).
+#'   `posterior_epred()` returns a draws-by-observations-by-categories
+#'   array (see the section below).
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
@@ -245,26 +257,28 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws)
   out <- NULL
-  cn <- NULL
+  cat_out <- FALSE
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
     p <- predict(sh, newdata = newdata, resp = resp, re.form = re.form,
                  type = "response")
     if (is.null(out)) {
-      out <- matrix(NA_real_, length(rows), length(p))
       # A categorical outcome predicts a matrix per draw (an ordinal
-      # family's category probabilities, a multinomial's cell means).
-      # It is flattened column by column, so the columns run category by
-      # category and each needs a name to be readable at all.
-      if (is.matrix(p)) {
-        cn <- paste(rep(rownames(p) %||% seq_len(nrow(p)), ncol(p)),
-                    rep(colnames(p) %||% seq_len(ncol(p)), each = nrow(p)),
-                    sep = ".")
+      # family's n x K category probabilities), so the draws stack into
+      # a draws x observations x categories array rather than
+      # flattening the category margin into column names: that is
+      # brms's posterior_epred() return for polytomous families, and it
+      # keeps ep[, , "cat"] and ep[k, , ] addressable directly.
+      cat_out <- is.matrix(p)
+      out <- if (cat_out) {
+        array(NA_real_, c(length(rows), nrow(p), ncol(p)),
+              dimnames = list(NULL, rownames(p), colnames(p)))
+      } else {
+        matrix(NA_real_, length(rows), length(p))
       }
     }
-    out[k, ] <- p
+    if (cat_out) out[k, , ] <- p else out[k, ] <- p
   }
-  if (!is.null(cn)) colnames(out) <- cn
   out
 }
 
