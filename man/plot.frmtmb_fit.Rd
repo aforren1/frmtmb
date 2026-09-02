@@ -25,6 +25,12 @@ trend. Panel 2: normal QQ plot of the Pearson residuals. For
 simulation-based residuals that are exact for discrete families, use
 \code{\link[=dharma_residuals]{dharma_residuals()}} or \code{residuals(type = "osa")}.
 }
+\details{
+On an ordinal fit \code{\link[=fitted]{fitted()}} is a matrix of category probabilities,
+so panel 1 uses the expected category index \verb{sum_k k * P(y = k)} -
+the same scalar the Pearson residual is taken against - and labels
+the axis accordingly.
+}
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))

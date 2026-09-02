@@ -640,6 +640,8 @@ frmtmb_compat_rules_tbl <- function() {
     "Univariate fits only, and the mu predictor must be linear.")
   r("emmeans", "nl", "refused",
     "Refused: emmeans support needs a linear mu predictor.")
+  r("emmeans", "group:ordinal", "conditional",
+    "Works on the LATENT linear predictor, emmeans's mode = \"latent\" convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use predict(fit, type = \"response\") or conditional_effects(), which are on a different scale from these means.")
   # override: the jitter condition holds wherever frm_sample() is used,
   # so it outranks the permissive and untested blanket defaults.
   r("frm_sample", "*", "conditional",
@@ -650,11 +652,13 @@ frmtmb_compat_rules_tbl <- function() {
   r("predict", "kind:family", "conditional",
     "Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns.")
   r("predict", "group:ordinal", "conditional",
-    "type = \"response\" returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response's own levels), not a vector: an ordinal response has no mean. cs() terms are honored and re-evaluated on newdata. type = \"link\" gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale.")
+    "type = \"response\" returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response's own levels), not a vector: an ordinal response has no mean. It equals fitted(). cs() terms are honored and re-evaluated on newdata. type = \"link\" gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale.")
   r("fitted", "kind:family", "conditional",
     "Needs a family with a mean function.")
   r("fitted", "group:ordinal", "conditional",
-    "Returns the latent linear predictor, so the usual predict(type = \"response\") == fitted() identity does not hold for an ordinal family. Use predict(fit, type = \"response\") for the n x K category probabilities.")
+    "Returns the same n x K matrix of category probabilities predict(type = \"response\") returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The predict(type = \"response\") == fitted() identity holds. The latent linear predictor is predict(fit, type = \"link\"), which is also what emmeans and insight see.")
+  r("residuals", "group:ordinal", "conditional",
+    "\"response\" and \"pearson\" score the categories by the same codes 1..K the likelihood uses: y - sum_k k * P(y = k), standardized by that distribution's own sd. That is a residual on a SCORE, not on the ordinal scale; \"osa\" and dharma_residuals() use only the order. \"deviance\" is refused, as for every family without a standard unit deviance.")
 
   ## formula grammar --------------------------------------------------------------
   # The two permissive grammar defaults are declared with the other

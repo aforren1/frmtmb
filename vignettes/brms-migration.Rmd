@@ -124,7 +124,14 @@ the stats/lme4 spelling for standard generics:
   `predict()` returns a vector (with `se.fit = TRUE`, a list), not a
   draws matrix with `Estimate`/`Q2.5` columns; `fitted()` and
   `residuals()` return vectors; `confint()` takes `level =`, not
-  `probs =`; `re.form` replaces `re_formula`.
+  `probs =`; `re.form` replaces `re_formula`. The exception is an
+  ordinal family, where `fitted()` follows brms and returns the `n` by
+  `K` matrix of category probabilities named by the response levels,
+  exactly as `predict(type = "response")` does; the latent linear
+  predictor is `predict(type = "link")`.
+- `conditional_effects()` on an ordinal fit draws one probability
+  curve per response category, which is what brms draws under
+  `categorical = TRUE`.
 - `coef()` is the per-group convention shared by all three packages:
   fixed effects plus conditional modes per grouping level.
 - `plot(fit)` draws residual diagnostics, not MCMC traces; for
