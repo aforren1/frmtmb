@@ -3,6 +3,7 @@
 \name{conditional_effects}
 \alias{conditional_effects}
 \alias{conditional_effects.frmtmb_fit}
+\alias{conditional_effects.frmtmb_draws}
 \title{Conditional effects of predictors}
 \usage{
 conditional_effects(x, ...)
@@ -22,6 +23,19 @@ conditional_effects(x, ...)
   seed = NULL,
   conditions = list(),
   surface = FALSE,
+  data = NULL,
+  ...
+)
+
+\method{conditional_effects}{frmtmb_draws}(
+  x,
+  effects = NULL,
+  resp = NULL,
+  dpar = NULL,
+  resolution = 100,
+  prob = 0.95,
+  ndraws = NULL,
+  conditions = list(),
   data = NULL,
   ...
 )
@@ -64,7 +78,8 @@ inversion per grid point) or \code{"boot"} (parametric-bootstrap
 percentiles). See the band section. Only for \code{method = "epred"}.}
 
 \item{ndraws}{Simulated responses per grid point for
-\code{method = "predict"}.}
+\code{method = "predict"}. For the draws method: how many evenly spaced
+posterior draws the curves are computed over (default all).}
 
 \item{boot}{For \code{band = "boot"}: \code{NULL} (default) runs one
 \code{\link[=frm_bootstrap]{frm_bootstrap()}} of 200 refits and says so, a number runs that
@@ -186,6 +201,21 @@ error at all, so \code{band = "boot"} is its only band and the other two
 are refused. The same holds for the per-category display of a nominal
 family, whose probabilities have no threshold Jacobian to
 differentiate.
+}
+
+\section{Draws objects}{
+
+On a \code{frmtmb_draws} object from \code{\link[=frm_sample]{frm_sample()}} the same grids are
+evaluated once per posterior draw, and \code{estimate__}, \code{lower__},
+\code{upper__} and \code{se__} are the pointwise mean, quantiles and standard
+deviation of the drawn curves. There is no \verb{band =} or \verb{method =} to
+choose (the band IS the posterior quantile band), a nonlinear
+predictor and a nominal per-category display work without a delta
+method, and the method runs on formula-route draws that have no
+maximum-likelihood fit behind them. \code{ndraws} thins the draws
+evenly for a cheaper curve. Draws from \code{frm_sample(laplace = TRUE)}
+are refused: the sampled vector no longer aligns with the model's
+parameter template.
 }
 
 \section{Which predictors are plotted by default}{

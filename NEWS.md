@@ -45,6 +45,12 @@ patches for upstream.
   `mcmc_plot()`, `pairs()`, `nuts_params()`, `log_posterior()`,
   `rhat()`, `neff_ratio()`. 65 of the 96 `brmsfit` methods now
   resolve.
+* `conditional_effects()` on draws evaluates the effect grids once per
+  posterior draw and bands the curves with their own quantiles: no
+  `band =` or `method =` to choose, nonlinear predictors and nominal
+  per-category displays work without a delta method, and it runs on
+  formula-route draws that have no maximum-likelihood fit behind
+  them. `ndraws` thins the draws for a cheaper curve.
 * The brms methods frmtmb does not have fail with the reason and the
   replacement instead of "could not find function":
   `loo_moment_match()`, `loo_subsample()`, `reloo()`, `kfold()`,

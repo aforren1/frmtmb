@@ -295,3 +295,57 @@ test_that("the matrix-response guards name the function that hit them", {
                "one predicted number per")
   expect_error(predictive_error(ds, ndraws = 5), "vector response")
 })
+
+## ---- conditional_effects --------------------------------------------
+
+test_that("conditional_effects() bands the drawn curves", {
+  cs <- dm_case()
+  ce <- conditional_effects(cs$ds, effects = "x", resolution = 25)
+  expect_s3_class(ce, "frmtmb_conditional_effects")
+  df <- ce$x
+  expect_equal(nrow(df), 25L)
+  expect_true(all(is.finite(df$estimate__)))
+  expect_true(all(df$lower__ <= df$estimate__ &
+                    df$estimate__ <= df$upper__))
+  expect_identical(attr(df, "band"), "posterior")
+  # same density (flat priors), so the posterior-mean curve sits within
+  # a Wald se of the maximum-likelihood curve on this well-behaved model
+  cf <- conditional_effects(cs$fit, effects = "x", resolution = 25)
+  expect_lt(max(abs(df$estimate__ - cf$x$estimate__) /
+                  pmax(cf$x$se__, 1e-8)), 1)
+  # thinning changes the cost, not the shape
+  ce5 <- conditional_effects(cs$ds, effects = "x", resolution = 25,
+                             ndraws = 25)
+  expect_equal(nrow(ce5$x), 25L)
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  expect_no_error(plot(ce, ask = FALSE, points = TRUE))
+})
+
+test_that("conditional_effects() runs on formula-route draws", {
+  skip_sampler()
+  set.seed(11)
+  dd <- data.frame(x = stats::rnorm(50), g = factor(rep(1:5, 10)))
+  dd$y <- stats::rnorm(50, 1 + 0.5 * dd$x, 1)
+  dsf <- suppressWarnings(suppressMessages(
+    frm_sample(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
+               chains = 1, iter = 300, refresh = 0, seed = 3)))
+  ce <- conditional_effects(dsf, effects = "x", resolution = 10)
+  expect_s3_class(ce, "frmtmb_conditional_effects")
+  expect_true(all(is.finite(ce$x$estimate__)))
+  # the embedded fit alone cannot draw this curve: no ML estimates
+  expect_error(conditional_effects(dsf$fit), "needs a fitted model")
+})
+
+test_that("conditional_effects() on draws refuses what it cannot mean", {
+  cs <- dm_case()
+  expect_error(conditional_effects(cs$ds, method = "predict"),
+               "no method =")
+  expect_error(conditional_effects(cs$ds, band = "boot"),
+               "no band =")
+  # laplace-shaped draws: random effects in the model, no b[ columns
+  ld <- cs$ds
+  ld$draws <- ld$draws[, !startsWith(colnames(ld$draws), "b["),
+                       drop = FALSE]
+  expect_error(conditional_effects(ld), "laplace = TRUE")
+})

@@ -522,7 +522,8 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   observation, so a reference value for those is meaningless and is
 #'   an error rather than a silent default).
 #' @param ndraws Simulated responses per grid point for
-#'   `method = "predict"`.
+#'   `method = "predict"`. For the draws method: how many evenly spaced
+#'   posterior draws the curves are computed over (default all).
 #' @param conditions Named list overriding reference values, e.g.
 #'   `list(x2 = 1, g = "b")`; or a data frame whose rows define
 #'   multiple condition sets (brms style), labeled by a `cond__`
@@ -615,6 +616,18 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' are refused. The same holds for the per-category display of a nominal
 #' family, whose probabilities have no threshold Jacobian to
 #' differentiate.
+#' @section Draws objects:
+#' On a `frmtmb_draws` object from [frm_sample()] the same grids are
+#' evaluated once per posterior draw, and `estimate__`, `lower__`,
+#' `upper__` and `se__` are the pointwise mean, quantiles and standard
+#' deviation of the drawn curves. There is no `band =` or `method =` to
+#' choose (the band IS the posterior quantile band), a nonlinear
+#' predictor and a nominal per-category display work without a delta
+#' method, and the method runs on formula-route draws that have no
+#' maximum-likelihood fit behind them. `ndraws` thins the draws
+#' evenly for a cheaper curve. Draws from `frm_sample(laplace = TRUE)`
+#' are refused: the sampled vector no longer aligns with the model's
+#' parameter template.
 #' @section Which predictors are plotted by default:
 #' Every variable of the selected linear predictor that the display can
 #' vary: its fixed-effect terms, its smooth terms and its `mo()` terms
@@ -647,6 +660,117 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' @export
 conditional_effects <- function(x, ...) UseMethod("conditional_effects")
 
+#' The hmm() refusal, shared by the fit and draws methods so the two
+#' speak with one message.
+#'
+#' @noRd
+ce_hmm_check <- function(rspec) {
+  if (!is.null(rspec$family[["hmm"]])) {
+    stop("conditional_effects() is not available for an hmm() fit: the ",
+         "expected response weights the state means by posterior state ",
+         "occupancies, which depend on the observed responses of a whole ",
+         "sequence and are therefore undefined on the synthetic grid ",
+         "this function builds. Plot one state's own predictor from ",
+         "predict(dpar = \"mu2\"), or the occupancies from hmm_probs()",
+         call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' Effect grids for one conditional_effects() call: the plottable
+#' variables, the deduplicated effects, the condition sets and one grid
+#' (with its newdata) per effect x condition set. Shared by the fit and
+#' draws methods so the two build identical curves.
+#'
+#' @noRd
+ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
+                           conditions, data) {
+  base <- data %||% x$frame$data_frame
+
+  vars <- ce_plot_vars(x, rspec, lp, resp)
+  vars <- vars[vars %in% names(base)]
+  vars <- vars[!vapply(vars, function(v) is.matrix(base[[v]]), TRUE)]
+  if (is.null(effects)) {
+    effects <- vars
+    if (!length(effects)) {
+      stop("No plottable predictors found for dpar '", dpar, "'",
+           call. = FALSE)
+    }
+  }
+  # one grid per effect: a repeated name would otherwise stack the same
+  # grid twice inside its own data frame
+  effects <- unique(effects)
+
+  # a data-frame `conditions` defines one condition set per row (brms
+  # style); a named list is a single condition set
+  cond_sets <- if (is.data.frame(conditions)) {
+    stats::setNames(lapply(seq_len(nrow(conditions)), function(r) {
+      as.list(conditions[r, , drop = FALSE])
+    }), rownames(conditions))
+  } else {
+    list(conditions)
+  }
+
+  grids <- list()
+  for (eff in effects) {
+    ev <- strsplit(eff, ":", fixed = TRUE)[[1L]]
+    if (length(ev) > 2L) {
+      stop("Effects support at most two variables: '", eff, "'",
+           call. = FALSE)
+    }
+    missing_ev <- setdiff(ev, names(base))
+    if (length(missing_ev)) {
+      stop("Variable '", missing_ev[1L], "' is not stored in the model ",
+           "frame; pass the original data via data =", call. = FALSE)
+    }
+    v1 <- ce_grid_values(base[[ev[1L]]], resolution, ev[1L])
+    v2 <- if (length(ev) == 2L) ce_second_values(base[[ev[2L]]])
+    n1 <- length(v1)
+    n2 <- max(1L, length(v2))
+    for (ci in seq_along(cond_sets)) {
+      grids[[length(grids) + 1L]] <- list(
+        eff = eff, ev = ev, ci = ci, v1 = v1, n1 = n1, n2 = n2,
+        n = n1 * n2, cset = cond_sets[[ci]],
+        nd = ce_build_nd(base, ev, v1, v2, cond_sets[[ci]], n1 * n2, n2)
+      )
+    }
+  }
+  list(base = base, effects = effects, cond_sets = cond_sets,
+       grids = grids)
+}
+
+#' Assemble the per-effect data frames into the classed result, with the
+#' display attributes and the raw points for plot(points = TRUE).
+#' Shared by the fit and draws methods.
+#'
+#' @noRd
+ce_finalize <- function(dfs_by_eff, effects, rspec, resp, dpar, band,
+                        base, categorical) {
+  out <- list()
+  for (eff in effects) {
+    ev <- strsplit(eff, ":", fixed = TRUE)[[1L]]
+    df <- do.call(rbind, dfs_by_eff[[eff]])
+    attr(df, "effects") <- ev
+    attr(df, "response") <- resp
+    attr(df, "dpar") <- dpar
+    attr(df, "band") <- band
+    # raw observations for plot(..., points = TRUE): only meaningful on
+    # the expected-response display, and only when the response is a
+    # plain numeric column of the data (not cbind()/matrix responses)
+    default_dpar <- if ("mu" %in% names(rspec$dpars)) "mu" else
+      rspec$primary_dpars[1]
+    if (!categorical && identical(dpar, default_dpar) &&
+        resp %in% names(base) && is.numeric(base[[resp]]) &&
+        is.null(dim(base[[resp]]))) {
+      pdf_ <- data.frame(x = base[[ev[1L]]], y = base[[resp]])
+      if (length(ev) == 2L) pdf_$grp <- base[[ev[2L]]]
+      attr(df, "points_df") <- pdf_
+    }
+    out[[eff]] <- df
+  }
+  structure(out, class = "frmtmb_conditional_effects")
+}
+
 #' @rdname conditional_effects
 #' @export
 conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
@@ -665,15 +789,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   band <- match.arg(band)
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
-  if (!is.null(rspec$family[["hmm"]])) {
-    stop("conditional_effects() is not available for an hmm() fit: the ",
-         "expected response weights the state means by posterior state ",
-         "occupancies, which depend on the observed responses of a whole ",
-         "sequence and are therefore undefined on the synthetic grid ",
-         "this function builds. Plot one state's own predictor from ",
-         "predict(dpar = \"mu2\"), or the occupancies from hmm_probs()",
-         call. = FALSE)
-  }
+  ce_hmm_check(rspec)
   if (isTRUE(surface)) {
     stop("conditional_effects(surface = TRUE) is not implemented: the ",
          "display draws curves with bands, not a fitted surface. Ask ",
@@ -724,66 +840,21 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
          "or display one nonlinear parameter with dpar = \"",
          rspec$nlpars[1L], "\"", call. = FALSE)
   }
-  base <- data %||% x$frame$data_frame
-
-  vars <- ce_plot_vars(x, rspec, lp, resp)
-  vars <- vars[vars %in% names(base)]
-  vars <- vars[!vapply(vars, function(v) is.matrix(base[[v]]), TRUE)]
-  if (is.null(effects)) {
-    effects <- vars
-    if (!length(effects)) {
-      stop("No plottable predictors found for dpar '", dpar, "'",
-           call. = FALSE)
-    }
-  }
-  # one grid per effect: a repeated name would otherwise stack the same
-  # grid twice inside its own data frame
-  effects <- unique(effects)
-
-  # a data-frame `conditions` defines one condition set per row (brms
-  # style); a named list is a single condition set
-  cond_sets <- if (is.data.frame(conditions)) {
-    stats::setNames(lapply(seq_len(nrow(conditions)), function(r) {
-      as.list(conditions[r, , drop = FALSE])
-    }), rownames(conditions))
-  } else {
-    list(conditions)
-  }
-
-  z <- stats::qnorm(1 - (1 - prob) / 2)
   # every grid of the call is built before any band is: one bootstrap
   # covers all of them, which is the whole point of doing it here rather
   # than per effect
-  grids <- list()
-  for (eff in effects) {
-    ev <- strsplit(eff, ":", fixed = TRUE)[[1L]]
-    if (length(ev) > 2L) {
-      stop("Effects support at most two variables: '", eff, "'",
-           call. = FALSE)
-    }
-    missing_ev <- setdiff(ev, names(base))
-    if (length(missing_ev)) {
-      stop("Variable '", missing_ev[1L], "' is not stored in the model ",
-           "frame; pass the original data via data =", call. = FALSE)
-    }
-    v1 <- ce_grid_values(base[[ev[1L]]], resolution, ev[1L])
-    v2 <- if (length(ev) == 2L) ce_second_values(base[[ev[2L]]])
-    n1 <- length(v1)
-    n2 <- max(1L, length(v2))
-    for (ci in seq_along(cond_sets)) {
-      grids[[length(grids) + 1L]] <- list(
-        eff = eff, ev = ev, ci = ci, v1 = v1, n1 = n1, n2 = n2,
-        n = n1 * n2, cset = cond_sets[[ci]],
-        nd = ce_build_nd(base, ev, v1, v2, cond_sets[[ci]], n1 * n2, n2)
-      )
-    }
-  }
+  gb <- ce_grids_build(x, rspec, lp, effects, resp, dpar, resolution,
+                       conditions, data)
+  base <- gb$base
+  effects <- gb$effects
+  cond_sets <- gb$cond_sets
+  grids <- gb$grids
+  z <- stats::qnorm(1 - (1 - prob) / 2)
   bd <- if (band == "boot") {
     ce_boot_draws(x, grids, categorical, resp, dpar, boot, seed)
   }
   pfail <- c(0L, 0L)
 
-  out <- list()
   dfs_by_eff <- list()
   for (gi in seq_along(grids)) {
     g <- grids[[gi]]
@@ -899,32 +970,109 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
             call. = FALSE)
   }
 
-  for (eff in effects) {
-    ev <- strsplit(eff, ":", fixed = TRUE)[[1L]]
-    df <- do.call(rbind, dfs_by_eff[[eff]])
-    attr(df, "effects") <- ev
-    attr(df, "response") <- resp
-    attr(df, "dpar") <- dpar
-    attr(df, "band") <- band
-    # raw observations for plot(..., points = TRUE): only meaningful on
-    # the expected-response display, and only when the response is a
-    # plain numeric column of the data (not cbind()/matrix responses)
-    default_dpar <- if ("mu" %in% names(rspec$dpars)) "mu" else
-      rspec$primary_dpars[1]
-    if (!categorical && identical(dpar, default_dpar) &&
-        resp %in% names(base) && is.numeric(base[[resp]]) &&
-        is.null(dim(base[[resp]]))) {
-      pdf_ <- data.frame(x = base[[ev[1L]]], y = base[[resp]])
-      if (length(ev) == 2L) pdf_$grp <- base[[ev[2L]]]
-      attr(df, "points_df") <- pdf_
-    }
-    out[[eff]] <- df
-  }
-  out <- structure(out, class = "frmtmb_conditional_effects")
+  out <- ce_finalize(dfs_by_eff, effects, rspec, resp, dpar, band, base,
+                     categorical)
   # the bootstrap rides along so a second call can reuse it: refits are
   # the expensive part and nobody should pay for them twice
   if (!is.null(bd)) attr(out, "boot") <- bd$bs
   out
+}
+
+#' @rdname conditional_effects
+#' @export
+conditional_effects.frmtmb_draws <- function(x, effects = NULL,
+                                             resp = NULL, dpar = NULL,
+                                             resolution = 100,
+                                             prob = 0.95, ndraws = NULL,
+                                             conditions = list(),
+                                             data = NULL, ...) {
+  dots <- list(...)
+  if (!is.null(dots$method)) {
+    stop("conditional_effects() on draws has no method =: the curves ",
+         "ARE posterior expected-response draws. For predictive bands, ",
+         "quantile posterior_predict() over your own grid", call. = FALSE)
+  }
+  if (!is.null(dots$band)) {
+    stop("conditional_effects() on draws has no band =: the band IS ",
+         "the posterior quantile band of the drawn curves, so there is ",
+         "no wald/profile/boot choice to make", call. = FALSE)
+  }
+  fit <- draws_base_fit(x)
+  resp <- resp %||% names(fit$spec$responses)[1L]
+  rspec <- fit$spec$responses[[resp]]
+  ce_hmm_check(rspec)
+  if (length(fit$frame$re_blocks) &&
+      !any(startsWith(colnames(x$draws), "b["))) {
+    stop("conditional_effects() on draws from frm_sample(laplace = ",
+         "TRUE) cannot rebuild the per-draw parameter vectors: the ",
+         "inner parameters were integrated out, so the draws columns ",
+         "do not align with the model's parameter template. Resample ",
+         "without laplace = TRUE, or call conditional_effects() on the ",
+         "fit itself", call. = FALSE)
+  }
+  categorical <- ce_cats_display(rspec, dpar)
+  dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
+    rspec$primary_dpars[1]
+  lp <- find_linpred(fit, resp, dpar)
+  gb <- ce_grids_build(fit, rspec, lp, effects, resp, dpar, resolution,
+                       conditions, data)
+
+  # the same per-parameter-vector grid evaluation the bootstrap band
+  # runs per refit, here run per posterior draw. The estimate and the
+  # band both come from the draws, so a nonlinear predictor or a
+  # nominal category display needs no delta method here
+  idx <- draws_par_index(x$fit)
+  rows <- draws_subsample(x, ndraws)
+  f1 <- draws_fit_at(x, rows[1L], idx)
+  lens <- vapply(gb$grids, function(g) {
+    length(ce_boot_one(f1, g$nd, categorical, resp, dpar))
+  }, 1L)
+  offsets <- cumsum(c(0L, lens))
+  M <- matrix(NA_real_, length(rows), sum(lens))
+  for (i in seq_along(rows)) {
+    fi <- if (i == 1L) f1 else draws_fit_at(x, rows[i], idx)
+    M[i, ] <- unlist(lapply(gb$grids, function(g) {
+      ce_boot_one(fi, g$nd, categorical, resp, dpar)
+    }), use.names = FALSE)
+  }
+
+  dfs_by_eff <- list()
+  for (gi in seq_along(gb$grids)) {
+    g <- gb$grids[[gi]]
+    seg <- M[, offsets[gi] + seq_len(lens[gi]), drop = FALSE]
+    est <- colMeans(seg)
+    lo <- ce_pctl(seg, (1 - prob) / 2)
+    up <- ce_pctl(seg, 1 - (1 - prob) / 2)
+    se <- apply(seg, 2, stats::sd)
+    if (categorical) {
+      # ce_boot_one() flattened the n x categories probability matrix
+      # column-major, so category k occupies positions (k-1)*n + 1:n
+      cats <- colnames(predict(f1, newdata = g$nd, type = "response",
+                               resp = resp, re.form = NA))
+      df <- do.call(rbind, lapply(seq_along(cats), function(k) {
+        d <- g$nd[g$ev]
+        kk <- (k - 1L) * g$n + seq_len(g$n)
+        d$estimate__ <- est[kk]
+        d$se__ <- se[kk]
+        d$lower__ <- lo[kk]
+        d$upper__ <- up[kk]
+        d$cats__ <- factor(cats[k], levels = cats)
+        d
+      }))
+    } else {
+      df <- g$nd[g$ev]
+      df$estimate__ <- est
+      df$se__ <- se
+      df$lower__ <- lo
+      df$upper__ <- up
+    }
+    if (length(gb$cond_sets) > 1L) {
+      df$cond__ <- names(gb$cond_sets)[g$ci] %||% as.character(g$ci)
+    }
+    dfs_by_eff[[g$eff]] <- c(dfs_by_eff[[g$eff]], list(df))
+  }
+  ce_finalize(dfs_by_eff, gb$effects, rspec, resp, dpar, "posterior",
+              gb$base, categorical)
 }
 
 #' Pointwise percentile of a draws matrix (draws in rows), NA where a
