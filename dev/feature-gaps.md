@@ -581,3 +581,71 @@ being both the largest piece and the reason to build rung 2 at all,
 since it is what makes `fitted()` mean something. Refuse initially:
 weights/cens/trunc/mi, rescor/mvbf, quadrature, OSA, REML, and
 `predict(se.fit = TRUE)` on the response scale.
+
+## t2() newdata prediction defect (found 2026-09-02, refused not fixed)
+
+`predict(newdata = )` on any `t2()` smooth has failed since the
+prediction path was written: `smooth2random(type = 2)` returns no
+`trans.U` for t2 (the s() path's `PredictMat %*% U * D` multiplies by
+NULL). Now an informative refusal; in-sample fitted()/predict() are
+unaffected (they use the fit-time design matrices).
+
+What the investigation established (probe scripts in scratchpad,
+findings preserved here):
+- The correct column mapping is NOT identity: `smooth2random.t2`
+  returns `pen.ind` (penalty index per original basis column, 0 =
+  fixed), and `sweep(sm$X, 2, trans.D, "*")` followed by grouping
+  columns as (pen 1, pen 2, ..., pen 0) reproduces
+  `cbind(rand[[1]], rand[[2]], ..., Xf)` EXACTLY (diff 0).
+- BUT `mgcv::PredictMat(sm, data)` does not reproduce `sm$X` on the
+  TRAINING rows for a t2 smooth built with
+  `smoothCon(absorb.cons = TRUE)` (max diff 5.9 on the probe), while
+  it does for s(). So the newdata basis needs more than the pen.ind
+  mapping; the discrepancy (likely a t2-specific reparameterization
+  smoothCon applies to `sm$X` that PredictMat does not, or a
+  constraint-absorption ordering issue) must be understood before a
+  fix ships. Compare how gamm4 predicts t2 terms.
+- Fix sketch: store `ord = order-by-pen.ind` and `trans.D` on sm_info
+  at frame time, resolve the PredictMat basis question, then newdata
+  M = PredictMat-equivalent basis, scaled and permuted. Validate
+  newdata == in-sample rows at 1e-10 and against
+  mgcv::predict.gam on the same model.
+
+## Robustness items (user discussion 2026-09-02, HELD for later)
+
+Four distinct items under the word "robust", none queued yet:
+
+1. NUMERICAL robustness audit (the user's original point): TMB/RTMB
+   ship dbinom_robust(x, size, logit_p) and dnbinom_robust, which
+   evaluate the log-density directly from the linear-predictor scale
+   and stay finite and differentiable at extreme eta, where
+   dbinom(y, n, plogis(eta)) saturates to -Inf with garbage
+   gradients. glmmTMB uses the robust forms internally, so our
+   at-the-optimum agreement tests would NOT have caught off-mode
+   fragility. Audit every family lpdf whose parameterization
+   round-trips through an inverse link (bernoulli/binomial via
+   plogis, negbinomial small-mu, zi gates at extreme zi, ordinal
+   threshold differences) and switch to the robust RTMB forms where
+   exposed; probe with extreme-eta gradient checks (the regime:
+   separation, GK quadrature nodes, frm_sample tails, mixture
+   gating). Check what RTMB exports before assuming.
+2. t-distributed random effects, brms spelling gr(g, dist =
+   "student") (brms#1876 - brms has it, so this is grammar-matching
+   not invention). TMB latents need not be Gaussian; registry blocks
+   would swap dnorm for dt. Open question: Laplace accuracy over the
+   non-log-concave t latent density - feasibility probe vs adaptive
+   quadrature and frm_sample BEFORE shipping.
+3. huber() family: Huber's least-favorable distribution is a real
+   density (gaussian center, Laplace tails), so ML with it is
+   legitimate, same working-likelihood caveats as asym_laplace
+   (document, point at frm_bootstrap). Validate point estimates vs
+   MASS::rlm(psi = psi.huber). Afternoon-scale.
+4. Cluster-robust (sandwich) vcov: per-OBSERVATION scores fight the
+   marginalized objective (why sandwich::estfun was skipped), but
+   per-CLUSTER scores are computable - the marginal likelihood
+   factors over independent groups. CR0/CR2 with clubSandwich as
+   reference. Highest practical demand of the four; changes
+   inference for every clustered model.
+robustlmm-style bounded-influence estimating equations (DAStau) are
+NOT a likelihood and stay out of scope; item 2 is our answer to the
+same concern.

@@ -151,6 +151,16 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   # order) and the null-space columns last.
   sm_parts <- list()
   for (si in lp$smooths %||% list()) {
+    if (is.null(si$U)) {
+      # t2() smooths: smooth2random() reparameterizes by pen.ind
+      # grouping with no trans.U, and PredictMat does not reproduce the
+      # training basis under that split (dev/feature-gaps.md, t2
+      # prediction entry). Refusing beats returning wrong numbers.
+      stop("predict(newdata = ) is not yet supported for t2() smooths ",
+           "(term ", si$label, "). In-sample fitted()/predict() work; ",
+           "for new-data prediction use s(x1, x2, ...) instead of ",
+           "t2(), or predict at the observed rows", call. = FALSE)
+    }
     M <- mgcv::PredictMat(si$sm, newdata) %*% si$U
     M <- sweep(M, 2, si$D, `*`)
     pos <- 0L
