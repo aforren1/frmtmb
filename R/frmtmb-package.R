@@ -140,6 +140,10 @@
 #'   every one originates from a roxygen block; the package is built with
 #'   `roxygen2::roxygenise()` and carries `Config/roxygen2/version` in
 #'   `DESCRIPTION`.
+#' @srrstats {G1.4a} All internal functions are documented with roxygen2
+#'   blocks that state the contract (inputs, outputs, and the reason the
+#'   helper exists) and end in `@noRd`. There are about 290 of them; the
+#'   pass covering every internal function landed in v0.30.0.
 #' @srrstats {G5.0} Tests use standard data sets with known properties
 #'   wherever a reference implementation is being checked:
 #'   `lme4::sleepstudy` and `lme4::cbpp`, `datasets::faithful`,

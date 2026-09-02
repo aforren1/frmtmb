@@ -16,4 +16,3 @@ jobs:
       - uses: ropensci-review-tools/pkgcheck-action@main
         with:
           post-to-issue: false
-          summary-workflow-link: true

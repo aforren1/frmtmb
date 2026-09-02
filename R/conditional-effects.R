@@ -375,6 +375,11 @@ ce_plot_one <- function(df, cond = NULL) {
 #'   two standard regression diagnostics: Pearson residuals against
 #'   fitted values with a lowess trend, and a normal QQ plot of those
 #'   residuals.
+#' @srrstats {RE6.2} The first panel of the default `plot()` method plots
+#'   the fitted values (on the horizontal axis, against the Pearson
+#'   residuals), so the model's fitted response is visualized by default.
+#'   Bands for the fitted response are available through
+#'   [conditional_effects()], which draws Wald or predictive intervals.
 #' @srrstats {RE6.1} The method is a real S3 method dispatched on the
 #'   class of the returned object (`plot.frmtmb_fit`), registered in
 #'   `NAMESPACE`, so the generic reaches it and no separate signposting
