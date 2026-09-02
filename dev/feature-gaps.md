@@ -160,6 +160,77 @@ family-level extras.
   (lme4 >= 1.1.37 analog): scaled pre-fit + exact back-transform +
   warm start, optimizer/convergence/Hessian in scaled units. 12
   scaling warnings to 0, logLik identical to manual standardization.
+- ~~brms R-side autocorrelation (`ar()`, `ma()`, `arma()`, `cosy()`,
+  `unstr()`)~~ DONE in v0.33. The residual of a group becomes one
+  multivariate draw, `y_g ~ N(mu_g, D R D)` with `D` the diagonal of
+  that group's `sigma` values, so a `sigma ~ x` distributional model
+  enters through the diagonal and a scalar `sigma` is the homogeneous
+  special case. `R` is UNIT-DIAGONAL, so `sigma` stays the marginal
+  residual SD everywhere in the package; brms instead parameterizes
+  `ar`/`ma`/`arma` by the innovation SD (`cholesky_cor_ar1()` divides
+  by `1 - ar^2`) while `cosy`/`unstr` use the marginal one, an
+  inconsistency we deliberately do not reproduce.
+
+  Where the pieces live: a `thetaac` component of the parameter
+  template (outer, so REML integrates only the mu fixed effects, as
+  with `theta`); one entry per response in `frame$autocor`; the
+  density replaces `fam$lpdf` in `build_objective()`. The block is
+  evaluated one PATTERN at a time (a distinct set of present time
+  levels), so ragged and unsorted groups are handled by construction:
+  a balanced design costs one on-tape Cholesky per gradient, ragged
+  data one per distinct pattern, and nothing ever builds an `n x n`
+  matrix.
+
+  ALL FIVE STRUCTURES SHIPPED, including `ma()` and `arma()`. The
+  ARMA autocorrelation function is exact rather than a truncated
+  MA(inf) expansion - psi weights up to lag q, then the
+  `max(p, q) + 1` linear system of Brockwell & Davis 3.3.1 solved with
+  `RTMB::solve` - and agrees with `stats::ARMAacf` to 1e-16.
+  Stationarity and invertibility come from the Monahan/Jones partial
+  autocorrelation transform (`nlme::corARMA`'s), so no parameter value
+  leaves the parameter space. Higher orders work; brms limits
+  `cov = TRUE` to order one.
+
+  Validated against `nlme::gls`/`lme` under BOTH ML and REML. Worst
+  log-likelihood gap over the suite: AR(1) 3e-12, AR(2) 4e-10, MA(1)
+  4e-13, ARMA(1,1) 8e-10, corCompSymm 2e-11, corSymm 3e-9, ragged
+  AR(1) 1e-10, AR(1) + varIdent 3e-10, `lme(random = ~ 1 | subj,
+  correlation = corAR1())` 9e-10. Correlation parameters agree to
+  1e-7 or better except `unstr` (2.6e-5) and the ARMA/AR(2) ML fits
+  (3e-6), where the surface is flat enough that both optimizers stop
+  inside a region of that width - the log-likelihood agreement is the
+  binding evidence there.
+
+  Refused, each because the likelihood no longer factorizes over
+  rows: `weights()`, `cens()`, `trunc()`, `se()`, `mi()`,
+  `rescor = TRUE`, mixtures, `quadrature = TRUE`, non-linear (`nl`)
+  formulas, `frm_simulate()` and `residuals(type = "osa")`. brms
+  refuses the same core set. Also refused: brms's `cov = FALSE`
+  default, which is the residual-REGRESSION formulation and a
+  different likelihood; and every family but gaussian and student,
+  where brms silently switches to a latent AR process on the linear
+  predictor - which is a random effect and is spelled
+  `ar1(factor(week) + 0 | subj)` here.
+
+  Divergence from brms worth remembering: the lag is the distance
+  between the rows' positions in the GLOBAL set of time levels, so a
+  group missing a time point gets the wider lag. brms indexes
+  `ar`/`ma`/`arma`/`cosy` by position WITHIN the group (its Stan code
+  slices `chol_cor[1:nobs[i], 1:nobs[i]]` and carries no time index;
+  only `unstr` has `Jtime_tg`), so brms treats a missing row as no
+  gap. Ours is nlme's reading and is what the ragged gls agreement
+  test pins down.
+
+  Remaining, in rough order of value: (1) `se(x, sigma = TRUE)`, which
+  brms supports here by adding `diag(se^2)` to the group covariance -
+  a small addition to `autocor_loglik()` plus a relaxation of the
+  aterm guard; (2) `set_prior()` targeting the correlation parameters
+  (bounds on `thetaac_*` already work); (3) `frm_simulate()` support,
+  which needs the de novo path to draw per group; (4) `rescor` +
+  a time structure, whose joint covariance is the Kronecker product of
+  the two; (5) a `cov = FALSE` residual-regression form, if anyone
+  actually wants brms's default rather than the marginal likelihood.
+
 - Sandwich/robust SEs (`vcovHC`, `bread`/`estfun`): still skipped;
   glmmTMB does cluster-level scores. Revisit only on demand.
 - ~~`car(M, gr, type =)` (brms spelling) and an SPDE-Matern

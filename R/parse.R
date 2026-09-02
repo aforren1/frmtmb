@@ -315,6 +315,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   gpterms <- list()
   carterms <- list()
   spdeterms <- list()
+  acterms <- list()
   rest <- list()
   for (tm in terms_list) {
     # `x * (1 | g)` and `x:(1 | g)` are almost always a typo for `+`.
@@ -412,6 +413,11 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       carterms[[length(carterms) + 1L]] <- parse_car_call(tm, env)
     } else if (is.call(tm) && identical(tm[[1]], as.name("spde"))) {
       spdeterms[[length(spdeterms) + 1L]] <- parse_spde_call(tm, env)
+    } else if (is.call(tm) &&
+               as.character(tm[[1]])[1] %in% autocor_structs &&
+               !("|" %in% all.names(tm))) {
+      # brms R-side autocorrelation: ar(), ma(), arma(), cosy(), unstr()
+      acterms[[length(acterms) + 1L]] <- parse_autocor_call(tm, env)
     } else if (is.call(tm) && identical(tm[[1]], as.name("cs")) &&
                !("|" %in% all.names(tm))) {
       # barless cs(x): category-specific ordinal effect (the bar form
@@ -567,8 +573,50 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   environment(fixed) <- env_lp
   list(fixed = fixed, re = re, smooth = smooth, mo = mo,
        miterms = miterms, csterms = csterms, gpterms = gpterms,
-       carterms = carterms, spdeterms = spdeterms,
+       carterms = carterms, spdeterms = spdeterms, acterms = acterms,
        rhs = rhs_form)
+}
+
+#' Lift the response's residual-correlation term out of its linear
+#' predictors.
+#'
+#' An R-side term changes the shape of the LIKELIHOOD, not of a linear
+#' predictor, so it belongs to the response and not to a dpar. brms
+#' takes the same view and refuses one written anywhere but `mu`
+#' ("Explicit covariance terms can only be specified on 'mu'"), which
+#' is also what rules it out of mixture models, where every location
+#' parameter is `mu1`, `mu2`, ... rather than `mu`.
+#'
+#' @noRd
+pull_autocor <- function(dpars, resp_name) {
+  found <- list()
+  for (nm in names(dpars)) {
+    ats <- dpars[[nm]]$acterms %||% list()
+    if (!length(ats)) next
+    if (!identical(nm, "mu")) {
+      stop("Residual correlation terms can only be written on 'mu'; ",
+           ats[[1L]]$label, " appears in the formula for '", nm,
+           "'. The term changes the residual density of the response, ",
+           "not a linear predictor",
+           if (grepl("^mu[0-9]", nm)) {
+             paste0(". '", nm, "' is a mixture component, and a mixture ",
+                    "likelihood has no single residual to correlate; ",
+                    "an ar1()/toep() random effect over the time factor ",
+                    "is the available alternative there")
+           } else "", call. = FALSE)
+    }
+    found <- c(found, ats)
+    dpars[[nm]]$acterms <- list()
+  }
+  if (length(found) > 1L) {
+    stop("Response '", resp_name, "' carries ", length(found),
+         " residual correlation terms (",
+         paste(vapply(found, `[[`, "", "label"), collapse = ", "),
+         "); a response has one residual covariance, so keep one. ",
+         "Structures can be nested through random effects instead, ",
+         "e.g. ar(week, subj, cov = TRUE) + (1 | site)", call. = FALSE)
+  }
+  list(dpars = dpars, autocor = if (length(found)) found[[1L]])
 }
 
 #' Default (intercept-only) or constant dpar spec.
@@ -622,6 +670,18 @@ parse_one_response <- function(bform) {
            "parameter", call. = FALSE)
     }
     body <- reformulas::RHSForm(f)
+    # A nonlinear mu is arbitrary R code, so an ar() written there is
+    # EVALUATED, not parsed, and fails deep inside the objective with a
+    # message about the body. Say what is wrong instead.
+    ac_in_body <- intersect(autocor_structs, all.names(body))
+    if (length(ac_in_body)) {
+      stop("Residual correlation terms are not supported in a ",
+           "nonlinear (nl = TRUE) formula; '", ac_in_body[1L],
+           "()' appears in the model body, where it would be evaluated ",
+           "as ordinary R code rather than read as a term. brms reaches ",
+           "the same model through acformula(), which has no analog ",
+           "here", call. = FALSE)
+    }
     nlpars <- setdiff(names(bform$pforms), fam$dpars)
     if (!length(nlpars)) {
       stop("nl = TRUE needs at least one nonlinear-parameter formula ",
@@ -658,12 +718,14 @@ parse_one_response <- function(bform) {
         dpars[[dp]] <- plain_dpar(dp, fam, bform$pfix[[dp]])
       }
     }
+    pa <- pull_autocor(dpars, deparse1(ri$resp))
     return(list(
       resp_name = deparse1(ri$resp),
       resp_expr = ri$resp,
       family = fam,
       aterms = ri$aterms,
-      dpars = dpars,
+      dpars = pa$dpars,
+      autocor = pa$autocor,
       primary_dpars = nlpars,   # REML integrates the nlpar coefficients
       nlpars = nlpars,
       cbind_resp = isTRUE(ri$cbind_resp),
@@ -709,12 +771,19 @@ parse_one_response <- function(bform) {
     }
   }
 
+  # A mixture family has no 'mu': its location dpars are mu1, mu2, ...,
+  # and main_lp is copied into each. pull_autocor() therefore refuses a
+  # residual correlation term on a mixture, which is what brms does and
+  # for the same reason - a mixture likelihood has no single residual.
+  pa <- pull_autocor(dpars, deparse1(ri$resp))
+
   list(
     resp_name = deparse1(ri$resp),
     resp_expr = ri$resp,
     family = fam,
     aterms = ri$aterms,
-    dpars = dpars,
+    dpars = pa$dpars,
+    autocor = pa$autocor,
     primary_dpars = primaries,
     nlpars = character(0),
     cbind_resp = isTRUE(ri$cbind_resp),
@@ -865,6 +934,9 @@ print.frmtmb_spec <- function(x, ...) {
   cat("<frmtmb spec>\n")
   for (r in x$responses) {
     cat("Response: ", r$resp_name, "  [", r$family$family, "]\n", sep = "")
+    if (!is.null(r$autocor)) {
+      cat("  residual correlation: ", r$autocor$label, "\n", sep = "")
+    }
     if (length(r$aterms)) {
       cat("  aterms: ",
           paste0(names(r$aterms), "(", vapply(r$aterms, deparse1, ""), ")",

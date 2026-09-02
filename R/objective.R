@@ -32,6 +32,7 @@ build_objective <- function(frame) {
   y <- frame$y
   atv <- frame$aterm_values
   n <- frame$n_obs
+  acs <- frame$autocor %||% list()
 
   extra_names <- frame$extra_names %||% character(0)
 
@@ -150,6 +151,21 @@ build_objective <- function(frame) {
       for (r in names(resps)) {
         fam <- resps[[r]]$family
         w <- atv[[r]]$weights %||% 1
+        if (!is.null(acs[[r]])) {
+          # R-side residual correlation: the response's density is a
+          # joint (multivariate normal / t) one per group, not a
+          # product over rows, so it replaces fam$lpdf entirely. Every
+          # aterm that would reshape a per-row contribution was refused
+          # at frame assembly, so nothing below this point applies.
+          ac <- acs[[r]]
+          R <- autocor_cor(pars[["thetaac"]][ac$theta_idx], ac)
+          sg <- dparv[[r]]$sigma
+          z <- (y[[r]] - dparv[[r]]$mu) / sg
+          lsig <- if (length(sg) == 1L) n * log(sg) else sum(log(sg))
+          nu <- if (isTRUE(ac$student)) dparv[[r]]$nu[1] else NULL
+          nll <- nll - autocor_loglik(z, R, ac, lsig, nu)
+          next
+        }
         if (!is.null(fam$mix) && !is.null(frame$mix_g[[r]])) {
           # latent-class (group-level) mixture: one class draw per
           # group, so the group's per-observation log-densities sum

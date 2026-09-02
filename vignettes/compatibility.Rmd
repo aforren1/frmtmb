@@ -251,6 +251,50 @@ grid_table("structure", "method", rows = kind_of("structure"),
 note_table("structure", "method")
 ```
 
+## Within-group residual correlation
+
+`ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` replace the
+response's per-row density with one joint density per group. That is
+what decides almost every pair below: a family needs a real residual
+to correlate, and an addition term that reshapes a per-row
+contribution has nothing left to reshape.
+
+```{r autocor-fam}
+grid_table("autocor", "family", rows = kind_of("autocor"),
+           cols = kind_of("family"))
+```
+
+```{r autocor-fam-notes}
+note_table("autocor", "family")
+```
+
+```{r autocor-aterm}
+grid_table("autocor", "aterm", rows = kind_of("autocor"),
+           cols = kind_of("aterm"))
+```
+
+```{r autocor-aterm-notes}
+note_table("autocor", "aterm")
+```
+
+```{r autocor-mode}
+grid_table("autocor", "mode", rows = kind_of("autocor"),
+           cols = kind_of("mode"))
+```
+
+```{r autocor-mode-notes}
+note_table("autocor", "mode")
+```
+
+```{r autocor-struct}
+grid_table("autocor", "structure", rows = kind_of("autocor"),
+           cols = kind_of("structure"))
+```
+
+```{r autocor-struct-notes}
+note_table("autocor", "structure")
+```
+
 ## Predictor specials
 
 ```{r special-mode}

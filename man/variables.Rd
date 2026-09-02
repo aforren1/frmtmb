@@ -30,6 +30,10 @@ sampled fits, \code{variables()} on the \code{\link[=frm_sample]{frm_sample()}} 
 draw columns instead.
 }
 \details{
+A residual correlation term (\link{frmtmb-autocor}) contributes its
+natural-scale parameters under brms's names, sanitized the same way:
+\code{ar1}, \code{ar2}, \code{ma1}, \code{cosy}, \verb{cortime__<t1>__<t2>}.
+
 \code{gr(cov = )}, \code{gr(prec = )} and \code{equalto()} blocks contribute
 \code{sd_}/\code{cor_} names for their within-level covariance. Smooths,
 \code{gp()}/\code{hsgp()}, \code{car()} and \code{spde()} blocks contribute none: their

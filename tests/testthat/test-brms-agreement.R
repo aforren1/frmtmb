@@ -614,3 +614,54 @@ test_that("distributional sleepstudy agrees with brms posterior means", {
   expect_length(osd, length(bsd))
   expect_lt(max(abs(bsd - osd) / bsd), 0.3)
 })
+
+test_that("R-side autocorrelation matches brms's time-series indexing", {
+  skip_unless_brms()
+  set.seed(4)
+  d <- expand.grid(week = 1:4, subj = factor(1:6))
+  d$x <- rnorm(nrow(d))
+  d$y <- rnorm(nrow(d))
+  # brms sorts by (gr, time) and reports contiguous blocks; our frame
+  # keeps the data order and carries one row-index vector per pattern,
+  # so the comparable quantities are the group count and the group sizes
+  for (tm in c("ar(week, subj, cov = TRUE)", "ma(week, subj, cov = TRUE)",
+               "arma(week, subj, cov = TRUE)", "cosy(week, subj)",
+               "unstr(week, subj)")) {
+    form <- stats::as.formula(paste("y ~ x +", tm))
+    sd_b <- brms_standata(brms::bf(form), data = d, family = gaussian())
+    ac <- frm(form, data = d, family = gaussian(),
+              dry_run = "frame")$autocor[[1L]]
+    expect_equal(ac$n_groups, as.integer(sd_b$N_tg), info = tm)
+    sizes <- sort(unlist(lapply(ac$patterns, function(p) {
+      rep(p$k, p$G)
+    })))
+    expect_equal(sizes, sort(as.integer(sd_b$nobs_tg)), info = tm)
+  }
+  # unstr is the one structure brms indexes by TIME LEVEL rather than by
+  # position, so its time bookkeeping is directly comparable
+  sd_u <- brms_standata(brms::bf(y ~ x + unstr(week, subj)), data = d,
+                        family = gaussian())
+  fr <- frm(y ~ x + unstr(week, subj), data = d, family = gaussian(),
+            dry_run = "frame")
+  ac <- fr$autocor[[1L]]
+  expect_equal(ac$d, as.integer(sd_u$n_unique_t))
+  expect_equal(length(fr$par_template$thetaac),
+               as.integer(sd_u$n_unique_cortime))
+  # brms's Jtime_tg is one row per group holding that group's time
+  # levels; ours is the same set, read out of the pattern gather
+  ours <- sort(unique(as.vector(vapply(ac$patterns, function(p) {
+    sort(unique((p$gather - 1L) %% ac$d + 1L))
+  }, integer(ac$d)))))
+  expect_equal(ours, sort(unique(as.vector(sd_u$Jtime_tg))))
+
+  # brms refuses the same aterm combinations at the Stan-code stage
+  expect_error(
+    suppressMessages(brms::make_stancode(
+      brms::bf(y | weights(x) ~ 1 + ar(week, subj, cov = TRUE)),
+      data = transform(d, x = abs(d$x) + 1), family = gaussian())),
+    "Invalid addition arguments")
+  expect_error(
+    frm(bf(y | weights(w) ~ 1 + ar(week, subj, cov = TRUE)) + gaussian(),
+        data = transform(d, w = abs(d$x) + 1)),
+    "cannot be combined with a residual correlation term")
+})
