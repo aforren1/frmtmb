@@ -82,8 +82,9 @@ build_objective <- function(frame) {
         # raw data columns, evaluated straight onto the tape
         ev <- c(dparv[[lp$resp]], lp$data_list)
         # the body is taped once, so the handler costs nothing per
-        # gradient; it exists because a body name that resolved to a
-        # function instead of a column fails here, far from the cause
+        # gradient; it exists because a body name that resolved to an
+        # environment object instead of a column fails here, far from
+        # the cause
         eta <- tryCatch(eval(lp$nl_body, ev, lp$nl_env),
                         error = function(e) nl_body_error(e, lp))
         dparv[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)

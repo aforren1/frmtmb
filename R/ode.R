@@ -213,10 +213,11 @@ ode_state_index <- function(x, states, n_state, what) {
 #'
 #' @noRd
 ode_split_events <- function(events, labels, n_state, states) {
-  # A bare object name inside a nonlinear body is a request for a column
-  # of `data`, so a schedule held in a variable cannot be named there
-  # directly. Writing the table inline, or holding it in a function of no
-  # arguments, both keep the name out of the model frame.
+  # A schedule that is not fixed at parse time - read from a file, or
+  # built per fit - is passed as a function of no arguments and called
+  # here. A data.frame held in a variable needs no such wrapper: it is
+  # not a possible column, so a nonlinear body reads it from the formula
+  # environment (drop_nl_lexical_datavars(), R/frame.R).
   if (is.function(events)) {
     events <- tryCatch(events(), error = function(e) {
       stop("`events` is a function and calling it failed: ",
@@ -548,8 +549,20 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #'   `value / duration` over `[time, time + duration]`. Infusions must
 #'   use `"add"`.
 #'
-#' Inside a `bf(nl = TRUE)` body, write the table **inline** or hold it
-#' in a function of no arguments:
+#' Inside a `bf(nl = TRUE)` body, name the table:
+#'
+#' ```r
+#' doses <- data.frame(time = seq(12, 48, by = 12), state = "depot",
+#'                     value = 100)
+#' conc ~ frm_ode(pk_dyn, ..., events = doses)
+#' ```
+#'
+#' A name in a nonlinear body is normally a request for a column of
+#' `data`, and a column of that name still wins. A data.frame is not
+#' something a column could hold, so `doses` is read from the formula
+#' environment instead. Writing the table **inline**, or holding it in a
+#' function of no arguments, works the same way and is what a schedule
+#' read at fit time wants:
 #'
 #' ```r
 #' conc ~ frm_ode(pk_dyn, ..., events = data.frame(
@@ -558,12 +571,6 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #' schedule <- function() read.csv("doses.csv")
 #' conc ~ frm_ode(pk_dyn, ..., events = schedule)
 #' ```
-#'
-#' A bare data.frame name will not do there. Every name in a nonlinear
-#' body is a request for a column of `data`, so `events = my_doses`
-#' asks the model frame for a column called `my_doses` and fails. The
-#' restriction is on the formula, not on `frm_ode()`: a direct call takes
-#' the data.frame itself.
 #'
 #' In NONMEM terms an `"add"` row is a dosing record (`evid = 1`) with
 #' `amt = value` into `cmt = state`; a row with `duration` is the same

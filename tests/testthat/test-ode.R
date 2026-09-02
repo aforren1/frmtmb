@@ -59,8 +59,8 @@ test_that("a function argument of an nl body is not looked for in data", {
 })
 
 test_that("a misspelled column that matches a function is named", {
-  # the cost of resolving function-valued body names lexically: a typo
-  # whose name happens to be a base function is no longer caught by
+  # the cost of resolving body names outside the data: a typo whose
+  # name happens to be a base function is no longer caught by
   # model.frame(), so the failure has to be re-raised with the suspects
   d <- sim_pk(3)
   names(d)[names(d) == "time"] <- "t"     # the column the body wants
@@ -70,7 +70,7 @@ test_that("a misspelled column that matches a function is named", {
 
   names(d)[names(d) == "t"] <- "tim"      # now `t` is base::t, a typo
   expect_error(frm(form + gaussian(), data = d, start = list(beta = 1)),
-               "resolved to functions")
+               "resolved outside the data")
   expect_error(frm(form + gaussian(), data = d, start = list(beta = 1)),
                "\\bt\\b")
 })

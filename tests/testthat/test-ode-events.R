@@ -157,6 +157,51 @@ test_that("a function-valued events table is called", {
   )
 })
 
+test_that("a bare events table in a formula is the inline table", {
+  skip_if_not_installed("RTMBode")
+  # dev/ode-feasibility.md section 9.6: `events = doses` used to reach
+  # model.frame() as a request for a column called `doses` and die with
+  # "invalid type (list)". It is an argument of frm_ode(), not a column,
+  # so it now resolves in the formula environment - and it must give
+  # back exactly the model the inline data.frame gives.
+  set.seed(4)
+  n_id <- 4
+  tt <- c(0.5, 2, 6, 11.9, 14, 20, 26)
+  d <- data.frame(id = factor(rep(seq_len(n_id), each = length(tt))),
+                  time = rep(tt, n_id))
+  d$conc <- abs(stats::rnorm(nrow(d), 5, 1))
+  doses <- data.frame(time = c(12, 24), state = "depot", value = 100)
+
+  form_sym <- bf(
+    conc ~ frm_ode(pk_dyn2, init = list(100, 0), times = time,
+                   parms = list(exp(lka), exp(lke), exp(lV)), group = id,
+                   states = c("depot", "central"), output = "central",
+                   events = doses),
+    lka ~ 1, lke ~ 1, lV ~ 1, nl = TRUE)
+  form_inl <- bf(
+    conc ~ frm_ode(pk_dyn2, init = list(100, 0), times = time,
+                   parms = list(exp(lka), exp(lke), exp(lV)), group = id,
+                   states = c("depot", "central"), output = "central",
+                   events = data.frame(time = c(12, 24), state = "depot",
+                                       value = 100)),
+    lka ~ 1, lke ~ 1, lV ~ 1, nl = TRUE)
+  st <- list(beta = c(0, log(0.25), log(8)))
+
+  fr <- frm(form_sym + gaussian(), data = d, dry_run = "frame",
+            start = st)
+  expect_false("doses" %in% names(fr$linpreds[["conc.mu"]]$data_list))
+  expect_setequal(names(fr$linpreds[["conc.mu"]]$data_list),
+                  c("time", "id"))
+  expect_true("doses" %in% fr$linpreds[["conc.mu"]]$nl_lexical)
+
+  f_sym <- frm(form_sym + gaussian(), data = d, start = st)
+  f_inl <- frm(form_inl + gaussian(), data = d, start = st)
+  expect_equal(as.numeric(logLik(f_sym)), as.numeric(logLik(f_inl)),
+               tolerance = 1e-12)
+  expect_equal(unlist(fixef(f_sym)), unlist(fixef(f_inl)),
+               tolerance = 1e-12)
+})
+
 # --- numerical correctness ------------------------------------------
 
 test_that("repeated doses match the analytic superposition", {

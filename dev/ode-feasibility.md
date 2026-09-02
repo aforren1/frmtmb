@@ -52,7 +52,8 @@ deSolve 1.42, R 4.6.1, Windows 11.
 > that a misspelled column sharing a name with a base function (`t`,
 > `c`, `df`) is no longer caught by `model.frame()`, so the objective
 > re-raises the late coercion error with those names attached
-> (`nl_body_error()`).
+> (`nl_body_error()`). (Since then the exemption has been widened from
+> functions to every object that cannot be a column at all; see 9.6.)
 
 **No package code was changed.** Every result below comes from user
 code in the `nl = TRUE` body or in a `custom_family()`, both of which
@@ -646,15 +647,34 @@ a constant one is dropped from the sensitivity system by RTMBode's own
   times decide where the solve is split, which is settled before the
   tape is built.
 - Steady-state dosing records (NONMEM `ss` and `ii`).
-- A data.frame named by a bare symbol inside a `bf(nl = TRUE)` body.
-  Every name in a nonlinear body is a request for a column of `data`,
-  and `drop_nl_lexical_datavars()` (R/frame.R) only exempts names that
-  resolve to **functions**. So `events = my_doses` fails with
-  `model.frame`'s `invalid type (list) for variable 'my_doses'`. Both
-  the inline `data.frame(...)` spelling and a nullary function work
-  today. Widening that exemption to any non-column object of the wrong
-  length, with a message that names the culprit, belongs to the frame
-  lane.
+- ~~A data.frame named by a bare symbol inside a `bf(nl = TRUE)`
+  body.~~ **Fixed.** `drop_nl_lexical_datavars()` (R/frame.R) exempted
+  only names that resolve to **functions**, so `events = my_doses`
+  failed with `model.frame`'s
+  `invalid type (list) for variable 'my_doses'`. The exemption now
+  covers every object `model.frame()` could never hold as a column of
+  any data - functions, lists (a data.frame and a `POSIXlt` are
+  lists), environments, language objects - decided by the new
+  predicate `nl_lexical_only()`. A column of `data` still wins over a
+  same-named object in the environment, so a list column named in a
+  body is still refused by name (G2.12).
+
+  The boundary stops at the vector types. A numeric or character
+  vector, a factor, a `Date` and a matrix are all legal model-frame
+  columns; `model.frame()` already resolves such a name through the
+  formula environment when `data` has no such column, and a matrix
+  covariate is a feature here, so those keep reaching the frame
+  unchanged. Measured before and after the change: `y ~ b0 * z` with a
+  length-`n` `z` in the environment builds a frame either way, a
+  length-3 `z` still gives `variable lengths differ (found for 'z')`,
+  an absent name still gives `object 'z' not found`, and an `n x 2`
+  matrix still becomes a matrix column. `nl_body_error()` now says
+  "resolved outside the data" rather than "resolved to functions".
+
+  `events = doses` and the inline `data.frame(...)` give the same fit,
+  logLik identical to 0 (`tests/testthat/test-ode-events.R`, "a bare
+  events table in a formula is the inline table"). The boundary itself
+  is pinned in `tests/testthat/test-nl-lexical.R`.
 
 ### Probe scripts, part 2
 

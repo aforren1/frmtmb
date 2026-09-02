@@ -428,18 +428,58 @@ structural_lookup_msg <- function(expr, data2, what, e) {
   }
 }
 
-#' Drop nonlinear-body names that are functions, not data.
+#' Is this object something `model.frame()` could never hold as a
+#' column?
+#'
+#' The set is decided by `model.frame()` itself, not by taste. Its C
+#' code accepts a vector type - logical, integer, double, complex,
+#' character, raw - and everything built on one, so a factor, a `Date`,
+#' a `POSIXct`, a `difftime` and a matrix are all legal columns. Every
+#' other type is refused with `invalid type (...) for variable 'x'`:
+#' lists (a data.frame and a `POSIXlt` are lists), functions,
+#' environments, and language objects (a formula is a call). Those are
+#' exactly the objects that cannot be a column reference, so a body name
+#' that resolves to one is a reference to the object.
+#'
+#' A vector of any type is deliberately not in the set. A numeric or
+#' character vector in the formula environment is a legal model-frame
+#' variable, and `model.frame()` already resolves it through the
+#' formula environment when `data` has no such column; taking it
+#' lexically instead would change a fit that works today. A matrix is
+#' not in the set either: matrix columns are a real feature here
+#' (smooths and functional terms), so a matrix has to keep reaching the
+#' frame.
+#'
+#' `NULL` is not in the set. `get0()` returns `NULL` for a name that is
+#' absent from the environment too, and that name has to stay in the
+#' frame so the failure is `model.frame()`'s "object 'x' not found"
+#' rather than a coercion error later.
+#'
+#' @noRd
+nl_lexical_only <- function(obj) {
+  if (is.null(obj)) return(FALSE)
+  is.function(obj) || is.list(obj) || is.environment(obj) ||
+    is.language(obj)
+}
+
+#' Drop nonlinear-body names that are objects, not data.
 #'
 #' `parse_one_response()` collects every symbol of the nonlinear body
 #' that is not a nonlinear parameter and asks the combined model frame
 #' for it. That is right for `pk_ode(exp(lka), time, dose)`, where only
 #' the arguments are symbols, and wrong as soon as a helper takes
-#' another function as an argument - `frm_ode(pk_dyn, ...)` would ask
-#' `model.frame()` for a column named `pk_dyn`. The body is evaluated in
-#' its own formula environment anyway, so a name that resolves there to
-#' a function and is not a column of `data` is left to resolve
-#' lexically. A column always wins over a same-named function, so a
-#' variable called `t` or `c` is unaffected.
+#' another object as an argument - `frm_ode(pk_dyn, ...)` would ask
+#' `model.frame()` for a column named `pk_dyn`, and
+#' `frm_ode(..., events = doses)` for a column named `doses`. The body
+#' is evaluated in its own formula environment anyway, so a name that
+#' is not a column of `data` and resolves there to something
+#' `model.frame()` could never accept as a column of any data - see
+#' `nl_lexical_only()` - is left to resolve lexically.
+#'
+#' A column always wins over a same-named object in the environment, so
+#' a variable called `t`, `c` or `data` is unaffected, and a list column
+#' named in a body still fails at `model.frame()` the way an unusable
+#' column should.
 #'
 #' The names left to resolve lexically are recorded, because they are
 #' also the suspects when the body later fails. A misspelled column that
@@ -458,7 +498,7 @@ drop_nl_lexical_datavars <- function(spec, data) {
       if (v %in% dn) return(TRUE)
       obj <- tryCatch(get0(v, envir = dp$nl_env, ifnotfound = NULL),
                       error = function(e) NULL)
-      !is.function(obj)
+      !nl_lexical_only(obj)
     }, TRUE)
     spec$responses[[i]]$dpars$mu$datavars <- dp$datavars[keep]
     spec$responses[[i]]$dpars$mu$nl_lexical <- dp$datavars[!keep]
@@ -473,10 +513,11 @@ nl_body_error <- function(e, lp) {
   lex <- lp$nl_lexical %||% character(0)
   extra <- if (length(lex)) {
     paste0(" These names in the body are not columns of `data` and were ",
-           "resolved to functions in the formula environment instead: ",
+           "resolved outside the data, in the formula environment: ",
            paste(lex, collapse = ", "),
-           ". A misspelled column name that happens to match a function ",
-           "fails exactly this way.")
+           ". A misspelled column name that happens to match an object ",
+           "there - a function such as t, c or df - fails exactly this ",
+           "way.")
   } else {
     ""
   }

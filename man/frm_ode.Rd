@@ -187,8 +187,19 @@ an infusion, delivering \code{value} at the constant rate
 use \code{"add"}.
 }
 
-Inside a \code{bf(nl = TRUE)} body, write the table \strong{inline} or hold it
-in a function of no arguments:
+Inside a \code{bf(nl = TRUE)} body, name the table:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{doses <- data.frame(time = seq(12, 48, by = 12), state = "depot",
+                    value = 100)
+conc ~ frm_ode(pk_dyn, ..., events = doses)
+}\if{html}{\out{</div>}}
+
+A name in a nonlinear body is normally a request for a column of
+\code{data}, and a column of that name still wins. A data.frame is not
+something a column could hold, so \code{doses} is read from the formula
+environment instead. Writing the table \strong{inline}, or holding it in a
+function of no arguments, works the same way and is what a schedule
+read at fit time wants:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{conc ~ frm_ode(pk_dyn, ..., events = data.frame(
          time = seq(12, 48, by = 12), state = "depot", value = 100))
@@ -196,12 +207,6 @@ in a function of no arguments:
 schedule <- function() read.csv("doses.csv")
 conc ~ frm_ode(pk_dyn, ..., events = schedule)
 }\if{html}{\out{</div>}}
-
-A bare data.frame name will not do there. Every name in a nonlinear
-body is a request for a column of \code{data}, so \code{events = my_doses}
-asks the model frame for a column called \code{my_doses} and fails. The
-restriction is on the formula, not on \code{frm_ode()}: a direct call takes
-the data.frame itself.
 
 In NONMEM terms an \code{"add"} row is a dosing record (\code{evid = 1}) with
 \code{amt = value} into \code{cmt = state}; a row with \code{duration} is the same
