@@ -1127,3 +1127,35 @@ Gaps for another day, in modeling-importance order:
   nlpar/dpar collisions error; undeclared dpars error; .eta_
   reserved names are unreachable from data; nlf bodies use
   column-wins deliberately).
+
+## frm_sample on ODE fits: BROKEN at the tmbstan/RTMBode boundary
+## (found 2026-09-02, deterministic repro)
+
+Sampling a fit whose tape contains frm_ode() adjoint nodes fails at
+warmup iteration 1 EVEN AT THE FITTED OPTIMUM, where direct
+obj$fn/obj$gr succeed: DLSODA reports TOLSF = nan / T-illegal-at-
+TCUR=0 signatures, then RTMB's ADjoint raises "Wrong output length".
+Reproduced with raw tmbstan(fit$obj, init = list(mode)) - NOT an
+frmtmb init-handling issue. Repro: scratchpad lv-sample-debug.R /
+lv-init-probe.R (the Lotka-Volterra two-solve model; whether
+single-node ODE fits also fail is untested). Prime suspect: RTMBode's
+C shim keeps STATIC global tape pointers (set_pointers X/Y/F, set by
+setTape before each solve) and tmbstan's evaluation context breaks
+the sequencing that direct evaluation happens to satisfy. Secondary
+damage: the R error crossing Stan's C++ boundary corrupts rstan's
+nested AD arena for the WHOLE SESSION (later calls fail with
+"empty_nested() must be true before calling recover_memory()") -
+retry needs a fresh session.
+
+frmtmb side (done): frm_sample now raises an informative error when
+the sampler returns no draws, naming this case, instead of a
+seq_len(NA) error from the extraction code.
+
+Upstream items for the RTMBode issue (joins the events x2 and
+>8-state items): (1) tryCatch the deSolve call inside the adjoint
+node and return NaN - converts sampler aborts into ordinary Stan
+proposal rejections AND stops the arena corruption; (2) the static-
+pointer sequencing under tmbstan. Our side, future: auto-derived
+containment bounds (mode +/- k*SE) for sampling ODE fits once
+upstream failure becomes rejectable; bare-nlpar bound aliases for
+intercept-only nlpars (la for la_(Intercept)).

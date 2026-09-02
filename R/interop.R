@@ -985,6 +985,15 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     args$upper <- bounds$upper
   }
   sf <- do.call(tmbstan::tmbstan, args)
+  if (!length(sf@sim) || !length(sf@sim$samples)) {
+    stop("frm_sample(): the sampler returned no draws (rstan printed ",
+         "the cause above). A known case: a fit whose tape solves ",
+         "ODEs (frm_ode) fails inside tmbstan even at the fitted ",
+         "optimum, an RTMBode/tmbstan interaction under upstream ",
+         "investigation - dev/feature-gaps.md lists it. A solver ",
+         "failure mid-run also corrupts rstan's sampler state, so ",
+         "retry in a fresh R session", call. = FALSE)
+  }
   a <- rstan::extract(sf, permuted = FALSE)   # iter x chain x par
   stan_names <- dimnames(a)[[3]]
   # laplace draws skip the inner components entirely; labeling them
