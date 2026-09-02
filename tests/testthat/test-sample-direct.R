@@ -75,10 +75,19 @@ test_that("the formula route samples the same posterior as the fit route", {
   a <- summary(ds_fit)[, "mean"]
   b <- summary(ds_form)[, "mean"]
   expect_setequal(names(a), names(b))
-  # both are NUTS on the same density; the posterior means agree to
-  # within Monte Carlo error of a short chain
+  # the sharp gate: both routes taped the same density, so the two
+  # objectives agree pointwise; the draws comparison below then only
+  # guards the sampler wiring
+  p <- fit$obj$par
+  expect_equal(ds_form$fit$obj$fn(p), fit$obj$fn(p), tolerance = 1e-8)
+  expect_equal(ds_form$fit$obj$fn(p + 0.1), fit$obj$fn(p + 0.1),
+               tolerance = 1e-8)
+  # a seeded Stan run is not platform-deterministic, and the group-sd
+  # components mix slowly with 6 groups (ESS in the tens on a 500-draw
+  # chain): a 1.11-sd mean gap was observed on macOS CI, so the Monte
+  # Carlo band is wide by design
   expect_lt(max(abs(a - b[names(a)]) /
-                  pmax(summary(ds_fit)[, "sd"], 1e-8)), 0.35)
+                  pmax(summary(ds_fit)[, "sd"], 1e-8)), 2)
 
   # the whole draws surface runs off the formula-route object
   expect_s3_class(ds_form, "frmtmb_draws")

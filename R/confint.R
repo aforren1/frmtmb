@@ -836,7 +836,10 @@ diagnose <- function(fit, quiet = FALSE) {
   degenerate <- !length(fit$opt$par)
   gr <- if (degenerate) numeric(0) else drop(fit$obj$gr(fit$opt$par))
   V <- sdr_of(fit)$cov.fixed
-  se <- if (!length(V)) numeric(0) else sqrt(diag(V))
+  # on the pathological fits diagnose() exists for, cov.fixed can carry
+  # negative diagonal entries; the resulting NaN SEs are the finding
+  # (reported through bad_se), not a warning to relay
+  se <- if (!length(V)) numeric(0) else suppressWarnings(sqrt(diag(V)))
   ev <- if (!length(V)) NULL else {
     tryCatch(eigen(V, symmetric = TRUE, only.values = TRUE)$values,
              error = function(e) NULL)
@@ -846,7 +849,8 @@ diagnose <- function(fit, quiet = FALSE) {
   th <- fit$estimates$theta %||% numeric(0)
   # only the log-sd components; see log_sd_theta_index()
   sd_i <- log_sd_theta_index(fit)
-  ps <- tryCatch(par_est_se(fit), error = function(e) NULL)
+  ps <- tryCatch(suppressWarnings(par_est_se(fit)),
+                 error = function(e) NULL)
   out <- list(
     convergence = fit$opt$convergence,
     message = fit$opt$message,
