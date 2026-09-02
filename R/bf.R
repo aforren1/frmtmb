@@ -115,12 +115,20 @@ bf <- function(formula, ..., family = NULL, nl = FALSE) {
            call. = FALSE)
     }
   }
-  if (isTRUE(nl) && !length(pforms)) {
+  # A body that is one bare name (`bf(y ~ a, nl = TRUE)`) is the brms
+  # nlf() spelling, where the parameter formulas arrive afterwards with
+  # `+ nlf(a ~ ...)`; anything else with no formula here is the usual
+  # slip of forgetting them, and is worth catching at the call.
+  if (isTRUE(nl) && !length(pforms) &&
+      !is.name(reformulas::RHSForm(formula))) {
     stop("nl = TRUE needs at least one parameter formula, e.g. ",
-         "bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE)", call. = FALSE)
+         "bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas ",
+         "added afterwards with lf() or nlf() are not visible here, so ",
+         "give bf() at least one of them", call. = FALSE)
   }
   structure(
     list(formula = formula, pforms = pforms, pfix = pfix, nl = isTRUE(nl),
+         nlforms = list(),
          family = if (!is.null(family)) as_frmtmb_family(family)),
     class = "frmtmb_formula"
   )
@@ -210,6 +218,95 @@ print.frmtmb_lf <- function(x, ...) {
   invisible(x)
 }
 
+#' Add a nonlinear parameter formula to a model formula
+#'
+#' brms's `nlf()`: it declares that one parameter is computed by a
+#' NONLINEAR expression rather than by a linear predictor. The names in
+#' that expression are either other model parameters, each of which
+#' needs its own formula, or columns of the data.
+#'
+#' `bf(y ~ a) + nlf(a ~ exp(b * x)) + lf(b ~ 1)` is the same model as
+#' `bf(y ~ exp(b * x), b ~ 1, nl = TRUE)`, written the other way round.
+#' Where `nl = TRUE` makes the response formula the nonlinear body,
+#' `nlf()` names the parameter it belongs to, so any parameter can have
+#' one: `bf(y ~ x) + nlf(sigma ~ a + b * z) + lf(a ~ 1, b ~ 1)` is a
+#' nonlinear model for the residual standard deviation with a linear
+#' `mu`, which `nl = TRUE` cannot spell.
+#'
+#' Bodies may be chained: an `nlf()` body can name a parameter that
+#' another `nlf()` defines, to any depth. The parameters are evaluated
+#' in dependency order, and a cycle is refused by name. Each
+#' parameter's link is applied to the body's value, so
+#' `nlf(sigma ~ a + b * z)` gives `sigma = exp(a + b * z)` under the
+#' default log link, exactly as in brms.
+#'
+#' A body may also name another distributional parameter of the same
+#' response, which reads that parameter's per-row VALUE. This is the one
+#' place frmtmb goes beyond brms, where such a name is a data column and
+#' the model is refused when no column has it. It buys the variance
+#' function of the model's own mean that nlme writes as
+#' `varPower(form = ~ fitted(.))`: with the default log link on `sigma`,
+#' `nlf(sigma ~ ls + th * log(abs(mu)))` is
+#' `sd = exp(ls) * |mu|^th`. A column of the data still wins over the
+#' parameter name, so a body ported from brms keeps its meaning.
+#'
+#' Like [lf()], an `nlf()` in a multivariate model must be added to the
+#' `bf()` of the response it belongs to, before the responses are
+#' combined.
+#'
+#' @param formula A two-sided formula naming the parameter on the left
+#'   and its nonlinear body on the right, e.g. `sigma ~ a * exp(b * x)`.
+#' @param ... Further two-sided formulas, treated as LINEAR parameter
+#'   formulas exactly as if passed to [lf()] - the brms convention.
+#' @param loop Accepted for brms source compatibility and ignored.
+#'   frmtmb evaluates a nonlinear body once over whole vectors, which is
+#'   brms's `loop = FALSE`; a body built from elementwise operations has
+#'   the same value either way.
+#' @return An object of class `frmtmb_nlf`, to be added to a [bf()].
+#' @examples
+#' # the composed spelling of a nonlinear model
+#' bf(y ~ a) + nlf(a ~ exp(b * x)) + lf(b ~ 1)
+#'
+#' # a nonlinear sigma with a linear mu
+#' bf(y ~ x) + nlf(sigma ~ a + b * z) + lf(a ~ 1, b ~ 1)
+#'
+#' # bodies chain: cc feeds a, a feeds mu
+#' bf(y ~ a, nl = TRUE) + nlf(a ~ cc * x) + nlf(cc ~ exp(b)) + lf(b ~ 1)
+#'
+#' # a variance function of the fitted mean: sd = exp(ls) * |mu|^th
+#' bf(y ~ x) + nlf(sigma ~ ls + th * log(abs(mu))) + lf(ls ~ 1, th ~ 1)
+#' @export
+nlf <- function(formula, ..., loop = NULL) {
+  if (!inherits(formula, "formula") || length(formula) != 3L) {
+    stop("nlf() takes a two-sided formula naming the parameter on the ",
+         "left: e.g. nlf(sigma ~ a * exp(b * x))", call. = FALSE)
+  }
+  lhs <- formula[[2L]]
+  if (is.call(lhs) && identical(lhs[[1L]], as.name("+"))) {
+    stop("nlf() declares one parameter at a time, and '", deparse1(lhs),
+         "' names several. Sharing one nonlinear body would make them ",
+         "the same function of the data, which leaves the model ",
+         "aliased; write one nlf() per parameter", call. = FALSE)
+  }
+  dpar <- check_dpar_name(deparse1(lhs))
+  nlforms <- list()
+  nlforms[[dpar]] <- formula
+  pforms <- if (length(list(...))) lf(...)$pforms else list()
+  if (dpar %in% names(pforms)) {
+    stop("nlf() gives '", dpar, "' both a nonlinear body and a linear ",
+         "formula; it can have one or the other", call. = FALSE)
+  }
+  structure(list(nlforms = nlforms, pforms = pforms),
+            class = "frmtmb_nlf")
+}
+
+#' @export
+print.frmtmb_nlf <- function(x, ...) {
+  for (f in x$nlforms) cat(deparse1(f), " (nonlinear)\n", sep = "")
+  for (f in x$pforms) cat(deparse1(f), "\n")
+  invisible(x)
+}
+
 #' @export
 "+.frmtmb_formula" <- function(e1, e2) {
   if (missing(e2)) return(e1)
@@ -218,9 +315,31 @@ print.frmtmb_lf <- function(x, ...) {
   }
   if (inherits(e2, "frmtmb_lf")) {
     for (nm in names(e2$pforms)) {
-      if (nm %in% c(names(e1$pforms), names(e1$pfix))) {
+      if (nm %in% c(names(e1$pforms), names(e1$pfix),
+                    names(e1$nlforms))) {
         stop("lf() sets '", nm, "', which the bf() it is added to ",
              "already sets", call. = FALSE)
+      }
+      e1$pforms[[nm]] <- e2$pforms[[nm]]
+    }
+    return(e1)
+  }
+  if (inherits(e2, "frmtmb_nlf")) {
+    set <- function(nm) {
+      nm %in% c(names(e1$pforms), names(e1$pfix), names(e1$nlforms))
+    }
+    for (nm in names(e2$nlforms)) {
+      if (set(nm)) {
+        stop("nlf() sets '", nm, "', which the bf() it is added to ",
+             "already sets", call. = FALSE)
+      }
+      e1$nlforms[[nm]] <- e2$nlforms[[nm]]
+    }
+    for (nm in names(e2$pforms)) {
+      if (set(nm)) {
+        stop("The linear parameter formulas passed to nlf() set '", nm,
+             "', which the bf() it is added to already sets",
+             call. = FALSE)
       }
       e1$pforms[[nm]] <- e2$pforms[[nm]]
     }
@@ -327,6 +446,11 @@ set_rescor <- function(rescor_value = TRUE) {
          "directly after the bf() it modifies, e.g. ",
          "bf(y1 ~ x) + lf(sigma ~ z) + bf(y2 ~ x)", call. = FALSE)
   }
+  if (inherits(e2, "frmtmb_nlf")) {
+    stop("nlf() does not say which response it belongs to. Put it ",
+         "directly after the bf() it modifies, e.g. ",
+         "bf(y1 ~ x) + nlf(sigma ~ a * z) + bf(y2 ~ x)", call. = FALSE)
+  }
   if (inherits(e2, "frmtmb_rescor")) {
     e1$rescor <- e2$rescor
     return(e1)
@@ -359,7 +483,9 @@ print.frmtmb_mvformula <- function(x, ...) {
 
 #' @export
 print.frmtmb_formula <- function(x, ...) {
-  cat(deparse1(x$formula), "\n")
+  cat(deparse1(x$formula), if (isTRUE(x$nl)) " (nonlinear)" else "", "\n",
+      sep = "")
+  for (f in x$nlforms) cat(deparse1(f), " (nonlinear)\n", sep = "")
   for (f in x$pforms) cat(deparse1(f), "\n")
   for (nm in names(x$pfix)) cat(nm, "=", x$pfix[[nm]], "\n")
   if (!is.null(x$family)) {

@@ -30,6 +30,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `mvbind(y1, y2) ~ x`, `mvbf()`, `set_rescor()` | same | per-response families; `rescor` gaussian-only |
 | `y \| trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family |
 | `nl = TRUE` | same | provide `start`; se.fit on the nonlinear mu not yet |
+| `lf()`, `nlf()` | same | `nlf()` on any dpar, bodies chain to any depth (below) |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |
@@ -83,6 +84,45 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
   `gr(g, cov = A)`.
 - `mm()` ports with its `weights =` and `scale =` arguments and with
   `mmc()`; its other arguments have different spellings here (below).
+
+## Nonlinear formulas: `nl = TRUE` and `nlf()`
+
+`nl = TRUE` says the RESPONSE formula is a nonlinear body, so only `mu`
+can be nonlinear. `nlf()` names the parameter instead, so any of them
+can be, and the two spellings meet in the same place:
+
+```r
+# the same model, both ways
+frm(bf(y ~ exp(b * x), b ~ 1, nl = TRUE), data = d)
+frm(bf(y ~ a) + nlf(a ~ exp(b * x)) + lf(b ~ 1), data = d)
+
+# and the model nl = TRUE cannot spell: a nonlinear sigma, linear mu
+frm(bf(y ~ x) + nlf(sigma ~ a + b * z) + lf(a ~ 1, b ~ 1), data = d)
+```
+
+A parameter's link is applied to its body's value, as in brms: the
+`sigma` above is `exp(a + b * z)`. Bodies chain to any depth
+(`nlf(a ~ cc * x) + nlf(cc ~ exp(b))`), are computed in dependency
+order, and a cycle is refused by name.
+
+Two deliberate differences from brms, both supersets:
+
+- brms requires `nl = TRUE` on the `bf()` whenever the response formula
+  names a nonlinear parameter. Here `nlf()` has already declared the
+  name, so `bf(y ~ a) + nlf(a ~ ...)` is enough; the flag still works
+  and means the same thing.
+- A body may name another distributional parameter of the same
+  response, which reads that parameter's per-row value. brms reads such
+  a name as a data column and refuses the model when no column has it.
+  A column still wins here, so a ported body keeps its meaning. This is
+  the spelling for a variance function of the model's own mean, which
+  nlme writes `varPower(form = ~ fitted(.))`:
+
+```r
+# sd = exp(ls) * |mu|^th, one joint maximum likelihood
+frm(bf(y ~ x) + nlf(sigma ~ ls + th * log(abs(mu))) +
+      lf(ls ~ 1, th ~ 1), data = d)
+```
 
 ## Multi-membership
 

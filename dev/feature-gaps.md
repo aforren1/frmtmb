@@ -758,19 +758,69 @@ maximum absolute gradient of 1e-4, so the sharp check is Huber's own
 estimating equations, `X' psi(u) = 0` and `sum(u psi(u)) = n`, which
 the fit satisfies to the same order.
 ## `nlf()`: recorded, not implemented (v0.34.x, wt-polish)
+## `nlf()`: DONE (v0.36, wt-nlf)
 
-`lf()` shipped with the brms-portability batch: it is sugar over the
-dpar formulas `bf()` already takes, so `+.frmtmb_formula` merges its
-formulas into `pforms`. `nlf()` is not the same shape. In brms it
-declares a NONLINEAR formula for one parameter,
-`bf(y ~ a) + nlf(a ~ exp(b * x)) + lf(b ~ 1)`, which needs a per-dpar
-`nl` flag. frmtmb's `nl` is one flag on the whole `bf()`, and the
-nonlinear branch of `parse_one_response()` reads the main formula's
-right-hand side as the body with every `pforms` entry as a linear
-nonlinear-parameter formula. Supporting `nlf()` means a nonlinearity
-flag per dpar and a nested body in the objective, which is real work in
-`parse.R` and `objective.R`, not sugar. The existing spelling stays
-`bf(y ~ exp(b * x), b ~ 1, nl = TRUE)`.
+The v0.34 note was right about the shape and wrong about the cost. The
+work was not "a nonlinearity flag per dpar plus a nested body in the
+objective" bolted beside the existing branch: it was deleting the
+branch. `nl = TRUE` is now sugar - "mu carries a body, and the body is
+the response formula's right-hand side" - and `parse_one_response()`
+has ONE path that builds every dpar, with `nl_body` / `nl_pars` on the
+dpar entries that have one and a dependency sort over the whole set.
+Everything downstream was already keyed on `lp$nl_body` rather than on
+"the model is nonlinear", so the generalization touched five call sites
+(evaluation scope in `objective.R`, `eval_dpars()` and `predict()`,
+`ce_plot_vars()`'s recursion, `check_ode_constancy()`'s body walk,
+`drop_nl_lexical_datavars()`'s loop) and no algorithm.
+
+Scope delivered:
+
+- `nlf(dpar ~ body)` on ANY dpar of any family, including the ones
+  `nl = TRUE` could never reach: a nonlinear `sigma` (or `shape`, or a
+  mixture's `theta`) with a linear `mu`.
+- Bodies chain to any depth, computed in dependency order (a stable
+  topological sort that keeps declaration order among independent
+  dpars, which is why the existing nl coefficient ordering is
+  unchanged). Cycles are refused by name, as brms refuses them.
+- The composition identity `bf(y ~ a) + nlf(a ~ exp(b * x)) +
+  lf(b ~ 1)` == `bf(y ~ exp(b * x), b ~ 1, nl = TRUE)` holds exactly
+  (logLik, coefficients, vcov and dimnames, predictions all at 0).
+- `frm_ode()` composes inside an `nlf()` body with no change: the
+  within-group constancy check now walks every body, not just mu's.
+- Two documented supersets of brms. (1) brms insists on `nl = TRUE`
+  when the response formula names a nonlinear parameter; here `nlf()`
+  has already declared the name, so the flag is optional. (2) A body
+  may name another dpar of the same response and read its per-row
+  VALUE; in brms such a name is a data column and the model is refused
+  when no column has it. A column still wins here, so no brms body
+  changes meaning.
+
+The dpar reference closes the one hole in the `varFunc` translation
+table: `varPower(form = ~ fitted(.))` is
+`nlf(sigma ~ ls + th * log(abs(mu))) + lf(ls ~ 1, th ~ 1)`. The
+likelihoods are identical (frmtmb's objective at `gls`'s own estimates
+reproduces `logLik(gls)` to 9e-10); the ESTIMATORS are not. `gls`
+alternates between the mean fit and the variance function against
+iteratively updated fitted values and stops without a gradient check,
+so on the reference data it lands 1.1e-4 lower in logLik with a
+gradient of 0.09, where the joint maximization here reaches 6.6e-4.
+Expect agreement to about 1e-2 on the coefficients, not 1e-10 - unlike
+`varPower(~v)`, `varExp`, `varIdent` and `varFixed`, whose variance
+functions do not depend on the fitted values and therefore agree
+exactly. The migration vignette's variance-function section (added on
+main after this branch) should replace its "no frmtmb spelling"
+sentence for `varPower(form = ~ fitted(.))` with this one, and carry
+the estimator caveat.
+
+Not in scope, and deliberately: `nlf(resp =)` and `nlf(dpar =)` (both
+deprecated in brms; placement after the right `bf()` says the same
+thing), `flist =`, and `loop =` (accepted and ignored - frmtmb always
+evaluates a body once over whole vectors, which is brms's
+`loop = FALSE`, and an elementwise body has the same value either way).
+An `nlf()` left-hand side naming several parameters is refused rather
+than split: one shared body makes them the same function of the data,
+which is an aliased model. brms refuses it too.
+
 ## Multi-membership `mm()` / `mmc()` (delivered v0.35)
 
 Was absent entirely, which the v0.34 audit flagged: a ported brms

@@ -1059,17 +1059,109 @@ plain_dpar <- function(dp, fam, constant = NULL) {
        rhs = ~1, smooth = list(), constant = constant)
 }
 
+#' One parsed dpar that is computed by a nonlinear body rather than by
+#' a design matrix.
+#'
+#' The body's free names split three ways: those that name a nonlinear
+#' parameter (`nl_pars`), those that name ANOTHER distributional
+#' parameter of the same response (`nl_dpar_refs`, which read that
+#' parameter's per-row VALUE, after its link inverse), and the rest
+#' (`datavars`, asked of the combined model frame).
+#'
+#' brms has only the first and the third: a body naming `sigma` there is
+#' asking for a data column, and errors when there is none. The dpar
+#' reference is the one deliberate extension, because it is the only way
+#' to write a variance function of the model's own mean -
+#' `nlf(sigma ~ ls + th * log(abs(mu)))`, nlme's
+#' `varPower(form = ~ fitted(.))`. It costs no brms compatibility: a
+#' column of `data` still wins, so every body brms accepts means here
+#' what it means there. `resolve_nl_dpar_refs()` decides that once the
+#' data is known.
+#'
+#' @noRd
+nl_dpar <- function(name, link, body, nlpars, dparnames, env) {
+  vars <- all.vars(body)
+  pars <- intersect(vars, nlpars)
+  list(name = name, link = link, nl_body = body,
+       nl_pars = pars,
+       nl_dpar_refs = setdiff(intersect(vars, dparnames), c(name, pars)),
+       datavars = setdiff(vars, pars), nl_env = env,
+       fixed = NULL, re = list(), rhs = NULL,
+       smooth = list(), constant = NULL)
+}
+
+#' Put one response's dpars in dependency order.
+#'
+#' A nonlinear body reads the values of the parameters it names, so
+#' those have to be computed first: the objective, `eval_dpars()` and
+#' `predict()` all walk the linear predictors once, in this order, and
+#' accumulate the values as they go. Among dpars that are ready at the
+#' same time the DECLARED order is kept, so a model that was already
+#' expressible with `nl = TRUE` keeps the coefficient ordering it had -
+#' the names come out of the same walk.
+#'
+#' Cycles cannot be ordered and are refused by name; brms refuses them
+#' too ("Cannot handle circular dependency structures").
+#'
+#' @noRd
+order_dpars_by_dependency <- function(dpars, resp_name) {
+  nms <- names(dpars)
+  deps <- lapply(dpars, function(dp) {
+    intersect(c(dp[["nl_pars"]], dp[["nl_dpar_refs"]]) %||% character(0),
+              nms)
+  })
+  done <- character(0)
+  left <- nms
+  while (length(left)) {
+    ready <- left[vapply(left, function(nm) all(deps[[nm]] %in% done),
+                         TRUE)]
+    if (!length(ready)) {
+      stop("The nonlinear formulas of response '", resp_name,
+           "' depend on each other in a cycle, so no order computes ",
+           "them: ", paste(left, collapse = ", "),
+           ". A parameter's body cannot name a parameter whose own ",
+           "body names it back (nor itself)", call. = FALSE)
+    }
+    done <- c(done, ready[1L])
+    left <- setdiff(left, ready[1L])
+  }
+  dpars[done]
+}
+
+#' The nonlinear parameters a dpar's body reaches, directly or through
+#' other nonlinear bodies.
+#'
+#' @noRd
+nl_reachable_pars <- function(dpars, start) {
+  seen <- character(0)
+  front <- dpars[[start]][["nl_pars"]] %||% character(0)
+  while (length(front)) {
+    nm <- front[1L]
+    front <- front[-1L]
+    if (nm %in% seen) next
+    seen <- c(seen, nm)
+    front <- c(front, dpars[[nm]][["nl_pars"]] %||% character(0))
+  }
+  seen
+}
+
 #' One bf() -> one response entry of the spec.
 #'
-#' Takes one `frmtmb_formula` (a formula plus its family, dpar formulas
-#' and fixed dpar values) and returns the response entry the frame
-#' builds from: `resp_name`, `resp_expr`, `family`, the addition terms
-#' `aterms`, one parsed linear predictor per `dpars` entry, the primary
-#' (location) dpar names, the nonlinear parameter names, and the shared
-#' `formula_env`. It runs `parse_linpred()` once per dpar, gives every
-#' dpar without a formula an intercept or a constant, and handles the
-#' nonlinear (`nl = TRUE`) case where mu is a body expression instead of
-#' a design. It checks the formula, never the data.
+#' Takes one `frmtmb_formula` (a formula plus its family, dpar formulas,
+#' nonlinear bodies and fixed dpar values) and returns the response
+#' entry the frame builds from: `resp_name`, `resp_expr`, `family`, the
+#' addition terms `aterms`, one parsed linear predictor per `dpars`
+#' entry, the primary (location) dpar names, the nonlinear parameter
+#' names, and the shared `formula_env`. It runs `parse_linpred()` once
+#' per dpar and gives every dpar without a formula an intercept or a
+#' constant. It checks the formula, never the data.
+#'
+#' Nonlinearity is a property of ONE dpar, not of the whole formula.
+#' `nlf(sigma ~ ...)` gives sigma a body; `nl = TRUE` is the same thing
+#' said about mu, with the response formula's right-hand side as the
+#' body. Both land in `nl_bodies` here and take the same path from this
+#' point on, which is why a nonlinear sigma needs nothing downstream
+#' that a nonlinear mu did not already need.
 #'
 #' @noRd
 parse_one_response <- function(bform) {
@@ -1093,86 +1185,104 @@ parse_one_response <- function(bform) {
   shared_env <- new.env(parent = env)
   ri <- rewrite_cbind_response(parse_response(f), fam)
 
-  if (isTRUE(bform$nl)) {
-    if (!identical(fam$primary_dpars %||% "mu", "mu")) {
+  primaries <- fam$primary_dpars %||% "mu"
+  pforms <- bform$pforms
+  pfix <- bform$pfix
+  nlforms <- bform$nlforms %||% list()
+  nl_bodies <- lapply(nlforms, reformulas::RHSForm)
+  nl_envs <- lapply(nlforms, function(nf) environment(nf) %||% env)
+
+  # The response formula's right-hand side is mu's body when `nl = TRUE`
+  # says so, and also when an nlf() has declared a parameter that the
+  # right-hand side goes on to use. brms requires the flag in that
+  # second case; accepting the flagless spelling costs nothing (only a
+  # formula carrying an nlf() can reach it) and is how the composed
+  # brms idiom `bf(y ~ a) + nlf(a ~ ...)` is written in the wild.
+  main_rhs <- reformulas::RHSForm(f)
+  nlf_pars <- setdiff(names(nlforms), fam$dpars)
+  mu_by_flag <- isTRUE(bform$nl) ||
+    (length(nlf_pars) && !primaries[1L] %in% names(nl_bodies) &&
+       length(intersect(all.vars(main_rhs), nlf_pars)) > 0L)
+  if (primaries[1L] %in% names(nl_bodies)) {
+    # An explicit nlf() for the location parameter WINS over the
+    # response formula's right-hand side, so that side would be
+    # silently discarded (brms discards it). Say so instead. `nl = TRUE`
+    # alongside such an nlf() is then redundant, not contradictory.
+    if (!identical(deparse1(main_rhs), "1")) {
+      stop("nlf(", primaries[1L], " ~ ...) gives '", primaries[1L],
+           "' a nonlinear body of its own, which would leave the ",
+           "right-hand side of the bf() it is added to ('",
+           deparse1(main_rhs), "') with nothing to do. Write ",
+           "bf(", deparse1(ri$resp), " ~ 1) and let nlf() define ",
+           primaries[1L], ", or move those terms into the nlf() body",
+           call. = FALSE)
+    }
+  } else if (mu_by_flag) {
+    if (!identical(primaries, "mu")) {
       stop("nl = TRUE requires a family with a single 'mu' location ",
            "parameter", call. = FALSE)
     }
-    body <- reformulas::RHSForm(f)
-    # A nonlinear mu is arbitrary R code, so an ar() written there is
-    # EVALUATED, not parsed, and fails deep inside the objective with a
-    # message about the body. Say what is wrong instead.
-    ac_in_body <- intersect(autocor_structs, all.names(body))
-    if (length(ac_in_body)) {
-      stop("Residual correlation terms are not supported in a ",
-           "nonlinear (nl = TRUE) formula; '", ac_in_body[1L],
-           "()' appears in the model body, where it would be evaluated ",
-           "as ordinary R code rather than read as a term. brms reaches ",
-           "the same model through acformula(), which has no analog ",
-           "here", call. = FALSE)
-    }
-    nlpars <- setdiff(names(bform$pforms), fam$dpars)
-    if (!length(nlpars)) {
-      stop("nl = TRUE needs at least one nonlinear-parameter formula ",
-           "whose name appears in the model formula", call. = FALSE)
-    }
-    body_vars <- all.vars(body)
-    miss <- setdiff(nlpars, body_vars)
-    if (length(miss)) {
-      stop("Nonlinear parameter(s) not used in the model formula: ",
-           paste(miss, collapse = ", "), call. = FALSE)
-    }
-    datavars <- setdiff(body_vars, nlpars)
-
-    dpars <- list()
-    for (np in nlpars) {
-      pf <- bform$pforms[[np]]
-      lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
-                          environment(pf) %||% env, shared_env)
-      dpars[[np]] <- c(list(name = np, link = get_link("identity"),
-                            constant = NULL), lp)
-    }
-    dpars$mu <- list(name = "mu", link = fam$links$mu, nl_body = body,
-                     datavars = datavars, nl_env = env,
-                     fixed = NULL, re = list(), rhs = NULL,
-                     smooth = list(), constant = NULL)
-    for (dp in setdiff(fam$dpars, "mu")) {
-      if (dp %in% names(bform$pforms)) {
-        pf <- bform$pforms[[dp]]
-        lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
-                            environment(pf) %||% env, shared_env)
-        dpars[[dp]] <- c(list(name = dp, link = fam$links[[dp]],
-                              constant = NULL), lp)
-      } else {
-        dpars[[dp]] <- plain_dpar(dp, fam, bform$pfix[[dp]])
-      }
-    }
-    pa <- pull_autocor(dpars, deparse1(ri$resp))
-    return(list(
-      resp_name = deparse1(ri$resp),
-      resp_expr = ri$resp,
-      family = fam,
-      aterms = ri$aterms,
-      dpars = pa$dpars,
-      autocor = pa$autocor,
-      primary_dpars = nlpars,   # REML integrates the nlpar coefficients
-      nlpars = nlpars,
-      cbind_resp = isTRUE(ri$cbind_resp),
-      formula_env = shared_env
-    ))
+    nl_bodies[["mu"]] <- main_rhs
+    nl_envs[["mu"]] <- env
   }
 
-  primaries <- fam$primary_dpars %||% "mu"
-  pfix <- bform$pfix
+  nl_dpars <- names(nl_bodies)
+  # A nonlinear parameter is any parameter with a formula (linear or
+  # nonlinear) that is not one of the family's own dpars - but only in a
+  # model that has a nonlinear body for it to feed. With no body at all
+  # there is nothing a name outside the family's dpars could mean, and
+  # `sigma ~ z` on a family without sigma has to stay the plain "dpar
+  # not available" it has always been.
+  nlpars <- if (length(nl_dpars)) {
+    setdiff(c(names(pforms), nl_dpars), fam$dpars)
+  } else {
+    character(0)
+  }
+
+  if (length(nl_dpars)) {
+    for (b in nl_bodies) {
+      # A nonlinear body is arbitrary R code, so an ar() written there
+      # is EVALUATED, not parsed, and fails deep inside the objective
+      # with a message about the body. Say what is wrong instead.
+      ac_in_body <- intersect(autocor_structs, all.names(b))
+      if (length(ac_in_body)) {
+        stop("Residual correlation terms are not supported in a ",
+             "nonlinear (nl = TRUE) formula; '", ac_in_body[1L],
+             "()' appears in the model body, where it would be evaluated ",
+             "as ordinary R code rather than read as a term. brms reaches ",
+             "the same model through acformula(), which has no analog ",
+             "here", call. = FALSE)
+      }
+    }
+    if (!length(nlpars)) {
+      stop("A nonlinear formula needs at least one nonlinear-parameter ",
+           "formula whose name appears in the model formula. No name in ",
+           "the body of ", paste0("'", nl_dpars, "'", collapse = ", "),
+           " has one, so every name there is read as a data column and ",
+           "nothing is left to estimate; declare the parameters with ",
+           "bf(..., a ~ 1, nl = TRUE), lf(a ~ 1) or nlf()", call. = FALSE)
+    }
+    used <- unique(unlist(lapply(nl_bodies, function(b) {
+      intersect(all.vars(b), nlpars)
+    })))
+    miss <- setdiff(nlpars, used %||% character(0))
+    if (length(miss)) {
+      stop("Nonlinear parameter(s) not used in the model formula or in ",
+           "any nlf() body: ", paste(miss, collapse = ", "),
+           call. = FALSE)
+    }
+  }
+
   if (!is.null(ri$aterms$se) && !isTRUE(ri$aterms$se_sigma) &&
       "sigma" %in% fam$dpars &&
-      !"sigma" %in% c(names(bform$pforms), names(pfix))) {
+      !"sigma" %in% c(names(pforms), names(pfix), nl_dpars)) {
     # se() without sigma = TRUE: the residual SD is the known se alone,
     # so the sigma dpar is mapped out (its value is unused by the lpdf)
     pfix$sigma <- 1
   }
-  extra <- c(names(bform$pforms), names(pfix))
-  allowed <- setdiff(fam$dpars, primaries[1])
+  extra <- c(names(pforms), names(pfix), nl_dpars)
+  allowed <- c(setdiff(fam$dpars, primaries[1L]), nlpars,
+               intersect(nl_dpars, primaries))
   unknown <- setdiff(extra, allowed)
   if (length(unknown)) {
     stop("dpar(s) not available for family '", fam$family, "': ",
@@ -1181,8 +1291,10 @@ parse_one_response <- function(bform) {
          call. = FALSE)
   }
 
-  main_lp <- parse_linpred(reformulas::RHSForm(f, as.form = TRUE), env,
-                           shared_env)
+  # mu keeps a design of its own unless a body took its place
+  main_lp <- if (!primaries[1L] %in% nl_dpars) {
+    parse_linpred(reformulas::RHSForm(f, as.form = TRUE), env, shared_env)
+  }
 
   # A family may ship a DEFAULT formula for some of its own dpars, which
   # stands in wherever the user wrote neither a formula nor a fixed
@@ -1191,31 +1303,56 @@ parse_one_response <- function(bform) {
   # is a default, so an explicit `tr12 ~ z` or `tr12 = 0` still wins.
   for (dp in names(fam[["default_forms"]] %||% list())) {
     if (dp %in% fam$dpars && !dp %in% extra) {
-      bform$pforms[[dp]] <- fam[["default_forms"]][[dp]]
+      pforms[[dp]] <- fam[["default_forms"]][[dp]]
     }
   }
 
+  lin_dpar <- function(nm, link) {
+    pf <- pforms[[nm]]
+    lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
+                        environment(pf) %||% env, shared_env)
+    c(list(name = nm, link = link, constant = NULL), lp)
+  }
+
   dpars <- list()
-  for (dp in fam$dpars) {
-    if (dp %in% names(bform$pforms)) {
-      pf <- bform$pforms[[dp]]
-      lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
-                          environment(pf) %||% env, shared_env)
-      dpars[[dp]] <- c(list(name = dp, link = fam$links[[dp]],
-                            constant = NULL), lp)
-    } else if (dp %in% primaries) {
-      dpars[[dp]] <- c(list(name = dp, link = fam$links[[dp]],
-                            constant = NULL), main_lp)
+  # nonlinear parameters lead, as they have since nl = TRUE shipped:
+  # their coefficients are the first block of `beta`
+  for (np in nlpars) {
+    dpars[[np]] <- if (np %in% nl_dpars) {
+      nl_dpar(np, get_link("identity"), nl_bodies[[np]], nlpars,
+              fam$dpars, nl_envs[[np]])
     } else {
-      dpars[[dp]] <- plain_dpar(dp, fam, pfix[[dp]])
+      lin_dpar(np, get_link("identity"))
     }
   }
+  for (dp in fam$dpars) {
+    dpars[[dp]] <- if (dp %in% nl_dpars) {
+      nl_dpar(dp, fam$links[[dp]], nl_bodies[[dp]], nlpars, fam$dpars,
+              nl_envs[[dp]])
+    } else if (dp %in% names(pforms)) {
+      lin_dpar(dp, fam$links[[dp]])
+    } else if (dp %in% primaries) {
+      c(list(name = dp, link = fam$links[[dp]], constant = NULL), main_lp)
+    } else {
+      plain_dpar(dp, fam, pfix[[dp]])
+    }
+  }
+  dpars <- order_dpars_by_dependency(dpars, deparse1(ri$resp))
 
   # A mixture family has no 'mu': its location dpars are mu1, mu2, ...,
   # and main_lp is copied into each. pull_autocor() therefore refuses a
   # residual correlation term on a mixture, which is what brms does and
   # for the same reason - a mixture likelihood has no single residual.
   pa <- pull_autocor(dpars, deparse1(ri$resp))
+
+  # REML integrates the fixed effects of the location predictors. A
+  # location dpar with a body has no coefficients of its own, so the
+  # parameters it is built from take its place - the nonlinear
+  # parameters it reaches, directly or through further bodies.
+  primary_dpars <- unique(unlist(lapply(primaries, function(p) {
+    if (p %in% nl_dpars) nlpars[nlpars %in% nl_reachable_pars(dpars, p)]
+    else p
+  })))
 
   list(
     resp_name = deparse1(ri$resp),
@@ -1224,8 +1361,9 @@ parse_one_response <- function(bform) {
     aterms = ri$aterms,
     dpars = pa$dpars,
     autocor = pa$autocor,
-    primary_dpars = primaries,
-    nlpars = character(0),
+    primary_dpars = primary_dpars %||% primaries,
+    nlpars = nlpars,
+    nl_dpars = nl_dpars,
     cbind_resp = isTRUE(ri$cbind_resp),
     formula_env = shared_env
   )

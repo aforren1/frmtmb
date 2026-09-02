@@ -392,7 +392,8 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
   out <- list()
   for (lp in fit$frame$linpreds) {
     if (!is.null(lp$nl_body)) {
-      ev <- c(out[[lp$resp]], lp$data_list)
+      ev <- c(out[[lp$resp]][c(lp$nl_pars, lp$nl_dpar_refs)],
+              lp$data_list)
       eta <- eval(lp$nl_body, ev, lp$nl_env)
       out[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
       next
@@ -926,10 +927,22 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
            "request the nonlinear parameters (dpar = '",
            rspec$nlpars[1], "', ...) instead", call. = FALSE)
     }
+    # only the parameters this body names, each on its own linear-
+    # predictor scale. A parameter that carries a body of its own comes
+    # back through this same branch, so a chain of nlf() formulas
+    # unwinds by recursion in dependency order.
     vals <- list()
-    for (np in rspec$nlpars) {
+    for (np in lp$nl_pars) {
       vals[[np]] <- predict(object, newdata = newdata, dpar = np,
                             resp = resp, re.form = re.form,
+                            allow_new_levels = allow_new_levels)
+    }
+    # a reference to another dpar reads its VALUE, so it comes back on
+    # the response scale (through that parameter's link inverse)
+    for (dr in lp$nl_dpar_refs %||% character(0)) {
+      vals[[dr]] <- predict(object, newdata = newdata, dpar = dr,
+                            type = "response", resp = resp,
+                            re.form = re.form,
                             allow_new_levels = allow_new_levels)
     }
     dl <- if (is.null(newdata)) {
