@@ -1590,6 +1590,287 @@ expand_b <- function(frame, b, theta) {
   cvec
 }
 
+# --------------------------------- non-centered parameterization -----
+#
+# `frm_sample(reparameterize = TRUE)` samples z ~ N(0, I) in place of a
+# block's own coefficients and computes b = L(theta) z on the tape. The
+# centered joint posterior of (b, theta) is a funnel - the width of b's
+# prior is itself being sampled - and NUTS cannot adapt one step size to
+# both ends of it. The non-centered pair (z, theta) is a product of
+# independent-ish pieces, which is why brms writes every block that way.
+#
+# The ML fit is untouched by this. The Laplace approximation integrates
+# b out, and that integral is invariant under a linear change of the
+# integrated variable, so the fitted objective, its tape, and every
+# number the fit reports are the same either way.
+#
+# A structure joins the lane by declaring ONE factor accessor:
+#
+#   chol_sd(theta, blk)  the per-level standard deviations, when the
+#                        factor is diagonal (length `blk$dim`, recycled
+#                        over the levels, level-major like `b`), or
+#   chol_L(theta, blk)   the per-level lower-triangular `L` with
+#                        `L L' = Sigma`, the within-level covariance,
+#
+# plus, for a structure whose LEVELS are correlated, the fixed
+# across-level factor
+#
+#   chol_A(blk)          lower-triangular `LA` with `LA LA' = A`.
+#
+# The whole block is then `B = L Z LA'` on the d x n_levels layout,
+# which is `vec(B) = (LA (x) L) vec(Z)` - the Cholesky factor of the
+# Kronecker covariance, assembled from its two small factors instead of
+# factorized as one big one.
+#
+# One accessor serves both directions on purpose: the same map builds b
+# on the tape and back-transforms each posterior draw afterwards, and a
+# second implementation of it would be a second model.
+#
+# A structure with NO accessor samples centered, and `frm_sample()`
+# names it. The absentees and their reasons:
+#
+#   us_t, diag_t  a Student-t latent is a SCALE MIXTURE of gaussians;
+#                 non-centering it needs the mixing variable sampled
+#                 too, which is a different construction, not a factor.
+#   car, spde,
+#   gr_prec       the density is a sparse PRECISION. The factor of its
+#                 inverse is dense, so a solve per leapfrog step would
+#                 cost more than the funnel does.
+#   gp            a dense kernel over the observed positions: a full
+#                 n x n factorization per gradient, on the tape.
+#   ou, exp, gau,
+#   mat           the same, over a spatial field's positions.
+#   toep, homtoep the banded parameterization does not guarantee a
+#                 positive definite matrix (glmmTMB's does not either),
+#                 so no factor exists over the whole parameter space and
+#                 `b = L z` would not be a bijection there.
+#   rr            already non-centered: its `b` IS a standard normal
+#                 factor vector, expanded through the loadings by
+#                 `expand_b()`. Nothing to transform, nothing to report.
+
+#' Lower Cholesky factor of the equicorrelation matrix
+#' `(1 - rho) I + rho J`.
+#'
+#' Every row below the diagonal repeats one value per column, so the
+#' factor follows an O(d) recursion rather than the general O(d^3) one:
+#' with `t_j` the squared norm of row j's entries left of the diagonal,
+#' `L[j, j] = sqrt(1 - t_j)` and the shared below-diagonal entry is
+#' `(rho - t_j) / L[j, j]`. AD-safe.
+#'
+#' @noRd
+cs_chol_cor <- function(rho, d) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  L <- RTMB::matrix(rep(rho * 0, d * d), d, d)
+  L[1L, 1L] <- 1
+  if (d > 1L) L[seq.int(2L, d), 1L] <- rho
+  tj <- rho * rho
+  for (j in seq_len(d - 1L) + 1L) {
+    dj <- sqrt(1 - tj)
+    L[j, j] <- dj
+    if (j < d) {
+      cj <- (rho - tj) / dj
+      L[seq.int(j + 1L, d), j] <- cj
+      tj <- tj + cj * cj
+    }
+  }
+  L
+}
+
+#' Lower Cholesky factor of the AR(1) correlation matrix `rho^|i-j|`.
+#'
+#' Analytic, so the factor costs no factorization: row `i` holds
+#' `rho^(i-1)` in column 1 and `rho^(i-j) sqrt(1 - rho^2)` in columns
+#' `2..i`. Built from data index matrices and one advector power vector,
+#' so the tape sees `d^2` multiplications and no branch. AD-safe.
+#'
+#' @noRd
+ar1_chol_cor <- function(rho, d) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  # sequential products, as the ar1 density itself builds them: `pow`
+  # would route a negative rho through exp/log
+  pw <- rep(rho, d)
+  pw[1] <- 1
+  for (k in seq_len(d - 1L) + 1L) pw[k] <- pw[k - 1L] * rho
+  ii <- row(diag(d))
+  jj <- col(diag(d))
+  keep <- as.vector(ii >= jj) * 1
+  first <- as.vector(jj == 1L) * 1
+  idx <- as.vector(pmax(ii - jj, 0L)) + 1L
+  s <- sqrt(1 - rho * rho)
+  RTMB::matrix(pw[idx] * keep * (first + s * (keep - first)), d, d)
+}
+
+#' The `us` factor: `Sigma = D C D` with `C = Lr Lr'`, so
+#' `(D Lr)(D Lr)' = Sigma` and the recycling multiplies row `i` by
+#' `sd_i`. Shared with `gr_cov`, whose within-level covariance is the
+#' same unstructured one.
+#'
+#' @noRd
+us_chol_scaled <- function(theta, d) {
+  if (d == 1L) return(RTMB::matrix(exp(theta[1]), 1L, 1L))
+  us_chol_L(theta[-seq_len(d)], d) * exp(theta[seq_len(d)])
+}
+
+covstruct_registry$us$chol_L <- function(theta, blk) {
+  us_chol_scaled(theta, blk[["dim"]])
+}
+covstruct_registry$diag$chol_sd <- function(theta, blk) exp(theta)
+covstruct_registry$homdiag$chol_sd <- function(theta, blk) {
+  rep(exp(theta[1]), blk[["dim"]])
+}
+covstruct_registry$hsgp$chol_sd <- function(theta, blk) {
+  hsgp_sds(theta, blk[["aux_omega"]], blk[["gp_iso"]])
+}
+covstruct_registry$equalto$chol_L <- function(theta, blk) {
+  t(chol(blk[["aux_A"]]))
+}
+covstruct_registry$cs$chol_L <- function(theta, blk) {
+  d <- blk[["dim"]]
+  a <- 1 / (d - 1)
+  rho <- -a + (1 + a) / (1 + exp(-theta[d + 1L]))
+  cs_chol_cor(rho, d) * exp(theta[seq_len(d)])
+}
+covstruct_registry$homcs$chol_L <- function(theta, blk) {
+  d <- blk[["dim"]]
+  a <- 1 / (d - 1)
+  rho <- -a + (1 + a) / (1 + exp(-theta[2]))
+  cs_chol_cor(rho, d) * exp(theta[1])
+}
+covstruct_registry$ar1$chol_L <- function(theta, blk) {
+  rho <- theta[2] / sqrt(1 + theta[2]^2)
+  ar1_chol_cor(rho, blk[["dim"]]) * exp(theta[1])
+}
+covstruct_registry$hetar1$chol_L <- function(theta, blk) {
+  d <- blk[["dim"]]
+  rho <- theta[d + 1L] / sqrt(1 + theta[d + 1L]^2)
+  ar1_chol_cor(rho, d) * exp(theta[seq_len(d)])
+}
+# gr(cov = A): the covariance is the Kronecker product A (x) Sigma, and
+# a Kronecker product's factor is the Kronecker product of the factors.
+# A is fixed data, so its factor is a constant; only the small
+# within-level one moves with theta.
+covstruct_registry$gr_cov$chol_L <- function(theta, blk) {
+  us_chol_scaled(theta, blk[["dim"]])
+}
+covstruct_registry$gr_cov$chol_A <- function(blk) {
+  t(chol(as.matrix(blk[["aux_A"]])))
+}
+
+# WHICH BLOCKS ARE NON-CENTERED, and why it is not all of them.
+#
+# The funnel is made by the SCALE: `b | sd ~ N(0, sd^2 C)` narrows as
+# `sd` shrinks, and pulling the factor out of the density removes it.
+# A CORRELATION parameter makes no funnel - it is bounded, and its
+# effect on the width of `b` is bounded with it - so non-centering one
+# buys no geometry. What it does buy is measured, and it is bad.
+#
+# frmtmb parameterizes a correlation by an unbounded row-normalized
+# Cholesky `theta` under a FLAT prior, which is the prior
+# `(1 - rho^2)^-3/2` on the correlation: improper, with all its mass at
+# |rho| = 1. On sleepstudy `(Days | Subject)` the PROFILE
+# log-likelihood is flat in that theta beyond |theta| ~ 100 and only 4.4
+# nats below the peak (dev/benchmarks.md), so the posterior really does
+# have infinite mass out there. Centered sampling never finds it: the
+# funnel neck is in the way. Remove the neck - by the full factor or by
+# the scale alone, both were measured - and the chain walks straight
+# down the tail to theta = 2e6 with a bulk-ESS of 1.
+#
+# So the rule is: a block is non-centered only when EVERY parameter it
+# has is a standard deviation, which is exactly the set of parameters
+# the formula route gives a proper default prior to. Blocks with a
+# correlation parameter stay centered and `frm_sample()` says so. The
+# factor accessors for those structures are written and tested anyway
+# (they are correct; nothing about the math is missing) so that the day
+# a proper correlation prior exists, this rule is the only line that has
+# to change. Until then the honest fix for a correlated block is that
+# prior: with `prior_normal(0, 1)` on the correlation theta the CENTERED
+# sleepstudy chain runs at 142 min-ESS/s with no divergences, against 28
+# with the flat one and 122 for brms.
+
+#' The non-centering a block gets: `"full"`, or `NA` for a block that
+#' stays centered.
+#'
+#' @noRd
+ncp_mode <- function(bk) {
+  if (is_student_block(bk)) return(NA_character_)
+  cs <- bk[["covstruct"]]
+  reg <- covstruct_registry[[cs]]
+  if (is.null(reg[["chol_sd"]]) && is.null(reg[["chol_L"]])) {
+    return(NA_character_)
+  }
+  n_sd <- length(reg$sd_idx(bk[["dim"]]))
+  n_par <- switch(
+    cs,
+    # a fixed covariance has no parameters at all, so its factor is a
+    # constant and there is nothing to expose
+    equalto = 0L,
+    # hsgp's non-scale parameters are LENGTHSCALES, not correlations:
+    # they enter the block's standard deviations, so the factor is
+    # diagonal and the whole of it comes out
+    hsgp = n_sd,
+    tryCatch(reg$npar(bk[["dim"]]), error = function(e) NA_integer_)
+  )
+  if (is.na(n_par) || n_par != n_sd) return(NA_character_)
+  "full"
+}
+
+#' Whether a block can be sampled non-centered at all.
+#'
+#' @noRd
+ncp_eligible <- function(bk) !is.na(ncp_mode(bk))
+
+#' `b = S(theta) z` for one block, level-major in and level-major out.
+#' Runs on the tape (advector `z` and `theta`) and off it (the per-draw
+#' back-transform), which is the point of the shared accessor: the same
+#' map has to build `b` in both places or they describe two models.
+#'
+#' @noRd
+ncp_scale_b <- function(bk, z, theta) {
+  reg <- covstruct_registry[[bk[["covstruct"]]]]
+  if (!is.null(reg[["chol_sd"]])) {
+    return(z * rep(reg[["chol_sd"]](theta, bk), times = bk[["n_levels"]]))
+  }
+  L <- reg[["chol_L"]](theta, bk)
+  dim(z) <- c(bk[["dim"]], bk[["n_levels"]])
+  B <- L %*% z
+  if (!is.null(reg[["chol_A"]])) B <- B %*% t(reg[["chol_A"]](bk))
+  as.vector(B)
+}
+
+#' `z = S(theta)^-1 b`, the inverse map. Numeric only: it exists to put
+#' the sampler's starting z where the ML mode's b is, so that a
+#' non-centered chain starts at the same point in the model as a
+#' centered one.
+#'
+#' @noRd
+ncp_unscale_b <- function(bk, b, theta) {
+  reg <- covstruct_registry[[bk[["covstruct"]]]]
+  if (!is.null(reg[["chol_sd"]])) {
+    return(b / rep(reg[["chol_sd"]](theta, bk), times = bk[["n_levels"]]))
+  }
+  L <- reg[["chol_L"]](theta, bk)
+  B <- matrix(b, bk[["dim"]], bk[["n_levels"]])
+  Z <- solve(L, B)
+  if (!is.null(reg[["chol_A"]])) {
+    Z <- t(solve(reg[["chol_A"]](bk), t(Z)))
+  }
+  as.vector(Z)
+}
+
+#' The block's dense per-level factor at a numeric `theta`, whichever
+#' accessor the structure declares. For the tests that recompute
+#' `b = L z` by hand, and for reporting.
+#'
+#' @noRd
+ncp_block_chol <- function(bk, theta) {
+  reg <- covstruct_registry[[bk[["covstruct"]]]]
+  if (!is.null(reg[["chol_sd"]])) {
+    return(diag(as.numeric(reg[["chol_sd"]](theta, bk)),
+                nrow = bk[["dim"]]))
+  }
+  as.matrix(reg[["chol_L"]](theta, bk))
+}
+
 # Smooth wiggly blocks are iid-Gaussian with one variance (the inverse
 # smoothing parameter); reuse the homdiag machinery under its own name so
 # blocks stay self-describing.

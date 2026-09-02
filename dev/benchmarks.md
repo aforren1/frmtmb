@@ -434,6 +434,100 @@ divergences and min-ESS 1 on the bad seed), tmbstan with laplace =
 TRUE took 95.6 s for one 2000-iteration chain (~45x the joint chain;
 every leapfrog step runs the inner Newton solve) and still returned
 min-ESS 1. It also surrenders the draws surface (no b draws, so
-log_lik and friends refuse). The answer to the funnel is non-centered
-reparameterization of the sampling tape, in progress on wt-reparam.
-Script: scratchpad laplace-probe.R.
+log_lik and friends refuse). Script: scratchpad laplace-probe.R.
+The answer turned out to be a prior, not a parameterization; the next
+section has the measurements.
+
+# Non-centered sampling (2026-09-02, measured)
+
+frm_sample(reparameterize = ) on one chain, iter = 2000 (1000 warmup),
+seeds 101/202/303. min bulk-ESS is over the outer parameters (the b[i]
+columns excluded); ESS/s uses Stan's own elapsed time. Formula route
+(brms default priors) unless a row says FIT (flat priors). Scripts:
+scratchpad reparam-final.R, reparam-priorgate.R, reparam-diag2.R,
+reparam-proper2.R. Windows 10 x64, R 4.6.1, rstan 2.32.7, RTMB 1.9,
+tmbstan 1.2.0.
+
+| model                                   | centered minESS | centered ESS/s | ncp minESS | ncp ESS/s | div c / ncp |
+|-----------------------------------------|-----------------|----------------|------------|-----------|-------------|
+| bernoulli (1\|g), 80 groups x 2 obs     | 5               | 0.9            | 236        | 49.6      | 0 / 0       |
+| epilepsy poisson (1\|patient)           | 135             | 45.3           | 157        | 37.3      | 0 / 0       |
+| sleepstudy diag(Days\|Subject)          | 277             | 112.4          | 368        | 105.7     | 0 / 0       |
+| GAM s(x, k = 10)                        | 455             | 58.0           | 400        | 71.2      | 0 / 4       |
+| epilepsy (1\|patient), FIT (flat)       | 93              | 21.8           | 155        | 33.9      | 0 / 0       |
+
+Medians over the three seeds.
+
+Reading:
+- The win is where the funnel is: 80 groups of 2 binary observations
+  say almost nothing about any one group, and non-centering takes the
+  min-ESS from 5 to 236, 55x the effective draws per second. That is
+  the case to quote.
+- Where the groups are informative it is a wash both ways (epilepsy,
+  the uncorrelated sleepstudy, the GAM). Non-centering is not a
+  blanket speed-up and should not be sold as one.
+- The last row is what the prior gate below gives up: on the FIT route
+  the transform is not offered, because with flat priors it is unsafe
+  on smaller models even though it helps here.
+
+## Why the gate: two flat tails a centered chain never finds
+
+Non-centering hands NUTS the run of theta's whole range. Under a flat
+prior the parts of that range the centered funnel was blocking are
+where the posterior stops being a posterior.
+
+FLAT PRIOR ON A LOG SD. Send sd down with z where it is: b = sd z goes
+to zero, the likelihood settles on the model without that random
+effect, the density stops changing. Six-group random intercept,
+y ~ x + (1 | g), n = 60:
+
+| route                                   | minESS (3 seeds) | div         | theta_1 posterior mean |
+|-----------------------------------------|------------------|-------------|------------------------|
+| FIT (flat), centered                    | 48 / 5 / 3       | 3 / 0 / 106 | -1.8 / -3.1 / -3.6     |
+| FIT (flat), non-centered                | 1 / 6 / 1        | 9 / 11 / 21 | -1.5e14 / -3.7e15 / -9.9e15 |
+| FORMULA (student_t(3,0,s) on sd), ncp   | 284 / 203 / 174  | 1 / 1 / 0   | -1.34 / -1.22 / -1.37  |
+| FIT + prior_normal(0, 1) on theta_1, ncp| 343 / 297 / 355  | 0 / 0 / 0   | -0.98 / -1.00 / -1.02  |
+
+The centered chain is bad here (106 divergences on one seed) and the
+non-centered one is unusable until the sd has a prior, after which it
+is 60-100x better than centered. Hence: non-center a block only when
+every one of its parameters carries a prior.
+
+FLAT PRIOR ON A CORRELATION. frmtmb parameterizes a correlation by an
+unbounded row-normalized Cholesky theta; flat on that theta is
+(1 - rho^2)^-3/2 on the correlation, improper with all its mass at
+|rho| = 1. sleepstudy Reaction ~ Days + (Days | Subject), profile
+log-likelihood over the other outer parameters at fixed theta_3
+(reparam-proper2.R):
+
+| theta_3 | 0.08 (ML) | 1     | 3     | 10    | 100   | 1e4   | 1e6   |
+|---------|-----------|-------|-------|-------|-------|-------|-------|
+| -logLik | 875.97    | 878.0 | 880.0 | 880.4 | 880.4 | 880.4 | 880.8 |
+
+Flat past |theta_3| = 100, 4.4 nats below the peak: the tail carries
+infinite mass. Measured consequences on that model:
+
+| variant                                        | minESS      | div          | theta_3 mean |
+|------------------------------------------------|-------------|--------------|--------------|
+| centered, flat correlation prior                | 213/31/77   | 0 / 154 / 0  | 0.22         |
+| non-centered (full factor)                      | 1 / 6 / 7   | 2 / 0 / 2    | 2.1e6        |
+| non-centered (scale only, correlation centered) | 12 / 88 / 8 | 235 / 0 / 0  | 170          |
+| centered + prior_normal(0, 1) on theta_3        | 363/217/350 | 0 / 0 / 0    | 0.30         |
+| non-centered + prior_normal(0, 1) on theta_3    | 196/148/228 | 0 / 0 / 0    | 0.31         |
+
+Three things follow.
+- The sleepstudy "funnel" of the previous section is NOT a centering
+  problem. It is an improper flat prior on the correlation, and no
+  reparameterization fixes it: removing the funnel by the full factor
+  or by the scale alone both just let the chain walk the tail.
+- A proper prior on the correlation fixes it outright, in the CENTERED
+  parameterization: 142 median min-ESS/s against 28 flat, and against
+  122 for the matched brms model. brms is not ahead here because it
+  non-centers; it is ahead because lkj(1) is proper.
+- So the real follow-up is a default prior on correlations - the LKJ
+  density on the row-normalized Cholesky parameterization, which
+  ?frm_sample currently names as a deliberate gap. Until then
+  correlated blocks stay centered and frm_sample() says so.
+
+A tmbstan laplace = TRUE run was the other candidate for the same
+geometry and is a dead end; see the section above.

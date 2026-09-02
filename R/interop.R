@@ -317,6 +317,208 @@ prior_augmented_obj <- function(fit, entries) {
                   map = fit$frame$map, silent = TRUE)
 }
 
+# --- non-centered sampling --------------------------------------------
+#
+# See R/covstruct.R for the factor accessors and for which structures
+# have one. Everything here is SAMPLING-ONLY: the fit, its tape and every
+# number it reports are untouched, because the Laplace approximation
+# integrates `b` out and that integral does not care how the integrated
+# variable is parameterized.
+
+#' Why a structure has no non-centered form. Read out loud by the
+#' message that names the blocks left centered, so a fallback is never
+#' silent.
+#'
+#' @noRd
+ncp_reasons <- c(
+  us_t = "Student-t latent: a scale mixture, not a linear factor",
+  diag_t = "Student-t latent: a scale mixture, not a linear factor",
+  car = "sparse CAR precision; its factor is dense",
+  spde = "sparse SPDE precision; its factor is dense",
+  gr_prec = "sparse precision from gr(prec = ); its factor is dense",
+  gp = "dense kernel over the observed positions",
+  ou = "dense covariance over the field's positions",
+  exp = "dense covariance over the field's positions",
+  gau = "dense covariance over the field's positions",
+  mat = "dense covariance over the field's positions",
+  toep = "not positive definite everywhere in its parameterization",
+  homtoep = "not positive definite everywhere in its parameterization"
+)
+
+#' Why this block stays centered.
+#'
+#' @noRd
+ncp_reason <- function(bk) {
+  cs <- bk[["covstruct"]]
+  if (is_student_block(bk)) return(unname(ncp_reasons[["us_t"]]))
+  # [[ ]] on a named character vector ERRORS on a missing name, so the
+  # membership test comes first
+  if (cs %in% names(ncp_reasons)) return(unname(ncp_reasons[[cs]]))
+  reg <- covstruct_registry[[cs]]
+  if (is.null(reg[["chol_sd"]]) && is.null(reg[["chol_L"]])) {
+    return("no Cholesky factor is registered for this structure")
+  }
+  paste("it has a correlation parameter, whose flat prior here is",
+        "improper (all its mass at |rho| = 1); non-centering opens that",
+        "tail to the chain, which the centered geometry keeps it out",
+        "of. Put a prior on it - set_prior(class = \"theta\") - and",
+        "sample it centered")
+}
+
+#' The `theta` positions a resolved prior specification covers.
+#'
+#' @noRd
+ncp_priored_theta <- function(entries) {
+  unlist(lapply(entries %||% list(), function(e) {
+    if (identical(e$comp, "theta")) e$idx
+  })) %||% integer(0)
+}
+
+#' Which blocks a sampling run non-centers, and which it leaves alone.
+#'
+#' TWO conditions, and they are the same condition twice. A block is
+#' non-centered only when (a) every parameter it has is a standard
+#' deviation with a registered factor - see R/covstruct.R - and (b)
+#' every one of those parameters carries a PRIOR. Both are about not
+#' handing the sampler a direction it can run away in.
+#'
+#' Non-centering gives NUTS the run of theta's whole range. Under a FLAT
+#' prior on a log standard deviation that range has a flat tail at the
+#' bottom: send `sd` down and `z` stays where it is, `b = sd z` goes to
+#' zero, the likelihood settles on the no-random-effect model and the
+#' density stops changing. The centered funnel is the only thing that
+#' keeps a chain out of it. Measured on a six-group random-intercept
+#' model, one chain of 2000, three seeds: sampled from the FIT, where
+#' every prior is flat, the non-centered chain walks `theta` to -1e15
+#' with a bulk-ESS of 1; sampled from the FORMULA, where the default
+#' `student_t(3, 0, s)` on the sd makes that tail integrable, it runs at
+#' a bulk-ESS of 174-284 against 3-48 centered. Adding the prior by hand
+#' on the fit route does the same thing there (297-355).
+#'
+#' `laplace = TRUE` integrates the random effects out, so there is no
+#' funnel left to fix and the transform would only cost inner Newton
+#' steps: that route stays centered whatever was asked for.
+#'
+#' @noRd
+ncp_plan <- function(fit, reparameterize, laplace, entries = NULL) {
+  blocks <- fit$frame$re_blocks %||% list()
+  if (!isTRUE(reparameterize) || !length(blocks) || laplace) {
+    return(list(idx = integer(0), centered = character(0),
+                labels = character(0)))
+  }
+  priored <- ncp_priored_theta(entries)
+  has_prior <- vapply(blocks, function(bk) {
+    all(bk[["theta_idx"]] %in% priored)
+  }, TRUE)
+  ok <- vapply(blocks, ncp_eligible, TRUE) & has_prior
+  # an rr() block's own coefficients ARE standard normal factors, so it
+  # is non-centered already and has nothing to report
+  done <- vapply(blocks, function(bk) {
+    identical(bk[["covstruct"]], "rr")
+  }, TRUE)
+  lab <- vapply(blocks, function(bk) {
+    paste0(bk[["term_label"]], " [", bk[["covstruct"]], "]")
+  }, "")
+  left <- which(!ok & !done)
+  list(idx = which(ok), labels = unname(lab[ok]),
+       centered = unname(vapply(left, function(i) {
+         why <- if (ncp_eligible(blocks[[i]])) {
+           paste("its variance parameter has a flat prior here, and a",
+                 "non-centered chain walks the flat tail that opens at",
+                 "sd = 0. Give it a prior - set_prior(class = \"sd\"),",
+                 "which the formula interface supplies for you")
+         } else {
+           ncp_reason(blocks[[i]])
+         }
+         paste0(lab[i], ": ", why)
+       }, "")))
+}
+
+#' One line per block that could not be non-centered, so a partial
+#' fallback is visible without being an error. `message()`, not
+#' `warning()`: the run is correct either way, only slower to mix.
+#'
+#' @noRd
+announce_ncp <- function(plan) {
+  if (!length(plan$centered)) return(invisible(NULL))
+  hdr <- if (!length(plan$idx)) {
+    paste("frm_sample(): sampling stays centered - no random-effect",
+          "block of this model has a non-centered form:")
+  } else {
+    paste("frm_sample(): non-centered where possible; these blocks",
+          "stay centered:")
+  }
+  message(paste(c(hdr, paste0("  ", plan$centered)), collapse = "\n"))
+  invisible(NULL)
+}
+
+#' The sampling objective with the planned blocks reparameterized, and
+#' the prior terms (if any) added the way prior_augmented_obj() adds
+#' them. The frame copy carrying `ncp_blocks` never leaves this
+#' function, so no fitted object can acquire a non-centered tape.
+#'
+#' @noRd
+ncp_objective <- function(fit, idx, entries) {
+  frame <- fit$frame
+  frame$ncp_blocks <- idx
+  nll <- build_objective(frame)
+  fn <- if (length(entries)) {
+    nlp <- neg_log_prior_fn(entries)
+    function(pars) nll(pars) + nlp(pars)
+  } else {
+    nll
+  }
+  tpl <- fit$frame$par_template
+  # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
+  random <- c(if (!is.null(tpl[["b"]])) "b",
+              if (!is.null(tpl[["miss"]])) "miss")
+  if (!length(random)) random <- NULL
+  RTMB::MakeADFun(fn, ncp_start_pars(fit, idx), random = random,
+                  map = fit$frame$map, silent = TRUE)
+}
+
+#' The starting parameter list on the non-centered scale: `z0 = L^-1 b`
+#' per reparameterized block, so that `init = "last.par.best"` still
+#' starts the chains at the ML mode of the MODEL rather than at the
+#' mode of one parameterization and the origin of the other.
+#'
+#' @noRd
+ncp_start_pars <- function(fit, idx) {
+  pars <- fit$estimates
+  th <- pars$theta %||% numeric(0)
+  bv <- pars[["b"]]
+  for (i in idx) {
+    bk <- fit$frame$re_blocks[[i]]
+    bv[bk$b_idx] <- ncp_unscale_b(bk, bv[bk$b_idx], th[bk$theta_idx])
+  }
+  pars[["b"]] <- bv
+  pars
+}
+
+#' Put the draws matrix back on the centered scale, draw by draw: each
+#' `z` maps through the `L(theta)` of ITS OWN draw. The `b[i]` columns
+#' that come out are the same quantity, in the same order and under the
+#' same names, as the centered route's - which is what lets every draws
+#' method downstream stay ignorant of the difference.
+#'
+#' @noRd
+ncp_backtransform <- function(m, fit, idx) {
+  pidx <- draws_par_index(fit)
+  bc <- pidx[["b"]]
+  tc <- pidx[["theta"]]
+  blocks <- fit$frame$re_blocks
+  for (r in seq_len(nrow(m))) {
+    th <- unname(m[r, tc])
+    for (i in idx) {
+      bk <- blocks[[i]]
+      cols <- bc[bk$b_idx]
+      m[r, cols] <- ncp_scale_b(bk, unname(m[r, cols]),
+                                th[bk$theta_idx])
+    }
+  }
+  m
+}
+
 #' Labels for the full sampled parameter vector, in template order,
 #' skipping mapped entries; b kept as `b[i]`. `include_random = FALSE`
 #' drops the inner components (b, miss) for laplace-marginalized draws.
@@ -723,6 +925,101 @@ sample_resolve_priors <- function(fit, priors, announce = TRUE) {
 #' [confint()], [logLik()], [fixef()], [ranef()], [VarCorr()],
 #' [predict()], [fitted()], [residuals()] and [simulate()].
 #'
+#' @section Reparameterization:
+#' A random-effect block has a FUNNEL in its centered joint posterior:
+#' the width of the prior on `b` is a standard deviation that is being
+#' sampled at the same time, so the region NUTS must explore narrows as
+#' that standard deviation shrinks, and one step size cannot fit both
+#' ends of it.
+#'
+#' `reparameterize = TRUE` (the default) samples `z ~ N(0, I)` instead
+#' and computes `b = L(theta) z` on the tape, with `L` the block's own
+#' Cholesky factor - brms's construction. Each draw is mapped back
+#' through ITS OWN `theta`, so the `b[i]` columns of the draws matrix
+#' hold the same quantity in the same order under the same names as
+#' `reparameterize = FALSE` gives, and every method downstream -
+#' [posterior_epred()], [ranef()], [log_lik()], [loo()],
+#' [conditional_effects()], [hypothesis()] - reads them without knowing
+#' which route produced them. Only the `stanfit` inside the object
+#' carries `z`.
+#'
+#' Priors are unaffected. They are declared on the OUTER parameters
+#' (`beta`, `theta`, `betad`), and `theta` means the same thing on both
+#' routes; nothing prior-able is reparameterized. What priors DO decide
+#' is which blocks are eligible, below.
+#'
+#' *Which blocks, and why not all of them.* A block is non-centered when
+#' two things hold, and they are the same thing twice: every parameter it
+#' has is a standard deviation with a Cholesky factor registered for its
+#' structure, and every one of those parameters carries a PRIOR. Both
+#' are about not handing the sampler a direction it can run away in.
+#' Non-centering gives NUTS the run of `theta`'s whole range, and the
+#' centered funnel is what was keeping a chain out of the parts of that
+#' range where the posterior is flat or improper. Removing the funnel
+#' without closing those off first trades a slow chain for a wrong one.
+#'
+#' In practice that means the FORMULA interface, whose default priors
+#' cover every standard deviation, non-centers `(1 | g)` and any block
+#' written one term at a time, `diag()` and `homdiag()` blocks, [s()]
+#' smooths, the `k =` Hilbert-space [gp()] blocks, `equalto()`, and
+#' `gr(cov = )` with one term. `rr()` is already non-centered by
+#' construction, since its own coefficients are the standard normal
+#' factors. A fitted model sampled with `frm_sample(fit)` has flat
+#' priors by design (it is a diagnostic - see above), so it stays
+#' centered unless you give its variance parameters a prior.
+#'
+#' The call `message()`s every block it left centered, with the reason.
+#' A model made only of those samples centered throughout and says so
+#' rather than failing. The reasons:
+#'
+#' - A FLAT PRIOR on the block's standard deviation. Send `sd` down with
+#'   `z` where it is: `b = sd z` goes to zero, the likelihood settles on
+#'   the model without that random effect, and the density stops
+#'   changing - a flat tail with nothing to stop a chain in it. Measured
+#'   on a six-group random-intercept model, one chain of 2000, three
+#'   seeds: from the fit, with flat priors, the non-centered chain walks
+#'   `theta` to -1e15 at a bulk-ESS of 1; from the formula, where the
+#'   default `student_t(3, 0, s)` makes that tail integrable, 174 to 284
+#'   against 3 to 48 centered.
+#' - A CORRELATION parameter - `(Days | Subject)`, `cs()`, `ar1()` and
+#'   the rest. Not a limit of the arithmetic: the factor exists and is
+#'   exact. It is that a correlation here is parameterized by an
+#'   unbounded `theta` whose flat prior is `(1 - rho^2)^-3/2` on the
+#'   correlation itself - improper, with all its mass at `|rho| = 1`.
+#'   Measured on `sleepstudy (Days | Subject)`: the profile
+#'   log-likelihood is flat in that `theta` past `|theta| = 100` and
+#'   only 4.4 nats below the peak, and a non-centered chain reaches
+#'   `theta = 2e6` at a bulk-ESS of 1. The fix is again a prior:
+#'   `priors = list(theta_3 = prior_normal(0, 1))` makes the CENTERED
+#'   chain run divergence-free at 142 min-ESS per second there, against
+#'   28 with the flat prior and 122 for the matched brms model.
+#' - A Student-t latent (`gr(dist = "student")`): a scale mixture, not a
+#'   linear factor.
+#' - [car()], [spde()] and `gr(prec = )`: sparse precisions whose factor
+#'   is dense.
+#' - The exact [gp()] and the spatial covariances (`ou`, `exp`, `gau`,
+#'   `mat`): a full factorization per gradient evaluation.
+#' - `toep()`: not positive definite everywhere in its parameterization,
+#'   so `b = L z` is not a bijection there.
+#'
+#' *What it is worth.* One chain of 2000 iterations, three seeds
+#' (dev/benchmarks.md). Where each group's own data say little - the
+#' regime the funnel lives in - it is decisive: 80 groups of 2 binary
+#' observations run at a min-ESS of 236 against 5 centered, 55 times the
+#' effective draws per second. Where the groups are informative it is a
+#' wash: the `epilepsy` GLMM and an uncorrelated `sleepstudy` are within
+#' noise of the centered chain either way. It is not a blanket speed-up,
+#' and the blocks it declines to touch are the ones where it would have
+#' done harm.
+#'
+#' `laplace = TRUE` integrates the random effects out, which removes the
+#' funnel by itself, so that route ignores `reparameterize` entirely.
+#'
+#' The ML fit is untouched either way. The Laplace approximation
+#' integrates `b` out, and that integral is invariant under a linear
+#' change of the integrated variable, so `frm()` has nothing to change
+#' and no fitted object ever carries a non-centered tape.
+#'
 #' @section Default priors:
 #' The formula interface defaults to brms 2.23's own weakly-informative
 #' priors, read off `brms::default_prior()` on matched models. Write
@@ -834,9 +1131,22 @@ sample_resolve_priors <- function(fit, priors, announce = TRUE) {
 #' @param init_jitter Per-chain perturbation sd for the default init;
 #'   `0` starts every chain exactly at the mode. Draws from the R
 #'   session's RNG, so `set.seed()` makes the inits reproducible.
+#' @param reparameterize Sample the qualifying random-effect blocks in
+#'   their non-centered form (`b = L(theta) z`), which removes the
+#'   funnel of the centered joint posterior. `TRUE` by default. Not
+#'   every block qualifies, and the call says which did not and why;
+#'   see Reparameterization, which also explains why nothing downstream
+#'   can tell the two routes apart. The mode-anchored `init` still
+#'   starts at the ML mode: it is mapped through
+#'   `z0 = L(theta_hat)^-1 b_hat`. Seeded draws differ between the two
+#'   routes, so `reparameterize = FALSE` is also the way to reproduce a
+#'   run made before this default existed.
 #' @return An object of class `frmtmb_draws`: list with the `stanfit`,
-#'   a draws matrix with named columns (`as.matrix()` method), and the
-#'   originating fit.
+#'   a draws matrix with named columns (`as.matrix()` method), the
+#'   originating fit, and - when any block was non-centered - a
+#'   `reparam` note saying which. The `stanfit` holds the parameters as
+#'   Stan sampled them, so on a non-centered run its random-effect
+#'   columns are `z` while the draws matrix holds `b`.
 #' @section Multimodal posteriors:
 #'   For [mixture()] fits the posterior is multimodal by construction
 #'   (label switching at minimum). Mode-centered inits, jittered or
@@ -876,13 +1186,20 @@ sample_resolve_priors <- function(fit, priors, announce = TRUE) {
 frm_sample <- function(fit, data = NULL, family = NULL, ...,
                        priors = NULL, lower = NULL,
                        upper = NULL, init = NULL,
-                       init_jitter = 0.25, data2 = list(), start = NULL,
+                       init_jitter = 0.25, reparameterize = TRUE,
+                       data2 = list(), start = NULL,
                        control = frmtmb_control(),
                        na.action = stats::na.omit, REML = FALSE) {
   if (!requireNamespace("tmbstan", quietly = TRUE) ||
       !requireNamespace("rstan", quietly = TRUE)) {
     stop("frm_sample() needs the 'tmbstan' and 'rstan' packages",
          call. = FALSE)
+  }
+  if (!is.logical(reparameterize) || length(reparameterize) != 1L ||
+      is.na(reparameterize)) {
+    stop("reparameterize = must be TRUE or FALSE: it selects the ",
+         "non-centered sampling parameterization of the random-effect ",
+         "blocks that have one", call. = FALSE)
   }
   from_formula <- !inherits(fit, "frmtmb_fit")
   if (from_formula) {
@@ -921,7 +1238,6 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     if (!is.null(priors)) ri <- resolve_prior_input(fit, priors)
   }
   if (!is.null(ri)) {
-    if (length(ri$entries)) obj <- prior_augmented_obj(fit, ri$entries)
     pr_lower <- ri$lower
     pr_upper <- ri$upper
   }
@@ -931,6 +1247,16 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   upper <- utils::modifyList(as.list(pr_upper),
                              as.list(upper %||% c()))
   laplace <- isTRUE(list(...)$laplace)
+  # the priors ride on the OUTER parameters, so they compose with the
+  # reparameterization rather than interacting with it: theta is theta on
+  # either route, and no prior addresses b (or z) at all
+  ncp <- ncp_plan(fit, reparameterize, laplace, ri$entries)
+  announce_ncp(ncp)
+  if (length(ncp$idx)) {
+    obj <- ncp_objective(fit, ncp$idx, ri$entries %||% list())
+  } else if (!is.null(ri) && length(ri$entries)) {
+    obj <- prior_augmented_obj(fit, ri$entries)
+  }
   bounds <- if (length(lower) || length(upper)) {
     resolve_bounds(fit, unlist(lower), unlist(upper))
   }
@@ -1011,7 +1337,12 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   stan_names[seq_len(n_lab)] <- labels[seq_len(n_lab)]
   m <- do.call(rbind, lapply(seq_len(dim(a)[2]), function(ch) a[, ch, ]))
   colnames(m) <- stan_names
-  structure(list(stanfit = sf, draws = m, fit = fit),
+  if (length(ncp$idx)) m <- ncp_backtransform(m, fit, ncp$idx)
+  structure(list(stanfit = sf, draws = m, fit = fit,
+                 reparam = if (length(ncp$idx)) {
+                   list(blocks = ncp$idx, labels = ncp$labels,
+                        centered = ncp$centered)
+                 }),
             class = "frmtmb_draws")
 }
 
@@ -1049,6 +1380,17 @@ print.frmtmb_draws <- function(x, ...) {
 #' the sampling tool instead: it samples a POSTERIOR, under brms's
 #' default priors. A default prior here would change the very thing
 #' being measured, so `check_laplace()` never sets one.
+#'
+#' That is also why it samples CENTERED. `frm_sample()`'s non-centered
+#' parameterization (see Reparameterization there) is offered only for
+#' blocks whose variance parameters carry a prior, and here none do: the
+#' flat prior that makes the comparison meaningful is exactly the one
+#' that leaves a flat tail at `sd = 0` for a non-centered chain to walk
+#' into. So the default costs this function nothing and changes nothing
+#' about it. Give the variance parameters a prior through `priors =`
+#' and the run non-centers - but then it is measuring the Laplace
+#' approximation of a different posterior, which is usually not the
+#' question.
 #'
 #' @param fit A `frmtmb_fit`.
 #' @param chains,iter Passed to [frm_sample()].
