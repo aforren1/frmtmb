@@ -1,0 +1,111 @@
+From 61126ad6ad04a81eb95656a7d90bff8537001635 Mon Sep 17 00:00:00 2001
+From: Alex Forrence <alex.forrence@gmail.com>
+Date: Wed, 2 Sep 2026 13:05:53 -0400
+Subject: [PATCH] RTMBode: warn when the augmented system outgrows the
+ integrator
+
+The augmented system at differentiation order k has
+
+  neq = sum(nstate * (nstate + nparms)^(0:k))
+
+states, and the order needed is 1 for a gradient, 2 for a Laplace
+objective and 3 for the gradient of a Laplace objective.  A 10-state
+system with 10 active parameters therefore integrates 84210 equations to
+produce one outer gradient under Laplace.
+
+The Livermore integrators that carry a full Jacobian size their real work
+array as lrw = 22 + neq * max(16, neq + 9), and deSolve computes that in R
+integer arithmetic.  Past neq = 46337 it overflows: the length reaching
+the allocator is NA and lsoda dies with
+
+  cannot allocate memory block of size 134217728 Tb
+
+which RTMBode then reports as a NaN gradient with no explanation.  Below
+the overflow the call succeeds only by allocating 8*neq^2 bytes: 9.1 GB
+for an 8-state model under Laplace, 11.9 GB at neq = 40000.
+
+Measured on dy_i/dt = -exp(mu + u_i) y_i with u integrated out:
+
+  n states   neq(order 3)   lsoda gradient   adams gradient
+     6            11310     0.75847453       0.75847453
+     8            34952     1.0139644        1.0139338
+    10            84210     NaN              1.1795113
+    16           541200     NaN              1.9012400
+
+Warn rather than stop: an error raised here is swallowed by the Laplace
+machinery and reappears only as the same unexplained NaN, whereas the
+warning reaches the user in every path.  The message names the growth
+law, the size asked for, and the two ways out: solve per group instead of
+stacking groups into one system, or use an integrator whose workspace is
+linear in neq, such as method = "adams".
+
+The integer overflow itself belongs to deSolve and is worth reporting
+there separately.
+---
+ RTMBode/R/odesolve.R | 47 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 47 insertions(+)
+
+diff --git a/RTMBode/R/odesolve.R b/RTMBode/R/odesolve.R
+index 0df1298..692a92e 100644
+--- a/RTMBode/R/odesolve.R
++++ b/RTMBode/R/odesolve.R
+@@ -159,9 +159,56 @@ augment <- function(F, oldpar=F$par()) {
+     G
+ }
+ 
++## Workspace check for the augmented system.
++##
++## The augmented system at differentiation order k has
++##   neq = sum(nstate * (nstate + nparms)^(0:k))
++## states: order 1 for a gradient, order 2 for a Laplace objective, order 3 for
++## the gradient of a Laplace objective.  The Livermore integrators that carry a
++## full Jacobian size their real work array as
++##   lrw = 22 + neq * max(16, neq + 9)
++## which deSolve computes in R *integer* arithmetic.  Past neq = 46337 that
++## overflows: the length reaching the allocator is NA and the solver dies with
++## "cannot allocate memory block of size 134217728 Tb".  Well before that it
++## succeeds only by allocating 8*neq^2 bytes, 11.9 GB at neq = 40000.
++##
++## Say so, and name a method whose workspace is linear in neq, rather than let
++## the user meet an allocator message that describes neither the cause nor the
++## cure.  This warns rather than stops: an error raised here is swallowed by
++## the Laplace machinery and reappears only as a NaN gradient, whereas the
++## warning reaches the user in every path.
++denseWorkMethods <- c("lsoda", "lsodar", "lsode", "vode", "daspk",
++                      "radau", "bdf", "bdf_d", "impAdams", "impAdams_d")
++checkWorkspace <- function(info, method) {
++    if (is.null(method)) method <- "lsoda" ## deSolve's default
++    if (!is.character(method) || !(method[1] %in% denseWorkMethods))
++        return(invisible(NULL))
++    neq <- info$naugstate
++    lrw <- 22 + as.numeric(neq) * max(16, neq + 9)
++    if (lrw <= 1024^3 / 8) return(invisible(NULL))
++    what <- sprintf(paste0("the order-%d augmented system has %d states, so ",
++                           "'%s' asks for a real work array of %.3g doubles (%.3g GB)"),
++                    info$order, neq, method[1], lrw, lrw * 8 / 1024^3)
++    advice <- paste0("The augmented system grows as ",
++                     "nstate*(nstate+nparms)^order, and the order needed is 1 ",
++                     "for a gradient, 2 for a Laplace objective and 3 for the ",
++                     "gradient of one. Either reduce the system (solve per ",
++                     "group rather than stacking groups into one system) or ",
++                     "choose an integrator whose workspace is linear in the ",
++                     "number of states, such as method = \"adams\".")
++    if (lrw > .Machine$integer.max)
++        warning(what, ", which overflows R's integer range: deSolve cannot ",
++                "allocate it and the solve will fail, so this derivative will ",
++                "be NaN. ", advice)
++    else
++        warning(what, ". ", advice)
++    invisible(NULL)
++}
++
+ ODEadjoint <- function(F, ...) {
+     info <- attr(F, "info")
+     if (is.null(info)) stop("Please 'addInfo()' to 'F'")
++    checkWorkspace(info, list(...)[["method"]])
+     times <- info$times
+     ##nstate <- length(state)
+     nparms <- info$nparms
+-- 
+2.45.0.windows.1
+

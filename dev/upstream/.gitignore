@@ -1,0 +1,6 @@
+# Upstream clone, scratch library and probe logs are workspace, not source.
+RTMB/
+lib/
+ceil/
+check/
+*.log
