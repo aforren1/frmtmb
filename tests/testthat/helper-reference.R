@@ -43,6 +43,13 @@
 #' @noRd
 NULL
 
+# Load glmmTMB's namespace once, quietly. On CI runners whose binary
+# glmmTMB was built against an older TMB, its .onLoad warns about the
+# version skew at the first skip_if_not_installed() of every file. The
+# agreement tests themselves are the real check on glmmTMB's numbers:
+# a skew that mattered would fail them at 1e-6.
+suppressWarnings(requireNamespace("glmmTMB", quietly = TRUE))
+
 expect_loglik_equal <- function(fit, ref, tol = 1e-6) {
   expect_lt(abs(as.numeric(stats::logLik(fit)) -
                   as.numeric(stats::logLik(ref))), tol)

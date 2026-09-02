@@ -22,8 +22,11 @@ test_that("sparse_x reproduces the dense fit for a many-level factor", {
                    optCtrl = list(iter.max = 2000, eval.max = 2000,
                                   rel.tol = 1e-12))
   }
-  f_d <- frm(form, data = dd, control = ctl(FALSE))
-  f_s <- frm(form, data = dd, control = ctl(TRUE))
+  # rel.tol 1e-12 can trip nlminb's "false convergence (8)" on some
+  # BLAS builds; the dense-vs-sparse agreement checks below are the
+  # convergence assertion that matters
+  f_d <- suppressWarnings(frm(form, data = dd, control = ctl(FALSE)))
+  f_s <- suppressWarnings(frm(form, data = dd, control = ctl(TRUE)))
 
   X_d <- f_d$frame$linpreds[["y.mu"]]$X
   X_s <- f_s$frame$linpreds[["y.mu"]]$X

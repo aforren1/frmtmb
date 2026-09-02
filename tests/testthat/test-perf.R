@@ -48,7 +48,9 @@ test_that("fit time grows with n and stays within a linear envelope", {
     d
   }
   fit_time <- function(d) {
-    f <- function() frm(bf(y ~ x) + poisson(), data = d)
+    # these fits exist to be timed; a hairline gradient-threshold
+    # warning on one BLAS build is irrelevant to the scaling assertion
+    f <- function() suppressWarnings(frm(bf(y ~ x) + poisson(), data = d))
     f()                                    # warm the tape machinery
     stats::median(replicate(3, system.time(f())[["elapsed"]]))
   }

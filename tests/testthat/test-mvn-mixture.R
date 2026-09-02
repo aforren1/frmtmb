@@ -36,10 +36,14 @@ test_that("mixture_mvn matches direct ML", {
     -sum(log(pi1 * exp(ldmvn2(Y, p[1:2], L1 %*% t(L1))) +
                (1 - pi1) * exp(ldmvn2(Y, p[3:4], L2 %*% t(L2)))))
   }
-  op <- stats::optim(c(0, 0, 3, 4, 0, 0, 0.5, log(0.7), log(0.8), -0.3,
-                       stats::qlogis(0.4)),
-                     nll, method = "BFGS",
-                     control = list(reltol = 1e-13, maxit = 5000))
+  # BFGS probes regions where the hand-rolled density overflows to NaN
+  # before recovering; only the converged value matters here
+  op <- suppressWarnings(
+    stats::optim(c(0, 0, 3, 4, 0, 0, 0.5, log(0.7), log(0.8), -0.3,
+                   stats::qlogis(0.4)),
+                 nll, method = "BFGS",
+                 control = list(reltol = 1e-13, maxit = 5000))
+  )
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-5)
 
   # posterior class probabilities recover the simulated classes (up to
