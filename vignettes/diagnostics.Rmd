@@ -96,7 +96,7 @@ Three residual types, in increasing order of statistical care:
   regardless of family, and remain valid under correlated
   observations, where pearson residuals mislead.
 
-```{r}
+```{r osa-qq, fig.width = 6, fig.height = 4.5, fig.alt = "Normal quantile-quantile plot of the one-step-ahead residuals. The points follow the identity line over most of the range, with small departures in the tails."}
 r <- residuals(fit, type = "osa")
 qqnorm(r); abline(0, 1)
 ```
@@ -105,7 +105,7 @@ Simulation-based residuals through DHARMa cover the same ground with a
 richer test suite (dispersion, zero-inflation, outliers) and better
 plots:
 
-```{r, eval = has_dharma}
+```{r dharma-plot, eval = has_dharma, fig.width = 7, fig.height = 4, fig.alt = "The standard DHARMa panel pair. The left panel is a uniform quantile-quantile plot of the scaled residuals with its three goodness-of-fit tests. The right panel plots the scaled residuals against the rank-transformed model predictions."}
 dh <- dharma_residuals(fit, nsim = 200, seed = 1)
 plot(dh)
 DHARMa::testDispersion(dh, plot = FALSE)
@@ -125,7 +125,7 @@ values and their normal QQ plot. And `pp_check(fit)` overlays the
 observed response with responses simulated from the fitted model,
 through bayesplot's `ppc_*` functions (brms users know this display):
 
-```{r, eval = requireNamespace("bayesplot", quietly = TRUE)}
+```{r pp-check, eval = requireNamespace("bayesplot", quietly = TRUE), fig.width = 6, fig.height = 4, fig.alt = "Posterior predictive check. A thick dark density curve is the observed count response. Twenty thin light curves are responses simulated from the fitted model. The simulated curves surround the observed one."}
 bayesplot::pp_check(fit, ndraws = 20)
 ```
 

@@ -63,6 +63,7 @@ Suggests:
     survival,
     testthat (>= 3.0.0),
     tibble,
+    tinyplot,
     tmbstan
 Additional_repositories: https://kaskr.r-universe.dev
 VignetteBuilder: knitr
