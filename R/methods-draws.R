@@ -518,3 +518,754 @@ variables.frmtmb_draws <- function(x, ...) {
 as.data.frame.frmtmb_draws <- function(x, ...) {
   as.data.frame(x$draws)
 }
+
+# ---- the draws matrix in other shapes --------------------------------
+
+#' @rdname as_draws
+#' @export
+as.array.frmtmb_draws <- function(x, ...) {
+  # iterations x chains x parameters, the layout bayesplot's mcmc_*
+  # functions and posterior's draws_array both read. frm_sample()
+  # rbinds the chains in order, so the draws matrix is already
+  # chain-major and reshapes without a permutation.
+  m <- x$draws
+  nc <- x$stanfit@sim$chains %||% 1L
+  if (nc <= 1L || nrow(m) %% nc != 0L) nc <- 1L
+  array(as.vector(m), c(nrow(m) %/% nc, nc, ncol(m)),
+        dimnames = list(NULL, paste0("chain:", seq_len(nc)),
+                        colnames(m)))
+}
+
+#' @rdname as_draws
+#' @export
+as_draws_matrix <- function(x, ...) UseMethod("as_draws_matrix")
+
+#' @rdname as_draws
+#' @exportS3Method posterior::as_draws_matrix
+#' @export
+as_draws_matrix.frmtmb_draws <- function(x, ...) {
+  posterior::as_draws_matrix(x$draws)
+}
+
+#' @rdname as_draws
+#' @export
+as_draws_array <- function(x, ...) UseMethod("as_draws_array")
+
+#' @rdname as_draws
+#' @exportS3Method posterior::as_draws_array
+#' @export
+as_draws_array.frmtmb_draws <- function(x, ...) {
+  # through as.array(), so the chains stay separate: a draws_array
+  # built from the flattened matrix would claim one chain and every
+  # convergence diagnostic computed on it would be wrong
+  posterior::as_draws_array(as.array(x))
+}
+
+#' @rdname as_draws
+#' @export
+as_draws_df <- function(x, ...) UseMethod("as_draws_df")
+
+#' @rdname as_draws
+#' @exportS3Method posterior::as_draws_df
+#' @export
+as_draws_df.frmtmb_draws <- function(x, ...) {
+  posterior::as_draws_df(as_draws_array(x))
+}
+
+#' @rdname as_draws
+#' @export
+as_draws_list <- function(x, ...) UseMethod("as_draws_list")
+
+#' @rdname as_draws
+#' @exportS3Method posterior::as_draws_list
+#' @export
+as_draws_list.frmtmb_draws <- function(x, ...) {
+  posterior::as_draws_list(as_draws_array(x))
+}
+
+#' @rdname as_draws
+#' @export
+as_draws_rvars <- function(x, ...) UseMethod("as_draws_rvars")
+
+#' @rdname as_draws
+#' @exportS3Method posterior::as_draws_rvars
+#' @export
+as_draws_rvars.frmtmb_draws <- function(x, ...) {
+  posterior::as_draws_rvars(as_draws_array(x))
+}
+
+#' @rdname as_draws
+#' @export
+as.mcmc <- function(x, ...) UseMethod("as.mcmc")
+
+#' @rdname as_draws
+#' @param combine_chains If `TRUE`, one `mcmc` object over the pooled
+#'   draws; otherwise an `mcmc.list` with one component per chain, which
+#'   is what coda's diagnostics (`gelman.diag()`) need.
+#' @exportS3Method coda::as.mcmc
+#' @export
+as.mcmc.frmtmb_draws <- function(x, combine_chains = FALSE, ...) {
+  if (!requireNamespace("coda", quietly = TRUE)) {
+    stop("as.mcmc() needs the 'coda' package; as_draws() and ",
+         "as.array() give the same draws without it", call. = FALSE)
+  }
+  if (combine_chains) return(coda::as.mcmc(x$draws))
+  a <- as.array(x)
+  dn <- list(NULL, dimnames(a)[[3L]])
+  coda::as.mcmc.list(lapply(seq_len(dim(a)[2L]), function(ch) {
+    coda::as.mcmc(array(a[, ch, ], dim(a)[c(1L, 3L)], dimnames = dn))
+  }))
+}
+
+# ---- draws-matrix dimensions -----------------------------------------
+
+#' Size of a draws object
+#'
+#' `ndraws()` counts the post-warmup draws (all chains pooled),
+#' `niterations()` the draws per chain, `nchains()` the chains and
+#' `nvariables()` the sampled parameters. The names and meanings are
+#' posterior's; frmtmb registers methods with posterior so that the
+#' generics work whether or not that package is attached.
+#'
+#' @param x A `frmtmb_draws` from [frm_sample()].
+#' @return A single integer.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
+#'   set.seed(9)
+#'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+#'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+#'   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
+#'                    data = dd, chains = 1, iter = 500, refresh = 0)
+#'   c(ndraws(ds), niterations(ds), nchains(ds), nvariables(ds))
+#' }
+#' }
+#' @name draws-dimensions
+NULL
+
+# posterior's nchains()/ndraws()/niterations()/nvariables() generics take
+# x alone, so these methods do too
+#' @rdname draws-dimensions
+#' @export
+ndraws <- function(x) UseMethod("ndraws")
+
+#' @rdname draws-dimensions
+#' @exportS3Method posterior::ndraws
+#' @export
+ndraws.frmtmb_draws <- function(x) nrow(x$draws)
+
+#' @rdname draws-dimensions
+#' @export
+nchains <- function(x) UseMethod("nchains")
+
+#' @rdname draws-dimensions
+#' @exportS3Method posterior::nchains
+#' @export
+nchains.frmtmb_draws <- function(x) {
+  as.integer(x$stanfit@sim$chains %||% 1L)
+}
+
+#' @rdname draws-dimensions
+#' @export
+niterations <- function(x) UseMethod("niterations")
+
+#' @rdname draws-dimensions
+#' @exportS3Method posterior::niterations
+#' @export
+niterations.frmtmb_draws <- function(x) {
+  as.integer(nrow(x$draws) %/% nchains(x))
+}
+
+#' @rdname draws-dimensions
+#' @export
+nvariables <- function(x) UseMethod("nvariables")
+
+#' @rdname draws-dimensions
+#' @exportS3Method posterior::nvariables
+#' @export
+nvariables.frmtmb_draws <- function(x) ncol(x$draws)
+
+# ---- posterior summaries ---------------------------------------------
+
+#' Summaries and intervals of draws
+#'
+#' `posterior_summary()` reduces draws to estimate, error and quantiles
+#' in brms's column layout (`Estimate`, `Est.Error`, `Q2.5`, `Q97.5`);
+#' `posterior_interval()` gives the central interval alone, in
+#' rstantools' layout. Both work on a `frmtmb_draws` object and on any
+#' matrix of draws, which is what makes
+#' `posterior_summary(bayes_R2(ds, summary = FALSE))` work.
+#'
+#' `predictive_interval()` is the same central interval of
+#' [posterior_predict()] draws, and `predictive_error()` is the matrix
+#' of predictive residuals `y - yrep`, one row per draw.
+#'
+#' @param object A `frmtmb_draws`, or a matrix of draws
+#'   (variables in columns).
+#' @param probs Quantiles for `posterior_summary()`.
+#' @param prob Central interval width for `posterior_interval()` and
+#'   `predictive_interval()`.
+#' @param robust If `TRUE`, median and MAD instead of mean and SD.
+#' @param variable Optional subset of variables, by name.
+#' @param ndraws,newdata,re.form,resp Passed to [posterior_predict()].
+#' @param ... Unused.
+#' @return A matrix with one row per variable (or per observation, for
+#'   the predictive functions), except `predictive_error()`, which
+#'   returns a draws-by-observations matrix.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
+#'   set.seed(9)
+#'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+#'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+#'   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
+#'                    data = dd, chains = 1, iter = 500, refresh = 0)
+#'   posterior_summary(ds, variable = c("Intercept", "x"))
+#'   posterior_interval(ds, prob = 0.9, variable = "x")
+#'   head(predictive_interval(ds))
+#' }
+#' }
+#' @export
+posterior_summary <- function(object, ...) UseMethod("posterior_summary")
+
+#' @rdname posterior_summary
+#' @export
+posterior_summary.default <- function(object, probs = c(0.025, 0.975),
+                                      robust = FALSE, ...) {
+  m <- as.matrix(object)
+  ctr <- if (robust) stats::median else mean
+  spr <- if (robust) stats::mad else stats::sd
+  out <- cbind(apply(m, 2L, ctr), apply(m, 2L, spr),
+               t(apply(m, 2L, stats::quantile, probs = probs)))
+  colnames(out) <- c("Estimate", "Est.Error", paste0("Q", probs * 100))
+  rownames(out) <- colnames(m)
+  out
+}
+
+#' @rdname posterior_summary
+#' @export
+posterior_summary.frmtmb_draws <- function(object, probs = c(0.025, 0.975),
+                                           robust = FALSE,
+                                           variable = NULL, ...) {
+  posterior_summary.default(draws_columns(object, variable),
+                            probs = probs, robust = robust)
+}
+
+#' The requested columns of the draws matrix, defaulting to the ones
+#' `summary()` and `print()` show: the group-level modes are thousands
+#' of columns on a large fit and nobody asked for them by writing
+#' `posterior_summary(ds)`.
+#'
+#' @noRd
+draws_columns <- function(x, variable = NULL) {
+  m <- x$draws
+  if (is.null(variable)) {
+    keep <- setdiff(colnames(m),
+                    c("lp__", grep("^b\\[", colnames(m), value = TRUE)))
+    return(m[, keep, drop = FALSE])
+  }
+  miss <- setdiff(variable, colnames(m))
+  if (length(miss)) {
+    stop("variable = names ", paste(miss, collapse = ", "),
+         ", which the draws do not contain. variables() lists what is ",
+         "there; note the draws-side spelling drops parentheses ",
+         "(Intercept, not (Intercept))", call. = FALSE)
+  }
+  m[, variable, drop = FALSE]
+}
+
+#' @rdname posterior_summary
+#' @export
+posterior_interval <- function(object, ...) UseMethod("posterior_interval")
+
+#' @rdname posterior_summary
+#' @export
+posterior_interval.frmtmb_draws <- function(object, prob = 0.95,
+                                            variable = NULL, ...) {
+  m <- draws_columns(object, variable)
+  a <- (1 - prob) / 2
+  t(apply(m, 2L, stats::quantile, probs = c(a, 1 - a)))
+}
+
+#' @rdname posterior_summary
+#' @export
+predictive_interval <- function(object, ...) UseMethod("predictive_interval")
+
+#' @rdname posterior_summary
+#' @export
+predictive_interval.frmtmb_draws <- function(object, prob = 0.9,
+                                             newdata = NULL, resp = NULL,
+                                             re.form = NULL,
+                                             ndraws = NULL, ...) {
+  yrep <- posterior_predict(object, newdata = newdata, resp = resp,
+                            re.form = re.form, ndraws = ndraws)
+  if (length(dim(yrep)) > 2L) {
+    stop("predictive_interval() needs one predicted number per ",
+         "observation, and this model's draws are a matrix per ",
+         "observation (multinomial counts, mixture_mvn draws or lca ",
+         "item codes). Take the interval of the column you want from ",
+         "posterior_predict() yourself", call. = FALSE)
+  }
+  a <- (1 - prob) / 2
+  t(apply(yrep, 2L, stats::quantile, probs = c(a, 1 - a)))
+}
+
+#' @rdname posterior_summary
+#' @export
+predictive_error <- function(object, ...) UseMethod("predictive_error")
+
+#' @rdname posterior_summary
+#' @export
+predictive_error.frmtmb_draws <- function(object, resp = NULL,
+                                          re.form = NULL, ndraws = NULL,
+                                          ...) {
+  fit <- draws_base_fit(object)
+  resp <- resp %||% names(fit$spec$responses)[1L]
+  y <- fit$frame$y[[resp]]
+  if (is.matrix(y)) {
+    stop("predictive_error() needs a vector response; this one is a ",
+         "matrix (multinomial counts, mixture_mvn columns or lca ",
+         "items), and 'the' error of a row of counts is not defined. ",
+         "Subtract the column you want from posterior_predict() ",
+         "yourself", call. = FALSE)
+  }
+  yrep <- posterior_predict(object, resp = resp, re.form = re.form,
+                            ndraws = ndraws)
+  # brms's convention: the error is y - yrep, one row per draw
+  sweep(-yrep, 2L, as.numeric(y), "+")
+}
+
+# ---- structural delegations to the originating fit -------------------
+#
+# These read only the model's STRUCTURE, never its estimates, so they go
+# straight to the fit even when it was assembled by the formula route
+# and has no maximum-likelihood estimate behind it (draws_base_fit()).
+
+#' Model structure behind a set of draws
+#'
+#' `nobs()`, `formula()`, `family()`, `getCall()` and `ngrps()` on a
+#' `frmtmb_draws` report the model the sampler ran, by delegating to the
+#' fit stored inside it. They read structure only, so they work on draws
+#' from the formula route, which has no maximum-likelihood estimate.
+#'
+#' `coef()` is a posterior quantity, not a structural one: it summarizes
+#' the per-group coefficients (fixed effects plus that group's own
+#' random effects) over the draws, in the same nested shape
+#' [coef.frmtmb_fit()] returns, with a `levels x statistics x
+#' coefficients` array in place of each data frame. That is brms's
+#' `coef.brmsfit` layout.
+#'
+#' @param object,x A `frmtmb_draws` from [frm_sample()].
+#' @param ... Unused.
+#' @return As for the corresponding `frmtmb_fit` method.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
+#'   set.seed(9)
+#'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+#'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+#'   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
+#'                    data = dd, chains = 1, iter = 500, refresh = 0)
+#'   nobs(ds)
+#'   ngrps(ds)
+#'   coef(ds)$g[1:3, , "(Intercept)"]
+#' }
+#' }
+#' @name draws-structure
+NULL
+
+#' @rdname draws-structure
+#' @export
+nobs.frmtmb_draws <- function(object, ...) {
+  stats::nobs(draws_base_fit(object))
+}
+
+#' @rdname draws-structure
+#' @export
+formula.frmtmb_draws <- function(x, ...) {
+  stats::formula(draws_base_fit(x))
+}
+
+#' @rdname draws-structure
+#' @export
+family.frmtmb_draws <- function(object, ...) {
+  stats::family(draws_base_fit(object))
+}
+
+#' @rdname draws-structure
+#' @export
+getCall.frmtmb_draws <- function(x, ...) x$fit$call
+
+#' @rdname ngrps
+#' @export
+ngrps.frmtmb_draws <- function(object, ...) {
+  ngrps(draws_base_fit(object))
+}
+
+#' @rdname draws-structure
+#' @export
+coef.frmtmb_draws <- function(object, ...) {
+  idx <- draws_par_index(object$fit)
+  n <- nrow(object$draws)
+  per <- lapply(seq_len(n), function(i) coef(draws_fit_at(object, i, idx)))
+  draws_summarize_coef(per)
+}
+
+#' Turn a list of per-draw `coef()` results into brms's array shape.
+#' `coef.frmtmb_fit()` returns either a nested list of data frames (per
+#' dpar, per grouping factor) or, for a fit with no group-level terms, a
+#' plain named vector; both are summarized here so the draws method
+#' mirrors the fit method exactly.
+#'
+#' @noRd
+draws_summarize_coef <- function(per) {
+  first <- per[[1L]]
+  if (!is.list(first)) {
+    M <- do.call(rbind, per)
+    return(cbind(Estimate = colMeans(M),
+                 Est.Error = apply(M, 2L, stats::sd),
+                 Q2.5 = apply(M, 2L, stats::quantile, 0.025),
+                 Q97.5 = apply(M, 2L, stats::quantile, 0.975)))
+  }
+  if (is.data.frame(first)) {
+    A <- vapply(per, function(d) as.matrix(d), as.matrix(first))
+    st <- array(NA_real_, c(nrow(first), 4L, ncol(first)),
+                dimnames = list(rownames(first),
+                                c("Estimate", "Est.Error",
+                                  "Q2.5", "Q97.5"),
+                                colnames(first)))
+    st[, "Estimate", ] <- apply(A, c(1, 2), mean)
+    st[, "Est.Error", ] <- apply(A, c(1, 2), stats::sd)
+    st[, "Q2.5", ] <- apply(A, c(1, 2), stats::quantile, 0.025)
+    st[, "Q97.5", ] <- apply(A, c(1, 2), stats::quantile, 0.975)
+    return(st)
+  }
+  out <- list()
+  for (nm in names(first)) {
+    out[[nm]] <- draws_summarize_coef(lapply(per, `[[`, nm))
+  }
+  out
+}
+
+# ---- sampler diagnostics and plots -----------------------------------
+
+#' Sampler diagnostics and MCMC plots
+#'
+#' `nuts_params()`, `log_posterior()`, `rhat()` and `neff_ratio()`
+#' delegate to bayesplot's `stanfit` methods on the `stanfit` inside the
+#' draws object, so every `bayesplot::mcmc_nuts_*()` display works.
+#' `mcmc_plot()` is brms's spelling for "call a bayesplot `mcmc_*`
+#' function on these draws"; `pairs()` is `bayesplot::mcmc_pairs()`.
+#'
+#' The parameter names bayesplot sees are the frmtmb draws-side names
+#' (no parentheses), not Stan's `par[1]`, because `as.array()` relabels
+#' them - except in `nuts_params()`, `rhat()` and `neff_ratio()`, which
+#' read the `stanfit` directly and therefore show Stan's own names.
+#'
+#' @param object,x A `frmtmb_draws` from [frm_sample()].
+#' @param type The bayesplot function to call, without the `mcmc_`
+#'   prefix (default `"intervals"`).
+#' @param variable Variables to plot; defaults to everything except the
+#'   group-level modes and `lp__`.
+#' @param ... Passed to the bayesplot function.
+#' @return A ggplot object, or the diagnostic data frame / vector
+#'   bayesplot returns.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     requireNamespace("bayesplot", quietly = TRUE)) {
+#'   set.seed(9)
+#'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+#'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+#'   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
+#'                    data = dd, chains = 1, iter = 500, refresh = 0)
+#'   mcmc_plot(ds)
+#'   mcmc_plot(ds, type = "trace", variable = "x")
+#'   head(rhat(ds))
+#' }
+#' }
+#' @name draws-diagnostics
+NULL
+
+#' @rdname draws-diagnostics
+#' @export
+mcmc_plot <- function(object, ...) UseMethod("mcmc_plot")
+
+#' @rdname draws-diagnostics
+#' @export
+mcmc_plot.frmtmb_draws <- function(object, type = "intervals",
+                                   variable = NULL, ...) {
+  fun <- draws_bayesplot_fun(paste0("mcmc_", type), "mcmc_plot(type =)")
+  a <- as.array(object)
+  keep <- if (is.null(variable)) {
+    setdiff(dimnames(a)[[3L]],
+            c("lp__", grep("^b\\[", dimnames(a)[[3L]], value = TRUE)))
+  } else {
+    variable
+  }
+  fun(a[, , keep, drop = FALSE], ...)
+}
+
+#' @rdname draws-diagnostics
+#' @export
+pairs.frmtmb_draws <- function(x, variable = NULL, ...) {
+  a <- as.array(x)
+  keep <- variable %||%
+    utils::head(setdiff(dimnames(a)[[3L]],
+                        c("lp__",
+                          grep("^b\\[", dimnames(a)[[3L]],
+                               value = TRUE))), 4L)
+  draws_bayesplot_fun("mcmc_pairs", "pairs()")(a[, , keep, drop = FALSE],
+                                               ...)
+}
+
+#' One bayesplot function by name, or an error that names the argument
+#' that produced the name (bayesplot's own "object not found" would name
+#' neither the type nor the function that asked for it).
+#'
+#' @noRd
+draws_bayesplot_fun <- function(nm, what) {
+  if (!requireNamespace("bayesplot", quietly = TRUE)) {
+    stop(what, " needs the 'bayesplot' package; as.array() gives the ",
+         "draws in the layout bayesplot expects if you would rather ",
+         "call it yourself", call. = FALSE)
+  }
+  ns <- asNamespace("bayesplot")
+  if (!exists(nm, envir = ns, inherits = FALSE)) {
+    stop(what, " asks for bayesplot::", nm, "(), which does not exist. ",
+         "The argument is the function name without its 'mcmc_' ",
+         "prefix, for example \"intervals\", \"trace\", \"areas\" or ",
+         "\"hist\"", call. = FALSE)
+  }
+  get(nm, envir = ns)
+}
+
+#' @rdname draws-diagnostics
+#' @export
+nuts_params <- function(object, ...) UseMethod("nuts_params")
+
+#' @rdname draws-diagnostics
+#' @exportS3Method bayesplot::nuts_params
+#' @export
+nuts_params.frmtmb_draws <- function(object, ...) {
+  draws_bayesplot_ns("nuts_params()")$nuts_params(object$stanfit, ...)
+}
+
+#' @rdname draws-diagnostics
+#' @export
+log_posterior <- function(object, ...) UseMethod("log_posterior")
+
+#' @rdname draws-diagnostics
+#' @exportS3Method bayesplot::log_posterior
+#' @export
+log_posterior.frmtmb_draws <- function(object, ...) {
+  draws_bayesplot_ns("log_posterior()")$log_posterior(object$stanfit, ...)
+}
+
+#' @rdname draws-diagnostics
+#' @export
+rhat <- function(object, ...) UseMethod("rhat")
+
+#' @rdname draws-diagnostics
+#' @exportS3Method bayesplot::rhat
+#' @export
+rhat.frmtmb_draws <- function(object, ...) {
+  draws_bayesplot_ns("rhat()")$rhat(object$stanfit, ...)
+}
+
+#' @rdname draws-diagnostics
+#' @export
+neff_ratio <- function(object, ...) UseMethod("neff_ratio")
+
+#' @rdname draws-diagnostics
+#' @exportS3Method bayesplot::neff_ratio
+#' @export
+neff_ratio.frmtmb_draws <- function(object, ...) {
+  draws_bayesplot_ns("neff_ratio()")$neff_ratio(object$stanfit, ...)
+}
+
+#' bayesplot's namespace, or an error naming the accessor that wanted it.
+#'
+#' @noRd
+draws_bayesplot_ns <- function(what) {
+  if (!requireNamespace("bayesplot", quietly = TRUE)) {
+    stop(what, " needs the 'bayesplot' package: it reads the sampler ",
+         "diagnostics off the stanfit, which is `ds$stanfit` if you ",
+         "would rather use rstan directly", call. = FALSE)
+  }
+  asNamespace("bayesplot")
+}
+
+# ---- mixture membership ----------------------------------------------
+
+#' Posterior mixture-component probabilities
+#'
+#' For a [mixture()], [mixture_mvn()] or [lca()] fit, the posterior
+#' probability that each observation came from each component,
+#' propagating the uncertainty in the parameters: the fit-side
+#' [mixture_probs()] computation is run at every draw. brms calls this
+#' `pp_mixture()`.
+#'
+#' @param x A `frmtmb_draws` from [frm_sample()].
+#' @param summary If `TRUE` (the default, as in brms), an
+#'   `observations x statistics x components` array of summaries;
+#'   otherwise the raw `draws x observations x components` array.
+#' @param ndraws Number of draws to use (default: all).
+#' @param ... Unused.
+#' @return An array; see `summary`. For a group-level mixture
+#'   (`mixture(groups = )`, [lca()]) the rows are groups, as in
+#'   [mixture_probs()].
+#' @examples
+#' \donttest{
+#' if (requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE)) {
+#'   set.seed(4)
+#'   dd <- data.frame(y = c(rnorm(60, -2), rnorm(60, 3)))
+#'   fit <- frm(bf(y ~ 1), family = mixture(gaussian(), gaussian()),
+#'              data = dd)
+#'   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
+#'   head(pp_mixture(ds)[, "Estimate", ])
+#' }
+#' }
+#' @export
+pp_mixture <- function(x, ...) UseMethod("pp_mixture")
+
+#' @rdname pp_mixture
+#' @export
+pp_mixture.frmtmb_draws <- function(x, summary = TRUE, ndraws = NULL,
+                                    ...) {
+  idx <- draws_par_index(x$fit)
+  rows <- draws_subsample(x, ndraws)
+  out <- NULL
+  for (k in seq_along(rows)) {
+    P <- mixture_probs(draws_fit_at(x, rows[k], idx))
+    if (is.null(out)) {
+      out <- array(NA_real_, c(length(rows), nrow(P), ncol(P)),
+                   dimnames = list(NULL, rownames(P), colnames(P)))
+    }
+    out[k, , ] <- P
+  }
+  if (!summary) return(out)
+  st <- array(NA_real_, c(dim(out)[2L], 4L, dim(out)[3L]),
+              dimnames = list(dimnames(out)[[2L]],
+                              c("Estimate", "Est.Error", "Q2.5", "Q97.5"),
+                              dimnames(out)[[3L]]))
+  st[, "Estimate", ] <- apply(out, c(2, 3), mean)
+  st[, "Est.Error", ] <- apply(out, c(2, 3), stats::sd)
+  st[, "Q2.5", ] <- apply(out, c(2, 3), stats::quantile, 0.025)
+  st[, "Q97.5", ] <- apply(out, c(2, 3), stats::quantile, 0.975)
+  st
+}
+
+# ---- refusals and renamed spellings ----------------------------------
+
+#' Methods a ported brms script may call that frmtmb does not have
+#'
+#' These `brmsfit` methods either describe machinery frmtmb does not use
+#' (Stan code and Stan data) or are brms spellings that have been
+#' renamed. They are defined so that a ported script gets the reason and
+#' the replacement rather than "could not find function", which is what
+#' the vignette-port audit measured most of its post-processing failures
+#' as.
+#'
+#' @param object,x,... Ignored; these functions always stop.
+#' @return These functions never return; they signal an error.
+#' @name frmtmb-draws-refusals
+NULL
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+stancode <- function(object, ...) UseMethod("stancode")
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+stancode.frmtmb_draws <- function(object, ...) {
+  stop("stancode() has no meaning for frmtmb: there is no Stan ",
+       "program. The model is an R closure built by build_objective() ",
+       "from the assembled frame and differentiated by RTMB, and the ",
+       "closure IS the source - print `ds$fit$obj$fn` for the ",
+       "evaluator and `ds$fit$frame` for everything baked into it",
+       call. = FALSE)
+}
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+standata <- function(object, ...) UseMethod("standata")
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+standata.frmtmb_draws <- function(object, ...) {
+  stop("standata() has no meaning for frmtmb: nothing is exported to a ",
+       "Stan data list. The assembled frame `ds$fit$frame` holds the ",
+       "same content - the response, the design matrices, the sparse Z, ",
+       "the addition terms - and model.matrix(), getME() and ",
+       "model.frame() read the pieces of it individually",
+       call. = FALSE)
+}
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+expose_functions <- function(x, ...) UseMethod("expose_functions")
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+expose_functions.frmtmb_draws <- function(x, ...) {
+  stop("expose_functions() has nothing to expose: brms compiles Stan ",
+       "functions and this makes them callable from R, while a frmtmb ",
+       "custom family is already plain R - the lpdf you passed to ",
+       "custom_family() is an R function you can call directly",
+       call. = FALSE)
+}
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+restructure <- function(x, ...) UseMethod("restructure")
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+restructure.frmtmb_draws <- function(x, ...) {
+  stop("restructure() is brms's upgrade path for objects saved by an ",
+       "older brms; frmtmb has no such conversion. A draws object from ",
+       "an older frmtmb is re-created by re-running frm_sample()",
+       call. = FALSE)
+}
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+posterior_samples <- function(x, ...) UseMethod("posterior_samples")
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+posterior_samples.frmtmb_draws <- function(x, ...) {
+  stop("posterior_samples() is the deprecated brms spelling. Use ",
+       "as_draws(x) for a posterior draws_matrix, as.matrix(x) for a ",
+       "plain matrix, or as.data.frame(x)", call. = FALSE)
+}
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+nsamples <- function(object, ...) UseMethod("nsamples")
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+nsamples.frmtmb_draws <- function(object, ...) {
+  stop("nsamples() is the deprecated brms spelling. Use ndraws(x) for ",
+       "the pooled draw count, niterations(x) for the per-chain count",
+       call. = FALSE)
+}
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+parnames <- function(x, ...) UseMethod("parnames")
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+parnames.frmtmb_draws <- function(x, ...) {
+  stop("parnames() is the deprecated brms spelling. Use variables(x), ",
+       "which lists the same names in the same draws-side spelling ",
+       "(no parentheses)", call. = FALSE)
+}

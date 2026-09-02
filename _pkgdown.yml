@@ -62,6 +62,16 @@ reference:
   - frm_sample
   - posterior_epred
   - as_draws
+  - log_lik
+  - loo
+  - bayes_R2
+  - posterior_summary
+  - pp_mixture
+  - draws-dimensions
+  - draws-structure
+  - draws-diagnostics
+  - frmtmb-loo-refusals
+  - frmtmb-draws-refusals
   - getME.frmtmb_fit
   - check_laplace
   - influence.frmtmb_fit

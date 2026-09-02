@@ -3,6 +3,19 @@
 \name{as_draws}
 \alias{as_draws}
 \alias{as_draws.frmtmb_draws}
+\alias{as.array.frmtmb_draws}
+\alias{as_draws_matrix}
+\alias{as_draws_matrix.frmtmb_draws}
+\alias{as_draws_array}
+\alias{as_draws_array.frmtmb_draws}
+\alias{as_draws_df}
+\alias{as_draws_df.frmtmb_draws}
+\alias{as_draws_list}
+\alias{as_draws_list.frmtmb_draws}
+\alias{as_draws_rvars}
+\alias{as_draws_rvars.frmtmb_draws}
+\alias{as.mcmc}
+\alias{as.mcmc.frmtmb_draws}
 \alias{as_draws.frmtmb_multiple}
 \title{Convert draws to a posterior draws object}
 \usage{
@@ -10,12 +23,42 @@ as_draws(x, ...)
 
 \method{as_draws}{frmtmb_draws}(x, ...)
 
+\method{as.array}{frmtmb_draws}(x, ...)
+
+as_draws_matrix(x, ...)
+
+\method{as_draws_matrix}{frmtmb_draws}(x, ...)
+
+as_draws_array(x, ...)
+
+\method{as_draws_array}{frmtmb_draws}(x, ...)
+
+as_draws_df(x, ...)
+
+\method{as_draws_df}{frmtmb_draws}(x, ...)
+
+as_draws_list(x, ...)
+
+\method{as_draws_list}{frmtmb_draws}(x, ...)
+
+as_draws_rvars(x, ...)
+
+\method{as_draws_rvars}{frmtmb_draws}(x, ...)
+
+as.mcmc(x, ...)
+
+\method{as.mcmc}{frmtmb_draws}(x, combine_chains = FALSE, ...)
+
 \method{as_draws}{frmtmb_multiple}(x, ...)
 }
 \arguments{
 \item{x}{A \code{frmtmb_draws} object.}
 
 \item{...}{Unused.}
+
+\item{combine_chains}{If \code{TRUE}, one \code{mcmc} object over the pooled
+draws; otherwise an \code{mcmc.list} with one component per chain, which
+is what coda's diagnostics (\code{gelman.diag()}) need.}
 }
 \value{
 A \code{posterior::draws_matrix}: one column per sampled variable
