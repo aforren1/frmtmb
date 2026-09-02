@@ -24,14 +24,19 @@ frm(
 }
 \arguments{
 \item{formula}{A \code{frmtmb_formula} from \code{\link[=bf]{bf()}} (with a family attached
-via \code{+}), or a plain formula combined with the \code{family} argument.}
+via \code{+}), or a plain formula combined with the \code{family} argument.
+With neither, the family is \code{gaussian()}.}
 
 \item{data}{A data frame.}
 
-\item{family}{A family: a \code{frmtmb_family}, a \link[stats:family]{stats::family} object or
-constructor (for example \code{gaussian}, \code{poisson}, \code{binomial}), or a
-family name as a string. Overrides a family already attached to
-\code{formula}.}
+\item{family}{A family: a \code{frmtmb_family}, a \link[stats:family]{stats::family} object,
+a family constructor with or without its parentheses (for example
+\code{gaussian()}, \code{poisson}, \code{cumulative}), or a family name as a
+string. It overrides a family already attached to \code{formula}; in a
+multivariate model it fills only the responses that have none.
+The default, \code{NULL}, means \code{gaussian()} - the brms, \code{lme4} and
+\code{glmmTMB} convention - so \code{frm(y ~ x, data = d)} is a linear
+model.}
 
 \item{REML}{If \code{TRUE}, integrate the \code{mu} fixed effects out of the
 likelihood along with the random effects (restricted maximum

@@ -9,9 +9,16 @@
 \arguments{
 \item{fitted}{A \code{frmtmb_fit}.}
 
-\item{parm}{Parameter names (as in \code{confint()} rownames) or indices.
-Required; profiling is not free, so there is no all-parameters
-default.}
+\item{parm}{Parameter names or indices. Required; profiling is not
+free, so there is no all-parameters default. The names are the
+ones \code{\link[=confint]{confint()}} takes, in any of its three spellings: internal
+(\code{theta_1}, \code{tarsus_(Intercept)}), parenthesis-free
+(\code{tarsus_Intercept}), or a one-to-one natural-scale alias
+(\code{sd_dam__Intercept}). The profile is of the internal parameter
+either way - a log standard deviation, not a standard deviation -
+and the returned element keeps the internal name. For a profile of
+a natural-scale quantity itself, including one that mixes several
+parameters, use \code{hypothesis(method = "profile")}.}
 
 \item{...}{Passed to \code{\link[TMB:tmbprofile]{TMB::tmbprofile()}}.}
 }
@@ -29,9 +36,11 @@ dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
 dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
 fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
-# parameter names are the confint() row names
+# parameter names are the confint() row names, with or without the
+# parentheses, or a one-to-one natural-scale alias
 rownames(confint(fit))
 pr <- profile(fit, "theta_1")
+identical(profile(fit, "(Intercept)"), profile(fit, "Intercept"))
 plot(pr)
 # TMB's confint() reads the interval off the profile
 confint(pr)

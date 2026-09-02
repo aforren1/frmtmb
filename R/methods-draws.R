@@ -146,9 +146,14 @@ ranef.frmtmb_draws <- function(object, ...) {
 
 #' @rdname hypothesis
 #' @export
-hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05, ...) {
+hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
+                                    class = NULL, group = NULL, ...) {
   fit <- x$fit
-  exs <- lapply(hypothesis, hyp_parse)
+  vo <- hyp_vals_only(fit)
+  hp <- hyp_parse_all(hypothesis,
+                      names(hyp_env_vals(fit, vo$vals, vo$comp)),
+                      class, group)
+  exs <- hp$exprs
   idx <- draws_par_index(fit)
   n <- nrow(x$draws)
   draws <- matrix(NA_real_, n, length(exs),
@@ -162,18 +167,22 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05, ...) {
   }
   rows <- lapply(seq_along(exs), function(k) {
     t_k <- draws[, k]
-    p <- min(1, 2 * min((1 + sum(t_k <= 0)) / (1 + n),
-                        (1 + sum(t_k >= 0)) / (1 + n)))
+    dir <- hp$dir[k]
+    lo <- if (dir == "two.sided") alpha / 2 else alpha
     data.frame(hypothesis = hypothesis[k], estimate = mean(t_k),
                se = stats::sd(t_k),
-               lwr = unname(stats::quantile(t_k, alpha / 2)),
-               upr = unname(stats::quantile(t_k, 1 - alpha / 2)),
-               z = mean(t_k) / stats::sd(t_k), p = p)
+               lwr = if (dir == "less") -Inf else
+                 unname(stats::quantile(t_k, lo)),
+               upr = if (dir == "greater") Inf else
+                 unname(stats::quantile(t_k, 1 - lo)),
+               z = mean(t_k) / stats::sd(t_k),
+               p = hyp_tail_p(t_k, dir))
   })
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
   attr(out, "method") <- "posterior"
   attr(out, "alpha") <- alpha
+  attr(out, "direction") <- hp$dir
   attr(out, "draws") <- draws
   attr(out, "nsim") <- n
   attr(out, "converged") <- rep(TRUE, n)

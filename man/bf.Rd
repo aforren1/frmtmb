@@ -9,12 +9,13 @@ bf(formula, ..., family = NULL, nl = FALSE)
 \arguments{
 \item{formula}{The model formula for \code{mu}.}
 
-\item{...}{Two-sided formulas for other dpars (the left-hand side names
-the dpar, e.g. \code{sigma ~ z}), or named scalars fixing a dpar to a
-constant on the response scale (e.g. \code{sigma = 1}).}
+\item{...}{Two-sided formulas for other dpars (the left-hand side
+names the dpar, e.g. \code{sigma ~ z}, or several sharing one
+right-hand side, e.g. \code{b1 + b2 ~ 1}), or named scalars fixing a
+dpar to a constant on the response scale (e.g. \code{sigma = 1}).}
 
-\item{family}{Optional family; can also be attached with \code{+} or passed
-to \code{\link[=frm]{frm()}}.}
+\item{family}{Optional family; can also be attached with \code{+} or
+passed to \code{\link[=frm]{frm()}}, which uses \code{gaussian()} when nothing names one.}
 
 \item{nl}{Nonlinear-formula flag: the main formula becomes a
 nonlinear expression of named parameters, each given its own
@@ -38,7 +39,8 @@ Every linear predictor accepts lme4-style random effects \code{(1 | g)},
 \code{(1 + x | g)}, \code{(x || g)}, and explicit covariance-structure wrappers
 \code{us(x | g)} and \code{diag(x | g)}.
 
-Attach a family with \code{+}, for example \code{bf(y ~ x) + gaussian()}.
+Attach a family with \code{+}, for example \code{bf(y ~ x) + gaussian()}, or
+pass one to \code{\link[=frm]{frm()}}. A model that names no family is gaussian.
 }
 \examples{
 # brms-style model formulas: attach a family with `+`

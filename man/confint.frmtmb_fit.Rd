@@ -19,7 +19,20 @@
 
 \item{parm}{Parameter names (see \code{rownames} of the Wald result) or
 indices. Required for \code{"profile"} and \code{"uniroot"}; defaults to all
-parameters for \code{"wald"} and \code{"boot"}.}
+parameters for \code{"wald"} and \code{"boot"}. Three spellings address the
+same parameter: the internal name (\code{tarsus_(Intercept)},
+\code{theta_1}), that name without its parentheses
+(\code{tarsus_Intercept}, the spelling \code{\link[=hypothesis]{hypothesis()}} and \code{\link[=variables]{variables()}}
+use), and a natural-scale name that stands for exactly one
+internal parameter, \verb{sd_<group>__<term>} and a correlation whose
+block has a single internal correlation parameter. An alias is
+reported and the row keeps the internal name, because the interval
+is on the internal scale: see \code{\link[=confint_varcorr]{confint_varcorr()}} and
+\code{\link[=hypothesis]{hypothesis()}} for natural-scale intervals. A natural-scale
+summary that is a function of several internal parameters (the
+correlations of a wider \code{us} block, an ICC) has no single
+parameter to work on and is refused, naming
+\code{hypothesis(method = "profile")}.}
 
 \item{level}{Confidence level.}
 

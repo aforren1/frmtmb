@@ -213,13 +213,16 @@ resolve_bounds <- function(fit, lower, upper) {
       stop("Bounds must be named numeric vectors, e.g. ",
            "lower = c(x = 0)", call. = FALSE)
     }
-    bad <- setdiff(names(x), nm)
-    if (length(bad)) {
+    # the paren-tolerant addressing of confint(parm =), so a name copied
+    # out of a hypothesis() expression works here too
+    pos <- match_par_name(names(x), nm)
+    if (anyNA(pos)) {
       stop("Unknown parameter(s) in bounds: ",
-           paste(bad, collapse = ", "), ". Available: ",
-           paste(nm, collapse = ", "), call. = FALSE)
+           paste(names(x)[is.na(pos)], collapse = ", "), ". Available: ",
+           paste(nm, collapse = ", "),
+           " (parentheses may be dropped)", call. = FALSE)
     }
-    out[match(names(x), nm)] <- as.numeric(x)
+    out[pos] <- as.numeric(x)
     out
   }
   list(lower = mk(lower, -Inf), upper = mk(upper, Inf))

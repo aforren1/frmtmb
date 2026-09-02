@@ -649,3 +649,17 @@ Four distinct items under the word "robust", none queued yet:
 robustlmm-style bounded-influence estimating equations (DAStau) are
 NOT a likelihood and stay out of scope; item 2 is our answer to the
 same concern.
+## `nlf()`: recorded, not implemented (v0.34.x, wt-polish)
+
+`lf()` shipped with the brms-portability batch: it is sugar over the
+dpar formulas `bf()` already takes, so `+.frmtmb_formula` merges its
+formulas into `pforms`. `nlf()` is not the same shape. In brms it
+declares a NONLINEAR formula for one parameter,
+`bf(y ~ a) + nlf(a ~ exp(b * x)) + lf(b ~ 1)`, which needs a per-dpar
+`nl` flag. frmtmb's `nl` is one flag on the whole `bf()`, and the
+nonlinear branch of `parse_one_response()` reads the main formula's
+right-hand side as the body with every `pforms` entry as a linear
+nonlinear-parameter formula. Supporting `nlf()` means a nonlinearity
+flag per dpar and a nested body in the objective, which is real work in
+`parse.R` and `objective.R`, not sugar. The existing spelling stays
+`bf(y ~ exp(b * x), b ~ 1, nl = TRUE)`.

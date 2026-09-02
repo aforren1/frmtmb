@@ -2589,7 +2589,14 @@ family_registry <- list(
 #' @noRd
 as_frmtmb_family <- function(x) {
   if (inherits(x, "frmtmb_family")) return(x)
-  if (is.function(x)) x <- x()
+  # A bare constructor (`family = cumulative`, `family = gaussian`) is
+  # legal in brms and in stats::glm, so call it with its defaults. The
+  # frmtmb constructors return a `frmtmb_family` rather than a
+  # `stats::family`, so the result is re-checked here.
+  if (is.function(x)) {
+    x <- x()
+    if (inherits(x, "frmtmb_family")) return(x)
+  }
   if (inherits(x, "family")) {
     ctor <- family_registry[[x$family]]
     if (is.null(ctor)) {
@@ -2610,7 +2617,10 @@ as_frmtmb_family <- function(x) {
     return(ctor())
   }
   stop("Cannot interpret `family` of class ",
-       paste(class(x), collapse = "/"), call. = FALSE)
+       paste(class(x), collapse = "/"),
+       ": pass a family constructor or its name as the `family` ",
+       "argument of frm(), or attach it with `bf(...) + gaussian()`",
+       call. = FALSE)
 }
 
 #' Additional response families

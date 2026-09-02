@@ -5,6 +5,7 @@
 #'
 #' @param formula A `frmtmb_formula` from [bf()] (with a family attached
 #'   via `+`), or a plain formula combined with the `family` argument.
+#'   With neither, the family is `gaussian()`.
 #' @param data A data frame.
 #' @param data2 A named list of objects that are not columns of `data`:
 #'   the adjacency matrix of `car()`, the mesh triple of `spde()`, and
@@ -19,10 +20,14 @@
 #'   Prefer `data2`: its objects are stored on the fit, so `saveRDS()`
 #'   and a later `refit()`, `influence()` or `update()` in a fresh
 #'   session do not need the calling environment to still exist.
-#' @param family A family: a `frmtmb_family`, a [stats::family] object or
-#'   constructor (for example `gaussian`, `poisson`, `binomial`), or a
-#'   family name as a string. Overrides a family already attached to
-#'   `formula`.
+#' @param family A family: a `frmtmb_family`, a [stats::family] object,
+#'   a family constructor with or without its parentheses (for example
+#'   `gaussian()`, `poisson`, `cumulative`), or a family name as a
+#'   string. It overrides a family already attached to `formula`; in a
+#'   multivariate model it fills only the responses that have none.
+#'   The default, `NULL`, means `gaussian()` - the brms, `lme4` and
+#'   `glmmTMB` convention - so `frm(y ~ x, data = d)` is a linear
+#'   model.
 #' @param REML If `TRUE`, integrate the `mu` fixed effects out of the
 #'   likelihood along with the random effects (restricted maximum
 #'   likelihood).
