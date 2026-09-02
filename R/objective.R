@@ -13,6 +13,90 @@
 #' @noRd
 bound_rows <- function(v, i) if (length(v) == 1L) v else v[i]
 
+#' The per-row log-density of one response: the family's `lpdf` with
+#' `cens()` and `trunc()` folded in, in that composition order.
+#'
+#' Factored out of the objective below so that `log_lik()` (R/loo.R) can
+#' evaluate the SAME density numerically at each posterior draw. Two
+#' copies would drift: an addition term that reshapes a row's density -
+#' censoring replaces it by a CDF difference, truncation renormalizes it
+#' by the window mass - has to be applied identically, or the LOO
+#' estimate describes a different model than the one that was fitted.
+#' Case weights stay OUTSIDE: the objective sums `w * ll`, and
+#' `log_lik()` multiplies the returned vector the same way, which is
+#' also brms's convention (`log_lik_weight()`).
+#'
+#' `yobs` is what the density is evaluated at - an `OBS()`-tagged
+#' response on the tape, or an `mi()` response's observed-or-latent
+#' values - while `yraw` is the recorded response the censoring CDFs
+#' read.
+#'
+#' @noRd
+row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
+  "[<-" <- RTMB::ADoverload("[<-")
+  ll <- if (is.null(fam$extra_pars)) {
+    fam$lpdf(yobs, dpv, av)
+  } else {
+    fam$lpdf(yobs, dpv, av, extra)
+  }
+  # Truncation bounds are resolved BEFORE the censoring block: a
+  # censored row under trunc() observes its event INSIDE the window, so
+  # the censored numerators need the same F(lb), F(ub) the normalizer
+  # uses. Composing the two the other way round (censor against the
+  # whole line, then divide by the window) is a different, wrong
+  # likelihood.
+  trunc_on <- !is.null(av$trunc_lb) || !is.null(av$trunc_ub)
+  Fub <- 1
+  Flb <- 0
+  if (trunc_on) {
+    lb <- av$trunc_lb
+    if (!is.null(lb) && identical(fam$type, "discrete")) {
+      # inclusive lower bound: P(lb <= Y <= ub) needs F(lb - 1)
+      # (brms#1903 off-by-one)
+      if (any(lb < 1)) {
+        stop("Discrete truncation needs lb >= 1 (lb = 0 is no ",
+             "truncation)", call. = FALSE)
+      }
+      lb <- lb - 1
+    }
+    if (!is.null(av$trunc_ub)) {
+      Fub <- fam_lcdf(fam, av$trunc_ub, dpv, av, extra)
+    }
+    if (!is.null(lb)) {
+      Flb <- fam_lcdf(fam, lb, dpv, av, extra)
+    }
+  }
+  if (!is.null(av$cens)) {
+    # censoring codes are data, so grouped sub-assignment (one
+    # vectorized [<- per group) replaces the density on censored rows
+    # without parameter branching or 0 * -Inf hazards. Right censoring
+    # is P(y < Y <= ub), left censoring is P(lb <= Y <= y); without
+    # trunc() those collapse to the familiar 1 - F(y) and F(y), because
+    # Fub = 1 and Flb = 0. The discrete F(lb - 1) convention carries
+    # over unchanged: F(y) already includes the point y, which is what a
+    # left-censored count observes.
+    cen <- av$cens
+    Fv <- fam_lcdf(fam, yraw, dpv, av, extra)
+    i_r <- which(cen == 1)
+    i_l <- which(cen == -1)
+    i_i <- which(cen == 2)
+    if (length(i_r)) ll[i_r] <- log(bound_rows(Fub, i_r) - Fv[i_r])
+    if (length(i_l)) ll[i_l] <- log(Fv[i_l] - bound_rows(Flb, i_l))
+    if (length(i_i)) {
+      F2 <- fam_lcdf(fam, av$cens_y2, dpv, av, extra)
+      # an interval is already a windowed difference of CDFs, so only
+      # the division by the window mass below is missing; an interval
+      # reaching outside [lb, ub] is a data contradiction (the response
+      # could not have been observed there at all)
+      ll[i_i] <- log(F2[i_i] - Fv[i_i])
+    }
+  }
+  if (trunc_on) {
+    ll <- ll - log(Fub - Flb)
+  }
+  ll
+}
+
 #' Turns an assembled `frmtmb_frame` into the negative log-likelihood
 #' closure that `RTMB::MakeADFun()` tapes. The returned function takes the
 #' parameter list and gives back one value, with the design matrices, the
@@ -247,70 +331,7 @@ build_objective <- function(frame) {
         } else {
           y[[r]]
         }
-        ll <- if (is.null(fam$extra_pars)) {
-          fam$lpdf(yobs, dparv[[r]], atv[[r]])
-        } else {
-          fam$lpdf(yobs, dparv[[r]], atv[[r]], extra)
-        }
-        # Truncation bounds are resolved BEFORE the censoring block: a
-        # censored row under trunc() observes its event INSIDE the
-        # window, so the censored numerators need the same F(lb), F(ub)
-        # the normalizer uses. Composing the two the other way round
-        # (censor against the whole line, then divide by the window)
-        # is a different, wrong likelihood.
-        trunc_on <- !is.null(atv[[r]]$trunc_lb) ||
-          !is.null(atv[[r]]$trunc_ub)
-        Fub <- 1
-        Flb <- 0
-        if (trunc_on) {
-          lb <- atv[[r]]$trunc_lb
-          if (!is.null(lb) && identical(fam$type, "discrete")) {
-            # inclusive lower bound: P(lb <= Y <= ub) needs F(lb - 1)
-            # (brms#1903 off-by-one)
-            if (any(lb < 1)) {
-              stop("Discrete truncation needs lb >= 1 (lb = 0 is no ",
-                   "truncation)", call. = FALSE)
-            }
-            lb <- lb - 1
-          }
-          if (!is.null(atv[[r]]$trunc_ub)) {
-            Fub <- fam_lcdf(fam, atv[[r]]$trunc_ub, dparv[[r]], atv[[r]],
-                            extra)
-          }
-          if (!is.null(lb)) {
-            Flb <- fam_lcdf(fam, lb, dparv[[r]], atv[[r]], extra)
-          }
-        }
-        if (!is.null(atv[[r]]$cens)) {
-          # censoring codes are data, so grouped sub-assignment (one
-          # vectorized [<- per group) replaces the density on censored
-          # rows without parameter branching or 0 * -Inf hazards.
-          # Right censoring is P(y < Y <= ub), left censoring is
-          # P(lb <= Y <= y); without trunc() those collapse to the
-          # familiar 1 - F(y) and F(y), because Fub = 1 and Flb = 0.
-          # The discrete F(lb - 1) convention carries over unchanged:
-          # F(y) already includes the point y, which is what a
-          # left-censored count observes.
-          cen <- atv[[r]]$cens
-          Fv <- fam_lcdf(fam, y[[r]], dparv[[r]], atv[[r]], extra)
-          i_r <- which(cen == 1)
-          i_l <- which(cen == -1)
-          i_i <- which(cen == 2)
-          if (length(i_r)) ll[i_r] <- log(bound_rows(Fub, i_r) - Fv[i_r])
-          if (length(i_l)) ll[i_l] <- log(Fv[i_l] - bound_rows(Flb, i_l))
-          if (length(i_i)) {
-            F2 <- fam_lcdf(fam, atv[[r]]$cens_y2, dparv[[r]],
-                             atv[[r]], extra)
-            # an interval is already a windowed difference of CDFs, so
-            # only the division by the window mass below is missing; an
-            # interval reaching outside [lb, ub] is a data contradiction
-            # (the response could not have been observed there at all)
-            ll[i_i] <- log(F2[i_i] - Fv[i_i])
-          }
-        }
-        if (trunc_on) {
-          ll <- ll - log(Fub - Flb)
-        }
+        ll <- row_lpdf(fam, yobs, y[[r]], dparv[[r]], atv[[r]], extra)
         nll <- nll - sum(w * ll)
       }
     }
