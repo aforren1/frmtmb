@@ -1,0 +1,52 @@
+[brms_multilevel.1.1] OK      other    0.1s  zinb <- read.csv("http://stats.idre.ucla.edu/stat/data/fish.csv")
+[brms_multilevel.1.2] OK      other    0.0s  zinb$camper <- factor(zinb$camper, labels = c("no", "yes"))
+[brms_multilevel.1.3] OK      other    0.0s  head(zinb)
+[brms_multilevel.2.1] OK      model    0.1s  fit_zinb1 <- frm(count ~ persons + child + camper, data = zinb,  |     family = zero_inflate
+[brms_multilevel.3.1] OK      post     0.1s  summary(fit_zinb1)
+[brms_multilevel.4.1] OK      post     0.2s  conditional_effects(fit_zinb1)
+[brms_multilevel.5.1] OK      model    1.0s  fit_zinb2 <- frm(bf(count ~ persons + child + camper, zi ~ child),  |     data = zinb, famil
+[brms_multilevel.6.1] OK      post     0.1s  summary(fit_zinb2)
+[brms_multilevel.7.1] ERROR   post     0.0s  LOO(fit_zinb1, fit_zinb2)
+        ! could not find function "LOO"
+[brms_multilevel.8.1] OK      other    0.0s  data("rent99", package = "gamlss.data")
+[brms_multilevel.8.2] OK      other    0.0s  head(rent99)
+[brms_multilevel.9.1] OK      model    2.8s <default-family> fit_rent1 <- frm(rentsqm ~ t2(area, yearc) + (1 | district),  |     data = rent99, family = 
+[brms_multilevel.10.1] OK      post     0.5s  summary(fit_rent1)
+[brms_multilevel.11.1] ERROR   post     0.1s  conditional_effects(fit_rent1, surface = TRUE)
+        ! requires numeric/complex matrix/vector arguments
+[brms_multilevel.12.1] OK      other    0.0s  bform <- bf(rentsqm ~ t2(area, yearc) + (1|ID1|district), |             sigma ~ t2(area, yea
+[brms_multilevel.12.2] OK      model   19.8s <default-family> fit_rent2 <- frm(bform, data = rent99, family = gaussian())
+[brms_multilevel.13.1] ERROR   post     0.0s  conditional_smooths(fit_rent2)
+        ! could not find function "conditional_smooths"
+[brms_multilevel.14.1] OK      other    0.0s  url <- paste0("https://raw.githubusercontent.com/mages/", |               "diesunddas/master
+[brms_multilevel.14.2] OK      other    0.1s  loss <- read.csv(url)
+[brms_multilevel.14.3] OK      other    0.0s  head(loss)
+[brms_multilevel.15.1] OK      other    0.0s  nlform <- bf(cum ~ ult * (1 - exp(-(dev / theta)^omega)), |              ult ~ 1 + (1|AY), o
+[brms_multilevel.15.2] BRMS-ONLY other    0.0s  nlprior <- c(prior(normal(5000, 1000), nlpar = "ult"), |              prior(normal(1, 2), nl
+        ! prior code
+[brms_multilevel.15.3] OK      model    0.0s <explicit> fit_loss1 <- frm(formula = nlform, data = loss, |     family = gaussian(), start = list(beta
+[brms_multilevel.16.1] OK      post     0.0s  summary(fit_loss1)
+[brms_multilevel.17.1] ERROR   post     0.0s  conditional_effects(fit_loss1)
+        ! No plottable predictors found for dpar 'mu'
+[brms_multilevel.18.1] OK      other    0.0s  conditions <- data.frame(AY = unique(loss$AY))
+[brms_multilevel.18.2] OK      other    0.0s  rownames(conditions) <- unique(loss$AY)
+[brms_multilevel.18.3] ERROR   post     0.0s  me_year <- conditional_effects(fit_loss1, conditions = conditions, |                        
+        ! No plottable predictors found for dpar 'mu'
+[brms_multilevel.18.4] ERROR   post     0.0s  plot(me_year, ncol = 5, points = TRUE)
+        ! object 'me_year' not found
+[brms_multilevel.19.1] OK      other    0.0s  nlform2 <- bf(cum ~ ult * (1 - exp(-(dev / theta)^omega)), |               ult ~ 1 + (1|ID1|
+[brms_multilevel.19.2] OK      model    0.2s <explicit> fit_loss2 <- update(fit_loss1, formula = nlform2, |     start = list(beta = c(5000, 1, 45)))
+[brms_multilevel.20.1] ERROR   post     0.0s  LOO(fit_loss1, fit_loss2)
+        ! could not find function "LOO"
+[brms_multilevel.21.1] OK      other    0.0s  data_mm <- sim_multi_mem(nschools = 10, nstudents = 1000, change = 0.1)
+[brms_multilevel.21.2] OK      other    0.0s  head(data_mm)
+[brms_multilevel.22.1] OK      other    0.0s  data_mm[101:106, ]
+[brms_multilevel.23.1] ERROR   model    0.0s <default-family> fit_mm <- frm(y ~ 1 + (1 | mm(s1, s2)), data = data_mm, family = gaussian())
+        ! could not find function "mm"
+[brms_multilevel.24.1] ERROR   post     0.0s  summary(fit_mm)
+        ! object 'fit_mm' not found
+[brms_multilevel.25.1] OK      other    0.0s  data_mm[1:100, "w1"] <- runif(100, 0, 1)
+[brms_multilevel.25.2] OK      other    0.0s  data_mm[1:100, "w2"] <- 1 - data_mm[1:100, "w1"]
+[brms_multilevel.25.3] OK      other    0.0s  head(data_mm)
+[brms_multilevel.26.1] ERROR   model    0.0s <default-family> fit_mm2 <- frm(y ~ 1 + (1 | mm(s1, s2, weights = cbind(w1, w2))),  |     data = data_mm, fam
+        ! could not find function "mm"

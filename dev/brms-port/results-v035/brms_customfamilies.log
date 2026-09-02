@@ -1,0 +1,24 @@
+[brms_customfamilies.1.1] OK      other    0.0s  data("cbpp", package = "lme4")
+[brms_customfamilies.1.2] OK      other    0.0s  head(cbpp)
+[brms_customfamilies.2.1] OK      model    0.2s  fit1 <- frm(incidence | trials(size) ~ period + (1 | herd), data = cbpp,  |     family = bin
+[brms_customfamilies.3.1] OK      post     0.1s  summary(fit1)
+[brms_customfamilies.4.1] ERROR   other    0.0s  beta_binomial2 <- custom_family( |   "beta_binomial2", dpars = c("mu", "phi"), |   links = c("
+        ! unused arguments (lb = c(0, 0), ub = c(1, NA), vars = "vint1[n]")
+[brms_customfamilies.5.1] OK      other    0.0s  stan_funs <- " |   real beta_binomial2_lpmf(int y, real mu, real phi, int T) { |     return be
+[brms_customfamilies.6.1] ERROR   other    0.0s  stanvars <- stanvar(scode = stan_funs, block = "functions")
+        ! could not find function "stanvar"
+[brms_customfamilies.7.1] ERROR   model    0.0s  fit2 <- frm(incidence | vint(size) ~ period + (1 | herd), data = cbpp,  |     family = beta_
+        ! object 'beta_binomial2' not found
+[brms_customfamilies.8.1] ERROR   post     0.0s  summary(fit2)
+        ! object 'fit2' not found
+[brms_customfamilies.9.1] ERROR   post     0.0s  expose_functions(fit2, vectorize = TRUE)
+        ! could not find function "expose_functions"
+[brms_customfamilies.10.1] OK      other    0.0s  log_lik_beta_binomial2 <- function(i, prep) { |   mu <- brms::get_dpar(prep, "mu", i = i) |   
+[brms_customfamilies.11.1] ERROR   post     0.0s  loo(fit1, fit2)
+        ! could not find function "loo"
+[brms_customfamilies.12.1] OK      other    0.0s  posterior_predict_beta_binomial2 <- function(i, prep, ...) { |   mu <- brms::get_dpar(prep, 
+[brms_customfamilies.13.1] ERROR   post     0.0s  pp_check(fit2)
+        ! object 'fit2' not found
+[brms_customfamilies.14.1] OK      other    0.0s  posterior_epred_beta_binomial2 <- function(prep) { |   mu <- brms::get_dpar(prep, "mu") |   tr
+[brms_customfamilies.15.1] ERROR   post     0.0s  conditional_effects(fit2, conditions = data.frame(size = 1))
+        ! object 'fit2' not found

@@ -1,0 +1,47 @@
+[brms_monotonic.1.1] OK      other    0.0s  income_options <- c("below_20", "20_to_40", "40_to_100", "greater_100")
+[brms_monotonic.1.2] OK      other    0.0s  income <- factor(sample(income_options, 100, TRUE), |                  levels = income_optio
+[brms_monotonic.1.3] OK      other    0.0s  mean_ls <- c(30, 60, 70, 75)
+[brms_monotonic.1.4] OK      other    0.0s  ls <- mean_ls[income] + rnorm(100, sd = 7)
+[brms_monotonic.1.5] OK      other    0.0s  dat <- data.frame(income, ls)
+[brms_monotonic.2.1] ERROR   model    0.0s  fit1 <- frm(ls ~ mo(income), data = dat)
+        ! No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm()
+[brms_monotonic.3.1] ERROR   post     0.0s  summary(fit1)
+        ! object 'fit1' not found
+[brms_monotonic.3.2] ERROR   post     0.0s  plot(fit1, variable = "simo", regex = TRUE)
+        ! object 'fit1' not found
+[brms_monotonic.3.3] ERROR   post     0.0s  plot(conditional_effects(fit1))
+        ! object 'fit1' not found
+[brms_monotonic.4.1] OK      other    0.0s  dat$income_num <- as.numeric(dat$income)
+[brms_monotonic.4.2] ERROR   model    0.1s  fit2 <- frm(ls ~ income_num, data = dat)
+        ! No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm()
+[brms_monotonic.5.1] ERROR   post     0.0s  summary(fit2)
+        ! object 'fit2' not found
+[brms_monotonic.6.1] OK      other    0.0s  contrasts(dat$income) <- contr.treatment(4)
+[brms_monotonic.6.2] ERROR   model    0.0s  fit3 <- frm(ls ~ income, data = dat)
+        ! No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm()
+[brms_monotonic.7.1] ERROR   post     0.0s  summary(fit3)
+        ! object 'fit3' not found
+[brms_monotonic.8.1] ERROR   post     0.0s  loo(fit1, fit2, fit3)
+        ! could not find function "loo"
+[brms_monotonic.9.1] BRMS-ONLY other    0.0s  prior4 <- prior(dirichlet(c(2, 1, 1)), class = "simo", coef = "moincome1")
+        ! prior code
+[brms_monotonic.9.2] ERROR   model    0.0s  fit4 <- frm(ls ~ mo(income), data = dat)
+        ! No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm()
+[brms_monotonic.10.1] ERROR   post     0.0s  summary(fit4)
+        ! object 'fit4' not found
+[brms_monotonic.11.1] ERROR   post     0.0s  plot(fit4, variable = "prior_simo", regex = TRUE, N = 3)
+        ! object 'fit4' not found
+[brms_monotonic.12.1] OK      other    0.0s  dat$age <- rnorm(100, mean = 40, sd = 10)
+[brms_monotonic.13.1] ERROR   model    0.0s  fit5 <- frm(ls ~ mo(income) * age, data = dat)
+        ! No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm()
+[brms_monotonic.14.1] ERROR   post     0.0s  summary(fit5)
+        ! object 'fit5' not found
+[brms_monotonic.14.2] ERROR   post     0.0s  conditional_effects(fit5, "income:age")
+        ! object 'fit5' not found
+[brms_monotonic.15.1] OK      other    0.0s  dat$city <- rep(1:10, each = 10)
+[brms_monotonic.15.2] OK      other    0.0s  var_city <- rnorm(10, sd = 10)
+[brms_monotonic.15.3] OK      other    0.0s  dat$ls <- dat$ls + var_city[dat$city]
+[brms_monotonic.16.1] ERROR   model    0.0s  fit6 <- frm(ls ~ mo(income) * age + (mo(income) | city), data = dat)
+        ! No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm()
+[brms_monotonic.17.1] ERROR   post     0.0s  summary(fit6)
+        ! object 'fit6' not found
