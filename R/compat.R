@@ -70,8 +70,8 @@ frmtmb_compat_features_tbl <- function() {
            kind = "method"),
     # formula-grammar spellings, which have their own restrictions and
     # belong in the table even though they name no package object
-    lapply(c("bar_crossing", "call_group", "double_bar"), f,
-           kind = "grammar")
+    lapply(c("bar_crossing", "call_group", "double_bar", "mm()",
+             "mmc()"), f, kind = "grammar")
   ))
 }
 
@@ -745,6 +745,40 @@ frmtmb_compat_rules_tbl <- function() {
   # "A random-effect term cannot be crossed with '*'".
   r("bar_crossing", "kind:grammar", "refused",
     "Refused whatever the bar contains: the crossing is rejected before the grouping factor or the double bar is read. Write the crossing inside the bar.")
+
+  ## multi-membership ------------------------------------------------------
+  # mm() changes the Z MATRIX and nothing else: the block is an
+  # ordinary us/diag block over the pooled level set, so the family,
+  # the addition terms and every post-fit method meet the same object
+  # they meet for (1 | g). What mm() cannot do is share a block with
+  # anything that indexes ONE level per observation row.
+  r("mm()", "kind:family", "works",
+    "The membership design is built before the family sees it, exactly as an ordinary grouping factor's is.")
+  r("mm()", "kind:aterm", "works",
+    "Addition terms change the likelihood; the membership design changes the predictor.")
+  r("mm()", "kind:special", "works",
+    "Smooths, Gaussian processes and monotonic terms are separate additive terms and separate blocks.")
+  r("mm()", "group:post_fit", "works",
+    "Verified: an mm block is an ordinary block, so ranef(), VarCorr(), ngrps(), fitted(), simulate() and residuals() read it with no multi-membership branch. predict() on newdata rebuilds the weighted rows; a membership level that is new needs allow_new_levels = TRUE, and the row's remaining members still contribute their fitted effects.")
+  r("mm()", "kind:covstruct", "refused",
+    "Refused: mm() supports the default (us) and diag structures only. Every other structure describes a covariance over the block's levels, and the pooled membership levels have no ordering, no coordinates and no relationship matrix for one to be defined on. gr(mm(...), cov = ) is refused for the same reason.")
+  r("mm()", "us", "works",
+    "The default: one unstructured covariance over the term's coefficients, shared by every pooled membership level.")
+  r("mm()", "diag", "works",
+    "diag(x | mm(g1, g2)) is the spelling of brms's mm(..., cor = FALSE); (x || mm(g1, g2)) expands to the same thing.")
+  r("mm()", "|ID|", "refused",
+    "Refused: a merged |ID| block indexes one level set per observation row, and an mm() row loads several levels at once.")
+  r("mm()", "REML", "works",
+    "Verified: REML integrates the fixed effects and leaves the block alone.")
+  r("mm()", "quadrature", "untested",
+    "An (1 | mm(g1, g2)) block passes the scalar-intercept guard, but nothing checks that the Gauss-Kronrod rule marginalizes a design whose rows load several levels at once. Use the Laplace default.")
+  r("mm()", "mvbf", "works",
+    "Each response builds its own membership design; the blocks do not interact.")
+  r("mm()", "mmc()", "works",
+    "mmc(x1, x2) is ONE random-slope coefficient of the mm block whose covariate value is member specific: member k takes argument k. Verified against brms's Z_..._k arrays.")
+  r("mmc()", "*", "conditional",
+    "mmc() only means something on the left of a multi-membership bar, where it supplies one covariate value per member. Anywhere else it is refused, including over a single-membership grouping factor. Inside an mm() term it composes like any other random-slope column.",
+    override = TRUE)
 
   # A covariance structure's own conditions (num_factor() coordinates
   # for exp/gau/mat, level order for ar1, a rank for rr) hold whatever

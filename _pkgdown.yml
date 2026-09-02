@@ -12,6 +12,7 @@ reference:
   - set_rescor
   - num_factor
   - frmtmb-autocor
+  - frmtmb-multimembership
   - frm_ode
   - frm_ode_failures
 - title: Fitting

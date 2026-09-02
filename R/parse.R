@@ -141,7 +141,7 @@ eval_spec_arg <- function(expr, nm, env, fn = "gp") {
          " must be a single value (got length ", length(val), ")",
          call. = FALSE)
   }
-  if (nm %in% c("iso", "sigma")) {
+  if (nm %in% c("iso", "sigma", "scale")) {
     if (!is.logical(val) || is.na(val)) {
       stop(fn, "(): ", nm, " = ", deparse1(expr),
            " must be TRUE or FALSE", call. = FALSE)
@@ -237,6 +237,243 @@ parse_spde_call <- function(tm, env) {
          "spde(fm_fem(mesh), gr = node)", call. = FALSE)
   }
   list(fem_expr = a$fem, gr_expr = a$gr, label = deparse1(tm))
+}
+
+#' Multi-membership random effects
+#'
+#' `(x | mm(g1, g2, ...))` says that one observation belongs to SEVERAL
+#' levels of one grouping factor at once: a pupil taught in more than
+#' one school, a fish caught in more than one net, a paper written by
+#' more than one author. `mm()` is written where the grouping factor of
+#' a bar term goes, and `mmc()` supplies the member-specific covariate
+#' of a random slope over it. Both spellings follow brms.
+#'
+#' @section What mm() changes:
+#'
+#' Only the random-effect design matrix. The membership variables are
+#' pooled into ONE grouping factor whose levels are every level named by
+#' any member, and the block over them is an ordinary `us` (or `diag`)
+#' block, exactly the block `(x | g)` would build. What differs is the
+#' design row: instead of putting a 1 in one level's column it puts
+#' weight `w_j` in each member level's column, so the effect the
+#' observation sees is the weighted average of its members' effects.
+#'
+#' Everything downstream is therefore unchanged. The covariance is the
+#' usual one, the Laplace approximation is the usual one, and
+#' [ranef()], [VarCorr()], [ngrps()], `fitted()`, `simulate()` and
+#' `predict()` all read the block with no multi-membership branch.
+#'
+#' @section Levels are pooled:
+#'
+#' The pooled level set is each membership variable's own levels,
+#' concatenated in the order the variables were written and then
+#' deduplicated - brms builds it the same way. So `mm(g1, g2)` and
+#' `mm(g2, g1)` fit the same model but order the coefficients
+#' differently, and a level that only one of the two variables carries
+#' still gets its own coefficient. Because the members share one level
+#' set, the same label in `g1` and in `g2` means the same school, which
+#' is the point of the term; relabel one of them if it does not.
+#'
+#' @section Weights:
+#'
+#' `weights` is a matrix with one row per observation and one column per
+#' membership variable, usually built with `cbind()`. Without it every
+#' member gets `1/J`, where `J` is the number of membership variables,
+#' and that default is NOT rescaled. With it, `scale = TRUE` (the
+#' default) divides each row by its sum, so the weights become
+#' proportions; `scale = FALSE` uses the numbers as they are, negative
+#' ones included. Scaling refuses negative weights and rows that sum to
+#' zero, because neither has a proportion to be normalized to.
+#'
+#' @section Member-specific covariates:
+#'
+#' `mmc(x1, x2)` is ONE random-slope coefficient whose covariate value
+#' differs by member: member 1 uses `x1`, member 2 uses `x2`. It takes
+#' one variable per membership variable, they must be numeric, and it
+#' has to be a term of its own on the left of the bar. A plain column on
+#' the left of the bar - `(1 + z | mm(g1, g2))` - is the other case: one
+#' slope whose covariate is the same for every member.
+#'
+#' @section What is refused:
+#'
+#' \describe{
+#'   \item{Other covariance structures}{`mm()` carries `us` and `diag`
+#'     only. `ar1()`, `cs()`, `toep()`, `exp()`, `gr(cov = )` and the
+#'     rest all describe a covariance over the block's levels, and the
+#'     pooled membership levels have no order, no coordinates and no
+#'     relationship matrix for one to be defined on.}
+#'   \item{`|ID|` keys}{A merged block indexes one level set per
+#'     observation row; an `mm()` row loads several at once.}
+#'   \item{brms's other `mm()` arguments}{`cor = FALSE` is
+#'     `diag(x | mm(g1, g2))`, `id =` is the `|ID|` key, and `cov =` is
+#'     `gr(g, cov = A)` over a single-membership factor. `by =`, `pw =`
+#'     and `dist =` have no equivalent yet.}
+#'   \item{Non-name members}{`mm()` reads its membership variables as
+#'     column names, as brms does. Build the column first.}
+#' }
+#'
+#' On `newdata`, a membership level that was not in the fitted data
+#' needs `allow_new_levels = TRUE`; that member then contributes the
+#' population value while the row's remaining members still contribute
+#' their fitted effects.
+#'
+#' @name frmtmb-multimembership
+#' @seealso [ranef()] and [VarCorr()] for the fitted block,
+#'   `vignette("brms-migration")` for the porting notes, and
+#'   [frm_compat()] for what `mm()` may be combined with.
+#' @examples
+#' set.seed(1)
+#' n <- 200
+#' d <- data.frame(
+#'   x = rnorm(n),
+#'   school1 = factor(sample(letters[1:8], n, TRUE)),
+#'   school2 = factor(sample(letters[5:12], n, TRUE)),
+#'   share1 = runif(n, 0.5, 1)
+#' )
+#' d$share2 <- 1 - d$share1
+#' u <- rnorm(12, 0, 0.8)
+#' names(u) <- letters[1:12]
+#' d$y <- 1 + 0.5 * d$x +
+#'   0.5 * u[as.character(d$school1)] +
+#'   0.5 * u[as.character(d$school2)] + rnorm(n, 0, 0.5)
+#'
+#' # equal membership: each pupil is half of each school
+#' fit <- frm(bf(y ~ x + (1 | mm(school1, school2))) + gaussian(),
+#'            data = d)
+#' summary(fit)
+#' # one coefficient per pooled school level
+#' ranef(fit)
+#'
+#' # the time each pupil spent in each school, as proportions
+#' frm(bf(y ~ x + (1 | mm(school1, school2,
+#'                        weights = cbind(share1, share2)))) + gaussian(),
+#'     data = d)
+NULL
+
+#' Does an expression CALL a named function anywhere inside it?
+#'
+#' `all.names()` cannot answer this: it returns bare variable names too,
+#' so a column called `mm` would look like a call to `mm()`.
+#'
+#' @noRd
+calls_function <- function(e, nm) {
+  if (!is.call(e)) return(FALSE)
+  hd <- e[[1L]]
+  if (is.name(hd) && identical(as.character(hd), nm)) return(TRUE)
+  for (i in seq_along(e)[-1L]) {
+    ei <- e[[i]]
+    if (is.symbol(ei) && !nzchar(as.character(ei))) next
+    if (calls_function(ei, nm)) return(TRUE)
+  }
+  FALSE
+}
+
+# brms mm() arguments that describe something other than the membership
+# design itself. Each has a spelling here that is already supported, so
+# the refusal can name it rather than just say no.
+mm_brms_only_args <- c("by", "cor", "id", "pw", "cov", "dist")
+
+#' brms multi-membership grouping: `(x | mm(g1, g2, weights = W))`.
+#'
+#' One observation belongs to SEVERAL levels of one grouping factor
+#' (pupils taught in several schools), and its random-effect design row
+#' is the weighted average of the member levels' effects. Only the Z
+#' matrix changes: the block itself is an ordinary `us`/`diag` block
+#' over the pooled level set, so the covariance, the likelihood and
+#' every post-fit method are the single-membership ones.
+#'
+#' `weights` defaults to `1/J` on every row (brms `data_gr_local()`),
+#' and `scale = TRUE` divides a supplied weight matrix by its row sums.
+#' The member variables must be bare column names, as they are in brms,
+#' which reads them with `as.character(substitute(list(...)))`.
+#'
+#' @noRd
+parse_mm_call <- function(tm, env) {
+  aa <- as.list(tm)[-1L]
+  nms <- names(aa) %||% rep("", length(aa))
+  bad <- setdiff(nms[nzchar(nms)], c("weights", "scale", mm_brms_only_args))
+  if (length(bad)) {
+    stop("mm(): unknown argument(s) ", paste(bad, collapse = ", "),
+         " (takes the membership variables plus weights = and scale = )",
+         call. = FALSE)
+  }
+  used <- intersect(nms, mm_brms_only_args)
+  if (length(used)) {
+    stop("mm(", used[1L], " = ) is not supported. brms's other mm() ",
+         "arguments have spellings here that apply to any grouping ",
+         "term: cor = FALSE is diag(x | mm(g1, g2)), id = is the ",
+         "|ID| key (x | q | g), cov = is gr(g, cov = A), and by = / ",
+         "pw = / dist = have no equivalent yet", call. = FALSE)
+  }
+  groups <- aa[!nzchar(nms)]
+  if (length(groups) < 2L) {
+    stop("mm() needs at least two membership variables: ",
+         "(1 | mm(g1, g2)). One membership variable is an ordinary ",
+         "grouping factor, (1 | g1)", call. = FALSE)
+  }
+  if (!all(vapply(groups, is.name, TRUE))) {
+    nonnm <- vapply(groups[!vapply(groups, is.name, TRUE)], deparse1, "")
+    stop("mm(): each membership variable must be a bare column name; ",
+         "got ", paste0("`", nonnm[1L], "`"),
+         ". Build the column first, then name it", call. = FALSE)
+  }
+  gvars <- vapply(groups, as.character, "")
+  if (anyDuplicated(gvars) && is.null(aa$weights)) {
+    # mm(g, g) with the default weights is (1 | g) written twice, which
+    # is a real degenerate case rather than a mistake, so it is allowed;
+    # nothing to say here. The check exists only to document that.
+    NULL
+  }
+  scale <- if (is.null(aa$scale)) TRUE else {
+    eval_spec_arg(aa$scale, "scale", env, fn = "mm")
+  }
+  list(groups = groups, gvars = gvars, weights_expr = aa$weights,
+       scale = scale, label = deparse1(tm))
+}
+
+#' Split the left of a multi-membership bar into the ordinary design
+#' terms and the `mmc()` member-specific covariates.
+#'
+#' `mmc(x1, x2)` is ONE random-slope coefficient whose covariate value
+#' differs by member: member `k` uses argument `k`. brms builds it the
+#' same way (`data_re()` emits one `Z_..._k` array per member for an
+#' `mmc` term). The ordinary columns come first in the block, then the
+#' `mmc()` terms in the order written.
+#'
+#' @noRd
+split_mmc_lhs <- function(lhs, n_members, label) {
+  plain <- list()
+  mmc <- list()
+  for (tm in split_plus(lhs)) {
+    if (is.call(tm) && identical(tm[[1L]], as.name("mmc"))) {
+      args <- as.list(tm)[-1L]
+      if (any(nzchar(names(args) %||% rep("", length(args))))) {
+        stop("mmc() takes unnamed variables, one per membership ",
+             "variable: mmc(x1, x2)", call. = FALSE)
+      }
+      if (length(args) != n_members) {
+        stop("mmc() needs one variable per membership variable: ",
+             deparse1(tm), " has ", length(args), " but ", label,
+             " has ", n_members, call. = FALSE)
+      }
+      mmc[[length(mmc) + 1L]] <- list(exprs = args, label = deparse1(tm))
+    } else {
+      if ("mmc" %in% all.names(tm)) {
+        stop("mmc() must be a term of its own on the left of the bar, ",
+             "not part of ", deparse1(tm),
+             "; write (mmc(x1, x2) | mm(g1, g2))", call. = FALSE)
+      }
+      plain[[length(plain) + 1L]] <- tm
+    }
+  }
+  # an mmc()-only left side keeps the implicit intercept, exactly as
+  # (x | g) does; (0 + mmc(...) | mm(...)) drops it
+  lhs_plain <- if (length(plain)) {
+    Reduce(function(a, b) call("+", a, b), plain)
+  } else {
+    1
+  }
+  list(lhs = lhs_plain, mmc = mmc)
 }
 
 #' Drop redundant parentheses so a term can be inspected and re-split.
@@ -446,6 +683,19 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                deparse1(tm), call. = FALSE)
         }
       }
+      # mm()/mmc() outside a bar term would reach model.matrix() and
+      # die as "could not find function", which points nowhere near the
+      # grammar mistake that caused it
+      if (!("|" %in% all.names(tm))) {
+        for (sp_nm in Filter(function(f) calls_function(tm, f),
+                             c("mm", "mmc"))) {
+          stop(sp_nm, "() is part of a random-effect term, not a ",
+               "population-level predictor: ", deparse1(tm),
+               ". Multi-membership is written (1 | mm(g1, g2)), and ",
+               "mmc() supplies its member-specific slopes, ",
+               "(mmc(x1, x2) | mm(g1, g2))", call. = FALSE)
+        }
+      }
       rest[[length(rest) + 1L]] <- tm
     }
   }
@@ -550,6 +800,36 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       id <- paste0(id_label, "|", deparse1(id_group))
       bar <- call("|", bar[[2]][[2]], bar[[3]])
     }
+    # brms (x | mm(g1, g2)): multi-membership. The grouping expression
+    # stays on the bar (it is the term's label and the key prediction
+    # rebuilds from); the frame reads `mm` to build the weighted Z.
+    mm <- NULL
+    if (is.call(bar[[3]]) && identical(bar[[3]][[1]], as.name("mm"))) {
+      mm <- parse_mm_call(bar[[3]], env)
+      if (!cls %in% c("us", "diag")) {
+        stop("mm() supports the default (us) and diag structures only; ",
+             cls, "(", deparse1(bar),
+             ") asks for a covariance over the pooled membership ",
+             "levels, which the weighted design does not define",
+             call. = FALSE)
+      }
+      if (!is.null(id)) {
+        stop("A multi-membership term cannot share an |ID| key: ",
+             deparse1(bar), " is keyed |", id_label,
+             "|. Merged blocks index one level set per observation ",
+             "row, and an mm() row loads several levels at once",
+             call. = FALSE)
+      }
+      sp <- split_mmc_lhs(bar[[2]], length(mm$groups), mm$label)
+      mm$lhs <- sp$lhs
+      mm$mmc <- sp$mmc
+    } else if (calls_function(bar[[2]], "mmc")) {
+      stop("mmc() supplies one covariate value per MEMBER, so it only ",
+           "means something over a multi-membership grouping factor: ",
+           deparse1(bar), " groups by ", deparse1(bar[[3]]),
+           ". Write (mmc(x1, x2) | mm(g1, g2)), or use the plain ",
+           "covariate for a single-membership slope", call. = FALSE)
+    }
     # brms (x | gr(g, cov = A)): known covariance over the levels;
     # gr(g, prec = Q) takes a (sparse) precision matrix instead
     if (is.call(bar[[3]]) && identical(bar[[3]][[1]], as.name("gr"))) {
@@ -562,6 +842,14 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
           !all(nms %in% c("", "cov", "prec"))) {
         stop("gr() supports (x | gr(g, cov = A)) or ",
              "(1 | gr(g, prec = Q))", call. = FALSE)
+      }
+      if (calls_function(gvar[[1L]], "mm")) {
+        stop("gr(mm(...), cov = ) / gr(mm(...), prec = ) is not ",
+             "supported: a known relationship matrix indexes one level ",
+             "per observation, and a multi-membership row loads several ",
+             "levels at once. Write (x | mm(g1, g2)) for the membership ",
+             "design, or (x | gr(g, cov = A)) for the relationship ",
+             "matrix", call. = FALSE)
       }
       cov_expr <- ga$cov %||% ga$prec
       bar <- call("|", bar[[2]], gvar[[1]])
@@ -577,7 +865,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     }
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
          id_label = id_label, id_group = id_group,
-         cov_expr = cov_expr, rank = rank)
+         cov_expr = cov_expr, rank = rank, mm = mm)
   }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs)
   names(re) <- vapply(re, function(z) deparse1(z$bar), "")
 
