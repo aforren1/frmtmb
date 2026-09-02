@@ -185,6 +185,54 @@ test_that("asym_laplace reproduces quantile regression", {
   expect_vector_equal(fixef(fq)$mu, coef(rq), tol = 0.02)
 })
 
+test_that("zero_inflated_asym_laplace matches direct ML and collapses", {
+  set.seed(14)
+  n <- 600
+  x <- rnorm(n)
+  y_ald <- 0.5 + 0.8 * x + rnorm(n)
+  zi_true <- stats::rbinom(n, 1, plogis(-1 + 0.5 * x))
+  dd <- data.frame(x = x, y = ifelse(zi_true == 1, 0, y_ald))
+
+  fz <- suppressWarnings(
+    frm(bf(y ~ x, zi ~ x, quantile = 0.5) + zero_inflated_asym_laplace(),
+        data = dd)
+  )
+
+  # direct ML over the same likelihood: p = (b0, b1, log sigma, z0, z1)
+  nll <- function(p) {
+    mu <- p[1] + p[2] * dd$x
+    s <- exp(p[3])
+    zi <- stats::plogis(p[4] + p[5] * dd$x)
+    u <- (dd$y - mu) / s
+    ald <- log(0.25) - log(s) - 0.5 * abs(u)
+    i0 <- as.numeric(dd$y == 0)
+    -sum(i0 * log(zi) + (1 - i0) * (log(1 - zi) + ald))
+  }
+  op <- suppressWarnings(
+    stats::optim(c(0, 0, 0, -1, 0), nll, method = "BFGS",
+                 control = list(reltol = 1e-12, maxit = 2000))
+  )
+  # both optimizers stall a little differently at the check-loss kink;
+  # sub-1e-3 agreement on the log likelihood is the same optimum
+  expect_lt(abs(as.numeric(logLik(fz)) + op$value), 5e-3)
+
+  # with no zeros in the data, zi -> 0 and mu/sigma equal the plain
+  # asym_laplace fit
+  dd2 <- data.frame(x = x, y = y_ald)
+  f0 <- suppressWarnings(
+    frm(bf(y ~ x, quantile = 0.5) + asym_laplace(), data = dd2)
+  )
+  fz0 <- suppressWarnings(
+    frm(bf(y ~ x, quantile = 0.5, zi = 0.001) +
+          zero_inflated_asym_laplace(), data = dd2)
+  )
+  expect_vector_equal(fixef(fz0)$mu, fixef(f0)$mu, tol = 1e-3)
+
+  # simulate() round trip: zero fraction near the fitted zi
+  sim <- simulate(fz, nsim = 200, seed = 1)
+  expect_lt(abs(mean(as.matrix(sim) == 0) - mean(dd$y == 0)), 0.05)
+})
+
 test_that("ranef condVar and the tidy data-frame forms", {
   skip_if_not_installed("lme4")
   data(sleepstudy, package = "lme4")

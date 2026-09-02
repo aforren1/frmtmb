@@ -129,6 +129,10 @@ ce_second_values <- function(col) {
 #'   variable(s) plus `estimate__`, `se__` (link scale), `lower__`, and
 #'   `upper__`; printing it draws the plots. An ordinal fit adds a
 #'   `cats__` column and one block of rows per response category.
+#'   `plot(ce, points = TRUE)` overlays the raw observations (the brms
+#'   argument): all observations are shown regardless of `conditions`,
+#'   and no points are drawn for a per-category ordinal display, a
+#'   non-mean `dpar`, or a matrix response (a message says so).
 #' @section Ordinal responses:
 #' `cumulative()`, `sratio()`, `cratio()` and `acat()` have no mean, so
 #' the display is per CATEGORY, as brms's `categorical = TRUE` is: each
@@ -320,6 +324,18 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
     attr(df, "effects") <- ev
     attr(df, "response") <- resp
     attr(df, "dpar") <- dpar
+    # raw observations for plot(..., points = TRUE): only meaningful on
+    # the expected-response display, and only when the response is a
+    # plain numeric column of the data (not cbind()/matrix responses)
+    default_dpar <- if ("mu" %in% names(rspec$dpars)) "mu" else
+      rspec$primary_dpars[1]
+    if (!categorical && identical(dpar, default_dpar) &&
+        resp %in% names(base) && is.numeric(base[[resp]]) &&
+        is.null(dim(base[[resp]]))) {
+      pdf_ <- data.frame(x = base[[ev[1L]]], y = base[[resp]])
+      if (length(ev) == 2L) pdf_$grp <- base[[ev[2L]]]
+      attr(df, "points_df") <- pdf_
+    }
     out[[eff]] <- df
   }
   structure(out, class = "frmtmb_conditional_effects")
@@ -332,7 +348,8 @@ print.frmtmb_conditional_effects <- function(x, ...) {
 }
 
 #' @export
-plot.frmtmb_conditional_effects <- function(x, ask = NULL, ...) {
+plot.frmtmb_conditional_effects <- function(x, ask = NULL, points = FALSE,
+                                            ...) {
   ask <- ask %||% (length(x) > 1L && grDevices::dev.interactive())
   if (ask) {
     oask <- grDevices::devAskNewPage(TRUE)
@@ -340,16 +357,22 @@ plot.frmtmb_conditional_effects <- function(x, ask = NULL, ...) {
   }
   for (nm in names(x)) {
     df <- x[[nm]]
+    if (points && is.null(attr(df, "points_df"))) {
+      message("points = TRUE: no observations to draw for effect '", nm,
+              "' (the display is per-category, on a non-mean ",
+              "distributional parameter, or the response is not a ",
+              "plain numeric column)")
+    }
     if (!is.null(df$cond__) && length(unique(df$cond__)) > 1L) {
       for (cv in unique(df$cond__)) {
         sub <- df[df$cond__ == cv, , drop = FALSE]
-        for (a in c("effects", "response", "dpar")) {
+        for (a in c("effects", "response", "dpar", "points_df")) {
           attr(sub, a) <- attr(df, a)
         }
-        ce_plot_one(sub, cond = cv)
+        ce_plot_one(sub, cond = cv, points = points)
       }
     } else {
-      ce_plot_one(df)
+      ce_plot_one(df, points = points)
     }
   }
   invisible(x)
@@ -361,7 +384,8 @@ plot.frmtmb_conditional_effects <- function(x, ask = NULL, ...) {
 #' optional second predictor.
 #'
 #' @noRd
-ce_plot_one <- function(df, cond = NULL) {
+ce_plot_one <- function(df, cond = NULL, points = FALSE) {
+  pts <- if (points) attr(df, "points_df")
   ev <- attr(df, "effects")
   if (!is.null(df[["cats__"]])) {
     # an ordinal display carries one curve per response category, so the
@@ -386,8 +410,9 @@ ce_plot_one <- function(df, cond = NULL) {
   ylab <- paste0(attr(df, "response"), " (", attr(df, "dpar"), ")")
   if (!is.null(cond)) ylab <- paste0(ylab, " | ", cond)
   grp <- if (length(ev) == 2L) factor(df[[ev[2L]]])
-  ce_draw_panel(df, ev[1L], grp, ev[2L], ylab,
-                range(df$lower__, df$upper__))
+  ylim <- range(df$lower__, df$upper__, if (!is.null(pts)) pts$y,
+                na.rm = TRUE)
+  ce_draw_panel(df, ev[1L], grp, ev[2L], ylab, ylim, pts = pts)
 }
 
 #' Draw one panel: the estimate over the varied predictor `xv` with its
@@ -396,13 +421,18 @@ ce_plot_one <- function(df, cond = NULL) {
 #' `grp`.
 #'
 #' @noRd
-ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim) {
+ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim,
+                          pts = NULL) {
   v1 <- df[[xv]]
   ev <- c(xv, grp_title)
+  pt_col <- grDevices::adjustcolor("black", 0.25)
 
   if (is.numeric(v1)) {
     graphics::plot(range(v1), ylim, type = "n", xlab = ev[1L],
                    ylab = ylab)
+    if (!is.null(pts)) {
+      graphics::points(pts$x, pts$y, pch = 16, cex = 0.5, col = pt_col)
+    }
     if (is.null(grp)) {
       graphics::polygon(c(v1, rev(v1)), c(df$lower__, rev(df$upper__)),
                         col = grDevices::adjustcolor("black", 0.15),
@@ -430,6 +460,14 @@ ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim) {
                    xaxt = "n", xlab = ev[1L], ylab = ylab)
     graphics::axis(1, at = seq_len(nlevels(factor(v1))),
                    labels = levels(factor(v1)))
+    if (!is.null(pts)) {
+      xp <- as.integer(factor(pts$x, levels = levels(factor(v1))))
+      # deterministic spread, no RNG: replotting looks identical and the
+      # user's random seed is left alone
+      off <- ((seq_along(xp) * 7L) %% 17L - 8L) / 100
+      graphics::points(xp + off, pts$y, pch = 16, cex = 0.5,
+                       col = pt_col)
+    }
     cols <- if (is.null(grp)) 1L else as.integer(grp)
     graphics::arrows(xi, df$lower__, xi, df$upper__, angle = 90,
                      code = 3, length = 0.05, col = cols)

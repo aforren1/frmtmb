@@ -27,6 +27,7 @@
 \alias{zero_inflated_binomial}
 \alias{zero_inflated_beta}
 \alias{asym_laplace}
+\alias{zero_inflated_asym_laplace}
 \alias{sratio}
 \alias{cratio}
 \alias{acat}
@@ -82,6 +83,8 @@ zero_inflated_beta(link = "logit")
 
 asym_laplace(link = "identity")
 
+zero_inflated_asym_laplace(link = "identity")
+
 sratio(link = "logit")
 
 cratio(link = "logit")
@@ -109,6 +112,21 @@ ordered factor, or integer codes \verb{1..K}: an unordered factor is
 accepted, as brms accepts it, but warns and names the order it is
 about to use, which is alphabetical unless the levels were set.
 }
+\section{Quantile regression inference}{
+
+\code{asym_laplace()} and \code{zero_inflated_asym_laplace()} fit quantile
+regression through a WORKING likelihood: at a fixed \code{quantile} the
+point estimates are consistent quantile estimates (they match
+\code{quantreg::rq()}), but the asymmetric Laplace is not the data's
+true density, so Wald standard errors and \code{confint()} intervals
+computed from it are not calibrated. This is a property of the
+asymmetric-Laplace approach, shared by brms. Use
+\code{\link[=frm_bootstrap]{frm_bootstrap()}} for intervals you can defend. The check
+function's kink can also produce a benign false-convergence
+warning near the optimum; \code{frm_allfit()} confirms the fit when in
+doubt.
+}
+
 \examples{
 set.seed(4)
 n <- 120

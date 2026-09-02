@@ -1262,6 +1262,51 @@ fam_asym_laplace <- function(link = "identity") {
   )
 }
 
+#' Zero-inflated asymmetric Laplace (brms spelling): a point mass at
+#' zero mixed with the continuous ALD, so the mixture density is
+#' well-defined without the +i0 dodge the discrete zi families need.
+#'
+#' @noRd
+fam_zi_asym_laplace <- function(link = "identity") {
+  frmtmb_family(
+    "zero_inflated_asym_laplace",
+    dpars = c("mu", "sigma", "quantile", "zi"),
+    links = list(mu = link, sigma = "log", quantile = "logit",
+                 zi = "logit"),
+    lpdf = function(y, dpars, aterms) {
+      i0 <- as.numeric(y == 0)
+      p <- dpars$quantile
+      u <- (y - dpars$mu) / dpars$sigma
+      ald <- log(p) + log(1 - p) - log(dpars$sigma) -
+        0.5 * (abs(u) + (2 * p - 1) * u)
+      i0 * log(dpars$zi) + (1 - i0) * (log(1 - dpars$zi) + ald)
+    },
+    init_dpars = list(
+      mu = function(y, aterms) stats::median(y[y != 0]),
+      sigma = function(y, aterms) {
+        s <- stats::sd(y[y != 0]) / 2
+        if (is.finite(s) && s > 0) s else 1
+      },
+      quantile = function(y, aterms) 0.5,
+      zi = function(y, aterms) min(max(mean(y == 0), 0.05), 0.9)
+    ),
+    type = "continuous",
+    post = list(
+      mean_fn = function(dpars, aterms) {
+        (1 - dpars$zi) *
+          (dpars$mu + dpars$sigma * (1 - 2 * dpars$quantile) /
+             (dpars$quantile * (1 - dpars$quantile)))
+      }
+    ),
+    sim = function(dpars, aterms, n) {
+      p <- dpars$quantile
+      stats::rbinom(n, 1, 1 - dpars$zi) *
+        (dpars$mu + dpars$sigma *
+           (stats::rexp(n) / p - stats::rexp(n) / (1 - p)))
+    }
+  )
+}
+
 # --- RTMBdist-backed families ---
 
 #' Beta-binomial family in the mean-precision parameterization, dpars
@@ -2530,6 +2575,7 @@ family_registry <- list(
   zero_inflated_binomial    = fam_zi_binomial,
   zero_inflated_beta        = fam_zi_beta,
   asym_laplace              = fam_asym_laplace,
+  zero_inflated_asym_laplace = fam_zi_asym_laplace,
   sratio                    = fam_sratio,
   cratio                    = fam_cratio,
   acat                      = fam_acat
@@ -2578,6 +2624,19 @@ as_frmtmb_family <- function(x) {
 #' ordered factor, or integer codes `1..K`: an unordered factor is
 #' accepted, as brms accepts it, but warns and names the order it is
 #' about to use, which is alphabetical unless the levels were set.
+#'
+#' @section Quantile regression inference:
+#' `asym_laplace()` and `zero_inflated_asym_laplace()` fit quantile
+#' regression through a WORKING likelihood: at a fixed `quantile` the
+#' point estimates are consistent quantile estimates (they match
+#' `quantreg::rq()`), but the asymmetric Laplace is not the data's
+#' true density, so Wald standard errors and `confint()` intervals
+#' computed from it are not calibrated. This is a property of the
+#' asymmetric-Laplace approach, shared by brms. Use
+#' [frm_bootstrap()] for intervals you can defend. The check
+#' function's kink can also produce a benign false-convergence
+#' warning near the optimum; `frm_allfit()` confirms the fit when in
+#' doubt.
 #'
 #' @param link Link for `mu`.
 #' @return A `frmtmb_family` object.
@@ -2711,6 +2770,12 @@ zero_inflated_beta <- function(link = "logit") fam_zi_beta(link)
 #' @rdname frmtmb-families
 #' @export
 asym_laplace <- function(link = "identity") fam_asym_laplace(link)
+
+#' @rdname frmtmb-families
+#' @export
+zero_inflated_asym_laplace <- function(link = "identity") {
+  fam_zi_asym_laplace(link)
+}
 
 #' @rdname frmtmb-families
 #' @export

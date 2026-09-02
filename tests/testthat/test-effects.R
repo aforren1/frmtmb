@@ -43,6 +43,37 @@ test_that("conditional_effects builds sensible grids with Wald bands", {
   expect_true(all(ce3$x$estimate__ > ce$x$estimate__))
 })
 
+test_that("plot(ce, points = TRUE) overlays the observations", {
+  set.seed(22)
+  n <- 120
+  dd <- data.frame(x = rnorm(n), f = factor(rep(c("a", "b"), n / 2)))
+  dd$y <- rnorm(n, 1 + 0.8 * dd$x + (dd$f == "b") * 0.5, 1)
+  fit <- frm(bf(y ~ x + f) + gaussian(), data = dd)
+  ce <- conditional_effects(fit)
+
+  # the observations ride the object so plot() can draw them
+  pd <- attr(ce$x, "points_df")
+  expect_identical(pd$x, dd$x)
+  expect_identical(pd$y, dd$y)
+  expect_identical(attr(ce$f, "points_df")$x, dd$f)
+
+  # numeric and factor panels both draw with points, without error, and
+  # leave the RNG state alone
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  rng <- .Random.seed
+  expect_no_error(plot(ce, ask = FALSE, points = TRUE))
+  expect_identical(.Random.seed, rng)
+  expect_no_error(plot(ce, ask = FALSE))   # default unchanged
+
+  # a sigma-dpar display has no meaningful raw points: message, no crash
+  fit2 <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
+  ce2 <- conditional_effects(fit2, effects = "x", dpar = "sigma")
+  expect_null(attr(ce2$x, "points_df"))
+  expect_message(plot(ce2, ask = FALSE, points = TRUE),
+                 "no observations to draw")
+})
+
 test_that("conditional_effects respects the link scale", {
   dd <- sim_pois_glmm()
   fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
