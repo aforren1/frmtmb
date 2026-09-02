@@ -281,18 +281,26 @@ larger dose.
 
 ### Inside a formula
 
-A nonlinear body looks up every bare name in `data`, so a data.frame
-held in a variable cannot be named there. Write the table inline, or
-hold it in a function of no arguments:
+A nonlinear body looks up every bare name in `data` first, so a column
+called `doses` wins. There is no column of that name here, and a
+data.frame is not something a column could hold, so the table is read
+from the environment of the formula:
 
 ``` r
 
 conc ~ frm_ode(pk_dyn, init = list(0, 0), times = time,
                parms = list(exp(lka), exp(lke), exp(lV)),
                group = id, states = c("depot", "central"),
-               output = "central",
-               events = data.frame(time = c(0, 12, 24), state = "depot",
-                                   value = 100))
+               output = "central", events = doses)
+```
+
+Writing the table inline says the same thing, and a function of no
+arguments is the way to read the schedule at fit time:
+
+``` r
+
+conc ~ frm_ode(pk_dyn, ..., events = data.frame(
+                 time = c(0, 12, 24), state = "depot", value = 100))
 
 schedule <- function() read.csv("doses.csv")
 conc ~ frm_ode(pk_dyn, ..., events = schedule)

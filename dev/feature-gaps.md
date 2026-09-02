@@ -428,3 +428,42 @@ examples/vignettes must skip cleanly without it - the brms/cmdstanr
 posture exactly. The RTMB/RTMBp split (variant under a different
 package NAME) is the other pattern, for when the variant replaces
 rather than extends; not needed here.
+
+## Hidden Markov models (user request 2026-09-02)
+
+Union-coverage territory: brms has NO HMM grammar. The reference the
+user pointed at (cas-bioinf/covid19retrospective, manuscript/hmm.Rmd)
+injects a hand-written forward algorithm into brms through `stanvars`
+with a custom family - raw Stan, not grammar.
+
+Statistical position: HMM latent states are discrete, so the Laplace
+approximation does not apply to them and does not need to. The
+forward algorithm marginalizes the state sequence EXACTLY, as a
+per-group recursion of small matrix products, which tapes in RTMB.
+This is hmmTMB's architecture. Composition with random effects is the
+v0.19 insight again: sum the discrete states inside (forward
+algorithm, exact given b), integrate the Gaussian b outside
+(Laplace). State-dependent parameters with REs come along free.
+
+Two rungs:
+1. Expressible TODAY via custom_family() + vint() payloads carrying
+   group index and time order: the lpdf runs the forward recursion
+   per group and returns each sequence's log likelihood on the
+   group's first row, zero elsewhere. Exact but assembly-language.
+   The feasibility probe (queued 2026-09-02) validates this rung
+   against depmixS4 / a hand-rolled forward reference.
+2. First-class hmm(K, family) reusing mixture() machinery (suffixed
+   per-state dpars with the full formula grammar, logspace_add,
+   init/label-switching conventions). Genuinely new pieces: a
+   K x (K-1) multinomial-logit transition block, each cell optionally
+   with its own formula (covariate-dependent transitions - what the
+   covid model needs); a time/group contract like the autocor terms;
+   the taped forward recursion in the objective; stationary or
+   estimated initial distribution (linear solve on tape);
+   forward-backward / Viterbi post-processing as the mixture_probs()
+   analog. Sizing: a mixture-wave-scale effort (multi-day).
+
+References for validation: hand-rolled forward algorithm (exact),
+depmixS4, hmmTMB, moveHMM. Sharp edges expected: tape length grows
+linearly with series length (sequential recursion; each step tiny),
+ragged/irregular series, mixture-style multimodality. None fatal.

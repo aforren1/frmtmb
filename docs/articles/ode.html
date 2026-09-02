@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Differential equation models • frmtmb</title>
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
@@ -16,11 +16,11 @@
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.32.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.33.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,6 +49,14 @@
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/aforren1/frmtmb/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-lightswitch" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Light switch"><span class="fa fa-sun"></span></button>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-lightswitch">
+<li><button class="dropdown-item" data-bs-theme-value="light"><span class="fa fa-sun"></span> Light</button></li>
+    <li><button class="dropdown-item" data-bs-theme-value="dark"><span class="fa fa-moon"></span> Dark</button></li>
+    <li><button class="dropdown-item" data-bs-theme-value="auto"><span class="fa fa-adjust"></span> Auto</button></li>
+  </ul>
+</li>
       </ul>
 </div>
 
@@ -353,23 +361,27 @@ larger dose.</p>
 <div class="section level3">
 <h3 id="inside-a-formula">Inside a formula<a class="anchor" aria-label="anchor" href="#inside-a-formula"></a>
 </h3>
-<p>A nonlinear body looks up every bare name in <code>data</code>, so a
-data.frame held in a variable cannot be named there. Write the table
-inline, or hold it in a function of no arguments:</p>
+<p>A nonlinear body looks up every bare name in <code>data</code> first,
+so a column called <code>doses</code> wins. There is no column of that
+name here, and a data.frame is not something a column could hold, so the
+table is read from the environment of the formula:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
 <span>               parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>               group <span class="op">=</span> <span class="va">id</span>, states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"depot"</span>, <span class="st">"central"</span><span class="op">)</span>,</span>
-<span>               output <span class="op">=</span> <span class="st">"central"</span>,</span>
-<span>               events <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">12</span>, <span class="fl">24</span><span class="op">)</span>, state <span class="op">=</span> <span class="st">"depot"</span>,</span>
-<span>                                   value <span class="op">=</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
+<span>               output <span class="op">=</span> <span class="st">"central"</span>, events <span class="op">=</span> <span class="va">doses</span><span class="op">)</span></span></code></pre></div>
+<p>Writing the table inline says the same thing, and a function of no
+arguments is the way to read the schedule at fit time:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, <span class="va">...</span>, events <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>                 time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">12</span>, <span class="fl">24</span><span class="op">)</span>, state <span class="op">=</span> <span class="st">"depot"</span>, value <span class="op">=</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">schedule</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"doses.csv"</span><span class="op">)</span></span>
 <span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, <span class="va">...</span>, events <span class="op">=</span> <span class="va">schedule</span><span class="op">)</span></span></code></pre></div>
 <p>A fit is otherwise unchanged. Here is a small simulated course of
 three doses twelve hours apart, with between-subject variability on
 <code>lka</code> and <code>lke</code>:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">n_id</span> <span class="op">&lt;-</span> <span class="fl">8</span></span>
 <span><span class="va">tt_obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">2</span>, <span class="fl">6</span>, <span class="fl">11.9</span>, <span class="fl">14</span>, <span class="fl">20</span>, <span class="fl">23.9</span>, <span class="fl">26</span>, <span class="fl">32</span>, <span class="fl">40</span><span class="op">)</span></span>
@@ -402,7 +414,7 @@ three doses twelve hours apart, with between-subject variability on
 <code>lV = 2.30</code>, with a residual standard deviation of 0.3, which
 is <code>-1.20</code> on the log scale <code>sigma</code> is reported
 on.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">show</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span></span>
 <span><span class="va">sub</span> <span class="op">&lt;-</span> <span class="va">dd</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">show</span>, <span class="op">]</span></span>
 <span><span class="va">sub</span><span class="op">$</span><span class="va">id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/droplevels.html" class="external-link">droplevels</a></span><span class="op">(</span><span class="va">sub</span><span class="op">$</span><span class="va">id</span><span class="op">)</span></span>
@@ -427,7 +439,7 @@ something being estimated. <code>event_scale</code> is the way in: one
 value per observation, constant within group, multiplying every amount
 in that group. A bioavailability is then an ordinary nonlinear
 parameter, free to carry covariates and random effects:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
 <span>                  parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                  group <span class="op">=</span> <span class="va">id</span>, states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"depot"</span>, <span class="st">"central"</span><span class="op">)</span>,</span>
@@ -479,7 +491,7 @@ regimen over a fortnight is 28 solves per subject, not one.</p>
 A covariate that changes between an early and a late observation of the
 same subject therefore describes a model this helper cannot solve, and
 it is refused by name at frame assembly:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span><span class="op">$</span><span class="va">phase</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">Time</span> <span class="op">&lt;=</span> <span class="fl">2</span>, <span class="st">"early"</span>, <span class="st">"late"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">Dose</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">Time</span>,</span>
 <span>                      parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -630,7 +642,7 @@ detected, and by default its rows are filled with
 <p>A penalty is never written silently. <code><a href="../reference/frm_ode.html">frm_ode()</a></code> warns and
 names the groups, and <code><a href="../reference/frm_ode_failures.html">frm_ode_failures()</a></code> reads the record
 back afterwards:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: frm_ode(): the solve failed for 1 of 3 groups (2). Their rows</span></span>
 <span><span class="co">#&gt; hold penalty = 1e+06, not a solution. ...</span></span>

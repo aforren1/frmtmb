@@ -1,5 +1,50 @@
 # Changelog
 
+## frmtmb 0.33.0
+
+Two residue fixes, a documentation dark mode, and CI repairs.
+
+### Behavior changes
+
+- [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+  on an ordinal fit returns a `draws x observations x categories` array
+  with `dimnames` `list(NULL, observation names, category levels)`,
+  replacing the flattened `draws x (n * K)` matrix of v0.31/v0.32. This
+  is brms’s documented shape (an S x N x C array for categorical and
+  ordinal models). The array is the old matrix reshaped:
+  `matrix(as.vector(ep), nrow = ndraws)` recovers the previous value and
+  column order exactly, and `ep[, , "high"]` or `ep[k, , ]` replace the
+  old naming recipe. Scalar-response families,
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+  and
+  [`posterior_linpred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+  are unchanged. A documentation error is also corrected:
+  [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  response-scale predictions are a vector, not a category matrix, and
+  the docs no longer claim otherwise.
+
+### New
+
+- A `bf(nl = TRUE)` body can name an object of its formula environment
+  that could never be a column of `data` (a data.frame, a list, an
+  environment, a formula), so `frm_ode(..., events = doses)` takes a
+  dosing table by name instead of needing an inline
+  [`data.frame()`](https://rdrr.io/r/base/data.frame.html) or a wrapper
+  function. The boundary is exactly what
+  [`stats::model.frame()`](https://rdrr.io/r/stats/model.frame.html)
+  refuses: vectors, factors, and matrices are legal model-frame
+  variables and still resolve through the model frame, and a column of
+  `data` still wins over a same-named object. A body that fails to
+  evaluate reports which names were resolved outside the data.
+- The documentation site has a light/dark/auto theme toggle.
+
+### CI
+
+- The pkgcheck and dependency workflows resolve RTMBode from r-universe:
+  `extra-repositories` on the setup-r action, and an `R_PROFILE_USER`
+  profile for the pkgcheck container, whose pak cannot read
+  `Additional_repositories` from DESCRIPTION.
+
 ## frmtmb 0.32.0
 
 The merged-\|ID\| Kronecker path, the ordinal prediction surface, ODE

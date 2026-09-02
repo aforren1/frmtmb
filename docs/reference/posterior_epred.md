@@ -82,18 +82,29 @@ posterior_predict(
 ## Value
 
 A draws-by-observations matrix; for a categorical outcome
-`posterior_epred()` returns draws by `n * K` (see the section below).
+`posterior_epred()` returns a draws-by-observations-by-categories array
+(see the section below).
 
 ## Categorical outcomes
 
-An ordinal family (and
-[`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md))
-predicts a DISTRIBUTION per observation, not one number, so
-`posterior_epred()` returns a `draws x (n * K)` matrix: each draw's
-`n x K` prediction flattened column by column, so the columns run
-category by category (`obs1.cat1, obs2.cat1, ..., obs1.cat2, ...`). The
-columns are named `"<observation>.<category>"`;
-`dim(.) <- c(ndraws, n, K)` recovers the array shape.
+An ordinal family predicts a DISTRIBUTION per observation, not one
+number: each draw's `predict(type = "response")` is an `n x K` matrix of
+category probabilities. Those stack into a 3-D
+`draws x observations x categories` array. `dimnames` are
+`list(NULL, <observation names or NULL>, <category levels>)`, so
+`ep[, , "high"]` is the draws-by-observations matrix for one category
+and `ep[k, , ]` is draw `k`'s own `n x K` prediction, the matrix
+`predict(type = "response")` returns. Every `ep[k, i, ]` sums to 1 for
+an ordinal family.
+
+This is brms's convention:
+[`?brms::posterior_epred.brmsfit`](https://paulbuerkner.com/brms/reference/posterior_epred.brmsfit.html)
+documents "an S x N x C array" for categorical and ordinal models and an
+S x N matrix otherwise, and frmtmb follows brms spelling for brms-origin
+functions. Any family whose per-draw response-scale prediction is a
+matrix takes the array shape; every family that predicts one number per
+observation keeps the plain `draws x observations` matrix.
+
 `posterior_predict()` is unaffected - it draws one category per
 observation - and so is `posterior_linpred()`, which is a statement
 about one distributional parameter and stays an `n`-column matrix of the
