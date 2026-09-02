@@ -1,0 +1,23 @@
+[brms_overview.1.1] SETUP-SKIP other    0.0s  devtools::install_github("paul-buerkner/brms")
+        ! package installation
+[brms_overview.2.1] OK      other    0.0s  library("brms")
+[brms_overview.2.2] OK      other    0.0s  data("kidney")
+[brms_overview.2.3] OK      other    0.0s  head(kidney, n = 3)
+[brms_overview.3.1] OK      model    0.2s  fit1 <- frm(formula = time | cens(censored) ~ age * sex + disease +  |     (1 + age | patien
+[brms_overview.4.1] BRMS-ONLY other    0.0s  prior <- c(set_prior("normal(0,10)", class = "b", coef = "age"), |            set_prior("cau
+        ! prior code
+[brms_overview.5.1] OK      post     0.1s  summary(fit1, waic = TRUE)
+[brms_overview.6.1] ERROR   post     0.0s  hypothesis(fit1, "Intercept - age > 0", class = "sd", group = "patient")
+        ! Hypothesis 'Intercept - age > 0' must evaluate to a single number at the fitted estimates
+[brms_overview.7.1] ERROR   model    0.0s  fit2 <- update(fit1, formula. = ~ . - (1 + age|patient) + (1|patient))
+        ! unused argument (formula. = ~. - (1 + age | patient) + (1 | patient))
+[brms_overview.8.1] ERROR   post     0.0s  LOO(fit1, fit2)
+        ! could not find function "LOO"
+[brms_overview.9.1] OK      other    0.0s  data("inhaler")
+[brms_overview.9.2] OK      other    0.0s  head(inhaler, n = 1)
+[brms_overview.10.1] ERROR   model    0.0s  fit3 <- frm(formula = rating ~ treat + period + carry + (1 |  |     subject), data = inhaler
+        ! Cannot interpret `family` of class frmtmb_family
+[brms_overview.11.1] ERROR   model    0.0s  fit4 <- frm(formula = rating ~ period + carry + cs(treat) + (1 |  |     subject), data = inh
+        ! unused argument (threshold = "equidistant")
+[brms_overview.12.1] ERROR   post     0.0s  summary(fit4, waic = TRUE)
+        ! object 'fit4' not found

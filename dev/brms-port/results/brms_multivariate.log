@@ -1,0 +1,36 @@
+[brms_multivariate.1.1] OK      other    0.0s  data("BTdata", package = "MCMCglmm")
+[brms_multivariate.1.2] OK      other    0.0s  head(BTdata)
+[brms_multivariate.2.1] OK      other    0.0s  bform1 <-  |   bf(mvbind(tarsus, back) ~ sex + hatchdate + (1|p|fosternest) + (1|q|dam)) + |  
+[brms_multivariate.2.2] ERROR   model    0.0s  fit1 <- frm(bform1, data = BTdata)
+        ! No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm()
+[brms_multivariate.3.1] ERROR   post     0.0s  fit1 <- add_criterion(fit1, "loo")
+        ! could not find function "add_criterion"
+[brms_multivariate.3.2] ERROR   post     0.0s  summary(fit1)
+        ! object 'fit1' not found
+[brms_multivariate.4.1] ERROR   post     0.0s  pp_check(fit1, resp = "tarsus")
+        ! object 'fit1' not found
+[brms_multivariate.4.2] ERROR   post     0.0s  pp_check(fit1, resp = "back")
+        ! object 'fit1' not found
+[brms_multivariate.5.1] ERROR   post     0.0s  bayes_R2(fit1)
+        ! could not find function "bayes_R2"
+[brms_multivariate.6.1] OK      other    0.0s  bf_tarsus <- bf(tarsus ~ sex + (1|p|fosternest) + (1|q|dam))
+[brms_multivariate.6.2] OK      other    0.0s  bf_back <- bf(back ~ hatchdate + (1|p|fosternest) + (1|q|dam))
+[brms_multivariate.6.3] ERROR   model    0.0s  fit2 <- frm(bf_tarsus + bf_back + set_rescor(TRUE), data = BTdata)
+        ! No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm()
+[brms_multivariate.7.1] ERROR   post     0.0s  fit2 <- add_criterion(fit2, "loo")
+        ! could not find function "add_criterion"
+[brms_multivariate.7.2] ERROR   post     0.0s  summary(fit2)
+        ! object 'fit2' not found
+[brms_multivariate.8.1] ERROR   post     0.0s  loo(fit1, fit2)
+        ! could not find function "loo"
+[brms_multivariate.9.1] ERROR   other    0.0s  bf_tarsus <- bf(tarsus ~ sex + (1|p|fosternest) + (1|q|dam)) + |   lf(sigma ~ 0 + sex) + ske
+        ! could not find function "lf"
+[brms_multivariate.9.2] OK      other    0.0s  bf_back <- bf(back ~ s(hatchdate) + (1|p|fosternest) + (1|q|dam)) + |   gaussian()
+[brms_multivariate.9.3] ERROR   model    0.0s  fit3 <- frm(bf_tarsus + bf_back + set_rescor(FALSE), data = BTdata)
+        ! No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm()
+[brms_multivariate.10.1] ERROR   post     0.0s  fit3 <- add_criterion(fit3, "loo")
+        ! could not find function "add_criterion"
+[brms_multivariate.10.2] ERROR   post     0.0s  summary(fit3)
+        ! object 'fit3' not found
+[brms_multivariate.11.1] ERROR   post     0.0s  conditional_effects(fit3, "hatchdate", resp = "back")
+        ! object 'fit3' not found

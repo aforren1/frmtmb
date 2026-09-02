@@ -1,0 +1,34 @@
+[brms_monotonic.1.1] OK      other    0.0s  income_options <- c("below_20", "20_to_40", "40_to_100", "greater_100")
+[brms_monotonic.1.2] OK      other    0.0s  income <- factor(sample(income_options, 100, TRUE), |                  levels = income_optio
+[brms_monotonic.1.3] OK      other    0.0s  mean_ls <- c(30, 60, 70, 75)
+[brms_monotonic.1.4] OK      other    0.0s  ls <- mean_ls[income] + rnorm(100, sd = 7)
+[brms_monotonic.1.5] OK      other    0.0s  dat <- data.frame(income, ls)
+[brms_monotonic.2.1] OK      model    0.1s <default-family> fit1 <- frm(ls ~ mo(income), data = dat, family = gaussian())
+[brms_monotonic.3.1] OK      post     0.1s  summary(fit1)
+[brms_monotonic.3.2] OK      post     0.0s  plot(fit1, variable = "simo", regex = TRUE)
+[brms_monotonic.3.3] ERROR   post     0.0s  plot(conditional_effects(fit1))
+        ! No plottable predictors found for dpar 'mu'
+[brms_monotonic.4.1] OK      other    0.0s  dat$income_num <- as.numeric(dat$income)
+[brms_monotonic.4.2] OK      model    1.1s <default-family> fit2 <- frm(ls ~ income_num, data = dat, family = gaussian())
+[brms_monotonic.5.1] OK      post     0.1s  summary(fit2)
+[brms_monotonic.6.1] OK      other    0.0s  contrasts(dat$income) <- contr.treatment(4)
+[brms_monotonic.6.2] OK      model    0.0s <default-family> fit3 <- frm(ls ~ income, data = dat, family = gaussian())
+[brms_monotonic.7.1] OK      post     0.0s  summary(fit3)
+[brms_monotonic.8.1] ERROR   post     0.0s  loo(fit1, fit2, fit3)
+        ! could not find function "loo"
+[brms_monotonic.9.1] BRMS-ONLY other    0.0s  prior4 <- prior(dirichlet(c(2, 1, 1)), class = "simo", coef = "moincome1")
+        ! prior code
+[brms_monotonic.9.2] OK      model    0.0s <default-family> fit4 <- frm(ls ~ mo(income), data = dat, family = gaussian())
+[brms_monotonic.10.1] OK      post     0.0s  summary(fit4)
+[brms_monotonic.11.1] OK      post     0.0s  plot(fit4, variable = "prior_simo", regex = TRUE, N = 3)
+[brms_monotonic.12.1] OK      other    0.0s  dat$age <- rnorm(100, mean = 40, sd = 10)
+[brms_monotonic.13.1] OK      model    0.0s <default-family> fit5 <- frm(ls ~ mo(income) * age, data = dat, family = gaussian())
+[brms_monotonic.14.1] OK      post     0.0s  summary(fit5)
+[brms_monotonic.14.2] OK      post     0.1s  conditional_effects(fit5, "income:age")
+[brms_monotonic.15.1] OK      other    0.0s  dat$city <- rep(1:10, each = 10)
+[brms_monotonic.15.2] OK      other    0.0s  var_city <- rnorm(10, sd = 10)
+[brms_monotonic.15.3] OK      other    0.0s  dat$ls <- dat$ls + var_city[dat$city]
+[brms_monotonic.16.1] ERROR   model    0.0s <default-family> fit6 <- frm(ls ~ mo(income) * age + (mo(income) | city), data = dat,  |     family = gaussia
+        ! mo() is only supported as a standalone additive term or a two-way ':'/'*' interaction: (mo(income) | city)
+[brms_monotonic.17.1] ERROR   post     0.0s  summary(fit6)
+        ! object 'fit6' not found

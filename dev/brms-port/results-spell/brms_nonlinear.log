@@ -1,0 +1,49 @@
+[brms_nonlinear.1.1] OK      other    0.0s  b <- c(2, 0.75)
+[brms_nonlinear.1.2] OK      other    0.0s  x <- rnorm(100)
+[brms_nonlinear.1.3] OK      other    0.0s  y <- rnorm(100, mean = b[1] * exp(b[2] * x))
+[brms_nonlinear.1.4] OK      other    0.0s  dat1 <- data.frame(x, y)
+[brms_nonlinear.2.1] BRMS-ONLY other    0.0s  prior1 <- prior(normal(1, 2), nlpar = "b1") + |   prior(normal(0, 2), nlpar = "b2")
+        ! prior code
+[brms_nonlinear.2.2] OK      model    0.2s <explicit> fit1 <- frm(bf(y ~ b1 * exp(b2 * x), b1 ~ 1, b2 ~ 1, nl = TRUE), |     data = dat1, family =
+[brms_nonlinear.3.1] OK      post     0.1s  summary(fit1)
+[brms_nonlinear.3.2] OK      post     0.0s  plot(fit1)
+[brms_nonlinear.3.3] ERROR   post     0.0s  plot(conditional_effects(fit1), points = TRUE)
+        ! No plottable predictors found for dpar 'mu'
+[brms_nonlinear.4.1] OK      model    0.9s <default-family> fit2 <- frm(y ~ x, data = dat1, family = gaussian())
+[brms_nonlinear.5.1] OK      post     0.2s  summary(fit2)
+[brms_nonlinear.6.1] OK      post     0.6s  pp_check(fit1)
+[brms_nonlinear.6.2] OK      post     0.3s  pp_check(fit2)
+[brms_nonlinear.7.1] ERROR   post     0.0s  loo(fit1, fit2)
+        ! could not find function "loo"
+[brms_nonlinear.8.1] OK      other    0.0s  data(loss)
+[brms_nonlinear.8.2] OK      other    0.0s  head(loss)
+[brms_nonlinear.9.1] OK      model    0.1s <explicit> fit_loss <- frm(bf(cum ~ ult * (1 - exp(-(dev/theta)^omega)), |     ult ~ 1 + (1 | AY), omeg
+[brms_nonlinear.10.1] OK      post     0.0s  summary(fit_loss)
+[brms_nonlinear.10.2] OK      post     0.0s  plot(fit_loss, N = 3, ask = FALSE)
+[brms_nonlinear.10.3] ERROR   post     0.1s  conditional_effects(fit_loss)
+        ! No plottable predictors found for dpar 'mu'
+[brms_nonlinear.11.1] OK      other    0.0s  conditions <- data.frame(AY = unique(loss$AY))
+[brms_nonlinear.11.2] OK      other    0.0s  rownames(conditions) <- unique(loss$AY)
+[brms_nonlinear.11.3] ERROR   post     0.0s  me_loss <- conditional_effects( |   fit_loss, conditions = conditions, |   re_formula = NULL, 
+        ! No plottable predictors found for dpar 'mu'
+[brms_nonlinear.11.4] ERROR   post     0.0s  plot(me_loss, ncol = 5, points = TRUE)
+        ! object 'me_loss' not found
+[brms_nonlinear.12.1] OK      other    0.0s  inv_logit <- function(x) 1 / (1 + exp(-x))
+[brms_nonlinear.12.2] OK      other    0.0s  ability <- rnorm(300)
+[brms_nonlinear.12.3] OK      other    0.0s  p <- 0.33 + 0.67 * inv_logit(ability)
+[brms_nonlinear.12.4] OK      other    0.0s  answer <- ifelse(runif(300, 0, 1) < p, 1, 0)
+[brms_nonlinear.12.5] OK      other    0.0s  dat_ir <- data.frame(ability, answer)
+[brms_nonlinear.13.1] OK      model    0.0s  fit_ir1 <- frm(answer ~ ability, data = dat_ir, family = bernoulli())
+[brms_nonlinear.14.1] OK      post     0.0s  summary(fit_ir1)
+[brms_nonlinear.14.2] OK      post     0.0s  plot(conditional_effects(fit_ir1), points = TRUE)
+[brms_nonlinear.15.1] OK      model    0.0s  fit_ir2 <- frm(bf(answer ~ 0.33 + 0.67 * inv_logit(eta), eta ~  |     ability, nl = TRUE), d
+[brms_nonlinear.16.1] OK      post     0.0s  summary(fit_ir2)
+[brms_nonlinear.16.2] ERROR   post     0.0s  plot(conditional_effects(fit_ir2), points = TRUE)
+        ! No plottable predictors found for dpar 'mu'
+[brms_nonlinear.17.1] ERROR   post     0.0s  loo(fit_ir1, fit_ir2)
+        ! could not find function "loo"
+[brms_nonlinear.18.1] OK      model    0.0s  fit_ir3 <- frm(bf(answer ~ guess + (1 - guess) * inv_logit(eta),  |     eta ~ 0 + ability, g
+[brms_nonlinear.19.1] OK      post     0.0s  summary(fit_ir3)
+[brms_nonlinear.19.2] OK      post     0.0s  plot(fit_ir3)
+[brms_nonlinear.19.3] ERROR   post     0.0s  plot(conditional_effects(fit_ir3), points = TRUE)
+        ! No plottable predictors found for dpar 'mu'

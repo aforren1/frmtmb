@@ -1,0 +1,45 @@
+[brms_phylogenetics.1.1] OK      other    0.2s  phylo <- ape::read.nexus("https://paul-buerkner.github.io/data/phylo.nex")
+[brms_phylogenetics.1.2] OK      other    0.1s  data_simple <- read.table( |   "https://paul-buerkner.github.io/data/data_simple.txt", |   hea
+[brms_phylogenetics.1.3] OK      other    0.0s  head(data_simple)
+[brms_phylogenetics.2.1] OK      other    0.0s  A <- ape::vcv.phylo(phylo)
+[brms_phylogenetics.3.1] OK      model    1.0s  model_simple <- frm(phen ~ cofactor + (1 | gr(phylo, cov = A)),  |     data = data_simple, f
+[brms_phylogenetics.4.1] OK      post     0.4s  summary(model_simple)
+[brms_phylogenetics.4.2] OK      post     0.0s  plot(model_simple, N = 2, ask = FALSE)
+[brms_phylogenetics.4.3] OK      post     0.3s  plot(conditional_effects(model_simple), points = TRUE)
+[brms_phylogenetics.5.1] OK      other    0.0s  hyp <- "sd_phylo__Intercept^2 / (sd_phylo__Intercept^2 + sigma^2) = 0"
+[brms_phylogenetics.5.2] OK      post     0.0s  (hyp <- hypothesis(model_simple, hyp, class = NULL))
+[brms_phylogenetics.5.3] OK      post     0.0s  plot(hyp)
+[brms_phylogenetics.6.1] OK      other    0.1s  data_repeat <- read.table( |   "https://paul-buerkner.github.io/data/data_repeat.txt", |   hea
+[brms_phylogenetics.6.2] OK      other    0.0s  data_repeat$spec_mean_cf <- |   with(data_repeat, sapply(split(cofactor, phylo), mean)[phylo
+[brms_phylogenetics.6.3] OK      other    0.0s  head(data_repeat)
+[brms_phylogenetics.7.1] OK      model    2.2s  model_repeat1 <- frm(phen ~ spec_mean_cf + (1 | gr(phylo, cov = A)) +  |     (1 | species), 
+[brms_phylogenetics.8.1] OK      post     0.4s  summary(model_repeat1)
+[brms_phylogenetics.9.1] OK      other    0.0s  hyp <- paste( |   "sd_phylo__Intercept^2 /", |   "(sd_phylo__Intercept^2 + sd_species__Interce
+[brms_phylogenetics.9.2] OK      post     0.1s  (hyp <- hypothesis(model_repeat1, hyp, class = NULL))
+[brms_phylogenetics.9.3] OK      post     0.0s  plot(hyp)
+[brms_phylogenetics.10.1] OK      other    0.0s  data_repeat$within_spec_cf <- data_repeat$cofactor - data_repeat$spec_mean_cf
+[brms_phylogenetics.11.1] ERROR   model    0.0s  model_repeat2 <- update(model_repeat1, formula = ~. + within_spec_cf,  |     newdata = data_
+        ! unused argument (newdata = data_repeat)
+[brms_phylogenetics.12.1] ERROR   post     0.0s  summary(model_repeat2)
+        ! object 'model_repeat2' not found
+[brms_phylogenetics.13.1] OK      other    0.0s  hyp <- paste( |   "sd_phylo__Intercept^2 /", |   "(sd_phylo__Intercept^2 + sd_species__Interce
+[brms_phylogenetics.13.2] ERROR   post     0.0s  (hyp <- hypothesis(model_repeat2, hyp, class = NULL))
+        ! object 'model_repeat2' not found
+[brms_phylogenetics.14.1] OK      other    0.2s  data_fisher <- read.table( |   "https://paul-buerkner.github.io/data/data_effect.txt", |   hea
+[brms_phylogenetics.14.2] OK      other    0.0s  data_fisher$obs <- 1:nrow(data_fisher)
+[brms_phylogenetics.14.3] OK      other    0.0s  head(data_fisher)
+[brms_phylogenetics.15.1] OK      model    0.8s  model_fisher <- frm(Zr | se(sqrt(1/(N - 3))) ~ 1 + (1 | gr(phylo,  |     cov = A)) + (1 | ob
+[brms_phylogenetics.16.1] OK      post     0.3s  summary(model_fisher)
+[brms_phylogenetics.16.2] OK      post     0.1s  plot(model_fisher)
+[brms_phylogenetics.17.1] OK      other    0.3s  data_pois <- read.table( |   "https://paul-buerkner.github.io/data/data_pois.txt", |   header 
+[brms_phylogenetics.17.2] OK      other    0.0s  data_pois$obs <- 1:nrow(data_pois)
+[brms_phylogenetics.17.3] OK      other    0.0s  head(data_pois)
+[brms_phylogenetics.18.1] OK      model    0.8s  model_pois <- frm(phen_pois ~ cofactor + (1 | gr(phylo, cov = A)) +  |     (1 | obs), data =
+[brms_phylogenetics.19.1] OK      post     0.3s  summary(model_pois)
+[brms_phylogenetics.19.2] OK      post     0.5s  plot(conditional_effects(model_pois), points = TRUE)
+[brms_phylogenetics.20.1] OK      model    0.9s  model_normal <- frm(phen_pois ~ cofactor + (1 | gr(phylo, cov = A)),  |     data = data_pois
+[brms_phylogenetics.21.1] OK      post     0.3s  summary(model_normal)
+[brms_phylogenetics.22.1] OK      post     0.5s  pp_check(model_pois)
+[brms_phylogenetics.22.2] OK      post     0.3s  pp_check(model_normal)
+[brms_phylogenetics.23.1] ERROR   post     0.0s  loo(model_pois, model_normal)
+        ! could not find function "loo"

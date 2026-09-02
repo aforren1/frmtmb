@@ -1,0 +1,189 @@
+
+#### brms_overview
+
+| id | kind | code | class | note |
+|---|---|---|---|---|
+| 3.1 | model | `fit1 <- frm(formula = time \| cens(censored) ~ age * sex + dise` | CLEAN |  |
+| 5.1 | post | `summary(fit1, waic = TRUE)` | CLEAN |  |
+| 6.1 | post | `hypothesis(fit1, "Intercept - age > 0", class = "sd", group = ` | SPELLING: explicit |  |
+| 7.1 | model | `fit2 <- update(fit1, formula. = ~ . - (1 + age\|patient) + (1\|p` | SPELLING: explicit |  |
+| 8.1 | post | `LOO(fit1, fit2)` | FAIL | could not find function "LOO" |
+| 10.1 | model | `fit3 <- frm(formula = rating ~ treat + period + carry + (1 \| s` | SPELLING: family-call |  |
+| 11.1 | model | `fit4 <- frm(formula = rating ~ period + carry + cs(treat) + (1` | FAIL | unused argument (threshold = "equidistant") |
+| 12.1 | post | `summary(fit4, waic = TRUE)` | CASCADE | object 'fit4' not found |
+
+#### brms_multilevel
+
+| id | kind | code | class | note |
+|---|---|---|---|---|
+| 2.1 | model | `fit_zinb1 <- frm(count ~ persons + child + camper, data = zinb` | CLEAN |  |
+| 3.1 | post | `summary(fit_zinb1)` | CLEAN |  |
+| 4.1 | post | `conditional_effects(fit_zinb1)` | CLEAN |  |
+| 5.1 | model | `fit_zinb2 <- frm(bf(count ~ persons + child + camper, zi ~ chi` | CLEAN |  |
+| 6.1 | post | `summary(fit_zinb2)` | CLEAN |  |
+| 7.1 | post | `LOO(fit_zinb1, fit_zinb2)` | FAIL | could not find function "LOO" |
+| 9.1 | model | `fit_rent1 <- frm(rentsqm ~ t2(area, yearc) + (1 \| district), d` | SPELLING: default-family |  |
+| 10.1 | post | `summary(fit_rent1)` | SPELLING: upstream |  |
+| 11.1 | post | `conditional_effects(fit_rent1, surface = TRUE)` | FAIL | requires numeric/complex matrix/vector arguments |
+| 12.2 | model | `fit_rent2 <- frm(bform, data = rent99)` | SPELLING: default-family |  |
+| 13.1 | post | `conditional_smooths(fit_rent2)` | FAIL | could not find function "conditional_smooths" |
+| 15.3 | model | `fit_loss1 <- frm(formula = nlform, data = loss, family = gauss` | SPELLING: explicit |  |
+| 16.1 | post | `summary(fit_loss1)` | SPELLING: upstream |  |
+| 17.1 | post | `conditional_effects(fit_loss1)` | FAIL | No plottable predictors found for dpar 'mu' |
+| 18.3 | post | `me_year <- conditional_effects(fit_loss1, conditions = conditi` | FAIL | No plottable predictors found for dpar 'mu' |
+| 18.4 | post | `plot(me_year, ncol = 5, points = TRUE)` | CASCADE | object 'me_year' not found |
+| 19.2 | model | `fit_loss2 <- update(fit_loss1, formula = nlform2)` | SPELLING: explicit |  |
+| 20.1 | post | `LOO(fit_loss1, fit_loss2)` | FAIL | could not find function "LOO" |
+| 23.1 | model | `fit_mm <- frm(y ~ 1 + (1 \| mm(s1, s2)), data = data_mm)` | FAIL | could not find function "mm" |
+| 24.1 | post | `summary(fit_mm)` | CASCADE | object 'fit_mm' not found |
+| 26.1 | model | `fit_mm2 <- frm(y ~ 1 + (1 \| mm(s1, s2, weights = cbind(w1, w2)` | FAIL | could not find function "mm" |
+
+#### brms_distreg
+
+| id | kind | code | class | note |
+|---|---|---|---|---|
+| 2.1 | model | `fit1 <- frm(bf(symptom_post ~ group, sigma ~ group), data = da` | CLEAN |  |
+| 3.1 | post | `summary(fit1)` | CLEAN |  |
+| 3.2 | post | `plot(fit1, N = 2, ask = FALSE)` | CLEAN |  |
+| 3.3 | post | `plot(conditional_effects(fit1), points = TRUE)` | CLEAN |  |
+| 4.2 | post | `hypothesis(fit1, hyp)` | CLEAN |  |
+| 5.2 | post | `(hyp <- hypothesis(fit1, hyp))` | SPELLING: upstream |  |
+| 5.3 | post | `plot(hyp, chars = NULL)` | SPELLING: upstream |  |
+| 7.1 | model | `fit_zinb1 <- frm(count ~ persons + child + camper, data = zinb` | CLEAN |  |
+| 8.1 | post | `summary(fit_zinb1)` | CLEAN |  |
+| 8.2 | post | `plot(conditional_effects(fit_zinb1), ask = FALSE)` | CLEAN |  |
+| 9.1 | model | `fit_zinb2 <- frm(bf(count ~ persons + child + camper, zi ~ chi` | CLEAN |  |
+| 10.1 | post | `summary(fit_zinb2)` | CLEAN |  |
+| 10.2 | post | `plot(conditional_effects(fit_zinb2), ask = FALSE)` | CLEAN |  |
+| 12.1 | model | `fit_smooth1 <- frm(bf(y ~ s(x1) + s(x2) + (1 \| fac), sigma ~ s` | CLEAN |  |
+| 13.1 | post | `summary(fit_smooth1)` | CLEAN |  |
+| 13.2 | post | `plot(conditional_effects(fit_smooth1), points = TRUE, ask = FA` | CLEAN |  |
+
+#### brms_nonlinear
+
+| id | kind | code | class | note |
+|---|---|---|---|---|
+| 2.2 | model | `fit1 <- frm(bf(y ~ b1 * exp(b2 * x), b1 + b2 ~ 1, nl = TRUE), ` | SPELLING: explicit |  |
+| 3.1 | post | `summary(fit1)` | SPELLING: upstream |  |
+| 3.2 | post | `plot(fit1)` | SPELLING: upstream |  |
+| 3.3 | post | `plot(conditional_effects(fit1), points = TRUE)` | FAIL | No plottable predictors found for dpar 'mu' |
+| 4.1 | model | `fit2 <- frm(y ~ x, data = dat1)` | SPELLING: default-family |  |
+| 5.1 | post | `summary(fit2)` | SPELLING: upstream |  |
+| 6.1 | post | `pp_check(fit1)` | SPELLING: upstream |  |
+| 6.2 | post | `pp_check(fit2)` | SPELLING: upstream |  |
+| 7.1 | post | `loo(fit1, fit2)` | FAIL | could not find function "loo" |
+| 9.1 | model | `fit_loss <- frm(bf(cum ~ ult * (1 - exp(-(dev/theta)^omega)), ` | SPELLING: explicit |  |
+| 10.1 | post | `summary(fit_loss)` | SPELLING: upstream |  |
+| 10.2 | post | `plot(fit_loss, N = 3, ask = FALSE)` | SPELLING: upstream |  |
+| 10.3 | post | `conditional_effects(fit_loss)` | FAIL | No plottable predictors found for dpar 'mu' |
+| 11.3 | post | `me_loss <- conditional_effects( fit_loss, conditions = conditi` | FAIL | No plottable predictors found for dpar 'mu' |
+| 11.4 | post | `plot(me_loss, ncol = 5, points = TRUE)` | CASCADE | object 'me_loss' not found |
+| 13.1 | model | `fit_ir1 <- frm(answer ~ ability, data = dat_ir, family = berno` | CLEAN |  |
+| 14.1 | post | `summary(fit_ir1)` | CLEAN |  |
+| 14.2 | post | `plot(conditional_effects(fit_ir1), points = TRUE)` | CLEAN |  |
+| 15.1 | model | `fit_ir2 <- frm(bf(answer ~ 0.33 + 0.67 * inv_logit(eta), eta ~` | CLEAN |  |
+| 16.1 | post | `summary(fit_ir2)` | CLEAN |  |
+| 16.2 | post | `plot(conditional_effects(fit_ir2), points = TRUE)` | FAIL | No plottable predictors found for dpar 'mu' |
+| 17.1 | post | `loo(fit_ir1, fit_ir2)` | FAIL | could not find function "loo" |
+| 18.1 | model | `fit_ir3 <- frm(bf(answer ~ guess + (1 - guess) * inv_logit(eta` | CLEAN |  |
+| 19.1 | post | `summary(fit_ir3)` | CLEAN |  |
+| 19.2 | post | `plot(fit_ir3)` | CLEAN |  |
+| 19.3 | post | `plot(conditional_effects(fit_ir3), points = TRUE)` | FAIL | No plottable predictors found for dpar 'mu' |
+
+#### brms_phylogenetics
+
+| id | kind | code | class | note |
+|---|---|---|---|---|
+| 3.1 | model | `model_simple <- frm(phen ~ cofactor + (1 \| gr(phylo, cov = A))` | CLEAN |  |
+| 4.1 | post | `summary(model_simple)` | CLEAN |  |
+| 4.2 | post | `plot(model_simple, N = 2, ask = FALSE)` | CLEAN |  |
+| 4.3 | post | `plot(conditional_effects(model_simple), points = TRUE)` | CLEAN |  |
+| 5.2 | post | `(hyp <- hypothesis(model_simple, hyp, class = NULL))` | CLEAN |  |
+| 5.3 | post | `plot(hyp)` | CLEAN |  |
+| 7.1 | model | `model_repeat1 <- frm(phen ~ spec_mean_cf + (1 \| gr(phylo, cov ` | CLEAN |  |
+| 8.1 | post | `summary(model_repeat1)` | CLEAN |  |
+| 9.2 | post | `(hyp <- hypothesis(model_repeat1, hyp, class = NULL))` | CLEAN |  |
+| 9.3 | post | `plot(hyp)` | CLEAN |  |
+| 11.1 | model | `model_repeat2 <- update(model_repeat1, formula = ~. + within_s` | SPELLING: explicit |  |
+| 12.1 | post | `summary(model_repeat2)` | SPELLING: upstream |  |
+| 13.2 | post | `(hyp <- hypothesis(model_repeat2, hyp, class = NULL))` | SPELLING: upstream |  |
+| 15.1 | model | `model_fisher <- frm(Zr \| se(sqrt(1/(N - 3))) ~ 1 + (1 \| gr(phy` | CLEAN |  |
+| 16.1 | post | `summary(model_fisher)` | CLEAN |  |
+| 16.2 | post | `plot(model_fisher)` | CLEAN |  |
+| 18.1 | model | `model_pois <- frm(phen_pois ~ cofactor + (1 \| gr(phylo, cov = ` | CLEAN |  |
+| 19.1 | post | `summary(model_pois)` | CLEAN |  |
+| 19.2 | post | `plot(conditional_effects(model_pois), points = TRUE)` | CLEAN |  |
+| 20.1 | model | `model_normal <- frm(phen_pois ~ cofactor + (1 \| gr(phylo, cov ` | CLEAN |  |
+| 21.1 | post | `summary(model_normal)` | CLEAN |  |
+| 22.1 | post | `pp_check(model_pois)` | CLEAN |  |
+| 22.2 | post | `pp_check(model_normal)` | CLEAN |  |
+| 23.1 | post | `loo(model_pois, model_normal)` | FAIL | could not find function "loo" |
+
+#### brms_monotonic
+
+| id | kind | code | class | note |
+|---|---|---|---|---|
+| 2.1 | model | `fit1 <- frm(ls ~ mo(income), data = dat)` | SPELLING: default-family |  |
+| 3.1 | post | `summary(fit1)` | SPELLING: upstream |  |
+| 3.2 | post | `plot(fit1, variable = "simo", regex = TRUE)` | SPELLING: upstream |  |
+| 3.3 | post | `plot(conditional_effects(fit1))` | FAIL | No plottable predictors found for dpar 'mu' |
+| 4.2 | model | `fit2 <- frm(ls ~ income_num, data = dat)` | SPELLING: default-family |  |
+| 5.1 | post | `summary(fit2)` | SPELLING: upstream |  |
+| 6.2 | model | `fit3 <- frm(ls ~ income, data = dat)` | SPELLING: default-family |  |
+| 7.1 | post | `summary(fit3)` | SPELLING: upstream |  |
+| 8.1 | post | `loo(fit1, fit2, fit3)` | FAIL | could not find function "loo" |
+| 9.2 | model | `fit4 <- frm(ls ~ mo(income), data = dat)` | SPELLING: default-family |  |
+| 10.1 | post | `summary(fit4)` | SPELLING: upstream |  |
+| 11.1 | post | `plot(fit4, variable = "prior_simo", regex = TRUE, N = 3)` | SPELLING: upstream |  |
+| 13.1 | model | `fit5 <- frm(ls ~ mo(income) * age, data = dat)` | SPELLING: default-family |  |
+| 14.1 | post | `summary(fit5)` | SPELLING: upstream |  |
+| 14.2 | post | `conditional_effects(fit5, "income:age")` | SPELLING: upstream |  |
+| 16.1 | model | `fit6 <- frm(ls ~ mo(income) * age + (mo(income) \| city), data ` | FAIL | mo() is only supported as a standalone additive term or a two-way ':'/'*' interaction: (mo |
+| 17.1 | post | `summary(fit6)` | CASCADE | object 'fit6' not found |
+
+#### brms_multivariate
+
+| id | kind | code | class | note |
+|---|---|---|---|---|
+| 2.2 | model | `fit1 <- frm(bform1, data = BTdata)` | SPELLING: default-family |  |
+| 3.1 | post | `fit1 <- add_criterion(fit1, "loo")` | FAIL | could not find function "add_criterion" |
+| 3.2 | post | `summary(fit1)` | SPELLING: upstream |  |
+| 4.1 | post | `pp_check(fit1, resp = "tarsus")` | FAIL | pp_check() is not supported yet for multivariate fits |
+| 4.2 | post | `pp_check(fit1, resp = "back")` | FAIL | pp_check() is not supported yet for multivariate fits |
+| 5.1 | post | `bayes_R2(fit1)` | FAIL | could not find function "bayes_R2" |
+| 6.3 | model | `fit2 <- frm(bf_tarsus + bf_back + set_rescor(TRUE), data = BTd` | SPELLING: default-family |  |
+| 7.1 | post | `fit2 <- add_criterion(fit2, "loo")` | FAIL | could not find function "add_criterion" |
+| 7.2 | post | `summary(fit2)` | SPELLING: upstream |  |
+| 8.1 | post | `loo(fit1, fit2)` | FAIL | could not find function "loo" |
+| 9.3 | model | `fit3 <- frm(bf_tarsus + bf_back + set_rescor(FALSE), data = BT` | SPELLING: upstream |  |
+| 10.1 | post | `fit3 <- add_criterion(fit3, "loo")` | FAIL | could not find function "add_criterion" |
+| 10.2 | post | `summary(fit3)` | SPELLING: upstream |  |
+| 11.1 | post | `conditional_effects(fit3, "hatchdate", resp = "back")` | SPELLING: upstream |  |
+
+#### brms_missings
+
+| id | kind | code | class | note |
+|---|---|---|---|---|
+| 3.1 | model | `fit_imp1 <- frm_multiple(bmi ~ age * chl, data = imp)` | SPELLING: default-family |  |
+| 4.1 | post | `summary(fit_imp1)` | SPELLING: upstream |  |
+| 5.1 | post | `plot(fit_imp1, variable = "^b", regex = TRUE)` | FAIL | 'x' is a list, but does not have components 'x' and 'y' |
+| 6.2 | post | `draws <- as_draws_array(fit_imp1)` | FAIL | arg 'fits' is non-atomic |
+| 6.3 | post | `nc <- nchains(fit_imp1) / m` | FAIL | no applicable method for 'nchains' applied to an object of class "frmtmb_multiple" |
+| 7.1 | post | `conditional_effects(fit_imp1, "age:chl")` | FAIL | no applicable method for 'conditional_effects' applied to an object of class "frmtmb_multi |
+| 8.2 | model | `fit_imp2 <- frm(bform, data = nhanes)` | SPELLING: default-family |  |
+| 9.1 | post | `summary(fit_imp2)` | SPELLING: upstream |  |
+| 9.2 | post | `conditional_effects(fit_imp2, "age:chl", resp = "bmi")` | FAIL | mi(chl): newdata must supply complete values |
+| 11.2 | model | `fit_imp3 <- frm(bform, data = nhanes)` | SPELLING: default-family |  |
+
+#### brms_customfamilies
+
+| id | kind | code | class | note |
+|---|---|---|---|---|
+| 2.1 | model | `fit1 <- frm(incidence \| trials(size) ~ period + (1 \| herd), da` | CLEAN |  |
+| 3.1 | post | `summary(fit1)` | CLEAN |  |
+| 7.1 | model | `fit2 <- frm(incidence \| vint(size) ~ period + (1 \| herd), data` | CASCADE | object 'beta_binomial2' not found |
+| 8.1 | post | `summary(fit2)` | CASCADE | object 'fit2' not found |
+| 9.1 | post | `expose_functions(fit2, vectorize = TRUE)` | FAIL | could not find function "expose_functions" |
+| 11.1 | post | `loo(fit1, fit2)` | FAIL | could not find function "loo" |
+| 13.1 | post | `pp_check(fit2)` | CASCADE | object 'fit2' not found |
+| 15.1 | post | `conditional_effects(fit2, conditions = data.frame(size = 1))` | CASCADE | object 'fit2' not found |

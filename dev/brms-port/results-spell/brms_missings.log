@@ -1,0 +1,28 @@
+[brms_missings.1.1] OK      other    0.0s  data("nhanes", package = "mice")
+[brms_missings.1.2] OK      other    0.0s  head(nhanes)
+[brms_missings.2.1] OK      other    0.3s  library(mice)
+[brms_missings.2.2] OK      other    0.0s  m <- 5
+[brms_missings.2.3] OK      other    0.1s  imp <- mice(nhanes, m = m, print = FALSE)
+[brms_missings.3.1] OK      model    1.7s <default-family> fit_imp1 <- frm_multiple(bmi ~ age * chl, data = imp, family = gaussian())
+[brms_missings.4.1] OK      post     0.0s  summary(fit_imp1)
+[brms_missings.5.1] ERROR   post     0.0s  plot(fit_imp1, variable = "^b", regex = TRUE)
+        ! 'x' is a list, but does not have components 'x' and 'y'
+[brms_missings.6.1] OK      other    0.0s  library(posterior)
+[brms_missings.6.2] ERROR   post     0.0s  draws <- as_draws_array(fit_imp1)
+        ! arg 'fits' is non-atomic
+[brms_missings.6.3] ERROR   post     0.0s  nc <- nchains(fit_imp1) / m
+        ! no applicable method for 'nchains' applied to an object of class "frmtmb_multiple"
+[brms_missings.6.4] ERROR   other    0.0s  draws_per_dat <- lapply(1:m,  |   \(i) subset_draws(draws, chain = ((i-1)*nc+1):(i*nc)) | )
+        ! object 'draws' not found
+[brms_missings.6.5] ERROR   other    0.0s  lapply(draws_per_dat, summarise_draws, default_convergence_measures())
+        ! object 'draws_per_dat' not found
+[brms_missings.7.1] ERROR   post     0.0s  conditional_effects(fit_imp1, "age:chl")
+        ! no applicable method for 'conditional_effects' applied to an object of class "frmtmb_multiple"
+[brms_missings.8.1] OK      other    0.0s  bform <- bf(bmi | mi() ~ age * mi(chl)) + |   bf(chl | mi() ~ age) + set_rescor(FALSE)
+[brms_missings.8.2] OK      model    0.1s <default-family> fit_imp2 <- frm(bform, data = nhanes, family = gaussian())
+[brms_missings.9.1] OK      post     0.0s  summary(fit_imp2)
+[brms_missings.9.2] ERROR   post     0.0s  conditional_effects(fit_imp2, "age:chl", resp = "bmi")
+        ! mi(chl): newdata must supply complete values
+[brms_missings.10.1] OK      other    0.0s  nhanes$se <- rexp(nrow(nhanes), 2)
+[brms_missings.11.1] OK      other    0.0s  bform <- bf(bmi | mi() ~ age * mi(chl)) + |   bf(chl | mi(se) ~ age) + set_rescor(FALSE)
+[brms_missings.11.2] OK      model    0.0s <default-family> fit_imp3 <- frm(bform, data = nhanes, family = gaussian())

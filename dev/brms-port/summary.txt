@@ -1,0 +1,329 @@
+## headline
+model  total=42  CLEAN=16  SPELLING=21  FAIL= 4  CASCADE= 1
+post   total=102  CLEAN=35  SPELLING=28  FAIL=31  CASCADE= 8
+other  total=105  CLEAN=96  SPELLING= 1  FAIL= 2  CASCADE= 2
+
+## spelling changes by patch (model calls)
+
+SPELLING: default-family       SPELLING: explicit    SPELLING: family-call 
+                      13                        6                        1 
+      SPELLING: upstream 
+                       1 
+
+## projection: only FN-1 (default family) and FN-10 (lf) fixed
+model  clean=30 of 42   (still failing: 12)
+post   clean=52 of 102   (still failing: 50)
+
+## per vignette (model calls: total | clean | spelling | fail | cascade)
+brms_overview        model  4 |  1  2  1  0    post   4 |  1  1  1  1
+brms_multilevel      model  8 |  2  4  2  0    post  13 |  3  2  6  2
+brms_distreg         model  4 |  4  0  0  0    post  12 | 10  2  0  0
+brms_nonlinear       model  6 |  3  3  0  0    post  20 |  5  7  7  1
+brms_phylogenetics   model  6 |  5  1  0  0    post  18 | 15  2  1  0
+brms_monotonic       model  6 |  0  5  1  0    post  11 |  0  8  2  1
+brms_multivariate    model  3 |  0  3  0  0    post  11 |  0  4  7  0
+brms_missings        model  3 |  0  3  0  0    post   7 |  0  2  5  0
+brms_customfamilies  model  2 |  1  0  0  1    post   6 |  1  0  2  3
+
+## every model and post expression
+brms_overview.3.1            model OK         OK        fit1 <- frm(formula = time | cens(censored) ~ age * sex + disease +  (1 + age | 
+brms_overview.5.1            post  OK         OK        summary(fit1, waic = TRUE)
+brms_overview.6.1            post  ERROR      OK        hypothesis(fit1, "Intercept - age > 0", class = "sd", group = "patient")
+      raw!   Hypothesis 'Intercept - age > 0' must evaluate to a single number at the fitted estimates 
+      patch: explicit 
+brms_overview.7.1            model ERROR      OK        fit2 <- update(fit1, formula. = ~ . - (1 + age|patient) + (1|patient))
+      raw!   unused argument (formula. = ~. - (1 + age | patient) + (1 | patient)) 
+      patch: explicit 
+brms_overview.8.1            post  ERROR      ERROR     LOO(fit1, fit2)
+      raw!   could not find function "LOO" 
+brms_overview.10.1           model ERROR      OK        fit3 <- frm(formula = rating ~ treat + period + carry + (1 |  subject), data = i
+      raw!   Cannot interpret `family` of class frmtmb_family 
+      patch: family-call 
+brms_overview.11.1           model ERROR      ERROR     fit4 <- frm(formula = rating ~ period + carry + cs(treat) + (1 |  subject), data
+      raw!   unused argument (threshold = "equidistant") 
+brms_overview.12.1           post  ERROR      ERROR     summary(fit4, waic = TRUE)
+      raw!   object 'fit4' not found 
+brms_multilevel.2.1          model OK         OK        fit_zinb1 <- frm(count ~ persons + child + camper, data = zinb,  family = zero_i
+brms_multilevel.3.1          post  OK         OK        summary(fit_zinb1)
+brms_multilevel.4.1          post  OK         OK        conditional_effects(fit_zinb1)
+brms_multilevel.5.1          model OK         OK        fit_zinb2 <- frm(bf(count ~ persons + child + camper, zi ~ child),  data = zinb,
+brms_multilevel.6.1          post  OK         OK        summary(fit_zinb2)
+brms_multilevel.7.1          post  ERROR      ERROR     LOO(fit_zinb1, fit_zinb2)
+      raw!   could not find function "LOO" 
+brms_multilevel.9.1          model ERROR      OK        fit_rent1 <- frm(rentsqm ~ t2(area, yearc) + (1 | district),  data = rent99)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_multilevel.10.1         post  ERROR      OK        summary(fit_rent1)
+      raw!   object 'fit_rent1' not found 
+brms_multilevel.11.1         post  ERROR      ERROR     conditional_effects(fit_rent1, surface = TRUE)
+      raw!   object 'fit_rent1' not found 
+      spell! requires numeric/complex matrix/vector arguments 
+brms_multilevel.12.2         model ERROR      OK        fit_rent2 <- frm(bform, data = rent99)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_multilevel.13.1         post  ERROR      ERROR     conditional_smooths(fit_rent2)
+      raw!   could not find function "conditional_smooths" 
+brms_multilevel.15.3         model ERROR      OK        fit_loss1 <- frm(formula = nlform, data = loss, family = gaussian())
+      raw!   The nonlinear fit failed from the default zero starting values (NA/NaN gradient evaluation). Nonlinear models need starting values in the right region: supply them with the `start` argument of frm(),  
+      patch: explicit 
+brms_multilevel.16.1         post  ERROR      OK        summary(fit_loss1)
+      raw!   object 'fit_loss1' not found 
+brms_multilevel.17.1         post  ERROR      ERROR     conditional_effects(fit_loss1)
+      raw!   object 'fit_loss1' not found 
+      spell! No plottable predictors found for dpar 'mu' 
+brms_multilevel.18.3         post  ERROR      ERROR     me_year <- conditional_effects(fit_loss1, conditions = conditions, re_formula = 
+      raw!   object 'fit_loss1' not found 
+      spell! No plottable predictors found for dpar 'mu' 
+brms_multilevel.18.4         post  ERROR      ERROR     plot(me_year, ncol = 5, points = TRUE)
+      raw!   object 'me_year' not found 
+brms_multilevel.19.2         model ERROR      OK        fit_loss2 <- update(fit_loss1, formula = nlform2)
+      raw!   object 'fit_loss1' not found 
+      patch: explicit 
+brms_multilevel.20.1         post  ERROR      ERROR     LOO(fit_loss1, fit_loss2)
+      raw!   could not find function "LOO" 
+brms_multilevel.23.1         model ERROR      ERROR     fit_mm <- frm(y ~ 1 + (1 | mm(s1, s2)), data = data_mm)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      spell! could not find function "mm" 
+      patch: default-family 
+brms_multilevel.24.1         post  ERROR      ERROR     summary(fit_mm)
+      raw!   object 'fit_mm' not found 
+brms_multilevel.26.1         model ERROR      ERROR     fit_mm2 <- frm(y ~ 1 + (1 | mm(s1, s2, weights = cbind(w1, w2))),  data = data_m
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      spell! could not find function "mm" 
+      patch: default-family 
+brms_distreg.2.1             model OK         OK        fit1 <- frm(bf(symptom_post ~ group, sigma ~ group), data = dat1,  family = gaus
+brms_distreg.3.1             post  OK         OK        summary(fit1)
+brms_distreg.3.2             post  OK         OK        plot(fit1, N = 2, ask = FALSE)
+brms_distreg.3.3             post  OK         OK        plot(conditional_effects(fit1), points = TRUE)
+brms_distreg.4.2             post  OK         OK        hypothesis(fit1, hyp)
+brms_distreg.5.2             post  ERROR      OK        (hyp <- hypothesis(fit1, hyp))
+      raw!   Hypothesis 'exp(sigma_Intercept + sigma_grouptreat) > exp(sigma_Intercept)' must evaluate to a single number at the fitted estimates 
+brms_distreg.5.3             post  ERROR      OK        plot(hyp, chars = NULL)
+      raw!   need finite 'ylim' values 
+brms_distreg.7.1             model OK         OK        fit_zinb1 <- frm(count ~ persons + child + camper, data = zinb,  family = zero_i
+brms_distreg.8.1             post  OK         OK        summary(fit_zinb1)
+brms_distreg.8.2             post  OK         OK        plot(conditional_effects(fit_zinb1), ask = FALSE)
+brms_distreg.9.1             model OK         OK        fit_zinb2 <- frm(bf(count ~ persons + child + camper, zi ~ child),  data = zinb,
+brms_distreg.10.1            post  OK         OK        summary(fit_zinb2)
+brms_distreg.10.2            post  OK         OK        plot(conditional_effects(fit_zinb2), ask = FALSE)
+brms_distreg.12.1            model OK         OK        fit_smooth1 <- frm(bf(y ~ s(x1) + s(x2) + (1 | fac), sigma ~  s(x0) + (1 | fac))
+brms_distreg.13.1            post  OK         OK        summary(fit_smooth1)
+brms_distreg.13.2            post  OK         OK        plot(conditional_effects(fit_smooth1), points = TRUE, ask = FALSE)
+brms_nonlinear.2.2           model ERROR      OK        fit1 <- frm(bf(y ~ b1 * exp(b2 * x), b1 + b2 ~ 1, nl = TRUE),  data = dat1)
+      raw!   Invalid parameter name 'b1 + b2': names must be alphanumeric without dots or underscores (they collide with coefficient naming) 
+      patch: explicit 
+brms_nonlinear.3.1           post  ERROR      OK        summary(fit1)
+      raw!   object 'fit1' not found 
+brms_nonlinear.3.2           post  ERROR      OK        plot(fit1)
+      raw!   object 'fit1' not found 
+brms_nonlinear.3.3           post  ERROR      ERROR     plot(conditional_effects(fit1), points = TRUE)
+      raw!   object 'fit1' not found 
+      spell! No plottable predictors found for dpar 'mu' 
+brms_nonlinear.4.1           model ERROR      OK        fit2 <- frm(y ~ x, data = dat1)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_nonlinear.5.1           post  ERROR      OK        summary(fit2)
+      raw!   object 'fit2' not found 
+brms_nonlinear.6.1           post  ERROR      OK        pp_check(fit1)
+      raw!   object 'fit1' not found 
+brms_nonlinear.6.2           post  ERROR      OK        pp_check(fit2)
+      raw!   object 'fit2' not found 
+brms_nonlinear.7.1           post  ERROR      ERROR     loo(fit1, fit2)
+      raw!   could not find function "loo" 
+brms_nonlinear.9.1           model ERROR      OK        fit_loss <- frm(bf(cum ~ ult * (1 - exp(-(dev/theta)^omega)),  ult ~ 1 + (1 | AY
+      raw!   The nonlinear fit failed from the default zero starting values (NA/NaN gradient evaluation). Nonlinear models need starting values in the right region: supply them with the `start` argument of frm(),  
+      patch: explicit 
+brms_nonlinear.10.1          post  ERROR      OK        summary(fit_loss)
+      raw!   object 'fit_loss' not found 
+brms_nonlinear.10.2          post  ERROR      OK        plot(fit_loss, N = 3, ask = FALSE)
+      raw!   object 'fit_loss' not found 
+brms_nonlinear.10.3          post  ERROR      ERROR     conditional_effects(fit_loss)
+      raw!   object 'fit_loss' not found 
+      spell! No plottable predictors found for dpar 'mu' 
+brms_nonlinear.11.3          post  ERROR      ERROR     me_loss <- conditional_effects( fit_loss, conditions = conditions, re_formula = 
+      raw!   object 'fit_loss' not found 
+      spell! No plottable predictors found for dpar 'mu' 
+brms_nonlinear.11.4          post  ERROR      ERROR     plot(me_loss, ncol = 5, points = TRUE)
+      raw!   object 'me_loss' not found 
+brms_nonlinear.13.1          model OK         OK        fit_ir1 <- frm(answer ~ ability, data = dat_ir, family = bernoulli())
+brms_nonlinear.14.1          post  OK         OK        summary(fit_ir1)
+brms_nonlinear.14.2          post  OK         OK        plot(conditional_effects(fit_ir1), points = TRUE)
+brms_nonlinear.15.1          model OK         OK        fit_ir2 <- frm(bf(answer ~ 0.33 + 0.67 * inv_logit(eta), eta ~  ability, nl = TR
+brms_nonlinear.16.1          post  OK         OK        summary(fit_ir2)
+brms_nonlinear.16.2          post  ERROR      ERROR     plot(conditional_effects(fit_ir2), points = TRUE)
+      raw!   No plottable predictors found for dpar 'mu' 
+brms_nonlinear.17.1          post  ERROR      ERROR     loo(fit_ir1, fit_ir2)
+      raw!   could not find function "loo" 
+brms_nonlinear.18.1          model OK         OK        fit_ir3 <- frm(bf(answer ~ guess + (1 - guess) * inv_logit(eta),  eta ~ 0 + abil
+brms_nonlinear.19.1          post  OK         OK        summary(fit_ir3)
+brms_nonlinear.19.2          post  OK         OK        plot(fit_ir3)
+brms_nonlinear.19.3          post  ERROR      ERROR     plot(conditional_effects(fit_ir3), points = TRUE)
+      raw!   No plottable predictors found for dpar 'mu' 
+brms_phylogenetics.3.1       model OK         OK        model_simple <- frm(phen ~ cofactor + (1 | gr(phylo, cov = A)),  data = data_sim
+brms_phylogenetics.4.1       post  OK         OK        summary(model_simple)
+brms_phylogenetics.4.2       post  OK         OK        plot(model_simple, N = 2, ask = FALSE)
+brms_phylogenetics.4.3       post  OK         OK        plot(conditional_effects(model_simple), points = TRUE)
+brms_phylogenetics.5.2       post  OK         OK        (hyp <- hypothesis(model_simple, hyp, class = NULL))
+brms_phylogenetics.5.3       post  OK         OK        plot(hyp)
+brms_phylogenetics.7.1       model OK         OK        model_repeat1 <- frm(phen ~ spec_mean_cf + (1 | gr(phylo, cov = A)) +  (1 | spec
+brms_phylogenetics.8.1       post  OK         OK        summary(model_repeat1)
+brms_phylogenetics.9.2       post  OK         OK        (hyp <- hypothesis(model_repeat1, hyp, class = NULL))
+brms_phylogenetics.9.3       post  OK         OK        plot(hyp)
+brms_phylogenetics.11.1      model ERROR      OK        model_repeat2 <- update(model_repeat1, formula = ~. + within_spec_cf,  newdata =
+      raw!   unused argument (newdata = data_repeat) 
+      patch: explicit 
+brms_phylogenetics.12.1      post  ERROR      OK        summary(model_repeat2)
+      raw!   object 'model_repeat2' not found 
+brms_phylogenetics.13.2      post  ERROR      OK        (hyp <- hypothesis(model_repeat2, hyp, class = NULL))
+      raw!   object 'model_repeat2' not found 
+brms_phylogenetics.15.1      model OK         OK        model_fisher <- frm(Zr | se(sqrt(1/(N - 3))) ~ 1 + (1 | gr(phylo,  cov = A)) + (
+brms_phylogenetics.16.1      post  OK         OK        summary(model_fisher)
+brms_phylogenetics.16.2      post  OK         OK        plot(model_fisher)
+brms_phylogenetics.18.1      model OK         OK        model_pois <- frm(phen_pois ~ cofactor + (1 | gr(phylo, cov = A)) +  (1 | obs), 
+brms_phylogenetics.19.1      post  OK         OK        summary(model_pois)
+brms_phylogenetics.19.2      post  OK         OK        plot(conditional_effects(model_pois), points = TRUE)
+brms_phylogenetics.20.1      model OK         OK        model_normal <- frm(phen_pois ~ cofactor + (1 | gr(phylo, cov = A)),  data = dat
+brms_phylogenetics.21.1      post  OK         OK        summary(model_normal)
+brms_phylogenetics.22.1      post  OK         OK        pp_check(model_pois)
+brms_phylogenetics.22.2      post  OK         OK        pp_check(model_normal)
+brms_phylogenetics.23.1      post  ERROR      ERROR     loo(model_pois, model_normal)
+      raw!   could not find function "loo" 
+brms_monotonic.2.1           model ERROR      OK        fit1 <- frm(ls ~ mo(income), data = dat)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_monotonic.3.1           post  ERROR      OK        summary(fit1)
+      raw!   object 'fit1' not found 
+brms_monotonic.3.2           post  ERROR      OK        plot(fit1, variable = "simo", regex = TRUE)
+      raw!   object 'fit1' not found 
+brms_monotonic.3.3           post  ERROR      ERROR     plot(conditional_effects(fit1))
+      raw!   object 'fit1' not found 
+      spell! No plottable predictors found for dpar 'mu' 
+brms_monotonic.4.2           model ERROR      OK        fit2 <- frm(ls ~ income_num, data = dat)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_monotonic.5.1           post  ERROR      OK        summary(fit2)
+      raw!   object 'fit2' not found 
+brms_monotonic.6.2           model ERROR      OK        fit3 <- frm(ls ~ income, data = dat)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_monotonic.7.1           post  ERROR      OK        summary(fit3)
+      raw!   object 'fit3' not found 
+brms_monotonic.8.1           post  ERROR      ERROR     loo(fit1, fit2, fit3)
+      raw!   could not find function "loo" 
+brms_monotonic.9.2           model ERROR      OK        fit4 <- frm(ls ~ mo(income), data = dat)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_monotonic.10.1          post  ERROR      OK        summary(fit4)
+      raw!   object 'fit4' not found 
+brms_monotonic.11.1          post  ERROR      OK        plot(fit4, variable = "prior_simo", regex = TRUE, N = 3)
+      raw!   object 'fit4' not found 
+brms_monotonic.13.1          model ERROR      OK        fit5 <- frm(ls ~ mo(income) * age, data = dat)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_monotonic.14.1          post  ERROR      OK        summary(fit5)
+      raw!   object 'fit5' not found 
+brms_monotonic.14.2          post  ERROR      OK        conditional_effects(fit5, "income:age")
+      raw!   object 'fit5' not found 
+brms_monotonic.16.1          model ERROR      ERROR     fit6 <- frm(ls ~ mo(income) * age + (mo(income) | city), data = dat)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      spell! mo() is only supported as a standalone additive term or a two-way ':'/'*' interaction: (mo(income) | city) 
+      patch: default-family 
+brms_monotonic.17.1          post  ERROR      ERROR     summary(fit6)
+      raw!   object 'fit6' not found 
+brms_multivariate.2.2        model ERROR      OK        fit1 <- frm(bform1, data = BTdata)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_multivariate.3.1        post  ERROR      ERROR     fit1 <- add_criterion(fit1, "loo")
+      raw!   could not find function "add_criterion" 
+brms_multivariate.3.2        post  ERROR      OK        summary(fit1)
+      raw!   object 'fit1' not found 
+brms_multivariate.4.1        post  ERROR      ERROR     pp_check(fit1, resp = "tarsus")
+      raw!   object 'fit1' not found 
+      spell! pp_check() is not supported yet for multivariate fits 
+brms_multivariate.4.2        post  ERROR      ERROR     pp_check(fit1, resp = "back")
+      raw!   object 'fit1' not found 
+      spell! pp_check() is not supported yet for multivariate fits 
+brms_multivariate.5.1        post  ERROR      ERROR     bayes_R2(fit1)
+      raw!   could not find function "bayes_R2" 
+brms_multivariate.6.3        model ERROR      OK        fit2 <- frm(bf_tarsus + bf_back + set_rescor(TRUE), data = BTdata)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_multivariate.7.1        post  ERROR      ERROR     fit2 <- add_criterion(fit2, "loo")
+      raw!   could not find function "add_criterion" 
+brms_multivariate.7.2        post  ERROR      OK        summary(fit2)
+      raw!   object 'fit2' not found 
+brms_multivariate.8.1        post  ERROR      ERROR     loo(fit1, fit2)
+      raw!   could not find function "loo" 
+brms_multivariate.9.3        model ERROR      OK        fit3 <- frm(bf_tarsus + bf_back + set_rescor(FALSE), data = BTdata)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+brms_multivariate.10.1       post  ERROR      ERROR     fit3 <- add_criterion(fit3, "loo")
+      raw!   could not find function "add_criterion" 
+brms_multivariate.10.2       post  ERROR      OK        summary(fit3)
+      raw!   object 'fit3' not found 
+brms_multivariate.11.1       post  ERROR      OK        conditional_effects(fit3, "hatchdate", resp = "back")
+      raw!   object 'fit3' not found 
+brms_missings.3.1            model ERROR      OK        fit_imp1 <- frm_multiple(bmi ~ age * chl, data = imp)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_missings.4.1            post  ERROR      OK        summary(fit_imp1)
+      raw!   object 'fit_imp1' not found 
+brms_missings.5.1            post  ERROR      ERROR     plot(fit_imp1, variable = "^b", regex = TRUE)
+      raw!   object 'fit_imp1' not found 
+      spell! 'x' is a list, but does not have components 'x' and 'y' 
+brms_missings.6.2            post  ERROR      ERROR     draws <- as_draws_array(fit_imp1)
+      raw!   object 'fit_imp1' not found 
+      spell! arg 'fits' is non-atomic 
+brms_missings.6.3            post  ERROR      ERROR     nc <- nchains(fit_imp1) / m
+      raw!   object 'fit_imp1' not found 
+      spell! no applicable method for 'nchains' applied to an object of class "frmtmb_multiple" 
+brms_missings.7.1            post  ERROR      ERROR     conditional_effects(fit_imp1, "age:chl")
+      raw!   object 'fit_imp1' not found 
+      spell! no applicable method for 'conditional_effects' applied to an object of class "frmtmb_multiple" 
+brms_missings.8.2            model ERROR      OK        fit_imp2 <- frm(bform, data = nhanes)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_missings.9.1            post  ERROR      OK        summary(fit_imp2)
+      raw!   object 'fit_imp2' not found 
+brms_missings.9.2            post  ERROR      ERROR     conditional_effects(fit_imp2, "age:chl", resp = "bmi")
+      raw!   object 'fit_imp2' not found 
+      spell! mi(chl): newdata must supply complete values 
+brms_missings.11.2           model ERROR      OK        fit_imp3 <- frm(bform, data = nhanes)
+      raw!   No family specified. Attach one with `bf(...) + gaussian()` or the `family` argument of frm() 
+      patch: default-family 
+brms_customfamilies.2.1      model OK         OK        fit1 <- frm(incidence | trials(size) ~ period + (1 | herd), data = cbpp,  family
+brms_customfamilies.3.1      post  OK         OK        summary(fit1)
+brms_customfamilies.7.1      model ERROR      ERROR     fit2 <- frm(incidence | vint(size) ~ period + (1 | herd), data = cbpp,  family =
+      raw!   object 'beta_binomial2' not found 
+brms_customfamilies.8.1      post  ERROR      ERROR     summary(fit2)
+      raw!   object 'fit2' not found 
+brms_customfamilies.9.1      post  ERROR      ERROR     expose_functions(fit2, vectorize = TRUE)
+      raw!   could not find function "expose_functions" 
+brms_customfamilies.11.1     post  ERROR      ERROR     loo(fit1, fit2)
+      raw!   could not find function "loo" 
+brms_customfamilies.13.1     post  ERROR      ERROR     pp_check(fit2)
+      raw!   object 'fit2' not found 
+brms_customfamilies.15.1     post  ERROR      ERROR     conditional_effects(fit2, conditions = data.frame(size = 1))
+      raw!   object 'fit2' not found 
+
+## distinct failure messages, by kind (spell pass, FAIL only)
+                                                      
+                                                       model other post
+  'x' is a list, but does not have components 'x' and      0     0    1
+  arg 'fits' is non-atomic                                 0     0    1
+  could not find function "add_criterion"                  0     0    3
+  could not find function "bayes_R2"                       0     0    1
+  could not find function "conditional_smooths"            0     0    1
+  could not find function "expose_functions"               0     0    1
+  could not find function "loo"                            0     0    6
+  could not find function "LOO"                            0     0    3
+  could not find function "mm"                             2     0    0
+  could not find function "stanvar"                        0     1    0
+  mi(chl): newdata must supply complete values             0     0    1
+  mo() is only supported as a standalone additive term     1     0    0
+  no applicable method for 'conditional_effects' appli     0     0    1
+  no applicable method for 'nchains' applied to an obj     0     0    1
+  No plottable predictors found for dpar 'mu'              0     0    8
+  pp_check() is not supported yet for multivariate fit     0     0    2
+  requires numeric/complex matrix/vector arguments         0     0    1
+  unused argument (threshold = "equidistant")              1     0    0
+  unused arguments (lb = c(0, 0), ub = c(1, NA), vars      0     1    0
