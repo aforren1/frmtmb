@@ -1,3 +1,37 @@
+# frmtmb 0.36.0 (development)
+
+## Cluster-robust (sandwich) standard errors
+
+* `vcov_cluster(fit, cluster = ~ g, type = "CR0")` gives the
+  cluster-robust covariance of the estimates: the inverse observed
+  information of the marginal likelihood sandwiching the outer product
+  of the per-cluster scores. `type` takes `"CR0"`, `"CR1"`, `"CR1p"`
+  and `"CR1S"`, spelled and defined as in `clubSandwich`. `vcov(fit,
+  cluster = ~ g, type = )` is the same thing in the
+  `sandwich::vcovCL()` spelling.
+* `cluster_scores(fit, ~ g)` returns the per-cluster scores
+  themselves, one row per cluster, so any other sandwich can be built
+  from them. This is what `sandwich::estfun()` would return if a
+  marginalized objective had per-observation contributions; it does
+  not, which is why frmtmb still ships no `estfun()` method.
+* `confint()`, `hypothesis()` and `summary()` take `vcov = `: a
+  covariance over the whole outer parameter vector, or a function of
+  the fit returning one. A matrix from `vcov_cluster()` carries `G - 1`
+  reference degrees of freedom, so those methods switch from a normal
+  to a `t` reference automatically.
+* The estimator is refused, with the reason, wherever the marginal
+  likelihood does not factor over the clustering factor: a random
+  effect whose level spans two clusters (crossed effects, `mm()`
+  pooled levels, a global smooth, `gp()`, `car()`, `spde()`), a
+  group-level mixture whose groups span clusters, `autocor()`,
+  `hmm()`, `rescor = TRUE`, `mi()`/`me()`, `REML = TRUE`,
+  `frmtmb_control(profile = TRUE)`, `quadrature = TRUE`, and any fit
+  made with priors. `frm_bootstrap()` is the documented fallback.
+* `"CR2"`/`"CR3"` are refused rather than approximated: the
+  Bell-McCaffrey family is defined through the hat matrix of a linear
+  or GLS model, which a Laplace-marginal likelihood with a nonlinear
+  link does not have.
+
 # frmtmb 0.35.0
 
 Hidden Markov models, latent class analysis, multi-membership random

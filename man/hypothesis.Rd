@@ -18,6 +18,7 @@ hypothesis(x, ...)
   seed = NULL,
   class = NULL,
   group = NULL,
+  vcov = NULL,
   ...
 )
 
@@ -50,6 +51,13 @@ share one bootstrap run.}
 hypothesis is written with bare names and \code{class} (and \code{group},
 for the \code{sd_}/\code{cor_} summaries) supplies the prefix. The default
 \code{NULL} (like brms's \code{class = "b"}) takes the names as written.}
+
+\item{vcov}{\code{method = "wald"} only: a covariance matrix over the
+whole outer parameter vector to use in place of the model-based
+one - \code{\link[=vcov_cluster]{vcov_cluster()}} with \code{full = TRUE}, or a function of the
+fit returning such a matrix. The delta-method standard error is
+then the cluster-robust one, and a matrix carrying reference
+degrees of freedom switches the test to a \code{t} reference.}
 }
 \value{
 A \code{frmtmb_hypothesis} object: a data frame with one row per

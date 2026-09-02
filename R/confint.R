@@ -241,6 +241,12 @@ resolve_par_index <- function(fit, parm, what) {
 #'   like the other methods it works on the internal parameter scale).
 #'   `"Wald"` is accepted as an alias for `"wald"`.
 #' @param nsim,seed Bootstrap draws and seed for `method = "boot"`.
+#' @param vcov `method = "wald"` only: a covariance matrix over the
+#'   whole outer parameter vector to use in place of the model-based
+#'   one - [vcov_cluster()] with `full = TRUE`, or a function of the
+#'   fit returning such a matrix. A matrix that carries reference
+#'   degrees of freedom (as `vcov_cluster()`'s does, `G - 1`) switches
+#'   the interval from a normal to a `t` quantile.
 #' @param ... Passed to the TMB profiling functions, or to
 #'   [frm_bootstrap()] for `method = "boot"` (e.g. `re.form`).
 #' @return A matrix with columns `lwr`, `upr`, `est`.
@@ -275,9 +281,15 @@ resolve_par_index <- function(fit, parm, what) {
 confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
                                method = c("wald", "Wald", "profile",
                                           "uniroot", "boot"),
-                               nsim = 500, seed = NULL, ...) {
+                               nsim = 500, seed = NULL, vcov = NULL,
+                               ...) {
   method <- match.arg(method)
   if (method == "Wald") method <- "wald"
+  if (!is.null(vcov) && method != "wald") {
+    stop("confint(vcov = ) applies to method = 'wald' only: ",
+         "method = '", method, "' does not go through a covariance ",
+         "matrix", call. = FALSE)
+  }
   nm <- outer_par_names(object)
   est <- object$opt$par
   a <- (1 - level) / 2
@@ -289,13 +301,20 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   }
 
   if (method == "wald") {
-    sdr <- sdr_of(object)
-    se <- sqrt(diag(sdr$cov.fixed))
-    # profiled betas are absent from BOTH opt$par and par.fixed in
-    # current RTMB; the fallback stays as a defensive alignment only
-    if (length(est) != length(se)) est <- sdr$par.fixed
-    ci <- cbind(lwr = est + stats::qnorm(a) * se,
-                upr = est + stats::qnorm(1 - a) * se,
+    q <- stats::qnorm(a)
+    if (is.null(vcov)) {
+      sdr <- sdr_of(object)
+      se <- sqrt(diag(sdr$cov.fixed))
+      # profiled betas are absent from BOTH opt$par and par.fixed in
+      # current RTMB; the fallback stays as a defensive alignment only
+      if (length(est) != length(se)) est <- sdr$par.fixed
+    } else {
+      rv <- resolve_vcov_arg(object, vcov, "confint")
+      se <- sqrt(pmax(0, diag(rv$V)))
+      if (!is.null(rv$df)) q <- stats::qt(a, rv$df)
+    }
+    ci <- cbind(lwr = est + q * se,
+                upr = est - q * se,
                 est = est)
     rownames(ci) <- nm
     return(ci[idx, , drop = FALSE])
@@ -1833,6 +1852,12 @@ hyp_fd_grad <- function(f, v) {
 #'   hypothesis is written with bare names and `class` (and `group`,
 #'   for the `sd_`/`cor_` summaries) supplies the prefix. The default
 #'   `NULL` (like brms's `class = "b"`) takes the names as written.
+#' @param vcov `method = "wald"` only: a covariance matrix over the
+#'   whole outer parameter vector to use in place of the model-based
+#'   one - [vcov_cluster()] with `full = TRUE`, or a function of the
+#'   fit returning such a matrix. The delta-method standard error is
+#'   then the cluster-robust one, and a matrix carrying reference
+#'   degrees of freedom switches the test to a `t` reference.
 #' @param ... Backend controls: passed to [TMB::tmbprofile()] for
 #'   `method = "profile"` (e.g. `ytol`, `ystep`, `maxit`,
 #'   `parm.range`) and to [frm_bootstrap()] for `method = "boot"`
@@ -1907,8 +1932,13 @@ variables.frmtmb_fit <- function(x, ...) {
 hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
                                   method = c("wald", "profile", "boot"),
                                   nsim = 500, seed = NULL, class = NULL,
-                                  group = NULL, ...) {
+                                  group = NULL, vcov = NULL, ...) {
   method <- match.arg(method)
+  if (!is.null(vcov) && method != "wald") {
+    stop("hypothesis(vcov = ) applies to method = 'wald' only: ",
+         "method = '", method, "' does not go through a covariance ",
+         "matrix", call. = FALSE)
+  }
   if (method == "wald" && ...length()) {
     warning("ignoring arguments unused by method = 'wald': ",
             paste(...names(), collapse = ", "), call. = FALSE)
@@ -1964,6 +1994,22 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
   }
 
   pc <- hyp_par_cov(x)
+  qfun <- stats::qnorm
+  pfun <- stats::pnorm
+  if (!is.null(vcov)) {
+    rv <- resolve_vcov_arg(x, vcov, "hypothesis")
+    if (is.null(pc$outer_pos)) {
+      stop("hypothesis(vcov = ) needs a plain maximum-likelihood fit ",
+           "(the REML / profile branch reads the joint precision, ",
+           "which a supplied covariance does not replace)",
+           call. = FALSE)
+    }
+    pc$V <- rv$V[pc$outer_pos, pc$outer_pos, drop = FALSE]
+    if (!is.null(rv$df)) {
+      qfun <- function(p) stats::qt(p, rv$df)
+      pfun <- function(q) stats::pt(q, rv$df)
+    }
+  }
   profiles <- vector("list", length(exs))
   rows <- vector("list", length(exs))
   for (i in seq_along(exs)) {
@@ -1972,8 +2018,7 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
     g <- hyp_fd_grad(fn, pc$vals)
     se <- sqrt(max(0, drop(t(g) %*% pc$V %*% g)))
     dir <- hp$dir[i]
-    wr <- hyp_wald_row(vals0[i], se, dir, alpha, stats::qnorm,
-                       stats::pnorm)
+    wr <- hyp_wald_row(vals0[i], se, dir, alpha, qfun, pfun)
     zv <- wr$stat
     lwr <- wr$lwr
     upr <- wr$upr
