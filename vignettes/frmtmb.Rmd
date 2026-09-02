@@ -14,6 +14,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 # every later unconditional chunk without frm()
 library(frmtmb)
 has_lme4 <- requireNamespace("lme4", quietly = TRUE)
+has_tinyplot <- requireNamespace("tinyplot", quietly = TRUE)
 ```
 
 frmtmb fits regression models written in the brms formula grammar by
@@ -37,6 +38,23 @@ The usual methods work: `fixef()`, `ranef()`, `VarCorr()`, `predict()`
 or likelihood-root), `simulate()`, `anova()` for likelihood-ratio
 tests, and `emmeans` for marginal means.
 
+`fitted()` gives the fit its own picture. One panel per subject shows
+what the random slopes bought: the lines share a population trend, but
+each subject keeps its own intercept and its own slope.
+
+```{r sleep-fig, eval = has_lme4 && has_tinyplot, fig.width = 7, fig.height = 5, fig.alt = "Eighteen small panels, one for each subject of the sleep deprivation study. Gray points are the observed reaction times against days of sleep deprivation. A red line in each panel is the fitted value for that subject. Most lines rise, and their slopes differ from panel to panel. One subject has a flat line."}
+sleepstudy$yhat <- fitted(fit)
+tinyplot::tinyplot(Reaction ~ Days, data = sleepstudy, facet = ~Subject,
+                   type = "p", pch = 16, cex = 0.7, col = "gray40",
+                   theme = "clean2", facet.args = list(nrow = 3))
+tinyplot::plt_add(yhat ~ Days, data = sleepstudy, facet = ~Subject,
+                  type = "l", col = "firebrick", lwd = 1.5)
+```
+
+The figures on this page use
+[tinyplot](https://cran.r-project.org/package=tinyplot), which is a
+suggested package. They are skipped when it is not installed.
+
 ## Distributional regression
 
 Every distributional parameter can get its own formula with the full
@@ -48,6 +66,27 @@ fit2 <- frm(bf(Reaction ~ Days + (Days | Subject),
             data = sleepstudy)
 fixef(fit2)$sigma
 ```
+
+The coefficient on `Days` is positive, so the model says that reaction
+times scatter more widely late in the study. Compare the fitted
+residual standard deviation with the standard deviation of the
+residuals on each day.
+
+```{r sigma-fig, eval = has_lme4 && has_tinyplot, fig.width = 6, fig.height = 4, fig.alt = "Scatter plot of residual standard deviation against days of sleep deprivation. Ten gray points are the observed standard deviations, one for each day. A red curve is the fitted residual standard deviation. Both rise from about 17 on day zero to about 36 on day nine."}
+day_sd <- as.numeric(tapply(residuals(fit2), sleepstudy$Days, sd))
+sig <- as.numeric(predict(fit2, dpar = "sigma", type = "response",
+                          newdata = data.frame(Days = 0:9,
+                                               Subject = "308")))
+tinyplot::tinyplot(x = 0:9, y = day_sd, type = "p", pch = 16,
+                   col = "gray30", theme = "clean2", xlab = "Days",
+                   ylab = "residual standard deviation",
+                   ylim = range(c(day_sd, sig)))
+tinyplot::plt_add(x = 0:9, y = sig, type = "l", col = "firebrick",
+                  lwd = 2)
+```
+
+The daily standard deviations are noisy, because each one comes from 18
+observations. The trend they show is the trend the model fits.
 
 ## Nonlinear formulas
 
@@ -241,7 +280,7 @@ vector first - the analog of brms's `sample_prior = "only"` followed by
 `posterior_predict()`. The drawn parameters come back as an attribute,
 so a prior-predictive check can relate parameters to outcomes:
 
-```{r}
+```{r prior-pred, fig.width = 6, fig.height = 4, fig.alt = "Scatter plot of the standard deviation of each simulated response set against the slope that generated it. The points form a U shape, because a larger slope of either sign spreads the outcome more."}
 pp <- frm_simulate(form, dd, nsim = 50, seed = 2,
                    priors = set_prior("normal(0, 1)", class = "b") +
                      set_prior("normal(0, 2)", class = "Intercept") +

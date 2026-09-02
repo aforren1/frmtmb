@@ -17,6 +17,7 @@ has_ape <- requireNamespace("ape", quietly = TRUE)
 has_nlme <- requireNamespace("nlme", quietly = TRUE)
 has_phy <- has_ape && has_nlme
 has_metafor <- requireNamespace("metafor", quietly = TRUE)
+has_tinyplot <- requireNamespace("tinyplot", quietly = TRUE)
 ```
 
 Each section below takes a model that another package uses to show what
@@ -25,6 +26,10 @@ comes from, gives the frmtmb call, reads the output, and then checks the
 numbers against a package or a closed form that computes the same thing
 a different way. The datasets are small so that this page rebuilds in
 seconds.
+
+Four sections carry a figure. The figures use
+[tinyplot](https://cran.r-project.org/package=tinyplot), which is a
+suggested package, and they are skipped when it is not installed.
 
 This is not the getting-started page. See `vignette("frmtmb")` for the
 grammar and `vignette("brms-migration")` for the brms feature map.
@@ -331,6 +336,28 @@ The pooled log risk ratio is about -0.71, which is a risk ratio near
 0.49. Between-study heterogeneity is large: `tau` is comparable in size
 to the pooled effect itself. `confint_varcorr()` puts an interval on it.
 
+A forest plot puts the pooled estimate next to the studies it pools.
+Each study is a point with a 95 percent interval from its own known
+standard error. The dashed line is the pooled log risk ratio and the
+dotted line is no effect.
+
+```{r meta-forest, eval = has_tinyplot, fig.width = 7, fig.height = 4.2, fig.alt = "Forest plot of the 13 BCG vaccine trials. Study number runs up the vertical axis and the log risk ratio runs along the horizontal axis. Each study is a black point with a horizontal interval. A dashed red vertical line marks the pooled estimate near minus 0.71. A dotted gray line marks zero. Most studies fall to the left of zero. The intervals differ widely in width, and several short intervals miss the pooled line on one side or the other."}
+pooled <- unname(fixef(fmeta)$mu)
+tinyplot::tinyplot(yi ~ study, data = bcg,
+                   ymin = bcg$yi - 1.96 * bcg$sei,
+                   ymax = bcg$yi + 1.96 * bcg$sei,
+                   type = "pointrange", flip = TRUE, theme = "clean2",
+                   col = "black", pch = 16,
+                   xlab = "study", ylab = "log risk ratio")
+abline(v = pooled, lty = 2, col = "firebrick")
+abline(v = 0, lty = 3, col = "gray50")
+```
+
+The picture explains the large `tau`. Studies 8 and 11 have short
+intervals that stay above the pooled line, and studies 4 and 10 have
+short intervals that stay below it. No single effect size can hold all
+13, so the random-effect term takes up the difference.
+
 ```{r meta-varcorr}
 confint_varcorr(fmeta)
 ```
@@ -449,6 +476,28 @@ stopifnot(max(abs(predict(fmo, newdata = nd) -
                     predict(fsat, newdata = nd))) < 1e-4)
 ```
 
+The step shape is easier to read as a picture than as a row of numbers.
+The points are the observed band means with 95 percent intervals, the
+line is the `mo()` fit at `z = 0`, and the crosses are the saturated
+factor fit at the same place.
+
+```{r mo-fig, eval = has_tinyplot, fig.width = 6, fig.height = 4, fig.alt = "Plot of the mean of ls against income band, for bands 1 to 6. Six black points with vertical intervals are the observed band means. A red line joins the monotonic model fit, and blue crosses mark the saturated factor fit. The line and the crosses sit on top of each other. The curve climbs gently from band 1 to band 3, jumps between bands 3 and 4, then flattens."}
+band <- as.numeric(tapply(dmo$ls, dmo$income, mean))
+band_se <- as.numeric(tapply(dmo$ls, dmo$income,
+                             function(v) sd(v) / sqrt(length(v))))
+tinyplot::tinyplot(x = 1:L, y = band, ymin = band - 1.96 * band_se,
+                   ymax = band + 1.96 * band_se, type = "pointrange",
+                   theme = "clean2", col = "gray20", pch = 16,
+                   xlab = "income band", ylab = "mean of ls")
+tinyplot::plt_add(x = 1:L, y = as.numeric(p), type = "l",
+                  col = "firebrick", lwd = 2)
+tinyplot::plt_add(x = 1:L, y = as.numeric(predict(fsat, newdata = nd)),
+                  type = "p", pch = 4, cex = 1.6, col = "steelblue")
+```
+
+The big step between bands 3 and 4 is the shape the simulation put
+there, and the two fits are the same curve.
+
 The value of `mo()` is not the parameter count. It is that one
 coefficient carries the effect size, that the restriction holds when
 the data are noisy, and that interactions stay readable. `mo()` takes
@@ -522,6 +571,33 @@ Note that `predict()` on a distributional parameter returns the link
 scale by default, so `type = "response"` is needed for a standard
 deviation.
 
+One figure holds both curves. The band is the frmtmb mean plus and
+minus two fitted standard deviations, so its center is the location
+model and its width is the scale model. The dashed lines are the same
+band from mgcv.
+
+```{r ls-fig, eval = has_tinyplot, fig.width = 7, fig.height = 4.4, fig.alt = "Plot of y against x on the unit interval. A shaded blue band runs across the plot with a blue center line. The band is wide at both ends and narrow near x equal to 0.6. Gray points are the 400 observations, and they crowd where the band is narrow and spread where it is wide. Dashed red lines from mgcv lie on the edges of the band."}
+xg <- data.frame(x = seq(0, 1, length.out = 100))
+mu_f <- as.numeric(predict(fls, newdata = xg))
+sd_f <- as.numeric(predict(fls, newdata = xg, dpar = "sigma",
+                           type = "response"))
+pg <- predict(gm, newdata = xg, type = "response")
+tinyplot::tinyplot(x = xg$x, y = mu_f, ymin = mu_f - 2 * sd_f,
+                   ymax = mu_f + 2 * sd_f, type = "ribbon",
+                   theme = "clean2", xlab = "x", ylab = "y",
+                   ylim = range(dls$y))
+tinyplot::plt_add(x = dls$x, y = dls$y, type = "p", pch = 16, cex = 0.5,
+                  col = "gray45")
+lines(xg$x, mu_f, lwd = 2, col = "steelblue4")
+lines(xg$x, pg[, 1] - 2 / pg[, 2], lty = 2, col = "firebrick")
+lines(xg$x, pg[, 1] + 2 / pg[, 2], lty = 2, col = "firebrick")
+```
+
+The band is narrow where `cos(2 pi x)` is smallest, near `x = 0.5`, and
+it opens at both ends. A constant-variance smooth would draw a band of
+one width and would miss both. The mgcv lines sit on the edges of the
+frmtmb band, which is the agreement of the table above, drawn.
+
 ## 6. Growth mixture models
 
 A growth mixture model says that a population contains latent classes
@@ -571,6 +647,30 @@ max(mean(assigned == cls), mean(assigned != cls))
 Every subject is classified correctly here, because the two
 trajectories separate well over five time points. Real growth mixture
 models are rarely this clean.
+
+Split the subject trajectories by the class the model gives them, and
+draw each component mean over its own panel.
+
+```{r gmm-fig, eval = has_tinyplot, fig.width = 7, fig.height = 3.6, fig.alt = "Two panels side by side, one for each recovered class. Each panel holds the gray trajectories of the subjects assigned to that class, plotted as y against time from 0 to 4. A thick black line is the fitted component mean. The class 1 lines stay near y equal to 2 and 3 across time. The class 2 lines climb from about 2 to about 7."}
+dg$class <- factor(assigned[as.integer(dg$id)] + 1L,
+                   labels = c("class 1", "class 2"))
+tt <- 0:(nt - 1)
+b <- rbind(fixef(fgmm)$mu1, fixef(fgmm)$mu2)
+comp <- data.frame(
+  time = rep(tt, 2),
+  yhat = c(b[1, 1] + b[1, 2] * tt, b[2, 1] + b[2, 2] * tt),
+  class = factor(rep(c("class 1", "class 2"), each = length(tt))))
+tinyplot::tinyplot(y ~ time | id, data = dg, facet = ~class, type = "l",
+                   col = "gray60", legend = FALSE, theme = "clean2",
+                   xlab = "time", ylab = "y")
+tinyplot::plt_add(yhat ~ time, data = comp, facet = ~class, type = "l",
+                  col = "black", lwd = 3)
+```
+
+The two panels are the model's answer to the question the mixture asks.
+Inside a panel the lines are near parallel, which is the random
+intercept. Between panels the lines differ in slope, which is the
+class.
 
 Two cautions carry over from any maximum likelihood mixture. The
 likelihood is multimodal, so compare starting values with
