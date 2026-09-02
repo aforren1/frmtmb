@@ -581,3 +581,62 @@ being both the largest piece and the reason to build rung 2 at all,
 since it is what makes `fitted()` mean something. Refuse initially:
 weights/cens/trunc/mi, rescor/mvbf, quadrature, OSA, REML, and
 `predict(se.fit = TRUE)` on the response scale.
+
+## Multi-membership `mm()` / `mmc()` (delivered v0.35)
+
+Was absent entirely, which the v0.34 audit flagged: a ported brms
+formula `(1 | mm(g1, g2))` died with "could not find function mm",
+several stages away from the grammar it belongs to.
+
+The design claim is narrow and it held. `mm()` changes the Z MATRIX
+and nothing else: the block is an ordinary `us`/`diag` block over the
+pooled level set, and each observation's design row puts weight `w_j`
+on member `j`'s columns instead of a 1 on one column. So the registry
+nll, the Laplace step, `ranef()`, `VarCorr()`, `ngrps()`, `simulate()`
+and `residuals()` needed no multi-membership branch at all; the work
+was the parse (`parse_mm_call()`, `split_mmc_lhs()`), the Z builder
+(`mm_pooled_levels()`, `mm_index_weights()`, `mm_member_designs()`,
+`mm_local_Z()`), and one newdata hook in `predict.R` that emits one
+`re_parts` entry per member with its design pre-scaled by that
+member's weight, so `re_eta()` and `re_design_matrix()` accumulate the
+weighted sum with no branch of their own.
+
+brms semantics reproduced exactly (verified against
+`make_standata()`'s `J_*`, `W_*`, `Z_*` arrays, 0 difference on five
+formulas): levels are the members' own level sets concatenated in
+written order and deduplicated (`frame_re()`); the default weights are
+`1/J` and are NOT rescaled; `scale = TRUE` divides a SUPPLIED weight
+matrix by its row sums (`data_gr_local()`); `mmc(x1, x2)` is ONE
+coefficient whose covariate is member specific.
+
+Refused, and why: any covariance structure but `us`/`diag` (the pooled
+levels have no order, coordinates, or relationship matrix for one to
+be defined on), `gr(mm(...), cov =)`, an `|ID|` key over an `mm` term
+(a merged block indexes one level set per row), and brms's `by =`,
+`cor =`, `id =`, `pw =`, `cov =`, `dist =` (each refusal names the
+spelling that replaces it: `cor = FALSE` is `diag(x | mm(...))`).
+
+One thing the lane had to reconcile rather than add. The two standard
+error paths grouped new-level variance differently, and multi-membership
+is the first term that makes one block contribute SEVERAL entries to one
+row, so the disagreement became reachable: the linear-predictor path
+added one quadratic form per entry (`w1^2 S + w2^2 S`), the
+expected-response path keyed on the BLOCK and summed the entries first
+(`(w1 + w2)^2 S`). Neither is right on its own - which one applies
+depends on whether the row's two members name the same unseen level
+(one draw, perfectly correlated) or two different ones (two independent
+draws). Both now go through `extra_var_blocks()`, which keys on
+(block, level) and sums design rows inside a key before taking one
+quadratic form. Single-membership terms key on a constant, so they keep
+the one-level-per-row grouping; the linear-predictor path additionally
+gains the `|ID|` cross-covariance terms it was dropping, which the
+expected-response path already had.
+
+Left open. `mm() x quadrature` is declared untested rather than
+claimed: an `(1 | mm(g1, g2))` block passes the scalar-intercept guard,
+but nothing checks that the Gauss-Kronrod rule marginalizes a design
+whose rows load several levels at once. `getME("flist")` skips mm
+blocks, because lme4's flist has no representation for a row that
+belongs to several levels. `by =` (level-specific variances) and
+`pw =` are the two brms arguments with no analog anywhere in the
+package yet, and `by =` would be the next one worth having.

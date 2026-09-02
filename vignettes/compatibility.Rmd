@@ -312,12 +312,18 @@ structure. The registry writes the predictor forms as `mi_pred()`,
 
 ## Formula grammar
 
-Three spellings have restrictions of their own.
+Five spellings have restrictions of their own. `mm()` and `mmc()` are
+the multi-membership pair: `(1 | mm(g1, g2))` averages the member
+levels' effects into one design row, and `mmc()` gives that row a
+member-specific covariate. Their full rule set is longer than one table
+row; see `?frmtmb-multimembership`.
 
 ```{r grammar}
 spelling <- c(bar_crossing = "x * (1 | g)",
               call_group = "(1 | factor(x))",
-              double_bar = "(x || g)")
+              double_bar = "(x || g)",
+              "mm()" = "(1 | mm(g1, g2))",
+              "mmc()" = "(mmc(x1, x2) | mm(g1, g2))")
 # Each grammar feature carries one rule that covers all its pairs.
 # Report the status and note that rule gives to most of them.
 gr <- do.call(rbind, lapply(names(spelling), function(feat) {

@@ -801,6 +801,11 @@ getME_flist <- function(object) {
   out <- list()
   for (bk in getME_group_blocks(object)) {
     comp <- bk$components[[1L]]
+    # a multi-membership row belongs to several levels at once, so there
+    # is no per-observation grouping factor to report; lme4's flist has
+    # no representation for one, and returning the first member would
+    # be a wrong answer rather than a missing one
+    if (!is.null(comp$mm)) next
     lp <- object$frame$linpreds[[comp$lp_key]]
     env <- object$spec$responses[[lp$resp]]$formula_env
     gv <- tryCatch(

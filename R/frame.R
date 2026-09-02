@@ -50,7 +50,18 @@ dpar_frame_rhs <- function(dp) {
   }
   parts <- list(reformulas::RHSForm(dp$fixed))
   for (rt in dp$re %||% list()) {
-    parts <- c(parts, list(rt$bar[[2]], rt$bar[[3]]))
+    if (is.null(rt$mm)) {
+      parts <- c(parts, list(rt$bar[[2]], rt$bar[[3]]))
+      next
+    }
+    # mm(g1, g2) is not a model-frame variable: the member factors are,
+    # and so is every mmc() argument. The mmc()-stripped left side goes
+    # in as an expression so data-dependent bases still freeze.
+    parts <- c(parts, list(rt$mm$lhs), rt$mm$groups)
+    for (mc in rt$mm$mmc) parts <- c(parts, mc$exprs)
+    for (v in all.vars(rt$mm$weights_expr)) {
+      parts <- c(parts, list(as.name(v)))
+    }
   }
   for (sspec in dp$smooth %||% list()) {
     for (tm in sspec$term) parts <- c(parts, list(as.name(tm)))
@@ -293,6 +304,172 @@ resolve_group_calls <- function(bars, fr, env) {
     b
   })
   list(bars = bars, fr = fr)
+}
+
+#' The pooled level set of a multi-membership term.
+#'
+#' brms pools the members into ONE grouping factor
+#' (`frame_re()`: `unique(ulapply(groups, extract_levels))`), so the
+#' levels are each member variable's own levels concatenated in the
+#' order the variables were written, deduplicated. A factor contributes
+#' `levels()`, anything else the sorted unique values, and a level
+#' present in only one member still gets a coefficient.
+#'
+#' @noRd
+mm_pooled_levels <- function(gvals) {
+  unique(unlist(lapply(gvals, function(v) {
+    if (is.factor(v)) levels(v) else levels(factor(v))
+  }), use.names = FALSE))
+}
+
+#' Read the member columns of one multi-membership term out of a data
+#' frame (the combined model frame at fit time, `newdata` at prediction
+#' time).
+#'
+#' @noRd
+mm_member_values <- function(mmspec, data, env) {
+  lapply(mmspec$groups, function(g) {
+    v <- data[[deparse1(g)]]
+    if (is.null(v)) v <- eval(g, data, env)
+    if (is.null(v)) {
+      stop("mm(): membership variable '", deparse1(g),
+           "' is not in the data", call. = FALSE)
+    }
+    v
+  })
+}
+
+#' Membership indices and row weights.
+#'
+#' Returns an `n x J` integer matrix of level indices (`NA` for a level
+#' outside `levels`) and an `n x J` weight matrix. The default weights
+#' are `1/J` on every row and are NOT rescaled, which is what brms's
+#' `data_gr_local()` does: `scale =` only ever touches a supplied
+#' weight matrix.
+#'
+#' @noRd
+mm_index_weights <- function(mmspec, data, env, levels) {
+  gvals <- mm_member_values(mmspec, data, env)
+  n <- length(gvals[[1L]])
+  ng <- length(gvals)
+  J <- matrix(NA_integer_, n, ng)
+  for (k in seq_len(ng)) {
+    J[, k] <- match(as.character(gvals[[k]]), levels)
+  }
+  if (is.null(mmspec$weights_expr)) {
+    W <- matrix(1 / ng, n, ng)
+  } else {
+    W <- eval(mmspec$weights_expr, data, env)
+    W <- as.matrix(W)
+    if (!identical(dim(W), c(n, ng))) {
+      stop("mm(weights = ", deparse1(mmspec$weights_expr),
+           "): expected a matrix with one row per observation and one ",
+           "column per membership variable (", n, " x ", ng, "), got ",
+           nrow(W), " x ", ncol(W),
+           ". Build it with cbind(w1, w2)", call. = FALSE)
+    }
+    storage.mode(W) <- "double"
+    if (any(!is.finite(W))) {
+      stop("mm(weights = ", deparse1(mmspec$weights_expr),
+           "): the weights must all be finite", call. = FALSE)
+    }
+    if (isTRUE(mmspec$scale)) {
+      if (any(W < 0)) {
+        stop("mm(scale = TRUE) cannot scale negative weights; pass ",
+             "scale = FALSE to use them as they are", call. = FALSE)
+      }
+      rs <- rowSums(W)
+      if (any(rs == 0)) {
+        stop("mm(scale = TRUE): row(s) of the weight matrix sum to ",
+             "zero, so the scaled weights are undefined (first at row ",
+             which(rs == 0)[1L], ")", call. = FALSE)
+      }
+      W <- W / rs
+    }
+  }
+  list(J = J, W = W, n = n, n_members = ng)
+}
+
+#' Per-member design matrices of one multi-membership term.
+#'
+#' Every member shares the ordinary columns of the bar's left side, and
+#' each `mmc()` term contributes ONE column whose values are member
+#' specific: member `k` uses `mmc()`'s `k`-th argument. So the returned
+#' list holds `J` matrices of identical column count and names, one per
+#' member, which is the same encoding brms writes into `Z_..._k`.
+#'
+#' @noRd
+mm_member_designs <- function(mmspec, data, env, n_members,
+                              predvar_map = NULL, xlev = NULL,
+                              use_model_frame = FALSE) {
+  tt <- stats::terms(stats::as.formula(call("~", mmspec$lhs), env = env))
+  tt <- patch_predvars(tt, predvar_map)
+  Xp <- if (use_model_frame) {
+    mf2 <- stats::model.frame(tt, data, na.action = stats::na.pass,
+                              xlev = xlev)
+    stats::model.matrix(tt, mf2)
+  } else {
+    stats::model.matrix(tt, data)
+  }
+  n <- nrow(Xp)
+  mmc_vals <- lapply(mmspec$mmc, function(mc) {
+    cols <- lapply(mc$exprs, function(ex) {
+      v <- data[[deparse1(ex)]]
+      if (is.null(v)) v <- eval(ex, data, env)
+      if (is.factor(v) || is.character(v)) {
+        stop("mmc() requires numeric variables; '", deparse1(ex),
+             "' is a ", if (is.factor(v)) "factor" else "character",
+             " column", call. = FALSE)
+      }
+      as.numeric(v)
+    })
+    matrix(unlist(cols, use.names = FALSE), nrow = n)
+  })
+  cnms <- c(colnames(Xp),
+            vapply(mmspec$mmc, `[[`, "", "label"))
+  if (!length(cnms)) {
+    stop("A multi-membership term needs at least one coefficient: ",
+         deparse1(mmspec$lhs), " | ", mmspec$label,
+         " has an empty design", call. = FALSE)
+  }
+  designs <- lapply(seq_len(n_members), function(k) {
+    out <- Xp
+    for (m in seq_along(mmc_vals)) {
+      out <- cbind(out, mmc_vals[[m]][, k])
+    }
+    colnames(out) <- cnms
+    out
+  })
+  list(designs = designs, cnms = cnms)
+}
+
+#' Build the local Z of one multi-membership component: `n` rows by
+#' `dim * n_levels` columns, level-major within a level exactly as the
+#' single-membership blocks are, so phase 3 places it with no special
+#' case. Row `i` puts `w_ik * x_ik` on member `k`'s level block, summed
+#' over members, which is why a degenerate `mm(g, g)` reproduces
+#' `(1 | g)` bit for bit.
+#'
+#' @noRd
+mm_local_Z <- function(J, W, designs, n_levels) {
+  n <- nrow(J)
+  D <- ncol(designs[[1L]])
+  ii <- integer(0); jj <- integer(0); xx <- numeric(0)
+  for (k in seq_len(ncol(J))) {
+    jk <- J[, k]
+    for (cc in seq_len(D)) {
+      val <- W[, k] * designs[[k]][, cc]
+      keep <- which(!is.na(jk) & val != 0)
+      if (!length(keep)) next
+      ii <- c(ii, keep)
+      jj <- c(jj, (jk[keep] - 1L) * D + cc)
+      xx <- c(xx, val[keep])
+    }
+  }
+  # duplicated (i, j) pairs are SUMMED by sparseMatrix(), which is what
+  # makes a row that names the same level twice add its two weights
+  Matrix::sparseMatrix(i = ii, j = jj, x = xx,
+                       dims = c(n, D * n_levels))
 }
 
 # Internal censoring codes, shared with brms: -1 left, 0 observed,
@@ -540,7 +717,10 @@ nonpredictor_frame_vars <- function(spec) {
     out <- c(out, all.vars(resp$autocor$time_expr),
              all.vars(resp$autocor$gr_expr))
     for (dp in resp$dpars) {
-      for (rt in dp$re %||% list()) out <- c(out, deparse1(rt$bar[[3L]]))
+      for (rt in dp$re %||% list()) {
+        out <- c(out, if (is.null(rt$mm)) deparse1(rt$bar[[3L]]) else
+                        rt$mm$gvars)
+      }
       for (ce in c(dp$carterms %||% list(), dp$spdeterms %||% list())) {
         out <- c(out, all.vars(ce$gr_expr))
       }
@@ -1080,16 +1260,51 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
 
       if (length(dp$re)) {
         bars <- lapply(dp$re, `[[`, "bar")
-        # bars keeps the user's expressions (labels, prediction); only
-        # the copy handed to reformulas is name-resolved
-        grp <- resolve_group_calls(bars, mf, resp$formula_env)
-        rt <- reformulas::mkReTrms(grp$bars, fr = grp$fr,
-                                   reorder.terms = FALSE)
-        fassign <- attr(rt$flist, "assign")
+        # mm() bars never reach mkReTrms: their grouping expression is a
+        # call reformulas cannot evaluate, and their design row loads
+        # several levels at once. They are built below instead, into a
+        # component of exactly the same shape, so everything downstream
+        # (blocks, theta, ranef, VarCorr, simulate) is unchanged.
+        is_mm <- vapply(dp$re, function(z) !is.null(z$mm), TRUE)
+        plain_k <- which(!is_mm)
+        rt_pos <- integer(length(bars))
+        rt_pos[plain_k] <- seq_along(plain_k)
+        rt <- NULL
+        fassign <- integer(0)
+        if (length(plain_k)) {
+          # bars keeps the user's expressions (labels, prediction); only
+          # the copy handed to reformulas is name-resolved
+          grp <- resolve_group_calls(bars[plain_k], mf, resp$formula_env)
+          rt <- reformulas::mkReTrms(grp$bars, fr = grp$fr,
+                                     reorder.terms = FALSE)
+          fassign <- attr(rt$flist, "assign")
+        }
         for (k in seq_along(bars)) {
-          d_k <- length(rt$cnms[[k]])
-          len_k <- rt$Gp[k + 1L] - rt$Gp[k]
           cs_name <- dp$re[[k]]$covstruct
+          if (is_mm[k]) {
+            mms <- dp$re[[k]]$mm
+            gvals <- mm_member_values(mms, mf, resp$formula_env)
+            levs <- mm_pooled_levels(gvals)
+            iw <- mm_index_weights(mms, mf, resp$formula_env, levs)
+            md <- mm_member_designs(mms, mf, resp$formula_env,
+                                    iw$n_members)
+            Zk <- mm_local_Z(iw$J, iw$W, md$designs, length(levs))
+            components[[length(components) + 1L]] <- list(
+              lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
+              covstruct = cs_name, id = NULL, rank = NULL,
+              dim = length(md$cnms), n_levels = length(levs),
+              levels = levs, cnms = md$cnms,
+              bar = bars[[k]], Zlocal = methods::as(Zk, "CsparseMatrix"),
+              mm = mms,
+              group_name = mms$label,
+              label = paste0(dp_prefix, deparse1(bars[[k]]))
+            )
+            comp_ids <- c(comp_ids, length(components))
+            next
+          }
+          kk <- rt_pos[k]
+          d_k <- length(rt$cnms[[kk]])
+          len_k <- rt$Gp[kk + 1L] - rt$Gp[kk]
           dist_cs <- c("ou", "exp", "gau", "mat")
           if (cs_name %in% c("ar1", "hetar1", "cs", "homcs", "toep",
                              "homtoep", "rr", dist_cs) && d_k < 2L) {
@@ -1097,7 +1312,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                  call. = FALSE)
           }
           if (cs_name %in% c("ar1", "hetar1", dist_cs) &&
-              "(Intercept)" %in% rt$cnms[[k]]) {
+              "(Intercept)" %in% rt$cnms[[kk]]) {
             stop(cs_name, "() requires a factor without intercept on ",
                  "the left of the bar, e.g. ", cs_name,
                  "(times + 0 | g)", call. = FALSE)
@@ -1105,7 +1320,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           if (cs_name %in% c("ar1", "hetar1")) {
             warn_ar1_level_gaps(bars[[k]], mf, cs_name)
           }
-          fac <- rt$flist[[fassign[k]]]
+          fac <- rt$flist[[fassign[kk]]]
           aux_A <- NULL
           aux_D <- NULL
           aux_kron <- NULL
@@ -1163,17 +1378,18 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             }
             aux_A <- unname(V)
           }
-          Zk <- Matrix::t(rt$Zt[rt$Gp[k] + seq_len(len_k), , drop = FALSE])
+          Zk <- Matrix::t(rt$Zt[rt$Gp[kk] + seq_len(len_k), ,
+                                drop = FALSE])
           components[[length(components) + 1L]] <- list(
             lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
             covstruct = cs_name, id = dp$re[[k]]$id,
             rank = dp$re[[k]]$rank,
             dim = d_k, n_levels = len_k %/% d_k,
-            levels = levels(fac), cnms = rt$cnms[[k]],
+            levels = levels(fac), cnms = rt$cnms[[kk]],
             bar = bars[[k]], Zlocal = Zk, aux_A = aux_A,
             aux_D = aux_D, aux_kron = aux_kron, aux_Q = aux_Q,
             aux_Qk = aux_Qk,
-            group_name = names(rt$flist)[fassign[k]],
+            group_name = names(rt$flist)[fassign[kk]],
             label = paste0(dp_prefix, deparse1(bars[[k]]))
           )
           comp_ids <- c(comp_ids, length(components))
@@ -1697,6 +1913,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       components = lapply(seq_along(gd), function(k) {
         list(lp_key = cps[[k]]$lp_key, offset = comp_offset[gd[k]],
              dim = cps[[k]]$dim, bar = cps[[k]]$bar,
+             mm = cps[[k]]$mm,
              cnms = cps[[k]]$cnms, label = cps[[k]]$label)
       })
     )

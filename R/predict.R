@@ -251,6 +251,19 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     if (bk$covstruct %in% c("smooth", "gp", "hsgp")) next
     for (comp in bk$components) {
       if (comp$lp_key != linpred_key(lp$resp, lp$dpar)) next
+      if (!is.null(comp$mm)) {
+        # One re_part per MEMBER, its design already scaled by that
+        # member's weight. re_eta() and re_design_matrix() both
+        # accumulate over re_parts, so the weighted sum falls out with
+        # no multi-membership branch of their own, and a member level
+        # that is new in newdata drops to the population value the same
+        # way a new level of an ordinary factor does.
+        re_parts <- c(re_parts,
+                      mm_newdata_parts(comp, bk, newdata, env,
+                                       lp$xlevels, fit$frame$predvar_map,
+                                       allow_new_levels))
+        next
+      }
       tt2 <- stats::terms(stats::as.formula(call("~", comp$bar[[2]]),
                                             env = env))
       tt2 <- patch_predvars(tt2, fit$frame$predvar_map)
@@ -283,6 +296,46 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   }
   list(X = X, off = off, re_parts = re_parts, sm_parts = sm_parts,
        nonest = nonest)
+}
+
+#' Rebuild one multi-membership component's design on newdata, as one
+#' `re_parts` entry per member.
+#'
+#' @noRd
+mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
+                             predvar_map, allow_new_levels) {
+  mms <- comp$mm
+  iw <- mm_index_weights(mms, newdata, env, bk$levels)
+  tt2 <- stats::terms(stats::as.formula(call("~", mms$lhs), env = env))
+  md <- mm_member_designs(mms, newdata, env, iw$n_members,
+                          predvar_map = predvar_map,
+                          xlev = xlev_for(xlevels, tt2),
+                          use_model_frame = TRUE)
+  if (!identical(md$cnms, comp$cnms)) {
+    stop("Multi-membership design for `", comp$label, "` does not match ",
+         "the fitted model (columns: ",
+         paste(md$cnms, collapse = ", "), " vs ",
+         paste(comp$cnms, collapse = ", "), ")", call. = FALSE)
+  }
+  gv <- mm_member_values(mms, newdata, env)
+  if (anyNA(iw$J) && !allow_new_levels) {
+    new <- unique(unlist(lapply(gv, function(v) {
+      setdiff(as.character(v), bk$levels)
+    }), use.names = FALSE))
+    stop("New levels in multi-membership factor `", mms$label, "`: ",
+         paste(new, collapse = ", "),
+         ". Use allow_new_levels = TRUE to predict those memberships ",
+         "at the population level; the row's remaining members still ",
+         "contribute their fitted effects", call. = FALSE)
+  }
+  lapply(seq_len(iw$n_members), function(k) {
+    # new_key names WHICH unseen level this member landed on, because a
+    # row whose members carry the SAME unseen label loads one draw of
+    # the block, not two independent ones (see extra_var_blocks())
+    list(bk = bk, comp = comp,
+         mm = md$designs[[k]] * iw$W[, k], j = iw$J[, k],
+         new_key = as.character(gv[[k]]))
+  })
 }
 
 #' RE contribution to eta for one linear predictor, given the full
@@ -850,10 +903,9 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   A <- as.matrix(da$A)
   var_eta <- pmax(rowSums((A %*% V) * A), 0)
   ev <- lp_extra_var(object, ed, use_re)
-  for (nl in ev$new_levels) {
-    Scc <- nl$S[nl$cols, nl$cols, drop = FALSE]
-    mmn <- nl$mm[nl$nas, , drop = FALSE]
-    var_eta[nl$nas] <- var_eta[nl$nas] + rowSums((mmn %*% Scc) * mmn)
+  for (B in extra_var_blocks(ev$new_levels, n)) {
+    Mr <- B$M[B$rows, , drop = FALSE]
+    var_eta[B$rows] <- var_eta[B$rows] + rowSums((Mr %*% B$S) * Mr)
   }
   for (gv in ev$gp) var_eta <- var_eta + gv
   se_eta <- sqrt(var_eta)
@@ -1060,7 +1112,7 @@ lp_extra_var <- function(object, ed, use_re) {
         bk = bk,
         S = covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk),
         cols = rp$comp$offset + seq_len(rp$comp$dim),
-        mm = rp$mm, nas = nas
+        mm = rp$mm, nas = nas, new_key = rp$new_key
       )
     }
   }
@@ -1069,6 +1121,51 @@ lp_extra_var <- function(object, ed, use_re) {
     if (!is.null(sp$extra_var)) gp[[length(gp) + 1L]] <- sp$extra_var
   }
   list(new_levels = nl, gp = gp)
+}
+
+#' Collect the new-level variance sources into INDEPENDENT DRAWS.
+#'
+#' Two `lp_extra_var()` entries load the SAME draw exactly when they
+#' name the same block and, on that row, the same level of it. Summing
+#' their design rows first and taking one quadratic form is then the
+#' right answer, and it is not the same as adding the two quadratic
+#' forms: the shared draw contributes `(w1 + w2)^2 S`, two distinct
+#' draws contribute `w1^2 S + w2^2 S`.
+#'
+#' Three cases meet here, and the grouping key settles all three.
+#' Components of one `|ID|`-merged block, and one block appearing in
+#' several linear predictors, always name one level per row, so they
+#' share a key and their cross-covariance is kept. A multi-membership
+#' term is the case where one block contributes SEVERAL entries per row
+#' - one per member - and whether two of them are one draw depends on
+#' the data: `allow_new_levels = TRUE` on a row whose two members carry
+#' the same unseen label is one draw, two different unseen labels are
+#' two. `new_key` carries the label that decides it; entries without
+#' one (every single-membership term) key on a constant, which
+#' reproduces the one-level-per-row grouping.
+#'
+#' @noRd
+extra_var_blocks <- function(nl, n, weights = NULL) {
+  out <- list()
+  for (idx in seq_along(nl)) {
+    e <- nl[[idx]]
+    if (!length(e$nas)) next
+    kv <- e$new_key %||% rep(".", n)
+    w <- if (is.null(weights)) rep(1, n) else weights[[idx]]
+    bkey <- as.character(e$bk$c_idx[1L])
+    for (lev in unique(kv[e$nas])) {
+      rows <- e$nas[!is.na(kv[e$nas]) & kv[e$nas] == lev]
+      if (!length(rows)) next
+      key <- paste0(bkey, "\r", lev)
+      B <- out[[key]] %||% list(S = e$S, M = matrix(0, n, e$bk$dim),
+                                rows = integer(0))
+      B$M[rows, e$cols] <- B$M[rows, e$cols] +
+        w[rows] * e$mm[rows, , drop = FALSE]
+      B$rows <- union(B$rows, rows)
+      out[[key]] <- B
+    }
+  }
+  out
 }
 
 #' Central-difference gradient of the expected response with respect to
@@ -1168,20 +1265,15 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   # New grouping levels: a block whose components sit in several linear
   # predictors enters once, through the summed gradient over its own
   # component space, so the within-block cross-dpar covariance is kept.
-  blocks <- list()
+  nl_all <- list()
+  nl_grad <- list()
   for (dnm in dnames) {
     for (nl in evs[[dnm]]$new_levels) {
-      bkey <- as.character(nl$bk$c_idx[1])
-      B <- blocks[[bkey]] %||% list(S = nl$S,
-                                    M = matrix(0, n, nl$bk$dim),
-                                    rows = integer(0))
-      B$M[nl$nas, nl$cols] <- B$M[nl$nas, nl$cols] +
-        grad[[dnm]][nl$nas] * nl$mm[nl$nas, , drop = FALSE]
-      B$rows <- union(B$rows, nl$nas)
-      blocks[[bkey]] <- B
+      nl_all[[length(nl_all) + 1L]] <- nl
+      nl_grad[[length(nl_grad) + 1L]] <- grad[[dnm]]
     }
   }
-  for (B in blocks) {
+  for (B in extra_var_blocks(nl_all, n, nl_grad)) {
     Mr <- B$M[B$rows, , drop = FALSE]
     var_m[B$rows] <- var_m[B$rows] + rowSums((Mr %*% B$S) * Mr)
   }
