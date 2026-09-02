@@ -38,6 +38,17 @@ plots against is the expected category index \verb{sum_k k * P(y = k)},
 the same scalar \code{\link[=residuals]{residuals()}} scores an ordinal fit by; it sets the
 horizontal axis of the display and nothing else, since the residuals
 themselves come from the ranks of the draws.
+
+A NOMINAL response (the \code{categorical()} family) is refused. A scaled
+quantile residual is the predictive CDF evaluated at the observation,
+and a CDF needs an ordered support. Ordinal categories have one, so
+their codes carry real information; nominal ones do not, and their
+1..K codes are an arbitrary labeling - relabel the levels and every
+residual moves, which is not a diagnostic. DHARMa says the same of
+multinomial responses in its own vignette. Check a nominal fit with
+\code{\link[=pp_check]{pp_check()}} instead (\code{type = "bars"} compares the observed category
+counts with the simulated ones), or read the per-category
+probabilities through \code{conditional_effects()}.
 }
 
 \examples{
