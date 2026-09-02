@@ -147,22 +147,26 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   off <- extract_offset(tt, mfp, env)
 
   # Smooths: rebuild the (wiggly, fixed) split of the basis for newdata.
-  # PredictMat %*% U, scaled by D, has the wiggly columns first (in rand
-  # order) and the null-space columns last.
+  # Either way the result has the wiggly columns first (in rand order)
+  # and the null-space columns last, matching the fitted X layout.
   sm_parts <- list()
   for (si in lp$smooths %||% list()) {
+    M <- mgcv::PredictMat(si$sm, newdata)
     if (is.null(si$U)) {
-      # t2() smooths: smooth2random() reparameterizes by pen.ind
-      # grouping with no trans.U, and PredictMat does not reproduce the
-      # training basis under that split (dev/feature-gaps.md, t2
-      # prediction entry). Refusing beats returning wrong numbers.
-      stop("predict(newdata = ) is not yet supported for t2() smooths ",
-           "(term ", si$label, "). In-sample fitted()/predict() work; ",
-           "for new-data prediction use s(x1, x2, ...) instead of ",
-           "t2(), or predict at the observed rows", call. = FALSE)
+      # t2(): smooth2random() gives no rotation, only pen.ind, so the
+      # split is a trans.D scaling plus the frozen column permutation
+      # (see smooth_pen_order()). NULL `ord` means that identity did not
+      # hold at fit time; refusing beats returning wrong numbers.
+      if (is.null(si$ord)) {
+        stop("predict(newdata = ) is not supported for the smooth ",
+             si$label, ": mgcv reported a random-effect split this ",
+             "version cannot invert. In-sample fitted()/predict() work; ",
+             "predict at the observed rows instead", call. = FALSE)
+      }
+      M <- sweep(M, 2, si$D, `*`)[, si$ord, drop = FALSE]
+    } else {
+      M <- sweep(M %*% si$U, 2, si$D, `*`)
     }
-    M <- mgcv::PredictMat(si$sm, newdata) %*% si$U
-    M <- sweep(M, 2, si$D, `*`)
     pos <- 0L
     for (r in seq_along(si$nr)) {
       Xr_new <- M[, pos + seq_len(si$nr[r]), drop = FALSE]

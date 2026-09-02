@@ -29,6 +29,12 @@ test_that("function-on-function regression matches mgcv exactly", {
   expect_lt(abs(as.numeric(logLik(fit)) - (-as.numeric(ref$gcv.ubre))),
             1e-3)
   expect_lt(max(abs(fitted(fit) - fitted(ref))), 1e-4)
+  # matrix-covariate t2 rebuilds its basis on newdata like any other
+  expect_equal(predict(fit, newdata = dd), predict(fit), tolerance = 1e-10)
+  sub <- dd[c(1, 5, 40, 200, 700), ]
+  p <- predict(fit, newdata = sub, se.fit = TRUE)
+  expect_lt(max(abs(p$fit - predict(fit)[c(1, 5, 40, 200, 700)])), 1e-10)
+  expect_true(all(is.finite(p$se.fit)))
 })
 
 test_that("af-style nonlinear functional terms fit (surfaces match mgcv)", {
