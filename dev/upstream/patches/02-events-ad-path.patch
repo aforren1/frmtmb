@@ -1,0 +1,172 @@
+From 6f4b3de501764e63bbfe510b2be4be576bd16f9e Mon Sep 17 00:00:00 2001
+From: Alex Forrence <alex.forrence@gmail.com>
+Date: Wed, 2 Sep 2026 13:05:14 -0400
+Subject: [PATCH] RTMBode: name the ODE states, and refuse events that are not
+ add
+
+Two defects, one reachable only once the other is fixed.
+
+1. The state vector handed to deSolve carried no names.  func2tape()
+   names its input c("t", names(y), names(parms)), but MakeTape(...)$par()
+   returns that vector unnamed, so addInfo() stored an unnamed state and
+   updateSolution() passed an unnamed vector to deSolve.  deSolve reads
+   the state names off that vector, so checkevents() bounded the event
+   index by length(vars) = 0 and every event table failed with
+
+     Error: too many state variables in 'event'; should be < 0
+
+   or, with named states in the caller's y,
+
+     Error: unknown state variable in 'event': depot
+
+   Carry names(y) through addInfo(), and keep them on the leading block
+   of the augmented state so an event addressing a state by name resolves
+   at every differentiation order, not just at order 0.
+
+2. With the names fixed, 'replace' and 'multiply' events return wrong
+   gradients silently.  The augmented system carries the states together
+   with their derivatives; deSolve jumps the state block and leaves the
+   sensitivity block alone.  That is correct for 'add' by linearity and
+   wrong for the other two:
+
+     method     state jump    correct sensitivity jump   deSolve
+     add        y := y + a    dy := dy                   correct
+     replace    y := v        dy := 0                    leaves dy alone
+     multiply   y := f y      dy := f dy                 leaves dy alone
+
+   Measured against central differences of the numeric solve, 'replace'
+   was off by 42% and 'multiply' by 59%, while the solution values agreed
+   to ten digits.  That is the shape of a wrong-likelihood hazard: an
+   optimum found with those gradients is not the maximum likelihood
+   estimate and nothing warns.  Refuse them by name.  An event *function*
+   cannot be inspected, so it warns instead of stopping.
+
+   The workaround the error names is exact for every method: split the
+   integration at the event times, chain one ode() call per interval, and
+   apply the jump in RTMB arithmetic between the calls.  RTMBode is
+   already differentiable through the initial state, so the adjoint is
+   correct by construction and the jump amount may itself be estimated.
+---
+ RTMBode/R/odesolve.R | 77 ++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 74 insertions(+), 3 deletions(-)
+
+diff --git a/RTMBode/R/odesolve.R b/RTMBode/R/odesolve.R
+index 8f7dc51..0df1298 100644
+--- a/RTMBode/R/odesolve.R
++++ b/RTMBode/R/odesolve.R
+@@ -20,7 +20,13 @@ setTape <- function(F, parms) {
+ ##   ORDER 0: nstate
+ ##   ORDER 1: nstate + nstate * (nstate + nparms)
+ ##   ORDER 2: nstate + nstate * (nstate + nparms) + nstate * (nstate + nparms)^2
+-addInfo <- function(F, times) {
++## 'statenames' are the names of the ODE states.  'MakeTape(...)$par()' drops
++## the names its input carried, so they have to be supplied by the caller.
++## deSolve reads the state names off the vector it is handed ('attr(y,
++## "names")'), and 'events$data' addresses states by name, so an unnamed state
++## vector makes every event specification unusable: 'checkevents()' bounds the
++## event index by 'length(vars)', which is then 0.
++addInfo <- function(F, times, statenames = NULL) {
+     domain <- environment(F)$mod$domain()
+     range <- environment(F)$mod$range()
+     ## ORDER 0
+@@ -34,11 +40,70 @@ addInfo <- function(F, times) {
+     )
+     info$par <- F$par()
+     info$state <- head(tail(info$par, -1), info$nstate)
++    if (!is.null(statenames)) {
++        if (length(statenames) != info$nstate)
++            stop("'statenames' must have one name per state")
++        names(info$state) <- statenames
++    }
++    info$augstate <- info$state
+     info$parms <- tail(info$par, info$nparms)
+     info$times <- times
+     attr(F, "info") <- info
+     F
+ }
++## Events on the AD path.
++##
++## Derivatives are obtained by integrating an augmented system that carries the
++## states together with their derivatives with respect to the initial state and
++## the parameters.  deSolve applies an event row to the state block only and
++## leaves the sensitivity block untouched.  That is correct for 'add', because a
++## constant offset does not change the derivative, and wrong for the other two:
++##
++##   method     state jump    correct sensitivity jump   what deSolve does
++##   add        y := y + a    dy := dy                   correct
++##   replace    y := v        dy := 0                    leaves dy alone
++##   multiply   y := f y      dy := f dy                 leaves dy alone
++##
++## The solution values stay correct in all three cases, so the failure is
++## silent: only the gradient is wrong, and an optimum reached with it is not a
++## maximum likelihood estimate.  Refuse what cannot be differentiated rather
++## than return a wrong derivative.  'replace' is deSolve's fallback when no
++## method is given, so the wrong case is also the one a user reaches by
++## omission.
++checkADevents <- function(events) {
++    if (!is.list(events)) return(invisible(NULL))
++    if (!is.null(events$func) || !is.null(events$root) ||
++        !is.null(events$terminalroot)) {
++        ## An event function is arbitrary R code, so it cannot be inspected.
++        ## It is differentiated correctly only if it adds a constant to a
++        ## state; anything else silently corrupts the sensitivity block.
++        warning("'events$func' is differentiated correctly only where it adds ",
++                "a constant to a state. Replacing or scaling a state, or using ",
++                "an amount that depends on an estimated parameter, gives wrong ",
++                "derivatives without any further warning: the event function ",
++                "runs inside the numeric solve and does not update the ",
++                "sensitivity block of the augmented system.")
++        return(invisible(NULL))
++    }
++    eventdata <- events$data
++    if (is.null(eventdata)) return(invisible(NULL))
++    if (is.matrix(eventdata)) eventdata <- as.data.frame(eventdata)
++    method <- if (is.null(eventdata$method)) "replace" else eventdata$method
++    method <- if (is.numeric(method))
++                  c("replace", "add", "multiply")[method]
++              else
++                  c("replace", "add", "multiply")[charmatch(as.character(method),
++                                                            c("replace", "add", "multiply"))]
++    bad <- unique(method[!(method %in% "add")])
++    if (length(bad))
++        stop("'events' with method ", paste0("'", bad, "'", collapse = ", "),
++             " give wrong derivatives and are refused on the autodiff path; ",
++             "only 'add' is correct, because deSolve jumps the state but not ",
++             "the sensitivity block of the augmented system. Split the ",
++             "integration at the event times and apply the jump in RTMB ",
++             "arithmetic between the calls.")
++    invisible(NULL)
++}
+ augment <- function(F, oldpar=F$par()) {
+     info <- attr(F, "info")
+     if (is.null(info)) stop("'F' must have 'info' attribute")
+@@ -56,9 +121,14 @@ augment <- function(F, oldpar=F$par()) {
+     }
+     nstate <- info$nstate
+     nparms <- info$nparms
+-    augstate <- c(y=info$state,
++    augstate <- c(y=unname(info$state),
+                   dy=as.numeric(diag(nstate)),
+                   dy=rep(0, newinfo$naugstate - nstate - nstate^2 ))
++    ## Keep the caller's state names on the leading block so that an event
++    ## specification addressing a state by name resolves at every order, not
++    ## just at order 0.
++    if (!is.null(names(info$state)))
++        names(augstate)[seq_len(nstate)] <- names(info$state)
+     newinfo$augstate <- augstate
+     newpar <- c(t=0, augstate, info$parms)
+     dotTab <- outer(1:info$naugstate, 1:(nstate+nparms), dotIndex)
+@@ -266,8 +336,9 @@ ode <- function (y, times, func, parms, method=NULL, ...) {
+             F <- MakeTape(function(xa) { x <- RTMB::advector(x); x[a] <- xa; F(x) } , xa )
+             parms <- parms[active]
+         }
++        checkADevents(list(...)[["events"]])
+         F$simplify()
+-        F <- addInfo(F, times=times)
++        F <- addInfo(F, times=times, statenames=names(y))
+         F <- ODEadjoint(F, method=method, ...) ## Attach adjoint code
+         x <- c(y, parms)
+         ans <- F(x)
+-- 
+2.45.0.windows.1
+

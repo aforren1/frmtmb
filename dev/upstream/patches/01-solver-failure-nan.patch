@@ -1,0 +1,102 @@
+From 265acb15da52dae40786d1cfecd97c207917ee9b Mon Sep 17 00:00:00 2001
+From: Alex Forrence <alex.forrence@gmail.com>
+Date: Wed, 2 Sep 2026 13:04:24 -0400
+Subject: [PATCH] RTMBode: a failed solve must give NaN, not an R error
+
+deSolve fails in two ways inside the adjoint node, and both escaped as R
+errors:
+
+  - it signals an error, "illegal input detected before taking any
+    integration steps", raised when the derivative is not finite at t0;
+  - it returns early, that is a solution matrix with fewer rows than
+    'times', which RTMB::ADjoint then rejects as "Wrong output length".
+
+Both are ordinary consequences of an extreme parameter proposal, and both
+are reachable from a plain obj$fn() call with no sampler involved.  An
+optimizer can shorten its step and a sampler can reject its proposal only
+if the failure arrives as NaN; an error unwinds the call stack instead.
+When the caller is Stan through 'tmbstan' the damage outlives the call:
+the error crosses Stan's C++ boundary, the chain aborts at warmup
+iteration 1, and the nested autodiff arena stays unbalanced for the rest
+of the session ("empty_nested() must be true before calling
+recover_memory()").
+
+Catch the error, detect the short return, and substitute a solution of
+the right shape filled with NaN.  A solution with MORE rows than 'times'
+is not a failure: deSolve inserts event times that are not already in
+'times'.  Map that case back onto the requested times, which also fixes
+an unrelated "EvalOp: Function must return 'real' or 'integer'" for event
+tables whose times are off the output grid.
+
+The NaN fill uses array() rather than matrix() because RTMB's matrix()
+returns an advector inside an active AD context.
+---
+ RTMBode/R/odesolve.R | 45 ++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 39 insertions(+), 6 deletions(-)
+
+diff --git a/RTMBode/R/odesolve.R b/RTMBode/R/odesolve.R
+index d0ae8e0..8f7dc51 100644
+--- a/RTMBode/R/odesolve.R
++++ b/RTMBode/R/odesolve.R
+@@ -98,6 +98,25 @@ ODEadjoint <- function(F, ...) {
+     sol <- NULL
+     solcols <-
+         local( tail( seq_len(naugstate)+1,  nstate * (nstate + nparms)^order), info)
++    ## A solve that fails must yield a non-finite objective, never an R error.
++    ## An optimizer can shorten its step and a sampler can reject its proposal
++    ## only if the failure reaches them as NaN; an error unwinds the call stack,
++    ## and when the caller is Stan (via 'tmbstan') it also leaves Stan's nested
++    ## autodiff arena unbalanced for the rest of the session.
++    ## deSolve fails in two ways, and both used to escape:
++    ##  - it signals an error ("illegal input detected before taking any
++    ##    integration steps", raised when the derivative is not finite at t0);
++    ##  - it returns early, that is a matrix with fewer rows than 'times', which
++    ##    RTMB::ADjoint then reports as "Wrong output length".
++    nout <- length(times)
++    ncols <- max(solcols)
++    failedSolution <- function() {
++        ## 'array', not 'matrix': RTMB's 'matrix' returns an advector inside an
++        ## active AD context, and the adjoint node must hand back plain doubles.
++        ans <- array(NaN, c(nout, ncols))
++        ans[, 1] <- times
++        ans
++    }
+     updateSolution <- function(x) {
+         if (identical(attr(sol, "x"), x))
+             return (NULL)
+@@ -107,12 +126,26 @@ ODEadjoint <- function(F, ...) {
+         parms <- tail(x, nparms)
+         ## We should always setTape before calling ode:
+         setTape(F, parms)
+-        sol <<- deSolve::ode(augstate,
+-                             times,
+-                             func = "desolve_derivs",
+-                             parms=NULL,
+-                             dllname = "RTMBode",
+-                             ...)
++        ans <- tryCatch(deSolve::ode(augstate,
++                                     times,
++                                     func = "desolve_derivs",
++                                     parms=NULL,
++                                     dllname = "RTMBode",
++                                     ...),
++                        error = function(e) NULL)
++        if (is.matrix(ans) && nrow(ans) > nout && ncol(ans) >= ncols) {
++            ## Not a failure: deSolve inserts event times that are not already
++            ## in 'times'.  The adjoint node has a fixed output length, so map
++            ## the solution back onto the times the caller asked for.  Where an
++            ## event time is also an output time deSolve returns both sides and
++            ## 'match' takes the first, which is the pre-event value - the same
++            ## convention the plain numeric solve follows.
++            i <- match(times, ans[, 1])
++            if (!anyNA(i)) ans <- ans[i, , drop=FALSE]
++        }
++        if (!is.matrix(ans) || nrow(ans) != nout || ncol(ans) < ncols)
++            ans <- failedSolution()
++        sol <<- ans
+         ## cat("Calling sol "); print(ncol(sol))
+         attr(sol, "x") <<- x
+         NULL
+-- 
+2.45.0.windows.1
+
