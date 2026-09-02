@@ -389,6 +389,26 @@ lookup_structural <- function(expr, data2, data, env, what) {
   })
 }
 
+#' Do two resolved structural matrices describe the same thing?
+#'
+#' Compared on the RESOLVED objects rather than on the deparsed
+#' expressions: `|ID|`-linked terms live in different `bf()` formulas,
+#' and two formula environments can bind the same name to different
+#' matrices. Both sides are already reordered onto the block's levels,
+#' so a plain elementwise comparison answers the question. The tolerance
+#' is relative to the larger of the two, because a relationship matrix
+#' assembled twice (a pedigree recomputed per formula) can differ in the
+#' last bits without describing a different structure.
+#'
+#' @noRd
+same_structural_matrix <- function(a, b) {
+  if (is.null(a) || is.null(b)) return(FALSE)
+  if (!identical(dim(a), dim(b))) return(FALSE)
+  scale <- max(1, suppressWarnings(max(abs(a))))
+  d <- suppressWarnings(max(abs(a - b)))
+  isTRUE(is.finite(d) && d <= 1e-10 * scale)
+}
+
 structural_lookup_msg <- function(expr, data2, what, e) {
   txt <- deparse1(expr)
   held <- if (length(data2)) {
@@ -1068,16 +1088,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             }
             aux_A <- unname(A[lv, lv])
             if (d_k > 1L) {
-              nl_k0 <- len_k %/% d_k
-              r <- seq_len(len_k)
-              l1 <- (r - 1L) %/% d_k + 1L
-              c1 <- (r - 1L) %% d_k + 1L
-              aux_kron <- list(
-                ia = as.vector(outer(l1, l1,
-                                     function(a, b) (b - 1L) * nl_k0 + a)),
-                is = as.vector(outer(c1, c1,
-                                     function(a, b) (b - 1L) * d_k + a))
-              )
+              aux_kron <- kron_cov_index(d_k, len_k %/% d_k)
             }
           }
           if (cs_name == "equalto") {
@@ -1462,7 +1473,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   }
 
   ## Phase 2: components -> blocks. Components sharing an |ID| key merge
-  ## into one us block; everything else gets its own block.
+  ## into one block - unstructured by default, or one gr_cov/gr_prec
+  ## Kronecker block when every linked term carries the same known
+  ## covariance; everything else gets its own block.
   comp_group <- integer(length(components))
   id_keys <- vapply(components, function(cp) cp$id %||% "", "")
   group_defs <- list()
@@ -1487,8 +1500,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
 
   for (gd in group_defs) {
     cps <- components[gd]
+    mrg_kron <- NULL   # rebuilt at the MERGED dimension, not cps[[1]]'s
+    mrg_Qk <- NULL
     if (length(cps) > 1L) {
-      if (any(vapply(cps, `[[`, "", "covstruct") == "rr")) {
+      cs_set <- unique(vapply(cps, `[[`, "", "covstruct"))
+      if ("rr" %in% cs_set) {
         stop("rr() terms cannot share an |ID| key", call. = FALSE)
       }
       lv <- cps[[1]]$levels
@@ -1500,13 +1516,53 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         }
       }
       D <- sum(vapply(cps, `[[`, 0L, "dim"))
-      cs_name <- "us"
+      n_levels <- cps[[1]]$n_levels
+      # A merged group of gr(cov =) / gr(prec =) terms is ONE Kronecker
+      # block of the total merged dimension: b ~ N(0, A (x) Sigma) with
+      # Sigma unstructured across the merged coefficients. That is the
+      # same joint density as writing the traits long with a single
+      # (0 + trait | gr(id, cov = A)) term, so the two spellings agree.
+      # check_id_covstructs() already refused a key that mixes
+      # structures; what is left to verify is that the cov = expressions
+      # RESOLVE to the same matrix, which per-formula environments can
+      # make them not do.
+      if (length(cs_set) == 1L && cs_set %in% c("gr_cov", "gr_prec")) {
+        cs_name <- cs_set
+        akey <- if (cs_name == "gr_cov") "aux_A" else "aux_Q"
+        for (cp in cps[-1]) {
+          if (!same_structural_matrix(cps[[1]][[akey]], cp[[akey]])) {
+            stop("|ID|-linked ",
+                 if (cs_name == "gr_cov") "gr(cov = )" else "gr(prec = )",
+                 " terms must resolve to the same matrix (",
+                 cps[[1]]$label, " vs ", cp$label,
+                 "). The terms merge into one Kronecker block, which ",
+                 "carries a single relationship matrix; put it in ",
+                 "data2 so every formula resolves the same object.",
+                 call. = FALSE)
+          }
+        }
+        if (cs_name == "gr_cov") {
+          mrg_kron <- kron_cov_index(D, n_levels)
+        } else {
+          mrg_Qk <- kron_prec_parts(cps[[1]]$aux_Q, D)
+        }
+      } else if (all(cs_set == "us")) {
+        cs_name <- "us"
+      } else {
+        # Unreachable through parse_spec(), which refuses a mixed key
+        # up front. Kept because the failure mode it guards is silent:
+        # falling through to "us" here would drop a relationship matrix
+        # into a density that never reads it.
+        stop("|ID|-linked terms mix covariance structures (",
+             paste(cs_set, collapse = ", "),
+             "), which a single merged block cannot carry",
+             call. = FALSE)
+      }
       cnms <- unlist(lapply(cps, function(cp) {
         paste0(cp$lp_key, ":", cp$cnms)
       }))
       label <- paste0(paste(vapply(cps, `[[`, "", "label"),
                             collapse = " + "), " [ID]")
-      n_levels <- cps[[1]]$n_levels
       rank_k <- NULL
     } else {
       cp <- cps[[1]]
@@ -1560,9 +1616,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       aux_A = cps[[1]]$aux_A,
       aux_D = cps[[1]]$aux_D,
       aux_D2 = cps[[1]]$aux_D2,
-      aux_kron = cps[[1]]$aux_kron,
+      aux_kron = mrg_kron %||% cps[[1]]$aux_kron,
       aux_Q = cps[[1]]$aux_Q,
-      aux_Qk = cps[[1]]$aux_Qk,
+      aux_Qk = mrg_Qk %||% cps[[1]]$aux_Qk,
       aux_car = cps[[1]]$aux_car,
       aux_spde = cps[[1]]$aux_spde,
       car_type = cps[[1]]$car_type,

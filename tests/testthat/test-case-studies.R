@@ -92,11 +92,11 @@ test_that("the multi-trait animal model reads the pedigree", {
     value = c(3 + U[, 1] + rnorm(n, 0, 0.7),
               1 + U[, 2] + rnorm(n, 0, 0.9)))
 
-  # the long format is the supported multi-trait spelling: one random
-  # coefficient per trait, so the block covariance IS the genetic
-  # matrix G and cov = A makes the whole covariance G %x% A. The
-  # mvbf() + |ID| + gr(cov =) spelling is refused, because the
-  # cross-formula merge cannot carry the covariance matrix.
+  # the long format is one multi-trait spelling: one random coefficient
+  # per trait, so the block covariance IS the genetic matrix G and
+  # cov = A makes the whole covariance G %x% A. Since v0.32 the
+  # mvbf() + |ID| + gr(cov =) spelling gives the same joint density
+  # (test-id-kron.R holds the equivalence).
   fmv <- frm(bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)),
                 sigma ~ 0 + trait) + gaussian(),
              data = long, data2 = list(A = A))
