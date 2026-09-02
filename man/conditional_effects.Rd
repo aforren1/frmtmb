@@ -15,8 +15,13 @@ conditional_effects(x, ...)
   resolution = 100,
   prob = 0.95,
   method = c("epred", "predict"),
+  band = c("wald", "profile", "boot"),
   ndraws = 400,
+  boot = NULL,
+  profile_points = 25,
+  seed = NULL,
   conditions = list(),
+  surface = FALSE,
   data = NULL,
   ...
 )
@@ -53,13 +58,34 @@ must be pinned in \code{conditions} (a grid row is an artificial
 observation, so a reference value for those is meaningless and is
 an error rather than a silent default).}
 
+\item{band}{How the confidence band is built: \code{"wald"} (default,
+the delta method on the link scale), \code{"profile"} (likelihood-root
+inversion per grid point) or \code{"boot"} (parametric-bootstrap
+percentiles). See the band section. Only for \code{method = "epred"}.}
+
 \item{ndraws}{Simulated responses per grid point for
 \code{method = "predict"}.}
+
+\item{boot}{For \code{band = "boot"}: \code{NULL} (default) runs one
+\code{\link[=frm_bootstrap]{frm_bootstrap()}} of 200 refits and says so, a number runs that
+many, and a \code{frmtmb_boot} object from an earlier identical call
+(\code{attr(ce, "boot")}) is reused without refitting anything.}
+
+\item{profile_points}{For \code{band = "profile"}: how many points of a
+numeric grid are profiled, the band being interpolated between them
+on the link scale.}
+
+\item{seed}{Seed for \code{band = "boot"}, passed to \code{\link[=frm_bootstrap]{frm_bootstrap()}}.}
 
 \item{conditions}{Named list overriding reference values, e.g.
 \code{list(x2 = 1, g = "b")}; or a data frame whose rows define
 multiple condition sets (brms style), labeled by a \code{cond__}
 column from its row names.}
+
+\item{surface}{Accepted for brms compatibility. \code{TRUE} (a fitted
+surface over two predictors) is refused: ask for the two-variable
+effect \code{"x1:x2"} instead, which varies the first predictor at three
+values of the second.}
 
 \item{data}{The original model data. Only needed when the model frame
 does not store a raw variable (e.g. a variable used only inside
@@ -106,13 +132,92 @@ parameter, \code{dpar = "mu"}, opts back into the ordinary display of the
 latent linear predictor.
 }
 
+\section{Confidence bands}{
+
+\code{band} picks how \code{lower__} and \code{upper__} are found. The estimate is
+the same curve in all three cases; only the band changes.
+\itemize{
+\item \code{"wald"} (default, and free): the delta-method standard error on
+the link scale, back-transformed. Symmetric on the link scale by
+construction.
+\item \code{"profile"}: one likelihood-root search (\code{\link[TMB:tmbroot]{TMB::tmbroot()}}) per grid
+point. A grid point's linear predictor is a linear combination of
+the coefficients, so the search inverts the likelihood ratio along
+that combination; the link is monotone, so the two endpoints map
+through it. The band is not symmetric and does not assume a
+quadratic log-likelihood, which is what makes it worth its cost
+near a boundary or at a small sample size.
+\item \code{"boot"}: percentiles of the grid predictions across the refits of
+ONE \code{\link[=frm_bootstrap]{frm_bootstrap()}} (\code{re.form = NA}, the same population-level
+grid). One bootstrap serves every effect, condition set and ordinal
+category of the call; \code{attr(ce, "boot")} returns it, and passing it
+back as \verb{boot =} costs no refits at all.
+}
+
+What \code{se__} means follows the band: the Wald standard error (link
+scale, or the probability scale on the ordinal display) for \code{"wald"}
+and \code{"profile"} - the profile changes the endpoints, not the standard
+error - and the standard deviation of the bootstrap draws, on the
+displayed scale, for \code{"boot"}.
+
+Cost, and how it is capped. A root search is two constrained
+optimizations, so \code{band = "profile"} profiles at most
+\code{profile_points} (default 25) of a numeric grid, spread over its
+range and including both ends, and interpolates the endpoints
+linearly between them on the link scale. \code{resolution} still governs
+the estimate curve. A factor grid is profiled at every level. Points
+whose search does not converge become \code{NA} and one warning names how
+many. \code{band = "boot"} costs its refits once, however many effects are
+asked for.
+
+Refusals. \code{band} other than \code{"wald"} needs \code{method = "epred"}: a
+prediction interval is already a simulation quantile. \code{band = "profile"} additionally needs the displayed quantity to BE a linear
+combination of the parameters, so it is refused (naming \code{"boot"}) for
+an ordinal category probability, for an expected response that runs
+through several distributional parameters or through truncation
+bounds (\verb{dpar =} names one predictor and opts back in), for a
+nonlinear predictor, for a predictor carrying \code{s()}, \code{gp()} or
+\code{hsgp()} (basis coefficients are inner parameters), and for a REML
+fit or \code{frmtmb_control(profile = TRUE)} (the coefficients are not
+outer parameters there).
+
+A nonlinear predictor (\code{nl = TRUE}) has no delta-method standard
+error at all, so \code{band = "boot"} is its only band and the other two
+are refused. The same holds for the per-category display of a nominal
+family, whose probabilities have no threshold Jacobian to
+differentiate.
+}
+
+\section{Which predictors are plotted by default}{
+
+Every variable of the selected linear predictor that the display can
+vary: its fixed-effect terms, its smooth terms and its \code{mo()} terms
+(whose design columns are placeholders, so the variable is read from
+the term itself). On a nonlinear fit they live one level down - the
+covariates the nonlinear formula reads, plus the terms of each
+nonlinear parameter's own predictor - and all of those are collected
+too. Matrix-valued columns are excluded, a grid over a matrix
+covariate not being a curve. Naming \verb{effects =} overrides the search.
+}
+
 \examples{
 set.seed(5)
 dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))
 dd$y <- rnorm(120, 1 + 0.5 * dd$x + (dd$f == "b"), 1)
-fit <- frm(bf(y ~ x * f) + gaussian(), data = dd)
+fit <- frm(bf(y ~ x * f), family = gaussian(), data = dd)
 ce <- conditional_effects(fit, effects = c("x", "x:f"))
 plot(ce, ask = FALSE)
 # prediction intervals instead of epred bands
 ce_p <- conditional_effects(fit, effects = "x", method = "predict")
+\donttest{
+# a likelihood-profile band: asymmetric, and no quadratic assumption
+ce_pr <- conditional_effects(fit, effects = "x", band = "profile",
+                             resolution = 20, profile_points = 5)
+
+# a bootstrap band, reused for a second effect without refitting
+ce_b <- conditional_effects(fit, effects = "x", band = "boot",
+                            boot = 25, seed = 1)
+ce_b2 <- conditional_effects(fit, effects = "x", band = "boot",
+                             boot = attr(ce_b, "boot"))
+}
 }

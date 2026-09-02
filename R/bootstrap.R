@@ -42,6 +42,14 @@ frm_bootstrap <- function(fit, FUN = function(f) unlist(fixef(f)),
   # refit() replaces the response of the FITTED rows, so the na.exclude
   # padding simulate() adds has to come back off
   sims <- na_unpad(fit, simulate(fit, nsim = nsim, re.form = re.form))
+  # An ordinal draw arrives as an ordered factor carrying the response's
+  # own levels, but the fit stores the 1..K codes and refit() takes
+  # newresp as given: handed a factor, as.vector() turns it into text and
+  # every refit dies inside the objective. Match what the fit holds.
+  if (length(fit$frame$y) == 1L && !is.factor(fit$frame$y[[1L]]) &&
+      any(vapply(sims, is.factor, TRUE))) {
+    sims[] <- lapply(sims, function(v) if (is.factor(v)) as.integer(v) else v)
+  }
   # nsim refits run off this fit's control; a verbose original would
   # otherwise narrate every draw
   if (!is.null(fit$control)) fit$control$verbose <- FALSE
