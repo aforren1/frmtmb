@@ -46,7 +46,7 @@
 #' @srrstatsVerbose TRUE
 #'
 #' @srrstats {G5.2a} Every condition message raised in `R/` is unique.
-#'   The 639 `stop()` calls that carry literal text produce 639 distinct
+#'   The 640 `stop()` calls that carry literal text produce 640 distinct
 #'   messages (mechanically re-counted by an AST walk; 529 at v0.35.0,
 #'   plus nine net from the structured simulator contract and the
 #'   formula interface of `frm_sample()` with its default priors, plus
@@ -56,7 +56,9 @@
 #'   pharmacometrics tier, plus two from the influence plot and the
 #'   ambiguous bare nonlinear parameter, plus four from
 #'   `conditional_effects()` on draws and the brms::bf() masking
-#'   detection), so a
+#'   detection, plus one for the non-centered sampling switch
+#'   (`frm_sample(reparameterize = )` rejecting a non-logical value)),
+#'   so a
 #'   message a user reports names one line of source. Two calls that
 #'   would otherwise read the
 #'   same are separated by the context that tells the two faults apart,

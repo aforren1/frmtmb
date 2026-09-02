@@ -110,6 +110,13 @@ build_objective <- function(frame) {
   lps <- frame$linpreds
   blocks <- frame$re_blocks
   block_fns <- lapply(blocks, function(bk) covstruct_registry[[bk$covstruct]]$nll)
+  # Non-centered blocks (frm_sample(reparameterize = TRUE) only, set on
+  # a private copy of the frame): the sampled vector for these is z, and
+  # the coefficients b = L(theta) z are computed on the tape. Empty on
+  # every fitted objective, where the Laplace approximation makes the
+  # parameterization of the integrated variable irrelevant.
+  ncp_idx <- frame[["ncp_blocks"]] %||% integer(0)
+  is_ncp <- seq_along(blocks) %in% ncp_idx
   spec <- frame$spec
   resps <- spec$responses
   rescor <- isTRUE(spec$rescor)
@@ -136,9 +143,25 @@ build_objective <- function(frame) {
     "[<-" <- RTMB::ADoverload("[<-")
     nll <- 0
 
+    # `bfull` is the coefficient vector every predictor below reads. It
+    # IS pars$b on the centered route, so nothing about that tape moves.
+    bfull <- pars[["b"]]
+    for (i in ncp_idx) {
+      bk <- blocks[[i]]
+      bfull[bk$b_idx] <- ncp_scale_b(bk, pars[["b"]][bk$b_idx],
+                                     pars[["theta"]][bk$theta_idx])
+    }
+
     for (i in seq_along(blocks)) {
       bk <- blocks[[i]]
-      nll <- nll - block_fns[[i]](pars[["b"]][bk$b_idx],
+      if (is_ncp[i]) {
+        # the block's whole density: the transform took the entire
+        # factor out, so what is left is standard normal
+        nll <- nll - sum(RTMB::dnorm(pars[["b"]][bk$b_idx], 0, 1,
+                                     log = TRUE))
+        next
+      }
+      nll <- nll - block_fns[[i]](bfull[bk$b_idx],
                                   pars[["theta"]][bk$theta_idx], bk)
     }
 
@@ -151,9 +174,9 @@ build_objective <- function(frame) {
     # coefficient-space vector for the Z products (rr blocks expand
     # their factors through the loadings)
     bvec <- if (isTRUE(frame$has_rr)) {
-      expand_b(frame, pars[["b"]], pars[["theta"]])
+      expand_b(frame, bfull, pars[["theta"]])
     } else {
-      pars[["b"]]
+      bfull
     }
 
     # mi(): observed-or-latent value vectors per imputation response
