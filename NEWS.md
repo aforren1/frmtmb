@@ -66,6 +66,86 @@ circular responses, and proportional hazards.
   function reach its baseline. The three-argument contract is
   unchanged for every other family.
 
+Hidden Markov models as a first-class family.
+
+## New
+
+* `hmm(K, family, time =, group =, init =, trans =)` fits a `K`-state
+  hidden Markov model. The response at each time point comes from one
+  of `K` state-dependent copies of `family`, and the unobserved state
+  follows a first-order Markov chain along `time` within `group`. The
+  state sequence is summed out EXACTLY by the forward algorithm,
+  evaluated on the same AD tape as everything else, so nothing about
+  the Laplace machinery changes: a random effect in a state's linear
+  predictor is integrated outside the exact state sum. Each of the
+  wrapped family's parameters is copied per state and suffixed
+  (`mu1`, `sigma1`, `mu2`, ...) with the full formula grammar,
+  random effects included, exactly as `mixture()` does.
+  Transition probabilities are a row-wise multinomial logit named
+  `tr{i}{j}` with state 1 the reference cell of every row, and
+  `trans = ~x` gives every cell a predictor at once. Validated
+  against `depmixS4` (logLik to 1e-8 or better and every parameter to
+  five decimals, on gaussian, poisson and categorical emissions with
+  and without transition covariates) and against `hmmTMB` (1e-12 on
+  the stationary fixed-effect model).
+* `init = "stationary"` (the default) solves the chain's stationary
+  distribution on the tape and costs no parameters; `"estimated"`
+  adds `K - 1` free logits, `"uniform"` fixes them. Stationary is
+  refused when a transition cell carries a predictor, because a
+  time-varying chain has no single stationary distribution.
+* `hmm_probs()` returns the smoothed state occupancies
+  `P(S_t = k | y)` from a forward-backward pass - the `mixture_probs()`
+  analog - and `hmm_viterbi()` the maximum-a-posteriori state path.
+  `fitted()`, `predict(type = "response")` and the response and
+  pearson residuals all route through `hmm_probs()`, so they report
+  the occupancy-weighted mean `sum_k P(S_t = k | y) mu_k(x_t)` rather
+  than any single state's. `simulate()` walks the chain forward per
+  sequence and then emits, so DHARMa and `pp_check()` see the fitted
+  persistence.
+* A missing response is a time point the chain passes through without
+  emitting: `hmm()` keeps the row and masks its emission instead of
+  letting `na.action` drop it, which would shorten the chain and bias
+  the transition matrix. `nobs()` counts every row; `fitted()` and
+  `residuals()` are `NA` there while `hmm_probs()` is not.
+
+## Refusals
+
+* `REML`, `quadrature = TRUE` and `frmtmb_control(profile = TRUE)` are
+  refused on an `hmm()` fit, each with the reason. REML in particular
+  used to run and produce a partial restricted likelihood matching no
+  standard definition.
+* `weights()`, `cens()`, `trunc()`, `se()` and `mi()` on the response,
+  multivariate models and `rescor`, `residuals(type = "osa")`,
+  `residuals(type = "deviance")`, `predict(se.fit = TRUE)` and
+  `predict(newdata =)` on the response scale, and
+  `conditional_effects()` are refused, all naming the per-sequence
+  likelihood as the reason.
+* A grouping in which every sequence has length 1 is refused: the
+  transition parameters are then flat directions the reported `df`
+  would still count, and the model is a `mixture()`. Holding every
+  transition dpar at a constant lifts the refusal, and the fit then
+  reproduces `mixture()` to 1e-12.
+* A start with every state's location predictor at the same value
+  warns: it sits on the label-symmetry axis, where the optimizer
+  cannot separate the states. The default quantile-spread starts never
+  do this.
+
+## Known limits
+
+* Multimodality is real and no convergence diagnostic reports it. On a
+  random-effect model the default cold start has been measured
+  converging 8.1 log-likelihood units below the global optimum with
+  `convergence == 0`, `max|grad| == 3.5e-4` and a positive-definite
+  Hessian. Compare starts before reporting.
+* With random effects the Laplace approximation is genuinely
+  approximate even for a gaussian response, because the integrand is a
+  mixture over state sequences: the measured bias is -0.126 in the
+  log-likelihood (8.9e-5 relative) and 4.4e-4 in the parameters
+  against adaptive quadrature. `?hmm` says so.
+* The tape build grows slightly faster than linearly in the number of
+  rows: about 1.9 s at 20 000 rows, against milliseconds to evaluate
+  it. Below 5 000 rows nothing is noticeable.
+
 # frmtmb 0.34.0
 
 Within-group residual correlation (R-side effects), quantile

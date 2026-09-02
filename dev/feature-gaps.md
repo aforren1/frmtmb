@@ -855,3 +855,62 @@ same question, `posterior_epred` has no cox method) and `simulate()`
 as delayed entry through the same log-CDF but is declared conditional,
 not verified: there is no external left-truncated reference in the
 suite yet.
+DONE-rung-2, branch wt-hmm. `hmm(K, family, time =, group =, init =,
+trans =)` is a first-class family in R/hmm.R, wired through additive
+hooks in parse/frame/objective/predict. Everything the probe predicted
+transferred: suffixed per-state dpars with the full formula grammar,
+the multinomial-logit block (K copies), the logspace_add fold,
+quantile-spread inits, and a third objective branch beside `rescor`
+and `mix_g`.
+
+What was built differently from the sketch. The recursion is sliced by
+TIME rather than by sequence: sorting the sequences by decreasing
+length makes the set still running at step s a prefix of that order, so
+one step is K^2 vectorized `logspace_add` calls over all live sequences
+at once. The tape then holds O(Tmax K^2) nodes rather than O(n K^2),
+and the sparse scatter the rung-1 recipe needed disappears entirely -
+the objective branch sums the per-sequence values directly, because
+only their total is wanted. The same slicing carries the numeric
+forward-backward and Viterbi passes.
+
+Validation. depmixS4 on gaussian emissions with constant transitions
+(3.2e-9) and with `trans = ~x` (1.3e-8, every transition coefficient to
+five decimals, which pins the state-1 reference and the "covariate at t
+drives t -> t+1" convention); poisson (1.3e-9) and categorical
+(multinomial, 6.2e-9, emission probabilities to five decimals). hmmTMB
+on the stationary fixed-effect model, 1.1e-12 on logLik and seven
+decimals on every parameter. The probe's own reference numbers
+reproduce exactly: probeA1 -235.204362981 (2.9e-9), probeB1
+-891.019360499 (8.3e-9), F3's free/stationary pair -1608.76549264 (df
+7) and -1609.41007570 (df 6) to the digit, F4's masked-NA
+-691.400711096 to the digit, the stationary solve 6.8e-13 against the
+numeric stationary forward, and forward-backward 6.7e-16 against a
+brute-force per-sequence reference with Viterbi identical.
+
+Residue, all of it deliberate and documented in ?hmm.
+
+- The T = 1 collapse is refused rather than allowed: with every
+  sequence a singleton the transition logits are flat and the reported
+  df counts them (probe F2's 7 against a mixture's 5). Holding them at
+  constants lifts the refusal, and the fit then reproduces `mixture()`
+  to 6.8e-13 with df 5 on both sides, which is the shipped test.
+- Multimodality is unfixed, as the probe said it would be. The cold
+  start on probe D4's model still lands at -1096.09575602 with
+  convergence 0; restarted at the global point it reaches
+  -1087.99646521, hmmTMB's value to the last digit. `frm_allfit()`
+  varies optimizers, not starts, so a multi-START helper is the
+  obvious follow-on.
+- K is capped at 9 because the `tr{i}{j}` dpar names concatenate the
+  state indices. A separator would lift the cap at the cost of the
+  naming that reads naturally.
+- `multinomial(K = C)` emissions inherit its dpar names, so the
+  per-state copies are `mu21`, `mu31`, ... (category, then state).
+  Legible enough at C, K <= 9, ugly beyond.
+- `predict(type = "response")` on newdata, `se.fit` on the response
+  scale, `conditional_effects()`, OSA and deviance residuals, and
+  `emmeans` are refused or untested: each needs the occupancy
+  probability, which conditions on the observed responses of a whole
+  sequence.
+- Continuous-time transitions, higher-order chains, and hmm() inside
+  hmm() stay out, as the memo's section 8 said.
+- No vignette yet (the memo budgeted a day for one).

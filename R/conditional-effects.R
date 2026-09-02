@@ -657,6 +657,15 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   band <- match.arg(band)
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
+  if (!is.null(rspec$family[["hmm"]])) {
+    stop("conditional_effects() is not available for an hmm() fit: the ",
+         "expected response weights the state means by posterior state ",
+         "occupancies, which depend on the observed responses of a whole ",
+         "sequence and are therefore undefined on the synthetic grid ",
+         "this function builds. Plot one state's own predictor from ",
+         "predict(dpar = \"mu2\"), or the occupancies from hmm_probs()",
+         call. = FALSE)
+  }
   if (isTRUE(surface)) {
     stop("conditional_effects(surface = TRUE) is not implemented: the ",
          "display draws curves with bands, not a fitted surface. Ask ",
