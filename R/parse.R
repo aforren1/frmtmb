@@ -306,8 +306,11 @@ parse_spde_call <- function(tm, env) {
 #'     observation row; an `mm()` row loads several at once.}
 #'   \item{brms's other `mm()` arguments}{`cor = FALSE` is
 #'     `diag(x | mm(g1, g2))`, `id =` is the `|ID|` key, and `cov =` is
-#'     `gr(g, cov = A)` over a single-membership factor. `by =`, `pw =`
-#'     and `dist =` have no equivalent yet.}
+#'     `gr(g, cov = A)` over a single-membership factor, and `dist =` is
+#'     `gr(g, dist = "student")` over one (see
+#'     [frmtmb-student-re]), though not over a membership design, whose
+#'     rows load several levels at once. `by =` and `pw =` have no
+#'     equivalent yet.}
 #'   \item{Non-name members}{`mm()` reads its membership variables as
 #'     column names, as brms does. Build the column first.}
 #' }
@@ -402,8 +405,10 @@ parse_mm_call <- function(tm, env) {
     stop("mm(", used[1L], " = ) is not supported. brms's other mm() ",
          "arguments have spellings here that apply to any grouping ",
          "term: cor = FALSE is diag(x | mm(g1, g2)), id = is the ",
-         "|ID| key (x | q | g), cov = is gr(g, cov = A), and by = / ",
-         "pw = / dist = have no equivalent yet", call. = FALSE)
+         "|ID| key (x | q | g), cov = is gr(g, cov = A), and dist = is ",
+         "gr(g, dist = \"student\"). The last two take a ",
+         "single-membership factor only. by = / pw = have no ",
+         "equivalent yet", call. = FALSE)
   }
   groups <- aa[!nzchar(nms)]
   if (length(groups) < 2L) {
@@ -429,6 +434,102 @@ parse_mm_call <- function(tm, env) {
   }
   list(groups = groups, gvars = gvars, weights_expr = aa$weights,
        scale = scale, label = deparse1(tm))
+}
+
+#' `gr(g, dist = )`: the latent density of a grouping term.
+#'
+#' brms's `gr()` takes `dist = "gaussian"` (the default) or
+#' `"student"`. The Student-t form draws a level's effects as
+#' `sqrt(nu * u_j) W z_j` with one inverse-chi-square mixing variable
+#' `u_j` per LEVEL, which is the standard multivariate t with scale
+#' matrix `W W'`; `frmtmb` uses that closed-form density directly.
+#'
+#' brms ESTIMATES `nu` with a `gamma(2, 0.1)` prior truncated at 1, and
+#' the prior is doing the work: without one the profile likelihood in
+#' `nu` is nearly flat, and joint ML runs to a boundary in a quarter to
+#' a half of realistic designs (dev/tre-feasibility.md section 5). So
+#' `nu` is FIXED here, at `dist_nu` (default
+#' `student_nu_default`), which is the frequentist analogue of brms's
+#' own `prior(constant(3), class = "df")`. Compare a few values with
+#' `logLik()` rather than asking the data to choose one.
+#'
+#' Returns `NULL` when the term names no `dist`, so the gaussian path
+#' is untouched.
+#'
+#' @noRd
+parse_gr_dist <- function(ga, gvar, cls, bar, id_label, env) {
+  nms <- names(ga) %||% rep("", length(ga))
+  has_dist <- any(nms == "dist")
+  has_nu <- any(nms == "dist_nu")
+  if (!has_dist && !has_nu) return(NULL)
+  if (!has_dist) {
+    stop("gr(dist_nu = ) sets the degrees of freedom of a Student-t ",
+         "latent, so it only means something next to ",
+         "dist = \"student\": ", deparse1(bar[[3]]), call. = FALSE)
+  }
+  dist <- tryCatch(eval(ga$dist, env), error = function(e) {
+    stop("gr(): cannot evaluate dist = ", deparse1(ga$dist), ": ",
+         conditionMessage(e), call. = FALSE)
+  })
+  if (!is.character(dist) || length(dist) != 1L ||
+      !dist %in% c("gaussian", "student")) {
+    stop("gr(dist = ) takes \"gaussian\" or \"student\" (brms's two), ",
+         "got ", deparse1(ga$dist), call. = FALSE)
+  }
+  if (identical(dist, "gaussian")) {
+    if (has_nu) {
+      stop("gr(dist = \"gaussian\", dist_nu = ) asks for degrees of ",
+           "freedom on a gaussian latent, which has none. Write ",
+           "dist = \"student\"", call. = FALSE)
+    }
+    return(list(student = FALSE, covstruct = cls, dist_nu = NULL))
+  }
+  if (!is.null(ga$cov) || !is.null(ga$prec)) {
+    # brms writes this one as dfm .* (sd * (Lcov * z)), a per-level
+    # scalar rescaling of a CORRELATED gaussian field. That is not a
+    # multivariate t over the levels and has no closed-form marginal
+    # density to hand the Laplace machinery.
+    stop("gr(cov = ) / gr(prec = ) with dist = \"student\" is not ",
+         "supported: a relationship matrix correlates the LEVELS, and ",
+         "the t's mixing variable is per level, so the joint density ",
+         "over the field is not a multivariate t and has no closed ",
+         "form here. Use dist = \"gaussian\" with the relationship ",
+         "matrix, or the t latent without one", call. = FALSE)
+  }
+  if (calls_function(gvar[[1L]], "mm")) {
+    stop("gr(mm(...), dist = \"student\") is not supported: a ",
+         "multi-membership row loads several levels at once, so the ",
+         "per-level mixing variable of a t latent has no single value ",
+         "on that row. Write (x | mm(g1, g2)) for the membership ",
+         "design", call. = FALSE)
+  }
+  if (!is.null(id_label)) {
+    stop("An |ID|-keyed term cannot take dist = \"student\" yet: ",
+         deparse1(bar), " is keyed |", id_label,
+         "|, and merged blocks are assembled as gaussian ones. Write ",
+         "the merged coefficients as one term, ",
+         "(x1 + x2 | gr(g, dist = \"student\")), which is the same ",
+         "multivariate-t block", call. = FALSE)
+  }
+  cs <- switch(cls, us = "us_t", diag = "diag_t", NULL)
+  if (is.null(cs)) {
+    stop("dist = \"student\" is supported for the default (us) and ",
+         "diag structures only; ", cls, "(", deparse1(bar),
+         ") asks for a t-tailed ", cls,
+         " block, whose density is not the multivariate t brms builds",
+         call. = FALSE)
+  }
+  nu <- if (has_nu) {
+    eval_spec_arg(ga$dist_nu, "dist_nu", env, fn = "gr")
+  } else {
+    student_nu_default
+  }
+  if (nu <= student_nu_floor) {
+    stop("gr(dist_nu = ) must exceed ", student_nu_floor,
+         " so the latent has a finite variance to report and to ",
+         "predict with; got ", nu, call. = FALSE)
+  }
+  list(student = TRUE, covstruct = cs, dist_nu = nu)
 }
 
 #' Split the left of a multi-membership bar into the ordinary design
@@ -543,7 +644,12 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   is_smooth_call <- function(tm) {
     is.call(tm) && as.character(tm[[1]])[1] %in% c("s", "t2", "te", "ti")
   }
-  supported_cs <- setdiff(names(covstruct_registry), "smooth")
+  # us_t / diag_t are reached through gr(dist = "student") and never
+  # written directly: a bare us_t(x | g) would carry no degrees of
+  # freedom, so it stays out of the special list and lands in the
+  # not-supported message below
+  supported_cs <- setdiff(names(covstruct_registry),
+                          c("smooth", "us_t", "diag_t"))
   cs_specials <- unique(c(supported_cs, "rr", "propto"))
   smooth <- list()
   mo <- list()
@@ -831,29 +937,47 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
            "covariate for a single-membership slope", call. = FALSE)
     }
     # brms (x | gr(g, cov = A)): known covariance over the levels;
-    # gr(g, prec = Q) takes a (sparse) precision matrix instead
+    # gr(g, prec = Q) takes a (sparse) precision matrix instead;
+    # gr(g, dist = "student") swaps the latent density for a t
+    dist_nu <- NULL
     if (is.call(bar[[3]]) && identical(bar[[3]][[1]], as.name("gr"))) {
       ga <- as.list(bar[[3]])[-1]
       nms <- names(ga) %||% rep("", length(ga))
       gvar <- ga[nms == ""]
+      # a Student-t latent leaves the DESIGN alone, because only the
+      # density over the levels changes. So the dist branch neither
+      # reads nor writes the bar. It swaps the covariance structure for
+      # its t-tailed twin and hands the block a fixed nu.
+      st <- parse_gr_dist(ga, gvar, cls, bar, id_label, env)
+      if (!is.null(st)) {
+        ga <- ga[!(nzchar(nms) & nms %in% c("dist", "dist_nu"))]
+        nms <- names(ga) %||% rep("", length(ga))
+        if (isTRUE(st$student)) {
+          dist_nu <- st$dist_nu
+          cls <- st$covstruct
+        }
+      }
       has_cov <- !is.null(ga$cov)
       has_prec <- !is.null(ga$prec)
-      if (length(gvar) != 1 || (has_cov + has_prec) != 1 ||
+      if (length(gvar) != 1 || (has_cov + has_prec) > 1 ||
+          (is.null(st) && (has_cov + has_prec) != 1) ||
           !all(nms %in% c("", "cov", "prec"))) {
         stop("gr() supports (x | gr(g, cov = A)) or ",
              "(1 | gr(g, prec = Q))", call. = FALSE)
       }
-      if (calls_function(gvar[[1L]], "mm")) {
-        stop("gr(mm(...), cov = ) / gr(mm(...), prec = ) is not ",
-             "supported: a known relationship matrix indexes one level ",
-             "per observation, and a multi-membership row loads several ",
-             "levels at once. Write (x | mm(g1, g2)) for the membership ",
-             "design, or (x | gr(g, cov = A)) for the relationship ",
-             "matrix", call. = FALSE)
+      if (has_cov || has_prec) {
+        if (calls_function(gvar[[1L]], "mm")) {
+          stop("gr(mm(...), cov = ) / gr(mm(...), prec = ) is not ",
+               "supported: a known relationship matrix indexes one level ",
+               "per observation, and a multi-membership row loads several ",
+               "levels at once. Write (x | mm(g1, g2)) for the membership ",
+               "design, or (x | gr(g, cov = A)) for the relationship ",
+               "matrix", call. = FALSE)
+        }
+        cov_expr <- ga$cov %||% ga$prec
+        cls <- if (has_cov) "gr_cov" else "gr_prec"
       }
-      cov_expr <- ga$cov %||% ga$prec
       bar <- call("|", bar[[2]], gvar[[1]])
-      cls <- if (has_cov) "gr_cov" else "gr_prec"
     }
     if (is.call(bar[[3]]) &&
         as.character(bar[[3]][[1]])[1] %in% c("car", "spde")) {
@@ -865,7 +989,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     }
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
          id_label = id_label, id_group = id_group,
-         cov_expr = cov_expr, rank = rank, mm = mm)
+         cov_expr = cov_expr, rank = rank, mm = mm,
+         dist_nu = dist_nu)
   }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs)
   names(re) <- vapply(re, function(z) deparse1(z$bar), "")
 

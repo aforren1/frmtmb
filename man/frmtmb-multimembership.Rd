@@ -78,8 +78,11 @@ relationship matrix for one to be defined on.}
 observation row; an \code{mm()} row loads several at once.}
 \item{brms's other \code{mm()} arguments}{\code{cor = FALSE} is
 \code{diag(x | mm(g1, g2))}, \verb{id =} is the \verb{|ID|} key, and \verb{cov =} is
-\code{gr(g, cov = A)} over a single-membership factor. \verb{by =}, \verb{pw =}
-and \verb{dist =} have no equivalent yet.}
+\code{gr(g, cov = A)} over a single-membership factor, and \verb{dist =} is
+\code{gr(g, dist = "student")} over one (see
+\link{frmtmb-student-re}), though not over a membership design, whose
+rows load several levels at once. \verb{by =} and \verb{pw =} have no
+equivalent yet.}
 \item{Non-name members}{\code{mm()} reads its membership variables as
 column names, as brms does. Build the column first.}
 }

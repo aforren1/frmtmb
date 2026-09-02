@@ -1,0 +1,78 @@
+Probe F: the multivariate-t construction and the numerics
+=========================================================
+
+F1. brms's construction against the closed-form MVT.
+    b = sqrt(nu * u) * W z, u ~ inv-chi2(nu), z ~ N(0, I),
+    W = diag(sd) chol(C)'. Compared by the distribution of the
+    Mahalanobis form q = b' Sigma^-1 b, which is d * F(d, nu)
+    for a multivariate t.
+
+d    nu               KS D           KS p mean q sim/thy
+1    3             0.00188         0.4785  2.955/3.000
+1    5             0.00176         0.5631  1.673/1.667
+1    10            0.00155         0.7222  1.251/1.250
+2    3             0.00097         0.9922  6.006/6.000
+2    5             0.00171         0.6001  3.337/3.333
+2    10            0.00158         0.7002  2.505/2.500
+3    3             0.00179         0.5445 10.414/9.000
+3    5             0.00176         0.5628  5.040/5.000
+3    10            0.00220         0.2867  3.749/3.750
+
+    And the density itself: closed form vs a kernel-free check,
+    the log-density ratio between two points, from the mixture
+    integral computed numerically.
+
+d = 2   closed form   -2.329432747   mixture integral   -2.329432747   diff 0.00e+00
+d = 3   closed form   -6.818794221   mixture integral   -6.818794221   diff 3.91e-14
+
+
+F2. RTMB numerics.
+
+taped MVT value           -4.449543782 
+AD gradient                   0.058218   -0.846868   -1.274095    0.829336 
+FD gradient                   0.058218   -0.846868   -1.274095    0.829336 
+max diff                  3.55e-10 
+
+d = 1: closed-form MVT against RTMB::dt (scaled).
+  nu 2.5    s 0.3    -2.0712862248   -2.0712862248  diff 4.44e-16
+  nu 2.5    s 1      -1.3890718464   -1.3890718464  diff 0.00e+00
+  nu 2.5    s 4      -2.4286829652   -2.4286829652  diff 0.00e+00
+  nu 3      s 0.3    -2.1206697463   -2.1206697463  diff 0.00e+00
+  nu 3      s 1      -1.3615836240   -1.3615836240  diff 0.00e+00
+  nu 3      s 4      -2.4117360483   -2.4117360483  diff 0.00e+00
+  nu 10     s 0.3    -2.5233703379   -2.5233703379  diff 8.88e-16
+  nu 10     s 1      -1.2606911502   -1.2606911502  diff 2.22e-16
+  nu 10     s 4      -2.3505349817   -2.3505349817  diff 4.44e-16
+  nu 100    s 0.3    -2.9392982282   -2.9392982282  diff 3.11e-14
+  nu 100    s 1      -1.2199688702   -1.2199688702  diff 3.06e-14
+  nu 100    s 4      -2.3264427925   -2.3264427925  diff 3.06e-14
+
+The gaussian limit, |log dmvt(nu) - log dnorm| at d = 1 and 2.
+
+nu                      d = 1            d = 2
+1e+03               4.585e-04        8.946e-04
+1e+04               4.586e-05        8.950e-05
+1e+05               4.586e-06        8.951e-06
+1e+06               4.582e-07        8.951e-07
+1e+07               4.401e-08        9.110e-08
+1e+08               5.654e-09        1.257e-07
+
+Same through RTMB's own lgamma on the tape (the value that
+would actually be computed):
+
+  nu 1e+03       |taped - dnorm| = 4.585e-04
+  nu 1e+04       |taped - dnorm| = 4.586e-05
+  nu 1e+05       |taped - dnorm| = 4.586e-06
+  nu 1e+06       |taped - dnorm| = 4.582e-07
+  nu 1e+07       |taped - dnorm| = 4.411e-08
+  nu 1e+08       |taped - dnorm| = 7.771e-09
+
+
+F3. Drawing from the latent: the simulate() path.
+    b = sqrt(nu/chisq(nu)) * chol(Sigma)' z, one chi-square per
+    LEVEL. KS of the Mahalanobis form against d*F(d, nu).
+
+  d 1   nu 3     KS D  0.00193  p 0.8519  var ratio  2.479 (theory  2.430)
+  d 1   nu 8     KS D  0.00207  p 0.7861  var ratio  1.085 (theory  1.080)
+  d 2   nu 3     KS D  0.00304  p 0.3148  var ratio  2.431 (theory  2.430)
+  d 2   nu 8     KS D  0.00421  p 0.0577  var ratio  1.082 (theory  1.080)

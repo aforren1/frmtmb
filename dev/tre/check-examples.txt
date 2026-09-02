@@ -1,0 +1,24 @@
+  1 | g 
+        Name   Scale Std.Dev.
+ (Intercept) 0.84321   1.0886
+   Student-t latent, nu = 5 (fixed); the stored matrix is the scale
+  1 | g 
+        Name Std.Dev.
+ (Intercept)   1.5007
+frmtmb fit: y ~ x + (1 | gr(g, dist = "student", dist_nu = 3)) 
+Family: gaussian   Method: ML 
+logLik: -384.804  AIC: 777.607  nobs: 240 
+
+Fixed effects:
+ mu:
+(Intercept)           x 
+     1.2809      0.6492 
+ sigma:
+(Intercept) 
+    0.07106 
+
+Random effects:
+  1 | g 
+        Name   Scale Std.Dev.
+ (Intercept) 0.66974     1.16
+   Student-t latent, nu = 3 (fixed); the stored matrix is the scale

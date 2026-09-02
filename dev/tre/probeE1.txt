@@ -1,0 +1,228 @@
+brms 2.23.0
+
+gr() formals:
+[1] "..."  "by"   "cor"  "id"   "pw"   "cov"  "dist"
+
+dist is matched against: [1] "gaussian"
+
+
+---- scalar intercept ----
+  // parameters for student-t distributed group-level effects
+  real<lower=1> df_1;
+  vector<lower=0>[N_1] udf_1;
+  vector<lower=0>[M_1] sd_1;  // group-level standard deviations
+  array[M_1] vector[N_1] z_1;  // standardized group-level effects
+  vector[N_1] dfm_1;
+  vector[N_1] r_1_1;  // actual group-level effects
+  dfm_1 = sqrt(df_1 * udf_1);
+  r_1_1 = dfm_1 .* (sd_1[1] * (z_1[1]));
+  lprior += student_t_lpdf(Intercept | 3, 0.1, 2.5);
+  lprior += student_t_lpdf(sigma | 3, 0, 2.5)
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
+  lprior += gamma_lpdf(df_1 | 2, 0.1)
+  lprior += student_t_lpdf(sd_1 | 3, 0, 2.5)
+      mu[n] += r_1_1[J_1[n]] * Z_1_1[n];
+  target += inv_chi_square_lpdf(udf_1 | df_1);
+  target += std_normal_lpdf(z_1[1]); 
+
+---- correlated slopes ----
+  // parameters for student-t distributed group-level effects
+  real<lower=1> df_1;
+  vector<lower=0>[N_1] udf_1;
+  vector<lower=0>[M_1] sd_1;  // group-level standard deviations
+  matrix[M_1, N_1] z_1;  // standardized group-level effects
+  cholesky_factor_corr[M_1] L_1;  // cholesky factor of correlation matrix
+  vector[N_1] dfm_1;
+  matrix[N_1, M_1] r_1;  // actual group-level effects
+  vector[N_1] r_1_1;
+  vector[N_1] r_1_2;
+  dfm_1 = sqrt(df_1 * udf_1);
+  r_1 = rep_matrix(dfm_1, M_1) .* scale_r_cor(z_1, sd_1, L_1);
+  r_1_1 = r_1[, 1];
+  r_1_2 = r_1[, 2];
+  lprior += student_t_lpdf(Intercept | 3, 0.1, 2.5);
+  lprior += student_t_lpdf(sigma | 3, 0, 2.5)
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
+  lprior += gamma_lpdf(df_1 | 2, 0.1)
+  lprior += student_t_lpdf(sd_1 | 3, 0, 2.5)
+    - 2 * student_t_lccdf(0 | 3, 0, 2.5);
+  lprior += lkj_corr_cholesky_lpdf(L_1 | 1);
+      mu[n] += r_1_1[J_1[n]] * Z_1_1[n] + r_1_2[J_1[n]] * Z_1_2[n];
+  target += inv_chi_square_lpdf(udf_1 | df_1);
+  target += std_normal_lpdf(to_vector(z_1));
+  corr_matrix[M_1] Cor_1 = multiply_lower_tri_self_transpose(L_1);
+  vector<lower=-1,upper=1>[NC_1] cor_1;
+      cor_1[choose(k - 1, 2) + j] = Cor_1[j, k]; 
+
+---- uncorrelated (cor = FALSE) ----
+  // parameters for student-t distributed group-level effects
+  real<lower=1> df_1;
+  vector<lower=0>[N_1] udf_1;
+  vector<lower=0>[M_1] sd_1;  // group-level standard deviations
+  array[M_1] vector[N_1] z_1;  // standardized group-level effects
+  vector[N_1] dfm_1;
+  vector[N_1] r_1_1;  // actual group-level effects
+  vector[N_1] r_1_2;  // actual group-level effects
+  dfm_1 = sqrt(df_1 * udf_1);
+  r_1_1 = dfm_1 .* (sd_1[1] * (z_1[1]));
+  r_1_2 = dfm_1 .* (sd_1[2] * (z_1[2]));
+  lprior += student_t_lpdf(Intercept | 3, 0.1, 2.5);
+  lprior += student_t_lpdf(sigma | 3, 0, 2.5)
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
+  lprior += gamma_lpdf(df_1 | 2, 0.1)
+  lprior += student_t_lpdf(sd_1 | 3, 0, 2.5)
+    - 2 * student_t_lccdf(0 | 3, 0, 2.5);
+      mu[n] += r_1_1[J_1[n]] * Z_1_1[n] + r_1_2[J_1[n]] * Z_1_2[n];
+  target += inv_chi_square_lpdf(udf_1 | df_1);
+  target += std_normal_lpdf(z_1[1]);
+  target += std_normal_lpdf(z_1[2]); 
+
+---- with cov = A ----
+  matrix[N_1, N_1] Lcov_1;  // cholesky factor of known covariance matrix
+  // parameters for student-t distributed group-level effects
+  real<lower=1> df_1;
+  vector<lower=0>[N_1] udf_1;
+  vector<lower=0>[M_1] sd_1;  // group-level standard deviations
+  array[M_1] vector[N_1] z_1;  // standardized group-level effects
+  vector[N_1] dfm_1;
+  vector[N_1] r_1_1;  // actual group-level effects
+  dfm_1 = sqrt(df_1 * udf_1);
+  r_1_1 = dfm_1 .* (sd_1[1] * (Lcov_1 * z_1[1]));
+  lprior += student_t_lpdf(Intercept | 3, 0.1, 2.5);
+  lprior += student_t_lpdf(sigma | 3, 0, 2.5)
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
+  lprior += gamma_lpdf(df_1 | 2, 0.1)
+  lprior += student_t_lpdf(sd_1 | 3, 0, 2.5)
+      mu[n] += r_1_1[J_1[n]] * Z_1_1[n];
+  target += inv_chi_square_lpdf(udf_1 | df_1);
+  target += std_normal_lpdf(z_1[1]); 
+
+---- with by = ----
+  // parameters for student-t distributed group-level effects
+  real<lower=1> df_1;
+  vector<lower=0>[N_1] udf_1;
+  matrix<lower=0>[M_1, Nby_1] sd_1;  // group-level standard deviations
+  array[M_1] vector[N_1] z_1;  // standardized group-level effects
+  vector[N_1] dfm_1;
+  vector[N_1] r_1_1;  // actual group-level effects
+  dfm_1 = sqrt(df_1 * udf_1);
+  r_1_1 = dfm_1 .* (transpose(sd_1[1, Jby_1]) .* (z_1[1]));
+  lprior += student_t_lpdf(Intercept | 3, 0.1, 2.5);
+  lprior += student_t_lpdf(sigma | 3, 0, 2.5)
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
+  lprior += gamma_lpdf(df_1 | 2, 0.1)
+  lprior += student_t_lpdf(to_vector(sd_1) | 3, 0, 2.5)
+      mu[n] += r_1_1[J_1[n]] * Z_1_1[n];
+  target += inv_chi_square_lpdf(udf_1 | df_1);
+  target += std_normal_lpdf(z_1[1]); 
+
+---- two terms sharing id = ----
+  // parameters for student-t distributed group-level effects
+  real<lower=1> df_1;
+  vector<lower=0>[N_1] udf_1;
+  vector<lower=0>[M_1] sd_1;  // group-level standard deviations
+  matrix[M_1, N_1] z_1;  // standardized group-level effects
+  cholesky_factor_corr[M_1] L_1;  // cholesky factor of correlation matrix
+  vector[N_1] dfm_1;
+  matrix[N_1, M_1] r_1;  // actual group-level effects
+  vector[N_1] r_1_1;
+  vector[N_1] r_1_2;
+  dfm_1 = sqrt(df_1 * udf_1);
+  r_1 = rep_matrix(dfm_1, M_1) .* scale_r_cor(z_1, sd_1, L_1);
+  r_1_1 = r_1[, 1];
+  r_1_2 = r_1[, 2];
+  lprior += student_t_lpdf(Intercept | 3, 0.1, 2.5);
+  lprior += student_t_lpdf(sigma | 3, 0, 2.5)
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
+  lprior += gamma_lpdf(df_1 | 2, 0.1)
+  lprior += student_t_lpdf(sd_1 | 3, 0, 2.5)
+    - 2 * student_t_lccdf(0 | 3, 0, 2.5);
+  lprior += lkj_corr_cholesky_lpdf(L_1 | 1);
+      mu[n] += r_1_1[J_1[n]] * Z_1_1[n] + r_1_2[J_1[n]] * Z_1_2[n];
+  target += inv_chi_square_lpdf(udf_1 | df_1);
+  target += std_normal_lpdf(to_vector(z_1));
+  corr_matrix[M_1] Cor_1 = multiply_lower_tri_self_transpose(L_1);
+  vector<lower=-1,upper=1>[NC_1] cor_1;
+      cor_1[choose(k - 1, 2) + j] = Cor_1[j, k]; 
+
+---- student on one group, gaussian on another ----
+  // parameters for student-t distributed group-level effects
+  real<lower=1> df_1;
+  vector<lower=0>[N_1] udf_1;
+  vector<lower=0>[M_1] sd_1;  // group-level standard deviations
+  array[M_1] vector[N_1] z_1;  // standardized group-level effects
+  vector<lower=0>[M_2] sd_2;  // group-level standard deviations
+  vector[N_1] dfm_1;
+  vector[N_1] r_1_1;  // actual group-level effects
+  vector[N_2] r_2_1;  // actual group-level effects
+  dfm_1 = sqrt(df_1 * udf_1);
+  r_1_1 = dfm_1 .* (sd_1[1] * (z_1[1]));
+  r_2_1 = (sd_2[1] * (z_2[1]));
+  lprior += student_t_lpdf(Intercept | 3, 0.1, 2.5);
+  lprior += student_t_lpdf(sigma | 3, 0, 2.5)
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
+  lprior += gamma_lpdf(df_1 | 2, 0.1)
+  lprior += student_t_lpdf(sd_1 | 3, 0, 2.5)
+  lprior += student_t_lpdf(sd_2 | 3, 0, 2.5)
+      mu[n] += r_1_1[J_1[n]] * Z_1_1[n] + r_2_1[J_2[n]] * Z_2_1[n];
+  target += inv_chi_square_lpdf(udf_1 | df_1);
+  target += std_normal_lpdf(z_1[1]); 
+
+---- nested inside mm() ----
+  // parameters for student-t distributed group-level effects
+  real<lower=1> df_1;
+  vector<lower=0>[N_1] udf_1;
+  vector<lower=0>[M_1] sd_1;  // group-level standard deviations
+  array[M_1] vector[N_1] z_1;  // standardized group-level effects
+  vector[N_1] dfm_1;
+  vector[N_1] r_1_1;  // actual group-level effects
+  dfm_1 = sqrt(df_1 * udf_1);
+  r_1_1 = dfm_1 .* (sd_1[1] * (z_1[1]));
+  lprior += student_t_lpdf(Intercept | 3, 0.1, 2.5);
+  lprior += student_t_lpdf(sigma | 3, 0, 2.5)
+    - 1 * student_t_lccdf(0 | 3, 0, 2.5);
+  lprior += gamma_lpdf(df_1 | 2, 0.1)
+  lprior += student_t_lpdf(sd_1 | 3, 0, 2.5)
+      mu[n] += W_1_1[n] * r_1_1[J_1_1[n]] * Z_1_1_1[n] + W_1_2[n] * r_1_1[J_1_2[n]] * Z_1_1_2[n];
+  target += inv_chi_square_lpdf(udf_1 | df_1);
+  target += std_normal_lpdf(z_1[1]); 
+
+---- default prior on df ----
+                  prior     class      coef group resp dpar nlpar lb ub tag
+                 (flat)         b                                          
+                 (flat)         b         x                                
+          gamma(2, 0.1)        df               g                  1       
+ student_t(3, 0.1, 2.5) Intercept                                          
+   student_t(3, 0, 2.5)        sd                                  0       
+   student_t(3, 0, 2.5)        sd               g                  0       
+   student_t(3, 0, 2.5)        sd Intercept     g                  0       
+   student_t(3, 0, 2.5)     sigma                                  0       
+       source
+      default
+ (vectorized)
+      default
+      default
+      default
+ (vectorized)
+ (vectorized)
+      default
+
+---- can df be fixed by a constant prior? ----
+  vector<lower=0>[N_1] udf_1;
+  real<lower=1> df_1;
+  df_1 = 3;
+  dfm_1 = sqrt(df_1 * udf_1);
+  target += inv_chi_square_lpdf(udf_1 | df_1); 
+
+---- standata: is dist visible in the DATA block? ----
+student names:  N Y K Kc X Z_1_1 J_1 N_1 M_1 NC_1 prior_only 
+gaussian names:  N Y K Kc X Z_1_1 J_1 N_1 M_1 NC_1 prior_only 
+identical:  TRUE 
+=> the choice is encoded in the STANCODE only; make_standata
+   cannot be used as the structural cross-check here.
+
+---- how brms names the parameter in the fit summary ----
+  group gtype gn   id type  cor
+1     g        1 <NA>      TRUE
+                                                      gcall   form
+1 g, ~g, gr(g, dist = "student"), , TRUE, NA, , , student,  ~1 + z

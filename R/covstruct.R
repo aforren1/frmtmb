@@ -10,19 +10,30 @@
 # `dim` coefficients of each level are contiguous (mkReTrms ordering), so
 # matrix(b, nrow = dim) has one level per column.
 
-#' Correlation matrix behind the correlation segment of a `us` theta.
+#' Lower-triangular Cholesky factor of the correlation matrix behind the
+#' correlation segment of a `us` theta: `C = Lr Lr'`.
 #'
 #' The unit-diagonal lower-triangular `L` gets row-normalized, so every
 #' value of `theta_cor` maps onto a valid correlation matrix. AD-safe.
 #'
+#' The factor, and not just the product, is what the Student-t blocks
+#' need: their density is a quadratic form and a log-determinant, both of
+#' which come off a triangular factor without ever forming an inverse.
+#'
 #' @noRd
-us_chol_cor <- function(theta_cor, d) {
-  # Lower-triangular L with unit diagonal, rows normalized: C = Lr Lr'.
+us_chol_L <- function(theta_cor, d) {
   "[<-" <- RTMB::ADoverload("[<-")
   L <- diag(d)
   L[lower.tri(L)] <- theta_cor
   rs <- sqrt((L * L) %*% rep(1, d))
-  Lr <- L / as.vector(rs)
+  L / as.vector(rs)
+}
+
+#' Correlation matrix behind the correlation segment of a `us` theta.
+#'
+#' @noRd
+us_chol_cor <- function(theta_cor, d) {
+  Lr <- us_chol_L(theta_cor, d)
   Lr %*% t(Lr)
 }
 
@@ -73,6 +84,225 @@ homogeneous_sd <- function(sds, what) {
   log(sds[1L])
 }
 
+# ------------------------------------------------- Student-t latents
+#
+# brms `gr(g, dist = "student")` builds a level's effects as
+#
+#   b_j = sqrt(nu * u_j) * W z_j,   u_j ~ inv-chi2(nu),  z_j ~ N(0, I),
+#
+# with `W` the Cholesky factor of the scale matrix `Sigma = W W'` and ONE
+# mixing variable `u_j` per LEVEL, shared across that level's
+# coefficients whether or not the block is correlated. That is exactly
+# the standard multivariate t with `nu` degrees of freedom and scale
+# matrix `Sigma` (verified against the mixture integral in
+# dev/tre/probeF1-mvt-and-limits.R), so the marginal density is closed
+# form and TMB can integrate it the same way it integrates a gaussian
+# one.
+#
+# `theta` therefore holds the SCALE, not the standard deviation. The two
+# differ by sqrt(nu/(nu-2)); see student_var_factor() and ?gr.
+
+#' Student-t distributed random effects
+#'
+#' `(x | gr(g, dist = "student"))` gives a grouping term a Student-t
+#' latent instead of a gaussian one, which is brms's spelling
+#' (`brms::gr()`, argument `dist`). A group far from the others then
+#' costs the variance component much less than it does under a gaussian
+#' latent, because the t's tail can hold it.
+#'
+#' @section Parameterization:
+#'
+#' A level's coefficients are drawn as
+#' `b_j = sqrt(nu * u_j) W z_j` with `u_j ~ inv-chi2(nu)` and
+#' `z_j ~ N(0, I)`, which is the multivariate t with `nu` degrees of
+#' freedom and scale matrix `Sigma = W W'`. The mixing variable `u_j` is
+#' per LEVEL and shared across that level's coefficients, so a
+#' correlated or a `diag()` block is one multivariate t and not several
+#' independent univariate ones. brms builds it the same way.
+#'
+#' **`Sigma` is the SCALE, not the covariance.** The variance is
+#' `Sigma * nu / (nu - 2)`, so a standard deviation is
+#' `scale * sqrt(nu / (nu - 2))`. `VarCorr()` stores the scale matrix,
+#' tags it with `nu`, and prints both columns; `confint()`, `variables()`
+#' and `frm_simulate(newparams = )` speak of it as `sd_<group>__<term>`,
+#' which is the name brms gives the same quantity. The correlations are
+#' the same either way.
+#'
+#' @section Why `nu` is fixed:
+#'
+#' brms estimates `nu` under a `gamma(2, 0.1)` prior truncated at 1, and
+#' that prior is carrying the parameter. Maximum likelihood has no such
+#' help: profiling a simulated fit with 20 groups leaves the whole grid
+#' from 2.1 to 500 inside the 95% profile interval, and joint ML sends
+#' `nu` to a boundary in 24% to 41% of replicates at 20 groups and still
+#' 5% to 14% at 100 (`dev/tre-feasibility.md`). So `nu` is a constant
+#' here, set by `dist_nu` and defaulting to 5. That is the frequentist
+#' analogue of brms's own `prior(constant(3), class = "df")`. To ask
+#' what the data say about it, fit two or three values and compare
+#' `logLik()`.
+#'
+#' `dist_nu` must exceed 2, so that the latent has a variance for
+#' `VarCorr()` to convert and for new-level prediction to use.
+#'
+#' @section Accuracy:
+#'
+#' The t density is not log-concave, so the Laplace approximation is not
+#' exact over it as it is over a gaussian latent. Measured against
+#' adaptive quadrature (`dev/tre-feasibility.md`), the approximation
+#' pushes the estimated latent SCALE UPWARD, and how much depends on how
+#' much the data say about each level:
+#'
+#' \itemize{
+#'   \item With the latent scale near the residual SD, the bias is
+#'     under 2% of one standard error at 8 observations per group and
+#'     0.2% at 25, at every `nu` from 2.5 up. It reaches 12% of a
+#'     standard error in the worst case tested, `nu = 2.5` with 3
+#'     observations per group.
+#'   \item It becomes material only where the variance component is
+#'     small AND the groups are tiny: at 2 observations per group and a
+#'     true scale a quarter of the residual SD, the Laplace estimate of
+#'     the scale came back three times the exact one.
+#' }
+#'
+#' Two checks, both already in the package. `quadrature = TRUE`
+#' marginalizes a scalar random intercept by Gauss-Kronrod quadrature
+#' instead, which over a t latent is EXACT, not merely better; it is the
+#' one to run when a t block's variance component matters and the groups
+#' are small. [check_laplace()] measures the same thing without
+#' refitting, by NUTS on the objective: its `z_shift` for
+#' `theta` reproduced the displacement above to within a percentage
+#' point in the probe.
+#'
+#' A last consequence of the constant: `logLik()`, `AIC()` and `BIC()`
+#' carry roughly `G * c(nu)` where `G` is the number of levels and
+#' `c(nu) = lgamma((nu+1)/2) - lgamma(nu/2) + log(2/(nu+1))/2` (-0.226 at
+#' `nu = 3`, -0.141 at `nu = 5`). Comparing two t fits with the same
+#' `nu` and the same grouping is fine, because the offset cancels;
+#' comparing a t fit against a gaussian one by AIC is not.
+#'
+#' @section What is refused:
+#'
+#' \describe{
+#'   \item{`gr(cov = )` / `gr(prec = )`}{A relationship matrix
+#'     correlates the LEVELS, and the t's mixing variable is per level,
+#'     so the joint density over the field is not a multivariate t and
+#'     has no closed form to hand the Laplace machinery. brms writes
+#'     this combination, but as a hierarchical construction Stan samples
+#'     rather than a density.}
+#'   \item{Other covariance structures}{`us` (the default) and `diag`
+#'     only. `ar1()`, `cs()`, `toep()` and the rest describe a
+#'     covariance over the block's LEVELS, which the per-level mixing
+#'     variable does not compose with.}
+#'   \item{`mm()`}{A multi-membership row loads several levels at once,
+#'     so the per-level mixing variable has no single value on it.}
+#'   \item{`|ID|` keys}{Merged blocks are assembled as gaussian ones.
+#'     Write the merged coefficients as one term instead -
+#'     `(x1 + x2 | gr(g, dist = "student"))` is the same multivariate-t
+#'     block.}
+#' }
+#'
+#' @section Downstream:
+#'
+#' `ranef()` and its conditional variances, `sdreport()` standard
+#' errors, `REML = TRUE` and `frm_bootstrap()` all work: the Laplace
+#' machinery does not care which density the latent has. `simulate()`
+#' and `frm_simulate()` draw a multivariate t with one chi-square per
+#' level. `predict(allow_new_levels = TRUE)` inflates the unseen level's
+#' variance by `nu / (nu - 2)`, so the interval has the right variance
+#' around a heavier-tailed truth. It is still built as a gaussian
+#' interval, so it is not the right quantile far into the tail. Use
+#' `simulate()` for that.
+#'
+#' @name frmtmb-student-re
+#' @seealso [VarCorr()] for the scale matrix, [frm_compat()] for what a
+#'   `dist = "student"` block may be combined with, and
+#'   `vignette("brms-migration")`.
+#' @examples
+#' set.seed(1)
+#' n <- 12
+#' d <- data.frame(x = rnorm(20 * n), g = factor(rep(1:20, each = n)))
+#' b <- rnorm(20)
+#' b[20] <- b[20] + 6          # one outlying group
+#' d$y <- 1 + 0.5 * d$x + b[d$g] + rnorm(20 * n)
+#'
+#' fit_t <- frm(bf(y ~ x + (1 | gr(g, dist = "student"))),
+#'              family = gaussian(), data = d)
+#' fit_n <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = d)
+#'
+#' # the gaussian latent has to widen to cover the outlying group
+#' VarCorr(fit_t)
+#' VarCorr(fit_n)
+#'
+#' # heavier tails, at the cost of a fixed nu
+#' frm(bf(y ~ x + (1 | gr(g, dist = "student", dist_nu = 3))),
+#'     family = gaussian(), data = d)
+NULL
+
+#' The degrees-of-freedom default and floor for `gr(dist = "student")`.
+#'
+#' The floor is 2 and not brms's 1 because everything downstream that
+#' reports a variance needs one to exist: at `nu <= 2` the latent has no
+#' finite variance, so `VarCorr()`'s documented conversion, the
+#' new-level prediction variance and the simulation of a marginal
+#' response all lose their meaning. The default is settled in
+#' dev/tre-feasibility.md section 5 on the probe D2 sweep.
+#'
+#' @noRd
+student_nu_default <- 5
+student_nu_floor <- 2
+
+#' Variance inflation from the t's scale to its variance.
+#'
+#' @noRd
+student_var_factor <- function(nu) nu / (nu - 2)
+
+#' Whether a random-effect block carries a Student-t latent.
+#'
+#' @noRd
+is_student_block <- function(bk) !is.null(bk[["dist_nu"]])
+
+#' Log-density of `n` scalar Student-t latents with log scale
+#' `log_scale`, vectorized. The `d = 1` case of student_lpdf_core(),
+#' written out because a scalar block needs no factor and no solve.
+#'
+#' @noRd
+student_lpdf_scalar <- function(b, log_scale, nu) {
+  z <- b * exp(-log_scale)
+  student_lpdf_core(z * z, log_scale, nu, 1L, length(b))
+}
+
+#' Multivariate-t log-density from the per-level Mahalanobis forms `q`
+#' and the log-determinant of the scale matrix's Cholesky factor.
+#'
+#' `log1p`, not `log(1 + .)`: the tail term is multiplied by
+#' `(nu + d)/2`, so at a large `nu` the rounding of `1 + q/nu` is
+#' amplified by the same factor and the density comes back wrong in the
+#' first decimal. A large `nu` is how the gaussian limit is reached, and
+#' how a user checks that a t block reduces to one.
+#'
+#' @noRd
+student_lpdf_core <- function(q, ldet_W, nu, d, n_levels) {
+  n_levels * (lgamma((nu + d) / 2) - lgamma(nu / 2) -
+                d / 2 * log(nu * pi) - ldet_W) -
+    (nu + d) / 2 * sum(log1p(q / nu))
+}
+
+#' Log-density of a level-major `b` under a multivariate t with `nu`
+#' degrees of freedom and scale matrix `W W'`.
+#'
+#' `W` is lower triangular, so the quadratic form comes from one
+#' triangular solve and the log-determinant from its diagonal: no
+#' inverse and no second factorization. `dim<-` (not `matrix()`)
+#' reshapes `b`, which keeps simref objects intact.
+#'
+#' @noRd
+student_lpdf <- function(b, W, nu, d, n_levels) {
+  dim(b) <- c(d, n_levels)
+  z <- RTMB::solve(W, b)
+  student_lpdf_core(RTMB::colSums(z * z), sum(log(RTMB::diag(W))),
+                    nu, d, n_levels)
+}
+
 covstruct_registry <- list(
   us = list(
     npar = function(dim) dim + dim * (dim - 1L) / 2L,
@@ -116,6 +346,60 @@ covstruct_registry <- list(
     nll = function(b, theta, blk) {
       sdv <- rep(exp(theta), times = blk$n_levels)
       sum(RTMB::dnorm(b, 0, sdv, log = TRUE))
+    },
+    vcov = function(theta, blk) {
+      V <- diag(exp(theta)^2, nrow = blk$dim)
+      dimnames(V) <- list(blk$cnms, blk$cnms)
+      V
+    },
+    start = function(dim) numeric(dim)
+  ),
+  # Student-t latents, brms `gr(g, dist = "student")`. Same theta as the
+  # gaussian `us` block, plus a FIXED `blk$dist_nu`. `theta` holds the
+  # SCALE, not the standard deviation. See student_lpdf().
+  us_t = list(
+    npar = function(dim) dim + dim * (dim - 1L) / 2L,
+    sd_idx = function(dim) seq_len(dim),
+    from_natural = function(sds, C, blk) {
+      if (blk$dim == 1L) return(log(sds[1L]))
+      c(log(sds), us_theta_cor(C))
+    },
+    nll = function(b, theta, blk) {
+      d <- blk$dim
+      if (d == 1L) return(student_lpdf_scalar(b, theta[1], blk$dist_nu))
+      W <- us_chol_L(theta[-seq_len(d)], d) * exp(theta[seq_len(d)])
+      student_lpdf(b, W, blk$dist_nu, d, blk$n_levels)
+    },
+    vcov = function(theta, blk) {
+      d <- blk$dim
+      if (d == 1L) {
+        V <- matrix(exp(theta)^2, 1, 1)
+      } else {
+        sdv <- exp(theta[seq_len(d)])
+        C <- us_chol_cor(theta[-seq_len(d)], d)
+        V <- C * (sdv %o% sdv)
+      }
+      dimnames(V) <- list(blk$cnms, blk$cnms)
+      V
+    },
+    start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
+  ),
+  diag_t = list(
+    npar = function(dim) dim,
+    sd_idx = function(dim) seq_len(dim),
+    from_natural = function(sds, C, blk) log(sds),
+    nll = function(b, theta, blk) {
+      d <- blk$dim
+      if (d == 1L) return(student_lpdf_scalar(b, theta[1], blk$dist_nu))
+      # a diagonal SCALE matrix, but still ONE mixing variable per level
+      # (probe E: brms shares `dfm` across the coefficients of a level
+      # even under cor = FALSE), so this is a multivariate t and not a
+      # product of d univariate ones. The quadratic form couples the
+      # level's coefficients even though the scale matrix does not.
+      z <- b * rep(exp(-theta), times = blk$n_levels)
+      dim(z) <- c(d, blk$n_levels)
+      student_lpdf_core(RTMB::colSums(z * z), sum(theta), blk$dist_nu,
+                        d, blk$n_levels)
     },
     vcov = function(theta, blk) {
       V <- diag(exp(theta)^2, nrow = blk$dim)

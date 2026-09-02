@@ -46,7 +46,7 @@ frmtmb_compat_features_tbl <- function() {
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
             "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
-            "car", "spde")
+            "car", "spde", "us_t", "diag_t")
   do.call(rbind, c(
     lapply(fams, f, kind = "family"),
     lapply(covs, f, kind = "covstruct"),
@@ -130,6 +130,10 @@ frmtmb_compat_groups_lst <- list(
   positional = c("ar1", "hetar1", "toep", "homtoep"),
   latent_gp = c("gp", "hsgp"),
   known_cov = c("gr_cov", "gr_prec", "equalto"),
+  # the Student-t latents, gr(dist = "student"). They are the us/diag
+  # blocks with a t density over the levels, so they share the us/diag
+  # guards and add the ones the per-level mixing variable imposes
+  student_blocks = c("us_t", "diag_t"),
   post_fit = c("fitted", "predict", "simulate", "residuals",
                "residuals_osa", "emmeans")
 )
@@ -519,6 +523,22 @@ frmtmb_compat_rules_tbl <- function() {
     "Works when every term sharing the key is gr(cov = ) over the SAME grouping factor and the SAME matrix: the linked terms merge into one Kronecker block whose covariance is A (x) Sigma, with Sigma unstructured across the merged coefficients. That is the same joint density as the long format, bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), sigma ~ 0 + trait), so the two spellings agree to optimizer tolerance. Refused when the key mixes structures (us with gr_cov, cov with prec), spans different grouping specifications, or resolves cov = to different matrices in different formula environments. Put the matrix in data2 so every formula resolves the same object.")
   r("|ID|", "gr_prec", "conditional",
     "Works when every term sharing the key is gr(prec = ) over the SAME grouping factor and the SAME matrix: the merged block precision is Q (x) Sigma^-1, assembled sparsely exactly as for a single correlated-slopes gr(prec = ) term. Refused when the key mixes structures (us with gr_prec, cov with prec), spans different grouping specifications, or resolves prec = to different matrices in different formula environments. Put the matrix in data2 so every formula resolves the same object.")
+
+  ## Student-t latents, gr(dist = "student") --------------------------------
+  r("|ID|", "group:student_blocks", "refused",
+    "Refused: a merged |ID| block is assembled as a gaussian one. Write the merged coefficients as a single term instead: (x1 + x2 | gr(g, dist = \"student\")) is the same multivariate-t block, since the t's mixing variable is per level and already shared across the level's coefficients.")
+  r("mm()", "group:student_blocks", "refused",
+    "Refused: an mm() row loads several levels at once, and the t's mixing variable is one per level, so the row has no single value of it. brms accepts mm(..., dist = \"student\") as a hierarchical construction it samples; there is no closed-form marginal density here to hand the Laplace machinery.")
+  r("group:student_blocks", "gr_cov", "refused",
+    "Refused: gr(g, cov = A, dist = \"student\") correlates the LEVELS through A while the t's mixing variable is per level, so the joint density over the field is not a multivariate t. brms writes dfm .* (sd * (Lcov * z)) for this and samples it; it has no closed form to marginalize.")
+  r("group:student_blocks", "gr_prec", "refused",
+    "Refused for the same reason as gr(cov = ): a precision matrix over the levels and a per-level mixing variable do not compose into a density the Laplace approximation can be taken over.")
+  r("group:student_blocks", "group:post_fit", "works",
+    "Verified: the Laplace machinery is distribution-agnostic, so ranef(), its conditional variances and sdreport() standard errors need no change. simulate() and frm_simulate() draw a multivariate t with one chi-square per level. predict(allow_new_levels = TRUE) inflates the unseen level's variance by nu/(nu-2); the interval is still built as a gaussian one, so it carries the right variance but not the right far-tail quantile.")
+  r("quadrature", "group:student_blocks", "conditional",
+    "Allowed for one-dimensional blocks, and RECOMMENDED there: the Gauss-Kronrod rule marginalizes a scalar t latent EXACTLY, where the Laplace default is approximate. Verified against adaptive Gauss-Hermite quadrature to 1e-6 in the log-likelihood and in every estimate. Correlated slopes are refused, as they are for a gaussian block.")
+  r("REML", "group:student_blocks", "works",
+    "Verified against a two-stage exact quadrature: REML stacks one more Laplace dimension on the t latent, and the objective error roughly doubles while staying small (0.11 against 0.05 at nu = 3 over 15 groups). The variance component moves in the direction REML exists to move it.")
 
   ## nl ----------------------------------------------------------------------
   r("nl", "kind:family", "refused",
