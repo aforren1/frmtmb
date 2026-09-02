@@ -676,7 +676,7 @@ a constant one is dropped from the sensitivity system by RTMBode's own
   events table in a formula is the inline table"). The boundary itself
   is pinned in `tests/testthat/test-nl-lexical.R`.
 
-### Probe scripts, part 2
+### Probe scripts, part 2 (dosing)
 
 | file | what |
 |---|---|
@@ -684,3 +684,181 @@ a constant one is dropped from the sensitivity system by RTMBode's own
 | `dev/ode/probeH2-events-adjoint.R` | the adjoint question; the names defect; the sensitivity-block defect; the two workarounds |
 | `dev/ode/probeH3-forcings-infusion.R` | branching on time, `approxfun`, `forcings`, rate-as-parameter, cost |
 | `dev/ode/probeH4-frm-ode-events.R` | `frm_ode(events = )` end to end, against closed forms, plus a population fit |
+
+## 10. The pharmacometrics tier
+
+Date: 2026-09-02. Branch `wt-odegaps`, frmtmb 0.36.0, RTMBode 1.0
+(released, r-universe), deSolve 1.42, R 4.6.1, Windows 11. No probe
+scripts: section 9 had already established that the segmented solve is
+the right machine, and every item below is a use of it. The numbers are
+in `tests/testthat/test-ode-tv.R` and the new blocks of
+`test-ode-events.R` and `test-ode.R`.
+
+> **Status: implemented.** `frm_ode(tv =, tv_break =, n_ss =, ss_tol =)`,
+> `events` columns `ii`/`addl`/`ss`, `method = "reset"`, and `output` as
+> one value per row.
+
+### 10.1 Time-varying covariates: piecewise constant, and only that
+
+`tv` is a list of columns on the `parms` contract with one difference:
+the values MAY vary within a group. The solve splits at each change
+point, the change points union with the event times and the infusion
+window edges, and the segment's value is appended to `parms` before the
+call. That makes it a tape input, so an estimated time-varying value is
+differentiated exactly and a constant one is dropped from the
+sensitivity system by RTMBode's own filter, exactly as the v0.35
+infusion rate is.
+
+The step is **last observation carried forward**, matching rxode2's
+covariate convention: a row's value is in force from that row's time
+until the next change, and the first row's value reaches back to `t0`.
+
+The LOCF question the brief raised ("does an observation exactly at a
+change point get the PRE-change value?") has a cleaner answer than
+expected, and it is not a convention we chose: **the state is continuous
+across a covariate change**, because a covariate moves the derivative
+and not the state. So the reading at the change point is the pre-change
+trajectory's value whichever way the step is oriented, and the two
+readings differ only afterwards. That is the opposite of a dose, which
+jumps the state and where the pre-dose trough reading IS a convention.
+Pinned in "LOCF: a change point takes effect from its own row forward",
+which asserts both the value at the change point and that the
+alternative reading (new value from the NEXT row) is a different number
+half a step later.
+
+The change points must be data. That is the constancy carve-out the
+brief asked for, and it needed no change to `check_ode_constancy()` at
+all: that walker only inspects `init`, `parms`, `t0` and `event_scale`,
+so an nlpar appearing only in `tv` was already exempt. `R/frame.R` was
+not touched. What was needed instead is a way to FIND the change points
+when the values are advectors, since RTMB refuses comparison: hence
+`tv_break`, a data column whose within-group changes define the blocks.
+With plain-numeric `tv` columns `tv_break` is optional and the changes
+are read off the columns; when it is given, a numeric `tv` column that
+disagrees with the declared blocks is refused.
+
+| check | result |
+|---|---|
+| three-level step rate vs segment-by-segment closed form | asserted 1e-8 |
+| observation at the change point == pre-change closed form | 1e-9 |
+| `tv` union with a dose time vs hand-chained solution | 1e-8 |
+| estimated `tv` (linear predictor on `phase`), value | 5.4e-09 |
+| estimated `tv`, gradient vs central differences | 1.07e-11 relative |
+| constant `tv` column == the same value in `parms` | 1e-10 |
+| clearance-shift fit, 10 subjects, truth `log 0.15` / `log 2` | -1.79 / 0.75 recovered; +10 logLik over the no-shift model |
+
+`parms` may now be empty (it defaults to `list()`) when every input is
+time-varying. One RTMB gotcha found doing that: `c(NULL, <advector>)`
+raises "Not compatible with requested type: [type=NULL;
+target=double]", so the parameter vector is assembled without the NULL
+rather than with it.
+
+### 10.2 Steady state: a fixed run-in, said out loud
+
+The brief's analysis was right: iteration-until-convergence branches on
+a value and cannot be taped. Shipped is option (a), a fixed run-in of
+`n_ss` cycles (default 20) given as data.
+
+An `ss = TRUE` row needs `ii > 0` and `method = "add"` (a duration is
+allowed, up to `ii`). At the record's time every compartment is set to
+zero, which is NONMEM's and rxode2's reading of a steady-state record
+and is why the row overrides `init`, and the cycle is repeated `n_ss`
+times over `[t_ss - n_ss * ii, t_ss]`. The run-in leaves the TROUGH,
+and the record's own dose is then applied by the ordinary event loop,
+so an observation at the record's time reads the trough, consistent
+with the pre-dose convention everywhere else. One wrinkle: a group
+whose only observation is at `t0` has no segment for the loop to walk,
+so the run-in for an `ss` row at `t0` is hoisted before the `init` read.
+
+The approximation is geometric and measurable. For a one-compartment
+bolus the shortfall after `n` cycles is exactly `exp(-n * k * ii)`, and
+the test asserts that to 1e-6 across `n = 2, 4, 8`. Off the tape the
+last two cycles are compared and `frm_ode()` warns past `ss_tol`
+(default 1e-6); on the tape that check cannot run, and the help page
+and the vignette say so.
+
+| check | result |
+|---|---|
+| trough and curve vs the analytic superposition, k = 0.2, ii = 12 | 2.4e-10 |
+| `ss` + `addl`: the cycle repeats exactly | 1e-8 |
+| steady-state infusion (dur 3, ii 12) vs 400-term superposition | 1e-7 |
+| run-in error vs `exp(-n k ii)`, n = 2/4/8 | 1e-6 |
+| gradient through the run-in, d/d(log k, logit F) | matches central differences |
+| population fit, 8 subjects, truth `log 0.2` | recovered within 0.15 |
+
+Cost: `n_ss` extra solves per group, two per cycle for an infusion.
+
+### 10.3 Reset events
+
+`method = "reset"` sets EVERY state to `value`. At `value = 0` that is
+NONMEM's `EVID = 3` and rxode2's `evid = 3` ("all compartments are set
+to zero and the run continues"). `EVID = 4` is a reset row and an add
+row at the same instant; the reset is applied first in the segment
+loop, so the row order in the table does not decide the result and the
+pair is exempt from the same-instant ambiguity check that `replace` and
+`multiply` are subject to. A reset names no compartment, so it needs no
+`state` column even in a multi-state system, and `event_scale` does not
+scale it (it sets a level, not an amount), which is why `event_scale`
+is now allowed alongside `reset` rows where it is still refused
+alongside `replace` and `multiply`.
+
+Gradient through a reset plus dose vs central differences: matches at
+1e-6.
+
+### 10.4 ii / addl
+
+Pure data preprocessing inside `ode_split_events()`, before anything
+else reads the table: a row with `ii` and `addl = n` becomes `n + 1`
+rows at `time + k * ii`. `ss` stays on the first of them. The
+expansion is asserted `expect_identical` against the hand-written
+table, both for a plain bolus schedule and for an infusion schedule
+carrying `group`, `state`, `duration`.
+
+### 10.5 Multi-endpoint: output by row
+
+`output` given one value per row says which state that row reads, over
+one shared solve. The two readings are told apart by length: a per-row
+selection needs one value per row AND more rows than the system has
+states, which is unambiguous for every real design (a selection of
+states is at most `n_state` long). The values are data, since a state
+index cannot be differentiated, and resolve by name or position exactly
+as a scalar `output` does.
+
+- Lotka-Volterra stacked long, one-call vs the `ifelse` two-call
+  spelling: `expect_identical`, and the same by name.
+- Parent-and-metabolite population fit (3 states, 5 subjects), one call
+  vs the indicator two-call spelling: logLik equal to 1e-8, fixef to
+  1e-6, at half the solves.
+
+### 10.6 Combined error, with no new machinery
+
+`nlf()` landed in v0.36 and a `sigma` body may read `mu`, so
+proportional-plus-additive error is a spelling, not a feature:
+
+    bf(conc ~ frm_ode(...), lka ~ ..., nl = TRUE) +
+      nlf(sigma ~ 0.5 * log(exp(2 * ladd) + exp(2 * lprop) * mu^2)) +
+      lf(ladd ~ 1, lprop ~ 1) + gaussian()
+
+`sigma` is on the log link, so the body is half the log of
+`add^2 + (prop * mu)^2`. Tested on simulated data with `add = 0.15`,
+`prop = 0.10`: both components come back (loose tolerance, since two
+scale parameters on 80 rows are weakly identified),
+`cor(sigma_hat, mu_hat)` is above 0.9, and the logLik beats the
+single-sigma fit. Note that the start values go in `betad`, not `beta`.
+
+### 10.7 What was not built
+
+- **rxode2's linear covariate interpolation.** Impossible on this
+  route, not merely unbuilt: the value inside a segment would have to
+  depend on `t`, and `t` is an advector inside a taped derivative
+  function (section 9.5). Piecewise-constant is the whole reachable
+  set.
+- **Estimated event times, lag times, estimated `ii`, estimated `tv`
+  change points.** Unchanged from 9.6: they decide where the solve is
+  split, which is settled before the tape is built.
+- **A NONMEM-record reader.** `evid`/`amt`/`cmt`/`rate` in one table
+  split into `data` plus `events` is a reshaping helper, not model
+  machinery, and the error on an unknown `events` column already says
+  so by name.
+- **More than one `ss` row per group.** A second run-in starts from an
+  empty system and would discard the first; refused by name.

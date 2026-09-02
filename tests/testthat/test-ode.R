@@ -332,6 +332,169 @@ test_that("an integrator choice does not move the likelihood", {
   expect_equal(unname(diff(range(ll))), 0, tolerance = 1e-5)
 })
 
+# --- one solve, a different state per row ---------------------------
+
+# Lotka-Volterra: two species observed on the same response column, one
+# row per species per time. dev/ode-feasibility.md section 10.
+lv_dyn <- function(t, y, p) {
+  "c" <- RTMB::ADoverload("c")
+  list(c(p[1] * y[1] - p[2] * y[1] * y[2],
+         p[3] * y[1] * y[2] - p[4] * y[2]))
+}
+
+test_that("a per-row output is the two-call spelling, exactly", {
+  skip_if_not_installed("RTMBode")
+  tt <- rep(c(1, 3, 5, 8, 12), each = 2)
+  cmt <- rep(c(1L, 2L), 5)
+  pv <- list(0.55, 0.028, 0.026, 0.84)
+  one <- frm_ode(lv_dyn, init = list(30, 4), times = tt, parms = pv,
+                 states = c("hare", "lynx"), output = cmt,
+                 atol = 1e-10, rtol = 1e-10)
+  a <- frm_ode(lv_dyn, init = list(30, 4), times = tt, parms = pv,
+               states = c("hare", "lynx"), output = "hare",
+               atol = 1e-10, rtol = 1e-10)
+  b <- frm_ode(lv_dyn, init = list(30, 4), times = tt, parms = pv,
+               states = c("hare", "lynx"), output = "lynx",
+               atol = 1e-10, rtol = 1e-10)
+  two <- ifelse(cmt == 1L, a, b)
+  expect_identical(one, two)
+
+  # by name as well as by position
+  by_name <- frm_ode(lv_dyn, init = list(30, 4), times = tt, parms = pv,
+                     states = c("hare", "lynx"),
+                     output = c("hare", "lynx")[cmt],
+                     atol = 1e-10, rtol = 1e-10)
+  expect_identical(by_name, one)
+
+  # a selection of states is still a selection of states: `output` is
+  # read per row only when there are more rows than states
+  m <- frm_ode(lv_dyn, init = list(30, 4), times = tt, parms = pv,
+               output = c(1L, 2L), atol = 1e-10, rtol = 1e-10)
+  expect_identical(dim(m), c(length(tt), 2L))
+
+  expect_error(
+    frm_ode(lv_dyn, init = list(30, 4), times = tt, parms = pv,
+            output = rep(3L, length(tt))),
+    "index states 1 to 2"
+  )
+})
+
+test_that("a per-row output shares one solve across groups", {
+  skip_if_not_installed("RTMBode")
+  d <- data.frame(id = factor(rep(c("a", "b"), each = 6)),
+                  time = rep(rep(c(1, 4, 9), each = 2), 2),
+                  cmt = rep(c(1L, 2L), 6))
+  d$k <- rep(c(0.3, 0.6), each = 6)
+  one <- frm_ode(pk_dyn, init = list(100, 0), times = d$time,
+                 parms = list(1, d$k, 10), group = d$id, output = d$cmt,
+                 atol = 1e-10, rtol = 1e-10)
+  m <- frm_ode(pk_dyn, init = list(100, 0), times = d$time,
+               parms = list(1, d$k, 10), group = d$id,
+               atol = 1e-10, rtol = 1e-10)
+  expect_identical(one, ifelse(d$cmt == 1L, m[, 1], m[, 2]))
+})
+
+test_that("a parent-and-metabolite fit is the same one call or two", {
+  skip_if_not_installed("RTMBode")
+  skip_on_cran()
+  # depot -> parent -> metabolite, both measured on one assay column
+  pm_dyn <- function(t, y, p) {
+    "c" <- RTMB::ADoverload("c")
+    list(c(-p[1] * y[1],
+           p[1] * y[1] - (p[2] + p[3]) * y[2],
+           p[2] * y[2] - p[4] * y[3]))
+  }
+  set.seed(9)
+  tt <- c(0.5, 1, 2, 4, 8, 12)
+  n_id <- 5
+  base <- expand.grid(time = tt, cmt = c(2L, 3L))
+  d <- do.call(rbind, lapply(seq_len(n_id), function(i)
+    data.frame(id = factor(i, levels = seq_len(n_id)), base)))
+  truth <- frm_ode(pm_dyn, init = list(100, 0, 0), times = d$time,
+                   parms = list(1.1, 0.35, 0.2, 0.25), group = d$id,
+                   output = d$cmt, atol = 1e-10, rtol = 1e-10)
+  d$y <- truth + stats::rnorm(nrow(d), 0, 1.5)
+  d$is_p <- as.numeric(d$cmt == 2L)
+  st <- list(beta = c(0, log(0.3), log(0.2), log(0.3)))
+
+  one <- frm(bf(y ~ frm_ode(pm_dyn, init = list(100, 0, 0), times = time,
+                            parms = list(exp(lka), exp(lkm), exp(lke),
+                                         exp(lkme)),
+                            group = id, output = cmt),
+                lka ~ 1, lkm ~ 1, lke ~ 1, lkme ~ 1, nl = TRUE) +
+               gaussian(), data = d, start = st)
+  two <- frm(bf(y ~ is_p * frm_ode(pm_dyn, init = list(100, 0, 0),
+                                   times = time,
+                                   parms = list(exp(lka), exp(lkm),
+                                                exp(lke), exp(lkme)),
+                                   group = id, output = 2L) +
+                  (1 - is_p) * frm_ode(pm_dyn, init = list(100, 0, 0),
+                                       times = time,
+                                       parms = list(exp(lka), exp(lkm),
+                                                    exp(lke), exp(lkme)),
+                                       group = id, output = 3L),
+                lka ~ 1, lkm ~ 1, lke ~ 1, lkme ~ 1, nl = TRUE) +
+               gaussian(), data = d, start = st)
+  expect_equal(as.numeric(logLik(one)), as.numeric(logLik(two)),
+               tolerance = 1e-8)
+  expect_equal(unlist(fixef(one)), unlist(fixef(two)), tolerance = 1e-6)
+  # and it recovers what generated the data
+  fx <- unlist(fixef(one))
+  expect_equal(unname(exp(fx[["lka.(Intercept)"]])), 1.1, tolerance = 0.3)
+  expect_equal(unname(exp(fx[["lkme.(Intercept)"]])), 0.25,
+               tolerance = 0.3)
+})
+
+# --- a combined proportional-plus-additive error model ---------------
+
+test_that("nlf(sigma ~ ) writes the combined error model", {
+  skip_if_not_installed("RTMBode")
+  skip_on_cran()
+  # sd = sqrt(add^2 + (prop * mu)^2), which on the log link sigma is
+  # reported on is 0.5 * log(exp(2 la) + exp(2 lp) mu^2)
+  set.seed(13)
+  n_id <- 10
+  tt <- c(0.25, 0.5, 1, 2, 4, 6, 8, 12)
+  d <- data.frame(id = factor(rep(seq_len(n_id), each = length(tt))),
+                  time = rep(tt, n_id), dose = 100)
+  ka <- exp(stats::rnorm(n_id, 0, 0.2))[as.integer(d$id)]
+  ke <- exp(stats::rnorm(n_id, log(0.2), 0.2))[as.integer(d$id)]
+  mu <- pk_analytic(d$time, ka, ke, 10, 100)
+  add <- 0.15
+  prop <- 0.10
+  d$conc <- mu + stats::rnorm(nrow(d), 0,
+                              sqrt(add^2 + (prop * mu)^2))
+
+  fit <- frm(
+    bf(conc ~ frm_ode(pk_dyn, init = list(dose, 0), times = time,
+                      parms = list(exp(lka), exp(lke), exp(lV)),
+                      group = id, output = 2L),
+       lka ~ 1 + (1 | id), lke ~ 1 + (1 | id), lV ~ 1, nl = TRUE) +
+      nlf(sigma ~ 0.5 * log(exp(2 * ladd) + exp(2 * lprop) * mu^2)) +
+      lf(ladd ~ 1, lprop ~ 1) + gaussian(),
+    data = d, start = list(beta = c(0, log(0.25), log(8)),
+                           betad = c(log(0.2), log(0.2))))
+
+  fx <- unlist(fixef(fit))
+  expect_equal(unname(exp(fx[["ladd.(Intercept)"]])), add, tolerance = 0.8)
+  expect_equal(unname(exp(fx[["lprop.(Intercept)"]])), prop,
+               tolerance = 0.8)
+  # the residual sd rises with the fitted value, which a single sigma
+  # cannot do
+  s <- predict(fit, dpar = "sigma")
+  p <- predict(fit)
+  expect_gt(stats::cor(as.numeric(s), as.numeric(p)), 0.9)
+
+  flat <- frm(
+    bf(conc ~ frm_ode(pk_dyn, init = list(dose, 0), times = time,
+                      parms = list(exp(lka), exp(lke), exp(lV)),
+                      group = id, output = 2L),
+       lka ~ 1 + (1 | id), lke ~ 1 + (1 | id), lV ~ 1, nl = TRUE) +
+      gaussian(),
+    data = d, start = list(beta = c(0, log(0.25), log(8))))
+  expect_gt(as.numeric(logLik(fit)), as.numeric(logLik(flat)))
+})
+
 # --- deliberately failing solves, last in the file ------------------
 
 test_that("a failed solve becomes a finite penalty or an error", {

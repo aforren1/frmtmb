@@ -1085,28 +1085,49 @@ Residue, all of it deliberate and documented in ?hmm.
 
 What replicates today: smooth-ODE population models via frm_ode()
 (dynamics as plain R), REs/covariates on parameters, bolus/replace/
-multiply dosing, constant-rate infusions, repeated doses,
-event_scale bioavailability, frm_simulate population simulation.
-Analytic solved systems (linCmt analogs) are writable by hand as nl
-bodies; ii/addl compact repetition expands manually.
+multiply/reset dosing, constant-rate infusions, repeated doses,
+ii/addl compact repetition, steady-state records, piecewise-constant
+time-varying covariates, per-row output selection, event_scale
+bioavailability, frm_simulate population simulation. Analytic solved
+systems (linCmt analogs) are writable by hand as nl bodies.
 
-Gaps for another day, in modeling-importance order:
-1. TIME-VARYING COVARIATES inside the ODE (rxode2 interpolates
-   during the solve; our per-group solve reads inputs off the first
-   row and refuses within-group variation). Fix path: piecewise-
-   constant covariates ride the SEGMENTED-SOLVE machinery exactly
-   like dose events (split at change points). The biggest real gap
-   for PK/PD practice.
-2. Steady-state dosing (ss) and reset events (evid 3/4).
-3. Lag times (alag) - refused by design (estimated event times
+Status of the six items (closed 2026-09-02, branch wt-odegaps; see
+dev/ode-feasibility.md section 10 for numbers):
+1. TIME-VARYING COVARIATES - **DONE**, piecewise-constant only.
+   frm_ode(tv = , tv_break = ) rides the segmented solve; LOCF, the
+   rxode2 convention for covariates. Estimated VALUES allowed
+   (tv_break carries the change points as data); rxode2's linear
+   interpolation is NOT available and cannot be (the value inside a
+   segment would have to depend on t, and t is an advector).
+2. STEADY-STATE dosing - **DONE** as an approximation.
+   events$ss with events$ii, run-in of n_ss cycles (default 20) from
+   a zeroed system. Iteration-until-convergence is impossible on the
+   tape (it branches on a value), so n_ss is data and the shortfall
+   is exp(-n_ss * k * ii) for linear kinetics; the numeric path
+   compares the last two cycles and warns past ss_tol.
+   Reset events - **DONE**. method = "reset" sets every state to
+   value, which is NONMEM/rxode2 evid 3 at value = 0; reset + add at
+   one instant is evid 4, reset first.
+3. Lag times (alag) - still refused by design (estimated event times
    change tape structure); revisit only with a new design.
-4. Combined error models (prop + add: sd = sqrt(a^2 + (b*f)^2)) -
-   EXPRESSIBLE once nlf() lands (nlf(sigma ~ ...) referencing mu);
-   needs a worked example, not machinery.
-5. Multiple-endpoint ODE models (parent + metabolite observed):
-   possibly mvbf with per-response bodies each calling frm_ode -
-   untested, likely guarded; no dvid counterpart.
-6. ii/addl/ss dosing-table sugar once 1-2 land.
+4. Combined error models - **DONE** as a documented example, no
+   machinery: nlf(sigma ~ 0.5 * log(exp(2*ladd) + exp(2*lprop)*mu^2))
+   + lf(ladd ~ 1, lprop ~ 1). In ?frm_ode and vignette("ode").
+5. Multiple-endpoint ODE models - **DONE** via output-by-row.
+   frm_ode(output = <column>) shares one solve and gathers; the
+   two-call indicator spelling gives an identical logLik. mvbf was
+   not needed and was not tried.
+6. ii/addl sugar - **DONE**, pure preprocessing, expansion is
+   bit-identical to the hand-written table.
+
+Left open after this round:
+- Estimated event times / lag times / estimated ii (as above).
+- rxode2-style linear covariate interpolation.
+- A NONMEM-shaped reader (one table with evid/amt/cmt/rate split
+  into data + events). Deliberate: it is a data-reshaping helper,
+  not model machinery, and the two-table split is the honest shape.
+- More than one ss row per group (a second run-in would discard the
+  first); write the later doses out with ii/addl.
 
 ## Next-round small items (queued 2026-09-02)
 
