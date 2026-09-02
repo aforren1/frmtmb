@@ -130,7 +130,7 @@ ngrps <- function(object, ...) UseMethod("ngrps")
 
 #' @rdname ngrps
 #' @exportS3Method brms::ngrps
-#' @exportS3Method lme4::ngrps
+#' @rawNamespace S3method(lme4::ngrps,frmtmb_fit)
 #' @export
 ngrps.frmtmb_fit <- function(object, ...) {
   bks <- Filter(function(bk) bk$covstruct != "smooth",

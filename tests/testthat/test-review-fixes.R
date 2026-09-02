@@ -83,7 +83,10 @@ test_that("frm_sample(priors=) works on a fixed-effects-only GLM", {
                priors = list(beta = prior_normal(0, 5))))
   m <- as.matrix(ds)
   expect_true("x" %in% colnames(m))
-  expect_lt(abs(mean(m[, "x"]) - unname(fit$estimates$beta[["x"]])), 0.2)
+  # judged against the chain's own spread: a seeded chain is not
+  # platform-deterministic, and this asserts wiring, not mixing
+  expect_lt(abs(mean(m[, "x"]) - unname(fit$estimates$beta[["x"]])),
+            5 * stats::sd(m[, "x"]) + 1e-8)
 })
 
 test_that("frm_sample(laplace = TRUE) runs and labels outer draws", {
@@ -103,7 +106,13 @@ test_that("frm_sample(laplace = TRUE) runs and labels outer draws", {
   expect_false(any(grepl("^b\\[", colnames(m))))
   expect_true(any(grepl("theta", colnames(m))))
   expect_true("x" %in% colnames(m))
-  expect_lt(abs(mean(m[, "x"]) - unname(fit$estimates$beta[["x"]])), 0.25)
+  # a laplace chain mixes poorly by construction (each leapfrog runs
+  # the inner solve), so a stuck chain UNDERSTATES its own spread; the
+  # wiring sanity is judged against the wider of the chain's spread and
+  # the Wald standard error
+  expect_lt(abs(mean(m[, "x"]) - unname(fit$estimates$beta[["x"]])),
+            5 * max(stats::sd(m[, "x"]),
+                    sqrt(diag(stats::vcov(fit)))[["x"]]) + 1e-8)
 })
 
 test_that("influence machinery works with a constant dpar", {

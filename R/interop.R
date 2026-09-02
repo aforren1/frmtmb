@@ -1110,6 +1110,15 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
   stopifnot(length(ml) == length(keep))
   post_mean <- colMeans(m[, keep, drop = FALSE])
   post_sd <- apply(m[, keep, drop = FALSE], 2, stats::sd)
+  # the check is only as good as the chain: a short chain that wandered
+  # inflates post_sd and reads as "Laplace questionable" when the truth
+  # is "chain unusable", so the effective sample size rides along and
+  # an unhealthy chain is called out as such
+  ess <- if (requireNamespace("posterior", quietly = TRUE)) {
+    vapply(keep, function(nm) posterior::ess_bulk(m[, nm]), numeric(1))
+  } else {
+    rep(NA_real_, length(keep))
+  }
   out <- data.frame(
     parameter = keep,
     ml = unname(ml),
@@ -1118,8 +1127,17 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
     post_sd = unname(post_sd),
     z_shift = unname((post_mean - ml) / post_sd),
     sd_ratio = unname(post_sd / se),
+    ess_bulk = unname(ess),
     row.names = NULL
   )
+  if (any(is.finite(out$ess_bulk) & out$ess_bulk < 100)) {
+    message("check_laplace(): the chain mixed too poorly to judge the ",
+            "approximation (bulk ESS under 100 for ",
+            paste(out$parameter[is.finite(out$ess_bulk) &
+                                  out$ess_bulk < 100], collapse = ", "),
+            "). Rerun with more iterations before reading z_shift or ",
+            "sd_ratio")
+  }
   flagged <- abs(out$z_shift) > 0.5 | out$sd_ratio > 1.5 |
     out$sd_ratio < 2 / 3
   if (any(flagged)) {

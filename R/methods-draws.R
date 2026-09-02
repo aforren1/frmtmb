@@ -914,7 +914,7 @@ getCall.frmtmb_draws <- function(x, ...) x$fit$call
 
 #' @rdname ngrps
 #' @exportS3Method brms::ngrps
-#' @exportS3Method lme4::ngrps
+#' @rawNamespace S3method(lme4::ngrps,frmtmb_draws)
 #' @export
 ngrps.frmtmb_draws <- function(object, ...) {
   ngrps(draws_base_fit(object))
