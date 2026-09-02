@@ -1,0 +1,860 @@
+# Case studies: models from the showcase literature
+
+Each section below takes a model that another package uses to show what
+it can do, and fits it with
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md). Every
+section says where the model comes from, gives the frmtmb call, reads
+the output, and then checks the numbers against a package or a closed
+form that computes the same thing a different way. The datasets are
+small so that this page rebuilds in seconds.
+
+This is not the getting-started page. See
+[`vignette("frmtmb")`](https://aforren1.github.io/frmtmb/articles/frmtmb.md)
+for the grammar and
+[`vignette("brms-migration")`](https://aforren1.github.io/frmtmb/articles/brms-migration.md)
+for the brms feature map.
+
+## 1. The animal model
+
+The animal model is the flagship example of MCMCglmm (Hadfield 2010,
+*Journal of Statistical Software* 33(2); see also Wilson et al. 2010,
+*Journal of Animal Ecology* 79, “An ecologist’s guide to the animal
+model”). It splits phenotypic variance into an additive genetic part and
+a residual part. Each individual gets one random effect, and those
+effects are correlated through the additive relationship matrix `A`,
+which the pedigree determines. Two individuals with relatedness 0.5,
+such as full sibs, share half of their additive genetic deviation in
+expectation.
+
+The relatedness matrix is not a column of `data`, so it travels in
+`data2`, exactly as in brms. `gr(id, cov = A)` attaches it to the
+grouping factor.
+
+``` r
+
+# a half-sib design: 12 sires, 2 dams each, 6 offspring per pair
+nsire <- 12; ndam_per <- 2; noff <- 6
+nfound <- nsire + nsire * ndam_per
+n <- nfound + nsire * ndam_per * noff
+ped <- data.frame(id = 1:n, sire = NA_integer_, dam = NA_integer_)
+k <- nfound
+for (s in 1:nsire) for (j in 1:ndam_per) {
+  dam <- nsire + ndam_per * (s - 1) + j
+  for (o in 1:noff) { k <- k + 1; ped$sire[k] <- s; ped$dam[k] <- dam }
+}
+
+# the tabular method builds A from a pedigree sorted parents-first
+A <- diag(n)
+for (i in seq_len(n)) {
+  s <- ped$sire[i]; d <- ped$dam[i]
+  if (!is.na(s)) {
+    A[i, i] <- 1 + 0.5 * A[s, d]
+    for (j in seq_len(i - 1)) A[i, j] <- A[j, i] <- 0.5 * (A[j, s] + A[j, d])
+  }
+}
+dimnames(A) <- list(as.character(ped$id), as.character(ped$id))
+
+set.seed(9)
+dat <- data.frame(id = factor(ped$id, levels = ped$id),
+                  sex = factor(rep(c("f", "m"), length.out = n)))
+# additive genetic values with sd 1, residual sd 1, so h2 = 0.5
+dat$phen <- 5 + 0.4 * (dat$sex == "m") +
+  as.numeric(t(chol(A)) %*% rnorm(n)) + rnorm(n, 0, 1)
+```
+
+`REML = TRUE` is the usual choice here, because the variance components
+are the estimands and the pedigree is small.
+
+``` r
+
+fit <- frm(bf(phen ~ sex + (1 | gr(id, cov = A))) + gaussian(),
+           data = dat, data2 = list(A = A), REML = TRUE,
+           control = frmtmb_control(check_olre = "ignore"))
+sd_a <- sqrt(VarCorr(fit)[[1]][1, 1])
+c(sd_additive = sd_a, sigma = sigma(fit),
+  heritability = sd_a^2 / (sd_a^2 + sigma(fit)^2))
+#>  sd_additive        sigma heritability 
+#>    0.9058984    1.0139575    0.4438927
+```
+
+The narrow-sense heritability is the intraclass correlation of the
+genetic effect, `sd_a^2 / (sd_a^2 + sigma^2)`. The estimate is near the
+simulated 0.5.
+
+One warning needs a comment. Every individual appears once, so `id` has
+one level per row. frmtmb warns that such a term is confounded with the
+residual. That warning is a false positive when the block carries a
+`cov =` matrix, because `A` is not the identity and the two variances
+are then separately identified. `check_olre = "ignore"` turns it off.
+
+### Cross-check against the closed-form REML likelihood
+
+For a gaussian animal model the marginal distribution is known in closed
+form: `y ~ N(X beta, sd_a^2 A + sigma^2 I)`. The restricted log
+likelihood of that model can be written in six lines and maximized with
+[`optim()`](https://rdrr.io/r/stats/optim.html). It uses no part of
+frmtmb.
+
+``` r
+
+X <- model.matrix(~ sex, dat); y <- dat$phen
+nll <- function(p) {
+  V <- exp(p[1]) * A + exp(p[2]) * diag(n)
+  Vi <- solve(V); M <- crossprod(X, Vi) %*% X
+  b <- solve(M, crossprod(X, Vi) %*% y); r <- y - X %*% b
+  as.numeric(0.5 * ((n - ncol(X)) * log(2 * pi) + determinant(V)$modulus +
+                      determinant(M)$modulus + crossprod(r, Vi %*% r)))
+}
+op <- optim(c(0, 0), nll, method = "BFGS", control = list(reltol = 1e-13))
+out <- rbind(frmtmb = c(sd_a, sigma(fit), as.numeric(logLik(fit))),
+             closed_form = c(sqrt(exp(op$par)), -op$value))
+colnames(out) <- c("sd_additive", "sigma", "restricted_logLik")
+out
+#>             sd_additive    sigma restricted_logLik
+#> frmtmb        0.9058984 1.013958         -300.9229
+#> closed_form   0.9058980 1.013958         -300.9229
+```
+
+The variance components and the restricted log likelihood agree to six
+significant digits.
+
+### An interval for heritability
+
+Heritability is a ratio of variance components, so an interval for it
+needs more than the table of standard errors. There are two routes.
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+gives the Wald delta-method version, and it reads the random-effect
+standard deviation under its natural-scale name `sd_<group>__<term>`:
+
+``` r
+
+hypothesis(fit, "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)")
+```
+
+A variance ratio is bounded on `[0, 1]` and skewed, so a symmetric
+delta-method interval is the weaker choice near either boundary. The
+parametric bootstrap gives a percentile interval instead.
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+takes any function of a refit.
+
+``` r
+
+bs <- frm_bootstrap(fit, nsim = 30, seed = 1, FUN = function(f) {
+  v <- VarCorr(f)[[1]][1, 1]
+  c(h2 = v / (v + sigma(f)^2))
+})
+confint(bs)
+#>          lwr       upr       est
+#> h2 0.1983446 0.6446778 0.4438927
+```
+
+Thirty draws is a vignette-sized number. Use several hundred for real
+work.
+
+### Two traits at once
+
+MCMCglmm’s multi-response animal model estimates the genetic correlation
+between traits. Write it in long format. Stack the traits into one
+response column, and give the pedigree block one random coefficient per
+trait. The covariance of that block is then the genetic matrix `G`, and
+`cov = A` makes the full covariance the Kronecker product of `G` with
+the relatedness matrix. `sigma ~ 0 + trait` gives each trait its own
+residual standard deviation.
+
+The long format is the supported spelling for a multi-trait model with a
+known covariance. Do not reach for
+[`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md) with the
+`|ID|` identifier: frmtmb refuses that combination, because the
+cross-formula merge cannot carry a `gr(cov = )` matrix through.
+
+``` r
+
+set.seed(4)
+G <- matrix(c(1.0, 0.6, 0.6, 0.8), 2, 2)
+U <- t(chol(A)) %*% matrix(rnorm(n * 2), n, 2) %*% chol(G)
+long <- data.frame(
+  id = factor(rep(ped$id, times = 2), levels = ped$id),
+  trait = factor(rep(c("y1", "y2"), each = n)),
+  value = c(3 + U[, 1] + rnorm(n, 0, 0.7),
+            1 + U[, 2] + rnorm(n, 0, 0.9)))
+```
+
+``` r
+
+fmv <- frm(bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)),
+              sigma ~ 0 + trait) + gaussian(),
+           data = long, data2 = list(A = A))
+Gh <- VarCorr(fmv)[[1]]
+out <- rbind(
+  estimated = c(sqrt(diag(Gh)), cov2cor(Gh)[1, 2], exp(fixef(fmv)$sigma)),
+  simulated = c(sqrt(diag(G)), 0.6 / sqrt(1.0 * 0.8), 0.7, 0.9))
+colnames(out) <- c("gen_sd_y1", "gen_sd_y2", "gen_cor",
+                   "resid_sd_y1", "resid_sd_y2")
+round(out, 4)
+#>           gen_sd_y1 gen_sd_y2 gen_cor resid_sd_y1 resid_sd_y2
+#> estimated    0.8552    0.7815  0.6782      0.7645      0.8829
+#> simulated    1.0000    0.8944  0.6708      0.7000      0.9000
+```
+
+The genetic correlation comes out at 0.68 against a simulated 0.67. The
+genetic standard deviations are low and the residual ones are high,
+which is the usual trade in a pedigree this small: the two parts of the
+variance are hard to separate, and 180 individuals is not many.
+
+### Checking that the pedigree is doing work
+
+A known-covariance model has one silent failure mode: the matrix is
+accepted, ignored, and the fit still converges. The cheap guard is to
+refit with the identity in place of `A`. If the pedigree carries
+information, the log likelihood must move.
+
+``` r
+
+I <- diag(n); dimnames(I) <- dimnames(A)
+fmv_id <- frm(bf(value ~ 0 + trait + (0 + trait | gr(id, cov = I)),
+                 sigma ~ 0 + trait) + gaussian(),
+              data = long, data2 = list(I = I))
+c(with_pedigree = as.numeric(logLik(fmv)),
+  with_identity = as.numeric(logLik(fmv_id)),
+  difference = as.numeric(logLik(fmv)) - as.numeric(logLik(fmv_id)))
+#> with_pedigree with_identity    difference 
+#>    -531.58234    -550.96492      19.38258
+stopifnot(as.numeric(logLik(fmv)) - as.numeric(logLik(fmv_id)) > 5)
+```
+
+The pedigree buys about 19 log-likelihood points over an unrelated
+population. Run this check whenever you pass a matrix through `data2`.
+It is two lines, and it is the only thing that separates a covariance
+that is used from a covariance that is merely accepted.
+
+## 2. Phylogenetic regression
+
+The brms phylogenetics vignette fits the same structure with a different
+matrix. Species share ancestry, so their residual departures from a
+regression line are correlated by the phylogeny. Under Brownian motion
+that correlation is the shared root-to-tip path length, which
+[`ape::vcv()`](https://rdrr.io/pkg/ape/man/vcv.phylo.html) returns. The
+model is then a mixed model whose grouping factor is the species and
+whose covariance is the phylogenetic correlation matrix (Housworth,
+Martins and Lynch 2004; de Villemereuil and Nakagawa 2014).
+
+``` r
+
+set.seed(7)
+tree <- ape::rcoal(60)
+tree$tip.label <- paste0("sp", 1:60)
+# scale the tree to unit depth, so vcv() is a correlation matrix
+tree$edge.length <- tree$edge.length / max(ape::node.depth.edgelength(tree))
+A_phy <- ape::vcv(tree)
+
+d <- data.frame(sp = factor(tree$tip.label, levels = tree$tip.label),
+                x = rnorm(60))
+d$y <- 0.5 + 0.8 * d$x +
+  as.numeric(t(chol(A_phy)) %*% rnorm(60)) + rnorm(60, 0, 0.6)
+```
+
+``` r
+
+fphy <- frm(bf(y ~ x + (1 | gr(sp, cov = A_phy))) + gaussian(),
+            data = d, data2 = list(A_phy = A_phy),
+            control = frmtmb_control(check_olre = "ignore"))
+sd_p <- sqrt(VarCorr(fphy)[[1]][1, 1])
+c(fixef(fphy)$mu, sd_phylo = sd_p, sigma = sigma(fphy),
+  phylogenetic_h2 = sd_p^2 / (sd_p^2 + sigma(fphy)^2))
+#>     (Intercept)               x        sd_phylo           sigma phylogenetic_h2 
+#>       0.1014840       0.8355372       1.4177448       0.5921060       0.8514823
+```
+
+The last quantity is the phylogenetic heritability, also called Pagel’s
+lambda. It is the share of the residual variance that the tree explains.
+
+### Cross-check against PGLS
+
+Phylogenetic generalized least squares fits the same likelihood in a
+different parameterization.
+[`ape::corPagel`](https://rdrr.io/pkg/ape/man/corPagel.html) gives
+[`nlme::gls()`](https://rdrr.io/pkg/nlme/man/gls.html) the correlation
+matrix `lambda * C + (1 - lambda) * I`. For a tree scaled to unit depth
+that matrix is the frmtmb model’s marginal correlation, so the two fits
+are the same model and must agree.
+
+``` r
+
+g <- nlme::gls(y ~ x, data = d, method = "ML",
+               correlation = ape::corPagel(0.5, phy = tree, form = ~sp))
+out <- rbind(
+  frmtmb = c(fixef(fphy)$mu, sd_p^2 / (sd_p^2 + sigma(fphy)^2),
+             sd_p^2 + sigma(fphy)^2, as.numeric(logLik(fphy))),
+  gls = c(coef(g), coef(g$modelStruct$corStruct, unconstrained = FALSE),
+          g$sigma^2, as.numeric(logLik(g))))
+colnames(out) <- c("intercept", "x", "lambda", "total_var", "logLik")
+out
+#>        intercept         x    lambda total_var    logLik
+#> frmtmb  0.101484 0.8355372 0.8514823   2.36059 -68.34407
+#> gls     0.101484 0.8355372 0.8514823   2.36059 -68.34407
+```
+
+``` r
+
+lam_gls <- as.numeric(coef(g$modelStruct$corStruct, unconstrained = FALSE))
+stopifnot(
+  max(abs(fixef(fphy)$mu - coef(g))) < 1e-4,
+  abs(sd_p^2 / (sd_p^2 + sigma(fphy)^2) - lam_gls) < 1e-4,
+  abs(as.numeric(logLik(fphy)) - as.numeric(logLik(g))) < 1e-4
+)
+```
+
+Use `REML = TRUE` and `method = "REML"` together if you want the
+restricted versions. The frmtmb form is the more general one: it takes
+covariates in `sigma`, extra grouping factors, and non-gaussian
+families, none of which `gls()` offers.
+
+## 3. Meta-analysis and meta-regression
+
+A random-effects meta-analysis is a mixed model in which every
+observation carries a known standard error. The `se()` addition term
+supplies it, which is the same spelling brms uses. The residual standard
+deviation is fixed at zero, so the only free variance is the
+between-study heterogeneity `tau`.
+
+The data are the 13 BCG vaccine trials of Colditz et al. (1994), the
+running example of the metafor package (Viechtbauer 2010, *Journal of
+Statistical Software* 36(3)). The effect measure is the log risk ratio
+of tuberculosis in the vaccinated group.
+
+``` r
+
+bcg <- data.frame(
+  tpos = c(4, 6, 3, 62, 33, 180, 8, 505, 29, 17, 186, 5, 27),
+  tneg = c(119, 300, 228, 13536, 5036, 1361, 2537, 87886, 7470, 1699,
+           50448, 2493, 16886),
+  cpos = c(11, 29, 11, 248, 47, 372, 10, 499, 45, 65, 141, 3, 29),
+  cneg = c(128, 274, 209, 12619, 5761, 1079, 619, 87892, 7232, 1600,
+           27197, 2338, 17825),
+  ablat = c(44, 55, 42, 52, 13, 44, 19, 13, 27, 42, 18, 33, 33))
+bcg$yi <- log((bcg$tpos / (bcg$tpos + bcg$tneg)) /
+                (bcg$cpos / (bcg$cpos + bcg$cneg)))
+bcg$vi <- 1 / bcg$tpos - 1 / (bcg$tpos + bcg$tneg) +
+  1 / bcg$cpos - 1 / (bcg$cpos + bcg$cneg)
+bcg$sei <- sqrt(bcg$vi)
+bcg$study <- factor(seq_len(nrow(bcg)))
+```
+
+``` r
+
+fmeta <- frm(bf(yi | se(sei) ~ 1 + (1 | study)) + gaussian(),
+             data = bcg, REML = TRUE)
+c(pooled_logRR = unname(fixef(fmeta)$mu), se = sqrt(vcov(fmeta)[1, 1]),
+  tau = sqrt(VarCorr(fmeta)[[1]][1, 1]))
+#> pooled_logRR           se          tau 
+#>   -0.7145323    0.1804360    0.5596814
+```
+
+The pooled log risk ratio is about -0.71, which is a risk ratio near
+0.49. Between-study heterogeneity is large: `tau` is comparable in size
+to the pooled effect itself.
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+puts an interval on it.
+
+``` r
+
+confint_varcorr(fmeta)
+#>       block        term type  estimate       lwr       upr
+#> 1 1 | study (Intercept)   sd 0.5596814 0.3310656 0.9461668
+```
+
+### Cross-check against metafor
+
+[`metafor::rma()`](https://wviechtb.github.io/metafor/reference/rma.uni.html)
+is the reference implementation of this model, and it uses REML by
+default.
+
+``` r
+
+rr <- metafor::rma(yi, vi, data = bcg, method = "REML")
+out <- rbind(frmtmb = c(unname(fixef(fmeta)$mu), sqrt(vcov(fmeta)[1, 1]),
+                        sqrt(VarCorr(fmeta)[[1]][1, 1])),
+             metafor = c(as.numeric(rr$beta), rr$se, sqrt(rr$tau2)))
+colnames(out) <- c("pooled_logRR", "se", "tau")
+out
+#>         pooled_logRR        se       tau
+#> frmtmb    -0.7145323 0.1804360 0.5596814
+#> metafor   -0.7145323 0.1797815 0.5596815
+```
+
+``` r
+
+stopifnot(
+  abs(fixef(fmeta)$mu - as.numeric(rr$beta)) < 1e-5,
+  abs(sqrt(VarCorr(fmeta)[[1]][1, 1]) - sqrt(rr$tau2)) < 1e-5,
+  # the standard errors come from different expressions: metafor uses
+  # (X'WX)^-1 at the REML tau, frmtmb reads the joint Hessian
+  abs(sqrt(vcov(fmeta)[1, 1]) / rr$se - 1) < 0.01
+)
+```
+
+The pooled estimate and the heterogeneity match to five decimal places.
+The standard errors agree to under one percent, because the two packages
+compute them from different expressions.
+
+### Meta-regression
+
+Adding a moderator makes it a meta-regression. Absolute latitude is the
+classic moderator for these trials: the vaccine works better away from
+the equator.
+
+``` r
+
+freg <- frm(bf(yi | se(sei) ~ ablat + (1 | study)) + gaussian(),
+            data = bcg, REML = TRUE)
+c(fixef(freg)$mu, tau = sqrt(VarCorr(freg)[[1]][1, 1]))
+#> (Intercept)       ablat         tau 
+#>  0.25146821 -0.02910173  0.27631135
+```
+
+``` r
+
+rr2 <- metafor::rma(yi, vi, mods = ~ablat, data = bcg, method = "REML")
+out <- rbind(frmtmb = c(fixef(freg)$mu, sqrt(VarCorr(freg)[[1]][1, 1])),
+             metafor = c(coef(rr2), sqrt(rr2$tau2)))
+colnames(out) <- c("intercept", "ablat", "tau")
+out
+#>         intercept       ablat       tau
+#> frmtmb  0.2514682 -0.02910173 0.2763114
+#> metafor 0.2514643 -0.02910166 0.2763235
+```
+
+Latitude removes about half of the heterogeneity: `tau` falls from 0.56
+to 0.28.
+
+Because this is an ordinary mixed model with a fixed residual, the rest
+of the grammar still applies. Nested study levels become a second
+grouping factor, which is the multilevel meta-analysis. A formula on
+`sigma` turns the fixed residual into a modeled one, which is
+`se(sei, sigma = TRUE)` in brms.
+
+## 4. Monotonic effects of ordinal predictors
+
+An ordinal predictor such as an income band or a Likert item is neither
+a number nor an unordered factor. Treating it as a number forces equal
+steps. Treating it as a factor throws the order away. `mo()` keeps the
+order and estimates the step sizes as a simplex, which is the method of
+Bürkner and Charpentier (2020, *British Journal of Mathematical and
+Statistical Psychology* 73), and the subject of the brms monotonic
+effects vignette.
+
+``` r
+
+set.seed(21)
+n <- 400; L <- 6
+inc <- sample(1:L, n, TRUE)
+shape <- c(0, 0.15, 0.3, 0.75, 0.9, 1)   # a step between bands 3 and 4
+dmo <- data.frame(income = factor(inc, ordered = TRUE), z = rnorm(n))
+dmo$ls <- 5 + 2.0 * shape[inc] + 0.4 * dmo$z + rnorm(n, 0, 0.8)
+```
+
+``` r
+
+fmo <- frm(bf(ls ~ mo(income) + z) + gaussian(), data = dmo)
+fixef(fmo)$mu
+#> (Intercept)           z    moincome 
+#>   5.1896890   0.4225086   0.3610908
+```
+
+`moincome` is the average step, not the total effect. The total effect
+across the whole scale is `moincome * (L - 1)`, here about 1.8. To read
+the shape, predict at each band with the other predictors held fixed and
+rescale to the unit interval.
+
+``` r
+
+nd <- data.frame(income = factor(1:L, ordered = TRUE), z = 0)
+p <- predict(fmo, newdata = nd)
+rbind(estimated = round((p - p[1]) / (p[L] - p[1]), 3),
+      simulated = shape)
+#>           1     2     3    4     5 6
+#> estimated 0 0.112 0.276 0.85 0.896 1
+#> simulated 0 0.150 0.300 0.75 0.900 1
+```
+
+The fit finds the large step between bands 3 and 4 and the small steps
+elsewhere.
+
+### Cross-check against the saturated factor model
+
+`mo()` is the saturated factor model with an order restriction, and it
+spends the same number of parameters. When the band means already
+increase, the restriction is not active and the two fits are identical.
+
+``` r
+
+fsat <- frm(bf(ls ~ income + z) + gaussian(), data = dmo)
+out <- rbind(
+  mo = c(predict(fmo, newdata = nd), logLik(fmo), attr(logLik(fmo), "df")),
+  saturated = c(predict(fsat, newdata = nd), logLik(fsat),
+                attr(logLik(fsat), "df")))
+colnames(out) <- c(paste0("band", 1:L), "logLik", "df")
+round(out, 4)
+#>            band1  band2  band3  band4  band5  band6    logLik df
+#> mo        5.1897 5.3915 5.6879 6.7237 6.8077 6.9951 -481.0059  8
+#> saturated 5.1897 5.3915 5.6879 6.7237 6.8077 6.9951 -481.0059  8
+stopifnot(max(abs(predict(fmo, newdata = nd) -
+                    predict(fsat, newdata = nd))) < 1e-4)
+```
+
+The value of `mo()` is not the parameter count. It is that one
+coefficient carries the effect size, that the restriction holds when the
+data are noisy, and that interactions stay readable. `mo()` takes
+two-way interactions with numeric terms.
+
+``` r
+
+fixef(frm(bf(ls ~ mo(income) * z) + gaussian(), data = dmo))$mu
+#> (Intercept)           z  moincome:z    moincome 
+#>  5.18598429  0.38236229  0.01534946  0.36108793
+```
+
+The interaction is near zero here, which is right: the simulation has no
+interaction. A factor multiplier is refused, so expand a factor into
+numeric indicator columns first.
+
+## 5. Location-scale regression
+
+GAMLSS calls it a location-scale model, mgcv calls it `gaulss`, and brms
+calls it distributional regression. The mean and the residual standard
+deviation both follow smooth functions of a covariate. In frmtmb this is
+one [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) with a
+formula for `sigma`, and the smoothing parameters of both smooths are
+estimated as variance components.
+
+``` r
+
+set.seed(22)
+dls <- data.frame(x = runif(400))
+dls$y <- rnorm(400, sin(2 * pi * dls$x),
+               exp(-1 + 1.2 * cos(2 * pi * dls$x)))
+```
+
+``` r
+
+fls <- frm(bf(y ~ s(x, k = 10), sigma ~ s(x, k = 10)) + gaussian(),
+           data = dls)
+VarCorr(fls)
+#>   s(x) 
+#>        Name Std.Dev.
+#>  sd(wiggle)   2.3021
+#>   sigma: s(x) 
+#>        Name Std.Dev.
+#>  sd(wiggle)   2.4656
+```
+
+The two standard deviations are the smooths’ wiggliness parameters. A
+value near zero would mean a straight line.
+
+### Cross-check against mgcv
+
+[`mgcv::gam()`](https://rdrr.io/pkg/mgcv/man/gam.html) with
+`family = gaulss()` and `method = "ML"` fits the same model. It uses a
+`logb` link for the precision, so its scale parameterization differs
+slightly from the plain log link here.
+
+``` r
+
+gm <- mgcv::gam(list(y ~ s(x, k = 10), ~ s(x, k = 10)), data = dls,
+                family = mgcv::gaulss(b = 0), method = "ML")
+nd <- data.frame(x = seq(0.05, 0.95, length.out = 6))
+pg <- predict(gm, newdata = nd, type = "response")
+out <- rbind(frmtmb_mu = predict(fls, newdata = nd),
+             mgcv_mu = pg[, 1],
+             frmtmb_sigma = predict(fls, newdata = nd, dpar = "sigma",
+                                    type = "response"),
+             mgcv_sigma = 1 / pg[, 2],
+             true_sigma = exp(-1 + 1.2 * cos(2 * pi * nd$x)))
+colnames(out) <- paste0("x=", round(nd$x, 2))
+round(out, 4)
+#>              x=0.05 x=0.23 x=0.41  x=0.59  x=0.77  x=0.95
+#> frmtmb_mu    0.5197 1.0491 0.5352 -0.5705 -0.9096 -0.7964
+#> mgcv_mu      0.5115 1.0497 0.5350 -0.5707 -0.9072 -0.7978
+#> frmtmb_sigma 1.1933 0.3860 0.1338  0.1487  0.4431  1.1790
+#> mgcv_sigma   1.1720 0.3804 0.1315  0.1463  0.4379  1.1597
+#> true_sigma   1.1517 0.4276 0.1336  0.1336  0.4276  1.1517
+```
+
+``` r
+
+sg <- predict(fls, newdata = nd, dpar = "sigma", type = "response")
+stopifnot(
+  max(abs(predict(fls, newdata = nd) - pg[, 1])) < 0.02,
+  max(abs(sg * pg[, 2] - 1)) < 0.03
+)
+```
+
+The two mean curves agree to about 0.01, and the two scale curves to
+about two percent. They are not expected to agree exactly, because the
+packages choose their smoothing parameters with different criteria. Note
+that [`predict()`](https://rdrr.io/r/stats/predict.html) on a
+distributional parameter returns the link scale by default, so
+`type = "response"` is needed for a standard deviation.
+
+## 6. Growth mixture models
+
+A growth mixture model says that a population contains latent classes
+with different trajectories, and that individuals inside a class still
+vary. It comes from the structural equation modeling literature (Muthen
+and Shedden 1999, *Biometrics* 55), and brms fits it with
+`mixture(..., groups = ~id)`.
+
+The `groups` argument is what makes it a growth mixture rather than an
+observation-level mixture. Without it, every measurement could belong to
+a different class. With it, the class is drawn once per subject, so all
+of a subject’s measurements come from the same component.
+
+``` r
+
+set.seed(31)
+nid <- 80; nt <- 5
+cls <- rbinom(nid, 1, 0.4)              # class membership per subject
+id <- rep(seq_len(nid), each = nt)
+dg <- data.frame(id = factor(id), time = rep(0:(nt - 1), nid))
+b0 <- 2 + rnorm(nid, 0, 0.5)            # random intercept inside class
+b1 <- c(0.2, 1.2)[cls + 1]              # slow and fast classes
+dg$y <- b0[id] + b1[id] * dg$time + rnorm(nid * nt, 0, 0.6)
+```
+
+``` r
+
+fgmm <- frm(bf(y ~ time + (1 | id)) +
+              mixture(gaussian(), gaussian(), groups = ~id),
+            data = dg)
+rbind(class1 = fixef(fgmm)$mu1, class2 = fixef(fgmm)$mu2)
+#>        (Intercept)     time
+#> class1    1.981932 0.227937
+#> class2    2.006057 1.258254
+```
+
+Each component keeps its own intercept, slope, residual standard
+deviation, and random intercept. The two slopes recover the slow and
+fast trajectories.
+
+[`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
+gives the posterior class probability of each subject.
+
+``` r
+
+pr <- mixture_probs(fgmm)
+head(round(pr, 3), 3)
+#>   class1 class2
+#> 1      1      0
+#> 2      0      1
+#> 3      1      0
+assigned <- max.col(pr) - 1L
+# label switching is inherent to a mixture, so score both labelings
+max(mean(assigned == cls), mean(assigned != cls))
+#> [1] 1
+```
+
+Every subject is classified correctly here, because the two trajectories
+separate well over five time points. Real growth mixture models are
+rarely this clean.
+
+Two cautions carry over from any maximum likelihood mixture. The
+likelihood is multimodal, so compare starting values with
+[`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md).
+And a mixture will always find classes, whether or not they exist, so a
+model comparison against the single-class fit is the minimum evidence
+for reporting them.
+
+``` r
+
+f1 <- frm(bf(y ~ time + (1 | id)) + gaussian(), data = dg)
+c(one_class = AIC(f1), two_class = AIC(fgmm))
+#> one_class two_class 
+#> 1270.5366  960.2408
+```
+
+## 7. Measurement error in a predictor
+
+When a predictor is measured with error, regression on the measured
+value is biased toward zero. The bias factor is the reliability ratio,
+`var(true) / (var(true) + sd_error^2)`. brms corrects it by giving the
+mismeasured variable its own sub-model with a known error standard
+deviation, spelled `mi(sdx)` on that response and `mi(x)` in the
+predictor of interest. frmtmb uses the same spelling and integrates the
+latent true values out with the Laplace approximation.
+
+``` r
+
+set.seed(3)
+n <- 300
+z <- rnorm(n)
+x_true <- rnorm(n, 0.5 * z, 1)
+su <- 0.6                                # known measurement error sd
+dme <- data.frame(x = x_true + rnorm(n, 0, su), z = z, su = su)
+dme$y <- 1 + 1.0 * x_true + 0.3 * z + rnorm(n, 0, 0.7)
+```
+
+``` r
+
+fme <- frm(bf(y ~ mi(x) + z) + gaussian() +
+             bf(x | mi(su) ~ z) + gaussian(),
+           data = dme)
+fixef(fme)$y_mu
+#> (Intercept)           z         mix 
+#>   0.9701430   0.3316064   1.0379531
+```
+
+The coefficient on the latent `x` is `mix`. Compare it with the naive
+regression on the measured value, and with the attenuation that theory
+predicts.
+
+``` r
+
+naive <- coef(lm(y ~ x + z, data = dme))[["x"]]
+c(naive = naive,
+  predicted_attenuation = 1.0 * var(x_true) / (var(x_true) + su^2),
+  corrected = fixef(fme)$y_mu[["mix"]],
+  simulated_truth = 1.0)
+#>                 naive predicted_attenuation             corrected 
+#>             0.7703484             0.7855849             1.0379531 
+#>       simulated_truth 
+#>             1.0000000
+stopifnot(fixef(fme)$y_mu[["mix"]] > naive + 0.1)
+```
+
+The naive slope sits near the attenuated value that theory predicts. The
+corrected slope is close to the truth. The correction is not free: it
+widens the standard error, because the latent values are estimated
+rather than observed.
+
+``` r
+
+c(naive_se = summary(lm(y ~ x + z, data = dme))$coefficients["x", 2],
+  corrected_se = sqrt(diag(vcov(fme)))[["y_mix"]])
+#>     naive_se corrected_se 
+#>   0.04373838   0.06561259
+```
+
+The same machinery with `mi()` and no standard deviation imputes missing
+values in one step instead of correcting known error.
+
+## 8. Sequential ordinal models with category-specific effects
+
+The proportional odds assumption says one slope governs every category
+threshold. `cs()` relaxes it and gives each threshold its own slope,
+which is brms’s category-specific effect. Under the cumulative
+parameterization that model can produce negative probabilities, so brms
+and frmtmb both refuse it there and accept it for the sequential
+families `sratio`, `cratio`, and `acat`.
+
+``` r
+
+set.seed(51)
+n <- 500
+xo <- rnorm(n)
+th <- c(-1.6, 0, 1.6); eff <- c(0.3, 0.6, 0.9)
+Y <- integer(n)
+for (i in seq_len(n)) {
+  cp <- c(plogis(th - eff * xo[i]), 1)
+  Y[i] <- sample(1:4, 1, prob = diff(c(0, cp)))
+}
+dord <- data.frame(y = factor(Y, ordered = TRUE), x = xo)
+```
+
+``` r
+
+fcs <- frm(bf(y ~ cs(x)) + sratio(), data = dord)
+confint(fcs)
+#>                   lwr        upr        est
+#> tau_raw_1 -1.56199837 -1.1273843 -1.3446913
+#> tau_raw_2 -0.47074653  0.2194181 -0.1256642
+#> tau_raw_3  0.19217398  0.6924868  0.4423304
+#> bcs2_1    -0.07596964  0.3784579  0.1512441
+#> bcs2_2     0.47728264  0.9677442  0.7225134
+#> bcs2_3     0.40132291  1.0910031  0.7461630
+```
+
+`tau_raw` holds the thresholds on an internal increasing scale. `bcs2_k`
+is the effect of `x` at threshold `k`. The three effects grow, which is
+what the simulation put there.
+
+### Cross-check against a set of binomial regressions
+
+The sequential model has an exact decomposition. It asks, at each
+category in turn, whether the process stops there given that it reached
+there. Those questions are independent, so the model is equivalent to
+`K - 1` separate logistic regressions on shrinking subsets, and the log
+likelihoods add up (Laara and Matthews 1985, *Biometrika* 72; Tutz
+1991).
+
+``` r
+
+glm_fits <- lapply(1:3, function(k) {
+  sub <- dord[as.integer(dord$y) >= k, ]
+  glm(as.integer(as.integer(sub$y) == k) ~ x, data = sub,
+      family = binomial())
+})
+rbind(frmtmb = confint(fcs)[paste0("bcs2_", 1:3), "est"],
+      # the binary question is "stop here", so the sign is reversed
+      binomial_glms = -vapply(glm_fits, function(g) coef(g)[["x"]], 0))
+#>                  bcs2_1    bcs2_2    bcs2_3
+#> frmtmb        0.1512441 0.7225134 0.7461630
+#> binomial_glms 0.1512442 0.7225128 0.7461606
+c(frmtmb = as.numeric(logLik(fcs)),
+  sum_of_glms = sum(vapply(glm_fits, function(g) as.numeric(logLik(g)), 0)))
+#>      frmtmb sum_of_glms 
+#>   -638.4767   -638.4767
+```
+
+``` r
+
+stopifnot(
+  max(abs(confint(fcs)[paste0("bcs2_", 1:3), "est"] +
+            vapply(glm_fits, function(g) coef(g)[["x"]], 0))) < 1e-4,
+  abs(as.numeric(logLik(fcs)) -
+        sum(vapply(glm_fits, function(g) as.numeric(logLik(g)), 0))) < 1e-6
+)
+```
+
+The coefficients and the log likelihood agree exactly. The frmtmb form
+is the more general one, because the decomposition breaks as soon as a
+random effect is shared between thresholds, and frmtmb keeps working.
+
+A proportional odds fit is the null model, and
+[`anova()`](https://rdrr.io/r/stats/anova.html) tests the restriction.
+
+``` r
+
+anova(frm(bf(y ~ x) + sratio(), data = dord), fcs)
+#> Likelihood-ratio tests
+#> 
+#>           Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)    
+#> y ~ x      4 -645.57 1299.1                             
+#> y ~ cs(x)  6 -638.48 1289.0 14.187      2  0.0008305 ***
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
+## Where the checks live
+
+Every cross-check on this page runs when the page is built, and the
+[`stopifnot()`](https://rdrr.io/r/base/stopifnot.html) calls fail the
+build if a number moves. The strongest of them are also pinned in
+`tests/testthat/test-case-studies.R`, so they run in the test suite as
+well.
+
+Two points of friction showed up while writing these case studies, and
+each one is handled above:
+
+- A `gr(cov = )` block with one row per level triggers the
+  observation-level random effect warning, although the covariance
+  matrix identifies the two variances. Use
+  `frmtmb_control(check_olre = "ignore")`.
+- A multi-trait model with a known covariance takes the long format of
+  section 1.
+  [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md) with
+  the `|ID|` identifier over a `gr(cov = )` block is refused, because
+  the cross-formula merge cannot carry the covariance matrix through.
+
+The identity-refit check of section 1 belongs in any model that reads a
+matrix from `data2`. It is the one test that a structured covariance
+cannot pass by accident.

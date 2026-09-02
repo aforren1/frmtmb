@@ -1,5 +1,120 @@
 # Changelog
 
+## frmtmb 0.31.0
+
+ODE models, an exotic-models case-study vignette, and the defect wave
+the vignette work exposed.
+
+### New
+
+- [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
+  fits ordinary differential equation models inside a `bf(nl = TRUE)`
+  body. Dynamics parameters and initial states are ordinary nonlinear
+  parameters, so they take fixed effects, random effects and covariates,
+  and the Laplace approximation is exact through the solver’s adjoint.
+  It solves one small system per group and scatters the solution back
+  into row order; ragged designs, unsorted rows, repeated times and an
+  observation at `t0` all work. Needs the optional RTMBode package (not
+  on CRAN; `Additional_repositories` now names
+  <https://kaskr.r-universe.dev>), and every code path, test, example
+  and vignette chunk degrades cleanly without it. New
+  [`vignette("ode")`](https://aforren1.github.io/frmtmb/articles/ode.md)
+  works a population pharmacokinetic model on
+  [`datasets::Theoph`](https://rdrr.io/r/datasets/Theoph.html).
+- [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
+  refuses the ways an ODE model goes quietly wrong: a dynamics parameter
+  that varies inside a solve group is rejected by name at frame
+  assembly; fixed-step integrators such as `rk4` are refused because
+  they return a different likelihood, not a noisier one; a system near
+  the Laplace ceiling of about eight states warns. A failed solve is
+  reported, not absorbed: on numeric evaluation paths
+  ([`predict()`](https://rdrr.io/r/stats/predict.html),
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html),
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html), and a body
+  with no estimated dynamics inputs) the group’s rows get a penalty
+  value and a warning naming the group, and
+  [`frm_ode_failures()`](https://aforren1.github.io/frmtmb/reference/frm_ode_failures.md)
+  reads the record back. During fitting most failures cannot be detected
+  at all (RTMBode returns an AD object), so they surface as the
+  optimizer’s NA/NaN gradient; the help page says which is which.
+- New
+  [`vignette("case-studies")`](https://aforren1.github.io/frmtmb/articles/case-studies.md):
+  eight worked models from the showcase literature of brms, MCMCglmm,
+  metafor and mgcv. The animal model and its multi-trait form,
+  phylogenetic regression, random-effects meta-analysis and
+  meta-regression, monotonic ordinal predictors, location-scale
+  regression, growth mixtures, measurement error, and sequential ordinal
+  models with category-specific effects. Every section cross-checks its
+  fit against a reference package or a closed form, the multi-trait
+  section proves its pedigree matters with an identity refit, and
+  `tests/testthat/test-case-studies.R` pins the agreements. Suggests
+  gains ape and metafor for the cross-checks, and data.table and tibble
+  for tabular-input tests.
+
+### Breaking
+
+- A `gr(cov = )` or `gr(prec = )` term whose `|ID|` key is shared with
+  another term is refused at parse time. The cross-formula merge
+  hardcoded an unstructured covariance and silently discarded the
+  matrix, so earlier fits of that construct ignored the structure they
+  named. The error points at the supported long format,
+  `(0 + trait | gr(id, cov = A))`, which takes the verified Kronecker
+  path. A lone `gr()` term with an unshared key keeps its structure and
+  still fits.
+
+### Corrected behavior
+
+- [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  and
+  [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+  expose `sd_<group>__<term>` and `cor_` names for `gr(cov = )`,
+  `gr(prec = )` and `equalto()` blocks, so heritability-as-ICC is one
+  line on an animal model. Smooth, `gp()`, `car()` and `spde()` blocks
+  stay excluded;
+  [`?hypothesis`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  says which and why.
+- `vcov(full = TRUE)` works under REML and `profile = TRUE`, taking the
+  outer block from the joint precision instead of warning and returning
+  only the fixed effects. Its rows are
+  [`confint()`](https://rdrr.io/r/stats/confint.html)’s rows.
+- The observation-level-random-effect check no longer fires on
+  `gr(cov = )`, `gr(prec = )` or `equalto()` blocks with one row per
+  level: a fixed relationship matrix identifies the two variances, which
+  is exactly the animal model with one record per individual.
+- `predict(type = "response")` on the four ordinal families returns an n
+  x K matrix of category probabilities named by the response’s levels,
+  honoring `cs()` on newdata; `se.fit` there is refused rather than
+  faked. marginaleffects gets the categorical `group` convention (also
+  fixing
+  [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  row alignment), `posterior_linpred(transform = TRUE)` stays on the
+  latent dpar as documented, and
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)’s
+  flattened categorical shape is named and documented.
+- [`anova()`](https://rdrr.io/r/stats/anova.html) and
+  [`drop1()`](https://rdrr.io/r/stats/add1.html) report NA instead of
+  `< 2.2e-16 ***` when the compared models have equal df.
+- [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+  no longer reports a zero-width interval at its internal clamp for a
+  correlation estimated at plus or minus 1 or an sd at zero; those rows
+  keep the estimate, get NA bounds, and warn.
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  and [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md)
+  handle two blocks sharing a term label (one printed twice, the other
+  silently dropped a block).
+- A `Date`, `POSIXct` or `difftime` predictor is reported at frame
+  assembly with its unit and 1970-01-01 origin plus the centering fix;
+  the epoch-scale magnitude can stop the optimizer converging. Responses
+  and grouping variables are exempt (srr G2.5, G2.9).
+- A nonlinear formula body that fails to evaluate reports which of its
+  names were resolved to functions instead of found in `data`, so a
+  misspelled column sharing a name with a base function (`t`, `c`) is
+  named rather than surfacing as a coercion error.
+- srr completeness: `srr_stats_pre_submit()` reports no missing
+  standards (seven were untagged; six were already satisfied and are now
+  tagged with pinning tests, G2.9 is satisfied by the datetime reporting
+  above).
+
 ## frmtmb 0.30.0
 
 data2, ODE feasibility, and the remaining rOpenSci runway.
@@ -23,7 +138,9 @@ data2, ODE feasibility, and the remaining rOpenSci runway.
   one-compartment population fit agrees with nlmixr2’s FOCEi to three
   decimals with no compiler. The feasibility study, the sharp edges
   (never stack subjects into one system; adaptive integrators only), and
-  the planned `frm_ode()` helper are recorded in dev/ode-feasibility.md.
+  the planned
+  [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
+  helper are recorded in dev/ode-feasibility.md.
 
 ### rOpenSci runway
 

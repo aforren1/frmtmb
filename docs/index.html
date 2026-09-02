@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="articles/brms-migration.html">frmtmb for brms users</a></li>
+    <li><a class="dropdown-item" href="articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -61,6 +63,26 @@
 </h1></div>
 <p>frmtmb fits regression models that you specify with a brms-style formula grammar. Estimation is maximum likelihood, with the Laplace approximation for latent effects. The backend is <a href="https://cran.r-project.org/package=RTMB" class="external-link">RTMB</a>. The package generates each model’s objective as an R closure and differentiates it on the TMB AD tape. There is no MCMC, no Stan, and no compilation at run time. A refit re-tapes in milliseconds. The bootstrap, influence, and multi-start machinery build on that speed.</p>
 <p>Documentation: <a href="https://aforren1.github.io/frmtmb/" class="uri">https://aforren1.github.io/frmtmb/</a></p>
+<div class="section level2">
+<h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
+</h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://aforren1.github.io/frmtmb/">frmtmb</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">sleepstudy</span>, package <span class="op">=</span> <span class="st">"lme4"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="reference/bf.html">bf</a></span><span class="op">(</span><span class="va">Reaction</span> <span class="op">~</span> <span class="va">Days</span> <span class="op">+</span> <span class="op">(</span><span class="va">Days</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>           data <span class="op">=</span> <span class="va">sleepstudy</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># distributional regression: model the residual SD too</span></span>
+<span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="reference/bf.html">bf</a></span><span class="op">(</span><span class="va">Reaction</span> <span class="op">~</span> <span class="va">Days</span> <span class="op">+</span> <span class="op">(</span><span class="va">Days</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span>,</span>
+<span>               <span class="va">sigma</span> <span class="op">~</span> <span class="va">Days</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>            data <span class="op">=</span> <span class="va">sleepstudy</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">fit2</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)"</span>,</span>
+<span>           method <span class="op">=</span> <span class="st">"boot"</span><span class="op">)</span></span></code></pre></div>
+</div>
 <div class="section level2">
 <h2 id="status">Status<a class="anchor" aria-label="anchor" href="#status"></a>
 </h2>
@@ -105,30 +127,9 @@
 </ul>
 </div>
 <div class="section level2">
-<h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
-</h2>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://aforren1.github.io/frmtmb/">frmtmb</a></span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">sleepstudy</span>, package <span class="op">=</span> <span class="st">"lme4"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="reference/bf.html">bf</a></span><span class="op">(</span><span class="va">Reaction</span> <span class="op">~</span> <span class="va">Days</span> <span class="op">+</span> <span class="op">(</span><span class="va">Days</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>           data <span class="op">=</span> <span class="va">sleepstudy</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># distributional regression: model the residual SD too</span></span>
-<span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="reference/bf.html">bf</a></span><span class="op">(</span><span class="va">Reaction</span> <span class="op">~</span> <span class="va">Days</span> <span class="op">+</span> <span class="op">(</span><span class="va">Days</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span>,</span>
-<span>               <span class="va">sigma</span> <span class="op">~</span> <span class="va">Days</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>            data <span class="op">=</span> <span class="va">sleepstudy</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">fit2</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)"</span>,</span>
-<span>           method <span class="op">=</span> <span class="st">"boot"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
 </h2>
 <p>brms defined a formula grammar that covers a wide model space. frmtmb brings that grammar to maximum likelihood. The package generates each model’s objective from the formula; it does not select from a fixed set of likelihoods. Because of that, features that would each need a bespoke implementation become ordinary code paths, and they compose with each other: random effects in any distributional parameter, nonlinear predictors, per-response families, monotonic effects, in-model imputation, latent-class mixtures, and custom families written as plain R log-densities.</p>
-<p>The test suite mines the issue trackers of related packages to pin down edge-case behavior early. Zero prior weights are exactly equivalent to subsetting. Crossed grouping <code>(1 | a*b)</code> and call-valued grouping factors <code>(1 | factor(x))</code> work. Nonlinear-model standard errors are validated against nlme, and tensor smooths against mgcv. REML predictions agree with <code><a href="reference/fixef.html">fixef()</a></code>. The audit lives in <code>dev/test-backlog.md</code>.</p>
 <p>Related work: <a href="https://glmmtmb.github.io/glmmTMB/" class="external-link">glmmTMB</a> is the closest relative, a mature and fast TMB-based mixed-model package. frmtmb matches its fits where the models overlap and follows its conventions in several places. <a href="https://github.com/norimune/BayesRTMB" class="external-link">BayesRTMB</a> is a Bayesian-first, Stan-like modeling layer on the same RTMB backend. <a href="https://paulbuerkner.com/brms/" class="external-link">brms</a> itself is the right tool when you want priors and full posterior inference; the shared grammar is meant to make movement between the two easy.</p>
 </div>
 <div class="section level2">
@@ -151,7 +152,7 @@
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<p>Run <code>citation("frmtmb")</code> in R. Please also cite RTMB and TMB (Kristensen et al. 2016, <a href="doi:10.18637/jss.v070.i05" class="uri">doi:10.18637/jss.v070.i05</a>).</p>
+<p>Run <code>citation("frmtmb")</code> in R. Please also cite RTMB, TMB, and tmbstan.</p>
 </div>
 <div class="section level2">
 <h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>

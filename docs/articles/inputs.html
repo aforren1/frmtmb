@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,7 +36,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+    <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -427,12 +429,14 @@ projected onto the fitted basis rather than refitted.</td>
 </tr>
 <tr class="even">
 <td>
-<code>Date</code>, <code>POSIXct</code>
+<code>Date</code>, <code>POSIXct</code>, <code>difftime</code>
 </td>
-<td>No special handling. <code><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">model.matrix()</a></code> reduces the column
-to its numeric value, which gives one coefficient per day or per second.
-Nothing checks this, so convert to the unit you want the coefficient
-in.</td>
+<td>Accepted as a number. <code><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">model.matrix()</a></code> reduces the column
+to its underlying value, so the coefficient is per day
+(<code>Date</code>), per second (<code>POSIXct</code>), or per unit of
+the <code>units</code> attribute (<code>difftime</code>). Frame assembly
+reports the coercion, naming the column, its unit and its origin. See
+“Dates and times” below.</td>
 </tr>
 </tbody>
 </table>
@@ -517,6 +521,43 @@ that the gap counts as one step, with a pointer to
 <span><span class="va">d</span><span class="op">$</span><span class="va">lst</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">lst</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error: invalid type (list) for variable 'lst'</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="dates-and-times">Dates and times<a class="anchor" aria-label="anchor" href="#dates-and-times"></a>
+</h3>
+<p>A <code>Date</code>, <code>POSIXct</code> or <code>difftime</code>
+predictor is fitted as the number underneath it. The model is the one
+you asked for, but it is expressed in an origin you did not choose:
+<code><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric()</a></code> on a <code>Date</code> counts days from
+1970-01-01, and on a <code>POSIXct</code> it counts seconds. So the
+slope is per day or per second, and the intercept is the fitted value on
+1970-01-01.</p>
+<p>That intercept is the problem. A modern date is about 18000 as a
+number, and a modern timestamp about 1.7e9, which puts the intercept far
+outside the data and makes the objective badly conditioned. The same
+model on days-since-the-first-day converges where the raw column reports
+false convergence, with an identical slope:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>day <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2020-01-01"</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0</span><span class="op">:</span><span class="fl">59</span><span class="op">)</span></span>
+<span><span class="va">d</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">60</span>, <span class="fl">1</span> <span class="op">+</span> <span class="fl">0.02</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">day</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">day</span><span class="op">)</span><span class="op">)</span>, <span class="fl">0.5</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">day</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Date/time column used as a number: day (Date, days since 1970-01-01).</span></span>
+<span><span class="co">#&gt; The coefficient is per unit of that origin and the intercept is the</span></span>
+<span><span class="co">#&gt; value at it, which is far outside the data and can stop the optimizer</span></span>
+<span><span class="co">#&gt; converging. Center the column, for example as.numeric(x - min(x)), to</span></span>
+<span><span class="co">#&gt; put the intercept back in range.</span></span>
+<span><span class="co">#&gt; Warning: Optimizer did not report convergence: false convergence (8)</span></span>
+<span><span class="co">#&gt; (Intercept) = -366.16, day = 0.0201</span></span>
+<span></span>
+<span><span class="co"># the same fit, with the intercept back inside the data</span></span>
+<span><span class="va">d</span><span class="op">$</span><span class="va">days</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">day</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">day</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">days</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
+<span><span class="co">#&gt; (Intercept) = 1.051, days = 0.0201</span></span></code></pre></div>
+<p>Frame assembly emits that message once per fit. It is a message and
+not a warning because the coercion is deliberate and correct in meaning;
+<code><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages()</a></code> silences it once you have centered the
+column or if you want the epoch origin.</p>
 </div>
 </div>
 <div class="section level2">
@@ -665,7 +706,7 @@ fitted centering, scaling and knots.</li>
 is padded back to the input length with <code>NA</code> in the dropped
 positions.</li>
 </ul>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "obs1" "obs2" "obs3"</span></span>
@@ -931,14 +972,14 @@ them.</p>
 </tbody>
 </table>
 <p>The comparison table is one command:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="ex">Rscript</span> dev/bench-op-context.R</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="ex">Rscript</span> dev/bench-op-context.R</span></code></pre></div>
 <p>Run <code>Rscript dev/bench-setup.R</code> once first, and edit the
 scratch library path at the top of each script to a directory you can
 write to. Run the timing scripts one at a time; the numbers move by
 about 15 percent with another R process on the machine.</p>
 <p>The headline frmtmb against lme4 comparison does not need the
 harness. This one line reproduces it from an installed frmtmb:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'library(frmtmb); data(InstEval, package = "lme4"); print(system.time(frm(bf(y ~ service + (1 | s) + (1 | d)) + gaussian(), data = InstEval))); print(system.time(lme4::lmer(y ~ service + (1 | s) + (1 | d), data = InstEval, REML = FALSE)))'</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'library(frmtmb); data(InstEval, package = "lme4"); print(system.time(frm(bf(y ~ service + (1 | s) + (1 | d)) + gaussian(), data = InstEval))); print(system.time(lme4::lmer(y ~ service + (1 | s) + (1 | d), data = InstEval, REML = FALSE)))'</span></span></code></pre></div>
 <p>The findings behind these numbers, including why parallelizing the
 outer optimizer does not help and why an RTMB tape cannot be shipped to
 a worker process, are written up in <code>dev/benchmarks.md</code>.</p>

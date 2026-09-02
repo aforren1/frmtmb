@@ -76,7 +76,8 @@ predict(
 
 ## Value
 
-A numeric vector, or a list when `se.fit = TRUE`.
+A numeric vector, or a list when `se.fit = TRUE`. For an ordinal family
+with `type = "response"`, an `n x K` matrix of category probabilities.
 
 ## Details
 
@@ -106,6 +107,35 @@ about the observed, truncated response. Bounds are re-evaluated on
 `newdata` the same way `trials()` and `se()` are: a literal bound
 carries over unchanged, and a bound given as a variable must be a column
 of `newdata` of the right length.
+
+## Ordinal responses
+
+[`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+and
+[`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+have no mean on the response scale, so `type = "response"` (and its
+alias `type = "conditional"`) returns an `n x K` matrix of category
+probabilities instead of a vector - the brms
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) convention -
+with the response's own factor levels as column names. The rows sum to
+one. `cs()` category-specific terms are honored: they enter each
+threshold separately and are re-evaluated on `newdata`.
+
+`type = "link"` (the default) and `dpar = "mu"` still give the latent
+linear predictor, which is where the fixed-effect coefficients live and
+where `se.fit` is available. `se.fit` on the response scale is refused:
+the prediction is a K-vector per row, not one number.
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) keeps returning
+the latent predictor for these families.
+
+`type = "conditional"` is glmmTMB's name for the conditional MEAN, so it
+gives the category probabilities here too rather than the linear
+predictor: an ordinal response has no mean, and answering a question
+about a mean with a latent predictor is the confusion this section
+exists to remove. Ask for the predictor by name (`type = "link"`, or
+`dpar = "mu"`) when that is what you want.
 
 ## Standard errors of the expected response
 

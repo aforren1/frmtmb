@@ -81,7 +81,23 @@ posterior_predict(
 
 ## Value
 
-A draws-by-observations matrix.
+A draws-by-observations matrix; for a categorical outcome
+`posterior_epred()` returns draws by `n * K` (see the section below).
+
+## Categorical outcomes
+
+An ordinal family (and
+[`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md))
+predicts a DISTRIBUTION per observation, not one number, so
+`posterior_epred()` returns a `draws x (n * K)` matrix: each draw's
+`n x K` prediction flattened column by column, so the columns run
+category by category (`obs1.cat1, obs2.cat1, ..., obs1.cat2, ...`). The
+columns are named `"<observation>.<category>"`;
+`dim(.) <- c(ndraws, n, K)` recovers the array shape.
+`posterior_predict()` is unaffected - it draws one category per
+observation - and so is `posterior_linpred()`, which is a statement
+about one distributional parameter and stays an `n`-column matrix of the
+latent predictor.
 
 ## Examples
 

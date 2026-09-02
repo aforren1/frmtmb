@@ -38,6 +38,15 @@ variables(x, ...)
 
 A character vector.
 
+## Details
+
+`gr(cov = )`, `gr(prec = )` and `equalto()` blocks contribute
+`sd_`/`cor_` names for their within-level covariance. Smooths,
+`gp()`/`hsgp()`, `car()` and `spde()` blocks contribute none: their
+parameters are not standard deviations. See the "Which random-effect
+blocks contribute names" section of
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md).
+
 ## Examples
 
 ``` r

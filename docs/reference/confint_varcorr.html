@@ -13,7 +13,7 @@ covariance. One row per SD and per correlation of every block."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,7 +27,9 @@ covariance. One row per SD and per correlation of every block."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+    <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -74,7 +76,17 @@ covariance. One row per SD and per correlation of every block.</p>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame with columns <code>block</code>, <code>term</code>, <code>type</code>,
-<code>estimate</code>, <code>lwr</code>, <code>upr</code>.</p>
+<code>estimate</code>, <code>lwr</code>, <code>upr</code>. Boundary components carry <code>NA</code> bounds.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>A component sitting on the boundary of its parameter space - a
+standard deviation collapsed to zero, or a correlation at <code>+/-1</code> -
+has no interval on these scales, because the transform is infinite
+there. Those rows report the estimate with <code>NA</code> bounds and warn,
+rather than a zero-width interval at an arbitrary clamp. A
+bootstrap (<code><a href="hypothesis.html">hypothesis()</a></code> with <code>method = "boot"</code>) or a likelihood
+profile of the underlying <code>theta</code> is the alternative.</p>
     </div>
 
     <div class="section level2">

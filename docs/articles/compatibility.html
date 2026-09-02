@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,7 +36,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+    <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -1076,9 +1078,9 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 </table>
 <table class="table">
 <colgroup>
-<col width="2%">
-<col width="51%">
-<col width="45%">
+<col width="1%">
+<col width="30%">
+<col width="68%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -1089,14 +1091,14 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <tr class="odd">
 <td align="left">~</td>
 <td align="left">gaussian + fitted; student + fitted; lognormal +
-fitted; shifted_lognormal + fitted; skew_normal + fitted; and 28
+fitted; shifted_lognormal + fitted; skew_normal + fitted; and 24
 more</td>
 <td align="left">Needs a family with a mean function.</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>
 <td align="left">gaussian + predict; student + predict; lognormal +
-predict; shifted_lognormal + predict; skew_normal + predict; and 28
+predict; shifted_lognormal + predict; skew_normal + predict; and 24
 more</td>
 <td align="left">Rank-deficient designs drop aliased columns at fit
 time. New data that is not estimable from the retained columns predicts
@@ -1134,6 +1136,26 @@ and 28 more</td>
 <td align="left">Chains start jittered around the fitted mode. Use
 init_jitter to widen the spread, or init = “random” for a multimodal
 posterior.</td>
+</tr>
+<tr class="odd">
+<td align="left">~</td>
+<td align="left">cumulative + fitted; sratio + fitted; cratio + fitted;
+acat + fitted</td>
+<td align="left">Returns the latent linear predictor, so the usual
+predict(type = “response”) == fitted() identity does not hold for an
+ordinal family. Use predict(fit, type = “response”) for the n x K
+category probabilities.</td>
+</tr>
+<tr class="even">
+<td align="left">~</td>
+<td align="left">cumulative + predict; sratio + predict; cratio +
+predict; acat + predict</td>
+<td align="left">type = “response” returns an n x K matrix of category
+probabilities (rows summing to 1, columns named by the response’s own
+levels), not a vector: an ordinal response has no mean. cs() terms are
+honored and re-evaluated on newdata. type = “link” gives the latent
+predictor, which is where se.fit is available; se.fit is refused on the
+response scale.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>

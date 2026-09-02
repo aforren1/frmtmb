@@ -217,7 +217,7 @@ and glmmTMB spelling.
 | `character`, as a grouping variable | Accepted. An integer, a factor and a character grouping variable give the same fit. |
 | `character`, in a fixed-effect term | Works, but by delegation: [`stats::model.frame()`](https://rdrr.io/r/stats/model.frame.html) coerces it to a factor with the default contrasts. Level order then follows the locale collation, not your data. Convert to a factor yourself if the level order matters. |
 | Matrix-valued terms | [`poly()`](https://rdrr.io/r/stats/poly.html), `ns()`, [`scale()`](https://rdrr.io/r/base/scale.html) and matrix covariates for functional regression are supported. Their basis is frozen at fit time through `predvars`, so new data is projected onto the fitted basis rather than refitted. |
-| `Date`, `POSIXct` | No special handling. [`model.matrix()`](https://rdrr.io/r/stats/model.matrix.html) reduces the column to its numeric value, which gives one coefficient per day or per second. Nothing checks this, so convert to the unit you want the coefficient in. |
+| `Date`, `POSIXct`, `difftime` | Accepted as a number. [`model.matrix()`](https://rdrr.io/r/stats/model.matrix.html) reduces the column to its underlying value, so the coefficient is per day (`Date`), per second (`POSIXct`), or per unit of the `units` attribute (`difftime`). Frame assembly reports the coercion, naming the column, its unit and its origin. See “Dates and times” below. |
 
 ### Rejected
 
@@ -247,6 +247,47 @@ d$lst <- I(lapply(seq_len(30), function(i) 1:2))
 frm(bf(y ~ lst) + gaussian(), data = d)
 #> Error: invalid type (list) for variable 'lst'
 ```
+
+### Dates and times
+
+A `Date`, `POSIXct` or `difftime` predictor is fitted as the number
+underneath it. The model is the one you asked for, but it is expressed
+in an origin you did not choose:
+[`as.numeric()`](https://rdrr.io/r/base/numeric.html) on a `Date` counts
+days from 1970-01-01, and on a `POSIXct` it counts seconds. So the slope
+is per day or per second, and the intercept is the fitted value on
+1970-01-01.
+
+That intercept is the problem. A modern date is about 18000 as a number,
+and a modern timestamp about 1.7e9, which puts the intercept far outside
+the data and makes the objective badly conditioned. The same model on
+days-since-the-first-day converges where the raw column reports false
+convergence, with an identical slope:
+
+``` r
+
+d <- data.frame(day = as.Date("2020-01-01") + 0:59)
+d$y <- rnorm(60, 1 + 0.02 * as.numeric(d$day - min(d$day)), 0.5)
+
+frm(bf(y ~ day) + gaussian(), data = d)
+#> Date/time column used as a number: day (Date, days since 1970-01-01).
+#> The coefficient is per unit of that origin and the intercept is the
+#> value at it, which is far outside the data and can stop the optimizer
+#> converging. Center the column, for example as.numeric(x - min(x)), to
+#> put the intercept back in range.
+#> Warning: Optimizer did not report convergence: false convergence (8)
+#> (Intercept) = -366.16, day = 0.0201
+
+# the same fit, with the intercept back inside the data
+d$days <- as.numeric(d$day - min(d$day))
+frm(bf(y ~ days) + gaussian(), data = d)
+#> (Intercept) = 1.051, days = 0.0201
+```
+
+Frame assembly emits that message once per fit. It is a message and not
+a warning because the coercion is deliberate and correct in meaning;
+[`suppressMessages()`](https://rdrr.io/r/base/message.html) silences it
+once you have centered the column or if you want the epoch origin.
 
 ## Character options and case
 

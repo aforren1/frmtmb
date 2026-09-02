@@ -4,12 +4,24 @@
 
 - [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) : Set up a
   model formula
+
 - [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   : Combine formulas into a multivariate model
+
 - [`num_factor()`](https://aforren1.github.io/frmtmb/reference/num_factor.md)
   : Factor with numeric-coded levels for coordinate covariance
   structures
+
+- [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
+  : Solve an ODE once per group inside a nonlinear predictor
+
+- [`frm_ode_failures()`](https://aforren1.github.io/frmtmb/reference/frm_ode_failures.md)
+  :
+
+  Groups whose ODE solve failed in the last
+  [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
+  call
 
 ## Fitting
 

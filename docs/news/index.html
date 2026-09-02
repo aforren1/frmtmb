@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -21,7 +21,9 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+    <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -41,13 +43,46 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.31.0" id="frmtmb-0310">frmtmb 0.31.0<a class="anchor" aria-label="anchor" href="#frmtmb-0310"></a></h2>
+<p>ODE models, an exotic-models case-study vignette, and the defect wave the vignette work exposed.</p>
+<div class="section level3">
+<h3 id="new-0-31-0">New<a class="anchor" aria-label="anchor" href="#new-0-31-0"></a></h3>
+<ul><li>
+<code><a href="../reference/frm_ode.html">frm_ode()</a></code> fits ordinary differential equation models inside a <code>bf(nl = TRUE)</code> body. Dynamics parameters and initial states are ordinary nonlinear parameters, so they take fixed effects, random effects and covariates, and the Laplace approximation is exact through the solver’s adjoint. It solves one small system per group and scatters the solution back into row order; ragged designs, unsorted rows, repeated times and an observation at <code>t0</code> all work. Needs the optional RTMBode package (not on CRAN; <code>Additional_repositories</code> now names <a href="https://kaskr.r-universe.dev" class="external-link uri">https://kaskr.r-universe.dev</a>), and every code path, test, example and vignette chunk degrades cleanly without it. New <code><a href="../articles/ode.html">vignette("ode")</a></code> works a population pharmacokinetic model on <code><a href="https://rdrr.io/r/datasets/Theoph.html" class="external-link">datasets::Theoph</a></code>.</li>
+<li>
+<code><a href="../reference/frm_ode.html">frm_ode()</a></code> refuses the ways an ODE model goes quietly wrong: a dynamics parameter that varies inside a solve group is rejected by name at frame assembly; fixed-step integrators such as <code>rk4</code> are refused because they return a different likelihood, not a noisier one; a system near the Laplace ceiling of about eight states warns. A failed solve is reported, not absorbed: on numeric evaluation paths (<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code>, and a body with no estimated dynamics inputs) the group’s rows get a penalty value and a warning naming the group, and <code><a href="../reference/frm_ode_failures.html">frm_ode_failures()</a></code> reads the record back. During fitting most failures cannot be detected at all (RTMBode returns an AD object), so they surface as the optimizer’s NA/NaN gradient; the help page says which is which.</li>
+<li>New <code><a href="../articles/case-studies.html">vignette("case-studies")</a></code>: eight worked models from the showcase literature of brms, MCMCglmm, metafor and mgcv. The animal model and its multi-trait form, phylogenetic regression, random-effects meta-analysis and meta-regression, monotonic ordinal predictors, location-scale regression, growth mixtures, measurement error, and sequential ordinal models with category-specific effects. Every section cross-checks its fit against a reference package or a closed form, the multi-trait section proves its pedigree matters with an identity refit, and <code>tests/testthat/test-case-studies.R</code> pins the agreements. Suggests gains ape and metafor for the cross-checks, and data.table and tibble for tabular-input tests.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="breaking-0-31-0">Breaking<a class="anchor" aria-label="anchor" href="#breaking-0-31-0"></a></h3>
+<ul><li>A <code>gr(cov = )</code> or <code>gr(prec = )</code> term whose <code>|ID|</code> key is shared with another term is refused at parse time. The cross-formula merge hardcoded an unstructured covariance and silently discarded the matrix, so earlier fits of that construct ignored the structure they named. The error points at the supported long format, <code>(0 + trait | gr(id, cov = A))</code>, which takes the verified Kronecker path. A lone <code>gr()</code> term with an unshared key keeps its structure and still fits.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="corrected-behavior-0-31-0">Corrected behavior<a class="anchor" aria-label="anchor" href="#corrected-behavior-0-31-0"></a></h3>
+<ul><li>
+<code><a href="../reference/hypothesis.html">hypothesis()</a></code> and <code><a href="../reference/variables.html">variables()</a></code> expose <code>sd_&lt;group&gt;__&lt;term&gt;</code> and <code>cor_</code> names for <code>gr(cov = )</code>, <code>gr(prec = )</code> and <code>equalto()</code> blocks, so heritability-as-ICC is one line on an animal model. Smooth, <code>gp()</code>, <code>car()</code> and <code>spde()</code> blocks stay excluded; <code><a href="../reference/hypothesis.html">?hypothesis</a></code> says which and why.</li>
+<li>
+<code>vcov(full = TRUE)</code> works under REML and <code>profile = TRUE</code>, taking the outer block from the joint precision instead of warning and returning only the fixed effects. Its rows are <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>’s rows.</li>
+<li>The observation-level-random-effect check no longer fires on <code>gr(cov = )</code>, <code>gr(prec = )</code> or <code>equalto()</code> blocks with one row per level: a fixed relationship matrix identifies the two variances, which is exactly the animal model with one record per individual.</li>
+<li>
+<code>predict(type = "response")</code> on the four ordinal families returns an n x K matrix of category probabilities named by the response’s levels, honoring <code>cs()</code> on newdata; <code>se.fit</code> there is refused rather than faked. marginaleffects gets the categorical <code>group</code> convention (also fixing <code><a href="../reference/frmtmb-families.html">multinomial()</a></code> row alignment), <code>posterior_linpred(transform = TRUE)</code> stays on the latent dpar as documented, and <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code>’s flattened categorical shape is named and documented.</li>
+<li>
+<code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> and <code><a href="https://rdrr.io/r/stats/add1.html" class="external-link">drop1()</a></code> report NA instead of <code>&lt; 2.2e-16 ***</code> when the compared models have equal df.</li>
+<li>
+<code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> no longer reports a zero-width interval at its internal clamp for a correlation estimated at plus or minus 1 or an sd at zero; those rows keep the estimate, get NA bounds, and warn. <code><a href="../reference/VarCorr.html">VarCorr()</a></code> and <code><a href="../reference/ranef.html">ranef()</a></code> handle two blocks sharing a term label (one printed twice, the other silently dropped a block).</li>
+<li>A <code>Date</code>, <code>POSIXct</code> or <code>difftime</code> predictor is reported at frame assembly with its unit and 1970-01-01 origin plus the centering fix; the epoch-scale magnitude can stop the optimizer converging. Responses and grouping variables are exempt (srr G2.5, G2.9).</li>
+<li>A nonlinear formula body that fails to evaluate reports which of its names were resolved to functions instead of found in <code>data</code>, so a misspelled column sharing a name with a base function (<code>t</code>, <code>c</code>) is named rather than surfacing as a coercion error.</li>
+<li>srr completeness: <code>srr_stats_pre_submit()</code> reports no missing standards (seven were untagged; six were already satisfied and are now tagged with pinning tests, G2.9 is satisfied by the datetime reporting above).</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.30.0" id="frmtmb-0300">frmtmb 0.30.0<a class="anchor" aria-label="anchor" href="#frmtmb-0300"></a></h2>
 <p>data2, ODE feasibility, and the remaining rOpenSci runway.</p>
 <div class="section level3">
 <h3 id="new-0-30-0">New<a class="anchor" aria-label="anchor" href="#new-0-30-0"></a></h3>
 <ul><li>
 <code>frm(..., data2 = list())</code>, the brms spelling for structural objects: the matrices of <code>gr(cov =)</code>/<code>gr(prec =)</code>, <code>equalto()</code>, <code>car()</code> and <code>spde()</code> resolve from <code>data2</code> before the data and the formula environment (compound expressions over <code>data2</code> objects work, a documented permissive divergence from brms). <code>data2</code> is stored on the fit, so <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> carries the matrices and <code><a href="../reference/refit.html">refit()</a></code>/<code><a href="https://rdrr.io/r/stats/update.html" class="external-link">update()</a></code>/<code><a href="https://rdrr.io/r/stats/add1.html" class="external-link">drop1()</a></code>/<code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code>/<code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> re-assemble in a session where the calling environment is gone.</li>
-<li>Population pharmacokinetic models work today through <code>nl = TRUE</code> bodies calling <code><a href="https://rdrr.io/pkg/RTMBode/man/ode.html" class="external-link">RTMBode::ode()</a></code> per subject (RTMBode installs from kaskr.r-universe.dev): the Laplace approximation is exact through the adjoint solver, and a one-compartment population fit agrees with nlmixr2’s FOCEi to three decimals with no compiler. The feasibility study, the sharp edges (never stack subjects into one system; adaptive integrators only), and the planned <code>frm_ode()</code> helper are recorded in dev/ode-feasibility.md.</li>
+<li>Population pharmacokinetic models work today through <code>nl = TRUE</code> bodies calling <code><a href="https://rdrr.io/pkg/RTMBode/man/ode.html" class="external-link">RTMBode::ode()</a></code> per subject (RTMBode installs from kaskr.r-universe.dev): the Laplace approximation is exact through the adjoint solver, and a one-compartment population fit agrees with nlmixr2’s FOCEi to three decimals with no compiler. The feasibility study, the sharp edges (never stack subjects into one system; adaptive integrators only), and the planned <code><a href="../reference/frm_ode.html">frm_ode()</a></code> helper are recorded in dev/ode-feasibility.md.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="ropensci-runway-0-30-0">rOpenSci runway<a class="anchor" aria-label="anchor" href="#ropensci-runway-0-30-0"></a></h3>

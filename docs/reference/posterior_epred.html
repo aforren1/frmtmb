@@ -15,7 +15,7 @@ them)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,7 +29,9 @@ them)."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+    <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -132,7 +134,24 @@ parameter's linear predictor to evaluate.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A draws-by-observations matrix.</p>
+    <p>A draws-by-observations matrix; for a categorical outcome
+<code>posterior_epred()</code> returns draws by <code>n * K</code> (see the section
+below).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="categorical-outcomes">Categorical outcomes<a class="anchor" aria-label="anchor" href="#categorical-outcomes"></a></h2>
+
+
+<p>An ordinal family (and <code><a href="frmtmb-families.html">multinomial()</a></code>) predicts a DISTRIBUTION per
+observation, not one number, so <code>posterior_epred()</code> returns a
+<code>draws x (n * K)</code> matrix: each draw's <code>n x K</code> prediction flattened
+column by column, so the columns run category by category
+(<code>obs1.cat1, obs2.cat1, ..., obs1.cat2, ...</code>). The columns are named
+<code>"&lt;observation&gt;.&lt;category&gt;"</code>; <code>dim(.) &lt;- c(ndraws, n, K)</code> recovers
+the array shape. <code>posterior_predict()</code> is unaffected - it draws one
+category per observation - and so is <code>posterior_linpred()</code>, which is
+a statement about one distributional parameter and stays an
+<code>n</code>-column matrix of the latent predictor.</p>
     </div>
 
     <div class="section level2">

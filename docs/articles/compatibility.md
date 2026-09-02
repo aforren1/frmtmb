@@ -176,12 +176,14 @@ value.
 
 | Status | Pairs | Note |
 |:---|:---|:---|
-| ~ | gaussian + fitted; student + fitted; lognormal + fitted; shifted_lognormal + fitted; skew_normal + fitted; and 28 more | Needs a family with a mean function. |
-| ~ | gaussian + predict; student + predict; lognormal + predict; shifted_lognormal + predict; skew_normal + predict; and 28 more | Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns. |
+| ~ | gaussian + fitted; student + fitted; lognormal + fitted; shifted_lognormal + fitted; skew_normal + fitted; and 24 more | Needs a family with a mean function. |
+| ~ | gaussian + predict; student + predict; lognormal + predict; shifted_lognormal + predict; skew_normal + predict; and 24 more | Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns. |
 | ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; student + residuals; student + confint_profile; and 94 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
 | ~ | gaussian + residuals_osa; student + residuals_osa; lognormal + residuals_osa; shifted_lognormal + residuals_osa; skew_normal + residuals_osa; and 24 more | One-step-ahead residuals need the family to register its observation through OBS(). |
 | ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 28 more | Univariate fits only, and the mu predictor must be linear. |
 | ~ | gaussian + frm_sample; student + frm_sample; lognormal + frm_sample; shifted_lognormal + frm_sample; skew_normal + frm_sample; and 28 more | Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = “random” for a multimodal posterior. |
+| ~ | cumulative + fitted; sratio + fitted; cratio + fitted; acat + fitted | Returns the latent linear predictor, so the usual predict(type = “response”) == fitted() identity does not hold for an ordinal family. Use predict(fit, type = “response”) for the n x K category probabilities. |
+| ~ | cumulative + predict; sratio + predict; cratio + predict; acat + predict | type = “response” returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response’s own levels), not a vector: an ordinal response has no mean. cs() terms are honored and re-evaluated on newdata. type = “link” gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale. |
 | x | tweedie + simulate; compois + simulate; hurdle_poisson + simulate | Refused: this family has no simulator yet. |
 
 ## Estimation modes

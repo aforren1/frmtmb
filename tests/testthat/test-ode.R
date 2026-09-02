@@ -400,9 +400,11 @@ test_that("a numeric-only body is loud when a solve fails at tape time", {
   form <- bf(conc ~ b0 * frm_ode(blowup, init = list(1), times = time,
                                  parms = list(p), group = id, output = 1L),
              b0 ~ 1, nl = TRUE)
-  expect_warning(frm(form + gaussian(), data = d,
-                     start = list(beta = 1)),
-                 "the solve failed for 1 of 3 groups \\(3\\)")
+  # capture_warnings: deSolve's DLSODA give-up warnings propagate by
+  # design and would otherwise land in the test record
+  ws <- capture_warnings(frm(form + gaussian(), data = d,
+                             start = list(beta = 1)))
+  expect_true(any(grepl("the solve failed for 1 of 3 groups \\(3\\)", ws)))
   expect_identical(frm_ode_failures()$groups, "3")
 })
 
@@ -424,8 +426,9 @@ test_that("a penalty reached through predict() warns and names the group", {
   # a time past the singularity at t = 1 / p, which the fit never saw
   nd <- data.frame(id = factor(c("1", "2"), levels = levels(d$id)),
                    time = c(2, 500))
-  expect_warning(p <- predict(fit, newdata = nd),
-                 "the solve failed for 1 of 2 groups \\(2\\)")
+  # capture_warnings absorbs the propagated DLSODA give-up warnings too
+  ws <- capture_warnings(p <- predict(fit, newdata = nd))
+  expect_true(any(grepl("the solve failed for 1 of 2 groups \\(2\\)", ws)))
   expect_equal(unname(p[2]), 1e6)
   expect_identical(frm_ode_failures()$groups, "2")
 })

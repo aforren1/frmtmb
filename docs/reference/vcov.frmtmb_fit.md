@@ -30,6 +30,35 @@ vcov(object, full = FALSE, ...)
 
 A covariance matrix.
 
+## Details
+
+`full = TRUE` is the joint covariance of the whole outer parameter
+vector on its internal scale: the fixed-effect coefficients, the
+covariance parameters `theta` (log standard deviations, Fisher-z
+correlations, and whatever else a structure keeps there), and any extra
+parameters such as the ordinal thresholds. It is the matrix a
+delta-method calculation on a variance component needs, and it is what
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+uses for `method = "wald"` - so an ICC or a heritability is usually
+easier to ask for through
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
+which names the components for you, than to assemble by hand from this
+matrix.
+
+Under `REML = TRUE` (or `frmtmb_control(profile = TRUE)`) the fixed
+effects are integrated out of the outer problem, so they are not part of
+`full = TRUE`; the block comes from the joint precision and carries
+exactly the parameters
+[`confint.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/confint.frmtmb_fit.md)
+reports. `vcov(object)` is still the fixed-effect covariance there.
+
+## See also
+
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+for natural-scale intervals on the same covariance parameters, and
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+for delta-method tests of expressions in them.
+
 ## Examples
 
 ``` r

@@ -88,6 +88,41 @@ SD is a scalar. So an ICC is
 [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
 lists every usable name for a fit.
 
+## Which random-effect blocks contribute names
+
+Every block whose covariance parameters ARE standard deviations and
+correlations: the plain structures (`us`, `diag`, `homdiag`, `cs`,
+`ar1`, `toep`, the spatial and reduced-rank ones) and the
+known-structure blocks `gr(cov = )`, `gr(prec = )` and `equalto()`,
+whose `sd_`/`cor_` names describe the WITHIN-level covariance that
+multiplies the fixed relationship matrix. That is what makes
+heritability-as-ICC writable directly:
+`"sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)"` on an animal
+model fitted with `(1 | gr(id, cov = A))`. An `equalto()` block
+estimates nothing, so its names are constants with zero variance.
+
+Two blocks on the same grouping factor with the same term name - an
+animal model's `(1 | gr(id, cov = A)) + (1 | id)`, where the genetic and
+permanent-environment terms both name the group `id` - collide on one
+`sd_id__Intercept`, and the first block in formula order claims it. Give
+the second term its own grouping column (a copy of the factor under
+another name) when both are wanted by name.
+
+Excluded: `s()`/`t2()` smooths, `gp()`/`hsgp()`, `car()` and `spde()`.
+Their theta segments are not standard deviations - an inverse smoothing
+parameter, lengthscales, a mixing proportion, a precision and an inverse
+range - so there is no `sd_<group>__<term>` to name. Read those off
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md),
+which reports each under its own label (`sd(gp)`, `range(gp)`,
+`sd(car)`, ...).
+
+## See also
+
+[`vcov.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/vcov.frmtmb_fit.md)
+with `full = TRUE` for the same joint covariance (fixed effects plus
+covariance parameters, on their internal scale) as a matrix, which is
+what the `"wald"` method uses here.
+
 Methods:
 
 - `"wald"` (default): delta-method z-test, finite-difference gradient

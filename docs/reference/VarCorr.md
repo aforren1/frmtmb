@@ -23,7 +23,11 @@ VarCorr(x, ...)
 
 ## Value
 
-A named list of covariance matrices, one per random-effect term.
+A named list of covariance matrices, one per random-effect term. The
+names are the term labels, which can repeat when two blocks deparse the
+same way (`(1 | gr(id, cov = A)) + (1 | id)`, the animal model's genetic
+and permanent-environment terms). Index by position, not by name, when
+that is possible in your model.
 
 ## Examples
 

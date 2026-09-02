@@ -1,11 +1,13 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://aforren1.github.io/frmtmb/404.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/brms-migration.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/articles/case-studies.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/compatibility.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/diagnostics.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/frmtmb.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/inputs.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/articles/ode.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/authors.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/CODE_OF_CONDUCT.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/CONTRIBUTING.html</loc></url>
@@ -38,6 +40,8 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_compat_features.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_compat_rules.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_multiple.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frm_ode.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frm_ode_failures.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_sample.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_simulate.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/getME.frmtmb_fit.html</loc></url>

@@ -112,7 +112,12 @@ frmtmb_control(
   the split between them is arbitrary. The check is skipped when `sigma`
   is not free to absorb it - a `se()` response or a constant `sigma` -
   which is the random-effects meta-analysis, and for discrete families,
-  where an observation-level term is the usual overdispersion model.
+  where an observation-level term is the usual overdispersion model. It
+  is also skipped for the known-structure blocks `gr(cov = )`,
+  `gr(prec = )` and `equalto()`: their level covariance is not
+  proportional to the identity, so the block and the residual are
+  separately identified. That is the animal model with one measurement
+  per individual.
 
 - verbose:
 

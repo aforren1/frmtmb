@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -21,7 +21,9 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+    <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -120,7 +122,9 @@ population level instead of erroring.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A numeric vector, or a list when <code>se.fit = TRUE</code>.</p>
+    <p>A numeric vector, or a list when <code>se.fit = TRUE</code>. For an
+ordinal family with <code>type = "response"</code>, an <code>n x K</code> matrix of
+category probabilities.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -150,6 +154,29 @@ about the latent parameter, not about the observed, truncated
 response. Bounds are re-evaluated on <code>newdata</code> the same way <code>trials()</code>
 and <code>se()</code> are: a literal bound carries over unchanged, and a bound
 given as a variable must be a column of <code>newdata</code> of the right length.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="ordinal-responses">Ordinal responses<a class="anchor" aria-label="anchor" href="#ordinal-responses"></a></h2>
+
+
+<p><code><a href="frmtmb-families.html">cumulative()</a></code>, <code><a href="frmtmb-families.html">sratio()</a></code>, <code><a href="frmtmb-families.html">cratio()</a></code> and <code><a href="frmtmb-families.html">acat()</a></code> have no mean on
+the response scale, so <code>type = "response"</code> (and its alias
+<code>type = "conditional"</code>) returns an <code>n x K</code> matrix of category
+probabilities instead of a vector - the brms <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> convention -
+with the response's own factor levels as column names. The rows sum
+to one. <code>cs()</code> category-specific terms are honored: they enter each
+threshold separately and are re-evaluated on <code>newdata</code>.</p>
+<p><code>type = "link"</code> (the default) and <code>dpar = "mu"</code> still give the latent
+linear predictor, which is where the fixed-effect coefficients live
+and where <code>se.fit</code> is available. <code>se.fit</code> on the response scale is
+refused: the prediction is a K-vector per row, not one number.
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> keeps returning the latent predictor for these families.</p>
+<p><code>type = "conditional"</code> is glmmTMB's name for the conditional MEAN, so
+it gives the category probabilities here too rather than the linear
+predictor: an ordinal response has no mean, and answering a question
+about a mean with a latent predictor is the confusion this section
+exists to remove. Ask for the predictor by name (<code>type = "link"</code>, or
+<code>dpar = "mu"</code>) when that is what you want.</p>
     </div>
     <div class="section level2">
     <h2 id="standard-errors-of-the-expected-response">Standard errors of the expected response<a class="anchor" aria-label="anchor" href="#standard-errors-of-the-expected-response"></a></h2>

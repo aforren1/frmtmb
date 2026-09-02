@@ -24,7 +24,18 @@ confint_varcorr(fit, level = 0.95)
 ## Value
 
 A data frame with columns `block`, `term`, `type`, `estimate`, `lwr`,
-`upr`.
+`upr`. Boundary components carry `NA` bounds.
+
+## Details
+
+A component sitting on the boundary of its parameter space - a standard
+deviation collapsed to zero, or a correlation at `+/-1` - has no
+interval on these scales, because the transform is infinite there. Those
+rows report the estimate with `NA` bounds and warn, rather than a
+zero-width interval at an arbitrary clamp. A bootstrap
+([`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+with `method = "boot"`) or a likelihood profile of the underlying
+`theta` is the alternative.
 
 ## Examples
 

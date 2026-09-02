@@ -13,7 +13,7 @@ against zero. A hypothesis is &quot;expr&quot; (tested against 0) or
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.30.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.31.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,7 +27,9 @@ against zero. A hypothesis is &quot;expr&quot; (tested against 0) or
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
+    <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -134,6 +136,39 @@ row names with parentheses stripped (<code>Intercept</code>, <code>x</code>,
 and <code>sigma</code> when the residual SD is a scalar. So an ICC is
 <code>"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</code>.
 <code><a href="variables.html">variables()</a></code> lists every usable name for a fit.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="which-random-effect-blocks-contribute-names">Which random-effect blocks contribute names<a class="anchor" aria-label="anchor" href="#which-random-effect-blocks-contribute-names"></a></h2>
+
+
+<p>Every block whose covariance parameters ARE standard deviations and
+correlations: the plain structures (<code>us</code>, <code>diag</code>, <code>homdiag</code>, <code>cs</code>,
+<code>ar1</code>, <code>toep</code>, the spatial and reduced-rank ones) and the
+known-structure blocks <code>gr(cov = )</code>, <code>gr(prec = )</code> and <code>equalto()</code>,
+whose <code>sd_</code>/<code>cor_</code> names describe the WITHIN-level covariance that
+multiplies the fixed relationship matrix. That is what makes
+heritability-as-ICC writable directly:
+<code>"sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)"</code> on an animal
+model fitted with <code>(1 | gr(id, cov = A))</code>. An <code>equalto()</code> block
+estimates nothing, so its names are constants with zero variance.</p>
+<p>Two blocks on the same grouping factor with the same term name - an
+animal model's <code>(1 | gr(id, cov = A)) + (1 | id)</code>, where the genetic
+and permanent-environment terms both name the group <code>id</code> - collide
+on one <code>sd_id__Intercept</code>, and the first block in formula order
+claims it. Give the second term its own grouping column (a copy of
+the factor under another name) when both are wanted by name.</p>
+<p>Excluded: <code>s()</code>/<code>t2()</code> smooths, <code>gp()</code>/<code>hsgp()</code>, <code>car()</code> and <code>spde()</code>.
+Their theta segments are not standard deviations - an inverse
+smoothing parameter, lengthscales, a mixing proportion, a precision
+and an inverse range - so there is no <code>sd_&lt;group&gt;__&lt;term&gt;</code> to name.
+Read those off <code><a href="confint_varcorr.html">confint_varcorr()</a></code>, which reports each under its own
+label (<code>sd(gp)</code>, <code>range(gp)</code>, <code>sd(car)</code>, ...).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="vcov.frmtmb_fit.html">vcov.frmtmb_fit()</a></code> with <code>full = TRUE</code> for the same joint covariance
+(fixed effects plus covariance parameters, on their internal
+scale) as a matrix, which is what the <code>"wald"</code> method uses here.</p>
 <p>Methods:</p><ul><li><p><code>"wald"</code> (default): delta-method z-test, finite-difference
 gradient against the joint parameter covariance (under REML, from
 the joint precision).</p></li>
@@ -150,7 +185,7 @@ whose sampling distributions Wald approximates poorly.</p></li>
 variance are computed per imputation and pooled by Rubin's rules
 with Barnard-Rubin degrees of freedom; the returned table carries
 <code>t</code> and <code>df</code> columns in place of <code>z</code> (reference t distribution, not
-normal), and only Wald inference is available.</p>
+normal), and only Wald inference is available.</p></div>
     </div>
 
     <div class="section level2">
