@@ -63,7 +63,7 @@ frmtmb_compat_features_tbl <- function() {
     lapply(c("REML", "quadrature", "profile", "autoscale", "sparse_x",
              "priors", "bounds", "verbose"), f, kind = "mode"),
     lapply(c("mvbf", "rescor", "|ID|", "nl", "mixture",
-             "mixture_mvn", "hmm"), f, kind = "structure"),
+             "mixture_mvn", "hmm", "lca"), f, kind = "structure"),
     lapply(c("fitted", "predict", "simulate", "residuals",
              "residuals_osa", "emmeans", "frm_sample",
              "confint_profile", "hypothesis_profile"), f,
@@ -270,6 +270,8 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: a mixture likelihood is invariant to permuting its components, so it is multimodal in the fixed effects REML integrates out. The inner Laplace solve has no single mode to expand about; the fit used to stop with 'NA/NaN gradient evaluation' or report a gradient near 1e9.")
   r("REML", "mixture_mvn", "refused",
     "Refused for the same reason as mixture(): the classes are exchangeable, so the restricted likelihood is not defined.")
+  r("REML", "lca", "refused",
+    "Refused through the same guard as mixture(), which lca() reuses, and for the same reason: the latent classes are exchangeable, so the restricted likelihood is not defined. The message names mixture(); an lca() fit IS a mixture.")
   r("REML", "mvbf", "works", "")
   r("REML", "rescor", "works", "")
   r("REML", "nl", "works", "Verified by a tiny fit.")
@@ -317,6 +319,8 @@ frmtmb_compat_rules_tbl <- function() {
   r("quadrature", "rescor", "untested", "")
   r("quadrature", "mixture_mvn", "refused",
     "Refused in practice: mixture_mvn() clusters a matrix response and carries no scalar random-intercept block, so the scalar-intercept guard rejects it.")
+  r("quadrature", "lca", "refused",
+    "Refused in practice: lca() refuses random effects outright, so there is no block for the scalar-intercept guard to accept and it rejects the fit.")
 
   ## profile -----------------------------------------------------------
   r("profile", "bounds", "refused",
@@ -331,6 +335,8 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: profiling moves the fixed effects into the inner Laplace problem, and a mixture likelihood is multimodal in them. The fit used to stop with 'NA/NaN gradient evaluation' rather than a clear refusal.")
   r("profile", "mixture_mvn", "refused",
     "Refused for the same reason as mixture(): the inner problem would be multimodal.")
+  r("profile", "lca", "refused",
+    "Refused through the same guard as mixture(), which lca() reuses: profiling moves the gating coefficients into an inner Laplace problem that has one mode per class labeling.")
   r("profile", "mi()", "works", "Verified by a tiny fit.")
   r("profile", "cens()", "works", "Verified by a tiny fit.")
   r("profile", "trunc()", "works",
@@ -603,6 +609,54 @@ frmtmb_compat_rules_tbl <- function() {
   r("hmm", "kind:covstruct", "conditional",
     "A random effect in a state's linear predictor is integrated by the Laplace approximation OUTSIDE the exact state sum. The integrand is a mixture over state sequences and is not Gaussian, so the approximation is genuinely approximate: the measured bias was -0.126 in the log-likelihood and 4.4e-4 in the parameters against adaptive quadrature (probe D1).")
   r("hmm", "|ID|", "untested", "")
+  ## lca ---------------------------------------------------------------------
+  r("lca", "kind:aterm", "refused",
+    "Refused: an lca() response is a matrix of item codes with no per-row weight, censoring window, trial count or known standard error to attach an addition term to. One message covers the whole set.")
+  r("lca", "kind:covstruct", "refused",
+    "Refused: v1 has no random effects anywhere in the model. Latent classes plus continuous random effects is the growth-mixture shape, which mixture(..., groups = ~g) already fits.")
+  r("lca", "kind:special", "untested",
+    "s(), t2() and gp() are refused with the random-effect message, because each builds a random-effect block; mo() is verified. mi() and cs() in the gating predictor are untested.")
+  r("lca", "mo()", "works",
+    "Verified by a tiny fit: a monotonic predictor enters the gating linear predictor like any other term.")
+  r("lca", "s()", "refused",
+    "Refused: a smooth is a random-effect block, and lca() refuses random effects.")
+  r("lca", "t2()", "refused",
+    "Refused: a tensor smooth is a random-effect block.")
+  r("lca", "gp_pred()", "refused",
+    "Refused: gp() builds a random-effect block.")
+  r("lca", "mvbf", "refused",
+    "Refused by the extra-parameter guard: the item profiles are family extra parameters, which multivariate fits do not carry. A second response would need its own class variable, which is the general mixture-over-mvbf model.")
+  r("lca", "rescor", "refused",
+    "Refused: rescor = TRUE requires all responses to be gaussian, and the error names lca() among the ones that are not.")
+  r("lca", "mixture", "refused",
+    "Refused: the two families cannot both own the response. lca() IS a mixture, over conditionally independent categorical items.")
+  r("lca", "mixture_mvn", "refused",
+    "Refused: one response carries one family.")
+  r("lca", "nl", "refused",
+    "Refused: nl = TRUE requires a family with a single mu location parameter, and lca()'s location parameters are the gating thetas.")
+  r("lca", "fitted", "refused",
+    "Refused: the response is a matrix of nominal item codes, so there is no mean to fit. lca_probs() and lca_profiles() are the post-fit surface.")
+  r("lca", "residuals", "refused",
+    "Refused for the same reason as fitted(): no fitted mean, so no residual.")
+  r("lca", "residuals_osa", "refused",
+    "Refused: one observation is a subject's whole item response pattern, not a value with a univariate conditional CDF to step through.")
+  r("lca", "predict", "conditional",
+    "predict() returns the gating linear predictor (theta1 by default, any theta with dpar =), including on newdata. type = \"response\" is refused with the fitted() message.")
+  r("lca", "simulate", "works",
+    "Verified: simulate() draws a class per subject from its gating weights and then its items from that class's profile, and returns an n x J matrix per draw. Refitting a 4000-subject draw recovers the profiles it came from.")
+  r("lca", "frm_sample", "works",
+    "Verified by a tiny fit: the objective has no random effects, so tmbstan samples the gating coefficients and item logits directly. The posterior is label-invariant, so read it with the same caution as any mixture posterior.")
+  r("lca", "confint_profile", "works",
+    "Verified: profile intervals on a gating coefficient run.")
+  r("lca", "emmeans", "untested", "")
+  r("lca", "priors", "works",
+    "Verified by a tiny fit: a prior on the gating coefficients is an ordinary penalty on the outer problem.")
+  r("lca", "bounds", "works",
+    "Verified by a tiny fit. Bounds on the gating coefficients are also the one way to order the classes and pin the labeling.")
+  r("lca", "sparse_x", "works",
+    "Verified by a tiny fit: the gating design is an ordinary fixed-effect design.")
+  r("lca", "kind:mode", "untested",
+    "See the REML, profile, quadrature, priors, bounds and sparse_x rules; autoscale and verbose are untested.")
 
   ## specials ------------------------------------------------------------------
   r("mo()", "kind:family", "conditional",

@@ -1944,6 +1944,18 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
     return(napred(object, r))
   }
   if (type == "osa") {
+    if (is_lca_family(fam)) {
+      # one observation of an lca() fit is a subject's whole response
+      # pattern over the items, and the tape holds its joint
+      # probability; without this the fit reaches oneStepPredict and
+      # dies at "'observation.name' must be in data component", which
+      # names neither the family nor the reason
+      stop("residuals(type = \"osa\") is not available for an lca() ",
+           "fit: one observation is a subject's whole item response ",
+           "pattern, not a single value with a conditional CDF to step ",
+           "through. Use lca_probs() to see how sharply each subject ",
+           "is classified", call. = FALSE)
+    }
     if (!is.null(object$frame$autocor[[rspec$resp_name]])) {
       # oneStepPredict needs the taped density of ONE observation given
       # the previous ones; under an R-side residual the tape holds a

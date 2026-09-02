@@ -121,6 +121,18 @@ components (mixture over mvbf with rescor is the general form;
 unscheduled), and simulate() needs a simulator interface that can see
 family-level extras.
 
+The MEASUREMENT-MODEL case of that general form is DONE as `lca(K)`
+in v0.35: a mixture over a vector of conditionally independent
+CATEGORICAL responses, which is poLCA's latent class analysis. It
+takes the same contained shape mixture_mvn() took (one matrix
+response, gating on covariates, no random effects) and for the same
+reason: the item profiles are family extras rather than K component
+family objects, so none of it generalizes to arbitrary component
+families with rescor. The general mixture-over-mvbf stays
+unscheduled. Validated against poLCA on carcinoma (K = 3, logLik to
+4.2e-8, profiles to 2.8e-8) and on the election latent class
+regression (logLik to 1.1e-7, gating coefficients to 9.9e-7).
+
 ## Tier 3: positioning decisions
 
 - ~~`frm_multiple`~~ DONE in v0.15; v0.20 adds varcorr pooling on

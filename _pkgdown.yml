@@ -33,6 +33,9 @@ reference:
   - hmm
   - hmm_probs
   - hmm_viterbi
+  - lca
+  - lca_probs
+  - lca_profiles
   - check_custom_family
 - title: Inference and diagnostics
   contents:
