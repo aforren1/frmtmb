@@ -21,11 +21,25 @@ draws_par_index <- function(fit) {
   idx
 }
 
-#' The originating fit with its estimates replaced by one draw.
+#' The originating fit stripped of the "no maximum-likelihood estimate"
+#' marker, for the draws methods that use it only as a structural
+#' template (its frame, its spec, its block layout). Nothing here reads
+#' its `estimates` as an estimate.
+#'
+#' @noRd
+draws_base_fit <- function(x) {
+  fit <- x$fit
+  class(fit) <- setdiff(class(fit), "frmtmb_unfitted")
+  fit
+}
+
+#' The originating fit with its estimates replaced by one draw. The draw
+#' IS a parameter vector, so the object is a legitimate fit from here on
+#' even when the draws came from a formula with no ML mode behind it.
 #'
 #' @noRd
 draws_fit_at <- function(x, i, idx = draws_par_index(x$fit)) {
-  fit <- x$fit
+  fit <- draws_base_fit(x)
   est <- fit$frame$par_template   # mapped betad entries keep link(const)
   row <- x$draws[i, ]
   for (cp in names(idx)) {
@@ -79,8 +93,9 @@ summary.frmtmb_draws <- function(object, ...) {
 
 #' @export
 fixef.frmtmb_draws <- function(object, ...) {
-  nm <- gsub("[()]", "", estimated_coef_names(object$fit))
-  nm0 <- estimated_coef_names(object$fit)
+  # the draws-side spelling: parenthesis-free, matching the draws
+  # matrix, summary(), variables() and hypothesis()
+  nm <- par_name_bare(estimated_coef_names(object$fit))
   idx <- draws_par_index(object$fit)
   cols <- c(idx$beta, idx$betad)
   m <- object$draws[, cols, drop = FALSE]
@@ -90,13 +105,16 @@ fixef.frmtmb_draws <- function(object, ...) {
     Q2.5 = apply(m, 2, stats::quantile, 0.025),
     Q97.5 = apply(m, 2, stats::quantile, 0.975)
   )
-  rownames(out) <- nm0
+  rownames(out) <- nm
   out
 }
 
 #' @export
 VarCorr.frmtmb_draws <- function(x, ...) {
-  fit <- x$fit
+  # a structural template only: every number in `base` is replaced by a
+  # posterior summary below, so the starting values of a formula-sampled
+  # object never reach the result
+  fit <- draws_base_fit(x)
   idx <- draws_par_index(fit)
   if (is.null(idx$theta)) return(NULL)
   th_draws <- x$draws[, idx$theta, drop = FALSE]
@@ -112,6 +130,19 @@ VarCorr.frmtmb_draws <- function(x, ...) {
   base$vcov <- NULL
   base$sdcor <- NULL
   base
+}
+
+#' @rdname prior_summary
+#' @export
+prior_summary.frmtmb_draws <- function(object, ...) {
+  pl <- object$fit$priors
+  if (is.null(pl) || (!length(unclass(pl)) &&
+                        !length(attr(pl, "overrides")))) {
+    cat("No priors were used (flat improper priors on the outer ",
+        "parameters).\n", sep = "")
+    return(invisible(NULL))
+  }
+  pl
 }
 
 #' @rdname ranef
@@ -217,10 +248,21 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' predicts one number per observation keeps the plain
 #' `draws x observations` matrix.
 #'
-#' `posterior_predict()` is unaffected - it draws one category per
-#' observation - and so is `posterior_linpred()`, which is a statement
-#' about one distributional parameter and stays an `n`-column matrix of
-#' the latent predictor.
+#' `posterior_predict()` is unaffected for an ordinal or categorical
+#' family - it draws one category per observation - and so is
+#' `posterior_linpred()`, which is a statement about one distributional
+#' parameter and stays an `n`-column matrix of the latent predictor.
+#' What does take the array shape in `posterior_predict()` is a
+#' matrix-valued RESPONSE: [multinomial()] counts, [mixture_mvn()]
+#' draws and [lca()] item codes give one row per observation, so the
+#' draws stack into `draws x observations x columns`.
+#'
+#' @section Structured draws:
+#' `posterior_predict()` uses the same simulator [simulate()] does,
+#' including the structured families ([hmm()], `mixture(groups = )`,
+#' [mixture_mvn()]) and residual correlation terms - see the Structured
+#' draws section of [simulate.frmtmb_fit()]. Those draws index the rows
+#' the model was fitted on, so `newdata` is refused for them.
 #'
 #' @param object A `frmtmb_draws` from [frm_sample()].
 #' @param newdata,resp,re.form As in [predict.frmtmb_fit()].
@@ -350,9 +392,9 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   fit <- object$fit
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
-  if (is.null(rspec$family$sim)) {
+  if (!sim_can(rspec$family)) {
     stop("posterior_predict(): family '", rspec$family$family,
-         "' has no simulator yet", call. = FALSE)
+         "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
   }
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws)
@@ -365,7 +407,19 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   } else {
     list()
   }
+  if (!is.null(newdata) &&
+      sim_is_structured(sim_context(fit, rspec, list(), aterms = av))) {
+    # the sequence, group and residual-correlation structures a
+    # structured draw walks were built from the TRAINING rows and index
+    # them; newdata rows appear in none of them
+    stop("posterior_predict(newdata =) is not supported for this ",
+         "model: its draws are structured (a hidden state sequence, a ",
+         "group-level latent class, or a correlated residual) and that ",
+         "structure indexes the rows the model was fitted on. Drop ",
+         "newdata to predict those rows", call. = FALSE)
+  }
   out <- NULL
+  arr <- FALSE
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
     dp <- if (is.null(newdata)) {
@@ -380,10 +434,23 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       }
       dpv
     }
-    ys <- sim_response(rspec$family, dp, av, length(dp[[1]]),
-                       extra = fit_extras(sh))
-    if (is.null(out)) out <- matrix(NA_real_, length(rows), length(ys))
-    out[k, ] <- ys
+    ys <- sim_draw(sim_context(sh, rspec, dp, aterms = av,
+                               n = length(dp[[1L]]),
+                               extra = fit_extras(sh)))
+    if (is.null(out)) {
+      # a matrix-valued response (multinomial counts, mixture_mvn draws,
+      # lca item codes) gives a ROW per observation, so the draws stack
+      # into a draws x observations x columns array - the shape
+      # posterior_epred() already uses for a category distribution
+      arr <- is.matrix(ys)
+      out <- if (arr) {
+        array(NA_real_, c(length(rows), nrow(ys), ncol(ys)),
+              dimnames = list(NULL, NULL, colnames(ys)))
+      } else {
+        matrix(NA_real_, length(rows), length(ys))
+      }
+    }
+    if (arr) out[k, , ] <- ys else out[k, ] <- ys
   }
   out
 }

@@ -421,6 +421,9 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
     valid_y = comp$valid_y,
     init_dpars = init_fns,
     type = comp$type,
+    # the draw walks the chain per SEQUENCE, so it is not rowwise and
+    # cannot come from the plain `sim` slot
+    sim_ctx = hmm_sim_rows,
     primary_dpars = as.vector(t(outer(primaries, seq_len(K), paste0))),
     extra_pars = extra_pars
   )
@@ -800,8 +803,13 @@ hmm_lse_rows <- function(M) {
 #' interrogable row by row, and the decoding passes are plain numeric
 #' work that belongs outside the objective.
 #'
+#' `dp` supplies already-evaluated dpars (the simulator has them from
+#' its context); `need_lpmat = FALSE` skips the emission densities,
+#' which a forward SIMULATION never looks at and which a de novo frame
+#' could only evaluate against a dummy response.
+#'
 #' @noRd
-hmm_parts <- function(fit) {
+hmm_parts <- function(fit, dp = NULL, need_lpmat = TRUE) {
   rspec <- uni_resp(fit, "hmm_probs()")
   fam <- rspec$family
   if (is.null(fam[["hmm"]])) {
@@ -811,15 +819,17 @@ hmm_parts <- function(fit) {
   hg <- fit$frame[["hmm_g"]][[rspec$resp_name]]
   hs <- fam[["hmm"]]
   K <- hs$K
-  dp <- eval_dpars(fit)[[rspec$resp_name]]
+  dp <- dp %||% eval_dpars(fit)[[rspec$resp_name]]
   av <- fit$frame$aterm_values[[rspec$resp_name]]
   n <- hg[["n"]]
-  lpmat <- matrix(vapply(seq_len(K), function(k) {
-    v <- as.numeric(hs$state_lpdf(hg[["y"]], dp, av, k))
-    v <- rep(v, length.out = n)
-    if (!is.null(hg[["mask"]])) v <- v * hg[["mask"]]
-    v
-  }, numeric(n)), n, K)
+  lpmat <- if (!need_lpmat) NULL else {
+    matrix(vapply(seq_len(K), function(k) {
+      v <- as.numeric(hs$state_lpdf(hg[["y"]], dp, av, k))
+      v <- rep(v, length.out = n)
+      if (!is.null(hg[["mask"]])) v <- v * hg[["mask"]]
+      v
+    }, numeric(n)), n, K)
+  }
   # log transition probabilities as a K x K list of length-n vectors
   lg <- vector("list", K)
   for (i in seq_len(K)) {
@@ -1076,9 +1086,19 @@ hmm_var_response <- function(fit) {
 #' Forward-simulate a state path per sequence, then one emission draw per
 #' row from that row's state.
 #'
+#' This is the `sim_ctx` half of the simulator contract (R/families.R):
+#' the chain walk is not rowwise, and the sequence structure it walks
+#' lives on the frame rather than on the family. `simulate()`,
+#' `posterior_predict()` and `frm_simulate()` all reach it here.
+#'
 #' @noRd
-hmm_simulate_rows <- function(fit) {
-  p <- hmm_parts(fit)
+hmm_sim_rows <- function(ctx) {
+  hmm_simulate_rows(ctx[["fit"]], ctx[["dpars"]])
+}
+
+#' @noRd
+hmm_simulate_rows <- function(fit, dp = NULL) {
+  p <- hmm_parts(fit, dp = dp, need_lpmat = FALSE)
   hg <- p$hg
   K <- p$K
   m <- hg[["m"]]

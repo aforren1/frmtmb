@@ -2,20 +2,34 @@
 % Please edit documentation in R/interop.R
 \name{frm_sample}
 \alias{frm_sample}
-\title{Sample the fitted model with NUTS}
+\title{Sample a model with NUTS}
 \usage{
 frm_sample(
   fit,
+  data = NULL,
+  family = NULL,
   ...,
   priors = NULL,
   lower = NULL,
   upper = NULL,
-  init = "last.par.best",
-  init_jitter = 0.25
+  init = NULL,
+  init_jitter = 0.25,
+  data2 = list(),
+  start = NULL,
+  control = frmtmb_control(),
+  na.action = stats::na.omit,
+  REML = FALSE
 )
 }
 \arguments{
-\item{fit}{A \code{frmtmb_fit}.}
+\item{fit}{A \code{frmtmb_fit}, or a \code{bf()}/formula to assemble and sample
+directly (then \code{data} is required).}
+
+\item{data}{Model data, when \code{fit} is a formula.}
+
+\item{family}{Family, when \code{fit} is a plain formula that does not
+carry one (\code{frm_sample(bf(y ~ x), data = dd, family = poisson())};
+the \code{+} spelling \code{bf(y ~ x) + poisson()} works too).}
 
 \item{...}{Passed to \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} (\code{chains}, \code{iter},
 \code{laplace}, \code{cores}, ...). On Windows more than one core falls back
@@ -26,11 +40,15 @@ tmbstan#27). The fallback also covers a core count inherited from
 \code{options(mc.cores)}, which is what rstan reads when \code{cores} is not
 given. Fork clusters on unix can, so \code{cores} works there.}
 
-\item{priors}{Optional named list of priors (see \code{\link[=prior_normal]{prior_normal()}});
-names are parameter names as in the draws (or whole components:
-\code{"beta"}, \code{"theta"}, ...). Parameters without a prior keep the flat
-improper default. The objective is re-taped with the prior terms
-added; the ML fit itself is unchanged.}
+\item{priors}{Priors: a \code{\link[=set_prior]{set_prior()}} specification, or a named list
+of prior objects (see \code{\link[=prior_normal]{prior_normal()}}) whose names are parameter
+names as in the draws (or whole components: \code{"beta"}, \code{"theta"},
+...), or the string \code{"flat"}. The objective is re-taped with the
+prior terms added; a fitted model itself is unchanged. On the fit
+path a parameter without a prior keeps a flat improper one. On the
+formula path the brms default priors apply to whatever the
+specification leaves alone (see Default priors), and
+\code{priors = "flat"} opts out of them entirely.}
 
 \item{lower, upper}{Optional named numeric vectors of hard bounds on
 outer parameters (brms \code{lb}/\code{ub}), applied on the internal scale
@@ -38,17 +56,22 @@ through Stan's constrained transforms. Chain starting values are
 clamped strictly inside the bounds; a bound that excludes the ML
 mode itself warns, because the chains then no longer start there.}
 
-\item{init}{Initialization; the default starts chain 1 exactly at
-the ML mode and every further chain at the mode plus a normal
-perturbation of sd \code{init_jitter} on the unconstrained scale.
-The mode anchor keeps warmup short; the jitter keeps the chains
-overdispersed enough for Rhat to retain power against
-multimodality (the standard objection to identical mode starts).
-\code{"random"} requests Stan's own overdispersed initialization.}
+\item{init}{Initialization. On a fit the default
+(\code{"last.par.best"}) starts chain 1 exactly at the ML mode and every
+further chain at the mode plus a normal perturbation of sd
+\code{init_jitter} on the unconstrained scale. The mode anchor keeps
+warmup short; the jitter keeps the chains overdispersed enough for
+Rhat to retain power against multimodality (the standard objection
+to identical mode starts). \code{"random"} requests Stan's own
+overdispersed initialization, and is the default from a formula,
+where there is no mode to start at.}
 
 \item{init_jitter}{Per-chain perturbation sd for the default init;
 \code{0} starts every chain exactly at the mode. Draws from the R
 session's RNG, so \code{set.seed()} makes the inits reproducible.}
+
+\item{data2, start, control, na.action, REML}{As in \code{\link[=frm]{frm()}}; used only on
+the formula path.}
 }
 \value{
 An object of class \code{frmtmb_draws}: list with the \code{stanfit},
@@ -56,15 +79,119 @@ a draws matrix with named columns (\code{as.matrix()} method), and the
 originating fit.
 }
 \description{
-Runs \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} on the fitted objective, initialized at the
-ML estimates (which shortens warmup considerably), and returns the
-draws with frmtmb coefficient names. Without priors this samples the
-likelihood with flat improper priors on the outer parameters - the
-random effects get their proper hierarchical Gaussian terms - so
-treat the result as an ML diagnostic (see \code{\link[=check_laplace]{check_laplace()}}) rather
-than a full Bayesian analysis; posteriors can be improper for
-variance components with few groups.
+Runs \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} on the model's objective and returns the
+draws with frmtmb parameter names. Given a \code{\link[=frm]{frm()}} fit it samples the
+fitted objective, initialized at the ML estimates, which shortens
+warmup considerably. Given a formula and \code{data} it assembles the same
+objective without optimizing anything first (see Sampling from a
+formula).
 }
+\details{
+\strong{The two routes answer different questions.} \code{frm_sample(fit)} is a
+DIAGNOSTIC: it explores the LIKELIHOOD, with flat improper priors on
+the outer parameters, so that \code{\link[=check_laplace]{check_laplace()}} can compare the
+Laplace and Wald approximations against the shape of the very same
+objective the fit maximized. \code{frm_sample(formula, data)} is a
+SAMPLING tool: it samples a POSTERIOR, and defaults to brms's own
+weakly-informative priors (see Default priors), because from a
+formula there is no estimate for the run to be a diagnostic for.
+
+On the fit path, then, a parameter without a prior keeps a flat
+improper one, and the posterior of a variance component with few
+groups can be improper. That is the price of measuring the
+likelihood, and it is why the fit path is a diagnostic.
+}
+\section{Sampling from a formula}{
+
+\code{frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian())}
+parses, assembles and tapes exactly as \code{\link[=frm]{frm()}} does, stops before the
+optimizer, and hands the objective to Stan. Every pre-optimizer
+refusal still applies (REML, quadrature, the mixture and \code{\link[=hmm]{hmm()}}
+guards). There is no mode, so the default \code{init} is \code{"random"}:
+Stan's own overdispersed initialization on the unconstrained scale,
+inside any \code{lower}/\code{upper} bounds.
+
+The returned object supports the whole draws surface -
+\code{\link[=summary]{summary()}}, \code{\link[=fixef]{fixef()}}, \code{\link[=VarCorr]{VarCorr()}}, \code{\link[=ranef]{ranef()}}, \code{\link[=hypothesis]{hypothesis()}},
+\code{\link[=posterior_epred]{posterior_epred()}}, \code{\link[=posterior_predict]{posterior_predict()}}, \code{\link[=posterior_linpred]{posterior_linpred()}},
+\code{\link[=pp_check]{pp_check()}}, \code{\link[=as_draws]{as_draws()}} - because those read the model frame and
+one draw at a time. The methods that report a maximum-likelihood
+quantity refuse instead of inventing one: \code{\link[=check_laplace]{check_laplace()}} (it
+compares NUTS against a mode that does not exist here), and on the
+embedded object reachable as \code{x$fit}, \code{\link[=summary]{summary()}}, \code{\link[=vcov]{vcov()}},
+\code{\link[=confint]{confint()}}, \code{\link[=logLik]{logLik()}}, \code{\link[=fixef]{fixef()}}, \code{\link[=ranef]{ranef()}}, \code{\link[=VarCorr]{VarCorr()}},
+\code{\link[=predict]{predict()}}, \code{\link[=fitted]{fitted()}}, \code{\link[=residuals]{residuals()}} and \code{\link[=simulate]{simulate()}}.
+}
+
+\section{Default priors}{
+
+The formula interface defaults to brms 2.23's own weakly-informative
+priors, read off \code{brms::default_prior()} on matched models. Write
+\verb{y*} for the response transformed by the \code{mu} link and
+\verb{s = max(2.5, round(mad(y*), 1))}:\tabular{lll}{
+   class \tab default \tab scale \cr
+   \code{b} (slopes) \tab flat \tab - \cr
+   \code{Intercept} \tab \verb{student_t(3, round(median(y*), 1), s)} \tab link \cr
+   \code{sd} \tab \code{student_t(3, 0, s)} \tab natural sd, log-Jacobian applied \cr
+   \code{sigma} (intercept only) \tab \code{student_t(3, 0, s)} \tab natural \cr
+   \code{sigma} (with a predictor) \tab \code{student_t(3, 0, 2.5)} \tab log \cr
+}
+
+
+The link is transformed only for \code{identity}, \code{log}, \code{inverse},
+\code{sqrt} and \code{1/mu^2} - brms's own list - with a log-scale family
+(\code{\link[=lognormal]{lognormal()}} and its relatives, whose \code{mu} link is spelled
+\code{identity} but whose response is logged inside the density) counted
+as \code{log}. Under any other link (\code{logit}, \code{cloglog}, ...), for a
+response that was a factor, and for a family whose parameters run
+over categories (ordinal, categorical, multinomial), the location is
+0 and the scale 2.5 - which is what brms reports for a bernoulli
+model. Under a \code{log}, \code{inverse} or \code{1/mu^2} link the ZEROS of the
+response are replaced by \code{0.1} before the transform, element by
+element, exactly as brms does; the non-zero values are left alone,
+so a count response with median 1 keeps \code{log(1) = 0} as its
+location.
+
+The call \code{message()}s the priors it chose, one compact line per
+class, AND one line per slot it deliberately left flat, so a model
+that gets few defaults - or none - says so rather than looking flat
+by accident. Wrap it in \code{suppressMessages()} to silence that.
+\code{prior_summary()} on the returned draws reproduces the chosen priors
+exactly.
+
+\emph{What is deliberately NOT matched.} Each of these is named in the
+message whenever the model has one.
+\itemize{
+\item Random-effect CORRELATIONS stay flat. brms puts \code{lkj(1)} on them,
+which is uniform over correlation matrices; frmtmb parameterizes a
+covariance block by an unconstrained Cholesky \code{theta} segment
+whose flat prior is NOT uniform on correlations, and no LKJ
+density is implemented on that parameterization, so claiming
+\code{lkj(1)} here would be false. Set one by hand with
+\code{set_prior(class = "theta")} if you need it.
+\item ORDINAL THRESHOLDS stay flat. brms priors them
+\code{student_t(3, 0, 2.5)} under its \code{Intercept} class; frmtmb keeps
+them in the \code{thres} extra-parameter vector, which is not a design
+column and which \code{\link[=set_prior]{set_prior()}}'s class vocabulary
+(\code{b}/\code{Intercept}/\code{sd}/\code{theta}) cannot address. An ordinal model
+still gets its \code{sd} defaults, and the message names the gap.
+\item The \code{shape}, \code{phi} and \code{nu} dispersion parameters stay flat: brms
+gives them gamma and inverse-gamma defaults, which \code{\link[=set_prior]{set_prior()}}
+does not carry.
+\item MULTIVARIATE models get no defaults at all, because \code{\link[=set_prior]{set_prior()}}
+cannot address one response of several.
+}
+
+\emph{Overriding and opting out.} A \code{set_prior()} specification takes over
+the classes it names and leaves the other defaults in place, which is
+brms's partial-override rule; a named list of prior objects takes
+over exactly the internal parameters it names. \code{priors = "flat"}
+turns the defaults off entirely and samples the likelihood, which
+warns when the model has variance components: their flat-prior
+posteriors need not be proper, and neither the chains nor Rhat can
+see that.
+}
+
 \section{Multimodal posteriors}{
 
 For \code{\link[=mixture]{mixture()}} fits the posterior is multimodal by construction
@@ -86,6 +213,21 @@ ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
 summary(ds)
 fixef(ds)
 hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+
+# the same model sampled straight from the formula, with no ML fit.
+# It reports the brms default priors it chose, and prior_summary()
+# gives them back.
+ds2 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
+                  chains = 1, iter = 500, refresh = 0)
+prior_summary(ds2)
+fixef(ds2)
+
+# a set_prior() specification takes over the classes it names and
+# leaves the rest of the defaults alone
+ds3 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
+                  chains = 1, iter = 500, refresh = 0,
+                  priors = set_prior("exponential(1)", class = "sd"))
+prior_summary(ds3)
 }
 }
 }

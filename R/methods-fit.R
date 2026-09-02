@@ -23,6 +23,7 @@ par_est_se <- function(fit) {
 
 #' @export
 print.frmtmb_fit <- function(x, ...) {
+  require_fitted(x, "print()")
   if (inherits(x$bform, "frmtmb_mvformula")) {
     for (f in x$bform$forms) cat("frmtmb fit:", deparse1(f$formula), "\n")
   } else {
@@ -188,6 +189,7 @@ n_outer_est <- function(object) {
 
 #' @export
 logLik.frmtmb_fit <- function(object, ...) {
+  require_fitted(object, "logLik() (and AIC(), BIC(), anova())")
   structure(-object$opt$objective,
             df = n_outer_est(object),
             nobs = object$frame$n_obs,
@@ -486,6 +488,7 @@ fixef <- function(object, ...) UseMethod("fixef")
 #' @rdname fixef
 #' @export
 fixef.frmtmb_fit <- function(object, ...) {
+  require_fitted(object, "fixef()")
   est <- object$estimates
   out <- list()
   for (lp in object$frame$linpreds) {
@@ -527,6 +530,7 @@ ranef <- function(object, ...) UseMethod("ranef")
 #' @rdname ranef
 #' @export
 ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
+  require_fitted(object, "ranef()")
   cvec <- coef_b(object)
   csd <- NULL
   if (condVar) {
@@ -653,6 +657,7 @@ VarCorr <- function(x, ...) UseMethod("VarCorr")
 #' @rdname VarCorr
 #' @export
 VarCorr.frmtmb_fit <- function(x, ...) {
+  require_fitted(x, "VarCorr()")
   th <- x$estimates$theta
   out <- lapply(x$frame$re_blocks, function(bk) {
     if (bk$covstruct == "smooth") {

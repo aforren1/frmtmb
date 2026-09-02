@@ -140,10 +140,14 @@ ngrps.frmtmb_fit <- function(object, ...) {
 
 #' Priors used in a fit
 #'
-#' @param object A `frmtmb_fit`.
+#' On draws from [frm_sample()] this reports the priors the sampler
+#' applied, which on the formula interface includes the brms default
+#' priors it chose (see the Default priors section of [frm_sample()]).
+#'
+#' @param object A `frmtmb_fit`, or `frmtmb_draws` from [frm_sample()].
 #' @param ... Unused.
-#' @return The `frmtmb_priorlist` the fit was penalized with, or
-#'   (invisibly) `NULL` for a plain maximum-likelihood fit.
+#' @return The `frmtmb_priorlist` the fit was penalized with, or that
+#'   the sampler used, or (invisibly) `NULL` when there were none.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))

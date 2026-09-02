@@ -33,7 +33,17 @@
 #'   for `residuals(type = "deviance")`). A family that omits one is
 #'   refused by the method that needs it.
 #' @param sim Optional numeric simulator `(dpars, aterms, n)` returning `n`
-#'   response draws; used by [simulate()].
+#'   response draws; used by [simulate()], [posterior_predict()] and
+#'   [frm_simulate()]. It is stateless and rowwise: it sees the
+#'   distributional parameters and nothing else. A family whose extra
+#'   parameters (`extra_pars`) enter the draw declares a fourth
+#'   argument `extra` instead.
+#' @param sim_ctx Optional structured simulator `(ctx)` for a family
+#'   whose draws are not rowwise (see Structured simulators). It takes
+#'   precedence over `sim`.
+#' @param sim_refusal Optional one-sentence reason why the family has no
+#'   simulator, appended to the refusal each entry point raises. Use it
+#'   when the omission is a decision rather than a gap.
 #' @param primary_dpars Which dpars receive the main model formula
 #'   (default `"mu"`). Families with several location predictors (for
 #'   example multinomial's per-category `mu2`, `mu3`, ...) list them all;
@@ -51,6 +61,24 @@
 #'   the main formula's design matrix (ordinal families: thresholds take
 #'   its place).
 #' @return An object of class `frmtmb_family`.
+#' @section Structured simulators:
+#' Some families cannot draw a response one row at a time: a group-level
+#' [mixture()] draws one class per group, an [hmm()] walks a Markov
+#' chain per sequence, and a [mixture_mvn()] draw needs the class
+#' covariances, which are family-level extras rather than dpars. Those
+#' families supply `sim_ctx(ctx)` instead of `sim(dpars, aterms, n)`.
+#'
+#' `ctx` is a list with `fit` (any object carrying `spec`, `frame` and
+#' `estimates` - a fitted model, one posterior draw, or the de novo
+#' shim), `family`, `rspec`, `resp`, `dpars` (the evaluated numeric
+#' distributional parameters), `aterms`, `n`, `extra` (the family-level
+#' extra parameters) and the frame structures `autocor` and `mix_g`.
+#' Read its fields with `[[ ]]`.
+#'
+#' The same `sim_ctx()` serves [simulate()], [posterior_predict()] and
+#' [frm_simulate()]. Because a structured draw covers whole sequences or
+#' groups, `trunc()` rejection and `newdata` cannot apply to it and are
+#' refused.
 #' @examples
 #' # a custom family is a plain R log-density over taped parameters
 #' dd <- data.frame(y = rbinom(100, 5, 0.4),
@@ -85,7 +113,8 @@
 #' @export
 frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           init_dpars = list(), type = "continuous",
-                          post = list(), sim = NULL,
+                          post = list(), sim = NULL, sim_ctx = NULL,
+                          sim_refusal = NULL,
                           primary_dpars = "mu", lcdf = NULL,
                           extra_pars = NULL, drop_intercept = FALSE) {
   stopifnot(is.character(family), length(family) == 1,
@@ -101,7 +130,8 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
   structure(
     list(family = family, dpars = dpars, links = links, lpdf = lpdf,
          valid_y = valid_y, init_dpars = init_dpars, type = type,
-         post = post, sim = sim, primary_dpars = primary_dpars,
+         post = post, sim = sim, sim_ctx = sim_ctx,
+         sim_refusal = sim_refusal, primary_dpars = primary_dpars,
          lcdf = lcdf, extra_pars = extra_pars,
          drop_intercept = isTRUE(drop_intercept)),
     class = "frmtmb_family"
@@ -335,6 +365,118 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
     bad <- bad[yb < tb$lb[bad] | yb > tb$ub[bad]]
   }
   y
+}
+
+# --- the structured simulator contract --------------------------------
+#
+# `fam$sim(dpars, aterms, n)` is stateless and ROWWISE: it sees one
+# column of numbers per distributional parameter and draws each row on
+# its own. Three model classes cannot be written that way.
+#
+#   - family-level EXTRAS. An lca() draw needs the item-profile
+#     parameters, which live outside the dpar system. That case already
+#     has an answer: a four-argument `sim` receives the extra vector.
+#   - GROUP or TIME structure. A group-level mixture draws one class per
+#     GROUP, and an hmm() draw walks a Markov chain per SEQUENCE. Both
+#     structures are resolved at frame-assembly time and live on the
+#     frame (`mix_g`, `hmm_g`), not on the family.
+#   - CROSS-ROW dependence. An autocor residual is one multivariate draw
+#     per group, so no per-row simulator exists at all.
+#
+# `fam$sim_ctx(ctx)` is the extension: one function per family, taking a
+# CONTEXT that carries the fit-like object as well as the evaluated
+# dpars. The context is built the same way from all three entry points -
+# `simulate()` on a fit, `posterior_predict()` on one draw (where
+# `draws_fit_at()` makes a real fit out of it), and `frm_simulate()` on
+# the de novo shim - so a structured family has exactly ONE
+# implementation and every entry point reaches it.
+#
+# `[[ ]]`, never `$`, on the context and on frame fields: `$` partial
+# matching would let `ctx$mix` silently read `ctx$mix_g`.
+
+#' The simulation context: everything a simulator may read, assembled
+#' identically from a fit, from one posterior draw, and from the de novo
+#' shim. `fit` is any object carrying `spec`, `frame` and `estimates`.
+#'
+#' @noRd
+sim_context <- function(fit, rspec, dpars, aterms = NULL, n = NULL,
+                        extra = NULL) {
+  resp <- rspec[["resp_name"]]
+  frame <- fit[["frame"]]
+  list(fit = fit,
+       family = rspec[["family"]],
+       rspec = rspec,
+       resp = resp,
+       dpars = dpars,
+       aterms = aterms %||% frame[["aterm_values"]][[resp]] %||% list(),
+       n = n %||% frame[["n_obs"]],
+       extra = extra %||% fit_extras(fit),
+       autocor = frame[["autocor"]][[resp]],
+       mix_g = frame[["mix_g"]][[resp]])
+}
+
+#' Whether a family can simulate at all, by either half of the contract.
+#'
+#' @noRd
+sim_can <- function(fam) {
+  !is.null(fam[["sim"]]) || !is.null(fam[["sim_ctx"]])
+}
+
+#' The family's own explanation for having no simulator, appended by
+#' whichever entry point refused. Empty for a family that simply has not
+#' been given one yet.
+#'
+#' @noRd
+sim_note <- function(fam) {
+  note <- fam[["sim_refusal"]]
+  if (is.null(note)) "" else paste0(". ", note)
+}
+
+#' Whether the draws of this context come whole rather than row by row,
+#' which is what makes `trunc()` rejection and `newdata` inapplicable.
+#'
+#' @noRd
+sim_is_structured <- function(ctx) {
+  !is.null(ctx[["autocor"]]) || !is.null(ctx[["family"]][["sim_ctx"]])
+}
+
+#' One simulated response for a context: the single implementation every
+#' entry point calls. Cross-row structure is resolved first (a residual
+#' correlation belongs to the frame, not to the family), then the
+#' family's structured simulator, then the rowwise contract.
+#'
+#' @noRd
+sim_draw <- function(ctx) {
+  ac <- ctx[["autocor"]]
+  sf <- ctx[["family"]][["sim_ctx"]]
+  if (is.null(ac) && is.null(sf)) {
+    return(sim_response(ctx[["family"]], ctx[["dpars"]], ctx[["aterms"]],
+                        ctx[["n"]], extra = ctx[["extra"]]))
+  }
+  if (!is.null(trunc_bounds(ctx[["aterms"]], ctx[["n"]]))) {
+    stop("trunc() cannot be combined with a structured draw (here: '",
+         ctx[["family"]][["family"]], "'): a hidden state sequence, a ",
+         "group-level latent class and a correlated residual are each ",
+         "drawn whole, so a row outside its bounds cannot be redrawn ",
+         "on its own and the rejection step has nothing to resample",
+         call. = FALSE)
+  }
+  if (!is.null(ac)) return(sim_autocor_rows(ctx, ac))
+  sf(ctx)
+}
+
+#' The autocor branch: one multivariate residual draw per group added to
+#' the mean predictor, rather than n independent family draws.
+#'
+#' @noRd
+sim_autocor_rows <- function(ctx, ac) {
+  n <- ctx[["n"]]
+  dp <- ctx[["dpars"]]
+  th <- ctx[["fit"]][["estimates"]][["thetaac"]]
+  R <- autocor_cor(th[ac[["theta_idx"]]], ac)
+  rep(dp[["mu"]], length.out = n) +
+    autocor_draw_resid(ac, R, rep(dp[["sigma"]], length.out = n), n,
+                       nu = if (isTRUE(ac[["student"]])) dp[["nu"]][1])
 }
 
 #' Gaussian family, dpars `mu` and `sigma`. A known `se()` term enters
@@ -2117,8 +2259,52 @@ mixture <- function(..., groups = NULL) {
            call. = FALSE)
     }
     fam$mix_groups <- groups
+    # a class belongs to the GROUP, so the draw is not rowwise: the
+    # rowwise `sim` above would give the same group two classes
+    fam$sim_ctx <- mixture_sim_groups
   }
   fam
+}
+
+#' A group-level mixture draw: one class per group from the group's own
+#' mixing weights, then each row from its group's component. The rowwise
+#' `sim` cannot express this - it would resample the class per row and
+#' wash the grouping out - which is why `groups =` installs this
+#' instead.
+#'
+#' @noRd
+mixture_sim_groups <- function(ctx) {
+  mg <- ctx[["mix_g"]]
+  fam <- ctx[["family"]]
+  mx <- fam[["mix"]]
+  if (is.null(mg)) {
+    stop("mixture(groups =) simulated without the group structure: the ",
+         "frame carries no latent-class grouping for response '",
+         ctx[["resp"]], "'. Rebuild the model frame from the same ",
+         "formula and data", call. = FALSE)
+  }
+  n <- ctx[["n"]]
+  dp <- ctx[["dpars"]]
+  av <- ctx[["aterms"]]
+  K <- mx[["K"]]
+  lps <- mx[["log_pi"]](dp)
+  Pg <- vapply(lps, function(l) {
+    exp(rep(l, length.out = n)[mg[["first"]]])
+  }, numeric(length(mg[["first"]])))
+  kg <- vapply(seq_len(nrow(Pg)), function(g_) {
+    sample.int(K, 1L, prob = Pg[g_, ])
+  }, integer(1))
+  kk <- kg[mg[["gindex"]]]
+  ys <- numeric(n)
+  for (k in seq_len(K)) {
+    idx <- which(kk == k)
+    if (!length(idx)) next
+    dk <- lapply(mx[["comp_dpars"]](dp, k), function(v) {
+      rep(v, length.out = n)[idx]
+    })
+    ys[idx] <- mx[["comp_sim"]](dk, av, length(idx), k)
+  }
+  ys
 }
 
 #' Posterior class probabilities of a mixture fit
@@ -2477,7 +2663,45 @@ mixture_mvn <- function(K, D, model = "VVV") {
     sigma = cspec$sigma,
     log_pi = log_pi
   )
+  # the class covariances are family-level EXTRAS, not dpars, so the
+  # rowwise contract cannot see them; the structured one can
+  fam$sim_ctx <- mvn_sim_rows
   fam
+}
+
+#' One `mixture_mvn()` draw: a class per row from its mixing weights,
+#' then a D-variate normal about that class's mean with that class's
+#' covariance, assembled from the fit's extra parameters by the same
+#' `sigma()` the likelihood uses.
+#'
+#' @noRd
+mvn_sim_rows <- function(ctx) {
+  mx <- ctx[["family"]][["mix"]]
+  K <- mx[["K"]]
+  D <- mx[["D"]]
+  n <- ctx[["n"]]
+  dp <- ctx[["dpars"]]
+  ex <- ctx[["extra"]]
+  P <- vapply(mx[["log_pi"]](dp), function(l) {
+    rep(exp(l), length.out = n)
+  }, numeric(n))
+  ks <- vapply(seq_len(n), function(i) {
+    sample.int(K, 1L, prob = P[i, ])
+  }, integer(1))
+  out <- matrix(NA_real_, n, D)
+  for (k in seq_len(K)) {
+    idx <- which(ks == k)
+    if (!length(idx)) next
+    # upper Cholesky: Z %*% R has covariance R'R = Sigma_k
+    R <- chol(as.matrix(mx[["sigma"]](ex, k)))
+    M <- matrix(NA_real_, length(idx), D)
+    for (j in seq_len(D)) {
+      M[, j] <- rep(dp[[paste0("mu", k, "d", j)]], length.out = n)[idx]
+    }
+    Z <- matrix(stats::rnorm(length(idx) * D), length(idx), D)
+    out[idx, ] <- M + Z %*% R
+  }
+  out
 }
 
 #' von Mises family for a circular response in `(-pi, pi]`, dpars `mu`
@@ -2949,7 +3173,16 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
     ),
     extra_pars = function(y, aterms) {
       list(sbhaz_raw = rep(0, ncol(aterms$Zbhaz) - 1L))
-    }
+    },
+    # a deliberate omission, not a gap: every entry point repeats this
+    # reason after its own refusal
+    sim_refusal = paste0(
+      "Drawing a survival time means inverting the cumulative baseline ",
+      "hazard, and cox() carries no quantile function for it: the ",
+      "I-spline baseline is identified only on the observed time ",
+      "window, so a draw beyond the last event time has no defined ",
+      "distribution"
+    )
   )
   # the baseline bases are data, not parameters: they are built once
   # from the observed times and ride with the response's addition terms

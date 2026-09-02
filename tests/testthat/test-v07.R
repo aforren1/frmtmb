@@ -90,7 +90,8 @@ test_that("frm_sample returns named draws and check_laplace agrees on a clean mo
   ds <- suppressWarnings(frm_sample(fit, chains = 1, iter = 600,
                                     refresh = 0, seed = 1))
   m <- as.matrix(ds)
-  expect_true(all(c("(Intercept)", "x", "sigma_(Intercept)",
+  # draws names are parenthesis-free (the brms convention; v0.36)
+  expect_true(all(c("Intercept", "x", "sigma_Intercept",
                     "theta_1") %in% colnames(m)))
   expect_lt(abs(mean(m[, "x"]) - fixef(fit)$mu[["x"]]), 0.1)
 

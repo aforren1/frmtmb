@@ -118,8 +118,16 @@ class-varying eigenvector basis (EEV, VEV, EVE, VEE, VVE, EVV) need
 constrained-orientation machinery and are absent; covariances take no
 linear predictor (no covariance regression); no cens/trunc, no mvbf
 components (mixture over mvbf with rescor is the general form;
-unscheduled), and simulate() needs a simulator interface that can see
-family-level extras.
+unscheduled).
+
+The simulator sub-gap is CLOSED in v0.36. The family-level extras a
+`mixture_mvn()` draw needs are reachable through the structured
+simulator contract (`fam$sim_ctx(ctx)`, R/families.R): one
+implementation per family, called identically by `simulate()`,
+`posterior_predict()` and `frm_simulate()`. The same contract carries
+`hmm()`'s per-sequence chain walk and `mixture(groups =)`'s per-group
+class draw, and the frame-level residual-correlation draw that
+`ar()`/`ma()`/`cosy()` need.
 
 The MEASUREMENT-MODEL case of that general form is DONE as `lca(K)`
 in v0.35: a mixture over a vector of conditionally independent

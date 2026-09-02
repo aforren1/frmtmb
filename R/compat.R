@@ -546,8 +546,8 @@ frmtmb_compat_rules_tbl <- function() {
   r("mixture", "frm_sample", "conditional",
     "Mixture posteriors are multimodal. Sample with init = \"random\" rather than the mode-anchored default.")
   r("mixture", "kind:covstruct", "untested", "")
-  r("mixture_mvn", "simulate", "refused",
-    "Refused: mixture_mvn() has no simulator yet.")
+  r("mixture_mvn", "simulate", "works",
+    "Since v0.36 a structured simulator (fam$sim_ctx) draws a class per row from the gating weights and then a D-variate normal about that class's mean with that class's covariance, assembled from the family-level extras by the same sigma() the likelihood uses. A draw is an n x D matrix. simulate(), posterior_predict() and frm_simulate() all reach the same implementation.")
   r("mixture_mvn", "mvbf", "refused",
     "Refused: the family already takes a matrix response.")
   r("mixture_mvn", "kind:aterm", "untested", "")
@@ -587,7 +587,7 @@ frmtmb_compat_rules_tbl <- function() {
   r("hmm", "residuals_osa", "refused",
     "Refused: one-step prediction needs the taped density of one observation given the earlier ones, and the tape holds a forward recursion over each whole sequence with no registered observation vector.")
   r("hmm", "simulate", "conditional",
-    "A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused.")
+    "A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. Since v0.36 the chain walk is the family's structured simulator (fam$sim_ctx), so posterior_predict() and frm_simulate() reach it too; posterior_predict(newdata =) is refused, because the sequence structure indexes the fitted rows.")
   r("hmm", "emmeans", "untested", "")
   r("hmm", "frm_sample", "works",
     "Verified by a short run. The posterior is multimodal in the state labels, as a mixture's is.")
@@ -765,7 +765,7 @@ frmtmb_compat_rules_tbl <- function() {
   r("simulate", "von_mises", "works",
     "Best and Fisher's rejection sampler, vectorized over per-row mu and kappa, so a distributional kappa simulates. RTMBdist::rvm() takes scalar parameters only and is not used.")
   r("simulate", "cox", "refused",
-    "Refused: drawing a survival time means inverting the cumulative baseline hazard, which this family does not carry a quantile function for.")
+    "Refused: drawing a survival time means inverting the cumulative baseline hazard, which this family does not carry a quantile function for. simulate(), posterior_predict() and frm_simulate() each say so in their own words and then repeat the family's reason.")
   r("residuals_osa", "kind:family", "conditional",
     "One-step-ahead residuals need the family to register its observation through OBS().")
   r("residuals_osa", "categorical", "refused",
@@ -855,7 +855,7 @@ frmtmb_compat_rules_tbl <- function() {
     "One residual correlation term per response, each with its own parameters. Only with rescor = FALSE.")
   r("group:autocor", "|ID|", "untested", "")
   r("group:autocor", "simulate", "works",
-    "simulate() draws one correlated residual per group (a Cholesky factor of that group's correlation submatrix applied to standard normal, or scaled-t, innovations), so the draws carry the fitted autocorrelation. dharma_residuals() therefore works too. frm_simulate(), which draws de novo row by row, is refused.")
+    "simulate() draws one correlated residual per group (a Cholesky factor of that group's correlation submatrix applied to standard normal, or scaled-t, innovations), so the draws carry the fitted autocorrelation. dharma_residuals() therefore works too. Since v0.36 the residual draw is part of the simulator contract rather than a branch inside simulate(), so posterior_predict() and frm_simulate() draw it as well; frm_simulate() needs thetaac in the internal newparams spelling.")
   r("group:autocor", "residuals_osa", "refused",
     "Refused: one-step-ahead residuals need the taped density of one observation given the previous ones, and the tape holds a joint density per group. Use type = \"pearson\", which divides by the marginal residual SD (the diagonal of the residual covariance is sigma^2, because R is unit-diagonal), or dharma_residuals().")
   r("group:autocor", "kind:method", "untested", "")

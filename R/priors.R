@@ -144,15 +144,24 @@ c.frmtmb_priorlist <- function(...) {
 #' @export
 print.frmtmb_priorlist <- function(x, ...) {
   for (s in unclass(x)) {
-    d <- if (is.null(s$dist)) "(bounds only)" else
-      paste0(s$dist$kind, "(",
-             paste(unlist(s$dist[-1]), collapse = ", "), ")")
+    d <- if (is.null(s$dist)) "(bounds only)" else {
+      # brms spelling on the way out as well as on the way in, so a
+      # printed prior can be pasted back into set_prior()
+      kind <- if (identical(s$dist$kind, "t")) "student_t" else s$dist$kind
+      paste0(kind, "(", paste(unlist(s$dist[-1]), collapse = ", "), ")")
+    }
     cat(d, " class=", s$class,
         if (nzchar(s$coef)) paste0(" coef=", s$coef),
         if (nzchar(s$dpar)) paste0(" dpar=", s$dpar),
         if (nzchar(s$group)) paste0(" group=", s$group),
+        if (isTRUE(s$natural)) " scale=natural",
         if (!is.na(s$lb)) paste0(" lb=", s$lb),
         if (!is.na(s$ub)) paste0(" ub=", s$ub), "\n", sep = "")
+  }
+  ov <- attr(x, "overrides")
+  if (length(ov)) {
+    cat("plus internal-scale overrides on: ",
+        paste(names(ov), collapse = ", "), "\n", sep = "")
   }
   invisible(x)
 }
@@ -299,11 +308,18 @@ resolve_priorlist <- function(fit, pl) {
 
   for (s in unclass(pl)) {
     if (s$class %in% c("b", "Intercept")) {
+      # `natural` puts the prior on exp(coefficient) with the same
+      # log-Jacobian class "sd" uses, which is what a log-linked
+      # dispersion intercept needs to carry brms's half-t on sigma
+      # itself rather than on log sigma. Only the default-prior builder
+      # of frm_sample() sets it; a set_prior() spec never has the field
+      # and reads as internal, exactly as before.
+      sc <- if (isTRUE(s$natural)) "sd" else "internal"
       for (tg in target_coefs(s)) {
         key <- nm_of(tg$comp, tg$idx)
         if (!is.null(s$dist)) {
           assigned[[key]] <- list(comp = tg$comp, idx = tg$idx,
-                                  dist = s$dist, scale = "internal",
+                                  dist = s$dist, scale = sc,
                                   lb = s$lb, ub = s$ub)
         } else if (!is.null(assigned[[key]])) {
           assigned[[key]] <- entry_bounds(assigned[[key]], s)
