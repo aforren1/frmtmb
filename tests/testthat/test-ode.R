@@ -321,8 +321,13 @@ test_that("an integrator choice does not move the likelihood", {
                      group = id, output = 2L, method = .(m)),
       lka ~ 1 + (1 | id), lke ~ 1 + (1 | id), lV ~ 1, nl = TRUE
     )))
-    as.numeric(logLik(frm(form + gaussian(), data = d,
-                          start = list(beta = c(0, log(0.25), log(8))))))
+    # convergence warnings differ across BLAS builds (mac reports false
+    # convergence at gradient 2e-3); the logLik agreement below is the
+    # assertion that matters
+    as.numeric(logLik(suppressWarnings(
+      frm(form + gaussian(), data = d,
+          start = list(beta = c(0, log(0.25), log(8))))
+    )))
   }, 0)
   expect_equal(unname(diff(range(ll))), 0, tolerance = 1e-5)
 })

@@ -183,6 +183,33 @@ the likelihood no longer factorizes over rows - brms refuses the same
 core set. Random effects alongside the correlated residual are the
 point of the feature and are supported.
 
+## Variance functions (nlme `weights = varFunc`)
+
+There are no `varFunc` objects. The `sigma` formula is the variance
+function: `sigma` uses a log link, so most of the nlme vocabulary is a
+direct translation, and the translation was verified against
+`nlme::gls()` under ML (log-likelihood agreement 1e-10 or better).
+
+| nlme | frmtmb |
+|---|---|
+| `varIdent(form = ~ 1 \| g)` | `sigma ~ 0 + g` |
+| `varExp(form = ~ v)` | `sigma ~ v` |
+| `varPower(form = ~ v)` | `sigma ~ log(abs(v))` |
+| `varFixed(~ v)` | `sigma ~ offset(0.5 * log(v))` |
+| `varComb(A, B)` | the two terms in one `sigma` formula |
+
+The coefficient of `log(abs(v))` is nlme's power `theta`. The
+translation is also more general than a `varFunc`: `sigma` takes the
+full predictor grammar, so random effects and smooths in the variance
+are ordinary spellings.
+
+The one form with no translation is `varPower(form = ~ fitted(.))`,
+variance as a function of the model's own mean. For a positive
+response that coupling usually belongs in the family: `Gamma()` has
+sd proportional to the mean, and `tweedie()` estimates the power in
+`Var = phi * mu^p` directly. A gaussian response with mean-dependent
+variance has no frmtmb spelling.
+
 ## Structural objects: `data2`
 
 Matrices that are not columns of `data` go in `data2`, the brms

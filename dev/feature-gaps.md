@@ -926,3 +926,30 @@ Residue, all of it deliberate and documented in ?hmm.
 - Continuous-time transitions, higher-order chains, and hmm() inside
   hmm() stay out, as the memo's section 8 said.
 - No vignette yet (the memo budgeted a day for one).
+
+## Pharmacometrics tier (rxode2/nlmixr2 comparison, user request 2026-09-02)
+
+What replicates today: smooth-ODE population models via frm_ode()
+(dynamics as plain R), REs/covariates on parameters, bolus/replace/
+multiply dosing, constant-rate infusions, repeated doses,
+event_scale bioavailability, frm_simulate population simulation.
+Analytic solved systems (linCmt analogs) are writable by hand as nl
+bodies; ii/addl compact repetition expands manually.
+
+Gaps for another day, in modeling-importance order:
+1. TIME-VARYING COVARIATES inside the ODE (rxode2 interpolates
+   during the solve; our per-group solve reads inputs off the first
+   row and refuses within-group variation). Fix path: piecewise-
+   constant covariates ride the SEGMENTED-SOLVE machinery exactly
+   like dose events (split at change points). The biggest real gap
+   for PK/PD practice.
+2. Steady-state dosing (ss) and reset events (evid 3/4).
+3. Lag times (alag) - refused by design (estimated event times
+   change tape structure); revisit only with a new design.
+4. Combined error models (prop + add: sd = sqrt(a^2 + (b*f)^2)) -
+   EXPRESSIBLE once nlf() lands (nlf(sigma ~ ...) referencing mu);
+   needs a worked example, not machinery.
+5. Multiple-endpoint ODE models (parent + metabolite observed):
+   possibly mvbf with per-response bodies each calling frm_ode -
+   untested, likely guarded; no dvid counterpart.
+6. ii/addl/ss dosing-table sugar once 1-2 land.

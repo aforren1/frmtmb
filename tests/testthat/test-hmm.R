@@ -462,7 +462,9 @@ test_that("hmm agrees with hmmTMB on the stationary fixed-effect model", {
   dh <- data.frame(ID = dd$id, t = dd$t, y = dd$y)
   hid <- hmmTMB::MarkovChain$new(data = dh, n_states = 2,
                                  initial_state = "stationary")
-  hid$update_tpm(G)
+  # hmmTMB validates rowSums(tpm) == 1 exactly; renormalize away the
+  # last-ulp float error that mac BLAS leaves
+  hid$update_tpm(G / rowSums(G))
   obs <- hmmTMB::Observation$new(
     data = dh, n_states = 2, dists = list(y = "norm"),
     par = list(y = list(mean = mu, sd = sg)))

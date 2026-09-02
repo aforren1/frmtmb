@@ -502,14 +502,12 @@ hmm_seq_structure <- function(gidx, tidx, n) {
        order = ord, n_seq = length(by_g))
 }
 
-#' Sequence structure, checks and the NA mask for one `hmm()` response.
-#'
-#' Everything here is DATA, resolved once: nothing below ever branches on
-#' a parameter. The checks that must happen before the tape exists live
-#' here rather than in the objective, because a refusal is only useful
-#' while the user can still see their own call.
-#'
-#' @noRd
+# Sequence structure, checks and the NA mask for one hmm() response.
+# Everything here is DATA, resolved once: nothing below ever branches on
+# a parameter. The checks that must happen before the tape exists live
+# here rather than in the objective, because a refusal is only useful
+# while the user can still see their own call.
+
 #' Addition terms and model shapes an `hmm()` response cannot carry.
 #'
 #' Called EARLY in the frame loop, before the generic per-aterm guards,

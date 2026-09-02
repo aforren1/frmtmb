@@ -1488,8 +1488,15 @@ ord_probs_from_eta <- function(fam, eta, cs, extra, K) {
   dp <- list(mu = eta)
   if (!is.null(cs)) dp[[".cs"]] <- cs
   P <- matrix(NA_real_, n, K)
+  # ordinal lpdfs take the extras (thresholds) as a fourth argument;
+  # categorical's takes three - dispatch on arity like fam_lcdf() does
+  four <- length(formals(fam$lpdf)) >= 4L
   for (k in seq_len(K)) {
-    P[, k] <- exp(as.numeric(fam$lpdf(rep.int(k, n), dp, list(), extra)))
+    P[, k] <- exp(as.numeric(if (four) {
+      fam$lpdf(rep.int(k, n), dp, list(), extra)
+    } else {
+      fam$lpdf(rep.int(k, n), dp, list())
+    }))
   }
   # analytically the rows already sum to one; the division only removes
   # the last bit of rounding, and turns an overflowed row into NaN

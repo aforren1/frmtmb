@@ -788,8 +788,17 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       bd$bs$t[, bd$offsets[gi] + seq_len(bd$lens[gi]), drop = FALSE]
     }
     if (categorical) {
-      ed <- lp_eta_design(x, lp, nd, FALSE, FALSE)
-      ps <- ord_prob_se(x, rspec, lp, ed, nd, FALSE)
+      if (identical(rspec$family$type, "ordinal")) {
+        ed <- lp_eta_design(x, lp, nd, FALSE, FALSE)
+        ps <- ord_prob_se(x, rspec, lp, ed, nd, FALSE)
+      } else {
+        # a nominal family has no thresholds, so the ordinal delta
+        # method does not apply; under band = "boot" (the only band
+        # allowed here) the draws supply the se and the bounds
+        P <- predict(x, newdata = nd, type = "response", resp = resp,
+                     re.form = NA)
+        ps <- list(P = P, se = matrix(NA_real_, nrow(P), ncol(P)))
+      }
       cats <- colnames(ps$P)
       df <- do.call(rbind, lapply(seq_along(cats), function(k) {
         d <- nd[ev]
