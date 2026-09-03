@@ -338,6 +338,9 @@ expect_mclust_agreement <- function(Y, K, D) {
     st <- c(list(beta = as.vector(mc$parameters$mean),
                  betad = log(mc$parameters$pro[-K] / mc$parameters$pro[K])),
             mclust_extras(m, Sig, K, D))
+    # mclust's covariance matrices carry the response dimnames, and a
+    # NAMED start vector is read by name. These are positional.
+    st <- lapply(st, unname)
     fit <- frm(bf(Y ~ 1) + mixture_mvn(K = K, D = D, model = m),
                data = dd, start = st)
     expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(mc$loglik)), 1e-4)

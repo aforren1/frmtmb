@@ -58,8 +58,18 @@
 #'   precision for gaussian models. Random effects appearing in a
 #'   distributional parameter's own formula are integrated like any
 #'   other latent.
-#' @param start Optional named list of starting values; components must
-#'   match the parameter template (`beta`, `betad`, `theta`).
+#' @param start Optional named list of starting values, one entry per
+#'   parameter component (`beta`, `betad`, `theta`, ...).
+#'   [par_template()] returns that list already filled with the
+#'   defaults, for a fitted model or for a formula and data alone; edit
+#'   it and pass it back.
+#'
+#'   A component is read by NAME when its vector has names, so
+#'   `start = list(beta = c("(Intercept)" = 5000))` moves that one
+#'   coefficient and leaves the rest at their defaults; parentheses may
+#'   be dropped, as everywhere a parameter is named. A vector with no
+#'   names is positional and must be full length. Naming some entries
+#'   of one vector and not others is refused.
 #' @param control A list from [frmtmb_control()].
 #' @param se If `TRUE`, run [RTMB::sdreport()] at fit time. The default
 #'   (`FALSE`) defers it until standard errors are first needed
@@ -99,11 +109,20 @@
 #'   one model, though, not a property of the translation. Use
 #'   [frm_sample()] when the posterior is the answer.
 #'
-#'   *A prior does not replace `start` on a nonlinear model.* brms uses
-#'   its priors to place the sampler; `frm()` optimizes, and it
-#'   evaluates the objective at the starting values first, where a
-#'   nonlinear body usually is not defined. The prior means read across
-#'   as starting values: `start = list(beta = c(5000, 1, 45))`.
+#'   *A prior with a location places a nonlinear start.* brms uses its
+#'   priors to place the sampler, and `frm()` now reads them the same
+#'   way, for nonlinear parameters only: where `start` does not set it,
+#'   a nonlinear coefficient begins at the location of a `normal()`,
+#'   `student_t()` or `cauchy()` prior on it, and a message names what
+#'   was placed. This is what lets the insurance-loss growth curve fit
+#'   from its brms priors with no `start` at all. Every other parameter
+#'   keeps the start it always had.
+#'
+#'   Without such a prior a nonlinear model still needs `start`.
+#'   `frm()` optimizes rather than samples, so it evaluates the
+#'   objective AT the starting values, and a nonlinear body is rarely
+#'   defined at zero. [par_template()] shows the names and the values
+#'   in force.
 #' @param quadrature If `TRUE`, marginalize each scalar random effect by
 #'   adaptive Gauss-Kronrod quadrature instead of the Laplace
 #'   approximation (the `glmer(nAGQ = k)` analogue; matches it in
@@ -282,6 +301,23 @@
 #' # distributional regression: model sigma too
 #' fit2 <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
 #' anova(fit, fit2)
+#'
+#' # a nonlinear model: discover the names, edit, fit. A nonlinear body
+#' # is undefined at the zero start, so `start` is not optional here.
+#' nd <- data.frame(t = rep(seq(0, 10, length.out = 25), 4))
+#' nd$y <- 8 * (1 - exp(-nd$t / 3)) + rnorm(nrow(nd), 0, 0.3)
+#' nf <- bf(y ~ asym * (1 - exp(-t / lrc)), asym ~ 1, lrc ~ 1,
+#'          nl = TRUE) + gaussian()
+#' st <- par_template(nf, data = nd)
+#' st
+#' st$beta[["asym_(Intercept)"]] <- 5
+#' st$beta[["lrc_(Intercept)"]] <- 1
+#' fixef(frm(nf, data = nd, start = st))
+#'
+#' # or let a located prior place the same starts, brms-style
+#' fixef(frm(nf, data = nd,
+#'           prior = prior(normal(5, 5), nlpar = "asym") +
+#'             prior(normal(1, 5), nlpar = "lrc")))
 #' @export
 frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 control = frmtmb_control(), se = FALSE,
@@ -356,7 +392,10 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
                 control = control, se = se, lower = lower, upper = upper,
                 prior = prior, quadrature = quadrature, data2 = data2,
-                objective_only = identical(dry_run, "objective"))
+                objective_only = identical(dry_run, "objective"),
+                # the user's own call is the one place a placed start is
+                # news; refit(), influence and the pre-fit are not
+                announce_start = TRUE)
 }
 
 # --- verbose progress reporting --------------------------------------
@@ -477,7 +516,8 @@ vb_trace_ctrl <- function(optCtrl, optimizer) {
 fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           se, lower, upper, prior, quadrature,
                           template = NULL, data2 = list(),
-                          objective_only = FALSE) {
+                          objective_only = FALSE,
+                          announce_start = FALSE) {
   lower_arg <- lower
   upper_arg <- upper
   vb <- verbose_level(control)
@@ -505,10 +545,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   if (vb) t0 <- vb_now()
   nll <- build_objective(frame)
+  # also read by make_start(): a prior's location places a nonlinear
+  # parameter's starting value
+  prior_entries <- NULL
   if (!is.null(prior)) {
     # MAP / regularized ML: the optimized objective includes the prior
     # terms, so logLik/AIC are penalized quantities - documented
     ri <- resolve_prior_input(list(frame = frame, spec = spec), prior)
+    prior_entries <- ri$entries
     if (length(ri$entries)) {
       nll0 <- nll
       nlp <- neg_log_prior_fn(ri$entries)
@@ -525,7 +569,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       upper <- unlist(upper)
     }
   }
-  if (is.null(template)) template <- make_start(frame, start)
+  if (is.null(template)) {
+    template <- make_start(frame, start, prior_entries,
+                           announce = announce_start)
+  }
 
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
   random <- c(if (!is.null(template[["b"]])) "b",
@@ -688,7 +735,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                error = function(e) {
                  rs <- fit_recovery_starts(obj, nll, template, random,
                                            frame$map, frame, start,
-                                           ctl_opt, bounds, par_units)
+                                           ctl_opt, bounds, par_units,
+                                           prior_entries)
                  for (lbl in names(rs)) {
                    if (vb) {
                      vb_say("optimizer failed (", conditionMessage(e),
@@ -1382,13 +1430,15 @@ outer_from_template <- function(tpl, obj, frame) {
 #'
 #' @noRd
 fit_recovery_starts <- function(obj, nll, template, random, map, frame,
-                                start, control, bounds, par_units) {
+                                start, control, bounds, par_units,
+                                prior_entries = NULL) {
   out <- list()
   differs <- function(p) {
     !is.null(p) && length(p) == length(obj$par) && all(is.finite(p)) &&
       !isTRUE(all.equal(unname(as.numeric(p)), unname(as.numeric(obj$par))))
   }
-  cold <- outer_from_template(make_start(frame, start), obj, frame)
+  cold <- outer_from_template(make_start(frame, start, prior_entries),
+                              obj, frame)
   if (differs(cold)) out[["the cold starting values"]] <- cold
   if (isTRUE(control$profile)) {
     plain <- tryCatch({
@@ -1541,13 +1591,14 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
       emsg <- conditionMessage(e)
       numerical <- fit_numerical_error(emsg)
       msg <- if (nl_start && numerical) {
-        paste0("The nonlinear fit failed from the default zero starting ",
+        paste0("The nonlinear fit failed from its default starting ",
                "values (", emsg, "). Nonlinear models ",
-               "need starting values in the right region: supply them ",
-               "with the `start` argument of frm(), e.g. ",
-               "start = list(beta = c(...)) in the order of fixef(); ",
-               "frm(..., dry_run = \"frame\")$par_template shows the ",
-               "layout")
+               "need starting values in the right region: ",
+               "par_template(formula, data) names the parameters, and ",
+               "the names go straight back, e.g. ",
+               "start = list(beta = c(ult = 5000)). A normal() or ",
+               "student_t() prior on a nonlinear parameter places its ",
+               "start from the prior location instead")
       } else if (numerical) {
         paste0("The optimizer failed on this model (",
                vb_fit_detail(spec, REML, control, quadrature, prior),
@@ -1582,12 +1633,19 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
 
 #' The cold starting values: the parameter template with each linear
 #' predictor's intercept seeded from the family's own initializer, then
-#' whatever the user gave in `start` written over the result. Component
-#' names and lengths are checked here, where the error can still name
-#' the template.
+#' any nonlinear parameter a prior's location places, then whatever the
+#' user gave in `start` written over the result. Component names are
+#' checked here, where the error can still name the template.
+#'
+#' `prior_entries` are the resolved prior entries of the fit; see
+#' prior_nl_starts() for why only nonlinear coefficients read them.
+#' `announce` is set at the one call site per user-level fit, so the
+#' autoscale pre-fit and the recovery restarts do not repeat the
+#' message.
 #'
 #' @noRd
-make_start <- function(frame, start) {
+make_start <- function(frame, start, prior_entries = NULL,
+                       announce = FALSE) {
   tpl <- frame$par_template
   for (lp in frame$linpreds) {
     if (!is.null(lp$constant)) next   # mapped; keep link(constant)
@@ -1600,17 +1658,31 @@ make_start <- function(frame, start) {
                                    frame$aterm_values[[lp$resp]]))
     if (is.finite(val)) tpl[[lp$par]][lp$idx[icpt]] <- val
   }
+  placed <- prior_nl_starts(frame, prior_entries)
+  # [[ ]] throughout: $beta would partial-match nothing here today, but
+  # the template's component names are a moving set
+  for (p in placed) tpl[["beta"]][p$idx] <- p$value
+  claimed <- integer(0)
   if (!is.null(start)) {
     for (nm in names(start)) {
       if (!nm %in% names(tpl)) {
         stop("Unknown start component: '", nm, "' (template has: ",
              paste(names(tpl), collapse = ", "), ")", call. = FALSE)
       }
-      if (length(start[[nm]]) != length(tpl[[nm]])) {
-        stop("start$", nm, " must have length ", length(tpl[[nm]]),
-             call. = FALSE)
-      }
-      tpl[[nm]][] <- start[[nm]]
+      tpl[[nm]] <- resolve_start_component(tpl[[nm]], start[[nm]], nm)
+    }
+    claimed <- start_claimed_idx(frame$par_template[["beta"]],
+                                 start[["beta"]], "beta")
+  }
+  if (announce && length(placed)) {
+    # what `start` set is the user's doing, not the prior's
+    kept <- Filter(function(p) !p$idx %in% claimed, placed)
+    if (length(kept)) {
+      message("Nonlinear starting values placed at the prior locations: ",
+              paste(paste0(names(kept), " = ",
+                           vapply(kept, function(p) format(p$value), "")),
+                    collapse = ", "),
+              ". Give `start` to choose your own.")
     }
   }
   tpl
@@ -1631,8 +1703,9 @@ check_convergence <- function(fit, control) {
     # `start` is the only lever, so name it here [brms#734]
     nl_hint <- if (any(vapply(fit$spec$responses,
                               function(r) length(r$nlpars) > 0L, TRUE))) {
-      paste0(". This is a nonlinear model; if you did not set `start`, ",
-             "the fit began at zero, which is rarely in the right region")
+      paste0(". This is a nonlinear model; unless `start` or a ",
+             "located prior placed them, the fit began at zero, which ",
+             "is rarely in the right region (see par_template())")
     } else ""
     msgs <- c(msgs, paste0("Optimizer did not report convergence: ",
                            fit$opt$message, nl_hint))
