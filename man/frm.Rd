@@ -15,7 +15,7 @@ frm(
   na.action = stats::na.omit,
   lower = NULL,
   upper = NULL,
-  priors = NULL,
+  prior = NULL,
   quadrature = FALSE,
   data2 = list(),
   dry_run = NULL,
@@ -94,12 +94,32 @@ bare, as in that example, which resolves to \code{b_(Intercept)}. One
 that carries several coefficients is refused rather than resolved
 to one of them.}
 
-\item{priors}{Optional \code{\link[=set_prior]{set_prior()}} specification. This makes the
+\item{prior}{Optional \code{\link[=set_prior]{set_prior()}} specification. This makes the
 fit MAP / regularized ML (glmmTMB's \verb{priors=} in spirit): useful
 for stabilizing singular variance components or separating
 binomials. The reported logLik/AIC then include the prior terms
 and are penalized quantities, and \code{anova()} comparisons across
-different priors are meaningless.}
+different priors are meaningless. A \code{brmsprior} object built by
+brms's own \code{prior()} is translated row by row, so priors copied
+out of a brms script work whichever package's \code{prior()} was in
+scope. The argument takes brms's spelling, \code{prior}; the \code{priors}
+of releases before 0.43 is gone rather than aliased, and a call
+still using it fails as an unused argument.
+
+\emph{The spelling is brms's; the SEMANTICS are not.} A prior here is a
+penalty on the likelihood and the answer is one mode. It is not a
+posterior, and no interval this fit reports is a credible
+interval. The two land close where the data dominates: a kidney
+frailty model given brms's own priors returns \code{sd(patient)} 0.38
+against brms's posterior mean of 0.40. That is a measurement on
+one model, though, not a property of the translation. Use
+\code{\link[=frm_sample]{frm_sample()}} when the posterior is the answer.
+
+\emph{A prior does not replace \code{start} on a nonlinear model.} brms uses
+its priors to place the sampler; \code{frm()} optimizes, and it
+evaluates the objective at the starting values first, where a
+nonlinear body usually is not defined. The prior means read across
+as starting values: \code{start = list(beta = c(5000, 1, 45))}.}
 
 \item{quadrature}{If \code{TRUE}, marginalize each scalar random effect by
 adaptive Gauss-Kronrod quadrature instead of the Laplace

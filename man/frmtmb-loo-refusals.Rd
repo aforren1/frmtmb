@@ -67,8 +67,8 @@ maximum-likelihood fits answers the comparison question directly.
 \item \code{bridge_sampler()}, \code{bayes_factor()} and \code{post_prob()} are
 marginal-likelihood quantities. A marginal likelihood is an
 integral against the PRIOR, so it is undefined under the flat
-improper priors \code{frm_sample(fit)} uses, and even with proper
-\verb{priors =} the bridge-sampling estimator needs a normalized
+improper priors \code{frm_sample(fit)} uses, and even with a proper
+\verb{prior =} the bridge-sampling estimator needs a normalized
 log-posterior evaluator that the RTMB tape does not expose.
 }
 }

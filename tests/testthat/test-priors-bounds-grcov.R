@@ -42,7 +42,7 @@ test_that("a tight prior pulls the posterior toward it", {
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   ds <- suppressWarnings(
     frm_sample(fit, chains = 1, iter = 600, refresh = 0, seed = 1,
-               priors = list(x = prior_normal(0, 0.01)))
+               prior = list(x = prior_normal(0, 0.01)))
   )
   m <- as.matrix(ds)
   # shrunk to ~0: the posterior sd itself proves the prior bit, and the

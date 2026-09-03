@@ -257,7 +257,7 @@ log_lik.frmtmb_draws <- function(object, ndraws = NULL, resp = NULL,
 #' because a flat prior leaves those to be identified by the data alone,
 #' and an influential observation then moves them a long way. For model
 #' comparison, sample with priors: `frm_sample(formula, data)` applies
-#' brms's default priors, and `priors =` sets your own. The
+#' brms's default priors, and `prior =` sets your own. The
 #' maximum-likelihood answer to the same question is `AIC()` on the
 #' fits, or [frm_bootstrap()].
 #'
@@ -553,8 +553,8 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
 #' * `bridge_sampler()`, `bayes_factor()` and `post_prob()` are
 #'   marginal-likelihood quantities. A marginal likelihood is an
 #'   integral against the PRIOR, so it is undefined under the flat
-#'   improper priors `frm_sample(fit)` uses, and even with proper
-#'   `priors =` the bridge-sampling estimator needs a normalized
+#'   improper priors `frm_sample(fit)` uses, and even with a proper
+#'   `prior =` the bridge-sampling estimator needs a normalized
 #'   log-posterior evaluator that the RTMB tape does not expose.
 #'
 #' @param x,... Ignored; these methods always stop.
@@ -654,7 +654,7 @@ bridge_sampler.frmtmb_draws <- function(x, ...) {
   stop("bridge_sampler() is not available for frmtmb draws. A marginal ",
        "likelihood is an integral of the likelihood against the PRIOR, ",
        "so it does not exist at all under the flat improper priors ",
-       "frm_sample(fit) samples with; and even with proper priors = ",
+       "frm_sample(fit) samples with; and even with proper prior = ",
        "the estimator needs to evaluate the normalized log posterior ",
        "at arbitrary points, which the RTMB tape does not expose. Use ",
        "loo() for predictive comparison", call. = FALSE)

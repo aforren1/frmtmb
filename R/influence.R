@@ -84,7 +84,7 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
       fit_assembled(model$spec, frame_i, model$bform, model$call,
                     REML = model$REML, start = NULL, control = ctl,
                     se = FALSE, lower = model$lower, upper = model$upper,
-                    priors = model$priors,
+                    prior = model$prior,
                     quadrature = isTRUE(model$quadrature),
                     template = tpl, data2 = data2)
     }), error = function(e) NULL)

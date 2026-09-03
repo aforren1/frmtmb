@@ -71,7 +71,7 @@ they are parametric and take more than two distinct values;
 intercepts, factor contrasts, smooth bases, and mo()/mi() columns
 are never touched, and the whole step is a silent no-op when
 nothing qualifies. Compatible with \code{profile = TRUE}. Under
-\code{priors} or bounds, the first stage applies them to the scaled
+\code{prior} or bounds, the first stage applies them to the scaled
 coefficients; the second stage is the fit that is reported.}
 
 \item{check_nlev_1}{What to do about a scalar random-effect term
@@ -108,7 +108,7 @@ pre-fit, tape construction, each optimizer run and restart,
 objective, the maximum absolute gradient, and the number of
 convergence warnings. The fit itself opens with a line naming the
 family, the mode (ML or REML, plus profile, quadrature, autoscale,
-priors), and the optimizer. \code{2} adds the optimizer's own trace, by
+prior), and the optimizer. \code{2} adds the optimizer's own trace, by
 setting \code{optCtrl$trace} unless you set it yourself. That trace is
 printed by \code{\link[stats:nlminb]{stats::nlminb()}} / \code{\link[stats:optim]{stats::optim()}} to standard
 output, not through \code{message()}, and a custom optimizer function

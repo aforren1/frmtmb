@@ -93,7 +93,7 @@ test_that("the bespoke refusals name their argument and contract", {
                "`control`")
   expect_error(frm(bf(y ~ x), data = cs$dd, na.action = 42),
                "`na.action`")
-  expect_error(frm(bf(y ~ x), data = cs$dd, priors = 5), "`priors`")
+  expect_error(frm(bf(y ~ x), data = cs$dd, prior = 5), "`prior`")
   expect_error(bernoulli(link = c("logit", "probit")),
                "single string")
   expect_error(bernoulli(link = 1L), "single string")

@@ -78,12 +78,32 @@
 #'   bare, as in that example, which resolves to `b_(Intercept)`. One
 #'   that carries several coefficients is refused rather than resolved
 #'   to one of them.
-#' @param priors Optional [set_prior()] specification. This makes the
+#' @param prior Optional [set_prior()] specification. This makes the
 #'   fit MAP / regularized ML (glmmTMB's `priors=` in spirit): useful
 #'   for stabilizing singular variance components or separating
 #'   binomials. The reported logLik/AIC then include the prior terms
 #'   and are penalized quantities, and `anova()` comparisons across
-#'   different priors are meaningless.
+#'   different priors are meaningless. A `brmsprior` object built by
+#'   brms's own `prior()` is translated row by row, so priors copied
+#'   out of a brms script work whichever package's `prior()` was in
+#'   scope. The argument takes brms's spelling, `prior`; the `priors`
+#'   of releases before 0.43 is gone rather than aliased, and a call
+#'   still using it fails as an unused argument.
+#'
+#'   *The spelling is brms's; the SEMANTICS are not.* A prior here is a
+#'   penalty on the likelihood and the answer is one mode. It is not a
+#'   posterior, and no interval this fit reports is a credible
+#'   interval. The two land close where the data dominates: a kidney
+#'   frailty model given brms's own priors returns `sd(patient)` 0.38
+#'   against brms's posterior mean of 0.40. That is a measurement on
+#'   one model, though, not a property of the translation. Use
+#'   [frm_sample()] when the posterior is the answer.
+#'
+#'   *A prior does not replace `start` on a nonlinear model.* brms uses
+#'   its priors to place the sampler; `frm()` optimizes, and it
+#'   evaluates the objective at the starting values first, where a
+#'   nonlinear body usually is not defined. The prior means read across
+#'   as starting values: `start = list(beta = c(5000, 1, 45))`.
 #' @param quadrature If `TRUE`, marginalize each scalar random effect by
 #'   adaptive Gauss-Kronrod quadrature instead of the Laplace
 #'   approximation (the `glmer(nAGQ = k)` analogue; matches it in
@@ -266,9 +286,12 @@
 frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 control = frmtmb_control(), se = FALSE,
                 na.action = stats::na.omit, lower = NULL, upper = NULL,
-                priors = NULL, quadrature = FALSE, data2 = list(),
+                prior = NULL, quadrature = FALSE, data2 = list(),
                 dry_run = NULL, verbose = FALSE) {
   cl <- match.call()
+  # a brms prior object is translated at the boundary, so nothing
+  # downstream sees anything but a frmtmb_priorlist
+  prior <- as_priorlist(prior)
   # Every one of these used to be read through isTRUE() or an empty
   # names() loop, so a flag set by mistake either fitted a DIFFERENT
   # model in silence or died with an obscure downstream error (REML
@@ -298,9 +321,9 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
          paste(setdiff(ctl_need, names(control)), collapse = ", "),
          call. = FALSE)
   }
-  if (!is.null(priors) && !is.list(priors)) {
-    stop("`priors` must be a set_prior() specification or a named list ",
-         "of prior objects, not ", arg_desc(priors), call. = FALSE)
+  if (!is.null(prior) && !is.list(prior)) {
+    stop("`prior` must be a set_prior() specification or a named list ",
+         "of prior objects, not ", arg_desc(prior), call. = FALSE)
   }
   if (!is.function(na.action) && !is.character(na.action)) {
     stop("`na.action` must be a function such as stats::na.omit, or its ",
@@ -332,7 +355,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
                 control = control, se = se, lower = lower, upper = upper,
-                priors = priors, quadrature = quadrature, data2 = data2,
+                prior = prior, quadrature = quadrature, data2 = data2,
                 objective_only = identical(dry_run, "objective"))
 }
 
@@ -396,7 +419,7 @@ vb_frame_detail <- function(frame) {
 #' optimizer is solving, so a slow log says which problem it is timing.
 #'
 #' @noRd
-vb_fit_detail <- function(spec, REML, control, quadrature, priors) {
+vb_fit_detail <- function(spec, REML, control, quadrature, prior) {
   fams <- vapply(spec$responses, function(r) r$family$family %||% "?", "")
   opt <- control$optimizer %||% "nlminb"
   if (is.function(opt)) opt <- "custom"
@@ -404,7 +427,7 @@ vb_fit_detail <- function(spec, REML, control, quadrature, priors) {
              if (isTRUE(control$profile)) "profile",
              if (isTRUE(quadrature)) "quadrature",
              if (isTRUE(control$autoscale)) "autoscale",
-             if (!is.null(priors)) "priors")
+             if (!is.null(prior)) "prior")
   paste0(paste(unique(fams), collapse = " + "), ", ",
          paste(flags, collapse = ", "), ", ", opt)
 }
@@ -452,7 +475,7 @@ vb_trace_ctrl <- function(optCtrl, optimizer) {
 #'
 #' @noRd
 fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
-                          se, lower, upper, priors, quadrature,
+                          se, lower, upper, prior, quadrature,
                           template = NULL, data2 = list(),
                           objective_only = FALSE) {
   lower_arg <- lower
@@ -461,7 +484,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (vb) {
     t_fit <- vb_now()
     vb_say("fit: ", vb_fit_detail(spec, REML, control, quadrature,
-                                  priors))
+                                  prior))
   }
   ascale <- if (isTRUE(control$autoscale) && !objective_only) {
     autoscale_plan(frame)
@@ -476,16 +499,16 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     template <- autoscale_prefit(spec, frame, bform, cl, REML = REML,
                                  start = start, control = control,
                                  lower = lower, upper = upper,
-                                 priors = priors,
+                                 prior = prior,
                                  quadrature = quadrature, plan = ascale)
     if (vb) vb_stage("autoscale pre-fit", t0)
   }
   if (vb) t0 <- vb_now()
   nll <- build_objective(frame)
-  if (!is.null(priors)) {
+  if (!is.null(prior)) {
     # MAP / regularized ML: the optimized objective includes the prior
     # terms, so logLik/AIC are penalized quantities - documented
-    ri <- resolve_prior_input(list(frame = frame, spec = spec), priors)
+    ri <- resolve_prior_input(list(frame = frame, spec = spec), prior)
     if (length(ri$entries)) {
       nll0 <- nll
       nlp <- neg_log_prior_fn(ri$entries)
@@ -640,7 +663,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
            call. = FALSE)
     }
     return(unfitted_object(spec, frame, obj, template, bform, cl, REML,
-                           priors, data2, control, lower_arg, upper_arg))
+                           prior, data2, control, lower_arg, upper_arg))
   }
   # control must ride along: outer_par_names drops beta under
   # profile = TRUE, and a shim without it misaligns every bound
@@ -660,7 +683,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   if (is.null(integrate)) {
     opt <- fit_error_context(
-      spec, start, REML, control, quadrature, priors,
+      spec, start, REML, control, quadrature, prior,
       tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb),
                error = function(e) {
                  rs <- fit_recovery_starts(obj, nll, template, random,
@@ -715,7 +738,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
-         REML = REML, estimates = est, priors = priors,
+         REML = REML, estimates = est, prior = prior,
          bform = bform, call = cl, data2 = data2,
          control = control, quadrature = isTRUE(quadrature),
          lower = lower_arg, upper = upper_arg, par_units = par_units,
@@ -751,14 +774,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
 #'
 #' @noRd
 unfitted_object <- function(spec, frame, obj, template, bform, cl, REML,
-                            priors, data2, control, lower, upper) {
+                            prior, data2, control, lower, upper) {
   est <- template
   for (nm in names(frame$par_template)) {
     names(est[[nm]]) <- names(frame$par_template[[nm]])
   }
   structure(
     list(spec = spec, frame = frame, obj = obj, opt = NULL, sdr = NULL,
-         REML = REML, estimates = est, priors = priors,
+         REML = REML, estimates = est, prior = prior,
          bform = bform, call = cl, data2 = data2,
          control = control, quadrature = FALSE,
          lower = lower, upper = upper, par_units = NULL,
@@ -1052,7 +1075,7 @@ sdr_of <- function(fit) {
 #'   intercepts, factor contrasts, smooth bases, and mo()/mi() columns
 #'   are never touched, and the whole step is a silent no-op when
 #'   nothing qualifies. Compatible with `profile = TRUE`. Under
-#'   `priors` or bounds, the first stage applies them to the scaled
+#'   `prior` or bounds, the first stage applies them to the scaled
 #'   coefficients; the second stage is the fit that is reported.
 #' @param check_nlev_1 What to do about a scalar random-effect term
 #'   whose grouping factor has a single level: `"warning"` (default),
@@ -1086,7 +1109,7 @@ sdr_of <- function(fit) {
 #'   objective, the maximum absolute gradient, and the number of
 #'   convergence warnings. The fit itself opens with a line naming the
 #'   family, the mode (ML or REML, plus profile, quadrature, autoscale,
-#'   priors), and the optimizer. `2` adds the optimizer's own trace, by
+#'   prior), and the optimizer. `2` adds the optimizer's own trace, by
 #'   setting `optCtrl$trace` unless you set it yourself. That trace is
 #'   printed by [stats::nlminb()] / [stats::optim()] to standard
 #'   output, not through `message()`, and a custom optimizer function
@@ -1508,7 +1531,7 @@ fit_numerical_error <- function(msg) {
 #'
 #' @noRd
 fit_error_context <- function(spec, start, REML, control, quadrature,
-                              priors, expr) {
+                              prior, expr) {
   nl <- any(vapply(spec$responses,
                    function(r) length(r$nlpars) > 0L, TRUE))
   nl_start <- nl && is.null(start)
@@ -1527,7 +1550,7 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
                "layout")
       } else if (numerical) {
         paste0("The optimizer failed on this model (",
-               vb_fit_detail(spec, REML, control, quadrature, priors),
+               vb_fit_detail(spec, REML, control, quadrature, prior),
                "): ", emsg,
                ". The likelihood was undefined or unbounded somewhere ",
                "the optimizer stepped. Refit with verbose = TRUE to see ",
@@ -1539,7 +1562,7 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
         # the real message first, then only what is certainly true:
         # which model it came from
         paste0(emsg, " (raised while fitting: ",
-               vb_fit_detail(spec, REML, control, quadrature, priors),
+               vb_fit_detail(spec, REML, control, quadrature, prior),
                ")")
       }
       stop(structure(

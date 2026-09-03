@@ -54,14 +54,48 @@
 #' its parameterization is not positive definite everywhere, so it has
 #' no correlation matrix to put a density on.
 #'
+#' @section Nonlinear parameters:
+#' `nlpar` addresses one parameter of an `nl = TRUE` formula, brms's
+#' spelling: `set_prior("normal(5000, 1000)", nlpar = "ult")`, or
+#' `prior(normal(5000, 1000), nlpar = "ult")`. Class `"b"` there covers
+#' EVERY coefficient of that parameter, its intercept included, because
+#' a nonlinear parameter's sub-formula is not centered and brms holds
+#' its intercept in the same coefficient vector as its slopes. That is
+#' why the vignette spelling above lands on `ult_(Intercept)` rather
+#' than on nothing. Narrow to one column with `coef` (`"Intercept"` and
+#' `"(Intercept)"` both name the intercept), or write
+#' `class = "Intercept", nlpar = "ult"`, which is frmtmb's spelling of
+#' the same slot. `nlpar` narrows classes `"sd"` and `"cor"` to the
+#' random-effect blocks of that parameter as well.
+#'
+#' An identification prior does NOT stand in for [frm()]'s `start`.
+#' brms places its sampler with the priors; `frm()` optimizes, and it
+#' evaluates the objective at the starting values before any penalty
+#' can steer it, which for a nonlinear body usually means an undefined
+#' likelihood at zero. The prior means read across as starting values,
+#' and the refusal names `start` when they are missing.
+#'
+#' `resp` picks one response of a multivariate model; the default
+#' priors of [frm_sample()] still stay off there (see its Default
+#' priors section), so a multivariate model's priors are the ones
+#' written by hand.
+#'
+#' brms's `tag` and `check` have no counterpart: `tag` names a prior
+#' for reuse inside a Stan program, and `check` passes an unchecked
+#' string through to one. frmtmb compiles no Stan program, so both are
+#' omitted rather than accepted and ignored.
+#'
 #' @param prior Distribution string, e.g. `"normal(0, 5)"`, or a
 #'   [prior_normal()]/[prior_t()]/[prior_lkj()] object, or `""` for
 #'   bounds only.
 #' @param class `"b"`, `"Intercept"`, `"sd"`, `"cor"`, or `"theta"`.
 #' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`).
+#' @param group Restrict class `"sd"` or `"cor"` to one grouping factor.
+#' @param resp Response of a multivariate model.
 #' @param dpar Distributional parameter (default: the location
 #'   parameters).
-#' @param group Restrict class `"sd"` or `"cor"` to one grouping factor.
+#' @param nlpar Nonlinear parameter of an `nl = TRUE` formula. See
+#'   Nonlinear parameters.
 #' @param lb,ub Optional hard bounds.
 #' @return A `frmtmb_priorlist`.
 #'
@@ -91,7 +125,7 @@
 #' pr
 #'
 #' # the priors penalize the likelihood: the fit is a MAP estimate
-#' fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, priors = pr)
+#' fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, prior = pr)
 #' fixef(fit)$mu
 #' # the tight prior on z shrinks it toward zero
 #' fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
@@ -104,15 +138,27 @@
 #' dd$z <- rnorm(100)
 #' dd$y2 <- dd$y + rnorm(10, 0, 0.6)[dd$g] * dd$z
 #' fitc <- frm(bf(y2 ~ x + z + (z | g)) + gaussian(), data = dd,
-#'             priors = set_prior("lkj(4)", class = "cor"))
+#'             prior = set_prior("lkj(4)", class = "cor"))
 #' VarCorr(fitc)
 #'
 #' # get_prior() shows which rows a design offers
 #' get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
+#'
+#' # prior() quotes its first argument, brms's spelling, and reaches
+#' # the same machinery
+#' prior(normal(0, 1), class = "b")
 #' @export
-set_prior <- function(prior = "", class = "b", coef = "", dpar = "",
-                      group = "", lb = NA, ub = NA) {
+set_prior <- function(prior = "", class = "b", coef = "", group = "",
+                      resp = "", dpar = "", nlpar = "", lb = NA,
+                      ub = NA) {
   dist <- parse_prior_dist(prior)
+  # brms carries lb/ub as STRINGS (its prior frame is all character),
+  # and prior() deparses everything it is given, so a bound arrives
+  # here as "0" as often as 0. Normalizing once means the comparisons
+  # downstream are numeric, where `"0" > 0` would have been a string
+  # comparison that quietly answered FALSE
+  lb <- parse_prior_bound(lb, "lb")
+  ub <- parse_prior_bound(ub, "ub")
   if (is.null(dist) && is.na(lb) && is.na(ub)) {
     stop("set_prior() needs a distribution, bounds, or both",
          call. = FALSE)
@@ -141,9 +187,236 @@ set_prior <- function(prior = "", class = "b", coef = "", dpar = "",
          "whole correlation matrix. Bound one parameter at a time with ",
          "class = \"theta\"", call. = FALSE)
   }
+  # a nonlinear parameter is addressed by nlpar and a distributional
+  # one by dpar; frmtmb's frame gives each its own linear predictor, so
+  # naming both at once says one thing twice and could say two
+  # different things, which is a question about intent rather than a
+  # setting to resolve
+  if (nzchar(nlpar) && nzchar(dpar)) {
+    stop("set_prior() takes `dpar` or `nlpar`, not both: each ",
+         "nonlinear parameter has its own linear predictor here, so ",
+         "nlpar = \"", nlpar, "\" already names one slot", call. = FALSE)
+  }
   spec <- list(dist = dist, class = class, coef = coef, dpar = dpar,
-               group = group, lb = lb, ub = ub)
+               group = group, resp = resp, nlpar = nlpar, lb = lb,
+               ub = ub)
   structure(list(spec), class = "frmtmb_priorlist")
+}
+
+#' A hard bound as one number or `NA`, from the number, the string
+#' brms's prior frame stores, or the deparsed constant [prior()]
+#' produces.
+#'
+#' @noRd
+parse_prior_bound <- function(x, arg) {
+  if (is.null(x) || length(x) == 0L) return(NA_real_)
+  ok <- length(x) == 1L && (is.character(x) || is.numeric(x) ||
+                              is.logical(x))
+  if (!ok) {
+    stop("`", arg, "` must be a single number or NA, not ", arg_desc(x),
+         ": a bound here is a hard box constraint on one parameter, ",
+         "not a Stan expression", call. = FALSE)
+  }
+  if (is.na(x)) return(NA_real_)
+  if (is.character(x)) {
+    if (!nzchar(x)) return(NA_real_)
+    v <- suppressWarnings(as.numeric(x))
+    if (is.na(v)) {
+      stop("`", arg, "` = ", encodeString(x, quote = "\""),
+           " is not a number: a bound here is a hard box constraint ",
+           "on one parameter, and only a constant can be one",
+           call. = FALSE)
+    }
+    return(v)
+  }
+  as.numeric(x)
+}
+
+#' Set up priors with brms's quoting spelling
+#'
+#' `prior()` is [set_prior()] with the distribution given UNQUOTED, as
+#' brms's `prior()` takes it: `prior(normal(5000, 1000), nlpar = "ult")`
+#' is `set_prior("normal(5000, 1000)", nlpar = "ult")`. Every argument
+#' is deparsed rather than evaluated, so `class = b` and `class = "b"`
+#' mean the same thing, and a variable holding a distribution is
+#' deparsed to its NAME rather than its value: use [prior_string()] to
+#' build a prior from strings computed at run time.
+#'
+#' `prior_()` takes one-sided formulas, calls, names or constants
+#' (`prior_(~normal(0, 10), class = ~b)`) and `prior_string()` takes
+#' plain strings; both exist so that priors can be built
+#' programmatically, and both are brms's.
+#'
+#' A frmtmb prior and a brms prior are different objects, and with brms
+#' attached after frmtmb its `prior()` masks this one. Nothing breaks:
+#' [frm()] and [frm_sample()] accept a `brmsprior` object and translate
+#' its rows, so `c(prior(...), prior(...))` copied out of a brms script
+#' works whichever `prior()` was in scope.
+#'
+#' @inheritParams set_prior
+#' @param ... Any of [set_prior()]'s remaining arguments: `class`,
+#'   `coef`, `group`, `resp`, `dpar`, `nlpar`, `lb`, `ub`.
+#' @return A `frmtmb_priorlist`.
+#' @examples
+#' # the brms nonlinear vignette's spelling
+#' prior(normal(5000, 1000), nlpar = "ult")
+#'
+#' # combine with c() or `+`, as with set_prior()
+#' c(prior(normal(1, 2), nlpar = "omega"),
+#'   prior(normal(45, 10), nlpar = "theta"))
+#'
+#' # the programmatic spellings
+#' prior_(~normal(0, 10), class = ~b)
+#' prior_string(paste0("normal(0, ", 2 * 5, ")"), class = "b")
+#' @export
+prior <- function(prior, ...) {
+  cl <- as.list(match.call()[-1L])
+  do.call(set_prior, lapply(cl, deparse_prior_arg),
+          envir = parent.frame())
+}
+
+#' @rdname prior
+#' @export
+prior_ <- function(prior, ...) {
+  cl <- c(list(prior = prior), list(...))
+  do.call(set_prior, lapply(cl, deparse_prior_value))
+}
+
+#' @rdname prior
+#' @export
+prior_string <- function(prior, ...) set_prior(prior, ...)
+
+#' brms's `deparse_no_string()`: a character argument is already the
+#' string `set_prior()` wants, and anything else is the user's
+#' unevaluated code, which is deparsed rather than evaluated.
+#'
+#' @noRd
+deparse_prior_arg <- function(x) {
+  if (is.character(x)) x else paste(deparse(x), collapse = "")
+}
+
+#' The `prior_()` variant, which reads VALUES rather than unevaluated
+#' arguments: a one-sided formula gives up its right-hand side, and a
+#' call, name or constant is deparsed as it stands.
+#'
+#' @noRd
+deparse_prior_value <- function(x) {
+  if (inherits(x, "formula") && length(x) == 2L) {
+    return(paste(deparse(x[[2L]]), collapse = ""))
+  }
+  if (is.character(x)) return(x)
+  if (is.call(x) || is.name(x) || is.atomic(x)) {
+    return(paste(deparse(x), collapse = ""))
+  }
+  stop("prior_() takes one-sided formulas, calls, names or constants; ",
+       "got ", arg_desc(x), ". prior_string() takes plain strings",
+       call. = FALSE)
+}
+
+#' Whatever a `prior =` argument turned out to be, as
+#' something the resolver understands.
+#'
+#' A brms `brmsprior` is a data frame of prior/class/coef/group/resp/
+#' dpar/nlpar/lb/ub strings, which is exactly `set_prior()`'s vocabulary
+#' written down, so it is TRANSLATED rather than refused: with brms
+#' attached its `prior()` masks frmtmb's, and a ported script's
+#' `c(prior(...), prior(...))` then arrives here as a brms object
+#' through no fault of the caller. The legacy named list and the
+#' `"flat"` string pass through untouched.
+#'
+#' @noRd
+as_priorlist <- function(x) {
+  if (!inherits(x, "brmsprior")) return(x)
+  rows <- as.data.frame(x, stringsAsFactors = FALSE)
+  chr <- function(nm, i) {
+    v <- if (nm %in% names(rows)) rows[[nm]][i] else ""
+    if (is.na(v)) "" else as.character(v)
+  }
+  bnd <- function(nm, i) {
+    if (!nm %in% names(rows)) return(NA)
+    v <- rows[[nm]][i]
+    # brms's frame is all character, and an unset bound is spelled as
+    # the empty string in some rows and as NA in others
+    if (is.na(v) || (is.character(v) && !nzchar(v))) NA else v
+  }
+  out <- list()
+  dropped <- 0L
+  for (i in seq_len(nrow(rows))) {
+    dist <- chr("prior", i)
+    lb <- bnd("lb", i)
+    ub <- bnd("ub", i)
+    cls <- chr("class", i)
+    # get_prior()/default_prior() rows with an empty `prior` are
+    # "this slot exists and is flat", not a prior to apply
+    if (!nzchar(dist) && is.na(lb) && is.na(ub)) next
+    # a row brms filled in itself is brms's default, and frmtmb chooses
+    # its own (see the Default priors section of frm_sample()); keeping
+    # both would apply two densities to one parameter
+    if (identical(chr("source", i), "default")) {
+      dropped <- dropped + 1L
+      next
+    }
+    if (nzchar(chr("tag", i))) {
+      stop("A brms prior with tag = \"", chr("tag", i), "\" names a ",
+           "prior for reuse inside a Stan program, which frmtmb does ",
+           "not build. Drop the tag", call. = FALSE)
+    }
+    check_brms_prior_class(cls, dist)
+    one <- tryCatch(
+      set_prior(dist, class = cls, coef = chr("coef", i),
+                group = chr("group", i), resp = chr("resp", i),
+                dpar = chr("dpar", i), nlpar = chr("nlpar", i),
+                lb = lb, ub = ub),
+      error = function(e) {
+        stop("brms prior row ", i, " (", dist, ", class = \"", cls,
+             "\") does not translate: ", conditionMessage(e),
+             call. = FALSE)
+      })
+    out[[length(out) + 1L]] <- unclass(one)[[1L]]
+  }
+  if (dropped) {
+    message("Translating a brms prior: dropped ", dropped,
+            " row(s) brms had filled in as its own defaults. frmtmb ",
+            "chooses defaults itself on the frm_sample() formula path ",
+            "and applies none on the frm() path; write the ones you ",
+            "want as prior() rows")
+  }
+  if (!length(out)) return(NULL)
+  structure(out, class = "frmtmb_priorlist")
+}
+
+#' The brms classes a translation can honor.
+#'
+#' brms's class vocabulary is wider than frmtmb's, and the extra names
+#' would translate into something DIFFERENT rather than into nothing,
+#' which is why each is refused by name rather than passed to
+#' `match.arg()`. `theta` is the trap: brms's is a mixture proportion
+#' and frmtmb's is the raw internal covariance vector, two unrelated
+#' sets of parameters that share the word. A distributional parameter's
+#' own class (`sigma`, `shape`, ...) is the near miss: frmtmb's nearest
+#' spelling puts that density on the LINK scale, where brms puts it on
+#' the parameter itself, so it is a different prior rather than the
+#' same one written differently.
+#'
+#' @noRd
+check_brms_prior_class <- function(cls, dist) {
+  if (cls %in% c("b", "Intercept", "sd", "cor")) return(invisible(cls))
+  hint <- if (identical(cls, "theta")) {
+    paste0("brms's \"theta\" is a mixture proportion, and frmtmb's is ",
+           "the raw internal covariance vector: the word names two ",
+           "unrelated sets of parameters, so the row cannot be carried ",
+           "over. ")
+  } else {
+    paste0("frmtmb's classes are b, Intercept, sd, cor and theta. If ",
+           "this names a distributional parameter, its frmtmb spelling ",
+           "is class = \"Intercept\", dpar = \"", cls, "\", and that ",
+           "density sits on the LINK scale where brms puts it on ", cls,
+           " itself. ")
+  }
+  stop("A brms prior with class = \"", cls, "\" (", dist, ") has no ",
+       "faithful frmtmb spelling. ", hint,
+       "Write the prior you mean with set_prior() directly",
+       call. = FALSE)
 }
 
 #' Turn a brms-style prior string such as `"normal(0, 5)"` into a
@@ -220,6 +493,8 @@ print.frmtmb_priorlist <- function(x, ...) {
     cat(d, " class=", s$class,
         if (nzchar(s$coef)) paste0(" coef=", s$coef),
         if (nzchar(s$dpar)) paste0(" dpar=", s$dpar),
+        if (nzchar(s$nlpar %||% "")) paste0(" nlpar=", s$nlpar),
+        if (nzchar(s$resp %||% "")) paste0(" resp=", s$resp),
         if (nzchar(s$group)) paste0(" group=", s$group),
         if (isTRUE(s$natural)) " scale=natural",
         if (!is.na(s$lb)) paste0(" lb=", s$lb),
@@ -241,9 +516,14 @@ print.frmtmb_priorlist <- function(x, ...) {
 #' maximum likelihood until priors are set; the formula route of
 #' [frm_sample()] has its own brms defaults, which
 #' `prior_summary()` reports). Classes `"sd"` and `"cor"` are targeted
-#' by `group` only; class `"theta"` rows name the raw internal
+#' by `group` and `nlpar`; class `"theta"` rows name the raw internal
 #' covariance parameters (escape hatch, including correlations one at a
 #' time).
+#'
+#' A nonlinear parameter's coefficients are listed under class `"b"`
+#' with its name in the `nlpar` column, the intercept among them, which
+#' is how brms lists them and what [set_prior()] addresses (see its
+#' Nonlinear parameters section).
 #'
 #' @param formula A `bf()` formula (with family), a plain formula, or
 #'   an already fitted `frmtmb_fit`.
@@ -253,7 +533,7 @@ print.frmtmb_priorlist <- function(x, ...) {
 #' @param data2 Structural objects, as in [frm()] (ignored when
 #'   `formula` is a fit, which carries its own).
 #' @return A data frame with columns `prior`, `class`, `coef`,
-#'   `group`, `dpar`, `resp`, `lb`, `ub`.
+#'   `group`, `dpar`, `nlpar`, `resp`, `lb`, `ub`.
 #' @examples
 #' dd <- data.frame(y = rnorm(60), x = rnorm(60),
 #'                  g = factor(rep(1:6, 10)))
@@ -272,10 +552,12 @@ get_prior <- function(formula, data = NULL, family = NULL,
 
   multi <- length(spec$responses) > 1L
   rows <- list()
-  add <- function(class, coef = "", group = "", dpar = "", resp = "") {
+  add <- function(class, coef = "", group = "", dpar = "", nlpar = "",
+                  resp = "") {
     rows[[length(rows) + 1L]] <<- data.frame(
       prior = "(flat)", class = class, coef = coef, group = group,
-      dpar = dpar, resp = resp, lb = NA_real_, ub = NA_real_
+      dpar = dpar, nlpar = nlpar, resp = resp, lb = NA_real_,
+      ub = NA_real_
     )
   }
 
@@ -286,7 +568,25 @@ get_prior <- function(formula, data = NULL, family = NULL,
     # set_prior()'s resolution
     dpar_lab <- if (lp$dpar %in% rspec$primary_dpars) "" else lp$dpar
     resp_lab <- if (multi) lp$resp else ""
+    nl_lab <- if (lp$dpar %in% (rspec$nlpars %||% character(0))) {
+      lp$dpar
+    } else {
+      ""
+    }
     cn <- colnames(lp$X)
+    # a nonlinear parameter's sub-formula is not centered, so its whole
+    # coefficient vector including the intercept is class "b" - brms's
+    # own listing, and what set_prior(nlpar =) addresses
+    if (nzchar(nl_lab)) {
+      if (length(cn)) {
+        add("b", dpar = dpar_lab, nlpar = nl_lab, resp = resp_lab)
+        for (co in cn) {
+          add("b", coef = co, dpar = dpar_lab, nlpar = nl_lab,
+              resp = resp_lab)
+        }
+      }
+      next
+    }
     if ("(Intercept)" %in% cn) {
       add("Intercept", dpar = dpar_lab, resp = resp_lab)
     }
@@ -299,23 +599,25 @@ get_prior <- function(formula, data = NULL, family = NULL,
     }
   }
 
-  sd_groups <- character(0)
-  cor_groups <- character(0)
+  sd_rows <- list()
+  cor_rows <- list()
   for (bk in frame$re_blocks) {
+    key <- list(group = bk$group_name, nlpar = block_nlpar(spec, frame, bk),
+                resp = if (multi) block_resp(frame, bk) else "")
     sd_i <- covstruct_registry[[bk$covstruct]]$sd_idx(bk$dim)
-    if (length(sd_i)) sd_groups <- c(sd_groups, bk$group_name)
+    if (length(sd_i)) sd_rows[[length(sd_rows) + 1L]] <- key
     if (!bk$covstruct %in% names(lkj_refusals) &&
         !is.null(block_cor_spec(bk))) {
-      cor_groups <- c(cor_groups, bk$group_name)
+      cor_rows[[length(cor_rows) + 1L]] <- key
     }
   }
-  if (length(sd_groups)) {
-    add("sd")
-    for (g in unique(sd_groups)) add("sd", group = g)
-  }
-  if (length(cor_groups)) {
-    add("cor")
-    for (g in unique(cor_groups)) add("cor", group = g)
+  for (cl in c("sd", "cor")) {
+    ks <- if (identical(cl, "sd")) sd_rows else cor_rows
+    if (!length(ks)) next
+    add(cl)
+    for (k in ks) {
+      add(cl, group = k$group, nlpar = k$nlpar, resp = k$resp)
+    }
   }
   n_th <- length(frame$par_template$theta %||% numeric(0))
   if (n_th) {
@@ -326,6 +628,88 @@ get_prior <- function(formula, data = NULL, family = NULL,
   out <- unique(do.call(rbind, rows))
   rownames(out) <- NULL
   out
+}
+
+#' The linear predictors a random-effect block draws its columns from.
+#' A block merges the components that share an `|ID|` key, and those can
+#' come from different predictors, so this is a set rather than one
+#' value; `bk$dpar` is the first component's and is the fallback for a
+#' block whose components predate the key.
+#'
+#' @noRd
+block_linpreds <- function(frame, bk) {
+  keys <- vapply(bk$components %||% list(),
+                 function(cp) cp$lp_key %||% "", "")
+  lps <- frame$linpreds[keys[nzchar(keys)]]
+  Filter(Negate(is.null), lps)
+}
+
+#' The nonlinear parameter a block belongs to, or `""`. Blocks that
+#' straddle several are left unlabeled rather than assigned to one.
+#'
+#' @noRd
+block_nlpar <- function(spec, frame, bk) {
+  lps <- block_linpreds(frame, bk)
+  np <- unique(vapply(lps, function(lp) {
+    nl <- spec$responses[[lp$resp]]$nlpars %||% character(0)
+    if (lp$dpar %in% nl) lp$dpar else ""
+  }, ""))
+  np <- np[nzchar(np)]
+  if (length(np) == 1L) np else ""
+}
+
+#' The response a block belongs to, or `""` when it straddles several.
+#'
+#' @noRd
+block_resp <- function(frame, bk) {
+  rs <- unique(vapply(block_linpreds(frame, bk), `[[`, "", "resp"))
+  if (length(rs) == 1L) rs else ""
+}
+
+#' Whether a class `"sd"` / `"cor"` specification addresses this block.
+#' `group` has always narrowed here; `resp`, `dpar` and `nlpar` narrow
+#' the same way, which is what lets a nonlinear model's per-parameter
+#' variance components be priored one at a time.
+#'
+#' @noRd
+block_addressed <- function(spec, frame, bk, s) {
+  if (nzchar(s$group) && !identical(bk$group_name, s$group)) return(FALSE)
+  want_np <- nzchar(s$nlpar %||% "")
+  want_rs <- nzchar(s$resp %||% "")
+  want_dp <- nzchar(s$dpar)
+  if (!want_np && !want_rs && !want_dp) return(TRUE)
+  lps <- block_linpreds(frame, bk)
+  if (want_rs && !s$resp %in% vapply(lps, `[[`, "", "resp")) return(FALSE)
+  dp <- vapply(lps, `[[`, "", "dpar")
+  if (want_np && !identical(block_nlpar(spec, frame, bk), s$nlpar)) {
+    return(FALSE)
+  }
+  if (want_dp && !s$dpar %in% dp) return(FALSE)
+  TRUE
+}
+
+#' Where a specification was pointing, for the refusals that report a
+#' target no design offers. Written once so both refusals name the same
+#' fields in the same order.
+#'
+#' @noRd
+spec_target <- function(s) {
+  paste0("class=", s$class,
+         if (nzchar(s$coef)) paste0(", coef=", s$coef),
+         if (nzchar(s$group)) paste0(", group=", s$group),
+         if (nzchar(s$resp %||% "")) paste0(", resp=", s$resp),
+         if (nzchar(s$dpar)) paste0(", dpar=", s$dpar),
+         if (nzchar(s$nlpar %||% "")) paste0(", nlpar=", s$nlpar))
+}
+
+#' The nonlinear parameters a model declares, for the refusal that has
+#' to say what `nlpar` could have named.
+#'
+#' @noRd
+model_nlpars <- function(spec) {
+  unique(unlist(lapply(spec$responses, function(r) {
+    r$nlpars %||% character(0)
+  }))) %||% character(0)
 }
 
 #' Copy the bounds of a prior specification onto an existing entry. This
@@ -368,21 +752,44 @@ resolve_priorlist <- function(fit, pl) {
     assigned <<- assigned[!drop]
   }
 
+  nlpars <- model_nlpars(fit$spec)
+
   target_coefs <- function(s) {
     # (comp, idx, name) triplets for classes b / Intercept
     out <- list()
+    want_np <- nzchar(s$nlpar %||% "")
+    if (want_np && !s$nlpar %in% nlpars) {
+      stop("nlpar = \"", s$nlpar, "\" names no nonlinear parameter of ",
+           "this model. It has ",
+           if (length(nlpars)) paste(nlpars, collapse = ", ") else
+             "none (write nl = TRUE in bf() to declare them)",
+           ". A distributional parameter is addressed with dpar =",
+           call. = FALSE)
+    }
     for (lp in frame$linpreds) {
       if (!is.null(lp$constant) || !is.null(lp$nl_body)) next
       rspec <- fit$spec$responses[[lp$resp]]
+      if (nzchar(s$resp %||% "") && !identical(lp$resp, s$resp)) next
       is_loc <- lp$dpar %in% rspec$primary_dpars
-      if (nzchar(s$dpar)) {
+      if (want_np) {
+        if (!identical(lp$dpar, s$nlpar)) next
+      } else if (nzchar(s$dpar)) {
         if (!identical(lp$dpar, s$dpar)) next
       } else if (!is_loc) next
       cn <- colnames(lp$X)
       pick <- if (s$class == "Intercept") {
         which(cn == "(Intercept)")
       } else if (nzchar(s$coef)) {
-        which(cn == s$coef)
+        # brms writes an intercept as "Intercept"; the design matrix
+        # spells it "(Intercept)", and both name the same column
+        which(cn == s$coef | par_name_bare(cn) == par_name_bare(s$coef))
+      } else if (want_np) {
+        # a nonlinear parameter's sub-formula is NOT centered, so its
+        # intercept sits in the same coefficient vector as its slopes
+        # and class "b" covers it. This is the whole reason brms's
+        # prior(normal(5000, 1000), nlpar = "ult") lands on an
+        # intercept-only nonlinear parameter
+        seq_along(cn)
       } else {
         which(cn != "(Intercept)")
       }
@@ -391,10 +798,10 @@ resolve_priorlist <- function(fit, pl) {
                                         idx = lp$idx[k], name = cn[k])
       }
     }
-    if (!length(out) && (nzchar(s$coef) || s$class == "Intercept")) {
-      stop("Prior target not found (class=", s$class,
-           if (nzchar(s$coef)) paste0(", coef=", s$coef),
-           if (nzchar(s$dpar)) paste0(", dpar=", s$dpar), ")",
+    if (!length(out) &&
+          (nzchar(s$coef) || s$class == "Intercept" || want_np ||
+             nzchar(s$resp %||% ""))) {
+      stop("Prior target not found (", spec_target(s), ")",
            call. = FALSE)
     }
     out
@@ -424,7 +831,7 @@ resolve_priorlist <- function(fit, pl) {
     } else if (s$class == "sd") {
       hit <- FALSE
       for (bk in frame$re_blocks) {
-        if (nzchar(s$group) && !identical(bk$group_name, s$group)) next
+        if (!block_addressed(fit$spec, frame, bk, s)) next
         sd_i <- covstruct_registry[[bk$covstruct]]$sd_idx(bk$dim)
         for (k in sd_i) {
           hit <- TRUE
@@ -445,15 +852,14 @@ resolve_priorlist <- function(fit, pl) {
         }
       }
       if (!hit) {
-        stop("No random-effect SDs match class='sd'",
-             if (nzchar(s$group)) paste0(", group=", s$group),
+        stop("No random-effect SDs match ", spec_target(s),
              call. = FALSE)
       }
     } else if (s$class == "cor") {
       hit <- FALSE
       refused <- character(0)
       for (bk in frame$re_blocks) {
-        if (nzchar(s$group) && !identical(bk$group_name, s$group)) next
+        if (!block_addressed(fit$spec, frame, bk, s)) next
         cs <- bk$covstruct
         if (cs %in% names(lkj_refusals)) {
           refused <- c(refused, paste0(bk$term_label, " [", cs, "]: ",
@@ -477,8 +883,8 @@ resolve_priorlist <- function(fit, pl) {
         have <- unique(vapply(frame$re_blocks, function(bk) {
           paste0(bk$term_label, " [", bk$covstruct, "]")
         }, ""))
-        stop("No random-effect correlations match class='cor'",
-             if (nzchar(s$group)) paste0(", group=", s$group), ". ",
+        stop("No random-effect correlations match ", spec_target(s),
+             ". ",
              if (length(refused)) {
                paste0("No LKJ density fits ",
                       paste(refused, collapse = "; "))
@@ -687,11 +1093,14 @@ lkj_logdens <- function(t, dist) {
 #' entries plus bounds.
 #'
 #' @noRd
-resolve_prior_input <- function(fit, priors) {
-  if (inherits(priors, "frmtmb_priorlist")) {
-    return(resolve_priorlist(fit, priors))
+resolve_prior_input <- function(fit, prior) {
+  # the argument boundaries translate a brms prior object already; this
+  # covers the internal callers that reach the resolver directly
+  prior <- as_priorlist(prior)
+  if (inherits(prior, "frmtmb_priorlist")) {
+    return(resolve_priorlist(fit, prior))
   }
-  legacy <- resolve_priors(fit, priors)
+  legacy <- resolve_priors(fit, prior)
   entries <- list()
   for (e in legacy) {
     for (i in e$idx) {

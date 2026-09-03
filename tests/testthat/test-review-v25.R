@@ -319,7 +319,7 @@ test_that("frm_sample warns when a bound excludes the ML mode", {
   seen <- character(0)
   ds <- withCallingHandlers(
     frm_sample(fit, chains = 2, iter = 300, refresh = 0, seed = 3,
-               priors = set_prior("", class = "sd", lb = 1.5)),
+               prior = set_prior("", class = "sd", lb = 1.5)),
     warning = function(w) {
       seen <<- c(seen, conditionMessage(w))
       invokeRestart("muffleWarning")

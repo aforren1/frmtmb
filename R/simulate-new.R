@@ -354,7 +354,7 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #'
 #' Builds the design from `formula` and `data` exactly as [frm()]
 #' would, sets the parameters from `newparams` (and/or draws them from
-#' `priors`), and simulates responses. Random effects are redrawn from
+#' `prior`), and simulates responses. Random effects are redrawn from
 #' their covariance for every simulation unless `newparams$b` supplies
 #' them.
 #'
@@ -406,7 +406,7 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' spelling.
 #'
 #' @section Prior-predictive simulation:
-#' With `priors`, each of the `nsim` simulations draws a fresh
+#' With `prior`, each of the `nsim` simulations draws a fresh
 #' parameter vector from the [set_prior()] specification and simulates
 #' from it - the analog of brms's `sample_prior = "only"` followed by
 #' `posterior_predict()`. Draws are taken on the scale each class
@@ -418,7 +418,7 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' outcomes.
 #'
 #' Parameters without a prior keep their `newparams` value. Whenever
-#' `priors` are used, or `newparams` uses the natural spelling, every
+#' `prior` are used, or `newparams` uses the natural spelling, every
 #' fixed coefficient and every random-effect SD must be pinned by one
 #' or the other; an unpinned parameter is an error rather than a silent
 #' zero effect or unit SD.
@@ -429,13 +429,16 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #'   column.
 #' @param family Family, when `formula` does not carry one.
 #' @param newparams Named list of parameters, in either spelling (see
-#'   Details). Optional when `priors` pins everything.
-#' @param priors A [set_prior()] specification to draw parameters from,
-#'   once per simulation.
+#'   Details). Optional when `prior` pins everything.
+#' @param prior A [set_prior()] specification to draw parameters from,
+#'   once per simulation, or a `brmsprior` object brms built, which is
+#'   translated row by row. The argument takes brms's spelling,
+#'   `prior`; the `priors` of releases before 0.43 is gone rather than
+#'   aliased.
 #' @param nsim,seed As in [simulate()].
 #' @param data2 Structural objects, as in [frm()].
 #' @return A data frame with `nsim` columns of simulated responses,
-#'   carrying the drawn parameters in `attr(., "pars")` when `priors`
+#'   carrying the drawn parameters in `attr(., "pars")` when `prior`
 #'   is used.
 #' @examples
 #' # power analysis: simulate from a design with chosen parameters
@@ -456,7 +459,7 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #'                       nsim = 3, seed = 1)
 #' # prior-predictive draws
 #' pp <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
-#'                    priors = set_prior("normal(0, 1)", class = "b") +
+#'                    prior = set_prior("normal(0, 1)", class = "b") +
 #'                      set_prior("normal(0, 2)", class = "Intercept") +
 #'                      set_prior("exponential(1)", class = "sd") +
 #'                      set_prior("exponential(1)", class = "Intercept",
@@ -465,8 +468,9 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' head(attr(pp, "pars"))
 #' @export
 frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
-                         priors = NULL, nsim = 1, seed = NULL,
+                         prior = NULL, nsim = 1, seed = NULL,
                          data2 = list()) {
+  prior <- as_priorlist(prior)
   # nsim reaches replicate() as a length; "invalid 'length' argument"
   # names neither this function nor the argument
   check_count(nsim, "nsim", min = 1L)
@@ -482,8 +486,8 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
     stop("frm_simulate(): family '", rspec$family$family,
          "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
   }
-  if (is.null(newparams) && is.null(priors)) {
-    stop("frm_simulate() needs newparams, priors, or both", call. = FALSE)
+  if (is.null(newparams) && is.null(prior)) {
+    stop("frm_simulate() needs newparams, prior, or both", call. = FALSE)
   }
   newparams <- newparams %||% list()
   if (length(newparams) && is.null(names(newparams))) {
@@ -511,9 +515,9 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
 
   entries <- list()
   labels <- character(0)
-  if (!is.null(priors)) {
+  if (!is.null(prior)) {
     shim0 <- list(spec = spec, frame = frame, estimates = est)
-    entries <- resolve_prior_input(shim0, priors)$entries
+    entries <- resolve_prior_input(shim0, prior)$entries
     if (!length(entries)) {
       stop("The prior specification targets no parameter", call. = FALSE)
     }

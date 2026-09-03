@@ -95,7 +95,7 @@ autoscale_map <- function(pars, plan, to = c("original", "scaled")) {
 #'
 #' @noRd
 autoscale_prefit <- function(spec, frame, bform, cl, REML, start,
-                             control, lower, upper, priors, quadrature,
+                             control, lower, upper, prior, quadrature,
                              plan) {
   ctl <- control
   ctl$autoscale <- FALSE
@@ -116,7 +116,7 @@ autoscale_prefit <- function(spec, frame, bform, cl, REML, start,
   sfit <- fit_assembled(spec, autoscale_frame(frame, plan), bform, cl,
                         REML = REML, start = start, control = ctl,
                         se = FALSE, lower = lower, upper = upper,
-                        priors = priors, quadrature = quadrature)
+                        prior = prior, quadrature = quadrature)
   autoscale_map(sfit$estimates, plan, "original")
 }
 

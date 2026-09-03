@@ -9,7 +9,7 @@ frm_sample(
   data = NULL,
   family = NULL,
   ...,
-  priors = NULL,
+  prior = NULL,
   lower = NULL,
   upper = NULL,
   init = NULL,
@@ -41,7 +41,7 @@ tmbstan#27). The fallback also covers a core count inherited from
 \code{options(mc.cores)}, which is what rstan reads when \code{cores} is not
 given. Fork clusters on unix can, so \code{cores} works there.}
 
-\item{priors}{Priors: a \code{\link[=set_prior]{set_prior()}} specification, or a named list
+\item{prior}{Priors: a \code{\link[=set_prior]{set_prior()}} specification, or a named list
 of prior objects (see \code{\link[=prior_normal]{prior_normal()}}) whose names are parameter
 names as in the draws (or whole components: \code{"beta"}, \code{"theta"},
 ...), or the string \code{"flat"}. The objective is re-taped with the
@@ -49,7 +49,12 @@ prior terms added; a fitted model itself is unchanged. On the fit
 path a parameter without a prior keeps a flat improper one. On the
 formula path the brms default priors apply to whatever the
 specification leaves alone (see Default priors), and
-\code{priors = "flat"} opts out of them entirely.}
+\code{prior = "flat"} opts out of them entirely. A \code{brmsprior} object
+built by brms's own \code{prior()} is translated row by row. The
+argument takes brms's spelling, \code{prior}; the \code{priors} of releases
+before 0.43 is gone rather than aliased, and because this
+function's \code{...} would otherwise swallow it, the old name is
+refused by name.}
 
 \item{lower, upper}{Optional named numeric vectors of hard bounds on
 outer parameters (brms \code{lb}/\code{ub}), applied on the internal scale
@@ -300,14 +305,21 @@ still gets its \code{sd} defaults, and the message names the gap.
 \item The \code{shape}, \code{phi} and \code{nu} dispersion parameters stay flat: brms
 gives them gamma and inverse-gamma defaults, which \code{\link[=set_prior]{set_prior()}}
 does not carry.
-\item MULTIVARIATE models get no defaults at all, because \code{\link[=set_prior]{set_prior()}}
-cannot address one response of several.
+\item NONLINEAR parameters stay flat, which is what brms does: their
+coefficients are class \code{b}, and the response's median and mad say
+nothing about a rate or a shape sitting inside a nonlinear body.
+Write them with \code{set_prior(nlpar = )}, as the brms nonlinear
+vignette does.
+\item MULTIVARIATE models get no defaults at all: the default location
+and scale are read off ONE response, and frmtmb does not read them
+per response. \code{set_prior(resp = )} addresses one response, so
+they can be written by hand.
 }
 
 \emph{Overriding and opting out.} A \code{set_prior()} specification takes over
 the classes it names and leaves the other defaults in place, which is
 brms's partial-override rule; a named list of prior objects takes
-over exactly the internal parameters it names. \code{priors = "flat"}
+over exactly the internal parameters it names. \code{prior = "flat"}
 turns the defaults off entirely and samples the likelihood, which
 warns when the model has variance components: their flat-prior
 posteriors need not be proper, and neither the chains nor Rhat can
@@ -348,7 +360,7 @@ fixef(ds2)
 # leaves the rest of the defaults alone
 ds3 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
                   chains = 1, iter = 500, refresh = 0,
-                  priors = set_prior("exponential(1)", class = "sd"))
+                  prior = set_prior("exponential(1)", class = "sd"))
 prior_summary(ds3)
 }
 }

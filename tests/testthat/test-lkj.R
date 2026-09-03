@@ -363,7 +363,7 @@ test_that("the formula route defaults to lkj(1) and takes an override", {
   # a user lkj takes over the class and leaves the rest of the defaults
   ds2 <- suppressWarnings(suppressMessages(
     frm_sample(form, data = dd, chains = 1, iter = 500, refresh = 0,
-               seed = 5, priors = set_prior("lkj(4)", class = "cor"))))
+               seed = 5, prior = set_prior("lkj(4)", class = "cor"))))
   pl2 <- unclass(prior_summary(ds2))
   cor2 <- Filter(function(s) identical(s$class, "cor"), pl2)
   expect_length(cor2, 1L)
@@ -376,11 +376,11 @@ test_that("the formula route defaults to lkj(1) and takes an override", {
   r4 <- ds2$draws[, "theta_3"] / sqrt(1 + ds2$draws[, "theta_3"]^2)
   expect_lt(stats::sd(r4), stats::sd(r1))
 
-  # priors = "flat" opts out of the correlation default too, and the
+  # prior = "flat" opts out of the correlation default too, and the
   # gate closes with it
   ds3 <- suppressWarnings(suppressMessages(
     frm_sample(form, data = dd, chains = 1, iter = 500, refresh = 0,
-               seed = 5, priors = "flat")))
+               seed = 5, prior = "flat")))
   expect_null(ds3$reparam)
   expect_null(prior_summary(ds3))
 })
@@ -399,9 +399,9 @@ test_that("an LKJ MAP penalty pulls the correlation toward zero", {
   # eta > 1 concentrates toward the identity, so the MAP correlation
   # moves toward 0 and keeps moving as eta grows
   f2 <- frm(ff, data = sleepstudy,
-            priors = set_prior("lkj(4)", class = "cor"))
+            prior = set_prior("lkj(4)", class = "cor"))
   f3 <- frm(ff, data = sleepstudy,
-            priors = set_prior("lkj(50)", class = "cor"))
+            prior = set_prior("lkj(50)", class = "cor"))
   expect_lt(abs(cor_of(f2)), abs(cor_of(f0)) + 1e-8)
   expect_lt(abs(cor_of(f3)), abs(cor_of(f2)))
   expect_lt(abs(cor_of(f3)), 0.02)
@@ -416,7 +416,7 @@ test_that("an LKJ MAP penalty pulls the correlation toward zero", {
   # eta = 1 is uniform over correlation matrices, but NOT flat on the
   # parameter, so it still moves the mode; it is a proper prior
   f1 <- frm(ff, data = sleepstudy,
-            priors = set_prior("lkj(1)", class = "cor"))
+            prior = set_prior("lkj(1)", class = "cor"))
   expect_lt(abs(cor_of(f1)), abs(cor_of(f0)) + 1e-8)
 })
 
@@ -429,7 +429,7 @@ test_that("frm() is untouched when no prior is given", {
   # data): the correlation default is a SAMPLING default and never
   # enters frm(), so the ML fit reproduces to the last digit
   expect_equal(as.numeric(logLik(fit)), -875.9697, tolerance = 1e-4)
-  expect_null(fit$priors)
+  expect_null(fit$prior)
   # and the objective the fit holds carries no prior term
   expect_equal(as.numeric(fit$obj$fn(fit$opt$par)),
                -as.numeric(logLik(fit)), tolerance = 1e-8)

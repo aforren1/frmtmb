@@ -20,6 +20,20 @@ side. The one difference is that frmtmb REFUSES both at once, where
 brms silently prefers `re.form`; two names for one setting supplied
 together is a question about intent, not a preference to guess at.
 
+The dual spelling is for arguments where two ecosystems each have a
+claim on the name. `frm(prior =)` is not one: no ecosystem spells it
+`priors`, brms says `prior`, and a prior specification is the one thing
+a ported brms script carries into `frm()` verbatim. So in 0.43.0
+`priors` was RENAMED to `prior` on `frm()`, `frm_sample()` and
+`frm_simulate()` rather than aliased, and the stored `fit$priors`
+became `fit$prior`, matching `brmsfit$prior`. The package is
+pre-release, so there is no compatibility debt to carry, and one name
+is worth more than two. R cannot partially match `priors` to `prior`
+(a longer name is not a prefix of a shorter one), so a stale call
+fails as an unused argument; `frm_sample()`, whose `...` would have
+swallowed the old name and fitted with no priors at all, refuses it by
+name instead.
+
 ## How this was produced
 
 `intersect(getNamespaceExports("frmtmb"), getNamespaceExports("brms"))`
@@ -31,7 +45,7 @@ falls back to `.frmtmb_draws`, the brms column reads `.brmsfit`. The
 claim about. `...` is excluded from all three set columns. Scripts:
 `api-diff.R`, `api-probe3.R`, `api-table.R` in the session scratchpad.
 
-Counts: 134 frmtmb exports, 306 brms exports, 92 shared names.
+Counts: 137 frmtmb exports, 306 brms exports, 95 shared names.
 
 ## The table
 
@@ -111,7 +125,10 @@ Counts: 134 frmtmb exports, 306 brms exports, 92 shared names.
 | `reloo()` | `reloo.frmtmb_draws` | `x` | `loo`, `k_threshold`, `newdata`, `resp`, `check`, `recompile`, `future_args` | - |
 | `restructure()` | `restructure.frmtmb_draws` | `x` | - | - |
 | `rhat()` | `rhat.frmtmb_draws` | - | `x`, `pars` | `object` |
-| `set_prior()` | `set_prior` | `prior`, `class`, `coef`, `dpar`, `group`, `lb`, `ub` | `resp`, `nlpar`, `tag`, `check` | - |
+| `prior()` | `prior` | `prior` | - | - |
+| `prior_()` | `prior_` | `prior` | - | - |
+| `prior_string()` | `prior_string` | `prior` | - | - |
+| `set_prior()` | `set_prior` | `prior`, `class`, `coef`, `group`, `resp`, `dpar`, `nlpar`, `lb`, `ub` | `tag`, `check` | - |
 | `set_rescor()` | `set_rescor` | `rescor` | - | `rescor_value` |
 | `shifted_lognormal()` | `shifted_lognormal` | `link` | `link_sigma`, `link_ndt` | - |
 | `skew_normal()` | `skew_normal` | `link` | `link_sigma`, `link_alpha` | - |
@@ -338,9 +355,14 @@ Effort notes are the implementation cost, not the doc cost.
   already (terms inside the formula), `sparse` exists as a fit-level
   option, `center`/`cmc` are contrast-coding switches worth having,
   `decomp` is a QR reparameterization that would touch the objective.
-- **`set_prior(resp =, nlpar =, tag =, check =)`.** Medium: `resp` is
-  the multivariate selector and is the one that matters; the priors
-  frame currently keys on class/coef/dpar/group only.
+- **`set_prior(tag =, check =)`.** Zero value: `tag` names a prior for
+  reuse inside a Stan program and `check` passes an unchecked string
+  through to one. frmtmb compiles no Stan program, so both are omitted
+  rather than accepted and ignored, and the `brmsprior` translation
+  refuses a row that carries a tag. (`resp` and `nlpar` were the rest
+  of this row and closed in 0.43.0; the argument ORDER now follows
+  brms's too, so a positional fourth argument is `group`, not `dpar`,
+  as it was before.)
 - **`hypothesis(scope =)`.** Medium: `"ranef"` and `"coef"` test
   group-level quantities, which needs the per-group covariance rather
   than the fixed-effect block.
