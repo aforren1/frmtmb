@@ -71,29 +71,24 @@ test_that("no core file grows a structured-family or ODE reference", {
     out[order(names(out))]
   }
 
-  # measured after the protocol's steps 1-5 landed (the v0.45.0
-  # consolidation re-pinned it from the shrunken v0.44.0 inventory);
-  # see the regeneration note above. mix_g is gone entirely, and what
-  # remains is the step 6 and 7 residue (hmm_g and the hmm/lca reads
-  # in frame, fit, loo, sandwich, predict), compat.R feature-matrix
-  # rows, and the two genuine ODE references in interop.R's tmbstan
-  # refusal message.
+  # Measured after the protocol's steps 6 through 9 landed; see the
+  # regeneration note above. hmm_g and mix_g are gone entirely, no core
+  # file branches on either family any more, and compat.R's feature
+  # matrix takes their rows from the families themselves through its
+  # contributor seam. Three entries are left, and neither of the two
+  # kinds is a branch:
+  #
+  #  - interop.R names frm_ode() and RTMBode in one refusal message, an
+  #    ODE seam this protocol does not cover (it is a nonlinear-body
+  #    seam, not a family one).
+  #  - methods-draws.R names lca item codes twice, as ONE EXAMPLE among
+  #    three of a matrix-valued response, inside two stop() messages
+  #    that read the response's shape and never the family. It is prose
+  #    that goes stale at step 10, not coupling.
   pinned <- c(
-    "compat.R|hmm" = 37L,
-    "compat.R|lca" = 39L,
-    "fit.R|hmm" = 1L,
-    "fit.R|lca" = 2L,
-    "frame.R|hmm" = 5L,
-    "frame.R|hmm_g" = 4L,
-    "frame.R|lca" = 1L,
     "interop.R|RTMBode" = 1L,
     "interop.R|frm_ode" = 1L,
-    "loo.R|hmm" = 1L,
-    "loo.R|hmm_g" = 1L,
-    "methods-draws.R|lca" = 2L,
-    "predict.R|lca" = 3L,
-    "sandwich.R|hmm" = 2L,
-    "sandwich.R|hmm_g" = 1L
+    "methods-draws.R|lca" = 2L
   )
   pinned <- pinned[order(names(pinned))]
 

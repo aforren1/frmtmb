@@ -29,7 +29,8 @@ frmtmb_structure_flags <- c(
   reml = FALSE, quadrature = FALSE, profile = FALSE,
   newdata_response = FALSE, se_fit_response = FALSE, re_form = FALSE,
   conditional_effects = FALSE, osa = FALSE, deviance = FALSE,
-  multivariate = FALSE, cens_trunc = FALSE, mi = FALSE
+  multivariate = FALSE, cens_trunc = FALSE, mi = FALSE,
+  cluster_robust = FALSE
 )
 
 #' Assert that a slot is a function or absent.
@@ -58,9 +59,17 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #' family and a structured family can live in another package. Attach it
 #' with `frmtmb_family(structure = )`.
 #'
-#' Only `loglik` is required. Every other slot defaults to the rowwise
-#' behavior, which is what a family that changes the likelihood and
-#' nothing else needs.
+#' Every slot defaults to the rowwise behavior, which is what a family
+#' that changes the likelihood and nothing else needs: give `loglik` and
+#' leave the rest alone.
+#'
+#' `loglik = NULL` keeps the family's own rowwise `lpdf` and makes the
+#' structure a CAPABILITY DECLARATION instead. That is what a family
+#' whose likelihood does factorize per row but which still has to refuse
+#' things in its own words wants: [lca()] is rowwise per subject and
+#' still refuses `REML`, `residuals(type = "osa")` and random effects in
+#' its gating predictor, and each of those refusals is a property of the
+#' family rather than of the method that meets it.
 #'
 #' @section The block:
 #' `frame_block()` returns the **block**: a plain list of DATA, stored
@@ -101,6 +110,7 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #'   \item{`multivariate`}{[mvbf()] and `rescor = TRUE`.}
 #'   \item{`cens_trunc`}{`cens()` and `trunc()`.}
 #'   \item{`mi`}{`mi()` on the same response.}
+#'   \item{`cluster_robust`}{[vcov_cluster()].}
 #' }
 #' `FALSE` refuses the capability outright. `TRUE` means only that the
 #' structure does not stand in the way: the core's ordinary rules still
@@ -146,6 +156,13 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #'   and random-effect blocks exist, for a refusal that depends on the
 #'   design rather than on the response. It sees the assembled frame
 #'   without the parameter template.
+#' @param check_fit `function(resp, frame, template)` run once the
+#'   starting values are resolved and before the optimizer, for a
+#'   refusal or a warning that depends on WHERE the fit starts rather
+#'   than on the model. `template` is the starting parameter list. The
+#'   capability flags cover the fitting options a structure cannot
+#'   answer at all; this covers a start the structure can answer only
+#'   badly, such as a start sitting on a label-symmetry axis.
 #' @param loglik `function(y, dpars, aterms, weights, block, extra)`
 #'   returning the taped log-likelihood of the WHOLE response as one AD
 #'   scalar: `sum(log-likelihood)`, not a negative. `y` is the response
@@ -157,6 +174,12 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #'   them. The family decides what a row weight means for a likelihood
 #'   that is not rowwise, and may have refused weights in `check_spec`.
 #'   It must not call `RTMB::OBS()`.
+#' @param unit One noun phrase naming the smallest independent unit of
+#'   `loglik`, as it should read in the middle of a sentence: "a
+#'   hidden-Markov sequence", "a group-level mixture". The core quotes
+#'   it where it must explain that a per-OBSERVATION quantity does not
+#'   exist, which today is [loo()] and [waic()] refusing a pointwise
+#'   log-likelihood matrix. Ignored when `loglik` is `NULL`.
 #' @param fitted_mean,fitted_var `function(fit, block)` giving the
 #'   conditional mean and variance of each row GIVEN the whole observed
 #'   response, for [fitted()], `predict(type = "response")` on the
@@ -175,7 +198,9 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #'   Capability flags. Unnamed entries and unknown names are refused.
 #' @param refusals Named list of one message per `FALSE` flag.
 #' @return An object of class `frmtmb_structure`.
-#' @seealso [frmtmb_family()], [mixture()]
+#' @seealso [frmtmb-extension-api] for the accessors a slot may use to
+#'   read a fit, [latent_probs()] for the generic `latent_probs`
+#'   answers, [frmtmb_family()], [mixture()]
 #' @examples
 #' # a structure whose likelihood is the rowwise one, written out: the
 #' # smallest thing the protocol accepts
@@ -200,20 +225,17 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #' @export
 frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
                              check_spec = NULL, frame_block = NULL,
-                             check_frame = NULL, loglik,
+                             check_frame = NULL, check_fit = NULL,
+                             loglik = NULL, unit = NULL,
                              fitted_mean = NULL, fitted_var = NULL,
                              latent_probs = NULL, sim_ctx = NULL,
                              supports = list(), refusals = list()) {
-  if (missing(loglik) || !is.function(loglik)) {
-    stop("frmtmb_structure(loglik =) is required and must be a function ",
-         "(y, dpars, aterms, weights, block, extra) returning the taped ",
-         "log-likelihood of the whole response as one AD scalar",
-         call. = FALSE)
-  }
+  check_structure_fn(loglik, "loglik")
   check_structure_fn(frame_vars, "frame_vars")
   check_structure_fn(check_spec, "check_spec")
   check_structure_fn(frame_block, "frame_block")
   check_structure_fn(check_frame, "check_frame")
+  check_structure_fn(check_fit, "check_fit")
   check_structure_fn(fitted_mean, "fitted_mean")
   check_structure_fn(fitted_var, "fitted_var")
   check_structure_fn(latent_probs, "latent_probs")
@@ -223,13 +245,20 @@ frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
   # means for a likelihood that is not rowwise. A family that ignores
   # them silently is the trap that costs a user their weighted fit, so
   # the omission is named at construction rather than discovered later.
-  fm <- names(formals(loglik))
+  fm <- if (is.null(loglik)) "..." else names(formals(loglik))
   if (!"..." %in% fm && !"weights" %in% fm) {
     warning("frmtmb_structure(loglik =) has no `weights` argument, so the ",
             "row weights the core passes are dropped: a weights() term on ",
             "this family would be accepted and then ignored. Take ",
             "`weights` and use it, or refuse weights() in check_spec",
             call. = FALSE)
+  }
+  if (!is.null(unit) &&
+        (!is.character(unit) || length(unit) != 1L || is.na(unit) ||
+           !nzchar(unit))) {
+    stop("frmtmb_structure(unit =) must be one non-empty noun phrase ",
+         "naming the smallest independent unit of loglik, or NULL",
+         call. = FALSE)
   }
   supports <- validate_supports(supports)
   refusals <- validate_refusals(refusals, supports)
@@ -238,12 +267,29 @@ frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
   base::structure(
     list(frame_vars = frame_vars, keep_na = isTRUE(keep_na),
          check_spec = check_spec, frame_block = frame_block,
-         check_frame = check_frame, loglik = ad_overload_fn(loglik),
+         check_frame = check_frame, check_fit = check_fit,
+         loglik = if (!is.null(loglik)) ad_overload_fn(loglik),
+         unit = unit,
          fitted_mean = fitted_mean, fitted_var = fitted_var,
          latent_probs = latent_probs, sim_ctx = sim_ctx,
          supports = supports, refusals = refusals),
     class = "frmtmb_structure"
   )
+}
+
+#' Every capability supported, with the named ones overridden.
+#'
+#' The conservative all-`FALSE` default is right for a family whose
+#' likelihood does not factorize: it starts fully refused and opts in.
+#' It is exactly wrong for a family whose likelihood DOES factorize and
+#' which carries a structure only to hold the two or three refusals that
+#' belong to it, because there every other capability already works and
+#' a flag would only take it away. This is the starting point for that
+#' second kind, so such a family names what it refuses and nothing else.
+#'
+#' @noRd
+structure_supports_all <- function(...) {
+  utils::modifyList(as.list(!frmtmb_structure_flags), list(...))
 }
 
 #' Merge declared flags over the conservative defaults.
@@ -332,8 +378,9 @@ print.frmtmb_structure <- function(x, ...) {
   cat("  slots:    ",
       paste(names(Filter(Negate(is.null),
                          x[c("frame_vars", "check_spec", "frame_block",
-                             "check_frame", "loglik", "fitted_mean",
-                             "fitted_var", "latent_probs", "sim_ctx")])),
+                             "check_frame", "check_fit", "loglik",
+                             "fitted_mean", "fitted_var", "latent_probs",
+                             "sim_ctx")])),
             collapse = ", "),
       "\n", sep = "")
   cat("  keeps NA: ", x[["keep_na"]], "\n", sep = "")
@@ -342,6 +389,144 @@ print.frmtmb_structure <- function(x, ...) {
       "\n", sep = "")
   invisible(x)
 }
+
+#' Posterior probabilities of the latent states
+#'
+#' One matrix of posterior latent-state probabilities for a fit whose
+#' family carries a [frmtmb_structure()] with a `latent_probs` slot: the
+#' probability of each state or class given everything the model
+#' observed. Rows sum to one.
+#'
+#' This is one entry point for every structured family, and the family
+#' decides what it returns. [mixture_probs()], [hmm_probs()] and
+#' [lca_probs()] are the same computation under family-specific names
+#' and checks; use whichever names what you fitted.
+#'
+#' @param fit A `frmtmb_fit` whose family declares latent states.
+#' @param ... Passed to methods; none of the built-in families take any.
+#' @return A numeric matrix with one named column per latent state. Its
+#'   rows are observations for a family whose class belongs to the row
+#'   ([lca()], a rowwise [mixture()]) and groups for one whose class
+#'   belongs to a group (`mixture(groups = )`).
+#' @seealso [frmtmb_structure()], [mixture_probs()], [hmm_probs()],
+#'   [lca_probs()], [hmm_viterbi()] for the decoded path rather than the
+#'   probabilities
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(y = c(rnorm(80, 0, 1), rnorm(80, 5, 1)))
+#' fit <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
+#' head(latent_probs(fit))
+#' @export
+latent_probs <- function(fit, ...) UseMethod("latent_probs")
+
+#' @export
+latent_probs.default <- function(fit, ...) {
+  stop("latent_probs() takes a fitted model from frm()", call. = FALSE)
+}
+
+#' @export
+latent_probs.frmtmb_fit <- function(fit, ...) {
+  rspec <- single_response(fit, "latent_probs()")
+  lp <- fam_structure(rspec$family)[["latent_probs"]]
+  if (is.null(lp)) {
+    stop("latent_probs() needs a family that declares latent states, ",
+         "through frmtmb_structure(latent_probs = ). The '",
+         rspec$family$family, "' family declares none: only a mixture, ",
+         "a hidden Markov chain or a latent class measurement model has ",
+         "states to report", call. = FALSE)
+  }
+  lp(fit, frame_block_of(fit$frame, rspec$resp_name))
+}
+
+#' Accessors for a structured family written outside frmtmb
+#'
+#' The read-only surface a [frmtmb_structure()] slot may use. A
+#' structure's `fitted_mean`, `fitted_var`, `latent_probs` and `sim_ctx`
+#' run at the estimates and outside the AD tape, and they are handed a
+#' `frmtmb_fit`; these are how such a slot reads what it needs out of
+#' one without reaching into the fit's internal layout. The rest of a
+#' family's needs are already public: [frm()], [bf()], [fixef()],
+#' [set_prior()], [posterior_predict()], [conditional_effects()] and
+#' [hypothesis()] among them.
+#'
+#' They are documented together because they are one contract with one
+#' promise: what they return is stable, so a family in another package
+#' can be written against them. Everything else in a fit, a frame or a
+#' family object is internal and may be renamed without notice.
+#'
+#' \describe{
+#'   \item{`single_response()`}{The one response spec of a univariate
+#'     fit, or the refusal a method owes a multivariate one. `what`
+#'     names the caller and opens the message. Almost every structured
+#'     family is univariate, so this is the first line of most slots.
+#'     It was named `uni_resp()` while it was internal.}
+#'   \item{`eval_dpars()`}{The distributional parameters of every
+#'     response at the estimates, on their natural (response) scale,
+#'     evaluated over the training rows: `out[[response]][[dpar]]` is a
+#'     numeric vector of length `n` or `1`. `b` supplies a different
+#'     random-effect vector, which is how a family evaluates at the
+#'     modes of a resampled fit. This is the same evaluation
+#'     `predict()`, `fitted()` and `residuals()` run.}
+#'   \item{`fit_extras()`}{The family's extra (non-dpar) parameters at
+#'     the estimates, as a named list in the order `extra_pars` declared
+#'     them, or `NULL` when the family declared none. Item profiles,
+#'     ordinal thresholds and class covariances arrive here.}
+#'   \item{`dpar_linpred()`}{The FIXED-effect part of one dpar's linear
+#'     predictor, on the link scale, at a parameter list in the frame's
+#'     own layout, or `NULL` when that response and dpar have no linear
+#'     predictor with columns. Random effects are excluded on purpose:
+#'     this exists for a `check_fit` slot, which runs before the inner
+#'     modes are solved and cannot see them.}
+#'   \item{`response_mean()`}{The expected response of a family at given
+#'     dpar values, with `trunc()` bounds applied when the response
+#'     carries them. A structured family composing per-state or
+#'     per-class means calls this once per state rather than reaching
+#'     into the wrapped family's `post` slot.}
+#'   \item{`as_frmtmb_family()`}{The internal representation of a family
+#'     given as a `frmtmb_family`, a `stats::family()`, a bare family
+#'     constructor or a name. A family that WRAPS another one calls this
+#'     on its argument, so that `hmm(2, gaussian)`, `hmm(2, gaussian())`
+#'     and `hmm(2, "gaussian")` all mean the same thing.}
+#' }
+#'
+#' @param fit A `frmtmb_fit`.
+#' @param what The calling function, as it should open a refusal:
+#'   `"latent_probs()"`.
+#' @param b Random-effect vector to evaluate at, defaulting to the fit's
+#'   own estimates. `NULL` drops the random-effect contribution.
+#' @param frame A `fit$frame`, or the frame a `check_fit` slot is given.
+#' @param params A parameter list in the frame's layout: a fit's
+#'   `estimates`, or the starting template a `check_fit` slot is given.
+#' @param resp,dpar The response name and the distributional parameter
+#'   name, as `eval_dpars()` returns them.
+#' @param fam A `frmtmb_family`.
+#' @param dpars Named list of numeric dpar values, as one element of
+#'   `eval_dpars()`.
+#' @param aterms Evaluated addition terms for the response,
+#'   `fit$frame$aterm_values[[resp]]`.
+#' @param x A family: a `frmtmb_family`, a `stats::family()` object, a
+#'   family constructor, or a family name.
+#' @return `single_response()` a response spec; `eval_dpars()` a nested
+#'   list of numeric vectors; `fit_extras()` a named list or `NULL`;
+#'   `dpar_linpred()` a numeric vector or `NULL`; `response_mean()` a
+#'   numeric vector; `as_frmtmb_family()` a `frmtmb_family`.
+#' @seealso [frmtmb_structure()] for the protocol these serve, and
+#'   [frmtmb_family()] for the family object they read
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(50))
+#' dd$y <- rnorm(50, 1 + 2 * dd$x, 0.5)
+#' fit <- frm(bf(y ~ x) + gaussian(), data = dd)
+#'
+#' rspec <- single_response(fit, "my_family_probs()")
+#' dp <- eval_dpars(fit)[[rspec$resp_name]]
+#' str(dp)
+#' head(response_mean(rspec$family, dp, list()))
+#' fit_extras(fit)                       # NULL: no extra parameters
+#' head(dpar_linpred(fit$frame, fit$estimates, rspec$resp_name, "mu"))
+#' as_frmtmb_family(gaussian)
+#' @name frmtmb-extension-api
+NULL
 
 ## ---- what the core reads --------------------------------------------
 
@@ -378,12 +563,28 @@ structure_generic <- function(fam, what) {
          "so the quantity this needs per row is not defined")
 }
 
-#' The fitting options a structured family may refuse. All three
-#' integrate something out with a Laplace approximation about a single
-#' inner mode.
+#' The smallest independent unit of a structured likelihood, for the
+#' core messages that must say why a per-OBSERVATION quantity does not
+#' exist. A structure that replaces the rowwise likelihood without
+#' naming its unit gets a phrase that is true of all of them.
 #'
 #' @noRd
-check_structure_fit <- function(spec, REML, quadrature, control) {
+structure_unit <- function(st) {
+  st[["unit"]] %||% "a group the likelihood does not factor within"
+}
+
+#' Everything a structured family may refuse or warn about at fit time,
+#' once the starting values are resolved and before the optimizer.
+#'
+#' The three fitting options are capability flags: all three integrate
+#' something out with a Laplace approximation about a single inner mode,
+#' which a structured likelihood either has no definition for or has
+#' several of. `check_fit` is the other half - not an option the
+#' structure cannot answer, but a START it can answer only badly.
+#'
+#' @noRd
+check_structure_fit <- function(spec, frame, template, REML, quadrature,
+                                control) {
   for (resp in spec$responses) {
     fam <- resp$family
     st <- fam_structure(fam)
@@ -400,6 +601,7 @@ check_structure_fit <- function(spec, REML, quadrature, control) {
                      structure_generic(fam,
                                        "frmtmb_control(profile = TRUE)"))
     }
+    if (!is.null(st[["check_fit"]])) st[["check_fit"]](resp, frame, template)
   }
   invisible(NULL)
 }

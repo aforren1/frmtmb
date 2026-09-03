@@ -5,8 +5,7 @@
 
 ll_ok <- function(y, dpars, aterms, weights, block, extra) sum(y)
 
-test_that("loglik is the only required slot", {
-  expect_error(frmtmb_structure(), "loglik")
+test_that("every slot defaults to the rowwise behavior", {
   expect_error(frmtmb_structure(loglik = "not a function"), "loglik")
   st <- frmtmb_structure(loglik = ll_ok)
   expect_s3_class(st, "frmtmb_structure")
@@ -15,18 +14,38 @@ test_that("loglik is the only required slot", {
   expect_false(st[["keep_na"]])
 })
 
+test_that("a structure with no loglik declares capabilities only", {
+  # the lca() shape: a likelihood that DOES factorize per row, carried
+  # by the family's own lpdf, plus refusals that belong to the family
+  st <- frmtmb_structure(supports = list(osa = FALSE))
+  expect_s3_class(st, "frmtmb_structure")
+  expect_null(st[["loglik"]])
+  expect_false(structure_allows(st, "osa"))
+})
+
 test_that("every capability starts refused", {
   st <- frmtmb_structure(loglik = ll_ok)
   expect_false(any(st[["supports"]]))
-  expect_length(st[["supports"]], 12L)
+  expect_length(st[["supports"]], length(frmtmb_structure_flags))
   # a family with no structure at all is rowwise and refuses nothing
   expect_true(structure_allows(NULL, "osa"))
   expect_false(structure_allows(st, "osa"))
 })
 
+test_that("unit is one noun phrase, or the generic one", {
+  expect_error(frmtmb_structure(loglik = ll_ok, unit = c("a", "b")),
+               "noun phrase")
+  expect_error(frmtmb_structure(loglik = ll_ok, unit = ""), "noun phrase")
+  expect_identical(
+    structure_unit(frmtmb_structure(loglik = ll_ok, unit = "a sequence")),
+    "a sequence")
+  expect_true(nzchar(structure_unit(frmtmb_structure(loglik = ll_ok))))
+})
+
 test_that("the constructor validates slot types", {
   for (arg in c("frame_vars", "check_spec", "frame_block", "check_frame",
-                "fitted_mean", "fitted_var", "latent_probs", "sim_ctx")) {
+                "check_fit", "fitted_mean", "fitted_var", "latent_probs",
+                "sim_ctx")) {
     a <- list(loglik = ll_ok)
     a[[arg]] <- 1
     expect_error(do.call(frmtmb_structure, a), "must be a function")
@@ -108,7 +127,7 @@ test_that("frmtmb_family() takes a structure and nothing else", {
     "frmtmb_structure")
 })
 
-test_that("a group-level mixture carries the protocol and a plain one does not", {
+test_that("a group-level mixture carries the protocol", {
   fg <- mixture(gaussian(), gaussian(), groups = ~g)
   st <- fam_structure(fg)
   expect_s3_class(st, "frmtmb_structure")
@@ -120,8 +139,30 @@ test_that("a group-level mixture carries the protocol and a plain one does not",
   # the group branch registers no observation vector, so there is
   # nothing for one-step-ahead residuals to step through
   expect_false(st[["supports"]][["osa"]])
-  # a rowwise mixture keeps the rowwise contract and needs no structure
-  expect_null(fam_structure(mixture(gaussian(), gaussian())))
+  expect_true(is.function(st[["loglik"]]))
+})
+
+test_that("a rowwise mixture-type family declares capabilities only", {
+  # mixture(), mixture_mvn() and lca() all have a likelihood that DOES
+  # factorize per row, so their structures carry no loglik; what they
+  # carry is the multimodality refusal that used to be one gate in
+  # fit.R naming all three
+  for (fam in list(mixture(gaussian(), gaussian()),
+                   mixture_mvn(K = 2, D = 2), lca(K = 2))) {
+    st <- fam_structure(fam)
+    expect_s3_class(st, "frmtmb_structure")
+    expect_null(st[["loglik"]])
+    expect_false(st[["supports"]][["reml"]])
+    expect_false(st[["supports"]][["profile"]])
+    # everything else stays exactly as available as it was
+    expect_true(st[["supports"]][["quadrature"]])
+    expect_true(st[["supports"]][["cluster_robust"]])
+    expect_true(is.function(st[["latent_probs"]]))
+  }
+  # only the lca refuses a one-step-ahead residual
+  expect_false(fam_structure(lca(K = 2))[["supports"]][["osa"]])
+  expect_true(
+    fam_structure(mixture(gaussian(), gaussian()))[["supports"]][["osa"]])
 })
 
 test_that("an hmm() carries the protocol with every capability refused", {

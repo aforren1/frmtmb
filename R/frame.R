@@ -1026,7 +1026,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # dropping it changes the estimand rather than the sample.
   mi_cols <- vapply(
     Filter(function(r) {
-      isTRUE(r$aterms$mi) || isTRUE(r$family$na_response) ||
+      isTRUE(r$aterms$mi) ||
         isTRUE(fam_structure(r$family)[["keep_na"]])
     }, spec$responses),
     function(r) deparse1(r$resp_expr), ""
@@ -1094,7 +1094,6 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   n_miss <- 0L
   miss_init <- numeric(0)
   blocks <- list()   # per response: the structured family's data block
-  hmm_g <- list()    # per response: hidden-Markov sequence structure
   autocor <- list()  # per response: R-side residual correlation block
   n_thetaac <- 0L
   for (resp in spec$responses) {
@@ -1298,11 +1297,6 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                                   y[[resp$resp_name]], n)
       if (!is.null(blk[["y"]])) y[[resp$resp_name]] <- blk[["y"]]
       blocks[[resp$resp_name]] <- blk
-    }
-    # transitional: hmm.R's own decoding passes still read the per-family
-    # frame slot, which is an alias of the block from here on
-    if (!is.null(resp$family[["hmm"]])) {
-      hmm_g[[resp$resp_name]] <- blocks[[resp$resp_name]]
     }
     if (!is.null(resp$autocor)) {
       ac <- check_autocor_response(resp, spec, av, y[[resp$resp_name]])
@@ -2239,17 +2233,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (!is.null(cf_)) cf_(spec, frame_so_far)
   }
 
-  # lca() refuses random effects and mvbf(); both are properties of the
-  # assembled predictors rather than of the response, so the family's
-  # own valid_y() cannot see them
-  check_lca_structure(spec, linpreds)
-
   structure(
     list(spec = spec, n_obs = n, y = y, y_levels = y_levels,
          aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
          n_c = n_c, has_rr = has_rr, mi_map = mi_map, blocks = blocks,
-         hmm_g = hmm_g, autocor = autocor,
+         autocor = autocor,
          par_template = par_template, map = map,
          betad_fixed_idx = betad_fixed_idx,
          extra_names = names(extras),

@@ -483,9 +483,10 @@ lca <- function(K, ncat = NULL, na.rm = TRUE) {
     },
     primary_dpars = dpn
   )
-  # mixture()'s post-fit contract, so mixture_probs() (and therefore
-  # lca_probs()) works on an lca fit unchanged, and so the REML /
-  # profile refusals in fit.R fire through the same has_mixture() gate.
+  # mixture()'s component interface, deliberately: one implementation of
+  # the posterior class probabilities then serves mixture(),
+  # mixture_mvn() and lca() alike, which is why mixture_probs() works on
+  # an lca fit and lca_probs() is documented as the same matrix.
   fam$mix <- list(
     K = K,
     comp_lpdf = function(y, dpars, aterms, k, extra) {
@@ -495,10 +496,48 @@ lca <- function(K, ncat = NULL, na.rm = TRUE) {
     log_pi = function(dpars_all) lca_log_pi(dpars_all, K)
   )
   fam$lca <- list(K = K, na_rm = na_rm)
-  # the frame keeps a response with NAs out of na.action's reach only
-  # when the family says it can read them
-  fam$na_response <- !na_rm
+  fam[["structure"]] <- lca_structure(na_rm)
   fam
+}
+
+#' Everything the core needs to know about an `lca()` response, as the
+#' one object the structured-family protocol reads
+#' (`frmtmb_structure()`).
+#'
+#' An LCA likelihood DOES factorize: one subject is one row, and the
+#' family's own `lpdf` computes it. So there is no `loglik` here and the
+#' structure is a capability declaration, which is the whole reason a
+#' rowwise family would carry one: three of the refusals below used to
+#' be branches the core took by name (`fam$na_response` at frame
+#' assembly, the `has_mixture()` gate in fit.R, an `is_lca_family()`
+#' test in predict.R), and none of them was ever a property of the
+#' method that raised it.
+#'
+#' @noRd
+lca_structure <- function(na_rm) {
+  frmtmb_structure(
+    # with na.rm = FALSE a missing item is masked out of that subject's
+    # likelihood rather than costing the subject its row, so the NA is
+    # data the family reads
+    keep_na = !na_rm,
+    check_frame = function(spec, frame) {
+      check_lca_structure(spec, frame[["linpreds"]])
+    },
+    # an LCA implements mixture()'s component interface, so the shared
+    # posterior serves it with no LCA-specific code
+    latent_probs = function(fit, block) mixture_posterior(fit),
+    supports = structure_supports_all(reml = FALSE, profile = FALSE,
+                                      osa = FALSE),
+    refusals = c(
+      mixture_multimodal_refusals("an lca() family"),
+      list(osa = paste0(
+        "residuals(type = \"osa\") is not available for an lca() ",
+        "fit: one observation is a subject's whole item response ",
+        "pattern, not a single value with a conditional CDF to step ",
+        "through. Use lca_probs() to see how sharply each subject ",
+        "is classified"))
+    )
+  )
 }
 
 #' Whether a response carries an `lca()` family.
@@ -508,7 +547,8 @@ is_lca_family <- function(fam) !is.null(fam[["lca"]])
 
 #' Structural refusals an `lca()` fit cannot state from `valid_y()`,
 #' because they live in the linear predictors rather than the response.
-#' Called from `assemble_frame()` once the predictors exist.
+#' This is the structure's `check_frame`, so it runs once the assembled
+#' predictors exist.
 #'
 #' @noRd
 check_lca_structure <- function(spec, linpreds) {
@@ -562,7 +602,7 @@ lca_profiles <- function(fit) {
   if (!inherits(fit, "frmtmb_fit")) {
     stop("lca_profiles() takes a fitted model from frm()", call. = FALSE)
   }
-  rspec <- uni_resp(fit, "lca_profiles()")
+  rspec <- single_response(fit, "lca_profiles()")
   fam <- rspec$family
   if (!is_lca_family(fam)) {
     stop("lca_profiles() needs a fit with an lca() family", call. = FALSE)
@@ -647,14 +687,86 @@ lca_probs <- function(fit) {
   if (!inherits(fit, "frmtmb_fit")) {
     stop("lca_probs() takes a fitted model from frm()", call. = FALSE)
   }
-  rspec <- uni_resp(fit, "lca_probs()")
+  rspec <- single_response(fit, "lca_probs()")
   if (!is_lca_family(rspec$family)) {
     stop("lca_probs() needs a fit with an lca() family; mixture_probs() ",
          "covers mixture() and mixture_mvn()", call. = FALSE)
   }
-  P <- mixture_probs(fit)
+  P <- latent_probs(fit)
   lp <- ifelse(P > 0, log(P), 0)
   ent <- 1 + sum(P * lp) / (nrow(P) * log(ncol(P)))
   attr(P, "entropy") <- ent
   P
 }
+
+## ---- the compatibility matrix's lca() rows ---------------------------
+
+# These rows live beside the family rather than in R/compat.R, for the
+# same reason hmm()'s do: the family and everything the package claims
+# about it travel together.
+
+#' @noRd
+lca_compat_rules <- function() {
+  b <- compat_rule_builder()
+  r <- b$r
+  # the three fitting modes lca() refuses. They sat in compat.R's REML,
+  # quadrature and profile sections while one gate in fit.R stated all
+  # three mixture-type refusals in one message; lca() states its own now.
+  r("REML", "lca", "refused",
+    "Refused for the same reason as mixture(): the latent classes are exchangeable, so the likelihood is multimodal in the fixed effects REML integrates out and the restricted likelihood is not defined.")
+  r("quadrature", "lca", "refused",
+    "Refused in practice: lca() refuses random effects outright, so there is no block for the scalar-intercept guard to accept and it rejects the fit.")
+  r("profile", "lca", "refused",
+    "Refused for the same reason as mixture(): profiling moves the gating coefficients into an inner Laplace problem that has one mode per class labeling.")
+  r("lca", "kind:aterm", "refused",
+    "Refused: an lca() response is a matrix of item codes with no per-row weight, censoring window, trial count or known standard error to attach an addition term to. One message covers the whole set.")
+  r("lca", "kind:covstruct", "refused",
+    "Refused: v1 has no random effects anywhere in the model. Latent classes plus continuous random effects is the growth-mixture shape, which mixture(..., groups = ~g) already fits.")
+  r("lca", "kind:special", "untested",
+    "s(), t2() and gp() are refused with the random-effect message, because each builds a random-effect block; mo() is verified. mi() and cs() in the gating predictor are untested.")
+  r("lca", "mo()", "works",
+    "Verified by a tiny fit: a monotonic predictor enters the gating linear predictor like any other term.")
+  r("lca", "s()", "refused",
+    "Refused: a smooth is a random-effect block, and lca() refuses random effects.")
+  r("lca", "t2()", "refused",
+    "Refused: a tensor smooth is a random-effect block.")
+  r("lca", "gp_pred()", "refused",
+    "Refused: gp() builds a random-effect block.")
+  r("lca", "mvbf", "refused",
+    "Refused by the extra-parameter guard: the item profiles are family extra parameters, which multivariate fits do not carry. A second response would need its own class variable, which is the general mixture-over-mvbf model.")
+  r("lca", "rescor", "refused",
+    "Refused: rescor = TRUE requires all responses to be gaussian, and the error names lca() among the ones that are not.")
+  r("lca", "mixture", "refused",
+    "Refused: the two families cannot both own the response. lca() IS a mixture, over conditionally independent categorical items.")
+  r("lca", "mixture_mvn", "refused",
+    "Refused: one response carries one family.")
+  r("lca", "nl", "refused",
+    "Refused: nl = TRUE requires a family with a single mu location parameter, and lca()'s location parameters are the gating thetas.")
+  r("lca", "fitted", "refused",
+    "Refused: the response is a matrix of nominal item codes, so there is no mean to fit. lca_probs() and lca_profiles() are the post-fit surface.")
+  r("lca", "residuals", "refused",
+    "Refused for the same reason as fitted(): no fitted mean, so no residual.")
+  r("lca", "residuals_osa", "refused",
+    "Refused: one observation is a subject's whole item response pattern, not a value with a univariate conditional CDF to step through.")
+  r("lca", "predict", "conditional",
+    "predict() returns the gating linear predictor (theta1 by default, any theta with dpar =), including on newdata. type = \"response\" is refused with the fitted() message.")
+  r("lca", "simulate", "works",
+    "Verified: simulate() draws a class per subject from its gating weights and then its items from that class's profile, and returns an n x J matrix per draw. Refitting a 4000-subject draw recovers the profiles it came from.")
+  r("lca", "frm_sample", "works",
+    "Verified by a tiny fit: the objective has no random effects, so tmbstan samples the gating coefficients and item logits directly. The posterior is label-invariant, so read it with the same caution as any mixture posterior.")
+  r("lca", "confint_profile", "works",
+    "Verified: profile intervals on a gating coefficient run.")
+  r("lca", "emmeans", "untested", "")
+  r("lca", "prior", "works",
+    "Verified by a tiny fit: a prior on the gating coefficients is an ordinary penalty on the outer problem.")
+  r("lca", "bounds", "works",
+    "Verified by a tiny fit. Bounds on the gating coefficients are also the one way to order the classes and pin the labeling.")
+  r("lca", "sparse_x", "works",
+    "Verified by a tiny fit: the gating design is an ordinary fixed-effect design.")
+  r("lca", "kind:mode", "untested",
+    "See the REML, profile, quadrature, prior, bounds and sparse_x rules; autoscale and verbose are untested.")
+  b$rules()
+}
+
+frmtmb_register_compat(features = c(lca = "structure"),
+                       rules = lca_compat_rules)

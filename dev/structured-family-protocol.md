@@ -1,6 +1,8 @@
 # The structured-family protocol
 
-Status: approved 2026-09-03; implementation started at v0.44.0.
+Status: approved 2026-09-03; steps 1 through 9 implemented (1-5 at
+v0.44.0 and v0.45.0, 6-9 after). Only step 10, the move to another
+package, is left.
 Written 2026-09-03 against v0.43.0; revised same date with the
 packaging decision (monorepo), the boundary-test ratchet, and the
 interop split notes.
@@ -309,24 +311,37 @@ Tier context, from the split memo this protocol serves:
 
 ## Order of work
 
-1. `frmtmb_structure()` constructor and validator. `frmtmb_family()`
-   gains `structure =`. No behavior change.
-2. Frame: `blocks` slot, `frame_vars`, `keep_na`, `check_spec`,
+1. [x] `frmtmb_structure()` constructor and validator.
+   `frmtmb_family()` gains `structure =`. No behavior change.
+2. [x] Frame: `blocks` slot, `frame_vars`, `keep_na`, `check_spec`,
    `frame_block`, `check_frame` call sites. Old slots still populated.
-3. Objective: the single `loglik` branch, with mixture and hmm
+3. [x] Objective: the single `loglik` branch, with mixture and hmm
    forwarding to it. Old branches deleted.
-4. Predict, fitted, residuals, simulate, conditional effects: the
+4. [x] Predict, fitted, residuals, simulate, conditional effects: the
    `supports` checks and `fitted_mean` / `fitted_var` / `block$miss`.
-5. `mixture()` onto the protocol. `test-lca.R`, `test-mvn-mixture.R`
-   and the mixture tests in `test-families.R` must pass unchanged.
-   Delete `mix_g`.
-6. `hmm()` onto the protocol. `test-hmm.R` unchanged. Delete `hmm_g`
-   and every hmm string in core. Boundary test goes green.
-7. `lca()` onto the protocol; drop its borrowed `fam$mix`.
-8. `latent_probs()` generic; aliases.
-9. Export the accessor list above, document `frmtmb_structure()` as
-   the extension API with hmm as the worked example.
-10. Move hmm.R, lca.R and their tests to the extension package.
+5. [x] `mixture()` onto the protocol. `test-lca.R`,
+   `test-mvn-mixture.R` and the mixture tests in `test-families.R`
+   must pass unchanged. Delete `mix_g`.
+6. [x] `hmm()` onto the protocol. `test-hmm.R` unchanged. Delete
+   `hmm_g` and every hmm string in core. Boundary test goes green.
+7. [x] `lca()` onto the protocol; drop its borrowed `fam$mix`.
+8. [x] `latent_probs()` generic; aliases.
+9. [x] Export the accessor list above, document `frmtmb_structure()`
+   as the extension API with hmm as the worked example.
+10. [ ] Move hmm.R, lca.R and their tests to the extension package.
+
+Four things landed with steps 6 through 9 that this document did not
+anticipate, and its text above is the design as approved rather than as
+built. The differences are: a `check_fit` slot, because hmm's
+label-symmetry start warning is not a capability question and had
+nowhere else to go; a `unit` slot and a `cluster_robust` flag, which
+are what loo.R and sandwich.R read instead of naming a family; and
+`loglik` becoming optional, which is what makes a structure usable as a
+pure capability declaration by a family whose likelihood IS rowwise
+(lca, and mixture() without groups). `fam$mix` stayed on `lca()`: it is
+not a marker the core reads but `mixture()`'s component interface, and
+it is why one posterior implementation serves all three mixture-type
+families.
 
 Steps 1 through 4 are pure refactor with the old slots alive, so each
 can land green on its own.

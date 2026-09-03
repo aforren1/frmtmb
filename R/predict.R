@@ -524,10 +524,8 @@ sm_eta <- function(sm_parts, cvec) {
   eta
 }
 
-#' Numeric dpar values at the estimates (optionally with a supplied b),
-#' for the training data. Nested: `out[[resp]][[dpar]]`.
-#'
-#' @noRd
+#' @rdname frmtmb-extension-api
+#' @export
 eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
   # the chokepoint every prediction, fitted value, residual and
   # simulated draw passes through, so one guard covers them all. A
@@ -619,10 +617,9 @@ rr_jacobians <- function(fit) {
        th_cols = th_cols)
 }
 
-#' The single response of a univariate fit, or an informative error.
-#'
-#' @noRd
-uni_resp <- function(fit, what) {
+#' @rdname frmtmb-extension-api
+#' @export
+single_response <- function(fit, what) {
   if (length(fit$spec$responses) > 1) {
     stop(what, " is not supported yet for multivariate fits",
          call. = FALSE)
@@ -1666,7 +1663,7 @@ napred <- function(fit, x) {
 #' max(abs(fitted(fit) - predict(fit, type = "response")))
 #' @export
 fitted.frmtmb_fit <- function(object, ...) {
-  rspec <- uni_resp(object, "fitted()")
+  rspec <- single_response(object, "fitted()")
   # a structured family whose row mean conditions on the whole observed
   # response supplies it here; everything else is rowwise
   fm <- fam_structure(rspec$family)[["fitted_mean"]]
@@ -1702,7 +1699,7 @@ fitted.frmtmb_fit <- function(object, ...) {
 ordinal_ncat <- function(fit) {
   raw <- fit$estimates[["tau_raw"]]
   if (is.null(raw)) {
-    rspec <- uni_resp(fit, "residuals()")
+    rspec <- single_response(fit, "residuals()")
     return(max(fit$frame$y[[rspec$resp_name]]))
   }
   length(raw) + 1L
@@ -2203,7 +2200,7 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
                                                   "deviance", "osa"),
                                  osa_method = NULL, ...) {
   type <- match.arg(type)
-  rspec <- uni_resp(object, "residuals()")
+  rspec <- single_response(object, "residuals()")
   fam <- rspec$family
   if (identical(fam$type, "categorical")) {
     # nothing here is defined on a nominal scale: the categories carry
@@ -2249,18 +2246,6 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
     }
   }
   if (type == "osa") {
-    if (is_lca_family(fam)) {
-      # one observation of an lca() fit is a subject's whole response
-      # pattern over the items, and the tape holds its joint
-      # probability; without this the fit reaches oneStepPredict and
-      # dies at "'observation.name' must be in data component", which
-      # names neither the family nor the reason
-      stop("residuals(type = \"osa\") is not available for an lca() ",
-           "fit: one observation is a subject's whole item response ",
-           "pattern, not a single value with a conditional CDF to step ",
-           "through. Use lca_probs() to see how sharply each subject ",
-           "is classified", call. = FALSE)
-    }
     if (!is.null(object$frame$autocor[[rspec$resp_name]])) {
       # oneStepPredict needs the taped density of ONE observation given
       # the previous ones; under an R-side residual the tape holds a
@@ -2595,7 +2580,7 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     on.exit(assign(".Random.seed", saved_seed, envir = globalenv()),
             add = TRUE)
   }
-  rspec <- uni_resp(object, "simulate()")
+  rspec <- single_response(object, "simulate()")
   fam <- rspec$family
   # the draw itself is the structure's own sim_ctx; what is decided here
   # is only what these two options would MEAN for a whole-block draw
@@ -2650,14 +2635,22 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   out
 }
 
-#' Extra (non-dpar) parameters of a fit, in the shape the family's
-#' simulator expects: ordinal thresholds, category-specific coefficients.
-#'
-#' @noRd
+#' @rdname frmtmb-extension-api
+#' @export
 fit_extras <- function(fit) {
   nms <- fit$frame$extra_names %||% character(0)
   if (!length(nms)) return(NULL)
   fit$estimates[nms]
+}
+
+#' @rdname frmtmb-extension-api
+#' @export
+dpar_linpred <- function(frame, params, resp, dpar) {
+  lp <- frame$linpreds[[linpred_key(resp, dpar)]]
+  if (is.null(lp) || !ncol(lp$X)) return(NULL)
+  eta <- drop(as.matrix(lp$X %*% params[[lp$par]][lp$idx]))
+  if (!is.null(lp$offset)) eta <- eta + lp$offset
+  eta
 }
 
 #' `cs(x)` contributes an `n x (K-1)` matrix of threshold-specific

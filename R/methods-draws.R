@@ -531,7 +531,7 @@ pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
   # estimate and has to simulate new levels to get a spread at all
   re_form <- re_form_arg(re_formula, re.form, "pp_check()")
   fit <- object$fit
-  rspec <- uni_resp(fit, "pp_check()")
+  rspec <- single_response(fit, "pp_check()")
   y <- fit$frame$y[[1L]]
   if (is.matrix(y)) {
     stop("pp_check() on draws supports vector responses", call. = FALSE)

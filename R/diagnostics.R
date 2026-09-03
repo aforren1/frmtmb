@@ -56,7 +56,7 @@ dharma_residuals <- function(fit, nsim = 250, re.form = NULL,
   if (!requireNamespace("DHARMa", quietly = TRUE)) {
     stop("dharma_residuals() needs the 'DHARMa' package", call. = FALSE)
   }
-  rspec <- uni_resp(fit, "dharma_residuals()")
+  rspec <- single_response(fit, "dharma_residuals()")
   # A quantile residual is the predictive CDF at the observation, so it
   # needs an ordered support. Nominal category codes are an arbitrary
   # labeling: relabel the levels and every residual changes. Refusing is

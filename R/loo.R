@@ -58,14 +58,15 @@ draws_loglik_factors <- function(fit, what) {
   # a longer sibling name would silently change which structure is read
   frame <- fit$frame
   for (r in names(fit$spec$responses)) {
+    # a structure that supplies its own `loglik` is exactly the one
+    # whose density replaces the rowwise product, and it names its own
+    # smallest independent unit; a structure that declares capabilities
+    # and nothing else leaves the columns of the matrix well defined
+    st <- fam_structure(fit$spec$responses[[r]]$family)
     unit <- if (!is.null((frame[["autocor"]] %||% list())[[r]])) {
       "an R-side residual correlation (ar/ma/arma/cosy/unstr) block"
-    } else if (!is.null((frame[["hmm_g"]] %||% list())[[r]])) {
-      "a hidden-Markov sequence"
-    } else if (!is.null(frame_block_of(frame, r))) {
-      # the hmm case is caught above, so what is left carrying a
-      # structured block here is the group-level mixture
-      "a group-level mixture (mixture(groups = ))"
+    } else if (!is.null(st[["loglik"]])) {
+      structure_unit(st)
     } else {
       next
     }

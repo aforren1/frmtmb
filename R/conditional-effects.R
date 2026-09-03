@@ -1767,7 +1767,7 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   # know each group's deviation. New levels per replicate are what makes
   # this the frequentist analog of the posterior predictive check.
   re_form <- re_form_arg(re_formula, re.form, "pp_check()", default = NA)
-  rspec <- uni_resp(object, "pp_check()")
+  rspec <- single_response(object, "pp_check()")
   y <- object$frame$y[[1L]]
   if (is.matrix(y)) {
     stop("pp_check() on a fit supports vector responses", call. = FALSE)

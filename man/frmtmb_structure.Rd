@@ -10,7 +10,9 @@ frmtmb_structure(
   check_spec = NULL,
   frame_block = NULL,
   check_frame = NULL,
-  loglik,
+  check_fit = NULL,
+  loglik = NULL,
+  unit = NULL,
   fitted_mean = NULL,
   fitted_var = NULL,
   latent_probs = NULL,
@@ -46,6 +48,14 @@ and random-effect blocks exist, for a refusal that depends on the
 design rather than on the response. It sees the assembled frame
 without the parameter template.}
 
+\item{check_fit}{\verb{function(resp, frame, template)} run once the
+starting values are resolved and before the optimizer, for a
+refusal or a warning that depends on WHERE the fit starts rather
+than on the model. \code{template} is the starting parameter list. The
+capability flags cover the fitting options a structure cannot
+answer at all; this covers a start the structure can answer only
+badly, such as a start sitting on a label-symmetry axis.}
+
 \item{loglik}{\verb{function(y, dpars, aterms, weights, block, extra)}
 returning the taped log-likelihood of the WHOLE response as one AD
 scalar: \code{sum(log-likelihood)}, not a negative. \code{y} is the response
@@ -57,6 +67,13 @@ extra parameters as an AD list, in the order \code{extra_pars} declared
 them. The family decides what a row weight means for a likelihood
 that is not rowwise, and may have refused weights in \code{check_spec}.
 It must not call \code{RTMB::OBS()}.}
+
+\item{unit}{One noun phrase naming the smallest independent unit of
+\code{loglik}, as it should read in the middle of a sentence: "a
+hidden-Markov sequence", "a group-level mixture". The core quotes
+it where it must explain that a per-OBSERVATION quantity does not
+exist, which today is \code{\link[=loo]{loo()}} and \code{\link[=waic]{waic()}} refusing a pointwise
+log-likelihood matrix. Ignored when \code{loglik} is \code{NULL}.}
 
 \item{fitted_mean, fitted_var}{\verb{function(fit, block)} giving the
 conditional mean and variance of each row GIVEN the whole observed
@@ -92,9 +109,17 @@ family and a structured family can live in another package. Attach it
 with \code{frmtmb_family(structure = )}.
 }
 \details{
-Only \code{loglik} is required. Every other slot defaults to the rowwise
-behavior, which is what a family that changes the likelihood and
-nothing else needs.
+Every slot defaults to the rowwise behavior, which is what a family
+that changes the likelihood and nothing else needs: give \code{loglik} and
+leave the rest alone.
+
+\code{loglik = NULL} keeps the family's own rowwise \code{lpdf} and makes the
+structure a CAPABILITY DECLARATION instead. That is what a family
+whose likelihood does factorize per row but which still has to refuse
+things in its own words wants: \code{\link[=lca]{lca()}} is rowwise per subject and
+still refuses \code{REML}, \code{residuals(type = "osa")} and random effects in
+its gating predictor, and each of those refusals is a property of the
+family rather than of the method that meets it.
 }
 \section{The block}{
 
@@ -139,6 +164,7 @@ Everything else in the block belongs to the family.
 \item{\code{multivariate}}{\code{\link[=mvbf]{mvbf()}} and \code{rescor = TRUE}.}
 \item{\code{cens_trunc}}{\code{cens()} and \code{trunc()}.}
 \item{\code{mi}}{\code{mi()} on the same response.}
+\item{\code{cluster_robust}}{\code{\link[=vcov_cluster]{vcov_cluster()}}.}
 }
 \code{FALSE} refuses the capability outright. \code{TRUE} means only that the
 structure does not stand in the way: the core's ordinary rules still
@@ -176,5 +202,7 @@ st <- frmtmb_structure(
 st
 }
 \seealso{
-\code{\link[=frmtmb_family]{frmtmb_family()}}, \code{\link[=mixture]{mixture()}}
+\link{frmtmb-extension-api} for the accessors a slot may use to
+read a fit, \code{\link[=latent_probs]{latent_probs()}} for the generic \code{latent_probs}
+answers, \code{\link[=frmtmb_family]{frmtmb_family()}}, \code{\link[=mixture]{mixture()}}
 }

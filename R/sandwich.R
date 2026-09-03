@@ -183,11 +183,13 @@ cluster_guard <- function(fit, cl) {
          "cluster weights do not reach it. Use frm_bootstrap()",
          call. = FALSE)
   }
-  if (length(frame$hmm_g %||% list())) {
-    stop("vcov_cluster() does not support hmm() fits: the forward ",
-         "recursion is a joint density over each sequence and the ",
-         "cluster weights do not reach it. Use frm_bootstrap()",
-         call. = FALSE)
+  # A structured family says for itself whether a per-cluster score
+  # exists. A group-level mixture's does, once every group sits inside
+  # one cluster, which is checked at the end of this function; a joint
+  # density over a whole sequence has none to offer.
+  for (resp_ in fit$spec$responses) {
+    structure_gate(fam_structure(resp_$family), "cluster_robust",
+                   structure_generic(resp_$family, "vcov_cluster()"))
   }
   if (isTRUE(fit$spec$rescor)) {
     stop("vcov_cluster() does not support rescor = TRUE: the ",

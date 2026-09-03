@@ -316,13 +316,13 @@ trunc_bounds <- function(aterms, n) {
        ub = rep(ub %||% Inf, length.out = n))
 }
 
-#' Expected response at the given dpar values. On a truncated response
-#' this is `E[Y | lb <= Y <= ub]`, the quantity `fitted()`,
-#' `residuals()` and `predict(type = "response")` report; per-dpar
-#' predictions stay untruncated because they describe the latent
-#' parameter.
-#'
-#' @noRd
+# On a truncated response this is E[Y | lb <= Y <= ub], the quantity
+# fitted(), residuals() and predict(type = "response") report; per-dpar
+# predictions stay untruncated, because they describe the latent
+# parameter rather than the observable.
+
+#' @rdname frmtmb-extension-api
+#' @export
 response_mean <- function(fam, dpars, aterms) {
   mu <- if (!is.null(fam$post$mean_fn)) {
     fam$post$mean_fn(dpars, aterms)
@@ -2630,7 +2630,17 @@ mixture <- function(..., groups = NULL) {
     },
     log_pi = log_pi
   )
-  if (!is.null(groups)) {
+  if (is.null(groups)) {
+    # A rowwise mixture still refuses the two fitting options that
+    # expand about a single inner mode, and that refusal is a property
+    # of the family, so it travels with it rather than sitting in a
+    # named gate the core has to run.
+    fam[["structure"]] <- frmtmb_structure(
+      latent_probs = function(fit, block) mixture_posterior(fit),
+      supports = structure_supports_all(reml = FALSE, profile = FALSE),
+      refusals = mixture_multimodal_refusals("a mixture() family")
+    )
+  } else {
     if (!inherits(groups, "formula") || length(groups) != 2L) {
       stop("groups must be a one-sided formula: groups = ~g",
            call. = FALSE)
@@ -2643,6 +2653,38 @@ mixture <- function(..., groups = NULL) {
     fam[["structure"]] <- mixture_structure(fam$mix)
   }
   fam
+}
+
+#' The two fitting options every mixture-type family refuses, in its own
+#' name.
+#'
+#' A mixture likelihood is invariant to permuting its components, so the
+#' location coefficients enter a multimodal objective. Both `REML` and
+#' `profile = TRUE` integrate those coefficients out with a Laplace
+#' approximation about a single inner mode, which is not defined here:
+#' the inner Newton solve walks between the component modes and the fit
+#' either dies at "NA/NaN gradient evaluation" or reports an optimum
+#' with a gradient near 1e9. Quadrature is unaffected, because it
+#' marginalizes the random effects, not the coefficients.
+#'
+#' `what` is the family as the sentence should name it. These used to be
+#' one message listing every mixture-type family, raised from one gate
+#' in fit.R that knew all three by name; each family states its own now.
+#'
+#' @noRd
+mixture_multimodal_refusals <- function(what) {
+  list(
+    reml = paste0(
+      "REML = TRUE cannot be combined with ", what, ": the mixture ",
+      "likelihood is multimodal in the fixed effects REML integrates ",
+      "out, so the restricted likelihood is not defined. Use ",
+      "REML = FALSE"),
+    profile = paste0(
+      "frmtmb_control(profile = TRUE) cannot be combined with ", what,
+      ": profiling moves the fixed effects into the inner Laplace ",
+      "problem, and the mixture likelihood is multimodal in them. Use ",
+      "profile = FALSE")
+  )
 }
 
 #' The structured-family protocol for a group-level (latent-class)
@@ -2663,6 +2705,7 @@ mixture_structure <- function(mx) {
     frame_vars = function(fam) list(fam[["mix_groups"]][[2L]]),
     check_spec = mixture_check_spec,
     frame_block = mixture_frame_block,
+    unit = "a group-level mixture (mixture(groups = ))",
     loglik = function(y, dpars, aterms, weights, block, extra) {
       lps_pi <- mx[["log_pi"]](dpars)
       total <- NULL
@@ -2676,20 +2719,22 @@ mixture_structure <- function(mx) {
       }
       sum(total)
     },
+    latent_probs = function(fit, block) mixture_posterior(fit),
     sim_ctx = mixture_sim_groups,
     # The four the doc names are the four that follow from the per-row
-    # mean being rowwise. The rest are TRUE not because a group-level
-    # mixture can do them but because something ELSE already refuses
-    # them in words of its own, and a flag here would only shadow the
-    # better message: has_mixture() states the multimodality refusals
-    # (REML, profile) for every mixture-type family alike, and the
-    # missing CDF states cens(), trunc() and mi(). `osa` is the one real
-    # refusal: the group branch of the objective registers no
-    # observation vector, so there is nothing to step through.
-    supports = list(conditional_effects = TRUE, newdata_response = TRUE,
-                    se_fit_response = TRUE, re_form = TRUE,
-                    reml = TRUE, quadrature = TRUE, profile = TRUE,
-                    deviance = TRUE, cens_trunc = TRUE, mi = TRUE)
+    # mean being rowwise. Most of the rest are TRUE not because a
+    # group-level mixture can do them but because something ELSE
+    # already refuses them in words of its own, and a flag here would
+    # only shadow the better message: the missing CDF states cens(),
+    # trunc() and mi(). `osa` is the one refusal with no better home:
+    # the group branch of the objective registers no observation
+    # vector, so there is nothing to step through. `cluster_robust` is
+    # allowed and then checked, because the sandwich needs every
+    # mixture group to sit inside one cluster rather than needing no
+    # groups at all.
+    supports = structure_supports_all(reml = FALSE, profile = FALSE,
+                                      osa = FALSE),
+    refusals = mixture_multimodal_refusals("a mixture() family")
   )
 }
 
@@ -2789,11 +2834,23 @@ mixture_sim_groups <- function(ctx) {
 #' table(cl, truth = rep(1:2, each = 80))
 #' @export
 mixture_probs <- function(fit) {
-  rspec <- uni_resp(fit, "mixture_probs()")
-  fam <- rspec$family
-  if (is.null(fam$mix)) {
+  rspec <- single_response(fit, "mixture_probs()")
+  if (is.null(rspec$family$mix)) {
     stop("mixture_probs() needs a mixture() family fit", call. = FALSE)
   }
+  latent_probs(fit)
+}
+
+#' The posterior class probabilities of any family implementing the
+#' `fam$mix` component interface, which is `mixture()`, `mixture_mvn()`
+#' and `lca()`. This is the structures' `latent_probs` slot for all
+#' three, and `mixture_probs()` and `lca_probs()` reach it through the
+#' `latent_probs()` generic.
+#'
+#' @noRd
+mixture_posterior <- function(fit) {
+  rspec <- single_response(fit, "mixture_probs()")
+  fam <- rspec$family
   dp <- eval_dpars(fit)[[rspec$resp_name]]
   av <- fit$frame$aterm_values[[rspec$resp_name]]
   yv <- fit$frame$y[[rspec$resp_name]]
@@ -3128,6 +3185,13 @@ mixture_mvn <- function(K, D, model = "VVV") {
   # the class covariances are family-level EXTRAS, not dpars, so the
   # rowwise contract cannot see them; the structured one can
   fam$sim_ctx <- mvn_sim_rows
+  # the likelihood is rowwise (one D-variate density per row), so the
+  # structure carries nothing but the two multimodality refusals
+  fam[["structure"]] <- frmtmb_structure(
+    latent_probs = function(fit, block) mixture_posterior(fit),
+    supports = structure_supports_all(reml = FALSE, profile = FALSE),
+    refusals = mixture_multimodal_refusals("a mixture_mvn() family")
+  )
   fam
 }
 
@@ -3717,7 +3781,7 @@ fam_lcdf <- function(fam, q, dpars, aterms, extra) {
 #' cox_baseline(fit)
 #' @export
 cox_baseline <- function(fit) {
-  rspec <- uni_resp(fit, "cox_baseline()")
+  rspec <- single_response(fit, "cox_baseline()")
   fam <- rspec$family
   if (is.null(fam$cox_sbhaz)) {
     stop("cox_baseline() needs a cox() family fit", call. = FALSE)
@@ -3838,12 +3902,10 @@ family_registry <- list(
   categorical               = fam_categorical_deferred
 )
 
-#' Turn a family given as a `frmtmb_family`, a `stats::family()` object,
-#' a family constructor, or a name into the one internal representation
-#' the rest of the package works with. An unknown value errors and names
-#' the supported families.
-#'
-#' @noRd
+# An unknown value errors and names the supported families.
+
+#' @rdname frmtmb-extension-api
+#' @export
 as_frmtmb_family <- function(x) {
   if (inherits(x, "frmtmb_family")) return(x)
   # A bare constructor (`family = cumulative`, `family = gaussian`) is

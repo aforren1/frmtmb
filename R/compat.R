@@ -13,6 +13,75 @@
 # in test-compat.R check the declarations against the real behavior for
 # a sample of pairs, and check that every named feature still exists.
 
+# ------------------------------------------------------ contributor seam
+#
+# A feature that does not live in this file contributes its own rows.
+# The structured families go this way (R/hmm.R, R/lca.R): the matrix
+# covers them without R/compat.R knowing they exist, which is what lets
+# them move to another package with their rules attached.
+#
+# Contributions are APPENDED, and that is the only safe direction. Rules
+# of equal specificity are resolved by position, later wins (see
+# frmtmb_compat_rules_tbl()), so a contributed rule may override a core
+# default and a core default can never silently override a contributed
+# one.
+#
+# The container is created here and filled by top-level calls in the
+# contributing files. R sources R/*.R in collation order, DESCRIPTION
+# declares no Collate field, and "compat.R" sorts before "hmm.R" and
+# "lca.R". A package contributing from outside registers in its own
+# .onLoad(), by which time every namespace is sealed and the order
+# question does not arise.
+
+frmtmb_compat_contrib <- new.env(parent = emptyenv())
+frmtmb_compat_contrib$features <- list()
+frmtmb_compat_contrib$rules <- list()
+
+#' Contribute feature rows and compatibility rules to [frm_compat()].
+#'
+#' `features` is a named character vector of display name to kind,
+#' `c(hmm = "structure")`. `rules` is a FUNCTION returning a rule
+#' data.frame, so that contributed rules are built on demand exactly as
+#' the core ones are; write it with `compat_rule_builder()`.
+#'
+#' Not exported yet: the two contributors are still in this package.
+#' Moving them out is what makes it public API.
+#'
+#' @noRd
+frmtmb_register_compat <- function(features = NULL, rules = NULL) {
+  if (length(features)) {
+    frmtmb_compat_contrib$features <-
+      c(frmtmb_compat_contrib$features, list(features))
+  }
+  if (!is.null(rules)) {
+    frmtmb_compat_contrib$rules <-
+      c(frmtmb_compat_contrib$rules, list(rules))
+  }
+  invisible(NULL)
+}
+
+#' The `r()` accumulator of `frmtmb_compat_rules_tbl()`, as an object a
+#' contributor outside that function can use, so that a rule reads the
+#' same wherever it is written.
+#'
+#' @noRd
+compat_rule_builder <- function() {
+  rows <- list()
+  list(
+    r = function(a, b, status, note, override = FALSE) {
+      rows[[length(rows) + 1L]] <<- data.frame(
+        feature_a = a, feature_b = b, status = status, note = note,
+        override = override, stringsAsFactors = FALSE)
+      invisible(NULL)
+    },
+    rules = function() {
+      out <- do.call(rbind, rows)
+      rownames(out) <- NULL
+      out
+    }
+  )
+}
+
 # ---------------------------------------------------------------- features
 
 #' The feature vocabulary of the registry, one row per feature.
@@ -25,6 +94,7 @@
 #'
 #' @noRd
 frmtmb_compat_features_tbl <- function() {
+  contrib <- unlist(frmtmb_compat_contrib$features)
   f <- function(name, kind) {
     key <- sub("\\(\\)$", "", name)
     if (key %in% names(frmtmb_compat_special_keys)) {
@@ -63,7 +133,7 @@ frmtmb_compat_features_tbl <- function() {
     lapply(c("REML", "quadrature", "profile", "autoscale", "sparse_x",
              "prior", "bounds", "verbose"), f, kind = "mode"),
     lapply(c("mvbf", "rescor", "|ID|", "nl", "mixture",
-             "mixture_mvn", "hmm", "lca"), f, kind = "structure"),
+             "mixture_mvn"), f, kind = "structure"),
     lapply(c("fitted", "predict", "simulate", "residuals",
              "residuals_osa", "emmeans", "frm_sample",
              "confint_profile", "hypothesis_profile"), f,
@@ -71,7 +141,12 @@ frmtmb_compat_features_tbl <- function() {
     # formula-grammar spellings, which have their own restrictions and
     # belong in the table even though they name no package object
     lapply(c("bar_crossing", "call_group", "double_bar", "mm()",
-             "mmc()"), f, kind = "grammar")
+             "mmc()"), f, kind = "grammar"),
+    # contributed last, so that the vocabulary a contributor adds cannot
+    # displace a core feature's position in the pair table
+    lapply(seq_along(contrib), function(i) {
+      f(names(contrib)[[i]], unname(contrib[[i]]))
+    })
   ))
 }
 
@@ -274,8 +349,6 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: a mixture likelihood is invariant to permuting its components, so it is multimodal in the fixed effects REML integrates out. The inner Laplace solve has no single mode to expand about; the fit used to stop with 'NA/NaN gradient evaluation' or report a gradient near 1e9.")
   r("REML", "mixture_mvn", "refused",
     "Refused for the same reason as mixture(): the classes are exchangeable, so the restricted likelihood is not defined.")
-  r("REML", "lca", "refused",
-    "Refused through the same guard as mixture(), which lca() reuses, and for the same reason: the latent classes are exchangeable, so the restricted likelihood is not defined. The message names mixture(); an lca() fit IS a mixture.")
   r("REML", "mvbf", "works", "")
   r("REML", "rescor", "works", "")
   r("REML", "nl", "works", "Verified by a tiny fit.")
@@ -323,8 +396,6 @@ frmtmb_compat_rules_tbl <- function() {
   r("quadrature", "rescor", "untested", "")
   r("quadrature", "mixture_mvn", "refused",
     "Refused in practice: mixture_mvn() clusters a matrix response and carries no scalar random-intercept block, so the scalar-intercept guard rejects it.")
-  r("quadrature", "lca", "refused",
-    "Refused in practice: lca() refuses random effects outright, so there is no block for the scalar-intercept guard to accept and it rejects the fit.")
 
   ## profile -----------------------------------------------------------
   r("profile", "bounds", "refused",
@@ -339,8 +410,6 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: profiling moves the fixed effects into the inner Laplace problem, and a mixture likelihood is multimodal in them. The fit used to stop with 'NA/NaN gradient evaluation' rather than a clear refusal.")
   r("profile", "mixture_mvn", "refused",
     "Refused for the same reason as mixture(): the inner problem would be multimodal.")
-  r("profile", "lca", "refused",
-    "Refused through the same guard as mixture(), which lca() reuses: profiling moves the gating coefficients into an inner Laplace problem that has one mode per class labeling.")
   r("profile", "mi()", "works", "Verified by a tiny fit.")
   r("profile", "cens()", "works", "Verified by a tiny fit.")
   r("profile", "trunc()", "works",
@@ -463,7 +532,7 @@ frmtmb_compat_rules_tbl <- function() {
   # No rescor x kind:method default: every declared method now has an
   # explicit rescor rule, so such a default could never win a pair.
   r("rescor", "fitted", "refused",
-    "Refused: fitted() calls uni_resp() and stops with 'fitted() is not supported yet for multivariate fits'. Predict one response at a time instead: predict(fit, resp = ).")
+    "Refused: fitted() calls single_response() and stops with 'fitted() is not supported yet for multivariate fits'. Predict one response at a time instead: predict(fit, resp = ).")
   r("rescor", "predict", "works",
     "predict() takes resp = to choose the response, and defaults to the first.")
   r("rescor", "simulate", "refused",
@@ -490,11 +559,11 @@ frmtmb_compat_rules_tbl <- function() {
   # residuals_osa x kind:structure claims "untested" at the same
   # signature as the univariate-only refusal above, so the pair is
   # named outright: residuals(type = "osa") goes through the same
-  # uni_resp() guard and stops.
+  # single_response() guard and stops.
   r("mvbf", "residuals_osa", "refused",
     "Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included.")
   r("mvbf", "fitted", "refused",
-    "Refused: fitted() calls uni_resp() and stops with 'fitted() is not supported yet for multivariate fits'. Predict one response at a time instead: predict(fit, resp = ).")
+    "Refused: fitted() calls single_response() and stops with 'fitted() is not supported yet for multivariate fits'. Predict one response at a time instead: predict(fit, resp = ).")
   r("mvbf", "predict", "works",
     "predict() takes resp = to choose the response, and defaults to the first.")
   # The inference surface reads the outer parameter vector rather than
@@ -571,112 +640,6 @@ frmtmb_compat_rules_tbl <- function() {
   r("mixture_mvn", "mvbf", "refused",
     "Refused: the family already takes a matrix response.")
   r("mixture_mvn", "kind:aterm", "untested", "")
-
-  ## hmm ---------------------------------------------------------------------
-  # An HMM's likelihood is a per-SEQUENCE forward recursion, not a
-  # product of per-row densities. Everything that reshapes a row's
-  # contribution therefore has nothing to act on and is refused; the
-  # decoding methods replace the row-wise ones.
-  r("hmm", "mvbf", "refused",
-    "Refused: hmm() supports univariate models only. A joint state process across responses is a different model.")
-  r("hmm", "rescor", "refused",
-    "Refused for the same reason as mvbf(): the forward recursion is a likelihood over one response's sequences.")
-  r("hmm", "weights()", "refused",
-    "Refused: weights() scales a per-row log-density, and an HMM's contribution is per sequence.")
-  r("hmm", "cens()", "refused",
-    "Refused: censoring replaces a row's density with a CDF difference, which the forward recursion has no room for.")
-  r("hmm", "trunc()", "refused", "Refused for the same reason as cens().")
-  r("hmm", "se()", "refused",
-    "Refused: a known measurement SD is a per-row modification of the emission density; combining it with the state sum is not implemented.")
-  r("hmm", "mi()", "refused",
-    "Refused: an NA response is handled by hmm() itself - the row is kept and its emission masked, so the chain keeps its length - and needs no latent parameter.")
-  r("hmm", "trials()", "works",
-    "The emission family's addition terms reach it unchanged; a binomial() emission uses trials() normally.")
-  r("hmm", "REML", "refused",
-    "Refused: REML would integrate out the location coefficients of the states only, leaving the transition and dispersion parameters outside. That partial restricted likelihood matches no standard definition, and it used to run silently (probe F5 of dev/hmm-feasibility.md).")
-  r("hmm", "quadrature", "refused",
-    "Refused: the Gauss-Kronrod rule integrates a random effect against a product of per-row densities; an HMM's likelihood is a forward recursion, not such a product.")
-  r("hmm", "profile", "refused",
-    "Refused: profiling moves the state means into the inner Laplace problem, and the likelihood is multimodal in them because the states are exchangeable.")
-  r("hmm", "fitted", "works",
-    "The occupancy-weighted mean, sum_k P(S_t = k | y) mu_k, from a forward-backward pass. Not any single state's mean.")
-  r("hmm", "predict", "conditional",
-    "type = \"link\" and dpar = work normally, including the transition logits. type = \"response\" equals fitted() in sample; it is refused for newdata (state occupancy conditions on the observed responses of a whole sequence) and se.fit is refused on the response scale.")
-  r("hmm", "residuals", "conditional",
-    "type = \"response\" and \"pearson\" are computed against the occupancy-weighted mean, with the pearson scale the law-of-total-variance mixture variance. type = \"deviance\" is refused: there is no per-row likelihood to saturate.")
-  r("hmm", "residuals_osa", "refused",
-    "Refused: one-step prediction needs the taped density of one observation given the earlier ones, and the tape holds a forward recursion over each whole sequence with no registered observation vector.")
-  r("hmm", "simulate", "conditional",
-    "A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. Since v0.36 the chain walk is the family's structured simulator (fam$sim_ctx), so posterior_predict() and frm_simulate() reach it too; posterior_predict(newdata =) is refused, because the sequence structure indexes the fitted rows.")
-  r("hmm", "emmeans", "untested", "")
-  r("hmm", "frm_sample", "works",
-    "Verified by a short run. The posterior is multimodal in the state labels, as a mixture's is.")
-  r("hmm", "confint_profile", "untested", "")
-  r("hmm", "hypothesis_profile", "untested", "")
-  r("hmm", "prior", "works",
-    "set_prior() on an emission or transition logit is the remedy for a probability driven to the 0 boundary by a rare category.")
-  r("hmm", "bounds", "untested", "")
-  r("hmm", "autoscale", "untested", "")
-  r("hmm", "sparse_x", "untested", "")
-  r("hmm", "verbose", "works", "")
-  r("hmm", "nl", "refused",
-    "Refused: nl = TRUE needs a family with a single 'mu' location parameter, and an hmm() family has one per state.")
-  r("hmm", "mixture", "refused",
-    "Refused: an hmm() component that is itself a mixture is not identified against the state.")
-  r("hmm", "mixture_mvn", "refused", "Refused for the same reason as mixture().")
-  r("hmm", "group:autocor", "refused",
-    "Refused: a residual correlation term is rejected as sitting on mu1 rather than mu, exactly as it is for mixture(), and for the same reason - there is no single residual to correlate.")
-  r("hmm", "kind:covstruct", "conditional",
-    "A random effect in a state's linear predictor is integrated by the Laplace approximation OUTSIDE the exact state sum. The integrand is a mixture over state sequences and is not Gaussian, so the approximation is genuinely approximate: the measured bias was -0.126 in the log-likelihood and 4.4e-4 in the parameters against adaptive quadrature (probe D1).")
-  r("hmm", "|ID|", "untested", "")
-  ## lca ---------------------------------------------------------------------
-  r("lca", "kind:aterm", "refused",
-    "Refused: an lca() response is a matrix of item codes with no per-row weight, censoring window, trial count or known standard error to attach an addition term to. One message covers the whole set.")
-  r("lca", "kind:covstruct", "refused",
-    "Refused: v1 has no random effects anywhere in the model. Latent classes plus continuous random effects is the growth-mixture shape, which mixture(..., groups = ~g) already fits.")
-  r("lca", "kind:special", "untested",
-    "s(), t2() and gp() are refused with the random-effect message, because each builds a random-effect block; mo() is verified. mi() and cs() in the gating predictor are untested.")
-  r("lca", "mo()", "works",
-    "Verified by a tiny fit: a monotonic predictor enters the gating linear predictor like any other term.")
-  r("lca", "s()", "refused",
-    "Refused: a smooth is a random-effect block, and lca() refuses random effects.")
-  r("lca", "t2()", "refused",
-    "Refused: a tensor smooth is a random-effect block.")
-  r("lca", "gp_pred()", "refused",
-    "Refused: gp() builds a random-effect block.")
-  r("lca", "mvbf", "refused",
-    "Refused by the extra-parameter guard: the item profiles are family extra parameters, which multivariate fits do not carry. A second response would need its own class variable, which is the general mixture-over-mvbf model.")
-  r("lca", "rescor", "refused",
-    "Refused: rescor = TRUE requires all responses to be gaussian, and the error names lca() among the ones that are not.")
-  r("lca", "mixture", "refused",
-    "Refused: the two families cannot both own the response. lca() IS a mixture, over conditionally independent categorical items.")
-  r("lca", "mixture_mvn", "refused",
-    "Refused: one response carries one family.")
-  r("lca", "nl", "refused",
-    "Refused: nl = TRUE requires a family with a single mu location parameter, and lca()'s location parameters are the gating thetas.")
-  r("lca", "fitted", "refused",
-    "Refused: the response is a matrix of nominal item codes, so there is no mean to fit. lca_probs() and lca_profiles() are the post-fit surface.")
-  r("lca", "residuals", "refused",
-    "Refused for the same reason as fitted(): no fitted mean, so no residual.")
-  r("lca", "residuals_osa", "refused",
-    "Refused: one observation is a subject's whole item response pattern, not a value with a univariate conditional CDF to step through.")
-  r("lca", "predict", "conditional",
-    "predict() returns the gating linear predictor (theta1 by default, any theta with dpar =), including on newdata. type = \"response\" is refused with the fitted() message.")
-  r("lca", "simulate", "works",
-    "Verified: simulate() draws a class per subject from its gating weights and then its items from that class's profile, and returns an n x J matrix per draw. Refitting a 4000-subject draw recovers the profiles it came from.")
-  r("lca", "frm_sample", "works",
-    "Verified by a tiny fit: the objective has no random effects, so tmbstan samples the gating coefficients and item logits directly. The posterior is label-invariant, so read it with the same caution as any mixture posterior.")
-  r("lca", "confint_profile", "works",
-    "Verified: profile intervals on a gating coefficient run.")
-  r("lca", "emmeans", "untested", "")
-  r("lca", "prior", "works",
-    "Verified by a tiny fit: a prior on the gating coefficients is an ordinary penalty on the outer problem.")
-  r("lca", "bounds", "works",
-    "Verified by a tiny fit. Bounds on the gating coefficients are also the one way to order the classes and pin the labeling.")
-  r("lca", "sparse_x", "works",
-    "Verified by a tiny fit: the gating design is an ordinary fixed-effect design.")
-  r("lca", "kind:mode", "untested",
-    "See the REML, profile, quadrature, prior, bounds and sparse_x rules; autoscale and verbose are untested.")
 
   ## specials ------------------------------------------------------------------
   r("mo()", "kind:family", "conditional",
@@ -953,7 +916,9 @@ frmtmb_compat_rules_tbl <- function() {
   # would outrank each structure's own "<name> x *" condition and
   # replace it with an unconditional claim.
 
-  out <- do.call(rbind, rows)
+  out <- do.call(rbind, c(rows,
+                          lapply(frmtmb_compat_contrib$rules,
+                                 function(mk) mk())))
   rownames(out) <- NULL
   out
 }

@@ -508,8 +508,8 @@ vb_trace_ctrl <- function(optCtrl, optimizer) {
 #' back an UNFITTED object carrying the taped objective, the starting
 #' template and the resolved bounds. `frm_sample()` on a formula needs
 #' exactly that: NUTS wants the density, not the mode, and every guard
-#' above the optimizer (REML, quadrature and mixture refusals, the hmm
-#' checks) still has to run. The autoscale pre-fit is skipped, because
+#' above the optimizer (REML, quadrature and the structured families'
+#' own refusals) still has to run. The autoscale pre-fit is skipped, because
 #' it is an optimization and there is nothing here to warm-start.
 #'
 #' @noRd
@@ -582,38 +582,12 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
 
   # A family whose likelihood does not factorize over rows refuses the
   # fitting options its own structure says it cannot answer, in its own
-  # words. Every one of these three integrates something out with a
-  # Laplace approximation about a single inner mode, which a structured
-  # likelihood either has no definition for or has several of.
-  check_structure_fit(spec, REML, quadrature, control)
-
-  # An hmm() fit checks its starting values for the label-symmetry trap
-  hmm_check_fit(spec, frame, template)
-
-  # A mixture likelihood is invariant to permuting its components, so
-  # the mu coefficients enter a multimodal objective. Both REML and
-  # profile = TRUE integrate those coefficients out with a Laplace
-  # approximation about a single inner mode, which is not defined here:
-  # the inner Newton solve walks between the component modes and the
-  # fit either dies at "NA/NaN gradient evaluation" or reports an
-  # optimum with a gradient near 1e9. Quadrature is unaffected because
-  # it marginalizes the random effects, not the coefficients.
-  if (has_mixture(spec)) {
-    if (REML) {
-      stop("REML = TRUE cannot be combined with a mixture-type family ",
-           "(mixture(), mixture_mvn(), lca()): the mixture likelihood ",
-           "is multimodal in the fixed effects REML integrates out, so ",
-           "the restricted likelihood is not defined. Use REML = FALSE",
-           call. = FALSE)
-    }
-    if (isTRUE(control$profile)) {
-      stop("frmtmb_control(profile = TRUE) cannot be combined with a ",
-           "mixture-type family (mixture(), mixture_mvn(), lca()): ",
-           "profiling moves the fixed effects into the inner Laplace ",
-           "problem, and the mixture likelihood is multimodal in them. ",
-           "Use profile = FALSE", call. = FALSE)
-    }
-  }
+  # words: each of REML, quadrature and profiling integrates something
+  # out with a Laplace approximation about a single inner mode, which a
+  # structured likelihood either has no definition for or has several
+  # of. The structure also gets to look at where the fit STARTS, which
+  # is where a multimodal likelihood's traps are.
+  check_structure_fit(spec, frame, template, REML, quadrature, control)
 
   integrate <- NULL
   if (isTRUE(quadrature)) {
@@ -858,14 +832,6 @@ require_fitted <- function(fit, what) {
        "the draws (summary(), fixef(), VarCorr(), hypothesis(), ",
        "posterior_*()), or fit the model with frm() first",
        call. = FALSE)
-}
-
-#' Does any response carry a mixture() family?
-#'
-#' @noRd
-has_mixture <- function(spec) {
-  any(vapply(spec$responses,
-             function(r) !is.null(r$family[["mix"]]), TRUE))
 }
 
 #' parList() at an outer parameter vector with the inner problem solved

@@ -310,19 +310,23 @@ build_objective <- function(frame) {
           nll <- nll - autocor_loglik(z, R, ac, lsig, nu)
           next
         }
-        st <- fam_structure(fam)
-        if (!is.null(st)) {
-          # A structured family's likelihood does not factorize over
-          # rows: a hidden state sequence is summed out by a forward
-          # recursion per SEQUENCE, a latent-class mixture sums a
-          # group's per-observation densities BEFORE the logsumexp over
+        # A structure that supplies `loglik` REPLACES the rowwise
+        # density; one that declares only capabilities (lca) leaves the
+        # rowwise path below alone, which is why the branch is on the
+        # slot and not on the structure.
+        stll <- fam_structure(fam)[["loglik"]]
+        if (!is.null(stll)) {
+          # Such a likelihood does not factorize over rows: a hidden
+          # state sequence is summed out by a forward recursion per
+          # SEQUENCE, a latent-class mixture sums a group's
+          # per-observation densities BEFORE the logsumexp over
           # classes. Either way there is no per-row factor left, so none
           # of the aterm machinery below applies - the frame refused
           # every term that would have needed it. The dispatch is on
           # DATA (the family object and the frame block), so it resolves
           # while the tape is being built and puts no branch on it.
-          nll <- nll - st[["loglik"]](y[[r]], dparv[[r]], atv[[r]], w,
-                                      frame_block_of(frame, r), extra)
+          nll <- nll - stll(y[[r]], dparv[[r]], atv[[r]], w,
+                            frame_block_of(frame, r), extra)
           next
         }
         # OBS() drives simulation/OSA machinery, but registers data under

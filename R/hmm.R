@@ -490,6 +490,10 @@ hmm_structure <- function(fam) {
     frame_block = function(resp, spec, av, mf, y, n) {
       hmm_frame_block(resp, spec, av, mf, y, n)
     },
+    check_fit = function(resp, frame, template) {
+      hmm_warn_symmetric_start(resp, frame, template)
+    },
+    unit = "a hidden-Markov sequence",
     loglik = function(y, dpars, aterms, weights, block, extra) {
       # weights() is refused in check_spec, so `weights` is 1 here: the
       # forward recursion couples the rows of a sequence and leaves no
@@ -508,7 +512,7 @@ hmm_structure <- function(fam) {
       }
       v
     },
-    latent_probs = function(fit, block) hmm_probs(fit),
+    latent_probs = function(fit, block) hmm_posterior(fit),
     sim_ctx = hmm_sim_rows,
     refusals = list(
       reml = paste0(
@@ -569,6 +573,10 @@ hmm_structure <- function(fam) {
         "with its saturated fit, and an HMM has no per-row ",
         "likelihood to saturate. Use type = \"response\" or ",
         "type = \"pearson\""),
+      cluster_robust = paste0(
+        "vcov_cluster() does not support hmm() fits: the forward ",
+        "recursion is a joint density over each sequence and the ",
+        "cluster weights do not reach it. Use frm_bootstrap()"),
       conditional_effects = paste0(
         "conditional_effects() is not available for an hmm() fit: the ",
         "expected response weights the state means by posterior state ",
@@ -578,14 +586,6 @@ hmm_structure <- function(fam) {
         "predict(dpar = \"mu2\"), or the occupancies from hmm_probs()")
     )
   )
-}
-
-#' Whether a spec holds an `hmm()` response.
-#'
-#' @noRd
-has_hmm <- function(spec) {
-  any(vapply(spec$responses,
-             function(r) !is.null(r$family[["hmm"]]), TRUE))
 }
 
 ## ---- frame: the sequence structure ----------------------------------
@@ -932,14 +932,23 @@ hmm_lse_rows <- function(M) {
 #' could only evaluate against a dummy response.
 #'
 #' @noRd
-hmm_parts <- function(fit, dp = NULL, need_lpmat = TRUE) {
-  rspec <- uni_resp(fit, "hmm_probs()")
-  fam <- rspec$family
-  if (is.null(fam[["hmm"]])) {
+#' The response spec of an `hmm()` fit, or the one refusal every
+#' decoding entry point owes a fit of some other family.
+#'
+#' @noRd
+hmm_rspec <- function(fit, what) {
+  rspec <- single_response(fit, what)
+  if (is.null(rspec$family[["hmm"]])) {
     stop("This fit does not use an hmm() family, so it has no hidden ",
          "states to decode", call. = FALSE)
   }
-  hg <- fit$frame[["hmm_g"]][[rspec$resp_name]]
+  rspec
+}
+
+hmm_parts <- function(fit, dp = NULL, need_lpmat = TRUE) {
+  rspec <- hmm_rspec(fit, "hmm_probs()")
+  fam <- rspec$family
+  hg <- frame_block_of(fit$frame, rspec$resp_name)
   hs <- fam[["hmm"]]
   K <- hs$K
   dp <- dp %||% eval_dpars(fit)[[rspec$resp_name]]
@@ -1077,6 +1086,19 @@ hmm_fb <- function(p) {
 #' mean(max.col(p) == s)
 #' @export
 hmm_probs <- function(fit) {
+  # the alias is the family check plus the call; the check runs here
+  # rather than inside the slot, so that a fit with some OTHER family's
+  # latent states is refused instead of answered
+  hmm_rspec(fit, "hmm_probs()")
+  latent_probs(fit)
+}
+
+#' The forward-backward smoothing pass, which is the structure's
+#' `latent_probs` slot. `hmm_probs()` reaches it through the
+#' `latent_probs()` generic.
+#'
+#' @noRd
+hmm_posterior <- function(fit) {
   p <- hmm_parts(fit)
   P <- hmm_fb(p)
   colnames(P) <- paste0("state", seq_len(p$K))
@@ -1259,20 +1281,6 @@ hmm_simulate_rows <- function(fit, dp = NULL) {
 
 ## ---- fit-time guards -------------------------------------------------
 
-#' The one warning an `hmm()` fit needs about its starting values.
-#'
-#' The REML, quadrature and profile refusals used to live here. They are
-#' `supports` flags of the family's structure now (`hmm_structure()`),
-#' raised generically by `check_structure_fit()`, and this keeps only
-#' what is not a capability question.
-#'
-#' @noRd
-hmm_check_fit <- function(spec, frame, template) {
-  if (!has_hmm(spec)) return(invisible(NULL))
-  hmm_warn_symmetric_start(spec, frame, template)
-  invisible(NULL)
-}
-
 #' A start with every state's location predictor equal sits ON the
 #' label-symmetry axis: the gradient is invariant under a label swap, the
 #' optimizer never leaves the diagonal, and the fit converges to the
@@ -1280,26 +1288,104 @@ hmm_check_fit <- function(spec, frame, template) {
 #' the optimum, with no diagnostic firing). The default inits are spread
 #' quantiles and never do this; a user-supplied `start` can.
 #'
+#' The REML, quadrature and profile refusals used to sit beside this as
+#' one `hmm_check_fit()` the core called by name. They are `supports`
+#' flags of the family's structure now, and this is its `check_fit`
+#' slot: not a capability the family lacks, but a start it can answer
+#' only badly.
+#'
 #' @noRd
-hmm_warn_symmetric_start <- function(spec, frame, template) {
-  for (rn in names(spec$responses)) {
-    hs <- spec$responses[[rn]]$family[["hmm"]]
-    if (is.null(hs)) next
-    prim <- spec$responses[[rn]]$family[["primary_dpars"]]
-    vals <- vapply(prim, function(dnm) {
-      lp <- frame$linpreds[[linpred_key(rn, dnm)]]
-      if (is.null(lp) || !ncol(lp$X)) return(NA_real_)
-      sum(lp$X[1L, ] * template[[lp$par]][lp$idx])
-    }, numeric(1))
-    vals <- vals[is.finite(vals)]
-    if (length(vals) > 1L && diff(range(vals)) < 1e-8) {
-      warning("hmm(): every state's location predictor starts at the ",
-              "same value (", format(vals[1L], digits = 4),
-              "). That start is a fixed point of the label symmetry: ",
-              "the optimizer cannot separate the states from it and ",
-              "the fit will collapse to a one-state solution. Spread ",
-              "the starting intercepts, or drop `start` and let the ",
-              "response-quantile defaults be used", call. = FALSE)
-    }
+hmm_warn_symmetric_start <- function(resp, frame, template) {
+  rn <- resp[["resp_name"]]
+  prim <- resp[["family"]][["primary_dpars"]]
+  # row 1 alone: the symmetry is a property of the coefficients, and an
+  # intercept-only start is the case that walks into it
+  vals <- vapply(prim, function(dnm) {
+    eta <- dpar_linpred(frame, template, rn, dnm)
+    if (is.null(eta)) NA_real_ else eta[[1L]]
+  }, numeric(1))
+  vals <- vals[is.finite(vals)]
+  if (length(vals) > 1L && diff(range(vals)) < 1e-8) {
+    warning("hmm(): every state's location predictor starts at the ",
+            "same value (", format(vals[1L], digits = 4),
+            "). That start is a fixed point of the label symmetry: ",
+            "the optimizer cannot separate the states from it and ",
+            "the fit will collapse to a one-state solution. Spread ",
+            "the starting intercepts, or drop `start` and let the ",
+            "response-quantile defaults be used", call. = FALSE)
   }
+  invisible(NULL)
 }
+
+## ---- the compatibility matrix's hmm() rows ---------------------------
+
+# These rows live beside the family rather than in R/compat.R, so that
+# hmm() and everything the package claims about hmm() travel together.
+# frmtmb_compat_rules_tbl() appends them after its own, which is the
+# position a rule needs to be able to override a core default.
+
+#' @noRd
+hmm_compat_rules <- function() {
+  b <- compat_rule_builder()
+  r <- b$r
+  # An HMM's likelihood is a per-SEQUENCE forward recursion, not a
+  # product of per-row densities. Everything that reshapes a row's
+  # contribution therefore has nothing to act on and is refused; the
+  # decoding methods replace the row-wise ones.
+  r("hmm", "mvbf", "refused",
+    "Refused: hmm() supports univariate models only. A joint state process across responses is a different model.")
+  r("hmm", "rescor", "refused",
+    "Refused for the same reason as mvbf(): the forward recursion is a likelihood over one response's sequences.")
+  r("hmm", "weights()", "refused",
+    "Refused: weights() scales a per-row log-density, and an HMM's contribution is per sequence.")
+  r("hmm", "cens()", "refused",
+    "Refused: censoring replaces a row's density with a CDF difference, which the forward recursion has no room for.")
+  r("hmm", "trunc()", "refused", "Refused for the same reason as cens().")
+  r("hmm", "se()", "refused",
+    "Refused: a known measurement SD is a per-row modification of the emission density; combining it with the state sum is not implemented.")
+  r("hmm", "mi()", "refused",
+    "Refused: an NA response is handled by hmm() itself - the row is kept and its emission masked, so the chain keeps its length - and needs no latent parameter.")
+  r("hmm", "trials()", "works",
+    "The emission family's addition terms reach it unchanged; a binomial() emission uses trials() normally.")
+  r("hmm", "REML", "refused",
+    "Refused: REML would integrate out the location coefficients of the states only, leaving the transition and dispersion parameters outside. That partial restricted likelihood matches no standard definition, and it used to run silently (probe F5 of dev/hmm-feasibility.md).")
+  r("hmm", "quadrature", "refused",
+    "Refused: the Gauss-Kronrod rule integrates a random effect against a product of per-row densities; an HMM's likelihood is a forward recursion, not such a product.")
+  r("hmm", "profile", "refused",
+    "Refused: profiling moves the state means into the inner Laplace problem, and the likelihood is multimodal in them because the states are exchangeable.")
+  r("hmm", "fitted", "works",
+    "The occupancy-weighted mean, sum_k P(S_t = k | y) mu_k, from a forward-backward pass. Not any single state's mean.")
+  r("hmm", "predict", "conditional",
+    "type = \"link\" and dpar = work normally, including the transition logits. type = \"response\" equals fitted() in sample; it is refused for newdata (state occupancy conditions on the observed responses of a whole sequence) and se.fit is refused on the response scale.")
+  r("hmm", "residuals", "conditional",
+    "type = \"response\" and \"pearson\" are computed against the occupancy-weighted mean, with the pearson scale the law-of-total-variance mixture variance. type = \"deviance\" is refused: there is no per-row likelihood to saturate.")
+  r("hmm", "residuals_osa", "refused",
+    "Refused: one-step prediction needs the taped density of one observation given the earlier ones, and the tape holds a forward recursion over each whole sequence with no registered observation vector.")
+  r("hmm", "simulate", "conditional",
+    "A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. Since v0.36 the chain walk is the family's structured simulator (fam$sim_ctx), so posterior_predict() and frm_simulate() reach it too; posterior_predict(newdata =) is refused, because the sequence structure indexes the fitted rows.")
+  r("hmm", "emmeans", "untested", "")
+  r("hmm", "frm_sample", "works",
+    "Verified by a short run. The posterior is multimodal in the state labels, as a mixture's is.")
+  r("hmm", "confint_profile", "untested", "")
+  r("hmm", "hypothesis_profile", "untested", "")
+  r("hmm", "prior", "works",
+    "set_prior() on an emission or transition logit is the remedy for a probability driven to the 0 boundary by a rare category.")
+  r("hmm", "bounds", "untested", "")
+  r("hmm", "autoscale", "untested", "")
+  r("hmm", "sparse_x", "untested", "")
+  r("hmm", "verbose", "works", "")
+  r("hmm", "nl", "refused",
+    "Refused: nl = TRUE needs a family with a single 'mu' location parameter, and an hmm() family has one per state.")
+  r("hmm", "mixture", "refused",
+    "Refused: an hmm() component that is itself a mixture is not identified against the state.")
+  r("hmm", "mixture_mvn", "refused", "Refused for the same reason as mixture().")
+  r("hmm", "group:autocor", "refused",
+    "Refused: a residual correlation term is rejected as sitting on mu1 rather than mu, exactly as it is for mixture(), and for the same reason - there is no single residual to correlate.")
+  r("hmm", "kind:covstruct", "conditional",
+    "A random effect in a state's linear predictor is integrated by the Laplace approximation OUTSIDE the exact state sum. The integrand is a mixture over state sequences and is not Gaussian, so the approximation is genuinely approximate: the measured bias was -0.126 in the log-likelihood and 4.4e-4 in the parameters against adaptive quadrature (probe D1).")
+  r("hmm", "|ID|", "untested", "")
+  b$rules()
+}
+
+frmtmb_register_compat(features = c(hmm = "structure"),
+                       rules = hmm_compat_rules)
