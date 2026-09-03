@@ -1315,24 +1315,27 @@ just reviewed end to end; each is an edge case with a safe default):
 directories of `kaskr/RTMB` (19 R ports) and `kaskr/adcomp` (16 with no
 port), with a verdict and a log-likelihood agreement number for each.
 `tests/testthat/test-tmb-examples.R` is the regression form of every row
-that replicates. Counts: 13 REPLICATES, 3 AWKWARD, 19 out of scope, of
-which 3 are TMB API demonstrations and 3 are OpenMP parallel builds.
+that replicates. Counts after v0.43: 15 REPLICATES, 1 AWKWARD, 19 out of
+scope, of which 3 are TMB API demonstrations and 3 are OpenMP parallel
+builds. (The audit was written at 13 / 3 / 19; roadmap item 1 below moved
+`sdv_multi` and `sdv_multi_compact` across.)
 
 The audit's ranked roadmap is in that file. The headline is that the
 atomic-function classes in the original scoping are mostly not what
 stands between frmtmb and these examples. The four items that matter most
 are, in order:
 
-1. **A sparse AR(1) covariance structure.** `ar1()` builds a dense
-   `d x d` covariance and factorizes it on the tape, which is cubic in
-   the block dimension: 7.25 s at d = 800 against 0.09 s for
-   `RTMB::dautoreg`. That is the whole blocker for `sdv_multi` and
-   `sdv_multi_compact`, whose grammar mapping is otherwise exact
-   (agreement 2.23e-10 at a shortened series), and it caps `transform`
-   and `transform2` at a fifth of their published length. The pattern to
-   copy is in the same file: `covstruct_registry$spde` already assembles
-   a parameter-dependent sparse precision and evaluates it with
-   `RTMB::dgmrf`. Four examples, no new machinery.
+1. ~~**A sparse AR(1) covariance structure.**~~ DONE in v0.43.
+   `ar1()` and `hetar1()` evaluate the AR(1) density in its innovation
+   form, which is O(d) per level and vectorized over levels, instead of
+   building a dense `d x d` covariance and factorizing it on the tape.
+   Measured by `dev/sparsear1-bench.R`: 0.587 s to 2.0 ms at d = 800,
+   and 22.7 s to 2.1 ms at d = 2000. The density is identical, so no
+   fit, accessor or prior changed. `sdv_multi` and `sdv_multi_compact`
+   now replicate at their published n = 945 (8.50e-09), and `transform`
+   and `transform2` run at their own n = 1000. `ou`, `exp`, `gau`,
+   `mat`, `toep` and `homtoep` stay dense on purpose; the reason is in
+   the comment above `ar1_lpdf()` in `R/covstruct.R`.
 2. **A latent state-space term in the grammar** (`mvrw`, `mvrw_sparse`,
    `sde_linear`, and the only route to `thetalog` and
    `rickervalidation`). The Kalman prototype in
