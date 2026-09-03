@@ -782,20 +782,33 @@ nl_body_error <- function(e, lp) {
        conditionMessage(e), extra, call. = FALSE)
 }
 
+#' The language objects a structured family needs in the model frame:
+#' a grouping column, a time column, a sequence id. Read off the family
+#' alone, before any data is seen.
+#'
+#' @noRd
+structure_frame_vars <- function(fam) {
+  st <- fam_structure(fam)
+  fv <- st[["frame_vars"]]
+  if (is.null(fv)) return(list())
+  out <- fv(fam)
+  if (is.null(out)) list() else Filter(Negate(is.null), as.list(out))
+}
+
 #' Model-frame columns that are not predictors: responses, and the
-#' grouping variables of random-effect, mixture, `car()` and `spde()`
-#' terms.
+#' grouping variables of random-effect, structured-family, `car()` and
+#' `spde()` terms.
 #'
 #' @noRd
 nonpredictor_frame_vars <- function(spec) {
   out <- character(0)
   for (resp in spec$responses) {
     out <- c(out, deparse1(resp$resp_expr))
-    if (!is.null(resp$family$mix_groups)) {
-      out <- c(out, deparse1(resp$family$mix_groups[[2L]]))
+    # both spellings: a bare name is its own column, and a compound
+    # expression reaches the frame under its deparsed form
+    for (ex in structure_frame_vars(resp$family)) {
+      out <- c(out, all.vars(ex), deparse1(ex))
     }
-    hs_ <- resp$family[["hmm"]]
-    out <- c(out, all.vars(hs_$time_expr), all.vars(hs_$group_expr))
     out <- c(out, all.vars(resp$autocor$time_expr),
              all.vars(resp$autocor$gr_expr))
     for (dp in resp$dpars) {
@@ -983,15 +996,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                 all.vars(resp$autocor$gr_expr))) {
       add_part(as.name(v))
     }
-    if (!is.null(resp$family$mix_groups)) {
-      add_part(resp$family$mix_groups[[2L]])
-    }
-    # hmm(): the time and grouping variables define the sequences, so
-    # they belong to the response and not to any dpar's design
-    hs_ <- resp$family[["hmm"]]
-    for (ex in list(hs_$time_expr, hs_$group_expr)) {
-      if (!is.null(ex)) add_part(ex)
-    }
+    # a structured family's own frame variables (a class grouping, the
+    # time and grouping variables that define an HMM's sequences)
+    # belong to the RESPONSE and to no dpar's design
+    for (ex in structure_frame_vars(resp$family)) add_part(ex)
     for (nm_at in names(resp$aterms)) {
       # literal constants (e.g. trials(10)) are not frame variables, and
       # interval bounds (cens_y2) may be NA on non-interval rows, so they
@@ -1010,25 +1018,19 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   env <- spec$responses[[1]]$formula_env
   fr_formula <- stats::as.formula(call("~", rhs_comb), env = env)
   # x | mi() responses may carry NAs (they become latent parameters);
-  # rows are dropped only for NAs in every OTHER variable. A family that
-  # declares `na_response` reads the NAs itself (lca(na.rm = FALSE)
-  # masks a missing item out of that subject's likelihood) and takes the
-  # same exemption.
+  # rows are dropped only for NAs in every OTHER variable. A structured
+  # family that declares `keep_na` reads the NAs itself and takes the
+  # same exemption: an hmm() NA is a time point the chain passes through
+  # without emitting, and an lca(na.rm = FALSE) NA masks one item out of
+  # that subject's likelihood. Either way the row must survive, because
+  # dropping it changes the estimand rather than the sample.
   mi_cols <- vapply(
     Filter(function(r) {
-      isTRUE(r$aterms$mi) || isTRUE(r$family$na_response)
+      isTRUE(r$aterms$mi) || isTRUE(r$family$na_response) ||
+        isTRUE(fam_structure(r$family)[["keep_na"]])
     }, spec$responses),
     function(r) deparse1(r$resp_expr), ""
   )
-  # An hmm() response keeps its NA rows for the same reason an mi() one
-  # does, but for a different fate: the row is a time point the chain
-  # passes through without emitting, so dropping it would SHORTEN the
-  # chain and let one transition stand in for several. The emission is
-  # masked instead (hmm_frame_block()).
-  mi_cols <- c(mi_cols, vapply(
-    Filter(function(r) !is.null(r$family[["hmm"]]), spec$responses),
-    function(r) deparse1(r$resp_expr), ""
-  ))
   if (length(mi_cols)) {
     mf <- stats::model.frame(fr_formula, data = data,
                              drop.unused.levels = TRUE,
@@ -1091,7 +1093,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   mi_map <- list()   # per mi() response: missing rows + miss indices
   n_miss <- 0L
   miss_init <- numeric(0)
-  mix_g <- list()    # per response: latent-class grouping structure
+  blocks <- list()   # per response: the structured family's data block
   hmm_g <- list()    # per response: hidden-Markov sequence structure
   autocor <- list()  # per response: R-side residual correlation block
   n_thetaac <- 0L
@@ -1126,9 +1128,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (!is.null(resp$aterms$se_sigma)) {
       av$se_sigma <- resp$aterms$se_sigma   # logical flag, not data
     }
-    # before the generic aterm guards, so an hmm() response is refused
-    # for being an HMM rather than for its family's missing CDF
-    hmm_check_aterms(resp, spec, av)
+    # before the generic aterm guards, so a structured response is
+    # refused for the shape of its likelihood rather than for its
+    # family's missing CDF further down
+    st_ <- fam_structure(resp$family)
+    if (!is.null(st_[["check_spec"]])) st_[["check_spec"]](resp, spec, av)
     if (isTRUE(resp$aterms$mi)) {
       if (!resp$family$family %in% c("gaussian", "student")) {
         stop("mi() responses need a gaussian or student model",
@@ -1285,35 +1289,20 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         y[[resp$resp_name]] <- round(yc)
       }
     }
-    if (!is.null(resp$family$mix_groups)) {
-      if (length(spec$responses) > 1L || spec$rescor) {
-        stop("Group-level mixtures support univariate models",
-             call. = FALSE)
-      }
-      if (any(c("cens", "trunc_lb", "trunc_ub") %in%
-                names(resp$aterms))) {
-        stop("Group-level mixtures cannot be combined with cens() or ",
-             "trunc()", call. = FALSE)
-      }
-      if (isTRUE(resp$aterms$mi)) {
-        stop("Group-level mixtures cannot be combined with mi() on ",
-             "the same response", call. = FALSE)
-      }
-      gv <- factor(eval(resp$family$mix_groups[[2L]], mf,
-                        resp$formula_env))
-      G <- Matrix::sparseMatrix(i = seq_len(n), j = as.integer(gv),
-                                x = 1, dims = c(n, nlevels(gv)))
-      mix_g[[resp$resp_name]] <- list(G = G, Gt = Matrix::t(G),
-                                      first = match(levels(gv), gv),
-                                      gindex = as.integer(gv),
-                                      levels = levels(gv))
+    # A structured family assembles its own data block here, once, with
+    # the response coerced and the random-effect blocks not yet built.
+    # `block[["y"]]` is how a family that keeps NA rows substitutes the
+    # masked placeholder every later stage sees.
+    if (!is.null(st_[["frame_block"]])) {
+      blk <- st_[["frame_block"]](resp, spec, av, mf,
+                                  y[[resp$resp_name]], n)
+      if (!is.null(blk[["y"]])) y[[resp$resp_name]] <- blk[["y"]]
+      blocks[[resp$resp_name]] <- blk
     }
+    # transitional: hmm.R's own decoding passes still read the per-family
+    # frame slot, which is an alias of the block from here on
     if (!is.null(resp$family[["hmm"]])) {
-      hb <- hmm_frame_block(resp, spec, av, mf, y[[resp$resp_name]], n)
-      # NA responses were kept above; the masked placeholder is what
-      # every later stage (valid_y, the tape, the decoding passes) sees
-      y[[resp$resp_name]] <- hb$y
-      hmm_g[[resp$resp_name]] <- hb
+      hmm_g[[resp$resp_name]] <- blocks[[resp$resp_name]]
     }
     if (!is.null(resp$autocor)) {
       ac <- check_autocor_response(resp, spec, av, y[[resp$resp_name]])
@@ -2237,6 +2226,19 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # values; here the designs and the grouping column are both in hand
   check_ode_constancy(spec, linpreds, mf)
 
+  # A refusal that depends on the DESIGN rather than on the response
+  # cannot be stated from valid_y(): the predictors do not exist yet
+  # when that runs. The frame handed over is the assembled one minus
+  # the parameter template, which is built below this point.
+  frame_so_far <- list(spec = spec, n_obs = n, y = y, y_levels = y_levels,
+                       aterm_values = aterm_values, linpreds = linpreds,
+                       re_blocks = re_blocks, blocks = blocks,
+                       autocor = autocor, data_frame = mf)
+  for (resp_ in spec$responses) {
+    cf_ <- fam_structure(resp_$family)[["check_frame"]]
+    if (!is.null(cf_)) cf_(spec, frame_so_far)
+  }
+
   # lca() refuses random effects and mvbf(); both are properties of the
   # assembled predictors rather than of the response, so the family's
   # own valid_y() cannot see them
@@ -2246,7 +2248,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     list(spec = spec, n_obs = n, y = y, y_levels = y_levels,
          aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
-         n_c = n_c, has_rr = has_rr, mi_map = mi_map, mix_g = mix_g,
+         n_c = n_c, has_rr = has_rr, mi_map = mi_map, blocks = blocks,
          hmm_g = hmm_g, autocor = autocor,
          par_template = par_template, map = map,
          betad_fixed_idx = betad_fixed_idx,

@@ -422,8 +422,8 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
     init_dpars = init_fns,
     type = comp$type,
     # the draw walks the chain per SEQUENCE, so it is not rowwise and
-    # cannot come from the plain `sim` slot
-    sim_ctx = hmm_sim_rows,
+    # cannot come from the plain `sim` slot; it is the structure's
+    # sim_ctx, installed with the rest of the protocol below
     primary_dpars = as.vector(t(outer(primaries, seq_len(K), paste0))),
     extra_pars = extra_pars
   )
@@ -461,7 +461,123 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
       fam[["hmm"]][["tr_names"]]
     )
   }
+  fam[["structure"]] <- hmm_structure(fam)
   fam
+}
+
+#' Everything the core needs to know about an `hmm()` response, as the
+#' one object the structured-family protocol reads
+#' (`frmtmb_structure()`).
+#'
+#' The refusals are stored as data rather than raised from `stop()`
+#' calls scattered through predict.R, fit.R and conditional-effects.R,
+#' which is the whole point: the reason an HMM cannot answer a question
+#' is a property of the HMM, and it now travels with the family instead
+#' of with the method. Every flag is left at its conservative `FALSE`
+#' default, because an HMM refuses all twelve.
+#'
+#' @noRd
+hmm_structure <- function(fam) {
+  force(fam)
+  hs <- fam[["hmm"]]
+  frmtmb_structure(
+    frame_vars = function(f) list(hs[["time_expr"]], hs[["group_expr"]]),
+    # an NA response is a time point the chain passes THROUGH without
+    # emitting; dropping the row would shorten the chain and let one
+    # transition stand in for several
+    keep_na = TRUE,
+    check_spec = function(resp, spec, av) hmm_check_aterms(resp, spec, av),
+    frame_block = function(resp, spec, av, mf, y, n) {
+      hmm_frame_block(resp, spec, av, mf, y, n)
+    },
+    loglik = function(y, dpars, aterms, weights, block, extra) {
+      # weights() is refused in check_spec, so `weights` is 1 here: the
+      # forward recursion couples the rows of a sequence and leaves no
+      # row-wise factor to weight
+      hmm_loglik_ad(fam, dpars, block, aterms, extra)
+    },
+    fitted_mean = function(fit, block) hmm_mean_response(fit),
+    # the protocol's fitted_var() either produces a variance or explains
+    # itself; an emission family with no var_fn is the one case
+    fitted_var = function(fit, block) {
+      v <- hmm_var_response(fit)
+      if (is.null(v)) {
+        stop("The state-dependent family '", hs[["comp"]][["family"]],
+             "' of this hmm() fit has no variance function, so pearson ",
+             "residuals are unavailable", call. = FALSE)
+      }
+      v
+    },
+    latent_probs = function(fit, block) hmm_probs(fit),
+    sim_ctx = hmm_sim_rows,
+    refusals = list(
+      reml = paste0(
+        "REML = TRUE cannot be combined with hmm(): REML integrates ",
+        "out the location coefficients, which here are one set per ",
+        "hidden state, and leaves the transition and dispersion ",
+        "parameters outside. The result is a partial restricted ",
+        "likelihood matching no standard definition. Use REML = FALSE"),
+      quadrature = paste0(
+        "quadrature = TRUE cannot be combined with hmm(): the rule ",
+        "integrates a random effect against a PRODUCT of per-row ",
+        "densities, and an HMM's likelihood is a forward recursion ",
+        "over each sequence, not such a product. Use quadrature = ",
+        "FALSE (Laplace) and check_laplace() to judge the ",
+        "approximation"),
+      profile = paste0(
+        "frmtmb_control(profile = TRUE) cannot be combined with hmm(): ",
+        "profiling moves the state means into an inner Laplace ",
+        "problem, and an HMM likelihood is multimodal in them (the ",
+        "states are exchangeable). Use profile = FALSE"),
+      se_fit_response = paste0(
+        "se.fit is not supported on the response scale for an hmm() ",
+        "family: the expected response weights the state means by ",
+        "posterior occupancy probabilities, and the delta method ",
+        "would need the gradient of those probabilities, which the ",
+        "forward-backward pass does not produce. Use type = ",
+        "\"link\" with dpar = for a state's own predictor"),
+      newdata_response = paste0(
+        "predict(type = \"response\") on an hmm() fit is not ",
+        "available for newdata: the state occupancy at a row is ",
+        "conditional on the observed RESPONSES of its whole ",
+        "sequence, which newdata does not carry. Predict a state's ",
+        "own linear predictor with dpar = (for example dpar = ",
+        "\"mu2\"), or use hmm_probs() on the training data"),
+      re_form = paste0(
+        "re.form is not supported on the response scale for an hmm() ",
+        "family: the state probabilities are computed at the ",
+        "random-effect modes, so a different random-effect ",
+        "conditioning would need a second forward-backward pass. ",
+        "Use type = \"link\" with dpar ="),
+      re_form.simulate = paste0(
+        "simulate(re.form =) is not supported for an hmm() fit: the ",
+        "state path is drawn at the random-effect modes. Drop ",
+        "re.form to simulate conditionally on them"),
+      cens_trunc.simulate = paste0(
+        "simulate(censored = TRUE) is not supported for an hmm() ",
+        "fit, because cens() is refused on an hmm() response"),
+      osa = paste0(
+        "residuals(type = \"osa\") is not available for an hmm() ",
+        "fit: one-step prediction needs the taped density of a ",
+        "single observation given the earlier ones, and the tape ",
+        "holds a forward recursion over each whole sequence with no ",
+        "registered observation vector. Use type = \"pearson\", ",
+        "which divides by the occupancy-weighted response variance"),
+      deviance = paste0(
+        "residuals(type = \"deviance\") is not available for an ",
+        "hmm() fit: the unit deviance compares a row's likelihood ",
+        "with its saturated fit, and an HMM has no per-row ",
+        "likelihood to saturate. Use type = \"response\" or ",
+        "type = \"pearson\""),
+      conditional_effects = paste0(
+        "conditional_effects() is not available for an hmm() fit: the ",
+        "expected response weights the state means by posterior state ",
+        "occupancies, which depend on the observed responses of a whole ",
+        "sequence and are therefore undefined on the synthetic grid ",
+        "this function builds. Plot one state's own predictor from ",
+        "predict(dpar = \"mu2\"), or the occupancies from hmm_probs()")
+    )
+  )
 }
 
 #' Whether a spec holds an `hmm()` response.
@@ -1143,42 +1259,16 @@ hmm_simulate_rows <- function(fit, dp = NULL) {
 
 ## ---- fit-time guards -------------------------------------------------
 
-#' The refusals an `hmm()` fit needs from the FITTING options, and the
-#' one warning about the starting values.
+#' The one warning an `hmm()` fit needs about its starting values.
 #'
-#' REML is the important one. `frm(REML = TRUE)` integrates the
-#' `primary_dpars` fixed effects, which for an HMM is the state means
-#' only: the transition blocks and the state dispersions stay in the
-#' outer problem. That is a PARTIAL restricted likelihood corresponding
-#' to no standard definition, and it ran silently before this guard
-#' existed (probe F5).
+#' The REML, quadrature and profile refusals used to live here. They are
+#' `supports` flags of the family's structure now (`hmm_structure()`),
+#' raised generically by `check_structure_fit()`, and this keeps only
+#' what is not a capability question.
 #'
 #' @noRd
-hmm_check_fit <- function(spec, frame, template, REML, quadrature,
-                          control) {
+hmm_check_fit <- function(spec, frame, template) {
   if (!has_hmm(spec)) return(invisible(NULL))
-  if (isTRUE(REML)) {
-    stop("REML = TRUE cannot be combined with hmm(): REML integrates ",
-         "out the location coefficients, which here are one set per ",
-         "hidden state, and leaves the transition and dispersion ",
-         "parameters outside. The result is a partial restricted ",
-         "likelihood matching no standard definition. Use REML = FALSE",
-         call. = FALSE)
-  }
-  if (isTRUE(quadrature)) {
-    stop("quadrature = TRUE cannot be combined with hmm(): the rule ",
-         "integrates a random effect against a PRODUCT of per-row ",
-         "densities, and an HMM's likelihood is a forward recursion ",
-         "over each sequence, not such a product. Use quadrature = ",
-         "FALSE (Laplace) and check_laplace() to judge the ",
-         "approximation", call. = FALSE)
-  }
-  if (isTRUE(control$profile)) {
-    stop("frmtmb_control(profile = TRUE) cannot be combined with hmm(): ",
-         "profiling moves the state means into an inner Laplace ",
-         "problem, and an HMM likelihood is multimodal in them (the ",
-         "states are exchangeable). Use profile = FALSE", call. = FALSE)
-  }
   hmm_warn_symmetric_start(spec, frame, template)
   invisible(NULL)
 }

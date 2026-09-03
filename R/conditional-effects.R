@@ -796,20 +796,19 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' @export
 conditional_effects <- function(x, ...) UseMethod("conditional_effects")
 
-#' The hmm() refusal, shared by the fit and draws methods so the two
-#' speak with one message.
+#' A structured family's refusal, shared by the fit and draws methods so
+#' the two speak with one message.
+#'
+#' The expected response of a family whose likelihood does not factorize
+#' over rows can depend on the observed responses of a whole sequence or
+#' group, which the synthetic grid this function builds does not carry.
+#' A structured family whose per-row mean IS rowwise (a group-level
+#' mixture) declares `conditional_effects` and passes straight through.
 #'
 #' @noRd
-ce_hmm_check <- function(rspec) {
-  if (!is.null(rspec$family[["hmm"]])) {
-    stop("conditional_effects() is not available for an hmm() fit: the ",
-         "expected response weights the state means by posterior state ",
-         "occupancies, which depend on the observed responses of a whole ",
-         "sequence and are therefore undefined on the synthetic grid ",
-         "this function builds. Plot one state's own predictor from ",
-         "predict(dpar = \"mu2\"), or the occupancies from hmm_probs()",
-         call. = FALSE)
-  }
+ce_structure_check <- function(rspec) {
+  structure_gate(fam_structure(rspec$family), "conditional_effects",
+                 structure_generic(rspec$family, "conditional_effects()"))
   invisible(NULL)
 }
 
@@ -1043,7 +1042,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
     length(re_formula) == 1L && is.na(re_formula)
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
-  ce_hmm_check(rspec)
+  ce_structure_check(rspec)
   if (isTRUE(surface)) {
     stop("conditional_effects(surface = TRUE) is not implemented: the ",
          "display draws curves with bands, not a fitted surface. Ask ",
@@ -1281,7 +1280,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   fit <- draws_base_fit(x)
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
-  ce_hmm_check(rspec)
+  ce_structure_check(rspec)
   if (length(fit$frame$re_blocks) &&
       !any(startsWith(colnames(x$draws), "b["))) {
     stop("conditional_effects() on draws from frm_sample(laplace = ",

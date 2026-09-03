@@ -1082,39 +1082,38 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     return(predict_categorical(object, rspec, newdata, use_re,
                                allow_new_levels))
   }
-  # An hmm() response's expected value is the OCCUPANCY-WEIGHTED mean,
-  # sum_k P(S_t = k | y) mu_k(x_t). No per-row family mean can produce
-  # it: the state probability conditions on the whole sequence. Without
-  # this branch `type = "response"` falls through to the first location
-  # dpar and reports state 1's mean at every row, silently.
-  if (!is.null(rspec$family[["hmm"]]) && is.null(dpar) &&
+  # A structured family's expected value may condition on the WHOLE
+  # observed response rather than on the row: an HMM's is the
+  # occupancy-weighted mean, sum_k P(S_t = k | y) mu_k(x_t). No per-row
+  # family mean can produce that, and without this branch `type =
+  # "response"` falls through to the first location dpar and reports
+  # state 1's mean at every row, silently. A family whose per-row mean
+  # IS rowwise (a group-level mixture) leaves `fitted_mean` empty and
+  # falls through here on purpose.
+  st <- fam_structure(rspec$family)
+  if (!is.null(st) && is.null(dpar) &&
       type %in% c("response", "conditional")) {
+    fam_ <- rspec$family
     if (se.fit) {
-      stop("se.fit is not supported on the response scale for an hmm() ",
-           "family: the expected response weights the state means by ",
-           "posterior occupancy probabilities, and the delta method ",
-           "would need the gradient of those probabilities, which the ",
-           "forward-backward pass does not produce. Use type = ",
-           "\"link\" with dpar = for a state's own predictor",
-           call. = FALSE)
+      structure_gate(st, "se_fit_response",
+                     structure_generic(fam_, "se.fit on the response scale"))
     }
     if (!is.null(newdata)) {
-      stop("predict(type = \"response\") on an hmm() fit is not ",
-           "available for newdata: the state occupancy at a row is ",
-           "conditional on the observed RESPONSES of its whole ",
-           "sequence, which newdata does not carry. Predict a state's ",
-           "own linear predictor with dpar = (for example dpar = ",
-           "\"mu2\"), or use hmm_probs() on the training data",
-           call. = FALSE)
+      structure_gate(st, "newdata_response",
+                     structure_generic(
+                       fam_, "predict(newdata =, type = \"response\")"))
     }
     if (!is.null(re.form)) {
-      stop("re.form is not supported on the response scale for an hmm() ",
-           "family: the state probabilities are computed at the ",
-           "random-effect modes, so a different random-effect ",
-           "conditioning would need a second forward-backward pass. ",
-           "Use type = \"link\" with dpar =", call. = FALSE)
+      structure_gate(st, "re_form",
+                     structure_generic(
+                       fam_, "re.form = on the response scale"))
     }
-    return(napred(object, hmm_mean_response(object)))
+    fm <- st[["fitted_mean"]]
+    if (!is.null(fm)) {
+      return(napred(object,
+                    fm(object, frame_block_of(object$frame,
+                                              rspec$resp_name))))
+    }
   }
   # glmmTMB type aliases resolve to a dpar plus scale
   if (type %in% c("zprob", "zlink", "disp")) {
@@ -1668,9 +1667,13 @@ napred <- function(fit, x) {
 #' @export
 fitted.frmtmb_fit <- function(object, ...) {
   rspec <- uni_resp(object, "fitted()")
-  if (!is.null(rspec$family[["hmm"]])) {
-    # E[y_t | y] = sum_k P(S_t = k | y) mu_k(x_t); see hmm_probs()
-    return(napred(object, hmm_mean_response(object)))
+  # a structured family whose row mean conditions on the whole observed
+  # response supplies it here; everything else is rowwise
+  fm <- fam_structure(rspec$family)[["fitted_mean"]]
+  if (!is.null(fm)) {
+    return(napred(object,
+                  fm(object, frame_block_of(object$frame,
+                                            rspec$resp_name))))
   }
   if (identical(rspec$family$type, "ordinal")) {
     # no mean exists; the modelled response IS the category
@@ -2210,39 +2213,40 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
          "on. Compare fitted(fit) (the n x K category probabilities) ",
          "against the observed categories instead", call. = FALSE)
   }
-  if (!is.null(fam[["hmm"]])) {
+  st <- fam_structure(fam)
+  if (!is.null(st)) {
+    # Both of these need a PER-ROW likelihood: one-step prediction needs
+    # the taped density of one observation given the earlier ones, and
+    # the unit deviance needs a row's likelihood to compare with its
+    # saturated fit. A structured likelihood has neither.
     if (type == "osa") {
-      stop("residuals(type = \"osa\") is not available for an hmm() ",
-           "fit: one-step prediction needs the taped density of a ",
-           "single observation given the earlier ones, and the tape ",
-           "holds a forward recursion over each whole sequence with no ",
-           "registered observation vector. Use type = \"pearson\", ",
-           "which divides by the occupancy-weighted response variance",
-           call. = FALSE)
+      structure_gate(st, "osa",
+                     structure_generic(fam, "residuals(type = \"osa\")"))
     }
     if (type == "deviance") {
-      stop("residuals(type = \"deviance\") is not available for an ",
-           "hmm() fit: the unit deviance compares a row's likelihood ",
-           "with its saturated fit, and an HMM has no per-row ",
-           "likelihood to saturate. Use type = \"response\" or ",
-           "type = \"pearson\"", call. = FALSE)
+      structure_gate(st, "deviance",
+                     structure_generic(fam,
+                                       "residuals(type = \"deviance\")"))
     }
-    r <- object$frame$y[[rspec$resp_name]] - hmm_mean_response(object)
-    if (type == "pearson") {
-      v <- hmm_var_response(object)
-      if (is.null(v)) {
-        stop("The state-dependent family '",
-             fam[["hmm"]][["comp"]]$family,
-             "' of this hmm() fit has no variance function, so pearson ",
-             "residuals are unavailable", call. = FALSE)
+    fm <- st[["fitted_mean"]]
+    if (!is.null(fm)) {
+      blk <- frame_block_of(object$frame, rspec$resp_name)
+      r <- object$frame$y[[rspec$resp_name]] - fm(object, blk)
+      if (type == "pearson") {
+        fv <- st[["fitted_var"]]
+        if (is.null(fv)) {
+          stop("residuals(type = \"pearson\") needs the conditional ",
+               "variance of each row given the whole response, and the ",
+               "'", fam$family, "' family declares no fitted_var(). Use ",
+               "type = \"response\"", call. = FALSE)
+        }
+        r <- r / sqrt(fv(object, blk))
       }
-      r <- r / sqrt(v)
+      # a masked (NA) response has no residual, and the placeholder
+      # value standing in for it on the tape must never look like one
+      if (!is.null(blk[["miss"]])) r[blk[["miss"]]] <- NA_real_
+      return(napred(object, r))
     }
-    hg <- object$frame[["hmm_g"]][[rspec$resp_name]]
-    # a masked (NA) response has no residual, and the placeholder value
-    # standing in for it on the tape must never look like one
-    if (!is.null(hg[["mask"]])) r[hg[["miss"]]] <- NA_real_
-    return(napred(object, r))
   }
   if (type == "osa") {
     if (is_lca_family(fam)) {
@@ -2593,18 +2597,19 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   }
   rspec <- uni_resp(object, "simulate()")
   fam <- rspec$family
-  if (!is.null(fam[["hmm"]])) {
-    # the chain walk itself is the family's sim_ctx (R/hmm.R); what is
-    # hmm-specific here is only what the two options would mean
+  # the draw itself is the structure's own sim_ctx; what is decided here
+  # is only what these two options would MEAN for a whole-block draw
+  st <- fam_structure(fam)
+  if (!is.null(st)) {
     if (!is.null(re.form)) {
-      stop("simulate(re.form =) is not supported for an hmm() fit: the ",
-           "state path is drawn at the random-effect modes. Drop ",
-           "re.form to simulate conditionally on them", call. = FALSE)
+      structure_gate(st, "re_form",
+                     structure_generic(fam, "simulate(re.form =)"),
+                     context = "simulate")
     }
     if (isTRUE(censored)) {
-      stop("simulate(censored = TRUE) is not supported for an hmm() ",
-           "fit, because cens() is refused on an hmm() response",
-           call. = FALSE)
+      structure_gate(st, "cens_trunc",
+                     structure_generic(fam, "simulate(censored = TRUE)"),
+                     context = "simulate")
     }
   }
   if (!sim_can(fam)) {

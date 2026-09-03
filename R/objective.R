@@ -310,34 +310,19 @@ build_objective <- function(frame) {
           nll <- nll - autocor_loglik(z, R, ac, lsig, nu)
           next
         }
-        if (!is.null(fam[["hmm"]]) && !is.null(frame[["hmm_g"]][[r]])) {
-          # hidden Markov: the discrete state sequence is summed out
-          # EXACTLY by the forward recursion, per sequence, inside the
-          # Laplace approximation that integrates any random effects in
-          # the state predictors. Nothing here is per row, so none of
-          # the aterm machinery below applies - the frame refused every
-          # term that would have needed it.
-          nll <- nll - hmm_loglik_ad(fam, dparv[[r]],
-                                     frame[["hmm_g"]][[r]],
-                                     atv[[r]], extra)
-          next
-        }
-        if (!is.null(fam$mix) && !is.null(frame$mix_g[[r]])) {
-          # latent-class (group-level) mixture: one class draw per
-          # group, so the group's per-observation log-densities sum
-          # BEFORE the logsumexp over classes
-          mg <- frame$mix_g[[r]]
-          lps_pi <- fam$mix$log_pi(dparv[[r]])
-          total <- NULL
-          for (k in seq_len(fam$mix$K)) {
-            ll_k <- fam$mix$comp_lpdf(y[[r]], dparv[[r]], atv[[r]], k)
-            g_k <- as.vector(mg$Gt %*% (w * ll_k)) +
-              lps_pi[[k]][mg$first]
-            total <- if (is.null(total)) g_k else {
-              RTMB::logspace_add(total, g_k)
-            }
-          }
-          nll <- nll - sum(total)
+        st <- fam_structure(fam)
+        if (!is.null(st)) {
+          # A structured family's likelihood does not factorize over
+          # rows: a hidden state sequence is summed out by a forward
+          # recursion per SEQUENCE, a latent-class mixture sums a
+          # group's per-observation densities BEFORE the logsumexp over
+          # classes. Either way there is no per-row factor left, so none
+          # of the aterm machinery below applies - the frame refused
+          # every term that would have needed it. The dispatch is on
+          # DATA (the family object and the frame block), so it resolves
+          # while the tape is being built and puts no branch on it.
+          nll <- nll - st[["loglik"]](y[[r]], dparv[[r]], atv[[r]], w,
+                                      frame_block_of(frame, r), extra)
           next
         }
         # OBS() drives simulation/OSA machinery, but registers data under

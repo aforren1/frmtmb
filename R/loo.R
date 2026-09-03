@@ -62,7 +62,9 @@ draws_loglik_factors <- function(fit, what) {
       "an R-side residual correlation (ar/ma/arma/cosy/unstr) block"
     } else if (!is.null((frame[["hmm_g"]] %||% list())[[r]])) {
       "a hidden-Markov sequence"
-    } else if (!is.null((frame[["mix_g"]] %||% list())[[r]])) {
+    } else if (!is.null(frame_block_of(frame, r))) {
+      # the hmm case is caught above, so what is left carrying a
+      # structured block here is the group-level mixture
       "a group-level mixture (mixture(groups = ))"
     } else {
       next
