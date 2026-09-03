@@ -1,3 +1,10 @@
 # Output of dev/run-pkgcheck-docker.sh
 pkgcheck-docker-*.log
 pkgcheck-docker-*.md
+
+# Vendored upstream copies fetched by the TMB-examples audit
+# (kaskr/RTMB/tmb_examples and kaskr/adcomp/tmb_examples).
+# dev/tmb-examples-audit.md says how to refetch them.
+tmb-examples/
+tmb-examples-adcomp/
+upstream-rtmb/
