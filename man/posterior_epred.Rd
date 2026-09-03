@@ -15,7 +15,8 @@ posterior_epred(object, ...)
   object,
   newdata = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
   ndraws = NULL,
   ...
 )
@@ -27,7 +28,8 @@ posterior_linpred(object, ...)
   transform = FALSE,
   newdata = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
   dpar = NULL,
   ndraws = NULL,
   ...
@@ -39,7 +41,8 @@ posterior_predict(object, ...)
   object,
   newdata = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
   ndraws = NULL,
   ...
 )
@@ -49,7 +52,15 @@ posterior_predict(object, ...)
 
 \item{...}{Unused.}
 
-\item{newdata, resp, re.form}{As in \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}.}
+\item{newdata, resp}{As in \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}.}
+
+\item{re_formula}{The random-effect switch, in brms's spelling:
+\code{NULL} (the default) conditions on each draw's own random effects,
+\code{NA} or \code{~0} gives the population-level quantity. Its meaning is
+\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}'s \code{re.form}; see \emph{Argument spellings}.}
+
+\item{re.form}{lme4's spelling of \code{re_formula}, accepted as an alias.
+Pass one or the other, not both.}
 
 \item{ndraws}{Number of draws to use (default: all).}
 
@@ -70,8 +81,8 @@ array (see the section below).
 \code{posterior_epred()} evaluates the response-scale expectation per
 draw; \code{posterior_predict()} additionally simulates responses from
 the family, giving the posterior predictive distribution. Both
-condition on each draw's own random effects (\code{re.form = NA} drops
-them).
+condition on each draw's own random effects (\code{re_formula = NA} drops
+them; \code{re.form} is the accepted alias, see \emph{Argument spellings}).
 }
 \section{Categorical outcomes}{
 
@@ -110,6 +121,33 @@ including the structured families (\code{\link[=hmm]{hmm()}}, \code{mixture(grou
 \code{\link[=mixture_mvn]{mixture_mvn()}}) and residual correlation terms; see the Structured
 draws section of \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}}. Those draws index the rows
 the model was fitted on, so \code{newdata} is refused for them.
+}
+
+\section{Argument spellings}{
+
+frmtmb answers to two dialects, and this family sits on the seam.
+The rule is that a brms-NAMED function speaks brms's argument names,
+while frmtmb's own fit surface (\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}},
+\code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}}, \code{\link[=frm_bootstrap]{frm_bootstrap()}}) keeps lme4's, because
+that is the heritage each name comes from and a reader should be able
+to tell which library a call was written against.
+
+\code{posterior_epred()} and its relatives are brms functions, so the
+random-effect switch is \code{re_formula}. They also SHIPPED taking
+lme4's \code{re.form}, so that spelling keeps working and means exactly
+the same thing: both names feed one internal setting, and whichever
+one is given wins. brms does the same on \code{posterior_epred.brmsfit()},
+which carries \code{re_formula} and \code{re.form} side by side.
+
+Giving both at once is refused rather than resolved. Two names for
+one setting supplied together is a question about what was meant, and
+guessing at it would silently ignore one of them.
+
+The literal default of both formals is an internal "not supplied"
+marker rather than a value, because \code{NULL} (keep the random effects)
+and \code{NA} (drop them) are both real settings here and neither can
+double as "unset". The behavior when neither is given is unchanged:
+\code{NULL} on every draws method, \code{NA} on \code{pp_check()} for a fit.
 }
 
 \examples{

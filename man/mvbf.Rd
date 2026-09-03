@@ -7,17 +7,23 @@
 \usage{
 mvbf(..., rescor = FALSE)
 
-set_rescor(rescor_value = TRUE)
+set_rescor(rescor = arg_unset(), rescor_value = arg_unset())
 }
 \arguments{
 \item{...}{\code{bf()} formulas, each with a family attached (or supply one
 \code{family} to \code{\link[=frm]{frm()}} for all of them).}
 
 \item{rescor}{Model residual correlation between the responses
-(gaussian only).}
+(gaussian only). \code{mvbf()} defaults to \code{FALSE}, \code{set_rescor()} to
+\code{TRUE}. It is brms's spelling on both, and brms's default on
+\code{set_rescor()}; brms's \code{mvbf()} defaults to \code{NULL} and decides
+later, which frmtmb settles at formula-assembly time instead.}
 
-\item{rescor_value}{For \code{set_rescor()}: turn residual correlation on
-or off.}
+\item{rescor_value}{The spelling \code{set_rescor()} shipped with, still
+accepted as an alias of \code{rescor}. It existed only because this Rd
+page documents two functions and could not carry two \code{rescor}
+entries; brms spells the argument \code{rescor}, and so does this
+function now. Give one spelling or the other, not both.}
 }
 \value{
 An object of class \code{frmtmb_mvformula}.
