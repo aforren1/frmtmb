@@ -399,6 +399,17 @@ and `NEWS.md` for the changelog.
 - [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
   : Declare a non-rowwise likelihood to the core
 
+- [`response_mean()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  [`as_frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  [`eval_dpars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  [`single_response()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  [`fit_extras()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  [`dpar_linpred()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  : Accessors for a structured family written outside frmtmb
+
+- [`latent_probs()`](https://aforren1.github.io/frmtmb/reference/latent_probs.md)
+  : Posterior probabilities of the latent states
+
 - [`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`lognormal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`negbinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)

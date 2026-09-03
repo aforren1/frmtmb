@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.45.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -2534,6 +2534,13 @@ scale.</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>
+<td align="left">lca + predict</td>
+<td align="left">predict() returns the gating linear predictor (theta1
+by default, any theta with dpar =), including on newdata. type =
+“response” is refused with the fitted() message.</td>
+</tr>
+<tr class="odd">
+<td align="left">~</td>
 <td align="left">hmm + simulate</td>
 <td align="left">A draw walks the chain forward per sequence and then
 emits, so it needs the emission family to have a simulator. re.form and
@@ -2542,7 +2549,7 @@ structured simulator (fam$sim_ctx), so posterior_predict() and
 frm_simulate() reach it too; posterior_predict(newdata =) is refused,
 because the sequence structure indexes the fitted rows.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">hmm + residuals</td>
 <td align="left">type = “response” and “pearson” are computed against
@@ -2550,18 +2557,11 @@ the occupancy-weighted mean, with the pearson scale the
 law-of-total-variance mixture variance. type = “deviance” is refused:
 there is no per-row likelihood to saturate.</td>
 </tr>
-<tr class="even">
-<td align="left">~</td>
-<td align="left">lca + predict</td>
-<td align="left">predict() returns the gating linear predictor (theta1
-by default, any theta with dpar =), including on newdata. type =
-“response” is refused with the fitted() message.</td>
-</tr>
 <tr class="odd">
 <td align="left">x</td>
 <td align="left">mvbf + fitted; rescor + fitted</td>
-<td align="left">Refused: fitted() calls uni_resp() and stops with
-‘fitted() is not supported yet for multivariate fits’. Predict one
+<td align="left">Refused: fitted() calls single_response() and stops
+with ‘fitted() is not supported yet for multivariate fits’. Predict one
 response at a time instead: predict(fit, resp = ).</td>
 </tr>
 <tr class="even">
@@ -2602,24 +2602,24 @@ predictor.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
-<td align="left">hmm + residuals_osa</td>
-<td align="left">Refused: one-step prediction needs the taped density of
-one observation given the earlier ones, and the tape holds a forward
-recursion over each whole sequence with no registered observation
-vector.</td>
-</tr>
-<tr class="odd">
-<td align="left">x</td>
 <td align="left">lca + fitted</td>
 <td align="left">Refused: the response is a matrix of nominal item
 codes, so there is no mean to fit. lca_probs() and lca_profiles() are
 the post-fit surface.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">lca + residuals</td>
 <td align="left">Refused for the same reason as fitted(): no fitted
 mean, so no residual.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">hmm + residuals_osa</td>
+<td align="left">Refused: one-step prediction needs the taped density of
+one observation given the earlier ones, and the tape holds a forward
+recursion over each whole sequence with no registered observation
+vector.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>

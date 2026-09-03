@@ -1,3 +1,36 @@
+# frmtmb 0.46.0
+
+The structured-family protocol completes in-package: hmm and lca ride
+`fam$structure` alone, and the extension API is exported.
+
+* New exported `latent_probs()` returns the posterior latent-state
+  probabilities of any family that declares them. `mixture_probs()`,
+  `hmm_probs()` and `lca_probs()` are unchanged and now reach it;
+  `hmm_viterbi()` stays its own decoding pass.
+* New extension API on one page, `?"frmtmb-extension-api"`:
+  `single_response()`, `eval_dpars()`, `fit_extras()`,
+  `dpar_linpred()`, `response_mean()` and `as_frmtmb_family()` are
+  the read-only accessors a `frmtmb_structure()` slot may use, with a
+  stability promise. `uni_resp()` was internal and is now
+  `single_response()`.
+* `frmtmb_structure()` gains `check_fit`, `unit` and a
+  `cluster_robust` capability flag, and `loglik` becomes optional. A
+  structure with no `loglik` is a capability declaration: the family
+  keeps its rowwise likelihood and carries only the refusals that
+  belong to it, and its capability flags default to TRUE so it names
+  what it refuses instead of enumerating what already works.
+* No core file branches on `hmm()` or `lca()` any more.
+  `fit$frame$hmm_g` is gone; a hidden-Markov structure's data is
+  `fit$frame$blocks[[response]]`. The compatibility matrix takes both
+  families' rows from the families themselves through a registration
+  the boundary test polices.
+* One wording change: each mixture-type family now states the REML
+  and `profile = TRUE` refusals in its own name. The message
+  previously listed `mixture()`, `mixture_mvn()` and `lca()`
+  whichever one was fitted; everything after the colon is unchanged.
+* Fits are bit-identical to 0.45.0, and `frm_compat()` resolves every
+  feature pair to the same status.
+
 # frmtmb 0.45.0
 
 The structured-family protocol: the first step of the core and

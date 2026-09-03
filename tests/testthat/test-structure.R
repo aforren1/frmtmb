@@ -21,6 +21,11 @@ test_that("a structure with no loglik declares capabilities only", {
   expect_s3_class(st, "frmtmb_structure")
   expect_null(st[["loglik"]])
   expect_false(structure_allows(st, "osa"))
+  # with no loglik the defaults OPEN: everything already works for a
+  # rowwise family, so it names only what it refuses
+  expect_true(structure_allows(st, "reml"))
+  expect_true(structure_allows(st, "conditional_effects"))
+  expect_identical(sum(!st[["supports"]]), 1L)
 })
 
 test_that("every capability starts refused", {

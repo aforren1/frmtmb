@@ -17,7 +17,9 @@ frmtmb_structure(
   check_spec = NULL,
   frame_block = NULL,
   check_frame = NULL,
-  loglik,
+  check_fit = NULL,
+  loglik = NULL,
+  unit = NULL,
   fitted_mean = NULL,
   fitted_var = NULL,
   latent_probs = NULL,
@@ -64,6 +66,16 @@ frmtmb_structure(
   the response. It sees the assembled frame without the parameter
   template.
 
+- check_fit:
+
+  `function(resp, frame, template)` run once the starting values are
+  resolved and before the optimizer, for a refusal or a warning that
+  depends on WHERE the fit starts rather than on the model. `template`
+  is the starting parameter list. The capability flags cover the fitting
+  options a structure cannot answer at all; this covers a start the
+  structure can answer only badly, such as a start sitting on a
+  label-symmetry axis.
+
 - loglik:
 
   `function(y, dpars, aterms, weights, block, extra)` returning the
@@ -77,6 +89,17 @@ frmtmb_structure(
   a row weight means for a likelihood that is not rowwise, and may have
   refused weights in `check_spec`. It must not call
   [`RTMB::OBS()`](https://rdrr.io/pkg/RTMB/man/TMB-interface.html).
+
+- unit:
+
+  One noun phrase naming the smallest independent unit of `loglik`, as
+  it should read in the middle of a sentence: "a hidden-Markov
+  sequence", "a group-level mixture". The core quotes it where it must
+  explain that a per-OBSERVATION quantity does not exist, which today is
+  [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) and
+  [`waic()`](https://aforren1.github.io/frmtmb/reference/loo.md)
+  refusing a pointwise log-likelihood matrix. Ignored when `loglik` is
+  `NULL`.
 
 - fitted_mean, fitted_var:
 
@@ -119,16 +142,26 @@ An object of class `frmtmb_structure`.
 
 ## Details
 
-Only `loglik` is required. Every other slot defaults to the rowwise
-behavior, which is what a family that changes the likelihood and nothing
-else needs.
+Every slot defaults to the rowwise behavior, which is what a family that
+changes the likelihood and nothing else needs: give `loglik` and leave
+the rest alone.
+
+`loglik = NULL` keeps the family's own rowwise `lpdf` and makes the
+structure a CAPABILITY DECLARATION instead. That is what a family whose
+likelihood does factorize per row but which still has to refuse things
+in its own words wants:
+[`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) is rowwise
+per subject and still refuses `REML`, `residuals(type = "osa")` and
+random effects in its gating predictor, and each of those refusals is a
+property of the family rather than of the method that meets it.
 
 ## The block
 
 `frame_block()` returns the **block**: a plain list of DATA, stored at
 `fit$frame$blocks[[response]]` and handed back to `loglik()`,
-`fitted_mean()`, `fitted_var()`, `latent_probs()` and `sim_ctx()`. It is
-saved inside the fit and rebuilt by
+`fitted_mean()`, `fitted_var()`,
+[`latent_probs()`](https://aforren1.github.io/frmtmb/reference/latent_probs.md)
+and `sim_ctx()`. It is saved inside the fit and rebuilt by
 [`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md), so it
 must hold no AD values and no closure that captures the model frame.
 Read and write it with `[[ ]]` only: `$` partial matching is how a `mix`
@@ -158,8 +191,11 @@ Everything else in the block belongs to the family.
 
 ## Capability flags
 
-`supports` is a named logical vector or list. Every name defaults to
-`FALSE`, so a structured family starts fully refused and opts in:
+`supports` is a named logical vector or list. With a `loglik`, every
+name defaults to `FALSE`: a non-rowwise likelihood starts fully refused
+and opts in. Without one (a capability declaration for a family that
+keeps its rowwise likelihood), every name defaults to `TRUE` and the
+family names only what it refuses:
 
 - `reml`:
 
@@ -211,6 +247,10 @@ Everything else in the block belongs to the family.
 
   `mi()` on the same response.
 
+- `cluster_robust`:
+
+  [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md).
+
 `FALSE` refuses the capability outright. `TRUE` means only that the
 structure does not stand in the way: the core's ordinary rules still
 apply, so a mixture that sets `deviance = TRUE` is still refused a
@@ -234,6 +274,10 @@ in two places; the core falls back to the bare flag name.
 
 ## See also
 
+[frmtmb-extension-api](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+for the accessors a slot may use to read a fit,
+[`latent_probs()`](https://aforren1.github.io/frmtmb/reference/latent_probs.md)
+for the generic `latent_probs` answers,
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md),
 [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
 

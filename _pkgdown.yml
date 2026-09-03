@@ -28,6 +28,8 @@ reference:
   contents:
   - frmtmb_family
   - frmtmb_structure
+  - frmtmb-extension-api
+  - latent_probs
   - frmtmb-families
   - mixture
   - mixture_mvn

@@ -1,5 +1,60 @@
 # Changelog
 
+## frmtmb 0.46.0
+
+The structured-family protocol completes in-package: hmm and lca ride
+`fam$structure` alone, and the extension API is exported.
+
+- New exported
+  [`latent_probs()`](https://aforren1.github.io/frmtmb/reference/latent_probs.md)
+  returns the posterior latent-state probabilities of any family that
+  declares them.
+  [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md),
+  [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md)
+  and
+  [`lca_probs()`](https://aforren1.github.io/frmtmb/reference/lca_probs.md)
+  are unchanged and now reach it;
+  [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/reference/hmm_viterbi.md)
+  stays its own decoding pass.
+- New extension API on one page,
+  [`?"frmtmb-extension-api"`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md):
+  [`single_response()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md),
+  [`eval_dpars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md),
+  [`fit_extras()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md),
+  [`dpar_linpred()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md),
+  [`response_mean()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  and
+  [`as_frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  are the read-only accessors a
+  [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
+  slot may use, with a stability promise. `uni_resp()` was internal and
+  is now
+  [`single_response()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md).
+- [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
+  gains `check_fit`, `unit` and a `cluster_robust` capability flag, and
+  `loglik` becomes optional. A structure with no `loglik` is a
+  capability declaration: the family keeps its rowwise likelihood and
+  carries only the refusals that belong to it, and its capability flags
+  default to TRUE so it names what it refuses instead of enumerating
+  what already works.
+- No core file branches on
+  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) or
+  [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) any
+  more. `fit$frame$hmm_g` is gone; a hidden-Markov structure’s data is
+  `fit$frame$blocks[[response]]`. The compatibility matrix takes both
+  families’ rows from the families themselves through a registration the
+  boundary test polices.
+- One wording change: each mixture-type family now states the REML and
+  `profile = TRUE` refusals in its own name. The message previously
+  listed
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md),
+  [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
+  and [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md)
+  whichever one was fitted; everything after the colon is unchanged.
+- Fits are bit-identical to 0.45.0, and
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  resolves every feature pair to the same status.
+
 ## frmtmb 0.45.0
 
 The structured-family protocol: the first step of the core and

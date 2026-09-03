@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.45.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,17 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.46.0" id="frmtmb-0460">frmtmb 0.46.0<a class="anchor" aria-label="anchor" href="#frmtmb-0460"></a></h2>
+<p>The structured-family protocol completes in-package: hmm and lca ride <code>fam$structure</code> alone, and the extension API is exported.</p>
+<ul><li>New exported <code><a href="../reference/latent_probs.html">latent_probs()</a></code> returns the posterior latent-state probabilities of any family that declares them. <code><a href="../reference/mixture_probs.html">mixture_probs()</a></code>, <code><a href="../reference/hmm_probs.html">hmm_probs()</a></code> and <code><a href="../reference/lca_probs.html">lca_probs()</a></code> are unchanged and now reach it; <code><a href="../reference/hmm_viterbi.html">hmm_viterbi()</a></code> stays its own decoding pass.</li>
+<li>New extension API on one page, <code><a href="../reference/frmtmb-extension-api.html">?"frmtmb-extension-api"</a></code>: <code><a href="../reference/frmtmb-extension-api.html">single_response()</a></code>, <code><a href="../reference/frmtmb-extension-api.html">eval_dpars()</a></code>, <code><a href="../reference/frmtmb-extension-api.html">fit_extras()</a></code>, <code><a href="../reference/frmtmb-extension-api.html">dpar_linpred()</a></code>, <code><a href="../reference/frmtmb-extension-api.html">response_mean()</a></code> and <code><a href="../reference/frmtmb-extension-api.html">as_frmtmb_family()</a></code> are the read-only accessors a <code><a href="../reference/frmtmb_structure.html">frmtmb_structure()</a></code> slot may use, with a stability promise. <code>uni_resp()</code> was internal and is now <code><a href="../reference/frmtmb-extension-api.html">single_response()</a></code>.</li>
+<li>
+<code><a href="../reference/frmtmb_structure.html">frmtmb_structure()</a></code> gains <code>check_fit</code>, <code>unit</code> and a <code>cluster_robust</code> capability flag, and <code>loglik</code> becomes optional. A structure with no <code>loglik</code> is a capability declaration: the family keeps its rowwise likelihood and carries only the refusals that belong to it, and its capability flags default to TRUE so it names what it refuses instead of enumerating what already works.</li>
+<li>No core file branches on <code><a href="../reference/hmm.html">hmm()</a></code> or <code><a href="../reference/lca.html">lca()</a></code> any more. <code>fit$frame$hmm_g</code> is gone; a hidden-Markov structure’s data is <code>fit$frame$blocks[[response]]</code>. The compatibility matrix takes both families’ rows from the families themselves through a registration the boundary test polices.</li>
+<li>One wording change: each mixture-type family now states the REML and <code>profile = TRUE</code> refusals in its own name. The message previously listed <code><a href="../reference/mixture.html">mixture()</a></code>, <code><a href="../reference/mixture_mvn.html">mixture_mvn()</a></code> and <code><a href="../reference/lca.html">lca()</a></code> whichever one was fitted; everything after the colon is unchanged.</li>
+<li>Fits are bit-identical to 0.45.0, and <code><a href="../reference/frm_compat.html">frm_compat()</a></code> resolves every feature pair to the same status.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.45.0" id="frmtmb-0450">frmtmb 0.45.0<a class="anchor" aria-label="anchor" href="#frmtmb-0450"></a></h2>
 <p>The structured-family protocol: the first step of the core and extensions split.</p>

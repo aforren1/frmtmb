@@ -298,9 +298,15 @@ Tier context, from the split memo this protocol serves:
   Additional_repositories from the core DESCRIPTION.
 - Tier 2, the draws surface (frm_sample, the draws methods, loo, the
   non-centered reparameterization, sampling default priors), splits
-  at CRAN time. Prerequisite: interop.R is misnamed - the CORE prior
-  machinery in it (resolve_prior_input, neg_log_prior_fn,
-  default_priors_for, the prior merging) moves to priors.R first.
+  in the same round as the ODE extraction (maintainer decision
+  2026-09-03, revised from "at CRAN time": the sampling tests are the
+  heaviest part of the suite, so the split buys iteration speed
+  immediately; see dev/ode-extraction.md for the round's coordination
+  rules). Prerequisite, DONE at v0.45.0: the CORE prior machinery in
+  interop.R (resolve_prior_input, neg_log_prior_fn, resolve_bounds,
+  the prior constructors) moved to priors.R; the sampling-only
+  default-prior machinery deliberately stayed, because it leaves with
+  this package.
   Note two corrections to the memo: `ncp_plan` and its family are
   sampling-only, not core (the fit never touches them), and
   `check_laplace()` ships WITH the draws package (it already needs

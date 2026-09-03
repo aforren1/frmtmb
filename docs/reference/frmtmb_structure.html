@@ -17,7 +17,7 @@ with frmtmb_family(structure = )."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.45.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,7 +76,9 @@ with <code>frmtmb_family(structure = )</code>.</p>
 <span>  check_spec <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  frame_block <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  check_frame <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">loglik</span>,</span>
+<span>  check_fit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  loglik <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  fitted_mean <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  fitted_var <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  latent_probs <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -126,6 +128,16 @@ design rather than on the response. It sees the assembled frame
 without the parameter template.</p></dd>
 
 
+<dt id="arg-check-fit">check_fit<a class="anchor" aria-label="anchor" href="#arg-check-fit"></a></dt>
+<dd><p><code>function(resp, frame, template)</code> run once the
+starting values are resolved and before the optimizer, for a
+refusal or a warning that depends on WHERE the fit starts rather
+than on the model. <code>template</code> is the starting parameter list. The
+capability flags cover the fitting options a structure cannot
+answer at all; this covers a start the structure can answer only
+badly, such as a start sitting on a label-symmetry axis.</p></dd>
+
+
 <dt id="arg-loglik">loglik<a class="anchor" aria-label="anchor" href="#arg-loglik"></a></dt>
 <dd><p><code>function(y, dpars, aterms, weights, block, extra)</code>
 returning the taped log-likelihood of the WHOLE response as one AD
@@ -138,6 +150,15 @@ extra parameters as an AD list, in the order <code>extra_pars</code> declared
 them. The family decides what a row weight means for a likelihood
 that is not rowwise, and may have refused weights in <code>check_spec</code>.
 It must not call <code><a href="https://rdrr.io/pkg/RTMB/man/TMB-interface.html" class="external-link">RTMB::OBS()</a></code>.</p></dd>
+
+
+<dt id="arg-unit">unit<a class="anchor" aria-label="anchor" href="#arg-unit"></a></dt>
+<dd><p>One noun phrase naming the smallest independent unit of
+<code>loglik</code>, as it should read in the middle of a sentence: "a
+hidden-Markov sequence", "a group-level mixture". The core quotes
+it where it must explain that a per-OBSERVATION quantity does not
+exist, which today is <code><a href="loo.html">loo()</a></code> and <code><a href="loo.html">waic()</a></code> refusing a pointwise
+log-likelihood matrix. Ignored when <code>loglik</code> is <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-fitted-mean-fitted-var">fitted_mean, fitted_var<a class="anchor" aria-label="anchor" href="#arg-fitted-mean-fitted-var"></a></dt>
@@ -178,9 +199,16 @@ Capability flags. Unnamed entries and unknown names are refused.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Only <code>loglik</code> is required. Every other slot defaults to the rowwise
-behavior, which is what a family that changes the likelihood and
-nothing else needs.</p>
+    <p>Every slot defaults to the rowwise behavior, which is what a family
+that changes the likelihood and nothing else needs: give <code>loglik</code> and
+leave the rest alone.</p>
+<p><code>loglik = NULL</code> keeps the family's own rowwise <code>lpdf</code> and makes the
+structure a CAPABILITY DECLARATION instead. That is what a family
+whose likelihood does factorize per row but which still has to refuse
+things in its own words wants: <code><a href="lca.html">lca()</a></code> is rowwise per subject and
+still refuses <code>REML</code>, <code>residuals(type = "osa")</code> and random effects in
+its gating predictor, and each of those refusals is a property of the
+family rather than of the method that meets it.</p>
     </div>
     <div class="section level2">
     <h2 id="the-block">The block<a class="anchor" aria-label="anchor" href="#the-block"></a></h2>
@@ -188,7 +216,7 @@ nothing else needs.</p>
 
 <p><code>frame_block()</code> returns the <strong>block</strong>: a plain list of DATA, stored
 at <code>fit$frame$blocks[[response]]</code> and handed back to <code>loglik()</code>,
-<code>fitted_mean()</code>, <code>fitted_var()</code>, <code>latent_probs()</code> and <code>sim_ctx()</code>. It
+<code>fitted_mean()</code>, <code>fitted_var()</code>, <code><a href="latent_probs.html">latent_probs()</a></code> and <code>sim_ctx()</code>. It
 is saved inside the fit and rebuilt by <code><a href="refit.html">refit()</a></code>, so it must hold no
 AD values and no closure that captures the model frame. Read and
 write it with <code>[[ ]]</code> only: <code>$</code> partial matching is how a <code>mix</code> read
@@ -215,8 +243,11 @@ so that every structured family spells it the same way.</p></dd>
     <h2 id="capability-flags">Capability flags<a class="anchor" aria-label="anchor" href="#capability-flags"></a></h2>
 
 
-<p><code>supports</code> is a named logical vector or list. Every name defaults to
-<code>FALSE</code>, so a structured family starts fully refused and opts in:</p><dl><dt><code>reml</code></dt>
+<p><code>supports</code> is a named logical vector or list. With a <code>loglik</code>, every
+name defaults to <code>FALSE</code>: a non-rowwise likelihood starts fully
+refused and opts in. Without one (a capability declaration for a
+family that keeps its rowwise likelihood), every name defaults to
+<code>TRUE</code> and the family names only what it refuses:</p><dl><dt><code>reml</code></dt>
 <dd><p><code>REML = TRUE</code>.</p></dd>
 
 <dt><code>quadrature</code></dt>
@@ -252,6 +283,9 @@ so that every structured family spells it the same way.</p></dd>
 <dt><code>mi</code></dt>
 <dd><p><code>mi()</code> on the same response.</p></dd>
 
+<dt><code>cluster_robust</code></dt>
+<dd><p><code><a href="vcov_cluster.html">vcov_cluster()</a></code>.</p></dd>
+
 
 </dl><p><code>FALSE</code> refuses the capability outright. <code>TRUE</code> means only that the
 structure does not stand in the way: the core's ordinary rules still
@@ -275,7 +309,9 @@ to the bare flag name.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="frmtmb_family.html">frmtmb_family()</a></code>, <code><a href="mixture.html">mixture()</a></code></p></div>
+    <div class="dont-index"><p><a href="frmtmb-extension-api.html">frmtmb-extension-api</a> for the accessors a slot may use to
+read a fit, <code><a href="latent_probs.html">latent_probs()</a></code> for the generic <code>latent_probs</code>
+answers, <code><a href="frmtmb_family.html">frmtmb_family()</a></code>, <code><a href="mixture.html">mixture()</a></code></p></div>
     </div>
 
     <div class="section level2">

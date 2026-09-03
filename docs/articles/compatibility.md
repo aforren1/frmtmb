@@ -371,19 +371,19 @@ other.
 | ~ | mixture + simulate | Works only when every component family has a simulator. |
 | ~ | mixture + frm_sample | Mixture posteriors are multimodal. Sample with init = “random” rather than the mode-anchored default. |
 | ~ | hmm + predict | type = “link” and dpar = work normally, including the transition logits. type = “response” equals fitted() in sample; it is refused for newdata (state occupancy conditions on the observed responses of a whole sequence) and se.fit is refused on the response scale. |
+| ~ | lca + predict | predict() returns the gating linear predictor (theta1 by default, any theta with dpar =), including on newdata. type = “response” is refused with the fitted() message. |
 | ~ | hmm + simulate | A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. Since v0.36 the chain walk is the family’s structured simulator (fam\$sim_ctx), so posterior_predict() and frm_simulate() reach it too; posterior_predict(newdata =) is refused, because the sequence structure indexes the fitted rows. |
 | ~ | hmm + residuals | type = “response” and “pearson” are computed against the occupancy-weighted mean, with the pearson scale the law-of-total-variance mixture variance. type = “deviance” is refused: there is no per-row likelihood to saturate. |
-| ~ | lca + predict | predict() returns the gating linear predictor (theta1 by default, any theta with dpar =), including on newdata. type = “response” is refused with the fitted() message. |
-| x | mvbf + fitted; rescor + fitted | Refused: fitted() calls uni_resp() and stops with ‘fitted() is not supported yet for multivariate fits’. Predict one response at a time instead: predict(fit, resp = ). |
+| x | mvbf + fitted; rescor + fitted | Refused: fitted() calls single_response() and stops with ‘fitted() is not supported yet for multivariate fits’. Predict one response at a time instead: predict(fit, resp = ). |
 | x | mvbf + simulate; mvbf + residuals; mvbf + emmeans | Refused: the post-fit methods below are univariate-only for now. |
 | x | mvbf + residuals_osa | Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included. |
 | x | rescor + simulate | Refused: simulate() is not supported for multivariate fits yet. |
 | x | rescor + residuals; rescor + residuals_osa | Refused: residuals() is not supported for multivariate fits yet. |
 | x | rescor + emmeans | Refused: emmeans support is univariate-only for now. |
 | x | nl + emmeans | Refused: emmeans support needs a linear mu predictor. |
-| x | hmm + residuals_osa | Refused: one-step prediction needs the taped density of one observation given the earlier ones, and the tape holds a forward recursion over each whole sequence with no registered observation vector. |
 | x | lca + fitted | Refused: the response is a matrix of nominal item codes, so there is no mean to fit. lca_probs() and lca_profiles() are the post-fit surface. |
 | x | lca + residuals | Refused for the same reason as fitted(): no fitted mean, so no residual. |
+| x | hmm + residuals_osa | Refused: one-step prediction needs the taped density of one observation given the earlier ones, and the tape holds a forward recursion over each whole sequence with no registered observation vector. |
 | x | lca + residuals_osa | Refused: one observation is a subject’s whole item response pattern, not a value with a univariate conditional CDF to step through. |
 
 ## Within-group residual correlation

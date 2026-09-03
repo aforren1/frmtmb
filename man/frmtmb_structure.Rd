@@ -149,8 +149,11 @@ Everything else in the block belongs to the family.
 
 \section{Capability flags}{
 
-\code{supports} is a named logical vector or list. Every name defaults to
-\code{FALSE}, so a structured family starts fully refused and opts in:
+\code{supports} is a named logical vector or list. With a \code{loglik}, every
+name defaults to \code{FALSE}: a non-rowwise likelihood starts fully
+refused and opts in. Without one (a capability declaration for a
+family that keeps its rowwise likelihood), every name defaults to
+\code{TRUE} and the family names only what it refuses:
 \describe{
 \item{\code{reml}}{\code{REML = TRUE}.}
 \item{\code{quadrature}}{\verb{quadrature =} other than the Laplace default.}

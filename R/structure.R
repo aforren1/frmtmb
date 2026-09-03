@@ -94,8 +94,11 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #' Everything else in the block belongs to the family.
 #'
 #' @section Capability flags:
-#' `supports` is a named logical vector or list. Every name defaults to
-#' `FALSE`, so a structured family starts fully refused and opts in:
+#' `supports` is a named logical vector or list. With a `loglik`, every
+#' name defaults to `FALSE`: a non-rowwise likelihood starts fully
+#' refused and opts in. Without one (a capability declaration for a
+#' family that keeps its rowwise likelihood), every name defaults to
+#' `TRUE` and the family names only what it refuses:
 #' \describe{
 #'   \item{`reml`}{`REML = TRUE`.}
 #'   \item{`quadrature`}{`quadrature =` other than the Laplace default.}
@@ -260,7 +263,15 @@ frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
          "naming the smallest independent unit of loglik, or NULL",
          call. = FALSE)
   }
-  supports <- validate_supports(supports)
+  # The conservative all-FALSE default is right for a non-rowwise
+  # likelihood, where nothing downstream is known to work. It is exactly
+  # wrong for a capability declaration (loglik NULL): there the family
+  # keeps its rowwise likelihood, everything already works, and a flag
+  # could only take capabilities away - so the default opens and the
+  # family names what it refuses.
+  base <- if (is.null(loglik)) !frmtmb_structure_flags else
+    frmtmb_structure_flags
+  supports <- validate_supports(supports, base)
   refusals <- validate_refusals(refusals, supports)
   # base::structure(), spelled out: `structure` is also this protocol's
   # own noun and frmtmb_family() takes it as an argument name
@@ -292,11 +303,11 @@ structure_supports_all <- function(...) {
   utils::modifyList(as.list(!frmtmb_structure_flags), list(...))
 }
 
-#' Merge declared flags over the conservative defaults.
+#' Merge declared flags over the defaults the constructor chose.
 #'
 #' @noRd
-validate_supports <- function(supports) {
-  out <- frmtmb_structure_flags
+validate_supports <- function(supports, base = frmtmb_structure_flags) {
+  out <- base
   if (is.null(supports) || !length(supports)) return(out)
   if (!is.list(supports) && !is.logical(supports)) {
     stop("frmtmb_structure(supports =) must be a named list or logical ",

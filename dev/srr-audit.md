@@ -47,7 +47,7 @@ follow-up that is code, not prose; those are in "Logged" at the end.
 | G2.0, G2.1 | `R/families.R:95` | holds | `stopifnot()` contract and `as_frmtmb_family()` dispatch verified. |
 | G2.0, G2.1 | `R/priors.R:68` | holds | Length-one character assertion and per-distribution arity checks verified. |
 | G2.3a | `R/priors.R:74` | holds | `match.arg()` over the five prior classes; LKJ checked in both directions. |
-| G2.2 | `R/predict.R:2106` | holds | `uni_resp()` guards all six named methods and four more. |
+| G2.2 | `R/predict.R:2106` | holds | `single_response()` (nee `uni_resp()`) guards all six named methods and four more. |
 | G2.3, G2.3a | `R/predict.R:927` | holds | `match.arg(type)`; unknown `resp` and `dpar` both list what is available. |
 | G3.0 | `R/predict.R:932` | weakened | "Floating-point values are never compared for equality" is false as written: the zero- and one-inflation indicators and several degenerate-input guards use exact equality. Rewritten to claim the true property (no *computed* quantity is compared for equality) and to name the exceptions and why they are correct. |
 | G2.4, G2.4a-c, G2.4e | `R/fit.R:89` | weakened | Said grouping level labels come from `as.character()`. They come from `levels()`; `as.character()` is applied to grouping *values* before matching. Reworded to what the code does. |

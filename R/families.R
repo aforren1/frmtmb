@@ -2732,8 +2732,12 @@ mixture_structure <- function(mx) {
     # allowed and then checked, because the sandwich needs every
     # mixture group to sit inside one cluster rather than needing no
     # groups at all.
+    # multivariate = FALSE states what mixture_check_spec() enforces
+    # upstream (a latent class belongs to the group; a second response
+    # would need a joint class process): the flag must not promise what
+    # a future consumer of it would then wrongly allow
     supports = structure_supports_all(reml = FALSE, profile = FALSE,
-                                      osa = FALSE),
+                                      osa = FALSE, multivariate = FALSE),
     refusals = mixture_multimodal_refusals("a mixture() family")
   )
 }
