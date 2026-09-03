@@ -338,7 +338,7 @@ test_that("declared refusals at the frame stage really refuse", {
   n <- 60
   d <- data.frame(
     y = rnorm(n, 5), y2 = rnorm(n), x = rnorm(n),
-    s = runif(n, .2, .5), w = runif(n, .5, 2),
+    s = runif(n, 0.2, 0.5), w = runif(n, 0.5, 2),
     cc = rep(0L, n),
     o = factor(sample(1:3, n, TRUE), ordered = TRUE),
     g = factor(rep(1:6, each = 10)))

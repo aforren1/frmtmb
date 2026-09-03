@@ -1402,6 +1402,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     args$lower <- bounds$lower
     args$upper <- bounds$upper
   }
+  check_tmbstan_build("frm_sample()")
   sf <- do.call(tmbstan::tmbstan, args)
   if (!length(sf@sim) || !length(sf@sim$samples)) {
     stop("frm_sample(): the sampler returned no draws (rstan printed ",
@@ -1607,7 +1608,54 @@ as_tmbstan <- function(fit, ...) {
   if (!requireNamespace("tmbstan", quietly = TRUE)) {
     stop("as_tmbstan() needs the 'tmbstan' package", call. = FALSE)
   }
+  check_tmbstan_build("as_tmbstan()")
   tmbstan::tmbstan(fit$obj, ...)
+}
+
+#' Refuse a tmbstan build that silently samples the wrong density.
+#'
+#' tmbstan generates its Stan model at INSTALL time: tools/autogen.R
+#' rewrites a `std_normal_lpdf` placeholder in the stanc output into
+#' the call that evaluates the TMB objective. stanc 2.39.0 (shipped by
+#' StanHeaders 2.39.1, on CRAN 2026-09-02) emits TWO log_prob_impl
+#' overloads where 2.32 emitted one, and autogen patches only the
+#' first match. HMC reads value and gradient from the unpatched
+#' reverse-mode overload, so every chain samples a standard normal
+#' instead of the model, with the objective, priors and data all
+#' silently absent. Proven by a one-line autogen patch flipping the
+#' behavior; dev/prior-dropping-investigation.md has the full record.
+#'
+#' The check is static (one read of the installed model.hpp, cached
+#' per session) and names the exact defect, so a user on an affected
+#' build gets a refusal before any sampling rather than plausible
+#' garbage after it.
+#'
+#' @noRd
+tmbstan_build_broken <- local({
+  cached <- NULL
+  function() {
+    if (!is.null(cached)) return(cached)
+    hpp <- system.file("model.hpp", package = "tmbstan")
+    cached <<- nzchar(hpp) &&
+      any(grepl("std_normal_lpdf<propto__>(y)",
+                readLines(hpp, warn = FALSE), fixed = TRUE))
+    cached
+  }
+})
+
+check_tmbstan_build <- function(caller) {
+  if (tmbstan_build_broken()) {
+    stop(caller, ": this tmbstan installation was built against ",
+         "StanHeaders >= 2.39, whose code generator leaves one of the ",
+         "two generated log-density overloads unpatched, so EVERY ",
+         "chain silently samples a standard normal instead of the ",
+         "model (tmbstan tools/autogen.R replaces only the first ",
+         "match). Until an upstream fix, install a binary tmbstan ",
+         "build, or reinstall tmbstan with StanHeaders 2.32.10, and ",
+         "distrust any draws already produced by this installation",
+         call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' emmeans support: registered in .onLoad, only for the parametric fixed

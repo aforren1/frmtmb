@@ -8,7 +8,7 @@
   "codeRepository": "https://github.com/aforren1/frmtmb",
   "issueTracker": "https://github.com/aforren1/frmtmb/issues",
   "license": "https://spdx.org/licenses/GPL-2.0",
-  "version": "0.39.0",
+  "version": "0.40.1",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "R",
@@ -20,7 +20,8 @@
       "@type": "Person",
       "givenName": "Alex",
       "familyName": "Forrence",
-      "email": "alex.forrence@gmail.com"
+      "email": "alex.forrence@gmail.com",
+      "@id": "https://orcid.org/0000-0002-9728-6337"
     }
   ],
   "maintainer": [
@@ -28,7 +29,8 @@
       "@type": "Person",
       "givenName": "Alex",
       "familyName": "Forrence",
-      "email": "alex.forrence@gmail.com"
+      "email": "alex.forrence@gmail.com",
+      "@id": "https://orcid.org/0000-0002-9728-6337"
     }
   ],
   "softwareSuggestions": [
@@ -676,7 +678,7 @@
     },
     "SystemRequirements": null
   },
-  "fileSize": "3112KB",
+  "fileSize": "3160.373KB",
   "citation": [
     {
       "@type": "SoftwareSourceCode",
@@ -690,10 +692,11 @@
       ],
       "name": "frmtmb: Formula-Based Regression Models via RTMB",
       "url": "https://github.com/aforren1/frmtmb",
-      "description": "R package version 0.39.0"
+      "description": "R package version 0.40.1"
     }
   ],
   "releaseNotes": "https://github.com/aforren1/frmtmb/blob/main/NEWS.md",
   "readme": "https://github.com/aforren1/frmtmb/blob/main/README.md",
-  "contIntegration": ["https://github.com/aforren1/frmtmb/actions/workflows/R-CMD-check.yaml", "https://github.com/aforren1/frmtmb/actions/workflows/test-coverage.yaml", "https://github.com/aforren1/frmtmb/actions/workflows/pkgcheck.yaml"]
+  "contIntegration": ["https://github.com/aforren1/frmtmb/actions/workflows/R-CMD-check.yaml", "https://github.com/aforren1/frmtmb/actions/workflows/test-coverage.yaml", "https://github.com/aforren1/frmtmb/actions/workflows/pkgcheck.yaml"],
+  "developmentStatus": "https://www.repostatus.org/#active"
 }

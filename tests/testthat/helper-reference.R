@@ -88,13 +88,19 @@ sim_pois_glmm <- function(seed = 101, n_g = 30, n_per = 20) {
 }
 
 # Chain-agreement gates: assertions that compare NUTS chain output to a
-# reference quantity (the ML fit, a Wald SE, another chain). A seeded
-# Stan chain is not platform-deterministic, and pkgcheck's container
-# repeatedly draws chains that fail gates every vetted platform passes
-# (local per-file, local single-session, the R-CMD-check runners), so
-# that one workflow turns the gates off with FRMTMB_SAMPLER_GATES=false.
-# Structural sampler assertions (dimensions, names, exact per-draw
-# identities) never use this switch and run everywhere.
+# reference quantity (the ML fit, a Wald SE, another chain). Two
+# reasons they carry a switch, learned in that order:
+# (1) a seeded Stan chain is not platform-deterministic (a 1.11-sd
+# mean gap was measured on macOS CI), so agreement bands must not
+# assume this machine's chains; and
+# (2) what looked like worse chain luck in pkgcheck's container was a
+# REAL DEFECT the gates partly masked: a tmbstan built under
+# StanHeaders >= 2.39 silently samples a standard normal instead of
+# the model (dev/prior-dropping-investigation.md), which frm_sample()
+# now refuses statically. The ungated correctness assertions are what
+# caught it, which is why structural and exactness tests never take
+# this switch. FRMTMB_SAMPLER_GATES=false remains in the pkgcheck
+# workflow for reason (1) only.
 sampler_gates_on <- function() {
   !identical(Sys.getenv("FRMTMB_SAMPLER_GATES"), "false")
 }

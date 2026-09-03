@@ -3,7 +3,8 @@ Title: Formula-Based Regression Models via 'RTMB'
 Version: 0.40.1
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
-           role = c("aut", "cre"))
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9728-6337"))
 Description: Fits regression models specified with a 'brms'-style formula
     grammar by maximum likelihood, with the Laplace approximation for
     random effects. Model objectives are generated as R closures and

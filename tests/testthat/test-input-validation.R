@@ -111,3 +111,18 @@ test_that("correct calls are untouched by the validation layer", {
   s <- simulate(cs$fit, nsim = 3L)
   expect_identical(ncol(as.matrix(s)), 3L)
 })
+
+test_that("a tmbstan build that samples the wrong density is refused", {
+  skip_if_not_installed("tmbstan")
+  # this installation is a healthy binary build: the static check must
+  # pass silently (the affected builds are source installs whose
+  # model.hpp keeps an unpatched std_normal placeholder; see
+  # dev/prior-dropping-investigation.md)
+  expect_false(frmtmb:::tmbstan_build_broken())
+  expect_silent(frmtmb:::check_tmbstan_build("frm_sample()"))
+  # the refusal path, exercised against a synthesized broken model.hpp
+  # through the same grepl the guard runs
+  bad <- "lp_accum__.add(stan::math::std_normal_lpdf<propto__>(y));"
+  expect_true(any(grepl("std_normal_lpdf<propto__>(y)", bad,
+                        fixed = TRUE)))
+})
