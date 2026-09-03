@@ -65,7 +65,26 @@ frm(
 - REML:
 
   If `TRUE`, integrate the `mu` fixed effects out of the likelihood
-  along with the random effects (restricted maximum likelihood).
+  along with the random effects (restricted maximum likelihood). For a
+  gaussian model the Laplace approximation is exact for that integral,
+  so this IS classical Patterson-Thompson REML. For any other family no
+  error-contrast derivation exists; what is computed is the
+  Laplace-approximated integrated likelihood for the variance parameters
+  under a flat prior on the fixed effects, which agrees to first order
+  with the Cox-Reid adjusted profile likelihood (the general-model REML
+  analogue). glmmTMB computes the same quantity. It usually reduces the
+  finite-sample downward bias of variance components, which is REML's
+  purpose, but it is an approximation stacked on an approximation, not
+  an exactness result. The usual restriction carries over:
+  [`anova()`](https://rdrr.io/r/stats/anova.html) compares REML fits
+  only when their fixed-effect designs agree.
+
+  Distributional-parameter coefficients (a `sigma ~ z` model's, for
+  example) are deliberately NOT integrated: they belong to the
+  variance-parameter set, exactly as a `varExp()` coefficient does in
+  `nlme::gls(method = "REML")`, and the two agree to optimizer precision
+  for gaussian models. Random effects appearing in a distributional
+  parameter's own formula are integrated like any other latent.
 
 - start:
 

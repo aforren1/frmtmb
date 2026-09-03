@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.41.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -267,7 +267,7 @@ by default, relative to the field’s own sd). Tightening it walks the fit
 onto the exactly constrained likelihood; the default is already four
 orders below the standard error of <code>sd(car)</code>.</p>
 <p><code>spde()</code> fits a Matern field over a finite-element mesh:
-it takes the mesh’s three matrices (<code>fmesher::fm_fem()</code>’s
+it takes the mesh’s three matrices (<code><a href="https://inlabru-org.github.io/fmesher/reference/fm_fem.html" class="external-link">fmesher::fm_fem()</a></code>’s
 <code>c0</code>/<code>g1</code>/<code>g2</code>, or INLA’s
 <code>M0</code>/<code>M1</code>/<code>M2</code>) as fixed data and
 estimates <code>Q = tau^2 (kappa^4 M0 + 2 kappa^2 M1 + M2)</code>. Mesh
@@ -288,7 +288,7 @@ error. Not every node has to be observed: a node no row visits keeps its
 column and its prior, so the field is still smoothed across it.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># node holds the mesh row of each observation, 1..nrow(fem$c0)</span></span>
-<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu">spde</span><span class="op">(</span><span class="fu">fmesher</span><span class="fu">::</span><span class="fu">fm_fem</span><span class="op">(</span><span class="va">mesh</span><span class="op">)</span>, gr <span class="op">=</span> <span class="va">node</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu">spde</span><span class="op">(</span><span class="fu">fmesher</span><span class="fu">::</span><span class="fu"><a href="https://inlabru-org.github.io/fmesher/reference/fm_fem.html" class="external-link">fm_fem</a></span><span class="op">(</span><span class="va">mesh</span><span class="op">)</span>, gr <span class="op">=</span> <span class="va">node</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></code></pre></div>
 <p>Because <code>gr</code> is one node per observation, the mesh has to
 place every observation on a node. A general projector matrix, which

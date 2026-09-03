@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.41.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,21 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.42.0" id="frmtmb-0420">frmtmb 0.42.0<a class="anchor" aria-label="anchor" href="#frmtmb-0420"></a></h2>
+<p>The TMB-examples replication audit, and REML’s semantics documented and validated beyond the gaussian case.</p>
+<div class="section level3">
+<h3 id="the-tmb_examples-audit-0-42-0">The tmb_examples audit<a class="anchor" aria-label="anchor" href="#the-tmb_examples-audit-0-42-0"></a></h3>
+<ul><li>Audited all 35 models in the upstream <code>tmb_examples</code> directories of RTMB and adcomp: 13 replicate through <code><a href="../reference/frm.html">frm()</a></code> at 1e-8 or better, including the SPDE Weibull survival model with censoring, orange_big’s nonlinear growth with 5000 latent effects, socatt’s ordinal GLMM, lr_test’s <code>map =</code> restrictions written as plain formulas, and a million-row regression; 3 are expressible but pinned or cost-capped; 19 name the capability that blocks them. <code>dev/tmb-examples-audit.md</code> carries the table, and every replicating example is a self-contained regression in <code>test-tmb-examples.R</code> with its reference likelihood written inline.</li>
+<li>The Kalman-filter node the roadmap held open is closed by measurement rather than opinion: the filter and the Laplace route agree to 1e-13 on the multivariate random walk, both are linear in series length, and <code>MakeTape()$atomic()</code> collapses the filter to nine tape nodes with no adjoint to derive, so the node is free if ever wanted. What blocks state-space models is the formula grammar. The ranked roadmap that falls out puts a sparse <code>ar1()</code> covariance first: the dense block is cubic in its dimension, and it is the one thing keeping the multivariate stochastic-volatility example from fitting at its published size.</li>
+<li>Two RTMB traps recorded for nonlinear formula authors: a bare <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">pnorm()</a></code> or <code><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">qgamma()</a></code> in an <code>nl</code> body resolves lexically to stats (qualify with <code>RTMB::</code>), and <code><a href="https://rdrr.io/r/base/Vectorize.html" class="external-link">Vectorize()</a></code> strips the automatic-differentiation class from its arguments.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="reml-beyond-gaussian-0-42-0">REML beyond gaussian<a class="anchor" aria-label="anchor" href="#reml-beyond-gaussian-0-42-0"></a></h3>
+<ul><li>The <code>REML</code> documentation now states what the flag computes: exact Patterson-Thompson REML for gaussian models, covariate-dependent sigma included, and for every other family the Laplace-approximated integrated likelihood under a flat prior on the mean coefficients, first-order equivalent to the Cox-Reid adjusted profile likelihood. Distributional-parameter coefficients are deliberately not integrated, matching nlme’s varFunc estimation and the double-GLM literature.</li>
+<li>Validated three ways in <code>test-reml-nongaussian.R</code>: glmmTMB agreement for poisson and bernoulli GLMMs at 1e-5, the Cox-Reid identity verified by hand at the pinned REML optimum, and <code>gls(method = "REML")</code> exactness at 1e-5 for varIdent- and varExp-shaped sigma models. The <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> design rule is asserted for non-gaussian REML fits too.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.41.0" id="frmtmb-0410">frmtmb 0.41.0<a class="anchor" aria-label="anchor" href="#frmtmb-0410"></a></h2>
 <p>The tmbstan wrong-density defense, both argument dialects on the draws surface, and the pkgcheck container as a local pre-push gate.</p>

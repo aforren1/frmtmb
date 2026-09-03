@@ -421,7 +421,11 @@ d = 800 that is 7.25 s for one tape plus one gradient, against 0.09 s for
 `covstruct_registry$spde` assembles a parameter-dependent sparse
 precision and evaluates it with `RTMB::dgmrf`. A tridiagonal AR(1)
 precision is the same shape and simpler. No new machinery, four examples,
-and every user with a long repeated-measures series benefits.
+and every user with a long repeated-measures series benefits. Review
+noted a cheaper interim route as well: `ar1_chol_cor` already computes
+the analytic AR(1) Cholesky for the non-centering surface, so the nll
+could route through that factor before a full sparse registry entry
+exists.
 
 **2. A latent state-space term in the grammar.** Unlocks `mvrw`,
 `mvrw_sparse` and `sde_linear` outright, and is the only route to
@@ -557,3 +561,15 @@ then fetch each file's `.content` and base64-decode it into
 * `tests/testthat/test-tmb-examples.R` is the regression form, and needs
   no vendored copy at all.
 
+## A replication vignette, deferred on purpose
+
+Maintainer decision (2026-09-03): once the top roadmap items land
+(sparse `ar1()` at least; the state-space grammar term if it
+happens), a dedicated vignette replicates the relevant TMB examples
+side by side, upstream spelling against the one-formula `frm()`
+spelling with the logLik agreement shown. Written then rather than
+now so the stochastic-volatility and state-space rows appear at their
+published sizes instead of pinned or capped, and so the vignette
+demonstrates capability rather than apologizing for gaps. The
+showcase nominations above are its seed; the tests in
+`test-tmb-examples.R` are its validation layer already.

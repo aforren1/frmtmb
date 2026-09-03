@@ -1,5 +1,57 @@
 # Changelog
 
+## frmtmb 0.42.0
+
+The TMB-examples replication audit, and REML’s semantics documented and
+validated beyond the gaussian case.
+
+### The tmb_examples audit
+
+- Audited all 35 models in the upstream `tmb_examples` directories of
+  RTMB and adcomp: 13 replicate through
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) at 1e-8
+  or better, including the SPDE Weibull survival model with censoring,
+  orange_big’s nonlinear growth with 5000 latent effects, socatt’s
+  ordinal GLMM, lr_test’s `map =` restrictions written as plain
+  formulas, and a million-row regression; 3 are expressible but pinned
+  or cost-capped; 19 name the capability that blocks them.
+  `dev/tmb-examples-audit.md` carries the table, and every replicating
+  example is a self-contained regression in `test-tmb-examples.R` with
+  its reference likelihood written inline.
+- The Kalman-filter node the roadmap held open is closed by measurement
+  rather than opinion: the filter and the Laplace route agree to 1e-13
+  on the multivariate random walk, both are linear in series length, and
+  `MakeTape()$atomic()` collapses the filter to nine tape nodes with no
+  adjoint to derive, so the node is free if ever wanted. What blocks
+  state-space models is the formula grammar. The ranked roadmap that
+  falls out puts a sparse `ar1()` covariance first: the dense block is
+  cubic in its dimension, and it is the one thing keeping the
+  multivariate stochastic-volatility example from fitting at its
+  published size.
+- Two RTMB traps recorded for nonlinear formula authors: a bare
+  [`pnorm()`](https://rdrr.io/r/stats/Normal.html) or
+  [`qgamma()`](https://rdrr.io/r/stats/GammaDist.html) in an `nl` body
+  resolves lexically to stats (qualify with `RTMB::`), and
+  [`Vectorize()`](https://rdrr.io/r/base/Vectorize.html) strips the
+  automatic-differentiation class from its arguments.
+
+### REML beyond gaussian
+
+- The `REML` documentation now states what the flag computes: exact
+  Patterson-Thompson REML for gaussian models, covariate-dependent sigma
+  included, and for every other family the Laplace-approximated
+  integrated likelihood under a flat prior on the mean coefficients,
+  first-order equivalent to the Cox-Reid adjusted profile likelihood.
+  Distributional-parameter coefficients are deliberately not integrated,
+  matching nlme’s varFunc estimation and the double-GLM literature.
+- Validated three ways in `test-reml-nongaussian.R`: glmmTMB agreement
+  for poisson and bernoulli GLMMs at 1e-5, the Cox-Reid identity
+  verified by hand at the pinned REML optimum, and
+  `gls(method = "REML")` exactness at 1e-5 for varIdent- and
+  varExp-shaped sigma models. The
+  [`anova()`](https://rdrr.io/r/stats/anova.html) design rule is
+  asserted for non-gaussian REML fits too.
+
 ## frmtmb 0.41.0
 
 The tmbstan wrong-density defense, both argument dialects on the draws

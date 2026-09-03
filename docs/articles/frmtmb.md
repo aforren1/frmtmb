@@ -223,8 +223,9 @@ the fit onto the exactly constrained likelihood; the default is already
 four orders below the standard error of `sd(car)`.
 
 `spde()` fits a Matern field over a finite-element mesh: it takes the
-mesh’s three matrices (`fmesher::fm_fem()`’s `c0`/`g1`/`g2`, or INLA’s
-`M0`/`M1`/`M2`) as fixed data and estimates
+mesh’s three matrices
+([`fmesher::fm_fem()`](https://inlabru-org.github.io/fmesher/reference/fm_fem.html)’s
+`c0`/`g1`/`g2`, or INLA’s `M0`/`M1`/`M2`) as fixed data and estimates
 `Q = tau^2 (kappa^4 M0 + 2 kappa^2 M1 + M2)`. Mesh construction stays
 outside the package.
 [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)

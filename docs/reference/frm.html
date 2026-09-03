@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.41.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -112,7 +112,26 @@ model.</p></dd>
 <dt id="arg-reml">REML<a class="anchor" aria-label="anchor" href="#arg-reml"></a></dt>
 <dd><p>If <code>TRUE</code>, integrate the <code>mu</code> fixed effects out of the
 likelihood along with the random effects (restricted maximum
-likelihood).</p></dd>
+likelihood). For a gaussian model the Laplace approximation is
+exact for that integral, so this IS classical
+Patterson-Thompson REML. For any other family no error-contrast
+derivation exists; what is computed is the Laplace-approximated
+integrated likelihood for the variance parameters under a flat
+prior on the fixed effects, which agrees to first order with the
+Cox-Reid adjusted profile likelihood (the general-model REML
+analogue). glmmTMB computes the same quantity. It usually
+reduces the finite-sample downward bias of variance components,
+which is REML's purpose, but it is an approximation stacked on
+an approximation, not an exactness result. The usual restriction
+carries over: <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> compares REML fits only when their
+fixed-effect designs agree.</p>
+<p>Distributional-parameter coefficients (a <code>sigma ~ z</code> model's, for
+example) are deliberately NOT integrated: they belong to the
+variance-parameter set, exactly as a <code>varExp()</code> coefficient does
+in <code>nlme::gls(method = "REML")</code>, and the two agree to optimizer
+precision for gaussian models. Random effects appearing in a
+distributional parameter's own formula are integrated like any
+other latent.</p></dd>
 
 
 <dt id="arg-start">start<a class="anchor" aria-label="anchor" href="#arg-start"></a></dt>

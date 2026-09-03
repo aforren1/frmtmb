@@ -1,6 +1,6 @@
 Package: frmtmb
 Title: Formula-Based Regression Models via 'RTMB'
-Version: 0.41.0
+Version: 0.42.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -47,6 +47,7 @@ Suggests:
     depmixS4,
     DHARMa,
     emmeans,
+    fmesher,
     GLMMadaptive,
     glmmTMB,
     hmmTMB,
