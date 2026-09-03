@@ -168,19 +168,21 @@ is which blocks are eligible, below.
 
 \emph{Which blocks, and why not all of them.} A block is non-centered when
 two things hold, and they are the same thing twice: every parameter it
-has is a standard deviation with a Cholesky factor registered for its
-structure, and every one of those parameters carries a PRIOR. Both
-are about not handing the sampler a direction it can run away in.
+has is a standard deviation or a correlation with a Cholesky factor
+registered for its structure, and every one of those parameters
+carries a PRIOR. Both are about not handing the sampler a direction
+it can run away in.
 Non-centering gives NUTS the run of \code{theta}'s whole range, and the
 centered funnel is what was keeping a chain out of the parts of that
 range where the posterior is flat or improper. Removing the funnel
 without closing those off first trades a slow chain for a wrong one.
 
 In practice that means the FORMULA interface, whose default priors
-cover every standard deviation, non-centers \code{(1 | g)} and any block
-written one term at a time, \code{diag()} and \code{homdiag()} blocks, \code{\link[mgcv:s]{mgcv::s()}}
-smooths, \code{equalto()}, and
-\code{gr(cov = )} with one term. A \verb{k =} Hilbert-space \code{\link[brms:gp]{gp()}} block stays
+cover every standard deviation and every correlation, non-centers
+\code{(1 | g)} and any block written one term at a time, \code{diag()} and
+\code{homdiag()} blocks, \code{\link[mgcv:s]{mgcv::s()}} smooths, \code{equalto()}, \code{gr(cov = )},
+and the CORRELATED blocks \code{(x | g)}, \code{cs()}, \code{ar1()} and \code{hetar1()}.
+A \verb{k =} Hilbert-space \code{\link[brms:gp]{gp()}} block stays
 centered on the formula route even though its factor is diagonal:
 its LENGTHSCALES share the block's \code{theta}, the default priors cover
 only standard deviations, and the gate wants every parameter of a
@@ -205,18 +207,15 @@ seeds: from the fit, with flat priors, the non-centered chain walks
 \code{theta} to -1e15 at a bulk-ESS of 1; from the formula, where the
 default \code{student_t(3, 0, s)} makes that tail integrable, 174 to 284
 against 3 to 48 centered.
-\item A CORRELATION parameter: \code{(Days | Subject)}, \code{cs()}, \code{ar1()} and
-the rest. Not a limit of the arithmetic: the factor exists and is
-exact. It is that a correlation here is parameterized by an
-unbounded \code{theta} whose flat prior is \code{(1 - rho^2)^-3/2} on the
-correlation itself - improper, with all its mass at \verb{|rho| = 1}.
-Measured on \code{sleepstudy (Days | Subject)}: the profile
-log-likelihood is flat in that \code{theta} past \verb{|theta| = 100} and
-only 4.4 nats below the peak, and a non-centered chain reaches
-\code{theta = 2e6} at a bulk-ESS of 1. The fix is again a prior:
-\code{priors = list(theta_3 = prior_normal(0, 1))} makes the CENTERED
-chain run divergence-free at 142 min-ESS per second there, against
-28 with the flat prior and 122 for the matched brms model.
+\item A FLAT PRIOR on the block's CORRELATION, which is the same
+argument: flat on frmtmb's unbounded correlation parameter is
+\code{(1 - rho^2)^-3/2}, improper, with all its mass at \verb{|rho| = 1}.
+Before 0.39 that kept every correlated block centered, because no
+proper correlation prior existed to close the tail; \code{lkj(eta)}
+now does, and the formula route sets \code{lkj(1)} by default, so
+\code{(Days | Subject)}, \code{cs()}, \code{ar1()} and \code{hetar1()} non-center
+there like any other block. On the FIT route they still do not:
+its priors are flat by design.
 \item A Student-t latent (\code{gr(dist = "student")}): a scale mixture, not a
 linear factor.
 \item \code{\link[brms:car]{car()}}, \code{spde()} and \code{gr(prec = )}: sparse precisions whose factor
@@ -256,6 +255,7 @@ priors, read off \code{brms::default_prior()} on matched models. Write
    \code{b} (slopes) \tab flat \tab - \cr
    \code{Intercept} \tab \verb{student_t(3, round(median(y*), 1), s)} \tab link \cr
    \code{sd} \tab \code{student_t(3, 0, s)} \tab natural sd, log-Jacobian applied \cr
+   \code{cor} \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
    \code{sigma} (intercept only) \tab \code{student_t(3, 0, s)} \tab natural \cr
    \code{sigma} (with a predictor) \tab \code{student_t(3, 0, 2.5)} \tab log \cr
 }
@@ -285,13 +285,12 @@ exactly.
 \emph{What is deliberately NOT matched.} Each of these is named in the
 message whenever the model has one.
 \itemize{
-\item Random-effect CORRELATIONS stay flat. brms puts \code{lkj(1)} on them,
-which is uniform over correlation matrices; frmtmb parameterizes a
-covariance block by an unconstrained Cholesky \code{theta} segment
-whose flat prior is NOT uniform on correlations, and no LKJ
-density is implemented on that parameterization, so claiming
-\code{lkj(1)} here would be false. Set one by hand with
-\code{set_prior(class = "theta")} if you need it.
+\item A \code{toep()} correlation stays flat. Its banded parameterization is
+not positive definite everywhere, so there is no correlation matrix
+over its whole parameter space for an LKJ density to be about.
+Every other correlated structure gets \code{lkj(1)}, brms's own default
+(see \code{\link[=set_prior]{set_prior()}} for what the density is on frmtmb's
+parameters).
 \item ORDINAL THRESHOLDS stay flat. brms priors them
 \code{student_t(3, 0, 2.5)} under its \code{Intercept} class; frmtmb keeps
 them in the \code{thres} extra-parameter vector, which is not a design

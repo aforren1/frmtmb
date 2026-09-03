@@ -1590,6 +1590,86 @@ expand_b <- function(frame, b, theta) {
   cvec
 }
 
+# ------------------------------------ correlation parameters ---------
+#
+# WHICH THETA POSITIONS HOLD A CORRELATION, and under which map. The LKJ
+# prior (R/priors.R) is a density on a whole correlation matrix, so it
+# needs a block's correlation parameters as a GROUP, and it needs the map
+# from those unbounded parameters onto correlation space. The map differs
+# by structure:
+#
+#   "chol"  the row-normalized unit lower-triangular Cholesky factor of a
+#           d x d correlation matrix (us, us_t, gr_cov, gr_prec): every
+#           entry of the matrix is free, one parameter per strictly-lower
+#           position, in the column-major order us_chol_L() fills.
+#   "ar1"   one parameter, rho = t / sqrt(1 + t^2) on (-1, 1).
+#   "cs"    one parameter, rho = -a + (1 + a) / (1 + exp(-t)) on (-a, 1)
+#           with a = 1 / (d - 1). A compound-symmetric matrix is positive
+#           definite only above -1/(d - 1), so its correlation is bounded
+#           away from -1 and the map says so.
+#
+# A structure absent from the table either has no correlation parameter
+# at all or has one no LKJ density fits; the second kind is named in
+# `lkj_refusals` with its reason, so that a prior addressed to it is
+# refused by name instead of silently doing nothing.
+
+#' The correlation segment of an `us`-style theta: the strictly-lower
+#' Cholesky entries, which follow the `dim` log standard deviations.
+#'
+#' @noRd
+cor_spec_chol <- function(d) {
+  if (d < 2L) return(NULL)
+  list(kind = "chol", d = d, idx = d + seq_len(d * (d - 1L) / 2L))
+}
+
+covstruct_registry$us$cor_spec <- cor_spec_chol
+covstruct_registry$us_t$cor_spec <- cor_spec_chol
+covstruct_registry$gr_cov$cor_spec <- cor_spec_chol
+covstruct_registry$gr_prec$cor_spec <- cor_spec_chol
+covstruct_registry$cs$cor_spec <- function(d) {
+  if (d < 2L) return(NULL)
+  list(kind = "cs", d = d, idx = d + 1L)
+}
+covstruct_registry$homcs$cor_spec <- function(d) {
+  if (d < 2L) return(NULL)
+  list(kind = "cs", d = d, idx = 2L)
+}
+covstruct_registry$ar1$cor_spec <- function(d) {
+  if (d < 2L) return(NULL)
+  list(kind = "ar1", d = d, idx = 2L)
+}
+covstruct_registry$hetar1$cor_spec <- function(d) {
+  if (d < 2L) return(NULL)
+  list(kind = "ar1", d = d, idx = d + 1L)
+}
+
+# Structures whose correlations exist but carry no LKJ density.
+lkj_refusals <- c(
+  toep = paste("a banded parameterization that is not positive definite",
+               "everywhere, so there is no correlation matrix over the",
+               "whole parameter space to put a density on"),
+  homtoep = paste("a banded parameterization that is not positive",
+                  "definite everywhere, so there is no correlation",
+                  "matrix over the whole parameter space to put a",
+                  "density on")
+)
+
+#' A block's correlation parameters (`kind`, `d`, and the `idx`
+#' positions WITHIN the block's theta segment), or NULL when it has
+#' none.
+#'
+#' @noRd
+block_cor_spec <- function(bk) {
+  f <- covstruct_registry[[bk[["covstruct"]]]][["cor_spec"]]
+  if (is.null(f)) return(NULL)
+  f(bk[["dim"]])
+}
+
+#' How many of a block's theta positions are correlations.
+#'
+#' @noRd
+block_n_cor <- function(bk) length(block_cor_spec(bk)[["idx"]] %||% integer(0))
+
 # --------------------------------- non-centered parameterization -----
 #
 # `frm_sample(reparameterize = TRUE)` samples z ~ N(0, I) in place of a
@@ -1762,30 +1842,29 @@ covstruct_registry$gr_cov$chol_A <- function(blk) {
 # `sd` shrinks, and pulling the factor out of the density removes it.
 # A CORRELATION parameter makes no funnel (it is bounded, and its
 # effect on the width of `b` is bounded with it), so non-centering one
-# buys no geometry. What it does buy is measured, and it is bad.
+# buys no geometry of its own. Both kinds of parameter still have to be
+# SAFE to hand a non-centered chain, and that is a question about the
+# prior, not about the factor: remove the funnel and the chain is free
+# to walk any flat tail the prior leaves open.
 #
-# frmtmb parameterizes a correlation by an unbounded row-normalized
-# Cholesky `theta` under a FLAT prior, which is the prior
+# Before 0.39 a correlated block stayed centered for exactly that
+# reason. frmtmb parameterizes a correlation by an unbounded
+# row-normalized Cholesky `theta`, and FLAT on that theta is
 # `(1 - rho^2)^-3/2` on the correlation: improper, with all its mass at
-# |rho| = 1. On sleepstudy `(Days | Subject)` the PROFILE
-# log-likelihood is flat in that theta beyond |theta| ~ 100 and only 4.4
-# nats below the peak (dev/benchmarks.md), so the posterior really does
-# have infinite mass out there. Centered sampling never finds it: the
-# funnel neck is in the way. Remove the neck (by the full factor or by
-# the scale alone, both were measured) and the chain walks straight
-# down the tail to theta = 2e6 with a bulk-ESS of 1.
+# |rho| = 1. On sleepstudy `(Days | Subject)` the PROFILE log-likelihood
+# is flat in that theta beyond |theta| ~ 100 and only 4.4 nats below the
+# peak (dev/benchmarks.md), so the posterior really did have infinite
+# mass out there; a non-centered chain walked straight down it to
+# theta = 2e6 with a bulk-ESS of 1. The LKJ prior (R/priors.R) closes
+# that tail, the formula route now applies `lkj(1)` by default, and the
+# rule that was written to survive this change did:
 #
-# So the rule is: a block is non-centered only when EVERY parameter it
-# has is a standard deviation, which is exactly the set of parameters
-# the formula route gives a proper default prior to. Blocks with a
-# correlation parameter stay centered and `frm_sample()` says so. The
-# factor accessors for those structures are written and tested anyway
-# (they are correct; nothing about the math is missing) so that the day
-# a proper correlation prior exists, this rule is the only line that has
-# to change. Until then the honest fix for a correlated block is that
-# prior: with `prior_normal(0, 1)` on the correlation theta the CENTERED
-# sleepstudy chain runs at 142 min-ESS/s with no divergences, against 28
-# with the flat one and 122 for brms.
+#   a block is non-centered only when every parameter it has is either a
+#   standard deviation or a correlation with a registered factor, AND
+#   every one of those parameters carries a prior (ncp_plan()).
+#
+# The second half is the whole of the safety argument. A block with a
+# flat prior anywhere in its theta is still centered, correlated or not.
 
 #' The non-centering a block gets: `"full"`, or `NA` for a block that
 #' stays centered.
@@ -1799,6 +1878,7 @@ ncp_mode <- function(bk) {
     return(NA_character_)
   }
   n_sd <- length(reg$sd_idx(bk[["dim"]]))
+  n_cor <- block_n_cor(bk)
   n_par <- switch(
     cs,
     # a fixed covariance has no parameters at all, so its factor is a
@@ -1810,7 +1890,10 @@ ncp_mode <- function(bk) {
     hsgp = n_sd,
     tryCatch(reg$npar(bk[["dim"]]), error = function(e) NA_integer_)
   )
-  if (is.na(n_par) || n_par != n_sd) return(NA_character_)
+  # every parameter the block has must be one the factor consumes and
+  # the prior lane can reach; a structure that grows a third kind stays
+  # out of the lane until it says which kind it is
+  if (is.na(n_par) || n_par != n_sd + n_cor) return(NA_character_)
   "full"
 }
 

@@ -525,9 +525,58 @@ Three things follow.
   122 for the matched brms model. brms is not ahead here because it
   non-centers; it is ahead because lkj(1) is proper.
 - So the real follow-up is a default prior on correlations: the LKJ
-  density on the row-normalized Cholesky parameterization, which
-  ?frm_sample currently names as a deliberate gap. Until then
-  correlated blocks stay centered and frm_sample() says so.
+  density on the row-normalized Cholesky parameterization. The section
+  below is that measurement.
 
 A tmbstan laplace = TRUE run was the other candidate for the same
 geometry and is a dead end; see the section above.
+
+# The LKJ prior closes the correlation gap (2026-09-02, measured)
+
+The follow-up above, done: `lkj(eta)` on frmtmb's own correlation
+parameters (R/priors.R), applied as `lkj(1)` by every formula-route
+call, which also opens non-centering to correlated blocks.
+
+sleepstudy `Reaction ~ Days + (Days | Subject)`, formula route, one
+chain, iter = 2000 (1000 warmup), seeds 101/202/303. min bulk-ESS over
+the outer parameters (the b[i] columns excluded); ESS/s uses Stan's own
+elapsed time. Script: scratchpad lkj-bench.R. Windows 10 x64, R 4.6.1,
+rstan 2.32.7, RTMB 1.9, tmbstan 1.2.0.
+
+| variant                                   | minESS (101/202/303) | ESS/s          | div       | theta_3 mean     |
+|-------------------------------------------|----------------------|----------------|-----------|------------------|
+| v0.38: flat correlation, centered          | 213 / 31 / 77        | 75 / 1.3 / 36  | 0/154/0   | 0.22 / 219 / 0.37 |
+| lkj(1), centered (reparameterize = FALSE)  | 272 / 245 / 356      | 120 / 111 / 194| 0 / 0 / 0 | 0.13 / 0.08 / 0.10 |
+| lkj(1), non-centered (the 0.39 default)    | 191 / 228 / 387      | 100 / 116 / 165| 0 / 0 / 0 | 0.12 / 0.11 / 0.10 |
+
+Medians: 36 ESS/s flat, 120 with lkj(1) centered, 116 with lkj(1)
+non-centered, against ~122 for the matched brms model (the first
+section of this file).
+
+Reading:
+- The prior is the whole fix. It takes the median from 36 to 116-120
+  min-ESS/s, which is parity with brms, and it removes the divergence
+  storm (154 divergences on seed 202) rather than moving it: the bad
+  seed is now the same as the good ones. The v0.38 chain that diverged
+  had walked theta_3 out to 219, which is the improper tail; every
+  lkj(1) chain sits at 0.08-0.13, the ML neighborhood.
+- Non-centering the correlated block is a WASH here (116 against 120,
+  and the seed ordering swaps), exactly as it is for the other blocks
+  whose groups are informative. It is on by default because the
+  eligibility rule is about safety, not speed, and because the funnel
+  regime (few observations per group) is where it pays; it is not sold
+  as the thing that closed this gap.
+- The ML fit is untouched: no prior enters frm(), and sleepstudy's
+  logLik is -875.9697 before and after (tests/testthat/test-lkj.R
+  pins it).
+
+The density itself is validated distribution-level rather than by
+eyeball: sample the prior alone and compare every pairwise correlation
+against the closed-form LKJ marginal Beta(eta - 1 + d/2, ...) rescaled
+to (-1, 1). Over d = 2, 3, 4 and eta = 1, 2 (20 correlations in all,
+1000 thinned draws each) the KS statistics run 0.017 to 0.038 (p 0.11
+to 0.93) and every marginal sd is within 2.5% of its closed form. The
+normalizing constant assembled per row agrees with the published LKJ
+(2009) constant to 1e-15 for d = 2..6, and the change of variables
+agrees with a numeric Jacobian of t -> C to 1e-6 for d = 2..5.
+Script: tests/testthat/test-lkj.R, numbers in scratchpad lkj-ks.R.

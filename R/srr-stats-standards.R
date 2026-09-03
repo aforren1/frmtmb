@@ -46,7 +46,7 @@
 #' @srrstatsVerbose TRUE
 #'
 #' @srrstats {G5.2a} Every condition message raised in `R/` is unique.
-#'   The 640 `stop()` calls that carry literal text produce 640 distinct
+#'   The 646 `stop()` calls that carry literal text produce 646 distinct
 #'   messages (mechanically re-counted by an AST walk; 529 at v0.35.0,
 #'   plus nine net from the structured simulator contract and the
 #'   formula interface of `frm_sample()` with its default priors, plus
@@ -57,7 +57,12 @@
 #'   ambiguous bare nonlinear parameter, plus four from
 #'   `conditional_effects()` on draws and the brms::bf() masking
 #'   detection, plus one for the non-centered sampling switch
-#'   (`frm_sample(reparameterize = )` rejecting a non-logical value)),
+#'   (`frm_sample(reparameterize = )` rejecting a non-logical value),
+#'   plus six for the LKJ correlation prior (its shape argument, the
+#'   two directions of the class-and-distribution check in
+#'   `set_prior()`, a bound offered to a whole correlation matrix, a
+#'   class `"cor"` that matches no block of the model, and the by-name
+#'   prior spelling refusing a density that belongs to a whole block)),
 #'   so a
 #'   message a user reports names one line of source. Two calls that
 #'   would otherwise read the

@@ -161,6 +161,15 @@ resolve_priors <- function(fit, priors) {
       stop("priors[['", nm, "']] must be a prior object ",
            "(prior_normal(), prior_t())", call. = FALSE)
     }
+    if (identical(pr$kind, "lkj")) {
+      # this spelling addresses parameters one at a time; the LKJ
+      # density is over a block's whole correlation and needs the
+      # structure's map, which only the class spelling carries
+      stop("prior_lkj() addresses a block's whole correlation, so it ",
+           "cannot be given by parameter name; write ",
+           "set_prior(\"lkj(", format(pr$eta), ")\", class = \"cor\")",
+           call. = FALSE)
+    }
     if (nm %in% names(comp_names)) {
       idx <- which(!is.na(comp_names[[nm]]))
       add(nm, idx, pr)
@@ -358,11 +367,12 @@ ncp_reason <- function(bk) {
   if (is.null(reg[["chol_sd"]]) && is.null(reg[["chol_L"]])) {
     return("no Cholesky factor is registered for this structure")
   }
-  paste("it has a correlation parameter, whose flat prior here is",
-        "improper (all its mass at |rho| = 1); non-centering opens that",
-        "tail to the chain, which the centered geometry keeps it out",
-        "of. Put a prior on it, set_prior(class = \"theta\"), and",
-        "sample it centered")
+  # a factor exists, but some parameter of the block is neither a
+  # standard deviation nor a correlation the prior lane can name, so
+  # nothing would bound the direction the transform opens
+  paste("it has a parameter that is neither a standard deviation nor a",
+        "correlation with a density on it, so a non-centered chain",
+        "would be free in a direction no prior bounds")
 }
 
 #' The `theta` positions a resolved prior specification covers.
@@ -378,9 +388,10 @@ ncp_priored_theta <- function(entries) {
 #'
 #' TWO conditions, and they are the same condition twice. A block is
 #' non-centered only when (a) every parameter it has is a standard
-#' deviation with a registered factor (see R/covstruct.R) and (b)
-#' every one of those parameters carries a PRIOR. Both are about not
-#' handing the sampler a direction it can run away in.
+#' deviation or a correlation, with a registered factor (see
+#' R/covstruct.R), and (b) every one of those parameters carries a
+#' PRIOR. Both are about not handing the sampler a direction it can run
+#' away in.
 #'
 #' Non-centering gives NUTS the run of theta's whole range. Under a FLAT
 #' prior on a log standard deviation that range has a flat tail at the
@@ -394,6 +405,13 @@ ncp_priored_theta <- function(entries) {
 #' `student_t(3, 0, s)` on the sd makes that tail integrable, it runs at
 #' a bulk-ESS of 174-284 against 3-48 centered. Adding the prior by hand
 #' on the fit route does the same thing there (297-355).
+#'
+#' A CORRELATED block is the same argument with a different parameter.
+#' Flat on frmtmb's correlation parameter is `(1 - rho^2)^-3/2`, which
+#' is improper, and before 0.39 that kept every correlated block
+#' centered whatever else was priored. The LKJ prior (R/priors.R) closes
+#' that tail, the formula route applies `lkj(1)` by default, and the
+#' rule above then admits those blocks with nothing else changed.
 #'
 #' `laplace = TRUE` integrates the random effects out, so there is no
 #' funnel left to fix and the transform would only cost inner Newton
@@ -425,6 +443,17 @@ ncp_plan <- function(fit, reparameterize, laplace, entries = NULL) {
          bk <- blocks[[i]]
          why <- if (!ncp_eligible(bk)) {
            ncp_reason(bk)
+         } else if (block_n_cor(bk) > 0L) {
+           # the correlation is the interesting half here: flat on
+           # frmtmb's correlation parameter is (1 - rho^2)^-3/2, which
+           # is improper, and the centered geometry was what kept a
+           # chain out of that tail
+           paste("its variance or correlation parameters have a flat",
+                 "prior here, and flat on a correlation is",
+                 "(1 - rho^2)^-3/2, improper. Give the block priors,",
+                 "set_prior(class = \"sd\") and",
+                 "set_prior(class = \"cor\"), which the formula",
+                 "interface supplies for you")
          } else if (identical(bk[["covstruct"]], "hsgp")) {
            # the class-"sd" default cannot reach a lengthscale, so the
            # generic flat-prior advice below would never fix this block
@@ -609,6 +638,9 @@ sample_assemble <- function(formula, data, family, data2, start,
 #   b (slopes)      flat, as brms leaves them
 #   Intercept       student_t(3, round(median(y*), 1), s)
 #   sd              student_t(3, 0, s) on the natural sd scale
+#   cor             lkj(1), uniform over correlation matrices, carried
+#                   onto frmtmb's own correlation parameters with the
+#                   Jacobian of that map (see R/priors.R)
 #   sigma           student_t(3, 0, s) on the natural scale, when sigma
 #                   is intercept-only; student_t(3, 0, 2.5) on the LOG
 #                   scale when sigma carries its own predictor (brms
@@ -638,10 +670,10 @@ sample_assemble <- function(formula, data, family, data2, start,
 #     `round(median(y*), 1)` sets the location only when it is finite.
 #
 # WHAT IS NOT MATCHED, and why, is documented in ?frm_sample and said
-# out loud by the disclosure message: random-effect CORRELATIONS (brms
-# uses lkj(1); frmtmb parameterizes a block by an unconstrained Cholesky
-# theta segment whose flat prior is not uniform on correlation matrices,
-# and no lkj density is implemented on it), ORDINAL THRESHOLDS (brms
+# out loud by the disclosure message: a correlation whose STRUCTURE has
+# no LKJ density (toep(), which is not positive definite everywhere, so
+# there is no correlation matrix over its parameter space to put one
+# on), ORDINAL THRESHOLDS (brms
 # priors them as its Intercept class; frmtmb keeps them in the `thres`
 # extra-parameter vector, which set_prior() cannot address), the
 # shape/phi/nu-style dispersion parameters (brms uses gamma and
@@ -733,6 +765,14 @@ default_priors_for <- function(fit) {
     length(covstruct_registry[[bk$covstruct]]$sd_idx(bk$dim)) > 0L
   }, TRUE))
   if (has_sd) add(set_prior(st(0, ps$scale), class = "sd"))
+  # lkj(1), brms's own default: uniform over correlation matrices. Only
+  # when some block's correlation HAS an LKJ density, so that a model
+  # whose only correlated block is a toep() does not fail on a default
+  # it cannot honor (default_prior_notes() names that block instead)
+  has_cor <- any(vapply(fit$frame$re_blocks, function(bk) {
+    !bk$covstruct %in% names(lkj_refusals) && !is.null(block_cor_spec(bk))
+  }, TRUE))
+  if (has_cor) add(set_prior("lkj(1)", class = "cor"))
   pl
 }
 
@@ -762,11 +802,20 @@ default_prior_notes <- function(fit) {
                              paste(disp, collapse = ", "),
                              " (brms uses gamma / inverse-gamma)"))
   }
-  if (any(vapply(fit$frame$re_blocks, function(bk) {
-    reg <- covstruct_registry[[bk$covstruct]]
-    reg$npar(bk$dim) > length(reg$sd_idx(bk$dim))
-  }, TRUE))) {
-    notes <- c(notes, "no defaults for correlations (brms uses lkj(1))")
+  # correlations get lkj(1), brms's own default, wherever a density
+  # exists for the block's parameterization; what is left is named
+  ungated <- unique(vapply(fit$frame$re_blocks, function(bk) {
+    if (bk$covstruct %in% names(lkj_refusals)) {
+      paste0(bk$term_label, " [", bk$covstruct, "]")
+    } else {
+      ""
+    }
+  }, ""))
+  ungated <- ungated[nzchar(ungated)]
+  if (length(ungated)) {
+    notes <- c(notes, paste0("no correlation defaults for ",
+                             paste(ungated, collapse = ", "),
+                             " (no LKJ density fits its parameters)"))
   }
   notes
 }
@@ -812,7 +861,9 @@ announce_default_priors <- function(pl, notes) {
     msg <- c(msg, sprintf("  %-18s %s%s", lab, d,
                           if (isTRUE(s$natural)) "  [natural scale]"
                           else if (identical(s$class, "sd"))
-                            "  [natural sd scale]" else ""))
+                            "  [natural sd scale]"
+                          else if (identical(s$class, "cor"))
+                            "  [correlation matrix]" else ""))
   }
   msg <- c(msg, "  b                  (flat), as brms leaves slopes")
   for (nt in notes) {
@@ -830,10 +881,22 @@ announce_default_priors <- function(pl, notes) {
 merge_prior_inputs <- function(base, over) {
   if (is.null(base)) return(over)
   if (is.null(over)) return(base)
-  key <- function(e) paste0(e$comp, ".", e$idx)
+  # collapsed, because a class "cor" entry covers a whole correlation
+  # segment and its key names every position it holds
+  key <- function(e) paste0(e$comp, ".", paste(e$idx, collapse = ","))
   ent <- base$entries
   names(ent) <- vapply(ent, key, "")
-  for (e in over$entries) ent[[key(e)]] <- e
+  for (e in over$entries) {
+    # a base entry that shares ANY position with the incoming one is
+    # retired, not just the one with the same key: the default LKJ term
+    # spans a whole correlation segment, and leaving it in place beside
+    # a per-parameter override would apply both densities there
+    hit <- vapply(ent, function(b) {
+      identical(b$comp, e$comp) && length(intersect(b$idx, e$idx)) > 0L
+    }, TRUE)
+    if (any(hit)) ent <- ent[!hit]
+    ent[[key(e)]] <- e
+  }
   list(entries = unname(ent),
        lower = utils::modifyList(as.list(base$lower),
                                  as.list(over$lower)),
@@ -958,19 +1021,21 @@ sample_resolve_priors <- function(fit, priors, announce = TRUE) {
 #'
 #' *Which blocks, and why not all of them.* A block is non-centered when
 #' two things hold, and they are the same thing twice: every parameter it
-#' has is a standard deviation with a Cholesky factor registered for its
-#' structure, and every one of those parameters carries a PRIOR. Both
-#' are about not handing the sampler a direction it can run away in.
+#' has is a standard deviation or a correlation with a Cholesky factor
+#' registered for its structure, and every one of those parameters
+#' carries a PRIOR. Both are about not handing the sampler a direction
+#' it can run away in.
 #' Non-centering gives NUTS the run of `theta`'s whole range, and the
 #' centered funnel is what was keeping a chain out of the parts of that
 #' range where the posterior is flat or improper. Removing the funnel
 #' without closing those off first trades a slow chain for a wrong one.
 #'
 #' In practice that means the FORMULA interface, whose default priors
-#' cover every standard deviation, non-centers `(1 | g)` and any block
-#' written one term at a time, `diag()` and `homdiag()` blocks, [mgcv::s()]
-#' smooths, `equalto()`, and
-#' `gr(cov = )` with one term. A `k =` Hilbert-space [gp()] block stays
+#' cover every standard deviation and every correlation, non-centers
+#' `(1 | g)` and any block written one term at a time, `diag()` and
+#' `homdiag()` blocks, [mgcv::s()] smooths, `equalto()`, `gr(cov = )`,
+#' and the CORRELATED blocks `(x | g)`, `cs()`, `ar1()` and `hetar1()`.
+#' A `k =` Hilbert-space [gp()] block stays
 #' centered on the formula route even though its factor is diagonal:
 #' its LENGTHSCALES share the block's `theta`, the default priors cover
 #' only standard deviations, and the gate wants every parameter of a
@@ -995,18 +1060,15 @@ sample_resolve_priors <- function(fit, priors, announce = TRUE) {
 #'   `theta` to -1e15 at a bulk-ESS of 1; from the formula, where the
 #'   default `student_t(3, 0, s)` makes that tail integrable, 174 to 284
 #'   against 3 to 48 centered.
-#' - A CORRELATION parameter: `(Days | Subject)`, `cs()`, `ar1()` and
-#'   the rest. Not a limit of the arithmetic: the factor exists and is
-#'   exact. It is that a correlation here is parameterized by an
-#'   unbounded `theta` whose flat prior is `(1 - rho^2)^-3/2` on the
-#'   correlation itself - improper, with all its mass at `|rho| = 1`.
-#'   Measured on `sleepstudy (Days | Subject)`: the profile
-#'   log-likelihood is flat in that `theta` past `|theta| = 100` and
-#'   only 4.4 nats below the peak, and a non-centered chain reaches
-#'   `theta = 2e6` at a bulk-ESS of 1. The fix is again a prior:
-#'   `priors = list(theta_3 = prior_normal(0, 1))` makes the CENTERED
-#'   chain run divergence-free at 142 min-ESS per second there, against
-#'   28 with the flat prior and 122 for the matched brms model.
+#' - A FLAT PRIOR on the block's CORRELATION, which is the same
+#'   argument: flat on frmtmb's unbounded correlation parameter is
+#'   `(1 - rho^2)^-3/2`, improper, with all its mass at `|rho| = 1`.
+#'   Before 0.39 that kept every correlated block centered, because no
+#'   proper correlation prior existed to close the tail; `lkj(eta)`
+#'   now does, and the formula route sets `lkj(1)` by default, so
+#'   `(Days | Subject)`, `cs()`, `ar1()` and `hetar1()` non-center
+#'   there like any other block. On the FIT route they still do not:
+#'   its priors are flat by design.
 #' - A Student-t latent (`gr(dist = "student")`): a scale mixture, not a
 #'   linear factor.
 #' - [car()], `spde()` and `gr(prec = )`: sparse precisions whose factor
@@ -1045,6 +1107,7 @@ sample_resolve_priors <- function(fit, priors, announce = TRUE) {
 #' | `b` (slopes) | flat | - |
 #' | `Intercept` | `student_t(3, round(median(y*), 1), s)` | link |
 #' | `sd` | `student_t(3, 0, s)` | natural sd, log-Jacobian applied |
+#' | `cor` | `lkj(1)` | correlation matrix, Jacobian applied |
 #' | `sigma` (intercept only) | `student_t(3, 0, s)` | natural |
 #' | `sigma` (with a predictor) | `student_t(3, 0, 2.5)` | log |
 #'
@@ -1071,13 +1134,12 @@ sample_resolve_priors <- function(fit, priors, announce = TRUE) {
 #'
 #' *What is deliberately NOT matched.* Each of these is named in the
 #' message whenever the model has one.
-#' - Random-effect CORRELATIONS stay flat. brms puts `lkj(1)` on them,
-#'   which is uniform over correlation matrices; frmtmb parameterizes a
-#'   covariance block by an unconstrained Cholesky `theta` segment
-#'   whose flat prior is NOT uniform on correlations, and no LKJ
-#'   density is implemented on that parameterization, so claiming
-#'   `lkj(1)` here would be false. Set one by hand with
-#'   `set_prior(class = "theta")` if you need it.
+#' - A `toep()` correlation stays flat. Its banded parameterization is
+#'   not positive definite everywhere, so there is no correlation matrix
+#'   over its whole parameter space for an LKJ density to be about.
+#'   Every other correlated structure gets `lkj(1)`, brms's own default
+#'   (see [set_prior()] for what the density is on frmtmb's
+#'   parameters).
 #' - ORDINAL THRESHOLDS stay flat. brms priors them
 #'   `student_t(3, 0, 2.5)` under its `Intercept` class; frmtmb keeps
 #'   them in the `thres` extra-parameter vector, which is not a design
