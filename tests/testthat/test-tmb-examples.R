@@ -489,6 +489,10 @@ test_that("sdv_multi: multivariate stochastic volatility, at a short length", {
   # matrix, rather than RTMB::unstructured(), whose helper needs RTMB on
   # the search path to keep the advector class through its sub-assignment
   corr_of <- function(od) {
+    # numeric-first c() on advectors is the canonical class-stripping
+    # trap; it happens to pass on some RTMB builds and fails on others
+    # ("Invalid argument to 'advector'"), so bind the overload
+    "c" <- RTMB::ADoverload("c")
     L <- RTMB::matrix(c(1, od[1], od[2], 0, 1, od[3], 0, 0, 1), 3, 3)
     rn <- sqrt(c(1, od[1]^2 + 1, od[2]^2 + od[3]^2 + 1))
     L <- L / rn
