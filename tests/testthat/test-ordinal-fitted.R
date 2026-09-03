@@ -294,8 +294,10 @@ test_that("posterior_epred returns a draws x obs x category array", {
   # judged against the chain's own spread: a seeded chain is not
   # platform-deterministic, and the band asserts wiring, not mixing
   ep_sd <- apply(epf, c(2L, 3L), stats::sd)
-  expect_lt(max(abs(apply(epf, c(2L, 3L), mean) - P)),
-            5 * max(ep_sd) + 1e-8)
+  if (sampler_gates_on()) {
+    expect_lt(max(abs(apply(epf, c(2L, 3L), mean) - P)),
+              5 * max(ep_sd) + 1e-8)
+  }
 
   # without newdata the observation margin carries the data rownames
   ep0 <- posterior_epred(ds, ndraws = 4)

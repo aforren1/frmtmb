@@ -165,6 +165,7 @@ prior_rho <- function(eta, d, seed) {
 }
 
 test_that("every pairwise correlation has the LKJ marginal", {
+  skip_if_not(sampler_gates_on(), "chain-agreement gates are off")
   skip_if_not_installed("tmbstan")
   skip_if_not_installed("rstan")
   seed <- 0

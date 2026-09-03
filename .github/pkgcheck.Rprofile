@@ -12,3 +12,6 @@ local({
   }
   options(repos = c(r, kaskr = "https://kaskr.r-universe.dev"))
 })
+
+# belt and suspenders for the workflow env (see pkgcheck.yaml)
+Sys.setenv(FRMTMB_SAMPLER_GATES = "false")

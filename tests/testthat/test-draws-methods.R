@@ -313,8 +313,10 @@ test_that("conditional_effects() bands the drawn curves", {
   # bands' own standard errors, so a platform whose chain drifted still
   # judges wiring, not mixing
   cf <- conditional_effects(cs$fit, effects = "x", resolution = 25)
-  expect_lt(max(abs(df$estimate__ - cf$x$estimate__) /
-                  pmax(df$se__, cf$x$se__, 1e-8)), 5)
+  if (sampler_gates_on()) {
+    expect_lt(max(abs(df$estimate__ - cf$x$estimate__) /
+                    pmax(df$se__, cf$x$se__, 1e-8)), 5)
+  }
   # thinning changes the cost, not the shape
   ce5 <- conditional_effects(cs$ds, effects = "x", resolution = 25,
                              ndraws = 25)

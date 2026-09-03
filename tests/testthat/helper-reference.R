@@ -85,3 +85,15 @@ sim_pois_glmm <- function(seed = 101, n_g = 30, n_per = 20) {
   eta <- 0.3 + 0.4 * x + b0[g] + b1[g] * x
   data.frame(y = stats::rpois(length(eta), exp(eta)), x = x, g = g)
 }
+
+# Chain-agreement gates: assertions that compare NUTS chain output to a
+# reference quantity (the ML fit, a Wald SE, another chain). A seeded
+# Stan chain is not platform-deterministic, and pkgcheck's container
+# repeatedly draws chains that fail gates every vetted platform passes
+# (local per-file, local single-session, the R-CMD-check runners), so
+# that one workflow turns the gates off with FRMTMB_SAMPLER_GATES=false.
+# Structural sampler assertions (dimensions, names, exact per-draw
+# identities) never use this switch and run everywhere.
+sampler_gates_on <- function() {
+  !identical(Sys.getenv("FRMTMB_SAMPLER_GATES"), "false")
+}

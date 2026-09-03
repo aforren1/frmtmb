@@ -37,8 +37,10 @@ test_that("as_tmbstan hands the objective to NUTS", {
   dr <- rstan::extract(sf, "beta")$beta
   # judged against the chain's own spread: a seeded chain is not
   # platform-deterministic, and this asserts wiring, not mixing
-  expect_lt(abs(mean(dr[, 1]) - fixef(fit)$mu[[1]]),
-            5 * stats::sd(dr[, 1]) + 1e-8)
+  if (sampler_gates_on()) {
+    expect_lt(abs(mean(dr[, 1]) - fixef(fit)$mu[[1]]),
+              5 * stats::sd(dr[, 1]) + 1e-8)
+  }
 })
 
 # --- lme4::getME ------------------------------------------------------

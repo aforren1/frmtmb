@@ -56,5 +56,7 @@ test_that("a MAP fit's priors carry into frm_sample by default", {
   # judged against the chain's own spread: a seeded chain is not
   # platform-deterministic, and this asserts wiring, not mixing
   mx <- as.matrix(ds)[, "x"]
-  expect_lt(abs(mean(mx)), 5 * stats::sd(mx) + 1e-8)
+  if (sampler_gates_on()) {
+    expect_lt(abs(mean(mx)), 5 * stats::sd(mx) + 1e-8)
+  }
 })

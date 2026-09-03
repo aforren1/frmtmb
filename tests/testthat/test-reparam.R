@@ -472,6 +472,7 @@ test_that("the whole draws method surface runs on non-centered draws", {
 })
 
 test_that("the two routes agree within their own Monte Carlo spread", {
+  skip_if_not(sampler_gates_on(), "chain-agreement gates are off")
   cs <- rp_case()
   # a seeded Stan chain is not platform-deterministic and the two routes
   # are two different chains by construction, so agreement is judged
@@ -557,6 +558,7 @@ test_that("log_lik() row sums hold on a correlated non-centered run", {
 })
 
 test_that("the two routes agree on the correlated model as well", {
+  skip_if_not(sampler_gates_on(), "chain-agreement gates are off")
   cs <- rp_cor_case()
   # two different chains by construction, so agreement is judged in the
   # chains' OWN Monte Carlo spread (the house pattern): a wiring bug

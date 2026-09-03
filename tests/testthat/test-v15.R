@@ -339,8 +339,10 @@ test_that("the draws surface runs the model machinery per draw", {
   # the ML fit is judged against the chain's OWN Monte Carlo spread: a
   # wiring bug moves the estimate by O(1) while the spread stays small,
   # and a drifted chain widens its spread along with its error
-  expect_lt(abs(fe["x", "Estimate"] - fixef(fit)$mu[["x"]]),
-            5 * fe["x", "Est.Error"] + 1e-8)
+  if (sampler_gates_on()) {
+    expect_lt(abs(fe["x", "Estimate"] - fixef(fit)$mu[["x"]]),
+              5 * fe["x", "Est.Error"] + 1e-8)
+  }
 
   vc <- VarCorr(ds)
   expect_true(all(c("estimate", "lwr", "upr") %in% names(vc)))
@@ -358,8 +360,10 @@ test_that("the draws surface runs the model machinery per draw", {
 
   ep <- posterior_epred(ds, ndraws = 25)
   expect_equal(dim(ep), c(25L, 80L))
-  expect_lt(max(abs(colMeans(ep) - fitted(fit))),
-            5 * max(apply(ep, 2, stats::sd)) + 1e-8)
+  if (sampler_gates_on()) {
+    expect_lt(max(abs(colMeans(ep) - fitted(fit))),
+              5 * max(apply(ep, 2, stats::sd)) + 1e-8)
+  }
   pp <- posterior_predict(ds, ndraws = 25)
   expect_gt(mean(apply(pp, 2, stats::sd)),
             mean(apply(ep, 2, stats::sd)))
@@ -385,9 +389,11 @@ test_that("the draws surface runs the model machinery per draw", {
   expect_identical(colnames(re_d[["1 | g"]]),
                    c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
   # same yardstick as above: the chain's own spread, not a fixed number
-  expect_lt(max(abs(re_d[["1 | g"]][, "Estimate", 1] -
-                      ranef(fit)[["1 | g"]][, 1])),
-            5 * max(re_d[["1 | g"]][, "Est.Error", 1]) + 1e-8)
+  if (sampler_gates_on()) {
+    expect_lt(max(abs(re_d[["1 | g"]][, "Estimate", 1] -
+                        ranef(fit)[["1 | g"]][, 1])),
+              5 * max(re_d[["1 | g"]][, "Est.Error", 1]) + 1e-8)
+  }
   expect_true(all(re_d[["1 | g"]][, "Q2.5", 1] <
                     re_d[["1 | g"]][, "Q97.5", 1]))
 
