@@ -66,9 +66,9 @@ the resampling machinery frmtmb does have, and \code{AIC()} on the
 maximum-likelihood fits answers the comparison question directly.
 \item \code{bridge_sampler()}, \code{bayes_factor()} and \code{post_prob()} are
 marginal-likelihood quantities. A marginal likelihood is an
-integral against the PRIOR, so it is undefined under the flat
-improper priors \code{frm_sample(fit)} uses, and even with a proper
-\verb{prior =} the bridge-sampling estimator needs a normalized
+integral against the PRIOR, so it is undefined under
+\code{prior = "flat"}, and even under the default priors
+the bridge-sampling estimator needs a normalized
 log-posterior evaluator that the RTMB tape does not expose.
 }
 }

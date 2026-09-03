@@ -64,13 +64,19 @@ test_that("the formula route samples the same posterior as the fit route", {
   form <- bf(y ~ x + (1 | g)) + gaussian()
 
   fit <- frm(form, data = dd)
-  ds_fit <- suppressWarnings(
-    frm_sample(fit, chains = 1, iter = 1000, refresh = 0, seed = 3))
-  # prior = "flat" so both runs sample the SAME density: the fit route
-  # is a likelihood diagnostic and never sets a default prior
+  # both routes default to the same brms priors, so both sample the
+  # SAME posterior; the fit route only starts the chains at the mode
+  ds_fit <- suppressWarnings(suppressMessages(
+    frm_sample(fit, chains = 1, iter = 1000, refresh = 0, seed = 3)))
   ds_form <- suppressWarnings(suppressMessages(
-    frm_sample(form, data = dd, prior = "flat", chains = 1, iter = 1000,
+    frm_sample(form, data = dd, chains = 1, iter = 1000,
                refresh = 0, seed = 3)))
+  key <- function(pl) {
+    vapply(unclass(pl), function(s) {
+      paste0(s$class, ":", s$dpar, ":", s$dist$kind)
+    }, "")
+  }
+  expect_equal(key(prior_summary(ds_fit)), key(prior_summary(ds_form)))
 
   a <- summary(ds_fit)[, "mean"]
   b <- summary(ds_form)[, "mean"]
@@ -358,12 +364,12 @@ test_that("prior = 'flat' opts out and warns about propriety", {
   expect_length(grep("flat", w), 1L)
   expect_null(prior_summary(ds))
 
-  # it really is the old flat behavior: the same objective the fit route
-  # samples, so a seeded short run matches it draw for draw
+  # it really is the old flat behavior, and the fit route reaches it
+  # through the same opt-out: a seeded short run matches draw for draw
   fit <- frm(form, data = dd)
-  ds_fit <- suppressWarnings(
+  ds_fit <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 400, refresh = 0, seed = 1,
-               init = "random"))
+               init = "random", prior = "flat")))
   expect_equal(unname(ds$draws), unname(ds_fit$draws))
 
   # a model with no variance component has nothing improper to warn about
@@ -377,8 +383,166 @@ test_that("prior = 'flat' opts out and warns about propriety", {
   expect_error(frm_sample(bf(y ~ x) + gaussian(), data = dd,
                           prior = "weak"),
                "the string .flat.")
-  expect_error(frm_sample(fit, prior = "flat"),
-               "already samples the likelihood")
+  expect_error(frm_sample(fit, prior = "weak"), "the string .flat.")
+})
+
+test_that("the fit route defaults to the brms priors, and flat opts out", {
+  skip_if_not_installed("tmbstan")
+  skip_if_not_installed("rstan")
+  withr::local_options(mc.cores = 1)
+  dd <- sd_data()
+  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+  # the disclosure banner is the formula route's, on the fit route
+  msg <- capture_messages(suppressWarnings(
+    ds <- frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 1)))
+  expect_length(grep("default priors", msg), 1L)
+  cls <- vapply(unclass(prior_summary(ds)), `[[`, "", "class")
+  expect_true(all(c("Intercept", "sd") %in% cls))
+  # and the sd default is what makes the block eligible to non-center
+  expect_equal(ds$reparam$blocks, 1L)
+  expect_length(grep("stays centered", msg), 0L)
+
+  # prior = "flat" restores the bare objective: no banner, no defaults
+  # in the summary, no reparameterization, and the propriety warning
+  w <- NULL
+  msg2 <- capture_messages(withCallingHandlers(
+    ds2 <- frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 1,
+                      prior = "flat"),
+    warning = function(x) {
+      w <<- c(w, conditionMessage(x))
+      invokeRestart("muffleWarning")
+    }))
+  expect_length(grep("default priors", msg2), 0L)
+  expect_length(grep("flat", w), 1L)
+  expect_null(prior_summary(ds2))
+  expect_null(ds2$reparam)
+  expect_length(grep("stays centered", msg2), 1L)
+})
+
+test_that("the fit route unpins a chain from a boundary variance mode", {
+  skip_if_not_installed("tmbstan")
+  skip_if_not_installed("rstan")
+  withr::local_options(mc.cores = 1)
+  # no group effect in the data at all, so maximum likelihood puts the
+  # variance component on the boundary: the kidney pathology in
+  # miniature (dev/brms-vignette-audit.md)
+  set.seed(9)
+  dd <- data.frame(x = stats::rnorm(80),
+                   g = factor(rep(seq_len(8), length.out = 80)))
+  dd$y <- stats::rnorm(80, 1 + 0.5 * dd$x, 1)
+  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+  expect_lt(fit$estimates$theta[[1L]], -4)
+
+  flat <- suppressWarnings(suppressMessages(
+    frm_sample(fit, chains = 1, iter = 800, refresh = 0, seed = 2,
+               prior = "flat")))
+  def <- suppressWarnings(suppressMessages(
+    frm_sample(fit, chains = 1, iter = 800, refresh = 0, seed = 2)))
+  # structural either way: the defaults are what open the gate
+  expect_null(flat$reparam)
+  expect_equal(def$reparam$blocks, 1L)
+
+  if (sampler_gates_on()) {
+    med <- function(ds) stats::median(exp(ds$draws[, "theta_1"]))
+    # flat: the chain sits at the singular mode or walks the improper
+    # tail below it, and reports a variance component of nothing
+    expect_lt(med(flat), 0.01)
+    # defaults: a variance component with a posterior on it
+    expect_gt(med(def), 0.02)
+    if (requireNamespace("posterior", quietly = TRUE)) {
+      ess <- function(ds) posterior::ess_bulk(ds$draws[, "theta_1"])
+      expect_gt(ess(def), 100)
+      expect_gt(ess(def), 5 * ess(flat))
+    }
+  }
+})
+
+test_that("a MAP fit's prior stacks under a call prior and the defaults", {
+  skip_if_not_installed("tmbstan")
+  skip_if_not_installed("rstan")
+  withr::local_options(mc.cores = 1)
+  dd <- sd_data()
+  form <- bf(y ~ x + (1 | g)) + gaussian()
+  mf <- frm(form, data = dd,
+            prior = set_prior("normal(0, 0.3)", class = "b"))
+  spec_of <- function(pl) {
+    vapply(unclass(pl), function(s) {
+      paste0(s$class, "=", s$dist$kind, "(",
+             paste(unlist(s$dist[-1L]), collapse = ","), ")")
+    }, "")
+  }
+
+  # the MAP prior survives, and the defaults fill the slots it left
+  ds <- suppressWarnings(suppressMessages(
+    frm_sample(mf, chains = 1, iter = 300, refresh = 0, seed = 1)))
+  s <- spec_of(prior_summary(ds))
+  expect_true("b=normal(0,0.3)" %in% s)
+  expect_true(any(grepl("^Intercept=t", s)))
+  expect_true(any(grepl("^sd=t", s)))
+
+  # an explicit call-level prior takes the slot it addresses, and only
+  # that one: the fit's own b prior is superseded, the defaults stay
+  ds2 <- suppressWarnings(suppressMessages(
+    frm_sample(mf, chains = 1, iter = 300, refresh = 0, seed = 1,
+               prior = set_prior("normal(0, 0.05)", class = "b"))))
+  s2 <- spec_of(prior_summary(ds2))
+  expect_true("b=normal(0,0.05)" %in% s2)
+  expect_false("b=normal(0,0.3)" %in% s2)
+  expect_true(any(grepl("^Intercept=t", s2)))
+  expect_true(any(grepl("^sd=t", s2)))
+  # the tighter prior is the one the chain felt
+  if (sampler_gates_on()) {
+    expect_lt(stats::sd(ds2$draws[, "x"]), stats::sd(ds$draws[, "x"]))
+  }
+
+  # and the opt-out drops the MAP prior too, out loud: that prior is
+  # taped INTO the fit's objective, so "flat" has to rebuild without it
+  msg <- capture_messages(suppressWarnings(
+    ds3 <- frm_sample(mf, chains = 1, iter = 300, refresh = 0, seed = 1,
+                      prior = "flat")))
+  expect_null(prior_summary(ds3))
+  expect_length(grep("drops the prior this fit was made with", msg), 1L)
+})
+
+test_that("a prior is added to the sampled density exactly once", {
+  # the trap: a MAP fit's penalty is taped INTO fit$obj at fit time, so
+  # a sampling objective built by ADDING priors to fit$obj would count
+  # that penalty twice. Every prior-carrying route rebuilds from the
+  # bare likelihood instead, and this pins that down in objective
+  # values, where a double count cannot hide
+  set.seed(4)
+  dd <- data.frame(x = stats::rnorm(120))
+  dd$y <- stats::rnorm(120, 1 + 0.5 * dd$x, 1)
+  pl <- set_prior("normal(0, 0.3)", class = "b")
+  mf <- frm(bf(y ~ x) + gaussian(), data = dd, prior = pl)
+  p <- mf$obj$par
+
+  bare <- frmtmb:::prior_augmented_obj(mf, list())
+  # the premise: the fit's own tape really does carry the penalty
+  expect_gt(abs(mf$obj$fn(p) - bare$fn(p)), 1e-6)
+  # rebuilding bare + the fit's own prior reproduces that tape exactly,
+  # which is what makes the rebuild the safe way to add anything else
+  own <- frmtmb:::resolve_prior_input(mf, pl)
+  expect_equal(frmtmb:::prior_augmented_obj(mf, own$entries)$fn(p),
+               mf$obj$fn(p), tolerance = 1e-8)
+
+  # the sampling stack is defaults + the fit's prior, and the defaults
+  # land on top of the penalized objective exactly once
+  defs <- frmtmb:::default_priors_for(mf)
+  all_e <- frmtmb:::resolve_prior_input(mf, defs + pl)$entries
+  def_e <- frmtmb:::resolve_prior_input(mf, defs)$entries
+  expect_equal(
+    frmtmb:::prior_augmented_obj(mf, all_e)$fn(p) - mf$obj$fn(p),
+    frmtmb:::prior_augmented_obj(mf, def_e)$fn(p) - bare$fn(p),
+    tolerance = 1e-8)
+
+  # and the resolved stack holds ONE entry per parameter position, so
+  # there is nothing for a second density to attach to
+  keys <- vapply(all_e, function(e) {
+    paste0(e$comp, ".", paste(e$idx, collapse = ","))
+  }, "")
+  expect_equal(anyDuplicated(keys), 0L)
 })
 
 test_that("user priors override the defaults per class", {

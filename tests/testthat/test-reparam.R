@@ -366,26 +366,67 @@ test_that("a correlated block non-centers once its correlation is priored", {
     expect_gt(max(abs(z - b)), 1e-6)
   }
 
-  # the FIT route is a likelihood diagnostic, so its priors are flat and
-  # the same block stays centered there
+  # the FIT route takes the same defaults, so it non-centers the same
+  # block, reports the same plan, and back-transforms the same way
+  ds2 <- suppressWarnings(suppressMessages(
+    frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 19)))
+  expect_equal(ds2$reparam$blocks, ds$reparam$blocks)
+  expect_equal(ds2$reparam$labels, ds$reparam$labels)
+  expect_equal(ds2$reparam$centered, ds$reparam$centered)
+  raw2 <- raw_stan_matrix(ds2)
+  for (i in c(1L, nrow(ds2$draws))) {
+    th <- unname(raw2[i, tcol])
+    Lr <- diag(2)
+    Lr[2L, 1L] <- th[3L]
+    Lr <- Lr / sqrt(rowSums(Lr * Lr))
+    L <- Lr * exp(th[1:2])
+    z <- unname(raw2[i, bcol])
+    expect_equal(unname(ds2$draws[i, bcol]),
+                 as.vector(L %*% matrix(z, bk$dim, bk$n_levels)),
+                 tolerance = 1e-10)
+  }
+
+  # only the opt-out leaves it centered, and the reason still names the
+  # correlation
   expect_message(
-    ds2 <- suppressWarnings(
-      frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 19)),
+    ds3 <- suppressWarnings(
+      frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 19,
+                 prior = "flat")),
     "sampling stays centered")
-  expect_null(ds2$reparam)
-  expect_equal(unname(ds2$draws), unname(raw_stan_matrix(ds2)))
+  expect_null(ds3$reparam)
+  expect_equal(unname(ds3$draws), unname(raw_stan_matrix(ds3)))
 })
 
-test_that("a fit with flat priors stays centered, and a prior turns it on", {
+test_that("a fit non-centers on its defaults, and prior = flat does not", {
   skip_sampler()
   dd <- rp_data()
   fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
+  # the class "sd" default covers this block's only theta, so the gate
+  # opens on the fit route exactly as it does from the formula
+  ds0 <- suppressWarnings(suppressMessages(
+    frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 23)))
+  expect_equal(ds0$reparam$blocks, 1L)
+  expect_gt(max(abs(unname(ds0$draws) - unname(raw_stan_matrix(ds0)))),
+            1e-6)
+
+  # the opt-out puts the flat prior back, and with it the centered
+  # chain and the note naming set_prior(class = "sd")
   expect_message(
     ds <- suppressWarnings(frm_sample(fit, chains = 1, iter = 300,
-                                      refresh = 0, seed = 23)),
+                                      refresh = 0, seed = 23,
+                                      prior = "flat")),
     "flat prior")
   expect_null(ds$reparam)
   expect_equal(unname(ds$draws), unname(raw_stan_matrix(ds)))
+
+  # reparameterize = FALSE still runs, and still hands back centered
+  # draws, defaults or not
+  ds1 <- suppressWarnings(suppressMessages(
+    frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 23,
+               reparameterize = FALSE)))
+  expect_null(ds1$reparam)
+  expect_equal(unname(ds1$draws), unname(raw_stan_matrix(ds1)))
+  expect_equal(colnames(ds1$draws), colnames(ds0$draws))
 
   ds2 <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 23,
@@ -393,6 +434,46 @@ test_that("a fit with flat priors stays centered, and a prior turns it on", {
   expect_equal(ds2$reparam$blocks, 1L)
   expect_gt(max(abs(unname(ds2$draws) - unname(raw_stan_matrix(ds2)))),
             1e-6)
+})
+
+test_that("check_laplace() samples flat and centered whatever the default", {
+  skip_sampler()
+  dd <- rp_data()
+  fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
+  # observable without re-deriving draws: the announcement it makes is
+  # the flat-prior centered one, not the default-prior banner
+  msg <- capture_messages(suppressWarnings(
+    cl <- check_laplace(fit, chains = 1, iter = 300, refresh = 0,
+                        seed = 23)))
+  expect_length(grep("default priors", msg), 0L)
+  expect_length(grep("flat prior", msg), 1L)
+  # and the argument that carries it is explicit rather than inherited
+  expect_true(".diagnostic" %in% names(formals(frm_sample)))
+  expect_match(paste(deparse(body(check_laplace)), collapse = " "),
+               ".diagnostic = TRUE", fixed = TRUE)
+  # a MAP fit is checked against ITS OWN objective. Its penalty is
+  # taped into fit$obj, so the diagnostic route leaves that tape alone
+  # rather than resolving the prior a second time; only the user-facing
+  # prior = "flat" rebuilds without it, and says so
+  mf <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
+            prior = set_prior("normal(0, 0.3)", class = "b"))
+  msg2 <- capture_messages(suppressWarnings(
+    check_laplace(mf, chains = 1, iter = 300, refresh = 0, seed = 23)))
+  expect_length(grep("default priors", msg2), 0L)
+  expect_length(grep("drops the prior", msg2), 0L)
+  expect_s3_class(cl, "data.frame")
+
+  dg <- suppressWarnings(suppressMessages(
+    frm_sample(mf, chains = 1, iter = 300, refresh = 0, seed = 23,
+               .diagnostic = TRUE)))
+  msg3 <- capture_messages(suppressWarnings(
+    fl <- frm_sample(mf, chains = 1, iter = 300, refresh = 0, seed = 23,
+                     prior = "flat")))
+  expect_length(grep("drops the prior", msg3), 1L)
+  # same seed, same everything but the penalty: the draws must differ
+  expect_gt(max(abs(unname(dg$draws) - unname(fl$draws))), 1e-8)
+  expect_null(dg$reparam)
+  expect_null(fl$reparam)
 })
 
 ## ---- the draws surface cannot tell the routes apart -------------------

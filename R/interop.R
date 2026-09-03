@@ -460,20 +460,22 @@ ncp_plan <- function(fit, reparameterize, laplace, entries = NULL) {
                  "prior here, and flat on a correlation is",
                  "(1 - rho^2)^-3/2, improper. Give the block priors,",
                  "set_prior(class = \"sd\") and",
-                 "set_prior(class = \"cor\"), which the formula",
-                 "interface supplies for you")
+                 "set_prior(class = \"cor\"), which frm_sample()",
+                 "supplies by default unless prior = \"flat\" turned",
+                 "them off")
          } else if (identical(bk[["covstruct"]], "hsgp")) {
            # the class-"sd" default cannot reach a lengthscale, so the
            # generic flat-prior advice below would never fix this block
            paste("its lengthscales share the block's theta and have a",
-                 "flat prior here, which the default priors do not",
-                 "cover. Prior the whole block,",
+                 "flat prior here, which no default covers.",
+                 "Prior the whole block,",
                  "set_prior(class = \"theta\"), to non-center it")
          } else {
            paste("its variance parameter has a flat prior here, and a",
                  "non-centered chain walks the flat tail that opens at",
                  "sd = 0. Give it a prior, set_prior(class = \"sd\"),",
-                 "which the formula interface supplies for you")
+                 "which frm_sample() supplies by default unless",
+                 "prior = \"flat\" turned it off")
          }
          paste0(lab[i], ": ", why)
        }, "")))
@@ -629,14 +631,19 @@ sample_assemble <- function(formula, data, family, data2, start,
       upper = upper, data2 = data2, dry_run = "objective")
 }
 
-# --- default priors for the formula interface --------------------------
+# --- default priors for frm_sample() -----------------------------------
 #
-# WHY ONLY HERE. frm_sample(fit) is a DIAGNOSTIC: check_laplace()
-# compares the Laplace/Wald approximation against the shape of the
-# LIKELIHOOD's own posterior, and a default prior would change the thing
-# being measured. frm_sample(formula) is not a diagnostic - the
-# posterior is the whole answer - so it defaults to brms's own
-# weakly-informative priors instead of to flat improper ones.
+# WHERE THEY APPLY. Both of frm_sample()'s routes, because both sample a
+# POSTERIOR and the posterior is the whole answer on either. Until
+# 0.43.0 the fit route was flat, on the argument that it exists to serve
+# check_laplace(); the audit in dev/brms-vignette-audit.md measured what
+# that costs a reader who ports a prior-free brm() call onto a fitted
+# model, and it is not a diagnostic they get - it is the chain pinned at
+# whatever boundary mode maximum likelihood found (kidney's sd(patient)
+# at 3e-4), or a chain that mixes an order of magnitude worse than the
+# same model sampled from the formula. check_laplace() keeps the
+# unpenalized density it needs through frm_sample(.diagnostic = TRUE),
+# which is now the only route that is flat by default.
 #
 # THE RECIPE is brms 2.23's, read off `brms::default_prior()` on matched
 # models (tests/testthat/test-sample-direct.R checks it against brms
@@ -863,6 +870,26 @@ prior_class_key <- function(s) {
          if (nzchar(s$resp %||% "")) paste0("@", s$resp))
 }
 
+#' Drop the specifications a later, equally explicit one supersedes:
+#' same class, coef, group, response, dpar and nlpar, so the same slot.
+#' `resolve_priorlist()` would have applied only the later one anyway;
+#' this is what keeps `prior_summary()` from listing both, which is how
+#' a MAP fit's own prior and a `prior =` on the sampling call would
+#' otherwise read.
+#'
+#' A BOUNDS-ONLY specification supersedes nothing: it is written to
+#' tighten an entry an earlier distribution created, and dropping that
+#' entry would discard the density it was meant to bound.
+#'
+#' @noRd
+drop_superseded <- function(base, over) {
+  tg <- vapply(Filter(function(s) !is.null(s$dist), unclass(over)),
+               spec_target, "")
+  keep <- Filter(function(s) !(spec_target(s) %in% tg), unclass(base))
+  if (!length(keep)) NULL else structure(keep,
+                                         class = "frmtmb_priorlist")
+}
+
 #' Drop the default specs a user specification has taken over.
 #'
 #' @noRd
@@ -936,11 +963,67 @@ merge_prior_inputs <- function(base, over) {
                                  as.list(over$upper)))
 }
 
-#' Resolve the priors of a formula-interface call: brms defaults, the
-#' opt-out, and a user specification composed on top.
+#' The slots a prior specification names, for the message that has to
+#' say which of the fit's own priors an opt-out discards. Both
+#' spellings: a priorlist names classes, the legacy list names internal
+#' parameters.
 #'
 #' @noRd
-sample_resolve_priors <- function(fit, prior, announce = TRUE) {
+prior_target_list <- function(pl) {
+  tg <- if (inherits(pl, "frmtmb_priorlist")) {
+    vapply(unclass(pl), spec_target, "")
+  } else {
+    names(pl) %||% character(0)
+  }
+  paste(unique(tg), collapse = "; ")
+}
+
+#' Stack prior specifications least explicit first. `resolve_priorlist()`
+#' already resolves a later specification over an earlier one, position
+#' by position, so the stacking IS the precedence rule and nothing has
+#' to be dropped by hand.
+#'
+#' The legacy named-list spelling addresses raw internal parameters, not
+#' classes, so it cannot be concatenated into a priorlist; it rides
+#' alongside in its own slot and is merged at the resolved-entry level.
+#'
+#' @noRd
+prior_stack <- function(...) {
+  pl <- NULL
+  legacy <- list()
+  for (p in list(...)) {
+    p <- as_priorlist(p)
+    if (is.null(p) || !length(p)) next
+    if (inherits(p, "frmtmb_priorlist")) {
+      if (!is.null(pl)) pl <- drop_superseded(pl, p)
+      pl <- if (is.null(pl)) p else pl + p
+    } else {
+      legacy[[length(legacy) + 1L]] <- p
+    }
+  }
+  list(pl = pl, legacy = legacy)
+}
+
+#' Resolve the priors of a sampling call: the brms defaults, the fit's
+#' own prior, a specification given on the call, and the opt-out.
+#'
+#' PRECEDENCE, most explicit wins per addressed slot: `prior =` on the
+#' call, then `base` (a fitted object's own prior, which a MAP fit
+#' carries into sampling), then the defaults. The first two are stacked
+#' in that order and resolved later-wins; the defaults step aside for a
+#' whole class either of them names, which is brms's partial-override
+#' rule.
+#'
+#' `defaults = FALSE` is the DIAGNOSTIC mode [check_laplace()] runs in:
+#' no defaults, no disclosure, and no opt-out warning. That caller
+#' withholds `base` as well, and for the same reason: a MAP fit's
+#' penalty is already taped into `fit$obj`, so resolving it here would
+#' rebuild a tape the caller already has, and adding anything else
+#' would change the density it is measuring.
+#'
+#' @noRd
+sample_resolve_priors <- function(fit, prior, base = NULL,
+                                  defaults = TRUE) {
   if (is.character(prior)) {
     if (!identical(prior, "flat")) {
       stop("prior = must be a set_prior() specification, a named list ",
@@ -948,7 +1031,7 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
            "likelihood with improper flat priors; got \"",
            paste(prior, collapse = "\", \""), "\"", call. = FALSE)
     }
-    if (length(fit$frame$re_blocks)) {
+    if (defaults && length(fit$frame$re_blocks)) {
       warning("prior = \"flat\": every variance component has a flat ",
               "prior on its log standard deviation, under which the ",
               "posterior need not be proper (it usually is not with ",
@@ -956,31 +1039,45 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
               "it. Drop prior = to get the brms default priors ",
               "instead", call. = FALSE)
     }
-    return(list(effective = NULL, ri = NULL))
+    # a MAP fit's penalty is taped INTO fit$obj, so "flat" is a claim
+    # about that tape too: the sampled density is the bare likelihood,
+    # and the fit's own prior goes with the defaults. Said out loud,
+    # because the alternative reading (drop the defaults, keep the
+    # fit's penalty) is equally plausible from the argument name
+    if (defaults && !is.null(base)) {
+      message("prior = \"flat\" drops the prior this fit was made ",
+              "with (", prior_target_list(base), ") as well as the ",
+              "defaults: the sampled density is the bare likelihood, ",
+              "not the penalized objective frm() maximized")
+    }
+    return(list(effective = NULL, ri = NULL, flat = TRUE))
   }
-  defaults <- default_priors_for(fit)
-  user_pl <- if (inherits(prior, "frmtmb_priorlist")) prior
-  if (!is.null(defaults) && !is.null(user_pl)) {
-    defaults <- drop_overridden(defaults, priorlist_classes(user_pl))
+  st <- prior_stack(base, prior)
+  user_pl <- st$pl
+  defs <- if (defaults) default_priors_for(fit)
+  if (!is.null(defs) && !is.null(user_pl)) {
+    defs <- drop_overridden(defs, priorlist_classes(user_pl))
   }
   # announced even when there are no defaults at all: a family whose
   # slots frmtmb cannot prior must say so rather than look flat by
   # accident
-  if (announce) {
-    announce_default_priors(defaults, default_prior_notes(fit))
+  if (defaults) {
+    announce_default_priors(defs, default_prior_notes(fit))
   }
-  eff <- if (is.null(defaults)) user_pl else if (is.null(user_pl)) {
-    defaults
+  eff <- if (is.null(defs)) user_pl else if (is.null(user_pl)) {
+    defs
   } else {
-    defaults + user_pl
+    defs + user_pl
   }
   ri <- if (!is.null(eff)) resolve_prior_input(fit, eff)
-  if (!is.null(prior) && is.null(user_pl)) {
-    # the legacy named-list spelling addresses raw internal parameters;
-    # it takes over exactly those and leaves the rest of the defaults
-    ri <- merge_prior_inputs(ri, resolve_prior_input(fit, prior))
+  if (length(st$legacy)) {
+    # the legacy spelling takes over exactly the internal parameters it
+    # names and leaves the rest of the stack in place
+    for (lg in st$legacy) {
+      ri <- merge_prior_inputs(ri, resolve_prior_input(fit, lg))
+    }
     eff <- eff %||% structure(list(), class = "frmtmb_priorlist")
-    attr(eff, "overrides") <- prior
+    attr(eff, "overrides") <- Reduce(utils::modifyList, st$legacy)
   }
   list(effective = eff, ri = ri)
 }
@@ -994,19 +1091,25 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
 #' objective without optimizing anything first (see Sampling from a
 #' formula).
 #'
-#' **The two routes answer different questions.** `frm_sample(fit)` is a
-#' DIAGNOSTIC: it explores the LIKELIHOOD, with flat improper priors on
-#' the outer parameters, so that [check_laplace()] can compare the
-#' Laplace and Wald approximations against the shape of the very same
-#' objective the fit maximized. `frm_sample(formula, data)` is a
-#' SAMPLING tool: it samples a POSTERIOR, and defaults to brms's own
-#' weakly-informative priors (see Default priors), because from a
-#' formula there is no estimate for the run to be a diagnostic for.
+#' **Both routes sample a posterior under the same default priors** (see
+#' Default priors), brms 2.23's own weakly-informative ones. What the
+#' fit adds is a starting point, not a different density: the ML mode
+#' anchors the chains and shortens warmup, and the model is the one the
+#' fit already carries.
 #'
-#' On the fit path, then, a parameter without a prior keeps a flat
-#' improper one, and the posterior of a variance component with few
-#' groups can be improper. That is the price of measuring the
-#' likelihood, and it is why the fit path is a diagnostic.
+#' The two differ only in what else is in the stack. A fit made with
+#' `frm(prior = )` is a MAP fit, and it carries its own prior into
+#' sampling: the priors that apply are then this call's `prior =` first,
+#' the fit's own next, and the defaults under both, most explicit
+#' winning per slot it addresses. `prior = "flat"` opts out of all of
+#' it and samples the bare likelihood, on either route.
+#'
+#' [check_laplace()] is the one caller that stays unpenalized by
+#' default. It measures the Laplace and Wald approximations against the
+#' shape of the very objective the fit maximized, and a default prior
+#' would change the thing being measured, so it asks for the flat
+#' density explicitly rather than inheriting whatever this function
+#' defaults to.
 #'
 #' @section Sampling from a formula:
 #' `frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian())`
@@ -1062,8 +1165,9 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
 #' range where the posterior is flat or improper. Removing the funnel
 #' without closing those off first trades a slow chain for a wrong one.
 #'
-#' In practice that means the FORMULA interface, whose default priors
-#' cover every standard deviation and every correlation, non-centers
+#' In practice that means a default-prior run, on EITHER route, whose
+#' priors cover every standard deviation and every correlation,
+#' non-centers
 #' `(1 | g)` and any block written one term at a time, `diag()` and
 #' `homdiag()` blocks, [mgcv::s()] smooths, `equalto()`, `gr(cov = )`,
 #' and the CORRELATED blocks `(x | g)`, `cs()`, `ar1()` and `hetar1()`.
@@ -1075,9 +1179,9 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
 #' (`set_prior(class = "theta")`) to non-center it.
 #' `rr()` is already non-centered by
 #' construction, since its own coefficients are the standard normal
-#' factors. A fitted model sampled with `frm_sample(fit)` has flat
-#' priors by design (it is a diagnostic; see above), so it stays
-#' centered unless you give its variance parameters a prior.
+#' factors. What stays centered is a run whose variance parameters are
+#' flat: `prior = "flat"`, and [check_laplace()], which asks for that
+#' density on purpose.
 #'
 #' The call `message()`s every block it left centered, with the reason.
 #' A model made only of those samples centered throughout and says so
@@ -1088,19 +1192,18 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
 #'   the model without that random effect, and the density stops
 #'   changing: a flat tail with nothing to stop a chain in it. Measured
 #'   on a six-group random-intercept model, one chain of 2000, three
-#'   seeds: from the fit, with flat priors, the non-centered chain walks
-#'   `theta` to -1e15 at a bulk-ESS of 1; from the formula, where the
-#'   default `student_t(3, 0, s)` makes that tail integrable, 174 to 284
-#'   against 3 to 48 centered.
+#'   seeds: under flat priors the non-centered chain walks `theta` to
+#'   -1e15 at a bulk-ESS of 1; under the default `student_t(3, 0, s)`,
+#'   which makes that tail integrable, 174 to 284 against 3 to 48
+#'   centered.
 #' - A FLAT PRIOR on the block's CORRELATION, which is the same
 #'   argument: flat on frmtmb's unbounded correlation parameter is
 #'   `(1 - rho^2)^-3/2`, improper, with all its mass at `|rho| = 1`.
 #'   Before 0.39 that kept every correlated block centered, because no
 #'   proper correlation prior existed to close the tail; `lkj(eta)`
-#'   now does, and the formula route sets `lkj(1)` by default, so
+#'   now does, and it is a default, so
 #'   `(Days | Subject)`, `cs()`, `ar1()` and `hetar1()` non-center
-#'   there like any other block. On the FIT route they still do not:
-#'   its priors are flat by design.
+#'   like any other block.
 #' - A Student-t latent (`gr(dist = "student")`): a scale mixture, not a
 #'   linear factor.
 #' - [car()], `spde()` and `gr(prec = )`: sparse precisions whose factor
@@ -1129,7 +1232,7 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
 #' and no fitted object ever carries a non-centered tape.
 #'
 #' @section Default priors:
-#' The formula interface defaults to brms 2.23's own weakly-informative
+#' Both routes default to brms 2.23's own weakly-informative
 #' priors, read off `brms::default_prior()` on matched models. Write
 #' `y*` for the response transformed by the `mu` link and
 #' `s = max(2.5, round(mad(y*), 1))`:
@@ -1198,7 +1301,19 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
 #' turns the defaults off entirely and samples the likelihood, which
 #' warns when the model has variance components: their flat-prior
 #' posteriors need not be proper, and neither the chains nor Rhat can
-#' see that.
+#' see that. On a MAP fit `"flat"` reaches further than the defaults:
+#' that fit's own prior is taped into its objective, and the bare
+#' likelihood is what `"flat"` names, so the penalty is rebuilt out and
+#' the call says which prior it dropped.
+#'
+#' *Three sources, most explicit first.* On a fitted model the stack is
+#' this call's `prior =`, then the fit's own prior (`frm(prior = )`
+#' makes a MAP fit, and that prior is part of the model the fit is),
+#' then the defaults. Each addressed slot is settled by the most
+#' explicit source that names it, one slot at a time: a call-level
+#' `set_prior(class = "sd")` replaces the fit's `sd` prior and the `sd`
+#' default while the `Intercept` default stays. `prior_summary()` on
+#' the returned draws prints what the stack came to.
 #'
 #' @param fit A `frmtmb_fit`, or a `bf()`/formula to assemble and sample
 #'   directly (then `data` is required).
@@ -1223,10 +1338,9 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
 #'   of prior objects (see [prior_normal()]) whose names are parameter
 #'   names as in the draws (or whole components: `"beta"`, `"theta"`,
 #'   ...), or the string `"flat"`. The objective is re-taped with the
-#'   prior terms added; a fitted model itself is unchanged. On the fit
-#'   path a parameter without a prior keeps a flat improper one. On the
-#'   formula path the brms default priors apply to whatever the
-#'   specification leaves alone (see Default priors), and
+#'   prior terms added; a fitted model itself is unchanged. On both
+#'   paths the brms default priors apply to whatever this argument, and
+#'   a MAP fit's own prior, leave alone (see Default priors), and
 #'   `prior = "flat"` opts out of them entirely. A `brmsprior` object
 #'   built by brms's own `prior()` is translated row by row. The
 #'   argument takes brms's spelling, `prior`; the `priors` of releases
@@ -1264,6 +1378,16 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
 #'   `z0 = L(theta_hat)^-1 b_hat`. Seeded draws differ between the two
 #'   routes, so `reparameterize = FALSE` is also the way to reproduce a
 #'   run made before this default existed.
+#' @param .diagnostic Internal, and named with a dot because there is no
+#'   reason to set it by hand. `TRUE` turns the default priors off and
+#'   silences the disclosure, and leaves the fit's own objective alone:
+#'   a MAP fit's penalty is taped into it, so no prior is resolved
+#'   again and no tape is rebuilt. [check_laplace()] sets it, because
+#'   it measures the Laplace and Wald approximations against the
+#'   density the fit maximized and a default prior would change what is
+#'   being measured. Write `prior = "flat"` for the user-facing
+#'   opt-out, which goes further and rebuilds a MAP fit's objective
+#'   without its penalty.
 #' @return An object of class `frmtmb_draws`: list with the `stanfit`,
 #'   a draws matrix with named columns (`as.matrix()` method), the
 #'   originating fit, and, when any block was non-centered, a
@@ -1312,7 +1436,8 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                        init_jitter = 0.25, reparameterize = TRUE,
                        data2 = list(), start = NULL,
                        control = frmtmb_control(),
-                       na.action = stats::na.omit, REML = FALSE) {
+                       na.action = stats::na.omit, REML = FALSE,
+                       .diagnostic = FALSE) {
   # `...` goes to tmbstan, which would take the retired spelling as an
   # unknown sampler option and run the model with no priors at all
   refuse_retired_priors(list(...), "frm_sample()")
@@ -1345,25 +1470,24 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   pr_lower <- c()
   pr_upper <- c()
   obj <- fit$obj
-  ri <- NULL
-  if (from_formula) {
-    # the formula route samples a posterior, so it defaults to brms's
-    # weakly-informative priors rather than to the flat ones the
-    # diagnostic route needs
-    rp <- sample_resolve_priors(fit, prior)
-    fit$prior <- rp$effective
-    ri <- rp$ri
-  } else {
-    # a MAP fit carries its prior into sampling unless overridden
-    prior <- prior %||% fit$prior
-    if (is.character(prior)) {
-      stop("prior = \"flat\" is the formula interface's opt-out from ",
-           "its default priors. frm_sample() on a fit already samples ",
-           "the likelihood with flat priors, so drop the argument",
-           call. = FALSE)
-    }
-    if (!is.null(prior)) ri <- resolve_prior_input(fit, prior)
-  }
+  # BOTH routes sample a POSTERIOR, so both default to brms's
+  # weakly-informative priors: a literal translation of a prior-free
+  # brm() call onto a fitted model otherwise pins the chain at whatever
+  # boundary mode maximum likelihood found. Precedence is
+  # most-explicit-wins per slot - this call's prior =, then the fit's
+  # own (a MAP fit's), then the defaults - and prior = "flat" opts out
+  # of all of it.
+  #
+  # `own` is read before it is overwritten, and `.diagnostic` leaves it
+  # out of the stack on purpose: a MAP fit's penalty is taped INTO
+  # fit$obj at fit time, so resolving it again here would rebuild a
+  # tape that check_laplace() already has. See check_laplace().
+  own <- fit[["prior"]]
+  rp <- sample_resolve_priors(fit, prior,
+                              base = if (!isTRUE(.diagnostic)) own,
+                              defaults = !isTRUE(.diagnostic))
+  fit$prior <- rp$effective
+  ri <- rp$ri
   if (!is.null(ri)) {
     pr_lower <- ri$lower
     pr_upper <- ri$upper
@@ -1379,10 +1503,20 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # either route, and no prior addresses b (or z) at all
   ncp <- ncp_plan(fit, reparameterize, laplace, ri$entries)
   announce_ncp(ncp)
+  # every prior-carrying route rebuilds from build_objective(), the
+  # BARE likelihood, and adds the resolved entries once; fit$obj is
+  # sampled untouched only when nothing has to be added to it
   if (length(ncp$idx)) {
     obj <- ncp_objective(fit, ncp$idx, ri$entries %||% list())
   } else if (!is.null(ri) && length(ri$entries)) {
     obj <- prior_augmented_obj(fit, ri$entries)
+  } else if (isTRUE(rp$flat) && !isTRUE(.diagnostic) && !is.null(own)) {
+    # the opt-out has something to SUBTRACT here: a MAP fit's own prior
+    # is part of fit$obj, and "flat" on the user-facing argument means
+    # the likelihood without it. Under `.diagnostic` it means the
+    # weaker thing - no prior ADDED to the density the fit maximized -
+    # which is fit$obj as it stands
+    obj <- prior_augmented_obj(fit, list())
   }
   bounds <- if (length(lower) || length(upper)) {
     resolve_bounds(fit, unlist(lower), unlist(upper))
@@ -1400,8 +1534,10 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
       warning("The ML mode has an extreme covariance parameter (",
               paste(names(ext), collapse = ", "),
               "; likely a boundary/singular fit); mode initialization ",
-              "starts the chains there. Consider init = \"random\", ",
-              "or regularize with prior =", call. = FALSE)
+              "starts the chains there. The default priors usually ",
+              "pull a chain off that boundary; if this one stays ",
+              "pinned, use init = \"random\" or a tighter prior =",
+              call. = FALSE)
     }
     lpb <- obj$env$last.par.best
     rnd <- obj$env$random
@@ -1505,20 +1641,33 @@ print.frmtmb_draws <- function(x, ...) {
 #' mean, flags parameters where they are unreliable (typically variance
 #' components with few groups).
 #'
-#' This is a diagnostic tool: it explores the LIKELIHOOD, with flat
-#' priors, which is what makes the comparison against the ML mode and
-#' its Wald standard errors meaningful. `frm_sample()` on a formula is
-#' the sampling tool instead: it samples a POSTERIOR, under brms's
-#' default priors. A default prior here would change the very thing
-#' being measured, so `check_laplace()` never sets one.
+#' **It samples the density the fit maximized, and no other.** It hands
+#' Stan `fit$obj` as it stands. For an ordinary fit that objective is
+#' the LIKELIHOOD, so the run is flat; for a MAP fit (`frm(prior = )`)
+#' the penalty is taped INTO that objective, so the run carries it,
+#' which is right: the mode and the Wald standard errors this function
+#' compares against come from the same penalized Hessian. "Flat" here
+#' means no prior ADDED, not the fit's own penalty stripped - for the
+#' bare likelihood of a MAP fit, write `frm_sample(fit, prior =
+#' "flat")` instead, and read it as a different question.
 #'
-#' That is also why it samples CENTERED. `frm_sample()`'s non-centered
+#' What this function never adds is [frm_sample()]'s DEFAULT priors.
+#' Those defaults
+#' apply on both of `frm_sample()`'s routes, and this function opts out
+#' of them explicitly (`frm_sample(.diagnostic = TRUE)`) rather than
+#' inheriting whatever the default is: a prior nothing in the fit ever
+#' saw would change the very thing being measured.
+#'
+#' That is also why it samples CENTERED on an ordinary fit.
+#' `frm_sample()`'s non-centered
 #' parameterization (see Reparameterization there) is offered only for
-#' blocks whose variance parameters carry a prior, and here none do: the
+#' blocks whose variance parameters carry a prior, and with the
+#' defaults off none do: the
 #' flat prior that makes the comparison meaningful is exactly the one
 #' that leaves a flat tail at `sd = 0` for a non-centered chain to walk
-#' into. So the default costs this function nothing and changes nothing
-#' about it. Give the variance parameters a prior through `prior =`
+#' into. So the reparameterization default costs this function nothing
+#' and changes nothing about it. Give the variance parameters a prior
+#' through `prior =`
 #' and the run non-centers; but then it is measuring the Laplace
 #' approximation of a different posterior, which is usually not the
 #' question.
@@ -1574,7 +1723,14 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
   # the whole point is NUTS against the ML mode and its Wald standard
   # errors; without a mode there is nothing to check the sampler against
   require_fitted(fit, "check_laplace()")
-  ds <- frm_sample(fit, chains = chains, iter = iter, ...)
+  # explicit, not inherited: frm_sample() defaults to the brms priors on
+  # both of its routes now, and this function must keep sampling the
+  # density the fit MAXIMIZED - otherwise it would compare NUTS on one
+  # posterior against a mode and Wald errors from another. That density
+  # is the flat likelihood for an ordinary fit and the fit's own
+  # penalized one for a MAP fit, which is what the flag leaves standing
+  ds <- frm_sample(fit, chains = chains, iter = iter, ...,
+                   .diagnostic = TRUE)
   m <- ds$draws
   keep <- setdiff(colnames(m),
                   c("lp__", grep("^b\\[", colnames(m), value = TRUE)))
@@ -1626,6 +1782,11 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
 #' point of view the model is the (Laplace-free) joint density, so all
 #' parameters including random effects are sampled unless `laplace =
 #' TRUE` is passed through.
+#'
+#' It hands over the fit's OWN objective and nothing else: no default
+#' priors, no non-centering, no named draws. [frm_sample()] is the
+#' route that applies brms's default priors and returns the draws
+#' surface; this one is the escape hatch to tmbstan's own arguments.
 #'
 #' @param fit A `frmtmb_fit`.
 #' @param ... Passed to [tmbstan::tmbstan()] (chains, iter, laplace, ...).
