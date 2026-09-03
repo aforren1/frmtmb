@@ -17,7 +17,7 @@ components with few groups)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,19 +97,30 @@ components with few groups).</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>This is a diagnostic tool: it explores the LIKELIHOOD, with flat
-priors, which is what makes the comparison against the ML mode and
-its Wald standard errors meaningful. <code><a href="frm_sample.html">frm_sample()</a></code> on a formula is
-the sampling tool instead: it samples a POSTERIOR, under brms's
-default priors. A default prior here would change the very thing
-being measured, so <code>check_laplace()</code> never sets one.</p>
-<p>That is also why it samples CENTERED. <code><a href="frm_sample.html">frm_sample()</a></code>'s non-centered
+    <p><strong>It samples the density the fit maximized, and no other.</strong> It hands
+Stan <code>fit$obj</code> as it stands. For an ordinary fit that objective is
+the LIKELIHOOD, so the run is flat; for a MAP fit (<code>frm(prior = )</code>)
+the penalty is taped INTO that objective, so the run carries it,
+which is right: the mode and the Wald standard errors this function
+compares against come from the same penalized Hessian. "Flat" here
+means no prior ADDED, not the fit's own penalty stripped - for the
+bare likelihood of a MAP fit, write <code>frm_sample(fit, prior = "flat")</code> instead, and read it as a different question.</p>
+<p>What this function never adds is <code><a href="frm_sample.html">frm_sample()</a></code>'s DEFAULT priors.
+Those defaults
+apply on both of <code><a href="frm_sample.html">frm_sample()</a></code>'s routes, and this function opts out
+of them explicitly (<code>frm_sample(.diagnostic = TRUE)</code>) rather than
+inheriting whatever the default is: a prior nothing in the fit ever
+saw would change the very thing being measured.</p>
+<p>That is also why it samples CENTERED on an ordinary fit.
+<code><a href="frm_sample.html">frm_sample()</a></code>'s non-centered
 parameterization (see Reparameterization there) is offered only for
-blocks whose variance parameters carry a prior, and here none do: the
+blocks whose variance parameters carry a prior, and with the
+defaults off none do: the
 flat prior that makes the comparison meaningful is exactly the one
 that leaves a flat tail at <code>sd = 0</code> for a non-centered chain to walk
-into. So the default costs this function nothing and changes nothing
-about it. Give the variance parameters a prior through <code>prior =</code>
+into. So the reparameterization default costs this function nothing
+and changes nothing about it. Give the variance parameters a prior
+through <code>prior =</code>
 and the run non-centers; but then it is measuring the Laplace
 approximation of a different posterior, which is usually not the
 question.</p>
@@ -135,7 +146,7 @@ question.</p>
 <span class="r-in"><span><span class="va">cl</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">z_shift</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0.3</span> <span class="op">|</span> <span class="va">cl</span><span class="op">$</span><span class="va">sd_ratio</span> <span class="op">&gt;</span> <span class="fl">1.3</span>, <span class="op">]</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which frm_sample() supplies by default unless prior = "flat" turned it off</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The largest R-hat is 1.08, indicating chains have not mixed.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#r-hat</span>

@@ -38,24 +38,36 @@ and `sd_ratio` (post_sd/wald_se).
 
 ## Details
 
-This is a diagnostic tool: it explores the LIKELIHOOD, with flat priors,
-which is what makes the comparison against the ML mode and its Wald
-standard errors meaningful.
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
-on a formula is the sampling tool instead: it samples a POSTERIOR, under
-brms's default priors. A default prior here would change the very thing
-being measured, so `check_laplace()` never sets one.
+**It samples the density the fit maximized, and no other.** It hands
+Stan `fit$obj` as it stands. For an ordinary fit that objective is the
+LIKELIHOOD, so the run is flat; for a MAP fit (`frm(prior = )`) the
+penalty is taped INTO that objective, so the run carries it, which is
+right: the mode and the Wald standard errors this function compares
+against come from the same penalized Hessian. "Flat" here means no prior
+ADDED, not the fit's own penalty stripped - for the bare likelihood of a
+MAP fit, write `frm_sample(fit, prior = "flat")` instead, and read it as
+a different question.
 
-That is also why it samples CENTERED.
+What this function never adds is
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)'s
+DEFAULT priors. Those defaults apply on both of
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)'s
+routes, and this function opts out of them explicitly
+(`frm_sample(.diagnostic = TRUE)`) rather than inheriting whatever the
+default is: a prior nothing in the fit ever saw would change the very
+thing being measured.
+
+That is also why it samples CENTERED on an ordinary fit.
 [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)'s
 non-centered parameterization (see Reparameterization there) is offered
-only for blocks whose variance parameters carry a prior, and here none
-do: the flat prior that makes the comparison meaningful is exactly the
-one that leaves a flat tail at `sd = 0` for a non-centered chain to walk
-into. So the default costs this function nothing and changes nothing
-about it. Give the variance parameters a prior through `prior =` and the
-run non-centers; but then it is measuring the Laplace approximation of a
-different posterior, which is usually not the question.
+only for blocks whose variance parameters carry a prior, and with the
+defaults off none do: the flat prior that makes the comparison
+meaningful is exactly the one that leaves a flat tail at `sd = 0` for a
+non-centered chain to walk into. So the reparameterization default costs
+this function nothing and changes nothing about it. Give the variance
+parameters a prior through `prior =` and the run non-centers; but then
+it is measuring the Laplace approximation of a different posterior,
+which is usually not the question.
 
 ## Examples
 
@@ -78,7 +90,7 @@ cl
 cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
 }
 #> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
-#>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you
+#>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which frm_sample() supplies by default unless prior = "flat" turned it off
 #> Warning: The largest R-hat is 1.08, indicating chains have not mixed.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#r-hat

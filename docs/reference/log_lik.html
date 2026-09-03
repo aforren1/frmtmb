@@ -13,7 +13,7 @@ matrix, and loo(), waic() and loo::psis() take it directly."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -162,15 +162,21 @@ observation. Use <code><a href="https://rdrr.io/r/stats/AIC.html" class="externa
 <span class="r-in"><span>  <span class="co"># the column means are the per-observation expected log-densities</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">ll</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 0.8, 2.5)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   sd                 student_t(3, 0, 2.5)  [natural sd scale]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   b                  (flat), as brms leaves slopes</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The largest R-hat is 1.08, indicating chains have not mixed.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#r-hat</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#bulk-ess</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#tail-ess</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] -0.8789809 -1.9343176 -1.3297286 -2.7670318 -0.8878848 -3.2526304</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] -0.9065556 -2.0714431 -1.3069103 -2.6282265 -0.9127526 -3.1420544</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

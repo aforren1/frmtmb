@@ -15,7 +15,7 @@ them."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,7 +99,8 @@ column.</p></dd>
 
 <dt id="arg-newparams">newparams<a class="anchor" aria-label="anchor" href="#arg-newparams"></a></dt>
 <dd><p>Named list of parameters, in either spelling (see
-Details). Optional when <code>prior</code> pins everything.</p></dd>
+Details). <code><a href="par_template.html">par_template()</a></code> discovers the internal spelling for a
+formula and data. Optional when <code>prior</code> pins everything.</p></dd>
 
 
 <dt id="arg-prior">prior<a class="anchor" aria-label="anchor" href="#arg-prior"></a></dt>
@@ -157,12 +158,13 @@ residual SD of 0.7;</p></li>
 <code>cor_&lt;group&gt;__&lt;t1&gt;__&lt;t2&gt;</code> for their correlations, and
 <code>sds_&lt;label&gt;</code> for a smooth's smoothing SD. Unset correlations are
 0.</p></li>
-</ul><p><em>Internal scale</em>: named after the <code>par_template</code> components -
-<code>beta</code>, <code>betad</code>, <code>theta</code>, and optionally <code>b</code> - each a full-length
-vector, on the internal parameterization (<code>theta</code> holds log SDs and
-Cholesky correlation parameters, <code>betad</code> holds dispersion dpars on
-their link scale). Inspect the layout with
-<code>frm(formula, data, dry_run = "frame")$par_template</code>.</p>
+</ul><p><em>Internal scale</em>: named after the parameter components - <code>beta</code>,
+<code>betad</code>, <code>theta</code>, and optionally <code>b</code> - each a full-length vector, on
+the internal parameterization (<code>theta</code> holds log SDs and Cholesky
+correlation parameters, <code>betad</code> holds dispersion dpars on their link
+scale). <code><a href="par_template.html">par_template()</a></code> returns that layout for a formula and data
+without fitting anything, filled with the default values and carrying
+the name of every entry; edit it and pass it back as <code>newparams</code>.</p>
 <p>The two spellings cannot be mixed: <code>newparams</code> is read as internal
 when every name is a <code>par_template</code> component (or <code>b</code>), and as
 natural otherwise. The natural spelling covers <code>us</code>, <code>diag</code>,
@@ -210,22 +212,21 @@ zero effect or unit SD.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5 2.6140092 1.3184590 0.07503977</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.6230005 0.4061450 0.17173320</span>
 <span class="r-in"><span><span class="co"># the same thing on the internal scale</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">dd</span>,</span></span>
-<span class="r-in"><span>    dry_run <span class="op">=</span> <span class="st">"frame"</span><span class="op">)</span><span class="op">$</span><span class="va">par_template</span>   <span class="co"># the required layout</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $beta</span>
+<span class="r-in"><span><span class="fu"><a href="par_template.html">par_template</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">dd</span><span class="op">)</span>   <span class="co"># the layout</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;frmtmb parameter template&gt; starting values</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $beta  (2)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>           0           0 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $betad</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $betad  (1)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> sigma_(Intercept) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 0 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $b</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0 0 0 0 0 0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $theta</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $b  (6)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> b_1 b_2 b_3 b_4 b_5 b_6 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0   0   0   0   0   0 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $theta  (1)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> theta_1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       0 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Edit and pass back as frm(start = ) or frm_simulate(newparams = ). Parentheses are optional in names you supply.</span>
 <span class="r-in"><span><span class="va">sims2</span> <span class="op">&lt;-</span> <span class="fu">frm_simulate</span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">dd</span>,</span></span>
 <span class="r-in"><span>                      newparams <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0.5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                                       betad <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.7</span><span class="op">)</span>,</span></span>

@@ -28,6 +28,14 @@ as_tmbstan(fit, ...)
 
 A `stanfit` object.
 
+## Details
+
+It hands over the fit's OWN objective and nothing else: no default
+priors, no non-centering, no named draws.
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+is the route that applies brms's default priors and returns the draws
+surface; this one is the escape hatch to tmbstan's own arguments.
+
 ## Examples
 
 ``` r

@@ -13,7 +13,7 @@ are documented so the reason is findable.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -121,9 +121,9 @@ the resampling machinery frmtmb does have, and <code><a href="https://rdrr.io/r/
 maximum-likelihood fits answers the comparison question directly.</p></li>
 <li><p><code>bridge_sampler()</code>, <code>bayes_factor()</code> and <code>post_prob()</code> are
 marginal-likelihood quantities. A marginal likelihood is an
-integral against the PRIOR, so it is undefined under the flat
-improper priors <code>frm_sample(fit)</code> uses, and even with a proper
-<code>prior =</code> the bridge-sampling estimator needs a normalized
+integral against the PRIOR, so it is undefined under
+<code>prior = "flat"</code>, and even under the default priors
+the bridge-sampling estimator needs a normalized
 log-posterior evaluator that the RTMB tape does not expose.</p></li>
 </ul></div>
 
@@ -141,8 +141,15 @@ log-posterior evaluator that the RTMB tape does not expose.</p></li>
 <span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu">reloo</span><span class="op">(</span><span class="va">ds</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu">bayes_factor</span><span class="op">(</span><span class="va">ds</span>, <span class="va">ds</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Error : reloo() is not implemented for frmtmb draws: it re-runs the sampler once per observation with a high Pareto k, and frm_sample() has no stored program to re-run on modified data. Read loo()'s Pareto k table and treat a bad k as the diagnostic it is (usually a flat prior on many group-level parameters; see the prior section of ?loo), or compare the maximum-likelihood fits with AIC()</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Error : bayes_factor() is not available for frmtmb draws: it is a ratio of the marginal likelihoods bridge_sampler() would have to estimate, and those are undefined under flat priors and unavailable from the tape. hypothesis() gives the posterior probability of a directional claim, and loo() the predictive comparison</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 1.1, 2.5)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   b                  (flat), as brms leaves slopes</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#bulk-ess</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Error : reloo() is not implemented for frmtmb draws: it re-runs the sampler once per observation with a high Pareto k, and frm_sample() has no stored program to re-run on modified data. Read loo()'s Pareto k table and treat a bad k as the diagnostic it is (usually many group-level parameters left to the data alone; see the prior section of ?loo), or compare the maximum-likelihood fits with AIC()</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Error : bayes_factor() is not available for frmtmb draws: it is a ratio of the marginal likelihoods bridge_sampler() would have to estimate, and those are undefined under prior = "flat" and unavailable from the tape. hypothesis() gives the posterior probability of a directional claim, and loo() the predictive comparison</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

@@ -68,12 +68,14 @@
 #' the same slot. `nlpar` narrows classes `"sd"` and `"cor"` to the
 #' random-effect blocks of that parameter as well.
 #'
-#' An identification prior does NOT stand in for [frm()]'s `start`.
-#' brms places its sampler with the priors; `frm()` optimizes, and it
-#' evaluates the objective at the starting values before any penalty
-#' can steer it, which for a nonlinear body usually means an undefined
-#' likelihood at zero. The prior means read across as starting values,
-#' and the refusal names `start` when they are missing.
+#' A prior with a location places [frm()]'s `start` for a nonlinear
+#' parameter. `normal()`, `student_t()` and `cauchy()` all carry one,
+#' and where `start` does not set a nonlinear coefficient, that
+#' coefficient begins at the prior's location, reported in a message.
+#' Other parameters keep their usual starts: a prior is a penalty, not
+#' a claim about where to begin. Without a located prior a nonlinear
+#' model still needs `start`, because `frm()` evaluates the objective
+#' AT the starting values; [par_template()] names them.
 #'
 #' `resp` picks one response of a multivariate model; the default
 #' priors of [frm_sample()] still stay off there (see its Default
@@ -466,6 +468,20 @@ parse_prior_dist <- function(prior) {
          "' (supported: normal, student_t, cauchy, exponential, lkj)",
          call. = FALSE)
   )
+}
+
+#' The location of a prior distribution, or `NA` where it has none.
+#' `normal` and `student_t` (which `cauchy` parses into) carry one;
+#' `exponential` and `lkj` do not. Read by the nonlinear start
+#' placement in R/par-template.R.
+#'
+#' @noRd
+prior_dist_location <- function(dist) {
+  loc <- switch(dist$kind %||% "", normal = , t = dist$location, NULL)
+  if (is.null(loc) || length(loc) != 1L || !is.finite(loc)) {
+    return(NA_real_)
+  }
+  as.numeric(loc)
 }
 
 #' @export

@@ -189,12 +189,15 @@ bayesplot::mcmc_intervals(as.matrix(ds),
                           pars = c("(Intercept)", "x"))
 ```
 
-Without priors,
+With no `prior =` argument,
 [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
-samples with flat improper priors on the internal parameters; fine as a
-diagnostic, fragile as inference. Supply priors (brms-style
-[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md))
-for anything more.
+applies brms’s default priors on either of its routes, and reports the
+ones it chose. `prior = "flat"` opts out and samples the likelihood:
+fine as a diagnostic, fragile as inference.
+[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+asks for that flat density itself, because it measures the Laplace
+approximation of the objective the fit maximized, and a default prior
+would change what is being measured.
 
 ## Variance components on their natural scale
 

@@ -27,7 +27,8 @@ frm_sample(
   start = NULL,
   control = frmtmb_control(),
   na.action = stats::na.omit,
-  REML = FALSE
+  REML = FALSE,
+  .diagnostic = FALSE
 )
 ```
 
@@ -72,11 +73,10 @@ frm_sample(
   whose names are parameter names as in the draws (or whole components:
   `"beta"`, `"theta"`, ...), or the string `"flat"`. The objective is
   re-taped with the prior terms added; a fitted model itself is
-  unchanged. On the fit path a parameter without a prior keeps a flat
-  improper one. On the formula path the brms default priors apply to
-  whatever the specification leaves alone (see Default priors), and
-  `prior = "flat"` opts out of them entirely. A `brmsprior` object built
-  by brms's own
+  unchanged. On both paths the brms default priors apply to whatever
+  this argument, and a MAP fit's own prior, leave alone (see Default
+  priors), and `prior = "flat"` opts out of them entirely. A `brmsprior`
+  object built by brms's own
   [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md) is
   translated row by row. The argument takes brms's spelling, `prior`;
   the `priors` of releases before 0.43 is gone rather than aliased, and
@@ -131,6 +131,19 @@ frm_sample(
   As in [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md);
   used only on the formula path.
 
+- .diagnostic:
+
+  Internal, and named with a dot because there is no reason to set it by
+  hand. `TRUE` turns the default priors off and silences the disclosure,
+  and leaves the fit's own objective alone: a MAP fit's penalty is taped
+  into it, so no prior is resolved again and no tape is rebuilt.
+  [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+  sets it, because it measures the Laplace and Wald approximations
+  against the density the fit maximized and a default prior would change
+  what is being measured. Write `prior = "flat"` for the user-facing
+  opt-out, which goes further and rebuilds a MAP fit's objective without
+  its penalty.
+
 ## Value
 
 An object of class `frmtmb_draws`: list with the `stanfit`, a draws
@@ -143,20 +156,25 @@ draws matrix holds `b`.
 
 ## Details
 
-**The two routes answer different questions.** `frm_sample(fit)` is a
-DIAGNOSTIC: it explores the LIKELIHOOD, with flat improper priors on the
-outer parameters, so that
-[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
-can compare the Laplace and Wald approximations against the shape of the
-very same objective the fit maximized. `frm_sample(formula, data)` is a
-SAMPLING tool: it samples a POSTERIOR, and defaults to brms's own
-weakly-informative priors (see Default priors), because from a formula
-there is no estimate for the run to be a diagnostic for.
+**Both routes sample a posterior under the same default priors** (see
+Default priors), brms 2.23's own weakly-informative ones. What the fit
+adds is a starting point, not a different density: the ML mode anchors
+the chains and shortens warmup, and the model is the one the fit already
+carries.
 
-On the fit path, then, a parameter without a prior keeps a flat improper
-one, and the posterior of a variance component with few groups can be
-improper. That is the price of measuring the likelihood, and it is why
-the fit path is a diagnostic.
+The two differ only in what else is in the stack. A fit made with
+`frm(prior = )` is a MAP fit, and it carries its own prior into
+sampling: the priors that apply are then this call's `prior =` first,
+the fit's own next, and the defaults under both, most explicit winning
+per slot it addresses. `prior = "flat"` opts out of all of it and
+samples the bare likelihood, on either route.
+
+[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+is the one caller that stays unpenalized by default. It measures the
+Laplace and Wald approximations against the shape of the very objective
+the fit maximized, and a default prior would change the thing being
+measured, so it asks for the flat density explicitly rather than
+inheriting whatever this function defaults to.
 
 ## Sampling from a formula
 
@@ -237,9 +255,9 @@ the centered funnel is what was keeping a chain out of the parts of that
 range where the posterior is flat or improper. Removing the funnel
 without closing those off first trades a slow chain for a wrong one.
 
-In practice that means the FORMULA interface, whose default priors cover
-every standard deviation and every correlation, non-centers `(1 | g)`
-and any block written one term at a time,
+In practice that means a default-prior run, on EITHER route, whose
+priors cover every standard deviation and every correlation, non-centers
+`(1 | g)` and any block written one term at a time,
 [`diag()`](https://rdrr.io/r/base/diag.html) and `homdiag()` blocks,
 [`mgcv::s()`](https://rdrr.io/pkg/mgcv/man/s.html) smooths, `equalto()`,
 `gr(cov = )`, and the CORRELATED blocks `(x | g)`, `cs()`, `ar1()` and
@@ -250,10 +268,10 @@ LENGTHSCALES share the block's `theta`, the default priors cover only
 standard deviations, and the gate wants every parameter of a block
 priored. Prior the whole block by hand (`set_prior(class = "theta")`) to
 non-center it. `rr()` is already non-centered by construction, since its
-own coefficients are the standard normal factors. A fitted model sampled
-with `frm_sample(fit)` has flat priors by design (it is a diagnostic;
-see above), so it stays centered unless you give its variance parameters
-a prior.
+own coefficients are the standard normal factors. What stays centered is
+a run whose variance parameters are flat: `prior = "flat"`, and
+[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md),
+which asks for that density on purpose.
 
 The call [`message()`](https://rdrr.io/r/base/message.html)s every block
 it left centered, with the reason. A model made only of those samples
@@ -263,20 +281,18 @@ centered throughout and says so rather than failing. The reasons:
   `z` where it is: `b = sd z` goes to zero, the likelihood settles on
   the model without that random effect, and the density stops changing:
   a flat tail with nothing to stop a chain in it. Measured on a
-  six-group random-intercept model, one chain of 2000, three seeds: from
-  the fit, with flat priors, the non-centered chain walks `theta` to
-  -1e15 at a bulk-ESS of 1; from the formula, where the default
-  `student_t(3, 0, s)` makes that tail integrable, 174 to 284 against 3
-  to 48 centered.
+  six-group random-intercept model, one chain of 2000, three seeds:
+  under flat priors the non-centered chain walks `theta` to -1e15 at a
+  bulk-ESS of 1; under the default `student_t(3, 0, s)`, which makes
+  that tail integrable, 174 to 284 against 3 to 48 centered.
 
 - A FLAT PRIOR on the block's CORRELATION, which is the same argument:
   flat on frmtmb's unbounded correlation parameter is
   `(1 - rho^2)^-3/2`, improper, with all its mass at `|rho| = 1`. Before
   0.39 that kept every correlated block centered, because no proper
   correlation prior existed to close the tail; `lkj(eta)` now does, and
-  the formula route sets `lkj(1)` by default, so `(Days | Subject)`,
-  `cs()`, `ar1()` and `hetar1()` non-center there like any other block.
-  On the FIT route they still do not: its priors are flat by design.
+  it is a default, so `(Days | Subject)`, `cs()`, `ar1()` and `hetar1()`
+  non-center like any other block.
 
 - A Student-t latent (`gr(dist = "student")`): a scale mixture, not a
   linear factor.
@@ -311,8 +327,8 @@ nothing to change and no fitted object ever carries a non-centered tape.
 
 ## Default priors
 
-The formula interface defaults to brms 2.23's own weakly-informative
-priors, read off
+Both routes default to brms 2.23's own weakly-informative priors, read
+off
 [`brms::default_prior()`](https://paulbuerkner.com/brms/reference/default_prior.html)
 on matched models. Write `y*` for the response transformed by the `mu`
 link and `s = max(2.5, round(mad(y*), 1))`:
@@ -391,7 +407,20 @@ of prior objects takes over exactly the internal parameters it names.
 `prior = "flat"` turns the defaults off entirely and samples the
 likelihood, which warns when the model has variance components: their
 flat-prior posteriors need not be proper, and neither the chains nor
-Rhat can see that.
+Rhat can see that. On a MAP fit `"flat"` reaches further than the
+defaults: that fit's own prior is taped into its objective, and the bare
+likelihood is what `"flat"` names, so the penalty is rebuilt out and the
+call says which prior it dropped.
+
+*Three sources, most explicit first.* On a fitted model the stack is
+this call's `prior =`, then the fit's own prior (`frm(prior = )` makes a
+MAP fit, and that prior is part of the model the fit is), then the
+defaults. Each addressed slot is settled by the most explicit source
+that names it, one slot at a time: a call-level
+`set_prior(class = "sd")` replaces the fit's `sd` prior and the `sd`
+default while the `Intercept` default stays.
+[`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md)
+on the returned draws prints what the stack came to.
 
 ## Multimodal posteriors
 
@@ -432,12 +461,11 @@ ds3 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
                   prior = set_prior("exponential(1)", class = "sd"))
 prior_summary(ds3)
 }
-#> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
-#>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you
-#> Warning: There were 3 divergent transitions after warmup. See
-#> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
-#> to find out why this is a problem and how to eliminate them.
-#> Warning: Examine the pairs() plot to diagnose sampling problems
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+#>   Intercept          student_t(3, 1, 2.5)
+#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
+#>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
+#>   b                  (flat), as brms leaves slopes
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess

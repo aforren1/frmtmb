@@ -251,21 +251,6 @@ start_claimed_idx <- function(cur, val, comp) {
 # Prior-placed nonlinear starts
 # ---------------------------------------------------------------------
 
-#' The location of a prior distribution, or `NA` where it has none.
-#' `normal` and `student_t` (which `cauchy` parses into) carry one;
-#' `exponential` and `lkj` do not.
-#'
-#' A better home for this is next to parse_prior_dist() in R/priors.R.
-#'
-#' @noRd
-prior_dist_location <- function(dist) {
-  loc <- switch(dist$kind %||% "", normal = , t = dist$location, NULL)
-  if (is.null(loc) || length(loc) != 1L || !is.finite(loc)) {
-    return(NA_real_)
-  }
-  as.numeric(loc)
-}
-
 #' Positions in `beta` that belong to a nonlinear parameter's own
 #' sub-formula. The nl body itself has no design matrix, so it
 #' contributes none.

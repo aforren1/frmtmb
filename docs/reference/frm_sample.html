@@ -17,7 +17,7 @@ formula)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,8 @@ formula).</p>
 <span>  start <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="frmtmb_control.html">frmtmb_control</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  na.action <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span>,</span>
-<span>  REML <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  REML <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  .diagnostic <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -127,10 +128,9 @@ behaves the same way.</p></dd>
 of prior objects (see <code><a href="frmtmb-priors.html">prior_normal()</a></code>) whose names are parameter
 names as in the draws (or whole components: <code>"beta"</code>, <code>"theta"</code>,
 ...), or the string <code>"flat"</code>. The objective is re-taped with the
-prior terms added; a fitted model itself is unchanged. On the fit
-path a parameter without a prior keeps a flat improper one. On the
-formula path the brms default priors apply to whatever the
-specification leaves alone (see Default priors), and
+prior terms added; a fitted model itself is unchanged. On both
+paths the brms default priors apply to whatever this argument, and
+a MAP fit's own prior, leave alone (see Default priors), and
 <code>prior = "flat"</code> opts out of them entirely. A <code>brmsprior</code> object
 built by brms's own <code><a href="prior.html">prior()</a></code> is translated row by row. The
 argument takes brms's spelling, <code>prior</code>; the <code>priors</code> of releases
@@ -186,6 +186,19 @@ run made before this default existed.</p></dd>
 <dd><p>As in <code><a href="frm.html">frm()</a></code>; used only on
 the formula path.</p></dd>
 
+
+<dt id="arg--diagnostic">.diagnostic<a class="anchor" aria-label="anchor" href="#arg--diagnostic"></a></dt>
+<dd><p>Internal, and named with a dot because there is no
+reason to set it by hand. <code>TRUE</code> turns the default priors off and
+silences the disclosure, and leaves the fit's own objective alone:
+a MAP fit's penalty is taped into it, so no prior is resolved
+again and no tape is rebuilt. <code><a href="check_laplace.html">check_laplace()</a></code> sets it, because
+it measures the Laplace and Wald approximations against the
+density the fit maximized and a default prior would change what is
+being measured. Write <code>prior = "flat"</code> for the user-facing
+opt-out, which goes further and rebuilds a MAP fit's objective
+without its penalty.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -198,18 +211,23 @@ columns are <code>z</code> while the draws matrix holds <code>b</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><strong>The two routes answer different questions.</strong> <code>frm_sample(fit)</code> is a
-DIAGNOSTIC: it explores the LIKELIHOOD, with flat improper priors on
-the outer parameters, so that <code><a href="check_laplace.html">check_laplace()</a></code> can compare the
-Laplace and Wald approximations against the shape of the very same
-objective the fit maximized. <code>frm_sample(formula, data)</code> is a
-SAMPLING tool: it samples a POSTERIOR, and defaults to brms's own
-weakly-informative priors (see Default priors), because from a
-formula there is no estimate for the run to be a diagnostic for.</p>
-<p>On the fit path, then, a parameter without a prior keeps a flat
-improper one, and the posterior of a variance component with few
-groups can be improper. That is the price of measuring the
-likelihood, and it is why the fit path is a diagnostic.</p>
+    <p><strong>Both routes sample a posterior under the same default priors</strong> (see
+Default priors), brms 2.23's own weakly-informative ones. What the
+fit adds is a starting point, not a different density: the ML mode
+anchors the chains and shortens warmup, and the model is the one the
+fit already carries.</p>
+<p>The two differ only in what else is in the stack. A fit made with
+<code>frm(prior = )</code> is a MAP fit, and it carries its own prior into
+sampling: the priors that apply are then this call's <code>prior =</code> first,
+the fit's own next, and the defaults under both, most explicit
+winning per slot it addresses. <code>prior = "flat"</code> opts out of all of
+it and samples the bare likelihood, on either route.</p>
+<p><code><a href="check_laplace.html">check_laplace()</a></code> is the one caller that stays unpenalized by
+default. It measures the Laplace and Wald approximations against the
+shape of the very objective the fit maximized, and a default prior
+would change the thing being measured, so it asks for the flat
+density explicitly rather than inheriting whatever this function
+defaults to.</p>
     </div>
     <div class="section level2">
     <h2 id="sampling-from-a-formula">Sampling from a formula<a class="anchor" aria-label="anchor" href="#sampling-from-a-formula"></a></h2>
@@ -266,8 +284,9 @@ Non-centering gives NUTS the run of <code>theta</code>'s whole range, and the
 centered funnel is what was keeping a chain out of the parts of that
 range where the posterior is flat or improper. Removing the funnel
 without closing those off first trades a slow chain for a wrong one.</p>
-<p>In practice that means the FORMULA interface, whose default priors
-cover every standard deviation and every correlation, non-centers
+<p>In practice that means a default-prior run, on EITHER route, whose
+priors cover every standard deviation and every correlation,
+non-centers
 <code>(1 | g)</code> and any block written one term at a time, <code><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag()</a></code> and
 <code>homdiag()</code> blocks, <code><a href="https://rdrr.io/pkg/mgcv/man/s.html" class="external-link">mgcv::s()</a></code> smooths, <code>equalto()</code>, <code>gr(cov = )</code>,
 and the CORRELATED blocks <code>(x | g)</code>, <code>cs()</code>, <code>ar1()</code> and <code>hetar1()</code>.
@@ -279,9 +298,9 @@ block priored. Prior the whole block by hand
 (<code>set_prior(class = "theta")</code>) to non-center it.
 <code>rr()</code> is already non-centered by
 construction, since its own coefficients are the standard normal
-factors. A fitted model sampled with <code>frm_sample(fit)</code> has flat
-priors by design (it is a diagnostic; see above), so it stays
-centered unless you give its variance parameters a prior.</p>
+factors. What stays centered is a run whose variance parameters are
+flat: <code>prior = "flat"</code>, and <code><a href="check_laplace.html">check_laplace()</a></code>, which asks for that
+density on purpose.</p>
 <p>The call <code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code>s every block it left centered, with the reason.
 A model made only of those samples centered throughout and says so
 rather than failing. The reasons:</p><ul><li><p>A FLAT PRIOR on the block's standard deviation. Send <code>sd</code> down with
@@ -289,19 +308,18 @@ rather than failing. The reasons:</p><ul><li><p>A FLAT PRIOR on the block's stan
 the model without that random effect, and the density stops
 changing: a flat tail with nothing to stop a chain in it. Measured
 on a six-group random-intercept model, one chain of 2000, three
-seeds: from the fit, with flat priors, the non-centered chain walks
-<code>theta</code> to -1e15 at a bulk-ESS of 1; from the formula, where the
-default <code>student_t(3, 0, s)</code> makes that tail integrable, 174 to 284
-against 3 to 48 centered.</p></li>
+seeds: under flat priors the non-centered chain walks <code>theta</code> to
+-1e15 at a bulk-ESS of 1; under the default <code>student_t(3, 0, s)</code>,
+which makes that tail integrable, 174 to 284 against 3 to 48
+centered.</p></li>
 <li><p>A FLAT PRIOR on the block's CORRELATION, which is the same
 argument: flat on frmtmb's unbounded correlation parameter is
 <code>(1 - rho^2)^-3/2</code>, improper, with all its mass at <code>|rho| = 1</code>.
 Before 0.39 that kept every correlated block centered, because no
 proper correlation prior existed to close the tail; <code>lkj(eta)</code>
-now does, and the formula route sets <code>lkj(1)</code> by default, so
+now does, and it is a default, so
 <code>(Days | Subject)</code>, <code>cs()</code>, <code>ar1()</code> and <code>hetar1()</code> non-center
-there like any other block. On the FIT route they still do not:
-its priors are flat by design.</p></li>
+like any other block.</p></li>
 <li><p>A Student-t latent (<code>gr(dist = "student")</code>): a scale mixture, not a
 linear factor.</p></li>
 <li><p><code><a href="https://paulbuerkner.com/brms/reference/car.html" class="external-link">car()</a></code>, <code>spde()</code> and <code>gr(prec = )</code>: sparse precisions whose factor
@@ -330,7 +348,7 @@ and no fitted object ever carries a non-centered tape.</p>
     <h2 id="default-priors">Default priors<a class="anchor" aria-label="anchor" href="#default-priors"></a></h2>
 
 
-<p>The formula interface defaults to brms 2.23's own weakly-informative
+<p>Both routes default to brms 2.23's own weakly-informative
 priors, read off <code><a href="https://paulbuerkner.com/brms/reference/default_prior.html" class="external-link">brms::default_prior()</a></code> on matched models. Write
 <code>y*</code> for the response transformed by the <code>mu</code> link and
 <code>s = max(2.5, round(mad(y*), 1))</code>:</p><table class="table table"><tr><td>class</td><td>default</td><td>scale</td></tr><tr><td><code>b</code> (slopes)</td><td>flat</td><td>-</td></tr><tr><td><code>Intercept</code></td><td><code>student_t(3, round(median(y*), 1), s)</code></td><td>link</td></tr><tr><td><code>sd</code></td><td><code>student_t(3, 0, s)</code></td><td>natural sd, log-Jacobian applied</td></tr><tr><td><code>cor</code></td><td><code>lkj(1)</code></td><td>correlation matrix, Jacobian applied</td></tr><tr><td><code>sigma</code> (intercept only)</td><td><code>student_t(3, 0, s)</code></td><td>natural</td></tr><tr><td><code>sigma</code> (with a predictor)</td><td><code>student_t(3, 0, 2.5)</code></td><td>log</td></tr></table><p>The link is transformed only for <code>identity</code>, <code>log</code>, <code>inverse</code>,
@@ -384,7 +402,18 @@ over exactly the internal parameters it names. <code>prior = "flat"</code>
 turns the defaults off entirely and samples the likelihood, which
 warns when the model has variance components: their flat-prior
 posteriors need not be proper, and neither the chains nor Rhat can
-see that.</p>
+see that. On a MAP fit <code>"flat"</code> reaches further than the defaults:
+that fit's own prior is taped into its objective, and the bare
+likelihood is what <code>"flat"</code> names, so the penalty is rebuilt out and
+the call says which prior it dropped.</p>
+<p><em>Three sources, most explicit first.</em> On a fitted model the stack is
+this call's <code>prior =</code>, then the fit's own prior (<code>frm(prior = )</code>
+makes a MAP fit, and that prior is part of the model the fit is),
+then the defaults. Each addressed slot is settled by the most
+explicit source that names it, one slot at a time: a call-level
+<code>set_prior(class = "sd")</code> replaces the fit's <code>sd</code> prior and the <code>sd</code>
+default while the <code>Intercept</code> default stays. <code><a href="prior_summary.html">prior_summary()</a></code> on
+the returned draws prints what the stack came to.</p>
     </div>
     <div class="section level2">
     <h2 id="multimodal-posteriors">Multimodal posteriors<a class="anchor" aria-label="anchor" href="#multimodal-posteriors"></a></h2>
@@ -426,12 +455,11 @@ individually.</p>
 <span class="r-in"><span>                  prior <span class="op">=</span> <span class="fu"><a href="set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="prior_summary.html">prior_summary</a></span><span class="op">(</span><span class="va">ds3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>There were 3 divergent transitions after warmup. See</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> to find out why this is a problem and how to eliminate them.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Examine the pairs() plot to diagnose sampling problems</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 1, 2.5)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   sd                 student_t(3, 0, 2.5)  [natural sd scale]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   b                  (flat), as brms leaves slopes</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#bulk-ess</span>

@@ -20,7 +20,7 @@ likelihood-ratio tests, AIC).
 | `(1 \| p \| g)` | same | cross-formula RE correlation |
 | `mvbind(y1, y2) ~ x`, [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md), [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md) | same | per-response families; `rescor` gaussian-only |
 | `y \| trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family |
-| `nl = TRUE` | same | provide `start`; se.fit on the nonlinear mu not yet |
+| `nl = TRUE` | same | a located prior places the start, else provide `start` ([`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md) names it); se.fit on the nonlinear mu not yet |
 | [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md), [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) | same | [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) on any dpar, bodies chain to any depth (below) |
 | [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md) | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md), [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md) | same | multinomial takes `K` explicitly |
@@ -63,14 +63,23 @@ likelihood-ratio tests, AIC).
   brms’s mixture `theta`) is refused by name rather than translated into
   something else.
 
-- Priors do NOT replace `start` on a nonlinear model. brms uses the
-  priors to place its sampler;
+- A prior with a location DOES place a nonlinear start. brms uses its
+  priors to place its sampler, and
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) reads
+  them the same way for nonlinear parameters: a `normal()`,
+  `student_t()` or `cauchy()` prior on a nonlinear coefficient starts it
+  at the prior location, and a message names what was placed. The
+  insurance-loss growth curve of the brms nonlinear vignette fits from
+  its brms priors alone.
+
+  Without such a prior a nonlinear model still needs `start`, because
   [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md)
-  optimizes, and the objective is still evaluated at the zero starting
-  values first, where a nonlinear body is usually undefined. Supply
-  `start = list(beta = c(...))`, reading the brms model’s own prior
-  means straight across as the starting values; the refusal names
-  `start` when you do not.
+  optimizes rather than samples and evaluates the objective AT the
+  starting values, where a nonlinear body is rarely defined.
+  `par_template(formula, data)` lists the parameter names before there
+  is a fit; edit the result and hand it back as `start =`. brms has no
+  counterpart to it, and needs none: `brm(init =)` takes Stan program
+  names and brms initializes at random in a bounded range instead.
 
 - Posterior summaries become ML estimates:
   [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md)

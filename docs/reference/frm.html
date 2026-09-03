@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -135,8 +135,17 @@ other latent.</p></dd>
 
 
 <dt id="arg-start">start<a class="anchor" aria-label="anchor" href="#arg-start"></a></dt>
-<dd><p>Optional named list of starting values; components must
-match the parameter template (<code>beta</code>, <code>betad</code>, <code>theta</code>).</p></dd>
+<dd><p>Optional named list of starting values, one entry per
+parameter component (<code>beta</code>, <code>betad</code>, <code>theta</code>, ...).
+<code><a href="par_template.html">par_template()</a></code> returns that list already filled with the
+defaults, for a fitted model or for a formula and data alone; edit
+it and pass it back.</p>
+<p>A component is read by NAME when its vector has names, so
+<code>start = list(beta = c("(Intercept)" = 5000))</code> moves that one
+coefficient and leaves the rest at their defaults; parentheses may
+be dropped, as everywhere a parameter is named. A vector with no
+names is positional and must be full length. Naming some entries
+of one vector and not others is refused.</p></dd>
 
 
 <dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
@@ -189,11 +198,19 @@ frailty model given brms's own priors returns <code>sd(patient)</code> 0.38
 against brms's posterior mean of 0.40. That is a measurement on
 one model, though, not a property of the translation. Use
 <code><a href="frm_sample.html">frm_sample()</a></code> when the posterior is the answer.</p>
-<p><em>A prior does not replace <code>start</code> on a nonlinear model.</em> brms uses
-its priors to place the sampler; <code>frm()</code> optimizes, and it
-evaluates the objective at the starting values first, where a
-nonlinear body usually is not defined. The prior means read across
-as starting values: <code>start = list(beta = c(5000, 1, 45))</code>.</p></dd>
+<p><em>A prior with a location places a nonlinear start.</em> brms uses its
+priors to place the sampler, and <code>frm()</code> now reads them the same
+way, for nonlinear parameters only: where <code>start</code> does not set it,
+a nonlinear coefficient begins at the location of a <code>normal()</code>,
+<code>student_t()</code> or <code>cauchy()</code> prior on it, and a message names what
+was placed. This is what lets the insurance-loss growth curve fit
+from its brms priors with no <code>start</code> at all. Every other parameter
+keeps the start it always had.</p>
+<p>Without such a prior a nonlinear model still needs <code>start</code>.
+<code>frm()</code> optimizes rather than samples, so it evaluates the
+objective AT the starting values, and a nonlinear body is rarely
+defined at zero. <code><a href="par_template.html">par_template()</a></code> shows the names and the values
+in force.</p></dd>
 
 
 <dt id="arg-quadrature">quadrature<a class="anchor" aria-label="anchor" href="#arg-quadrature"></a></dt>
@@ -305,6 +322,62 @@ are given. See <code><a href="frmtmb_control.html">frmtmb_control()</a></code> f
 <span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x + (1 | g), sigma ~ x  5 -141.62 293.23 8.2614      1    0.00405 **</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ---</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># a nonlinear model: discover the names, edit, fit. A nonlinear body</span></span></span>
+<span class="r-in"><span><span class="co"># is undefined at the zero start, so `start` is not optional here.</span></span></span>
+<span class="r-in"><span><span class="va">nd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span>, length.out <span class="op">=</span> <span class="fl">25</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">nd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fl">8</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">nd</span><span class="op">$</span><span class="va">t</span> <span class="op">/</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">nd</span><span class="op">)</span>, <span class="fl">0</span>, <span class="fl">0.3</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">nf</span> <span class="op">&lt;-</span> <span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">asym</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">t</span> <span class="op">/</span> <span class="va">lrc</span><span class="op">)</span><span class="op">)</span>, <span class="va">asym</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">lrc</span> <span class="op">~</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>         nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">st</span> <span class="op">&lt;-</span> <span class="fu"><a href="par_template.html">par_template</a></span><span class="op">(</span><span class="va">nf</span>, data <span class="op">=</span> <span class="va">nd</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">st</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;frmtmb parameter template&gt; starting values</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $beta  (2)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> asym_(Intercept)  lrc_(Intercept) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                0                0 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $betad  (1)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma_(Intercept) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         0.7961843 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Edit and pass back as frm(start = ) or frm_simulate(newparams = ). Parentheses are optional in names you supply.</span>
+<span class="r-in"><span><span class="va">st</span><span class="op">$</span><span class="va">beta</span><span class="op">[[</span><span class="st">"asym_(Intercept)"</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">5</span></span></span>
+<span class="r-in"><span><span class="va">st</span><span class="op">$</span><span class="va">beta</span><span class="op">[[</span><span class="st">"lrc_(Intercept)"</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="fu">frm</span><span class="op">(</span><span class="va">nf</span>, data <span class="op">=</span> <span class="va">nd</span>, start <span class="op">=</span> <span class="va">st</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $asym</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    7.955791 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $lrc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    2.942713 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> numeric(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   -1.204505 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># or let a located prior place the same starts, brms-style</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="fu">frm</span><span class="op">(</span><span class="va">nf</span>, data <span class="op">=</span> <span class="va">nd</span>,</span></span>
+<span class="r-in"><span>          prior <span class="op">=</span> <span class="fu"><a href="prior.html">prior</a></span><span class="op">(</span><span class="fu">normal</span><span class="op">(</span><span class="fl">5</span>, <span class="fl">5</span><span class="op">)</span>, nlpar <span class="op">=</span> <span class="st">"asym"</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>            <span class="fu"><a href="prior.html">prior</a></span><span class="op">(</span><span class="fu">normal</span><span class="op">(</span><span class="fl">1</span>, <span class="fl">5</span><span class="op">)</span>, nlpar <span class="op">=</span> <span class="st">"lrc"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Nonlinear starting values placed at the prior locations: asym_(Intercept) = 5, lrc_(Intercept) = 1. Give `start` to choose your own.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $asym</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    7.954524 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $lrc</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    2.941385 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> numeric(0)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   -1.204503 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

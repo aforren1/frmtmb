@@ -60,15 +60,19 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
   head(pp_mixture(ds)[, "Estimate", ])
 }
-#> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+#>   Intercept          student_t(3, 0.6, 3.5)
+#>   Intercept          student_t(3, 0.6, 3.5)
+#>   b                  (flat), as brms leaves slopes
+#> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#tail-ess
+#> https://mc-stan.org/misc/warnings.html#bulk-ess
 #>         class1       class2
-#> [1,] 0.9999825 1.752471e-05
-#> [2,] 0.9999991 9.463510e-07
-#> [3,] 0.9996757 3.242515e-04
-#> [4,] 0.9999128 8.722546e-05
-#> [5,] 0.9889037 1.109632e-02
-#> [6,] 0.9998687 1.313094e-04
+#> [1,] 0.9999716 2.842349e-05
+#> [2,] 0.9999974 2.586659e-06
+#> [3,] 0.9996354 3.646268e-04
+#> [4,] 0.9998869 1.131103e-04
+#> [5,] 0.9899028 1.009723e-02
+#> [6,] 0.9998378 1.622369e-04
 # }
 ```

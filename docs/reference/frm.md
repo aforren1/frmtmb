@@ -88,8 +88,18 @@ frm(
 
 - start:
 
-  Optional named list of starting values; components must match the
-  parameter template (`beta`, `betad`, `theta`).
+  Optional named list of starting values, one entry per parameter
+  component (`beta`, `betad`, `theta`, ...).
+  [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)
+  returns that list already filled with the defaults, for a fitted model
+  or for a formula and data alone; edit it and pass it back.
+
+  A component is read by NAME when its vector has names, so
+  `start = list(beta = c("(Intercept)" = 5000))` moves that one
+  coefficient and leaves the rest at their defaults; parentheses may be
+  dropped, as everywhere a parameter is named. A vector with no names is
+  positional and must be full length. Naming some entries of one vector
+  and not others is refused.
 
 - control:
 
@@ -152,11 +162,20 @@ frm(
   [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
   when the posterior is the answer.
 
-  *A prior does not replace `start` on a nonlinear model.* brms uses its
-  priors to place the sampler; `frm()` optimizes, and it evaluates the
-  objective at the starting values first, where a nonlinear body usually
-  is not defined. The prior means read across as starting values:
-  `start = list(beta = c(5000, 1, 45))`.
+  *A prior with a location places a nonlinear start.* brms uses its
+  priors to place the sampler, and `frm()` now reads them the same way,
+  for nonlinear parameters only: where `start` does not set it, a
+  nonlinear coefficient begins at the location of a `normal()`,
+  `student_t()` or `cauchy()` prior on it, and a message names what was
+  placed. This is what lets the insurance-loss growth curve fit from its
+  brms priors with no `start` at all. Every other parameter keeps the
+  start it always had.
+
+  Without such a prior a nonlinear model still needs `start`. `frm()`
+  optimizes rather than samples, so it evaluates the objective AT the
+  starting values, and a nonlinear body is rarely defined at zero.
+  [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)
+  shows the names and the values in force.
 
 - quadrature:
 
@@ -274,4 +293,60 @@ anova(fit, fit2)
 #> y ~ x + (1 | g), sigma ~ x  5 -141.62 293.23 8.2614      1    0.00405 **
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+# a nonlinear model: discover the names, edit, fit. A nonlinear body
+# is undefined at the zero start, so `start` is not optional here.
+nd <- data.frame(t = rep(seq(0, 10, length.out = 25), 4))
+nd$y <- 8 * (1 - exp(-nd$t / 3)) + rnorm(nrow(nd), 0, 0.3)
+nf <- bf(y ~ asym * (1 - exp(-t / lrc)), asym ~ 1, lrc ~ 1,
+         nl = TRUE) + gaussian()
+st <- par_template(nf, data = nd)
+st
+#> <frmtmb parameter template> starting values
+#> $beta  (2)
+#> asym_(Intercept)  lrc_(Intercept) 
+#>                0                0 
+#> $betad  (1)
+#> sigma_(Intercept) 
+#>         0.7961843 
+#> Edit and pass back as frm(start = ) or frm_simulate(newparams = ). Parentheses are optional in names you supply.
+st$beta[["asym_(Intercept)"]] <- 5
+st$beta[["lrc_(Intercept)"]] <- 1
+fixef(frm(nf, data = nd, start = st))
+#> $asym
+#> (Intercept) 
+#>    7.955791 
+#> 
+#> $lrc
+#> (Intercept) 
+#>    2.942713 
+#> 
+#> $mu
+#> numeric(0)
+#> 
+#> $sigma
+#> (Intercept) 
+#>   -1.204505 
+#> 
+
+# or let a located prior place the same starts, brms-style
+fixef(frm(nf, data = nd,
+          prior = prior(normal(5, 5), nlpar = "asym") +
+            prior(normal(1, 5), nlpar = "lrc")))
+#> Nonlinear starting values placed at the prior locations: asym_(Intercept) = 5, lrc_(Intercept) = 1. Give `start` to choose your own.
+#> $asym
+#> (Intercept) 
+#>    7.954524 
+#> 
+#> $lrc
+#> (Intercept) 
+#>    2.941385 
+#> 
+#> $mu
+#> numeric(0)
+#> 
+#> $sigma
+#> (Intercept) 
+#>   -1.204503 
+#> 
 ```

@@ -15,7 +15,7 @@ sets bounds only.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -188,12 +188,14 @@ than on nothing. Narrow to one column with <code>coef</code> (<code>"Intercept"<
 <code>class = "Intercept", nlpar = "ult"</code>, which is frmtmb's spelling of
 the same slot. <code>nlpar</code> narrows classes <code>"sd"</code> and <code>"cor"</code> to the
 random-effect blocks of that parameter as well.</p>
-<p>An identification prior does NOT stand in for <code><a href="frm.html">frm()</a></code>'s <code>start</code>.
-brms places its sampler with the priors; <code><a href="frm.html">frm()</a></code> optimizes, and it
-evaluates the objective at the starting values before any penalty
-can steer it, which for a nonlinear body usually means an undefined
-likelihood at zero. The prior means read across as starting values,
-and the refusal names <code>start</code> when they are missing.</p>
+<p>A prior with a location places <code><a href="frm.html">frm()</a></code>'s <code>start</code> for a nonlinear
+parameter. <code>normal()</code>, <code>student_t()</code> and <code>cauchy()</code> all carry one,
+and where <code>start</code> does not set a nonlinear coefficient, that
+coefficient begins at the prior's location, reported in a message.
+Other parameters keep their usual starts: a prior is a penalty, not
+a claim about where to begin. Without a located prior a nonlinear
+model still needs <code>start</code>, because <code><a href="frm.html">frm()</a></code> evaluates the objective
+AT the starting values; <code><a href="par_template.html">par_template()</a></code> names them.</p>
 <p><code>resp</code> picks one response of a multivariate model; the default
 priors of <code><a href="frm_sample.html">frm_sample()</a></code> still stay off there (see its Default
 priors section), so a multivariate model's priors are the ones

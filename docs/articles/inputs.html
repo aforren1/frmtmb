@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -294,10 +294,14 @@ family carried by <code>formula</code>.</td>
 </tr>
 <tr class="odd">
 <td><code>start</code></td>
-<td>Named list matching the parameter template. Use
-<code>frm(..., dry_run = "frame")$par_template</code> to see the names
-and lengths.</td>
-<td>An unknown component is an error that points at the template.</td>
+<td>Named list, one entry per parameter component.
+<code>par_template(formula, data)</code> returns it filled with the
+defaults, for a formula or for a fit. A named vector inside it addresses
+entries by name and leaves the rest alone; an unnamed one is positional
+and must be full length.</td>
+<td>An unknown component is an error that points at the template. An
+unknown parameter name lists the valid ones. Naming some entries of one
+vector and not others is refused.</td>
 </tr>
 <tr class="even">
 <td><code>control</code></td>

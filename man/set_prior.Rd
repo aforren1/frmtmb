@@ -113,12 +113,14 @@ than on nothing. Narrow to one column with \code{coef} (\code{"Intercept"} and
 the same slot. \code{nlpar} narrows classes \code{"sd"} and \code{"cor"} to the
 random-effect blocks of that parameter as well.
 
-An identification prior does NOT stand in for \code{\link[=frm]{frm()}}'s \code{start}.
-brms places its sampler with the priors; \code{frm()} optimizes, and it
-evaluates the objective at the starting values before any penalty
-can steer it, which for a nonlinear body usually means an undefined
-likelihood at zero. The prior means read across as starting values,
-and the refusal names \code{start} when they are missing.
+A prior with a location places \code{\link[=frm]{frm()}}'s \code{start} for a nonlinear
+parameter. \code{normal()}, \code{student_t()} and \code{cauchy()} all carry one,
+and where \code{start} does not set a nonlinear coefficient, that
+coefficient begins at the prior's location, reported in a message.
+Other parameters keep their usual starts: a prior is a penalty, not
+a claim about where to begin. Without a located prior a nonlinear
+model still needs \code{start}, because \code{frm()} evaluates the objective
+AT the starting values; \code{\link[=par_template]{par_template()}} names them.
 
 \code{resp} picks one response of a multivariate model; the default
 priors of \code{\link[=frm_sample]{frm_sample()}} still stay off there (see its Default

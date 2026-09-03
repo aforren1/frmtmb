@@ -1,5 +1,91 @@
 # Changelog
 
+## frmtmb 0.44.0
+
+Sampling a fit gets the default priors, conditional-effects plots get
+real facets, and parameter names become discoverable.
+
+### Default priors on the fit route
+
+- `frm_sample(fit)` now applies the same brms 2.23 default priors the
+  formula route applies. Both routes sample a posterior, and a
+  prior-free `brm()` call translated onto a fitted model no longer pins
+  the chain at whatever boundary mode maximum likelihood found. On the
+  kidney model of `dev/brms-vignette-audit.md`, `sd(patient)` goes from
+  3.1e-4 with a 3e-6-wide interval to 0.49 with a \[0.04, 1.14\]
+  interval, and the largest R-hat from 1.57 to 1.10. This is a behavior
+  change for existing scripts that sampled a fit: `prior = "flat"`
+  restores the bare likelihood.
+- Priors on a sampling call now stack, most explicit winning per slot:
+  `prior =` on the call, then the fit’s own prior, then the defaults.
+  Previously an explicit `prior =` on a MAP fit discarded that fit’s
+  prior entirely.
+- Because the defaults cover every standard deviation and correlation,
+  the non-centered parameterization is now offered on the fit route as
+  well; `reparameterize = FALSE` still asks for the centered chain.
+- `prior = "flat"` is the opt-out on both routes, and
+  `frm_sample(fit, prior = "flat")` is no longer an error. On a MAP fit
+  it also removes that fit’s own penalty, which is taped into its
+  objective, and the call names the prior it dropped. A MAP penalty can
+  never be applied twice: every prior-carrying path rebuilds the
+  objective from the bare likelihood and adds the merged priors once,
+  and a regression asserts it in objective values.
+- [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+  is unchanged in what it measures: it samples the density the fit
+  maximized, with no default priors, centered. It now asks for that
+  explicitly rather than inheriting
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)’s
+  default.
+
+### Faceted conditional-effects plots
+
+- [`plot()`](https://rdrr.io/r/graphics/plot.default.html) on a
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  result with several condition sets draws one faceted page of small
+  multiples with a shared scale, as brms’s `facet_wrap("cond__")` does,
+  instead of one full page per condition that overwrote its predecessor
+  on a normal device. The panels use tinyplot when it is installed;
+  without it the fallback is a grid of base-graphics panels, still one
+  page. `ncol =` is honored; it was previously absorbed by `...` and
+  dropped.
+- `plot(ce, points = TRUE)` shows in each panel only the observations
+  belonging to that condition, following brms’s `make_point_frame()`: a
+  factor condition splits the data per panel, while a numeric condition
+  is a reference value that names no observation and keeps every point.
+  One deliberate divergence: brms pins factors the `conditions` frame
+  does not mention to their first level, silently discarding the other
+  levels’ observations; frmtmb subsets only on the variables the user
+  passed.
+
+### Parameter names, discoverable and usable
+
+- New
+  [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md):
+  the parameter vector’s names and starting values, for a fitted model
+  or for a formula and data alone. It prints as a compact component
+  listing, and the object it returns is edited and handed straight back
+  as `frm(start =)` or `frm_simulate(newparams =)`. brms has no
+  counterpart: `brm(init =)` takes Stan program names and brms
+  initializes at random instead.
+- `frm(start =)` matches by name. A named vector inside a component
+  overrides those entries and leaves the rest at their defaults, with
+  parentheses optional as everywhere a parameter is named. An unnamed
+  vector keeps the positional contract exactly. Mixing the two in one
+  vector, an unknown name, a name given twice, and a non-numeric vector
+  are each refused by name. Note the edge: a full-length named vector
+  previously had its names silently ignored; names are now interpreted,
+  and a vector whose names match nothing is refused with a pointer at
+  [`unname()`](https://rdrr.io/r/base/unname.html).
+- A `normal()`, `student_t()` or `cauchy()` prior on a nonlinear
+  parameter now places its starting value at the prior location, which
+  is how brms uses the same information. The insurance-loss growth curve
+  of the brms nonlinear vignette fits from its priors with no `start` at
+  all. A message names what was placed; `start` still wins. Other
+  parameters keep the starts they had.
+- Fixed on the way: `autoscale = TRUE` silently recycled a too-short
+  start vector into the pre-fit’s full-length start. It now goes through
+  the same validation every other start does, and refuses.
+
 ## frmtmb 0.43.0
 
 The prior interface speaks brms, ar1() evaluates in linear time, the

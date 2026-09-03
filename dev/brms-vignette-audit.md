@@ -29,20 +29,22 @@ longer open below: the `conditional_effects` guard fix (rank 5's
 fit surfaces (the silent `rescor_matrix()` `NULL`, two-model `loo()`,
 draws `update()` and `plot()`, bare `loo`/`waic`/`bayes_R2`/
 `expose_functions` on a fit). A full re-measurement against the new
-API is the next audit round, not this file. Also closed at
-consolidation, on the strength of the BEHAVIOR rows below: the fit
-route now applies the same default priors the formula route does, so a
-prior-free `brm()` call translated onto a fitted model no longer
-samples flat. The rows still describe the v0.42.0 measurement and are
-not relabeled.
+API is the next audit round, not this file.
 
-**Revision after v0.43.0 (the plot lane).** Break 2 below is fixed:
-`plot.frmtmb_conditional_effects` now draws the condition sets as small
+**Revision at v0.44.0 (same date).** Three more closures, on the
+strength of the BEHAVIOR rows below. The fit route of `frm_sample()`
+now applies the same default priors the formula route does, so a
+prior-free `brm()` call translated onto a fitted model no longer
+samples flat. Break 2 of the faceting diagnosis is fixed:
+`plot.frmtmb_conditional_effects` draws the condition sets as small
 multiples on one page (tinyplot when installed, a `par(mfrow)` grid of
 base panels otherwise), honors the `ncol` that used to be swallowed by
 `...`, and shows in each panel only the observations belonging to that
-condition, following brms's `make_point_frame()`. The rows below still
-describe the v0.42.0 measurement and are not relabeled.
+condition, following brms's `make_point_frame()`. And a located prior
+on a nonlinear parameter now places its starting value, so the
+insurance-loss model fits from the vignette's priors with no `start`
+at all. The rows below still describe the v0.42.0 measurement and are
+not relabeled.
 
 ## Method
 

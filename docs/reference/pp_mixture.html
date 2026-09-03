@@ -15,7 +15,7 @@ pp_mixture()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -114,16 +114,20 @@ otherwise the raw <code>draws x observations x components</code> array.</p></dd>
 <span class="r-in"><span>  <span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">1</span>, iter <span class="op">=</span> <span class="fl">400</span>, refresh <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">pp_mixture</span><span class="op">(</span><span class="va">ds</span><span class="op">)</span><span class="op">[</span>, <span class="st">"Estimate"</span>, <span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 0.6, 3.5)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 0.6, 3.5)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   b                  (flat), as brms leaves slopes</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#tail-ess</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#bulk-ess</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         class1       class2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 0.9999825 1.752471e-05</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 0.9999991 9.463510e-07</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.9996757 3.242515e-04</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 0.9999128 8.722546e-05</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 0.9889037 1.109632e-02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 0.9998687 1.313094e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 0.9999716 2.842349e-05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 0.9999974 2.586659e-06</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.9996354 3.646268e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 0.9998869 1.131103e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 0.9899028 1.009723e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 0.9998378 1.622369e-04</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

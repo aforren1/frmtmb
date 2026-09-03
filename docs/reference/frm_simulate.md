@@ -38,8 +38,10 @@ frm_simulate(
 
 - newparams:
 
-  Named list of parameters, in either spelling (see Details). Optional
-  when `prior` pins everything.
+  Named list of parameters, in either spelling (see Details).
+  [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)
+  discovers the internal spelling for a formula and data. Optional when
+  `prior` pins everything.
 
 - prior:
 
@@ -112,12 +114,15 @@ use, one number each.
   `cor_<group>__<t1>__<t2>` for their correlations, and `sds_<label>`
   for a smooth's smoothing SD. Unset correlations are 0.
 
-*Internal scale*: named after the `par_template` components - `beta`,
+*Internal scale*: named after the parameter components - `beta`,
 `betad`, `theta`, and optionally `b` - each a full-length vector, on the
 internal parameterization (`theta` holds log SDs and Cholesky
 correlation parameters, `betad` holds dispersion dpars on their link
-scale). Inspect the layout with
-`frm(formula, data, dry_run = "frame")$par_template`.
+scale).
+[`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)
+returns that layout for a formula and data without fitting anything,
+filled with the default values and carrying the name of every entry;
+edit it and pass it back as `newparams`.
 
 The two spellings cannot be mixed: `newparams` is read as internal when
 every name is a `par_template` component (or `b`), and as natural
@@ -166,22 +171,21 @@ head(sims)
 #> 5 2.6140092 1.3184590 0.07503977
 #> 6 0.6230005 0.4061450 0.17173320
 # the same thing on the internal scale
-frm(bf(y ~ x + (1 | g)) + gaussian(), dd,
-    dry_run = "frame")$par_template   # the required layout
-#> $beta
+par_template(bf(y ~ x + (1 | g)) + gaussian(), dd)   # the layout
+#> <frmtmb parameter template> starting values
+#> $beta  (2)
 #> (Intercept)           x 
 #>           0           0 
-#> 
-#> $betad
+#> $betad  (1)
 #> sigma_(Intercept) 
 #>                 0 
-#> 
-#> $b
-#> [1] 0 0 0 0 0 0
-#> 
-#> $theta
-#> [1] 0
-#> 
+#> $b  (6)
+#> b_1 b_2 b_3 b_4 b_5 b_6 
+#>   0   0   0   0   0   0 
+#> $theta  (1)
+#> theta_1 
+#>       0 
+#> Edit and pass back as frm(start = ) or frm_simulate(newparams = ). Parentheses are optional in names you supply.
 sims2 <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
                       newparams = list(beta = c(1, 0.5),
                                        betad = log(0.7),

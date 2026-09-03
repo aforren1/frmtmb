@@ -168,10 +168,47 @@ A named list of data frames (one per effect) with the varied variable(s)
 plus `estimate__`, `se__` (link scale), `lower__`, and `upper__`;
 printing it draws the plots. An ordinal fit adds a `cats__` column and
 one block of rows per response category. `plot(ce, points = TRUE)`
-overlays the raw observations (the brms argument): all observations are
-shown regardless of `conditions`, and no points are drawn for a
-per-category ordinal display, a non-mean `dpar`, or a matrix response (a
-message says so).
+overlays the raw observations (the brms argument), each panel showing
+only the observations that belong to its own condition; see the faceting
+section. No points are drawn for a per-category ordinal display, a
+non-mean `dpar`, or a matrix response (a message says so).
+
+## Several conditions become one faceted page
+
+A `conditions` data frame of several rows gives the effect one panel per
+row, laid out as small multiples on a SINGLE page with a shared scale,
+the way brms's `facet_wrap("cond__")` does. `plot(ce, ncol = )` sets the
+number of columns; the default lays the panels out roughly square, as
+brms's `ncol = NULL` does.
+
+The panels are drawn with tinyplot when it is installed, which supplies
+the shared axes and a single outer legend. Without it the fallback is a
+grid of ordinary base-graphics panels, still one page and still honoring
+`ncol`, labeled by condition on the y axis. The per-category ordinal
+display always takes the fallback grid: its grouping slot already
+carries the response category.
+
+`points = TRUE` draws only the observations belonging to each condition,
+matching brms's `make_point_frame()`. A condition claims the rows of the
+data that MATCH it on the variables it sets, so with one condition per
+level of a factor each observation appears once, in its own panel. Two
+rules bound that, both as in brms:
+
+- A NUMERIC condition variable is dropped from the match, because a
+  reference value such as `list(x2 = 0.37)` is a point on a continuum
+  that names no observation; matching on it would empty every panel. A
+  grouping factor stored as a number is exempt, being a label rather
+  than a continuum. A condition left with nothing to match on therefore
+  claims EVERY observation, and its panel differs from the others only
+  in its curve.
+
+- A condition variable that names no column of the model data cannot
+  select anything either, so the points are left unsplit and every panel
+  draws all of them.
+
+Unlike brms, a variable the `conditions` data frame does not set is not
+silently pinned to its first level for this purpose, so an unmentioned
+factor does not drop observations from every panel.
 
 ## Ordinal responses
 

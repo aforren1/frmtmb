@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -242,10 +242,13 @@ bayesplot works on the draws:</p>
 <span>                   <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-intervals.html" class="external-link">mcmc_intervals</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>,</span>
 <span>                          pars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"(Intercept)"</span>, <span class="st">"x"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Without priors, <code><a href="../reference/frm_sample.html">frm_sample()</a></code> samples with flat improper
-priors on the internal parameters; fine as a diagnostic, fragile as
-inference. Supply priors (brms-style <code><a href="../reference/set_prior.html">set_prior()</a></code>) for
-anything more.</p>
+<p>With no <code>prior =</code> argument, <code><a href="../reference/frm_sample.html">frm_sample()</a></code>
+applies brms’s default priors on either of its routes, and reports the
+ones it chose. <code>prior = "flat"</code> opts out and samples the
+likelihood: fine as a diagnostic, fragile as inference.
+<code><a href="../reference/check_laplace.html">check_laplace()</a></code> asks for that flat density itself, because
+it measures the Laplace approximation of the objective the fit
+maximized, and a default prior would change what is being measured.</p>
 </div>
 <div class="section level2">
 <h2 id="variance-components-on-their-natural-scale">Variance components on their natural scale<a class="anchor" aria-label="anchor" href="#variance-components-on-their-natural-scale"></a>

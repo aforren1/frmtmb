@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -151,7 +151,9 @@ unsupported</td>
 <tr class="even">
 <td><code>nl = TRUE</code></td>
 <td>same</td>
-<td>provide <code>start</code>; se.fit on the nonlinear mu not yet</td>
+<td>a located prior places the start, else provide <code>start</code>
+(<code><a href="../reference/par_template.html">par_template()</a></code> names it); se.fit on the nonlinear mu not
+yet</td>
 </tr>
 <tr class="odd">
 <td>
@@ -231,13 +233,24 @@ the same quantity. Read a prior here as regularization.</p>
 (<code>sigma</code>, brms’s mixture <code>theta</code>) is refused by
 name rather than translated into something else.</p>
 </li>
-<li><p>Priors do NOT replace <code>start</code> on a nonlinear model.
-brms uses the priors to place its sampler; <code><a href="../reference/frm.html">frm()</a></code> optimizes,
-and the objective is still evaluated at the zero starting values first,
-where a nonlinear body is usually undefined. Supply
-<code>start = list(beta = c(...))</code>, reading the brms model’s own
-prior means straight across as the starting values; the refusal names
-<code>start</code> when you do not.</p></li>
+<li>
+<p>A prior with a location DOES place a nonlinear start. brms uses
+its priors to place its sampler, and <code><a href="../reference/frm.html">frm()</a></code> reads them the
+same way for nonlinear parameters: a <code>normal()</code>,
+<code>student_t()</code> or <code>cauchy()</code> prior on a nonlinear
+coefficient starts it at the prior location, and a message names what
+was placed. The insurance-loss growth curve of the brms nonlinear
+vignette fits from its brms priors alone.</p>
+<p>Without such a prior a nonlinear model still needs
+<code>start</code>, because <code><a href="../reference/frm.html">frm()</a></code> optimizes rather than
+samples and evaluates the objective AT the starting values, where a
+nonlinear body is rarely defined.
+<code>par_template(formula, data)</code> lists the parameter names
+before there is a fit; edit the result and hand it back as
+<code>start =</code>. brms has no counterpart to it, and needs none:
+<code>brm(init =)</code> takes Stan program names and brms initializes
+at random in a bounded range instead.</p>
+</li>
 <li><p>Posterior summaries become ML estimates: <code><a href="../reference/fixef.html">fixef()</a></code>
 returns point estimates, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> gives Wald or profile
 intervals, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> gives likelihood-ratio tests, and

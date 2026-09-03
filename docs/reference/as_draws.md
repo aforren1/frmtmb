@@ -87,12 +87,11 @@ if (requireNamespace("posterior", quietly = TRUE)) {
   # which is what variables() lists
   head(variables(ds))
 }
-#> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
-#>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you
-#> Warning: There were 3 divergent transitions after warmup. See
-#> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
-#> to find out why this is a problem and how to eliminate them.
-#> Warning: Examine the pairs() plot to diagnose sampling problems
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+#>   Intercept          student_t(3, 1, 2.5)
+#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
+#>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
+#>   b                  (flat), as brms leaves slopes
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess

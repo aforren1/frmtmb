@@ -79,6 +79,13 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   try(stancode(ds))
   try(nsamples(ds))
 }
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+#>   Intercept          student_t(3, 1.1, 2.5)
+#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
+#>   b                  (flat), as brms leaves slopes
+#> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#bulk-ess
 #> Error : stancode() has no meaning for frmtmb: there is no Stan program. The model is an R closure built by build_objective() from the assembled frame and differentiated by RTMB, and the closure IS the source: print `ds$fit$obj$fn` for the evaluator and `ds$fit$frame` for everything baked into it
 #> Error : nsamples() is the deprecated brms spelling. Use ndraws(x) for the pooled draw count, niterations(x) for the per-chain count
 # }

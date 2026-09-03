@@ -78,16 +78,26 @@ ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0,
                                theta_1 = prior_t(3, 0, 1)))
 summary(ds)
 }
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+#>   Intercept          student_t(3, 1, 2.5)
+#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
+#>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
+#>   b                  (flat), as brms leaves slopes
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#>                        mean         sd       2.5%      97.5%    n_eff      Rhat
-#> Intercept        0.85276138 0.13582704  0.5625223  1.1209474 111.4628 0.9961619
-#> x                0.61282556 0.10893028  0.4246522  0.8233411 219.5038 1.0043144
-#> sigma_Intercept -0.04262745 0.08395983 -0.2119155  0.1364832 200.6217 1.0152033
-#> theta_1         -1.50527252 0.96086982 -3.9788596 -0.3289263 141.6968 1.0097685
+#>                        mean         sd       2.5%       97.5%     n_eff
+#> Intercept        0.84891010 0.16309215  0.5687758  1.25173865 184.25129
+#> x                0.60945161 0.11938398  0.4017843  0.83215316 371.49544
+#> sigma_Intercept -0.03979135 0.08232127 -0.1897263  0.09976085 202.39185
+#> theta_1         -1.60326585 0.96638523 -4.0529050 -0.27698417  81.16065
+#>                      Rhat
+#> Intercept       0.9991088
+#> x               1.0009587
+#> sigma_Intercept 1.0026390
+#> theta_1         1.0276044
 # }
 ```

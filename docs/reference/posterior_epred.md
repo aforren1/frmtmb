@@ -205,26 +205,18 @@ apply(pp, 2, quantile, c(0.025, 0.5, 0.975))
 # the linear predictor itself, on the link scale by default
 head(posterior_linpred(ds, newdata = nd, ndraws = 5))
 }
-#> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
-#>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which the formula interface supplies for you
-#> Warning: There were 1 divergent transitions after warmup. See
-#> https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
-#> to find out why this is a problem and how to eliminate them.
-#> Warning: Examine the pairs() plot to diagnose sampling problems
-#> Warning: The largest R-hat is 1.07, indicating chains have not mixed.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#r-hat
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+#>   Intercept          student_t(3, 0, 2.5)
+#>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
+#>   b                  (flat), as brms leaves slopes
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess
-#> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#tail-ess
-#>             [,1]        [,2]      [,3]
-#> [1,]  0.42521058  0.69582071 0.9664308
-#> [2,] -0.33351239 -0.05276348 0.2279854
-#> [3,] -0.05381016  0.40258886 0.8589879
-#> [4,] -0.13356468  0.19153765 0.5166400
-#> [5,] -0.06035127  0.34516496 0.7506812
+#>             [,1]       [,2]      [,3]
+#> [1,] -0.34673055 -0.1204018 0.1059269
+#> [2,]  0.17182952  0.3451118 0.5183942
+#> [3,] -0.12957334  0.2246253 0.5788240
+#> [4,]  0.09809158  0.3436258 0.5891600
+#> [5,]  0.07641280  0.3309746 0.5855364
 # }
 ```

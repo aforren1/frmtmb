@@ -41,6 +41,8 @@
   model
 - [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md)
   : Control parameters for frmtmb fits
+- [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)
+  : Parameter names and starting values
 - [`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)
   : Refit a model with every available optimizer
 - [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
