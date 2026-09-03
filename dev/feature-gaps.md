@@ -1365,3 +1365,32 @@ Two smaller findings from the audit that belong in user-facing docs:
 * `Vectorize()` over advectors loses the class unless RTMB is attached;
   `do.call("c", lapply(...))` does not. Same family as the known
   `matrix()` masking trap.
+
+## The hand-translated brms vignette audit (2026-09-03, lane wt-brmsvig)
+
+`dev/brms-vignette-audit.md` records a second, deeper pass over the brms
+vignettes. Where `dev/brms-vignette-port.md` measured what a mechanical
+`brm` to `frm` transform survives, this one is a hand translation of
+every call in all ten vignettes, run on BOTH inference paths: `frm()`
+with the frequentist surface, and `frm_sample()` with the
+`frmtmb_draws` surface. The runnable scripts are in
+`dev/brms-vignettes/`, one per vignette, and every divergence is
+recorded inline as SPELLING, BEHAVIOR, MISSING or REFUSAL.
+
+Read it for three things this file does not carry:
+
+1. **The ranked edge list**, ordered by frequency times severity. The
+   top item is not a missing feature: it is that `summary()` prints
+   several quantities on their internal or link scale where brms prints
+   them on the natural scale, so a reader comparing the two summaries
+   meets a number that looks wrong before meeting anything that is.
+2. **The `conditional_effects()` faceting diagnosis**, with the exact
+   two-line fix and the evidence that it is a no-op everywhere else.
+3. **The honest port statistic**, which replaces the "about 7 of 10
+   model calls" claim in `README.md` and `docs/index.md`. That figure
+   came from the earlier audit's PROJECTION pass, not from a
+   measurement. The new number is measured, and it is stated separately
+   for the two paths.
+
+Nothing in that audit was fixed. The prior-interface edges it records
+are the ones the `wt-priorcompat` lane owns.
