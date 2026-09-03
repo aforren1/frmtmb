@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.45.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,16 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.45.0" id="frmtmb-0450">frmtmb 0.45.0<a class="anchor" aria-label="anchor" href="#frmtmb-0450"></a></h2>
+<p>The structured-family protocol: the first step of the core and extensions split.</p>
+<ul><li>New exported <code><a href="../reference/frmtmb_structure.html">frmtmb_structure()</a></code> declares a likelihood that does not factorize over the rows of the data. It carries the non-rowwise log-likelihood, the frame block that likelihood reads, the frame variables and <code>NA</code> policy it needs, a conditional mean and variance, a structured simulator, and twelve capability flags, each with the message its refusal shows. <code><a href="../reference/frmtmb_family.html">frmtmb_family()</a></code> gains <code>structure =</code>. A structured family can now be written outside the package; <code>dev/structured-family-protocol.md</code> is the contract.</li>
+<li>
+<code>mixture(groups = )</code> and <code><a href="../reference/hmm.html">hmm()</a></code> reach the core through that one slot. The objective’s response loop has one branch for both instead of one each, the model frame carries one <code>blocks</code> slot, and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code>, <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> and the fit-time REML, quadrature and profile gates read capability flags instead of naming a family. Fits are bit-identical to the previous branches, and no user-facing message changed; the only deleted refusals were unreachable behind generic guards, which an existing test asserts.</li>
+<li>
+<code>fit$frame$mix_g</code> is gone. A group-level mixture’s grouping is <code>fit$frame$blocks[[response]]</code>, and a structured simulator reads <code>ctx[["block"]]</code> where it read <code>ctx[["mix_g"]]</code>.</li>
+<li>Internal reorganization toward the split: the prior and bound machinery the fit route reaches moved from <code>R/interop.R</code> to <code>R/priors.R</code>, and a new boundary test pins where core still names the structured families and the ODE seam, as a one-way ratchet the remaining protocol steps shrink to empty. No user-visible change.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.44.0" id="frmtmb-0440">frmtmb 0.44.0<a class="anchor" aria-label="anchor" href="#frmtmb-0440"></a></h2>
 <p>Sampling a fit gets the default priors, conditional-effects plots get real facets, and parameter names become discoverable.</p>

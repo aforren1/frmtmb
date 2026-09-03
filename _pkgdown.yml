@@ -27,6 +27,7 @@ reference:
 - title: Families
   contents:
   - frmtmb_family
+  - frmtmb_structure
   - frmtmb-families
   - mixture
   - mixture_mvn

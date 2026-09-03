@@ -1,5 +1,44 @@
 # Changelog
 
+## frmtmb 0.45.0
+
+The structured-family protocol: the first step of the core and
+extensions split.
+
+- New exported
+  [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
+  declares a likelihood that does not factorize over the rows of the
+  data. It carries the non-rowwise log-likelihood, the frame block that
+  likelihood reads, the frame variables and `NA` policy it needs, a
+  conditional mean and variance, a structured simulator, and twelve
+  capability flags, each with the message its refusal shows.
+  [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  gains `structure =`. A structured family can now be written outside
+  the package; `dev/structured-family-protocol.md` is the contract.
+- `mixture(groups = )` and
+  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) reach
+  the core through that one slot. The objective’s response loop has one
+  branch for both instead of one each, the model frame carries one
+  `blocks` slot, and
+  [`predict()`](https://rdrr.io/r/stats/predict.html),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html),
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html),
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  and the fit-time REML, quadrature and profile gates read capability
+  flags instead of naming a family. Fits are bit-identical to the
+  previous branches, and no user-facing message changed; the only
+  deleted refusals were unreachable behind generic guards, which an
+  existing test asserts.
+- `fit$frame$mix_g` is gone. A group-level mixture’s grouping is
+  `fit$frame$blocks[[response]]`, and a structured simulator reads
+  `ctx[["block"]]` where it read `ctx[["mix_g"]]`.
+- Internal reorganization toward the split: the prior and bound
+  machinery the fit route reaches moved from `R/interop.R` to
+  `R/priors.R`, and a new boundary test pins where core still names the
+  structured families and the ODE seam, as a one-way ratchet the
+  remaining protocol steps shrink to empty. No user-visible change.
+
 ## frmtmb 0.44.0
 
 Sampling a fit gets the default priors, conditional-effects plots get

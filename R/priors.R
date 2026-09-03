@@ -1,4 +1,9 @@
-# brms-style prior specification for frm_sample() (and, later, MAP).
+# brms-style prior specification: the vocabulary (set_prior, prior,
+# the prior_* constructors, brmsprior translation) and the fit-route
+# machinery that resolves it for frm()'s MAP penalty, frm_simulate()
+# and par_template(). The sampling-only side (default priors,
+# non-centering, the tmbstan bridge) lives in R/interop.R and leaves
+# with the future sampling package.
 
 #' Set up priors brms-style
 #'

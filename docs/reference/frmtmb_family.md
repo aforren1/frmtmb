@@ -25,7 +25,8 @@ frmtmb_family(
   primary_dpars = "mu",
   lcdf = NULL,
   extra_pars = NULL,
-  drop_intercept = FALSE
+  drop_intercept = FALSE,
+  structure = NULL
 )
 
 custom_family(
@@ -43,7 +44,8 @@ custom_family(
   primary_dpars = "mu",
   lcdf = NULL,
   extra_pars = NULL,
-  drop_intercept = FALSE
+  drop_intercept = FALSE,
+  structure = NULL
 )
 ```
 
@@ -149,6 +151,18 @@ custom_family(
   If `TRUE`, the intercept column is removed from the main formula's
   design matrix (ordinal families: thresholds take its place).
 
+- structure:
+
+  Optional
+  [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
+  for a family whose likelihood does not factorize over rows (a
+  group-level
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md),
+  a hidden Markov chain). It carries the non-rowwise log-likelihood, the
+  frame block that likelihood reads, and the capability flags that say
+  which post-fit methods the family can answer. `lpdf` stays required
+  even then, for the rowwise contract, and may be a stub that refuses.
+
 ## Value
 
 An object of class `frmtmb_family`.
@@ -169,8 +183,10 @@ than dpars. Those families supply `sim_ctx(ctx)` instead of
 `estimates` - a fitted model, one posterior draw, or the de novo shim),
 `family`, `rspec`, `resp`, `dpars` (the evaluated numeric distributional
 parameters), `aterms`, `n`, `extra` (the family-level extra parameters)
-and the frame structures `autocor` and `mix_g`. Read its fields with
-`[[ ]]`.
+and the frame structures `autocor` and `block` (the structured family's
+own data; see
+[`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)).
+Read its fields with `[[ ]]`.
 
 The same `sim_ctx()` serves \[simulate()\], \[posterior_predict()\] and
 \[frm_simulate()\]. Because a structured draw covers whole sequences or

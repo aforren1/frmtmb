@@ -56,6 +56,9 @@
   [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
   : Define a model family
 
+- [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
+  : Declare a non-rowwise likelihood to the core
+
 - [`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`lognormal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`negbinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)

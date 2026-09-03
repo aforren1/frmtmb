@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.44.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.45.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,7 +82,8 @@ not branch on parameter values.</p>
 <span>  primary_dpars <span class="op">=</span> <span class="st">"mu"</span>,</span>
 <span>  lcdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  drop_intercept <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  drop_intercept <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  structure <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">custom_family</span><span class="op">(</span></span>
@@ -100,7 +101,8 @@ not branch on parameter values.</p>
 <span>  primary_dpars <span class="op">=</span> <span class="st">"mu"</span>,</span>
 <span>  lcdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  drop_intercept <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  drop_intercept <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  structure <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -205,6 +207,16 @@ fourth argument.</p></dd>
 the main formula's design matrix (ordinal families: thresholds take
 its place).</p></dd>
 
+
+<dt id="arg-structure">structure<a class="anchor" aria-label="anchor" href="#arg-structure"></a></dt>
+<dd><p>Optional <code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> for a family whose
+likelihood does not factorize over rows (a group-level <code><a href="mixture.html">mixture()</a></code>,
+a hidden Markov chain). It carries the non-rowwise log-likelihood,
+the frame block that likelihood reads, and the capability flags
+that say which post-fit methods the family can answer. <code>lpdf</code> stays
+required even then, for the rowwise contract, and may be a stub
+that refuses.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -223,7 +235,8 @@ families supply <code>sim_ctx(ctx)</code> instead of <code>sim(dpars, aterms, n)
 <code>estimates</code> - a fitted model, one posterior draw, or the de novo
 shim), <code>family</code>, <code>rspec</code>, <code>resp</code>, <code>dpars</code> (the evaluated numeric
 distributional parameters), <code>aterms</code>, <code>n</code>, <code>extra</code> (the family-level
-extra parameters) and the frame structures <code>autocor</code> and <code>mix_g</code>.
+extra parameters) and the frame structures <code>autocor</code> and <code>block</code>
+(the structured family's own data; see <code><a href="frmtmb_structure.html">frmtmb_structure()</a></code>).
 Read its fields with <code>[[ ]]</code>.</p>
 <p>The same <code>sim_ctx()</code> serves [simulate()], [posterior_predict()] and
 [frm_simulate()]. Because a structured draw covers whole sequences or

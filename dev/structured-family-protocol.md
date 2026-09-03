@@ -1,6 +1,9 @@
 # The structured-family protocol
 
-Status: design, not implemented. Written 2026-09-03 against v0.43.0.
+Status: approved 2026-09-03; implementation started at v0.44.0.
+Written 2026-09-03 against v0.43.0; revised same date with the
+packaging decision (monorepo), the boundary-test ratchet, and the
+interop split notes.
 
 ## Problem
 
@@ -253,9 +256,56 @@ Everything else hmm and lca call (`frm`, `bf`, `mvbf`, `fixef`,
 ## Boundary test
 
 One test in the core suite: grep every file in `R/` except the
-structured families' own for the strings `hmm`, `lca`, `mix_g`,
-`hmm_g`, `mixture`, and fail on a hit outside roxygen text. Run it
-from the start of the refactor so the branches cannot creep back.
+structured families' own for the tokens `hmm`, `lca`, `mix_g`,
+`hmm_g` (word boundaries, outside roxygen text), and fail on a hit.
+
+It cannot start at zero, because the branches it polices exist until
+steps 6 and 7 delete them. So it starts as a RATCHET: the test pins
+the current file-by-token hit inventory exactly, fails on any NEW
+hit, and each protocol step that deletes a branch shrinks the pinned
+inventory in the same commit. At step 7 the inventory reaches empty
+and the test becomes the zero-tolerance boundary. `mixture` tokens
+are not policed: mixture is the in-core reference implementation and
+stays.
+
+## Packaging (decided 2026-09-03)
+
+The split, when it goes through, is a MONOREPO: one git repository,
+one directory per package. Precedent is kaskr's own layout (RTMB and
+TMB each live as a subdirectory of a monorepo). The mechanics are not
+onerous for anyone:
+
+- CRAN users are unaffected: `install.packages()` knows nothing about
+  repository layout.
+- Development installs are `remotes::install_github("aforren1/frmtmb",
+  subdir = "<pkg>")`, one documented line.
+- r-universe builds every package in a monorepo natively, so the
+  Additional_repositories story for off-CRAN pieces is unchanged.
+- CI partitions by path filters; the test files already map one to
+  one, so the suites split for free.
+
+Package naming is an open decision (working names: `frmtmb` the core,
+`frmtmb.ode`, `frmtmb.sample`; the structured families likely ride in
+`frmtmb.sample` or their own `frmtmb.markov`-style package once they
+exist outside core).
+
+Tier context, from the split memo this protocol serves:
+
+- Tier 1, ODE, splits first: two hook calls from frame.R, an off-CRAN
+  hard dependency, and its own vignette. Removing it also removes
+  Additional_repositories from the core DESCRIPTION.
+- Tier 2, the draws surface (frm_sample, the draws methods, loo, the
+  non-centered reparameterization, sampling default priors), splits
+  at CRAN time. Prerequisite: interop.R is misnamed - the CORE prior
+  machinery in it (resolve_prior_input, neg_log_prior_fn,
+  default_priors_for, the prior merging) moves to priors.R first.
+  Note two corrections to the memo: `ncp_plan` and its family are
+  sampling-only, not core (the fit never touches them), and
+  `check_laplace()` ships WITH the draws package (it already needs
+  tmbstan), which costs core its own approximation-verifier - core's
+  docs then point at the draws package for it, rather than staying
+  silent.
+- Tier 3, hmm and lca, wait on this protocol.
 
 ## Order of work
 

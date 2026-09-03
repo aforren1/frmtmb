@@ -71,33 +71,29 @@ test_that("no core file grows a structured-family or ODE reference", {
     out[order(names(out))]
   }
 
-  # measured on a clean v0.44.0 tree; see the regeneration note above
+  # measured after the protocol's steps 1-5 landed (the v0.45.0
+  # consolidation re-pinned it from the shrunken v0.44.0 inventory);
+  # see the regeneration note above. mix_g is gone entirely, and what
+  # remains is the step 6 and 7 residue (hmm_g and the hmm/lca reads
+  # in frame, fit, loo, sandwich, predict), compat.R feature-matrix
+  # rows, and the two genuine ODE references in interop.R's tmbstan
+  # refusal message.
   pinned <- c(
     "compat.R|hmm" = 37L,
     "compat.R|lca" = 39L,
-    "conditional-effects.R|hmm" = 6L,
-    "families.R|mix_g" = 4L,
     "fit.R|hmm" = 1L,
     "fit.R|lca" = 2L,
-    "frame.R|hmm" = 10L,
+    "frame.R|hmm" = 5L,
     "frame.R|hmm_g" = 4L,
     "frame.R|lca" = 1L,
-    "frame.R|mix_g" = 4L,
     "interop.R|RTMBode" = 1L,
     "interop.R|frm_ode" = 1L,
     "loo.R|hmm" = 1L,
     "loo.R|hmm_g" = 1L,
-    "loo.R|mix_g" = 1L,
     "methods-draws.R|lca" = 2L,
-    "objective.R|hmm" = 4L,
-    "objective.R|hmm_g" = 2L,
-    "objective.R|mix_g" = 2L,
-    "predict.R|hmm" = 20L,
-    "predict.R|hmm_g" = 1L,
     "predict.R|lca" = 3L,
     "sandwich.R|hmm" = 2L,
-    "sandwich.R|hmm_g" = 1L,
-    "sandwich.R|mix_g" = 2L
+    "sandwich.R|hmm_g" = 1L
   )
   pinned <- pinned[order(names(pinned))]
 
