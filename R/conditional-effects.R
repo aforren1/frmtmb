@@ -105,7 +105,14 @@ ce_lp_vars <- function(lp) {
   } else {
     all.vars(stats::delete.response(lp$terms))
   }
-  v <- c(v, unlist(lapply(lp$smooths, function(si) si$sm$term)))
+  # a factor-smooth's own grouping factor is not a predictor to display:
+  # the curve is drawn at the population level, which drops that term,
+  # so varying its levels would draw the same line several times. It
+  # stays plottable when the model also has it as a fixed effect, since
+  # the terms object above contributes it then.
+  for (si in lp$smooths %||% list()) {
+    v <- c(v, setdiff(si$sm$term, si$group_var %||% character(0)))
+  }
   for (m in lp$mo %||% list()) {
     v <- c(v, all.vars(m$expr), all.vars(m$mult_expr))
   }
@@ -747,7 +754,12 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
 
   vars <- ce_plot_vars(x, rspec, lp, resp)
   vars <- vars[vars %in% names(base)]
-  vars <- vars[!vapply(vars, function(v) is.matrix(base[[v]]), TRUE)]
+  # a matrix column is a whole function per row, so there is no single
+  # value to hold it at while another predictor varies. Remember which
+  # ones were dropped: on a scalar-on-function fit they are the only
+  # candidates there were, and the refusal has to say so.
+  mat_vars <- vars[vapply(vars, function(v) is.matrix(base[[v]]), TRUE)]
+  vars <- setdiff(vars, mat_vars)
   if (is.null(effects)) {
     # brms's default: the main effects AND the fitted two-way
     # interactions, each side of a pair having survived the same
@@ -756,6 +768,26 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
     prs <- prs[vapply(strsplit(prs, ":", fixed = TRUE),
                       function(v) all(v %in% vars), TRUE)]
     effects <- c(vars, prs)
+    if (!length(effects) && length(mat_vars)) {
+      terms_on <- vapply(lp$smooths %||% list(), function(si) {
+        if (any(smooth_pred_vars(si$sm) %in% mat_vars)) si$label else ""
+      }, "")
+      terms_on <- terms_on[nzchar(terms_on)]
+      stop("conditional_effects() has nothing to draw for dpar '", dpar,
+           "': the only predictor(s) of that parameter are the matrix ",
+           "column(s) ", paste0("`", mat_vars, "`", collapse = ", "),
+           if (length(terms_on)) {
+             paste0(" (carried by ", paste(terms_on, collapse = ", "), ")")
+           },
+           ", which the display excludes. A matrix column is a whole ",
+           "function per row, so it has neither a one-dimensional axis ",
+           "to vary along nor a single value to hold the other ",
+           "predictors at. Draw the coefficient function with ",
+           "predict(newdata = ) over a grid you build yourself: one row ",
+           "per grid point, the matrix column holding the grid, and the ",
+           "weight column an indicator of the point",
+           call. = FALSE)
+    }
     if (!length(effects)) {
       stop("No plottable predictors found for dpar '", dpar, "'",
            call. = FALSE)

@@ -39,7 +39,9 @@ family's first location parameter (\code{"mu"} for most families).}
 to the first).}
 
 \item{re.form}{\code{NULL} (default) includes random effects; \code{NA} or \code{~0}
-gives population-level predictions.}
+gives population-level predictions. See
+\emph{What \code{re.form = NA} drops} for what that means when the model has
+smooths.}
 
 \item{se.fit}{If \code{TRUE}, return a list with elements \code{fit} and \code{se.fit}
 (delta-method standard errors accounting for fixed-effect and
@@ -48,7 +50,9 @@ positions by kriging: the conditional mean at the fitted kernel,
 with the GP conditional variance added to the standard errors.}
 
 \item{allow_new_levels}{Predict unseen grouping-factor levels at the
-population level instead of erroring.}
+population level instead of erroring. A factor-smooth term
+(\code{bs = "fs"}) follows the same rule: a level it never saw
+contributes nothing, which leaves the population curve.}
 
 \item{...}{Unused.}
 }
@@ -113,6 +117,59 @@ predictor: an ordinal response has no mean, and answering a question
 about a mean with a latent predictor is the confusion this section
 exists to remove. Ask for the predictor by name (\code{type = "link"}, or
 \code{dpar = "mu"}) when that is what you want.
+}
+
+\section{What \code{re.form = NA} drops}{
+
+\code{re.form = NA} (equivalently \code{~0}) asks for the POPULATION-level
+prediction. Every \code{(x | g)} block is dropped, and so is any smooth
+whose basis gives each level of a grouping factor its own curve.
+Everything else stays.
+
+Dropped:
+\itemize{
+\item \code{(1 | g)}, \code{(x | g)}, and the structured spellings of them
+(\code{gr()}, \code{cs()}, \code{ar()}, \code{mm()}, \code{car()}, \code{spde()}, ...).
+\item \code{s(t, g, bs = "fs")}, the factor-smooth interaction: one curve per
+level of \code{g}, so the curves ARE the group deviations.
+\item \code{s(g, bs = "re")} and \code{s(x, g, bs = "re")}, which are a random
+intercept and a random slope written as a smooth.
+\item \code{t2(t, g, bs = c("cr", "re"))} and any other tensor product with an
+\code{re} margin, which is the same random smooth in a different
+spelling.
+}
+
+Kept:
+\itemize{
+\item \code{s(t)}, \code{s(t, by = x)}, \code{te()}, \code{t2()}, and every other population
+smooth. A smooth's wiggly part is stored as a random-effect block
+because that is how a penalty is written as a mixed model, but the
+term is a population effect and the population prediction is the
+fitted curve, not the null-space line through it.
+\item \code{gp()} and \code{hsgp()} terms.
+}
+
+The test is what the basis MEANS, not the \code{bs} string: \code{bs = "sz"}
+names a factor the way \code{bs = "fs"} does, but writes the level curves
+as contrasts against a reference level, which is mgcv's spelling for
+a factor whose levels are fixed effects, so it would count as
+population-level. (\code{sz} has no random-effect representation, so it is
+not fittable here at all; the classification is stated for
+completeness.)
+
+The result is \code{mgcv::predict.gam(exclude = )} on the factor-smooth
+term, and \code{tests/testthat/test-smooth-population.R} asserts the two
+agree to 1e-6 on a shared fit.
+
+A dropped factor-smooth term needs nothing from \code{newdata}, so the
+grouping column may be left out entirely when \code{re.form = NA}. It is
+required for a conditional prediction, and its absence is reported by
+name rather than by an mgcv internal message.
+
+\code{conditional_effects()} draws its curves at the population level, so
+it follows this rule too: on a model with a factor-smooth term the
+displayed curve is the population smooth, and the grouping factor is
+not offered as an effect to plot.
 }
 
 \section{Standard errors of the expected response}{

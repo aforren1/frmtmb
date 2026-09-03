@@ -109,6 +109,122 @@ xlev_for <- function(xlevels, tt) {
   xlevels[intersect(names(xlevels), all.vars(tt))]
 }
 
+#' The grouping factor a smooth basis is indexed by, or `NULL` when the
+#' smooth is a population term.
+#'
+#' A smooth's wiggly part is a random-effect block in the fitted
+#' objective, but that is an implementation fact, not a statement about
+#' the model: `s(t)` is a population effect that happens to be penalized.
+#' What separates the two is whether the basis gives every level of a
+#' GROUPING factor its own exchangeable deviation. Three bases do:
+#' `bs = "fs"` (one curve per level, class `fs.interaction`, which names
+#' the factor in `$fterm`), `bs = "re"` (class `random.effect`, a plain
+#' random intercept or slope), and a tensor product with an `re` margin
+#' (`t2(t, g, bs = c("cr", "re"))`, the gamm4 spelling of the same
+#' thing), which is reached by recursing into `$margin`.
+#'
+#' `bs = "sz"` is deliberately NOT one of them. It carries the same
+#' `$fterm` field, but its level curves are contrasts against a
+#' reference level, which is mgcv's spelling for a factor whose levels
+#' are fixed effects, so the term stays population-level.
+#'
+#' The classification is asked of the smooth object itself rather than
+#' of the `bs` string, so an alias or a user basis that constructs one
+#' of these classes is caught too. `mf` is the fitting model frame,
+#' which is what says whether a `random.effect` term is a factor (a
+#' numeric term there is a single shrunken coefficient, not a group).
+#'
+#' @noRd
+smooth_group_var <- function(sm, mf = NULL) {
+  if (inherits(sm, "sz.interaction")) return(NULL)
+  if (inherits(sm, "fs.interaction")) return(sm$fterm)
+  if (inherits(sm, "random.effect")) {
+    if (is.null(mf)) return(NULL)
+    fv <- Filter(function(v) {
+      !is.null(mf[[v]]) && (is.factor(mf[[v]]) || is.character(mf[[v]]))
+    }, sm$term)
+    return(if (length(fv)) fv[[length(fv)]] else NULL)
+  }
+  for (mg in sm$margin %||% list()) {
+    g <- smooth_group_var(mg, mf)
+    if (!is.null(g)) return(g)
+  }
+  NULL
+}
+
+#' The `re_blocks` indices of one linear predictor's GROUP-indexed
+#' smooths, which is what `re.form = NA` drops.
+#'
+#' @noRd
+smooth_group_block_ids <- function(lp) {
+  ids <- integer(0)
+  for (si in lp$smooths %||% list()) {
+    if (!is.null(si$group_var)) ids <- c(ids, si$block_ids)
+  }
+  ids
+}
+
+#' The data columns one smooth's `PredictMat()` reads. `$term` holds
+#' variable names, but a basis built on an expression keeps the
+#' expression, so the names come out of the parse; `$by` is the string
+#' `"NA"` when there is no `by` variable.
+#'
+#' @noRd
+smooth_pred_vars <- function(sm) {
+  vs <- as.character(sm$term)
+  by <- as.character(sm$by %||% "NA")
+  if (length(by) == 1L && !identical(by, "NA")) vs <- c(vs, by)
+  unique(unlist(lapply(vs, function(v) {
+    tryCatch(all.vars(str2lang(v)), error = function(e) v)
+  }), use.names = FALSE))
+}
+
+#' Refuse a `newdata` one smooth cannot be rebuilt on, before
+#' `PredictMat()` reports it as an internal length mismatch.
+#'
+#' Two faults meet here and they have different fixes. A missing
+#' GROUPING column is only needed because the prediction is conditional
+#' on the group, so `re.form = NA` is a way out of it; any other missing
+#' column is simply absent data. The unseen-level check restates for a
+#' factor-smooth term what the ordinary random-effect blocks already
+#' promise: a level the fit never saw errors unless it is allowed
+#' explicitly. mgcv's own basis matches levels by LABEL and returns a
+#' zero row for one it does not know, so allowing them predicts the
+#' population curve there, exactly as a new level of `(1 | g)` does.
+#'
+#' @noRd
+smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
+  gv <- si$group_var
+  miss <- setdiff(smooth_pred_vars(si$sm), names(newdata))
+  if (length(miss)) {
+    if (!is.null(gv) && gv %in% miss) {
+      stop("predict(newdata = ) for the factor-smooth term ", si$label,
+           " needs the grouping column `", gv, "`: the term holds one ",
+           "curve per level of `", gv, "`, so a prediction conditional ",
+           "on it has to say which level each row belongs to. Add the ",
+           "column to newdata, or ask for the population curve with ",
+           "re.form = NA, which drops the term and needs no level",
+           call. = FALSE)
+    }
+    stop("predict(newdata = ) for the smooth term ", si$label,
+         " needs the column(s) ", paste0("`", miss, "`", collapse = ", "),
+         ", which newdata does not have", call. = FALSE)
+  }
+  if (use_re && !is.null(gv) && !allow_new_levels &&
+      !is.null(si$sm$flev)) {
+    new <- setdiff(unique(as.character(newdata[[gv]])),
+                   as.character(si$sm$flev))
+    if (length(new)) {
+      stop("New levels in the factor-smooth term ", si$label, ": ",
+           paste(new, collapse = ", "), ". The term has no curve for ",
+           "them. Use allow_new_levels = TRUE to predict them at the ",
+           "population level, or re.form = NA for the population curve ",
+           "at every row", call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
+
 #' Rebuild the design pieces of one linear predictor for new data:
 #' dense X (parametric + smooth null-space columns), per-block RE
 #' component designs with level indices, and the offset.
@@ -151,6 +267,16 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   # and the null-space columns last, matching the fitted X layout.
   sm_parts <- list()
   for (si in lp$smooths %||% list()) {
+    # A smooth indexed by a grouping factor holds that factor's own
+    # deviations, so a population-level prediction drops it the way it
+    # drops (1 | g). smooth2random() leaves such a term no null space,
+    # so dropping it usually removes the term entirely, and with it the
+    # need for the grouping column in newdata. A group smooth
+    # that DOES have unpenalized columns still has them rebuilt, because
+    # they sit in X and the coefficient vector is not reindexed here.
+    drop_grp <- !use_re && !is.null(si$group_var)
+    if (drop_grp && si$nf == 0L) next
+    smooth_newdata_check(si, newdata, use_re, allow_new_levels)
     M <- mgcv::PredictMat(si$sm, newdata)
     if (is.null(si$U)) {
       # t2(): smooth2random() gives no rotation, only pen.ind, so the
@@ -171,6 +297,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     for (r in seq_along(si$nr)) {
       Xr_new <- M[, pos + seq_len(si$nr[r]), drop = FALSE]
       pos <- pos + si$nr[r]
+      if (drop_grp) next
       sm_parts[[length(sm_parts) + 1L]] <- list(
         bk = fit$frame$re_blocks[[si$block_ids[r]]],
         Xr = Xr_new
@@ -254,8 +381,9 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   }
 
   if (!use_re) {
-    # smooth wiggly parts are part of the curve, not group-level effects:
-    # they stay in even for population-level predictions
+    # a POPULATION smooth's wiggly part is part of the curve, not a
+    # group-level effect, so it stays in; the group-indexed ones were
+    # already left out of sm_parts above
     return(list(X = X, off = off, re_parts = list(), sm_parts = sm_parts,
                 nonest = nonest))
   }
@@ -676,7 +804,57 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' @param resp For multivariate fits: which response to predict (defaults
 #'   to the first).
 #' @param re.form `NULL` (default) includes random effects; `NA` or `~0`
-#'   gives population-level predictions.
+#'   gives population-level predictions. See
+#'   *What `re.form = NA` drops* for what that means when the model has
+#'   smooths.
+#' @section What `re.form = NA` drops:
+#' `re.form = NA` (equivalently `~0`) asks for the POPULATION-level
+#' prediction. Every `(x | g)` block is dropped, and so is any smooth
+#' whose basis gives each level of a grouping factor its own curve.
+#' Everything else stays.
+#'
+#' Dropped:
+#'
+#' * `(1 | g)`, `(x | g)`, and the structured spellings of them
+#'   (`gr()`, `cs()`, `ar()`, `mm()`, `car()`, `spde()`, ...).
+#' * `s(t, g, bs = "fs")`, the factor-smooth interaction: one curve per
+#'   level of `g`, so the curves ARE the group deviations.
+#' * `s(g, bs = "re")` and `s(x, g, bs = "re")`, which are a random
+#'   intercept and a random slope written as a smooth.
+#' * `t2(t, g, bs = c("cr", "re"))` and any other tensor product with an
+#'   `re` margin, which is the same random smooth in a different
+#'   spelling.
+#'
+#' Kept:
+#'
+#' * `s(t)`, `s(t, by = x)`, `te()`, `t2()`, and every other population
+#'   smooth. A smooth's wiggly part is stored as a random-effect block
+#'   because that is how a penalty is written as a mixed model, but the
+#'   term is a population effect and the population prediction is the
+#'   fitted curve, not the null-space line through it.
+#' * `gp()` and `hsgp()` terms.
+#'
+#' The test is what the basis MEANS, not the `bs` string: `bs = "sz"`
+#' names a factor the way `bs = "fs"` does, but writes the level curves
+#' as contrasts against a reference level, which is mgcv's spelling for
+#' a factor whose levels are fixed effects, so it would count as
+#' population-level. (`sz` has no random-effect representation, so it is
+#' not fittable here at all; the classification is stated for
+#' completeness.)
+#'
+#' The result is `mgcv::predict.gam(exclude = )` on the factor-smooth
+#' term, and `tests/testthat/test-smooth-population.R` asserts the two
+#' agree to 1e-6 on a shared fit.
+#'
+#' A dropped factor-smooth term needs nothing from `newdata`, so the
+#' grouping column may be left out entirely when `re.form = NA`. It is
+#' required for a conditional prediction, and its absence is reported by
+#' name rather than by an mgcv internal message.
+#'
+#' `conditional_effects()` draws its curves at the population level, so
+#' it follows this rule too: on a model with a factor-smooth term the
+#' displayed curve is the population smooth, and the grouping factor is
+#' not offered as an effect to plot.
 #' @param se.fit If `TRUE`, return a list with elements `fit` and `se.fit`
 #'   (delta-method standard errors accounting for fixed-effect and
 #'   random-effect uncertainty). Exact `gp()` terms predict unseen
@@ -703,7 +881,9 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' (`allow_new_levels = TRUE`) add their block's marginal variance,
 #' propagated through the same gradients.
 #' @param allow_new_levels Predict unseen grouping-factor levels at the
-#'   population level instead of erroring.
+#'   population level instead of erroring. A factor-smooth term
+#'   (`bs = "fs"`) follows the same rule: a level it never saw
+#'   contributes nothing, which leaves the population curve.
 #' @param ... Unused.
 #' @details
 #' When the fixed-effect design was rank deficient, the aliased columns
@@ -1019,10 +1199,15 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   re_parts <- list()
   sm_parts <- list()
   nonest <- FALSE
-  sm_blocks <- Filter(function(bk) {
+  sm_ids <- which(vapply(object$frame$re_blocks, function(bk) {
     bk$covstruct %in% c("smooth", "gp", "hsgp") &&
       any(vapply(bk$components, function(cp) cp$lp_key == key, TRUE))
-  }, object$frame$re_blocks)
+  }, TRUE))
+  # the blocks a population-level prediction keeps: gp()/hsgp() curves
+  # and the POPULATION smooths, but not a smooth whose basis is indexed
+  # by a grouping factor (see smooth_group_var())
+  if (!use_re) sm_ids <- setdiff(sm_ids, smooth_group_block_ids(lp))
+  sm_blocks <- object$frame$re_blocks[sm_ids]
 
   if (is.null(newdata)) {
     X <- patch_mo_cols(object, lp, lp$X)

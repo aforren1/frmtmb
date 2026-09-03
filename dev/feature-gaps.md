@@ -1240,28 +1240,38 @@ decimals. The earlier expectation that this would fail was wrong.
 
 ### The gaps that are real
 
-- **`conditional_effects()` on a matrix covariate says the wrong
-  thing.** The refusal is correct (a matrix column has no single value
-  to hold the other predictors at, so it is excluded from the grid),
-  but the message is the generic "No plottable predictors found for
-  dpar 'mu'", which does not name the cause or say what to do instead.
-  A term-specific message ("`s(Smat, by = LX)` is built on matrix
-  columns, which conditional_effects() excludes; draw the coefficient
-  function with predict()") would cost one branch. Small.
-- **No population-level prediction for a random smooth.** mgcv has
-  `predict(exclude = )` to drop the `fs` term and draw the population
-  curve. frmtmb has `re.form`, which drops the random-effect blocks,
-  but a smooth's wiggly part is also a random-effect block, so
-  `re.form = NA` on a model with smooths does not mean "drop the
-  subject curve, keep the population smooth". The vignette works
-  around it by taking the `x = 1` minus `x = 0` contrast at a fixed
-  subject, where the subject term cancels. A per-term exclusion
-  argument would be the fix. Medium.
-- **`predict()` needs the grouping column in `newdata` for an `fs`
-  term** even when only the population part is wanted, and the failure
-  without it is an mgcv internal message
-  (`names(dat) <- object$term ... must be the same length`), not a
-  frmtmb one. Same fix as above.
+- **CLOSED 2026-09-02 (lane wt-smoothgaps).**
+  `conditional_effects()` on a matrix covariate said the wrong thing.
+  The refusal now names the matrix columns and the smooth term that
+  carries them, says a matrix column is a whole function per row and so
+  has no one-dimensional axis to vary along, and points at
+  `predict(newdata = )` over a grid the user builds. The generic "No
+  plottable predictors found" stays for the genuinely empty case, so
+  the two faults read apart.
+- **CLOSED 2026-09-02 (lane wt-smoothgaps).** `re.form = NA` is now
+  population-level for smooths too. Probed first: the old behavior
+  dropped `(1 | subject)` and kept BOTH the population smooth and the
+  `fs` per-subject curves, which is
+  `mgcv::predict.gam(exclude = "s(subject)")`, not the population
+  curve. The rule now implemented classifies each smooth from its
+  smoothCon object: group-indexed (`fs.interaction`, `random.effect`
+  over a factor, a tensor product with an `re` margin) is dropped,
+  everything else (`s()`, `s(by = )`, `te()`, `t2()`, `sz`, `gp()`,
+  `hsgp()`) is kept. It agrees with
+  `predict(gam, exclude = c("s(t,subject)", "s(subject)"))` to 3e-9 in
+  sample and on newdata. `conditional_effects()` draws at the
+  population level, so it inherits the rule, and the grouping factor of
+  a factor-smooth is no longer offered as an effect to plot.
+- **CLOSED 2026-09-02 (lane wt-smoothgaps).** `predict(newdata = )` no
+  longer needs the grouping column for an `fs` term under
+  `re.form = NA`: the dropped block is never built, so `PredictMat()`
+  is never called for it. When the column IS needed (a conditional
+  prediction), a frmtmb error names the column and the term before
+  mgcv's internal message. An unseen level of an `fs` term now errors
+  by default, naming the term, and `allow_new_levels = TRUE` predicts
+  it at the population level, which is what mgcv's basis already
+  produced: it matches levels by label and returns a zero row for one
+  it does not know.
 - **No functional-response object.** There is no `refund::pffr`
   equivalent: no `ff()` term, no automatic long-format reshape, and no
   penalty that couples `b0(t)` with `b1(t)`. This is a genuine
