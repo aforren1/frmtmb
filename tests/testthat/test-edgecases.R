@@ -18,6 +18,8 @@
 #'   are both rejected, the character case specifically because
 #'   `as.numeric()` on a character vector is numeric and all `NA`, which
 #'   used to pass the type gate and surface only as an optimizer failure.
+#'   The `trials()` cases are in this file; the poisson, bernoulli and
+#'   `mo()`/`mi()` multiplier refusals are in `test-open-issues.R`.
 #' @srrstats {G5.8a} Zero-length data is tested. A data frame with no
 #'   rows, and one subset down to no rows, both error with "`data` has no
 #'   rows; nothing to fit". That verdict is kept distinct from "No

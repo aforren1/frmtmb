@@ -115,10 +115,10 @@ structure.
 
 ### `<<-` super-assignment
 
-A census by grep finds seventeen `<<-` operators on sixteen lines
+A census by grep finds eighteen `<<-` operators on seventeen lines
 across eight files (`R/compat.R` 1, `R/confint.R` 6, `R/frame.R` 3,
 `R/interop.R` 2, `R/ode.R` 1, `R/parse.R` 1, `R/priors.R` 2,
-`R/simulate-new.R` 1). The sites read as the same deliberate, local
+`R/simulate-new.R` 2). The sites read as the same deliberate, local
 pattern: a closure accumulating rows, names or flags into a variable
 of its enclosing function, never returned. Replacing `<<-` with a
 `Reduce()` or an explicit list return would reshape the builders for
@@ -142,9 +142,11 @@ A frmtmb condition is raised deep inside a builder whose frame the user
 never wrote and cannot read. Printing that call adds a line of internal
 detail and hides the message. The messages instead name the user-facing
 thing that is wrong, such as the formula term, the family, or the
-argument. The messages are also load-bearing: `dev/sandwich/count-messages.R`
-asserts that all 640 literal `stop()` texts are distinct, and the test
-suite matches many of them by text. No sweep may reword them.
+argument. The messages are also load-bearing:
+`dev/sandwich/count-messages.R` asserts that every literal `stop()`
+text is distinct, and the test suite matches many of them by text. No
+sweep may reword them. The count was 640 at the time of this sweep;
+`R/srr-stats-standards.R` carries the live number.
 
 ### Long lines in `R/compat.R`
 
@@ -163,21 +165,41 @@ text, and the readability gain is nil. It stays.
 
 ## Remaining counts in the reserved files
 
-Counts after this sweep. A later round can clear them.
+The six files were released and swept in the submission lane. The
+residue is now zero in every class except `<<-`, which the policy
+refuses (see above).
 
 | File | `on.exit` no `add` | seq | `sapply` | `anyNA` | `anyDuplicated` | fixed regex | `=` assign | `<<-` | line > 80 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `R/conditional-effects.R` | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `R/predict.R` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `R/priors.R` | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 |
+| `R/conditional-effects.R` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `R/predict.R` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `R/priors.R` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
 | `R/interop.R` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
-| `R/objective.R` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
+| `R/objective.R` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `R/covstruct.R` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
-The three reserved `on.exit()` sites are each the only handler in their
-function, so none of them is a live bug. The `R/priors.R` fixed-regex
-site is `strsplit(m[3], ",")` at line 103, where the comma is a
-literal.
+### What the second round changed
+
+| File | Site | Change |
+| --- | --- | --- |
+| `R/conditional-effects.R` | `plot.frmtmb_conditional_effects()` | `add = TRUE` |
+| `R/conditional-effects.R` | `plot.frmtmb_fit()` | `add = TRUE` |
+| `R/predict.R` | `simulate.frmtmb_fit()` seed restore | `add = TRUE` |
+| `R/priors.R` | `parse_prior_dist()` | `strsplit(m[3], ",", fixed = TRUE)` |
+| `R/objective.R` | `build_objective()` | one 82-column line wrapped into braces |
+
+Each of the three `on.exit()` sites was the only handler in its
+function, so none of them was a live bug; `add = TRUE` stops a later
+handler from deleting the first. The `R/priors.R` pattern `","` is a
+literal with no regular-expression metacharacter, so `fixed = TRUE`
+matches identically. The `R/objective.R` line was
+`block_fns <- lapply(blocks, function(bk) ...)`; the body moved into
+braces, which changes no value.
+
+The `<<-` column counts operators, not lines, so it matches the census
+above file by file. The census itself was re-run for this round and
+corrected: `R/simulate-new.R` carries two operators, not one, which
+makes the whole-package total eighteen operators on seventeen lines.
 
 ## Verification of this sweep
 

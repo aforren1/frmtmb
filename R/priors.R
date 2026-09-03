@@ -163,7 +163,7 @@ parse_prior_dist <- function(prior) {
          "'; expected e.g. \"normal(0, 5)\"", call. = FALSE)
   }
   kind <- m[2]
-  pars <- as.numeric(strsplit(m[3], ",")[[1]])
+  pars <- as.numeric(strsplit(m[3], ",", fixed = TRUE)[[1]])
   if (anyNA(pars)) {
     stop("Non-numeric arguments in prior '", prior, "'", call. = FALSE)
   }

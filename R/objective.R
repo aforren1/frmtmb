@@ -109,7 +109,9 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
 build_objective <- function(frame) {
   lps <- frame$linpreds
   blocks <- frame$re_blocks
-  block_fns <- lapply(blocks, function(bk) covstruct_registry[[bk$covstruct]]$nll)
+  block_fns <- lapply(blocks, function(bk) {
+    covstruct_registry[[bk$covstruct]]$nll
+  })
   # Non-centered blocks (frm_sample(reparameterize = TRUE) only, set on
   # a private copy of the frame): the sampled vector for these is z, and
   # the coefficients b = L(theta) z are computed on the tape. Empty on

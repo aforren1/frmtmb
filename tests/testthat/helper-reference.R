@@ -2,8 +2,9 @@
 
 #' @srrstats {G5.4} Correctness is tested by comparison against exact
 #'   reference implementations, not against stored snapshots of our own
-#'   output. Every model class the package supports is checked against a
-#'   package that implements the same likelihood: glmmTMB for the
+#'   output. Every model class for which an existing implementation is
+#'   available is checked against a package that implements the same
+#'   likelihood (G5.4a covers the rest): glmmTMB for the
 #'   covariance structures, the zero-inflated and hurdle families and the
 #'   distributional models; lme4 for the classical LMM and GLMM surface;
 #'   mgcv for smooths and functional terms; MASS for `polr` ordinal and
@@ -26,7 +27,7 @@
 #'   version installed, rather than compared against transcribed numbers,
 #'   so the comparison cannot go stale silently.
 #' @srrstats {G5.5} Correctness tests run with a fixed random seed.
-#'   `set.seed()` is called with a literal integer in 55 of the 61 test
+#'   `set.seed()` is called with a literal integer in 82 of the 95 test
 #'   files, and the shared simulators defined here (`sim_ar1_data()`,
 #'   `sim_pois_glmm()`) seed themselves from a default argument, so a
 #'   test that uses one is deterministic even without its own call. The

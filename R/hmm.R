@@ -544,6 +544,15 @@ hmm_check_aterms <- function(resp, spec, av) {
   invisible(NULL)
 }
 
+#' Assemble the hidden-Markov data block for one response.
+#'
+#' Reads the grouping expression, the sequence order and the response of
+#' an [hmm()] family out of the model frame, and returns the per-chain
+#' index structure that the objective walks. It is separate from the
+#' main frame assembler because a chain is defined by row order within a
+#' group, which no other term needs.
+#'
+#' @noRd
 hmm_frame_block <- function(resp, spec, av, mf, y, n) {
   hs <- resp$family[["hmm"]]
   gv <- if (is.null(hs$group_expr)) {

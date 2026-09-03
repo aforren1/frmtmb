@@ -875,9 +875,12 @@ log_sd_theta_index <- function(fit) {
 #' @srrstats {RE2.4b} Perfect collinearity between the predictors and the
 #'   response is reported as complete separation: a binomial-type fit
 #'   whose coefficients diverge because a predictor perfectly predicts
-#'   the response is flagged by name, with the offending estimate. The
-#'   test suite checks both that a separating design is flagged and that
-#'   a well-behaved binomial fit is not.
+#'   the response is flagged by name, with the offending estimate, when
+#'   [diagnose()] is called on the fit. The test suite checks both that a
+#'   separating design is flagged and that a well-behaved binomial fit is
+#'   not. For a continuous response an exact linear relationship is not a
+#'   degenerate fit but a zero-residual one, so it is left to the
+#'   dispersion estimate rather than reported as collinearity.
 #' @srrstats {RE4.7} Convergence statistics are available from the model
 #'   object. `fit$opt$convergence` and `fit$opt$message` carry the
 #'   optimizer's verdict, and `diagnose()` returns the maximum absolute

@@ -1196,7 +1196,7 @@ plot.frmtmb_conditional_effects <- function(x, ask = NULL, points = FALSE,
   ask <- ask %||% (length(x) > 1L && grDevices::dev.interactive())
   if (ask) {
     oask <- grDevices::devAskNewPage(TRUE)
-    on.exit(grDevices::devAskNewPage(oask))
+    on.exit(grDevices::devAskNewPage(oask), add = TRUE)
   }
   for (nm in names(x)) {
     df <- x[[nm]]
@@ -1380,7 +1380,7 @@ plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
   ask <- ask %||% (length(which) > 1L && grDevices::dev.interactive())
   if (ask) {
     oask <- grDevices::devAskNewPage(TRUE)
-    on.exit(grDevices::devAskNewPage(oask))
+    on.exit(grDevices::devAskNewPage(oask), add = TRUE)
   }
   if (1L %in% which) {
     # fitted() is a K-column probability matrix on an ordinal fit, and

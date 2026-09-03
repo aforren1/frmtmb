@@ -49,6 +49,13 @@ ode_warned <- new.env(parent = emptyenv())
 # fact. Reset by every call; see frm_ode_failures().
 ode_failure_log <- new.env(parent = emptyenv())
 
+#' Raise a solver warning at most once per key.
+#'
+#' A solve runs once per objective evaluation, so an unguarded warning
+#' would repeat thousands of times in one fit. Keyed on `key`: the first
+#' call warns and later calls are silent.
+#'
+#' @noRd
 ode_warn_once <- function(key, ...) {
   if (!is.null(ode_warned[[key]])) return(invisible(NULL))
   ode_warned[[key]] <- TRUE
@@ -60,6 +67,13 @@ ode_warn_once <- function(key, ...) {
 #' @noRd
 ode_has_pkg <- function(pkg) requireNamespace(pkg, quietly = TRUE)
 
+#' Refuse a `frm_ode()` call when no solver backend is installed.
+#'
+#' `RTMBode` and `deSolve` are both suggested, and `frm_ode()` needs
+#' both. Returns invisibly when they are there, and otherwise errors,
+#' naming the missing ones and where to get them.
+#'
+#' @noRd
 ode_require_backend <- function() {
   pkgs <- c("RTMBode", "deSolve")
   miss <- pkgs[!vapply(pkgs, ode_has_pkg, TRUE)]
@@ -1674,6 +1688,13 @@ find_ode_calls <- function(expr, out = list()) {
   out
 }
 
+#' Is a matched call argument the empty symbol?
+#'
+#' `match.call()` leaves an unsupplied argument as the empty symbol,
+#' which is neither `NULL` nor missing to `is.null()`. Returns `TRUE`
+#' for that value only.
+#'
+#' @noRd
 missing_arg <- function(x) is.name(x) && !nzchar(as.character(x))
 
 #' Refuse a dynamics parameter that varies inside a solve group.
