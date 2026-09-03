@@ -60,6 +60,13 @@
 #' @param drop_intercept If `TRUE`, the intercept column is removed from
 #'   the main formula's design matrix (ordinal families: thresholds take
 #'   its place).
+#' @param structure Optional [frmtmb_structure()] for a family whose
+#'   likelihood does not factorize over rows (a group-level [mixture()],
+#'   a hidden Markov chain). It carries the non-rowwise log-likelihood,
+#'   the frame block that likelihood reads, and the capability flags
+#'   that say which post-fit methods the family can answer. `lpdf` stays
+#'   required even then, for the rowwise contract, and may be a stub
+#'   that refuses.
 #' @return An object of class `frmtmb_family`.
 #' @section Structured simulators:
 #' Some families cannot draw a response one row at a time: a group-level
@@ -72,7 +79,8 @@
 #' `estimates` - a fitted model, one posterior draw, or the de novo
 #' shim), `family`, `rspec`, `resp`, `dpars` (the evaluated numeric
 #' distributional parameters), `aterms`, `n`, `extra` (the family-level
-#' extra parameters) and the frame structures `autocor` and `mix_g`.
+#' extra parameters) and the frame structures `autocor` and `block`
+#' (the structured family's own data; see [frmtmb_structure()]).
 #' Read its fields with `[[ ]]`.
 #'
 #' The same `sim_ctx()` serves [simulate()], [posterior_predict()] and
@@ -125,7 +133,8 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           post = list(), sim = NULL, sim_ctx = NULL,
                           sim_refusal = NULL,
                           primary_dpars = "mu", lcdf = NULL,
-                          extra_pars = NULL, drop_intercept = FALSE) {
+                          extra_pars = NULL, drop_intercept = FALSE,
+                          structure = NULL) {
   stopifnot(is.character(family), length(family) == 1,
             is.character(dpars), length(dpars) >= 1,
             is.function(lpdf))
@@ -146,13 +155,21 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
   # function that already binds them itself is left untouched
   lpdf <- ad_overload_fn(lpdf)
   if (!is.null(lcdf)) lcdf <- ad_overload_fn(lcdf)
-  structure(
+  if (!is.null(structure) && !inherits(structure, "frmtmb_structure")) {
+    stop("frmtmb_family(structure =) must come from frmtmb_structure(), ",
+         "which is what declares a likelihood that does not factorize ",
+         "over rows", call. = FALSE)
+  }
+  # base::structure(), spelled out: the `structure` ARGUMENT above masks
+  # the base function inside this body
+  base::structure(
     list(family = family, dpars = dpars, links = links, lpdf = lpdf,
          valid_y = valid_y, init_dpars = init_dpars, type = type,
          post = post, sim = sim, sim_ctx = sim_ctx,
          sim_refusal = sim_refusal, primary_dpars = primary_dpars,
          lcdf = lcdf, extra_pars = extra_pars,
-         drop_intercept = isTRUE(drop_intercept)),
+         drop_intercept = isTRUE(drop_intercept),
+         structure = structure),
     class = "frmtmb_family"
   )
 }
@@ -473,7 +490,8 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
 #   - GROUP or TIME structure. A group-level mixture draws one class per
 #     GROUP, and an hmm() draw walks a Markov chain per SEQUENCE. Both
 #     structures are resolved at frame-assembly time and live on the
-#     frame (`mix_g`, `hmm_g`), not on the family.
+#     frame, as the structured family's `blocks` entry, not on the
+#     family object.
 #   - CROSS-ROW dependence. An autocor residual is one multivariate draw
 #     per group, so no per-row simulator exists at all.
 #
@@ -486,7 +504,7 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
 # implementation and every entry point reaches it.
 #
 # `[[ ]]`, never `$`, on the context and on frame fields: `$` partial
-# matching would let `ctx$mix` silently read `ctx$mix_g`.
+# matching once let a `ctx$mix` read return the group structure instead.
 
 #' The simulation context: everything a simulator may read, assembled
 #' identically from a fit, from one posterior draw, and from the de novo
@@ -506,14 +524,22 @@ sim_context <- function(fit, rspec, dpars, aterms = NULL, n = NULL,
        n = n %||% frame[["n_obs"]],
        extra = extra %||% fit_extras(fit),
        autocor = frame[["autocor"]][[resp]],
-       mix_g = frame[["mix_g"]][[resp]])
+       block = frame_block_of(frame, resp))
+}
+
+#' The family's structured simulator, from its structure or, for a
+#' family that has one without a structure, from its own slot.
+#'
+#' @noRd
+fam_sim_ctx <- function(fam) {
+  fam_structure(fam)[["sim_ctx"]] %||% fam[["sim_ctx"]]
 }
 
 #' Whether a family can simulate at all, by either half of the contract.
 #'
 #' @noRd
 sim_can <- function(fam) {
-  !is.null(fam[["sim"]]) || !is.null(fam[["sim_ctx"]])
+  !is.null(fam[["sim"]]) || !is.null(fam_sim_ctx(fam))
 }
 
 #' The family's own explanation for having no simulator, appended by
@@ -531,7 +557,7 @@ sim_note <- function(fam) {
 #'
 #' @noRd
 sim_is_structured <- function(ctx) {
-  !is.null(ctx[["autocor"]]) || !is.null(ctx[["family"]][["sim_ctx"]])
+  !is.null(ctx[["autocor"]]) || !is.null(fam_sim_ctx(ctx[["family"]]))
 }
 
 #' One simulated response for a context: the single implementation every
@@ -542,7 +568,7 @@ sim_is_structured <- function(ctx) {
 #' @noRd
 sim_draw <- function(ctx) {
   ac <- ctx[["autocor"]]
-  sf <- ctx[["family"]][["sim_ctx"]]
+  sf <- fam_sim_ctx(ctx[["family"]])
   if (is.null(ac) && is.null(sf)) {
     return(sim_response(ctx[["family"]], ctx[["dpars"]], ctx[["aterms"]],
                         ctx[["n"]], extra = ctx[["extra"]]))
@@ -2610,11 +2636,94 @@ mixture <- function(..., groups = NULL) {
            call. = FALSE)
     }
     fam$mix_groups <- groups
-    # a class belongs to the GROUP, so the draw is not rowwise: the
-    # rowwise `sim` above would give the same group two classes
-    fam$sim_ctx <- mixture_sim_groups
+    # A class belongs to the GROUP, so neither the likelihood nor the
+    # draw is rowwise: the group's per-observation log-densities sum
+    # BEFORE the logsumexp over classes, and the rowwise `sim` above
+    # would give one group two classes. That is what a structure is.
+    fam[["structure"]] <- mixture_structure(fam$mix)
   }
   fam
+}
+
+#' The structured-family protocol for a group-level (latent-class)
+#' mixture: `mixture(groups = ~g)`.
+#'
+#' This is the protocol's reference implementation, and it is short on
+#' purpose. Only the likelihood, the grouping data it reads and the draw
+#' are not rowwise. Everything else about a mixture IS rowwise - its
+#' per-row mean is the mixing-weighted mean of the component means, one
+#' row at a time - so the four capability flags that depend on that mean
+#' are the ones it opts into, `fitted_mean` stays `NULL`, and the core
+#' keeps using the family's own `post$mean_fn`.
+#'
+#' @noRd
+mixture_structure <- function(mx) {
+  force(mx)
+  frmtmb_structure(
+    frame_vars = function(fam) list(fam[["mix_groups"]][[2L]]),
+    check_spec = mixture_check_spec,
+    frame_block = mixture_frame_block,
+    loglik = function(y, dpars, aterms, weights, block, extra) {
+      lps_pi <- mx[["log_pi"]](dpars)
+      total <- NULL
+      for (k in seq_len(mx[["K"]])) {
+        ll_k <- mx[["comp_lpdf"]](y, dpars, aterms, k)
+        g_k <- as.vector(block[["Gt"]] %*% (weights * ll_k)) +
+          lps_pi[[k]][block[["first"]]]
+        total <- if (is.null(total)) g_k else {
+          RTMB::logspace_add(total, g_k)
+        }
+      }
+      sum(total)
+    },
+    sim_ctx = mixture_sim_groups,
+    # The four the doc names are the four that follow from the per-row
+    # mean being rowwise. The rest are TRUE not because a group-level
+    # mixture can do them but because something ELSE already refuses
+    # them in words of its own, and a flag here would only shadow the
+    # better message: has_mixture() states the multimodality refusals
+    # (REML, profile) for every mixture-type family alike, and the
+    # missing CDF states cens(), trunc() and mi(). `osa` is the one real
+    # refusal: the group branch of the objective registers no
+    # observation vector, so there is nothing to step through.
+    supports = list(conditional_effects = TRUE, newdata_response = TRUE,
+                    se_fit_response = TRUE, re_form = TRUE,
+                    reml = TRUE, quadrature = TRUE, profile = TRUE,
+                    deviance = TRUE, cens_trunc = TRUE, mi = TRUE)
+  )
+}
+
+#' The model shape a group-level mixture cannot carry: a latent class
+#' belongs to the GROUP, and a second response would need a joint class
+#' process across responses.
+#'
+#' `cens()`, `trunc()` and `mi()` are refused too, but not here. A
+#' mixture density carries no CDF, so the generic addition-term guard
+#' refuses the first two by naming the missing CDF, and `mi()` by naming
+#' the families it needs - and those are the messages a user actually
+#' meets, because a `check_spec` runs BEFORE those guards and a
+#' duplicate refusal here would only shadow the more specific one.
+#'
+#' @noRd
+mixture_check_spec <- function(resp, spec, av) {
+  if (length(spec$responses) > 1L || spec$rescor) {
+    stop("Group-level mixtures support univariate models",
+         call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' The group incidence matrix and the row indices a group-level mixture
+#' folds its per-observation densities over. All data, resolved once.
+#'
+#' @noRd
+mixture_frame_block <- function(resp, spec, av, mf, y, n) {
+  gv <- factor(eval(resp$family[["mix_groups"]][[2L]], mf,
+                    resp$formula_env))
+  G <- Matrix::sparseMatrix(i = seq_len(n), j = as.integer(gv),
+                            x = 1, dims = c(n, nlevels(gv)))
+  list(G = G, Gt = Matrix::t(G), first = match(levels(gv), gv),
+       gindex = as.integer(gv), levels = levels(gv))
 }
 
 #' A group-level mixture draw: one class per group from the group's own
@@ -2625,7 +2734,7 @@ mixture <- function(..., groups = NULL) {
 #'
 #' @noRd
 mixture_sim_groups <- function(ctx) {
-  mg <- ctx[["mix_g"]]
+  mg <- ctx[["block"]]
   fam <- ctx[["family"]]
   mx <- fam[["mix"]]
   if (is.null(mg)) {
@@ -2690,7 +2799,9 @@ mixture_probs <- function(fit) {
   yv <- fit$frame$y[[rspec$resp_name]]
   lps_pi <- fam$mix$log_pi(dp)
   K <- fam$mix$K
-  mg <- fit$frame$mix_g[[rspec$resp_name]]
+  # the group incidence of a group-level mixture, or NULL for a rowwise
+  # one, where the posterior is per observation
+  mg <- frame_block_of(fit$frame, rspec$resp_name)
   w <- av$weights %||% 1
   # matrix responses (mixture_mvn) have one density per ROW, so NROW,
   # not length; their class covariances live in the extra parameters

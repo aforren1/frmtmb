@@ -230,9 +230,10 @@ cluster_guard <- function(fit, cl) {
     }
   }
   # group-level (latent-class) mixtures: same condition on the
-  # mixture's own grouping
-  for (r in names(frame$mix_g %||% list())) {
-    mg <- frame$mix_g[[r]]
+  # mixture's own grouping. hmm() fits were refused above, so a block
+  # still standing here carries the mixture's group incidence.
+  for (r in names(frame[["blocks"]] %||% list())) {
+    mg <- frame_block_of(frame, r)
     tg <- methods::as(methods::as(mg$Gt, "generalMatrix"), "TsparseMatrix")
     pairs <- unique(cbind(tg@i + 1L, ci[tg@j + 1L]))
     if (anyDuplicated(pairs[, 1L]) > 0L) {

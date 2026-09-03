@@ -20,7 +20,8 @@ frmtmb_family(
   primary_dpars = "mu",
   lcdf = NULL,
   extra_pars = NULL,
-  drop_intercept = FALSE
+  drop_intercept = FALSE,
+  structure = NULL
 )
 
 custom_family(
@@ -38,7 +39,8 @@ custom_family(
   primary_dpars = "mu",
   lcdf = NULL,
   extra_pars = NULL,
-  drop_intercept = FALSE
+  drop_intercept = FALSE,
+  structure = NULL
 )
 }
 \arguments{
@@ -109,6 +111,14 @@ fourth argument.}
 \item{drop_intercept}{If \code{TRUE}, the intercept column is removed from
 the main formula's design matrix (ordinal families: thresholds take
 its place).}
+
+\item{structure}{Optional \code{\link[=frmtmb_structure]{frmtmb_structure()}} for a family whose
+likelihood does not factorize over rows (a group-level \code{\link[=mixture]{mixture()}},
+a hidden Markov chain). It carries the non-rowwise log-likelihood,
+the frame block that likelihood reads, and the capability flags
+that say which post-fit methods the family can answer. \code{lpdf} stays
+required even then, for the rowwise contract, and may be a stub
+that refuses.}
 }
 \value{
 An object of class \code{frmtmb_family}.
@@ -132,7 +142,8 @@ families supply \code{sim_ctx(ctx)} instead of \code{sim(dpars, aterms, n)}.
 \code{estimates} - a fitted model, one posterior draw, or the de novo
 shim), \code{family}, \code{rspec}, \code{resp}, \code{dpars} (the evaluated numeric
 distributional parameters), \code{aterms}, \code{n}, \code{extra} (the family-level
-extra parameters) and the frame structures \code{autocor} and \code{mix_g}.
+extra parameters) and the frame structures \code{autocor} and \code{block}
+(the structured family's own data; see \code{\link[=frmtmb_structure]{frmtmb_structure()}}).
 Read its fields with \verb{[[ ]]}.
 
 The same \code{sim_ctx()} serves [simulate()], [posterior_predict()] and

@@ -580,9 +580,15 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (REML) random <- c(random, "beta")
   if (!length(random)) random <- NULL
 
-  # An hmm() fit refuses REML, quadrature and profile for reasons of
-  # its own, and checks the starting values for the label-symmetry trap
-  hmm_check_fit(spec, frame, template, REML, quadrature, control)
+  # A family whose likelihood does not factorize over rows refuses the
+  # fitting options its own structure says it cannot answer, in its own
+  # words. Every one of these three integrates something out with a
+  # Laplace approximation about a single inner mode, which a structured
+  # likelihood either has no definition for or has several of.
+  check_structure_fit(spec, REML, quadrature, control)
+
+  # An hmm() fit checks its starting values for the label-symmetry trap
+  hmm_check_fit(spec, frame, template)
 
   # A mixture likelihood is invariant to permuting its components, so
   # the mu coefficients enter a multimodal objective. Both REML and
