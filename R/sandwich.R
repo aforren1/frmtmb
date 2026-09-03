@@ -235,7 +235,7 @@ cluster_guard <- function(fit, cl) {
     mg <- frame$mix_g[[r]]
     tg <- methods::as(methods::as(mg$Gt, "generalMatrix"), "TsparseMatrix")
     pairs <- unique(cbind(tg@i + 1L, ci[tg@j + 1L]))
-    if (any(duplicated(pairs[, 1L]))) {
+    if (anyDuplicated(pairs[, 1L]) > 0L) {
       stop("the group-level mixture grouping for response ", r,
            " crosses `cluster`: one mixture group spans more than one ",
            "cluster, so the likelihood does not factor. Cluster at ",

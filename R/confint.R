@@ -1591,7 +1591,9 @@ hyp_shadow_disarm <- function(old) {
 #'
 #' @noRd
 hyp_shadow_note <- function(shadow) {
-  if (!length(shadow) || !isTRUE(hyp_shadow_state$armed)) return(invisible(NULL))
+  if (!length(shadow) || !isTRUE(hyp_shadow_state$armed)) {
+    return(invisible(NULL))
+  }
   new <- setdiff(names(shadow), hyp_shadow_state$seen)
   if (!length(new)) return(invisible(NULL))
   hyp_shadow_state$seen <- c(hyp_shadow_state$seen, new)
@@ -2073,7 +2075,7 @@ hypothesis <- function(x, ...) {
   # the many environment rebuilds it triggers, so it is armed here and
   # restored when the method returns (on.exit survives UseMethod)
   old <- hyp_shadow_arm()
-  on.exit(hyp_shadow_disarm(old))
+  on.exit(hyp_shadow_disarm(old), add = TRUE)
   UseMethod("hypothesis")
 }
 
@@ -2292,7 +2294,7 @@ plot.frmtmb_hypothesis <- function(x, ask = NULL, ...) {
   ask <- ask %||% (n > 1L && grDevices::dev.interactive())
   if (ask) {
     oask <- grDevices::devAskNewPage(TRUE)
-    on.exit(grDevices::devAskNewPage(oask))
+    on.exit(grDevices::devAskNewPage(oask), add = TRUE)
   }
   mark <- function(i) {
     graphics::abline(v = x$estimate[i], lwd = 2)

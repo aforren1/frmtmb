@@ -175,7 +175,7 @@ plot.frmtmb_influence <- function(x, which = NULL, ask = NULL,
   ask <- ask %||% (length(which) > 1L && grDevices::dev.interactive())
   if (ask) {
     oask <- grDevices::devAskNewPage(TRUE)
-    on.exit(grDevices::devAskNewPage(oask))
+    on.exit(grDevices::devAskNewPage(oask), add = TRUE)
   }
   if (1L %in% which) {
     infl_index_panel(cd, units, xlab, "Cook's D", "Cook's distance",

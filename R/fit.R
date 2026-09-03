@@ -1437,7 +1437,7 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
       # nlminb's own "NA/NaN function evaluation" is the optimizer
       # noticing the same undefined objective the error above names;
       # letting both through would report the failure twice
-      if (nl_start && grepl("NA/NaN", conditionMessage(w))) {
+      if (nl_start && grepl("NA/NaN", conditionMessage(w), fixed = TRUE)) {
         invokeRestart("muffleWarning")
       }
     }
