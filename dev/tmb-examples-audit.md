@@ -2,6 +2,11 @@
 
 Audit date: 2026-09-03. Branch `wt-tmbex`, at v0.41.0 (2619816).
 
+Revised 2026-09-03 on branch `wt-sparsear1`: roadmap item 1 landed, so
+`sdv_multi` and `sdv_multi_compact` move from AWKWARD to REPLICATES at
+their published size and the `transform` rows are no longer capped. The
+rows and counts below are the revised ones.
+
 ## What was audited
 
 The universe is the `tmb_examples` directory of two upstream repositories,
@@ -20,7 +25,9 @@ Every verdict is evidenced. For a REPLICATES row the reference model is
 fitted through its own `MakeADFun`/`nlminb` and `frm()` is fitted in the
 same R process, and the two maximized log-likelihoods are compared. Both
 sides tape the same objective through RTMB, so agreement is expected at
-1e-6 or better. Two rows agree less closely and both are explained below.
+1e-6 or better. Rows that agree less closely, and rows where the
+reference's own optimizer stops short of its optimum, are explained
+below; none of them is a model difference.
 
 The harness is `dev/tmb-examples-check.R` (one R subprocess per case,
 because the reference scripts `source()` their data files into the global
@@ -33,8 +40,8 @@ generation and the reference negative log-likelihood are both inline.
 
 | verdict | count |
 | --- | --- |
-| (a) REPLICATES | 13 |
-| (b) AWKWARD | 3 |
+| (a) REPLICATES | 15 |
+| (b) AWKWARD | 1 |
 | (c) OUT OF SCOPE | 19 |
 
 Of the 19 out-of-scope rows, 3 are TMB API demonstrations whose
@@ -48,6 +55,15 @@ REPLICATES, because its model fits.)
 `|diff|` is the absolute difference between the reference maximized
 log-likelihood and `logLik(frm(...))`.
 
+Three rows carry a `+`. On those the reference's own cold-start `nlminb`
+stops short of its optimum, so the number quoted is the reference
+objective CROSS-EVALUATED at frmtmb's estimates against
+`logLik(frm(...))`. That is a statement about the two likelihoods, which
+is what the audit is about; agreement of the two optima would only be a
+statement about two optimizers. Each `+` row says below by how much the
+reference's stopping point falls short, and in every case `frm()`
+reaches the better objective.
+
 | example | source | `frm()` spelling | `|diff|` |
 | --- | --- | --- | --- |
 | linreg | RTMB | `bf(Y ~ x)`, `family = gaussian()` | 4.19e-13 |
@@ -57,8 +73,10 @@ log-likelihood and `logLik(frm(...))`.
 | spatial | RTMB | `bf(y ~ 1 + x2 + exp(pos + 0 \| grp))`, `family = poisson()` | 1.01e-08 |
 | spde | RTMB | `bf(time \| cens(cens) ~ sex + age + wbc + tpi + spde(fem, gr = node))`, `family = weibull()` | 9.35e-09 |
 | adaptive_integration | RTMB | `bf(x \| trials(n) ~ 0 + c1 + c2 + c3 + (1 \| obs))`, `family = binomial()`, `quadrature = TRUE` | 1.36e-03 |
-| transform | RTMB | `bf(y ~ qgamma(pnorm(z), shape, scale), z ~ 0 + ar1(tim + 0 \| g), shape ~ 1, scale ~ 1, nl = TRUE)` | 3.08e-09 |
-| transform2 | RTMB | `bf(y ~ qbeta(pnorm(z), shape1, shape2), z ~ 0 + ar1(tim + 0 \| g), shape1 ~ 1, shape2 ~ 1, nl = TRUE)` | 6.37e-12 |
+| transform | RTMB | `bf(y ~ qgamma(pnorm(z), shape, scale), z ~ 0 + ar1(tim + 0 \| g), shape ~ 1, scale ~ 1, nl = TRUE)` | 3.93e-09 |
+| transform2 | RTMB | `bf(y ~ qbeta(pnorm(z), shape1, shape2), z ~ 0 + ar1(tim + 0 \| g), shape1 ~ 1, shape2 ~ 1, nl = TRUE)` | 1.82e-12 + |
+| sdv_multi | RTMB | `mvbf(bf(x1 ~ 0, sigma ~ 1 + ar1(tim + 0 \| g)) + gaussian(), ... , rescor = TRUE)` | 8.50e-09 + |
+| sdv_multi_compact | RTMB | the same three-response `mvbf()` spelling | 8.50e-09 + |
 | orange_big | adcomp | `bf(y ~ a0 / (1 + exp(-(t - a1) / a2)), a0 ~ 1 + (1 \| tree), a1 ~ 1, a2 ~ 1, nl = TRUE)` | 2.33e-08 |
 | socatt | adcomp | `bf(y ~ x1 + x2 + x3 + (1 \| g))`, `family = cumulative()` | 1.35e-08 |
 | lr_test | adcomp | `bf(obs ~ 0 + g, sigma ~ 0 + g)` and its two restrictions | 1.4e-09 |
@@ -94,14 +112,86 @@ because the field is pushed through `pnorm()` and must be marginally
 standard normal for `qgamma`/`qbeta` to be the intended quantile
 transform. frmtmb's `ar1()` block carries a free marginal standard
 deviation, so the plain spelling fits a strict superset with one extra
-parameter, and it lands 0.135 log-likelihood units above the reference.
-Pinning that parameter with `lower = c(theta_1 = 0)` and
+parameter and lands above the pinned fit: 0.066 log-likelihood units at
+n = 1000, 0.099 at n = 200. Pinning that parameter with `lower = c(theta_1 = 0)` and
 `upper = c(theta_1 = 0)` is the `map=` equivalent and recovers the
-reference exactly. The fitted `theta_2 = 0.5973` maps to
-rho = 0.5973 / sqrt(1 + 0.5973^2) = 0.5128, which is the reference's phi
-to four decimals. Both rows were run at n = 200 rather than the example's
-n = 1000, for the reason in the AWKWARD section: `ar1()` is a dense
-covariance structure and its cost is cubic in the series length.
+reference exactly.
+
+Both rows now run at the example's own n = 1000. Through v0.42 they were
+capped at n = 200, because `ar1()` was a dense covariance structure whose
+cost is cubic in the series length; the O(d) density of v0.43 removes the
+cap. Nothing about the pin story moved with it. At n = 1000:
+
+| row | reference | `frm()` pinned | pinned rho | reference phi |
+| --- | --- | --- | --- | --- |
+| transform | -2829.4068542850 | -2829.4068542811 | 0.542386 | 0.542383 |
+| transform2 | 685.3439060286 | 745.1140235944 | 0.554231 | 0.516259 |
+
+`transform2` is one of the `+` rows of the REPLICATES table. Its reference script
+says in its own comments that the Laplace approximation is delicate for
+that model (the noise sd is 0.005), and the reference's cold-start
+`nlminb` stops 59.77 log-likelihood units below `frm()`. The likelihood
+itself agrees: the reference objective evaluated at `frm()`'s pinned
+estimates is 745.1140235944, matching `logLik(frm(...))` to 1.82e-12. For
+`transform` the same cross-evaluation agrees to 7.22e-09.
+
+The n = 200 runs the audit published still reproduce, which is the check
+that the O(d) density changed no number: `transform` -544.1792742616
+against a reference -544.1792742715, and `transform2` 161.3844854981
+against 161.3844854988, with the pinned rho matching the reference phi to
+five decimals in both (0.512781 against 0.512783, and 0.533422 against
+0.533424). `dev/tmb-examples-check.R` keeps both sizes as the cases
+`transform`/`transform2` and `transform_n200`/`transform2_n200`.
+
+One naming note the harness has to undo. `RTMB::qgamma()` takes a RATE in
+its third positional argument, so the coefficient the spelling above
+calls `scale` is fitted as 1 / scale. It is the same gamma either way,
+which is why the row's log-likelihood matched all along; only the
+cross-evaluation into the reference's parameterization has to invert it.
+
+**sdv_multi and sdv_multi_compact, at their published size.** The
+multivariate stochastic volatility model of Skaug and Yu (2014). Three
+series, 945 time points, a latent AR(1) log-volatility per series, and an
+observation density that is multivariate normal with mean zero, an
+unstructured correlation matrix, and per-series scales
+exp(0.5 (mu_x + h)). Both scripts fit the same model; the `_compact` one
+is the same likelihood written with `dautoreg()` and a scaled `dmvnorm()`.
+
+```r
+frm(mvbf(bf(x1 ~ 0, sigma ~ 1 + ar1(tim + 0 | g)) + gaussian(),
+         bf(x2 ~ 0, sigma ~ 1 + ar1(tim + 0 | g)) + gaussian(),
+         bf(x3 ~ 0, sigma ~ 1 + ar1(tim + 0 | g)) + gaussian(),
+         rescor = TRUE), data = dd)
+```
+
+The mapping is exact rather than approximate. The residual correlation of
+a multivariate gaussian fit is the example's `R`, and both sides
+parameterize it by the same row-normalized lower-triangular factor, so
+`thetar` IS `off_diag_x`. `sigma`'s log link makes its intercept mu_x / 2
+and its latent block h / 2, so `ar1()`'s marginal sd absorbs the factor
+of 2 exactly. Nothing is approximated.
+
+This row was AWKWARD through v0.42 for cost alone: `ar1()` built a dense
+945 x 945 covariance and Cholesky-factorized it on the tape, and the
+audit could only reach series lengths of 40 and 80 on simulated data of
+the same shape. Since v0.43 the block density is O(d) and the published
+size fits in 2.4 s, against a reference that takes 17.4 s.
+
+The two optimizers do not land together, and that is the reference's
+side. The example's own single cold start returns `convergence = 1` at
+nll 1773.08785102; `frm()` reaches 1771.12753479, which is strictly
+better. So the row is established as a `+` row:
+
+* the reference objective evaluated at `frm()`'s estimates is
+  1771.12753478 against `frm()`'s own -1771.12753479, agreeing to
+  8.33e-09, and
+* the reference's `nlminb`, restarted from `frm()`'s point, converges
+  there (`convergence = 0`) at 1771.12753478, giving the 8.50e-09 in the
+  table.
+
+The 12-parameter box-constrained problem is harder to converge from a
+cold start than the likelihood identity is to establish, which is the
+same thing the audit saw at series length 80.
 
 **orange_big.** The scaled-up Orange Tree model: 35000 observations,
 5000 latent random effects, a three-parameter logistic growth curve with
@@ -161,85 +251,6 @@ spatial structures, or a documented `unit = TRUE` that fixes the marginal
 variance, would turn this row and both `transform` rows into plain
 REPLICATES with no pinning ritual. Three of the 35 examples needed the
 same pin, which is the argument for spelling it once.
-
-### sdv_multi and sdv_multi_compact
-
-The multivariate stochastic volatility model of Skaug and Yu (2014).
-Three series, 945 time points, a latent AR(1) log-volatility per series,
-and an observation density that is multivariate normal with mean zero, an
-unstructured correlation matrix, and per-series scales
-exp(0.5 (mu_x + h)).
-
-This is expressible in frmtmb's grammar, and the mapping is exact rather
-than approximate:
-
-```r
-frm(mvbf(bf(x1 ~ 0, sigma ~ 1 + ar1(tim + 0 | g)) + gaussian(),
-         bf(x2 ~ 0, sigma ~ 1 + ar1(tim + 0 | g)) + gaussian(),
-         bf(x3 ~ 0, sigma ~ 1 + ar1(tim + 0 | g)) + gaussian(),
-         rescor = TRUE), data = dd)
-```
-
-The residual correlation of a multivariate gaussian fit is the example's
-`R`; `sigma`'s log link makes its intercept mu_x / 2 and its latent block
-h / 2; and h / 2 is AR(1) with the same phi, so `ar1()`'s marginal sd
-absorbs the factor of 2 exactly. Nothing is approximated.
-
-Measured on simulated data of the example's own shape, three series with
-an AR(1) log-volatility each:
-
-| series length | reference nll | `frm()` logLik | agreement | `frm()` fit time |
-| --- | --- | --- | --- | --- |
-| 40 | 133.3885404159 | -133.3885404157 | 2.23e-10 | 1.4 s |
-| 80 | 259.2112861880 | -259.2038643997 | 7.42e-03 | 4.1 s |
-
-At length 40 the two routes converge to the same point and agree
-exactly. At length 80 they do not, and the difference is the reference's
-own optimizer, not the model: `frm()` reaches a strictly better objective
-than the reference does, and the 259.2113 above is already the best of
-twelve reference starts (the example's own single start stops at
-260.5668). The 12-parameter box-constrained problem is simply harder to
-converge from a cold start than the likelihood identity is to establish.
-
-So what blocks the row is cost, not grammar, and the next section is
-about that. The fit-time column already shows it: 1.4 s at length 40,
-4.1 s at length 80, against a reference that takes 0.2 s at both.
-
-### The blocker the AWKWARD rows share: `ar1()` is dense
-
-frmtmb's `ar1`, `toep`, `ou`, `exp`, `gau` and `mat` structures all build
-a dense `d x d` covariance and hand it to `RTMB::dmvnorm`, where `d` is
-the block dimension. That is the right shape for repeated measures, where
-`d` is 4 or 10. It is the wrong shape for a time series, where `d` is the
-number of time points, because the Cholesky factorization is taped in
-full and the cost is cubic.
-
-Measured, as tape construction plus one `fn()` and one `gr()` call:
-
-| block dimension | `ar1()` dense | `RTMB::dautoreg` sparse |
-| --- | --- | --- |
-| 50 | 0.13 s | 0.02 s |
-| 100 | 1.04 s | 0.02 s |
-| 200 | 0.22 s | 0.02 s |
-| 400 | 1.17 s | 0.05 s |
-| 800 | 7.25 s | 0.09 s |
-| 1000 | not measured | 0.09 s |
-
-(The dense column is noisy below 400 because taping dominates; the trend
-above it is the cubic one.)
-
-At the examples' own sizes this is the difference between a fit and no
-fit: `sdv_multi` has d = 945 in three blocks, and `transform` has
-d = 1000. It is also why the two `transform` rows were verified at
-n = 200.
-
-The fix is not an atomic function. `RTMB::dautoreg` already exists, and
-frmtmb already assembles a parameter-dependent sparse precision on the
-tape and evaluates it with `RTMB::dgmrf`: that is exactly what the `spde`
-covariance structure does, in `R/covstruct.R`. A sparse `ar1` entry in
-`covstruct_registry` would follow the same pattern and reuse the same
-`dgmrf` call. This is the highest-value item the audit found, and it is
-ordinary work rather than new machinery.
 
 ## (c) OUT OF SCOPE
 
@@ -412,20 +423,71 @@ which is the audit's main conclusion: the atomic-function classes in the
 original scoping are mostly not what stands between frmtmb and these
 examples.
 
-**1. A sparse AR(1) covariance structure.** Unlocks `sdv_multi` and
-`sdv_multi_compact` at their published size, and takes `transform` and
-`transform2` from 200 usable time points to 1000. Today `ar1()` builds a
-dense `d x d` covariance and Cholesky-factorizes it on the tape; at
-d = 800 that is 7.25 s for one tape plus one gradient, against 0.09 s for
-`RTMB::dautoreg`. The pattern to copy already exists in the same file:
-`covstruct_registry$spde` assembles a parameter-dependent sparse
-precision and evaluates it with `RTMB::dgmrf`. A tridiagonal AR(1)
-precision is the same shape and simpler. No new machinery, four examples,
-and every user with a long repeated-measures series benefits. Review
-noted a cheaper interim route as well: `ar1_chol_cor` already computes
-the analytic AR(1) Cholesky for the non-centering surface, so the nll
-could route through that factor before a full sparse registry entry
-exists.
+**1. A linear-cost AR(1) covariance structure. DONE in v0.43.**
+Unlocked `sdv_multi` and `sdv_multi_compact` at their published size, and
+took `transform` and `transform2` from 200 usable time points to their
+own 1000. Four examples, and every user with a long repeated-measures
+series.
+
+`ar1()` and `hetar1()` no longer build a dense `d x d` covariance. Both
+evaluate the AR(1) density in its innovation form,
+`z' C^-1 z = z_1^2 + sum (z_i - rho z_(i-1))^2 / (1 - rho^2)` with
+`log|C| = (d - 1) log(1 - rho^2)`, which is O(d) per level and vectorized
+over levels, with the marginal standard deviations divided out first and
+their Jacobian added back. The derivation, including why `RTMB::dautoreg`
+assumes unit MARGINAL rather than unit innovation variance, is the
+comment block above `ar1_lpdf()` in `R/covstruct.R`.
+
+Three routes were derived. `RTMB::dautoreg` computes the same recursion
+but loops over time points in R and takes one vector, so it has to be
+called once per level; a `dgmrf` route with the tridiagonal precision
+matches the speed but assembles a parameter-dependent sparse matrix and
+pays a sparse Cholesky for a log-determinant that is available in closed
+form, and `hetar1`'s per-time scaling would have to be folded into that
+precision. The closed form is both the cleanest and the fastest. The
+other two are kept as gates rather than as code: `tests/testthat/
+test-sparsear1.R` holds the density against a `dautoreg` cross-check, and
+`dev/sparsear1-bench.R` reports the timings below.
+
+Measured by `Rscript dev/sparsear1-bench.R 5` (R 4.6.1, RTMB 1.9), as
+tape construction plus one `fn()` and one `gr()` call on the block
+density alone, best of five batches:
+
+| block dimension d | `ar1` dense | `ar1` O(d) | speedup | `hetar1` dense | `hetar1` O(d) | speedup |
+| --- | --- | --- | --- | --- | --- | --- |
+| 50 | 5.9 ms | 1.5 ms | 3.9x | 6.7 ms | 1.5 ms | 4.3x |
+| 200 | 0.035 s | 2.6 ms | 13x | 0.030 s | 2.2 ms | 13x |
+| 800 | 0.587 s | 2.0 ms | 294x | 0.767 s | 2.0 ms | 385x |
+| 2000 | 22.698 s | 2.1 ms | 11020x | 35.096 s | 2.8 ms | 12561x |
+
+The O(d) column is flat because at these sizes it is tape construction,
+not arithmetic. The dense column is the cubic factorization. The dense
+values are reconstructed inline by the script, so the comparison needs
+nothing but the installed package.
+
+The repeated-measures shape the dense route was written for does not
+lose either, which was the thing to check: at 500 levels of d = 4 the two
+are 3.7 ms and 2.4 ms, and at 500 levels of d = 10 they are 9.5 ms and
+3.4 ms.
+
+The density is IDENTICAL, not merely close. `test-sparsear1.R` keeps the
+pre-v0.43 dense computation inline as a reference and holds the new one
+against it at 20 random `(b, theta, d)` configurations, drawn wide enough
+that |rho| reaches 0.999: values agree to 2.3e-12 relative and gradients
+through `MakeTape` to 2.2e-09 relative, against gates of 1e-10 and 1e-08.
+A third gate holds the same density against `RTMB::dautoreg` with
+`scale` set to the marginal standard deviation, which is the independent
+statement that the scale convention is the right one; that agrees to
+1.1e-12.
+The `vcov`, `start`, `npar`, `sd_idx`, `cor_spec` and `chol_L` accessors
+are untouched, so the LKJ prior and the non-centering surface see the
+same block they always did.
+
+`ou`, `exp`, `gau` and `mat` stay dense on purpose: they are genuinely
+dense kernels over arbitrary positions with no banded inverse to exploit.
+`toep` and `homtoep` stay dense too, for the different reason that their
+banded parameterization is not positive definite everywhere, so there is
+no factor to exploit over the whole parameter space.
 
 **2. A latent state-space term in the grammar.** Unlocks `mvrw`,
 `mvrw_sparse` and `sde_linear` outright, and is the only route to
@@ -551,7 +613,13 @@ then fetch each file's `.content` and base64-decode it into
 `dev/tmb-examples/` and `dev/tmb-examples-adcomp/` respectively.
 
 * `Rscript dev/tmb-examples-check.R` runs the RTMB-port rows against
-  their own reference scripts, one R subprocess per case.
+  their own reference scripts, one R subprocess per case. The cases
+  `sdv_multi`, `sdv_multi_compact`, `transform` and `transform2` run at
+  the examples' published sizes; `transform_n200` and `transform2_n200`
+  rerun the shortened series the audit was first written at, so the
+  published numbers stay reproducible.
+* `Rscript dev/sparsear1-bench.R` reports the AR(1) block density's
+  scaling, with the pre-v0.43 dense computation reconstructed inline.
 * `Rscript dev/tmbex-adcomp-check.R` runs the adcomp-only rows at their
   published size, against reference likelihoods hand-written from the
   `.cpp` templates (the originals need a compiler, so they cannot be run
@@ -564,8 +632,8 @@ then fetch each file's `.content` and base64-decode it into
 ## A replication vignette, deferred on purpose
 
 Maintainer decision (2026-09-03): once the top roadmap items land
-(sparse `ar1()` at least; the state-space grammar term if it
-happens), a dedicated vignette replicates the relevant TMB examples
+(the linear-cost `ar1()`, which did in v0.43; the state-space grammar
+term if it happens), a dedicated vignette replicates the relevant TMB examples
 side by side, upstream spelling against the one-formula `frm()`
 spelling with the logLik agreement shown. Written then rather than
 now so the stochastic-volatility and state-space rows appear at their

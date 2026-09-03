@@ -308,6 +308,99 @@ student_lpdf <- function(b, W, nu, d, n_levels) {
                     nu, d, n_levels)
 }
 
+# ------------------------------------------------- AR(1), at O(d) ---
+#
+# THE SCALE QUESTION, ANSWERED ON PAPER, because getting it wrong is a
+# silently wrong likelihood.
+#
+# `RTMB::dautoreg(x, phi = rho)` is the density of a STATIONARY AR(1)
+# with UNIT MARGINAL variance: it draws `x[1] ~ N(0, 1)` from the
+# stationary law and then `x[i] ~ N(rho x[i-1], sqrt(1 - rho^2))`. The
+# innovation standard deviation is NOT 1; it is the value that keeps the
+# marginal variance at 1. frmtmb's `ar1`/`hetar1` theta carries MARGINAL
+# standard deviations, which is the same convention, so the two differ
+# only by that scale and by nothing about the recursion.
+#
+# The relation. Write `C` for the AR(1) correlation matrix
+# `C_ij = rho^|i-j|` and `D = diag(sd_1, ..., sd_d)` for the marginal
+# standard deviations (all equal for `ar1`, free for `hetar1`). The
+# block's covariance is `Sigma = D C D`, so with `z = D^-1 x`,
+#
+#   log N(x; 0, D C D) = log N(z; 0, C) - sum_i log(sd_i)
+#
+# and `log N(z; 0, C)` is what `dautoreg` computes. The `- sum log sd`
+# is the Jacobian of the standardization, one term per TIME point (not
+# per level), which is why `hetar1`'s per-time sds enter here and
+# nowhere else. Equivalently: `dautoreg(x, phi = rho, scale = sd)`,
+# whose `scale` argument does exactly this elementwise and accepts the
+# length-d vector `hetar1` needs.
+#
+# The correlation part in closed form. `C^-1` is tridiagonal, so
+#
+#   z' C^-1 z = z_1^2 + sum_{i=2}^d (z_i - rho z_{i-1})^2 / (1 - rho^2)
+#   log|C|    = (d - 1) log(1 - rho^2)
+#
+# which is the innovation form `dautoreg` recurses over, written out.
+# Cost is O(d) per level, and every term is a whole-vector operation, so
+# the tape sees no loop at all.
+#
+# One more simplification the parameterization hands us: theta's
+# correlation is `rho = t / sqrt(1 + t^2)`, so
+#
+#   1 - rho^2 = 1 / (1 + t^2)   exactly.
+#
+# The reciprocal `1 + t^2` is therefore formed by addition rather than
+# by the cancelling subtraction `1 - rho^2`, which is where a rho near
+# +/-1 would otherwise lose its significant digits.
+#
+# WHY NOT `dautoreg` ITSELF, and why not `dgmrf`. All three routes agree
+# to 7e-15, and the gates in test-sparsear1.R hold the other two against
+# this one. `dautoreg` loops over time points in R and takes ONE vector,
+# so it has to be called once per level: measured at 0.28 s against
+# 0.01 s for d = 4 over 500 levels, and 0.14 s against under 0.005 s at
+# d = 2000. A `dgmrf` route with the tridiagonal precision matches the
+# speed but has to assemble a parameter-dependent sparse matrix and pay
+# a sparse Cholesky for a log-determinant that is already available in
+# closed form, and `hetar1`'s per-time scaling would have to be folded
+# into that precision as well. The closed form is the cleaner of the two
+# and the faster of the three, so it is what runs.
+#
+# WHY ONLY AR(1). `ou`, `exp`, `gau` and `mat` are genuinely dense
+# kernels over arbitrary positions, with no banded inverse to exploit,
+# and `toep`/`homtoep` have no positive-definite parameterization to
+# factor in the first place; all of them stay on the dense `dmvnorm`
+# path on purpose.
+
+#' Log-density of a level-major `b` under AR(1) with correlation
+#' `rho = tphi / sqrt(1 + tphi^2)` and marginal standard deviations
+#' `sdv` (length `d`, recycled over levels, or length 1 for the
+#' homogeneous block). O(d) per level, vectorized over levels.
+#'
+#' @noRd
+ar1_lpdf <- function(b, sdv, tphi, d) {
+  n_levels <- length(b) %/% d
+  # the homogeneous block divides by a scalar, so it never builds the
+  # recycled vector the heterogeneous one needs
+  hom <- length(sdv) == 1L
+  z <- if (hom) b / sdv else b / rep(sdv, length.out = d * n_levels)
+  ldet_D <- if (hom) d * log(sdv) else sum(log(sdv))
+  if (d == 1L) {
+    return(n_levels * (-0.5 * log(2 * pi) - ldet_D) - 0.5 * sum(z * z))
+  }
+  rho <- tphi / sqrt(1 + tphi^2)
+  # 1 / (1 - rho^2) under this map, without the cancelling subtraction
+  inv_omr2 <- 1 + tphi^2
+  # index arithmetic on the flat vector, so no advector matrix is
+  # formed: level j of the level-major layout starts at (j - 1) * d
+  offs <- (seq_len(n_levels) - 1L) * d
+  cur <- as.vector(outer(seq.int(2L, d), offs, "+"))
+  e <- z[cur] - rho * z[cur - 1L]
+  z1 <- z[offs + 1L]
+  n_levels * (-0.5 * d * log(2 * pi) + 0.5 * (d - 1) * log(inv_omr2) -
+                ldet_D) -
+    0.5 * (sum(z1 * z1) + inv_omr2 * sum(e * e))
+}
+
 covstruct_registry <- list(
   us = list(
     npar = function(dim) dim + dim * (dim - 1L) / 2L,
@@ -433,20 +526,7 @@ covstruct_registry <- list(
     npar = function(dim) 2L,
     sd_idx = function(dim) 1L,
     nll = function(b, theta, blk) {
-      "[<-" <- RTMB::ADoverload("[<-")
-      d <- blk$dim
-      sd1 <- exp(theta[1])
-      rho <- theta[2] / sqrt(1 + theta[2]^2)
-      # rho^|i-j| via sequential products: safe for negative rho on the
-      # tape (pow would go through exp/log), and d is small
-      pows <- rep(rho, d)
-      pows[1] <- 1
-      for (k in seq_len(d - 1L) + 1L) pows[k] <- pows[k - 1L] * rho
-      M <- abs(outer(seq_len(d), seq_len(d), "-")) + 1L
-      C <- RTMB::matrix(pows[as.vector(M)], d, d)
-      Sigma <- sd1^2 * C
-      dim(b) <- c(d, length(b) %/% d)
-      sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
+      ar1_lpdf(b, exp(theta[1]), theta[2], blk$dim)
     },
     vcov = function(theta, blk) {
       d <- blk$dim
@@ -546,18 +626,8 @@ covstruct_registry$hetar1 <- list(
   npar = function(dim) dim + 1L,
   sd_idx = function(dim) seq_len(dim),
   nll = function(b, theta, blk) {
-    "[<-" <- RTMB::ADoverload("[<-")
     d <- blk$dim
-    sdv <- exp(theta[seq_len(d)])
-    rho <- theta[d + 1L] / sqrt(1 + theta[d + 1L]^2)
-    pows <- rep(rho, d)
-    pows[1] <- 1
-    for (k in seq_len(d - 1L) + 1L) pows[k] <- pows[k - 1L] * rho
-    M <- abs(outer(seq_len(d), seq_len(d), "-")) + 1L
-    C <- RTMB::matrix(pows[as.vector(M)], d, d)
-    Sigma <- C * (RTMB::matrix(sdv, ncol = 1) %*% RTMB::matrix(sdv, nrow = 1))
-    dim(b) <- c(d, length(b) %/% d)
-    sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
+    ar1_lpdf(b, exp(theta[seq_len(d)]), theta[d + 1L], d)
   },
   vcov = function(theta, blk) {
     d <- blk$dim
