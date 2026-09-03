@@ -7,8 +7,10 @@
 #'   `confint()`, and its coefficient sub-block must equal `vcov()`;
 #'   `confint()` must accept both the `"Wald"` and `"wald"` spellings
 #'   identically and its bootstrap method must bracket the estimate and
-#'   agree with the Wald interval; `coef()`, `dfbeta()`, and `dfbetas()`
-#'   must match lme4 including the sign convention; `drop1()` must match
+#'   agree with the Wald interval; `dfbeta()` and `dfbetas()` must match
+#'   lme4 including the sign convention, and `coef()` must match
+#'   `lme4::coef()` per group and fall back to `fixef()` where there are
+#'   no random effects (`test-sugar.R`); `drop1()` must match
 #'   lme4 on AIC, LRT, and degrees of freedom; `nobs()`, `logLik()` with
 #'   its `df` attribute, `fixef()`, `ranef()`, `VarCorr()`, `family()`,
 #'   and `formula()` are checked in `test-methods.R`; and

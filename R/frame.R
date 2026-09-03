@@ -531,8 +531,14 @@ decode_cens <- function(v) {
   ifelse(is.na(num), out, num)
 }
 
-# data2 must be a named list; anything else is a user mistake that would
-# otherwise surface far away, inside one of the structural lookups.
+#' Normalize and check the `data2` argument of [frm()].
+#'
+#' `data2` must be a named list; anything else is a user mistake that
+#' would otherwise surface far away, inside one of the structural
+#' lookups. Takes the user's value and returns a named list, with `NULL`
+#' becoming an empty one. Errors on any other shape.
+#'
+#' @noRd
 validate_data2 <- function(data2) {
   if (is.null(data2)) return(list())
   nms <- names(data2)
@@ -549,17 +555,25 @@ validate_data2 <- function(data2) {
   data2
 }
 
-# Structural objects (adjacency matrices, precisions, covariance
-# matrices, FEM triples) resolve from data2 before anything else, so a
-# fit that names them there is self-contained: saveRDS() carries them on
-# the fit and a later refit never reaches back into the calling
-# environment that built them, which by then may be gone.
-#
-# brms accepts a bare name in data2 and nothing more. We keep that rule
-# and add one: a compound expression is evaluated with data2 in front of
-# the data mask, so car(solve(P)) finds P in data2 too. The historical
-# data-then-formula-env evaluation stays as the fallback, so models
-# written before data2 existed keep working.
+#' Resolve a structural object named by a special term.
+#'
+#' Takes the unevaluated argument of a term such as `car(M)`,
+#' `gr(cov =)` or `spde(fem)`, together with `data2`, `data` and the
+#' formula environment, and returns the object it names.
+#'
+#' Structural objects (adjacency matrices, precisions, covariance
+#' matrices, FEM triples) resolve from `data2` before anything else, so
+#' a fit that names them there is self-contained: `saveRDS()` carries
+#' them on the fit and a later refit never reaches back into the calling
+#' environment that built them, which by then may be gone.
+#'
+#' brms accepts a bare name in `data2` and nothing more. This keeps that
+#' rule and adds one: a compound expression is evaluated with `data2` in
+#' front of the data mask, so `car(solve(P))` finds `P` in `data2` too.
+#' The historical data-then-formula-env evaluation stays as the
+#' fallback, so models written before `data2` existed keep working.
+#'
+#' @noRd
 lookup_structural <- function(expr, data2, data, env, what) {
   e2 <- NULL
   if (length(data2)) {
@@ -607,6 +621,14 @@ same_structural_matrix <- function(a, b) {
   isTRUE(is.finite(d) && d <= 1e-10 * scale)
 }
 
+#' Message for a structural object that a lookup could not find.
+#'
+#' Takes the unevaluated expression, the `data2` list, the term name and
+#' the caught condition, and returns one string that names what was
+#' looked for, what `data2` holds, and the underlying error. It exists
+#' so that every structural term reports a miss the same way.
+#'
+#' @noRd
 structural_lookup_msg <- function(expr, data2, what, e) {
   txt <- deparse1(expr)
   held <- if (length(data2)) {
@@ -832,6 +854,17 @@ nonpredictor_frame_vars <- function(spec) {
 #'   class is reduced this way: factors keep their contrasts, matrix
 #'   terms keep their frozen basis, and a response is converted by an
 #'   explicit documented `as.numeric()`.
+#' @srrstats {G2.4d} Conversion to `factor` happens in two places, both
+#'   deliberate, both documented and both tested. A grouping variable
+#'   that is not already a factor is converted so that its level set can
+#'   be read, which is why an integer, a character and a factor spelling
+#'   of the same grouping variable give the same fit
+#'   (`tests/testthat/test-edgecases.R`); and the `cluster` argument of
+#'   [vcov_cluster()] is converted and dropped of empty levels. No
+#'   predictor is converted to build a design matrix: factor structure
+#'   there belongs to the user's data and is resolved by
+#'   `stats::model.frame()` and `stats::model.matrix()` with the stored
+#'   contrasts, and creating one silently would change the model.
 #' @noRd
 report_datetime_columns <- function(mf, exclude = character(0)) {
   kind <- function(v) {

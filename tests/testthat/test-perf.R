@@ -7,7 +7,7 @@
 #'   block. The assertion is deliberately coarse, because wall clock on a
 #'   shared machine is not reproducible; a quadratic regression in the
 #'   objective would still break it by orders of magnitude. The tape
-#'   canary above pins the constant factor at one large size.
+#'   canary in this file pins the constant factor at one large size.
 #' @noRd
 NULL
 

@@ -38,7 +38,7 @@
 #' @srrstats {G2.0} Inputs expected to be single-valued are asserted to be
 #'   so. A distributional parameter fixed to a constant must satisfy
 #'   `is.numeric(d) && length(d) == 1L`; the tuning arguments of the
-#'   special terms (`gp()`, `rr()`, `se()`, `car()`, `spde()`) go through
+#'   special terms (`gp()`, `rr()`, `car()`, `mm()`, `gr()`) go through
 #'   one validator that errors with the argument name and the length it
 #'   received when a scalar was expected.
 #' @srrstats {G2.1} Inputs are asserted to be of the expected type.
@@ -52,9 +52,10 @@
 #'   declares an imputation model for a partially observed variable, and
 #'   `mi(x)` uses it in another formula, so the missing values become
 #'   latent parameters estimated jointly with everything else.
-#'   `mi(x, sdx)` handles measurement error the same way. For imputation
-#'   performed outside the model, [frm_multiple()] fits each completed
-#'   data set and pools by Rubin's rules.
+#'   `bf(x | mi(sdx) ~ ...)` supplies known measurement standard
+#'   deviations the same way. For imputation performed outside the
+#'   model, [frm_multiple()] fits each completed data set and pools by
+#'   Rubin's rules.
 #' @srrstats {RE2.2} Missing values in the response and in the predictors
 #'   are processed differently and separately. Rows with a missing
 #'   predictor are removed by `na.action` before fitting, so a model can

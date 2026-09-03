@@ -28,9 +28,10 @@
 #' @srrstats {G5.9b} The same mechanism is the noise-susceptibility test
 #'   for seed variation: running under hundreds of different seeds and
 #'   initial conditions must not change the conclusion, and the
-#'   invariants (`predict_eq_fitted`, `loglik_identity`, `permutation`,
-#'   `unit_weights`, `simulate_mean`, `vcov_summary`, `confint_wald`) are
-#'   required to hold on every one of them. `permutation` is a
+#'   invariants (`predict_eq_fitted`, `loglik_identity`,
+#'   `row_permutation`, `unit_weights`, `simulate_mean`, `vcov_dim`,
+#'   `vcov_psd`, `summary_prints`, `confint_wald`) are
+#'   required to hold on every one of them. `row_permutation` is a
 #'   metamorphic version of the same idea: reordering the rows must not
 #'   change the likelihood. Stability under different initial conditions
 #'   is also checked outside the fuzzer, by `frm_allfit()` agreeing

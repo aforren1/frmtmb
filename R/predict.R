@@ -929,21 +929,36 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #'   unexpected value errors and names the permitted ones. `dpar` is
 #'   checked against the family's own parameter names, and an unknown
 #'   `resp` errors with the available responses listed.
-#' @srrstats {G3.0} Floating-point values are never compared for equality.
-#'   The estimability test for a rank-deficient design is a relative
-#'   tolerance of `1e-8` against the null space of the fitted design, the
-#'   same test [stats::predict.lm()] uses, and the documentation states
-#'   the tolerance and its consequence for near-aliased designs.
+#' @srrstats {G3.0} A computed floating-point quantity is never compared
+#'   for equality. The estimability test for a rank-deficient design is
+#'   a relative tolerance of `1e-8` against the null space of the fitted
+#'   design, the same test [stats::predict.lm()] uses, and the
+#'   documentation states the tolerance and its consequence for
+#'   near-aliased designs. Exact equality is used only where the
+#'   compared value is a data category and not a computed quantity:
+#'   `y == 0` and `y == 1` are the structural-zero and one-inflation
+#'   indicators of the zero-inflated, hurdle and zero-one-inflated
+#'   families, where the point mass is defined at that exact value, and
+#'   guards against a degenerate input, such as a zero standard
+#'   deviation or a zero row-sum of weights, reject on the boundary
+#'   rather than accept there.
 #' @srrstats {RE1.3} Output structures retain the relevant aspects of the
 #'   input. Predictions, `fitted()` values, and residuals carry the row
 #'   names of the data they were computed from; `vcov()`, `confint()`,
-#'   and `fixef()` share one coefficient naming scheme, which
-#'   `tests/testthat/test-methods-audit.R` asserts is identical across
-#'   them; and the stored model frame keeps the input row names.
+#'   and `fixef()` share one coefficient naming scheme;
+#'   `tests/testthat/test-methods-audit.R` asserts that
+#'   `vcov(full = TRUE)` carries exactly the row names of `confint()`
+#'   and that `vcov()` is its coefficient sub-block. The stored model
+#'   frame keeps the input row names.
 #' @srrstats {RE4.9} Modelled values of the response are returned by
-#'   `fitted()`, and by `predict(type = "response")`, which is asserted to
-#'   equal `fitted()` on the training data for every family, with no
-#'   exception. On an ordinal family the modelled response is a category
+#'   `fitted()`, and by `predict(type = "response")`, which is asserted
+#'   to equal `fitted()` on the training data wherever both are defined:
+#'   the fuzz harness checks the invariant across the family grid, and
+#'   `tests/testthat/test-methods-audit.R` checks it on the cases where
+#'   the two could plausibly diverge (zero-inflated, `trials()`
+#'   binomial). A family with no mean on the response scale, such as
+#'   `cox()`, refuses both alike. On an ordinal family the modelled
+#'   response is a category
 #'   distribution rather than a mean, so both return the same `n x K`
 #'   matrix of category probabilities (the brms convention), named by the
 #'   response's own levels; the latent linear predictor stays reachable
@@ -1699,6 +1714,14 @@ ord_cs_values <- function(object, lp, newdata, n) {
   })
 }
 
+#' Category-specific offsets for an ordinal linear predictor.
+#'
+#' Returns the `n x (K - 1)` matrix that `cs()` terms add to the
+#' thresholds, or `NULL` when the model has none. It is separate from
+#' the threshold arithmetic because the offset is the only part that
+#' depends on `newdata`.
+#'
+#' @noRd
 ord_cs_offsets <- function(object, lp, newdata, n, K1) {
   cv <- ord_cs_values(object, lp, newdata, n)
   if (!length(cv)) return(NULL)
@@ -1773,6 +1796,15 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   P
 }
 
+#' Response-scale prediction for an ordinal family.
+#'
+#' Wraps `ord_probs()` and returns the `n x K` matrix of category
+#' probabilities, padded by `napred()` on the training data so that
+#' `na.exclude` gives back the input row count. The modelled response of
+#' an ordinal family is a category distribution, not a mean, which is
+#' why this is not the general response path.
+#'
+#' @noRd
 predict_ordinal <- function(object, rspec, newdata, use_re,
                             allow_new_levels) {
   P <- ord_probs(object, rspec, newdata, use_re, allow_new_levels)
@@ -1825,6 +1857,14 @@ cat_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   P
 }
 
+#' Response-scale prediction for a categorical family.
+#'
+#' The counterpart of `predict_ordinal()` for a nominal response: wraps
+#' `cat_probs()` and pads with `napred()` on the training data. The two
+#' stay separate because the ordinal probabilities come from thresholds
+#' and the categorical ones from one linear predictor per category.
+#'
+#' @noRd
 predict_categorical <- function(object, rspec, newdata, use_re,
                                 allow_new_levels) {
   P <- cat_probs(object, rspec, newdata, use_re, allow_new_levels)
@@ -2525,7 +2565,8 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     saved_seed <- get(".Random.seed", envir = globalenv())
     set.seed(seed)
     rng_state <- structure(seed, kind = as.list(RNGkind()))
-    on.exit(assign(".Random.seed", saved_seed, envir = globalenv()))
+    on.exit(assign(".Random.seed", saved_seed, envir = globalenv()),
+            add = TRUE)
   }
   rspec <- uni_resp(object, "simulate()")
   fam <- rspec$family

@@ -92,9 +92,10 @@
 #'   response; an ordinal factor response is converted from factor with
 #'   `as.numeric()` and a two-level binomial factor with
 #'   `as.numeric(y) - 1`; `mo()` category codes use `as.integer()`;
-#'   grouping factors use `as.integer()` for the level index and
-#'   `as.character()` for the level labels; addition terms other than
-#'   `cens()` use `as.numeric()`.
+#'   grouping factors use `as.integer()` for the level index, and a
+#'   grouping value is matched to its level through `as.character()`, so
+#'   an integer, a factor and a character grouping column index alike;
+#'   addition terms other than `cens()` use `as.numeric()`.
 #' @srrstats {G2.5} Where a factor input is expected, the expected kind is
 #'   checked and documented. `mo()` requires an ordered factor and errors
 #'   otherwise ("mo(): factor variables must be ordered factors"). An
@@ -118,14 +119,18 @@
 #' @srrstats {G2.13} Missing data is checked during pre-processing, before
 #'   anything is passed to the optimizer. Rows are removed by `na.action`
 #'   inside `stats::model.frame()`; assembly then errors if any missing
-#'   value remains in a model variable, and errors if no complete
-#'   observation is left.
+#'   value remains in a model variable other than one declared `mi()` or
+#'   modelled by `hmm()`, where the `NA` is the estimand and is carried
+#'   deliberately, and errors if no complete observation is left.
 #' @srrstats {G2.14,G2.14a} `na.action` lets the user choose how missing
 #'   data is handled, following [stats::lm()]. `stats::na.fail` errors on
 #'   missing data, `stats::na.omit` (the default) and `stats::na.exclude`
 #'   drop the affected rows, and `na.exclude` pads `fitted()`,
 #'   `residuals()`, `predict()`, and `simulate()` back to the input
-#'   length with `NA` in the original positions.
+#'   length with `NA` in the original positions. A column declared
+#'   `mi()`, and the response of an `hmm()` model, bypass `na.action` by
+#'   design: their `NA`s are what the model estimates, so assembly keeps
+#'   those rows and applies the requested action to the rest.
 #' @srrstats {G2.14b} Rows dropped for missingness are reported, not
 #'   dropped silently: frame assembly emits one `message()` per fit
 #'   giving the number of rows removed. It is a message, not a warning,
@@ -137,7 +142,10 @@
 #'   errors unless every model variable is free of missing values, so
 #'   downstream arithmetic operates on complete data by construction
 #'   rather than by defensive `na.rm` flags that would silently change
-#'   the estimand.
+#'   the estimand. The exceptions are explicit and modelled, not
+#'   inherited: an `mi()` column and an `hmm()` response keep their
+#'   `NA`s, and the code that reads one writes `na.rm = TRUE` at the
+#'   call site, where the reader can see which quantity it changes.
 #' @srrstats {G2.16} Undefined values are handled separately from missing
 #'   ones. The response check is explicitly written as
 #'   `any(!is.finite(y) & !is.na(y))`, so `Inf`, `-Inf`, and `NaN` are
@@ -153,11 +161,16 @@
 #'   `predict()` can refuse rows of `newdata` that are not estimable. A
 #'   cheap sparse singular-value screen gates the dense check so that the
 #'   sparse and dense backends drop the same columns.
-#' @srrstats {RE3.0} Models that fail to converge raise warnings, one per
-#'   diagnostic: a nonzero optimizer status (with the optimizer's own
-#'   message and, for a nonlinear model, a hint that `start` was not
-#'   set), a maximum absolute gradient above `grad_tol`, a Hessian that
-#'   is not positive definite, and non-finite standard errors.
+#' @srrstats {RE3.0} Models that fail to converge raise warnings: a
+#'   nonzero optimizer status (with the optimizer's own message and, for
+#'   a nonlinear model, a hint that `start` was not set), a maximum
+#'   absolute gradient above `grad_tol`, and, once the standard-error
+#'   machinery has run (at fit time under `se = TRUE`, otherwise on the
+#'   first `vcov()`, `summary()` or [diagnose()] call), a Hessian that is
+#'   not positive definite or, failing that, non-finite standard errors.
+#'   The last two are exclusive: a Hessian that is not positive definite
+#'   explains the standard errors, so only the first of the pair is
+#'   raised.
 #' @srrstats {RE3.1} Those diagnostics are `warning()` conditions, so
 #'   `suppressWarnings()` silences them, and the returned object still
 #'   carries enough to identify the failure: `fit$opt$convergence` and
@@ -180,7 +193,10 @@
 #'   fit: `fit$frame$y` holds the response per response name,
 #'   `fit$frame$y_levels` the original factor levels for ordinal and
 #'   categorical responses, and `fit$frame$aterm_values` the addition
-#'   terms (`weights`, `trials`, `cens`, `trunc`, `se`, `offset`).
+#'   terms (`weights`, `trials`, `cens`, `trunc_lb` and `trunc_ub`,
+#'   `se`, `vint` and `vreal`, `mi`). An offset belongs to one linear
+#'   predictor rather than to the response, so it is kept there, as
+#'   `fit$frame$linpreds[[k]]$offset`.
 #'   `model.frame()` returns the stored model frame with its row names.
 #' @srrstats {RE4.17} `print()` on a `frmtmb_fit` summarizes the model
 #'   input (family, formula, grouping structure) and the fitted

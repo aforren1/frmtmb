@@ -123,7 +123,11 @@
 #'   Riutort-Mayol et al. (2023) for approximate Gaussian processes,
 #'   Lindgren et al. (2011) and Riebler et al. (2016) for the spatial
 #'   fields, Thygesen et al. (2017) for one-step-ahead residuals, and
-#'   Rubin (1987) for multiple-imputation pooling.
+#'   Rubin (1987) for multiple-imputation pooling. A method whose
+#'   reference belongs to one function carries it on that function's own
+#'   help page: [vcov_cluster()] (Liang and Zeger 1986; Cameron and
+#'   Miller 2015), [influence.frmtmb_fit()], [lca()] and
+#'   [anova.frmtmb_multiple()].
 #' @srrstats {G1.1} The "Algorithm provenance" section states that
 #'   frmtmb introduces no new estimator. It is a new implementation, in
 #'   R, of established methods, and the contribution is architectural:
@@ -133,17 +137,20 @@
 #'   implementations cannot express.
 #' @srrstats {G1.2} The "Life cycle" section above states the current
 #'   state (maturing, pre-CRAN), which parts of the interface are stable,
-#'   which are still moving, and the maintenance intent. `CONTRIBUTING.md`
-#'   and the README carry the same statement.
+#'   which are still moving, and the maintenance intent. The README
+#'   carries the same statement under its own "Life cycle" heading.
 #' @srrstats {G1.4} All exported functions are documented with roxygen2.
-#'   `NAMESPACE` holds 72 `export()` and 100 `S3method()` entries, and
-#'   every one originates from a roxygen block; the package is built with
+#'   Every `export()` and `S3method()` entry in `NAMESPACE` originates
+#'   from a roxygen block (134 and 232 of them at this version), and
+#'   every export has an alias in `man/`; the package is built with
 #'   `roxygen2::roxygenise()` and carries `Config/roxygen2/version` in
 #'   `DESCRIPTION`.
 #' @srrstats {G1.4a} All internal functions are documented with roxygen2
 #'   blocks that state the contract (inputs, outputs, and the reason the
-#'   helper exists) and end in `@noRd`. There are about 290 of them; the
-#'   pass covering every internal function landed in v0.30.0.
+#'   helper exists) and end in `@noRd`. There are more than 500 of them;
+#'   the pass covering every internal function landed in v0.30.0, and a
+#'   sweep before submission closed the ten that later work had added
+#'   without one.
 #' @srrstats {G5.0} Tests use standard data sets with known properties
 #'   wherever a reference implementation is being checked:
 #'   `lme4::sleepstudy` and `lme4::cbpp`, `datasets::faithful`,

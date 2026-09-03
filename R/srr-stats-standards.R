@@ -4,25 +4,56 @@
 #'
 #' Categories: **General** and **Regression and Supervised Learning**.
 #'
-#' The Bayesian and Monte Carlo category does not apply. frmtmb is a
-#' maximum-likelihood package: parameters are point estimates found by
-#' numerical optimization, and random effects are integrated out with the
-#' Laplace approximation, not sampled. Inference is Wald, profile
-#' likelihood, likelihood-root, or nonparametric bootstrap. `set_prior()`
-#' produces penalized (MAP) point estimates, which is regularization,
-#' not Bayesian inference.
+#' The Bayesian and Monte Carlo category does not apply. The reason is
+#' the package's documented inferential surface, not the absence of a
+#' sampler.
 #'
-#' The optional `frm_sample()` sampler runs NUTS through tmbstan. On a
-#' fitted model it explores the same objective the fit maximized, with
-#' flat priors, which is a diagnostic for the Laplace and Wald
-#' approximations (see `check_laplace()`) rather than the inferential
-#' path. From a formula it does sample a posterior, under weakly
-#' informative default priors matching brms, and it reports `n_eff` and
-#' `Rhat` for every parameter; it is nonetheless an adjunct rather than
-#' the package's inferential surface, which is why the Bayesian
-#' standards' requirements on prior specification, posterior output and
-#' chain-convergence contracts are not claimed here. A model whose
-#' primary answer is a posterior is better served by brms and Stan.
+#' That surface is maximum likelihood with the Laplace approximation.
+#' `frm()` finds point estimates by numerical optimization and
+#' integrates latent effects out with the Laplace approximation. Every
+#' estimate, standard error, interval and test that the documentation
+#' reports is a maximum-likelihood quantity. `summary()` gives Wald
+#' standard errors from the inverse observed information. `confint()`
+#' gives Wald, profile-likelihood, likelihood-root or bootstrap
+#' intervals. `anova()` and `drop1()` give likelihood-ratio tests.
+#' `vignette("frmtmb")`, `vignette("brms-migration")`,
+#' `vignette("case-studies")`, `vignette("diagnostics")` and
+#' `vignette("ode")` all report their models this way. `set_prior()` on
+#' a `frm()` fit gives a penalized (MAP) point estimate, which is
+#' regularization and not posterior inference.
+#'
+#' `frm_sample()` is an opt-in bridge to NUTS through tmbstan, and its
+#' help page states which question each of its two routes answers. On a
+#' fitted model it explores the LIKELIHOOD under flat improper priors.
+#' That is what makes `check_laplace()` meaningful: the run measures the
+#' Laplace and Wald approximations against the shape of the objective
+#' that the fit maximized, and a default prior would change the thing
+#' being measured. From a formula the function does sample a posterior,
+#' under weakly informative default priors that match brms, with an LKJ
+#' default on correlations and a non-centered parameterization, and it
+#' reports `n_eff` and `Rhat` for every parameter. That route has two
+#' documented purposes: a script ported from brms keeps the
+#' `posterior_epred()`, `pp_check()` and `loo()` calls it already
+#' contains, and a Laplace fit can be compared against the posterior of
+#' the same model. The package states the limits of the bridge instead
+#' of hiding them. The section "Priors, and what these numbers mean" in
+#' `?loo` says that an elpd from the flat-prior route is
+#' likelihood-shaped and unregularized, and sends model comparison to
+#' `AIC()` or to a run with priors. `bridge_sampler()` refuses a
+#' marginal likelihood rather than return one that a flat prior leaves
+#' undefined.
+#'
+#' The Bayesian standards describe a package whose front door is the
+#' sampler. They put prior specification and prior sensitivity in the
+#' api, they make the posterior-predictive workflow the primary output,
+#' and they attach chain-convergence contracts to the return object.
+#' The front door of frmtmb is `frm()`, and its return object is a
+#' fitted model with a Hessian. To claim those standards would describe
+#' software that this package is not, and it would tell a user that the
+#' guarantees are somewhere they are not. A model whose primary answer
+#' is a posterior is referred to brms and Stan: the README says so under
+#' "Related work", and `vignette("brms-migration")` has a section
+#' "When you still want brms" that names the cases.
 #'
 #' The Time Series, Spatial, Dimensionality Reduction, Machine Learning,
 #' Probability Distributions, Unsupervised Learning, and Exploratory Data
@@ -45,7 +76,7 @@
 #'
 #' @srrstatsVerbose TRUE
 #'
-#' @srrstats {G5.2a} Every condition message raised in `R/` is unique.
+#' @srrstats {G5.2a} Every `stop()` message raised in `R/` is unique.
 #'   The 651 `stop()` calls that carry literal text produce 651 distinct
 #'   messages (mechanically re-counted by an AST walk; 529 at v0.35.0,
 #'   plus nine net from the structured simulator contract and the
@@ -74,11 +105,12 @@
 #'   would otherwise read the
 #'   same are separated by the context that tells the two faults apart,
 #'   for example `car()` on the left of a bar term versus `car()` as its
-#'   grouping factor, `posterior_predict()` versus `simulate()` versus
-#'   `frm_simulate()` meeting a family with no simulator - each names
-#'   itself and then repeats the family's own reason, so the three read
-#'   consistently and stay distinguishable - and `confint(parm =)`
-#'   versus `profile(parm =)` rejecting an unknown parameter name.
+#'   grouping factor, and `confint(parm =)` versus `profile(parm =)`
+#'   rejecting an unknown parameter name. `posterior_predict()`,
+#'   `simulate()` and `frm_simulate()` meeting a family with no
+#'   simulator are a third case: each names itself and then repeats the
+#'   family's own reason, so the three read consistently and stay
+#'   distinguishable.
 #'   Where one refusal serves many callers it is written once and told
 #'   which caller it speaks for rather than copied: `require_fitted()`
 #'   raises a single message naming the method that called it, which
@@ -97,10 +129,6 @@ NULL
 #'
 #' Standards that do not apply to frmtmb, with reasons.
 #'
-#' @srrstatsNA {G2.4d} The package never converts an input to `factor`.
-#'   Factor structure belongs to the user's data and is resolved by
-#'   `stats::model.frame()` and `stats::model.matrix()` with the stored
-#'   contrasts. Creating factors silently would change the model.
 #' @srrstatsNA {G3.1} The package estimates no covariance matrix from
 #'   data with `stats::cov()`, which it never calls. The covariance of
 #'   the parameters is the inverse observed information taken from the
@@ -124,7 +152,8 @@ NULL
 #'   reference implementation is an installable R package and is called
 #'   live in the tests, so stored published values are not needed.
 #' @srrstatsNA {G5.11} The extended tests need no additional data. They
-#'   simulate their own data from a seed, so there is nothing to
+#'   simulate their own data from a seed, or use a data set from a
+#'   package that is already in `Suggests`, so there is nothing to
 #'   download.
 #' @srrstatsNA {G5.11a} Follows from G5.11: there are no downloads that
 #'   could fail.
