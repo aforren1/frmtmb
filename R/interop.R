@@ -1,4 +1,13 @@
-# Custom-family checking, MCMC bridge, emmeans glue.
+# Custom-family checking, the SAMPLING SURFACE, emmeans glue.
+#
+# The sampling surface is frm_sample(), as_tmbstan(), check_laplace(),
+# the draws object and everything only they reach: the non-centered
+# reparameterization, the frm_sample() default priors, the sampler start
+# values and bounds, and the tmbstan build check. It is the part that
+# leaves for its own package (dev/structured-family-protocol.md). The
+# prior and bound machinery the FIT route reaches - frm(), par_template()
+# and frm_simulate() - lives in R/priors.R instead, so that split does
+# not have to cut through this file's prior code.
 
 #' Check a custom family's log-density for AD safety
 #'
@@ -85,174 +94,7 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
   invisible(TRUE)
 }
 
-#' Prior specifications for frm_sample
-#'
-#' Priors apply on the INTERNAL parameter scale: coefficients are on
-#' their link scale, and covariance parameters (`theta_*`) are the
-#' unconstrained parameterization (log-SDs, scaled-Cholesky terms), so
-#' `prior_normal(0, 1)` on `theta_1` is a lognormal prior on that SD.
-#'
-#' @param location,scale,df Prior parameters.
-#' @return A `frmtmb_prior` object.
-#' @examples
-#' # the objects themselves are cheap descriptions
-#' prior_normal(0, 2)
-#' prior_t(df = 3, location = 0, scale = 1)
-#'
-#' \donttest{
-#' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
-#' set.seed(9)
-#' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
-#' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
-#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-#'
-#' # names are parameter names as in the draws, or whole components.
-#' # theta_1 is a log-SD, so a normal there is a lognormal on the SD.
-#' ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0,
-#'                  prior = list(beta = prior_normal(0, 5),
-#'                                theta_1 = prior_t(3, 0, 1)))
-#' summary(ds)
-#' }
-#' }
-#' @name frmtmb-priors
-NULL
-
-#' @rdname frmtmb-priors
-#' @export
-prior_normal <- function(location = 0, scale = 1) {
-  # a length-2 location built a prior that recycled against the whole
-  # parameter block it was attached to, and `stopifnot(scale > 0)`
-  # reported a negative scale as "scale > 0 is not TRUE", which names
-  # the test rather than the argument
-  check_number(location, "location")
-  check_positive(scale, "scale")
-  structure(list(kind = "normal", location = location, scale = scale),
-            class = "frmtmb_prior")
-}
-
-#' @rdname frmtmb-priors
-#' @export
-prior_t <- function(df = 3, location = 0, scale = 1) {
-  check_positive(df, "df")
-  check_number(location, "location")
-  check_positive(scale, "scale")
-  structure(list(kind = "t", df = df, location = location, scale = scale),
-            class = "frmtmb_prior")
-}
-
-#' Resolve a named prior list to per-component index/parameter vectors.
-#' Names may be individual parameters (as in outer_par_names()) or whole
-#' components ("beta", "betad", "theta", "thetar", "thetaac").
-#'
-#' @noRd
-resolve_priors <- function(fit, prior) {
-  stopifnot(is.list(prior), !is.null(names(prior)))
-  tpl <- fit$frame$par_template
-  comp_names <- list()
-  for (cp in setdiff(names(tpl), c("b", "miss"))) {
-    v <- names(tpl[[cp]])
-    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
-    if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
-      v[fit$frame$betad_fixed_idx] <- NA   # mapped: no prior
-    }
-    comp_names[[cp]] <- v
-  }
-  entries <- list()
-  add <- function(comp, idx, pr) {
-    entries[[length(entries) + 1L]] <<- list(comp = comp, idx = idx,
-                                             prior = pr)
-  }
-  for (nm in names(prior)) {
-    pr <- prior[[nm]]
-    if (!inherits(pr, "frmtmb_prior")) {
-      stop("prior[['", nm, "']] must be a prior object ",
-           "(prior_normal(), prior_t())", call. = FALSE)
-    }
-    if (identical(pr$kind, "lkj")) {
-      # this spelling addresses parameters one at a time; the LKJ
-      # density is over a block's whole correlation and needs the
-      # structure's map, which only the class spelling carries
-      stop("prior_lkj() addresses a block's whole correlation, so it ",
-           "cannot be given by parameter name; write ",
-           "set_prior(\"lkj(", format(pr$eta), ")\", class = \"cor\")",
-           call. = FALSE)
-    }
-    if (nm %in% names(comp_names)) {
-      idx <- which(!is.na(comp_names[[nm]]))
-      add(nm, idx, pr)
-      next
-    }
-    hit <- FALSE
-    for (cp in names(comp_names)) {
-      # both spellings: the template's own `(Intercept)` and the
-      # parenthesis-free `Intercept` the draws, variables() and
-      # hypothesis() all use. Priors are written against names the user
-      # read off one of those surfaces
-      i <- which(comp_names[[cp]] == nm |
-                   par_name_bare(comp_names[[cp]]) == par_name_bare(nm))
-      if (length(i)) {
-        add(cp, i, pr)
-        hit <- TRUE
-        break
-      }
-    }
-    if (!hit) {
-      stop("Unknown parameter in prior: '", nm, "'. Available: ",
-           paste(par_name_bare(unlist(comp_names))[
-             !is.na(unlist(comp_names))], collapse = ", "),
-           " or component names ",
-           paste(names(comp_names), collapse = ", "), call. = FALSE)
-    }
-  }
-  entries
-}
-
-#' AD-safe negative log prior over resolved per-parameter entries
-#' (each: comp, idx, dist, scale; see prior_logdens).
-#'
-#' @noRd
-neg_log_prior_fn <- function(entries) {
-  function(pars) {
-    nlp <- 0
-    for (e in entries) {
-      nlp <- nlp - sum(prior_logdens(pars[[e$comp]][e$idx], e$dist,
-                                     e$scale))
-    }
-    nlp
-  }
-}
-
-#' Named bound specs -> full-length vectors over the outer parameters.
-#'
-#' @noRd
-resolve_bounds <- function(fit, lower, upper) {
-  nm <- outer_par_names(fit)
-  mk <- function(x, fill) {
-    out <- rep(fill, length(nm))
-    if (is.null(x)) return(out)
-    if (is.null(names(x)) || any(names(x) == "")) {
-      stop("Bounds must be named numeric vectors, e.g. ",
-           "lower = c(x = 0)", call. = FALSE)
-    }
-    # the paren-tolerant addressing of confint(parm =), so a name copied
-    # out of a hypothesis() expression works here too, plus the bare
-    # name of an intercept-only nonlinear parameter: bounds on an ODE
-    # model are written against the parameters of the dynamics (la),
-    # not against their design-matrix spelling (la_(Intercept))
-    pos <- apply_nlpar_alias(fit, names(x), match_par_name(names(x), nm))
-    if (anyNA(pos)) {
-      stop("Unknown parameter(s) in bounds: ",
-           paste(names(x)[is.na(pos)], collapse = ", "), ". Available: ",
-           paste(nm, collapse = ", "),
-           " (parentheses may be dropped, and intercept-only nonlinear ",
-           "parameters may be named bare)", call. = FALSE)
-    }
-    out[pos] <- as.numeric(x)
-    out
-  }
-  list(lower = mk(lower, -Inf), upper = mk(upper, Inf))
-}
+# --- sampler start values and bounds -----------------------------------
 
 #' Pull a start value strictly inside the bounding box. Stan turns a
 #' bound into a constrained transform, and a start AT the bound maps to
