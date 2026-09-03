@@ -466,11 +466,26 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
          "structure indexes the rows the model was fitted on. Drop ",
          "newdata to predict those rows", call. = FALSE)
   }
+  if (!is.null(re_form) &&
+      sim_is_structured(sim_context(fit, rspec, list(), aterms = av))) {
+    # same reason from the other side: the structured draw IS a walk
+    # over the fitted structure, so there is no "with the group effects
+    # removed" version of it to hand back
+    stop("posterior_predict(re_formula =) is not supported for this ",
+         "model: its draws are structured, and the structure IS the ",
+         "group-level content a re_formula would remove. Drop the ",
+         "argument to draw from the fitted structure", call. = FALSE)
+  }
   out <- NULL
   arr <- FALSE
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
-    dp <- if (is.null(newdata)) {
+    dp <- if (is.null(newdata) && is.null(re_form)) {
+      # the fast path IS the default: NULL keeps every random effect,
+      # which is what a per-draw eval of the full model gives. A set
+      # re_formula routes through predict() on the training rows, the
+      # same as the newdata branch, so NA and one-sided formulas mean
+      # here exactly what they mean there
       eval_dpars(sh)[[resp]]
     } else {
       dpv <- list()

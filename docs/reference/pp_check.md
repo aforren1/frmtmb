@@ -11,10 +11,24 @@ installed, but not necessarily attached).
 pp_check(object, ...)
 
 # S3 method for class 'frmtmb_fit'
-pp_check(object, type = "dens_overlay", ndraws = 10, re.form = NA, ...)
+pp_check(
+  object,
+  type = "dens_overlay",
+  ndraws = 10,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
+  ...
+)
 
 # S3 method for class 'frmtmb_draws'
-pp_check(object, type = "dens_overlay", ndraws = 50, ...)
+pp_check(
+  object,
+  type = "dens_overlay",
+  ndraws = 50,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
+  ...
+)
 ```
 
 ## Arguments
@@ -36,10 +50,20 @@ pp_check(object, type = "dens_overlay", ndraws = 50, ...)
 
   Number of simulated response vectors.
 
+- re_formula:
+
+  The random-effect switch, in brms's spelling (`pp_check()` is a brms
+  function). On a fit it is passed to
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) and defaults to
+  `NA`, which simulates new random effects; on draws it is passed to
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
+  and defaults to `NULL`, because a draw already carries its own.
+
 - re.form:
 
-  Passed to [`simulate()`](https://rdrr.io/r/stats/simulate.html); the
-  default `NA` simulates new random effects.
+  lme4's spelling of `re_formula`, accepted as an alias. Pass one or the
+  other, not both; see the *Argument spellings* section of
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md).
 
 ## Value
 

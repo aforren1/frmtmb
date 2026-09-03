@@ -1,3 +1,65 @@
+# frmtmb 0.41.0
+
+The tmbstan wrong-density defense, both argument dialects on the
+draws surface, and the pkgcheck container as a local pre-push gate.
+
+## The tmbstan defense
+
+* `frm_sample()` and `as_tmbstan()` refuse, before any sampling, a
+  tmbstan installation that silently samples the wrong density.
+  tmbstan's install-time generator patches only the first
+  `std_normal_lpdf` placeholder in the stanc output; stanc 2.39.0
+  (shipped by StanHeaders 2.39.1, on CRAN 2026-09-02) emits two
+  log-density overloads, and HMC reads the unpatched one, so every
+  chain samples a standard normal instead of the model, likelihood
+  and priors alike. The check is one cached read of the installed
+  `model.hpp`, and the refusal names the defect and the remedies (a
+  prebuilt tmbstan binary, or a rebuild against StanHeaders 2.32.10).
+  Affected in the wild: Linux CRAN installs of tmbstan built against
+  StanHeaders 2.39, and source installs elsewhere; prebuilt binaries
+  are safe. `dev/prior-dropping-investigation.md` carries the proof
+  and the upstream issue text.
+* Three CI cycles of chain-agreement failures in pkgcheck's container
+  were this bug, not chain luck: the container reproduces them
+  deterministically, and a one-line patch to tmbstan's generator
+  makes it reproduce this machine to every printed digit. The gates
+  rationale in the test helpers is corrected accordingly; the ungated
+  correctness assertions are what caught it.
+
+## Both dialects on the draws surface
+
+* `posterior_epred()`, `posterior_linpred()`, `posterior_predict()`,
+  `predictive_interval()`, `predictive_error()` and `pp_check()` gain
+  brms's `re_formula` alongside the `re.form` they have shipped with.
+  Either spelling alone is the setting, both together is refused
+  naming the pair as one setting, and every default is unchanged.
+  brms's own `posterior_epred.brmsfit()` carries the same two
+  spellings. One consequence for positional calls: `re.form` now sits
+  one position later, so a value landing there by position meets the
+  both-set refusal loudly rather than silently changing meaning.
+* The random-effect switch now takes effect IN-SAMPLE for
+  `posterior_predict()`, `predictive_interval()`,
+  `predictive_error()` and `pp_check()` on draws: it used to be
+  consulted only under `newdata`, so `re_formula = NA` on training
+  rows silently kept every random effect. A structured family (hmm,
+  group-level mixtures, residual correlation) refuses the switch by
+  name, since the structured draw is the group-level content it
+  would remove.
+* `pp_check()` on draws previously accepted neither spelling and
+  leaked `re.form` into bayesplot as an unknown argument.
+* `set_rescor()` takes brms's `rescor`; `rescor_value` stays as an
+  alias. New `dev/brms-api-diff.md`: the formals of all 92 exports
+  shared with brms 2.23.0, diffed and triaged.
+
+## The pkgcheck container, locally
+
+* `dev/run-pkgcheck-docker.sh` and `dev/pkgcheck-docker.md` run
+  rOpenSci's pkgcheck-action container against the source tree on
+  Windows docker, mirroring CI line for line, with a gates on/off
+  switch for the sampler-agreement tests and a token-scrubbed
+  dependency cache. This is the pre-push gate, and it is the
+  instrument that found the tmbstan defect.
+
 # frmtmb 0.40.1
 
 * `conditional_effects()` gains `re_formula`, in brms's spelling and

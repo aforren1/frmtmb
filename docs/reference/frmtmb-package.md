@@ -159,7 +159,9 @@ Useful links:
 ## Author
 
 **Maintainer**: Alex Forrence <alex.forrence@gmail.com>
+([ORCID](https://orcid.org/0000-0002-9728-6337))
 
 Authors:
 
 - Alex Forrence <alex.forrence@gmail.com>
+  ([ORCID](https://orcid.org/0000-0002-9728-6337))

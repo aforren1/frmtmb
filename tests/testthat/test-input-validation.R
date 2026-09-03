@@ -120,8 +120,10 @@ test_that("a tmbstan build that samples the wrong density is refused", {
   # dev/prior-dropping-investigation.md)
   expect_false(frmtmb:::tmbstan_build_broken())
   expect_silent(frmtmb:::check_tmbstan_build("frm_sample()"))
-  # the refusal path, exercised against a synthesized broken model.hpp
-  # through the same grepl the guard runs
+  # the PATTERN of the refusal path, pinned against a synthesized
+  # broken model.hpp line so guard and autogen output cannot drift
+  # apart silently; the stop() branch itself is unreachable on a
+  # healthy installation and is not executed here
   bad <- "lp_accum__.add(stan::math::std_normal_lpdf<propto__>(y));"
   expect_true(any(grepl("std_normal_lpdf<propto__>(y)", bad,
                         fixed = TRUE)))

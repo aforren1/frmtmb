@@ -227,18 +227,21 @@ this machine: max |flat - default| = 6.109209 identical(flat, default) = FALSE
 ```
 
 `prior_summary()` reports `student_t(3, 0, 2.5) class=sd` for the default fit
-in both places, so the prior is declared in both. In the container it does not
-reach the sampled objective. The flat chain and the half-t chain are one chain.
+in both places, so the prior is declared in both. The follow-up investigation
+(`dev/prior-dropping-investigation.md`) sharpened this measurement's reading:
+it is not that the prior is dropped, it is that NOTHING reaches the sampler.
+A tmbstan built under StanHeaders 2.39 samples a standard normal instead of
+the model, likelihood and priors alike, because its install-time generator
+patches only the first of two generated log-density overloads. The flat chain
+and the half-t chain are one chain because both are that standard normal.
 
-That explains the rest of the table. With no prior holding it, the log standard
-deviation wanders, the posterior spread grows to 10.9 times the Wald standard
-error, and the mixture components collapse onto the pooled mean instead of
-separating.
+That explains the rest of the table: a standard normal's spread is 10.9 times
+this model's Wald standard error, and the mixture "components" are two reads
+of the same N(0, 1) coordinate.
 
-So the gates are not hiding a seeded-chain reproducibility problem, which is
-what `tests/testthat/helper-reference.R` currently says. They are hiding a
-platform where priors are dropped. The non-gated `test-reparam.R:627`, "a prior
-on an sd applies identically under both routes", fails in the container for the
+So the gates were not hiding a seeded-chain reproducibility problem. They were
+partly masking a real upstream defect, which frm_sample() now refuses
+statically. The non-gated `test-reparam.R:627` fails in the container for the
 same reason, and no switch hides that one.
 
 Do not read a green `pkgcheck` run as evidence that the priors work. Use
@@ -264,10 +267,13 @@ machine gets R's single-threaded reference BLAS. The container also builds
 `tmbstan` against `StanHeaders` 2.39.1, which is a different Stan Math
 release from the 2.32.10 that this machine and the Ubuntu runners hold.
 
-`StanHeaders` alone does not explain the drift: the macOS R-CMD-check job also
-has 2.39.1 and its gates pass. `pak` always takes the newest CRAN build, so
-the container's version moves whenever CRAN moves, while `r-lib/actions` pins
-an RSPM snapshot. Re-read this table after any `pak` install; it will change.
+`StanHeaders` at tmbstan COMPILE time is the whole explanation, which the
+follow-up investigation proved by a one-line patch flip: the macOS job also
+holds 2.39.1 but installs a prebuilt tmbstan binary generated under stanc
+2.32.2, so its runtime StanHeaders version is irrelevant. `pak` always takes
+the newest CRAN build and compiles from source on Linux, so the container is
+exactly the affected configuration. Re-read this table after any `pak`
+install; it will change.
 
 ## Container against action: the deltas
 

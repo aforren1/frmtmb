@@ -55,9 +55,11 @@ Model B, `y ~ x + (1 | g)`, `prior_normal(0, 0.01)` on `theta_1`,
 | -1.0 | 4996.313768347216 | 4996.313768347216 |
 | 0.0 | -3.686231652783 | -3.686231652783 |
 | 0.5 | 1246.313768347217 | 1246.313768347217 |
-| 2.0 | 19996.313768347220 | 19996.313768347216 |
+| 2.0 | 19996.313768347220 | 19996.313768347220 |
 
-The two platforms agree to the last printed digit, the difference varies
+The two platforms agree to the last printed digit (the final digit at
+theta = 2.0 is one ulp at magnitude 2e4 and moves with the frmtmb build;
+review re-measured the host at ...220), the difference varies
 with the parameter, and it equals the untaped R-side
 `neg_log_prior_fn()` at the same points. The gradient gains exactly
 `5000` in the priored coordinate and nothing elsewhere. `RTMB`, the

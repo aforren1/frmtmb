@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.40.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.41.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,37 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.41.0" id="frmtmb-0410">frmtmb 0.41.0<a class="anchor" aria-label="anchor" href="#frmtmb-0410"></a></h2>
+<p>The tmbstan wrong-density defense, both argument dialects on the draws surface, and the pkgcheck container as a local pre-push gate.</p>
+<div class="section level3">
+<h3 id="the-tmbstan-defense-0-41-0">The tmbstan defense<a class="anchor" aria-label="anchor" href="#the-tmbstan-defense-0-41-0"></a></h3>
+<ul><li>
+<code><a href="../reference/frm_sample.html">frm_sample()</a></code> and <code><a href="../reference/as_tmbstan.html">as_tmbstan()</a></code> refuse, before any sampling, a tmbstan installation that silently samples the wrong density. tmbstan’s install-time generator patches only the first <code>std_normal_lpdf</code> placeholder in the stanc output; stanc 2.39.0 (shipped by StanHeaders 2.39.1, on CRAN 2026-09-02) emits two log-density overloads, and HMC reads the unpatched one, so every chain samples a standard normal instead of the model, likelihood and priors alike. The check is one cached read of the installed <code>model.hpp</code>, and the refusal names the defect and the remedies (a prebuilt tmbstan binary, or a rebuild against StanHeaders 2.32.10). Affected in the wild: Linux CRAN installs of tmbstan built against StanHeaders 2.39, and source installs elsewhere; prebuilt binaries are safe. <code>dev/prior-dropping-investigation.md</code> carries the proof and the upstream issue text.</li>
+<li>Three CI cycles of chain-agreement failures in pkgcheck’s container were this bug, not chain luck: the container reproduces them deterministically, and a one-line patch to tmbstan’s generator makes it reproduce this machine to every printed digit. The gates rationale in the test helpers is corrected accordingly; the ungated correctness assertions are what caught it.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="both-dialects-on-the-draws-surface-0-41-0">Both dialects on the draws surface<a class="anchor" aria-label="anchor" href="#both-dialects-on-the-draws-surface-0-41-0"></a></h3>
+<ul><li>
+<code><a href="../reference/posterior_epred.html">posterior_epred()</a></code>, <code><a href="../reference/posterior_epred.html">posterior_linpred()</a></code>, <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>, <code><a href="../reference/posterior_summary.html">predictive_interval()</a></code>, <code><a href="../reference/posterior_summary.html">predictive_error()</a></code> and <code><a href="../reference/pp_check.html">pp_check()</a></code> gain brms’s <code>re_formula</code> alongside the <code>re.form</code> they have shipped with. Either spelling alone is the setting, both together is refused naming the pair as one setting, and every default is unchanged. brms’s own <code>posterior_epred.brmsfit()</code> carries the same two spellings. One consequence for positional calls: <code>re.form</code> now sits one position later, so a value landing there by position meets the both-set refusal loudly rather than silently changing meaning.</li>
+<li>The random-effect switch now takes effect IN-SAMPLE for <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>, <code><a href="../reference/posterior_summary.html">predictive_interval()</a></code>, <code><a href="../reference/posterior_summary.html">predictive_error()</a></code> and <code><a href="../reference/pp_check.html">pp_check()</a></code> on draws: it used to be consulted only under <code>newdata</code>, so <code>re_formula = NA</code> on training rows silently kept every random effect. A structured family (hmm, group-level mixtures, residual correlation) refuses the switch by name, since the structured draw is the group-level content it would remove.</li>
+<li>
+<code><a href="../reference/pp_check.html">pp_check()</a></code> on draws previously accepted neither spelling and leaked <code>re.form</code> into bayesplot as an unknown argument.</li>
+<li>
+<code><a href="../reference/mvbf.html">set_rescor()</a></code> takes brms’s <code>rescor</code>; <code>rescor_value</code> stays as an alias. New <code>dev/brms-api-diff.md</code>: the formals of all 92 exports shared with brms 2.23.0, diffed and triaged.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="the-pkgcheck-container-locally-0-41-0">The pkgcheck container, locally<a class="anchor" aria-label="anchor" href="#the-pkgcheck-container-locally-0-41-0"></a></h3>
+<ul><li>
+<code>dev/run-pkgcheck-docker.sh</code> and <code>dev/pkgcheck-docker.md</code> run rOpenSci’s pkgcheck-action container against the source tree on Windows docker, mirroring CI line for line, with a gates on/off switch for the sampler-agreement tests and a token-scrubbed dependency cache. This is the pre-push gate, and it is the instrument that found the tmbstan defect.</li>
+</ul></div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.40.1" id="frmtmb-0401">frmtmb 0.40.1<a class="anchor" aria-label="anchor" href="#frmtmb-0401"></a></h2>
+<ul><li>
+<code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> gains <code>re_formula</code>, in brms’s spelling and with brms’s default: <code>NA</code> draws the population-level curve, <code>NULL</code> conditions on the grid’s reference group levels (pick them with <code>conditions =</code>), and a one-sided formula keeps the named terms, on the fit method and the draws method alike. Previously the setting was hard-coded internally, so the lme4 spelling <code>re.form</code> died with a matched-by-multiple-arguments error on a fit and both spellings vanished silently into the dots on draws. A user who reaches for <code>re.form</code> here is now told which spelling this function takes: <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> is brms’s function and speaks brms, while the fit surface’s <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> keep lme4’s <code>re.form</code>. <code>band = "profile"</code> exists only for the population-level curve and says so.</li>
+<li>The message-uniqueness test failed open on one CI layout that offered an existing-but-empty <code>../../R</code>; it now requires positive identification of the package source tree and skips otherwise.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.40.0" id="frmtmb-0400">frmtmb 0.40.0<a class="anchor" aria-label="anchor" href="#frmtmb-0400"></a></h2>
 <p>Input validation across the export surface after an rOpenSci autotest sweep, the submission materials themselves, and the retirement of hand-maintained counts in favor of an enforced uniqueness property.</p>

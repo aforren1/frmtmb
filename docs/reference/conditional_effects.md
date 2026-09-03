@@ -22,6 +22,7 @@ conditional_effects(
   prob = 0.95,
   method = c("epred", "predict"),
   band = c("wald", "profile", "boot"),
+  re_formula = NA,
   ndraws = 400,
   boot = NULL,
   profile_points = 25,
@@ -41,6 +42,7 @@ conditional_effects(
   resolution = 100,
   prob = 0.95,
   ndraws = NULL,
+  re_formula = NA,
   conditions = list(),
   data = NULL,
   ...
@@ -104,6 +106,18 @@ conditional_effects(
   on the link scale), `"profile"` (likelihood-root inversion per grid
   point) or `"boot"` (parametric-bootstrap percentiles). See the band
   section. Only for `method = "epred"`.
+
+- re_formula:
+
+  The population switch, in brms's spelling: `NA` (the default) draws
+  the population-level curve, `NULL` conditions on the random effects of
+  the grid's reference group levels (set them with `conditions =`), and
+  a one-sided formula keeps the named terms. The fit surface's
+  [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
+  spells the same setting `re.form` after lme4; `conditional_effects()`
+  takes brms's name because it is brms's function, and says so if handed
+  the other spelling. `band = "profile"` exists only for the
+  population-level curve.
 
 - ndraws:
 

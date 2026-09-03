@@ -320,7 +320,7 @@ Effort notes are the implementation cost, not the doc cost.
   Small but BREAKING, so it needs a release that can carry it. This is
   a live defect, not just a style difference: the method is registered
   on `brms::posterior_summary`, whose generic dispatches on `x`, so
-  `brms::posterior_summary(x = ds)` fails with "unused argument"
+  `brms::posterior_summary(x = ds)` fails (the generic dispatches on `x`, our method signature starts at `object`, so the call errors with `argument "object" is missing, with no default`)
   while `posterior_summary(ds)` works. The fix is to rename the first
   formal on the generic, the `.default` method and the `.frmtmb_draws`
   method together. Found by the S3 first-formal audit in

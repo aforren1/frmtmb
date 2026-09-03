@@ -3,7 +3,8 @@
 `posterior_epred()` evaluates the response-scale expectation per draw;
 `posterior_predict()` additionally simulates responses from the family,
 giving the posterior predictive distribution. Both condition on each
-draw's own random effects (`re.form = NA` drops them).
+draw's own random effects (`re_formula = NA` drops them; `re.form` is
+the accepted alias, see *Argument spellings*).
 
 ## Usage
 
@@ -15,7 +16,8 @@ posterior_epred(
   object,
   newdata = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
   ndraws = NULL,
   ...
 )
@@ -28,7 +30,8 @@ posterior_linpred(
   transform = FALSE,
   newdata = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
   dpar = NULL,
   ndraws = NULL,
   ...
@@ -41,7 +44,8 @@ posterior_predict(
   object,
   newdata = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
   ndraws = NULL,
   ...
 )
@@ -58,10 +62,23 @@ posterior_predict(
 
   Unused.
 
-- newdata, resp, re.form:
+- newdata, resp:
 
   As in
   [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md).
+
+- re_formula:
+
+  The random-effect switch, in brms's spelling: `NULL` (the default)
+  conditions on each draw's own random effects, `NA` or `~0` gives the
+  population-level quantity. Its meaning is
+  [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)'s
+  `re.form`; see *Argument spellings*.
+
+- re.form:
+
+  lme4's spelling of `re_formula`, accepted as an alias. Pass one or the
+  other, not both.
 
 - ndraws:
 
@@ -130,6 +147,36 @@ and residual correlation terms; see the Structured draws section of
 [`simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md).
 Those draws index the rows the model was fitted on, so `newdata` is
 refused for them.
+
+## Argument spellings
+
+frmtmb answers to two dialects, and this family sits on the seam. The
+rule is that a brms-NAMED function speaks brms's argument names, while
+frmtmb's own fit surface
+([`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md),
+[`simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md),
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md))
+keeps lme4's, because that is the heritage each name comes from and a
+reader should be able to tell which library a call was written against.
+
+`posterior_epred()` and its relatives are brms functions, so the
+random-effect switch is `re_formula`. They also SHIPPED taking lme4's
+`re.form`, so that spelling keeps working and means exactly the same
+thing: both names feed one internal setting, and whichever one is given
+wins. brms does the same on `posterior_epred.brmsfit()`, which carries
+`re_formula` and `re.form` side by side.
+
+Giving both at once is refused rather than resolved. Two names for one
+setting supplied together is a question about what was meant, and
+guessing at it would silently ignore one of them.
+
+The literal default of both formals is an internal "not supplied" marker
+rather than a value, because `NULL` (keep the random effects) and `NA`
+(drop them) are both real settings here and neither can double as
+"unset". The behavior when neither is given is unchanged: `NULL` on
+every draws method, `NA` on
+[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+for a fit.
 
 ## Examples
 

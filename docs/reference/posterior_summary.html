@@ -17,7 +17,7 @@ posterior_summary(bayes_R2(ds, summary = FALSE)) work."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.40.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.41.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,7 +97,8 @@ matrix of draws, which is what makes
 <span>  prob <span class="op">=</span> <span class="fl">0.9</span>,</span>
 <span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  re.form <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
@@ -105,7 +106,14 @@ matrix of draws, which is what makes
 <span><span class="fu">predictive_error</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">predictive_error</span><span class="op">(</span><span class="va">object</span>, resp <span class="op">=</span> <span class="cn">NULL</span>, re.form <span class="op">=</span> <span class="cn">NULL</span>, ndraws <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">predictive_error</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  re.form <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -138,7 +146,14 @@ matrix of draws, which is what makes
 <code>predictive_interval()</code>.</p></dd>
 
 
-<dt id="arg-ndraws-newdata-re-form-resp">ndraws, newdata, re.form, resp<a class="anchor" aria-label="anchor" href="#arg-ndraws-newdata-re-form-resp"></a></dt>
+<dt id="arg-re-formula-re-form">re_formula, re.form<a class="anchor" aria-label="anchor" href="#arg-re-formula-re-form"></a></dt>
+<dd><p>Passed to <code><a href="posterior_epred.html">posterior_predict()</a></code>, which
+takes brms's <code>re_formula</code> and accepts lme4's <code>re.form</code> as an alias
+of it. Pass one or the other; see the <em>Argument spellings</em> section
+of <code><a href="posterior_epred.html">posterior_epred()</a></code>.</p></dd>
+
+
+<dt id="arg-ndraws-newdata-resp">ndraws, newdata, resp<a class="anchor" aria-label="anchor" href="#arg-ndraws-newdata-resp"></a></dt>
 <dd><p>Passed to <code><a href="posterior_epred.html">posterior_predict()</a></code>.</p></dd>
 
 </dl></div>

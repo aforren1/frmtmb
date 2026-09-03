@@ -3,10 +3,10 @@
 # Two candidate guards, tested against the broken container tmbstan:
 #   (1) static: count the std_normal placeholder left in the model.hpp that
 #       tmbstan installs beside itself. No sampling, no side effects.
-#   (2) numeric: compare rstan::grad_log_prob() on the returned stanfit with
-#       -obj$gr(). The reverse-mode path is the one that loses the objective,
-#       so the GRADIENT is the discriminating quantity; log_prob() alone is
-#       not, because the double-precision overload IS patched.
+#   (2) numeric: compare rstan::log_prob() or grad_log_prob() on the
+#       returned stanfit with -obj$fn()/-obj$gr(). Both route through the
+#       broken reverse-mode overload (measured: log_prob returns -mu^2/2
+#       in the container), so either discriminates.
 #
 #   Rscript dev/pdi-guard.R
 

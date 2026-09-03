@@ -33,7 +33,16 @@ REUSE_DEPS=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --gates)  GATES="$2"; shift 2 ;;
+    --gates)
+      GATES="$2"; shift 2
+      # anything but the two literal values would silently fall into the
+      # gates-off branch below while the log header claimed otherwise,
+      # which is the exact trap this script exists to prevent
+      case "$GATES" in
+        on|off) ;;
+        *) echo "--gates takes 'on' or 'off', not '$GATES'" >&2; exit 2 ;;
+      esac
+      ;;
     --tests)  TESTS="$2"; shift 2 ;;
     --repeat) REPEAT="$2"; shift 2 ;;
     --reuse-deps) REUSE_DEPS=1; shift ;;

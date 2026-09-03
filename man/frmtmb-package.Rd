@@ -137,11 +137,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Alex Forrence \email{alex.forrence@gmail.com}
+\strong{Maintainer}: Alex Forrence \email{alex.forrence@gmail.com} (\href{https://orcid.org/0000-0002-9728-6337}{ORCID})
 
 Authors:
 \itemize{
-  \item Alex Forrence \email{alex.forrence@gmail.com}
+  \item Alex Forrence \email{alex.forrence@gmail.com} (\href{https://orcid.org/0000-0002-9728-6337}{ORCID})
 }
 
 }

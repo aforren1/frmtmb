@@ -11,7 +11,7 @@ formulas correlates their `g` effects.
 ``` r
 mvbf(..., rescor = FALSE)
 
-set_rescor(rescor_value = TRUE)
+set_rescor(rescor = arg_unset(), rescor_value = arg_unset())
 ```
 
 ## Arguments
@@ -26,10 +26,18 @@ set_rescor(rescor_value = TRUE)
 - rescor:
 
   Model residual correlation between the responses (gaussian only).
+  `mvbf()` defaults to `FALSE`, `set_rescor()` to `TRUE`. It is brms's
+  spelling on both, and brms's default on `set_rescor()`; brms's
+  `mvbf()` defaults to `NULL` and decides later, which frmtmb settles at
+  formula-assembly time instead.
 
 - rescor_value:
 
-  For `set_rescor()`: turn residual correlation on or off.
+  The spelling `set_rescor()` shipped with, still accepted as an alias
+  of `rescor`. It existed only because this Rd page documents two
+  functions and could not carry two `rescor` entries; brms spells the
+  argument `rescor`, and so does this function now. Give one spelling or
+  the other, not both.
 
 ## Value
 

@@ -1,5 +1,101 @@
 # Changelog
 
+## frmtmb 0.41.0
+
+The tmbstan wrong-density defense, both argument dialects on the draws
+surface, and the pkgcheck container as a local pre-push gate.
+
+### The tmbstan defense
+
+- [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  and
+  [`as_tmbstan()`](https://aforren1.github.io/frmtmb/reference/as_tmbstan.md)
+  refuse, before any sampling, a tmbstan installation that silently
+  samples the wrong density. tmbstan’s install-time generator patches
+  only the first `std_normal_lpdf` placeholder in the stanc output;
+  stanc 2.39.0 (shipped by StanHeaders 2.39.1, on CRAN 2026-09-02) emits
+  two log-density overloads, and HMC reads the unpatched one, so every
+  chain samples a standard normal instead of the model, likelihood and
+  priors alike. The check is one cached read of the installed
+  `model.hpp`, and the refusal names the defect and the remedies (a
+  prebuilt tmbstan binary, or a rebuild against StanHeaders 2.32.10).
+  Affected in the wild: Linux CRAN installs of tmbstan built against
+  StanHeaders 2.39, and source installs elsewhere; prebuilt binaries are
+  safe. `dev/prior-dropping-investigation.md` carries the proof and the
+  upstream issue text.
+- Three CI cycles of chain-agreement failures in pkgcheck’s container
+  were this bug, not chain luck: the container reproduces them
+  deterministically, and a one-line patch to tmbstan’s generator makes
+  it reproduce this machine to every printed digit. The gates rationale
+  in the test helpers is corrected accordingly; the ungated correctness
+  assertions are what caught it.
+
+### Both dialects on the draws surface
+
+- [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+  [`posterior_linpred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+  [`predictive_interval()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md),
+  [`predictive_error()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
+  and
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  gain brms’s `re_formula` alongside the `re.form` they have shipped
+  with. Either spelling alone is the setting, both together is refused
+  naming the pair as one setting, and every default is unchanged. brms’s
+  own `posterior_epred.brmsfit()` carries the same two spellings. One
+  consequence for positional calls: `re.form` now sits one position
+  later, so a value landing there by position meets the both-set refusal
+  loudly rather than silently changing meaning.
+- The random-effect switch now takes effect IN-SAMPLE for
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+  [`predictive_interval()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md),
+  [`predictive_error()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
+  and
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  on draws: it used to be consulted only under `newdata`, so
+  `re_formula = NA` on training rows silently kept every random effect.
+  A structured family (hmm, group-level mixtures, residual correlation)
+  refuses the switch by name, since the structured draw is the
+  group-level content it would remove.
+- [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  on draws previously accepted neither spelling and leaked `re.form`
+  into bayesplot as an unknown argument.
+- [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
+  takes brms’s `rescor`; `rescor_value` stays as an alias. New
+  `dev/brms-api-diff.md`: the formals of all 92 exports shared with brms
+  2.23.0, diffed and triaged.
+
+### The pkgcheck container, locally
+
+- `dev/run-pkgcheck-docker.sh` and `dev/pkgcheck-docker.md` run
+  rOpenSci’s pkgcheck-action container against the source tree on
+  Windows docker, mirroring CI line for line, with a gates on/off switch
+  for the sampler-agreement tests and a token-scrubbed dependency cache.
+  This is the pre-push gate, and it is the instrument that found the
+  tmbstan defect.
+
+## frmtmb 0.40.1
+
+- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  gains `re_formula`, in brms’s spelling and with brms’s default: `NA`
+  draws the population-level curve, `NULL` conditions on the grid’s
+  reference group levels (pick them with `conditions =`), and a
+  one-sided formula keeps the named terms, on the fit method and the
+  draws method alike. Previously the setting was hard-coded internally,
+  so the lme4 spelling `re.form` died with a
+  matched-by-multiple-arguments error on a fit and both spellings
+  vanished silently into the dots on draws. A user who reaches for
+  `re.form` here is now told which spelling this function takes:
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  is brms’s function and speaks brms, while the fit surface’s
+  [`predict()`](https://rdrr.io/r/stats/predict.html) and
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) keep lme4’s
+  `re.form`. `band = "profile"` exists only for the population-level
+  curve and says so.
+- The message-uniqueness test failed open on one CI layout that offered
+  an existing-but-empty `../../R`; it now requires positive
+  identification of the package source tree and skips otherwise.
+
 ## frmtmb 0.40.0
 
 Input validation across the export surface after an rOpenSci autotest

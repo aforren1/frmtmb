@@ -122,6 +122,29 @@ test_that("re_formula and re.form give identical pp_check() output", {
   set.seed(8)
   d2 <- pp_check(cs$ds, ndraws = 5, re.form = NA)
   expect_equal(d1$data, d2$data)
+
+  # non-vacuity: the switch takes effect IN-SAMPLE (review finding: it
+  # used to be consulted only under newdata), so NA must differ from
+  # the default NULL wherever the model has random effects, under the
+  # same RNG seed
+  set.seed(9)
+  dNA <- posterior_predict(cs$ds, ndraws = 5, re_formula = NA)
+  set.seed(9)
+  dNU <- posterior_predict(cs$ds, ndraws = 5)
+  expect_false(isTRUE(all.equal(dNA, dNU)))
+  set.seed(9)
+  dNA2 <- posterior_predict(cs$ds, ndraws = 5, re.form = NA)
+  expect_equal(dNA, dNA2)
+  set.seed(9)
+  eNA <- predictive_error(cs$ds, ndraws = 5, re_formula = NA)
+  set.seed(9)
+  eNU <- predictive_error(cs$ds, ndraws = 5)
+  expect_false(isTRUE(all.equal(eNA, eNU)))
+  set.seed(9)
+  pNA <- pp_check(cs$ds, ndraws = 5, re_formula = NA)
+  set.seed(9)
+  pNU <- pp_check(cs$ds, ndraws = 5)
+  expect_false(isTRUE(all.equal(pNA$data, pNU$data)))
 })
 
 # ---- defaults, unchanged ---------------------------------------------

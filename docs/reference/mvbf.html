@@ -15,7 +15,7 @@ correlation across responses uses the brms |ID| syntax, e.g.
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.40.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.41.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,7 @@ correlation across responses uses the brms <code>|ID|</code> syntax, e.g.
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">mvbf</span><span class="op">(</span><span class="va">...</span>, rescor <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">set_rescor</span><span class="op">(</span>rescor_value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">set_rescor</span><span class="op">(</span>rescor <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>, rescor_value <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -83,12 +83,18 @@ correlation across responses uses the brms <code>|ID|</code> syntax, e.g.
 
 <dt id="arg-rescor">rescor<a class="anchor" aria-label="anchor" href="#arg-rescor"></a></dt>
 <dd><p>Model residual correlation between the responses
-(gaussian only).</p></dd>
+(gaussian only). <code>mvbf()</code> defaults to <code>FALSE</code>, <code>set_rescor()</code> to
+<code>TRUE</code>. It is brms's spelling on both, and brms's default on
+<code>set_rescor()</code>; brms's <code>mvbf()</code> defaults to <code>NULL</code> and decides
+later, which frmtmb settles at formula-assembly time instead.</p></dd>
 
 
 <dt id="arg-rescor-value">rescor_value<a class="anchor" aria-label="anchor" href="#arg-rescor-value"></a></dt>
-<dd><p>For <code>set_rescor()</code>: turn residual correlation on
-or off.</p></dd>
+<dd><p>The spelling <code>set_rescor()</code> shipped with, still
+accepted as an alias of <code>rescor</code>. It existed only because this Rd
+page documents two functions and could not carry two <code>rescor</code>
+entries; brms spells the argument <code>rescor</code>, and so does this
+function now. Give one spelling or the other, not both.</p></dd>
 
 </dl></div>
     <div class="section level2">

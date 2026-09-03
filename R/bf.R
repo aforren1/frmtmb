@@ -459,7 +459,8 @@ set_rescor <- function(rescor = arg_unset(),
   # the function acts on when neither is given is still TRUE
   rescor <- dual_arg(rescor, rescor_value, "rescor", "rescor_value",
                      "set_rescor()", default = TRUE)
-  check_flag(rescor, "rescor")
+  check_flag(rescor, "rescor",
+             what = "(`rescor_value` is the same setting under its old name)")
   structure(list(rescor = isTRUE(rescor)), class = "frmtmb_rescor")
 }
 

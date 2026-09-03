@@ -37,7 +37,8 @@ predictive_interval(
   prob = 0.9,
   newdata = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
   ndraws = NULL,
   ...
 )
@@ -45,7 +46,14 @@ predictive_interval(
 predictive_error(object, ...)
 
 # S3 method for class 'frmtmb_draws'
-predictive_error(object, resp = NULL, re.form = NULL, ndraws = NULL, ...)
+predictive_error(
+  object,
+  resp = NULL,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
+  ndraws = NULL,
+  ...
+)
 ```
 
 ## Arguments
@@ -75,7 +83,16 @@ predictive_error(object, resp = NULL, re.form = NULL, ndraws = NULL, ...)
   Central interval width for `posterior_interval()` and
   `predictive_interval()`.
 
-- ndraws, newdata, re.form, resp:
+- re_formula, re.form:
+
+  Passed to
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+  which takes brms's `re_formula` and accepts lme4's `re.form` as an
+  alias of it. Pass one or the other; see the *Argument spellings*
+  section of
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md).
+
+- ndraws, newdata, resp:
 
   Passed to
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md).
