@@ -1308,3 +1308,57 @@ just reviewed end to end; each is an edge case with a safe default):
 3. The cs marginal map with eta < 1 evaluates (eta - 1) * log(0) at
    logistic saturation (|t| >= ~745) and returns NaN on the tape;
    unreachable in normal sampling, but a clamp would close it.
+
+## The classic TMB examples (audit 2026-09-03, branch wt-tmbex)
+
+`dev/tmb-examples-audit.md` audits all 35 examples in the `tmb_examples`
+directories of `kaskr/RTMB` (19 R ports) and `kaskr/adcomp` (16 with no
+port), with a verdict and a log-likelihood agreement number for each.
+`tests/testthat/test-tmb-examples.R` is the regression form of every row
+that replicates. Counts: 13 REPLICATES, 3 AWKWARD, 19 out of scope, of
+which 3 are TMB API demonstrations and 3 are OpenMP parallel builds.
+
+The audit's ranked roadmap is in that file. The headline is that the
+atomic-function classes in the original scoping are mostly not what
+stands between frmtmb and these examples. The four items that matter most
+are, in order:
+
+1. **A sparse AR(1) covariance structure.** `ar1()` builds a dense
+   `d x d` covariance and factorizes it on the tape, which is cubic in
+   the block dimension: 7.25 s at d = 800 against 0.09 s for
+   `RTMB::dautoreg`. That is the whole blocker for `sdv_multi` and
+   `sdv_multi_compact`, whose grammar mapping is otherwise exact
+   (agreement 2.23e-10 at a shortened series), and it caps `transform`
+   and `transform2` at a fifth of their published length. The pattern to
+   copy is in the same file: `covstruct_registry$spde` already assembles
+   a parameter-dependent sparse precision and evaluates it with
+   `RTMB::dgmrf`. Four examples, no new machinery.
+2. **A latent state-space term in the grammar** (`mvrw`, `mvrw_sparse`,
+   `sde_linear`, and the only route to `thetalog` and
+   `rickervalidation`). The Kalman prototype in
+   `dev/tmbex-kalman-prototype.R` settles the numerics half: Laplace and
+   an exact Kalman filter agree to 1e-13 on `mvrw` at every parameter
+   value, and the two routes run at the same order (both linear; the
+   constant between them was host-dependent within about a factor of
+   two across two machines). So no Kalman node is needed; what is
+   missing is a way to write a latent random walk in a formula.
+   `ar1(rho -> 1)` is not it, because an AR(1) block is stationary.
+3. **A unit-variance switch on the spatial and correlation structures.**
+   Three examples (`matern`, `transform`, `transform2`) need the same
+   `lower = upper = c(theta_1 = 0)` pin, because frmtmb's blocks carry a
+   free marginal sd where the reference fixes it at 1. A `nugget = FALSE`
+   or `unit = TRUE` argument would spell it once.
+4. **`expm`**, the highest-ranked genuine atomic node. It unlocks `hmm`,
+   and it is the same node the pharmacometrics tier above wants for
+   linear compartment models.
+
+Two smaller findings from the audit that belong in user-facing docs:
+
+* An `nl` formula body resolves functions lexically, so a bare
+  `pnorm()`/`qgamma()` inside one finds the `stats` version and fails
+  with a message that points at the formula rather than at the search
+  path. `RTMB::pnorm()` works whether or not RTMB is attached, and gives
+  the identical fit.
+* `Vectorize()` over advectors loses the class unless RTMB is attached;
+  `do.call("c", lapply(...))` does not. Same family as the known
+  `matrix()` masking trap.
