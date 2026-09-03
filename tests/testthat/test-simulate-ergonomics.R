@@ -99,7 +99,7 @@ test_that("prior draws simulate a prior-predictive sample", {
     set_prior("exponential(1)", class = "sd") +
     set_prior("normal(0, 1)", class = "Intercept", dpar = "sigma")
 
-  pp <- frm_simulate(form, dd, priors = pl, nsim = 20, seed = 11)
+  pp <- frm_simulate(form, dd, prior = pl, nsim = 20, seed = 11)
   pars <- attr(pp, "pars")
   expect_s3_class(pars, "data.frame")
   expect_equal(nrow(pars), 20L)
@@ -117,7 +117,7 @@ test_that("prior draws simulate a prior-predictive sample", {
     set_prior("normal(0.7, 1e-9)", class = "sd") +
     set_prior(paste0("normal(", log(0.6), ", 1e-9)"), class = "Intercept",
               dpar = "sigma")
-  a <- frm_simulate(form, dd, priors = tight, nsim = 8, seed = 42)
+  a <- frm_simulate(form, dd, prior = tight, nsim = 8, seed = 42)
   b <- frm_simulate(form, dd, nsim = 8, seed = 42,
                     newparams = list(Intercept = 1, x = 0.5, sigma = 0.6,
                                      sd_g__Intercept = 0.7))
@@ -131,7 +131,7 @@ test_that("prior draws respect bounds and newparams fill the rest", {
   dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, 10)), y = 0)
   form <- bf(y ~ x + (1 | g)) + gaussian()
   pl <- set_prior("normal(0, 3)", class = "b", lb = 1, ub = 2)
-  pp <- frm_simulate(form, dd, priors = pl, nsim = 15, seed = 2,
+  pp <- frm_simulate(form, dd, prior = pl, nsim = 15, seed = 2,
                      newparams = list(Intercept = 0, x = 0, sigma = 1,
                                       sd_g__Intercept = 0.5))
   drawn <- attr(pp, "pars")$x
@@ -141,7 +141,7 @@ test_that("prior draws respect bounds and newparams fill the rest", {
   # an unreachable bound reports itself rather than spinning
   expect_error(
     frm_simulate(form, dd, nsim = 1, seed = 1,
-                 priors = set_prior("normal(0, 0.01)", class = "b",
+                 prior = set_prior("normal(0, 0.01)", class = "b",
                                     lb = 100),
                  newparams = list(Intercept = 0, x = 0, sigma = 1,
                                   sd_g__Intercept = 0.5)),

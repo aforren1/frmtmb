@@ -1,4 +1,4 @@
-# MAP / regularized ML via frm(priors=).
+# MAP / regularized ML via frm(prior=).
 
 test_that("MAP priors shrink estimates and penalize the objective", {
   set.seed(501)
@@ -7,7 +7,7 @@ test_that("MAP priors shrink estimates and penalize the objective", {
 
   ml <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   map <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
-             priors = set_prior("normal(0, 0.1)", class = "b"))
+             prior = set_prior("normal(0, 0.1)", class = "b"))
 
   # slope shrunk toward zero, ML untouched
   expect_lt(abs(fixef(map)$mu[["x"]]), abs(fixef(ml)$mu[["x"]]))
@@ -19,7 +19,7 @@ test_that("MAP priors shrink estimates and penalize the objective", {
 
   # near-flat priors reproduce ML
   map2 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
-              priors = set_prior("normal(0, 1000)", class = "b"))
+              prior = set_prior("normal(0, 1000)", class = "b"))
   expect_vector_equal(fixef(map2)$mu, fixef(ml)$mu, tol = 1e-3)
 })
 
@@ -33,7 +33,7 @@ test_that("an sd prior regularizes a singular variance component", {
 
   map <- suppressWarnings(
     frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
-        priors = set_prior("exponential(2)", class = "sd"))
+        prior = set_prior("exponential(2)", class = "sd"))
   )
   sd_map <- sqrt(VarCorr(map)[[1]][1, 1])
   # regularized away from the boundary, and finite standard errors
@@ -49,7 +49,7 @@ test_that("a MAP fit's priors carry into frm_sample by default", {
   dd <- data.frame(x = rnorm(100))
   dd$y <- rnorm(100, 1 + 0.5 * dd$x, 1)
   map <- frm(bf(y ~ x) + gaussian(), data = dd,
-             priors = set_prior("normal(0, 0.05)", class = "b",
+             prior = set_prior("normal(0, 0.05)", class = "b",
                                 coef = "x"))
   ds <- suppressWarnings(frm_sample(map, chains = 1, iter = 500,
                                     refresh = 0, seed = 1))

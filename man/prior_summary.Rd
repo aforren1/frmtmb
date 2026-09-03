@@ -34,7 +34,7 @@ dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
 # what was actually applied, after set_prior() was matched to the
 # coefficients of this design
 fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
-           priors = set_prior("normal(0, 1)", class = "b") +
+           prior = set_prior("normal(0, 1)", class = "b") +
                     set_prior("exponential(1)", class = "sd"))
 prior_summary(fit)
 

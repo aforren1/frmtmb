@@ -61,7 +61,7 @@ frmtmb_compat_features_tbl <- function() {
     lapply(c("ar()", "ma()", "arma()", "cosy()", "unstr()"), f,
            kind = "autocor"),
     lapply(c("REML", "quadrature", "profile", "autoscale", "sparse_x",
-             "priors", "bounds", "verbose"), f, kind = "mode"),
+             "prior", "bounds", "verbose"), f, kind = "mode"),
     lapply(c("mvbf", "rescor", "|ID|", "nl", "mixture",
              "mixture_mvn", "hmm", "lca"), f, kind = "structure"),
     lapply(c("fitted", "predict", "simulate", "residuals",
@@ -264,7 +264,7 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: profile = TRUE and REML both remove the fixed effects from the outer problem.")
   r("REML", "bounds", "refused",
     "Refused: under REML the fixed effects leave the outer parameter vector, so bounds naming them are rejected as unknown parameters.")
-  r("REML", "priors", "conditional",
+  r("REML", "prior", "conditional",
     "Priors on fixed effects are accepted under REML while bounds on the same parameters are refused. The two surfaces are inconsistent. Priors on variance parameters behave as expected.")
   r("REML", "hypothesis_profile", "refused",
     "Refused: profile likelihood tests need an ML fit.")
@@ -312,7 +312,7 @@ frmtmb_compat_rules_tbl <- function() {
   r("quadrature", "weights()", "works", "Verified by a tiny fit.")
   r("quadrature", "se()", "works", "Verified by a tiny fit.")
   r("quadrature", "bounds", "works", "Verified by a tiny fit.")
-  r("quadrature", "priors", "works", "Verified by a tiny fit.")
+  r("quadrature", "prior", "works", "Verified by a tiny fit.")
   r("quadrature", "mo()", "untested", "")
   r("quadrature", "nl", "works",
     "Verified by a tiny fit, with the random effect on one nonlinear parameter.")
@@ -333,7 +333,7 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: profile and uniroot confidence intervals cannot address the profiled-out fixed effects. The error names the remaining parameters.")
   r("profile", "hypothesis_profile", "refused",
     "Refused: profile likelihood hypothesis tests need a fit without frmtmb_control(profile = TRUE).")
-  r("profile", "priors", "conditional",
+  r("profile", "prior", "conditional",
     "Priors on the profiled fixed effects are accepted, while bounds on the same parameters are refused. Treat priors under profile with care.")
   r("profile", "mixture", "refused",
     "Refused: profiling moves the fixed effects into the inner Laplace problem, and a mixture likelihood is multimodal in them. The fit used to stop with 'NA/NaN gradient evaluation' rather than a clear refusal.")
@@ -351,10 +351,10 @@ frmtmb_compat_rules_tbl <- function() {
     "Profiling touches the fixed effects only, but the covariance blocks are not separately exercised.")
 
   ## bounds and priors -------------------------------------------------
-  r("bounds", "priors", "works",
+  r("bounds", "prior", "works",
     "set_prior() carries bounds of its own; the lower and upper arguments set them directly.")
   r("bounds", "kind:aterm", "untested", "")
-  r("priors", "kind:aterm", "untested", "")
+  r("prior", "kind:aterm", "untested", "")
 
   ## cens() and trunc() ------------------------------------------------
   r("cens()", "kind:family", "refused",
@@ -613,7 +613,7 @@ frmtmb_compat_rules_tbl <- function() {
     "Verified by a short run. The posterior is multimodal in the state labels, as a mixture's is.")
   r("hmm", "confint_profile", "untested", "")
   r("hmm", "hypothesis_profile", "untested", "")
-  r("hmm", "priors", "works",
+  r("hmm", "prior", "works",
     "set_prior() on an emission or transition logit is the remedy for a probability driven to the 0 boundary by a rare category.")
   r("hmm", "bounds", "untested", "")
   r("hmm", "autoscale", "untested", "")
@@ -669,14 +669,14 @@ frmtmb_compat_rules_tbl <- function() {
   r("lca", "confint_profile", "works",
     "Verified: profile intervals on a gating coefficient run.")
   r("lca", "emmeans", "untested", "")
-  r("lca", "priors", "works",
+  r("lca", "prior", "works",
     "Verified by a tiny fit: a prior on the gating coefficients is an ordinary penalty on the outer problem.")
   r("lca", "bounds", "works",
     "Verified by a tiny fit. Bounds on the gating coefficients are also the one way to order the classes and pin the labeling.")
   r("lca", "sparse_x", "works",
     "Verified by a tiny fit: the gating design is an ordinary fixed-effect design.")
   r("lca", "kind:mode", "untested",
-    "See the REML, profile, quadrature, priors, bounds and sparse_x rules; autoscale and verbose are untested.")
+    "See the REML, profile, quadrature, prior, bounds and sparse_x rules; autoscale and verbose are untested.")
 
   ## specials ------------------------------------------------------------------
   r("mo()", "kind:family", "conditional",
@@ -867,7 +867,7 @@ frmtmb_compat_rules_tbl <- function() {
   r("group:autocor", "autoscale", "works", "Verified by a tiny fit.")
   r("group:autocor", "bounds", "works",
     "The parameters are the thetaac_* rows of the outer vector and can be bounded by that name.")
-  r("group:autocor", "priors", "conditional",
+  r("group:autocor", "prior", "conditional",
     "Priors on the fixed effects and on random-effect covariance parameters work as usual. set_prior() cannot target the residual-correlation parameters themselves yet; bounds on thetaac_* are the available lever.")
   r("group:autocor", "kind:covstruct", "works",
     "Random effects alongside a correlated residual are the point of the feature: the marginal likelihood is a Laplace approximation over the modes with the multivariate residual density inside. Verified against nlme::lme(random = ~ 1 | subj, correlation = corAR1()) under ML and REML.")

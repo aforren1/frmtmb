@@ -421,9 +421,17 @@ frmtmb reimplements a documented subset of the brms grammar with identical
 spelling: `bf()`, `lf()`, `nlf()`, `mvbf()`, `set_rescor()`, dpar formulas,
 `nl = TRUE`, aterm names (`weights`, `trials`, `cens`, `trunc`, `se`,
 `rate`), RE specials (`gr`, `mm`), and `s()`/`t2()`. Unsupported brms terms
-fail at parse time with a clear message naming the term. brms code with
-priors removed should port mechanically. Attaching brms alongside frmtmb
-masks `bf()`; ordinary R masking rules apply.
+fail at parse time with a clear message naming the term. brms code ports
+mechanically, priors included: `frm()`, `frm_sample()` and
+`frm_simulate()` spell the argument `prior`, as brms does; `prior()`,
+`prior_()` and `prior_string()` build the specification `set_prior()`
+does, and a prior object brms itself built is translated row by row. A
+prior is a PENALTY here, so the fit is MAP, not a posterior. A brms
+prior class
+with no faithful frmtmb spelling is refused by name rather than turned
+into a different density. Attaching brms alongside frmtmb masks `bf()`
+and `prior()`; ordinary R masking rules apply, and the translation is
+what makes the masked case work anyway.
 
 ## 6. Milestones
 

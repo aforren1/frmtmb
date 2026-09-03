@@ -8,8 +8,10 @@ set_prior(
   prior = "",
   class = "b",
   coef = "",
-  dpar = "",
   group = "",
+  resp = "",
+  dpar = "",
+  nlpar = "",
   lb = NA,
   ub = NA
 )
@@ -23,10 +25,15 @@ bounds only.}
 
 \item{coef}{Restrict to one coefficient (classes \code{"b"}/\code{"Intercept"}).}
 
+\item{group}{Restrict class \code{"sd"} or \code{"cor"} to one grouping factor.}
+
+\item{resp}{Response of a multivariate model.}
+
 \item{dpar}{Distributional parameter (default: the location
 parameters).}
 
-\item{group}{Restrict class \code{"sd"} or \code{"cor"} to one grouping factor.}
+\item{nlpar}{Nonlinear parameter of an \code{nl = TRUE} formula. See
+Nonlinear parameters.}
 
 \item{lb, ub}{Optional hard bounds.}
 }
@@ -91,6 +98,39 @@ its parameterization is not positive definite everywhere, so it has
 no correlation matrix to put a density on.
 }
 
+\section{Nonlinear parameters}{
+
+\code{nlpar} addresses one parameter of an \code{nl = TRUE} formula, brms's
+spelling: \code{set_prior("normal(5000, 1000)", nlpar = "ult")}, or
+\code{prior(normal(5000, 1000), nlpar = "ult")}. Class \code{"b"} there covers
+EVERY coefficient of that parameter, its intercept included, because
+a nonlinear parameter's sub-formula is not centered and brms holds
+its intercept in the same coefficient vector as its slopes. That is
+why the vignette spelling above lands on \code{ult_(Intercept)} rather
+than on nothing. Narrow to one column with \code{coef} (\code{"Intercept"} and
+\code{"(Intercept)"} both name the intercept), or write
+\verb{class = "Intercept", nlpar = "ult"}, which is frmtmb's spelling of
+the same slot. \code{nlpar} narrows classes \code{"sd"} and \code{"cor"} to the
+random-effect blocks of that parameter as well.
+
+An identification prior does NOT stand in for \code{\link[=frm]{frm()}}'s \code{start}.
+brms places its sampler with the priors; \code{frm()} optimizes, and it
+evaluates the objective at the starting values before any penalty
+can steer it, which for a nonlinear body usually means an undefined
+likelihood at zero. The prior means read across as starting values,
+and the refusal names \code{start} when they are missing.
+
+\code{resp} picks one response of a multivariate model; the default
+priors of \code{\link[=frm_sample]{frm_sample()}} still stay off there (see its Default
+priors section), so a multivariate model's priors are the ones
+written by hand.
+
+brms's \code{tag} and \code{check} have no counterpart: \code{tag} names a prior
+for reuse inside a Stan program, and \code{check} passes an unchecked
+string through to one. frmtmb compiles no Stan program, so both are
+omitted rather than accepted and ignored.
+}
+
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(100), z = rnorm(100),
@@ -105,7 +145,7 @@ pr <- set_prior("normal(0, 1)", class = "b") +
 pr
 
 # the priors penalize the likelihood: the fit is a MAP estimate
-fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, priors = pr)
+fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, prior = pr)
 fixef(fit)$mu
 # the tight prior on z shrinks it toward zero
 fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
@@ -118,9 +158,13 @@ set_prior("", class = "b", coef = "x", lb = 0)
 dd$z <- rnorm(100)
 dd$y2 <- dd$y + rnorm(10, 0, 0.6)[dd$g] * dd$z
 fitc <- frm(bf(y2 ~ x + z + (z | g)) + gaussian(), data = dd,
-            priors = set_prior("lkj(4)", class = "cor"))
+            prior = set_prior("lkj(4)", class = "cor"))
 VarCorr(fitc)
 
 # get_prior() shows which rows a design offers
 get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
+
+# prior() quotes its first argument, brms's spelling, and reaches
+# the same machinery
+prior(normal(0, 1), class = "b")
 }

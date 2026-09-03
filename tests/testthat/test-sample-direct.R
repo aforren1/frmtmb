@@ -66,10 +66,10 @@ test_that("the formula route samples the same posterior as the fit route", {
   fit <- frm(form, data = dd)
   ds_fit <- suppressWarnings(
     frm_sample(fit, chains = 1, iter = 1000, refresh = 0, seed = 3))
-  # priors = "flat" so both runs sample the SAME density: the fit route
+  # prior = "flat" so both runs sample the SAME density: the fit route
   # is a likelihood diagnostic and never sets a default prior
   ds_form <- suppressWarnings(suppressMessages(
-    frm_sample(form, data = dd, priors = "flat", chains = 1, iter = 1000,
+    frm_sample(form, data = dd, prior = "flat", chains = 1, iter = 1000,
                refresh = 0, seed = 3)))
 
   a <- summary(ds_fit)[, "mean"]
@@ -298,7 +298,7 @@ test_that("the formula route discloses its defaults and reproduces them", {
                      refresh = 0, seed = 1)))
   m <- paste(msg, collapse = "")
   expect_match(m, "default priors")
-  expect_match(m, "priors = \"flat\"", fixed = TRUE)
+  expect_match(m, "prior = \"flat\"", fixed = TRUE)
   # one compact line per class
   expect_match(m, "\n  Intercept  ")
   expect_match(m, "\n  sd  ")
@@ -342,7 +342,7 @@ test_that("an ordinal formula-route call announces its threshold gap", {
   expect_gt(sum(grepl("^tau_raw", colnames(ds$draws))), 0L)
 })
 
-test_that("priors = 'flat' opts out and warns about propriety", {
+test_that("prior = 'flat' opts out and warns about propriety", {
   skip_if_not_installed("tmbstan")
   skip_if_not_installed("rstan")
   withr::local_options(mc.cores = 1)
@@ -351,7 +351,7 @@ test_that("priors = 'flat' opts out and warns about propriety", {
 
   w <- NULL
   msg <- capture_messages(suppressWarnings(withCallingHandlers(
-    ds <- frm_sample(form, data = dd, priors = "flat", chains = 1,
+    ds <- frm_sample(form, data = dd, prior = "flat", chains = 1,
                      iter = 400, refresh = 0, seed = 1),
     warning = function(x) w <<- c(w, conditionMessage(x)))))
   expect_length(grep("default priors", msg), 0L)
@@ -369,15 +369,15 @@ test_that("priors = 'flat' opts out and warns about propriety", {
   # a model with no variance component has nothing improper to warn about
   w2 <- NULL
   suppressWarnings(suppressMessages(withCallingHandlers(
-    frm_sample(bf(y ~ x) + gaussian(), data = dd, priors = "flat",
+    frm_sample(bf(y ~ x) + gaussian(), data = dd, prior = "flat",
                chains = 1, iter = 200, refresh = 0, seed = 1),
     warning = function(x) w2 <<- c(w2, conditionMessage(x)))))
   expect_length(grep("flat", w2), 0L)
 
   expect_error(frm_sample(bf(y ~ x) + gaussian(), data = dd,
-                          priors = "weak"),
+                          prior = "weak"),
                "the string .flat.")
-  expect_error(frm_sample(fit, priors = "flat"),
+  expect_error(frm_sample(fit, prior = "flat"),
                "already samples the likelihood")
 })
 
@@ -390,7 +390,7 @@ test_that("user priors override the defaults per class", {
 
   ds <- suppressWarnings(suppressMessages(
     frm_sample(form, data = dd,
-               priors = set_prior("exponential(1)", class = "sd"),
+               prior = set_prior("exponential(1)", class = "sd"),
                chains = 1, iter = 400, refresh = 0, seed = 2)))
   pl <- unclass(prior_summary(ds))
   kinds <- vapply(pl, function(s) paste0(s$class, ":", s$dist$kind), "")
@@ -402,7 +402,7 @@ test_that("user priors override the defaults per class", {
   # the legacy named-list spelling takes over the internal parameters it
   # names and leaves the remaining defaults in place
   ds2 <- suppressWarnings(suppressMessages(
-    frm_sample(form, data = dd, priors = list(theta = prior_normal(0, 1)),
+    frm_sample(form, data = dd, prior = list(theta = prior_normal(0, 1)),
                chains = 1, iter = 400, refresh = 0, seed = 2)))
   pl2 <- prior_summary(ds2)
   expect_equal(names(attr(pl2, "overrides")), "theta")
@@ -422,7 +422,7 @@ test_that("defaults tame a variance component flat priors cannot", {
   form <- bf(y ~ 1 + (1 | g)) + gaussian()
 
   flat <- suppressWarnings(suppressMessages(
-    frm_sample(form, data = dd, priors = "flat", chains = 1, iter = 1200,
+    frm_sample(form, data = dd, prior = "flat", chains = 1, iter = 1200,
                refresh = 0, seed = 4)))
   def <- suppressWarnings(suppressMessages(
     frm_sample(form, data = dd, chains = 1, iter = 1200, refresh = 0,

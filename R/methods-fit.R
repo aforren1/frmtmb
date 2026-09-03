@@ -51,7 +51,7 @@ print.frmtmb_fit <- function(x, ...) {
                    collapse = ", ")
   cat("Family:", fam_str, "  Method:",
       paste0(if (x$REML) "REML" else "ML",
-             if (!is.null(x$priors)) " (MAP)"), "\n")
+             if (!is.null(x$prior)) " (MAP)"), "\n")
   ll <- logLik(x)
   cat("logLik:", format(as.numeric(ll), digits = 6),
       " AIC:", format(stats::AIC(x), digits = 6),

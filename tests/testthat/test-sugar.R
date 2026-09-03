@@ -71,7 +71,7 @@ test_that("prior_summary returns the fit priors", {
   f0 <- frm(bf(y ~ x) + gaussian(), data = dd)
   expect_output(expect_null(prior_summary(f0)), "No priors")
   pr <- set_prior("normal(0, 1)", class = "b")
-  f1 <- frm(bf(y ~ x) + gaussian(), data = dd, priors = pr)
+  f1 <- frm(bf(y ~ x) + gaussian(), data = dd, prior = pr)
   expect_s3_class(prior_summary(f1), "frmtmb_priorlist")
 })
 

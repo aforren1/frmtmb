@@ -55,8 +55,12 @@ it does not select from a fixed set of likelihoods. Features that
 would each need a bespoke implementation become ordinary code paths,
 and they compose with each other.
 
-The second need is migration. brms code ports by removing the priors
-and changing `brm()` to `frm()`. A measured audit of the brms
+The second need is migration. brms code ports by changing `brm()` to
+`frm()`. The priors can stay where they are: `frm(prior = )` takes
+brms's own spelling, `prior()` builds the specification `set_prior()`
+does, and a prior object brms itself built is translated. The fit is
+then MAP, so a prior is a penalty on the likelihood rather than a
+posterior. A measured audit of the brms
 vignettes puts about 7 of 10 of their model calls through that
 transform unchanged. A user can therefore screen models at
 millisecond speed, then return to brms for the final Bayesian fit
@@ -212,8 +216,9 @@ three layers:
 ## Estimation and inference
 
 - Estimation is ML or REML. `quadrature = TRUE` uses adaptive
-  quadrature for scalar random effects. `set_prior()` gives MAP
-  estimation with the brms spelling. Hard bounds and pluggable
+  quadrature for scalar random effects. `set_prior()` and `prior()`
+  give MAP estimation with the brms spelling, `nlpar =` and `resp =`
+  included. Hard bounds and pluggable
   optimizers are available. `frmtmb_control()` offers
   `profile = TRUE` for many-coefficient models, `sparse_x = TRUE`
   for many-level fixed factors, `autoscale = TRUE` for badly scaled

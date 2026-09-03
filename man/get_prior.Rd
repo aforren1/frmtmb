@@ -20,7 +20,7 @@ fit).}
 }
 \value{
 A data frame with columns \code{prior}, \code{class}, \code{coef},
-\code{group}, \code{dpar}, \code{resp}, \code{lb}, \code{ub}.
+\code{group}, \code{dpar}, \code{nlpar}, \code{resp}, \code{lb}, \code{ub}.
 }
 \description{
 The \code{\link[=set_prior]{set_prior()}} counterpart of brms's \code{get_prior()}: one row per
@@ -29,9 +29,15 @@ pass to \code{set_prior()}. The default in every slot is flat (this is
 maximum likelihood until priors are set; the formula route of
 \code{\link[=frm_sample]{frm_sample()}} has its own brms defaults, which
 \code{prior_summary()} reports). Classes \code{"sd"} and \code{"cor"} are targeted
-by \code{group} only; class \code{"theta"} rows name the raw internal
+by \code{group} and \code{nlpar}; class \code{"theta"} rows name the raw internal
 covariance parameters (escape hatch, including correlations one at a
 time).
+}
+\details{
+A nonlinear parameter's coefficients are listed under class \code{"b"}
+with its name in the \code{nlpar} column, the intercept among them, which
+is how brms lists them and what \code{\link[=set_prior]{set_prior()}} addresses (see its
+Nonlinear parameters section).
 }
 \examples{
 dd <- data.frame(y = rnorm(60), x = rnorm(60),

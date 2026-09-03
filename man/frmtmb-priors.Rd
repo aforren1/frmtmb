@@ -45,7 +45,7 @@ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 # names are parameter names as in the draws, or whole components.
 # theta_1 is a log-SD, so a normal there is a lognormal on the SD.
 ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0,
-                 priors = list(beta = prior_normal(0, 5),
+                 prior = list(beta = prior_normal(0, 5),
                                theta_1 = prior_t(3, 0, 1)))
 summary(ds)
 }

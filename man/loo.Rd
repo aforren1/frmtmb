@@ -90,7 +90,7 @@ Pareto k warnings there for models with many group-level parameters,
 because a flat prior leaves those to be identified by the data alone,
 and an influential observation then moves them a long way. For model
 comparison, sample with priors: \code{frm_sample(formula, data)} applies
-brms's default priors, and \verb{priors =} sets your own. The
+brms's default priors, and \verb{prior =} sets your own. The
 maximum-likelihood answer to the same question is \code{AIC()} on the
 fits, or \code{\link[=frm_bootstrap]{frm_bootstrap()}}.
 }

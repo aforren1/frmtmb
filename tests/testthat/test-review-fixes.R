@@ -68,7 +68,7 @@ test_that("confint() works on mi() fits (miss is inner, not outer)", {
   expect_identical(rownames(Vf), nm)
 })
 
-test_that("frm_sample(priors=) works on a fixed-effects-only GLM", {
+test_that("frm_sample(prior=) works on a fixed-effects-only GLM", {
   skip_if_not_installed("tmbstan")
   skip_if_not_installed("rstan")
   set.seed(404)
@@ -80,7 +80,7 @@ test_that("frm_sample(priors=) works on a fixed-effects-only GLM", {
   # short-chain R-hat/ESS warnings are not what this test checks
   ds <- suppressWarnings(
     frm_sample(fit, chains = 1, iter = 800, refresh = 0,
-               priors = list(beta = prior_normal(0, 5))))
+               prior = list(beta = prior_normal(0, 5))))
   m <- as.matrix(ds)
   expect_true("x" %in% colnames(m))
   # judged against the chain's own spread: a seeded chain is not

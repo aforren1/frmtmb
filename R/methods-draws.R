@@ -138,7 +138,7 @@ VarCorr.frmtmb_draws <- function(x, ...) {
 #' @exportS3Method rstantools::prior_summary
 #' @export
 prior_summary.frmtmb_draws <- function(object, ...) {
-  pl <- object$fit$priors
+  pl <- object$fit$prior
   if (is.null(pl) || (!length(unclass(pl)) &&
                         !length(attr(pl, "overrides")))) {
     cat("No priors were used (flat improper priors on the outer ",

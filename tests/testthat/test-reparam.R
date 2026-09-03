@@ -389,7 +389,7 @@ test_that("a fit with flat priors stays centered, and a prior turns it on", {
 
   ds2 <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 23,
-               priors = list(theta_1 = prior_normal(0, 1)))))
+               prior = list(theta_1 = prior_normal(0, 1)))))
   expect_equal(ds2$reparam$blocks, 1L)
   expect_gt(max(abs(unname(ds2$draws) - unname(raw_stan_matrix(ds2)))),
             1e-6)
@@ -620,7 +620,7 @@ test_that("a prior on an sd applies identically under both routes", {
 
   ds <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 400, refresh = 0, seed = 5,
-               priors = pr)))
+               prior = pr)))
   expect_equal(ds$reparam$blocks, 1L)
   # the prior is doing its job on the sampled theta, non-centered or not
   tcol <- frmtmb:::draws_par_index(ds$fit)[["theta"]]
@@ -639,13 +639,13 @@ test_that("the formula route keeps its default priors under the new default", {
   expect_true(all(c("Intercept", "sd") %in% cls))
   expect_equal(ds$reparam$blocks, 1L)
 
-  # priors = "flat" opts out of the defaults, and with them out the
+  # prior = "flat" opts out of the defaults, and with them out the
   # gate closes: nothing left to make the sd tail integrable
   expect_message(
     ds2 <- suppressWarnings(
       frm_sample(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
                  chains = 1, iter = 300, refresh = 0, seed = 6,
-                 priors = "flat")),
+                 prior = "flat")),
     "flat prior")
   expect_null(ds2$reparam)
 })

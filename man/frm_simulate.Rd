@@ -9,7 +9,7 @@ frm_simulate(
   data,
   family = NULL,
   newparams = NULL,
-  priors = NULL,
+  prior = NULL,
   nsim = 1,
   seed = NULL,
   data2 = list()
@@ -25,10 +25,13 @@ column.}
 \item{family}{Family, when \code{formula} does not carry one.}
 
 \item{newparams}{Named list of parameters, in either spelling (see
-Details). Optional when \code{priors} pins everything.}
+Details). Optional when \code{prior} pins everything.}
 
-\item{priors}{A \code{\link[=set_prior]{set_prior()}} specification to draw parameters from,
-once per simulation.}
+\item{prior}{A \code{\link[=set_prior]{set_prior()}} specification to draw parameters from,
+once per simulation, or a \code{brmsprior} object brms built, which is
+translated row by row. The argument takes brms's spelling,
+\code{prior}; the \code{priors} of releases before 0.43 is gone rather than
+aliased.}
 
 \item{nsim, seed}{As in \code{\link[=simulate]{simulate()}}.}
 
@@ -36,13 +39,13 @@ once per simulation.}
 }
 \value{
 A data frame with \code{nsim} columns of simulated responses,
-carrying the drawn parameters in \code{attr(., "pars")} when \code{priors}
+carrying the drawn parameters in \code{attr(., "pars")} when \code{prior}
 is used.
 }
 \description{
 Builds the design from \code{formula} and \code{data} exactly as \code{\link[=frm]{frm()}}
 would, sets the parameters from \code{newparams} (and/or draws them from
-\code{priors}), and simulates responses. Random effects are redrawn from
+\code{prior}), and simulates responses. Random effects are redrawn from
 their covariance for every simulation unless \code{newparams$b} supplies
 them.
 }
@@ -100,7 +103,7 @@ spelling.
 
 \section{Prior-predictive simulation}{
 
-With \code{priors}, each of the \code{nsim} simulations draws a fresh
+With \code{prior}, each of the \code{nsim} simulations draws a fresh
 parameter vector from the \code{\link[=set_prior]{set_prior()}} specification and simulates
 from it - the analog of brms's \code{sample_prior = "only"} followed by
 \code{posterior_predict()}. Draws are taken on the scale each class
@@ -112,7 +115,7 @@ simulation, so a prior-predictive check can relate parameters to
 outcomes.
 
 Parameters without a prior keep their \code{newparams} value. Whenever
-\code{priors} are used, or \code{newparams} uses the natural spelling, every
+\code{prior} are used, or \code{newparams} uses the natural spelling, every
 fixed coefficient and every random-effect SD must be pinned by one
 or the other; an unpinned parameter is an error rather than a silent
 zero effect or unit SD.
@@ -137,7 +140,7 @@ sims2 <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
                       nsim = 3, seed = 1)
 # prior-predictive draws
 pp <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
-                   priors = set_prior("normal(0, 1)", class = "b") +
+                   prior = set_prior("normal(0, 1)", class = "b") +
                      set_prior("normal(0, 2)", class = "Intercept") +
                      set_prior("exponential(1)", class = "sd") +
                      set_prior("exponential(1)", class = "Intercept",

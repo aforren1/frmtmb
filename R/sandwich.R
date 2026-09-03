@@ -169,7 +169,7 @@ cluster_guard <- function(fit, cl) {
          "would not be exact. Refit with quadrature = FALSE (Laplace)",
          call. = FALSE)
   }
-  if (!is.null(fit$priors)) {
+  if (!is.null(fit$prior)) {
     stop("vcov_cluster() cannot use a fit made with priors: the ",
          "optimized objective is penalized, the penalty belongs to no ",
          "cluster, and the sandwich is not a covariance for a ",

@@ -158,7 +158,7 @@ ngrps.frmtmb_fit <- function(object, ...) {
 #' # what was actually applied, after set_prior() was matched to the
 #' # coefficients of this design
 #' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
-#'            priors = set_prior("normal(0, 1)", class = "b") +
+#'            prior = set_prior("normal(0, 1)", class = "b") +
 #'                     set_prior("exponential(1)", class = "sd"))
 #' prior_summary(fit)
 #'
@@ -171,11 +171,11 @@ prior_summary <- function(object, ...) UseMethod("prior_summary")
 #' @exportS3Method rstantools::prior_summary
 #' @export
 prior_summary.frmtmb_fit <- function(object, ...) {
-  if (is.null(object$priors)) {
+  if (is.null(object$prior)) {
     cat("No priors were set (plain maximum likelihood).\n")
     return(invisible(NULL))
   }
-  object$priors
+  object$prior
 }
 
 #' Refit a model to a new response
@@ -231,7 +231,7 @@ refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
                 REML = object$REML, start = start,
                 control = object$control %||% frmtmb_control(),
                 se = FALSE, lower = object$lower, upper = object$upper,
-                priors = object$priors,
+                prior = object$prior,
                 quadrature = isTRUE(object$quadrature),
                 template = if (is.null(start)) object$estimates,
                 data2 = object$data2 %||% list())

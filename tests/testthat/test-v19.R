@@ -97,7 +97,7 @@ test_that("get_prior enumerates slots set_prior accepts", {
   pr <- set_prior("normal(0, 2)", class = "b", coef = "x") +
     set_prior("exponential(1)", class = "sd", group = "g")
   fmap <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
-              priors = pr)
+              prior = pr)
   expect_s3_class(fmap, "frmtmb_fit")
   expect_true(all(c("b", "sd") %in% gp2$class))
 })

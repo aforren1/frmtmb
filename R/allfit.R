@@ -89,7 +89,7 @@ frm_allfit <- function(fit, optimizers = NULL, ...) {
       suppressWarnings(fit_assembled(
         fit$spec, fit$frame, fit$bform, fit$call,
         REML = fit$REML, start = NULL, control = ctl, se = FALSE,
-        lower = fit$lower, upper = fit$upper, priors = fit$priors,
+        lower = fit$lower, upper = fit$upper, prior = fit$prior,
         quadrature = isTRUE(fit$quadrature),
         data2 = fit$data2 %||% list()
       )),

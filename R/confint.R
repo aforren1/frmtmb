@@ -1101,7 +1101,7 @@ anova_refit_ml <- function(fit) {
   fit_assembled(fit$spec, fit$frame, fit$bform, fit$call,
                 REML = FALSE, start = NULL, control = ctl, se = FALSE,
                 lower = fit$lower, upper = fit$upper,
-                priors = fit$priors,
+                prior = fit$prior,
                 quadrature = isTRUE(fit$quadrature),
                 template = fit$estimates,
                 data2 = fit$data2 %||% list())
