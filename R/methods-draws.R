@@ -1326,6 +1326,32 @@ expose_functions.frmtmb_draws <- function(x, ...) {
 }
 
 #' @rdname frmtmb-draws-refusals
+#' @exportS3Method brms::expose_functions
+#' @export
+expose_functions.frmtmb_fit <- function(x, ...) {
+  stop("expose_functions() has no Stan program to read on a frmtmb ",
+       "fit: a custom family's lpdf is the plain R function handed to ",
+       "custom_family(), callable as it is", call. = FALSE)
+}
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+plot.frmtmb_draws <- function(x, ...) {
+  stop("plot() has no display for frmtmb draws: brms's default panel ",
+       "is the trace-and-density view, which mcmc_plot(x) renders ",
+       "here (mcmc_plot(x, type = \"trace\") for the traces alone)",
+       call. = FALSE)
+}
+
+#' @rdname frmtmb-draws-refusals
+#' @export
+update.frmtmb_draws <- function(object, ...) {
+  stop("update() has no method for draws: the sampled object carries ",
+       "no formula to revise. update() the underlying frmtmb fit and ",
+       "frm_sample() the result", call. = FALSE)
+}
+
+#' @rdname frmtmb-draws-refusals
 #' @export
 restructure <- function(x, ...) UseMethod("restructure")
 

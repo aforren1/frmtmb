@@ -266,6 +266,12 @@ family.frmtmb_fit <- function(object, ...) {
 #' rescor_matrix(fit0)
 #' @export
 rescor_matrix <- function(fit) {
+  if (inherits(fit, "frmtmb_draws")) {
+    stop("rescor_matrix() reads the fitted point estimate, so it ",
+         "takes the frmtmb_fit, not draws: rescor_matrix(ds$fit). For ",
+         "the posterior of the correlation, subset_draws() on the ",
+         "rescor columns of as_draws(ds)", call. = FALSE)
+  }
   if (!isTRUE(fit$spec$rescor)) return(NULL)
   K <- length(fit$spec$responses)
   C <- us_chol_cor(fit$estimates$thetar, K)

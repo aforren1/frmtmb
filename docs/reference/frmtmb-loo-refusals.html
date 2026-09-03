@@ -13,7 +13,7 @@ are documented so the reason is findable.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -122,8 +122,8 @@ maximum-likelihood fits answers the comparison question directly.</p></li>
 <li><p><code>bridge_sampler()</code>, <code>bayes_factor()</code> and <code>post_prob()</code> are
 marginal-likelihood quantities. A marginal likelihood is an
 integral against the PRIOR, so it is undefined under the flat
-improper priors <code>frm_sample(fit)</code> uses, and even with proper
-<code>priors =</code> the bridge-sampling estimator needs a normalized
+improper priors <code>frm_sample(fit)</code> uses, and even with a proper
+<code>prior =</code> the bridge-sampling estimator needs a normalized
 log-posterior evaluator that the RTMB tape does not expose.</p></li>
 </ul></div>
 

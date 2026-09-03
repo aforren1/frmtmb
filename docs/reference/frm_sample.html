@@ -17,7 +17,7 @@ formula)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,7 +75,7 @@ formula).</p>
 <span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  family <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span>,</span>
-<span>  priors <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  prior <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  lower <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  upper <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  init <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -110,16 +110,19 @@ the <code>+</code> spelling <code>bf(y ~ x) + poisson()</code> works too).</p></
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Passed to <code><a href="https://rdrr.io/pkg/tmbstan/man/tmbstan.html" class="external-link">tmbstan::tmbstan()</a></code> (<code>chains</code>, <code>iter</code>,
-<code>laplace</code>, <code>cores</code>, ...). On Windows more than one core falls back
-to sequential chains with a warning: parallel chains run on socket
-workers, which can evaluate neither the RTMB tape nor the
-objective closure (the known RTMB limitation of tmbstan,
-tmbstan#27). The fallback also covers a core count inherited from
-<code>options(mc.cores)</code>, which is what rstan reads when <code>cores</code> is not
-given. Fork clusters on unix can, so <code>cores</code> works there.</p></dd>
+<code>laplace</code>, <code>cores</code>, ...). <code>cores</code> parallelizes over chains on
+every platform. On Windows the chains run on socket workers, each
+of which rebuilds the tape from the serialized objective closure
+(tmbstan retapes on the worker; the closures are self-contained),
+giving draws identical to a sequential run at the same seed. The
+per-worker startup (a new R process, package load, retape) is a
+fixed several seconds, so short chains gain nothing; long chains
+approach a per-chain speedup. A core count inherited from
+<code>options(mc.cores)</code>, which rstan reads when <code>cores</code> is not given,
+behaves the same way.</p></dd>
 
 
-<dt id="arg-priors">priors<a class="anchor" aria-label="anchor" href="#arg-priors"></a></dt>
+<dt id="arg-prior">prior<a class="anchor" aria-label="anchor" href="#arg-prior"></a></dt>
 <dd><p>Priors: a <code><a href="set_prior.html">set_prior()</a></code> specification, or a named list
 of prior objects (see <code><a href="frmtmb-priors.html">prior_normal()</a></code>) whose names are parameter
 names as in the draws (or whole components: <code>"beta"</code>, <code>"theta"</code>,
@@ -128,7 +131,12 @@ prior terms added; a fitted model itself is unchanged. On the fit
 path a parameter without a prior keeps a flat improper one. On the
 formula path the brms default priors apply to whatever the
 specification leaves alone (see Default priors), and
-<code>priors = "flat"</code> opts out of them entirely.</p></dd>
+<code>prior = "flat"</code> opts out of them entirely. A <code>brmsprior</code> object
+built by brms's own <code><a href="prior.html">prior()</a></code> is translated row by row. The
+argument takes brms's spelling, <code>prior</code>; the <code>priors</code> of releases
+before 0.43 is gone rather than aliased, and because this
+function's <code>...</code> would otherwise swallow it, the old name is
+refused by name.</p></dd>
 
 
 <dt id="arg-lower-upper">lower, upper<a class="anchor" aria-label="anchor" href="#arg-lower-upper"></a></dt>
@@ -360,12 +368,19 @@ still gets its <code>sd</code> defaults, and the message names the gap.</p></li>
 <li><p>The <code>shape</code>, <code>phi</code> and <code>nu</code> dispersion parameters stay flat: brms
 gives them gamma and inverse-gamma defaults, which <code><a href="set_prior.html">set_prior()</a></code>
 does not carry.</p></li>
-<li><p>MULTIVARIATE models get no defaults at all, because <code><a href="set_prior.html">set_prior()</a></code>
-cannot address one response of several.</p></li>
+<li><p>NONLINEAR parameters stay flat, which is what brms does: their
+coefficients are class <code>b</code>, and the response's median and mad say
+nothing about a rate or a shape sitting inside a nonlinear body.
+Write them with <code>set_prior(nlpar = )</code>, as the brms nonlinear
+vignette does.</p></li>
+<li><p>MULTIVARIATE models get no defaults at all: the default location
+and scale are read off ONE response, and frmtmb does not read them
+per response. <code>set_prior(resp = )</code> addresses one response, so
+they can be written by hand.</p></li>
 </ul><p><em>Overriding and opting out.</em> A <code><a href="set_prior.html">set_prior()</a></code> specification takes over
 the classes it names and leaves the other defaults in place, which is
 brms's partial-override rule; a named list of prior objects takes
-over exactly the internal parameters it names. <code>priors = "flat"</code>
+over exactly the internal parameters it names. <code>prior = "flat"</code>
 turns the defaults off entirely and samples the likelihood, which
 warns when the model has variance components: their flat-prior
 posteriors need not be proper, and neither the chains nor Rhat can
@@ -408,7 +423,7 @@ individually.</p>
 <span class="r-in"><span><span class="co"># leaves the rest of the defaults alone</span></span></span>
 <span class="r-in"><span><span class="va">ds3</span> <span class="op">&lt;-</span> <span class="fu">frm_sample</span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                  chains <span class="op">=</span> <span class="fl">1</span>, iter <span class="op">=</span> <span class="fl">500</span>, refresh <span class="op">=</span> <span class="fl">0</span>,</span></span>
-<span class="r-in"><span>                  priors <span class="op">=</span> <span class="fu"><a href="set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>                  prior <span class="op">=</span> <span class="fu"><a href="set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="prior_summary.html">prior_summary</a></span><span class="op">(</span><span class="va">ds3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:</span>
@@ -423,7 +438,7 @@ individually.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#tail-ess</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; priors = "flat" opts out)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 1, 2.5)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   sd                 student_t(3, 0, 2.5)  [natural sd scale]</span>
@@ -437,7 +452,7 @@ individually.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#tail-ess</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; priors = "flat" opts out)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 1, 2.5)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   b                  (flat), as brms leaves slopes</span>

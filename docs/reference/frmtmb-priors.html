@@ -13,7 +13,7 @@ prior_normal(0, 1) on theta_1 is a lognormal prior on that SD."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -132,7 +132,7 @@ pushes toward the boundary.</p></dd>
 <span class="r-in"><span><span class="co"># names are parameter names as in the draws, or whole components.</span></span></span>
 <span class="r-in"><span><span class="co"># theta_1 is a log-SD, so a normal there is a lognormal on the SD.</span></span></span>
 <span class="r-in"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">1</span>, iter <span class="op">=</span> <span class="fl">500</span>, refresh <span class="op">=</span> <span class="fl">0</span>,</span></span>
-<span class="r-in"><span>                 priors <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu">prior_normal</span><span class="op">(</span><span class="fl">0</span>, <span class="fl">5</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                 prior <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu">prior_normal</span><span class="op">(</span><span class="fl">0</span>, <span class="fl">5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                               theta_1 <span class="op">=</span> <span class="fu">prior_t</span><span class="op">(</span><span class="fl">3</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>

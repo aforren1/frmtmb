@@ -326,11 +326,11 @@ bv_priors <- bv("post", "ML: the four-prior block, frmtmb spelling", {
     set_prior("student_t(3, 0, 20)", class = "Intercept", dpar = "sigma")
 }, "SPELLING", "prior(dist, class) becomes set_prior('dist', class = ...) and the sigma prior moves to dpar = 'sigma'")
 
-bv("post", "ML: frm(..., priors = ) [the penalized fit]", {
+bv("post", "ML: frm(..., prior = ) [the penalized fit]", {
   summary(frm(bf(phen ~ cofactor + (1 | gr(phylo, cov = A))),
               data = data_simple, family = gaussian(),
-              data2 = list(A = A), priors = bv_priors))
-}, "BEHAVIOR", "priors = penalizes the likelihood rather than defining a posterior, and the summary does not say the fit is penalized")
+              data2 = list(A = A), prior = bv_priors))
+}, "BEHAVIOR", "prior = penalizes the likelihood rather than defining a posterior, and the summary does not say the fit is penalized")
 
 bv("post", "ML: prior_summary(model_simple)", prior_summary(model_simple),
    "BEHAVIOR", "brms lists the default priors it chose; frmtmb answers 'No priors were set (plain maximum likelihood)', which is true but is not the same report")
@@ -484,13 +484,13 @@ bv("post", "SAMPLE: plot(model_fisher) -> mcmc_plot()", {
 # mode initialization starts the chain there, and the chain never
 # leaves. Every draw is the same point, the reported sd is 0 and Rhat is
 # 1.5 to 2.1. frm_sample() warns about exactly this and names both
-# remedies, init = "random" and priors =.
+# remedies, init = "random" and prior =.
 sample_pois_fit <- bv("model", "SAMPLE: model_pois [fit route]", {
   bv_draws(frm(bf(phen_pois ~ cofactor + (1 | gr(phylo, cov = A)) +
                     (1 | obs)),
                data = s_pois, family = poisson("log"),
                data2 = list(A = A_s)))
-}, "BEHAVIOR", "the fit route starts at a boundary ML mode with flat variance priors and the chain sticks there; the warning names init = 'random' and priors = as the remedies")
+}, "BEHAVIOR", "the fit route starts at a boundary ML mode with flat variance priors and the chain sticks there; the warning names init = 'random' and prior = as the remedies")
 
 bv("post", "SAMPLE: summary(model_pois) [fit route]", summary(sample_pois_fit),
    "BEHAVIOR", "a stuck chain: sd = 0 on every parameter and Rhat above 1.5, so none of the vignette's numbers are reachable this way")

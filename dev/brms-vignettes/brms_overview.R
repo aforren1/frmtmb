@@ -77,7 +77,7 @@ bv("model", "ML: fit1 with the vignette's priors kept", {
     set_prior("lkj(2)", class = "cor")
   fp <- frm(bf(time | cens(censored) ~ age * sex + disease +
                  (1 + age | patient)),
-            data = kidney, family = lognormal(), priors = pr)
+            data = kidney, family = lognormal(), prior = pr)
   print(VarCorr(fp))
   fp
 }, "BEHAVIOR",
@@ -229,7 +229,7 @@ bv("post", "ML: summary(fit3)", summary(fit3), "BEHAVIOR",
 bv("model", "ML: fit4 (the vignette's exact call)", {
   frm(bf(rating ~ period + carry + cs(treat) + (1 | subject)),
       data = inhaler, family = sratio, threshold = "equidistant",
-      priors = set_prior("normal(-1,2)", coef = "treat"))
+      prior = set_prior("normal(-1,2)", coef = "treat"))
 }, "MISSING",
 "threshold = 'equidistant' has no frmtmb spelling; the error is R's generic 'unused argument' and points nowhere")
 
@@ -239,7 +239,7 @@ bv("model", "ML: fit4 (the vignette's exact call)", {
 bv("model", "ML: fit4 prior on the cs(treat) coefficient", {
   frm(bf(rating ~ period + carry + cs(treat) + (1 | subject)),
       data = inhaler, family = sratio(),
-      priors = set_prior("normal(-1,2)", coef = "treat"))
+      prior = set_prior("normal(-1,2)", coef = "treat"))
 }, "MISSING",
 "a category-specific coefficient has no prior target: the message says 'Prior target not found (class=b, coef=treat)' and names no class that would reach it")
 
@@ -271,14 +271,14 @@ bv("post", "ML: plot(fit4)", {
 #
 # Route choice: fit1 goes through the FORMULA route, because the
 # vignette's priors are the whole point of the sampled fit and only the
-# formula route takes `priors =`. The next row shows what the fit route
+# formula route takes `prior =`. The next row shows what the fit route
 # does without them.
 
 s_fit1 <- bv("model", "SAMPLE: fit1", {
   frm_sample(bf(time | cens(censored) ~ age * sex + disease +
                   (1 + age | patient)),
              data = kidney, family = lognormal(),
-             priors = set_prior("normal(0,5)", class = "b") +
+             prior = set_prior("normal(0,5)", class = "b") +
                set_prior("cauchy(0,2)", class = "sd") +
                set_prior("lkj(2)", class = "cor"),
              chains = 1, iter = 400, warmup = 200, seed = 1,
@@ -353,7 +353,7 @@ s_fit2 <- bv("model", "SAMPLE: fit2", {
   frm_sample(bf(time | cens(censored) ~ age * sex + disease +
                   (1 | patient)),
              data = kidney, family = lognormal(),
-             priors = set_prior("normal(0,5)", class = "b") +
+             prior = set_prior("normal(0,5)", class = "b") +
                set_prior("cauchy(0,2)", class = "sd"),
              chains = 1, iter = 400, warmup = 200, seed = 1,
              cores = 1, refresh = 0)
@@ -381,7 +381,7 @@ bv("post", "SAMPLE: waic(fit1)", waic(s_fit1), "BEHAVIOR",
 s_fit3 <- bv("model", "SAMPLE: fit3", {
   frm_sample(bf(rating ~ treat + period + carry + (1 | subject)),
              data = inhaler, family = cumulative(),
-             priors = set_prior("normal(0,5)", class = "b") +
+             prior = set_prior("normal(0,5)", class = "b") +
                set_prior("cauchy(0,2)", class = "sd"),
              chains = 1, iter = 400, warmup = 200, seed = 1,
              cores = 1, refresh = 0)
@@ -397,7 +397,7 @@ bv("post", "SAMPLE: summary(fit3)", summary(s_fit3), "BEHAVIOR",
 s_fit4 <- bv("model", "SAMPLE: fit4", {
   frm_sample(bf(rating ~ period + carry + cs(treat) + (1 | subject)),
              data = inhaler, family = sratio(),
-             priors = set_prior("normal(-1,2)", class = "b") +
+             prior = set_prior("normal(-1,2)", class = "b") +
                set_prior("cauchy(0,2)", class = "sd"),
              chains = 1, iter = 400, warmup = 200, seed = 1,
              cores = 1, refresh = 0)

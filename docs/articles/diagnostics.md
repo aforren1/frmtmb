@@ -66,7 +66,7 @@ step tells you something even when it does not fix the warning.
     the likelihood surface is one-sided and the gradient check can never
     fully settle. Either simplify the random-effect structure, or keep
     the term and regularize with
-    `priors = set_prior("exponential(1)", class = "sd")` (a MAP fit; the
+    `prior = set_prior("exponential(1)", class = "sd")` (a MAP fit; the
     same move as `blme`’s covariance priors).
 7.  **Judge marginal cases.** A gradient just above the default `1e-3`
     (say 0.001-0.01) with stable estimates across restarts and
@@ -183,7 +183,7 @@ bayesplot works on the draws:
 ``` r
 
 ds <- frm_sample(fit, chains = 4,
-                 priors = set_prior("normal(0, 5)", class = "b") +
+                 prior = set_prior("normal(0, 5)", class = "b") +
                    set_prior("exponential(1)", class = "sd"))
 bayesplot::mcmc_intervals(as.matrix(ds),
                           pars = c("(Intercept)", "x"))

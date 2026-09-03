@@ -989,13 +989,14 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
          "population-level curve; with re_formula use band = ",
          "\"boot\", or ask for dpar = \"mu\"", call. = FALSE)
   }
-  # a nonlinear predictor has no delta-method standard error, so its
-  # only band is the one that refits
-  if (!is.null(lp$nl_body) && band != "boot") {
+  # a nonlinear predictor has no delta-method standard error, so it
+  # needs a band that never asks for one: boot refits, predict simulates
+  if (!is.null(lp$nl_body) && band != "boot" && method != "predict") {
     stop("conditional_effects() cannot put a ", band, " band on a ",
          "nonlinear predictor: predict() has no standard error for it. ",
          "Use band = \"boot\", which refits instead of differentiating, ",
-         "or display one nonlinear parameter with dpar = \"",
+         "method = \"predict\", whose band is a quantile of simulated ",
+         "responses, or display one nonlinear parameter with dpar = \"",
          rspec$nlpars[1L], "\"", call. = FALSE)
   }
   # every grid of the call is built before any band is: one bootstrap
@@ -1055,10 +1056,11 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       }))
     } else {
       df <- nd[ev]
-      if (band == "boot") {
-        # the draws are the band AND the standard error here, so the
-        # delta method is not asked for: that is what lets a nonlinear
-        # predictor, which has no analytic se, reach a band at all
+      if (band == "boot" || method == "predict") {
+        # the draws (or simulated responses) are the band AND the
+        # standard error here, so the delta method is not asked for:
+        # that is what lets a nonlinear predictor, which has no
+        # analytic se, reach a band at all
         df$estimate__ <- as.vector(predict(x, newdata = nd,
                                            type = "response", dpar = dpar,
                                            resp = resp,

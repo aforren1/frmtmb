@@ -301,8 +301,21 @@ loo <- function(x, ...) UseMethod("loo")
 #' @exportS3Method loo::loo
 #' @export
 loo.frmtmb_draws <- function(x, ndraws = NULL, resp = NULL, ...) {
+  # a second model arrives positionally as ndraws, so check the named
+  # formals too
+  loo_one_model(c(list(ndraws, resp), list(...)), "loo")
   ll <- loo_matrix(x, ndraws, resp, "loo()")
   loo::loo.matrix(ll, r_eff = loo_r_eff(ll), ...)
+}
+
+#' @rdname loo
+#' @exportS3Method loo::loo
+#' @export
+loo.frmtmb_fit <- function(x, ...) {
+  stop("loo() is a posterior quantity and this is a maximum-likelihood ",
+       "fit: an elpd averages the likelihood over draws. Sample first, ",
+       "loo(frm_sample(fit)), or compare maximum-likelihood fits with ",
+       "AIC() or BIC()", call. = FALSE)
 }
 
 #' @rdname loo
@@ -313,8 +326,35 @@ waic <- function(x, ...) UseMethod("waic")
 #' @exportS3Method loo::waic
 #' @export
 waic.frmtmb_draws <- function(x, ndraws = NULL, resp = NULL, ...) {
+  loo_one_model(c(list(ndraws, resp), list(...)), "waic")
   # waic needs no importance weights, so it needs no r_eff either
   loo::waic.matrix(loo_matrix(x, ndraws, resp, "waic()"), ...)
+}
+
+#' @rdname loo
+#' @exportS3Method loo::waic
+#' @export
+waic.frmtmb_fit <- function(x, ...) {
+  stop("waic() averages the likelihood over posterior draws and a ",
+       "maximum-likelihood fit has none. Sample first, ",
+       "waic(frm_sample(fit)); AIC() is the maximum-likelihood ",
+       "analogue already on the fit", call. = FALSE)
+}
+
+#' brms's loo(a, b) compares in one call; here comparison is its own
+#' verb, and loo::loo.matrix would otherwise die coercing the second
+#' model to an integer.
+#'
+#' @noRd
+loo_one_model <- function(dots, what) {
+  extra <- vapply(dots, inherits, logical(1L),
+                  what = c("frmtmb_draws", "frmtmb_fit"))
+  if (any(extra)) {
+    stop(what, "() takes one model here, not the several brms ",
+         "compares in a single call. Pass them all to loo_compare(), ",
+         "which computes one elpd per model and tables the differences",
+         call. = FALSE)
+  }
 }
 
 #' The log-likelihood matrix with the loo package present.
@@ -439,6 +479,16 @@ LOO.frmtmb_draws <- function(x, ...) {
 }
 
 #' @rdname loo
+#' @exportS3Method brms::LOO
+#' @export
+LOO.frmtmb_fit <- function(x, ...) {
+  stop("LOO() is the deprecated brms spelling, and on a ",
+       "maximum-likelihood fit there are no draws to average anyway. ",
+       "Compare fits with AIC(), or sample first and call ",
+       "loo(frm_sample(fit))", call. = FALSE)
+}
+
+#' @rdname loo
 #' @export
 WAIC <- function(x, ...) UseMethod("WAIC")
 
@@ -449,6 +499,16 @@ WAIC.frmtmb_draws <- function(x, ...) {
   stop("WAIC() is the deprecated brms spelling and frmtmb never had ",
        "it. Use waic(x); note that loo(x) is the better-behaved ",
        "estimator of the same predictive quantity", call. = FALSE)
+}
+
+#' @rdname loo
+#' @exportS3Method brms::WAIC
+#' @export
+WAIC.frmtmb_fit <- function(x, ...) {
+  stop("WAIC() is the deprecated brms spelling, and it averages over ",
+       "posterior draws a maximum-likelihood fit does not have. ",
+       "AIC() is already on the fit; waic(frm_sample(fit)) is the ",
+       "sampled version", call. = FALSE)
 }
 
 #' Bayesian R-squared
@@ -494,6 +554,15 @@ WAIC.frmtmb_draws <- function(x, ...) {
 #' }
 #' @export
 bayes_R2 <- function(object, ...) UseMethod("bayes_R2")
+
+#' @rdname bayes_R2
+#' @exportS3Method rstantools::bayes_R2
+#' @export
+bayes_R2.frmtmb_fit <- function(object, ...) {
+  stop("bayes_R2() is computed per posterior draw and this is a ",
+       "maximum-likelihood fit. Sample first: ",
+       "bayes_R2(frm_sample(fit))", call. = FALSE)
+}
 
 #' @rdname bayes_R2
 #' @exportS3Method rstantools::bayes_R2

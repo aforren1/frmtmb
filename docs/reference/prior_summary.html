@@ -11,7 +11,7 @@ priors it chose (see the Default priors section of frm_sample())."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,7 +97,7 @@ the sampler used, or (invisibly) <code>NULL</code> when there were none.</p>
 <span class="r-in"><span><span class="co"># what was actually applied, after set_prior() was matched to the</span></span></span>
 <span class="r-in"><span><span class="co"># coefficients of this design</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>,</span></span>
-<span class="r-in"><span>           priors <span class="op">=</span> <span class="fu"><a href="set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>           prior <span class="op">=</span> <span class="fu"><a href="set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>                    <span class="fu"><a href="set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">prior_summary</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> normal(0, 1) class=b</span>

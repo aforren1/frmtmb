@@ -2,7 +2,7 @@
 
 Builds the design from `formula` and `data` exactly as
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) would,
-sets the parameters from `newparams` (and/or draws them from `priors`),
+sets the parameters from `newparams` (and/or draws them from `prior`),
 and simulates responses. Random effects are redrawn from their
 covariance for every simulation unless `newparams$b` supplies them.
 
@@ -14,7 +14,7 @@ frm_simulate(
   data,
   family = NULL,
   newparams = NULL,
-  priors = NULL,
+  prior = NULL,
   nsim = 1,
   seed = NULL,
   data2 = list()
@@ -39,13 +39,16 @@ frm_simulate(
 - newparams:
 
   Named list of parameters, in either spelling (see Details). Optional
-  when `priors` pins everything.
+  when `prior` pins everything.
 
-- priors:
+- prior:
 
   A
   [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
-  specification to draw parameters from, once per simulation.
+  specification to draw parameters from, once per simulation, or a
+  `brmsprior` object brms built, which is translated row by row. The
+  argument takes brms's spelling, `prior`; the `priors` of releases
+  before 0.43 is gone rather than aliased.
 
 - nsim, seed:
 
@@ -59,7 +62,7 @@ frm_simulate(
 ## Value
 
 A data frame with `nsim` columns of simulated responses, carrying the
-drawn parameters in `attr(., "pars")` when `priors` is used.
+drawn parameters in `attr(., "pars")` when `prior` is used.
 
 ## Details
 
@@ -125,7 +128,7 @@ and correlations and need the internal spelling.
 
 ## Prior-predictive simulation
 
-With `priors`, each of the `nsim` simulations draws a fresh parameter
+With `prior`, each of the `nsim` simulations draws a fresh parameter
 vector from the
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
 specification and simulates from it - the analog of brms's
@@ -139,7 +142,7 @@ scale. `lb`/`ub` truncate by rejection. The drawn values come back as
 check can relate parameters to outcomes.
 
 Parameters without a prior keep their `newparams` value. Whenever
-`priors` are used, or `newparams` uses the natural spelling, every fixed
+`prior` are used, or `newparams` uses the natural spelling, every fixed
 coefficient and every random-effect SD must be pinned by one or the
 other; an unpinned parameter is an error rather than a silent zero
 effect or unit SD.
@@ -186,7 +189,7 @@ sims2 <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
                       nsim = 3, seed = 1)
 # prior-predictive draws
 pp <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
-                   priors = set_prior("normal(0, 1)", class = "b") +
+                   prior = set_prior("normal(0, 1)", class = "b") +
                      set_prior("normal(0, 2)", class = "Intercept") +
                      set_prior("exponential(1)", class = "sd") +
                      set_prior("exponential(1)", class = "Intercept",

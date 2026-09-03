@@ -235,6 +235,8 @@
 - [`stancode()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
   [`standata()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
   [`expose_functions()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
+  [`plot(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
+  [`update(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
   [`restructure()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
   [`posterior_samples()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
   [`nsamples()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
@@ -253,6 +255,10 @@
   : Plot case-deletion influence
 - [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
   : Set up priors brms-style
+- [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md)
+  [`prior_()`](https://aforren1.github.io/frmtmb/reference/prior.md)
+  [`prior_string()`](https://aforren1.github.io/frmtmb/reference/prior.md)
+  : Set up priors with brms's quoting spelling
 - [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
   : Enumerate the targetable prior slots
 - [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)

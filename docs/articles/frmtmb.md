@@ -340,8 +340,8 @@ str(sims, max.level = 0)
 #> 'data.frame':    120 obs. of  3 variables:
 ```
 
-Give `priors` instead and every simulation draws its own parameter
-vector first - the analog of brms’s `sample_prior = "only"` followed by
+Give `prior` instead and every simulation draws its own parameter vector
+first - the analog of brms’s `sample_prior = "only"` followed by
 [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md).
 The drawn parameters come back as an attribute, so a prior-predictive
 check can relate parameters to outcomes:
@@ -349,7 +349,7 @@ check can relate parameters to outcomes:
 ``` r
 
 pp <- frm_simulate(form, dd, nsim = 50, seed = 2,
-                   priors = set_prior("normal(0, 1)", class = "b") +
+                   prior = set_prior("normal(0, 1)", class = "b") +
                      set_prior("normal(0, 2)", class = "Intercept") +
                      set_prior("exponential(1)", class = "sd") +
                      set_prior("normal(0, 1)", class = "Intercept",

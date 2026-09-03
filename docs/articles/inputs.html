@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -334,12 +334,17 @@ the fixed effects are not outer parameters, so bounds naming them are
 refused rather than silently applied elsewhere.</td>
 </tr>
 <tr class="even">
-<td><code>priors</code></td>
-<td>A <code><a href="../reference/set_prior.html">set_prior()</a></code> specification. Makes the fit penalized
-(MAP), so the reported log likelihood is penalized too.</td>
+<td><code>prior</code></td>
+<td>A <code><a href="../reference/set_prior.html">set_prior()</a></code> specification, or a
+<code>brmsprior</code> object brms built, which is translated row by
+row. Makes the fit penalized (MAP), so the reported log likelihood is
+penalized too. Spelled as brms spells it; the <code>priors</code> of
+releases before 0.43 is gone, and a call still using it fails as an
+unused argument.</td>
 <td>
 <code><a href="../reference/set_prior.html">set_prior()</a></code> checks the argument count of each
-distribution.</td>
+distribution. A brms prior class with no faithful frmtmb spelling is
+refused by name rather than translated into a different density.</td>
 </tr>
 <tr class="odd">
 <td><code>quadrature</code></td>

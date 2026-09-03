@@ -54,7 +54,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
                    data = dd, chains = 1, iter = 500, refresh = 0)
   c(ndraws(ds), niterations(ds), nchains(ds), nvariables(ds))
 }
-#> frm_sample(): default priors (brms 2.23 defaults; priors = "flat" opts out)
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 0.8, 2.5)
 #>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]

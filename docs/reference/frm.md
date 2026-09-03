@@ -19,7 +19,7 @@ frm(
   na.action = stats::na.omit,
   lower = NULL,
   upper = NULL,
-  priors = NULL,
+  prior = NULL,
   quadrature = FALSE,
   data2 = list(),
   dry_run = NULL,
@@ -124,7 +124,7 @@ frm(
   `b_(Intercept)`. One that carries several coefficients is refused
   rather than resolved to one of them.
 
-- priors:
+- prior:
 
   Optional
   [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
@@ -133,7 +133,30 @@ frm(
   components or separating binomials. The reported logLik/AIC then
   include the prior terms and are penalized quantities, and
   [`anova()`](https://rdrr.io/r/stats/anova.html) comparisons across
-  different priors are meaningless.
+  different priors are meaningless. A `brmsprior` object built by brms's
+  own [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md)
+  is translated row by row, so priors copied out of a brms script work
+  whichever package's
+  [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md) was
+  in scope. The argument takes brms's spelling, `prior`; the `priors` of
+  releases before 0.43 is gone rather than aliased, and a call still
+  using it fails as an unused argument.
+
+  *The spelling is brms's; the SEMANTICS are not.* A prior here is a
+  penalty on the likelihood and the answer is one mode. It is not a
+  posterior, and no interval this fit reports is a credible interval.
+  The two land close where the data dominates: a kidney frailty model
+  given brms's own priors returns `sd(patient)` 0.38 against brms's
+  posterior mean of 0.40. That is a measurement on one model, though,
+  not a property of the translation. Use
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  when the posterior is the answer.
+
+  *A prior does not replace `start` on a nonlinear model.* brms uses its
+  priors to place the sampler; `frm()` optimizes, and it evaluates the
+  objective at the starting values first, where a nonlinear body usually
+  is not defined. The prior means read across as starting values:
+  `start = list(beta = c(5000, 1, 45))`.
 
 - quadrature:
 

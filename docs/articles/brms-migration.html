@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,12 +80,12 @@
     
     
 <p>frmtmb reimplements a documented subset of the brms grammar with
-identical spelling, so brms model code ports mechanically: drop the
-priors, change <code>brm()</code> to <code><a href="../reference/frm.html">frm()</a></code>, and get a
-maximum-likelihood fit in milliseconds-to-seconds instead of an MCMC
-run. Estimation is ML (or REML) with the Laplace approximation for
-latent effects; inference is frequentist (Wald and profile intervals,
-likelihood-ratio tests, AIC).</p>
+identical spelling, so brms model code ports mechanically: change
+<code>brm()</code> to <code><a href="../reference/frm.html">frm()</a></code>, keep or drop the priors, and
+get a fit in milliseconds-to-seconds instead of an MCMC run. Estimation
+is ML (or REML) with the Laplace approximation for latent effects;
+inference is frequentist (Wald and profile intervals, likelihood-ratio
+tests, AIC).</p>
 <div class="section level2">
 <h2 id="what-ports-directly">What ports directly<a class="anchor" aria-label="anchor" href="#what-ports-directly"></a>
 </h2>
@@ -207,29 +207,54 @@ included (below)</td>
 <h2 id="what-changes">What changes<a class="anchor" aria-label="anchor" href="#what-changes"></a>
 </h2>
 <ul>
+<li><p><code>brm(...)</code> becomes <code>frm(...)</code>; there are no
+chains or warmup, and a plain call is maximum likelihood rather than a
+posterior. <code>REML = TRUE</code> replaces priors as the small-sample
+correction for variance components.</p></li>
 <li>
-<code>brm(...)</code> becomes <code>frm(...)</code>; there are no
-priors, chains, or warmup. <code>REML = TRUE</code> replaces priors as
-the small-sample correction for variance components.</li>
-<li>Posterior summaries become ML estimates: <code><a href="../reference/fixef.html">fixef()</a></code>
+<p>A <code>prior = c(prior(...), prior(...))</code> argument is kept
+as it stands. <code><a href="../reference/frm.html">frm()</a></code> spells the argument <code>prior</code>,
+as brms does, and <code><a href="../reference/prior.html">prior()</a></code>, <code><a href="../reference/prior.html">prior_()</a></code> and
+<code><a href="../reference/prior.html">prior_string()</a></code> build the same specification
+<code><a href="../reference/set_prior.html">set_prior()</a></code> does; a prior object that brms itself built is
+translated row by row, so the argument works whichever package’s
+<code><a href="../reference/prior.html">prior()</a></code> was in scope.</p>
+<p>What the fit MEANS changes. <code>frm(prior = )</code> is MAP: the
+density is a PENALTY on the likelihood and the answer is one mode, not a
+posterior, so the reported log likelihood, AIC and <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code>
+are penalized quantities. The estimates land close where the priors are
+weak: a kidney model with brms’s own priors gives
+<code>sd(patient)</code> 0.38 against brms’s posterior mean of 0.40. But
+“close” is a measurement, not a guarantee, and the two numbers are not
+the same quantity. Read a prior here as regularization.</p>
+<p>A prior class frmtmb cannot mean the same way brms does
+(<code>sigma</code>, brms’s mixture <code>theta</code>) is refused by
+name rather than translated into something else.</p>
+</li>
+<li><p>Priors do NOT replace <code>start</code> on a nonlinear model.
+brms uses the priors to place its sampler; <code><a href="../reference/frm.html">frm()</a></code> optimizes,
+and the objective is still evaluated at the zero starting values first,
+where a nonlinear body is usually undefined. Supply
+<code>start = list(beta = c(...))</code>, reading the brms model’s own
+prior means straight across as the starting values; the refusal names
+<code>start</code> when you do not.</p></li>
+<li><p>Posterior summaries become ML estimates: <code><a href="../reference/fixef.html">fixef()</a></code>
 returns point estimates, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> gives Wald or profile
 intervals, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> gives likelihood-ratio tests, and
-<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>/<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> replace <code><a href="../reference/loo.html">loo()</a></code>.</li>
-<li>
-<code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>;
+<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>/<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> replace
+<code><a href="../reference/loo.html">loo()</a></code>.</p></li>
+<li><p><code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>;
 <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code> over <code>newdata</code> becomes
 <code>predict(newdata, type = "response")</code>. On a
 <code>cens()</code> response both draw the LATENT uncensored value, as
 brms does; <code>simulate(censored = TRUE)</code> applies the censoring
-mechanism instead.</li>
-<li>
-<code>sample_prior = "only"</code> plus
+mechanism instead.</p></li>
+<li><p><code>sample_prior = "only"</code> plus
 <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> becomes
-<code>frm_simulate(formula, data, priors = set_prior(...))</code>, which
+<code>frm_simulate(formula, data, prior = set_prior(...))</code>, which
 draws a parameter vector per simulation and returns it alongside the
-responses.</li>
-<li>
-<code>mo()</code> monotonic effects, <code>mi()</code> one-step
+responses.</p></li>
+<li><p><code>mo()</code> monotonic effects, <code>mi()</code> one-step
 imputation of continuous predictors, <code>mi(sdx)</code> measurement
 error (the <code>me()</code> replacement, as in current brms),
 <code>cs()</code> category-specific ordinal effects, <code>gp(x)</code>
@@ -246,30 +271,26 @@ needs pooled tests, which brms gets for free from the posterior:
 <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> on the result compares two nested
 <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> fits with the D1, D2 and D3 rules of
 <code>mice</code> (D3 by default). Mixture fits are ML: expect
-multimodality, compare starts (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>).</li>
-<li>
-<code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code> without <code>trials()</code> is accepted
+multimodality, compare starts (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>).</p></li>
+<li><p><code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code> without <code>trials()</code> is accepted
 and means Bernoulli, the <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">stats::glm()</a></code> convention; brms
 rejects it and asks for <code>trials()</code> or
 <code><a href="../reference/frmtmb-families.html">bernoulli()</a></code>. The divergence is permissive, so brms code
 ports unchanged, but frmtmb code written this way does not port
-back.</li>
-<li>
-<code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>,
+back.</p></li>
+<li><p><code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>,
 <code>cosy()</code> and <code>unstr()</code> are supported in their
-covariance form only; see the next section.</li>
-<li>glmer’s proportion-response idiom (<code>weights = size</code>)
+covariance form only; see the next section.</p></li>
+<li><p>glmer’s proportion-response idiom (<code>weights = size</code>)
 becomes <code>y | trials(size)</code> with either proportions or counts;
 <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code> in the formula stays a frequency weight, as in
-brms.</li>
-<li>
-<code>se()</code> works as in brms (meta-analysis), including
+brms.</p></li>
+<li><p><code>se()</code> works as in brms (meta-analysis), including
 <code>se(x, sigma = TRUE)</code> and the phylogenetic version with
-<code>gr(g, cov = A)</code>.</li>
-<li>
-<code>mm()</code> ports with its <code>weights =</code> and
+<code>gr(g, cov = A)</code>.</p></li>
+<li><p><code>mm()</code> ports with its <code>weights =</code> and
 <code>scale =</code> arguments and with <code>mmc()</code>; its other
-arguments have different spellings here (below).</li>
+arguments have different spellings here (below).</p></li>
 </ul>
 </div>
 <div class="section level2">

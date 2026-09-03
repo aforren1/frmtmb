@@ -10,9 +10,9 @@ priors are set; the formula route of
 [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
 has its own brms defaults, which
 [`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md)
-reports). Classes `"sd"` and `"cor"` are targeted by `group` only; class
-`"theta"` rows name the raw internal covariance parameters (escape
-hatch, including correlations one at a time).
+reports). Classes `"sd"` and `"cor"` are targeted by `group` and
+`nlpar`; class `"theta"` rows name the raw internal covariance
+parameters (escape hatch, including correlations one at a time).
 
 ## Usage
 
@@ -44,7 +44,15 @@ get_prior(formula, data = NULL, family = NULL, data2 = list())
 ## Value
 
 A data frame with columns `prior`, `class`, `coef`, `group`, `dpar`,
-`resp`, `lb`, `ub`.
+`nlpar`, `resp`, `lb`, `ub`.
+
+## Details
+
+A nonlinear parameter's coefficients are listed under class `"b"` with
+its name in the `nlpar` column, the intercept among them, which is how
+brms lists them and what
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+addresses (see its Nonlinear parameters section).
 
 ## Examples
 
@@ -52,13 +60,13 @@ A data frame with columns `prior`, `class`, `coef`, `group`, `dpar`,
 dd <- data.frame(y = rnorm(60), x = rnorm(60),
                  g = factor(rep(1:6, 10)))
 get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-#>    prior     class    coef group  dpar resp lb ub
-#> 1 (flat) Intercept                          NA NA
-#> 2 (flat)         b                          NA NA
-#> 3 (flat)         b       x                  NA NA
-#> 4 (flat) Intercept               sigma      NA NA
-#> 5 (flat)        sd                          NA NA
-#> 6 (flat)        sd             g            NA NA
-#> 7 (flat)     theta                          NA NA
-#> 8 (flat)     theta theta_1                  NA NA
+#>    prior     class    coef group  dpar nlpar resp lb ub
+#> 1 (flat) Intercept                                NA NA
+#> 2 (flat)         b                                NA NA
+#> 3 (flat)         b       x                        NA NA
+#> 4 (flat) Intercept               sigma            NA NA
+#> 5 (flat)        sd                                NA NA
+#> 6 (flat)        sd             g                  NA NA
+#> 7 (flat)     theta                                NA NA
+#> 8 (flat)     theta theta_1                        NA NA
 ```

@@ -60,9 +60,11 @@ The second need is migration. brms code ports by changing `brm()` to
 brms's own spelling, `prior()` builds the specification `set_prior()`
 does, and a prior object brms itself built is translated. The fit is
 then MAP, so a prior is a penalty on the likelihood rather than a
-posterior. A measured audit of the brms
-vignettes puts about 7 of 10 of their model calls through that
-transform unchanged. A user can therefore screen models at
+posterior. A measured audit of the brms vignettes puts about 7 of 10
+of their model calls through that transform unchanged; over every
+call the vignettes make, post-processing included, about 4 of 10 run
+unchanged, and most of the rest need one spelling change or get a
+refusal that names the replacement. A user can therefore screen models at
 millisecond speed, then return to brms for the final Bayesian fit
 with the same formula. `vignette("brms-migration")` maps the
 features and states, under "When you still want brms", the cases

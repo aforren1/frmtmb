@@ -17,6 +17,20 @@ One known-broken area, the prior interface, is deliberately exercised at
 its CURRENT spelling so the findings stay honest while a sibling lane
 fixes it.
 
+**Revision at v0.43.0 (consolidation, same date).** The prior lane
+landed: `priors =` is renamed `prior =`, `prior()`/`prior_()`/
+`prior_string()` are exported, `set_prior()` takes `nlpar`/`resp`, and
+a `brmsprior` is translated rather than refused. The five scripts that
+passed priors, plus the coexistence instrument, were swept to the new
+spelling and re-run green at v0.43.0; their labels otherwise still
+describe the v0.42.0 measurement. Also applied at consolidation, so no
+longer open below: the `conditional_effects` guard fix (rank 5's
+`method = "predict"` refusal), and the refusal pass over the draws and
+fit surfaces (the silent `rescor_matrix()` `NULL`, two-model `loo()`,
+draws `update()` and `plot()`, bare `loo`/`waic`/`bayes_R2`/
+`expose_functions` on a fit). A full re-measurement against the new
+API is the next audit round, not this file.
+
 ## Method
 
 One runnable script per vignette under `dev/brms-vignettes/`. Each
@@ -228,7 +242,9 @@ divide in three:
    brms and SUCCEED, returning a brms object. `get_prior()` is the
    worst: a user reads brms's default priors and believes they describe
    the frmtmb fit. Nothing warns. `set_prior()` is caught one step
-   later, when `frm(priors =)` refuses the `brmsprior`.
+   later, when `frm(priors =)` refuses the `brmsprior`. (v0.43.0:
+   `frm(prior =)` now translates a `brmsprior` row by row, so the
+   `set_prior()` collision is absorbed rather than caught late.)
 3. **Silent right resolution.** 29 family constructors are masked, so
    `family = student()` hands `frm()` a `brmsfamily`. `frm()` converts
    it. That is the good outcome, but it also means a link or dpar
@@ -242,8 +258,11 @@ clean under a brms attach. The collisions are all on CONSTRUCTORS, not
 on methods.
 
 With **brms first, frmtmb second**, the masking reverses and a copied
-brms line silently changes meaning in the other direction. `prior()`
-resolves to brms in both orders, because frmtmb does not export it.
+brms line silently changes meaning in the other direction. At the
+measured v0.42.0, `prior()` resolved to brms in both orders, because
+frmtmb did not export it; v0.43.0 exports `prior()`, so it masks like
+the other constructors, and either package's object now works in
+`frm(prior =)` because a `brmsprior` is translated.
 
 ## The conditional_effects faceting diagnosis
 
@@ -619,7 +638,10 @@ per-response `posterior_epred`, `posterior_predict` and `bayes_R2`;
 ## Which edges the priorcompat sibling already covers
 
 Of the 49 prior-interface rows, these are the distinct items, and all
-of them belong to the `wt-priorcompat` lane:
+of them belong to the `wt-priorcompat` lane (which landed with
+v0.43.0: `prior()` is exported, `nlpar`/`resp` work, a `brmsprior`
+translates; the density/class gaps and `get_prior()` fidelity remain
+its recorded follow-ups):
 
 - `prior()`, brms's NSE constructor, is not exported at all.
 - `set_prior()` parses five densities. No `dirichlet`, no `horseshoe`.

@@ -601,7 +601,7 @@ all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
 #' The core count tmbstan would actually use. rstan defaults its `cores`
 #' argument to getOption("mc.cores", 1L), so a session-wide mc.cores
 #' starts parallel chains just as an explicit cores = does, and the
-#' Windows guard has to read the same source or it never fires.
+#' Windows startup note has to read the same source or it never fires.
 #'
 #' @noRd
 stan_cores <- function(args) {
@@ -1209,13 +1209,16 @@ sample_resolve_priors <- function(fit, prior, announce = TRUE) {
 #' @param data2,start,control,na.action,REML As in [frm()]; used only on
 #'   the formula path.
 #' @param ... Passed to [tmbstan::tmbstan()] (`chains`, `iter`,
-#'   `laplace`, `cores`, ...). On Windows more than one core falls back
-#'   to sequential chains with a warning: parallel chains run on socket
-#'   workers, which can evaluate neither the RTMB tape nor the
-#'   objective closure (the known RTMB limitation of tmbstan,
-#'   tmbstan#27). The fallback also covers a core count inherited from
-#'   `options(mc.cores)`, which is what rstan reads when `cores` is not
-#'   given. Fork clusters on unix can, so `cores` works there.
+#'   `laplace`, `cores`, ...). `cores` parallelizes over chains on
+#'   every platform. On Windows the chains run on socket workers, each
+#'   of which rebuilds the tape from the serialized objective closure
+#'   (tmbstan retapes on the worker; the closures are self-contained),
+#'   giving draws identical to a sequential run at the same seed. The
+#'   per-worker startup (a new R process, package load, retape) is a
+#'   fixed several seconds, so short chains gain nothing; long chains
+#'   approach a per-chain speedup. A core count inherited from
+#'   `options(mc.cores)`, which rstan reads when `cores` is not given,
+#'   behaves the same way.
 #' @param prior Priors: a [set_prior()] specification, or a named list
 #'   of prior objects (see [prior_normal()]) whose names are parameter
 #'   names as in the draws (or whole components: `"beta"`, `"theta"`,
@@ -1426,17 +1429,20 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                        mb$lower, mb$upper)
   }
   args <- list(obj = obj, init = init, ...)
-  # rstan runs parallel chains on PSOCK workers on Windows, and neither
-  # the RTMB tape's external pointer nor the objective closure's
-  # namespace survives the trip: every chain dies at the first internal
-  # function and rstan's error names neither. Known upstream as
-  # tmbstan#27; fork clusters (unix) inherit both, so only Windows
-  # needs the guard.
-  if (.Platform$OS.type == "windows" && stan_cores(args) > 1) {
-    warning("cores > 1 is not available on Windows: parallel chains ",
-            "run on socket workers, which cannot evaluate the RTMB ",
-            "tape. Running the chains sequentially", call. = FALSE)
-    args$cores <- 1
+  # rstan runs parallel chains on PSOCK workers on Windows. The tape's
+  # external pointer dies in serialization, but tmbstan ships the cure:
+  # its sampling method calls fn() on the worker, which retapes from
+  # the objective closure, and frmtmb's generated closures are
+  # self-contained (data baked in, namespace references loading frmtmb
+  # and RTMB on deserialization), so each worker rebuilds its own tape.
+  # Verified seed-for-seed identical to sequential chains. The only
+  # cost is startup, hence the note rather than a fallback.
+  if (.Platform$OS.type == "windows" && stan_cores(args) > 1 &&
+      (args$chains %||% 4) > 1) {
+    message("parallel chains on Windows start one R process per core ",
+            "and rebuild the tape in each: expect several seconds of ",
+            "startup before sampling. Short chains may run faster ",
+            "with cores = 1")
   }
   if (!is.null(bounds)) {
     args$lower <- bounds$lower

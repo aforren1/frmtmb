@@ -3,8 +3,10 @@
 \name{loo}
 \alias{loo}
 \alias{loo.frmtmb_draws}
+\alias{loo.frmtmb_fit}
 \alias{waic}
 \alias{waic.frmtmb_draws}
+\alias{waic.frmtmb_fit}
 \alias{loo_compare}
 \alias{loo_compare.default}
 \alias{loo_compare.frmtmb_draws}
@@ -12,17 +14,23 @@
 \alias{psis.frmtmb_draws}
 \alias{LOO}
 \alias{LOO.frmtmb_draws}
+\alias{LOO.frmtmb_fit}
 \alias{WAIC}
 \alias{WAIC.frmtmb_draws}
+\alias{WAIC.frmtmb_fit}
 \title{Approximate leave-one-out cross-validation}
 \usage{
 loo(x, ...)
 
 \method{loo}{frmtmb_draws}(x, ndraws = NULL, resp = NULL, ...)
 
+\method{loo}{frmtmb_fit}(x, ...)
+
 waic(x, ...)
 
 \method{waic}{frmtmb_draws}(x, ndraws = NULL, resp = NULL, ...)
+
+\method{waic}{frmtmb_fit}(x, ...)
 
 loo_compare(x, ...)
 
@@ -38,9 +46,13 @@ LOO(x, ...)
 
 \method{LOO}{frmtmb_draws}(x, ...)
 
+\method{LOO}{frmtmb_fit}(x, ...)
+
 WAIC(x, ...)
 
 \method{WAIC}{frmtmb_draws}(x, ...)
+
+\method{WAIC}{frmtmb_fit}(x, ...)
 }
 \arguments{
 \item{x}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}, or (for

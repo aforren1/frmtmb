@@ -15,7 +15,7 @@ sets bounds only.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,8 +71,10 @@ sets bounds only.</p>
 <span>  prior <span class="op">=</span> <span class="st">""</span>,</span>
 <span>  class <span class="op">=</span> <span class="st">"b"</span>,</span>
 <span>  coef <span class="op">=</span> <span class="st">""</span>,</span>
-<span>  dpar <span class="op">=</span> <span class="st">""</span>,</span>
 <span>  group <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  resp <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  dpar <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  nlpar <span class="op">=</span> <span class="st">""</span>,</span>
 <span>  lb <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  ub <span class="op">=</span> <span class="cn">NA</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -96,13 +98,22 @@ bounds only.</p></dd>
 <dd><p>Restrict to one coefficient (classes <code>"b"</code>/<code>"Intercept"</code>).</p></dd>
 
 
+<dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
+<dd><p>Restrict class <code>"sd"</code> or <code>"cor"</code> to one grouping factor.</p></dd>
+
+
+<dt id="arg-resp">resp<a class="anchor" aria-label="anchor" href="#arg-resp"></a></dt>
+<dd><p>Response of a multivariate model.</p></dd>
+
+
 <dt id="arg-dpar">dpar<a class="anchor" aria-label="anchor" href="#arg-dpar"></a></dt>
 <dd><p>Distributional parameter (default: the location
 parameters).</p></dd>
 
 
-<dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
-<dd><p>Restrict class <code>"sd"</code> or <code>"cor"</code> to one grouping factor.</p></dd>
+<dt id="arg-nlpar">nlpar<a class="anchor" aria-label="anchor" href="#arg-nlpar"></a></dt>
+<dd><p>Nonlinear parameter of an <code>nl = TRUE</code> formula. See
+Nonlinear parameters.</p></dd>
 
 
 <dt id="arg-lb-ub">lb, ub<a class="anchor" aria-label="anchor" href="#arg-lb-ub"></a></dt>
@@ -161,6 +172,37 @@ the density is renormalized over that window. <code>toep()</code> is refused:
 its parameterization is not positive definite everywhere, so it has
 no correlation matrix to put a density on.</p>
     </div>
+    <div class="section level2">
+    <h2 id="nonlinear-parameters">Nonlinear parameters<a class="anchor" aria-label="anchor" href="#nonlinear-parameters"></a></h2>
+
+
+<p><code>nlpar</code> addresses one parameter of an <code>nl = TRUE</code> formula, brms's
+spelling: <code>set_prior("normal(5000, 1000)", nlpar = "ult")</code>, or
+<code>prior(normal(5000, 1000), nlpar = "ult")</code>. Class <code>"b"</code> there covers
+EVERY coefficient of that parameter, its intercept included, because
+a nonlinear parameter's sub-formula is not centered and brms holds
+its intercept in the same coefficient vector as its slopes. That is
+why the vignette spelling above lands on <code>ult_(Intercept)</code> rather
+than on nothing. Narrow to one column with <code>coef</code> (<code>"Intercept"</code> and
+<code>"(Intercept)"</code> both name the intercept), or write
+<code>class = "Intercept", nlpar = "ult"</code>, which is frmtmb's spelling of
+the same slot. <code>nlpar</code> narrows classes <code>"sd"</code> and <code>"cor"</code> to the
+random-effect blocks of that parameter as well.</p>
+<p>An identification prior does NOT stand in for <code><a href="frm.html">frm()</a></code>'s <code>start</code>.
+brms places its sampler with the priors; <code><a href="frm.html">frm()</a></code> optimizes, and it
+evaluates the objective at the starting values before any penalty
+can steer it, which for a nonlinear body usually means an undefined
+likelihood at zero. The prior means read across as starting values,
+and the refusal names <code>start</code> when they are missing.</p>
+<p><code>resp</code> picks one response of a multivariate model; the default
+priors of <code><a href="frm_sample.html">frm_sample()</a></code> still stay off there (see its Default
+priors section), so a multivariate model's priors are the ones
+written by hand.</p>
+<p>brms's <code>tag</code> and <code>check</code> have no counterpart: <code>tag</code> names a prior
+for reuse inside a Stan program, and <code>check</code> passes an unchecked
+string through to one. frmtmb compiles no Stan program, so both are
+omitted rather than accepted and ignored.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -180,7 +222,7 @@ no correlation matrix to put a density on.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> exponential(1) class=sd group=g</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the priors penalize the likelihood: the fit is a MAP estimate</span></span></span>
-<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">z</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>, priors <span class="op">=</span> <span class="va">pr</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">z</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>, prior <span class="op">=</span> <span class="va">pr</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x           z </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  1.43922922  0.56382992  0.05323151 </span>
@@ -198,7 +240,7 @@ no correlation matrix to put a density on.</p>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">y2</span> <span class="op">&lt;-</span> <span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">0</span>, <span class="fl">0.6</span><span class="op">)</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">g</span><span class="op">]</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">z</span></span></span>
 <span class="r-in"><span><span class="va">fitc</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y2</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">z</span> <span class="op">+</span> <span class="op">(</span><span class="va">z</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>,</span></span>
-<span class="r-in"><span>            priors <span class="op">=</span> <span class="fu">set_prior</span><span class="op">(</span><span class="st">"lkj(4)"</span>, class <span class="op">=</span> <span class="st">"cor"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>            prior <span class="op">=</span> <span class="fu">set_prior</span><span class="op">(</span><span class="st">"lkj(4)"</span>, class <span class="op">=</span> <span class="st">"cor"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fitc</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   z | g </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         Name Std.Dev. (Intercept)</span>
@@ -207,16 +249,21 @@ no correlation matrix to put a density on.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># get_prior() shows which rows a design offers</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="get_prior.html">get_prior</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">z</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    prior     class    coef group  dpar resp lb ub</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (flat) Intercept                          NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 (flat)         b                          NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (flat)         b       x                  NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (flat)         b       z                  NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 (flat) Intercept               sigma      NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 (flat)        sd                          NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7 (flat)        sd             g            NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8 (flat)     theta                          NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9 (flat)     theta theta_1                  NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    prior     class    coef group  dpar nlpar resp lb ub</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (flat) Intercept                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 (flat)         b                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (flat)         b       x                        NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (flat)         b       z                        NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 (flat) Intercept               sigma            NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 (flat)        sd                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7 (flat)        sd             g                  NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8 (flat)     theta                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9 (flat)     theta theta_1                        NA NA</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># prior() quotes its first argument, brms's spelling, and reaches</span></span></span>
+<span class="r-in"><span><span class="co"># the same machinery</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="prior.html">prior</a></span><span class="op">(</span><span class="fu">normal</span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> normal(0, 1) class=b</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

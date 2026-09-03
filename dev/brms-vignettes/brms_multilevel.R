@@ -215,7 +215,7 @@ bv("model", "ML: fit_loss1 with the priors instead of start", {
   frm(bf(cum ~ ult * (1 - exp(-(dev / theta)^omega)),
          ult ~ 1 + (1 | AY), omega ~ 1, theta ~ 1, nl = TRUE),
       data = loss, family = gaussian(),
-      priors = set_prior("normal(5000,1000)", class = "Intercept", dpar = "ult") +
+      prior = set_prior("normal(5000,1000)", class = "Intercept", dpar = "ult") +
         set_prior("normal(1,2)", class = "Intercept", dpar = "omega") +
         set_prior("normal(45,10)", class = "Intercept", dpar = "theta"))
 }, "BEHAVIOR",
@@ -381,7 +381,7 @@ bv("post", "SAMPLE: loo_compare(loo(fit_zinb1), loo(fit_zinb2))", {
 s_rent1 <- bv("model", "SAMPLE: fit_rent1", {
   frm_sample(bf(rentsqm ~ t2(area, yearc) + (1 | district)), data = rent,
              family = gaussian(),
-             priors = set_prior("cauchy(0,2)", class = "sd"),
+             prior = set_prior("cauchy(0,2)", class = "sd"),
              chains = 1, iter = 400, warmup = 200, seed = 1,
              cores = 1, refresh = 0)
 }, "BEHAVIOR",
@@ -413,7 +413,7 @@ s_rent2 <- bv("model", "SAMPLE: fit_rent2", {
   frm_sample(bf(rentsqm ~ t2(area, yearc) + (1 | ID1 | district),
                 sigma ~ t2(area, yearc) + (1 | ID1 | district)),
              data = rent, family = gaussian(),
-             priors = set_prior("cauchy(0,2)", class = "sd") +
+             prior = set_prior("cauchy(0,2)", class = "sd") +
                set_prior("lkj(2)", class = "cor"),
              chains = 1, iter = 400, warmup = 200, seed = 1,
              cores = 1, refresh = 0)
@@ -437,7 +437,7 @@ s_loss1 <- bv("model", "SAMPLE: fit_loss1", {
                 ult ~ 1 + (1 | AY), omega ~ 1, theta ~ 1, nl = TRUE),
              data = loss, family = gaussian(),
              start = list(beta = c(5000, 1, 45)),
-             priors = set_prior("normal(5000,1000)", class = "Intercept", dpar = "ult") +
+             prior = set_prior("normal(5000,1000)", class = "Intercept", dpar = "ult") +
                set_prior("normal(1,2)", class = "Intercept", dpar = "omega") +
                set_prior("normal(45,10)", class = "Intercept", dpar = "theta") +
                set_prior("cauchy(0,2)", class = "sd"),

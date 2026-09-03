@@ -16,6 +16,9 @@ draws, so the two agree up to Monte Carlo error on the same model.
 ``` r
 bayes_R2(object, ...)
 
+# S3 method for class 'frmtmb_fit'
+bayes_R2(object, ...)
+
 # S3 method for class 'frmtmb_draws'
 bayes_R2(
   object,
@@ -86,7 +89,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   bayes_R2(ds)
   quantile(bayes_R2(ds, summary = FALSE), c(0.1, 0.9))
 }
-#> frm_sample(): default priors (brms 2.23 defaults; priors = "flat" opts out)
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 0.8, 2.5)
 #>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]

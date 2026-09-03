@@ -217,21 +217,21 @@ under `REML` and under `profile`.
 `autoscale`, `sparse_x`, and `verbose` are different in kind. They
 change the arithmetic or the output, not the model.
 
-|            | REML | quadrature | profile | autoscale | sparse_x | priors | bounds | verbose |
-|:-----------|:----:|:----------:|:-------:|:---------:|:--------:|:------:|:------:|:-------:|
-| REML       |      |     x      |    x    |    \+     |    \+    |   ~    |   x    |   \+    |
-| quadrature |  x   |            |    x    |    \+     |    \+    |   \+   |   \+   |   \+    |
-| profile    |  x   |     x      |         |    \+     |    \+    |   ~    |   x    |   \+    |
-| autoscale  |  \+  |     \+     |   \+    |           |    \+    |   \+   |   \+   |   \+    |
-| sparse_x   |  \+  |     \+     |   \+    |    \+     |          |   \+   |   \+   |   \+    |
-| priors     |  ~   |     \+     |    ~    |    \+     |    \+    |        |   \+   |   \+    |
-| bounds     |  x   |     \+     |    x    |    \+     |    \+    |   \+   |        |   \+    |
-| verbose    |  \+  |     \+     |   \+    |    \+     |    \+    |   \+   |   \+   |         |
+|            | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
+|:-----------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
+| REML       |      |     x      |    x    |    \+     |    \+    |   ~   |   x    |   \+    |
+| quadrature |  x   |            |    x    |    \+     |    \+    |  \+   |   \+   |   \+    |
+| profile    |  x   |     x      |         |    \+     |    \+    |   ~   |   x    |   \+    |
+| autoscale  |  \+  |     \+     |   \+    |           |    \+    |  \+   |   \+   |   \+    |
+| sparse_x   |  \+  |     \+     |   \+    |    \+     |          |  \+   |   \+   |   \+    |
+| prior      |  ~   |     \+     |    ~    |    \+     |    \+    |       |   \+   |   \+    |
+| bounds     |  x   |     \+     |    x    |    \+     |    \+    |  \+   |        |   \+    |
+| verbose    |  \+  |     \+     |   \+    |    \+     |    \+    |  \+   |   \+   |         |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
-| ~ | REML + priors | Priors on fixed effects are accepted under REML while bounds on the same parameters are refused. The two surfaces are inconsistent. Priors on variance parameters behave as expected. |
-| ~ | profile + priors | Priors on the profiled fixed effects are accepted, while bounds on the same parameters are refused. Treat priors under profile with care. |
+| ~ | REML + prior | Priors on fixed effects are accepted under REML while bounds on the same parameters are refused. The two surfaces are inconsistent. Priors on variance parameters behave as expected. |
+| ~ | profile + prior | Priors on the profiled fixed effects are accepted, while bounds on the same parameters are refused. Treat priors under profile with care. |
 | x | REML + quadrature | Refused: quadrature already marginalizes the random effects, so there is no inner problem left for REML to integrate. |
 | x | REML + profile | Refused: profile = TRUE and REML both remove the fixed effects from the outer problem. |
 | x | REML + bounds | Refused: under REML the fixed effects leave the outer parameter vector, so bounds naming them are rejected as unknown parameters. |
@@ -240,16 +240,16 @@ change the arithmetic or the output, not the model.
 
 ### Modes and addition terms
 
-|           | REML | quadrature | profile | autoscale | sparse_x | priors | bounds | verbose |
-|:----------|:----:|:----------:|:-------:|:---------:|:--------:|:------:|:------:|:-------:|
-| weights() |  ?   |     \+     |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| trials()  |  ?   |     ?      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| cens()    |  \+  |     \+     |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| trunc()   |  \+  |     x      |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| se()      |  \+  |     \+     |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| mi()      |  \+  |     x      |   \+    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| vint()    |  ?   |     ?      |    ?    |    \+     |    \+    |   ?    |   ?    |    ?    |
-| vreal()   |  ?   |     ?      |    ?    |    \+     |    \+    |   ?    |   ?    |    ?    |
+|           | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
+|:----------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
+| weights() |  ?   |     \+     |   \+    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| trials()  |  ?   |     ?      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| cens()    |  \+  |     \+     |   \+    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| trunc()   |  \+  |     x      |   \+    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| se()      |  \+  |     \+     |   \+    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| mi()      |  \+  |     x      |   \+    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| vint()    |  ?   |     ?      |    ?    |    \+     |    \+    |   ?   |   ?    |    ?    |
+| vreal()   |  ?   |     ?      |    ?    |    \+     |    \+    |   ?   |   ?    |    ?    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -262,48 +262,48 @@ Only `quadrature` reads the covariance structures. It marginalizes one
 scalar random intercept at a time, so every block in the model must be a
 one-dimensional `us`, `diag`, or `homdiag` term.
 
-|         | REML | quadrature | profile | autoscale | sparse_x | priors | bounds | verbose |
-|:--------|:----:|:----------:|:-------:|:---------:|:--------:|:------:|:------:|:-------:|
-| us      |  \+  |     ~      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| diag    |  \+  |     ~      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| homdiag |  \+  |     ~      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| cs      |  \+  |     x      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| ar1     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| hetar1  |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| ou      |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| toep    |  \+  |     x      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| homtoep |  \+  |     x      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| homcs   |  \+  |     x      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| exp     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| gau     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| mat     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| rr      |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| equalto |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| gr_cov  |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| gr_prec |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| smooth  |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| gp      |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| hsgp    |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| car     |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| spde    |  \+  |     x      |    ?    |    \+     |    \+    |   ~    |   ~    |    ~    |
-| us_t    |  \+  |     ~      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| diag_t  |  \+  |     ~      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
+|         | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
+|:--------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
+| us      |  \+  |     ~      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| diag    |  \+  |     ~      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| homdiag |  \+  |     ~      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| cs      |  \+  |     x      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| ar1     |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| hetar1  |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| ou      |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| toep    |  \+  |     x      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| homtoep |  \+  |     x      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| homcs   |  \+  |     x      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| exp     |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| gau     |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| mat     |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| rr      |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| equalto |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| gr_cov  |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| gr_prec |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| smooth  |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| gp      |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| hsgp    |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| car     |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| spde    |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
+| us_t    |  \+  |     ~      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| diag_t  |  \+  |     ~      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | ~ | us + quadrature; diag + quadrature; homdiag + quadrature | Allowed only when the block is one-dimensional, that is a scalar random intercept. Correlated slopes are refused. Several such blocks are fine, nested ones included: (1 \| ga/gb) becomes an iterated one-dimensional integral. |
-| ~ | ar1 + priors; ar1 + bounds; ar1 + verbose | ar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. Use ou() over num_factor() for irregular spacing. |
-| ~ | hetar1 + priors; hetar1 + bounds; hetar1 + verbose | hetar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. |
-| ~ | ou + priors; ou + bounds; ou + verbose | ou() is the irregular-spacing structure. Build the levels with num_factor() so the metric distance is recoverable. |
-| ~ | exp + priors; exp + bounds; exp + verbose; gau + priors; gau + bounds; and 4 more | Spatial structures need coordinates built with num_factor(x, y). |
-| ~ | rr + priors; rr + bounds; rr + verbose | rr() gives a reduced-rank block; the rank d must not exceed the term dimension. |
-| ~ | equalto + priors; equalto + bounds; equalto + verbose | equalto(x + 0 \| g, V) fixes the term covariance to V, which must be square and match the term dimension, and belongs in data2 = list(V = V). |
-| ~ | gr_cov + priors; gr_cov + bounds; gr_cov + verbose | gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level, and belongs in data2 = list(A = A). Terms sharing an \|ID\| key over the same factor and the same A merge into one such block, which is the same model as writing the traits long with a single gr() term. |
-| ~ | gr_prec + priors; gr_prec + bounds; gr_prec + verbose | gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q). Terms sharing an \|ID\| key over the same factor and the same Q merge into one such block. |
-| ~ | smooth + priors; smooth + bounds; smooth + verbose | smooth is the internal structure behind s() and t2(); it is not written directly in a formula. |
-| ~ | gp + priors; gp + bounds; gp + verbose; hsgp + priors; hsgp + bounds; hsgp + verbose | gp() and hsgp() are predictor specials, not bar terms. Write gp(x), not (gp(x) \| g). |
-| ~ | car + priors; car + bounds; car + verbose | car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = “escar” is the proper CAR, “icar”/“esicar” the intrinsic one under a soft sum-to-zero constraint (con_sd), “bym2” the scaled mixture; escar needs every location to have a neighbor. M belongs in data2 = list(M = M). |
-| ~ | spde + priors; spde + bounds; spde + verbose | spde(fem, gr = node) is a predictor special taking a mesh’s finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes BY ROW NUMBER (whole numbers in 1..nrow(M0), as integers or as a factor/character spelling of them), because the matrices carry no dimnames to match labels against. Unobserved nodes keep their column; a general projector matrix is not supported yet. The matrices belong in data2 = list(fem = fem). |
+| ~ | ar1 + prior; ar1 + bounds; ar1 + verbose | ar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. Use ou() over num_factor() for irregular spacing. |
+| ~ | hetar1 + prior; hetar1 + bounds; hetar1 + verbose | hetar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. |
+| ~ | ou + prior; ou + bounds; ou + verbose | ou() is the irregular-spacing structure. Build the levels with num_factor() so the metric distance is recoverable. |
+| ~ | exp + prior; exp + bounds; exp + verbose; gau + prior; gau + bounds; and 4 more | Spatial structures need coordinates built with num_factor(x, y). |
+| ~ | rr + prior; rr + bounds; rr + verbose | rr() gives a reduced-rank block; the rank d must not exceed the term dimension. |
+| ~ | equalto + prior; equalto + bounds; equalto + verbose | equalto(x + 0 \| g, V) fixes the term covariance to V, which must be square and match the term dimension, and belongs in data2 = list(V = V). |
+| ~ | gr_cov + prior; gr_cov + bounds; gr_cov + verbose | gr(cov = A) accepts correlated slopes; the block covariance is the Kronecker product of A and the term covariance. A needs dimnames covering every grouping level, and belongs in data2 = list(A = A). Terms sharing an \|ID\| key over the same factor and the same A merge into one such block, which is the same model as writing the traits long with a single gr() term. |
+| ~ | gr_prec + prior; gr_prec + bounds; gr_prec + verbose | gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q). Terms sharing an \|ID\| key over the same factor and the same Q merge into one such block. |
+| ~ | smooth + prior; smooth + bounds; smooth + verbose | smooth is the internal structure behind s() and t2(); it is not written directly in a formula. |
+| ~ | gp + prior; gp + bounds; gp + verbose; hsgp + prior; hsgp + bounds; hsgp + verbose | gp() and hsgp() are predictor specials, not bar terms. Write gp(x), not (gp(x) \| g). |
+| ~ | car + prior; car + bounds; car + verbose | car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = “escar” is the proper CAR, “icar”/“esicar” the intrinsic one under a soft sum-to-zero constraint (con_sd), “bym2” the scaled mixture; escar needs every location to have a neighbor. M belongs in data2 = list(M = M). |
+| ~ | spde + prior; spde + bounds; spde + verbose | spde(fem, gr = node) is a predictor special taking a mesh’s finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes BY ROW NUMBER (whole numbers in 1..nrow(M0), as integers or as a factor/character spelling of them), because the matrices carry no dimnames to match labels against. Unobserved nodes keep their column; a general projector matrix is not supported yet. The matrices belong in data2 = list(fem = fem). |
 | ~ | us_t + quadrature; diag_t + quadrature | Allowed for one-dimensional blocks, and RECOMMENDED there: the Gauss-Kronrod rule marginalizes a scalar t latent EXACTLY, where the Laplace default is approximate. Verified against adaptive Gauss-Hermite quadrature to 1e-6 in the log-likelihood and in every estimate. Correlated slopes are refused, as they are for a gaussian block. |
 | x | cs + quadrature; ar1 + quadrature; hetar1 + quadrature; ou + quadrature; toep + quadrature; and 14 more | Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term. |
 
@@ -419,17 +419,17 @@ reshapes a per-row contribution has nothing left to reshape.
 |:---|:---|:---|
 | x | ar() + weights(); ma() + weights(); arma() + weights(); cosy() + weights(); unstr() + weights(); and 25 more | Refused: the group’s density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with ‘Invalid addition arguments for this model’. |
 
-|         | REML | quadrature | profile | autoscale | sparse_x | priors | bounds | verbose |
-|:--------|:----:|:----------:|:-------:|:---------:|:--------:|:------:|:------:|:-------:|
-| ar()    |  \+  |     x      |   \+    |    \+     |    \+    |   ~    |   \+   |   \+    |
-| ma()    |  \+  |     x      |   \+    |    \+     |    \+    |   ~    |   \+   |   \+    |
-| arma()  |  \+  |     x      |   \+    |    \+     |    \+    |   ~    |   \+   |   \+    |
-| cosy()  |  \+  |     x      |   \+    |    \+     |    \+    |   ~    |   \+   |   \+    |
-| unstr() |  \+  |     x      |   \+    |    \+     |    \+    |   ~    |   \+   |   \+    |
+|         | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
+|:--------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
+| ar()    |  \+  |     x      |   \+    |    \+     |    \+    |   ~   |   \+   |   \+    |
+| ma()    |  \+  |     x      |   \+    |    \+     |    \+    |   ~   |   \+   |   \+    |
+| arma()  |  \+  |     x      |   \+    |    \+     |    \+    |   ~   |   \+   |   \+    |
+| cosy()  |  \+  |     x      |   \+    |    \+     |    \+    |   ~   |   \+   |   \+    |
+| unstr() |  \+  |     x      |   \+    |    \+     |    \+    |   ~   |   \+   |   \+    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
-| ~ | ar() + priors; ma() + priors; arma() + priors; cosy() + priors; unstr() + priors | Priors on the fixed effects and on random-effect covariance parameters work as usual. set_prior() cannot target the residual-correlation parameters themselves yet; bounds on thetaac\_\* are the available lever. |
+| ~ | ar() + prior; ma() + prior; arma() + prior; cosy() + prior; unstr() + prior | Priors on the fixed effects and on random-effect covariance parameters work as usual. set_prior() cannot target the residual-correlation parameters themselves yet; bounds on thetaac\_\* are the available lever. |
 | x | ar() + quadrature; ma() + quadrature; arma() + quadrature; cosy() + quadrature; unstr() + quadrature | Refused: the Gauss-Kronrod rule integrates a random effect against per-observation densities, and this residual is a joint density over each group. |
 
 |         | mvbf | rescor | \|ID\| | nl  | mixture | mixture_mvn | hmm | lca |
@@ -450,14 +450,14 @@ reshapes a per-row contribution has nothing left to reshape.
 
 ## Predictor specials
 
-|           | REML | quadrature | profile | autoscale | sparse_x | priors | bounds | verbose |
-|:----------|:----:|:----------:|:-------:|:---------:|:--------:|:------:|:------:|:-------:|
-| s()       |  ?   |     x      |    ?    |     ?     |    \+    |   ?    |   ?    |    ?    |
-| t2()      |  ?   |     x      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| mo()      |  \+  |     ?      |   \+    |     ?     |    ?     |   ?    |   ?    |    ?    |
-| mi_pred() |  ?   |     ?      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
-| gp_pred() |  \+  |     x      |    ?    |     ?     |    ?     |   ?    |   ?    |    ?    |
-| cs_pred() |  ?   |     ?      |    ?    |    \+     |    \+    |   ?    |   ?    |   \+    |
+|           | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
+|:----------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
+| s()       |  ?   |     x      |    ?    |     ?     |    \+    |   ?   |   ?    |    ?    |
+| t2()      |  ?   |     x      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| mo()      |  \+  |     ?      |   \+    |     ?     |    ?     |   ?   |   ?    |    ?    |
+| mi_pred() |  ?   |     ?      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+| gp_pred() |  \+  |     x      |    ?    |     ?     |    ?     |   ?   |   ?    |    ?    |
+| cs_pred() |  ?   |     ?      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|

@@ -2,10 +2,13 @@
 % Please edit documentation in R/loo.R
 \name{bayes_R2}
 \alias{bayes_R2}
+\alias{bayes_R2.frmtmb_fit}
 \alias{bayes_R2.frmtmb_draws}
 \title{Bayesian R-squared}
 \usage{
 bayes_R2(object, ...)
+
+\method{bayes_R2}{frmtmb_fit}(object, ...)
 
 \method{bayes_R2}{frmtmb_draws}(
   object,

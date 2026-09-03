@@ -408,6 +408,31 @@ test_that("the refit and marginal-likelihood methods refuse with a reason", {
   expect_error(post_prob(fd), "posterior model probability")
 })
 
+test_that("the draws-only estimators refuse a fit with a pointer", {
+  dd <- ll_data()
+  uf <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
+            dry_run = "objective")
+  class(uf) <- "frmtmb_fit"
+  expect_error(loo(uf), "posterior quantity")
+  expect_error(waic(uf), "no importance|averages the likelihood")
+  expect_error(bayes_R2(uf), "per posterior draw")
+  expect_error(LOO(uf), "deprecated brms spelling, and on a")
+  expect_error(WAIC(uf), "deprecated brms spelling, and it averages")
+  expect_error(expose_functions(uf), "no Stan program to read")
+})
+
+test_that("multi-model loo() and the draws-surface odd ends refuse", {
+  dd <- ll_data()
+  uf <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
+            dry_run = "objective")
+  fd <- fake_draws(uf)
+  expect_error(loo(fd, fd), "one model here")
+  expect_error(waic(fd, fd), "one model here")
+  expect_error(plot(fd), "mcmc_plot")
+  expect_error(update(fd), "no formula to revise")
+  expect_error(rescor_matrix(fd), "fitted point estimate")
+})
+
 ## ---- brms cross-check (opt-in; compiles Stan) ------------------------
 
 test_that("loo() and log_lik() agree with brms on the same model", {

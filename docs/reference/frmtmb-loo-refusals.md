@@ -66,7 +66,7 @@ These functions never return; they signal an error.
 - `bridge_sampler()`, `bayes_factor()` and `post_prob()` are
   marginal-likelihood quantities. A marginal likelihood is an integral
   against the PRIOR, so it is undefined under the flat improper priors
-  `frm_sample(fit)` uses, and even with proper `priors =` the
+  `frm_sample(fit)` uses, and even with a proper `prior =` the
   bridge-sampling estimator needs a normalized log-posterior evaluator
   that the RTMB tape does not expose.
 

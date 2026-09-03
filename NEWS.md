@@ -1,3 +1,107 @@
+# frmtmb 0.43.0
+
+The prior interface speaks brms, ar1() evaluates in linear time, the
+brms vignettes are measured call by call, and parallel chains work on
+Windows.
+
+## The prior interface
+
+* `frm()`, `frm_sample()` and `frm_simulate()` take `prior =`, brms's
+  spelling. The `priors =` of earlier releases is renamed, not
+  aliased: no ecosystem spells it `priors`, and the package is
+  pre-release. A stale `frm(priors =)` fails as an unused argument;
+  `frm_sample()`, whose `...` would otherwise pass the name to
+  tmbstan and fit with no priors at all, refuses it by name. The fit
+  object's field is `fit$prior`, as `brmsfit$prior` is.
+* New `prior()`, `prior_()` and `prior_string()`, brms's
+  constructors. `prior(normal(5000, 1000), nlpar = "ult")` quotes its
+  first argument and reaches the same machinery `set_prior()` does.
+  `tag` and `check` are deliberately absent: both are Stan-program
+  concerns.
+* A `brmsprior` object built by brms itself is translated row by row
+  wherever a prior is accepted, so a specification copied out of a
+  brms script works even when brms is attached and its `prior()`
+  masks frmtmb's. Rows with no faithful frmtmb meaning are refused by
+  name rather than turned into a different density: a `tag`, brms's
+  mixture `theta` (frmtmb's `theta` is the raw covariance vector),
+  and the per-dpar classes such as `sigma`, whose density brms puts
+  on the parameter and frmtmb's nearest spelling puts on the link
+  scale. brms's own default rows are dropped with a message, because
+  frmtmb chooses its own defaults.
+* `set_prior()` gains `nlpar` and `resp`, and its argument order now
+  follows brms's (`prior, class, coef, group, resp, dpar, nlpar, lb,
+  ub`). Under `nlpar`, class `"b"` covers a nonlinear parameter's
+  whole coefficient vector, intercept included, because its
+  sub-formula is not centered; that is what makes the brms nonlinear
+  vignette's insurance-loss priors land. `nlpar` also narrows classes
+  `"sd"` and `"cor"`, separating two blocks on one grouping factor
+  that `group` alone cannot tell apart. `get_prior()` gains an
+  `nlpar` column.
+* The formula route of `frm_sample()` no longer invents a location
+  default for a nonlinear parameter's intercept. brms leaves those
+  flat, and the response's median and mad describe nothing about a
+  rate or a shape inside a nonlinear body; the disclosure message
+  names the parameters left flat.
+
+## Linear-time ar1()
+
+* `ar1()` and `hetar1()` evaluate their density at linear cost in the
+  block dimension instead of building a dense `d x d` covariance and
+  factorizing it on the tape. The density, and therefore every fitted
+  value, standard error and prior, is unchanged: the new form agrees
+  with the old computation to 2.3e-12 in value and 2.2e-9 in
+  gradient, gated by a test that keeps the old dense code inline.
+  The speedup is orders of magnitude once blocks are large
+  (milliseconds where the dense form took seconds at d = 800, and
+  tens of seconds at d = 2000); `dev/sparsear1-bench.R` measures it
+  on the host at hand.
+* A long time series is now an ordinary `ar1()` block. The
+  multivariate stochastic-volatility model of Skaug and Yu (2014)
+  fits at its published 945 time points in seconds, agreeing with the
+  upstream TMB reference to 8.5e-9, with a slightly better optimum
+  than the reference's own cold start reaches.
+
+## The brms vignettes, measured
+
+* `dev/brms-vignettes/` translates the brms vignettes call by call,
+  each model down both paths: the maximum-likelihood fit with its
+  post-processing surface, and `frm_sample()` with the posterior
+  workflow. Every one of 567 calls carries a label (clean, spelling,
+  behavior, missing, or refusal), and
+  `dev/brms-vignette-audit.md` holds the measured scoreboard: about
+  7 of 10 model calls port unchanged, about 4 of 10 of all calls.
+  README's port claim now states both figures.
+* The audit's cheapest finding is applied: the draws and fit surfaces
+  refuse with named replacements where they previously failed bare.
+  `loo()`, `waic()`, `bayes_R2()`, `LOO()` and `WAIC()` on a
+  maximum-likelihood fit now say to sample first or use `AIC()`;
+  `loo(a, b)` says comparison belongs to `loo_compare()`;
+  `plot()` on draws names `mcmc_plot()`; `update()` on draws says to
+  update the fit and re-sample; `rescor_matrix()` on draws names the
+  fit; `expose_functions()` on a fit gets the same refusal draws
+  already had.
+* `conditional_effects(method = "predict")` now works on a nonlinear
+  predictor. The guard that refused it asked for a standard error
+  that `method = "predict"` never uses: its band is a quantile of
+  simulated responses. This is what the brms nonlinear vignette's
+  facet-per-year display calls; the same call is also about a third
+  faster on every model, because the dead standard-error computation
+  is gone.
+
+## Parallel chains on Windows
+
+* `frm_sample(cores = )` parallelizes chains on Windows instead of
+  falling back to sequential sampling. The old guard claimed socket
+  workers cannot evaluate the RTMB tape; in fact tmbstan rebuilds the
+  tape on each worker from the serialized objective closure, and
+  frmtmb's generated closures are self-contained, so the rebuild
+  works and the draws are identical to a sequential run at the same
+  seed. The remaining cost is a fixed several seconds of startup per
+  worker, which a message now states; short chains gain nothing,
+  long chains approach a per-chain speedup. One caveat: a
+  `devtools::load_all()` development namespace cannot be rebuilt on
+  a worker, so parallel chains need the installed package.
+
 # frmtmb 0.42.0
 
 The TMB-examples replication audit, and REML's semantics documented

@@ -1,11 +1,11 @@
 # frmtmb for brms users
 
 frmtmb reimplements a documented subset of the brms grammar with
-identical spelling, so brms model code ports mechanically: drop the
-priors, change `brm()` to
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md), and get a
-maximum-likelihood fit in milliseconds-to-seconds instead of an MCMC
-run. Estimation is ML (or REML) with the Laplace approximation for
+identical spelling, so brms model code ports mechanically: change
+`brm()` to
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md), keep or
+drop the priors, and get a fit in milliseconds-to-seconds instead of an
+MCMC run. Estimation is ML (or REML) with the Laplace approximation for
 latent effects; inference is frequentist (Wald and profile intervals,
 likelihood-ratio tests, AIC).
 
@@ -31,9 +31,47 @@ likelihood-ratio tests, AIC).
 
 ## What changes
 
-- `brm(...)` becomes `frm(...)`; there are no priors, chains, or warmup.
+- `brm(...)` becomes `frm(...)`; there are no chains or warmup, and a
+  plain call is maximum likelihood rather than a posterior.
   `REML = TRUE` replaces priors as the small-sample correction for
   variance components.
+
+- A `prior = c(prior(...), prior(...))` argument is kept as it stands.
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) spells
+  the argument `prior`, as brms does, and
+  [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md),
+  [`prior_()`](https://aforren1.github.io/frmtmb/reference/prior.md) and
+  [`prior_string()`](https://aforren1.github.io/frmtmb/reference/prior.md)
+  build the same specification
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  does; a prior object that brms itself built is translated row by row,
+  so the argument works whichever package’s
+  [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md) was
+  in scope.
+
+  What the fit MEANS changes. `frm(prior = )` is MAP: the density is a
+  PENALTY on the likelihood and the answer is one mode, not a posterior,
+  so the reported log likelihood, AIC and
+  [`anova()`](https://rdrr.io/r/stats/anova.html) are penalized
+  quantities. The estimates land close where the priors are weak: a
+  kidney model with brms’s own priors gives `sd(patient)` 0.38 against
+  brms’s posterior mean of 0.40. But “close” is a measurement, not a
+  guarantee, and the two numbers are not the same quantity. Read a prior
+  here as regularization.
+
+  A prior class frmtmb cannot mean the same way brms does (`sigma`,
+  brms’s mixture `theta`) is refused by name rather than translated into
+  something else.
+
+- Priors do NOT replace `start` on a nonlinear model. brms uses the
+  priors to place its sampler;
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md)
+  optimizes, and the objective is still evaluated at the zero starting
+  values first, where a nonlinear body is usually undefined. Supply
+  `start = list(beta = c(...))`, reading the brms model’s own prior
+  means straight across as the starting values; the refusal names
+  `start` when you do not.
+
 - Posterior summaries become ML estimates:
   [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md)
   returns point estimates,
@@ -42,17 +80,20 @@ likelihood-ratio tests, AIC).
   gives likelihood-ratio tests, and
   [`AIC()`](https://rdrr.io/r/stats/AIC.html)/[`BIC()`](https://rdrr.io/r/stats/AIC.html)
   replace [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md).
+
 - [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
   becomes [`simulate()`](https://rdrr.io/r/stats/simulate.html);
   [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
   over `newdata` becomes `predict(newdata, type = "response")`. On a
   `cens()` response both draw the LATENT uncensored value, as brms does;
   `simulate(censored = TRUE)` applies the censoring mechanism instead.
+
 - `sample_prior = "only"` plus
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-  becomes `frm_simulate(formula, data, priors = set_prior(...))`, which
+  becomes `frm_simulate(formula, data, prior = set_prior(...))`, which
   draws a parameter vector per simulation and returns it alongside the
   responses.
+
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
   predictors, `mi(sdx)` measurement error (the `me()` replacement, as in
   current brms), `cs()` category-specific ordinal effects, `gp(x)` /
@@ -74,6 +115,7 @@ likelihood-ratio tests, AIC).
   fits with the D1, D2 and D3 rules of `mice` (D3 by default). Mixture
   fits are ML: expect multimodality, compare starts
   ([`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)).
+
 - [`binomial()`](https://rdrr.io/r/stats/family.html) without `trials()`
   is accepted and means Bernoulli, the
   [`stats::glm()`](https://rdrr.io/r/stats/glm.html) convention; brms
@@ -81,16 +123,20 @@ likelihood-ratio tests, AIC).
   [`bernoulli()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md).
   The divergence is permissive, so brms code ports unchanged, but frmtmb
   code written this way does not port back.
+
 - [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`, `cosy()`
   and `unstr()` are supported in their covariance form only; see the
   next section.
+
 - glmer’s proportion-response idiom (`weights = size`) becomes
   `y | trials(size)` with either proportions or counts;
   [`weights()`](https://rdrr.io/r/stats/weights.html) in the formula
   stays a frequency weight, as in brms.
+
 - `se()` works as in brms (meta-analysis), including
   `se(x, sigma = TRUE)` and the phylogenetic version with
   `gr(g, cov = A)`.
+
 - `mm()` ports with its `weights =` and `scale =` arguments and with
   `mmc()`; its other arguments have different spellings here (below).
 

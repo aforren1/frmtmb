@@ -89,7 +89,7 @@ frmtmb_control(
   distinct values; intercepts, factor contrasts, smooth bases, and
   mo()/mi() columns are never touched, and the whole step is a silent
   no-op when nothing qualifies. Compatible with `profile = TRUE`. Under
-  `priors` or bounds, the first stage applies them to the scaled
+  `prior` or bounds, the first stage applies them to the scaled
   coefficients; the second stage is the fit that is reported.
 
 - check_nlev_1:
@@ -130,7 +130,7 @@ frmtmb_control(
   `se = TRUE`, and a closing line with the objective, the maximum
   absolute gradient, and the number of convergence warnings. The fit
   itself opens with a line naming the family, the mode (ML or REML, plus
-  profile, quadrature, autoscale, priors), and the optimizer. `2` adds
+  profile, quadrature, autoscale, prior), and the optimizer. `2` adds
   the optimizer's own trace, by setting `optCtrl$trace` unless you set
   it yourself. That trace is printed by
   [`stats::nlminb()`](https://rdrr.io/r/stats/nlminb.html) /

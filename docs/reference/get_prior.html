@@ -5,7 +5,7 @@ pass to set_prior(). The default in every slot is flat (this is
 maximum likelihood until priors are set; the formula route of
 frm_sample() has its own brms defaults, which
 prior_summary() reports). Classes &quot;sd&quot; and &quot;cor&quot; are targeted
-by group only; class &quot;theta&quot; rows name the raw internal
+by group and nlpar; class &quot;theta&quot; rows name the raw internal
 covariance parameters (escape hatch, including correlations one at a
 time)."><meta property="og:description" content="The set_prior() counterpart of brms's get_prior(): one row per
 slot a prior can target, with the class/coef/dpar/group values to
@@ -13,7 +13,7 @@ pass to set_prior(). The default in every slot is flat (this is
 maximum likelihood until priors are set; the formula route of
 frm_sample() has its own brms defaults, which
 prior_summary() reports). Classes &quot;sd&quot; and &quot;cor&quot; are targeted
-by group only; class &quot;theta&quot; rows name the raw internal
+by group and nlpar; class &quot;theta&quot; rows name the raw internal
 covariance parameters (escape hatch, including correlations one at a
 time)."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -23,7 +23,7 @@ time)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,7 +72,7 @@ pass to <code><a href="set_prior.html">set_prior()</a></code>. The default in ev
 maximum likelihood until priors are set; the formula route of
 <code><a href="frm_sample.html">frm_sample()</a></code> has its own brms defaults, which
 <code><a href="prior_summary.html">prior_summary()</a></code> reports). Classes <code>"sd"</code> and <code>"cor"</code> are targeted
-by <code>group</code> only; class <code>"theta"</code> rows name the raw internal
+by <code>group</code> and <code>nlpar</code>; class <code>"theta"</code> rows name the raw internal
 covariance parameters (escape hatch, including correlations one at a
 time).</p>
     </div>
@@ -108,7 +108,14 @@ fit).</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame with columns <code>prior</code>, <code>class</code>, <code>coef</code>,
-<code>group</code>, <code>dpar</code>, <code>resp</code>, <code>lb</code>, <code>ub</code>.</p>
+<code>group</code>, <code>dpar</code>, <code>nlpar</code>, <code>resp</code>, <code>lb</code>, <code>ub</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>A nonlinear parameter's coefficients are listed under class <code>"b"</code>
+with its name in the <code>nlpar</code> column, the intercept among them, which
+is how brms lists them and what <code><a href="set_prior.html">set_prior()</a></code> addresses (see its
+Nonlinear parameters section).</p>
     </div>
 
     <div class="section level2">
@@ -116,15 +123,15 @@ fit).</p></dd>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">60</span><span class="op">)</span>, x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">60</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                 g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">get_prior</span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    prior     class    coef group  dpar resp lb ub</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (flat) Intercept                          NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 (flat)         b                          NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (flat)         b       x                  NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (flat) Intercept               sigma      NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 (flat)        sd                          NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 (flat)        sd             g            NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7 (flat)     theta                          NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8 (flat)     theta theta_1                  NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    prior     class    coef group  dpar nlpar resp lb ub</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (flat) Intercept                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 (flat)         b                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (flat)         b       x                        NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (flat) Intercept               sigma            NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 (flat)        sd                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 (flat)        sd             g                  NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7 (flat)     theta                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8 (flat)     theta theta_1                        NA NA</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

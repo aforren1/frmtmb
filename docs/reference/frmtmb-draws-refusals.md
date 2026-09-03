@@ -24,6 +24,15 @@ expose_functions(x, ...)
 # S3 method for class 'frmtmb_draws'
 expose_functions(x, ...)
 
+# S3 method for class 'frmtmb_fit'
+expose_functions(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+plot(x, ...)
+
+# S3 method for class 'frmtmb_draws'
+update(object, ...)
+
 restructure(x, ...)
 
 # S3 method for class 'frmtmb_draws'

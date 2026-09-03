@@ -453,10 +453,25 @@ identical spelling:
 dpar formulas, `nl = TRUE`, aterm names (`weights`, `trials`, `cens`,
 `trunc`, `se`, `rate`), RE specials (`gr`, `mm`), and `s()`/`t2()`.
 Unsupported brms terms fail at parse time with a clear message naming
-the term. brms code with priors removed should port mechanically.
-Attaching brms alongside frmtmb masks
-[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md); ordinary R
-masking rules apply.
+the term. brms code ports mechanically, priors included:
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md),
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+and
+[`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+spell the argument `prior`, as brms does;
+[`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md),
+[`prior_()`](https://aforren1.github.io/frmtmb/reference/prior.md) and
+[`prior_string()`](https://aforren1.github.io/frmtmb/reference/prior.md)
+build the specification
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+does, and a prior object brms itself built is translated row by row. A
+prior is a PENALTY here, so the fit is MAP, not a posterior. A brms
+prior class with no faithful frmtmb spelling is refused by name rather
+than turned into a different density. Attaching brms alongside frmtmb
+masks [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) and
+[`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md);
+ordinary R masking rules apply, and the translation is what makes the
+masked case work anyway.
 
 ## 6. Milestones
 

@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,7 @@ Laplace approximation for random effects through RTMB.</p>
 <span>  na.action <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span>,</span>
 <span>  lower <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  upper <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  priors <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  prior <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  quadrature <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  data2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  dry_run <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -169,13 +169,31 @@ that carries several coefficients is refused rather than resolved
 to one of them.</p></dd>
 
 
-<dt id="arg-priors">priors<a class="anchor" aria-label="anchor" href="#arg-priors"></a></dt>
+<dt id="arg-prior">prior<a class="anchor" aria-label="anchor" href="#arg-prior"></a></dt>
 <dd><p>Optional <code><a href="set_prior.html">set_prior()</a></code> specification. This makes the
 fit MAP / regularized ML (glmmTMB's <code>priors=</code> in spirit): useful
 for stabilizing singular variance components or separating
 binomials. The reported logLik/AIC then include the prior terms
 and are penalized quantities, and <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> comparisons across
-different priors are meaningless.</p></dd>
+different priors are meaningless. A <code>brmsprior</code> object built by
+brms's own <code><a href="prior.html">prior()</a></code> is translated row by row, so priors copied
+out of a brms script work whichever package's <code><a href="prior.html">prior()</a></code> was in
+scope. The argument takes brms's spelling, <code>prior</code>; the <code>priors</code>
+of releases before 0.43 is gone rather than aliased, and a call
+still using it fails as an unused argument.</p>
+<p><em>The spelling is brms's; the SEMANTICS are not.</em> A prior here is a
+penalty on the likelihood and the answer is one mode. It is not a
+posterior, and no interval this fit reports is a credible
+interval. The two land close where the data dominates: a kidney
+frailty model given brms's own priors returns <code>sd(patient)</code> 0.38
+against brms's posterior mean of 0.40. That is a measurement on
+one model, though, not a property of the translation. Use
+<code><a href="frm_sample.html">frm_sample()</a></code> when the posterior is the answer.</p>
+<p><em>A prior does not replace <code>start</code> on a nonlinear model.</em> brms uses
+its priors to place the sampler; <code>frm()</code> optimizes, and it
+evaluates the objective at the starting values first, where a
+nonlinear body usually is not defined. The prior means read across
+as starting values: <code>start = list(beta = c(5000, 1, 45))</code>.</p></dd>
 
 
 <dt id="arg-quadrature">quadrature<a class="anchor" aria-label="anchor" href="#arg-quadrature"></a></dt>

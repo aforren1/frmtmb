@@ -17,7 +17,7 @@ frm_sample(
   data = NULL,
   family = NULL,
   ...,
-  priors = NULL,
+  prior = NULL,
   lower = NULL,
   upper = NULL,
   init = NULL,
@@ -53,15 +53,17 @@ frm_sample(
 
   Passed to
   [`tmbstan::tmbstan()`](https://rdrr.io/pkg/tmbstan/man/tmbstan.html)
-  (`chains`, `iter`, `laplace`, `cores`, ...). On Windows more than one
-  core falls back to sequential chains with a warning: parallel chains
-  run on socket workers, which can evaluate neither the RTMB tape nor
-  the objective closure (the known RTMB limitation of tmbstan,
-  tmbstan#27). The fallback also covers a core count inherited from
-  `options(mc.cores)`, which is what rstan reads when `cores` is not
-  given. Fork clusters on unix can, so `cores` works there.
+  (`chains`, `iter`, `laplace`, `cores`, ...). `cores` parallelizes over
+  chains on every platform. On Windows the chains run on socket workers,
+  each of which rebuilds the tape from the serialized objective closure
+  (tmbstan retapes on the worker; the closures are self-contained),
+  giving draws identical to a sequential run at the same seed. The
+  per-worker startup (a new R process, package load, retape) is a fixed
+  several seconds, so short chains gain nothing; long chains approach a
+  per-chain speedup. A core count inherited from `options(mc.cores)`,
+  which rstan reads when `cores` is not given, behaves the same way.
 
-- priors:
+- prior:
 
   Priors: a
   [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
@@ -73,7 +75,13 @@ frm_sample(
   unchanged. On the fit path a parameter without a prior keeps a flat
   improper one. On the formula path the brms default priors apply to
   whatever the specification leaves alone (see Default priors), and
-  `priors = "flat"` opts out of them entirely.
+  `prior = "flat"` opts out of them entirely. A `brmsprior` object built
+  by brms's own
+  [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md) is
+  translated row by row. The argument takes brms's spelling, `prior`;
+  the `priors` of releases before 0.43 is gone rather than aliased, and
+  because this function's `...` would otherwise swallow it, the old name
+  is refused by name.
 
 - lower, upper:
 
@@ -365,16 +373,22 @@ message whenever the model has one.
   [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
   does not carry.
 
-- MULTIVARIATE models get no defaults at all, because
-  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
-  cannot address one response of several.
+- NONLINEAR parameters stay flat, which is what brms does: their
+  coefficients are class `b`, and the response's median and mad say
+  nothing about a rate or a shape sitting inside a nonlinear body. Write
+  them with `set_prior(nlpar = )`, as the brms nonlinear vignette does.
+
+- MULTIVARIATE models get no defaults at all: the default location and
+  scale are read off ONE response, and frmtmb does not read them per
+  response. `set_prior(resp = )` addresses one response, so they can be
+  written by hand.
 
 *Overriding and opting out.* A
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
 specification takes over the classes it names and leaves the other
 defaults in place, which is brms's partial-override rule; a named list
 of prior objects takes over exactly the internal parameters it names.
-`priors = "flat"` turns the defaults off entirely and samples the
+`prior = "flat"` turns the defaults off entirely and samples the
 likelihood, which warns when the model has variance components: their
 flat-prior posteriors need not be proper, and neither the chains nor
 Rhat can see that.
@@ -415,7 +429,7 @@ fixef(ds2)
 # leaves the rest of the defaults alone
 ds3 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
                   chains = 1, iter = 500, refresh = 0,
-                  priors = set_prior("exponential(1)", class = "sd"))
+                  prior = set_prior("exponential(1)", class = "sd"))
 prior_summary(ds3)
 }
 #> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
@@ -430,7 +444,7 @@ prior_summary(ds3)
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#> frm_sample(): default priors (brms 2.23 defaults; priors = "flat" opts out)
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 1, 2.5)
 #>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
@@ -444,7 +458,7 @@ prior_summary(ds3)
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#> frm_sample(): default priors (brms 2.23 defaults; priors = "flat" opts out)
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 1, 2.5)
 #>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
 #>   b                  (flat), as brms leaves slopes

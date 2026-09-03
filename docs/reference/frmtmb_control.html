@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -137,7 +137,7 @@ they are parametric and take more than two distinct values;
 intercepts, factor contrasts, smooth bases, and mo()/mi() columns
 are never touched, and the whole step is a silent no-op when
 nothing qualifies. Compatible with <code>profile = TRUE</code>. Under
-<code>priors</code> or bounds, the first stage applies them to the scaled
+<code>prior</code> or bounds, the first stage applies them to the scaled
 coefficients; the second stage is the fit that is reported.</p></dd>
 
 
@@ -180,7 +180,7 @@ pre-fit, tape construction, each optimizer run and restart,
 objective, the maximum absolute gradient, and the number of
 convergence warnings. The fit itself opens with a line naming the
 family, the mode (ML or REML, plus profile, quadrature, autoscale,
-priors), and the optimizer. <code>2</code> adds the optimizer's own trace, by
+prior), and the optimizer. <code>2</code> adds the optimizer's own trace, by
 setting <code>optCtrl$trace</code> unless you set it yourself. That trace is
 printed by <code><a href="https://rdrr.io/r/stats/nlminb.html" class="external-link">stats::nlminb()</a></code> / <code><a href="https://rdrr.io/r/stats/optim.html" class="external-link">stats::optim()</a></code> to standard
 output, not through <code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code>, and a custom optimizer function

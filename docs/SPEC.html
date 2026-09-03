@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -294,7 +294,7 @@ frmtmb_fit                                         S3 fit object</code></pre>
 </div>
 <div class="section level2">
 <h2 id="id_5-grammar-compatibility">5. Grammar compatibility<a class="anchor" aria-label="anchor" href="#id_5-grammar-compatibility"></a></h2>
-<p>frmtmb reimplements a documented subset of the brms grammar with identical spelling: <code><a href="reference/bf.html">bf()</a></code>, <code><a href="reference/lf.html">lf()</a></code>, <code><a href="reference/nlf.html">nlf()</a></code>, <code><a href="reference/mvbf.html">mvbf()</a></code>, <code><a href="reference/mvbf.html">set_rescor()</a></code>, dpar formulas, <code>nl = TRUE</code>, aterm names (<code>weights</code>, <code>trials</code>, <code>cens</code>, <code>trunc</code>, <code>se</code>, <code>rate</code>), RE specials (<code>gr</code>, <code>mm</code>), and <code>s()</code>/<code>t2()</code>. Unsupported brms terms fail at parse time with a clear message naming the term. brms code with priors removed should port mechanically. Attaching brms alongside frmtmb masks <code><a href="reference/bf.html">bf()</a></code>; ordinary R masking rules apply.</p>
+<p>frmtmb reimplements a documented subset of the brms grammar with identical spelling: <code><a href="reference/bf.html">bf()</a></code>, <code><a href="reference/lf.html">lf()</a></code>, <code><a href="reference/nlf.html">nlf()</a></code>, <code><a href="reference/mvbf.html">mvbf()</a></code>, <code><a href="reference/mvbf.html">set_rescor()</a></code>, dpar formulas, <code>nl = TRUE</code>, aterm names (<code>weights</code>, <code>trials</code>, <code>cens</code>, <code>trunc</code>, <code>se</code>, <code>rate</code>), RE specials (<code>gr</code>, <code>mm</code>), and <code>s()</code>/<code>t2()</code>. Unsupported brms terms fail at parse time with a clear message naming the term. brms code ports mechanically, priors included: <code><a href="reference/frm.html">frm()</a></code>, <code><a href="reference/frm_sample.html">frm_sample()</a></code> and <code><a href="reference/frm_simulate.html">frm_simulate()</a></code> spell the argument <code>prior</code>, as brms does; <code><a href="reference/prior.html">prior()</a></code>, <code><a href="reference/prior.html">prior_()</a></code> and <code><a href="reference/prior.html">prior_string()</a></code> build the specification <code><a href="reference/set_prior.html">set_prior()</a></code> does, and a prior object brms itself built is translated row by row. A prior is a PENALTY here, so the fit is MAP, not a posterior. A brms prior class with no faithful frmtmb spelling is refused by name rather than turned into a different density. Attaching brms alongside frmtmb masks <code><a href="reference/bf.html">bf()</a></code> and <code><a href="reference/prior.html">prior()</a></code>; ordinary R masking rules apply, and the translation is what makes the masked case work anyway.</p>
 </div>
 <div class="section level2">
 <h2 id="id_6-milestones">6. Milestones<a class="anchor" aria-label="anchor" href="#id_6-milestones"></a></h2>

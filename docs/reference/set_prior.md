@@ -13,8 +13,10 @@ set_prior(
   prior = "",
   class = "b",
   coef = "",
-  dpar = "",
   group = "",
+  resp = "",
+  dpar = "",
+  nlpar = "",
   lb = NA,
   ub = NA
 )
@@ -36,13 +38,22 @@ set_prior(
 
   Restrict to one coefficient (classes `"b"`/`"Intercept"`).
 
+- group:
+
+  Restrict class `"sd"` or `"cor"` to one grouping factor.
+
+- resp:
+
+  Response of a multivariate model.
+
 - dpar:
 
   Distributional parameter (default: the location parameters).
 
-- group:
+- nlpar:
 
-  Restrict class `"sd"` or `"cor"` to one grouping factor.
+  Nonlinear parameter of an `nl = TRUE` formula. See Nonlinear
+  parameters.
 
 - lb, ub:
 
@@ -107,6 +118,40 @@ is renormalized over that window. `toep()` is refused: its
 parameterization is not positive definite everywhere, so it has no
 correlation matrix to put a density on.
 
+## Nonlinear parameters
+
+`nlpar` addresses one parameter of an `nl = TRUE` formula, brms's
+spelling: `set_prior("normal(5000, 1000)", nlpar = "ult")`, or
+`prior(normal(5000, 1000), nlpar = "ult")`. Class `"b"` there covers
+EVERY coefficient of that parameter, its intercept included, because a
+nonlinear parameter's sub-formula is not centered and brms holds its
+intercept in the same coefficient vector as its slopes. That is why the
+vignette spelling above lands on `ult_(Intercept)` rather than on
+nothing. Narrow to one column with `coef` (`"Intercept"` and
+`"(Intercept)"` both name the intercept), or write
+`class = "Intercept", nlpar = "ult"`, which is frmtmb's spelling of the
+same slot. `nlpar` narrows classes `"sd"` and `"cor"` to the
+random-effect blocks of that parameter as well.
+
+An identification prior does NOT stand in for
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md)'s `start`.
+brms places its sampler with the priors;
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) optimizes,
+and it evaluates the objective at the starting values before any penalty
+can steer it, which for a nonlinear body usually means an undefined
+likelihood at zero. The prior means read across as starting values, and
+the refusal names `start` when they are missing.
+
+`resp` picks one response of a multivariate model; the default priors of
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+still stay off there (see its Default priors section), so a multivariate
+model's priors are the ones written by hand.
+
+brms's `tag` and `check` have no counterpart: `tag` names a prior for
+reuse inside a Stan program, and `check` passes an unchecked string
+through to one. frmtmb compiles no Stan program, so both are omitted
+rather than accepted and ignored.
+
 ## Examples
 
 ``` r
@@ -126,7 +171,7 @@ pr
 #> exponential(1) class=sd group=g
 
 # the priors penalize the likelihood: the fit is a MAP estimate
-fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, priors = pr)
+fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, prior = pr)
 fixef(fit)$mu
 #> (Intercept)           x           z 
 #>  1.43922922  0.56382992  0.05323151 
@@ -144,7 +189,7 @@ set_prior("", class = "b", coef = "x", lb = 0)
 dd$z <- rnorm(100)
 dd$y2 <- dd$y + rnorm(10, 0, 0.6)[dd$g] * dd$z
 fitc <- frm(bf(y2 ~ x + z + (z | g)) + gaussian(), data = dd,
-            priors = set_prior("lkj(4)", class = "cor"))
+            prior = set_prior("lkj(4)", class = "cor"))
 VarCorr(fitc)
 #>   z | g 
 #>         Name Std.Dev. (Intercept)
@@ -153,14 +198,19 @@ VarCorr(fitc)
 
 # get_prior() shows which rows a design offers
 get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
-#>    prior     class    coef group  dpar resp lb ub
-#> 1 (flat) Intercept                          NA NA
-#> 2 (flat)         b                          NA NA
-#> 3 (flat)         b       x                  NA NA
-#> 4 (flat)         b       z                  NA NA
-#> 5 (flat) Intercept               sigma      NA NA
-#> 6 (flat)        sd                          NA NA
-#> 7 (flat)        sd             g            NA NA
-#> 8 (flat)     theta                          NA NA
-#> 9 (flat)     theta theta_1                  NA NA
+#>    prior     class    coef group  dpar nlpar resp lb ub
+#> 1 (flat) Intercept                                NA NA
+#> 2 (flat)         b                                NA NA
+#> 3 (flat)         b       x                        NA NA
+#> 4 (flat)         b       z                        NA NA
+#> 5 (flat) Intercept               sigma            NA NA
+#> 6 (flat)        sd                                NA NA
+#> 7 (flat)        sd             g                  NA NA
+#> 8 (flat)     theta                                NA NA
+#> 9 (flat)     theta theta_1                        NA NA
+
+# prior() quotes its first argument, brms's spelling, and reaches
+# the same machinery
+prior(normal(0, 1), class = "b")
+#> normal(0, 1) class=b
 ```

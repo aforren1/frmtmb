@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,39 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.43.0" id="frmtmb-0430">frmtmb 0.43.0<a class="anchor" aria-label="anchor" href="#frmtmb-0430"></a></h2>
+<p>The prior interface speaks brms, ar1() evaluates in linear time, the brms vignettes are measured call by call, and parallel chains work on Windows.</p>
+<div class="section level3">
+<h3 id="the-prior-interface-0-43-0">The prior interface<a class="anchor" aria-label="anchor" href="#the-prior-interface-0-43-0"></a></h3>
+<ul><li>
+<code><a href="../reference/frm.html">frm()</a></code>, <code><a href="../reference/frm_sample.html">frm_sample()</a></code> and <code><a href="../reference/frm_simulate.html">frm_simulate()</a></code> take <code>prior =</code>, brms’s spelling. The <code>priors =</code> of earlier releases is renamed, not aliased: no ecosystem spells it <code>priors</code>, and the package is pre-release. A stale <code>frm(priors =)</code> fails as an unused argument; <code><a href="../reference/frm_sample.html">frm_sample()</a></code>, whose <code>...</code> would otherwise pass the name to tmbstan and fit with no priors at all, refuses it by name. The fit object’s field is <code>fit$prior</code>, as <code>brmsfit$prior</code> is.</li>
+<li>New <code><a href="../reference/prior.html">prior()</a></code>, <code><a href="../reference/prior.html">prior_()</a></code> and <code><a href="../reference/prior.html">prior_string()</a></code>, brms’s constructors. <code>prior(normal(5000, 1000), nlpar = "ult")</code> quotes its first argument and reaches the same machinery <code><a href="../reference/set_prior.html">set_prior()</a></code> does. <code>tag</code> and <code>check</code> are deliberately absent: both are Stan-program concerns.</li>
+<li>A <code>brmsprior</code> object built by brms itself is translated row by row wherever a prior is accepted, so a specification copied out of a brms script works even when brms is attached and its <code><a href="../reference/prior.html">prior()</a></code> masks frmtmb’s. Rows with no faithful frmtmb meaning are refused by name rather than turned into a different density: a <code>tag</code>, brms’s mixture <code>theta</code> (frmtmb’s <code>theta</code> is the raw covariance vector), and the per-dpar classes such as <code>sigma</code>, whose density brms puts on the parameter and frmtmb’s nearest spelling puts on the link scale. brms’s own default rows are dropped with a message, because frmtmb chooses its own defaults.</li>
+<li>
+<code><a href="../reference/set_prior.html">set_prior()</a></code> gains <code>nlpar</code> and <code>resp</code>, and its argument order now follows brms’s (<code>prior, class, coef, group, resp, dpar, nlpar, lb, ub</code>). Under <code>nlpar</code>, class <code>"b"</code> covers a nonlinear parameter’s whole coefficient vector, intercept included, because its sub-formula is not centered; that is what makes the brms nonlinear vignette’s insurance-loss priors land. <code>nlpar</code> also narrows classes <code>"sd"</code> and <code>"cor"</code>, separating two blocks on one grouping factor that <code>group</code> alone cannot tell apart. <code><a href="../reference/get_prior.html">get_prior()</a></code> gains an <code>nlpar</code> column.</li>
+<li>The formula route of <code><a href="../reference/frm_sample.html">frm_sample()</a></code> no longer invents a location default for a nonlinear parameter’s intercept. brms leaves those flat, and the response’s median and mad describe nothing about a rate or a shape inside a nonlinear body; the disclosure message names the parameters left flat.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="linear-time-ar1-0-43-0">Linear-time ar1()<a class="anchor" aria-label="anchor" href="#linear-time-ar1-0-43-0"></a></h3>
+<ul><li>
+<code>ar1()</code> and <code>hetar1()</code> evaluate their density at linear cost in the block dimension instead of building a dense <code>d x d</code> covariance and factorizing it on the tape. The density, and therefore every fitted value, standard error and prior, is unchanged: the new form agrees with the old computation to 2.3e-12 in value and 2.2e-9 in gradient, gated by a test that keeps the old dense code inline. The speedup is orders of magnitude once blocks are large (milliseconds where the dense form took seconds at d = 800, and tens of seconds at d = 2000); <code>dev/sparsear1-bench.R</code> measures it on the host at hand.</li>
+<li>A long time series is now an ordinary <code>ar1()</code> block. The multivariate stochastic-volatility model of Skaug and Yu (2014) fits at its published 945 time points in seconds, agreeing with the upstream TMB reference to 8.5e-9, with a slightly better optimum than the reference’s own cold start reaches.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="the-brms-vignettes-measured-0-43-0">The brms vignettes, measured<a class="anchor" aria-label="anchor" href="#the-brms-vignettes-measured-0-43-0"></a></h3>
+<ul><li>
+<code>dev/brms-vignettes/</code> translates the brms vignettes call by call, each model down both paths: the maximum-likelihood fit with its post-processing surface, and <code><a href="../reference/frm_sample.html">frm_sample()</a></code> with the posterior workflow. Every one of 567 calls carries a label (clean, spelling, behavior, missing, or refusal), and <code>dev/brms-vignette-audit.md</code> holds the measured scoreboard: about 7 of 10 model calls port unchanged, about 4 of 10 of all calls. README’s port claim now states both figures.</li>
+<li>The audit’s cheapest finding is applied: the draws and fit surfaces refuse with named replacements where they previously failed bare. <code><a href="../reference/loo.html">loo()</a></code>, <code><a href="../reference/loo.html">waic()</a></code>, <code><a href="../reference/bayes_R2.html">bayes_R2()</a></code>, <code><a href="../reference/loo.html">LOO()</a></code> and <code><a href="../reference/loo.html">WAIC()</a></code> on a maximum-likelihood fit now say to sample first or use <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>; <code>loo(a, b)</code> says comparison belongs to <code><a href="../reference/loo.html">loo_compare()</a></code>; <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> on draws names <code><a href="../reference/draws-diagnostics.html">mcmc_plot()</a></code>; <code><a href="https://rdrr.io/r/stats/update.html" class="external-link">update()</a></code> on draws says to update the fit and re-sample; <code><a href="../reference/rescor_matrix.html">rescor_matrix()</a></code> on draws names the fit; <code><a href="../reference/frmtmb-draws-refusals.html">expose_functions()</a></code> on a fit gets the same refusal draws already had.</li>
+<li>
+<code>conditional_effects(method = "predict")</code> now works on a nonlinear predictor. The guard that refused it asked for a standard error that <code>method = "predict"</code> never uses: its band is a quantile of simulated responses. This is what the brms nonlinear vignette’s facet-per-year display calls; the same call is also about a third faster on every model, because the dead standard-error computation is gone.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="parallel-chains-on-windows-0-43-0">Parallel chains on Windows<a class="anchor" aria-label="anchor" href="#parallel-chains-on-windows-0-43-0"></a></h3>
+<ul><li>
+<code>frm_sample(cores = )</code> parallelizes chains on Windows instead of falling back to sequential sampling. The old guard claimed socket workers cannot evaluate the RTMB tape; in fact tmbstan rebuilds the tape on each worker from the serialized objective closure, and frmtmb’s generated closures are self-contained, so the rebuild works and the draws are identical to a sequential run at the same seed. The remaining cost is a fixed several seconds of startup per worker, which a message now states; short chains gain nothing, long chains approach a per-chain speedup. One caveat: a <code><a href="https://devtools.r-lib.org/reference/load_all.html" class="external-link">devtools::load_all()</a></code> development namespace cannot be rebuilt on a worker, so parallel chains need the installed package.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.42.0" id="frmtmb-0420">frmtmb 0.42.0<a class="anchor" aria-label="anchor" href="#frmtmb-0420"></a></h2>
 <p>The TMB-examples replication audit, and REML’s semantics documented and validated beyond the gaussian case.</p>

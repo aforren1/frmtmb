@@ -89,7 +89,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   mcmc_plot(ds, type = "trace", variable = "x")
   head(rhat(ds))
 }
-#> frm_sample(): default priors (brms 2.23 defaults; priors = "flat" opts out)
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 0.8, 2.5)
 #>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]

@@ -129,7 +129,7 @@ bv("post", "ML: set_prior(class = 'simo') with a supported density", {
 
 bv("model", "ML: fit4 [the vignette's exact translation]", {
   frm(bf(ls ~ mo(income)), data = dat, family = gaussian(),
-      priors = set_prior("dirichlet(c(2, 1, 1))", class = "simo",
+      prior = set_prior("dirichlet(c(2, 1, 1))", class = "simo",
                          coef = "moincome1"))
 }, "MISSING", "the model cannot be built at all, because its prior cannot be constructed; sample_prior = TRUE is MCMC-only and is dropped separately")
 
@@ -203,7 +203,7 @@ bv("model", "ML: appendix family = cumulative [bare constructor]", {
 # no prior on fit1, fit2, fit3, fit5 or fit6, so there is nothing for
 # the formula route's brms-like defaults to carry, and starting from the
 # frm() fit reuses the objective PATH 1 already built. fit4 IS a prior
-# model, so it takes the formula route with a priors = argument, which
+# model, so it takes the formula route with a prior = argument, which
 # is where the dirichlet gap shows up a second time.
 #
 # Chain settings are fixed for every call below: one chain, 400
@@ -263,7 +263,7 @@ bv("post", "SAMPLE: loo(fit1, fit2, fit3)", {
 
 bv("model", "SAMPLE: fit4 [the vignette's exact translation]", {
   frm_sample(bf(ls ~ mo(income)), data = dat, family = gaussian(),
-             priors = set_prior("dirichlet(c(2, 1, 1))", class = "simo",
+             prior = set_prior("dirichlet(c(2, 1, 1))", class = "simo",
                                 coef = "moincome1"),
              chains = 1, iter = 400, warmup = 200, seed = 1,
              cores = 1, refresh = 0)

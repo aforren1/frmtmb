@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.42.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.43.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -369,7 +369,7 @@ deviation):</p>
 <span>                                      sd_g__Intercept <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sims</span>, max.level <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
 <span><span class="co">#&gt; 'data.frame':    120 obs. of  3 variables:</span></span></code></pre></div>
-<p>Give <code>priors</code> instead and every simulation draws its own
+<p>Give <code>prior</code> instead and every simulation draws its own
 parameter vector first - the analog of brms’s
 <code>sample_prior = "only"</code> followed by
 <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>. The drawn parameters come back as an
@@ -377,7 +377,7 @@ attribute, so a prior-predictive check can relate parameters to
 outcomes:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_simulate.html">frm_simulate</a></span><span class="op">(</span><span class="va">form</span>, <span class="va">dd</span>, nsim <span class="op">=</span> <span class="fl">50</span>, seed <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>                   priors <span class="op">=</span> <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>                   prior <span class="op">=</span> <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>                     <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 2)"</span>, class <span class="op">=</span> <span class="st">"Intercept"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>                     <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>                     <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"Intercept"</span>,</span>

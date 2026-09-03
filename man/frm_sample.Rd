@@ -33,13 +33,16 @@ carry one (\code{frm_sample(bf(y ~ x), data = dd, family = poisson())};
 the \code{+} spelling \code{bf(y ~ x) + poisson()} works too).}
 
 \item{...}{Passed to \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} (\code{chains}, \code{iter},
-\code{laplace}, \code{cores}, ...). On Windows more than one core falls back
-to sequential chains with a warning: parallel chains run on socket
-workers, which can evaluate neither the RTMB tape nor the
-objective closure (the known RTMB limitation of tmbstan,
-tmbstan#27). The fallback also covers a core count inherited from
-\code{options(mc.cores)}, which is what rstan reads when \code{cores} is not
-given. Fork clusters on unix can, so \code{cores} works there.}
+\code{laplace}, \code{cores}, ...). \code{cores} parallelizes over chains on
+every platform. On Windows the chains run on socket workers, each
+of which rebuilds the tape from the serialized objective closure
+(tmbstan retapes on the worker; the closures are self-contained),
+giving draws identical to a sequential run at the same seed. The
+per-worker startup (a new R process, package load, retape) is a
+fixed several seconds, so short chains gain nothing; long chains
+approach a per-chain speedup. A core count inherited from
+\code{options(mc.cores)}, which rstan reads when \code{cores} is not given,
+behaves the same way.}
 
 \item{prior}{Priors: a \code{\link[=set_prior]{set_prior()}} specification, or a named list
 of prior objects (see \code{\link[=prior_normal]{prior_normal()}}) whose names are parameter

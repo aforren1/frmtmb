@@ -65,7 +65,7 @@ bv("post", "ML: the masking table (brms attached second)", {
   print(both)
   length(both)
 }, "SPELLING",
-"92 of frmtmb's 134 exports are also brms exports, and attaching brms second masks all 92; the attach message lists them but does not say what to do")
+"95 of frmtmb's 137 exports are also brms exports, and attaching brms second masks all 95; the attach message lists them but does not say what to do")
 
 # The exact message a user sees, quoted, because it is the only warning
 # they get.
@@ -143,8 +143,8 @@ bv("post", "ML: set_prior() resolves to brms", {
   cat("class:", paste(class(p), collapse = ", "), "\n")
   stopifnot(inherits(p, "brmsprior"))
   "brmsprior"
-}, "SPELLING",
-"the two set_prior() signatures agree closely enough that the call succeeds and returns a brmsprior; frm(priors =) then has to refuse it, so the collision is only found one step later. Prefix with frmtmb::")
+}, "CLEAN",
+"the call resolves to brms and returns a brmsprior, but frm(prior =) translates a brmsprior row by row, so the ported workflow runs anyway; rows with no faithful frmtmb meaning are refused by name. frmtmb::set_prior() gives the native object")
 
 bv("post", "ML: frmtmb::set_prior() [the fix]", {
   p <- frmtmb::set_prior("normal(0, 1)", class = "b")
@@ -165,13 +165,13 @@ bv("post", "ML: frmtmb::get_prior() [the fix]", {
   "data.frame"
 }, "SPELLING", "the frmtmb:: prefix again; the two return different classes so the confusion is silent")
 
-bv("post", "ML: prior() is brms-only", {
+bv("post", "ML: prior() resolves to brms", {
   p <- prior(normal(0, 1), class = "b")
   stopifnot(inherits(p, "brmsprior"))
-  cat("prior() is not a frmtmb export, so it is not masked: brms owns it\n")
+  cat("class:", paste(class(p), collapse = ", "), "\n")
   "brmsprior"
-}, "MISSING",
-"frmtmb has no prior(); the brms idiom prior(normal(0, 1), class = b) resolves to brms and produces an object frm() cannot use, with no collision warning at all because there is nothing to collide with")
+}, "CLEAN",
+"frmtmb exports prior() too now, so with brms attached second the call resolves to brms and returns a brmsprior; frm(prior =) translates it, so the brms idiom prior(normal(0, 1), class = b) works end to end either way. frmtmb::prior() gives the native object")
 
 bv("post", "ML: mixture() resolves to brms", {
   m <- suppressMessages(mixture(gaussian(), gaussian()))

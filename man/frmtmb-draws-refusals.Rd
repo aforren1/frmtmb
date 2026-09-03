@@ -8,6 +8,9 @@
 \alias{standata.frmtmb_draws}
 \alias{expose_functions}
 \alias{expose_functions.frmtmb_draws}
+\alias{expose_functions.frmtmb_fit}
+\alias{plot.frmtmb_draws}
+\alias{update.frmtmb_draws}
 \alias{restructure}
 \alias{restructure.frmtmb_draws}
 \alias{posterior_samples}
@@ -29,6 +32,12 @@ standata(object, ...)
 expose_functions(x, ...)
 
 \method{expose_functions}{frmtmb_draws}(x, ...)
+
+\method{expose_functions}{frmtmb_fit}(x, ...)
+
+\method{plot}{frmtmb_draws}(x, ...)
+
+\method{update}{frmtmb_draws}(object, ...)
 
 restructure(x, ...)
 
