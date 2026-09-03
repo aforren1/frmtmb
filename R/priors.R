@@ -247,7 +247,8 @@ print.frmtmb_priorlist <- function(x, ...) {
 #'
 #' @param formula A `bf()` formula (with family), a plain formula, or
 #'   an already fitted `frmtmb_fit`.
-#' @param data Model data (ignored when `formula` is a fit).
+#' @param data A data frame of model data (ignored when `formula` is a
+#'   fit).
 #' @param family Family, when `formula` does not carry one.
 #' @param data2 Structural objects, as in [frm()] (ignored when
 #'   `formula` is a fit, which carries its own).

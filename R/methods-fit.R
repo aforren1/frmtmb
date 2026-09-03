@@ -581,6 +581,7 @@ ranef <- function(object, ...) UseMethod("ranef")
 #' @export
 ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
   require_fitted(object, "ranef()")
+  check_flag(condVar, "condVar")
   cvec <- coef_b(object)
   csd <- NULL
   if (condVar) {

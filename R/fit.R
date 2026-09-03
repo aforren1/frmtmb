@@ -6,7 +6,14 @@
 #' @param formula A `frmtmb_formula` from [bf()] (with a family attached
 #'   via `+`), or a plain formula combined with the `family` argument.
 #'   With neither, the family is `gaussian()`.
-#' @param data A data frame.
+#' @param data A data frame. A `tibble`, a `data.table`, or a plain
+#'   named list of equal-length columns is accepted as well, since each
+#'   reaches [stats::model.frame()] unchanged. A matrix column is a
+#'   supported model variable and enters the design as its own block of
+#'   columns (this is how a functional predictor or a `cbind()` term is
+#'   written). A list column is not a model variable and is refused by
+#'   `model.frame()` if the formula names one, though it may sit unused
+#'   in `data`.
 #' @param data2 A named list of objects that are not columns of `data`:
 #'   the adjacency matrix of `car()`, the mesh triple of `spde()`, and
 #'   the matrices of `gr(prec = )`, `gr(cov = )` and `equalto()`. This
@@ -140,8 +147,15 @@
 #'   the estimand.
 #' @srrstats {G2.16} Undefined values are handled separately from missing
 #'   ones. The response check is explicitly written as
-#'   `any(!is.finite(y) & !is.na(y))`, so `Inf`, `-Inf`, and `NaN` are
-#'   rejected with their own message while `NA` is left to `na.action`.
+#'   `any(!is.finite(y) & !is.na(y))`, so `Inf` and `-Inf` are rejected
+#'   with their own message, which no `na.action` setting can silence,
+#'   while anything `is.na()` calls missing is left to `na.action`.
+#'   `NaN` counts as missing to `is.na()`, so it takes the `NA` route
+#'   and is dropped (or refused by `na.fail`) rather than reaching the
+#'   finiteness check. That is `stats::lm()`'s own division, and it is
+#'   the reason the two are described together here: the split is
+#'   between values that are undefined and values that are absent, not
+#'   between the `Inf` and `NaN` spellings.
 #' @srrstats {RE2.1} The processing of missing values is controlled by an
 #'   explicit parameter (`na.action`), and `NA`/`NaN` are distinguished
 #'   from `Inf` as described under G2.16.
@@ -219,6 +233,41 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 priors = NULL, quadrature = FALSE, data2 = list(),
                 dry_run = NULL, verbose = FALSE) {
   cl <- match.call()
+  # Every one of these used to be read through isTRUE() or an empty
+  # names() loop, so a flag set by mistake fitted a DIFFERENT model in
+  # silence. `verbose` is deliberately not among them: it takes integer
+  # levels as well as TRUE/FALSE and documents that it ignores anything
+  # else (see verbose_level()).
+  check_flag(REML, "REML")
+  check_flag(se, "se")
+  check_flag(quadrature, "quadrature")
+  if (!is.null(dry_run)) {
+    check_string_choice(dry_run, "dry_run", c("spec", "frame", "objective"))
+  }
+  if (!is.null(start)) {
+    check_named_list(start, "start", "start = list(beta = c(0, 1))")
+  }
+  # a list is not enough: control = list() passes is.list() and then
+  # reaches seq_len(NULL) inside the optimizer loop, where the message
+  # is "argument must be coercible to non-negative integer"
+  if (!is.list(control)) {
+    stop("`control` must be a list from frmtmb_control(), not ",
+         arg_desc(control), call. = FALSE)
+  }
+  ctl_need <- c("optimizer", "optCtrl", "restarts", "grad_tol")
+  if (!all(ctl_need %in% names(control))) {
+    stop("`control` must come from frmtmb_control(); this list is missing ",
+         paste(setdiff(ctl_need, names(control)), collapse = ", "),
+         call. = FALSE)
+  }
+  if (!is.null(priors) && !is.list(priors)) {
+    stop("`priors` must be a set_prior() specification or a named list ",
+         "of prior objects, not ", arg_desc(priors), call. = FALSE)
+  }
+  if (!is.function(na.action) && !is.character(na.action)) {
+    stop("`na.action` must be a function such as stats::na.omit, or its ",
+         "name as a string, not ", arg_desc(na.action), call. = FALSE)
+  }
   data2 <- validate_data2(data2)
   # frmtmb_control() leaves verbose unset (NULL), so an explicit control
   # value always wins over the frm() shortcut
@@ -1073,6 +1122,32 @@ frmtmb_control <- function(optimizer = "nlminb",
                            check_nlev_1 = c("warning", "ignore", "stop"),
                            check_olre = c("warning", "ignore", "stop"),
                            verbose = NULL) {
+  # The three flags below reach isTRUE() one line down, which reads a
+  # string or a length-2 vector as FALSE; checking here refuses the
+  # mistake instead of quietly turning the option off.
+  check_flag(profile, "profile")
+  check_flag(sparse_x, "sparse_x")
+  check_flag(autoscale, "autoscale")
+  check_count(restarts, "restarts", min = 0L)
+  check_positive(grad_tol, "grad_tol")
+  # Only the SHAPE of `optimizer` is checked here. Which names are
+  # known is settled at fit time, on purpose: that refusal carries the
+  # family and mode of the fit it was raised from ("raised while
+  # fitting: gaussian, ML, nope"), which a check in this constructor
+  # could not know. A length-2 value has no such excuse - it used to
+  # reach switch() and report "EXPR must be a length 1 vector" once per
+  # element.
+  if (!is.function(optimizer) &&
+        !(is.character(optimizer) && length(optimizer) == 1L &&
+            !is.na(optimizer))) {
+    stop("`optimizer` must be a single optimizer name or a function, ",
+         "not ", arg_desc(optimizer), call. = FALSE)
+  }
+  if (!is.list(optCtrl)) {
+    stop("`optCtrl` must be a list of options for the optimizer, e.g. ",
+         "optCtrl = list(iter.max = 1000), not ", arg_desc(optCtrl),
+         call. = FALSE)
+  }
   # verbose stays NULL when unset, which is how frm(verbose =) knows an
   # explicit control value must win over its own shortcut
   list(optimizer = optimizer, optCtrl = optCtrl, restarts = restarts,

@@ -6,6 +6,129 @@
 #' @noRd
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+# --- argument checks shared by the whole export surface ---------------
+#
+# These exist because the idioms they replace fail SILENTLY. `isTRUE(x)`
+# reads a length-2 logical, a string, an integer and `NA` all as FALSE,
+# so a flag set by mistake used to fit the OTHER model and report it as
+# the user's. A length-2 `level` recycles against the parameter vector
+# and puts DIFFERENT coverages on different rows of one table, with no
+# column heading to record it. Each check turns one of those into a
+# refusal that names the argument and says what it had to be.
+#
+# Every check raises exactly one message, so the whole family adds a
+# handful of condition messages rather than one per call site, and the
+# argument name that varies at run time comes from the caller.
+
+#' What a rejected argument actually was, as a phrase a message can end
+#' with. Deliberately short: the caller's message has already said what
+#' the argument had to be, so this only has to identify what arrived.
+#'
+#' @noRd
+arg_desc <- function(x) {
+  if (is.null(x)) return("NULL")
+  cls <- class(x)[1L]
+  if (is.atomic(x) && length(x) == 1L) {
+    if (is.na(x)) return(paste0(cls, " NA"))
+    return(paste0(cls, " ", encodeString(format(x), quote = "\"")))
+  }
+  art <- if (substr(cls, 1L, 1L) %in% c("a", "e", "i", "o", "u")) "an" else "a"
+  paste0(art, " ", cls, " of length ", length(x))
+}
+
+#' The one refusal every TRUE/FALSE argument in the package shares.
+#'
+#' @noRd
+check_flag <- function(x, arg, what = NULL) {
+  if (!is.logical(x) || length(x) != 1L || is.na(x)) {
+    stop("`", arg, "` must be TRUE or FALSE, not ", arg_desc(x),
+         if (is.null(what)) "" else paste0(". ", what), call. = FALSE)
+  }
+  invisible(x)
+}
+
+#' A single whole number at or above `min`: counts of draws, restarts
+#' and grid points. A length-2 or fractional count otherwise reaches
+#' `seq_len()` or `numeric()` as a size, where the message names neither
+#' the argument nor the function the user called.
+#'
+#' @noRd
+check_count <- function(x, arg, min = 0L) {
+  ok <- is.numeric(x) && length(x) == 1L && is.finite(x) &&
+    x == round(x) && x >= min
+  if (!ok) {
+    stop("`", arg, "` must be a single whole number of at least ", min,
+         ", not ", arg_desc(x), call. = FALSE)
+  }
+  invisible(as.integer(x))
+}
+
+#' A single number strictly inside (0, 1): every coverage argument
+#' (`level`, `prob`).
+#'
+#' @noRd
+check_probability <- function(x, arg) {
+  if (!is.numeric(x) || length(x) != 1L || !is.finite(x) ||
+        x <= 0 || x >= 1) {
+    stop("`", arg, "` must be a single number strictly between 0 and 1, ",
+         "not ", arg_desc(x), call. = FALSE)
+  }
+  invisible(as.numeric(x))
+}
+
+#' A single finite positive number: scale parameters and tolerances.
+#'
+#' @noRd
+check_positive <- function(x, arg) {
+  if (!is.numeric(x) || length(x) != 1L || !is.finite(x) || x <= 0) {
+    stop("`", arg, "` must be a single finite positive number, not ",
+         arg_desc(x), call. = FALSE)
+  }
+  invisible(as.numeric(x))
+}
+
+#' A single finite number with no sign constraint: the location
+#' arguments of the prior constructors.
+#'
+#' @noRd
+check_number <- function(x, arg) {
+  if (!is.numeric(x) || length(x) != 1L || !is.finite(x)) {
+    stop("`", arg, "` must be a single finite number, not ", arg_desc(x),
+         call. = FALSE)
+  }
+  invisible(as.numeric(x))
+}
+
+#' A named list, for the argument slots keyed by parameter name. An
+#' unnamed value used to be iterated over an empty `names()` and so
+#' ignored in silence, and the fit then ran from the default and
+#' reported it as the user's.
+#'
+#' @noRd
+check_named_list <- function(x, arg, example) {
+  if (!is.list(x) || (length(x) && is.null(names(x)))) {
+    stop("`", arg, "` must be a named list, e.g. ", example, ", not ",
+         arg_desc(x), call. = FALSE)
+  }
+  invisible(x)
+}
+
+#' A single string drawn from a fixed set. `match.arg()` covers the
+#' arguments whose default IS the set; this covers the ones whose
+#' default is one value of it, where `match.arg()` has nothing to match
+#' against and any string is accepted.
+#'
+#' @noRd
+check_string_choice <- function(x, arg, choices) {
+  if (!is.character(x) || length(x) != 1L || is.na(x) ||
+        !x %in% choices) {
+    stop("`", arg, "` must be one of ",
+         paste0("\"", choices, "\"", collapse = ", "), ", not ",
+         arg_desc(x), call. = FALSE)
+  }
+  invisible(x)
+}
+
 #' Split `a + b + c` into list(a, b, c), left-associatively.
 #'
 #' @noRd

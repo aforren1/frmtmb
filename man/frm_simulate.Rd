@@ -19,7 +19,8 @@ frm_simulate(
 \item{formula}{A \code{bf()} formula (with a family attached) or a plain
 formula plus \code{family}.}
 
-\item{data}{Model data, including a dummy response column.}
+\item{data}{A data frame of model data, including a dummy response
+column.}
 
 \item{family}{Family, when \code{formula} does not carry one.}
 

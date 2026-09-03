@@ -75,6 +75,10 @@ bf <- function(formula, ..., family = NULL, nl = FALSE) {
   if (!inherits(formula, "formula")) {
     stop("`formula` must be a formula", call. = FALSE)
   }
+  # nl reaches isTRUE() at the end of this function, which reads "yes",
+  # NA and c(TRUE, FALSE) as FALSE: bf(..., nl = "yes") used to build a
+  # LINEAR model and say nothing
+  check_flag(nl, "nl")
   # mvbind(y1, y2) ~ rhs: shared predictors, one bf per response
   if (length(formula) == 3L && is.call(formula[[2]]) &&
       identical(formula[[2]][[1]], as.name("mvbind"))) {
@@ -417,6 +421,7 @@ print.frmtmb_nlf <- function(x, ...) {
 #' VarCorr(fit_id)
 #' @export
 mvbf <- function(..., rescor = FALSE) {
+  check_flag(rescor, "rescor")
   forms <- list(...)
   flat <- list()
   for (f in forms) {
@@ -441,6 +446,7 @@ mvbf <- function(..., rescor = FALSE) {
 #'   or off.
 #' @export
 set_rescor <- function(rescor_value = TRUE) {
+  check_flag(rescor_value, "rescor_value")
   structure(list(rescor = isTRUE(rescor_value)), class = "frmtmb_rescor")
 }
 

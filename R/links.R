@@ -106,6 +106,16 @@ log1m_inv_logit <- function(x) -RTMB::logspace_add(0 * x, x)
 #' @noRd
 get_link <- function(name) {
   if (is.list(name)) return(name)
+  # `[[` on a list indexes RECURSIVELY when given a vector, so
+  # frmtmb_links[[c("log", "name")]] is frmtmb_links$log$name, the string
+  # "log", which is not a link at all and was handed back as one. An
+  # integer index picks a link by position, so link = 1L silently became
+  # the identity link. Neither reaches the "Unknown link" branch.
+  if (!is.character(name) || length(name) != 1L || is.na(name)) {
+    stop("A link must be named by a single string, e.g. link = \"logit\", ",
+         "not ", arg_desc(name), ". Available links: ",
+         paste(names(frmtmb_links), collapse = ", "), call. = FALSE)
+  }
   lk <- frmtmb_links[[name]]
   if (is.null(lk)) {
     stop("Unknown link: '", name, "'. Available links: ",

@@ -71,6 +71,9 @@ rubin_pool <- function(Q, U, dfcom) {
 #'
 #' @export
 frm_multiple <- function(formula, data, level = 0.95, ...) {
+  # the pooled interval is built from one normal quantile; a length-2
+  # level recycles it down the coefficient table
+  check_probability(level, "level")
   if (inherits(data, "mids")) {
     if (!requireNamespace("mice", quietly = TRUE)) {
       stop("A mids object needs the 'mice' package", call. = FALSE)

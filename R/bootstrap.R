@@ -34,6 +34,10 @@
 #' @export
 frm_bootstrap <- function(fit, FUN = function(f) unlist(fixef(f)),
                           nsim = 500, seed = NULL, re.form = NA) {
+  # nsim is passed straight to simulate() as a length, and a bad one
+  # used to surface as "invalid 'length' argument" from inside the
+  # bootstrap loop
+  check_count(nsim, "nsim", min = 1L)
   if (!is.null(seed)) set.seed(seed)
   t0 <- FUN(fit)
   if (!is.numeric(t0)) {

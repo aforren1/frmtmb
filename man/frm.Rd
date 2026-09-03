@@ -27,7 +27,14 @@ frm(
 via \code{+}), or a plain formula combined with the \code{family} argument.
 With neither, the family is \code{gaussian()}.}
 
-\item{data}{A data frame.}
+\item{data}{A data frame. A \code{tibble}, a \code{data.table}, or a plain
+named list of equal-length columns is accepted as well, since each
+reaches \code{\link[stats:model.frame]{stats::model.frame()}} unchanged. A matrix column is a
+supported model variable and enters the design as its own block of
+columns (this is how a functional predictor or a \code{cbind()} term is
+written). A list column is not a model variable and is refused by
+\code{model.frame()} if the formula names one, though it may sit unused
+in \code{data}.}
 
 \item{family}{A family: a \code{frmtmb_family}, a \link[stats:family]{stats::family} object,
 a family constructor with or without its parentheses (for example
