@@ -118,9 +118,13 @@ def_strings <- function(form, data, family = NULL) {
   uf <- frm(form, data, family = family, dry_run = "objective")
   pl <- frmtmb:::default_priors_for(uf)
   vapply(unclass(pl), function(s) {
-    paste0("student_t(", paste(c(s$dist$df, s$dist$location,
-                                 s$dist$scale), collapse = ", "), ")|",
-           s$class, if (nzchar(s$dpar)) paste0(":", s$dpar))
+    d <- if (identical(s$dist$kind, "lkj")) {
+      paste0("lkj(", s$dist$eta, ")")
+    } else {
+      paste0("student_t(", paste(c(s$dist$df, s$dist$location,
+                                   s$dist$scale), collapse = ", "), ")")
+    }
+    paste0(d, "|", s$class, if (nzchar(s$dpar)) paste0(":", s$dpar))
   }, "")
 }
 
@@ -152,23 +156,29 @@ test_that("the default priors are brms 2.23's, read off brms itself", {
   dd <- sd_prior_data()
 
   # brms's own answer, reduced to the class-level rows that carry a
-  # distribution. Dropped: class b and cor (documented non-matches),
-  # the shape/phi/nu dispersion classes (gamma and inverse-gamma
-  # defaults set_prior() cannot carry), and the Intercept row of an
-  # ordinal model (its thresholds). Each of those is announced by the
-  # disclosure message and pinned by its own test below. brms lists one
-  # sd row per dpar for a categorical family where frmtmb has one
-  # shared block, so the rows are deduplicated.
+  # distribution. Dropped: class b (a documented non-match: brms leaves
+  # slopes flat and so do we), the shape/phi/nu dispersion classes
+  # (gamma and inverse-gamma defaults set_prior() cannot carry), and the
+  # Intercept row of an ordinal model (its thresholds). Each of those is
+  # announced by the disclosure message and pinned by its own test
+  # below. Class `cor` is NOT dropped any more: since 0.39 the lkj(1)
+  # default matches brms's own, and the correlated case below is the row
+  # that checks it. brms lists one sd row per dpar for a categorical
+  # family where frmtmb has one shared block, so the rows are
+  # deduplicated.
   brms_def <- function(f, family, drop = character(0)) {
     p <- brms::default_prior(f, data = dd, family = family)
     p <- p[nzchar(p$prior) & p$prior != "(flat)" & p$coef == "" &
              p$group == "" &
-             !p$class %in% c("cor", "b", "shape", "phi", "nu", drop), ]
+             !p$class %in% c("b", "shape", "phi", "nu", drop), ]
     cls <- ifelse(p$class == "sigma", "Intercept:sigma", p$class)
     sort(unique(paste0(p$prior, "|", cls)))
   }
   cases <- list(
     list(y ~ x + (1 | g), bf(y ~ x + (1 | g)) + gaussian(), gaussian()),
+    # a CORRELATED block: brms adds lkj(1) on class cor, and so do we
+    list(y ~ x + (1 + x | g), bf(y ~ x + (1 + x | g)) + gaussian(),
+         gaussian()),
     list(y2 ~ x + (1 | g), bf(y2 ~ x + (1 | g)) + gaussian(), gaussian()),
     list(p ~ x + (1 | g), bf(p ~ x + (1 | g)) + poisson(), poisson()),
     list(b ~ x + (1 | g), bf(b ~ x + (1 | g)) + bernoulli(),
@@ -266,9 +276,12 @@ test_that("every slot left flat is announced, never silently dropped", {
     "thresholds")
 
   expect_match(notes(bf(z ~ x) + negbinomial()), "shape")
-  expect_match(notes(bf(y ~ x + (1 + x | g)) + gaussian()),
-               "correlations")
+  # a correlated block is no longer a gap: it gets lkj(1), brms's own
+  # default, so there is nothing left to announce
+  expect_length(notes(bf(y ~ x + (1 + x | g)) + gaussian()), 0L)
   expect_length(notes(bf(y ~ x + (1 | g)) + gaussian()), 0L)
+  # a structure with no LKJ density still is a gap, and is named by
+  # name; test-lkj.R has that case, where a toep() block is built
 })
 
 test_that("the formula route discloses its defaults and reproduces them", {

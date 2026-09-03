@@ -25,9 +25,12 @@ A data frame with columns \code{prior}, \code{class}, \code{coef},
 The \code{\link[=set_prior]{set_prior()}} counterpart of brms's \code{get_prior()}: one row per
 slot a prior can target, with the class/coef/dpar/group values to
 pass to \code{set_prior()}. The default in every slot is flat (this is
-maximum likelihood until priors are set). Class \code{"sd"} is targeted
+maximum likelihood until priors are set; the formula route of
+\code{\link[=frm_sample]{frm_sample()}} has its own brms defaults, which
+\code{prior_summary()} reports). Classes \code{"sd"} and \code{"cor"} are targeted
 by \code{group} only; class \code{"theta"} rows name the raw internal
-covariance parameters (escape hatch, including correlations).
+covariance parameters (escape hatch, including correlations one at a
+time).
 }
 \examples{
 dd <- data.frame(y = rnorm(60), x = rnorm(60),

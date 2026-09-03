@@ -1,3 +1,42 @@
+# frmtmb 0.39.0 (development)
+
+## The LKJ prior on random-effect correlations
+
+* `prior_lkj(eta)` and `set_prior("lkj(eta)", class = "cor")` put an
+  LKJ prior on a random-effect block's correlation. Class `"cor"`
+  addresses a whole block, by `group` exactly as class `"sd"` does,
+  which is brms's spelling. The density is the LKJ one carried onto
+  frmtmb's unconstrained row-normalized Cholesky parameters with the
+  exact Jacobian of that map, so on those parameters it means what
+  `lkj(eta)` means on the correlation matrix. It covers `us()` and
+  `gr(cov = )` blocks of two or more terms, and `cs()`, `ar1()` and
+  `hetar1()`, whose single bounded correlation takes the LKJ marginal
+  `(1 - rho^2)^(eta - 1)` with that structure's own Jacobian. `toep()`
+  is refused by name: its parameterization is not positive definite
+  everywhere, so it has no correlation matrix to put a density on.
+* The formula route of `frm_sample()` now defaults to `lkj(1)` on every
+  correlation, which is brms's own default and the last class where the
+  two disagreed. **Seeded draws differ from v0.38 for any model with a
+  correlated random-effect block.** `priors = "flat"` opts out, the fit
+  route is unchanged (it is a likelihood diagnostic and keeps flat
+  priors), `frm()` and `check_laplace()` are untouched, and the
+  disclosure message gains a `cor` line.
+* Correlated blocks are now sampled NON-CENTERED on the formula route.
+  The gate did not move: a block is non-centered when every parameter
+  it has carries a prior, and correlations now do. `(x | g)`, `cs()`,
+  `ar1()`, `hetar1()` and `gr(cov = )` join `(1 | g)` and the smooths.
+* Measured on `sleepstudy (Days | Subject)`, one chain of 2000, three
+  seeds: the flat-correlation median of 36 min-ESS/s with a 154
+  divergence storm on one seed becomes 120 (centered) and 116
+  (non-centered) with no divergences, against ~122 for the matched brms
+  model. The prior is what closed the gap; non-centering the block is a
+  wash on this model. `dev/benchmarks.md` has the table and the
+  distribution-level validation of the density.
+* A MAP fit takes the same prior:
+  `frm(..., priors = set_prior("lkj(2)", class = "cor"))` penalizes the
+  correlation toward zero. Maximum likelihood is unaffected, because
+  the default is a sampling default and never enters `frm()`.
+
 # frmtmb 0.38.0
 
 Non-centered sampling with the funnel diagnosed as a prior, and four

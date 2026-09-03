@@ -16,16 +16,17 @@ set_prior(
 }
 \arguments{
 \item{prior}{Distribution string, e.g. \code{"normal(0, 5)"}, or a
-\code{\link[=prior_normal]{prior_normal()}}/\code{\link[=prior_t]{prior_t()}} object, or \code{""} for bounds only.}
+\code{\link[=prior_normal]{prior_normal()}}/\code{\link[=prior_t]{prior_t()}}/\code{\link[=prior_lkj]{prior_lkj()}} object, or \code{""} for
+bounds only.}
 
-\item{class}{\code{"b"}, \code{"Intercept"}, \code{"sd"}, or \code{"theta"}.}
+\item{class}{\code{"b"}, \code{"Intercept"}, \code{"sd"}, \code{"cor"}, or \code{"theta"}.}
 
 \item{coef}{Restrict to one coefficient (classes \code{"b"}/\code{"Intercept"}).}
 
 \item{dpar}{Distributional parameter (default: the location
 parameters).}
 
-\item{group}{Restrict class \code{"sd"} to one grouping factor.}
+\item{group}{Restrict class \code{"sd"} or \code{"cor"} to one grouping factor.}
 
 \item{lb, ub}{Optional hard bounds.}
 }
@@ -36,8 +37,8 @@ A \code{frmtmb_priorlist}.
 Builds prior specifications with brms spelling:
 \code{set_prior("normal(0, 5)", class = "b")}. Combine several with \code{+} or
 \code{c()}. Distributions: \code{normal(mu, sd)}, \code{student_t(df, mu, sd)},
-\code{cauchy(mu, sd)}, \code{exponential(rate)}; an empty string sets bounds
-only.
+\code{cauchy(mu, sd)}, \code{exponential(rate)}, \code{lkj(eta)}; an empty string
+sets bounds only.
 }
 \details{
 Classes and their scales:
@@ -49,16 +50,47 @@ coefficient with \code{coef}. Link scale.
 \item \code{"sd"}: random-effect standard deviations (and smoothing SDs), on
 the NATURAL sd scale with the log-Jacobian applied, so
 \code{set_prior("exponential(1)", class = "sd")} means what it says;
-narrow with \code{group}. Correlation parameters are not covered
-(use class \code{"theta"} on the internal scale if you must).
+narrow with \code{group}.
+\item \code{"cor"}: the CORRELATION of a random-effect block, as a whole.
+\code{lkj(eta)} only, and it addresses a BLOCK the way class \code{"sd"}
+does, by \code{group}; \code{set_prior("lkj(2)", class = "cor")} covers every
+correlated block of the model, which is brms's spelling. See
+The LKJ prior below.
 \item \code{"theta"}: raw internal covariance parameters (escape hatch).
 }
 
 When priors overlap, later specifications override earlier ones, so
-put class-wide priors first and coefficient-specific ones after.
+put class-wide priors first and coefficient-specific ones after. A
+class \code{"theta"} prior on a position an earlier \code{"cor"} prior covers
+replaces that whole LKJ term, and the other way round, so "later
+wins" holds between the two spellings as well.
 \code{lb}/\code{ub} become hard bounds (via Stan's constrained transforms in
 \code{\link[=frm_sample]{frm_sample()}}); for class \code{"sd"} they apply on the sd scale.
 }
+\section{The LKJ prior}{
+
+\code{lkj(eta)} is the density \code{det(C)^(eta - 1)} over a block's
+correlation matrix \code{C}, normalized: \code{eta = 1} is uniform over
+correlation matrices, larger \code{eta} concentrates toward the identity.
+frmtmb holds a correlation as an unconstrained row-normalized
+Cholesky parameter rather than as \code{C}, so the density is carried onto
+those parameters with the exact Jacobian of that map (the derivation
+is in the source of \code{R/priors.R}; \code{tests/testthat/test-lkj.R} checks
+the sampled correlations against the closed-form LKJ marginals). The
+prior a FLAT correlation parameter carries instead is
+\code{(1 - rho^2)^(-3/2)}, which is improper.
+
+It fits \code{us()} and \code{gr(cov = )} blocks of two or more terms, which
+hold a whole correlation matrix, and the one-parameter structures
+\code{cs()}, \code{ar1()} and \code{hetar1()}, whose single bounded correlation
+takes the LKJ marginal \code{(1 - rho^2)^(eta - 1)} with that structure's
+own Jacobian. A \code{cs()} correlation is bounded below at \code{-1/(d - 1)},
+where a compound-symmetric matrix stops being positive definite, and
+the density is renormalized over that window. \code{toep()} is refused:
+its parameterization is not positive definite everywhere, so it has
+no correlation matrix to put a density on.
+}
+
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(100), z = rnorm(100),
@@ -80,6 +112,14 @@ fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
 
 # an empty distribution string sets a hard bound only
 set_prior("", class = "b", coef = "x", lb = 0)
+
+# class "cor" addresses a correlated block as a whole, brms's
+# spelling; eta > 1 pulls the correlation toward zero
+dd$z <- rnorm(100)
+dd$y2 <- dd$y + rnorm(10, 0, 0.6)[dd$g] * dd$z
+fitc <- frm(bf(y2 ~ x + z + (z | g)) + gaussian(), data = dd,
+            priors = set_prior("lkj(4)", class = "cor"))
+VarCorr(fitc)
 
 # get_prior() shows which rows a design offers
 get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)

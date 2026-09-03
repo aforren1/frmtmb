@@ -106,7 +106,7 @@ test_that("gr(cov = ) factors the level-major Kronecker covariance", {
 
 ## ---- the gate --------------------------------------------------------
 
-test_that("only blocks whose every parameter is an sd are non-centered", {
+test_that("a block is eligible when its factor consumes all its theta", {
   el <- function(cs, d = 2L) {
     frmtmb:::ncp_eligible(list(covstruct = cs, dim = d, n_levels = 3L))
   }
@@ -117,10 +117,13 @@ test_that("only blocks whose every parameter is an sd are non-centered", {
   expect_true(el("us", 1L))
   expect_true(el("gr_cov", 1L))
 
-  # a correlation parameter: the factor exists and is exact, but its
-  # flat prior is improper, and non-centering opens that tail
+  # a correlation parameter, with a factor and (since 0.39) an LKJ
+  # density to bound it: eligible, and the prior half of the gate then
+  # decides (see ncp_plan below)
   for (cs in c("us", "cs", "homcs", "ar1", "hetar1", "gr_cov")) {
-    expect_false(el(cs, 2L), info = cs)
+    expect_true(el(cs, 2L), info = cs)
+    expect_equal(frmtmb:::block_n_cor(list(covstruct = cs, dim = 2L)),
+                 1L, info = cs)
   }
   # no factor at all
   for (cs in c("us_t", "diag_t", "car", "spde", "gr_prec", "gp", "ou",
@@ -133,10 +136,10 @@ test_that("only blocks whose every parameter is an sd are non-centered", {
   expect_false(frmtmb:::ncp_eligible(
     list(covstruct = "us", dim = 1L, n_levels = 3L, dist_nu = 5)))
 
-  expect_match(frmtmb:::ncp_reason(list(covstruct = "us", dim = 2L)),
-               "improper")
   expect_match(frmtmb:::ncp_reason(list(covstruct = "car", dim = 1L)),
                "sparse CAR")
+  expect_match(frmtmb:::ncp_reason(list(covstruct = "toep", dim = 2L)),
+               "positive definite")
   expect_match(frmtmb:::ncp_reason(
     list(covstruct = "us", dim = 1L, dist_nu = 5)), "Student-t")
 })
@@ -215,6 +218,44 @@ test_that("the non-centered objective is the centered one plus the log-Jacobian"
   expect_null(fit$frame$ncp_blocks)
 })
 
+test_that("the identity holds for a CORRELATED block too", {
+  dd <- rp_data(n = 90L, ng = 9L)
+  fit <- suppressWarnings(
+    frm(bf(y ~ x + (x | g)), family = gaussian(), data = dd))
+  bk <- fit$frame$re_blocks[[1L]]
+  expect_equal(bk$covstruct, "us")
+  expect_equal(length(bk$theta_idx), 3L)   # two sds and a correlation
+
+  frc <- fit$frame
+  frn <- frc
+  frn$ncp_blocks <- 1L
+  f_c <- frmtmb:::build_objective(frc)
+  f_n <- frmtmb:::build_objective(frn)
+
+  set.seed(21)
+  p <- fit$estimates
+  p$b <- stats::rnorm(length(p$b), 0, 0.4)
+  # a well-conditioned block, set rather than perturbed: the correlation
+  # theta is the third entry
+  p$theta <- c(0.3, -0.2, 0.7)
+  pz <- p
+  pz$b <- frmtmb:::ncp_unscale_b(bk, p$b, p$theta[bk$theta_idx])
+
+  L <- frmtmb:::ncp_block_chol(bk, p$theta[bk$theta_idx])
+  jac <- bk$n_levels * sum(log(diag(L)))
+  expect_equal(f_c(p) - f_n(pz), jac, tolerance = 1e-10)
+  # the correlation really is in the factor: a different correlation
+  # gives a different Jacobian
+  p2 <- p
+  p2$theta[3L] <- -1.5
+  pz2 <- p2
+  pz2$b <- frmtmb:::ncp_unscale_b(bk, p2$b, p2$theta[bk$theta_idx])
+  L2 <- frmtmb:::ncp_block_chol(bk, p2$theta[bk$theta_idx])
+  expect_gt(abs(sum(log(diag(L2))) - sum(log(diag(L)))), 1e-3)
+  expect_equal(f_c(p2) - f_n(pz2), bk$n_levels * sum(log(diag(L2))),
+               tolerance = 1e-10)
+})
+
 test_that("reparameterize = must be a single TRUE or FALSE", {
   skip_sampler()
   dd <- rp_data()
@@ -273,33 +314,66 @@ test_that("each b draw is L(theta of that draw) times its own z", {
   }
 })
 
-test_that("a correlated block stays centered, and says why", {
+test_that("a correlated block non-centers once its correlation is priored", {
   skip_sampler()
   dd <- rp_data(n = 90L, ng = 9L)
   # the slope variance is at the boundary on this data, which is not
-  # what is under test here: only the block's SHAPE decides the gate
+  # what is under test here: only the block's SHAPE and its priors
+  # decide the gate
   fit <- suppressWarnings(
     frm(bf(y ~ x + (x | g)), family = gaussian(), data = dd))
-  plan <- frmtmb:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
-  expect_length(plan$idx, 0L)
-  expect_match(plan$centered, "improper")
+  # with no prior at all the block stays centered, and the reason names
+  # the correlation rather than the standard deviation
+  bare <- frmtmb:::ncp_plan(fit, TRUE, FALSE, NULL)
+  expect_length(bare$idx, 0L)
+  expect_match(bare$centered, "improper")
+  # a prior on the standard deviations alone is not enough: the
+  # correlation is still flat
+  sd_only <- frmtmb:::resolve_prior_input(
+    fit, set_prior("exponential(1)", class = "sd"))
+  expect_length(frmtmb:::ncp_plan(fit, TRUE, FALSE,
+                                  sd_only$entries)$idx, 0L)
+  # sd + cor covers every theta the block has, which is the gate
+  both <- frmtmb:::resolve_prior_input(
+    fit, set_prior("exponential(1)", class = "sd") +
+      set_prior("lkj(1)", class = "cor"))
+  plan <- frmtmb:::ncp_plan(fit, TRUE, FALSE, both$entries)
+  expect_equal(plan$idx, 1L)
+  expect_length(plan$centered, 0L)
 
+  # and the formula route, whose defaults now cover both, non-centers it
+  ds <- suppressWarnings(suppressMessages(
+    frm_sample(bf(y ~ x + (x | g)), family = gaussian(), data = dd,
+               chains = 1, iter = 400, refresh = 0, seed = 19)))
+  expect_equal(ds$reparam$blocks, 1L)
+
+  # the per-draw back-transform, by hand: b = L(sd, cor at THAT draw) z,
+  # with L rebuilt from theta rather than by calling the transform
+  idx <- frmtmb:::draws_par_index(ds$fit)
+  raw <- raw_stan_matrix(ds)
+  bk <- ds$fit$frame$re_blocks[[1L]]
+  bcol <- idx[["b"]][bk$b_idx]
+  tcol <- idx[["theta"]][bk$theta_idx]
+  for (i in c(1L, nrow(ds$draws) %/% 2L, nrow(ds$draws))) {
+    th <- unname(raw[i, tcol])
+    Lr <- diag(2)
+    Lr[2L, 1L] <- th[3L]
+    Lr <- Lr / sqrt(rowSums(Lr * Lr))     # row-normalized correlation
+    L <- Lr * exp(th[1:2])                # times the sds, by row
+    z <- unname(raw[i, bcol])
+    b <- as.vector(L %*% matrix(z, bk$dim, bk$n_levels))
+    expect_equal(unname(ds$draws[i, bcol]), b, tolerance = 1e-10)
+    expect_gt(max(abs(z - b)), 1e-6)
+  }
+
+  # the FIT route is a likelihood diagnostic, so its priors are flat and
+  # the same block stays centered there
   expect_message(
-    ds <- suppressWarnings(
-      frm_sample(bf(y ~ x + (x | g)), family = gaussian(), data = dd,
-                 chains = 1, iter = 300, refresh = 0, seed = 19)),
+    ds2 <- suppressWarnings(
+      frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 19)),
     "sampling stays centered")
-  expect_null(ds$reparam)
-  expect_equal(unname(ds$draws), unname(raw_stan_matrix(ds)))
-
-  # the factor itself is still there and still exact; only the gate is
-  # off, so a proper prior on the correlation is all that stands between
-  # this block and the non-centered lane
-  bk <- fit$frame$re_blocks[[1L]]
-  th <- fit$estimates$theta[bk$theta_idx]
-  L <- frmtmb:::ncp_block_chol(bk, th)
-  V <- frmtmb:::covstruct_registry[[bk$covstruct]]$vcov(th, bk)
-  expect_equal(L %*% t(L), unname(as.matrix(V)), tolerance = 1e-12)
+  expect_null(ds2$reparam)
+  expect_equal(unname(ds2$draws), unname(raw_stan_matrix(ds2)))
 })
 
 test_that("a fit with flat priors stays centered, and a prior turns it on", {
@@ -417,6 +491,88 @@ test_that("the two routes agree within their own Monte Carlo spread", {
   }
   # the group-level values agree too, which is what the back-transform
   # is for
+  for (nm in grep("^b\\[", colnames(cs$cen$draws), value = TRUE)) {
+    a <- cs$cen$draws[, nm]
+    b <- cs$ncp$draws[, nm]
+    expect_lt(abs(mean(a) - mean(b)),
+              0.5 * max(stats::sd(a), stats::sd(b)) + 1e-8)
+  }
+})
+
+## ---- the same, on a correlated block ---------------------------------
+
+rp_cor_case <- local({
+  cache <- NULL
+  function() {
+    skip_sampler()
+    if (is.null(cache)) {
+      set.seed(31)
+      ng <- 12L
+      dd <- data.frame(x = stats::rnorm(120),
+                       g = factor(rep(seq_len(ng), length.out = 120)))
+      u <- matrix(stats::rnorm(2 * ng), 2)
+      dd$y <- stats::rnorm(120, 1 + 0.5 * dd$x + 0.7 * u[1, dd$g] +
+                             0.4 * u[2, dd$g] * dd$x, 1)
+      mk <- function(ncp) {
+        suppressWarnings(suppressMessages(
+          frm_sample(bf(y ~ x + (x | g)), family = gaussian(), data = dd,
+                     chains = 1, iter = 1000, refresh = 0, seed = 33,
+                     reparameterize = ncp)))
+      }
+      cache <<- list(dd = dd, cen = mk(FALSE), ncp = mk(TRUE))
+    }
+    cache
+  }
+})
+
+test_that("a correlated non-centered run keeps the draws surface exactly", {
+  cs <- rp_cor_case()
+  expect_equal(cs$ncp$reparam$blocks, 1L)
+  expect_null(cs$cen$reparam)
+  expect_identical(colnames(cs$ncp$draws), colnames(cs$cen$draws))
+  expect_identical(dim(cs$ncp$draws), dim(cs$cen$draws))
+  expect_false(any(grepl("^z", colnames(cs$ncp$draws))))
+  # the centered route's draws ARE the sampled parameters; the
+  # non-centered one's are not
+  expect_equal(unname(cs$cen$draws), unname(raw_stan_matrix(cs$cen)))
+  expect_gt(max(abs(unname(cs$ncp$draws) -
+                      unname(raw_stan_matrix(cs$ncp)))), 1e-6)
+  expect_true(is.matrix(summary(cs$ncp)))
+  expect_s3_class(VarCorr(cs$ncp), "data.frame")
+})
+
+test_that("log_lik() row sums hold on a correlated non-centered run", {
+  cs <- rp_cor_case()
+  ll <- log_lik(cs$ncp)
+  idx <- frmtmb:::draws_par_index(cs$ncp$fit)
+  i <- 42L
+  sh <- frmtmb:::draws_fit_at(cs$ncp, i, idx)
+  pars <- sh$estimates
+  nll <- frmtmb:::build_objective(sh$frame)(pars)
+  bk <- sh$frame$re_blocks[[1L]]
+  re_prior <- frmtmb:::covstruct_registry[[bk$covstruct]]$nll(
+    pars[["b"]][bk$b_idx], pars$theta[bk$theta_idx], bk)
+  expect_equal(sum(ll[i, ]), as.numeric(-nll) - as.numeric(re_prior),
+               tolerance = 1e-10)
+})
+
+test_that("the two routes agree on the correlated model as well", {
+  cs <- rp_cor_case()
+  # two different chains by construction, so agreement is judged in the
+  # chains' OWN Monte Carlo spread (the house pattern): a wiring bug
+  # moves an estimate by O(1) while the spread stays small
+  keep <- setdiff(colnames(cs$cen$draws),
+                  c("lp__", grep("^b\\[", colnames(cs$cen$draws),
+                                 value = TRUE)))
+  for (nm in keep) {
+    a <- cs$cen$draws[, nm]
+    b <- cs$ncp$draws[, nm]
+    n_eff <- 50   # deliberately pessimistic, so the gate is about bias
+    mcse <- sqrt(stats::var(a) / n_eff + stats::var(b) / n_eff)
+    expect_lt(abs(mean(a) - mean(b)), 6 * mcse + 1e-8, label = nm)
+    expect_lt(abs(stats::sd(a) - stats::sd(b)),
+              0.5 * max(stats::sd(a), stats::sd(b)) + 1e-8, label = nm)
+  }
   for (nm in grep("^b\\[", colnames(cs$cen$draws), value = TRUE)) {
     a <- cs$cen$draws[, nm]
     b <- cs$ncp$draws[, nm]
