@@ -13,8 +13,16 @@
 # drift instead.
 
 test_that("every condition message template in R/ is unique", {
+  # positive identification of the package SOURCE tree, not just an R/
+  # directory: one CI layout offered an existing-but-empty ../../R, and
+  # the guard must fail closed (skip) rather than open (assert nothing)
   rdir <- testthat::test_path("..", "..", "R")
-  skip_if_not(dir.exists(rdir),
+  desc <- testthat::test_path("..", "..", "DESCRIPTION")
+  is_src <- file.exists(desc) &&
+    any(trimws(readLines(desc, n = 5L)) == "Package: frmtmb") &&
+    dir.exists(rdir) &&
+    file.exists(file.path(rdir, "objective.R"))
+  skip_if_not(is_src,
               "package sources are not available (installed-package run)")
 
   collect <- function(kind) {

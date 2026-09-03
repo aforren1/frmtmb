@@ -179,3 +179,37 @@ test_that("the default effects include fitted two-way interactions", {
   expect_true(all(c("zBase:Trt", "zBase:w", "Trt:w") %in% nm3))
   expect_false("zBase:Trt:w" %in% nm3)
 })
+
+test_that("conditional_effects() takes re_formula, brms's spelling", {
+  set.seed(77)
+  dd <- data.frame(x = stats::rnorm(90), g = factor(rep(1:9, 10)))
+  dd$y <- stats::rnorm(90, 1 + 0.5 * dd$x +
+                         stats::rnorm(9, 0, 0.8)[dd$g], 0.7)
+  fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
+
+  ce_pop <- conditional_effects(fit, effects = "x", resolution = 8)
+  ce_ref <- conditional_effects(fit, effects = "x", resolution = 8,
+                                re_formula = NULL)
+  # NULL conditions on the reference group's random intercept, so the
+  # curve shifts by that group's b; NA is the population curve
+  b1 <- ranef(fit)[["1 | g"]]["1", 1]
+  expect_equal(ce_ref$x$estimate__ - ce_pop$x$estimate__,
+               rep(unname(b1), 8), tolerance = 1e-6)
+  # a chosen group via conditions =
+  ce_g3 <- conditional_effects(fit, effects = "x", resolution = 8,
+                               re_formula = NULL,
+                               conditions = list(g = "3"))
+  b3 <- ranef(fit)[["1 | g"]]["3", 1]
+  expect_equal(ce_g3$x$estimate__ - ce_pop$x$estimate__,
+               rep(unname(b3), 8), tolerance = 1e-6)
+
+  # the lme4 spelling is redirected, not double-matched or swallowed
+  expect_error(conditional_effects(fit, effects = "x", re.form = NULL),
+               "spells this argument `re_formula`")
+  expect_error(conditional_effects(fit, effects = "x",
+                                   re_formula = "pop"),
+               "`re_formula` must be NA")
+  expect_error(conditional_effects(fit, effects = "x", band = "profile",
+                                   re_formula = NULL, resolution = 5),
+               "population-level")
+})

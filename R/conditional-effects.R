@@ -258,15 +258,41 @@ ce_build_nd <- function(base, ev, v1, v2, cset, n, n2) {
 #' frame is built in.
 #'
 #' @noRd
-ce_boot_one <- function(fit, nd, categorical, resp, dpar) {
+ce_boot_one <- function(fit, nd, categorical, resp, dpar,
+                        re_form = NA) {
   p <- if (categorical) {
     predict(fit, newdata = nd, type = "response", resp = resp,
-            re.form = NA)
+            re.form = re_form)
   } else {
     predict(fit, newdata = nd, type = "response", dpar = dpar,
-            resp = resp, re.form = NA)
+            resp = resp, re.form = re_form)
   }
   as.vector(p)
+}
+
+#' The population switch, in brms's spelling. conditional_effects() IS
+#' the brms function, so it takes brms's `re_formula`; frmtmb's fit
+#' surface spells the same setting `re.form` after lme4, and a user
+#' who reaches for that spelling here is told which one this function
+#' takes instead of hitting a matched-by-multiple-arguments error from
+#' the internal predict() calls.
+#'
+#' @noRd
+ce_re_formula <- function(re_formula, dots) {
+  if ("re.form" %in% names(dots)) {
+    stop("conditional_effects() spells this argument `re_formula` ",
+         "(brms's spelling; the fit surface's predict() and ",
+         "simulate() spell it `re.form` after lme4). Pass ",
+         "re_formula = ", call. = FALSE)
+  }
+  if (!is.null(re_formula) && !inherits(re_formula, "formula") &&
+        !(length(re_formula) == 1L && is.na(re_formula))) {
+    stop("`re_formula` must be NA to draw the population-level curve ",
+         "(the default), NULL to condition on the grid reference ",
+         "group levels, or a one-sided formula naming the terms to ",
+         "keep, not ", arg_desc(re_formula), call. = FALSE)
+  }
+  re_formula
 }
 
 #' Identity of the grids one bootstrap was run over.
@@ -310,9 +336,10 @@ ce_boot_key <- function(grids, categorical, resp, dpar, lens) {
 #' `frm_bootstrap()` guards the refit but not `FUN`.
 #'
 #' @noRd
-ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot, seed) {
+ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot,
+                          seed, re_form = NA) {
   lens <- vapply(grids, function(g) {
-    length(ce_boot_one(x, g$nd, categorical, resp, dpar))
+    length(ce_boot_one(x, g$nd, categorical, resp, dpar, re_form))
   }, 1L)
   tot <- sum(lens)
   key <- ce_boot_key(grids, categorical, resp, dpar, lens)
@@ -344,7 +371,7 @@ ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot, seed) {
   FUN <- function(f) {
     v <- tryCatch(
       unlist(lapply(grids, function(g) {
-        ce_boot_one(f, g$nd, categorical, resp, dpar)
+        ce_boot_one(f, g$nd, categorical, resp, dpar, re_form)
       }), use.names = FALSE),
       error = function(e) NULL
     )
@@ -556,6 +583,15 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' @param resolution Number of grid points for a varied numeric
 #'   predictor.
 #' @param prob Coverage of the confidence bands (brms spelling).
+#' @param re_formula The population switch, in brms's spelling: `NA`
+#'   (the default) draws the population-level curve, `NULL` conditions
+#'   on the random effects of the grid's reference group levels (set
+#'   them with `conditions =`), and a one-sided formula keeps the named
+#'   terms. The fit surface's [predict.frmtmb_fit()] spells the same
+#'   setting `re.form` after lme4; `conditional_effects()` takes brms's
+#'   name because it is brms's function, and says so if handed the
+#'   other spelling. `band = "profile"` exists only for the
+#'   population-level curve.
 #' @param band How the confidence band is built: `"wald"` (default,
 #'   the delta method on the link scale), `"profile"` (likelihood-root
 #'   inversion per grid point) or `"boot"` (parametric-bootstrap
@@ -876,6 +912,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                                            method = c("epred", "predict"),
                                            band = c("wald", "profile",
                                                     "boot"),
+                                           re_formula = NA,
                                            ndraws = 400, boot = NULL,
                                            profile_points = 25,
                                            seed = NULL,
@@ -893,6 +930,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   check_count(profile_points, "profile_points", min = 1L)
   check_flag(surface, "surface")
   check_named_list(conditions, "conditions", "conditions = list(z = 0)")
+  re_formula <- ce_re_formula(re_formula, list(...))
+  pop_level <- !inherits(re_formula, "formula") &&
+    length(re_formula) == 1L && is.na(re_formula)
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
   ce_hmm_check(rspec)
@@ -936,6 +976,18 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   lp <- find_linpred(x, resp, dpar)
   if (band == "profile") {
     ce_profile_check(x, rspec, lp, dpar_given, categorical)
+    if (!pop_level) {
+      stop("band = \"profile\" draws its band over the OUTER ",
+           "parameters, so it exists only for the population-level ",
+           "curve (re_formula = NA). Use band = \"wald\" or ",
+           "\"boot\" to condition on random effects", call. = FALSE)
+    }
+  }
+  if (categorical && !pop_level &&
+      identical(rspec$family$type, "ordinal") && band != "boot") {
+    stop("the ordinal per-category delta method is written for the ",
+         "population-level curve; with re_formula use band = ",
+         "\"boot\", or ask for dpar = \"mu\"", call. = FALSE)
   }
   # a nonlinear predictor has no delta-method standard error, so its
   # only band is the one that refits
@@ -957,7 +1009,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   grids <- gb$grids
   z <- stats::qnorm(1 - (1 - prob) / 2)
   bd <- if (band == "boot") {
-    ce_boot_draws(x, grids, categorical, resp, dpar, boot, seed)
+    ce_boot_draws(x, grids, categorical, resp, dpar, boot, seed,
+                  re_formula)
   }
   pfail <- c(0L, 0L)
 
@@ -981,7 +1034,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         # method does not apply; under band = "boot" (the only band
         # allowed here) the draws supply the se and the bounds
         P <- predict(x, newdata = nd, type = "response", resp = resp,
-                     re.form = NA)
+                     re.form = re_formula)
         ps <- list(P = P, se = matrix(NA_real_, nrow(P), ncol(P)))
       }
       cats <- colnames(ps$P)
@@ -1008,13 +1061,15 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         # predictor, which has no analytic se, reach a band at all
         df$estimate__ <- as.vector(predict(x, newdata = nd,
                                            type = "response", dpar = dpar,
-                                           resp = resp, re.form = NA, ...))
+                                           resp = resp,
+                                           re.form = re_formula, ...))
         df$se__ <- NA_real_
         df$lower__ <- NA_real_
         df$upper__ <- NA_real_
       } else {
         p <- predict(x, newdata = nd, type = "link", dpar = dpar,
-                     resp = resp, re.form = NA, se.fit = TRUE, ...)
+                     resp = resp, re.form = re_formula, se.fit = TRUE,
+                     ...)
         df$estimate__ <- lp$link$linkinv(p$fit)
         df$se__ <- p$se.fit
         df$lower__ <- lp$link$linkinv(p$fit - z * p$se.fit)
@@ -1029,7 +1084,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         dpv <- list()
         for (dnm in names(rspec$dpars)) {
           dpv[[dnm]] <- as.vector(predict(x, newdata = nd, dpar = dnm,
-                                          resp = resp, re.form = NA,
+                                          resp = resp,
+                                          re.form = re_formula,
                                           type = "response"))
         }
         avc <- ce_aterms(rspec, nd, cset, n)
@@ -1091,6 +1147,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
                                              resp = NULL, dpar = NULL,
                                              resolution = 100,
                                              prob = 0.95, ndraws = NULL,
+                                             re_formula = NA,
                                              conditions = list(),
                                              data = NULL, ...) {
   # same recycling trap as the fit method: prob and resolution index a
@@ -1100,6 +1157,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   if (!is.null(ndraws)) check_count(ndraws, "ndraws", min = 1L)
   check_named_list(conditions, "conditions", "conditions = list(z = 0)")
   dots <- list(...)
+  re_formula <- ce_re_formula(re_formula, dots)
   if (!is.null(dots$method)) {
     stop("conditional_effects() on draws has no method =: the curves ",
          "ARE posterior expected-response draws. For predictive bands, ",
@@ -1138,14 +1196,14 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   rows <- draws_subsample(x, ndraws)
   f1 <- draws_fit_at(x, rows[1L], idx)
   lens <- vapply(gb$grids, function(g) {
-    length(ce_boot_one(f1, g$nd, categorical, resp, dpar))
+    length(ce_boot_one(f1, g$nd, categorical, resp, dpar, re_formula))
   }, 1L)
   offsets <- cumsum(c(0L, lens))
   M <- matrix(NA_real_, length(rows), sum(lens))
   for (i in seq_along(rows)) {
     fi <- if (i == 1L) f1 else draws_fit_at(x, rows[i], idx)
     M[i, ] <- unlist(lapply(gb$grids, function(g) {
-      ce_boot_one(fi, g$nd, categorical, resp, dpar)
+      ce_boot_one(fi, g$nd, categorical, resp, dpar, re_formula)
     }), use.names = FALSE)
   }
 
@@ -1161,7 +1219,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
       # ce_boot_one() flattened the n x categories probability matrix
       # column-major, so category k occupies positions (k-1)*n + 1:n
       cats <- colnames(predict(f1, newdata = g$nd, type = "response",
-                               resp = resp, re.form = NA))
+                               resp = resp, re.form = re_formula))
       df <- do.call(rbind, lapply(seq_along(cats), function(k) {
         d <- g$nd[g$ev]
         kk <- (k - 1L) * g$n + seq_len(g$n)

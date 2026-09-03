@@ -1,3 +1,22 @@
+# frmtmb 0.40.1
+
+* `conditional_effects()` gains `re_formula`, in brms's spelling and
+  with brms's default: `NA` draws the population-level curve, `NULL`
+  conditions on the grid's reference group levels (pick them with
+  `conditions =`), and a one-sided formula keeps the named terms, on
+  the fit method and the draws method alike. Previously the setting
+  was hard-coded internally, so the lme4 spelling `re.form` died with
+  a matched-by-multiple-arguments error on a fit and both spellings
+  vanished silently into the dots on draws. A user who reaches for
+  `re.form` here is now told which spelling this function takes:
+  `conditional_effects()` is brms's function and speaks brms, while
+  the fit surface's `predict()` and `simulate()` keep lme4's
+  `re.form`. `band = "profile"` exists only for the population-level
+  curve and says so.
+* The message-uniqueness test failed open on one CI layout that
+  offered an existing-but-empty `../../R`; it now requires positive
+  identification of the package source tree and skips otherwise.
+
 # frmtmb 0.40.0
 
 Input validation across the export surface after an rOpenSci autotest

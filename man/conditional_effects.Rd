@@ -17,6 +17,7 @@ conditional_effects(x, ...)
   prob = 0.95,
   method = c("epred", "predict"),
   band = c("wald", "profile", "boot"),
+  re_formula = NA,
   ndraws = 400,
   boot = NULL,
   profile_points = 25,
@@ -35,6 +36,7 @@ conditional_effects(x, ...)
   resolution = 100,
   prob = 0.95,
   ndraws = NULL,
+  re_formula = NA,
   conditions = list(),
   data = NULL,
   ...
@@ -78,6 +80,16 @@ an error rather than a silent default).}
 the delta method on the link scale), \code{"profile"} (likelihood-root
 inversion per grid point) or \code{"boot"} (parametric-bootstrap
 percentiles). See the band section. Only for \code{method = "epred"}.}
+
+\item{re_formula}{The population switch, in brms's spelling: \code{NA}
+(the default) draws the population-level curve, \code{NULL} conditions
+on the random effects of the grid's reference group levels (set
+them with \verb{conditions =}), and a one-sided formula keeps the named
+terms. The fit surface's \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} spells the same
+setting \code{re.form} after lme4; \code{conditional_effects()} takes brms's
+name because it is brms's function, and says so if handed the
+other spelling. \code{band = "profile"} exists only for the
+population-level curve.}
 
 \item{ndraws}{Simulated responses per grid point for
 \code{method = "predict"}. For the draws method: how many evenly spaced
