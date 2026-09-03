@@ -6,9 +6,13 @@ counterpart of brms's `get_prior()`: one row per slot a prior can
 target, with the class/coef/dpar/group values to pass to
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md).
 The default in every slot is flat (this is maximum likelihood until
-priors are set). Class `"sd"` is targeted by `group` only; class
+priors are set; the formula route of
+[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+has its own brms defaults, which
+[`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md)
+reports). Classes `"sd"` and `"cor"` are targeted by `group` only; class
 `"theta"` rows name the raw internal covariance parameters (escape
-hatch, including correlations).
+hatch, including correlations one at a time).
 
 ## Usage
 

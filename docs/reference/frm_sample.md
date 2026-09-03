@@ -221,29 +221,31 @@ which blocks are eligible, below.
 
 *Which blocks, and why not all of them.* A block is non-centered when
 two things hold, and they are the same thing twice: every parameter it
-has is a standard deviation with a Cholesky factor registered for its
-structure, and every one of those parameters carries a PRIOR. Both are
-about not handing the sampler a direction it can run away in.
-Non-centering gives NUTS the run of `theta`'s whole range, and the
-centered funnel is what was keeping a chain out of the parts of that
+has is a standard deviation or a correlation with a Cholesky factor
+registered for its structure, and every one of those parameters carries
+a PRIOR. Both are about not handing the sampler a direction it can run
+away in. Non-centering gives NUTS the run of `theta`'s whole range, and
+the centered funnel is what was keeping a chain out of the parts of that
 range where the posterior is flat or improper. Removing the funnel
 without closing those off first trades a slow chain for a wrong one.
 
 In practice that means the FORMULA interface, whose default priors cover
-every standard deviation, non-centers `(1 | g)` and any block written
-one term at a time, [`diag()`](https://rdrr.io/r/base/diag.html) and
-`homdiag()` blocks, [`mgcv::s()`](https://rdrr.io/pkg/mgcv/man/s.html)
-smooths, `equalto()`, and `gr(cov = )` with one term. A `k =`
-Hilbert-space [`gp()`](https://paulbuerkner.com/brms/reference/gp.html)
-block stays centered on the formula route even though its factor is
-diagonal: its LENGTHSCALES share the block's `theta`, the default priors
-cover only standard deviations, and the gate wants every parameter of a
-block priored. Prior the whole block by hand
-(`set_prior(class = "theta")`) to non-center it. `rr()` is already
-non-centered by construction, since its own coefficients are the
-standard normal factors. A fitted model sampled with `frm_sample(fit)`
-has flat priors by design (it is a diagnostic; see above), so it stays
-centered unless you give its variance parameters a prior.
+every standard deviation and every correlation, non-centers `(1 | g)`
+and any block written one term at a time,
+[`diag()`](https://rdrr.io/r/base/diag.html) and `homdiag()` blocks,
+[`mgcv::s()`](https://rdrr.io/pkg/mgcv/man/s.html) smooths, `equalto()`,
+`gr(cov = )`, and the CORRELATED blocks `(x | g)`, `cs()`, `ar1()` and
+`hetar1()`. A `k =` Hilbert-space
+[`gp()`](https://paulbuerkner.com/brms/reference/gp.html) block stays
+centered on the formula route even though its factor is diagonal: its
+LENGTHSCALES share the block's `theta`, the default priors cover only
+standard deviations, and the gate wants every parameter of a block
+priored. Prior the whole block by hand (`set_prior(class = "theta")`) to
+non-center it. `rr()` is already non-centered by construction, since its
+own coefficients are the standard normal factors. A fitted model sampled
+with `frm_sample(fit)` has flat priors by design (it is a diagnostic;
+see above), so it stays centered unless you give its variance parameters
+a prior.
 
 The call [`message()`](https://rdrr.io/r/base/message.html)s every block
 it left centered, with the reason. A model made only of those samples
@@ -259,18 +261,14 @@ centered throughout and says so rather than failing. The reasons:
   `student_t(3, 0, s)` makes that tail integrable, 174 to 284 against 3
   to 48 centered.
 
-- A CORRELATION parameter: `(Days | Subject)`, `cs()`, `ar1()` and the
-  rest. Not a limit of the arithmetic: the factor exists and is exact.
-  It is that a correlation here is parameterized by an unbounded `theta`
-  whose flat prior is `(1 - rho^2)^-3/2` on the correlation itself -
-  improper, with all its mass at `|rho| = 1`. Measured on
-  `sleepstudy (Days | Subject)`: the profile log-likelihood is flat in
-  that `theta` past `|theta| = 100` and only 4.4 nats below the peak,
-  and a non-centered chain reaches `theta = 2e6` at a bulk-ESS of 1. The
-  fix is again a prior: `priors = list(theta_3 = prior_normal(0, 1))`
-  makes the CENTERED chain run divergence-free at 142 min-ESS per second
-  there, against 28 with the flat prior and 122 for the matched brms
-  model.
+- A FLAT PRIOR on the block's CORRELATION, which is the same argument:
+  flat on frmtmb's unbounded correlation parameter is
+  `(1 - rho^2)^-3/2`, improper, with all its mass at `|rho| = 1`. Before
+  0.39 that kept every correlated block centered, because no proper
+  correlation prior existed to close the tail; `lkj(eta)` now does, and
+  the formula route sets `lkj(1)` by default, so `(Days | Subject)`,
+  `cs()`, `ar1()` and `hetar1()` non-center there like any other block.
+  On the FIT route they still do not: its priors are flat by design.
 
 - A Student-t latent (`gr(dist = "student")`): a scale mixture, not a
   linear factor.
@@ -317,6 +315,7 @@ link and `s = max(2.5, round(mad(y*), 1))`:
 | `b` (slopes) | flat | \- |
 | `Intercept` | `student_t(3, round(median(y*), 1), s)` | link |
 | `sd` | `student_t(3, 0, s)` | natural sd, log-Jacobian applied |
+| `cor` | `lkj(1)` | correlation matrix, Jacobian applied |
 | `sigma` (intercept only) | `student_t(3, 0, s)` | natural |
 | `sigma` (with a predictor) | `student_t(3, 0, 2.5)` | log |
 
@@ -346,13 +345,12 @@ on the returned draws reproduces the chosen priors exactly.
 *What is deliberately NOT matched.* Each of these is named in the
 message whenever the model has one.
 
-- Random-effect CORRELATIONS stay flat. brms puts `lkj(1)` on them,
-  which is uniform over correlation matrices; frmtmb parameterizes a
-  covariance block by an unconstrained Cholesky `theta` segment whose
-  flat prior is NOT uniform on correlations, and no LKJ density is
-  implemented on that parameterization, so claiming `lkj(1)` here would
-  be false. Set one by hand with `set_prior(class = "theta")` if you
-  need it.
+- A `toep()` correlation stays flat. Its banded parameterization is not
+  positive definite everywhere, so there is no correlation matrix over
+  its whole parameter space for an LKJ density to be about. Every other
+  correlated structure gets `lkj(1)`, brms's own default (see
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  for what the density is on frmtmb's parameters).
 
 - ORDINAL THRESHOLDS stay flat. brms priors them `student_t(3, 0, 2.5)`
   under its `Intercept` class; frmtmb keeps them in the `thres`

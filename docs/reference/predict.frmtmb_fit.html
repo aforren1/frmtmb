@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.38.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.39.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,7 +106,9 @@ to the first).</p></dd>
 
 <dt id="arg-re-form">re.form<a class="anchor" aria-label="anchor" href="#arg-re-form"></a></dt>
 <dd><p><code>NULL</code> (default) includes random effects; <code>NA</code> or <code>~0</code>
-gives population-level predictions.</p></dd>
+gives population-level predictions. See
+<em>What <code>re.form = NA</code> drops</em> for what that means when the model has
+smooths.</p></dd>
 
 
 <dt id="arg-se-fit">se.fit<a class="anchor" aria-label="anchor" href="#arg-se-fit"></a></dt>
@@ -119,7 +121,9 @@ with the GP conditional variance added to the standard errors.</p></dd>
 
 <dt id="arg-allow-new-levels">allow_new_levels<a class="anchor" aria-label="anchor" href="#arg-allow-new-levels"></a></dt>
 <dd><p>Predict unseen grouping-factor levels at the
-population level instead of erroring.</p></dd>
+population level instead of erroring. A factor-smooth term
+(<code>bs = "fs"</code>) follows the same rule: a level it never saw
+contributes nothing, which leaves the population curve.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -186,6 +190,55 @@ predictor: an ordinal response has no mean, and answering a question
 about a mean with a latent predictor is the confusion this section
 exists to remove. Ask for the predictor by name (<code>type = "link"</code>, or
 <code>dpar = "mu"</code>) when that is what you want.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-re-form-na-drops">What <code>re.form = NA</code> drops<a class="anchor" aria-label="anchor" href="#what-re-form-na-drops"></a></h2>
+
+
+<p><code>re.form = NA</code> (equivalently <code>~0</code>) asks for the POPULATION-level
+prediction. Every <code>(x | g)</code> block is dropped, and so is any smooth
+whose basis gives each level of a grouping factor its own curve.
+Everything else stays.</p>
+<p>Dropped:</p><ul><li><p><code>(1 | g)</code>, <code>(x | g)</code>, and the structured spellings of them
+(<code>gr()</code>, <code>cs()</code>, <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>mm()</code>, <code>car()</code>, <code>spde()</code>, ...).</p></li>
+<li><p><code>s(t, g, bs = "fs")</code>, the factor-smooth interaction: one curve per
+level of <code>g</code>, so the curves ARE the group deviations.</p></li>
+<li><p><code>s(g, bs = "re")</code> and <code>s(x, g, bs = "re")</code>, which are a random
+intercept and a random slope written as a smooth.</p></li>
+<li><p><code>t2(t, g, bs = c("cr", "re"))</code> and any other tensor product with an
+<code>re</code> margin, which is the same random smooth in a different
+spelling.</p></li>
+</ul><p>Kept:</p><ul><li><p><code>s(t)</code>, <code>s(t, by = x)</code>, <code>te()</code>, <code>t2()</code>, and every other population
+smooth. A smooth's wiggly part is stored as a random-effect block
+because that is how a penalty is written as a mixed model, but the
+term is a population effect and the population prediction is the
+fitted curve, not the null-space line through it.</p></li>
+<li><p><code>gp()</code> and <code>hsgp()</code> terms.</p></li>
+</ul><p>The test is what the basis MEANS, not the <code>bs</code> string: <code>bs = "sz"</code>
+names a factor the way <code>bs = "fs"</code> does, but writes the level curves
+as contrasts against a reference level, which is mgcv's spelling for
+a factor whose levels are fixed effects, so it would count as
+population-level. (<code>sz</code> has no random-effect representation, so it is
+not fittable here at all; the classification is stated for
+completeness.)</p>
+<p>The result is <code>mgcv::predict.gam(exclude = )</code> on the factor-smooth
+term, and <code>tests/testthat/test-smooth-population.R</code> asserts the two
+agree to 1e-6 on a shared fit.</p>
+<p>This deliberately follows mgcv rather than brms: brms stores every
+smooth's wiggly part as population parameters, so its
+<code>re_formula = NA</code> KEEPS factor-smooth curves. A ported brms call
+with a <code>bs = "fs"</code> term therefore returns different numbers here,
+on purpose: the retained per-level curve is not a population
+quantity, and mgcv, the authority frmtmb's smooth estimation
+already follows, drops it too.</p>
+<p>A dropped factor-smooth term needs nothing from <code>newdata</code>, so the
+grouping column may be left out entirely when <code>re.form = NA</code>. It is
+required for a conditional prediction, and its absence is reported by
+name rather than by an mgcv internal message.</p>
+<p><code><a href="conditional_effects.html">conditional_effects()</a></code> draws its curves at the population level, so
+it follows this rule too: on a model with a factor-smooth term the
+displayed curve is the population smooth, and the grouping factor is
+not offered as an effect to plot.</p>
     </div>
     <div class="section level2">
     <h2 id="standard-errors-of-the-expected-response">Standard errors of the expected response<a class="anchor" aria-label="anchor" href="#standard-errors-of-the-expected-response"></a></h2>

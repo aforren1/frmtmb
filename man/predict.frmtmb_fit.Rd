@@ -161,6 +161,14 @@ The result is \code{mgcv::predict.gam(exclude = )} on the factor-smooth
 term, and \code{tests/testthat/test-smooth-population.R} asserts the two
 agree to 1e-6 on a shared fit.
 
+This deliberately follows mgcv rather than brms: brms stores every
+smooth's wiggly part as population parameters, so its
+\code{re_formula = NA} KEEPS factor-smooth curves. A ported brms call
+with a \code{bs = "fs"} term therefore returns different numbers here,
+on purpose: the retained per-level curve is not a population
+quantity, and mgcv, the authority frmtmb's smooth estimation
+already follows, drops it too.
+
 A dropped factor-smooth term needs nothing from \code{newdata}, so the
 grouping column may be left out entirely when \code{re.form = NA}. It is
 required for a conditional prediction, and its absence is reported by

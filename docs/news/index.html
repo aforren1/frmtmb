@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.38.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.39.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,33 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.39.0" id="frmtmb-0390">frmtmb 0.39.0<a class="anchor" aria-label="anchor" href="#frmtmb-0390"></a></h2>
+<p>The LKJ correlation prior closes the last default-prior gap against brms and brings correlated blocks into non-centered sampling; population-level prediction becomes exact on models with random smooths; and a mechanical lint pass lands with its refusal policy written down.</p>
+<div class="section level3">
+<h3 id="breaking-population-level-prediction-with-random-smooths-0-39-0">Breaking: population-level prediction with random smooths<a class="anchor" aria-label="anchor" href="#breaking-population-level-prediction-with-random-smooths-0-39-0"></a></h3>
+<ul><li>
+<code>predict(re.form = NA)</code> and <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> now give a true population-level prediction on models with random smooths. A smooth whose basis is indexed by a grouping factor (<code>bs = "fs"</code>, a factor <code>bs = "re"</code>, a tensor product with an <code>re</code> margin, classified from the smooth object rather than the <code>bs</code> string) is dropped along with the <code>(x | g)</code> blocks; population smooths, <code>gp()</code> and <code>hsgp()</code> keep their wiggle. The result matches <code>mgcv::predict.gam(exclude = )</code> on the factor-smooth term to 3e-9. Previously all smooth blocks were kept, so <code>re.form = NA</code> on such a model returned the per-subject curve. This deliberately follows mgcv rather than brms, whose <code>re_formula = NA</code> keeps factor-smooth curves; the divergence and the reason are documented in <code><a href="../reference/predict.frmtmb_fit.html">?predict.frmtmb_fit</a></code>.</li>
+<li>
+<code>predict(newdata = , re.form = NA)</code> no longer needs the grouping column of a factor-smooth term at all, since the dropped term is never rebuilt. When the column is needed and absent, a named error lands before mgcv’s internal one, and any other missing smooth column is named too.</li>
+<li>An unseen level of a factor-smooth term errors by default like any other new grouping level; <code>allow_new_levels = TRUE</code> predicts it at the population level for an <code>fs</code> basis (equal to <code>re.form = NA</code> exactly), and is refused by name for a factor <code>bs = "re"</code> basis, whose design has no zero row to hand a new level.</li>
+<li>
+<code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> on a fit whose only predictors are matrix columns (scalar-on-function regression) names those columns instead of claiming nothing is plottable, and no longer offers a factor-smooth’s grouping factor as an effect.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="the-lkj-prior-on-random-effect-correlations-0-39-0">The LKJ prior on random-effect correlations<a class="anchor" aria-label="anchor" href="#the-lkj-prior-on-random-effect-correlations-0-39-0"></a></h3>
+<ul><li>
+<code>prior_lkj(eta)</code> and <code>set_prior("lkj(eta)", class = "cor")</code> put an LKJ prior on a random-effect block’s correlation. Class <code>"cor"</code> addresses a whole block, by <code>group</code> exactly as class <code>"sd"</code> does, which is brms’s spelling. The density is the LKJ one carried onto frmtmb’s unconstrained row-normalized Cholesky parameters with the exact Jacobian of that map, so on those parameters it means what <code>lkj(eta)</code> means on the correlation matrix. It covers <code>us()</code> and <code>gr(cov = )</code> blocks of two or more terms, and <code>cs()</code>, <code>ar1()</code> and <code>hetar1()</code>, whose single bounded correlation takes the LKJ marginal <code>(1 - rho^2)^(eta - 1)</code> with that structure’s own Jacobian. <code>toep()</code> is refused by name: its parameterization is not positive definite everywhere, so it has no correlation matrix to put a density on.</li>
+<li>The formula route of <code><a href="../reference/frm_sample.html">frm_sample()</a></code> now defaults to <code>lkj(1)</code> on every correlation, which is brms’s own default and the last class where the two disagreed. <strong>Seeded draws differ from v0.38 for any model with a correlated random-effect block.</strong> <code>priors = "flat"</code> opts out, the fit route is unchanged (it is a likelihood diagnostic and keeps flat priors), <code><a href="../reference/frm.html">frm()</a></code> and <code><a href="../reference/check_laplace.html">check_laplace()</a></code> are untouched, and the disclosure message gains a <code>cor</code> line.</li>
+<li>Correlated blocks are now sampled NON-CENTERED on the formula route. The gate did not move: a block is non-centered when every parameter it has carries a prior, and correlations now do. <code>(x | g)</code>, <code>cs()</code>, <code>ar1()</code>, <code>hetar1()</code> and <code>gr(cov = )</code> join <code>(1 | g)</code> and the smooths.</li>
+<li>Measured on <code>sleepstudy (Days | Subject)</code>, one chain of 2000, three seeds: the flat-correlation median of 36 min-ESS/s with a 154 divergence storm on one seed becomes 120 (centered) and 116 (non-centered) with no divergences, against ~122 for the matched brms model. The prior is what closed the gap; non-centering the block is a wash on this model. <code>dev/benchmarks.md</code> has the table and the distribution-level validation of the density.</li>
+<li>A MAP fit takes the same prior: <code>frm(..., priors = set_prior("lkj(2)", class = "cor"))</code> penalizes the correlation toward zero. Maximum likelihood is unaffected, because the default is a sampling default and never enters <code><a href="../reference/frm.html">frm()</a></code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="housekeeping-0-39-0">Housekeeping<a class="anchor" aria-label="anchor" href="#housekeeping-0-39-0"></a></h3>
+<ul><li>A mechanical lint pass: the three <code><a href="https://rdrr.io/r/base/on.exit.html" class="external-link">on.exit()</a></code> calls gain <code>add = TRUE</code> (none was clobbering another handler), one <code>any(duplicated())</code> becomes <code><a href="https://rdrr.io/r/base/duplicated.html" class="external-link">anyDuplicated()</a></code>, one literal pattern gains <code>fixed = TRUE</code>. <code>dev/lint-policy.md</code> records what was swept and what is deliberately not chased, with reasons, ahead of the rOpenSci submission.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.38.0" id="frmtmb-0380">frmtmb 0.38.0<a class="anchor" aria-label="anchor" href="#frmtmb-0380"></a></h2>
 <p>Non-centered sampling with the funnel diagnosed as a prior, and four case studies: hidden Markov, functional regression, Wiener diffusion, and circular.</p>

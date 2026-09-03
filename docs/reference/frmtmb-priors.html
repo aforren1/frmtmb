@@ -13,7 +13,7 @@ prior_normal(0, 1) on theta_1 is a lognormal prior on that SD."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.38.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.39.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,7 +51,7 @@ prior_normal(0, 1) on theta_1 is a lognormal prior on that SD."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Prior specifications for frm_sample</h1>
-      <small class="dont-index">Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/R/interop.R" class="external-link"><code>R/interop.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/R/interop.R" class="external-link"><code>R/interop.R</code></a>, <a href="https://github.com/aforren1/frmtmb/blob/HEAD/R/priors.R" class="external-link"><code>R/priors.R</code></a></small>
       <div class="d-none name"><code>frmtmb-priors.Rd</code></div>
     </div>
 
@@ -66,7 +66,9 @@ unconstrained parameterization (log-SDs, scaled-Cholesky terms), so
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">prior_normal</span><span class="op">(</span>location <span class="op">=</span> <span class="fl">0</span>, scale <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">prior_t</span><span class="op">(</span>df <span class="op">=</span> <span class="fl">3</span>, location <span class="op">=</span> <span class="fl">0</span>, scale <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">prior_t</span><span class="op">(</span>df <span class="op">=</span> <span class="fl">3</span>, location <span class="op">=</span> <span class="fl">0</span>, scale <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">prior_lkj</span><span class="op">(</span>eta <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -75,6 +77,12 @@ unconstrained parameterization (log-SDs, scaled-Cholesky terms), so
 
 <dl><dt id="arg-location-scale-df">location, scale, df<a class="anchor" aria-label="anchor" href="#arg-location-scale-df"></a></dt>
 <dd><p>Prior parameters.</p></dd>
+
+
+<dt id="arg-eta">eta<a class="anchor" aria-label="anchor" href="#arg-eta"></a></dt>
+<dd><p>LKJ shape. <code>1</code> is uniform over correlation matrices,
+larger values concentrate toward the identity, and <code>0 &lt; eta &lt; 1</code>
+pushes toward the boundary.</p></dd>
 
 </dl></div>
     <div class="section level2">

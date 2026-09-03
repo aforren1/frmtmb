@@ -210,16 +210,30 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
          " needs the column(s) ", paste0("`", miss, "`", collapse = ", "),
          ", which newdata does not have", call. = FALSE)
   }
-  if (use_re && !is.null(gv) && !allow_new_levels &&
-      !is.null(si$sm$flev)) {
+  # fitted levels: fs smooths carry sm$flev; factor bs = "re" smooths
+  # do not, so the frame records group_levels for both (older fits
+  # without the field fall back to flev and keep their old behavior)
+  lev <- si$group_levels %||% si$sm$flev
+  if (use_re && !is.null(gv) && !is.null(lev)) {
     new <- setdiff(unique(as.character(newdata[[gv]])),
-                   as.character(si$sm$flev))
-    if (length(new)) {
+                   as.character(lev))
+    if (length(new) && !allow_new_levels) {
       stop("New levels in the factor-smooth term ", si$label, ": ",
            paste(new, collapse = ", "), ". The term has no curve for ",
            "them. Use allow_new_levels = TRUE to predict them at the ",
            "population level, or re.form = NA for the population curve ",
            "at every row", call. = FALSE)
+    }
+    if (length(new) && is.null(si$sm$flev)) {
+      # an fs basis zero-rows an unknown level; a factor bs = "re"
+      # basis has one design column per fitted level and nothing else,
+      # so there is no population row to hand back
+      stop("allow_new_levels = TRUE cannot predict the new level(s) ",
+           paste(new, collapse = ", "), " of the bs = \"re\" smooth ",
+           "term ", si$label, ": its design has one column per fitted ",
+           "level and no zero row for a new one. Use re.form = NA for ",
+           "the population curve, which is what a new level would ",
+           "receive anyway", call. = FALSE)
     }
   }
   invisible(NULL)
@@ -845,6 +859,14 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' The result is `mgcv::predict.gam(exclude = )` on the factor-smooth
 #' term, and `tests/testthat/test-smooth-population.R` asserts the two
 #' agree to 1e-6 on a shared fit.
+#'
+#' This deliberately follows mgcv rather than brms: brms stores every
+#' smooth's wiggly part as population parameters, so its
+#' `re_formula = NA` KEEPS factor-smooth curves. A ported brms call
+#' with a `bs = "fs"` term therefore returns different numbers here,
+#' on purpose: the retained per-level curve is not a population
+#' quantity, and mgcv, the authority frmtmb's smooth estimation
+#' already follows, drops it too.
 #'
 #' A dropped factor-smooth term needs nothing from `newdata`, so the
 #' grouping column may be left out entirely when `re.form = NA`. It is

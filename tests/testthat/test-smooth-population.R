@@ -109,6 +109,16 @@ test_that("s(g, bs = 're') is a group-level smooth", {
                       as.numeric(predict(gre, exclude = "s(g)")))), 1e-5)
   # the wiggly part of s(t) survived: a flat line would not
   expect_gt(diff(range(predict(fre, re.form = NA))), 0.5)
+
+  # an unseen level of a factor bs = "re" smooth: named refusal by
+  # default, and a second named refusal under allow_new_levels = TRUE
+  # (the design has one column per fitted level, no zero row), with
+  # re.form = NA as the way out both times
+  nd_new <- data.frame(t = c(0.2, 0.6), g = factor(c("zz", "a")))
+  expect_error(predict(fre, newdata = nd_new), "New levels")
+  expect_error(predict(fre, newdata = nd_new, allow_new_levels = TRUE),
+               "no zero row")
+  expect_length(predict(fre, newdata = nd_new, re.form = NA), 2L)
 })
 
 test_that("the group/population split is read off the smooth object", {

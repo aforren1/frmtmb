@@ -43,8 +43,8 @@ fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
 frm_allfit(fit)
 #>     optimizer    logLik convergence seconds
 #>        nlminb -100.9269           0    0.02
-#>         optim -100.9269           0    0.02
-#>        bobyqa -100.9269           0    0.03
+#>         optim -100.9269           0    0.01
+#>        bobyqa -100.9269           0    0.04
 #>  nloptr_lbfgs -100.9269           0    0.03
 #> 
 #> logLik spread: 3.82e-11 

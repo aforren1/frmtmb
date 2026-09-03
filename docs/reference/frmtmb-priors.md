@@ -11,6 +11,8 @@ parameterization (log-SDs, scaled-Cholesky terms), so
 prior_normal(location = 0, scale = 1)
 
 prior_t(df = 3, location = 0, scale = 1)
+
+prior_lkj(eta = 1)
 ```
 
 ## Arguments
@@ -18,6 +20,12 @@ prior_t(df = 3, location = 0, scale = 1)
 - location, scale, df:
 
   Prior parameters.
+
+- eta:
+
+  LKJ shape. `1` is uniform over correlation matrices, larger values
+  concentrate toward the identity, and `0 < eta < 1` pushes toward the
+  boundary.
 
 ## Value
 

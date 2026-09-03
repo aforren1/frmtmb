@@ -55,7 +55,8 @@ predict(
 - re.form:
 
   `NULL` (default) includes random effects; `NA` or `~0` gives
-  population-level predictions.
+  population-level predictions. See *What `re.form = NA` drops* for what
+  that means when the model has smooths.
 
 - se.fit:
 
@@ -68,7 +69,9 @@ predict(
 - allow_new_levels:
 
   Predict unseen grouping-factor levels at the population level instead
-  of erroring.
+  of erroring. A factor-smooth term (`bs = "fs"`) follows the same rule:
+  a level it never saw contributes nothing, which leaves the population
+  curve.
 
 - ...:
 
@@ -141,6 +144,68 @@ predictor: an ordinal response has no mean, and answering a question
 about a mean with a latent predictor is the confusion this section
 exists to remove. Ask for the predictor by name (`type = "link"`, or
 `dpar = "mu"`) when that is what you want.
+
+## What `re.form = NA` drops
+
+`re.form = NA` (equivalently `~0`) asks for the POPULATION-level
+prediction. Every `(x | g)` block is dropped, and so is any smooth whose
+basis gives each level of a grouping factor its own curve. Everything
+else stays.
+
+Dropped:
+
+- `(1 | g)`, `(x | g)`, and the structured spellings of them (`gr()`,
+  `cs()`, [`ar()`](https://rdrr.io/r/stats/ar.html), `mm()`, `car()`,
+  `spde()`, ...).
+
+- `s(t, g, bs = "fs")`, the factor-smooth interaction: one curve per
+  level of `g`, so the curves ARE the group deviations.
+
+- `s(g, bs = "re")` and `s(x, g, bs = "re")`, which are a random
+  intercept and a random slope written as a smooth.
+
+- `t2(t, g, bs = c("cr", "re"))` and any other tensor product with an
+  `re` margin, which is the same random smooth in a different spelling.
+
+Kept:
+
+- `s(t)`, `s(t, by = x)`, `te()`, `t2()`, and every other population
+  smooth. A smooth's wiggly part is stored as a random-effect block
+  because that is how a penalty is written as a mixed model, but the
+  term is a population effect and the population prediction is the
+  fitted curve, not the null-space line through it.
+
+- `gp()` and `hsgp()` terms.
+
+The test is what the basis MEANS, not the `bs` string: `bs = "sz"` names
+a factor the way `bs = "fs"` does, but writes the level curves as
+contrasts against a reference level, which is mgcv's spelling for a
+factor whose levels are fixed effects, so it would count as
+population-level. (`sz` has no random-effect representation, so it is
+not fittable here at all; the classification is stated for
+completeness.)
+
+The result is `mgcv::predict.gam(exclude = )` on the factor-smooth term,
+and `tests/testthat/test-smooth-population.R` asserts the two agree to
+1e-6 on a shared fit.
+
+This deliberately follows mgcv rather than brms: brms stores every
+smooth's wiggly part as population parameters, so its `re_formula = NA`
+KEEPS factor-smooth curves. A ported brms call with a `bs = "fs"` term
+therefore returns different numbers here, on purpose: the retained
+per-level curve is not a population quantity, and mgcv, the authority
+frmtmb's smooth estimation already follows, drops it too.
+
+A dropped factor-smooth term needs nothing from `newdata`, so the
+grouping column may be left out entirely when `re.form = NA`. It is
+required for a conditional prediction, and its absence is reported by
+name rather than by an mgcv internal message.
+
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+draws its curves at the population level, so it follows this rule too:
+on a model with a factor-smooth term the displayed curve is the
+population smooth, and the grouping factor is not offered as an effect
+to plot.
 
 ## Standard errors of the expected response
 

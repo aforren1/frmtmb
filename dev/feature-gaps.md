@@ -1290,3 +1290,21 @@ constraint is `rt > ndt`. The contract a custom link must satisfy is
 custom-family docs. Note also that such a link saturates in double
 precision past a linear predictor near 37, so the bound is exact in
 algebra and only nearly exact in arithmetic.
+
+## Prior-machinery edge cases (review findings, 2026-09-02, logged not fixed)
+
+Three low-severity behaviors in R/priors.R, confirmed by reading
+during the v0.39 review, left as-is deliberately (the machinery was
+just reviewed end to end; each is an edge case with a safe default):
+
+1. An explicit `class = "cor"` prior silently skips a refused block
+   (for example toep) when another block matched; the refusal text
+   surfaces only when nothing matched. A per-block note would be
+   kinder.
+2. A bounds-only `class = "theta"` spec on a position already covered
+   by a joint LKJ entry adds a hard bound without retiring or
+   renormalizing the LKJ term: an undocumented truncation. Document
+   or refuse.
+3. The cs marginal map with eta < 1 evaluates (eta - 1) * log(0) at
+   logistic saturation (|t| >= ~745) and returns NaN on the tape;
+   unreachable in normal sampling, but a clamp would close it.

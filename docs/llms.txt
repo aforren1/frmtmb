@@ -521,6 +521,7 @@ and `NEWS.md` for the changelog.
   : Enumerate the targetable prior slots
 - [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   [`prior_t()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
+  [`prior_lkj()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   : Prior specifications for frm_sample
 - [`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md)
   : Priors used in a fit

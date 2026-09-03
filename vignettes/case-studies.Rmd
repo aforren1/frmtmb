@@ -1138,12 +1138,12 @@ close behind. Use it when the per-subject departures are near linear,
 and use `bs = "fs"` when they are not.
 
 ```{r fosr-fig, eval = has_tinyplot, fig.width = 7, fig.height = 4, fig.alt = "Plot of the two functional coefficients against t on the unit interval. A blue line is the fitted intercept function, which rises to about 3 near t equal to 0.25 and falls to about minus 1 near t equal to 0.75. A red line is the fitted slope function, an inverted parabola peaking near 1.5 at t equal to 0.5. Dashed gray lines are the simulated truth, and each fitted line follows its own dashed line closely."}
-xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0,
-                 subject = fos$subject[1])
+xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0)
 xg1 <- transform(xg, x = 1)
-f0 <- as.numeric(predict(ffs, newdata = xg))
-f1 <- as.numeric(predict(ffs, newdata = xg1)) - f0
-f0 <- f0 - mean(f0) + mean(b0(xg$t))       # the fs term shifts the level
+# re.form = NA drops the per-subject fs curves, so this IS the
+# population coefficient function; no subject column is needed
+f0 <- as.numeric(predict(ffs, newdata = xg, re.form = NA))
+f1 <- as.numeric(predict(ffs, newdata = xg1, re.form = NA)) - f0
 tinyplot::tinyplot(x = xg$t, y = f0, type = "l", col = "steelblue4",
                    lwd = 2, theme = "clean2", xlab = "t",
                    ylab = "coefficient function",
@@ -1221,9 +1221,8 @@ matrix columns:
 conditional_effects(fsof)
 ```
 
-A matrix covariate has no single value to hold the other predictors
-at, so it is excluded from the conditional-effects grid. Draw the
-coefficient function from `predict()` as above.
+The refusal names the matrix columns itself and points at the way
+out. Draw the coefficient function from `predict()` as above.
 
 ## 11. A drift-diffusion model as a custom family
 
@@ -1653,10 +1652,10 @@ and each one is handled above:
   and reports as `-gam$gcv.ubre`. `logLik.gam` is the unpenalized
   likelihood at the fit and is the wrong number to compare against.
   Section 10 compares the right pair.
-- A model with an `fs` factor-smooth needs the grouping column in
-  `newdata`, even to draw the population curve. Section 10 works
-  around it by taking a contrast at one level, where the level's own
-  curve cancels.
+- On a model with an `fs` factor-smooth, `predict(re.form = NA)`
+  drops the per-subject curves and gives the population coefficient
+  function directly, with no grouping column needed in `newdata`.
+  Section 10 draws its figure that way.
 - A custom family may pass a link OBJECT rather than a link name, which
   is how section 11 bounds the non-decision time by the data. The
   object needs `name`, `linkfun`, `linkinv` and `mu_eta`.

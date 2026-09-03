@@ -1387,12 +1387,12 @@ and use `bs = "fs"` when they are not.
 
 ``` r
 
-xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0,
-                 subject = fos$subject[1])
+xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0)
 xg1 <- transform(xg, x = 1)
-f0 <- as.numeric(predict(ffs, newdata = xg))
-f1 <- as.numeric(predict(ffs, newdata = xg1)) - f0
-f0 <- f0 - mean(f0) + mean(b0(xg$t))       # the fs term shifts the level
+# re.form = NA drops the per-subject fs curves, so this IS the
+# population coefficient function; no subject column is needed
+f0 <- as.numeric(predict(ffs, newdata = xg, re.form = NA))
+f1 <- as.numeric(predict(ffs, newdata = xg1, re.form = NA)) - f0
 tinyplot::tinyplot(x = xg$t, y = f0, type = "l", col = "steelblue4",
                    lwd = 2, theme = "clean2", xlab = "t",
                    ylab = "coefficient function",
@@ -1493,12 +1493,11 @@ will not draw a term built on matrix columns:
 
 conditional_effects(fsof)
 #> Error:
-#> ! No plottable predictors found for dpar 'mu'
+#> ! conditional_effects() has nothing to draw for dpar 'mu': the only predictor(s) of that parameter are the matrix column(s) `Smat` (carried by s(Smat):LX), which the display excludes. A matrix column is a whole function per row, so it has neither a one-dimensional axis to vary along nor a single value to hold the other predictors at. Draw the coefficient function with predict(newdata = ) over a grid you build yourself: one row per grid point, the matrix column holding the grid, and the weight column an indicator of the point
 ```
 
-A matrix covariate has no single value to hold the other predictors at,
-so it is excluded from the conditional-effects grid. Draw the
-coefficient function from
+The refusal names the matrix columns itself and points at the way out.
+Draw the coefficient function from
 [`predict()`](https://rdrr.io/r/stats/predict.html) as above.
 
 ## 11. A drift-diffusion model as a custom family
@@ -2002,10 +2001,10 @@ and each one is handled above:
   maximizes under `method = "ML"` and reports as `-gam$gcv.ubre`.
   `logLik.gam` is the unpenalized likelihood at the fit and is the wrong
   number to compare against. Section 10 compares the right pair.
-- A model with an `fs` factor-smooth needs the grouping column in
-  `newdata`, even to draw the population curve. Section 10 works around
-  it by taking a contrast at one level, where the level’s own curve
-  cancels.
+- On a model with an `fs` factor-smooth, `predict(re.form = NA)` drops
+  the per-subject curves and gives the population coefficient function
+  directly, with no grouping column needed in `newdata`. Section 10
+  draws its figure that way.
 - A custom family may pass a link OBJECT rather than a link name, which
   is how section 11 bounds the non-decision time by the data. The object
   needs `name`, `linkfun`, `linkinv` and `mu_eta`.

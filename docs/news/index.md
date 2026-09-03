@@ -1,5 +1,96 @@
 # Changelog
 
+## frmtmb 0.39.0
+
+The LKJ correlation prior closes the last default-prior gap against brms
+and brings correlated blocks into non-centered sampling;
+population-level prediction becomes exact on models with random smooths;
+and a mechanical lint pass lands with its refusal policy written down.
+
+### Breaking: population-level prediction with random smooths
+
+- `predict(re.form = NA)` and
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  now give a true population-level prediction on models with random
+  smooths. A smooth whose basis is indexed by a grouping factor
+  (`bs = "fs"`, a factor `bs = "re"`, a tensor product with an `re`
+  margin, classified from the smooth object rather than the `bs` string)
+  is dropped along with the `(x | g)` blocks; population smooths, `gp()`
+  and `hsgp()` keep their wiggle. The result matches
+  `mgcv::predict.gam(exclude = )` on the factor-smooth term to 3e-9.
+  Previously all smooth blocks were kept, so `re.form = NA` on such a
+  model returned the per-subject curve. This deliberately follows mgcv
+  rather than brms, whose `re_formula = NA` keeps factor-smooth curves;
+  the divergence and the reason are documented in
+  [`?predict.frmtmb_fit`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md).
+- `predict(newdata = , re.form = NA)` no longer needs the grouping
+  column of a factor-smooth term at all, since the dropped term is never
+  rebuilt. When the column is needed and absent, a named error lands
+  before mgcv’s internal one, and any other missing smooth column is
+  named too.
+- An unseen level of a factor-smooth term errors by default like any
+  other new grouping level; `allow_new_levels = TRUE` predicts it at the
+  population level for an `fs` basis (equal to `re.form = NA` exactly),
+  and is refused by name for a factor `bs = "re"` basis, whose design
+  has no zero row to hand a new level.
+- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  on a fit whose only predictors are matrix columns (scalar-on-function
+  regression) names those columns instead of claiming nothing is
+  plottable, and no longer offers a factor-smooth’s grouping factor as
+  an effect.
+
+### The LKJ prior on random-effect correlations
+
+- `prior_lkj(eta)` and `set_prior("lkj(eta)", class = "cor")` put an LKJ
+  prior on a random-effect block’s correlation. Class `"cor"` addresses
+  a whole block, by `group` exactly as class `"sd"` does, which is
+  brms’s spelling. The density is the LKJ one carried onto frmtmb’s
+  unconstrained row-normalized Cholesky parameters with the exact
+  Jacobian of that map, so on those parameters it means what `lkj(eta)`
+  means on the correlation matrix. It covers `us()` and `gr(cov = )`
+  blocks of two or more terms, and `cs()`, `ar1()` and `hetar1()`, whose
+  single bounded correlation takes the LKJ marginal
+  `(1 - rho^2)^(eta - 1)` with that structure’s own Jacobian. `toep()`
+  is refused by name: its parameterization is not positive definite
+  everywhere, so it has no correlation matrix to put a density on.
+- The formula route of
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  now defaults to `lkj(1)` on every correlation, which is brms’s own
+  default and the last class where the two disagreed. **Seeded draws
+  differ from v0.38 for any model with a correlated random-effect
+  block.** `priors = "flat"` opts out, the fit route is unchanged (it is
+  a likelihood diagnostic and keeps flat priors),
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) and
+  [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+  are untouched, and the disclosure message gains a `cor` line.
+- Correlated blocks are now sampled NON-CENTERED on the formula route.
+  The gate did not move: a block is non-centered when every parameter it
+  has carries a prior, and correlations now do. `(x | g)`, `cs()`,
+  `ar1()`, `hetar1()` and `gr(cov = )` join `(1 | g)` and the smooths.
+- Measured on `sleepstudy (Days | Subject)`, one chain of 2000, three
+  seeds: the flat-correlation median of 36 min-ESS/s with a 154
+  divergence storm on one seed becomes 120 (centered) and 116
+  (non-centered) with no divergences, against ~122 for the matched brms
+  model. The prior is what closed the gap; non-centering the block is a
+  wash on this model. `dev/benchmarks.md` has the table and the
+  distribution-level validation of the density.
+- A MAP fit takes the same prior:
+  `frm(..., priors = set_prior("lkj(2)", class = "cor"))` penalizes the
+  correlation toward zero. Maximum likelihood is unaffected, because the
+  default is a sampling default and never enters
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md).
+
+### Housekeeping
+
+- A mechanical lint pass: the three
+  [`on.exit()`](https://rdrr.io/r/base/on.exit.html) calls gain
+  `add = TRUE` (none was clobbering another handler), one
+  `any(duplicated())` becomes
+  [`anyDuplicated()`](https://rdrr.io/r/base/duplicated.html), one
+  literal pattern gains `fixed = TRUE`. `dev/lint-policy.md` records
+  what was swept and what is deliberately not chased, with reasons,
+  ahead of the rOpenSci submission.
+
 ## frmtmb 0.38.0
 
 Non-centered sampling with the funnel diagnosed as a prior, and four

@@ -46,7 +46,7 @@
 #' @srrstatsVerbose TRUE
 #'
 #' @srrstats {G5.2a} Every condition message raised in `R/` is unique.
-#'   The 650 `stop()` calls that carry literal text produce 650 distinct
+#'   The 651 `stop()` calls that carry literal text produce 651 distinct
 #'   messages (mechanically re-counted by an AST walk; 529 at v0.35.0,
 #'   plus nine net from the structured simulator contract and the
 #'   formula interface of `frm_sample()` with its default priors, plus
@@ -67,7 +67,9 @@
 #'   `conditional_effects()` refusal that names its matrix columns, the
 #'   two `predict(newdata = )` refusals that name a smooth's missing
 #'   columns before mgcv reports the length mismatch internally, and an
-#'   unseen level of a factor-smooth term), so a
+#'   unseen level of a factor-smooth term, itself two refusals: the
+#'   default, and the factor `bs = "re"` basis that has no zero row to
+#'   hand a new level under `allow_new_levels = TRUE`), so a
 #'   message a user reports names one line of source. Two calls that
 #'   would otherwise read the
 #'   same are separated by the context that tells the two faults apart,

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.38.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.39.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -1209,12 +1209,12 @@ subject rather than a curve. It costs the same three parameters here and
 is close behind. Use it when the per-subject departures are near linear,
 and use <code>bs = "fs"</code> when they are not.</p>
 <div class="sourceCode" id="cb64"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">xg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>, x <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>                 subject <span class="op">=</span> <span class="va">fos</span><span class="op">$</span><span class="va">subject</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">xg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>, x <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
 <span><span class="va">xg1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/transform.html" class="external-link">transform</a></span><span class="op">(</span><span class="va">xg</span>, x <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="va">f0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">ffs</span>, newdata <span class="op">=</span> <span class="va">xg</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">f1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">ffs</span>, newdata <span class="op">=</span> <span class="va">xg1</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="va">f0</span></span>
-<span><span class="va">f0</span> <span class="op">&lt;-</span> <span class="va">f0</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">f0</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu">b0</span><span class="op">(</span><span class="va">xg</span><span class="op">$</span><span class="va">t</span><span class="op">)</span><span class="op">)</span>       <span class="co"># the fs term shifts the level</span></span>
+<span><span class="co"># re.form = NA drops the per-subject fs curves, so this IS the</span></span>
+<span><span class="co"># population coefficient function; no subject column is needed</span></span>
+<span><span class="va">f0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">ffs</span>, newdata <span class="op">=</span> <span class="va">xg</span>, re.form <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">f1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">ffs</span>, newdata <span class="op">=</span> <span class="va">xg1</span>, re.form <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="va">f0</span></span>
 <span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">xg</span><span class="op">$</span><span class="va">t</span>, y <span class="op">=</span> <span class="va">f0</span>, type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="st">"steelblue4"</span>,</span>
 <span>                   lwd <span class="op">=</span> <span class="fl">2</span>, theme <span class="op">=</span> <span class="st">"clean2"</span>, xlab <span class="op">=</span> <span class="st">"t"</span>,</span>
 <span>                   ylab <span class="op">=</span> <span class="st">"coefficient function"</span>,</span>
@@ -1297,10 +1297,10 @@ columns:</p>
 <div class="sourceCode" id="cb68"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/conditional_effects.html">conditional_effects</a></span><span class="op">(</span><span class="va">fsof</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> No plottable predictors found for dpar 'mu'</span></span></code></pre></div>
-<p>A matrix covariate has no single value to hold the other predictors
-at, so it is excluded from the conditional-effects grid. Draw the
-coefficient function from <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> as above.</p>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> conditional_effects() has nothing to draw for dpar 'mu': the only predictor(s) of that parameter are the matrix column(s) `Smat` (carried by s(Smat):LX), which the display excludes. A matrix column is a whole function per row, so it has neither a one-dimensional axis to vary along nor a single value to hold the other predictors at. Draw the coefficient function with predict(newdata = ) over a grid you build yourself: one row per grid point, the matrix column holding the grid, and the weight column an indicator of the point</span></span></code></pre></div>
+<p>The refusal names the matrix columns itself and points at the way
+out. Draw the coefficient function from <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> as
+above.</p>
 </div>
 </div>
 <div class="section level2">
@@ -1722,10 +1722,11 @@ integrated out, which is what mgcv maximizes under
 <code>logLik.gam</code> is the unpenalized likelihood at the fit and is
 the wrong number to compare against. Section 10 compares the right
 pair.</li>
-<li>A model with an <code>fs</code> factor-smooth needs the grouping
-column in <code>newdata</code>, even to draw the population curve.
-Section 10 works around it by taking a contrast at one level, where the
-level’s own curve cancels.</li>
+<li>On a model with an <code>fs</code> factor-smooth,
+<code>predict(re.form = NA)</code> drops the per-subject curves and
+gives the population coefficient function directly, with no grouping
+column needed in <code>newdata</code>. Section 10 draws its figure that
+way.</li>
 <li>A custom family may pass a link OBJECT rather than a link name,
 which is how section 11 bounds the non-decision time by the data. The
 object needs <code>name</code>, <code>linkfun</code>,

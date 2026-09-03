@@ -3,8 +3,8 @@
 Builds prior specifications with brms spelling:
 `set_prior("normal(0, 5)", class = "b")`. Combine several with `+` or
 [`c()`](https://rdrr.io/r/base/c.html). Distributions: `normal(mu, sd)`,
-`student_t(df, mu, sd)`, `cauchy(mu, sd)`, `exponential(rate)`; an empty
-string sets bounds only.
+`student_t(df, mu, sd)`, `cauchy(mu, sd)`, `exponential(rate)`,
+`lkj(eta)`; an empty string sets bounds only.
 
 ## Usage
 
@@ -25,12 +25,12 @@ set_prior(
 - prior:
 
   Distribution string, e.g. `"normal(0, 5)"`, or a
-  [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)/[`prior_t()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
+  [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)/[`prior_t()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)/[`prior_lkj()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   object, or `""` for bounds only.
 
 - class:
 
-  `"b"`, `"Intercept"`, `"sd"`, or `"theta"`.
+  `"b"`, `"Intercept"`, `"sd"`, `"cor"`, or `"theta"`.
 
 - coef:
 
@@ -42,7 +42,7 @@ set_prior(
 
 - group:
 
-  Restrict class `"sd"` to one grouping factor.
+  Restrict class `"sd"` or `"cor"` to one grouping factor.
 
 - lb, ub:
 
@@ -65,16 +65,47 @@ Classes and their scales:
 - `"sd"`: random-effect standard deviations (and smoothing SDs), on the
   NATURAL sd scale with the log-Jacobian applied, so
   `set_prior("exponential(1)", class = "sd")` means what it says; narrow
-  with `group`. Correlation parameters are not covered (use class
-  `"theta"` on the internal scale if you must).
+  with `group`.
+
+- `"cor"`: the CORRELATION of a random-effect block, as a whole.
+  `lkj(eta)` only, and it addresses a BLOCK the way class `"sd"` does,
+  by `group`; `set_prior("lkj(2)", class = "cor")` covers every
+  correlated block of the model, which is brms's spelling. See The LKJ
+  prior below.
 
 - `"theta"`: raw internal covariance parameters (escape hatch).
 
 When priors overlap, later specifications override earlier ones, so put
-class-wide priors first and coefficient-specific ones after. `lb`/`ub`
-become hard bounds (via Stan's constrained transforms in
+class-wide priors first and coefficient-specific ones after. A class
+`"theta"` prior on a position an earlier `"cor"` prior covers replaces
+that whole LKJ term, and the other way round, so "later wins" holds
+between the two spellings as well. `lb`/`ub` become hard bounds (via
+Stan's constrained transforms in
 [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md));
 for class `"sd"` they apply on the sd scale.
+
+## The LKJ prior
+
+`lkj(eta)` is the density `det(C)^(eta - 1)` over a block's correlation
+matrix `C`, normalized: `eta = 1` is uniform over correlation matrices,
+larger `eta` concentrates toward the identity. frmtmb holds a
+correlation as an unconstrained row-normalized Cholesky parameter rather
+than as `C`, so the density is carried onto those parameters with the
+exact Jacobian of that map (the derivation is in the source of
+`R/priors.R`; `tests/testthat/test-lkj.R` checks the sampled
+correlations against the closed-form LKJ marginals). The prior a FLAT
+correlation parameter carries instead is `(1 - rho^2)^(-3/2)`, which is
+improper.
+
+It fits `us()` and `gr(cov = )` blocks of two or more terms, which hold
+a whole correlation matrix, and the one-parameter structures `cs()`,
+`ar1()` and `hetar1()`, whose single bounded correlation takes the LKJ
+marginal `(1 - rho^2)^(eta - 1)` with that structure's own Jacobian. A
+`cs()` correlation is bounded below at `-1/(d - 1)`, where a
+compound-symmetric matrix stops being positive definite, and the density
+is renormalized over that window. `toep()` is refused: its
+parameterization is not positive definite everywhere, so it has no
+correlation matrix to put a density on.
 
 ## Examples
 
@@ -107,6 +138,18 @@ fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
 # an empty distribution string sets a hard bound only
 set_prior("", class = "b", coef = "x", lb = 0)
 #> (bounds only) class=b coef=x lb=0
+
+# class "cor" addresses a correlated block as a whole, brms's
+# spelling; eta > 1 pulls the correlation toward zero
+dd$z <- rnorm(100)
+dd$y2 <- dd$y + rnorm(10, 0, 0.6)[dd$g] * dd$z
+fitc <- frm(bf(y2 ~ x + z + (z | g)) + gaussian(), data = dd,
+            priors = set_prior("lkj(4)", class = "cor"))
+VarCorr(fitc)
+#>   z | g 
+#>         Name Std.Dev. (Intercept)
+#>  (Intercept)  0.84786            
+#>            z  0.76010       0.334
 
 # get_prior() shows which rows a design offers
 get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)

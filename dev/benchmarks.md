@@ -540,7 +540,11 @@ call, which also opens non-centering to correlated blocks.
 sleepstudy `Reaction ~ Days + (Days | Subject)`, formula route, one
 chain, iter = 2000 (1000 warmup), seeds 101/202/303. min bulk-ESS over
 the outer parameters (the b[i] columns excluded); ESS/s uses Stan's own
-elapsed time. Script: scratchpad lkj-bench.R. Windows 10 x64, R 4.6.1,
+elapsed time. Script: scratchpad lkj-bench.R; note its `flatcor`
+variant reproduces the first row only against a pre-lkj build (the row
+was measured on v0.38 before the default changed, and `priors =
+"flat"` on the current build drops the sd priors too, a different and
+worse model). Windows 10 x64, R 4.6.1,
 rstan 2.32.7, RTMB 1.9, tmbstan 1.2.0.
 
 | variant                                   | minESS (101/202/303) | ESS/s          | div       | theta_3 mean     |

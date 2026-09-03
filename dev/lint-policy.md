@@ -37,10 +37,13 @@ and `add = TRUE` does not change that.
 
 ### 2. `1:length(x)` and its relatives
 
-Zero hits. `lintr::seq_linter()` reports nothing in `R/`. The only two
-`1:` sequences in the package are inside comments, in `R/autocor.R` and
-in `R/conditional-effects.R`, where they describe an index range in
-prose. The package already uses `seq_len()` and `seq_along()`.
+Zero hits from `lintr::seq_linter()`, which is the load-bearing fact:
+no `1:length()`-family form exists. Literal `1:k` ranges over known
+constants do appear (`R/allfit.R:43`, `R/conditional-effects.R:1346`,
+`R/confint.R:428`, `R/confint.R:432`, `R/multiple.R:136`); each has a
+fixed positive endpoint, so the reversed-sequence hazard the linter
+guards against cannot arise. The package already uses `seq_len()` and
+`seq_along()` where an endpoint is data.
 
 ### 3. `sapply()`
 
@@ -112,14 +115,16 @@ structure.
 
 ### `<<-` super-assignment
 
-`lintr::assignment_linter()` reports eight `<<-` operators, in
-`R/compat.R`, `R/confint.R`, `R/frame.R`, `R/interop.R` and
-`R/priors.R`. Each one is a closure that accumulates rows or names into
-a variable in its enclosing function. The pattern is deliberate and
-local: the accumulator and the closure are always in the same function
-body, and the closure is never returned. Replacing `<<-` with a
-`Reduce()` or an explicit list return would change the shape of five
-builders for no correctness gain.
+A census by grep finds seventeen `<<-` operators on sixteen lines
+across eight files (`R/compat.R` 1, `R/confint.R` 6, `R/frame.R` 3,
+`R/interop.R` 2, `R/ode.R` 1, `R/parse.R` 1, `R/priors.R` 2,
+`R/simulate-new.R` 1). The sites read as the same deliberate, local
+pattern: a closure accumulating rows, names or flags into a variable
+of its enclosing function, never returned. Replacing `<<-` with a
+`Reduce()` or an explicit list return would reshape the builders for
+no correctness gain. The `R/ode.R`, `R/parse.R` and
+`R/simulate-new.R` sites were added to the census after review found
+the first inventory undercounted; they follow the same pattern.
 
 ### Provably unreachable `1:0`
 

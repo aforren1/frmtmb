@@ -266,7 +266,8 @@ test_that("toep is refused by name, and stays out of the defaults", {
   dd <- data.frame(t = factor(rep(1:4, 40)),
                    g = factor(rep(1:20, each = 8)))
   dd$y <- stats::rnorm(160, rep(stats::rnorm(20, 0, 0.7), each = 8), 1)
-  fit <- frm(bf(y ~ 1 + toep(t | g)) + gaussian(), data = dd)
+  fit <- suppressWarnings(
+    frm(bf(y ~ 1 + toep(t | g)) + gaussian(), data = dd))
   expect_identical(fit$frame$re_blocks[[1L]]$covstruct, "toep")
   expect_error(frmtmb:::resolve_prior_input(fit, set_prior("lkj(1)",
                                                            class = "cor")),
@@ -291,7 +292,7 @@ test_that("cs, ar1 and gr(cov =) take the prior their map calls for", {
   for (nm in names(maps)) {
     # ar1() wants the factor without an intercept; cs() takes it too
     ff <- stats::as.formula(paste0("y ~ 1 + ", nm, "(t + 0 | g)"))
-    fit <- frm(bf(ff) + gaussian(), data = dd)
+    fit <- suppressWarnings(frm(bf(ff) + gaussian(), data = dd))
     expect_identical(fit$frame$re_blocks[[1L]]$covstruct, nm)
     e <- frmtmb:::resolve_prior_input(
       fit, set_prior("lkj(2)", class = "cor"))$entries[[1L]]

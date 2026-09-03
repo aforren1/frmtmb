@@ -17,7 +17,7 @@ formula)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.38.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.39.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -250,18 +250,20 @@ routes; nothing prior-able is reparameterized. What priors DO decide
 is which blocks are eligible, below.</p>
 <p><em>Which blocks, and why not all of them.</em> A block is non-centered when
 two things hold, and they are the same thing twice: every parameter it
-has is a standard deviation with a Cholesky factor registered for its
-structure, and every one of those parameters carries a PRIOR. Both
-are about not handing the sampler a direction it can run away in.
+has is a standard deviation or a correlation with a Cholesky factor
+registered for its structure, and every one of those parameters
+carries a PRIOR. Both are about not handing the sampler a direction
+it can run away in.
 Non-centering gives NUTS the run of <code>theta</code>'s whole range, and the
 centered funnel is what was keeping a chain out of the parts of that
 range where the posterior is flat or improper. Removing the funnel
 without closing those off first trades a slow chain for a wrong one.</p>
 <p>In practice that means the FORMULA interface, whose default priors
-cover every standard deviation, non-centers <code>(1 | g)</code> and any block
-written one term at a time, <code><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag()</a></code> and <code>homdiag()</code> blocks, <code><a href="https://rdrr.io/pkg/mgcv/man/s.html" class="external-link">mgcv::s()</a></code>
-smooths, <code>equalto()</code>, and
-<code>gr(cov = )</code> with one term. A <code>k =</code> Hilbert-space <code><a href="https://paulbuerkner.com/brms/reference/gp.html" class="external-link">gp()</a></code> block stays
+cover every standard deviation and every correlation, non-centers
+<code>(1 | g)</code> and any block written one term at a time, <code><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag()</a></code> and
+<code>homdiag()</code> blocks, <code><a href="https://rdrr.io/pkg/mgcv/man/s.html" class="external-link">mgcv::s()</a></code> smooths, <code>equalto()</code>, <code>gr(cov = )</code>,
+and the CORRELATED blocks <code>(x | g)</code>, <code>cs()</code>, <code>ar1()</code> and <code>hetar1()</code>.
+A <code>k =</code> Hilbert-space <code><a href="https://paulbuerkner.com/brms/reference/gp.html" class="external-link">gp()</a></code> block stays
 centered on the formula route even though its factor is diagonal:
 its LENGTHSCALES share the block's <code>theta</code>, the default priors cover
 only standard deviations, and the gate wants every parameter of a
@@ -283,18 +285,15 @@ seeds: from the fit, with flat priors, the non-centered chain walks
 <code>theta</code> to -1e15 at a bulk-ESS of 1; from the formula, where the
 default <code>student_t(3, 0, s)</code> makes that tail integrable, 174 to 284
 against 3 to 48 centered.</p></li>
-<li><p>A CORRELATION parameter: <code>(Days | Subject)</code>, <code>cs()</code>, <code>ar1()</code> and
-the rest. Not a limit of the arithmetic: the factor exists and is
-exact. It is that a correlation here is parameterized by an
-unbounded <code>theta</code> whose flat prior is <code>(1 - rho^2)^-3/2</code> on the
-correlation itself - improper, with all its mass at <code>|rho| = 1</code>.
-Measured on <code>sleepstudy (Days | Subject)</code>: the profile
-log-likelihood is flat in that <code>theta</code> past <code>|theta| = 100</code> and
-only 4.4 nats below the peak, and a non-centered chain reaches
-<code>theta = 2e6</code> at a bulk-ESS of 1. The fix is again a prior:
-<code>priors = list(theta_3 = prior_normal(0, 1))</code> makes the CENTERED
-chain run divergence-free at 142 min-ESS per second there, against
-28 with the flat prior and 122 for the matched brms model.</p></li>
+<li><p>A FLAT PRIOR on the block's CORRELATION, which is the same
+argument: flat on frmtmb's unbounded correlation parameter is
+<code>(1 - rho^2)^-3/2</code>, improper, with all its mass at <code>|rho| = 1</code>.
+Before 0.39 that kept every correlated block centered, because no
+proper correlation prior existed to close the tail; <code>lkj(eta)</code>
+now does, and the formula route sets <code>lkj(1)</code> by default, so
+<code>(Days | Subject)</code>, <code>cs()</code>, <code>ar1()</code> and <code>hetar1()</code> non-center
+there like any other block. On the FIT route they still do not:
+its priors are flat by design.</p></li>
 <li><p>A Student-t latent (<code>gr(dist = "student")</code>): a scale mixture, not a
 linear factor.</p></li>
 <li><p><code><a href="https://paulbuerkner.com/brms/reference/car.html" class="external-link">car()</a></code>, <code>spde()</code> and <code>gr(prec = )</code>: sparse precisions whose factor
@@ -326,7 +325,7 @@ and no fitted object ever carries a non-centered tape.</p>
 <p>The formula interface defaults to brms 2.23's own weakly-informative
 priors, read off <code><a href="https://paulbuerkner.com/brms/reference/default_prior.html" class="external-link">brms::default_prior()</a></code> on matched models. Write
 <code>y*</code> for the response transformed by the <code>mu</code> link and
-<code>s = max(2.5, round(mad(y*), 1))</code>:</p><table class="table table"><tr><td>class</td><td>default</td><td>scale</td></tr><tr><td><code>b</code> (slopes)</td><td>flat</td><td>-</td></tr><tr><td><code>Intercept</code></td><td><code>student_t(3, round(median(y*), 1), s)</code></td><td>link</td></tr><tr><td><code>sd</code></td><td><code>student_t(3, 0, s)</code></td><td>natural sd, log-Jacobian applied</td></tr><tr><td><code>sigma</code> (intercept only)</td><td><code>student_t(3, 0, s)</code></td><td>natural</td></tr><tr><td><code>sigma</code> (with a predictor)</td><td><code>student_t(3, 0, 2.5)</code></td><td>log</td></tr></table><p>The link is transformed only for <code>identity</code>, <code>log</code>, <code>inverse</code>,
+<code>s = max(2.5, round(mad(y*), 1))</code>:</p><table class="table table"><tr><td>class</td><td>default</td><td>scale</td></tr><tr><td><code>b</code> (slopes)</td><td>flat</td><td>-</td></tr><tr><td><code>Intercept</code></td><td><code>student_t(3, round(median(y*), 1), s)</code></td><td>link</td></tr><tr><td><code>sd</code></td><td><code>student_t(3, 0, s)</code></td><td>natural sd, log-Jacobian applied</td></tr><tr><td><code>cor</code></td><td><code>lkj(1)</code></td><td>correlation matrix, Jacobian applied</td></tr><tr><td><code>sigma</code> (intercept only)</td><td><code>student_t(3, 0, s)</code></td><td>natural</td></tr><tr><td><code>sigma</code> (with a predictor)</td><td><code>student_t(3, 0, 2.5)</code></td><td>log</td></tr></table><p>The link is transformed only for <code>identity</code>, <code>log</code>, <code>inverse</code>,
 <code>sqrt</code> and <code>1/mu^2</code> - brms's own list - with a log-scale family
 (<code><a href="frmtmb-families.html">lognormal()</a></code> and its relatives, whose <code>mu</code> link is spelled
 <code>identity</code> but whose response is logged inside the density) counted
@@ -346,13 +345,12 @@ by accident. Wrap it in <code><a href="https://rdrr.io/r/base/message.html" clas
 <code><a href="prior_summary.html">prior_summary()</a></code> on the returned draws reproduces the chosen priors
 exactly.</p>
 <p><em>What is deliberately NOT matched.</em> Each of these is named in the
-message whenever the model has one.</p><ul><li><p>Random-effect CORRELATIONS stay flat. brms puts <code>lkj(1)</code> on them,
-which is uniform over correlation matrices; frmtmb parameterizes a
-covariance block by an unconstrained Cholesky <code>theta</code> segment
-whose flat prior is NOT uniform on correlations, and no LKJ
-density is implemented on that parameterization, so claiming
-<code>lkj(1)</code> here would be false. Set one by hand with
-<code>set_prior(class = "theta")</code> if you need it.</p></li>
+message whenever the model has one.</p><ul><li><p>A <code>toep()</code> correlation stays flat. Its banded parameterization is
+not positive definite everywhere, so there is no correlation matrix
+over its whole parameter space for an LKJ density to be about.
+Every other correlated structure gets <code>lkj(1)</code>, brms's own default
+(see <code><a href="set_prior.html">set_prior()</a></code> for what the density is on frmtmb's
+parameters).</p></li>
 <li><p>ORDINAL THRESHOLDS stay flat. brms priors them
 <code>student_t(3, 0, 2.5)</code> under its <code>Intercept</code> class; frmtmb keeps
 them in the <code>thres</code> extra-parameter vector, which is not a design

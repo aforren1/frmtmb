@@ -1596,6 +1596,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             # smooth object here, where the model frame is still around
             # to say which of its terms are factors.
             group_var = smooth_group_var(sm, mf),
+            # the fitted levels of that factor: fs smooths carry them as
+            # sm$flev, but a factor bs = "re" smooth does not, and an
+            # unseen level would otherwise die inside PredictMat with a
+            # non-conformable-arguments error instead of the named
+            # new-levels refusal
+            group_levels = local({
+              gv <- smooth_group_var(sm, mf)
+              if (is.null(gv) || is.null(mf[[gv]])) NULL else
+                levels(as.factor(mf[[gv]]))
+            }),
             label = sm$label
           )
         }
