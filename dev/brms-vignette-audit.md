@@ -31,6 +31,14 @@ draws `update()` and `plot()`, bare `loo`/`waic`/`bayes_R2`/
 `expose_functions` on a fit). A full re-measurement against the new
 API is the next audit round, not this file.
 
+**Revision after v0.43.0 (the plot lane).** Break 2 below is fixed:
+`plot.frmtmb_conditional_effects` now draws the condition sets as small
+multiples on one page (tinyplot when installed, a `par(mfrow)` grid of
+base panels otherwise), honors the `ncol` that used to be swallowed by
+`...`, and shows in each panel only the observations belonging to that
+condition, following brms's `make_point_frame()`. The rows below still
+describe the v0.42.0 measurement and are not relabeled.
+
 ## Method
 
 One runnable script per vignette under `dev/brms-vignettes/`. Each

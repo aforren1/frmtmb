@@ -636,9 +636,44 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   `upper__`; printing it draws the plots. An ordinal fit adds a
 #'   `cats__` column and one block of rows per response category.
 #'   `plot(ce, points = TRUE)` overlays the raw observations (the brms
-#'   argument): all observations are shown regardless of `conditions`,
-#'   and no points are drawn for a per-category ordinal display, a
-#'   non-mean `dpar`, or a matrix response (a message says so).
+#'   argument), each panel showing only the observations that belong to
+#'   its own condition; see the faceting section. No points are drawn
+#'   for a per-category ordinal display, a non-mean `dpar`, or a matrix
+#'   response (a message says so).
+#' @section Several conditions become one faceted page:
+#' A `conditions` data frame of several rows gives the effect one panel
+#' per row, laid out as small multiples on a SINGLE page with a shared
+#' scale, the way brms's `facet_wrap("cond__")` does.
+#' `plot(ce, ncol = )` sets the number of columns; the default lays the
+#' panels out roughly square, as brms's `ncol = NULL` does.
+#'
+#' The panels are drawn with \pkg{tinyplot} when it is installed, which
+#' supplies the shared axes and a single outer legend. Without it the
+#' fallback is a grid of ordinary base-graphics panels, still one page
+#' and still honoring `ncol`, labeled by condition on the y axis. The
+#' per-category ordinal display always takes the fallback grid: its
+#' grouping slot already carries the response category.
+#'
+#' `points = TRUE` draws only the observations belonging to each
+#' condition, matching brms's `make_point_frame()`. A condition claims
+#' the rows of the data that MATCH it on the variables it sets, so with
+#' one condition per level of a factor each observation appears once, in
+#' its own panel. Two rules bound that, both as in brms:
+#'
+#' * A NUMERIC condition variable is dropped from the match, because a
+#'   reference value such as `list(x2 = 0.37)` is a point on a
+#'   continuum that names no observation; matching on it would empty
+#'   every panel. A grouping factor stored as a number is exempt, being
+#'   a label rather than a continuum. A condition left with nothing to
+#'   match on therefore claims EVERY observation, and its panel differs
+#'   from the others only in its curve.
+#' * A condition variable that names no column of the model data cannot
+#'   select anything either, so the points are left unsplit and every
+#'   panel draws all of them.
+#'
+#' Unlike brms, a variable the `conditions` data frame does not set is
+#' not silently pinned to its first level for this purpose, so an
+#' unmentioned factor does not drop observations from every panel.
 #' @section Ordinal responses:
 #' `cumulative()`, `sratio()`, `cratio()` and `acat()` have no mean, so
 #' the display is per CATEGORY, as brms's `categorical = TRUE` is: each
@@ -867,8 +902,79 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
       )
     }
   }
+  # brms exempts a random-effects grouping factor from the rule that
+  # drops numeric condition variables from the raw-point match: a group
+  # id is a label an observation carries, even when it is stored as a
+  # number, so it matches exactly
+  groups <- vapply(x$frame$re_blocks %||% list(),
+                   function(bk) bk$group_name %||% "", "")
+  groups <- unique(unlist(strsplit(groups, ":", fixed = TRUE)))
+
   list(base = base, effects = effects, cond_sets = cond_sets,
-       grids = grids)
+       grids = grids, groups = groups[nzchar(groups)])
+}
+
+#' Split the raw observations across the condition sets the way brms's
+#' make_point_frame() does, so each panel shows its own condition's data
+#' rather than all of it.
+#'
+#' A condition row claims the observations that MATCH it on the
+#' variables it sets. Two rules make that workable, both measured
+#' against brms rather than invented here:
+#'
+#' A numeric condition variable is dropped from the match, because a
+#' reference value like `z = 0.37` is a point on a continuum that names
+#' no observation; filtering on it would empty every panel. (This is
+#' brms's `select_points = 0` default. A grouping factor stored as a
+#' number is exempt: it is a label, not a continuum.) A condition that
+#' has nothing left to match on therefore claims every observation, and
+#' the panels differ only in their curves.
+#'
+#' A condition variable that names no column of the model data cannot
+#' select anything either, so the points are left unsplit and every
+#' panel draws all of them, as brms's ggplot layer does when the point
+#' frame carries no `cond__`.
+#'
+#' @noRd
+ce_points_by_cond <- function(pts, base, cond_sets, ev, groups) {
+  if (is.null(pts) || length(cond_sets) < 2L) return(pts)
+  cvars <- intersect(names(cond_sets[[1L]]), setdiff(names(base), ev))
+  if (!length(cvars)) return(pts)
+  labs <- names(cond_sets) %||% as.character(seq_along(cond_sets))
+  parts <- lapply(seq_along(cond_sets), function(i) {
+    cs <- cond_sets[[i]][cvars]
+    # brms treats NA and its "zero__" placeholder as "unset here"
+    set <- vapply(cs, function(v) {
+      length(v) == 1L && !is.na(v) && !identical(as.character(v), "zero__")
+    }, TRUE)
+    mv <- cvars[set]
+    keep <- !vapply(mv, function(v) is.numeric(base[[v]]), TRUE) |
+      mv %in% groups
+    mv <- mv[keep]
+    rows <- if (!length(mv)) {
+      seq_len(nrow(pts))
+    } else {
+      # "\r" cannot occur in a factor level, so pasting the columns
+      # together compares the whole condition in one shot
+      lhs <- do.call(paste, c(lapply(mv, function(v) {
+        as.character(base[[v]])
+      }), sep = "\r"))
+      rhs <- do.call(paste, c(lapply(cs[mv], as.character), sep = "\r"))
+      which(lhs %in% rhs)
+    }
+    if (!length(rows)) return(NULL)
+    d <- pts[rows, , drop = FALSE]
+    d$cond__ <- labs[i]
+    d
+  })
+  out <- do.call(rbind, parts)
+  if (is.null(out)) {
+    out <- pts[0L, , drop = FALSE]
+    out$cond__ <- character(0)
+  }
+  out$cond__ <- factor(out$cond__, levels = labs)
+  rownames(out) <- NULL
+  out
 }
 
 #' Assemble the per-effect data frames into the classed result, with the
@@ -877,7 +983,8 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
 #'
 #' @noRd
 ce_finalize <- function(dfs_by_eff, effects, rspec, resp, dpar, band,
-                        base, categorical) {
+                        base, categorical, cond_sets = list(),
+                        groups = character(0)) {
   out <- list()
   for (eff in effects) {
     ev <- strsplit(eff, ":", fixed = TRUE)[[1L]]
@@ -896,7 +1003,8 @@ ce_finalize <- function(dfs_by_eff, effects, rspec, resp, dpar, band,
         is.null(dim(base[[resp]]))) {
       pdf_ <- data.frame(x = base[[ev[1L]]], y = base[[resp]])
       if (length(ev) == 2L) pdf_$grp <- base[[ev[2L]]]
-      attr(df, "points_df") <- pdf_
+      attr(df, "points_df") <- ce_points_by_cond(pdf_, base, cond_sets,
+                                                 ev, groups)
     }
     out[[eff]] <- df
   }
@@ -1135,7 +1243,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   }
 
   out <- ce_finalize(dfs_by_eff, effects, rspec, resp, dpar, band, base,
-                     categorical)
+                     categorical, cond_sets, gb$groups)
   # the bootstrap rides along so a second call can reuse it: refits are
   # the expensive part and nobody should pay for them twice
   if (!is.null(bd)) attr(out, "boot") <- bd$bs
@@ -1245,7 +1353,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
     dfs_by_eff[[g$eff]] <- c(dfs_by_eff[[g$eff]], list(df))
   }
   ce_finalize(dfs_by_eff, gb$effects, rspec, resp, dpar, "posterior",
-              gb$base, categorical)
+              gb$base, categorical, gb$cond_sets, gb$groups)
 }
 
 #' Pointwise percentile of a draws matrix (draws in rows), NA where a
@@ -1267,7 +1375,11 @@ print.frmtmb_conditional_effects <- function(x, ...) {
 
 #' @export
 plot.frmtmb_conditional_effects <- function(x, ask = NULL, points = FALSE,
-                                            ...) {
+                                            ncol = NULL, ...) {
+  if (!is.null(ncol)) check_count(ncol, "ncol", min = 1L)
+  # a condition set is a FACET, not a page: several conditions used to
+  # draw several full pages that overwrote each other on a normal
+  # device, so the page prompt counts effects, not conditions
   ask <- ask %||% (length(x) > 1L && grDevices::dev.interactive())
   if (ask) {
     oask <- grDevices::devAskNewPage(TRUE)
@@ -1282,18 +1394,132 @@ plot.frmtmb_conditional_effects <- function(x, ask = NULL, points = FALSE,
               "plain numeric column)")
     }
     if (!is.null(df$cond__) && length(unique(df$cond__)) > 1L) {
-      for (cv in unique(df$cond__)) {
-        sub <- df[df$cond__ == cv, , drop = FALSE]
-        for (a in c("effects", "response", "dpar", "points_df")) {
-          attr(sub, a) <- attr(df, a)
-        }
-        ce_plot_one(sub, cond = cv, points = points)
-      }
+      ce_plot_facets(df, points = points, ncol = ncol)
     } else {
       ce_plot_one(df, points = points)
     }
   }
   invisible(x)
+}
+
+#' Panel grid for a faceted display. brms hands `ncol` straight to
+#' facet_wrap(), whose NULL default lays the panels out roughly square;
+#' asking for more columns than there are panels only wastes the page,
+#' so the request is capped.
+#'
+#' @noRd
+ce_facet_layout <- function(n, ncol = NULL) {
+  nc <- if (is.null(ncol)) ceiling(sqrt(n)) else min(as.integer(ncol), n)
+  nc <- max(1L, as.integer(nc))
+  c(nrow = as.integer(ceiling(n / nc)), ncol = nc)
+}
+
+#' The raw observations belonging to one condition. A points frame with
+#' no `cond__` column was never split (no condition variable named a
+#' column of the model data), so every panel draws all of it, which is
+#' what brms's ggplot layer does when the point frame lacks the facet
+#' variable.
+#'
+#' @noRd
+ce_points_at <- function(pts, cv) {
+  if (is.null(pts) || is.null(pts[["cond__"]])) return(pts)
+  out <- pts[as.character(pts$cond__) == cv, , drop = FALSE]
+  if (!nrow(out)) NULL else out
+}
+
+#' One page of small multiples, one panel per condition set. tinyplot
+#' does the shared axes and the outer legend natively; without it the
+#' fallback is a par(mfrow) grid of the same base panels, which is still
+#' ONE page honoring `ncol`.
+#'
+#' The per-category ordinal display already spends its grouping slot on
+#' the category and its panel slot on a second predictor, so it takes
+#' the base grid rather than a second facet dimension.
+#'
+#' @noRd
+ce_plot_facets <- function(df, points = FALSE, ncol = NULL) {
+  lv <- unique(as.character(df$cond__))
+  lay <- ce_facet_layout(length(lv), ncol)
+  pts <- if (points) attr(df, "points_df")
+  if (is.null(df[["cats__"]]) &&
+      requireNamespace("tinyplot", quietly = TRUE)) {
+    ce_facet_tinyplot(df, lv, lay, pts)
+  } else {
+    ce_facet_base(df, lv, lay, points)
+  }
+  invisible(NULL)
+}
+
+#' @noRd
+ce_facet_base <- function(df, lv, lay, points) {
+  pts <- if (points) attr(df, "points_df")
+  # the panels share one scale: a per-panel range would make curves of
+  # different heights look alike, which is the opposite of what small
+  # multiples are for
+  ylim <- range(df$lower__, df$upper__, df$estimate__,
+                if (!is.null(pts)) pts$y, na.rm = TRUE)
+  op <- graphics::par(mfrow = c(lay[["nrow"]], lay[["ncol"]]),
+                      mar = c(4, 4, 2.5, 1))
+  on.exit(graphics::par(op), add = TRUE)
+  for (cv in lv) {
+    sub <- df[as.character(df$cond__) == cv, , drop = FALSE]
+    for (a in c("effects", "response", "dpar")) {
+      attr(sub, a) <- attr(df, a)
+    }
+    attr(sub, "points_df") <- ce_points_at(pts, cv)
+    ce_plot_one(sub, cond = cv, points = points, ylim = ylim)
+  }
+}
+
+#' @noRd
+ce_facet_tinyplot <- function(df, lv, lay, pts) {
+  ev <- attr(df, "effects")
+  xv <- df[[ev[1L]]]
+  ylim <- range(df$lower__, df$upper__, df$estimate__,
+                if (!is.null(pts)) pts$y, na.rm = TRUE)
+  args <- list(
+    x = if (is.numeric(xv)) xv else factor(xv),
+    y = df$estimate__, ymin = df$lower__, ymax = df$upper__,
+    facet = factor(as.character(df$cond__), levels = lv),
+    facet.args = list(ncol = lay[["ncol"]]),
+    type = if (is.numeric(xv)) "ribbon" else "pointrange",
+    xlab = ev[1L],
+    ylab = paste0(attr(df, "response"), " (", attr(df, "dpar"), ")"),
+    ylim = ylim,
+    # tinyplot leaves the facet layout in par() otherwise, and the next
+    # effect of the same call may be an ordinary single base panel
+    restore.par = TRUE
+  )
+  if (length(ev) == 2L) {
+    args$by <- factor(df[[ev[2L]]])
+    args$legend <- list(title = ev[2L])
+  }
+  do.call(tinyplot::tinyplot, args)
+  if (!is.null(pts) && nrow(pts)) {
+    if (is.null(pts[["cond__"]])) {
+      np <- nrow(pts)
+      pts <- pts[rep(seq_len(np), times = length(lv)), , drop = FALSE]
+      pts$cond__ <- rep(lv, each = np)
+    }
+    # tinyplot_add() inherits the previous layer's aesthetics, so the
+    # band has to be cleared explicitly: the points carry none, and
+    # there are usually more of them than there are grid rows, which
+    # ends the call on a length mismatch. Clearing `by` the same way is
+    # right only when the curves HAD one; asking to clear a grouping
+    # that was never set walks off the end of tinyplot's palette
+    add <- list(
+      x = if (is.numeric(xv)) pts$x else factor(pts$x, levels = levels(args$x)),
+      y = pts$y, facet = factor(as.character(pts$cond__), levels = lv),
+      ymin = NULL, ymax = NULL,
+      # one uniform translucent color, as in the single-panel display
+      type = "p", pch = 16, cex = 0.5,
+      col = grDevices::adjustcolor("black", 0.25)
+    )
+    # single-bracket assignment: `add$by <- NULL` would DROP the element
+    # rather than pass a NULL that clears the inherited grouping
+    if (!is.null(args$by)) add["by"] <- list(NULL)
+    do.call(tinyplot::tinyplot_add, add)
+  }
 }
 
 #' Draw one conditional-effect panel: the estimate over the varied
@@ -1302,7 +1528,7 @@ plot.frmtmb_conditional_effects <- function(x, ask = NULL, points = FALSE,
 #' optional second predictor.
 #'
 #' @noRd
-ce_plot_one <- function(df, cond = NULL, points = FALSE) {
+ce_plot_one <- function(df, cond = NULL, points = FALSE, ylim = NULL) {
   pts <- if (points) attr(df, "points_df")
   ev <- attr(df, "effects")
   if (!is.null(df[["cats__"]])) {
@@ -1311,7 +1537,7 @@ ce_plot_one <- function(df, cond = NULL, points = FALSE) {
     # panel of its own rather than a second set of colors
     ylab <- paste0("P(", attr(df, "response"), ")")
     if (!is.null(cond)) ylab <- paste0(ylab, " | ", cond)
-    ylim <- range(df$lower__, df$upper__, na.rm = TRUE)
+    ylim <- ylim %||% range(df$lower__, df$upper__, na.rm = TRUE)
     if (length(ev) == 2L) {
       for (lv in unique(df[[ev[2L]]])) {
         sub <- df[df[[ev[2L]]] == lv, , drop = FALSE]
@@ -1328,8 +1554,8 @@ ce_plot_one <- function(df, cond = NULL, points = FALSE) {
   ylab <- paste0(attr(df, "response"), " (", attr(df, "dpar"), ")")
   if (!is.null(cond)) ylab <- paste0(ylab, " | ", cond)
   grp <- if (length(ev) == 2L) factor(df[[ev[2L]]])
-  ylim <- range(df$lower__, df$upper__, if (!is.null(pts)) pts$y,
-                na.rm = TRUE)
+  ylim <- ylim %||% range(df$lower__, df$upper__,
+                          if (!is.null(pts)) pts$y, na.rm = TRUE)
   ce_draw_panel(df, ev[1L], grp, ev[2L], ylab, ylim, pts = pts)
 }
 
