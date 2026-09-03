@@ -19,6 +19,12 @@ Hands the fitted RTMB object to \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}
 point of view the model is the (Laplace-free) joint density, so all
 parameters including random effects are sampled unless \code{laplace = TRUE} is passed through.
 }
+\details{
+It hands over the fit's OWN objective and nothing else: no default
+priors, no non-centering, no named draws. \code{\link[=frm_sample]{frm_sample()}} is the
+route that applies brms's default priors and returns the draws
+surface; this one is the escape hatch to tmbstan's own arguments.
+}
 \examples{
 \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&

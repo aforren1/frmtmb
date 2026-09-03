@@ -27,20 +27,32 @@ mean, flags parameters where they are unreliable (typically variance
 components with few groups).
 }
 \details{
-This is a diagnostic tool: it explores the LIKELIHOOD, with flat
-priors, which is what makes the comparison against the ML mode and
-its Wald standard errors meaningful. \code{frm_sample()} on a formula is
-the sampling tool instead: it samples a POSTERIOR, under brms's
-default priors. A default prior here would change the very thing
-being measured, so \code{check_laplace()} never sets one.
+\strong{It samples the density the fit maximized, and no other.} It hands
+Stan \code{fit$obj} as it stands. For an ordinary fit that objective is
+the LIKELIHOOD, so the run is flat; for a MAP fit (\code{frm(prior = )})
+the penalty is taped INTO that objective, so the run carries it,
+which is right: the mode and the Wald standard errors this function
+compares against come from the same penalized Hessian. "Flat" here
+means no prior ADDED, not the fit's own penalty stripped - for the
+bare likelihood of a MAP fit, write \code{frm_sample(fit, prior = "flat")} instead, and read it as a different question.
 
-That is also why it samples CENTERED. \code{frm_sample()}'s non-centered
+What this function never adds is \code{\link[=frm_sample]{frm_sample()}}'s DEFAULT priors.
+Those defaults
+apply on both of \code{frm_sample()}'s routes, and this function opts out
+of them explicitly (\code{frm_sample(.diagnostic = TRUE)}) rather than
+inheriting whatever the default is: a prior nothing in the fit ever
+saw would change the very thing being measured.
+
+That is also why it samples CENTERED on an ordinary fit.
+\code{frm_sample()}'s non-centered
 parameterization (see Reparameterization there) is offered only for
-blocks whose variance parameters carry a prior, and here none do: the
+blocks whose variance parameters carry a prior, and with the
+defaults off none do: the
 flat prior that makes the comparison meaningful is exactly the one
 that leaves a flat tail at \code{sd = 0} for a non-centered chain to walk
-into. So the default costs this function nothing and changes nothing
-about it. Give the variance parameters a prior through \verb{prior =}
+into. So the reparameterization default costs this function nothing
+and changes nothing about it. Give the variance parameters a prior
+through \verb{prior =}
 and the run non-centers; but then it is measuring the Laplace
 approximation of a different posterior, which is usually not the
 question.

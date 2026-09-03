@@ -19,7 +19,8 @@ frm_sample(
   start = NULL,
   control = frmtmb_control(),
   na.action = stats::na.omit,
-  REML = FALSE
+  REML = FALSE,
+  .diagnostic = FALSE
 )
 }
 \arguments{
@@ -48,10 +49,9 @@ behaves the same way.}
 of prior objects (see \code{\link[=prior_normal]{prior_normal()}}) whose names are parameter
 names as in the draws (or whole components: \code{"beta"}, \code{"theta"},
 ...), or the string \code{"flat"}. The objective is re-taped with the
-prior terms added; a fitted model itself is unchanged. On the fit
-path a parameter without a prior keeps a flat improper one. On the
-formula path the brms default priors apply to whatever the
-specification leaves alone (see Default priors), and
+prior terms added; a fitted model itself is unchanged. On both
+paths the brms default priors apply to whatever this argument, and
+a MAP fit's own prior, leave alone (see Default priors), and
 \code{prior = "flat"} opts out of them entirely. A \code{brmsprior} object
 built by brms's own \code{prior()} is translated row by row. The
 argument takes brms's spelling, \code{prior}; the \code{priors} of releases
@@ -96,6 +96,17 @@ run made before this default existed.}
 
 \item{data2, start, control, na.action, REML}{As in \code{\link[=frm]{frm()}}; used only on
 the formula path.}
+
+\item{.diagnostic}{Internal, and named with a dot because there is no
+reason to set it by hand. \code{TRUE} turns the default priors off and
+silences the disclosure, and leaves the fit's own objective alone:
+a MAP fit's penalty is taped into it, so no prior is resolved
+again and no tape is rebuilt. \code{\link[=check_laplace]{check_laplace()}} sets it, because
+it measures the Laplace and Wald approximations against the
+density the fit maximized and a default prior would change what is
+being measured. Write \code{prior = "flat"} for the user-facing
+opt-out, which goes further and rebuilds a MAP fit's objective
+without its penalty.}
 }
 \value{
 An object of class \code{frmtmb_draws}: list with the \code{stanfit},
@@ -114,19 +125,25 @@ objective without optimizing anything first (see Sampling from a
 formula).
 }
 \details{
-\strong{The two routes answer different questions.} \code{frm_sample(fit)} is a
-DIAGNOSTIC: it explores the LIKELIHOOD, with flat improper priors on
-the outer parameters, so that \code{\link[=check_laplace]{check_laplace()}} can compare the
-Laplace and Wald approximations against the shape of the very same
-objective the fit maximized. \code{frm_sample(formula, data)} is a
-SAMPLING tool: it samples a POSTERIOR, and defaults to brms's own
-weakly-informative priors (see Default priors), because from a
-formula there is no estimate for the run to be a diagnostic for.
+\strong{Both routes sample a posterior under the same default priors} (see
+Default priors), brms 2.23's own weakly-informative ones. What the
+fit adds is a starting point, not a different density: the ML mode
+anchors the chains and shortens warmup, and the model is the one the
+fit already carries.
 
-On the fit path, then, a parameter without a prior keeps a flat
-improper one, and the posterior of a variance component with few
-groups can be improper. That is the price of measuring the
-likelihood, and it is why the fit path is a diagnostic.
+The two differ only in what else is in the stack. A fit made with
+\code{frm(prior = )} is a MAP fit, and it carries its own prior into
+sampling: the priors that apply are then this call's \verb{prior =} first,
+the fit's own next, and the defaults under both, most explicit
+winning per slot it addresses. \code{prior = "flat"} opts out of all of
+it and samples the bare likelihood, on either route.
+
+\code{\link[=check_laplace]{check_laplace()}} is the one caller that stays unpenalized by
+default. It measures the Laplace and Wald approximations against the
+shape of the very objective the fit maximized, and a default prior
+would change the thing being measured, so it asks for the flat
+density explicitly rather than inheriting whatever this function
+defaults to.
 }
 \section{Sampling from a formula}{
 
@@ -185,8 +202,9 @@ centered funnel is what was keeping a chain out of the parts of that
 range where the posterior is flat or improper. Removing the funnel
 without closing those off first trades a slow chain for a wrong one.
 
-In practice that means the FORMULA interface, whose default priors
-cover every standard deviation and every correlation, non-centers
+In practice that means a default-prior run, on EITHER route, whose
+priors cover every standard deviation and every correlation,
+non-centers
 \code{(1 | g)} and any block written one term at a time, \code{diag()} and
 \code{homdiag()} blocks, \code{\link[mgcv:s]{mgcv::s()}} smooths, \code{equalto()}, \code{gr(cov = )},
 and the CORRELATED blocks \code{(x | g)}, \code{cs()}, \code{ar1()} and \code{hetar1()}.
@@ -198,9 +216,9 @@ block priored. Prior the whole block by hand
 (\code{set_prior(class = "theta")}) to non-center it.
 \code{rr()} is already non-centered by
 construction, since its own coefficients are the standard normal
-factors. A fitted model sampled with \code{frm_sample(fit)} has flat
-priors by design (it is a diagnostic; see above), so it stays
-centered unless you give its variance parameters a prior.
+factors. What stays centered is a run whose variance parameters are
+flat: \code{prior = "flat"}, and \code{\link[=check_laplace]{check_laplace()}}, which asks for that
+density on purpose.
 
 The call \code{message()}s every block it left centered, with the reason.
 A model made only of those samples centered throughout and says so
@@ -211,19 +229,18 @@ rather than failing. The reasons:
 the model without that random effect, and the density stops
 changing: a flat tail with nothing to stop a chain in it. Measured
 on a six-group random-intercept model, one chain of 2000, three
-seeds: from the fit, with flat priors, the non-centered chain walks
-\code{theta} to -1e15 at a bulk-ESS of 1; from the formula, where the
-default \code{student_t(3, 0, s)} makes that tail integrable, 174 to 284
-against 3 to 48 centered.
+seeds: under flat priors the non-centered chain walks \code{theta} to
+-1e15 at a bulk-ESS of 1; under the default \code{student_t(3, 0, s)},
+which makes that tail integrable, 174 to 284 against 3 to 48
+centered.
 \item A FLAT PRIOR on the block's CORRELATION, which is the same
 argument: flat on frmtmb's unbounded correlation parameter is
 \code{(1 - rho^2)^-3/2}, improper, with all its mass at \verb{|rho| = 1}.
 Before 0.39 that kept every correlated block centered, because no
 proper correlation prior existed to close the tail; \code{lkj(eta)}
-now does, and the formula route sets \code{lkj(1)} by default, so
+now does, and it is a default, so
 \code{(Days | Subject)}, \code{cs()}, \code{ar1()} and \code{hetar1()} non-center
-there like any other block. On the FIT route they still do not:
-its priors are flat by design.
+like any other block.
 \item A Student-t latent (\code{gr(dist = "student")}): a scale mixture, not a
 linear factor.
 \item \code{\link[brms:car]{car()}}, \code{spde()} and \code{gr(prec = )}: sparse precisions whose factor
@@ -255,7 +272,7 @@ and no fitted object ever carries a non-centered tape.
 
 \section{Default priors}{
 
-The formula interface defaults to brms 2.23's own weakly-informative
+Both routes default to brms 2.23's own weakly-informative
 priors, read off \code{brms::default_prior()} on matched models. Write
 \verb{y*} for the response transformed by the \code{mu} link and
 \verb{s = max(2.5, round(mad(y*), 1))}:\tabular{lll}{
@@ -326,7 +343,19 @@ over exactly the internal parameters it names. \code{prior = "flat"}
 turns the defaults off entirely and samples the likelihood, which
 warns when the model has variance components: their flat-prior
 posteriors need not be proper, and neither the chains nor Rhat can
-see that.
+see that. On a MAP fit \code{"flat"} reaches further than the defaults:
+that fit's own prior is taped into its objective, and the bare
+likelihood is what \code{"flat"} names, so the penalty is rebuilt out and
+the call says which prior it dropped.
+
+\emph{Three sources, most explicit first.} On a fitted model the stack is
+this call's \verb{prior =}, then the fit's own prior (\code{frm(prior = )}
+makes a MAP fit, and that prior is part of the model the fit is),
+then the defaults. Each addressed slot is settled by the most
+explicit source that names it, one slot at a time: a call-level
+\code{set_prior(class = "sd")} replaces the fit's \code{sd} prior and the \code{sd}
+default while the \code{Intercept} default stays. \code{prior_summary()} on
+the returned draws prints what the stack came to.
 }
 
 \section{Multimodal posteriors}{

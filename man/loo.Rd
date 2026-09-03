@@ -94,15 +94,14 @@ are defined only to name their replacements.
 \section{Priors, and what these numbers mean}{
 
 These are posterior quantities, and they inherit the standing of the
-draws they are computed from. \code{frm_sample(fit)} samples the
-LIKELIHOOD under flat improper priors (that route is a diagnostic
-for the Laplace approximation, not a Bayesian analysis), so an elpd
-computed from it is likelihood-shaped and unregularized. Expect
-Pareto k warnings there for models with many group-level parameters,
-because a flat prior leaves those to be identified by the data alone,
-and an influential observation then moves them a long way. For model
-comparison, sample with priors: \code{frm_sample(formula, data)} applies
-brms's default priors, and \verb{prior =} sets your own. The
+draws they are computed from. Both of \code{\link[=frm_sample]{frm_sample()}}'s routes apply
+brms's default priors, so these numbers are regularized the way brms
+regularizes them unless the call opted out with \code{prior = "flat"}.
+Under that opt-out the elpd is likelihood-shaped and unregularized:
+expect Pareto k warnings for models with many group-level
+parameters, because a flat prior leaves those to be identified by
+the data alone,
+and an influential observation then moves them a long way. The
 maximum-likelihood answer to the same question is \code{AIC()} on the
 fits, or \code{\link[=frm_bootstrap]{frm_bootstrap()}}.
 }

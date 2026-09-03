@@ -249,15 +249,14 @@ log_lik.frmtmb_draws <- function(object, ndraws = NULL, resp = NULL,
 #'
 #' @section Priors, and what these numbers mean:
 #' These are posterior quantities, and they inherit the standing of the
-#' draws they are computed from. `frm_sample(fit)` samples the
-#' LIKELIHOOD under flat improper priors (that route is a diagnostic
-#' for the Laplace approximation, not a Bayesian analysis), so an elpd
-#' computed from it is likelihood-shaped and unregularized. Expect
-#' Pareto k warnings there for models with many group-level parameters,
-#' because a flat prior leaves those to be identified by the data alone,
-#' and an influential observation then moves them a long way. For model
-#' comparison, sample with priors: `frm_sample(formula, data)` applies
-#' brms's default priors, and `prior =` sets your own. The
+#' draws they are computed from. Both of [frm_sample()]'s routes apply
+#' brms's default priors, so these numbers are regularized the way brms
+#' regularizes them unless the call opted out with `prior = "flat"`.
+#' Under that opt-out the elpd is likelihood-shaped and unregularized:
+#' expect Pareto k warnings for models with many group-level
+#' parameters, because a flat prior leaves those to be identified by
+#' the data alone,
+#' and an influential observation then moves them a long way. The
 #' maximum-likelihood answer to the same question is `AIC()` on the
 #' fits, or [frm_bootstrap()].
 #'
@@ -621,9 +620,9 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
 #'   maximum-likelihood fits answers the comparison question directly.
 #' * `bridge_sampler()`, `bayes_factor()` and `post_prob()` are
 #'   marginal-likelihood quantities. A marginal likelihood is an
-#'   integral against the PRIOR, so it is undefined under the flat
-#'   improper priors `frm_sample(fit)` uses, and even with a proper
-#'   `prior =` the bridge-sampling estimator needs a normalized
+#'   integral against the PRIOR, so it is undefined under
+#'   `prior = "flat"`, and even under the default priors
+#'   the bridge-sampling estimator needs a normalized
 #'   log-posterior evaluator that the RTMB tape does not expose.
 #'
 #' @param x,... Ignored; these methods always stop.
@@ -691,8 +690,8 @@ reloo.frmtmb_draws <- function(x, ...) {
        "sampler once per observation with a high Pareto k, and ",
        "frm_sample() has no stored program to re-run on modified ",
        "data. Read loo()'s Pareto k table and treat a bad k as the ",
-       "diagnostic it is (usually a flat prior on many group-level ",
-       "parameters; see the prior section of ?loo), or compare the ",
+       "diagnostic it is (usually many group-level parameters left to ",
+       "the data alone; see the prior section of ?loo), or compare the ",
        "maximum-likelihood fits with AIC()", call. = FALSE)
 }
 
@@ -722,8 +721,8 @@ bridge_sampler <- function(x, ...) UseMethod("bridge_sampler")
 bridge_sampler.frmtmb_draws <- function(x, ...) {
   stop("bridge_sampler() is not available for frmtmb draws. A marginal ",
        "likelihood is an integral of the likelihood against the PRIOR, ",
-       "so it does not exist at all under the flat improper priors ",
-       "frm_sample(fit) samples with; and even with proper prior = ",
+       "so it does not exist at all under prior = \"flat\"; and even ",
+       "under the default priors ",
        "the estimator needs to evaluate the normalized log posterior ",
        "at arbitrary points, which the RTMB tape does not expose. Use ",
        "loo() for predictive comparison", call. = FALSE)
@@ -739,8 +738,8 @@ bayes_factor <- function(x, ...) UseMethod("bayes_factor")
 bayes_factor.frmtmb_draws <- function(x, ...) {
   stop("bayes_factor() is not available for frmtmb draws: it is a ",
        "ratio of the marginal likelihoods bridge_sampler() would have ",
-       "to estimate, and those are undefined under flat priors and ",
-       "unavailable from the tape. hypothesis() gives the posterior ",
+       "to estimate, and those are undefined under prior = \"flat\" ",
+       "and unavailable from the tape. hypothesis() gives the posterior ",
        "probability of a directional claim, and loo() the predictive ",
        "comparison", call. = FALSE)
 }
