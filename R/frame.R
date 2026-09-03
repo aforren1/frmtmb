@@ -1590,6 +1590,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             ord = smooth_pen_order(sm, re2),
             nr = nr, nf = nf, xf_idx = xf_idx,
             comp_ids = sm_comp_ids, block_ids = NULL,
+            # the grouping factor this basis is indexed by, if any: what
+            # separates a per-level curve (which re.form = NA drops)
+            # from a population smooth (which it keeps). Read off the
+            # smooth object here, where the model frame is still around
+            # to say which of its terms are factors.
+            group_var = smooth_group_var(sm, mf),
             label = sm$label
           )
         }
