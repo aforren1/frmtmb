@@ -371,6 +371,10 @@ lca <- function(K, ncat = NULL, na.rm = TRUE) {
            "item", call. = FALSE)
     }
   }
+  # na.rm decides whether a missing item is masked out of that
+  # subject's likelihood or the subject is dropped, so isTRUE() reading
+  # a mistake as FALSE changes the estimand
+  check_flag(na.rm, "na.rm")
   na_rm <- isTRUE(na.rm)
   # Nothing below writes to this closure. A family object is a value
   # that may be built once and handed to several fits, so the item

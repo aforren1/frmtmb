@@ -1021,6 +1021,24 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
             paste(names(dots), collapse = ", "), call. = FALSE)
   }
   require_fitted(object, "predict()")
+  # re.form is read three lines down as "NULL, a formula, or anything
+  # else drops the random effects", so a typo used to return the
+  # POPULATION prediction and say nothing. newdata that is not
+  # rectangular reached the design builder and failed there on
+  # "non-conformable arrays", which names neither the argument nor the
+  # fault.
+  check_flag(se.fit, "se.fit")
+  check_flag(allow_new_levels, "allow_new_levels")
+  if (!is.null(newdata) && !is.data.frame(newdata)) {
+    stop("`newdata` must be a data frame, or NULL to predict on the ",
+         "training data, not ", arg_desc(newdata), call. = FALSE)
+  }
+  if (!is.null(re.form) && !inherits(re.form, "formula") &&
+        !(length(re.form) == 1L && is.na(re.form))) {
+    stop("`re.form` must be NULL to keep every random effect, NA to drop ",
+         "them all, or a one-sided formula naming the ones to keep, not ",
+         arg_desc(re.form), call. = FALSE)
+  }
   type <- match.arg(type)
   use_re <- is.null(re.form) ||
     (inherits(re.form, "formula") && !identical(deparse1(re.form[[2]]), "0"))
@@ -2555,6 +2573,11 @@ apply_censoring <- function(y, win) {
 #' @export
 simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
                                 re.form = NULL, censored = FALSE, ...) {
+  # nsim reaches vapply()/replicate() as a length, where a length-2 or
+  # character value reports "invalid 'length' argument" and names
+  # neither simulate() nor nsim
+  check_count(nsim, "nsim", min = 1L)
+  check_flag(censored, "censored")
   # the stats::simulate seed contract (as in simulate.lm)
   if (!exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
     stats::runif(1)

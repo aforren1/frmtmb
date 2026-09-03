@@ -884,6 +884,15 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                                            data = NULL, ...) {
   method <- match.arg(method)
   band <- match.arg(band)
+  # prob becomes a normal quantile that RECYCLES along the grid, so a
+  # length-2 prob drew a band whose coverage alternated point by point.
+  # A length-2 resolution silently used only its first element.
+  check_probability(prob, "prob")
+  check_count(resolution, "resolution", min = 1L)
+  check_count(ndraws, "ndraws", min = 1L)
+  check_count(profile_points, "profile_points", min = 1L)
+  check_flag(surface, "surface")
+  check_named_list(conditions, "conditions", "conditions = list(z = 0)")
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
   ce_hmm_check(rspec)
@@ -1084,6 +1093,12 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
                                              prob = 0.95, ndraws = NULL,
                                              conditions = list(),
                                              data = NULL, ...) {
+  # same recycling trap as the fit method: prob and resolution index a
+  # grid, and a length-2 value silently alternated or truncated it
+  check_probability(prob, "prob")
+  check_count(resolution, "resolution", min = 1L)
+  if (!is.null(ndraws)) check_count(ndraws, "ndraws", min = 1L)
+  check_named_list(conditions, "conditions", "conditions = list(z = 0)")
   dots <- list(...)
   if (!is.null(dots$method)) {
     stop("conditional_effects() on draws has no method =: the curves ",

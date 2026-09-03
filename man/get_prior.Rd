@@ -10,7 +10,8 @@ get_prior(formula, data = NULL, family = NULL, data2 = list())
 \item{formula}{A \code{bf()} formula (with family), a plain formula, or
 an already fitted \code{frmtmb_fit}.}
 
-\item{data}{Model data (ignored when \code{formula} is a fit).}
+\item{data}{A data frame of model data (ignored when \code{formula} is a
+fit).}
 
 \item{family}{Family, when \code{formula} does not carry one.}
 

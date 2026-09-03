@@ -26,7 +26,7 @@ frm_sample(
 \item{fit}{A \code{frmtmb_fit}, or a \code{bf()}/formula to assemble and sample
 directly (then \code{data} is required).}
 
-\item{data}{Model data, when \code{fit} is a formula.}
+\item{data}{A data frame of model data, when \code{fit} is a formula.}
 
 \item{family}{Family, when \code{fit} is a plain formula that does not
 carry one (\code{frm_sample(bf(y ~ x), data = dd, family = poisson())};

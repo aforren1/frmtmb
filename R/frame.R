@@ -951,6 +951,17 @@ smooth_pen_order <- function(sm, re2) {
 #' @noRd
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
                            sparse_x = FALSE, data2 = list()) {
+  # `data = NULL` is not "no data": model.frame() falls back to the
+  # formula environment and reports the first variable it cannot find
+  # there ("object 'y' not found"), which sends the reader looking for a
+  # typo in the formula rather than for the missing argument. A
+  # data.frame, a tibble, a data.table and a plain named list all reach
+  # model.frame() unchanged and are all supported.
+  if (is.null(data)) {
+    stop("`data` is NULL: frm() needs the data frame holding the model ",
+         "variables, e.g. frm(bf(y ~ x) + gaussian(), data = d)",
+         call. = FALSE)
+  }
   data2 <- validate_data2(data2)
   spec <- resolve_nl_dpar_refs(spec, data)
   spec <- drop_nl_lexical_datavars(spec, data)

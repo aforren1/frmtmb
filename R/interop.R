@@ -44,6 +44,7 @@
 check_custom_family <- function(family, y, dpars, aterms = list(),
                                 tol = 1e-4) {
   stopifnot(inherits(family, "frmtmb_family"))
+  check_positive(tol, "tol")
   if (!setequal(names(dpars), family$dpars)) {
     stop("`dpars` must supply test values for exactly: ",
          paste(family$dpars, collapse = ", "), call. = FALSE)
@@ -120,7 +121,12 @@ NULL
 #' @rdname frmtmb-priors
 #' @export
 prior_normal <- function(location = 0, scale = 1) {
-  stopifnot(scale > 0)
+  # a length-2 location built a prior that recycled against the whole
+  # parameter block it was attached to, and `stopifnot(scale > 0)`
+  # reported a negative scale as "scale > 0 is not TRUE", which names
+  # the test rather than the argument
+  check_number(location, "location")
+  check_positive(scale, "scale")
   structure(list(kind = "normal", location = location, scale = scale),
             class = "frmtmb_prior")
 }
@@ -128,7 +134,9 @@ prior_normal <- function(location = 0, scale = 1) {
 #' @rdname frmtmb-priors
 #' @export
 prior_t <- function(df = 3, location = 0, scale = 1) {
-  stopifnot(df > 0, scale > 0)
+  check_positive(df, "df")
+  check_number(location, "location")
+  check_positive(scale, "scale")
   structure(list(kind = "t", df = df, location = location, scale = scale),
             class = "frmtmb_prior")
 }
@@ -1163,7 +1171,7 @@ sample_resolve_priors <- function(fit, priors, announce = TRUE) {
 #'
 #' @param fit A `frmtmb_fit`, or a `bf()`/formula to assemble and sample
 #'   directly (then `data` is required).
-#' @param data Model data, when `fit` is a formula.
+#' @param data A data frame of model data, when `fit` is a formula.
 #' @param family Family, when `fit` is a plain formula that does not
 #'   carry one (`frm_sample(bf(y ~ x), data = dd, family = poisson())`;
 #'   the `+` spelling `bf(y ~ x) + poisson()` works too).

@@ -435,6 +435,7 @@ vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
                                                    "CR1p", "CR1S"),
                          full = FALSE) {
   stopifnot(inherits(object, "frmtmb_fit"))
+  check_flag(full, "full")
   if (is.character(type) && length(type) == 1L &&
       type %in% c("CR2", "CR3", "CR4")) {
     stop("type = '", type, "' is not defined for a marginal-likelihood ",

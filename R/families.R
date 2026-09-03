@@ -129,6 +129,12 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
   stopifnot(is.character(family), length(family) == 1,
             is.character(dpars), length(dpars) >= 1,
             is.function(lpdf))
+  # `type` selects the response check, the residual scale and what
+  # "response" means to predict(), so an unrecognized string used to
+  # produce a family that silently behaved as none of them
+  check_string_choice(type, "type",
+                      c("continuous", "discrete", "ordinal", "categorical"))
+  check_flag(drop_intercept, "drop_intercept")
   if (!all(primary_dpars %in% dpars)) {
     stop("`primary_dpars` must be a subset of `dpars`", call. = FALSE)
   }
@@ -4142,6 +4148,11 @@ categorical <- function(link = "logit", levels = NULL, K = NULL) {
 #'   non-zero at the lower boundary knot.
 #' @export
 cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
+  # df and degree size the I-spline baseline basis, so a length-2 value
+  # used to build a basis of one shape and record another
+  check_count(df, "df", min = 1L)
+  check_count(degree, "degree", min = 1L)
+  check_flag(intercept, "intercept")
   fam_cox(link, df = df, degree = degree, intercept = intercept)
 }
 

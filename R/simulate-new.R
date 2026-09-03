@@ -425,7 +425,8 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #'
 #' @param formula A `bf()` formula (with a family attached) or a plain
 #'   formula plus `family`.
-#' @param data Model data, including a dummy response column.
+#' @param data A data frame of model data, including a dummy response
+#'   column.
 #' @param family Family, when `formula` does not carry one.
 #' @param newparams Named list of parameters, in either spelling (see
 #'   Details). Optional when `priors` pins everything.
@@ -466,6 +467,9 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
                          priors = NULL, nsim = 1, seed = NULL,
                          data2 = list()) {
+  # nsim reaches replicate() as a length; "invalid 'length' argument"
+  # names neither this function nor the argument
+  check_count(nsim, "nsim", min = 1L)
   if (!is.null(seed)) set.seed(seed)
   bform <- resolve_deferred_families(as_bform(formula, family), data)
   spec <- parse_spec(bform)

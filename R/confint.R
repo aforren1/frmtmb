@@ -364,6 +364,16 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
                                ...) {
   method <- match.arg(method)
   if (method == "Wald") method <- "wald"
+  # A length-2 level makes a length-2 quantile, which then RECYCLES
+  # against the parameter vector: rows 1 and 3 of one table came back at
+  # 90% and rows 2 and 4 at 95%, with nothing in the output recording
+  # it. A level outside (0, 1) produced a table of NaN or of Inf.
+  check_probability(level, "level")
+  check_count(nsim, "nsim", min = 1L)
+  if (!is.null(parm) && !is.character(parm)) {
+    stop("`parm` must be a character vector of parameter names, or NULL ",
+         "for all of them, not ", arg_desc(parm), call. = FALSE)
+  }
   if (!is.null(vcov) && method != "wald") {
     stop("confint(vcov = ) applies to method = 'wald' only: ",
          "method = '", method, "' does not go through a covariance ",
@@ -912,6 +922,7 @@ log_sd_theta_index <- function(fit) {
 #' @export
 diagnose <- function(fit, quiet = FALSE) {
   stopifnot(inherits(fit, "frmtmb_fit"))
+  check_flag(quiet, "quiet")
   nm <- outer_par_names(fit)
   # a degenerate fit (no free outer parameters) has no gradient, no
   # covariance and no theta to report on
