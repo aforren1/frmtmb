@@ -104,10 +104,10 @@ autoscale_prefit <- function(spec, frame, bform, cl, REML, start,
   # interleave with the fit that is actually reported
   ctl$verbose <- FALSE
   if (!is.null(start)) {
-    full <- frame$par_template
-    for (nm in intersect(names(start), names(full))) {
-      full[[nm]][] <- start[[nm]]
-    }
+    # through make_start(), so a partially NAMED start leaves the
+    # entries it does not address at the defaults the pre-fit would
+    # otherwise have used, rather than at zero
+    full <- make_start(frame, start)
     full <- autoscale_map(full, plan, "scaled")
     for (nm in intersect(names(start), c("beta", "betad"))) {
       start[[nm]] <- unname(full[[nm]])

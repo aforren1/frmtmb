@@ -20,6 +20,7 @@ reference:
   contents:
   - frm
   - frmtmb_control
+  - par_template
   - frm_allfit
   - frm_simulate
   - frm_multiple

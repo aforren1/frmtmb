@@ -69,8 +69,18 @@ precision for gaussian models. Random effects appearing in a
 distributional parameter's own formula are integrated like any
 other latent.}
 
-\item{start}{Optional named list of starting values; components must
-match the parameter template (\code{beta}, \code{betad}, \code{theta}).}
+\item{start}{Optional named list of starting values, one entry per
+parameter component (\code{beta}, \code{betad}, \code{theta}, ...).
+\code{\link[=par_template]{par_template()}} returns that list already filled with the
+defaults, for a fitted model or for a formula and data alone; edit
+it and pass it back.
+
+A component is read by NAME when its vector has names, so
+\code{start = list(beta = c("(Intercept)" = 5000))} moves that one
+coefficient and leaves the rest at their defaults; parentheses may
+be dropped, as everywhere a parameter is named. A vector with no
+names is positional and must be full length. Naming some entries
+of one vector and not others is refused.}
 
 \item{control}{A list from \code{\link[=frmtmb_control]{frmtmb_control()}}.}
 
@@ -115,11 +125,20 @@ against brms's posterior mean of 0.40. That is a measurement on
 one model, though, not a property of the translation. Use
 \code{\link[=frm_sample]{frm_sample()}} when the posterior is the answer.
 
-\emph{A prior does not replace \code{start} on a nonlinear model.} brms uses
-its priors to place the sampler; \code{frm()} optimizes, and it
-evaluates the objective at the starting values first, where a
-nonlinear body usually is not defined. The prior means read across
-as starting values: \code{start = list(beta = c(5000, 1, 45))}.}
+\emph{A prior with a location places a nonlinear start.} brms uses its
+priors to place the sampler, and \code{frm()} now reads them the same
+way, for nonlinear parameters only: where \code{start} does not set it,
+a nonlinear coefficient begins at the location of a \code{normal()},
+\code{student_t()} or \code{cauchy()} prior on it, and a message names what
+was placed. This is what lets the insurance-loss growth curve fit
+from its brms priors with no \code{start} at all. Every other parameter
+keeps the start it always had.
+
+Without such a prior a nonlinear model still needs \code{start}.
+\code{frm()} optimizes rather than samples, so it evaluates the
+objective AT the starting values, and a nonlinear body is rarely
+defined at zero. \code{\link[=par_template]{par_template()}} shows the names and the values
+in force.}
 
 \item{quadrature}{If \code{TRUE}, marginalize each scalar random effect by
 adaptive Gauss-Kronrod quadrature instead of the Laplace
@@ -186,4 +205,21 @@ VarCorr(fit)
 # distributional regression: model sigma too
 fit2 <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
 anova(fit, fit2)
+
+# a nonlinear model: discover the names, edit, fit. A nonlinear body
+# is undefined at the zero start, so `start` is not optional here.
+nd <- data.frame(t = rep(seq(0, 10, length.out = 25), 4))
+nd$y <- 8 * (1 - exp(-nd$t / 3)) + rnorm(nrow(nd), 0, 0.3)
+nf <- bf(y ~ asym * (1 - exp(-t / lrc)), asym ~ 1, lrc ~ 1,
+         nl = TRUE) + gaussian()
+st <- par_template(nf, data = nd)
+st
+st$beta[["asym_(Intercept)"]] <- 5
+st$beta[["lrc_(Intercept)"]] <- 1
+fixef(frm(nf, data = nd, start = st))
+
+# or let a located prior place the same starts, brms-style
+fixef(frm(nf, data = nd,
+          prior = prior(normal(5, 5), nlpar = "asym") +
+            prior(normal(1, 5), nlpar = "lrc")))
 }

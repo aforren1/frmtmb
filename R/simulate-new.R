@@ -390,12 +390,13 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #'   `sds_<label>` for a smooth's smoothing SD. Unset correlations are
 #'   0.
 #'
-#' *Internal scale*: named after the `par_template` components -
-#' `beta`, `betad`, `theta`, and optionally `b` - each a full-length
-#' vector, on the internal parameterization (`theta` holds log SDs and
-#' Cholesky correlation parameters, `betad` holds dispersion dpars on
-#' their link scale). Inspect the layout with
-#' `frm(formula, data, dry_run = "frame")$par_template`.
+#' *Internal scale*: named after the parameter components - `beta`,
+#' `betad`, `theta`, and optionally `b` - each a full-length vector, on
+#' the internal parameterization (`theta` holds log SDs and Cholesky
+#' correlation parameters, `betad` holds dispersion dpars on their link
+#' scale). [par_template()] returns that layout for a formula and data
+#' without fitting anything, filled with the default values and carrying
+#' the name of every entry; edit it and pass it back as `newparams`.
 #'
 #' The two spellings cannot be mixed: `newparams` is read as internal
 #' when every name is a `par_template` component (or `b`), and as
@@ -429,7 +430,8 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #'   column.
 #' @param family Family, when `formula` does not carry one.
 #' @param newparams Named list of parameters, in either spelling (see
-#'   Details). Optional when `prior` pins everything.
+#'   Details). [par_template()] discovers the internal spelling for a
+#'   formula and data. Optional when `prior` pins everything.
 #' @param prior A [set_prior()] specification to draw parameters from,
 #'   once per simulation, or a `brmsprior` object brms built, which is
 #'   translated row by row. The argument takes brms's spelling,
@@ -450,8 +452,7 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #'                      nsim = 3, seed = 1)
 #' head(sims)
 #' # the same thing on the internal scale
-#' frm(bf(y ~ x + (1 | g)) + gaussian(), dd,
-#'     dry_run = "frame")$par_template   # the required layout
+#' par_template(bf(y ~ x + (1 | g)) + gaussian(), dd)   # the layout
 #' sims2 <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
 #'                       newparams = list(beta = c(1, 0.5),
 #'                                        betad = log(0.7),

@@ -179,7 +179,7 @@ model is always a formula and a data frame.
 | `data` | One data frame. Its `nrow()` sets the number of observations. Every variable in every linear predictor must resolve in it. | A missing variable is an error naming the variable and the linear predictor. |
 | `family` | A `frmtmb_family`, a `stats::family` object or its constructor function, or a length-one family name. Overrides any family carried by `formula`. | An unsupported name errors and lists every supported name. |
 | `REML` | Length-one logical. | Moves the fixed effects into the inner set, which makes `drop1()` and fixed-effect bounds refuse. |
-| `start` | Named list matching the parameter template. Use `frm(..., dry_run = "frame")$par_template` to see the names and lengths. | An unknown component is an error that points at the template. |
+| `start` | Named list, one entry per parameter component. `par_template(formula, data)` returns it filled with the defaults, for a formula or for a fit. A named vector inside it addresses entries by name and leaves the rest alone; an unnamed one is positional and must be full length. | An unknown component is an error that points at the template. An unknown parameter name lists the valid ones. Naming some entries of one vector and not others is refused. |
 | `control` | The list from `frmtmb_control()`. | See below. |
 | `se` | Length-one logical, default `FALSE`. Defers `sdreport()`, which is roughly a quarter of the fit time. | |
 | `na.action` | A function, as in `stats::lm()`. Default `stats::na.omit`. | `na.fail` errors on any `NA`. `na.exclude` drops rows for the fit and pads `fitted()`, `residuals()`, `predict()` and `simulate()` back to the input length with `NA` in the original positions. |

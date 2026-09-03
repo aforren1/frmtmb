@@ -25,7 +25,8 @@ column.}
 \item{family}{Family, when \code{formula} does not carry one.}
 
 \item{newparams}{Named list of parameters, in either spelling (see
-Details). Optional when \code{prior} pins everything.}
+Details). \code{\link[=par_template]{par_template()}} discovers the internal spelling for a
+formula and data. Optional when \code{prior} pins everything.}
 
 \item{prior}{A \code{\link[=set_prior]{set_prior()}} specification to draw parameters from,
 once per simulation, or a \code{brmsprior} object brms built, which is
@@ -85,12 +86,13 @@ residual SD of 0.7;
 0.
 }
 
-\emph{Internal scale}: named after the \code{par_template} components -
-\code{beta}, \code{betad}, \code{theta}, and optionally \code{b} - each a full-length
-vector, on the internal parameterization (\code{theta} holds log SDs and
-Cholesky correlation parameters, \code{betad} holds dispersion dpars on
-their link scale). Inspect the layout with
-\code{frm(formula, data, dry_run = "frame")$par_template}.
+\emph{Internal scale}: named after the parameter components - \code{beta},
+\code{betad}, \code{theta}, and optionally \code{b} - each a full-length vector, on
+the internal parameterization (\code{theta} holds log SDs and Cholesky
+correlation parameters, \code{betad} holds dispersion dpars on their link
+scale). \code{\link[=par_template]{par_template()}} returns that layout for a formula and data
+without fitting anything, filled with the default values and carrying
+the name of every entry; edit it and pass it back as \code{newparams}.
 
 The two spellings cannot be mixed: \code{newparams} is read as internal
 when every name is a \code{par_template} component (or \code{b}), and as
@@ -131,8 +133,7 @@ sims <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
                      nsim = 3, seed = 1)
 head(sims)
 # the same thing on the internal scale
-frm(bf(y ~ x + (1 | g)) + gaussian(), dd,
-    dry_run = "frame")$par_template   # the required layout
+par_template(bf(y ~ x + (1 | g)) + gaussian(), dd)   # the layout
 sims2 <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
                       newparams = list(beta = c(1, 0.5),
                                        betad = log(0.7),
