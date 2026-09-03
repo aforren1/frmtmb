@@ -36,6 +36,67 @@ arg_desc <- function(x) {
   paste0(art, " ", cls, " of length ", length(x))
 }
 
+# --- one setting under two spellings ----------------------------------
+#
+# The naming rule: a brms-NAMED function speaks brms's argument names,
+# and frmtmb's own fit surface (predict(), simulate(), frm_bootstrap())
+# keeps lme4's. Where a brms-named function has ALREADY shipped under
+# the lme4 spelling, retiring that spelling would break working code, so
+# both stay live and resolve to one value. brms carries `re_formula`
+# and `re.form` side by side on `posterior_epred.brmsfit()` for the same
+# reason. The difference here is that supplying BOTH is refused rather
+# than silently resolved: two names for one setting given at once is a
+# question about what the caller meant, not a preference to guess at.
+
+#' The "argument was not supplied" marker for a dual-spelled argument.
+#'
+#' A sentinel is needed rather than a plain default because `NULL` and
+#' `NA` are both REAL settings for a random-effect formula (keep the
+#' random effects; drop them), so neither can double as "unset". Its
+#' class is the whole implementation: nothing a caller can pass carries
+#' it.
+#'
+#' @noRd
+arg_unset <- function() structure(list(), class = "frmtmb_arg_unset")
+
+#' @noRd
+is_arg_unset <- function(x) inherits(x, "frmtmb_arg_unset")
+
+#' One value out of two spellings of one argument.
+#'
+#' `primary` is the spelling the function is named after (brms's),
+#' `alias` the accepted historical one; `default` is what the function
+#' does when neither is given, which is by construction the default it
+#' had before the alias existed.
+#'
+#' @noRd
+dual_arg <- function(primary, alias, primary_name, alias_name, what,
+                     default = NULL) {
+  set_primary <- !is_arg_unset(primary)
+  set_alias <- !is_arg_unset(alias)
+  if (set_primary && set_alias) {
+    stop(what, " was given both `", primary_name, "` and `", alias_name,
+         "`, which are two spellings of ONE setting, so it cannot tell ",
+         "which was meant. `", primary_name, "` is the spelling this ",
+         "function takes (it is brms's, and this is a brms function); `",
+         alias_name, "` is accepted as an alias. Pass one of them",
+         call. = FALSE)
+  }
+  if (set_primary) return(primary)
+  if (set_alias) return(alias)
+  default
+}
+
+#' The random-effect formula of a brms-named draws method, from either
+#' spelling. Kept as its own wrapper so that every call site names the
+#' same two spellings and only the function name and the default vary.
+#'
+#' @noRd
+re_form_arg <- function(re_formula, re.form, what, default = NULL) {
+  dual_arg(re_formula, re.form, "re_formula", "re.form", what,
+           default = default)
+}
+
 #' The one refusal every TRUE/FALSE argument in the package shares.
 #'
 #' @noRd

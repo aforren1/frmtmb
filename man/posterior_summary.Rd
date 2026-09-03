@@ -35,14 +35,22 @@ predictive_interval(object, ...)
   prob = 0.9,
   newdata = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
   ndraws = NULL,
   ...
 )
 
 predictive_error(object, ...)
 
-\method{predictive_error}{frmtmb_draws}(object, resp = NULL, re.form = NULL, ndraws = NULL, ...)
+\method{predictive_error}{frmtmb_draws}(
+  object,
+  resp = NULL,
+  re_formula = arg_unset(),
+  re.form = arg_unset(),
+  ndraws = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{frmtmb_draws}, or a matrix of draws
@@ -59,7 +67,12 @@ predictive_error(object, ...)
 \item{prob}{Central interval width for \code{posterior_interval()} and
 \code{predictive_interval()}.}
 
-\item{ndraws, newdata, re.form, resp}{Passed to \code{\link[=posterior_predict]{posterior_predict()}}.}
+\item{re_formula, re.form}{Passed to \code{\link[=posterior_predict]{posterior_predict()}}, which
+takes brms's \code{re_formula} and accepts lme4's \code{re.form} as an alias
+of it. Pass one or the other; see the \emph{Argument spellings} section
+of \code{\link[=posterior_epred]{posterior_epred()}}.}
+
+\item{ndraws, newdata, resp}{Passed to \code{\link[=posterior_predict]{posterior_predict()}}.}
 }
 \value{
 A matrix with one row per variable (or per observation, for

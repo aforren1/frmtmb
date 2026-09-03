@@ -1521,19 +1521,32 @@ pp_check <- function(object, ...) {
 #' @param type The bayesplot check, i.e. the part after `ppc_`
 #'   (`"dens_overlay"`, `"hist"`, `"stat"`, `"scatter_avg"`, ...).
 #' @param ndraws Number of simulated response vectors.
-#' @param re.form Passed to [simulate()]; the default `NA` simulates new
-#'   random effects.
+#' @param re_formula The random-effect switch, in brms's spelling
+#'   (`pp_check()` is a brms function). On a fit it is passed to
+#'   [simulate()] and defaults to `NA`, which simulates new random
+#'   effects; on draws it is passed to [posterior_predict()] and
+#'   defaults to `NULL`, because a draw already carries its own.
+#' @param re.form lme4's spelling of `re_formula`, accepted as an alias.
+#'   Pass one or the other, not both; see the *Argument spellings*
+#'   section of [posterior_epred()].
 #' @exportS3Method bayesplot::pp_check
 #' @export
 pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
-                                ndraws = 10, re.form = NA, ...) {
+                                ndraws = 10,
+                                re_formula = arg_unset(),
+                                re.form = arg_unset(), ...) {
+  # NA, not NULL: a fit has ONE estimate of the random effects, so
+  # conditioning on it would compare the data against draws that already
+  # know each group's deviation. New levels per replicate are what makes
+  # this the frequentist analog of the posterior predictive check.
+  re_form <- re_form_arg(re_formula, re.form, "pp_check()", default = NA)
   rspec <- uni_resp(object, "pp_check()")
   y <- object$frame$y[[1L]]
   if (is.matrix(y)) {
     stop("pp_check() on a fit supports vector responses", call. = FALSE)
   }
   sims <- na_unpad(object, simulate(object, nsim = ndraws,
-                                    re.form = re.form))
+                                    re.form = re_form))
   # ordinal draws come back as ordered factors carrying the response's
   # levels; bayesplot compares them with y, which is the 1..K codes
   yrep <- if (identical(rspec$family$type, "ordinal")) {

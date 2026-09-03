@@ -231,8 +231,8 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' `posterior_epred()` evaluates the response-scale expectation per
 #' draw; `posterior_predict()` additionally simulates responses from
 #' the family, giving the posterior predictive distribution. Both
-#' condition on each draw's own random effects (`re.form = NA` drops
-#' them).
+#' condition on each draw's own random effects (`re_formula = NA` drops
+#' them; `re.form` is the accepted alias, see *Argument spellings*).
 #'
 #' @section Categorical outcomes:
 #' An ordinal family predicts a DISTRIBUTION per observation, not one
@@ -269,8 +269,39 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' draws section of [simulate.frmtmb_fit()]. Those draws index the rows
 #' the model was fitted on, so `newdata` is refused for them.
 #'
+#' @section Argument spellings:
+#' frmtmb answers to two dialects, and this family sits on the seam.
+#' The rule is that a brms-NAMED function speaks brms's argument names,
+#' while frmtmb's own fit surface ([predict.frmtmb_fit()],
+#' [simulate.frmtmb_fit()], [frm_bootstrap()]) keeps lme4's, because
+#' that is the heritage each name comes from and a reader should be able
+#' to tell which library a call was written against.
+#'
+#' `posterior_epred()` and its relatives are brms functions, so the
+#' random-effect switch is `re_formula`. They also SHIPPED taking
+#' lme4's `re.form`, so that spelling keeps working and means exactly
+#' the same thing: both names feed one internal setting, and whichever
+#' one is given wins. brms does the same on `posterior_epred.brmsfit()`,
+#' which carries `re_formula` and `re.form` side by side.
+#'
+#' Giving both at once is refused rather than resolved. Two names for
+#' one setting supplied together is a question about what was meant, and
+#' guessing at it would silently ignore one of them.
+#'
+#' The literal default of both formals is an internal "not supplied"
+#' marker rather than a value, because `NULL` (keep the random effects)
+#' and `NA` (drop them) are both real settings here and neither can
+#' double as "unset". The behavior when neither is given is unchanged:
+#' `NULL` on every draws method, `NA` on `pp_check()` for a fit.
+#'
 #' @param object A `frmtmb_draws` from [frm_sample()].
-#' @param newdata,resp,re.form As in [predict.frmtmb_fit()].
+#' @param newdata,resp As in [predict.frmtmb_fit()].
+#' @param re_formula The random-effect switch, in brms's spelling:
+#'   `NULL` (the default) conditions on each draw's own random effects,
+#'   `NA` or `~0` gives the population-level quantity. Its meaning is
+#'   [predict.frmtmb_fit()]'s `re.form`; see *Argument spellings*.
+#' @param re.form lme4's spelling of `re_formula`, accepted as an alias.
+#'   Pass one or the other, not both.
 #' @param ndraws Number of draws to use (default: all).
 #' @param ... Unused.
 #' @return A draws-by-observations matrix; for a categorical outcome
@@ -309,15 +340,18 @@ posterior_epred <- function(object, ...) UseMethod("posterior_epred")
 #' @exportS3Method rstantools::posterior_epred
 #' @export
 posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
-                                         resp = NULL, re.form = NULL,
+                                         resp = NULL,
+                                         re_formula = arg_unset(),
+                                         re.form = arg_unset(),
                                          ndraws = NULL, ...) {
+  re_form <- re_form_arg(re_formula, re.form, "posterior_epred()")
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws)
   out <- NULL
   cat_out <- FALSE
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
-    p <- predict(sh, newdata = newdata, resp = resp, re.form = re.form,
+    p <- predict(sh, newdata = newdata, resp = resp, re.form = re_form,
                  type = "response")
     if (is.null(out)) {
       # A categorical outcome predicts a matrix per draw (an ordinal
@@ -354,8 +388,11 @@ posterior_linpred <- function(object, ...) UseMethod("posterior_linpred")
 #' @export
 posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                                            newdata = NULL, resp = NULL,
-                                           re.form = NULL, dpar = NULL,
+                                           re_formula = arg_unset(),
+                                           re.form = arg_unset(),
+                                           dpar = NULL,
                                            ndraws = NULL, ...) {
+  re_form <- re_form_arg(re_formula, re.form, "posterior_linpred()")
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws)
   # This function is about ONE distributional parameter, so the dpar is
@@ -368,7 +405,7 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
     p <- predict(sh, newdata = newdata, resp = resp, dpar = dpar,
-                 re.form = re.form,
+                 re.form = re_form,
                  type = if (transform) "response" else "link")
     if (is.null(out)) out <- matrix(NA_real_, length(rows), length(p))
     out[k, ] <- p
@@ -395,8 +432,11 @@ posterior_predict <- function(object, ...) UseMethod("posterior_predict")
 #' @exportS3Method rstantools::posterior_predict
 #' @export
 posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
-                                           resp = NULL, re.form = NULL,
+                                           resp = NULL,
+                                           re_formula = arg_unset(),
+                                           re.form = arg_unset(),
                                            ndraws = NULL, ...) {
+  re_form <- re_form_arg(re_formula, re.form, "posterior_predict()")
   fit <- object$fit
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
@@ -437,7 +477,7 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       for (dnm in names(rspec$dpars)) {
         dpv[[dnm]] <- as.vector(predict(sh, newdata = newdata,
                                         dpar = dnm, resp = resp,
-                                        re.form = re.form,
+                                        re.form = re_form,
                                         type = "response"))
       }
       dpv
@@ -467,14 +507,21 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
 #' @exportS3Method bayesplot::pp_check
 #' @export
 pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
-                                  ndraws = 50, ...) {
+                                  ndraws = 50,
+                                  re_formula = arg_unset(),
+                                  re.form = arg_unset(), ...) {
+  # the draws method's default is NULL, not the fit method's NA: a draw
+  # already CARRIES its random effects, so conditioning on them is the
+  # posterior predictive check, while the fit method has one point
+  # estimate and has to simulate new levels to get a spread at all
+  re_form <- re_form_arg(re_formula, re.form, "pp_check()")
   fit <- object$fit
   rspec <- uni_resp(fit, "pp_check()")
   y <- fit$frame$y[[1L]]
   if (is.matrix(y)) {
     stop("pp_check() on draws supports vector responses", call. = FALSE)
   }
-  yrep <- posterior_predict(object, ndraws = ndraws)
+  yrep <- posterior_predict(object, ndraws = ndraws, re_formula = re_form)
   fun <- get(paste0("ppc_", type), envir = asNamespace("bayesplot"))
   fun(as.numeric(y), yrep, ...)
 }
@@ -717,7 +764,11 @@ nvariables.frmtmb_draws <- function(x) ncol(x$draws)
 #'   `predictive_interval()`.
 #' @param robust If `TRUE`, median and MAD instead of mean and SD.
 #' @param variable Optional subset of variables, by name.
-#' @param ndraws,newdata,re.form,resp Passed to [posterior_predict()].
+#' @param ndraws,newdata,resp Passed to [posterior_predict()].
+#' @param re_formula,re.form Passed to [posterior_predict()], which
+#'   takes brms's `re_formula` and accepts lme4's `re.form` as an alias
+#'   of it. Pass one or the other; see the *Argument spellings* section
+#'   of [posterior_epred()].
 #' @param ... Unused.
 #' @return A matrix with one row per variable (or per observation, for
 #'   the predictive functions), except `predictive_error()`, which
@@ -809,10 +860,12 @@ predictive_interval <- function(object, ...) UseMethod("predictive_interval")
 #' @export
 predictive_interval.frmtmb_draws <- function(object, prob = 0.9,
                                              newdata = NULL, resp = NULL,
-                                             re.form = NULL,
+                                             re_formula = arg_unset(),
+                                             re.form = arg_unset(),
                                              ndraws = NULL, ...) {
+  re_form <- re_form_arg(re_formula, re.form, "predictive_interval()")
   yrep <- posterior_predict(object, newdata = newdata, resp = resp,
-                            re.form = re.form, ndraws = ndraws)
+                            re_formula = re_form, ndraws = ndraws)
   if (length(dim(yrep)) > 2L) {
     stop("predictive_interval() needs one predicted number per ",
          "observation, and this model's draws are a matrix per ",
@@ -832,8 +885,10 @@ predictive_error <- function(object, ...) UseMethod("predictive_error")
 #' @exportS3Method rstantools::predictive_error
 #' @export
 predictive_error.frmtmb_draws <- function(object, resp = NULL,
-                                          re.form = NULL, ndraws = NULL,
-                                          ...) {
+                                          re_formula = arg_unset(),
+                                          re.form = arg_unset(),
+                                          ndraws = NULL, ...) {
+  re_form <- re_form_arg(re_formula, re.form, "predictive_error()")
   fit <- draws_base_fit(object)
   resp <- resp %||% names(fit$spec$responses)[1L]
   y <- fit$frame$y[[resp]]
@@ -844,7 +899,7 @@ predictive_error.frmtmb_draws <- function(object, resp = NULL,
          "Subtract the column you want from posterior_predict() ",
          "yourself", call. = FALSE)
   }
-  yrep <- posterior_predict(object, resp = resp, re.form = re.form,
+  yrep <- posterior_predict(object, resp = resp, re_formula = re_form,
                             ndraws = ndraws)
   # brms's convention: the error is y - yrep, one row per draw
   sweep(-yrep, 2L, as.numeric(y), "+")

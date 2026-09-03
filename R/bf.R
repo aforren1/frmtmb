@@ -392,7 +392,10 @@ print.frmtmb_nlf <- function(x, ...) {
 #' @param ... `bf()` formulas, each with a family attached (or supply one
 #'   `family` to [frm()] for all of them).
 #' @param rescor Model residual correlation between the responses
-#'   (gaussian only).
+#'   (gaussian only). `mvbf()` defaults to `FALSE`, `set_rescor()` to
+#'   `TRUE`. It is brms's spelling on both, and brms's default on
+#'   `set_rescor()`; brms's `mvbf()` defaults to `NULL` and decides
+#'   later, which frmtmb settles at formula-assembly time instead.
 #' @return An object of class `frmtmb_mvformula`.
 #' @examples
 #' set.seed(2)
@@ -443,12 +446,21 @@ mvbf <- function(..., rescor = FALSE) {
 }
 
 #' @rdname mvbf
-#' @param rescor_value For `set_rescor()`: turn residual correlation on
-#'   or off.
+#' @param rescor_value The spelling `set_rescor()` shipped with, still
+#'   accepted as an alias of `rescor`. It existed only because this Rd
+#'   page documents two functions and could not carry two `rescor`
+#'   entries; brms spells the argument `rescor`, and so does this
+#'   function now. Give one spelling or the other, not both.
 #' @export
-set_rescor <- function(rescor_value = TRUE) {
-  check_flag(rescor_value, "rescor_value")
-  structure(list(rescor = isTRUE(rescor_value)), class = "frmtmb_rescor")
+set_rescor <- function(rescor = arg_unset(),
+                       rescor_value = arg_unset()) {
+  # both spellings default to the "not supplied" marker so that either
+  # one alone is a setting and both together are a refusal; the value
+  # the function acts on when neither is given is still TRUE
+  rescor <- dual_arg(rescor, rescor_value, "rescor", "rescor_value",
+                     "set_rescor()", default = TRUE)
+  check_flag(rescor, "rescor")
+  structure(list(rescor = isTRUE(rescor)), class = "frmtmb_rescor")
 }
 
 #' @export
