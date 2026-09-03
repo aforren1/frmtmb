@@ -29,7 +29,7 @@ get_prior(formula, data = NULL, family = NULL, data2 = list())
 
 - data:
 
-  Model data (ignored when `formula` is a fit).
+  A data frame of model data (ignored when `formula` is a fit).
 
 - family:
 

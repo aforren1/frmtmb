@@ -106,7 +106,10 @@ check_number <- function(x, arg) {
 #'
 #' @noRd
 check_named_list <- function(x, arg, example) {
-  if (!is.list(x) || (length(x) && is.null(names(x)))) {
+  # every element must carry a name: a PARTIALLY named list would have
+  # its unnamed elements silently dropped by the by-name consumers
+  if (!is.list(x) ||
+        (length(x) && (is.null(names(x)) || !all(nzchar(names(x)))))) {
     stop("`", arg, "` must be a named list, e.g. ", example, ", not ",
          arg_desc(x), call. = FALSE)
   }

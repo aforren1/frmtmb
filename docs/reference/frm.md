@@ -39,7 +39,15 @@ frm(
 
 - data:
 
-  A data frame.
+  A data frame. A `tibble`, a `data.table`, or a plain named list of
+  equal-length columns is accepted as well, since each reaches
+  [`stats::model.frame()`](https://rdrr.io/r/stats/model.frame.html)
+  unchanged. A matrix column is a supported model variable and enters
+  the design as its own block of columns (this is how a functional
+  predictor or a [`cbind()`](https://rdrr.io/r/base/cbind.html) term is
+  written). A list column is not a model variable and is refused by
+  [`model.frame()`](https://rdrr.io/r/stats/model.frame.html) if the
+  formula names one, though it may sit unused in `data`.
 
 - family:
 

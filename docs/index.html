@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.39.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.40.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,13 +69,44 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="frmtmb">frmtmb<a class="anchor" aria-label="anchor" href="#frmtmb"></a>
 </h1></div>
-<p><a href="https://github.com/aforren1/frmtmb/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/aforren1/frmtmb/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://github.com/aforren1/frmtmb/actions/workflows/test-coverage.yaml" class="external-link"><img src="https://github.com/aforren1/frmtmb/actions/workflows/test-coverage.yaml/badge.svg" alt="test-coverage"></a> <a href="https://github.com/aforren1/frmtmb/actions/workflows/pkgcheck.yaml" class="external-link"><img src="https://github.com/aforren1/frmtmb/actions/workflows/pkgcheck.yaml/badge.svg" alt="pkgcheck"></a></p>
+<p><a href="https://github.com/aforren1/frmtmb/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/aforren1/frmtmb/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://github.com/aforren1/frmtmb/actions/workflows/test-coverage.yaml" class="external-link"><img src="https://github.com/aforren1/frmtmb/actions/workflows/test-coverage.yaml/badge.svg" alt="test-coverage"></a> <a href="https://github.com/aforren1/frmtmb/actions/workflows/pkgcheck.yaml" class="external-link"><img src="https://github.com/aforren1/frmtmb/actions/workflows/pkgcheck.yaml/badge.svg" alt="pkgcheck"></a> <a href="https://www.repostatus.org/#active" class="external-link"><img src="https://www.repostatus.org/badges/latest/active.svg" alt="Project Status: Active"></a></p>
 <p>frmtmb fits regression models that you specify with a brms-style formula grammar. Estimation is maximum likelihood, with the Laplace approximation for latent effects. The backend is <a href="https://cran.r-project.org/package=RTMB" class="external-link">RTMB</a>. The package generates each model’s objective as an R closure and differentiates it on the TMB AD tape. There is no MCMC, no Stan, and no compilation at run time. A refit re-tapes in milliseconds. The bootstrap, influence, and multi-start machinery build on that speed.</p>
 <p>Documentation: <a href="https://aforren1.github.io/frmtmb/" class="uri">https://aforren1.github.io/frmtmb/</a></p>
 <div class="section level2">
+<h2 id="statement-of-need">Statement of need<a class="anchor" aria-label="anchor" href="#statement-of-need"></a>
+</h2>
+<p>brms gave R a formula grammar that covers a very wide model space. It reaches that space only through Bayesian estimation in Stan. A user who wants the same grammar under maximum likelihood must divide one model across several packages, accept a smaller model, or wait for a sampler. frmtmb closes that gap. It fits the brms grammar by maximum likelihood with the Laplace approximation, and it compiles nothing at run time.</p>
+<p>The gap is real because the existing frequentist packages each stop at a different place.</p>
+<ul>
+<li>
+<a href="https://cran.r-project.org/package=lme4" class="external-link">lme4</a> fits mixed models in a small set of GLM families. Only the mean gets a formula, and each grouping factor gets one unstructured covariance.</li>
+<li>
+<a href="https://glmmtmb.github.io/glmmTMB/" class="external-link">glmmTMB</a> adds many families, structured random-effect covariances, and separate formulas for dispersion and for zero inflation. The predictor grammar is not brms’s: there are no nonlinear formulas, no multivariate responses with residual correlation, no monotonic or measurement-error terms, and no correlation of effects across formulas.</li>
+<li>
+<a href="https://cran.r-project.org/package=gamlss" class="external-link">gamlss</a>, and its successor gamlss2, give every distributional parameter its own additive predictor, which is the part lme4 and glmmTMB lack. Random effects are additive terms there rather than an lme4 grammar with structured covariances, and the spelling is not brms’s.</li>
+</ul>
+<p>frmtmb supplies the combination: distributional regression on every parameter of the family, nonlinear formulas, multivariate responses with <code>rescor</code>, effects correlated across formulas with <code>|ID|</code>, custom families written as plain R log-densities, and the lme4 random-effect grammar with structured and spatial covariances, all under maximum likelihood or REML. The package generates each model’s objective as an R closure and differentiates it on the RTMB tape, so it does not select from a fixed set of likelihoods. Features that would each need a bespoke implementation become ordinary code paths, and they compose with each other.</p>
+<p>The second need is migration. brms code ports by removing the priors and changing <code>brm()</code> to <code><a href="reference/frm.html">frm()</a></code>. A measured audit of the brms vignettes puts about 7 of 10 of their model calls through that transform unchanged. A user can therefore screen models at millisecond speed, then return to brms for the final Bayesian fit with the same formula. <code><a href="articles/brms-migration.html">vignette("brms-migration")</a></code> maps the features and states, under “When you still want brms”, the cases that belong in brms.</p>
+<p><strong>Audience.</strong> Applied statisticians and quantitative researchers who already write brms formulas, and who need a likelihood-based answer: for a maximum-likelihood workflow, for a model that must fit in seconds inside a simulation or a bootstrap, for a report that asks for confidence intervals and likelihood-ratio tests, or for a teaching setting where no toolchain can be installed. Fields where this comes up include psychology and psychophysics, ecology, pharmacometrics, and meta-analysis.</p>
+<p>Related work: glmmTMB is the closest relative, a mature and fast TMB-based mixed-model package. frmtmb matches its fits where the models overlap and follows its conventions in several places. <a href="https://github.com/norimune/BayesRTMB" class="external-link">BayesRTMB</a> is a Bayesian-first, Stan-like modeling layer on the same RTMB backend. <a href="https://paulbuerkner.com/brms/" class="external-link">brms</a> itself is the right tool when you want priors and full posterior inference; the shared grammar is meant to make movement between the two easy.</p>
+</div>
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
+<p>frmtmb is not on CRAN yet. Install the development version from GitHub:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span><span class="op">)</span></span></code></pre></div>
+<p>One optional dependency, RTMBode, is not on CRAN either. It is needed only by <code><a href="reference/frm_ode.html">frm_ode()</a></code>. Install it from r-universe:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"RTMBode"</span>, repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"https://kaskr.r-universe.dev"</span>,</span>
+<span>  <span class="st">"https://cloud.r-project.org"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h2>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://aforren1.github.io/frmtmb/">frmtmb</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">sleepstudy</span>, package <span class="op">=</span> <span class="st">"lme4"</span><span class="op">)</span></span>
 <span></span>
@@ -95,9 +126,9 @@
 <div class="section level2">
 <h2 id="status">Status<a class="anchor" aria-label="anchor" href="#status"></a>
 </h2>
-<p>Pre-release (v0.35). The goal is a CRAN release. Validation has three layers:</p>
+<p>Pre-release (v0.39). The goal is a CRAN release. Validation has three layers:</p>
 <ul>
-<li>The suite contains about 4000 tests. Every model class is compared with an exact reference: glmmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive, quantreg, mice, closed-form marginals, or hand-written ML.</li>
+<li>The suite contains more than 5000 tests. Every model class is compared with an exact reference: glmmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive, quantreg, mice, closed-form marginals, or hand-written ML.</li>
 <li>The model-building layer is compared with brms itself. Design matrices, random-effect structures, and special-term data agree with <code><a href="https://paulbuerkner.com/brms/reference/standata.html" class="external-link">brms::make_standata()</a></code> to near machine precision. An opt-in tier verifies that our estimates equal the mode of the Stan programs that brms generates.</li>
 <li>A pairwise grammar fuzzer sweeps feature combinations against metamorphic invariants. The resulting compatibility map is queryable with <code><a href="reference/frm_compat.html">frm_compat()</a></code> and is published as the <a href="https://aforren1.github.io/frmtmb/articles/compatibility.html">feature compatibility</a> article.</li>
 </ul>
@@ -107,7 +138,7 @@
 </h2>
 <ul>
 <li>
-<code><a href="reference/bf.html">bf()</a></code> uses the brms spelling, and the family is a separate argument: <code>frm(bf(y ~ x), family = poisson(), data = d)</code>. With no family, <code><a href="reference/frm.html">frm()</a></code> fits gaussian, as brms and glmmTMB do. To port brms code, remove the priors and change <code>brm()</code> to <code><a href="reference/frm.html">frm()</a></code>; a measured audit of the brms vignettes puts about 7 of 10 of their model calls through that mechanical transform unchanged.</li>
+<code><a href="reference/bf.html">bf()</a></code> uses the brms spelling, and the family is a separate argument: <code>frm(bf(y ~ x), family = poisson(), data = d)</code>. With no family, <code><a href="reference/frm.html">frm()</a></code> fits gaussian, as brms and glmmTMB do. See “Statement of need” above for the port from <code>brm()</code>.</li>
 <li>Every distributional parameter can take its own formula with the full predictor grammar (<code>bf(y ~ s(x) + (1 | g), sigma ~ s(z) + (1 | g))</code>), or a constant.</li>
 <li>Random effects use the lme4 syntax and add structured covariances: <code>us</code>, <code>diag</code>, <code>homdiag</code>, <code>cs</code>, <code>homcs</code>, <code>ar1</code>, <code>hetar1</code>, <code>toep</code>, <code>homtoep</code>, <code>ou</code>, spatial <code>exp</code>/<code>gau</code>/<code>mat</code> over <code>num_factor(x, y)</code> coordinates, reduced-rank <code>rr(d =)</code>, and known structure <code>gr(g, cov = A)</code> / <code>gr(g, prec = Q)</code> / <code>equalto()</code>. The <code>|ID|</code> syntax correlates effects across formulas, including known-matrix blocks (a multi-trait animal model is one Kronecker block). Multi-membership terms use <code>mm(g1, g2)</code> with weights and member-specific <code>mmc()</code> covariates.</li>
 <li>Within-group residual correlation uses brms’s R-side terms: <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>, <code>cosy()</code>, and <code>unstr()</code>, for gaussian and student responses, validated against <code><a href="https://rdrr.io/pkg/nlme/man/gls.html" class="external-link">nlme::gls</a></code> under ML and REML.</li>
@@ -136,12 +167,6 @@
 <code><a href="reference/frm_sample.html">frm_sample()</a></code> runs NUTS on the fitted objective and returns a full draws surface (<code><a href="reference/posterior_epred.html">posterior_epred()</a></code>, <code><a href="reference/posterior_epred.html">posterior_predict()</a></code>, <code><a href="reference/hypothesis.html">hypothesis()</a></code>, <code><a href="reference/pp_check.html">pp_check()</a></code>). <code><a href="reference/check_laplace.html">check_laplace()</a></code> audits the approximation.</li>
 <li>Diagnostics include one-step-ahead residuals calibrated for censored, truncated, and ordinal responses, deviance residuals across the GLM families, and response-scale <code>se.fit</code> for every family through the joint delta method. DHARMa, <code><a href="reference/pp_check.html">pp_check()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>, and <code><a href="reference/conditional_effects.html">conditional_effects()</a></code> are supported. Hooks for emmeans, marginaleffects, and insight/easystats are registered.</li>
 </ul>
-</div>
-<div class="section level2">
-<h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
-</h2>
-<p>brms defined a formula grammar that covers a wide model space. frmtmb brings that grammar to maximum likelihood. The package generates each model’s objective from the formula; it does not select from a fixed set of likelihoods. Because of that, features that would each need a bespoke implementation become ordinary code paths, and they compose with each other: random effects in any distributional parameter, nonlinear predictors, per-response families, monotonic effects, in-model imputation, latent-class mixtures, and custom families written as plain R log-densities.</p>
-<p>Related work: <a href="https://glmmtmb.github.io/glmmTMB/" class="external-link">glmmTMB</a> is the closest relative, a mature and fast TMB-based mixed-model package. frmtmb matches its fits where the models overlap and follows its conventions in several places. <a href="https://github.com/norimune/BayesRTMB" class="external-link">BayesRTMB</a> is a Bayesian-first, Stan-like modeling layer on the same RTMB backend. <a href="https://paulbuerkner.com/brms/" class="external-link">brms</a> itself is the right tool when you want priors and full posterior inference; the shared grammar is meant to make movement between the two easy.</p>
 </div>
 <div class="section level2">
 <h2 id="life-cycle">Life cycle<a class="anchor" aria-label="anchor" href="#life-cycle"></a>

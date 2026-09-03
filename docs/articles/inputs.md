@@ -193,7 +193,8 @@ a formula and a data frame.
 | `lower`, `upper` | Named numeric vectors over the outer parameters, on the internal scale, using the names [`confint()`](https://rdrr.io/r/stats/confint.html) prints. | A name that is not an outer parameter is an error. Under `REML = TRUE` or `frmtmb_control(profile = TRUE)` the fixed effects are not outer parameters, so bounds naming them are refused rather than silently applied elsewhere. |
 | `priors` | A [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) specification. Makes the fit penalized (MAP), so the reported log likelihood is penalized too. | [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) checks the argument count of each distribution. |
 | `quadrature` | Length-one logical. Scalar random-intercept models only. | Any other structure, and `mi()`, [`trunc()`](https://rdrr.io/r/base/Round.html), `REML = TRUE` or `profile = TRUE`, is an error naming the conflict. |
-| `dry_run` | `NULL`, `"spec"` or `"frame"`. | Any other value is ignored and the model fits normally. |
+| `data2` | Named list of objects that the formula names and `data` cannot hold: the adjacency matrix of `car()`, the mesh triple of `spde()`, and the matrices of `gr(prec = )`, `gr(cov = )` and `equalto()`. | Anything that is not a named list is an error. A name a formula asks for and does not find is an error naming it. |
+| `dry_run` | `NULL`, `"spec"`, `"frame"` or `"objective"`. | Any other value is ignored and the model fits normally. |
 | `verbose` | `FALSE`, `TRUE`, or an integer level: 0 silent, 1 stage progress, 2 optimizer trace. An explicit `control$verbose` wins. | Never errors. `NA` and negative values become 0. |
 
 [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md)
@@ -215,7 +216,7 @@ and glmmTMB spelling.
 | Class | Treatment |
 |----|----|
 | `numeric` | Used directly. |
-| `factor` | Contrasts are read from the column and stored, then reapplied to new data. The package never creates a factor itself; that would change the model silently. |
+| `factor` | Contrasts are read from the column and stored, then reapplied to new data. The package never creates a factor for a predictor; that would change the model silently. |
 | `ordered` factor | Kept ordered, with its polynomial contrasts. `mo()` requires an ordered factor with at least three levels. |
 | `logical` | Handled as a two-level factor by [`model.matrix()`](https://rdrr.io/r/stats/model.matrix.html), giving one `TRUE` column. Also accepted directly as a `mo()` or `mi()` interaction multiplier. |
 | `character`, as a grouping variable | Accepted. An integer, a factor and a character grouping variable give the same fit. |
@@ -310,7 +311,12 @@ case sensitive and accepts unambiguous prefixes. `"response"` and
 | [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md) | `method` | `"epred"`, `"predict"` |
 | [`anova()`](https://rdrr.io/r/stats/anova.html) on [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md) | `method`, `use` | `"D3"`, `"D1"`, `"D2"`; `"likelihood"`, `"wald"` |
 | [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md) | `check_nlev_1`, `check_olre` | `"warning"`, `"ignore"`, `"stop"` |
-| [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) | `class` | `"b"`, `"Intercept"`, `"sd"`, `"theta"` |
+| [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) | `class` | `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"` |
+| [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md) | `band` | `"wald"`, `"profile"`, `"boot"` |
+| [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) | `init` | `"stationary"`, `"estimated"`, `"uniform"` |
+| [`loo_compare()`](https://aforren1.github.io/frmtmb/reference/loo.md) | `criterion` | `"loo"`, `"waic"` |
+| [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md) | `on_error` | `"penalize"`, `"error"` |
+| [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md) | `type` | `"CR0"`, `"CR1"`, `"CR1p"`, `"CR1S"` |
 
 `confint(method =)` is the one place that accepts two spellings of the
 same choice: `"Wald"` is listed alongside `"wald"` and normalized

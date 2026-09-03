@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.39.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.40.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -349,12 +349,22 @@ distribution.</td>
 naming the conflict.</td>
 </tr>
 <tr class="even">
-<td><code>dry_run</code></td>
-<td>
-<code>NULL</code>, <code>"spec"</code> or <code>"frame"</code>.</td>
-<td>Any other value is ignored and the model fits normally.</td>
+<td><code>data2</code></td>
+<td>Named list of objects that the formula names and <code>data</code>
+cannot hold: the adjacency matrix of <code>car()</code>, the mesh triple
+of <code>spde()</code>, and the matrices of <code>gr(prec = )</code>,
+<code>gr(cov = )</code> and <code>equalto()</code>.</td>
+<td>Anything that is not a named list is an error. A name a formula asks
+for and does not find is an error naming it.</td>
 </tr>
 <tr class="odd">
+<td><code>dry_run</code></td>
+<td>
+<code>NULL</code>, <code>"spec"</code>, <code>"frame"</code> or
+<code>"objective"</code>.</td>
+<td>Any other value is ignored and the model fits normally.</td>
+</tr>
+<tr class="even">
 <td><code>verbose</code></td>
 <td>
 <code>FALSE</code>, <code>TRUE</code>, or an integer level: 0
@@ -402,8 +412,8 @@ spelling.</p>
 <tr class="even">
 <td><code>factor</code></td>
 <td>Contrasts are read from the column and stored, then reapplied to new
-data. The package never creates a factor itself; that would change the
-model silently.</td>
+data. The package never creates a factor for a predictor; that would
+change the model silently.</td>
 </tr>
 <tr class="odd">
 <td>
@@ -665,7 +675,45 @@ matching is case sensitive and accepts unambiguous prefixes.
 <td><code>class</code></td>
 <td>
 <code>"b"</code>, <code>"Intercept"</code>, <code>"sd"</code>,
-<code>"theta"</code>
+<code>"cor"</code>, <code>"theta"</code>
+</td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/conditional_effects.html">conditional_effects()</a></code></td>
+<td><code>band</code></td>
+<td>
+<code>"wald"</code>, <code>"profile"</code>,
+<code>"boot"</code>
+</td>
+</tr>
+<tr class="odd">
+<td><code><a href="../reference/hmm.html">hmm()</a></code></td>
+<td><code>init</code></td>
+<td>
+<code>"stationary"</code>, <code>"estimated"</code>,
+<code>"uniform"</code>
+</td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/loo.html">loo_compare()</a></code></td>
+<td><code>criterion</code></td>
+<td>
+<code>"loo"</code>, <code>"waic"</code>
+</td>
+</tr>
+<tr class="odd">
+<td><code><a href="../reference/frm_ode.html">frm_ode()</a></code></td>
+<td><code>on_error</code></td>
+<td>
+<code>"penalize"</code>, <code>"error"</code>
+</td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/vcov_cluster.html">vcov_cluster()</a></code></td>
+<td><code>type</code></td>
+<td>
+<code>"CR0"</code>, <code>"CR1"</code>, <code>"CR1p"</code>,
+<code>"CR1S"</code>
 </td>
 </tr>
 </tbody>

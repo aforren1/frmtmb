@@ -1,5 +1,94 @@
 # Changelog
 
+## frmtmb 0.40.0
+
+Input validation across the export surface after an rOpenSci autotest
+sweep, the submission materials themselves, and the retirement of
+hand-maintained counts in favor of an enforced uniqueness property.
+
+### Input validation
+
+- Scalar arguments across the export surface now refuse a wrong value by
+  name instead of quietly doing something else.
+  [`isTRUE()`](https://rdrr.io/r/base/Logic.html) reads a length-2
+  logical, a string, an integer and `NA` all as `FALSE`, so
+  `bf(y ~ x, nl = "yes")` used to build a linear model and
+  `frmtmb_control(profile = 1L)` used to turn profiling off. Nineteen
+  flags are affected, along with the count, coverage and named-list
+  arguments beside them, across
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md),
+  [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md),
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md),
+  [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md),
+  [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md),
+  [`predict()`](https://rdrr.io/r/stats/predict.html),
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html),
+  [`confint()`](https://rdrr.io/r/stats/confint.html),
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md),
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md),
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md),
+  [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md),
+  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md),
+  [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md),
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
+  [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md),
+  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md),
+  [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md),
+  [`prior_t()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
+  and
+  [`check_custom_family()`](https://aforren1.github.io/frmtmb/reference/check_custom_family.md).
+  Every refusal is exercised by `test-input-validation.R`.
+- `confint(level = )` and `conditional_effects(prob = )` refuse a
+  length-2 coverage. They used to recycle it: one
+  [`confint()`](https://rdrr.io/r/stats/confint.html) table came back
+  with its odd rows at 90 percent and its even rows at 95, with nothing
+  in the output recording it.
+- A link must be named by a single string:
+  `bernoulli(link = c("log", "x"))` returned the string as if it were a
+  link, and `link = 1L` selected the identity link by position.
+- `frm(start = )` refuses anything that is not a fully named list; an
+  unnamed value used to be silently ignored, so the fit ran from the
+  defaults and reported them as the user’s. `frm(dry_run = )`,
+  `frm(data = NULL)`, `frm(control = )`, `frm(na.action = )`,
+  `predict(newdata = )` and `predict(re.form = )` all name their
+  contract instead of failing downstream.
+- One behavior change worth noting: `ranef(fit, condVar = 1)` used to
+  work through a truthy `if ()` and now refuses; write `condVar = TRUE`.
+
+### Condition messages: property, not count
+
+- Every condition message template in `R/`
+  ([`stop()`](https://rdrr.io/r/base/stop.html),
+  [`warning()`](https://rdrr.io/r/base/warning.html) and
+  [`message()`](https://rdrr.io/r/base/message.html) alike) is asserted
+  unique by `test-message-uniqueness.R`, which parses the sources at
+  test time and fails on the first duplicate. The hand-maintained count
+  and its ledger are gone from the standards prose: a number there was
+  stale the commit after it was written, and the test fails at the
+  moment of drift instead. What the walk certifies is template
+  uniqueness (a reported message resolves to one line of source); the
+  shared validation helpers interpolate the argument name at run time
+  and say so.
+
+### rOpenSci submission materials
+
+- An audit of every `@srrstats` tag against the code it sits on
+  corrected 30 claims that had drifted over 39 versions, including ten
+  internal functions that had lost their roxygen and a not-applicable
+  standard that was actually met and tested. The Bayesian and Monte
+  Carlo category argument is rewritten around the package’s documented
+  inferential surface, with every citation verified against source.
+- README gains the required statement of need and an installation
+  section; `codemeta.json` is regenerated; `dev/submission-draft.md`
+  fills the submission template, with the r-universe dependency
+  precedent verified from brms, bayesplot and bridgesampling’s own
+  DESCRIPTION files.
+- [`?frm`](https://aforren1.github.io/frmtmb/reference/frm.md) documents
+  what `data` accepts: a tibble, a data.table and a plain named list all
+  work, a matrix column is a supported model variable, and a list column
+  is not one.
+
 ## frmtmb 0.39.0
 
 The LKJ correlation prior closes the last default-prior gap against brms

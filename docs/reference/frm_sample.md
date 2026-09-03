@@ -41,7 +41,7 @@ frm_sample(
 
 - data:
 
-  Model data, when `fit` is a formula.
+  A data frame of model data, when `fit` is a formula.
 
 - family:
 

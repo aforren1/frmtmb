@@ -96,7 +96,9 @@ One optional dependency, RTMBode, is not on CRAN either. It is
 needed only by `frm_ode()`. Install it from r-universe:
 
 ```r
-install.packages("RTMBode", repos = "https://kaskr.r-universe.dev")
+install.packages("RTMBode", repos = c(
+  "https://kaskr.r-universe.dev",
+  "https://cloud.r-project.org"))
 ```
 
 ## Example

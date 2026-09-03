@@ -76,51 +76,29 @@
 #'
 #' @srrstatsVerbose TRUE
 #'
-#' @srrstats {G5.2a} Every `stop()` message raised in `R/` is unique.
-#'   The 651 `stop()` calls that carry literal text produce 651 distinct
-#'   messages (mechanically re-counted by an AST walk; 529 at v0.35.0,
-#'   plus nine net from the structured simulator contract and the
-#'   formula interface of `frm_sample()` with its default priors, plus
-#'   32 from the `brmsfit` method surface on draws (the leave-one-out
-#'   cluster and the principled refusals that replace "could not find
-#'   function" for a ported brms script), plus 19 from the `frm_ode()`
-#'   pharmacometrics tier, plus two from the influence plot and the
-#'   ambiguous bare nonlinear parameter, plus four from
-#'   `conditional_effects()` on draws and the brms::bf() masking
-#'   detection, plus one for the non-centered sampling switch
-#'   (`frm_sample(reparameterize = )` rejecting a non-logical value),
-#'   plus six for the LKJ correlation prior (its shape argument, the
-#'   two directions of the class-and-distribution check in
-#'   `set_prior()`, a bound offered to a whole correlation matrix, a
-#'   class `"cor"` that matches no block of the model, and the by-name
-#'   prior spelling refusing a density that belongs to a whole block),
-#'   plus four from the functional-data batch: the
-#'   `conditional_effects()` refusal that names its matrix columns, the
-#'   two `predict(newdata = )` refusals that name a smooth's missing
-#'   columns before mgcv reports the length mismatch internally, and an
-#'   unseen level of a factor-smooth term, itself two refusals: the
-#'   default, and the factor `bs = "re"` basis that has no zero row to
-#'   hand a new level under `allow_new_levels = TRUE`), so a
-#'   message a user reports names one line of source. Two calls that
-#'   would otherwise read the
-#'   same are separated by the context that tells the two faults apart,
-#'   for example `car()` on the left of a bar term versus `car()` as its
-#'   grouping factor, and `confint(parm =)` versus `profile(parm =)`
-#'   rejecting an unknown parameter name. `posterior_predict()`,
+#' @srrstats {G5.2a} Every condition message raised in `R/` is unique,
+#'   for `stop()`, `warning()` and `message()` alike, and the property
+#'   is ENFORCED rather than recorded:
+#'   `tests/testthat/test-message-uniqueness.R` parses `R/` at test
+#'   time, collects the literal string fragments of every condition
+#'   call, and fails on the first duplicate template. No count is kept
+#'   in prose on purpose; a number here was stale the commit after it
+#'   was written, and the test fails at the moment of drift instead.
+#'
+#'   What the walk certifies is TEMPLATE uniqueness: each message's
+#'   literal text resolves to one line of source, so a reported message
+#'   is findable. Two templates that interpolate different runtime
+#'   values can still render similar final text; the shared
+#'   input-validation helpers in `R/utils.R` are the known case, one
+#'   template each with the offending argument's name filled in at run
+#'   time, so `nsim` misuse reads the same from `simulate()` and
+#'   `frm_bootstrap()`. Where the caller matters to the user, the
+#'   template carries it: `require_fitted()` names the method that
+#'   called it, `car()` on the left of a bar term reads differently
+#'   from `car()` as a grouping factor, and `posterior_predict()`,
 #'   `simulate()` and `frm_simulate()` meeting a family with no
-#'   simulator are a third case: each names itself and then repeats the
-#'   family's own reason, so the three read consistently and stay
-#'   distinguishable.
-#'   Where one refusal serves many callers it is written once and told
-#'   which caller it speaks for rather than copied: `require_fitted()`
-#'   raises a single message naming the method that called it, which
-#'   keeps the source line unique while the user still reads their own
-#'   call back. The property is mechanically checkable: parse `R/`,
-#'   collect the literal argument text of every `stop()`, and require
-#'   no duplicates. The count is a whole-package property, so a
-#'   development lane that adds or removes a refusal must re-run the
-#'   walk and update the number here; concurrent lanes editing this
-#'   file therefore conflict on this paragraph by design.
+#'   simulator each name themselves before repeating the family's own
+#'   reason.
 #'
 #' @noRd
 NULL

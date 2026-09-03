@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.39.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.40.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,31 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.40.0" id="frmtmb-0400">frmtmb 0.40.0<a class="anchor" aria-label="anchor" href="#frmtmb-0400"></a></h2>
+<p>Input validation across the export surface after an rOpenSci autotest sweep, the submission materials themselves, and the retirement of hand-maintained counts in favor of an enforced uniqueness property.</p>
+<div class="section level3">
+<h3 id="input-validation-0-40-0">Input validation<a class="anchor" aria-label="anchor" href="#input-validation-0-40-0"></a></h3>
+<ul><li>Scalar arguments across the export surface now refuse a wrong value by name instead of quietly doing something else. <code><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE()</a></code> reads a length-2 logical, a string, an integer and <code>NA</code> all as <code>FALSE</code>, so <code>bf(y ~ x, nl = "yes")</code> used to build a linear model and <code>frmtmb_control(profile = 1L)</code> used to turn profiling off. Nineteen flags are affected, along with the count, coverage and named-list arguments beside them, across <code><a href="../reference/frm.html">frm()</a></code>, <code><a href="../reference/frmtmb_control.html">frmtmb_control()</a></code>, <code><a href="../reference/bf.html">bf()</a></code>, <code><a href="../reference/mvbf.html">mvbf()</a></code>, <code><a href="../reference/mvbf.html">set_rescor()</a></code>, <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code>, <code><a href="../reference/frm_simulate.html">frm_simulate()</a></code>, <code><a href="../reference/frm_bootstrap.html">frm_bootstrap()</a></code>, <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code>, <code><a href="../reference/diagnose.html">diagnose()</a></code>, <code><a href="../reference/vcov_cluster.html">vcov_cluster()</a></code>, <code><a href="../reference/ranef.html">ranef()</a></code>, <code><a href="../reference/lca.html">lca()</a></code>, <code><a href="../reference/frmtmb-families.html">cox()</a></code>, <code><a href="../reference/frmtmb_family.html">frmtmb_family()</a></code>, <code><a href="../reference/frmtmb-priors.html">prior_normal()</a></code>, <code><a href="../reference/frmtmb-priors.html">prior_t()</a></code> and <code><a href="../reference/check_custom_family.html">check_custom_family()</a></code>. Every refusal is exercised by <code>test-input-validation.R</code>.</li>
+<li>
+<code>confint(level = )</code> and <code>conditional_effects(prob = )</code> refuse a length-2 coverage. They used to recycle it: one <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> table came back with its odd rows at 90 percent and its even rows at 95, with nothing in the output recording it.</li>
+<li>A link must be named by a single string: <code>bernoulli(link = c("log", "x"))</code> returned the string as if it were a link, and <code>link = 1L</code> selected the identity link by position.</li>
+<li>
+<code>frm(start = )</code> refuses anything that is not a fully named list; an unnamed value used to be silently ignored, so the fit ran from the defaults and reported them as the user’s. <code>frm(dry_run = )</code>, <code>frm(data = NULL)</code>, <code>frm(control = )</code>, <code>frm(na.action = )</code>, <code>predict(newdata = )</code> and <code>predict(re.form = )</code> all name their contract instead of failing downstream.</li>
+<li>One behavior change worth noting: <code>ranef(fit, condVar = 1)</code> used to work through a truthy <code>if ()</code> and now refuses; write <code>condVar = TRUE</code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="condition-messages-property-not-count-0-40-0">Condition messages: property, not count<a class="anchor" aria-label="anchor" href="#condition-messages-property-not-count-0-40-0"></a></h3>
+<ul><li>Every condition message template in <code>R/</code> (<code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code>, <code><a href="https://rdrr.io/r/base/warning.html" class="external-link">warning()</a></code> and <code><a href="https://rdrr.io/r/base/message.html" class="external-link">message()</a></code> alike) is asserted unique by <code>test-message-uniqueness.R</code>, which parses the sources at test time and fails on the first duplicate. The hand-maintained count and its ledger are gone from the standards prose: a number there was stale the commit after it was written, and the test fails at the moment of drift instead. What the walk certifies is template uniqueness (a reported message resolves to one line of source); the shared validation helpers interpolate the argument name at run time and say so.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="ropensci-submission-materials-0-40-0">rOpenSci submission materials<a class="anchor" aria-label="anchor" href="#ropensci-submission-materials-0-40-0"></a></h3>
+<ul><li>An audit of every <code>@srrstats</code> tag against the code it sits on corrected 30 claims that had drifted over 39 versions, including ten internal functions that had lost their roxygen and a not-applicable standard that was actually met and tested. The Bayesian and Monte Carlo category argument is rewritten around the package’s documented inferential surface, with every citation verified against source.</li>
+<li>README gains the required statement of need and an installation section; <code>codemeta.json</code> is regenerated; <code>dev/submission-draft.md</code> fills the submission template, with the r-universe dependency precedent verified from brms, bayesplot and bridgesampling’s own DESCRIPTION files.</li>
+<li>
+<code><a href="../reference/frm.html">?frm</a></code> documents what <code>data</code> accepts: a tibble, a data.table and a plain named list all work, a matrix column is a supported model variable, and a list column is not one.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.39.0" id="frmtmb-0390">frmtmb 0.39.0<a class="anchor" aria-label="anchor" href="#frmtmb-0390"></a></h2>
 <p>The LKJ correlation prior closes the last default-prior gap against brms and brings correlated blocks into non-centered sampling; population-level prediction becomes exact on models with random smooths; and a mechanical lint pass lands with its refusal policy written down.</p>

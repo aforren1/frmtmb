@@ -30,7 +30,7 @@ frm_simulate(
 
 - data:
 
-  Model data, including a dummy response column.
+  A data frame of model data, including a dummy response column.
 
 - family:
 

@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.39.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.40.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,7 +88,14 @@ With neither, the family is <code><a href="https://rdrr.io/r/stats/family.html" 
 
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
-<dd><p>A data frame.</p></dd>
+<dd><p>A data frame. A <code>tibble</code>, a <code>data.table</code>, or a plain
+named list of equal-length columns is accepted as well, since each
+reaches <code><a href="https://rdrr.io/r/stats/model.frame.html" class="external-link">stats::model.frame()</a></code> unchanged. A matrix column is a
+supported model variable and enters the design as its own block of
+columns (this is how a functional predictor or a <code><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind()</a></code> term is
+written). A list column is not a model variable and is refused by
+<code><a href="https://rdrr.io/r/stats/model.frame.html" class="external-link">model.frame()</a></code> if the formula names one, though it may sit unused
+in <code>data</code>.</p></dd>
 
 
 <dt id="arg-family">family<a class="anchor" aria-label="anchor" href="#arg-family"></a></dt>

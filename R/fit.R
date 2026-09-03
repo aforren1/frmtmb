@@ -250,8 +250,10 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 dry_run = NULL, verbose = FALSE) {
   cl <- match.call()
   # Every one of these used to be read through isTRUE() or an empty
-  # names() loop, so a flag set by mistake fitted a DIFFERENT model in
-  # silence. `verbose` is deliberately not among them: it takes integer
+  # names() loop, so a flag set by mistake either fitted a DIFFERENT
+  # model in silence or died with an obscure downstream error (REML
+  # reached as.logical() inside fit_assembled).
+  # `verbose` is deliberately not among them: it takes integer
   # levels as well as TRUE/FALSE and documents that it ignores anything
   # else (see verbose_level()).
   check_flag(REML, "REML")

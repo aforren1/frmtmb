@@ -4,3 +4,4 @@ tests/testthat/_problems
 *.tar.gz
 *.Rcheck
 Rplots.pdf
+dev/srr-report.html
