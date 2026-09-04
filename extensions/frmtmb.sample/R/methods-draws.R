@@ -258,12 +258,12 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' parameter and stays an `n`-column matrix of the latent predictor.
 #' What does take the array shape in `posterior_predict()` is a
 #' matrix-valued RESPONSE: [frmtmb::multinomial()] counts, [frmtmb::mixture_mvn()]
-#' draws and [frmtmb::lca()] item codes give one row per observation, so the
+#' draws and `frmtmb.latent::lca()` item codes give one row per observation, so the
 #' draws stack into `draws x observations x columns`.
 #'
 #' @section Structured draws:
 #' `posterior_predict()` uses the same simulator [simulate()] does,
-#' including the structured families ([frmtmb::hmm()], `mixture(groups = )`,
+#' including the structured families (`frmtmb.latent::hmm()`, `mixture(groups = )`,
 #' [frmtmb::mixture_mvn()]) and residual correlation terms; see the Structured
 #' draws section of [frmtmb::simulate.frmtmb_fit()]. Those draws index the rows
 #' the model was fitted on, so `newdata` is refused for them.
@@ -1134,7 +1134,7 @@ draws_bayesplot_ns <- function(what) {
 
 #' Posterior mixture-component probabilities
 #'
-#' For a [frmtmb::mixture()], [frmtmb::mixture_mvn()] or [frmtmb::lca()] fit, the posterior
+#' For a [frmtmb::mixture()], [frmtmb::mixture_mvn()] or `frmtmb.latent::lca()` fit, the posterior
 #' probability that each observation came from each component,
 #' propagating the uncertainty in the parameters: the fit-side
 #' [frmtmb::mixture_probs()] computation is run at every draw. brms calls this
@@ -1147,7 +1147,7 @@ draws_bayesplot_ns <- function(what) {
 #' @param ndraws Number of draws to use (default: all).
 #' @param ... Unused.
 #' @return An array; see `summary`. For a group-level mixture
-#'   (`mixture(groups = )`, [frmtmb::lca()]) the rows are groups, as in
+#'   (`mixture(groups = )`, `frmtmb.latent::lca()`) the rows are groups, as in
 #'   [frmtmb::mixture_probs()].
 #' @examples
 #' \donttest{
@@ -1155,7 +1155,7 @@ draws_bayesplot_ns <- function(what) {
 #'     requireNamespace("rstan", quietly = TRUE)) {
 #'   set.seed(4)
 #'   dd <- data.frame(y = c(rnorm(60, -2), rnorm(60, 3)))
-#'   fit <- frm(bf(y ~ 1), family = mixture(gaussian(), gaussian()),
+#'   fit <- frm(bf(y ~ 1), family = frmtmb::mixture(gaussian(), gaussian()),
 #'              data = dd)
 #'   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
 #'   head(pp_mixture(ds)[, "Estimate", ])

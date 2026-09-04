@@ -74,7 +74,7 @@ set.seed(4)
 dd <- data.frame(x = rnorm(120), g = factor(rep(1:30, 4)))
 dd$y <- rbinom(120, 1,
                plogis(0.3 + 0.5 * dd$x + rnorm(30, 0, 1)[dd$g]))
-fit <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
+fit <- frm(bf(y ~ x + (1 | g)) + frmtmb::bernoulli(), data = dd)
 
 cl <- check_laplace(fit, chains = 1, iter = 500, refresh = 0)
 cl

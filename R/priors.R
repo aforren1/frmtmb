@@ -27,16 +27,94 @@
 #'   does, by `group`; `set_prior("lkj(2)", class = "cor")` covers every
 #'   correlated block of the model, which is brms's spelling. See
 #'   The LKJ prior below.
+#' - `"ar"`, `"ma"`, `"cosy"`, `"cortime"`: the R-side residual
+#'   correlation of an `ar()`, `ma()`, `arma()`, `cosy()` or `unstr()`
+#'   term, under brms's own class names. `"ar"`, `"ma"` and `"cosy"`
+#'   take an ordinary density on the NATURAL coefficient with that
+#'   map's Jacobian applied, as class `"sd"` does; `"cortime"` takes
+#'   `lkj(eta)` on an `unstr()` time correlation as a whole. Narrow to
+#'   one response with `resp`. See Residual correlation below.
+#' - `"rescor"`: the residual correlation BETWEEN responses of a
+#'   multivariate model (`set_rescor(TRUE)`), as a whole. `lkj(eta)`
+#'   only, as brms spells it.
 #' - `"theta"`: raw internal covariance parameters (escape hatch).
+#'   `coef` names one by its internal name and spans all three
+#'   covariance components: `"theta_2"` for a random-effect block,
+#'   `"thetaac_1"` for a residual autocorrelation, `"thetar_1"` for a
+#'   residual correlation. This is the one spelling that reaches a
+#'   single parameter of a structure whose natural coefficients are not
+#'   free of one another.
 #'
 #' When priors overlap, later specifications override earlier ones, so
 #' put class-wide priors first and coefficient-specific ones after. A
 #' class `"theta"` prior on a position an earlier `"cor"` prior covers
 #' replaces that whole LKJ term, and the other way round, so "later
 #' wins" holds between the two spellings as well.
-#' `lb`/`ub` become hard bounds (via Stan's constrained transforms in
-#' `frmtmb.sample::frm_sample()`); for class `"sd"` they apply on the
-#' sd scale.
+#' `lb`/`ub` become hard bounds. See Hard bounds.
+#'
+#' @section Hard bounds:
+#' `lb`/`ub` are how a box constraint is written. A specification may
+#' carry bounds alone (`prior = ""`), a distribution alone, or both, and
+#' a later bounds-only specification tightens an entry an earlier
+#' distribution created rather than replacing it.
+#'
+#' A bound is addressed exactly like the distribution beside it, so
+#' `set_prior("", nlpar = "guess", lb = 0, ub = 1)` bounds the nonlinear
+#' parameter `guess`, and `dpar`, `resp`, `group` and `coef` narrow a
+#' bound the same way they narrow a density. As with a distribution,
+#' class `"b"` with `nlpar` covers EVERY coefficient of that parameter;
+#' `coef` picks out one.
+#'
+#' The scale is the parameter's own: class `"sd"` bounds a standard
+#' deviation on the sd scale (frmtmb stores its log), classes `"ar"`,
+#' `"ma"` and `"cosy"` bound the natural coefficient of a residual
+#' structure, and class `"theta"` bounds an internal covariance
+#' parameter itself, one position at a time with `coef = "theta_2"`,
+#' `"thetaac_1"` or `"thetar_1"`. Everything else is bounded on the
+#' internal (link) scale, so a bound on a log-linked dispersion is a
+#' bound on its logarithm.
+#'
+#' In [frm()] a bound is a box constraint handed to the optimizer; in
+#' `frmtmb.sample::frm_sample()` it becomes one of Stan's constrained
+#' transforms. Both take this spelling and no other: the `lower`/`upper`
+#' arguments of releases before 0.49 are gone rather than aliased, and a
+#' call still using them fails as an unused argument. Every outer
+#' parameter they could reach has a class here, down to a single
+#' internal covariance parameter.
+#'
+#' Where the two spellings differed, this one broadcasts: a bound
+#' carried by `nlpar =` covers every coefficient of that parameter, the
+#' way a prior does, and `coef` narrows it to one. When two
+#' specifications bound the same parameter the later one wins, so a
+#' bounds-only specification after a wide one tightens it.
+#'
+#' @section Residual correlation:
+#' frmtmb holds an `ar()`, `ma()`, `arma()`, `cosy()` or `unstr()`
+#' residual block in one unconstrained vector, chosen so the optimizer
+#' cannot step outside the stationary and invertible region. A prior is
+#' still written about the parameter brms names, and carried onto that
+#' vector with the log Jacobian of the map, exactly as class `"sd"`
+#' carries a density on a standard deviation onto its logarithm. So
+#' `set_prior("normal(0, 0.5)", class = "ar")` is a density on the AR
+#' coefficient itself, and `summary()` reports the parameter the prior
+#' was written about.
+#'
+#' Bounds behave the same way where the map allows it. A first-order
+#' `ar`, `ma` or `cosy` coefficient is a monotone function of one
+#' internal parameter, so `lb`/`ub` map exactly onto a box. At order two
+#' and above they do not: `ar[1]` is a function of every internal
+#' parameter of the block at once, so no box in internal space is the
+#' box asked for, and `lb`/`ub` are refused rather than approximated.
+#' Little is lost, because the parameterization already guarantees
+#' stationarity and invertibility, which is what such a bound is usually
+#' for; where a hard box really is wanted, `class = "theta"` with
+#' `coef = "thetaac_1"` bounds one internal parameter.
+#'
+#' `cosy` is bounded below at `-1/(d - 1)` for `d` time points, where a
+#' compound-symmetric matrix stops being positive definite, and a bound
+#' outside that window is refused rather than clamped. brms bounds
+#' `cosy` on `[0, 1]` instead, so a negative estimate here has no brms
+#' counterpart.
 #'
 #' @section The LKJ prior:
 #' `lkj(eta)` is the density `det(C)^(eta - 1)` over a block's
@@ -105,7 +183,8 @@
 #'   parameters).
 #' @param nlpar Nonlinear parameter of an `nl = TRUE` formula. See
 #'   Nonlinear parameters.
-#' @param lb,ub Optional hard bounds.
+#' @param lb,ub Optional hard bounds, on the scale described in Hard
+#'   bounds.
 #' @return A `frmtmb_priorlist`.
 #'
 #' @srrstats {G2.0,G2.1} `prior` is asserted to be a length-one character
@@ -142,6 +221,16 @@
 #' # an empty distribution string sets a hard bound only
 #' set_prior("", class = "b", coef = "x", lb = 0)
 #'
+#' # bounds address a nonlinear parameter the way a distribution does,
+#' # so a guessing rate is held in [0, 1]
+#' set_prior("", nlpar = "guess", lb = 0, ub = 1)
+#'
+#' # the residual-correlation classes are brms's own names
+#' set_prior("normal(0, 0.5)", class = "ar")
+#' set_prior("lkj(2)", class = "rescor")
+#' # and one internal covariance parameter, by its name
+#' set_prior("", class = "theta", coef = "thetaac_1", lb = -2, ub = 2)
+#'
 #' # class "cor" addresses a correlated block as a whole, brms's
 #' # spelling; eta > 1 pulls the correlation toward zero
 #' dd$z <- rnorm(100)
@@ -172,29 +261,35 @@ set_prior <- function(prior = "", class = "b", coef = "", group = "",
     stop("set_prior() needs a distribution, bounds, or both",
          call. = FALSE)
   }
-  class <- match.arg(class, c("b", "Intercept", "sd", "cor", "theta"))
+  class <- match.arg(class, c("b", "Intercept", "sd", "cor", "theta",
+                              "ar", "ma", "cosy", "cortime", "rescor"))
   # lkj is a density over a whole correlation matrix, so it has no
-  # meaning on a single coefficient or standard deviation, and class
-  # "cor" has no meaning without it: neither mistake can produce a
-  # silently different model
+  # meaning on a single coefficient or standard deviation, and the
+  # matrix-valued classes have no meaning without it: neither mistake
+  # can produce a silently different model
+  lkj_classes <- c("cor", "cortime", "rescor")
   is_lkj <- identical(dist$kind, "lkj")
-  if (is_lkj && !identical(class, "cor")) {
+  if (is_lkj && !class %in% lkj_classes) {
     stop("lkj() is a density over a whole correlation matrix; it ",
-         "belongs to class = \"cor\" (got class = \"", class, "\")",
-         call. = FALSE)
+         "belongs to class = ",
+         paste(paste0("\"", lkj_classes, "\""), collapse = ", "),
+         " (got class = \"", class, "\")", call. = FALSE)
   }
-  if (identical(class, "cor") && !is_lkj) {
-    stop("class = \"cor\" takes an lkj() prior, e.g. ",
-         "set_prior(\"lkj(2)\", class = \"cor\"): it addresses a ",
-         "block's whole correlation, which no per-parameter ",
+  if (class %in% lkj_classes && !is_lkj) {
+    stop("class = \"", class, "\" takes an lkj() prior, e.g. ",
+         "set_prior(\"lkj(2)\", class = \"", class, "\"): it addresses ",
+         "a whole correlation matrix, which no per-parameter ",
          "distribution describes", call. = FALSE)
   }
-  if (identical(class, "cor") && (!is.na(lb) || !is.na(ub))) {
-    # a bound belongs to ONE parameter, and this class names a whole
-    # correlation matrix; accepting it here would silently drop it
-    stop("class = \"cor\" takes no lb/ub: the bound would apply to a ",
-         "whole correlation matrix. Bound one parameter at a time with ",
-         "class = \"theta\"", call. = FALSE)
+  if (class %in% lkj_classes && (!is.na(lb) || !is.na(ub))) {
+    # a bound belongs to ONE parameter, and these classes each name a
+    # whole correlation matrix whose entries are not free of one
+    # another; accepting it here would silently drop it
+    stop("class = \"", class, "\" takes no lb/ub: the bound would apply ",
+         "to a whole correlation matrix. Bound one parameter at a time ",
+         "with class = \"theta\", whose coef names an internal ",
+         "parameter (\"theta_1\", \"thetaac_1\", \"thetar_1\")",
+         call. = FALSE)
   }
   # a nonlinear parameter is addressed by nlpar and a distributional
   # one by dpar; frmtmb's frame gives each its own linear predictor, so
@@ -540,9 +635,11 @@ print.frmtmb_priorlist <- function(x, ...) {
 #' maximum likelihood until priors are set; the formula route of
 #' `frmtmb.sample::frm_sample()` has its own brms defaults, which
 #' `prior_summary()` reports). Classes `"sd"` and `"cor"` are targeted
-#' by `group` and `nlpar`; class `"theta"` rows name the raw internal
-#' covariance parameters (escape hatch, including correlations one at a
-#' time).
+#' by `group` and `nlpar`; the residual-correlation classes (`"ar"`,
+#' `"ma"`, `"cosy"`, `"cortime"`, `"rescor"`) by `resp`; and class
+#' `"theta"` rows name the raw internal covariance parameters (escape
+#' hatch, including correlations one at a time, across all three
+#' covariance components).
 #'
 #' A nonlinear parameter's coefficients are listed under class `"b"`
 #' with its name in the `nlpar` column, the intercept among them, which
@@ -652,10 +749,30 @@ get_prior <- function(formula, data = NULL, family = NULL,
       add(cl, group = k$group, nlpar = k$nlpar, resp = k$resp)
     }
   }
-  n_th <- length(frame$par_template$theta %||% numeric(0))
-  if (n_th) {
-    add("theta")
-    for (i in seq_len(n_th)) add("theta", coef = paste0("theta_", i))
+  # the R-side residual structures, under the class names brms shows for
+  # them. `resp` narrows a class to one response, as it does above
+  for (rs in names(frame$autocor %||% list())) {
+    ac <- frame$autocor[[rs]]
+    resp_lab <- if (multi) rs else ""
+    for (cl in names(autocor_prior_classes)) {
+      if (length(autocor_class_idx(ac, cl))) add(cl, resp = resp_lab)
+    }
+  }
+  if (length(frame$par_template[["thetar"]] %||% numeric(0))) add("rescor")
+
+  # class "theta" is the raw internal escape hatch, and it spans all
+  # three covariance components: the residual-correlation ones carry no
+  # per-parameter natural-scale class, so these rows are the only way to
+  # name one of them on its own.
+  #
+  # [[ ]] rather than $ here and below: `$theta` partial-matches
+  # `thetaac` in a model that has a residual structure and no random
+  # effects, which offered a random-effect row for a model with none
+  if (length(frame$par_template[["theta"]] %||% numeric(0))) add("theta")
+  for (cmp in theta_components) {
+    v <- frame$par_template[[cmp]] %||% numeric(0)
+    if (!length(v)) next
+    for (nm in par_template_names(v, cmp)) add("theta", coef = nm)
   }
 
   out <- unique(do.call(rbind, rows))
@@ -756,6 +873,53 @@ entry_bounds <- function(entry, s) {
   entry
 }
 
+#' The covariance components class `"theta"` addresses, in the order it
+#' searches them for a `coef` name.
+#'
+#' @noRd
+theta_components <- c("theta", "thetaac", "thetar")
+
+#' Which component and positions a class `"theta"` specification names.
+#' An empty `coef` means the whole `theta` component, which is what the
+#' class has always meant; a `coef` is matched against the internal
+#' names of all three covariance components, so `"thetaac_1"` and
+#' `"thetar_2"` reach the residual-correlation parameters that carry no
+#' natural-scale class of their own.
+#'
+#' @noRd
+theta_coef_target <- function(frame, coef) {
+  nms_of <- function(cmp) {
+    v <- frame$par_template[[cmp]] %||% numeric(0)
+    if (!length(v)) character(0) else par_template_names(v, cmp)
+  }
+  if (!nzchar(coef %||% "")) {
+    n <- length(nms_of("theta"))
+    if (!n) {
+      stop("class = \"theta\" names no parameter: this model has no ",
+           "random-effect covariance parameters. The residual-",
+           "correlation ones are addressed by name, e.g. ",
+           "coef = \"thetaac_1\"", call. = FALSE)
+    }
+    return(list(comp = "theta", idx = seq_len(n)))
+  }
+  for (cmp in theta_components) {
+    k <- match(coef, nms_of(cmp))
+    if (!is.na(k)) return(list(comp = cmp, idx = k))
+  }
+  # the bare position keeps the older `coef = "2"` spelling working
+  if (grepl("^[0-9]+$", coef)) {
+    k <- as.integer(coef)
+    if (k >= 1L && k <= length(nms_of("theta"))) {
+      return(list(comp = "theta", idx = k))
+    }
+  }
+  have <- unlist(lapply(theta_components, nms_of), use.names = FALSE)
+  stop("class = \"theta\" coef = ", encodeString(coef, quote = "\""),
+       " names no covariance parameter of this model. It has ",
+       if (length(have)) paste(have, collapse = ", ") else "none",
+       call. = FALSE)
+}
+
 #' Resolve a priorlist against a fit: per-parameter prior entries (later
 #' specifications override earlier ones) plus named bound vectors. An
 #' entry holds `comp`, a scalar `idx`, `dist`, `scale` ("internal" or
@@ -826,9 +990,17 @@ resolve_priorlist <- function(fit, pl) {
       } else {
         which(cn != "(Intercept)")
       }
+      # `name` is what a BOUND is keyed by, and resolve_bounds() matches
+      # against outer_par_names(): the template spelling, which carries
+      # the dpar/nlpar/resp prefix ("guess_(Intercept)"). The design
+      # matrix column alone ("(Intercept)") names no outer parameter and
+      # collides across sub-formulas, so read the name off the template
+      # position rather than off the column
+      pnm <- par_template_names(frame$par_template[[lp$par]], lp$par)
       for (k in pick) {
         out[[length(out) + 1L]] <- list(comp = lp$par,
-                                        idx = lp$idx[k], name = cn[k])
+                                        idx = lp$idx[k],
+                                        name = pnm[lp$idx[k]])
       }
     }
     if (!length(out) &&
@@ -838,6 +1010,92 @@ resolve_priorlist <- function(fit, pl) {
            call. = FALSE)
     }
     out
+  }
+
+  # One residual-autocorrelation class over every block that carries it.
+  # `resp` narrows to one response, as it does everywhere else; the
+  # refusal names what the model actually has, so a class aimed at the
+  # wrong structure says so rather than silently matching nothing.
+  resolve_ac_class <- function(s) {
+    acs <- frame$autocor %||% list()
+    hit <- FALSE
+    for (rs in names(acs)) {
+      ac <- acs[[rs]]
+      if (nzchar(s$resp %||% "") && !identical(rs, s$resp)) next
+      within <- autocor_class_idx(ac, s$class)
+      if (is.null(within) || !length(within)) next
+      hit <- TRUE
+      idx <- ac$theta_idx[within]
+      tr <- autocor_trans(ac, s$class)
+      nms <- par_template_names(frame$par_template[["thetaac"]], "thetaac")
+      if (!is.null(s$dist)) {
+        dst <- if (identical(s$class, "cortime")) {
+          lkj_dist(s$dist$eta, list(kind = "chol", d = ac$d))
+        } else {
+          trans_dist(s$dist, tr)
+        }
+        claim("thetaac", idx)
+        assigned[[nm_of("thetaac", idx)]] <<-
+          list(comp = "thetaac", idx = idx, dist = dst,
+               scale = "internal", lb = NA, ub = NA)
+      }
+      # set_prior() has already refused lb/ub on the matrix-valued
+      # classes, so only the transformed scalar maps reach this
+      if (!is.na(s$lb) || !is.na(s$ub)) {
+        if (length(idx) > 1L) {
+          stop("class = \"", s$class, "\" takes no lb/ub at order ",
+               length(idx), ": coefficient ", s$class,
+               "[1] is a function of every one of this block's ",
+               length(idx), " internal parameters, so a bound on it is ",
+               "not a bound on any of them. The parameterization already ",
+               "keeps the process ",
+               if (identical(s$class, "ar")) "stationary" else "invertible",
+               "; bound an internal parameter with class = \"theta\", ",
+               "coef = \"", nms[idx[1L]], "\" if a box is really wanted",
+               call. = FALSE)
+        }
+        if (!is.na(s$lb)) {
+          lower[nms[idx]] <<- ac_bound_theta(s$lb, tr, ac, s$class, "lb")
+        }
+        if (!is.na(s$ub)) {
+          upper[nms[idx]] <<- ac_bound_theta(s$ub, tr, ac, s$class, "ub")
+        }
+      }
+    }
+    if (!hit) {
+      have <- vapply(names(acs), function(rs) {
+        paste0(acs[[rs]]$label, " [", rs, "]")
+      }, "")
+      stop("No residual autocorrelation matches ", spec_target(s), ". ",
+           if (length(have)) {
+             paste0("This model's residual structure is ",
+                    paste(have, collapse = ", "),
+                    ", which carries no \"", s$class, "\" parameter")
+           } else {
+             paste0("This model has no residual autocorrelation term ",
+                    "(write one with ar(), ma(), arma(), cosy() or ",
+                    "unstr() in the formula)")
+           }, call. = FALSE)
+    }
+  }
+
+  # The residual correlation of a multivariate model: one unstructured
+  # matrix held as the same row-normalized Cholesky a `us` block uses,
+  # so the LKJ density and its Jacobian carry over unchanged.
+  resolve_rescor <- function(s) {
+    n_r <- length(frame$par_template[["thetar"]] %||% numeric(0))
+    if (!n_r) {
+      stop("No residual correlation matches ", spec_target(s),
+           ". This model has none: it needs two or more responses and ",
+           "set_rescor(TRUE)", call. = FALSE)
+    }
+    idx <- seq_len(n_r)
+    claim("thetar", idx)
+    assigned[[nm_of("thetar", idx)]] <<-
+      list(comp = "thetar", idx = idx,
+           dist = lkj_dist(s$dist$eta, list(kind = "chol",
+                                            d = length(fit$spec$responses))),
+           scale = "internal", lb = NA, ub = NA)
   }
 
   for (s in unclass(pl)) {
@@ -929,25 +1187,32 @@ resolve_priorlist <- function(fit, pl) {
              }, call. = FALSE)
       }
     } else if (s$class == "theta") {
-      n_th <- length(frame$par_template$theta %||% numeric(0))
-      idx <- if (nzchar(s$coef)) {
-        as.integer(sub("^theta_", "", s$coef))
-      } else {
-        seq_len(n_th)
-      }
-      for (i in idx) {
-        key <- nm_of("theta", i)
+      # The raw internal escape hatch. All three covariance components
+      # share one internal naming scheme, and their names are distinct,
+      # so `coef` names the COMPONENT as well as the position:
+      # "thetaac_1" reaches a residual-correlation parameter that no
+      # natural-scale class can express a box constraint on.
+      tgt <- theta_coef_target(frame, s$coef)
+      cmp <- tgt$comp
+      nms <- par_template_names(frame$par_template[[cmp]] %||% numeric(0),
+                                cmp)
+      for (i in tgt$idx) {
+        key <- nm_of(cmp, i)
         if (!is.null(s$dist)) {
-          claim("theta", i)
+          claim(cmp, i)
           assigned[[key]] <-
-            list(comp = "theta", idx = i, dist = s$dist,
+            list(comp = cmp, idx = i, dist = s$dist,
                  scale = "internal", lb = s$lb, ub = s$ub)
         } else if (!is.null(assigned[[key]])) {
           assigned[[key]] <- entry_bounds(assigned[[key]], s)
         }
-        if (!is.na(s$lb)) lower[paste0("theta_", i)] <- s$lb
-        if (!is.na(s$ub)) upper[paste0("theta_", i)] <- s$ub
+        if (!is.na(s$lb)) lower[nms[i]] <- s$lb
+        if (!is.na(s$ub)) upper[nms[i]] <- s$ub
       }
+    } else if (s$class %in% names(autocor_prior_classes)) {
+      resolve_ac_class(s)
+    } else if (s$class == "rescor") {
+      resolve_rescor(s)
     }
   }
   list(entries = unname(assigned), lower = lower, upper = upper)
@@ -963,7 +1228,24 @@ prior_logdens <- function(x, dist, scale) {
     jac <- x          # theta = log sd; add the Jacobian
     x <- exp(x)
   }
-  ld <- switch(dist$kind,
+  # a density written about a TRANSFORMED parameter (an AR coefficient,
+  # a cosy correlation): evaluate it at the natural value and add the
+  # map's log Jacobian, the same change of variables "sd" performs
+  # inline above. One number for the whole segment, because the map is
+  # not elementwise.
+  if (identical(dist$kind, "trans")) {
+    return(sum(prior_base_logdens(ac_trans_value(x, dist$trans),
+                                  dist$inner)) +
+             ac_trans_logjac(x, dist$trans))
+  }
+  prior_base_logdens(x, dist) + jac
+}
+
+#' The density itself, with no change of variables.
+#'
+#' @noRd
+prior_base_logdens <- function(x, dist) {
+  switch(dist$kind,
     normal = RTMB::dnorm(x, dist$location, dist$scale, log = TRUE),
     t = RTMB::dt((x - dist$location) / dist$scale, df = dist$df,
                  log = TRUE) - log(dist$scale),
@@ -973,7 +1255,6 @@ prior_logdens <- function(x, dist, scale) {
     # element (see lkj_logdens)
     lkj = lkj_logdens(x, dist)
   )
-  ld + jac
 }
 
 #' Prior objects, addressed by internal parameter name
@@ -1179,6 +1460,136 @@ lkj_logdens <- function(t, dist) {
   # is a constant, so this branch is resolved when the tape is built.
   if (dist$eta != 1) ld <- ld + (dist$eta - 1) * log(1 - rho * rho)
   ld
+}
+
+# --------------------------------------------------------------------
+# Residual-correlation priors: the R-side autocorrelation classes and
+# `rescor`. brms names these surfaces `ar`, `ma`, `cosy`, `cortime` and
+# `rescor`, and frmtmb holds all of them in two internal vectors
+# (`thetaac`, `thetar`) on unconstrained scales. A prior is therefore
+# written on the NATURAL parameter and carried inward with the log
+# Jacobian of the map, which is what class "sd" already does for a
+# log standard deviation.
+# --------------------------------------------------------------------
+
+#' Which brms class names an R-side autocorrelation surface, and which
+#' `struct` values can carry each one.
+#'
+#' @noRd
+autocor_prior_classes <- list(
+  ar      = c("ar", "arma"),
+  ma      = c("ma", "arma"),
+  cosy    = "cosy",
+  cortime = "unstr"
+)
+
+#' Positions WITHIN one residual block's `thetaac` segment that a class
+#' addresses, or `NULL` when the block's structure has no such
+#' parameter. `arma` lays its AR coefficients out first.
+#'
+#' @noRd
+autocor_class_idx <- function(ac, cls) {
+  st <- ac$struct
+  if (!st %in% autocor_prior_classes[[cls]]) return(NULL)
+  switch(cls,
+    ar = if (ac$p) seq_len(ac$p),
+    ma = if (ac$q) {
+      (if (identical(st, "arma")) ac$p else 0L) + seq_len(ac$q)
+    },
+    cosy = 1L,
+    cortime = seq_len(autocor_n_cor(ac$d))
+  )
+}
+
+#' The map one autocorrelation class carries its prior through. `cosy`
+#' is a single logistic onto the positive-definite window; the ARMA
+#' coefficients are a partial-autocorrelation transform composed with
+#' the Levinson-Durbin recursion; `cortime` is the row-normalized
+#' Cholesky the LKJ density already knows, so it carries no `trans`.
+#'
+#' @noRd
+autocor_trans <- function(ac, cls) {
+  if (identical(cls, "cosy")) return(list(map = "cosy", a = 1 / (ac$d - 1)))
+  if (identical(cls, "cortime")) return(NULL)
+  list(map = "levinson")
+}
+
+#' A prior on a transformed parameter: the user's density, plus the map
+#' that takes the internal vector to the parameter the density is
+#' written about.
+#'
+#' @noRd
+trans_dist <- function(inner, trans) {
+  structure(list(kind = "trans", inner = inner, trans = trans),
+            class = "frmtmb_prior")
+}
+
+#' Internal vector -> the natural parameters a transformed prior is
+#' written about. AD-safe.
+#'
+#' @noRd
+ac_trans_value <- function(th, tr) {
+  if (identical(tr$map, "cosy")) {
+    return(-tr$a + (1 + tr$a) / (1 + exp(-th[1])))
+  }
+  autocor_levinson(autocor_pacf(th))
+}
+
+#' Log absolute determinant of that map's Jacobian, so the density the
+#' user wrote on the natural scale stays a density once carried onto the
+#' internal one.
+#'
+#' `th -> pacf` is elementwise, contributing `-3/2 log(1 + th^2)` each.
+#' The Levinson step that extends order `k - 1` to `k` rewrites the
+#' earlier coefficients as `(I - pac_k J) phi`, with `J` the exchange
+#' matrix; `J` has eigenvalue `+1` with multiplicity `ceiling(m/2)` and
+#' `-1` with multiplicity `floor(m/2)` at size `m`, which gives that
+#' step's determinant in closed form. The new coordinate is `pac_k`
+#' itself and contributes 1. `test-priors-autocor-classes.R` checks the
+#' whole expression against a numeric Jacobian.
+#'
+#' @noRd
+ac_trans_logjac <- function(th, tr) {
+  if (identical(tr$map, "cosy")) {
+    s <- 1 / (1 + exp(-th[1]))
+    return(log(1 + tr$a) + log(s) + log(1 - s))
+  }
+  pac <- autocor_pacf(th)
+  lj <- -1.5 * sum(log(1 + th * th))
+  n <- length(th)
+  if (n > 1L) {
+    for (k in 2:n) {
+      m <- k - 1L
+      lj <- lj + ceiling(m / 2) * log(1 - pac[k]) +
+        floor(m / 2) * log(1 + pac[k])
+    }
+  }
+  lj
+}
+
+#' A natural-scale bound as a bound on the internal parameter. Only a
+#' MONOTONE scalar map can carry one: a higher-order ARMA coefficient is
+#' a function of several internal parameters at once, so no box in
+#' internal space is the box the user asked for.
+#'
+#' @noRd
+ac_bound_theta <- function(v, tr, ac, cls, what) {
+  if (identical(tr$map, "cosy")) {
+    a <- tr$a
+    if (v <= -a || v >= 1) {
+      stop("class = \"cosy\" ", what, " = ", v, " is outside the window ",
+           "a compound-symmetric correlation of ", ac$d,
+           " time points can occupy, (", format(-a), ", 1)",
+           call. = FALSE)
+    }
+    return(stats::qlogis((v + a) / (1 + a)))
+  }
+  if (abs(v) >= 1) {
+    stop("class = \"", cls, "\" ", what, " = ", v,
+         " is outside (-1, 1), which is the whole range a first-order ",
+         cls, " coefficient can take", call. = FALSE)
+  }
+  v / sqrt(1 - v * v)
 }
 
 #' Accepts the legacy named list of prior objects OR a priorlist; returns

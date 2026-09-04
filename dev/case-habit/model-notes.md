@@ -454,15 +454,24 @@ directory is evidence, but it is an unpinned code path.
 
 | Reference construct | frmtmb equivalent |
 | --- | --- |
-| `fmincon` box bounds (`fit_habit_model.m:13-21`) | `frm(lower =, upper =)`, addressed by the bare nl parameter name |
+| `fmincon` box bounds (`fit_habit_model.m:13-21`) | `set_prior("", nlpar = ..., lb =, ub =)`, one specification per parameter |
 | ridge `1000*(sigma - 0.07)^2` (`habit_lik.m:47`) | `set_prior("normal(0.07, s)", nlpar = ...)` with \(1/(2s^2) = 1000\), so \(s = 1/\sqrt{2000}\) |
 | linear inequality \(\mu_A \le \mu_B\) (`fit_habit_model.m:26-27`) | no box equivalent; attempted as \(\mu_A = \mu_B - e^{\delta}\), which does not survive a random effect (see `hierarchical-results.md`) |
 
 ### Finding: prior-carried bounds cannot address a nonlinear parameter
 
+**Resolved in v0.49.** The bound is now keyed by the template position's name
+rather than by the design-matrix column, so a bound addressed by `nlpar`,
+`dpar` or `resp` lands where the distribution beside it lands. `replicate.R`
+sets `BOUNDS_VIA_PRIOR <- TRUE`, and the record below is kept as the
+diagnosis. `frm(lower =, upper =)` was then removed outright in the same
+release, once `thetaac_*` and `thetar_*` gained `set_prior()` classes of their
+own (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`, `"rescor"`, and `class = "theta"`
+with `coef = "thetaac_1"` for one raw internal parameter).
+
 House style is to spell bounds through the prior vocabulary rather than
-`frm(lower =, upper =)`. For a nonlinear parameter that is not currently
-possible.
+`frm(lower =, upper =)`. For a nonlinear parameter that was not possible
+before v0.49.
 
 ```r
 set_prior("", nlpar = "guess", lb = 0, ub = 1)
@@ -476,7 +485,7 @@ specific to this case study. The four relevant spellings:
 
 | Spelling | Result |
 | --- | --- |
-| `frm(lower = c(guess = 0), upper = c(guess = 1))` | works |
+| `frm(lower = c(guess = 0), upper = c(guess = 1))` | worked then; the arguments were removed in 0.49 |
 | `set_prior("", nlpar = "guess", lb = 0, ub = 1)` | **refused** |
 | `set_prior("normal(0.33, 0.05)", nlpar = "guess")` | works |
 | `set_prior("", class = "b", coef = "x", lb = 2.5)` on a linear model | works |
@@ -493,19 +502,22 @@ several nonlinear parameters has the further problem that every bound collides
 on the single key `"(Intercept)"`.
 
 Consequence for the plan to retire `frm(lower =, upper =)`: those arguments
-are currently the **only** way to bound a nonlinear parameter, so they cannot
-be removed until `tg$name` is qualified with the nonlinear parameter's name on
-the bounds path.
+were the **only** way to bound a nonlinear parameter, so they could not be
+removed until `tg$name` was qualified with the nonlinear parameter's name on
+the bounds path. That is the v0.49 fix, and it is why this stage now writes
+its bounds as priors. The arguments themselves went in the same release.
 
-Separately, a transform would not be a substitute in this particular stage
-even once the gap is closed. The point of the per-subject fits is to reproduce
+Separately, a transform is still not a substitute in this stage, and `lb`/`ub`
+is not one either: it is a hard box, the same box the argument built. The
+point of the per-subject fits is to reproduce
 a box-constrained `fmincon` run whose optima sit **on** the bounds: \(q_A\) is
 at its limit for the large majority of participants, by construction, because
 it is not separately identified from \(\rho\). A logit transform converts an
 attainable boundary into an asymptote. Hard boxes are the right tool for
-reproducing hard boxes, and `replicate.R` uses them here with the reasoning
-recorded at the point of use. The hierarchical model, where nothing sits on a
-bound and the random effects need an unbounded scale, uses transforms.
+reproducing hard boxes, and `replicate.R` uses them here, written in the prior
+vocabulary, with the reasoning recorded at the point of use. The hierarchical
+model, where nothing sits on a bound and the random effects need an unbounded
+scale, uses transforms.
 
 A caution that cost some time: `logLik()` on a fit carrying a prior returns
 the log-likelihood **plus the log prior density**, normalizing constants

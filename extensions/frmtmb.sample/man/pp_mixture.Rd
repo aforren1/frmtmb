@@ -22,11 +22,11 @@ otherwise the raw \verb{draws x observations x components} array.}
 }
 \value{
 An array; see \code{summary}. For a group-level mixture
-(\code{mixture(groups = )}, \code{\link[frmtmb:lca]{frmtmb::lca()}}) the rows are groups, as in
+(\code{mixture(groups = )}, \code{frmtmb.latent::lca()}) the rows are groups, as in
 \code{\link[frmtmb:mixture_probs]{frmtmb::mixture_probs()}}.
 }
 \description{
-For a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}, \code{\link[frmtmb:mixture_mvn]{frmtmb::mixture_mvn()}} or \code{\link[frmtmb:lca]{frmtmb::lca()}} fit, the posterior
+For a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}, \code{\link[frmtmb:mixture_mvn]{frmtmb::mixture_mvn()}} or \code{frmtmb.latent::lca()} fit, the posterior
 probability that each observation came from each component,
 propagating the uncertainty in the parameters: the fit-side
 \code{\link[frmtmb:mixture_probs]{frmtmb::mixture_probs()}} computation is run at every draw. brms calls this
@@ -38,7 +38,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
     requireNamespace("rstan", quietly = TRUE)) {
   set.seed(4)
   dd <- data.frame(y = c(rnorm(60, -2), rnorm(60, 3)))
-  fit <- frm(bf(y ~ 1), family = mixture(gaussian(), gaussian()),
+  fit <- frm(bf(y ~ 1), family = frmtmb::mixture(gaussian(), gaussian()),
              data = dd)
   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
   head(pp_mixture(ds)[, "Estimate", ])

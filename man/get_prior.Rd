@@ -29,9 +29,11 @@ pass to \code{set_prior()}. The default in every slot is flat (this is
 maximum likelihood until priors are set; the formula route of
 \code{frmtmb.sample::frm_sample()} has its own brms defaults, which
 \code{prior_summary()} reports). Classes \code{"sd"} and \code{"cor"} are targeted
-by \code{group} and \code{nlpar}; class \code{"theta"} rows name the raw internal
-covariance parameters (escape hatch, including correlations one at a
-time).
+by \code{group} and \code{nlpar}; the residual-correlation classes (\code{"ar"},
+\code{"ma"}, \code{"cosy"}, \code{"cortime"}, \code{"rescor"}) by \code{resp}; and class
+\code{"theta"} rows name the raw internal covariance parameters (escape
+hatch, including correlations one at a time, across all three
+covariance components).
 }
 \details{
 A nonlinear parameter's coefficients are listed under class \code{"b"}

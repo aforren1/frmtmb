@@ -34,13 +34,13 @@ test_that("bounds align with the outer parameters under profile = TRUE", {
   # error loudly instead of silently pinning a theta component
   expect_error(
     frm(bf(y ~ x + (1 | g)) + gaussian(), data = d,
-        lower = c(x = 2),
+        prior = set_prior("", class = "b", coef = "x", lb = 2),
         control = frmtmb_control(profile = TRUE)),
     "Unknown parameter")
   # a theta bound reaches the right slot
   fitb <- suppressWarnings(
     frm(bf(y ~ x + (1 | g)) + gaussian(), data = d,
-        lower = c(theta_1 = 1),
+        prior = set_prior("", class = "theta", coef = "theta_1", lb = 1),
         control = frmtmb_control(profile = TRUE)))
   expect_gte(fitb$estimates$theta[1], 1 - 1e-8)
   # and the slope stays at its unbounded estimate

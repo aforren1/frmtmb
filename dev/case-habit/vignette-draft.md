@@ -156,20 +156,22 @@ log-likelihood **plus the log prior density**. It is therefore not comparable
 to an unpenalized published number. The comparison is made by evaluating the
 hand-written reference likelihood at frmtmb's own estimates.
 
-**On bounds.** House style is to carry bounds in the prior vocabulary,
+**On bounds.** Bounds are carried in the prior vocabulary,
 `set_prior("", nlpar = ..., lb = , ub = )`, or as a transform inside the body.
-The hierarchical model in section 6 does the latter. The per-subject fits here
-use `frm(lower =, upper =)` instead, for two reasons that are both worth
-saying out loud in a case study.
+The hierarchical model in section 6 does the latter; the per-subject fits here
+do the former.
 
-The first is a gap: at v0.47.0, `set_prior("", nlpar = "muA", lb = 0)` is
-refused, because the bounds path keys the bound on the nonlinear parameter's
-raw sub-formula column name, `"(Intercept)"`, rather than on the qualified
-`"muA_(Intercept)"` that bound resolution looks for. A `normal()` prior placed
-through the same `nlpar` argument works, so the asymmetry is specific to
-`lb`/`ub`. Details in `model-notes.md` section 5.
+That was not always possible. Before v0.49, `set_prior("", nlpar = "muA",
+lb = 0)` was refused, because the bounds path keyed the bound on the nonlinear
+parameter's raw sub-formula column name, `"(Intercept)"`, rather than on the
+qualified `"muA_(Intercept)"` that bound resolution looks for. A `normal()`
+prior placed through the same `nlpar` argument worked, so the asymmetry was
+specific to `lb`/`ub`. Details in `model-notes.md` section 5.
 
-The second reason survives that gap being closed. The purpose of this stage is
+One thing is worth saying out loud even now that the gap is closed, because it
+is easy to assume a prior means a transform. It does not: `lb`/`ub` is a hard
+box, the same box the optimizer would get from any other spelling. The purpose
+of this stage is
 to reproduce a box-constrained run whose optima sit **on** their bounds: the
 habitual asymptote is at its limit for most participants by construction,
 because it is not separately identified from the habit-strength parameter. A

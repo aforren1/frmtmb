@@ -170,8 +170,8 @@ draws_row_loglik <- function(fit, resp) {
 #' A model whose smallest independent unit is a group has no
 #' per-observation column to leave out, and this refuses rather than
 #' inventing one: R-side residual correlation ([frmtmb::frmtmb-autocor]), a
-#' [frmtmb::hmm()] sequence, and a group-level mixture (`mixture(groups = )`).
-#' An [frmtmb::lca()] subject is one row, so its column is well defined and is
+#' `frmtmb.latent::hmm()` sequence, and a group-level mixture (`mixture(groups = )`).
+#' An `frmtmb.latent::lca()` subject is one row, so its column is well defined and is
 #' not refused. In-model imputation (`mi()`, `me()`) is refused for the
 #' same kind of reason: a latent value is a parameter, not an
 #' observation. Use `AIC()` on the maximum-likelihood fits or

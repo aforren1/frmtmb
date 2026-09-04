@@ -92,8 +92,8 @@ test_that("an intercept-only nlpar may be bounded by its bare name", {
   expect_identical(bare, bareless)
 
   # and it reaches frm() itself, which is where a user writes it
-  bounded <- frm(form + gaussian(), data = dd, lower = c(b = 0.1),
-                 upper = c(b = 2))
+  bounded <- frm(form + gaussian(), data = dd,
+                 prior = set_prior("", nlpar = "b", lb = 0.1, ub = 2))
   expect_equal(unname(fixef(bounded)$b), unname(fixef(fit)$b),
                tolerance = 1e-6)
 
