@@ -206,8 +206,9 @@ three layers:
   `categorical()` fits nominal responses, `von_mises()` circular
   ones, and `cox()` proportional hazards with a flexible baseline
   and Laplace frailties.
-  `custom_family()` takes a plain R log-density. The test suite fits
-  a Wiener drift-diffusion model in about 15 lines.
+  `custom_family()` takes a plain R log-density; section 11 of
+  `vignette("case-studies")` writes one with a data-bounded link and
+  checks it against the built-in family it shadows.
 - Discrete latent states: the `frmtmb.latent` package adds `hmm(K)`
   for hidden Markov models, with covariate-dependent transitions and
   forward-backward decoding, and `lca(K)` for latent class analysis
