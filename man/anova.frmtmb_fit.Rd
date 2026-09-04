@@ -44,6 +44,21 @@ for a single component. lme4 and glmmTMB report the same naive
 p-value; halve it for the one-component case, or use
 \code{\link[=frm_bootstrap]{frm_bootstrap()}} for a simulation-based reference.
 }
+\section{Nesting is assumed, not verified}{
+
+A likelihood-ratio statistic has a chi-square null distribution only
+when the smaller model is a restriction of the larger. \code{anova()}
+cannot verify that in general: nesting through a nonlinear
+reparameterization, or through a constraint that ties parameters
+across distributional parameters, is invisible to anything the
+fitted objects carry. What it does check is cheap and stated: if
+neither model's fixed-effect coefficient names are a subset of the
+other's, and neither fixed-effect design sits inside the other's
+column space, it warns. A comparison that passes that check is not
+thereby verified to be nested. Two models that are genuinely not
+nested are compared by AIC, not by this table.
+}
+
 \examples{
 set.seed(1)
 n <- 200

@@ -64,6 +64,8 @@ frmtmb_register_frame_check(check_not_constant)
 }
 }
 \seealso{
-\code{\link[=frmtmb_structure]{frmtmb_structure()}} for the family-side protocol, and
-\link{frmtmb-extension-api} for the accessors an extension may use
+\code{\link[=frmtmb_structure]{frmtmb_structure()}} for the family-side protocol,
+\code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}} and \code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}} for the
+other two registries, and \link{frmtmb-extension-api} for the
+accessors an extension may use
 }

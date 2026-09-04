@@ -98,14 +98,51 @@ log_inv_logit <- function(x) -RTMB::logspace_add(0 * x, -x)
 #' @noRd
 log1m_inv_logit <- function(x) -RTMB::logspace_add(0 * x, x)
 
-#' Look up a link by name in the AD-safe link registry. An already
-#' resolved link list passes through unchanged, so callers can accept
-#' either a name or a custom link. An unknown name errors and lists the
-#' available links.
+#' The fields every link object must carry. `linkfun` and `linkinv` move
+#' between the scales; `mu_eta` is the derivative the delta method needs.
+#' The robust fields (`logit_eta`, `log_eta`) are optional by design.
 #'
 #' @noRd
-get_link <- function(name) {
-  if (is.list(name)) return(name)
+link_required_fields <- c("name", "linkfun", "linkinv", "mu_eta")
+
+#' Look up a link by name in the AD-safe link registry. An already
+#' resolved link list passes through, after the four required fields are
+#' checked: a custom link used to be accepted untouched, and one missing
+#' `mu_eta` fit, summarized and predicted happily before failing inside
+#' `predict(se.fit = TRUE)`, a call site with nothing to say about the
+#' family that caused it. `dpar` names that family slot when there is
+#' one. An unknown name errors and lists the available links.
+#'
+#' @noRd
+get_link <- function(name, dpar = NULL) {
+  if (is.list(name)) {
+    where <- if (is.null(dpar)) "" else paste0(" of dpar '", dpar, "'")
+    absent <- setdiff(link_required_fields, names(name))
+    if (length(absent)) {
+      stop("The custom link", where, " has no ",
+           paste0("`", absent, "`", collapse = ", "),
+           ". A link object needs name, linkfun, linkinv and mu_eta ",
+           "(the derivative of linkinv, which predict(se.fit = TRUE) ",
+           "and every delta-method interval read)", call. = FALSE)
+    }
+    bad <- Filter(function(f) !is.function(name[[f]]),
+                  c("linkfun", "linkinv", "mu_eta"))
+    if (length(bad)) {
+      stop("The custom link", where, " has a non-function ",
+           paste0("`", bad, "`", collapse = ", "),
+           "; each must be a function of one vector", call. = FALSE)
+    }
+    # [[ ]]: `$` on a link list is how a partial match would silently
+    # answer for a field that is not there
+    nm_field <- name[["name"]]
+    if (!is.character(nm_field) || length(nm_field) != 1L ||
+        is.na(nm_field)) {
+      stop("The custom link", where, " must name itself with a single ",
+           "string in `name`; it labels the link in summary() and in ",
+           "every method that reports the scale", call. = FALSE)
+    }
+    return(name)
+  }
   # `[[` on a list indexes RECURSIVELY when given a vector, so
   # frmtmb_links[[c("log", "name")]] is frmtmb_links$log$name, the string
   # "log", which is not a link at all and was handed back as one. An

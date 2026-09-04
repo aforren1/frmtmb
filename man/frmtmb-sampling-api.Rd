@@ -47,8 +47,6 @@
 \alias{find_linpred}
 \alias{arg_unset}
 \alias{re_form_arg}
-\alias{frmtmb_register_compat}
-\alias{compat_rule_builder}
 \title{Core internals for a sampling extension}
 \arguments{
 \item{frame}{An assembled model frame (\code{fit$frame}).}
@@ -202,17 +200,6 @@ settings and neither can double as unset; \code{re_form_arg()} resolves
 the pair, refusing rather than guessing when both are given.
 }
 
-\section{The compatibility registry}{
-
-\code{frmtmb_register_compat()} contributes feature rows and
-compatibility rules to \code{\link[=frm_compat]{frm_compat()}} from another package's
-\code{.onLoad()}, and \code{compat_rule_builder()} is the accumulator that
-makes a contributed rule read like a core one. Contributions are
-appended, and rules of equal specificity resolve later-wins, so a
-contributed rule may override a core default and a core default can
-never silently override a contributed one.
-}
-
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
@@ -235,6 +222,8 @@ head(par_name_bare(outer_par_names(fit)))
 }
 \seealso{
 \link{frmtmb-extension-api} for the family-level accessors a
-structured family uses, and \code{\link[=frmtmb_structure]{frmtmb_structure()}} for the protocol
-those serve. \code{vignette("compatibility")} for \code{\link[=frm_compat]{frm_compat()}}.
+structured family uses, \code{\link[=frmtmb_structure]{frmtmb_structure()}} for the protocol
+those serve, and \code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}} for the compatibility
+registry, which was documented here while it had no page of its
+own.
 }

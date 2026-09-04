@@ -322,9 +322,11 @@ test_that("anova() reports NA, not a p-value, at zero df difference", {
   expect_false(any(grepl("2.2e-16", utils::capture.output(print(a)))))
   expect_false(any(grepl("\\*", utils::capture.output(print(a)))))
 
-  # a non-nested pair of the same dimension is equally untestable
+  # a non-nested pair of the same dimension is equally untestable, and
+  # anova() now says so instead of leaving the reader to notice
   m2 <- frm(bf(y ~ z) + gaussian(), data = d)
-  expect_true(is.na(anova(m1, m2)$`Pr(>Chisq)`[2]))
+  expect_warning(p12 <- anova(m1, m2)$`Pr(>Chisq)`[2], "are not nested")
+  expect_true(is.na(p12))
 
   # a real df difference still gets its p-value
   m3 <- frm(bf(y ~ x + z) + gaussian(), data = d)

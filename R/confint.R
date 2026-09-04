@@ -1086,6 +1086,89 @@ reml_comparable <- function(fits) {
   TRUE
 }
 
+#' Every fixed-effect design of a fit, keyed by response and dpar.
+#' `reml_designs()` keeps only the ones REML integrates out; nesting is
+#' a question about all of them, a dpar's own predictor included.
+#'
+#' @noRd
+fixef_designs <- function(fit) {
+  parts <- list()
+  for (lp in fit$frame$linpreds) {
+    X <- if (is.null(lp$X)) {
+      matrix(numeric(0), fit$frame$n_obs, 0L)
+    } else {
+      as.matrix(lp$X)
+    }
+    parts[[linpred_key(lp$resp, lp$dpar)]] <- X
+  }
+  parts[order(names(parts))]
+}
+
+#' Every coefficient a fit estimates for its FIXED effects, by name.
+#' The `beta` and `betad` components together, because a dpar's
+#' predictor is a fixed effect too and dropping a term from it is
+#' exactly the comparison this has to see.
+#'
+#' @noRd
+fixef_coef_names <- function(fit) {
+  tpl <- fit$frame$par_template
+  c(names(tpl[["beta"]]), names(tpl[["betad"]]))
+}
+
+#' Warn when two models being compared by likelihood ratio have
+#' fixed-effect column sets neither of which contains the other.
+#'
+#' The LRT's null distribution needs the smaller model to be a
+#' restriction of the larger. Deciding that in general is not possible
+#' here - a nonlinear reparameterization is nesting that no comparison
+#' of names or column spaces can see, and equality constraints across
+#' dpars are not in the design at all - so this makes the cheap check
+#' and says only what it checked. Names first, because renaming is what
+#' a genuinely different term does; column space second, so that a
+#' change of basis for the same span (`poly(x, 2)` against an
+#' orthogonalized pair of columns) is not reported as a different
+#' model.
+#'
+#' @noRd
+warn_non_nested <- function(fits) {
+  for (i in seq_len(length(fits) - 1L)) {
+    a <- fixef_coef_names(fits[[i]])
+    b <- fixef_coef_names(fits[[i + 1L]])
+    if (all(a %in% b) || all(b %in% a)) next
+    da <- fixef_designs(fits[[i]])
+    db <- fixef_designs(fits[[i + 1L]])
+    if (identical(names(da), names(db)) &&
+        all(vapply(names(da),
+                   function(k) column_space_within(da[[k]], db[[k]]) ||
+                     column_space_within(db[[k]], da[[k]]),
+                   TRUE))) {
+      next
+    }
+    warning("anova(): the fixed effects of ", model_label(fits[[i]]),
+            " and ", model_label(fits[[i + 1L]]),
+            " are not nested - neither model's coefficients are a ",
+            "subset of the other's, and neither design sits inside the ",
+            "other's column space. A likelihood-ratio test between ",
+            "models that are not nested has no chi-square null ",
+            "distribution; compare them by AIC instead",
+            call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' Whether every column of `A` lies in the span of `B`. One half of
+#' `same_column_space()`, which is what nesting needs: containment, not
+#' equality.
+#'
+#' @noRd
+column_space_within <- function(A, B, tol = 1e-8) {
+  if (nrow(A) != nrow(B)) return(FALSE)
+  if (!ncol(A)) return(TRUE)
+  if (!ncol(B)) return(FALSE)
+  s <- max(1, maxabs(A), maxabs(B))
+  maxabs(proj_resid(A, B)) <= tol * s
+}
+
 #' The cheapest correct REML -> ML conversion: reuse the assembled
 #' design (no formula parsing, no frame assembly) and warm-start the
 #' optimizer at the REML estimates. The parameter template is the same
@@ -1146,6 +1229,19 @@ lrt_pvalue <- function(chisq, ddf) {
 #' for a single component. lme4 and glmmTMB report the same naive
 #' p-value; halve it for the one-component case, or use
 #' [frm_bootstrap()] for a simulation-based reference.
+#'
+#' @section Nesting is assumed, not verified:
+#' A likelihood-ratio statistic has a chi-square null distribution only
+#' when the smaller model is a restriction of the larger. `anova()`
+#' cannot verify that in general: nesting through a nonlinear
+#' reparameterization, or through a constraint that ties parameters
+#' across distributional parameters, is invisible to anything the
+#' fitted objects carry. What it does check is cheap and stated: if
+#' neither model's fixed-effect coefficient names are a subset of the
+#' other's, and neither fixed-effect design sits inside the other's
+#' column space, it warns. A comparison that passes that check is not
+#' thereby verified to be nested. Two models that are genuinely not
+#' nested are compared by AIC, not by this table.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param ... Further `frmtmb_fit` objects, nested with `object`.
@@ -1239,6 +1335,7 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   df <- vapply(fits, function(f) attr(logLik(f), "df"), 0L)
   ord <- order(df)
   fits <- fits[ord]; ll <- ll[ord]; df <- df[ord]
+  warn_non_nested(fits)
   chisq <- c(NA, 2 * diff(ll))
   ddf <- c(NA, diff(df))
   p <- lrt_pvalue(chisq, ddf)
@@ -1249,7 +1346,10 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   )
   rownames(tab) <- make.unique(vapply(fits, model_label, ""))
   structure(tab, class = c("anova", "data.frame"),
-            heading = "Likelihood-ratio tests\n")
+            heading = paste0("Likelihood-ratio tests\n",
+                             "Each test assumes the smaller model is ",
+                             "nested in the larger; see ",
+                             "?anova.frmtmb_fit\n"))
 }
 
 #' Single-term deletions

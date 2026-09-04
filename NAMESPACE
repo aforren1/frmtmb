@@ -156,10 +156,11 @@ export(build_objective, row_lpdf, with_cs_offsets,
   hyp_parse_all, hyp_vals_only, hyp_env_vals, hyp_eval, hyp_tail_p,
   ce_grids_build, ce_boot_one, ce_finalize, ce_cats_display,
   ce_structure_check, ce_re_formula, find_linpred, arg_unset,
-  re_form_arg, frmtmb_register_compat, compat_rule_builder)
+  re_form_arg)
 export(categorical)
 export(check_custom_family)
 export(cluster_scores)
+export(compat_rule_builder)
 export(compois)
 export(conditional_effects)
 export(confint_varcorr)
@@ -189,6 +190,8 @@ export(frm_simulate)
 export(frmtmb_ad_overload)
 export(frmtmb_control)
 export(frmtmb_family)
+export(frmtmb_register_aterm)
+export(frmtmb_register_compat)
 export(frmtmb_register_frame_check)
 export(frmtmb_structure)
 export(geometric)

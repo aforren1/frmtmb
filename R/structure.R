@@ -64,17 +64,22 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #' leave the rest alone.
 #'
 #' @section Extending frmtmb from another package:
-#' This is one of three seams a package outside frmtmb uses, and it is
-#' the one for a family. Attach a structure to a family and the core
-#' needs no branch that names the family, which is what lets the family
-#' ship somewhere else. [frmtmb_register_frame_check()] is the seam for
-#' a feature that is NOT a family and still has to refuse a data problem
-#' the assembled frame shows: register a check at load time and the core
-#' calls it on every frame. [frmtmb-extension-api] is the read-only
-#' accessor set both kinds of extension use to reach a fit. The worked
-#' example of the second seam is the `frmtmb.ode` package, whose
-#' `frm_ode()` refuses a dynamics input that varies inside a solve
-#' group; its registration is three lines of `.onLoad()`.
+#' This is the seam for a family whose likelihood does not factorize
+#' over rows. Attach a structure to a family and the core needs no
+#' branch that names the family, which is what lets the family ship
+#' somewhere else. The other seams are registries, each filled from a
+#' contributing package's `.onLoad()`:
+#' [frmtmb_register_frame_check()] for a feature that is NOT a family
+#' and still has to refuse a data problem only the assembled frame
+#' shows; [frmtmb_register_aterm()] for an addition term of the
+#' family's own, so its per-row data keeps the spelling its literature
+#' uses instead of `vint()`; and [frmtmb_register_compat()] for the
+#' rows [frm_compat()] reports about it. [frmtmb-extension-api] is the
+#' read-only accessor set every kind of extension uses to reach a fit.
+#' The worked example of the frame-check seam is the `frmtmb.ode`
+#' package, whose `frm_ode()` refuses a dynamics input that varies
+#' inside a solve group; its registration is three lines of
+#' `.onLoad()`.
 #'
 #' `loglik = NULL` keeps the family's own rowwise `lpdf` and makes the
 #' structure a CAPABILITY DECLARATION instead. That is what a family
@@ -568,8 +573,11 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'   named list of logicals; `mixture_posterior()` a matrix of class
 #'   probabilities; `mixture_multimodal_refusals()` a list of two
 #'   refusal strings.
-#' @seealso [frmtmb_structure()] for the protocol these serve, and
-#'   [frmtmb_family()] for the family object they read
+#' @seealso [frmtmb_structure()] for the protocol these serve,
+#'   [frmtmb_family()] for the family object they read, and the
+#'   registries an extension fills from its own `.onLoad()`:
+#'   [frmtmb_register_frame_check()], [frmtmb_register_aterm()] and
+#'   [frmtmb_register_compat()]
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(50))
@@ -736,8 +744,10 @@ frmtmb_frame_checks$fns <- list()
 #' @param fn A function of two arguments, the model specification and
 #'   the assembled frame.
 #' @return `NULL`, invisibly. Called for the registration.
-#' @seealso [frmtmb_structure()] for the family-side protocol, and
-#'   [frmtmb-extension-api] for the accessors an extension may use
+#' @seealso [frmtmb_structure()] for the family-side protocol,
+#'   [frmtmb_register_aterm()] and [frmtmb_register_compat()] for the
+#'   other two registries, and [frmtmb-extension-api] for the
+#'   accessors an extension may use
 #' @examples
 #' # the shape of a check: refuse what only the assembled frame shows
 #' check_not_constant <- function(spec, frame) {

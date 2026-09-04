@@ -137,15 +137,6 @@
 #' settings and neither can double as unset; `re_form_arg()` resolves
 #' the pair, refusing rather than guessing when both are given.
 #'
-#' @section The compatibility registry:
-#' `frmtmb_register_compat()` contributes feature rows and
-#' compatibility rules to [frm_compat()] from another package's
-#' `.onLoad()`, and `compat_rule_builder()` is the accumulator that
-#' makes a contributed rule read like a core one. Contributions are
-#' appended, and rules of equal specificity resolve later-wins, so a
-#' contributed rule may override a core default and a core default can
-#' never silently override a contributed one.
-#'
 #' @param frame An assembled model frame (`fit$frame`).
 #' @param bk One element of `frame$re_blocks`.
 #' @param fit A `frmtmb_fit`.
@@ -153,8 +144,10 @@
 #'   above and the source, which is the reference for these.
 #' @return As described per function above.
 #' @seealso [frmtmb-extension-api] for the family-level accessors a
-#'   structured family uses, and [frmtmb_structure()] for the protocol
-#'   those serve. `vignette("compatibility")` for [frm_compat()].
+#'   structured family uses, [frmtmb_structure()] for the protocol
+#'   those serve, and [frmtmb_register_compat()] for the compatibility
+#'   registry, which was documented here while it had no page of its
+#'   own.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
@@ -175,18 +168,55 @@
 #' head(outer_par_names(fit))
 #' head(par_name_bare(outer_par_names(fit)))
 #' @name frmtmb-sampling-api
-#' @aliases frmtmb-sampling-api build_objective row_lpdf with_cs_offsets
-#'   us_chol_cor aterms_for_newdata has_trunc as_priorlist
-#'   resolve_prior_input neg_log_prior_fn resolve_bounds spec_target
-#'   frmtmb_register_prior_defaults ncp_eligible ncp_scale_b
-#'   ncp_unscale_b covstruct_has_chol block_sd_idx block_cor_prior
-#'   block_n_cor is_student_block sim_can sim_note sim_context sim_draw
-#'   sim_is_structured par_name_bare outer_par_names
-#'   estimated_coef_names log_sd_theta_index sdr_of require_fitted
-#'   hyp_parse_all hyp_vals_only hyp_env_vals hyp_eval hyp_tail_p
-#'   ce_grids_build ce_boot_one ce_finalize ce_cats_display
-#'   ce_structure_check ce_re_formula find_linpred arg_unset re_form_arg
-#'   frmtmb_register_compat compat_rule_builder
+# One @aliases tag per alias, not one wrapped tag: roxygen2 merges
+# repeated tags into the same alias set, and pkgcheck's roxygen parse
+# rejects a multi-line @aliases outright where roxygen2 only warns.
+#' @aliases frmtmb-sampling-api
+#' @aliases build_objective
+#' @aliases row_lpdf
+#' @aliases with_cs_offsets
+#' @aliases us_chol_cor
+#' @aliases aterms_for_newdata
+#' @aliases has_trunc
+#' @aliases as_priorlist
+#' @aliases resolve_prior_input
+#' @aliases neg_log_prior_fn
+#' @aliases resolve_bounds
+#' @aliases spec_target
+#' @aliases frmtmb_register_prior_defaults
+#' @aliases ncp_eligible
+#' @aliases ncp_scale_b
+#' @aliases ncp_unscale_b
+#' @aliases covstruct_has_chol
+#' @aliases block_sd_idx
+#' @aliases block_cor_prior
+#' @aliases block_n_cor
+#' @aliases is_student_block
+#' @aliases sim_can
+#' @aliases sim_note
+#' @aliases sim_context
+#' @aliases sim_draw
+#' @aliases sim_is_structured
+#' @aliases par_name_bare
+#' @aliases outer_par_names
+#' @aliases estimated_coef_names
+#' @aliases log_sd_theta_index
+#' @aliases sdr_of
+#' @aliases require_fitted
+#' @aliases hyp_parse_all
+#' @aliases hyp_vals_only
+#' @aliases hyp_env_vals
+#' @aliases hyp_eval
+#' @aliases hyp_tail_p
+#' @aliases ce_grids_build
+#' @aliases ce_boot_one
+#' @aliases ce_finalize
+#' @aliases ce_cats_display
+#' @aliases ce_structure_check
+#' @aliases ce_re_formula
+#' @aliases find_linpred
+#' @aliases arg_unset
+#' @aliases re_form_arg
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   us_chol_cor, aterms_for_newdata, has_trunc, as_priorlist,
 #'   resolve_prior_input, neg_log_prior_fn, resolve_bounds, spec_target,
@@ -198,7 +228,7 @@
 #'   hyp_parse_all, hyp_vals_only, hyp_env_vals, hyp_eval, hyp_tail_p,
 #'   ce_grids_build, ce_boot_one, ce_finalize, ce_cats_display,
 #'   ce_structure_check, ce_re_formula, find_linpred, arg_unset,
-#'   re_form_arg, frmtmb_register_compat, compat_rule_builder)
+#'   re_form_arg)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

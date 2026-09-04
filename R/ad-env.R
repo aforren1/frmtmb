@@ -6,10 +6,12 @@
 #' `diag<-` bound at the top of its body. Call it on any function a user
 #' supplies that frmtmb will later put on an AD tape, so that the user
 #' does not have to carry the binding boilerplate. frmtmb applies it to
-#' every function slot of [frmtmb_family()] and [frmtmb_structure()]; a
-#' package that takes tape-side functions of its own applies it to
-#' those. It is safe to call on any object: a non-function and a
-#' primitive come back unchanged.
+#' the tape-side slots and to those only: [frmtmb_family()]'s `lpdf`
+#' and `lcdf`, and [frmtmb_structure()]'s `loglik`. `valid_y`, `sim`,
+#' `post$mean_fn` and the rest run on doubles, off the tape, where the
+#' bindings would buy nothing. A package that takes tape-side functions
+#' of its own applies this to those. It is safe to call on any object:
+#' a non-function and a primitive come back unchanged.
 #'
 #' RTMB's replacements are LEXICAL. frmtmb's own objective code binds
 #' them where it needs them (`"c" <- RTMB::ADoverload("c")`), but a
@@ -36,7 +38,7 @@
 #'   changed.
 #' @return `f`, with the three bindings prepended to its body when it is
 #'   a function that needs them, and unchanged otherwise.
-#' @seealso [frmtmb_family()] and [frmtmb_structure()], whose function
+#' @seealso [frmtmb_family()] and [frmtmb_structure()], whose tape-side
 #'   slots frmtmb wraps with this
 #' @examples
 #' dyn <- function(t, y, p) list(c(-p[1] * y[1], p[1] * y[1]))

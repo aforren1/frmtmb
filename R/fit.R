@@ -454,6 +454,17 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                           sparse_x = isTRUE(control$sparse_x),
                           data2 = data2)
   if (vb) vb_stage("frame", t0, vb_frame_detail(frame))
+  # A family with a `family_finalize` slot derives itself from the
+  # response during assembly, and the fit stores the spec separately
+  # from the frame, so family(fit) would otherwise report the family as
+  # written rather than the one that was taped. Carried over per
+  # response, and only for a family that declares the slot: the rest of
+  # the assembled spec stays the frame's, which is what every other
+  # stage has always read.
+  for (rn_ in names(spec$responses)) {
+    if (is.null(spec$responses[[rn_]]$family$family_finalize)) next
+    spec$responses[[rn_]] <- frame$spec$responses[[rn_]]
+  }
   check_re_structure(spec, frame, control)
   if (identical(dry_run, "frame")) return(frame)
 
@@ -1694,9 +1705,23 @@ make_start <- function(frame, start, prior_entries = NULL,
     if (is.null(init_fn)) next
     icpt <- match("(Intercept)", colnames(lp$X))
     if (is.na(icpt)) next
-    val <- lp$link$linkfun(init_fn(frame$y[[lp$resp]],
-                                   frame$aterm_values[[lp$resp]]))
-    if (is.finite(val)) tpl[[lp$par]][lp$idx[icpt]] <- val
+    raw <- init_fn(frame$y[[lp$resp]], frame$aterm_values[[lp$resp]])
+    val <- lp$link$linkfun(raw)
+    if (is.finite(val)) {
+      tpl[[lp$par]][lp$idx[icpt]] <- val
+    } else if (announce) {
+      # A bounded link sends an init at or past its bound to Inf, and
+      # the value used to be dropped without a word: the fit then
+      # started from the template default and looked like a slow or
+      # failed optimization with nothing pointing at the cause.
+      # Announced on the same flag as the prior-start message, so the
+      # autoscale pre-fit and the recovery restarts do not repeat it.
+      warning("Starting value ", format(raw[1L]), " for ", lp$dpar,
+              " is ", format(val[1L]), " through its ", lp$link$name,
+              " link, so it was ignored and that intercept starts from ",
+              "zero on the link scale. Give init_dpars a value inside ",
+              "the link's range, or pass start =", call. = FALSE)
+    }
   }
   placed <- prior_nl_starts(frame, prior_entries)
   # [[ ]] throughout: $beta would partial-match nothing here today, but

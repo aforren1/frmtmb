@@ -39,6 +39,23 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
   } else {
     fam$lpdf(yobs, dpv, av, extra)
   }
+  # The backstop for the silent-wrong-answer case that
+  # `required_aterms` closes by declaration, kept here because it needs
+  # no declaration: an absent addition term reaches the density as NULL,
+  # NULL in arithmetic gives numeric(0), and `sum(numeric(0))` is 0. The
+  # fit then RETURNS, with a log-likelihood of zero and estimates that
+  # are whatever the optimizer did on a flat surface. This is a LENGTH
+  # check, not a value check, so it resolves while the tape is being
+  # built and leaves no branch on it.
+  if (length(ll) == 0L && length(yobs) > 0L) {
+    stop("The '", fam$family, "' density returned no values for ",
+         length(yobs), " observations. The usual cause is an addition ",
+         "term the density reads that the model does not supply: an ",
+         "absent one is NULL, and NULL in arithmetic is a zero-length ",
+         "result, not an error. Declare it with ",
+         "frmtmb_family(required_aterms =) to get this refusal by name",
+         call. = FALSE)
+  }
   # Truncation bounds are resolved BEFORE the censoring block: a
   # censored row under trunc() observes its event INSIDE the window, so
   # the censored numerators need the same F(lb), F(ub) the normalizer

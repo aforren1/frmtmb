@@ -667,8 +667,13 @@ aterm_label <- function(nm, ex) {
 #' out of aterms, so an omitted one is not a missing covariate but a
 #' missing argument: the family returns a zero-length prediction.
 #'
+#' A term registered by another package is the same thing under another
+#' name, so it is required here for the same reason.
+#'
 #' @noRd
-is_custom_data_aterm <- function(nm) grepl("^v(int|real)[0-9]+$", nm)
+is_custom_data_aterm <- function(nm) {
+  grepl("^v(int|real)[0-9]+$", nm) || !is.null(registered_aterm_of(nm))
+}
 
 #' Re-evaluate a response's addition terms on new data, for the
 #' expected-response prediction path. A term the family mean needs must
@@ -683,8 +688,16 @@ aterms_for_newdata <- function(rspec, newdata) {
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
     ex <- rspec$aterms[[nm]]
+    # the same coercion the frame applied, or newdata's factor would
+    # reach the density as level codes where training data reached it as
+    # whatever the contributing package meant
+    reg_at <- registered_aterm_of(nm)
     v <- tryCatch(
-      as.numeric(eval(ex, newdata, rspec$formula_env)),
+      as.numeric(if (is.null(reg_at)) {
+        eval(ex, newdata, rspec$formula_env)
+      } else {
+        reg_at$coerce(eval(ex, newdata, rspec$formula_env))
+      }),
       error = function(e) NULL
     )
     # a bound the model frame supplied but newdata did not can still

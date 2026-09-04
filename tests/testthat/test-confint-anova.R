@@ -79,3 +79,47 @@ test_that("diagnose reports a clean fit as clean", {
   expect_length(d$bad_se, 0)
   expect_output(diagnose(fit_ca$full), "No convergence problems")
 })
+
+# --- anova() and nesting (the habit-model finding) --------------------
+
+test_that("anova() warns when the fixed effects are not nested", {
+  set.seed(77)
+  dd <- data.frame(x = stats::rnorm(150), z = stats::rnorm(150))
+  dd$y <- stats::rnorm(150, 1 + 0.6 * dd$x, 1)
+  mx <- frm(bf(y ~ x) + gaussian(), data = dd)
+  mz <- frm(bf(y ~ z) + gaussian(), data = dd)
+  expect_warning(anova(mx, mz), "are not nested")
+  # the table is still produced: the warning is a caveat, not a refusal
+  tab <- suppressWarnings(anova(mx, mz))
+  expect_s3_class(tab, "anova")
+})
+
+test_that("anova() stays silent on nested pairs, including a rebasis", {
+  set.seed(78)
+  dd <- data.frame(x = stats::rnorm(150), z = stats::rnorm(150),
+                   g = factor(rep(1:15, 10)))
+  dd$y <- stats::rnorm(150, 1 + 0.6 * dd$x +
+                         stats::rnorm(15, 0, 0.5)[dd$g], 1)
+  m0 <- frm(bf(y ~ x) + gaussian(), data = dd)
+  m1 <- frm(bf(y ~ x + z) + gaussian(), data = dd)
+  expect_no_warning(anova(m0, m1))
+  # a variance component added: same fixed effects, so nested
+  m2 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+  expect_no_warning(anova(m0, m2))
+  # different names for the same span, plus a term: the column-space
+  # fallback is what keeps this quiet
+  mp <- frm(bf(y ~ poly(x, 2)) + gaussian(), data = dd)
+  expect_no_warning(anova(m0, mp))
+})
+
+test_that("a dpar predictor counts as a fixed effect for nesting", {
+  set.seed(79)
+  dd <- data.frame(x = stats::rnorm(200), z = stats::rnorm(200),
+                   w = stats::rnorm(200))
+  dd$y <- stats::rnorm(200, 1 + 0.5 * dd$x, exp(0.2 + 0.3 * dd$z))
+  a <- frm(bf(y ~ x, sigma ~ z) + gaussian(), data = dd)
+  b <- frm(bf(y ~ x, sigma ~ w) + gaussian(), data = dd)
+  expect_warning(anova(a, b), "are not nested")
+  c0 <- frm(bf(y ~ x) + gaussian(), data = dd)
+  expect_no_warning(anova(c0, a))
+})

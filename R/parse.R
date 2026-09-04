@@ -1,3 +1,139 @@
+# The addition-term registry. The eight core terms below are spelled out
+# because the core acts on each of them: weights() enters the objective,
+# cens() reshapes the density, mi() creates parameters. A contributed
+# term does none of that - it carries a column of data to a family that
+# knows what to do with it - so one entry (name, arity, coercion) is the
+# whole contract, and the parse layer needs no branch per contributor.
+#
+# The same shape as the frame-check and prior-default registries, and
+# filled the same way, from a contributing package's .onLoad(). Unlike
+# those two it is keyed rather than append-only: registering a name
+# twice replaces it, because a package reload re-runs .onLoad() and
+# re-registering the same term must not be an error.
+
+frmtmb_aterm_registry <- new.env(parent = emptyenv())
+frmtmb_aterm_registry$reg <- list()
+
+#' The addition terms the core itself understands. Registered terms are
+#' appended to this set; nothing may replace a member of it.
+#'
+#' @noRd
+core_aterms <- c("weights", "trials", "cens", "trunc", "se",
+                 "vint", "vreal", "mi")
+
+#' Add an addition term from another package
+#'
+#' Registers an addition term (a brms "aterm": the `trials(n)` in
+#' `y | trials(n) ~ x`) that frmtmb will accept on the left-hand side of
+#' a formula. A family that lives outside frmtmb uses this to give its
+#' per-row data the spelling its literature uses, instead of asking
+#' users for `vint()`. Register from the contributing package's
+#' `.onLoad()`.
+#'
+#' The registered term carries DATA and nothing else. Its evaluated,
+#' coerced value reaches the family's `lpdf`, `lcdf`, `post$mean_fn` and
+#' `sim` in the `aterms` list under `name` (or under `name1`, `name2`,
+#' ... when `arity` is above one, following `vint()`), it is required on
+#' `newdata`, and it is what `frmtmb_family(required_aterms =)` names.
+#' It cannot reshape the likelihood: censoring, truncation and case
+#' weights are core terms because the core acts on them, and a
+#' contributed term is not a route to that.
+#'
+#' Registering a name twice replaces the earlier entry, so that
+#' reloading the contributing package is not an error. The eight core
+#' terms cannot be replaced.
+#'
+#' @param name The term's name, as it is written in a formula, without
+#'   parentheses: `"dec"` accepts `y | dec(response) ~ x`.
+#' @param arity How many arguments the term takes. With `arity = 1` the
+#'   value arrives as `aterms[[name]]`; above one it arrives as
+#'   `aterms[[paste0(name, i)]]` for each argument, which is the
+#'   `vint()` convention.
+#' @param coerce Function applied to each evaluated argument, once, at
+#'   frame assembly. It must return a numeric vector, because the value
+#'   is baked into the tape as data. The default is [as.numeric()]; a
+#'   term whose natural spelling is a factor gives a function that maps
+#'   the factor to the numbers the density wants.
+#' @return `NULL`, invisibly. Called for the registration.
+#' @seealso [frmtmb_family()] for `required_aterms`, which is how a
+#'   family says the term is not optional, [frmtmb_register_frame_check()]
+#'   for the seam that refuses a data problem, and
+#'   [frmtmb-extension-api] for the accessors an extension may use
+#' @examples
+#' # a decision indicator, given as a factor and delivered as 0/1
+#' \dontrun{
+#' frmtmb_register_aterm("dec", arity = 1, coerce = function(x) {
+#'   as.integer(factor(x)) - 1L
+#' })
+#' }
+#' @export
+frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric) {
+  if (!is.character(name) || length(name) != 1L || is.na(name) ||
+      !nzchar(name) || !identical(name, make.names(name))) {
+    stop("frmtmb_register_aterm(name =) must be one syntactic name, ",
+         "written as it appears in a formula and without parentheses",
+         call. = FALSE)
+  }
+  if (name %in% core_aterms) {
+    stop("`", name, "()` is one of frmtmb's own addition terms and ",
+         "cannot be re-registered", call. = FALSE)
+  }
+  if (!is.numeric(arity) || length(arity) != 1L || is.na(arity) ||
+      arity < 1 || arity != round(arity)) {
+    stop("frmtmb_register_aterm(arity =) must be a whole number of ",
+         "arguments, at least one", call. = FALSE)
+  }
+  if (!is.function(coerce)) {
+    stop("frmtmb_register_aterm(coerce =) must be a function of one ",
+         "vector returning a numeric vector", call. = FALSE)
+  }
+  frmtmb_aterm_registry$reg[[name]] <-
+    list(name = name, arity = as.integer(arity), coerce = coerce)
+  invisible(NULL)
+}
+
+#' The registered term one addition-term VALUE came from: `dec` for
+#' `dec`, and `dec` for `dec2` when `dec()` has arity above one.
+#' Returns `NULL` for a core term and for anything unregistered.
+#'
+#' @noRd
+registered_aterm_of <- function(nm) {
+  reg <- frmtmb_aterm_registry$reg
+  if (!length(reg)) return(NULL)
+  if (!is.null(reg[[nm]])) return(reg[[nm]])
+  base <- sub("[0-9]+$", "", nm)
+  e <- reg[[base]]
+  if (!is.null(e) && e$arity > 1L) e else NULL
+}
+
+#' The spelling that supplies one addition-term VALUE, for a refusal
+#' that has to tell the user what to write. `vint2` is the second
+#' argument of one `vint()` call, not a term of its own, and a
+#' truncation bound is a named argument, so neither is `paste0(nm, "()")`.
+#'
+#' @noRd
+aterm_spelling <- function(nm) {
+  m <- regmatches(nm, regexec("^(vint|vreal)([0-9]+)$", nm))[[1L]]
+  if (!length(m)) {
+    e <- registered_aterm_of(nm)
+    if (!is.null(e) && e$arity > 1L) {
+      m <- c(nm, e$name, sub("^.*[^0-9]", "", nm))
+    }
+  }
+  if (length(m) == 3L) {
+    i <- suppressWarnings(as.integer(m[[3L]]))
+    if (!is.na(i) && i >= 1L) {
+      return(paste0(m[[2L]], "(",
+                    paste(c(rep("...", i - 1L), "<column>"),
+                          collapse = ", "), ")"))
+    }
+  }
+  if (nm %in% c("trunc_lb", "trunc_ub")) {
+    return(paste0("trunc(", substring(nm, 7L), " = <bound>)"))
+  }
+  paste0(nm, "(<column>)")
+}
+
 #' Parse the left-hand side of a formula into the response expression and
 #' addition terms (brms aterms): `y | weights(w) + trials(n) ~ ...`.
 #'
@@ -13,18 +149,23 @@ parse_response <- function(formula) {
         stop("Malformed addition term: ", deparse1(tm), call. = FALSE)
       }
       nm <- as.character(tm[[1]])
-      supported <- c("weights", "trials", "cens", "trunc", "se",
-                     "vint", "vreal", "mi")
+      registered <- names(frmtmb_aterm_registry$reg)
+      supported <- c(core_aterms, registered)
       if (!nm %in% supported) {
-        stop("Addition term `", nm, "()` is not supported yet ",
-             "(currently supported: ",
-             paste0(supported, "()", collapse = ", "), ")", call. = FALSE)
+        stop("Addition term `", nm, "()` is not supported ",
+             "(supported: ", paste0(supported, "()", collapse = ", "),
+             "). A custom family carries its own per-row data through ",
+             "vint() for integers and vreal() for reals, which reach ",
+             "the density as aterms$vint1, aterms$vreal1, ...; a ",
+             "package that supplies the family can give the term its ",
+             "own name with frmtmb_register_aterm()", call. = FALSE)
       }
+      multi <- nm %in% c("vint", "vreal") ||
+        isTRUE((frmtmb_aterm_registry$reg[[nm]] %||% list())$arity > 1L)
       if (nm %in% names(aterms) ||
           (nm == "trunc" && any(c("trunc_lb", "trunc_ub") %in%
                                   names(aterms))) ||
-          (nm %in% c("vint", "vreal") &&
-             paste0(nm, "1") %in% names(aterms))) {
+          (multi && paste0(nm, "1") %in% names(aterms))) {
         stop("Duplicated addition term `", nm, "()`", call. = FALSE)
       }
       if (nm == "trunc") {
@@ -77,6 +218,24 @@ parse_response <- function(formula) {
           aterms$se_sigma <- eval_spec_arg(args[["sigma"]], "sigma",
                                            environment(formula),
                                            fn = "se")
+        }
+      } else if (nm %in% registered) {
+        # a contributed term is data and nothing else, so the parse
+        # layer only has to place its arguments where the family will
+        # look for them; the coercion happens once, at frame assembly
+        reg_at <- frmtmb_aterm_registry$reg[[nm]]
+        args <- as.list(tm)[-1]
+        if (length(args) != reg_at$arity) {
+          stop("`", nm, "()` takes ", reg_at$arity,
+               if (reg_at$arity == 1L) " argument" else " arguments",
+               ", not ", length(args), call. = FALSE)
+        }
+        if (reg_at$arity == 1L) {
+          aterms[[nm]] <- args[[1L]]
+        } else {
+          for (i in seq_along(args)) {
+            aterms[[paste0(nm, i)]] <- args[[i]]
+          }
         }
       } else {
         if (length(tm) != 2) {

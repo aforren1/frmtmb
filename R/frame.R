@@ -1122,10 +1122,39 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       a <- resp$aterms[[nm_at]]
       v <- mf[[deparse1(a)]]
       if (is.null(v)) v <- eval(a, mf, resp$formula_env)
-      if (nm_at == "cens") decode_cens(v) else as.numeric(v)
+      if (nm_at == "cens") return(decode_cens(v))
+      # a registered term brings its own coercion, which is the point of
+      # registering one: the spelling a literature uses (a factor, a
+      # two-level character) becomes the numbers the density indexes
+      reg_at <- registered_aterm_of(nm_at)
+      if (is.null(reg_at)) return(as.numeric(v))
+      v <- reg_at$coerce(v)
+      if (!is.numeric(v)) {
+        stop("The coercion registered for `", reg_at$name,
+             "()` returned ", arg_desc(v), "; an addition term's value ",
+             "is baked into the tape as data and must be numeric",
+             call. = FALSE)
+      }
+      as.numeric(v)
     }), at_names)
     if (!is.null(resp$aterms$se_sigma)) {
       av$se_sigma <- resp$aterms$se_sigma   # logical flag, not data
+    }
+    # Before EVERY other guard, including the structured one, because
+    # each of them is handed `av`: a declared term that is absent leaves
+    # a hole in it, and a hole reads as NULL rather than as an error.
+    # The failure this replaces is silent - NULL in the density's
+    # arithmetic gives numeric(0), the log-likelihood sums over nothing,
+    # and the fit RETURNS, with a log-likelihood of zero.
+    req_at <- resp$family$required_aterms %||% character(0)
+    miss_at <- setdiff(req_at, unique(c(names(av), names(resp$aterms))))
+    if (length(miss_at)) {
+      stop(resp$family$family, ": the density needs ",
+           paste0("`", miss_at, "`", collapse = ", "),
+           ", which nothing on this response supplies. Write the ",
+           "addition term: ", resp$resp_name, " | ",
+           paste(vapply(miss_at, aterm_spelling, ""), collapse = " + "),
+           " ~ ...", call. = FALSE)
     }
     # before the generic aterm guards, so a structured response is
     # refused for the shape of its likelihood rather than for its
@@ -1219,7 +1248,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (is.null(resp$family$lcdf)) {
         stop("cens()/trunc() need a family with a CDF (currently: ",
              "gaussian, lognormal, poisson, exponential, weibull, ",
-             "inverse.gaussian, cox)", call. = FALSE)
+             "inverse.gaussian, cox). The list is not closed: a family ",
+             "supplies one through the lcdf argument of ",
+             "frmtmb_family()", call. = FALSE)
       }
       if (!is.null(av$cens) && identical(resp$family$type, "discrete")) {
         stop("cens() is not supported for discrete families yet ",
@@ -1311,6 +1342,32 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     if (!is.null(resp$family$valid_y)) {
       resp$family$valid_y(y[[resp$resp_name]], av)
+    }
+    # A family that is not fully determined until the response is in
+    # hand - a link bounded above by min(y), a default only the data can
+    # supply - gets its one chance here, after the response is coerced
+    # and checked and before any link function has run. The order is
+    # documented in ?frmtmb_family, because an extension that derives a
+    # link this way is betting on it. Whatever comes back becomes the
+    # family every later stage reads, so the per-dpar link copies the
+    # parse made from the ORIGINAL family are refreshed with it.
+    if (!is.null(resp$family$family_finalize)) {
+      fam_fin <- resp$family$family_finalize(resp$family,
+                                             y[[resp$resp_name]], av)
+      if (!inherits(fam_fin, "frmtmb_family")) {
+        stop(resp$family$family, ": family_finalize() must return a ",
+             "family object, not ", arg_desc(fam_fin),
+             ". Modify the family it is given and return it",
+             call. = FALSE)
+      }
+      fam_fin$links <- Map(function(lk, dp) get_link(lk, dpar = dp),
+                           fam_fin$links, names(fam_fin$links))
+      resp$family <- fam_fin
+      for (i_dp in seq_along(resp$dpars)) {
+        lk_dp <- fam_fin$links[[resp$dpars[[i_dp]]$name]]
+        if (!is.null(lk_dp)) resp$dpars[[i_dp]]$link <- lk_dp
+      }
+      spec$responses[[resp$resp_name]] <- resp
     }
     # Family-level DATA a likelihood needs but no addition term supplies
     # (the Cox baseline's spline bases). It is a function of the
