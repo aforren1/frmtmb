@@ -1,0 +1,7 @@
+"fitfile","model","n","max_abs_dLL","max_abs_dnLL"
+"HabitModelFits.mat","flex-habit",55,3.41060513164848e-13,3.41060513164848e-13
+"HabitModelFits_bads.mat","flex-habit",55,2.8421709430404e-13,2.8421709430404e-13
+"HabitModelFits.mat","habit",55,3.69482222595252e-13,3.69482222595252e-13
+"HabitModelFits_bads.mat","habit",55,3.12638803734444e-13,3.12638803734444e-13
+"HabitModelFits.mat","no-habit",55,4.2632564145606e-13,4.2632564145606e-13
+"HabitModelFits_bads.mat","no-habit",55,4.54747350886464e-13,4.54747350886464e-13
