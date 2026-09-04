@@ -14,7 +14,7 @@ latent_probs(fit, ...)
 \value{
 A numeric matrix with one named column per latent state. Its
 rows are observations for a family whose class belongs to the row
-(\code{\link[=lca]{lca()}}, a rowwise \code{\link[=mixture]{mixture()}}) and groups for one whose class
+(\code{lca()}, a rowwise \code{\link[=mixture]{mixture()}}) and groups for one whose class
 belongs to a group (\code{mixture(groups = )}).
 }
 \description{
@@ -25,8 +25,8 @@ observed. Rows sum to one.
 }
 \details{
 This is one entry point for every structured family, and the family
-decides what it returns. \code{\link[=mixture_probs]{mixture_probs()}}, \code{\link[=hmm_probs]{hmm_probs()}} and
-\code{\link[=lca_probs]{lca_probs()}} are the same computation under family-specific names
+decides what it returns. \code{\link[=mixture_probs]{mixture_probs()}}, \code{hmm_probs()} and
+\code{lca_probs()} are the same computation under family-specific names
 and checks; use whichever names what you fitted.
 }
 \examples{
@@ -36,7 +36,7 @@ fit <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
 head(latent_probs(fit))
 }
 \seealso{
-\code{\link[=frmtmb_structure]{frmtmb_structure()}}, \code{\link[=mixture_probs]{mixture_probs()}}, \code{\link[=hmm_probs]{hmm_probs()}},
-\code{\link[=lca_probs]{lca_probs()}}, \code{\link[=hmm_viterbi]{hmm_viterbi()}} for the decoded path rather than the
+\code{\link[=frmtmb_structure]{frmtmb_structure()}}, \code{\link[=mixture_probs]{mixture_probs()}}, \code{hmm_probs()},
+\code{lca_probs()}, \code{hmm_viterbi()} for the decoded path rather than the
 probabilities
 }

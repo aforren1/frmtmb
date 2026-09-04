@@ -65,10 +65,12 @@ sim_hmm_data <- function(ng, tt, G, mu, sg, seed) {
 }
 
 test_that("an hmm() draw walks the chain from every entry point", {
+  skip_if_not_installed("frmtmb.latent")
   G2 <- matrix(c(0.9, 0.1, 0.25, 0.75), 2L, 2L, byrow = TRUE)
   tt <- 20L
   dd <- sim_hmm_data(20L, tt, G2, c(0, 4), c(0.5, 0.5), 4001)
-  form <- bf(y ~ 1) + hmm(K = 2, gaussian(), time = t, group = id)
+  form <- bf(y ~ 1) +
+    frmtmb.latent::hmm(K = 2, gaussian(), time = t, group = id)
   fit <- frm(form, data = dd)
 
   e <- unlist(fixef(fit))
@@ -233,6 +235,7 @@ test_that("an autocor residual is one group draw on every path", {
 ## ---- lca: the extras-aware rowwise contract, all three paths ---------
 
 test_that("lca() simulates item codes from every entry point", {
+  skip_if_not_installed("frmtmb.latent")
   set.seed(5)
   n <- 300L
   pr <- rbind(c(0.90, 0.85, 0.20, 0.75), c(0.20, 0.15, 0.85, 0.25))
@@ -243,7 +246,7 @@ test_that("lca() simulates item codes from every entry point", {
   }
   dd <- data.frame(row = seq_len(n))
   dd$Y <- Y
-  form <- bf(Y ~ 1) + lca(K = 2)
+  form <- bf(Y ~ 1) + frmtmb.latent::lca(K = 2)
   fit <- frm(form, data = dd)
 
   set.seed(13); s_fit <- simulate(fit, nsim = 10)
@@ -371,9 +374,11 @@ test_that("a structured draw refuses trunc() and newdata", {
 })
 
 test_that("simulate() still refuses re.form and censored on an hmm", {
+  skip_if_not_installed("frmtmb.latent")
   G2 <- matrix(c(0.9, 0.1, 0.25, 0.75), 2L, 2L, byrow = TRUE)
   dd <- sim_hmm_data(10L, 10L, G2, c(0, 4), c(0.5, 0.5), 91)
-  fit <- frm(bf(y ~ 1) + hmm(K = 2, gaussian(), time = t, group = id),
+  fit <- frm(bf(y ~ 1) +
+               frmtmb.latent::hmm(K = 2, gaussian(), time = t, group = id),
              data = dd)
   expect_error(simulate(fit, re.form = NA), "re.form")
   expect_error(simulate(fit, censored = TRUE), "cens\\(\\)")

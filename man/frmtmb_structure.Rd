@@ -130,7 +130,7 @@ group; its registration is three lines of \code{.onLoad()}.
 \code{loglik = NULL} keeps the family's own rowwise \code{lpdf} and makes the
 structure a CAPABILITY DECLARATION instead. That is what a family
 whose likelihood does factorize per row but which still has to refuse
-things in its own words wants: \code{\link[=lca]{lca()}} is rowwise per subject and
+things in its own words wants: \code{lca()} is rowwise per subject and
 still refuses \code{REML}, \code{residuals(type = "osa")} and random effects in
 its gating predictor, and each of those refusals is a property of the
 family rather than of the method that meets it.

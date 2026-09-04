@@ -16,9 +16,9 @@
 # ------------------------------------------------------ contributor seam
 #
 # A feature that does not live in this file contributes its own rows.
-# The structured families go this way (R/hmm.R, R/lca.R): the matrix
-# covers them without R/compat.R knowing they exist, which is what lets
-# them move to another package with their rules attached.
+# The structured families went this way while they were still here, and
+# it is what let them leave with their rules attached: the matrix covers
+# a family in another package without R/compat.R knowing it exists.
 #
 # Contributions are APPENDED, and that is the only safe direction. Rules
 # of equal specificity are resolved by position, later wins (see
@@ -26,12 +26,11 @@
 # default and a core default can never silently override a contributed
 # one.
 #
-# The container is created here and filled by top-level calls in the
-# contributing files. R sources R/*.R in collation order, DESCRIPTION
-# declares no Collate field, and "compat.R" sorts before "hmm.R" and
-# "lca.R". A package contributing from outside registers in its own
-# .onLoad(), by which time every namespace is sealed and the order
-# question does not arise.
+# The container is created here and filled by the contributors. Every
+# contributor is now an outside package, which registers in its own
+# .onLoad(): by then every namespace is sealed, so the collation-order
+# question a top-level call inside this package would raise does not
+# arise.
 
 frmtmb_compat_contrib <- new.env(parent = emptyenv())
 frmtmb_compat_contrib$features <- list()
@@ -44,8 +43,8 @@ frmtmb_compat_contrib$rules <- list()
 #' data.frame, so that contributed rules are built on demand exactly as
 #' the core ones are; write it with `compat_rule_builder()`.
 #'
-#' Not exported yet: the two contributors are still in this package.
-#' Moving them out is what makes it public API.
+#' Exported as part of the extension API: every contributor is now an
+#' outside package, and this is how one reaches the matrix.
 #'
 #' @noRd
 frmtmb_register_compat <- function(features = NULL, rules = NULL) {

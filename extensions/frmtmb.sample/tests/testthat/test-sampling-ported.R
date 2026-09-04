@@ -384,9 +384,11 @@ test_that("a tight prior pulls the posterior toward it", {
 test_that("frm_sample() runs on an hmm fit", {
   skip_on_cran()
   skip_if_not_installed("tmbstan")
+  skip_if_not_installed("frmtmb.latent")
   dd <- sim_hmm(8, 12, G2, c(0, 3), c(0.6, 0.6), 4026)
   fit <- frm(bf(y ~ 1),
-             family = hmm(K = 2, gaussian(), time = t, group = id),
+             family = frmtmb.latent::hmm(K = 2, gaussian(), time = t,
+                                         group = id),
              data = dd)
   s <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 200, refresh = 0)))
@@ -398,8 +400,9 @@ test_that("frm_sample() runs on an hmm fit", {
 test_that("frm_sample() runs on an lca fit", {
   skip_on_cran()
   skip_if_not_installed("tmbstan")
+  skip_if_not_installed("frmtmb.latent")
   s <- sim_lca_data(n = 150)
-  fit <- frm(bf(Y ~ 1), family = lca(K = 2), data = s$dd)
+  fit <- frm(bf(Y ~ 1), family = frmtmb.latent::lca(K = 2), data = s$dd)
   sm <- suppressWarnings(frm_sample(fit, chains = 1, iter = 400,
                                     refresh = 0, seed = 1))
   dr <- as.matrix(sm)

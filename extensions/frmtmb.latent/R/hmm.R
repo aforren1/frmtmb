@@ -265,7 +265,7 @@ hmm_tr_init <- function(i, j) {
 #' @param K Number of hidden states (at least 2, at most 9 - beyond that
 #'   the `tr{i}{j}` dpar names stop being unambiguous).
 #' @param family The state-dependent (emission) family. Any univariate
-#'   family with a `mu` parameter works, plus [multinomial()] for
+#'   family with a `mu` parameter works, plus [frmtmb::multinomial()] for
 #'   categorical emissions. Ordinal families, mixtures and nested `hmm()`
 #'   components are refused.
 #' @param time Variable giving the order of observations within a
@@ -919,19 +919,6 @@ hmm_lse_rows <- function(M) {
   mx + log(.rowSums(exp(M - mx), nrow(M), nc))
 }
 
-#' Numeric emission log-densities, log transition matrices and initial
-#' log-distribution of a fitted hmm, all at the estimates.
-#'
-#' The same quantities the tape holds, recomputed off it: the tape is not
-#' interrogable row by row, and the decoding passes are plain numeric
-#' work that belongs outside the objective.
-#'
-#' `dp` supplies already-evaluated dpars (the simulator has them from
-#' its context); `need_lpmat = FALSE` skips the emission densities,
-#' which a forward SIMULATION never looks at and which a de novo frame
-#' could only evaluate against a dummy response.
-#'
-#' @noRd
 #' The response spec of an `hmm()` fit, or the one refusal every
 #' decoding entry point owes a fit of some other family.
 #'
@@ -945,6 +932,19 @@ hmm_rspec <- function(fit, what) {
   rspec
 }
 
+#' Numeric emission log-densities, log transition matrices and initial
+#' log-distribution of a fitted hmm, all at the estimates.
+#'
+#' The same quantities the tape holds, recomputed off it: the tape is not
+#' interrogable row by row, and the decoding passes are plain numeric
+#' work that belongs outside the objective.
+#'
+#' `dp` supplies already-evaluated dpars (the simulator has them from
+#' its context); `need_lpmat = FALSE` skips the emission densities,
+#' which a forward SIMULATION never looks at and which a de novo frame
+#' could only evaluate against a dummy response.
+#'
+#' @noRd
 hmm_parts <- function(fit, dp = NULL, need_lpmat = TRUE) {
   rspec <- hmm_rspec(fit, "hmm_probs()")
   fam <- rspec$family
@@ -1384,6 +1384,3 @@ hmm_compat_rules <- function() {
   r("hmm", "|ID|", "untested", "")
   b$rules()
 }
-
-frmtmb_register_compat(features = c(hmm = "structure"),
-                       rules = hmm_compat_rules)

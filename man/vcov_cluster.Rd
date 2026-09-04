@@ -69,7 +69,8 @@ every likelihood term is a product over rows. Fits that fail either
 condition are refused with the reason: a random effect whose level
 spans two clusters (including crossed effects, \code{mm()} pooled levels,
 a global smooth, \code{gp()}, \code{car()} and the SPDE), a group-level
-mixture whose groups span clusters, an \code{autocor()} residual, \code{hmm()},
+mixture whose groups span clusters, an \code{autocor()} residual, a
+family whose structure does not declare \code{cluster_robust},
 \code{rescor = TRUE}, \code{mi()}/\code{me()}, \code{REML = TRUE}, \code{profile = TRUE},
 \code{quadrature = TRUE}, and any fit made with priors. \code{\link[=frm_bootstrap]{frm_bootstrap()}}
 is the fallback in every one of those cases.

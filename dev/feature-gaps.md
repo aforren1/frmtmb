@@ -1023,7 +1023,14 @@ not verified: there is no external left-truncated reference in the
 suite yet.
 DONE-rung-2, branch wt-hmm. `hmm(K, family, time =, group =, init =,
 trans =)` is a first-class family in R/hmm.R, wired through additive
-hooks in parse/frame/objective/predict. Everything the probe predicted
+hooks in parse/frame/objective/predict.
+
+Since superseded by dev/structured-family-protocol.md: the additive
+hooks became the one `fam$structure` slot, and `hmm()` and `lca()`
+moved to `extensions/frmtmb.latent` at step 10. The file paths in this
+entry are where the code was written, not where it lives.
+
+Everything the probe predicted
 transferred: suffixed per-state dpars with the full formula grammar,
 the multinomial-logit block (K copies), the logspace_add fold,
 quantile-spread inits, and a third objective branch beside `rescor`

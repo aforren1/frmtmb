@@ -8,7 +8,7 @@
   "codeRepository": "https://github.com/aforren1/frmtmb",
   "issueTracker": "https://github.com/aforren1/frmtmb/issues",
   "license": "https://spdx.org/licenses/GPL-2.0",
-  "version": "0.40.1",
+  "version": "0.47.0",
   "programmingLanguage": {
     "@type": "ComputerLanguage",
     "name": "R",
@@ -72,18 +72,6 @@
     },
     {
       "@type": "SoftwareApplication",
-      "identifier": "bridgesampling",
-      "name": "bridgesampling",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=bridgesampling"
-    },
-    {
-      "@type": "SoftwareApplication",
       "identifier": "circular",
       "name": "circular",
       "provider": {
@@ -108,18 +96,6 @@
     },
     {
       "@type": "SoftwareApplication",
-      "identifier": "coda",
-      "name": "coda",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=coda"
-    },
-    {
-      "@type": "SoftwareApplication",
       "identifier": "data.table",
       "name": "data.table",
       "provider": {
@@ -129,30 +105,6 @@
         "url": "https://cran.r-project.org"
       },
       "sameAs": "https://CRAN.R-project.org/package=data.table"
-    },
-    {
-      "@type": "SoftwareApplication",
-      "identifier": "deSolve",
-      "name": "deSolve",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=deSolve"
-    },
-    {
-      "@type": "SoftwareApplication",
-      "identifier": "depmixS4",
-      "name": "depmixS4",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=depmixS4"
     },
     {
       "@type": "SoftwareApplication",
@@ -180,6 +132,18 @@
     },
     {
       "@type": "SoftwareApplication",
+      "identifier": "fmesher",
+      "name": "fmesher",
+      "provider": {
+        "@id": "https://cran.r-project.org",
+        "@type": "Organization",
+        "name": "Comprehensive R Archive Network (CRAN)",
+        "url": "https://cran.r-project.org"
+      },
+      "sameAs": "https://CRAN.R-project.org/package=fmesher"
+    },
+    {
+      "@type": "SoftwareApplication",
       "identifier": "GLMMadaptive",
       "name": "GLMMadaptive",
       "provider": {
@@ -201,18 +165,6 @@
         "url": "https://cran.r-project.org"
       },
       "sameAs": "https://CRAN.R-project.org/package=glmmTMB"
-    },
-    {
-      "@type": "SoftwareApplication",
-      "identifier": "hmmTMB",
-      "name": "hmmTMB",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=hmmTMB"
     },
     {
       "@type": "SoftwareApplication",
@@ -384,18 +336,6 @@
     },
     {
       "@type": "SoftwareApplication",
-      "identifier": "poLCA",
-      "name": "poLCA",
-      "provider": {
-        "@id": "https://cran.r-project.org",
-        "@type": "Organization",
-        "name": "Comprehensive R Archive Network (CRAN)",
-        "url": "https://cran.r-project.org"
-      },
-      "sameAs": "https://CRAN.R-project.org/package=poLCA"
-    },
-    {
-      "@type": "SoftwareApplication",
       "identifier": "posterior",
       "name": "posterior",
       "provider": {
@@ -453,11 +393,6 @@
         "url": "https://cran.r-project.org"
       },
       "sameAs": "https://CRAN.R-project.org/package=rstantools"
-    },
-    {
-      "@type": "SoftwareApplication",
-      "identifier": "RTMBode",
-      "name": "RTMBode"
     },
     {
       "@type": "SoftwareApplication",
@@ -678,7 +613,7 @@
     },
     "SystemRequirements": null
   },
-  "fileSize": "3160.373KB",
+  "fileSize": "2779.599KB",
   "citation": [
     {
       "@type": "SoftwareSourceCode",
@@ -692,7 +627,7 @@
       ],
       "name": "frmtmb: Formula-Based Regression Models via RTMB",
       "url": "https://github.com/aforren1/frmtmb",
-      "description": "R package version 0.40.1"
+      "description": "R package version 0.47.0"
     }
   ],
   "releaseNotes": "https://github.com/aforren1/frmtmb/blob/main/NEWS.md",

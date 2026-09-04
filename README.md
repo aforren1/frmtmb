@@ -98,10 +98,15 @@ GitHub:
 remotes::install_github("aforren1/frmtmb")
 ```
 
-Ordinary differential equation dynamics live in a separate package,
-`frmtmb.ode`, in this repository:
+Three companion packages live in this repository, each installed the
+same way. `frmtmb.sample` adds NUTS sampling and the posterior method
+surface, `frmtmb.latent` adds the discrete latent-state families
+`hmm()` and `lca()`, and `frmtmb.ode` adds ordinary differential
+equation dynamics.
 
 ```r
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.sample")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.latent")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 ```
 
@@ -200,12 +205,13 @@ three layers:
   taxonomy, with covariate-dependent means and gating.
   `categorical()` fits nominal responses, `von_mises()` circular
   ones, and `cox()` proportional hazards with a flexible baseline
-  and Laplace frailties. `hmm(K)` fits hidden Markov models with
-  covariate-dependent transitions and forward-backward decoding
-  (`hmm_probs()`, `hmm_viterbi()`); `lca(K)` fits poLCA-style
-  latent class analysis with class-membership regression.
+  and Laplace frailties.
   `custom_family()` takes a plain R log-density. The test suite fits
   a Wiener drift-diffusion model in about 15 lines.
+- Discrete latent states: the `frmtmb.latent` package adds `hmm(K)`
+  for hidden Markov models, with covariate-dependent transitions and
+  forward-backward decoding, and `lca(K)` for latent class analysis
+  with class-membership regression.
 - Ordinary differential equations: the `frmtmb.ode` package adds
   `frm_ode()`, which solves compartment models inside nonlinear
   formulas (population pharmacokinetics), with repeated dosing,

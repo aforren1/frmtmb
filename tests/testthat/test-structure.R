@@ -1,7 +1,9 @@
 # The structured-family protocol's constructor and the core accessors
-# that read it. The families that RIDE the protocol are covered by
-# test-hmm.R and the mixture tests; what is asserted here is the
-# contract a family written outside this package must meet.
+# that read it. The families that RIDE the protocol are covered by the
+# mixture tests here and, for the two that now live outside this
+# package, by the extension's own test-structure-latent.R; what is
+# asserted here is the contract a family written outside this package
+# must meet.
 
 ll_ok <- function(y, dpars, aterms, weights, block, extra) sum(y)
 
@@ -148,12 +150,13 @@ test_that("a group-level mixture carries the protocol", {
 })
 
 test_that("a rowwise mixture-type family declares capabilities only", {
-  # mixture(), mixture_mvn() and lca() all have a likelihood that DOES
-  # factorize per row, so their structures carry no loglik; what they
-  # carry is the multimodality refusal that used to be one gate in
-  # fit.R naming all three
+  # mixture() and mixture_mvn() have a likelihood that DOES factorize
+  # per row, so their structures carry no loglik; what they carry is
+  # the multimodality refusal that used to be one gate in fit.R naming
+  # every mixture-type family. The third such family lives in
+  # frmtmb.latent now and asserts this same row of the table there.
   for (fam in list(mixture(gaussian(), gaussian()),
-                   mixture_mvn(K = 2, D = 2), lca(K = 2))) {
+                   mixture_mvn(K = 2, D = 2))) {
     st <- fam_structure(fam)
     expect_s3_class(st, "frmtmb_structure")
     expect_null(st[["loglik"]])
@@ -164,21 +167,25 @@ test_that("a rowwise mixture-type family declares capabilities only", {
     expect_true(st[["supports"]][["cluster_robust"]])
     expect_true(is.function(st[["latent_probs"]]))
   }
-  # only the lca refuses a one-step-ahead residual
-  expect_false(fam_structure(lca(K = 2))[["supports"]][["osa"]])
   expect_true(
     fam_structure(mixture(gaussian(), gaussian()))[["supports"]][["osa"]])
 })
 
-test_that("an hmm() carries the protocol with every capability refused", {
-  st <- fam_structure(hmm(K = 2, gaussian(), time = t, group = id))
-  expect_s3_class(st, "frmtmb_structure")
-  expect_false(any(st[["supports"]]))
-  expect_true(st[["keep_na"]])
-  for (slot in c("frame_vars", "check_spec", "frame_block", "loglik",
-                 "fitted_mean", "fitted_var", "latent_probs", "sim_ctx")) {
-    expect_true(is.function(st[[slot]]), label = slot)
-  }
+test_that("structure_supports_all() is what such a family starts from", {
+  # the exported starting point for a capability-only structure, which
+  # is what an out-of-tree rowwise family builds on. Every flag TRUE
+  # except the named ones, and the flag set is frmtmb's own, so a
+  # capability added later arrives switched on rather than silently
+  # taken away.
+  s <- structure_supports_all(reml = FALSE, osa = FALSE)
+  expect_false(s[["reml"]])
+  expect_false(s[["osa"]])
+  expect_true(s[["profile"]])
+  expect_true(s[["quadrature"]])
+  expect_true(s[["cluster_robust"]])
+  expect_setequal(
+    names(s),
+    names(fam_structure(mixture(gaussian(), gaussian()))[["supports"]]))
 })
 
 test_that("the frame carries one block per structured response", {

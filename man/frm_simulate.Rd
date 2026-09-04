@@ -57,14 +57,16 @@ the family (any dummy values do; they only anchor the design).
 Draws come back in the response's own type, exactly as
 \code{\link[=simulate]{simulate()}}'s do: an ordered factor for an ordinal family, an
 unordered one for a categorical family, and a matrix column for a
-matrix response (\code{\link[=multinomial]{multinomial()}}, \code{\link[=mixture_mvn]{mixture_mvn()}}, \code{\link[=lca]{lca()}}).
+matrix response (\code{\link[=multinomial]{multinomial()}}, \code{\link[=mixture_mvn]{mixture_mvn()}}).
 
 The structured families draw here through the same implementation
-\code{\link[=simulate]{simulate()}} uses (see its Structured draws section): \code{\link[=hmm]{hmm()}} walks
-its chain per sequence, \code{mixture(groups = ~g)} takes one class per
-group, \code{\link[=mixture_mvn]{mixture_mvn()}} uses its class covariances, and a residual
+\code{\link[=simulate]{simulate()}} uses (see its Structured draws section):
+\code{mixture(groups = ~g)} takes one class per group, \code{\link[=mixture_mvn]{mixture_mvn()}}
+uses its class covariances, a residual
 correlation term (\code{ar()}, \code{ma()}, ...) contributes one correlated
-residual per group. The de novo frame carries those structures, so
+residual per group, and a family from an extension package draws
+through whatever its structure declares. The de novo frame carries
+those structures, so
 nothing is lost relative to a fit; \code{ar()} and friends need their
 \code{thetaac} entry in the internal \code{newparams} spelling, since a
 correlation parameter has no natural-scale name here.

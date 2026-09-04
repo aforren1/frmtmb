@@ -16,6 +16,7 @@ on:
     branches: [main, master]
     paths:
       - 'extensions/frmtmb.sample/**'
+      - 'extensions/frmtmb.latent/**'
       - 'R/**'
       - 'DESCRIPTION'
       - 'NAMESPACE'
@@ -24,6 +25,7 @@ on:
     branches: [main, master]
     paths:
       - 'extensions/frmtmb.sample/**'
+      - 'extensions/frmtmb.latent/**'
       - 'R/**'
       - 'DESCRIPTION'
       - 'NAMESPACE'
@@ -58,6 +60,14 @@ jobs:
           needs: check
       - name: Install the core package from this checkout
         run: R CMD INSTALL --no-multiarch --with-keep.source .
+        shell: bash
+      # frmtmb.latent is a Suggests of this package and is in no
+      # repository, so it comes from the checkout like the core does.
+      # Without it the hmm and lca sampling tests skip instead of run,
+      # which would hide exactly the cross-package pair this job exists
+      # to exercise.
+      - name: Install frmtmb.latent from this checkout
+        run: R CMD INSTALL --no-multiarch --with-keep.source extensions/frmtmb.latent
         shell: bash
       # The extension's dependencies, read from its DESCRIPTION and
       # installed directly rather than through pak: pak resolves against

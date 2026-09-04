@@ -1,3 +1,41 @@
+# frmtmb (development version)
+
+The structured-family protocol completes: the last two families core
+knew by name leave for a companion package, and the boundary between
+core and its extensions reaches zero with no exemptions left.
+
+* `hmm()` and `lca()` moved to the companion package
+  `frmtmb.latent`, with `hmm_probs()`, `hmm_viterbi()`,
+  `lca_probs()`, `lca_profiles()`, their tests and the HMM case
+  study. Install it with
+  `remotes::install_github("aforren1/frmtmb", subdir =
+  "extensions/frmtmb.latent")`. Nothing about either family changed
+  in the move.
+* `mixture()`, `mixture_mvn()` and `mixture_probs()` stay in core,
+  and `mixture_probs()` still reports the class probabilities of an
+  `lca()` fit. The two meet through the family object's component
+  interface rather than through a class, so neither package has to
+  know about the other.
+* `?"frmtmb-extension-api"` gains the four accessors an out-of-tree
+  structured family needs and could not reach: `frame_block_of()`
+  (the read half of a structure's `frame_block` slot),
+  `structure_supports_all()` (the starting point for a family whose
+  likelihood IS rowwise and which declares a structure only to carry
+  its refusals), `mixture_posterior()` (one posterior implementation
+  for every family that implements the component interface) and
+  `mixture_multimodal_refusals()` (the REML and profiling refusals a
+  component-permutation-invariant family owes, issued from one place
+  so that core and an extension cannot word the same fact
+  differently).
+* The core boundary test is no longer a ratchet. Every policed token
+  now maps to an empty list of allowed homes, so no core file may
+  name a structured family or an ODE symbol anywhere at all. Its
+  positive control moved to the extension's sources, and it is the
+  control alone that skips when `extensions/` is not in the tree.
+* `Suggests`: `depmixS4`, `hmmTMB` and `poLCA` dropped. They were the
+  reference implementations those two families were checked against,
+  and they travel with them.
+
 # frmtmb 0.47.0
 
 The monorepo split: the ODE seam and the sampling surface leave core
