@@ -10,11 +10,27 @@
 #'
 #' @noRd
 refuse_retired_priors <- function(dots, what) {
-  if (!"priors" %in% names(dots)) return(invisible(NULL))
-  stop(what, " takes `prior`, not `priors`: the argument follows brms's ",
-       "spelling, and this function's `...` would otherwise pass the ",
-       "old name through and fit with no priors at all. Rename it to ",
-       "`prior`", call. = FALSE)
+  if ("priors" %in% names(dots)) {
+    stop(what, " takes `prior`, not `priors`: the argument follows ",
+         "brms's spelling, and this function's `...` would otherwise ",
+         "pass the old name through and fit with no priors at all. ",
+         "Rename it to `prior`", call. = FALSE)
+  }
+  # `lower`/`upper` retired in 0.49. Here they would reach tmbstan as
+  # unknown sampler options rather than failing as unused arguments, so
+  # the model would sample UNBOUNDED in silence
+  bad <- intersect(c("lower", "upper"), names(dots))
+  if (length(bad)) {
+    stop(what, " has no `", paste(bad, collapse = "`/`"),
+         "`: a hard bound is written as a prior, ",
+         "set_prior(\"\", nlpar = \"la\", lb = 0), which reaches the ",
+         "same constrained transform. Every outer parameter has a ",
+         "class, down to one internal covariance parameter ",
+         "(class = \"theta\", coef = \"thetaac_1\"). Left in `...` ",
+         "these would have gone to the sampler as unknown options and ",
+         "the model would have sampled unbounded", call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 # --- sampler start values and bounds -----------------------------------
@@ -378,7 +394,7 @@ stan_cores <- function(args) {
 #'
 #' @noRd
 sample_assemble <- function(formula, data, family, data2, start,
-                            control, na.action, REML, lower, upper) {
+                            control, na.action, REML) {
   if (!inherits(formula, c("formula", "frmtmb_formula",
                            "frmtmb_mvformula"))) {
     stop("frm_sample() takes a frmtmb fit or a formula; got an object ",
@@ -390,9 +406,11 @@ sample_assemble <- function(formula, data, family, data2, start,
     stop("frm_sample() from a formula needs data =: there is no fitted ",
          "model to take the design from", call. = FALSE)
   }
+  # no bounds here: the unfitted object is never optimized, and the box
+  # Stan is given is resolved from the prior further down
   frm(formula, data, family = family, REML = REML, start = start,
-      control = control, na.action = na.action, lower = lower,
-      upper = upper, data2 = data2, dry_run = "objective")
+      control = control, na.action = na.action,
+      data2 = data2, dry_run = "objective")
 }
 
 # --- default priors for frm_sample() -----------------------------------
@@ -879,10 +897,10 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' `frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian())`
 #' parses, assembles and tapes exactly as [frmtmb::frm()] does, stops before the
 #' optimizer, and hands the objective to Stan. Every pre-optimizer
-#' refusal still applies (REML, quadrature, the mixture and [frmtmb::hmm()]
+#' refusal still applies (REML, quadrature, the mixture and `frmtmb.latent::hmm()`
 #' guards). There is no mode, so the default `init` is `"random"`:
 #' Stan's own overdispersed initialization on the unconstrained scale,
-#' inside any `lower`/`upper` bounds.
+#' inside any bounds the prior carries.
 #'
 #' The returned object supports the whole draws surface -
 #' [summary()], [frmtmb::fixef()], [frmtmb::VarCorr()], [frmtmb::ranef()], [frmtmb::hypothesis()],
@@ -1111,15 +1129,6 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   before 0.43 is gone rather than aliased, and because this
 #'   function's `...` would otherwise swallow it, the old name is
 #'   refused by name.
-#' @param lower,upper Optional named numeric vectors of hard bounds on
-#'   outer parameters (brms `lb`/`ub`), applied on the internal scale
-#'   through Stan's constrained transforms. Chain starting values are
-#'   clamped strictly inside the bounds; a bound that excludes the ML
-#'   mode itself warns, because the chains then no longer start there.
-#'   Names as in `confint()` rows, with parentheses optional; a
-#'   nonlinear parameter declared intercept-only (`la ~ 1`) may be named
-#'   bare, `lower = c(la = 0)` for `la_(Intercept)`. One that carries
-#'   several coefficients is refused rather than resolved to one.
 #' @param init Initialization. On a fit the default
 #'   (`"last.par.best"`) starts chain 1 exactly at the ML mode and every
 #'   further chain at the mode plus a normal perturbation of sd
@@ -1195,8 +1204,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' }
 #' @export
 frm_sample <- function(fit, data = NULL, family = NULL, ...,
-                       prior = NULL, lower = NULL,
-                       upper = NULL, init = NULL,
+                       prior = NULL, init = NULL,
                        init_jitter = 0.25, reparameterize = TRUE,
                        data2 = list(), start = NULL,
                        control = frmtmb_control(),
@@ -1221,8 +1229,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   if (from_formula) {
     fit <- sample_assemble(fit, data, family, data2 = data2,
                            start = start, control = control,
-                           na.action = na.action, REML = REML,
-                           lower = lower, upper = upper)
+                           na.action = na.action, REML = REML)
   } else if (!is.null(data) || !is.null(family)) {
     stop("frm_sample(data =, family =) belongs to the formula ",
          "interface; the model of a fitted object is already fixed. ",
@@ -1256,11 +1263,11 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     pr_lower <- ri$lower
     pr_upper <- ri$upper
   }
-  # explicit lower/upper override set_prior() bounds on overlap
-  lower <- utils::modifyList(as.list(pr_lower),
-                             as.list(lower %||% c()))
-  upper <- utils::modifyList(as.list(pr_upper),
-                             as.list(upper %||% c()))
+  # set_prior()'s lb/ub is the only source of bounds: frm_sample() has
+  # no lower/upper of its own, and every outer parameter Stan can
+  # constrain has a class that addresses it
+  lower <- as.list(pr_lower)
+  upper <- as.list(pr_upper)
   laplace <- isTRUE(list(...)$laplace)
   # the priors ride on the OUTER parameters, so they compose with the
   # reparameterization rather than interacting with it: theta is theta on
@@ -1466,7 +1473,7 @@ print.frmtmb_draws <- function(x, ...) {
 #' dd <- data.frame(x = rnorm(120), g = factor(rep(1:30, 4)))
 #' dd$y <- rbinom(120, 1,
 #'                plogis(0.3 + 0.5 * dd$x + rnorm(30, 0, 1)[dd$g]))
-#' fit <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
+#' fit <- frm(bf(y ~ x + (1 | g)) + frmtmb::bernoulli(), data = dd)
 #'
 #' cl <- check_laplace(fit, chains = 1, iter = 500, refresh = 0)
 #' cl

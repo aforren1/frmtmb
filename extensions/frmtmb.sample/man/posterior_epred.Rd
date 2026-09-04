@@ -110,14 +110,14 @@ family (it draws one category per observation), and so is
 parameter and stays an \code{n}-column matrix of the latent predictor.
 What does take the array shape in \code{posterior_predict()} is a
 matrix-valued RESPONSE: \code{\link[frmtmb:multinomial]{frmtmb::multinomial()}} counts, \code{\link[frmtmb:mixture_mvn]{frmtmb::mixture_mvn()}}
-draws and \code{\link[frmtmb:lca]{frmtmb::lca()}} item codes give one row per observation, so the
+draws and \code{frmtmb.latent::lca()} item codes give one row per observation, so the
 draws stack into \verb{draws x observations x columns}.
 }
 
 \section{Structured draws}{
 
 \code{posterior_predict()} uses the same simulator \code{\link[=simulate]{simulate()}} does,
-including the structured families (\code{\link[frmtmb:hmm]{frmtmb::hmm()}}, \code{mixture(groups = )},
+including the structured families (\code{frmtmb.latent::hmm()}, \code{mixture(groups = )},
 \code{\link[frmtmb:mixture_mvn]{frmtmb::mixture_mvn()}}) and residual correlation terms; see the Structured
 draws section of \code{\link[frmtmb:simulate.frmtmb_fit]{frmtmb::simulate.frmtmb_fit()}}. Those draws index the rows
 the model was fitted on, so \code{newdata} is refused for them.

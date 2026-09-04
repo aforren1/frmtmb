@@ -13,8 +13,6 @@ frm(
   control = frmtmb_control(),
   se = FALSE,
   na.action = stats::na.omit,
-  lower = NULL,
-  upper = NULL,
   prior = NULL,
   quadrature = FALSE,
   data2 = list(),
@@ -95,15 +93,6 @@ loops. The deferred report is cached, so nothing is computed twice.}
 reported in a message; wrap the call in \code{suppressMessages()} to
 silence it.}
 
-\item{lower, upper}{Optional named numeric vectors of hard box
-constraints on outer parameters (brms \code{lb}/\code{ub}), on the internal
-scale, e.g. \code{lower = c(b = 0)} for a nonlinear rate parameter.
-Names as in \code{confint()} rows, with parentheses optional; a
-nonlinear parameter declared intercept-only (\code{b ~ 1}) may be named
-bare, as in that example, which resolves to \code{b_(Intercept)}. One
-that carries several coefficients is refused rather than resolved
-to one of them.}
-
 \item{prior}{Optional \code{\link[=set_prior]{set_prior()}} specification. This makes the
 fit MAP / regularized ML (glmmTMB's \verb{priors=} in spirit): useful
 for stabilizing singular variance components or separating
@@ -115,6 +104,16 @@ out of a brms script work whichever package's \code{prior()} was in
 scope. The argument takes brms's spelling, \code{prior}; the \code{priors}
 of releases before 0.43 is gone rather than aliased, and a call
 still using it fails as an unused argument.
+
+This is also where HARD BOUNDS are written, as \code{lb}/\code{ub} on a
+specification that may carry no distribution at all:
+\code{set_prior("", nlpar = "guess", lb = 0, ub = 1)} is a box
+constraint and nothing else. The \code{lower}/\code{upper} arguments of
+releases before 0.49 are gone rather than aliased, and a call still
+using them fails as an unused argument; every outer parameter they
+could reach has a \code{set_prior()} class, down to a single internal
+covariance parameter (\verb{class = "theta", coef = "thetaac_1"}). See
+\code{\link[=set_prior]{set_prior()}}'s Hard bounds section.
 
 \emph{The spelling is brms's; the SEMANTICS are not.} A prior here is a
 penalty on the likelihood and the answer is one mode. It is not a

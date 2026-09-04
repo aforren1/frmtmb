@@ -58,7 +58,8 @@ test_that("the REML objective is the Cox-Reid adjusted profile nll", {
   th <- fit$estimates$theta
   ml <- suppressWarnings(
     frm(bf(yp ~ x + (1 | g)), family = poisson(), data = dd,
-        lower = c(theta_1 = th[[1]]), upper = c(theta_1 = th[[1]]),
+        prior = set_prior("", class = "theta", coef = "theta_1",
+                          lb = th[[1]], ub = th[[1]]),
         start = list(theta = unname(th))))
   nll_hat <- -as.numeric(logLik(ml))
   # the beta block of the marginal objective's Hessian at the

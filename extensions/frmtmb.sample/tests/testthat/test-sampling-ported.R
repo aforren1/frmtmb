@@ -826,3 +826,100 @@ test_that("set_prior bounds flow into the resolved input and augmented objective
   expect_lt(abs(obj2$fn(obj2$par) -
                   (-as.numeric(logLik(fit_sp)) + nlp)), 1e-8)
 })
+
+# ---- prior-carried bounds on a nonlinear parameter (frmtmb v0.49) ----
+#
+# The bound was keyed by the design-matrix column name, so an
+# nlpar-addressed bound named no outer parameter. The keying lives in
+# frmtmb's resolve_priorlist(), which this package consumes rather than
+# reimplements, so the fix arrives here through the core. These guard the
+# seam: bounds resolution and the Stan transform built from it.
+
+test_that("an nlpar-addressed prior bound reaches frm_sample's bounds", {
+  set.seed(31)
+  n <- 300
+  dd <- data.frame(x = stats::runif(n, 0, 10))
+  dd$y <- stats::rbinom(n, 1, 0.25 + 0.75 * stats::plogis(dd$x - 5))
+  fit <- suppressWarnings(frm(
+    bf(y ~ guess + (1 - guess) * plogis(x - thr), guess ~ 1, thr ~ 1,
+       nl = TRUE),
+    family = bernoulli(link = "identity"), data = dd,
+    start = list(beta = c(0.5, 4))))
+
+  ri <- frmtmb::resolve_prior_input(fit,
+    set_prior("", nlpar = "guess", lb = 0, ub = 1))
+  expect_identical(names(ri$lower), "guess_(Intercept)")
+
+  # the full-length vectors tmbstan is handed, in obj$par order
+  bd <- frmtmb::resolve_bounds(fit, ri$lower, ri$upper)
+  nm <- frmtmb::outer_par_names(fit)
+  expect_identical(bd$lower[nm == "guess_(Intercept)"], 0)
+  expect_identical(bd$upper[nm == "guess_(Intercept)"], 1)
+  # and nothing else was constrained by it
+  expect_true(all(is.infinite(bd$lower[nm != "guess_(Intercept)"])))
+})
+
+test_that("frm_sample samples inside an nlpar prior bound", {
+  skip_if_not_installed("tmbstan")
+  skip_if_not_installed("rstan")
+  set.seed(32)
+  n <- 300
+  dd <- data.frame(x = stats::runif(n, 0, 10))
+  dd$y <- stats::rbinom(n, 1, 0.25 + 0.75 * stats::plogis(dd$x - 5))
+  fit <- suppressWarnings(frm(
+    bf(y ~ guess + (1 - guess) * plogis(x - thr), guess ~ 1, thr ~ 1,
+       nl = TRUE),
+    family = bernoulli(link = "identity"), data = dd,
+    start = list(beta = c(0.5, 4))))
+
+  ds <- suppressWarnings(
+    frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 4,
+               prior = set_prior("", nlpar = "guess", lb = 0.05,
+                                 ub = 0.6)))
+  # the draws carry the parenthesis-free spelling of the same parameter
+  gs <- as.matrix(ds)[, "guess_Intercept"]
+  expect_true(all(gs >= 0.05 & gs <= 0.6))
+})
+
+test_that("frm_sample's retired lower=/upper= are refused, not swallowed", {
+  set.seed(33)
+  dd <- data.frame(x = stats::rnorm(60), g = factor(rep(1:6, 10)))
+  dd$y <- stats::rnorm(60, 1 + 0.5 * dd$x, 1)
+  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+  # `...` goes to tmbstan, which would take these as unknown sampler
+  # options and sample the model UNBOUNDED in silence, so the refusal
+  # has to be explicit rather than left to an unused-argument error
+  expect_error(frm_sample(fit, lower = c(x = 0)), "has no `lower`")
+  expect_error(frm_sample(fit, upper = c(x = 1)), "has no `upper`")
+  expect_error(frm_sample(fit, lower = c(x = 0), upper = c(x = 1)),
+               "has no `lower`/`upper`")
+  # and the message says where a bound goes instead
+  expect_error(frm_sample(fit, lower = c(x = 0)), "set_prior")
+  expect_false(any(c("lower", "upper") %in% names(formals(frm_sample))))
+})
+
+test_that("a residual-correlation prior class reaches frm_sample", {
+  skip_if_not_installed("tmbstan")
+  skip_if_not_installed("rstan")
+  set.seed(34)
+  ng <- 40; k <- 6; n <- ng * k
+  dd <- data.frame(x = stats::rnorm(n), t = rep(seq_len(k), ng),
+                   g = factor(rep(seq_len(ng), each = k)))
+  dd$y <- as.numeric(stats::arima.sim(list(ar = 0.6), n)) + 0.5 * dd$x
+  fit <- frm(bf(y ~ x + ar(t, g, cov = TRUE)) + gaussian(), data = dd)
+
+  # the class carries its density through frmtmb's resolver, which this
+  # package consumes rather than reimplements
+  ri <- frmtmb::resolve_prior_input(fit,
+    set_prior("normal(0, 0.5)", class = "ar"))
+  expect_identical(ri$entries[[1L]]$comp, "thetaac")
+
+  ds <- suppressWarnings(
+    frm_sample(fit, chains = 1, iter = 300, refresh = 0, seed = 5,
+               prior = set_prior("", class = "ar", lb = 0.1, ub = 0.7)))
+  # the bound was written on the natural scale; the draws are internal,
+  # so compare through the same partial-autocorrelation map
+  th <- as.matrix(ds)[, "thetaac_1"]
+  phi <- th / sqrt(1 + th^2)
+  expect_true(all(phi >= 0.1 - 1e-8 & phi <= 0.7 + 1e-8))
+})

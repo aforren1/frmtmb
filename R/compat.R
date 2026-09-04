@@ -476,7 +476,7 @@ frmtmb_compat_rules_tbl <- function() {
 
   ## bounds and priors -------------------------------------------------
   r("bounds", "prior", "works",
-    "set_prior() carries bounds of its own; the lower and upper arguments set them directly.")
+    "One surface since 0.49: a bound IS a prior, written as lb/ub on a set_prior() specification that may carry no distribution at all. The lower and upper arguments of frm() and frm_sample() are gone rather than aliased.")
   r("bounds", "kind:aterm", "untested", "")
   r("prior", "kind:aterm", "untested", "")
 
@@ -873,9 +873,9 @@ frmtmb_compat_rules_tbl <- function() {
   r("group:autocor", "sparse_x", "works", "Verified by a tiny fit.")
   r("group:autocor", "autoscale", "works", "Verified by a tiny fit.")
   r("group:autocor", "bounds", "works",
-    "The parameters are the thetaac_* rows of the outer vector and can be bounded by that name.")
-  r("group:autocor", "prior", "conditional",
-    "Priors on the fixed effects and on random-effect covariance parameters work as usual. set_prior() cannot target the residual-correlation parameters themselves yet; bounds on thetaac_* are the available lever.")
+    "A bound is written as a prior. set_prior(class = \"ar\"/\"ma\"/\"cosy\", lb =, ub =) bounds the natural coefficient of a first-order structure; class = \"theta\" with coef = \"thetaac_1\" bounds the internal parameter of any of them. A higher-order ar/ma coefficient takes no lb/ub, because it is a function of several internal parameters at once and no box in internal space is the box asked for; the parameterization already keeps the process stationary and invertible.")
+  r("group:autocor", "prior", "works",
+    "Priors on the fixed effects and on random-effect covariance parameters work as usual, and since 0.49 the residual-correlation parameters have brms's own classes: \"ar\", \"ma\" and \"cosy\" carry a density on the natural coefficient with the transform's Jacobian, and \"cortime\" takes lkj() on an unstr() time correlation.")
   r("group:autocor", "kind:covstruct", "works",
     "Random effects alongside a correlated residual are the point of the feature: the marginal likelihood is a Laplace approximation over the modes with the multivariate residual density inside. Verified against nlme::lme(random = ~ 1 | subj, correlation = corAR1()) under ML and REML.")
   r("group:autocor", "mvbf", "works",

@@ -10,8 +10,6 @@ frm_sample(
   family = NULL,
   ...,
   prior = NULL,
-  lower = NULL,
-  upper = NULL,
   init = NULL,
   init_jitter = 0.25,
   reparameterize = TRUE,
@@ -58,16 +56,6 @@ argument takes brms's spelling, \code{prior}; the \code{priors} of releases
 before 0.43 is gone rather than aliased, and because this
 function's \code{...} would otherwise swallow it, the old name is
 refused by name.}
-
-\item{lower, upper}{Optional named numeric vectors of hard bounds on
-outer parameters (brms \code{lb}/\code{ub}), applied on the internal scale
-through Stan's constrained transforms. Chain starting values are
-clamped strictly inside the bounds; a bound that excludes the ML
-mode itself warns, because the chains then no longer start there.
-Names as in \code{confint()} rows, with parentheses optional; a
-nonlinear parameter declared intercept-only (\code{la ~ 1}) may be named
-bare, \code{lower = c(la = 0)} for \code{la_(Intercept)}. One that carries
-several coefficients is refused rather than resolved to one.}
 
 \item{init}{Initialization. On a fit the default
 (\code{"last.par.best"}) starts chain 1 exactly at the ML mode and every
@@ -150,10 +138,10 @@ defaults to.
 \code{frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian())}
 parses, assembles and tapes exactly as \code{\link[frmtmb:frm]{frmtmb::frm()}} does, stops before the
 optimizer, and hands the objective to Stan. Every pre-optimizer
-refusal still applies (REML, quadrature, the mixture and \code{\link[frmtmb:hmm]{frmtmb::hmm()}}
+refusal still applies (REML, quadrature, the mixture and \code{frmtmb.latent::hmm()}
 guards). There is no mode, so the default \code{init} is \code{"random"}:
 Stan's own overdispersed initialization on the unconstrained scale,
-inside any \code{lower}/\code{upper} bounds.
+inside any bounds the prior carries.
 
 The returned object supports the whole draws surface -
 \code{\link[=summary]{summary()}}, \code{\link[frmtmb:fixef]{frmtmb::fixef()}}, \code{\link[frmtmb:VarCorr]{frmtmb::VarCorr()}}, \code{\link[frmtmb:ranef]{frmtmb::ranef()}}, \code{\link[frmtmb:hypothesis]{frmtmb::hypothesis()}},

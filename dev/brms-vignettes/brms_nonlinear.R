@@ -231,15 +231,17 @@ bv("post", "ML: loo(fit_ir1, fit_ir2)", loo(fit_ir1, fit_ir2),
    "MISSING", "as above")
 
 # The 3PL model. brms bounds `guess` in [0, 1] with a beta(1, 1) prior
-# carrying lb/ub; frmtmb spells the same bounds as lower =/upper =, which
-# is a genuine identification constraint and not an MCMC convenience.
+# carrying lb/ub, and frmtmb takes that lb/ub verbatim: a genuine
+# identification constraint, not an MCMC convenience. Only the density is
+# dropped, and beta(1, 1) is uniform on [0, 1], so it contributes a
+# constant and the bounds alone are the whole of it.
 fit_ir3 <- bv("model", "ML: fit_ir3", {
   frm(bf(answer ~ guess + (1 - guess) * inv_logit(eta),
          eta ~ 0 + ability, guess ~ 1, nl = TRUE),
       data = dat_ir, family = bernoulli("identity"),
       start = list(beta = c(0, 0.3)),
-      lower = c(guess = 0), upper = c(guess = 1))
-}, "SPELLING", "prior(beta(1, 1), nlpar = 'guess', lb = 0, ub = 1) becomes lower =/upper =")
+      prior = set_prior("", nlpar = "guess", lb = 0, ub = 1))
+}, "SPELLING", "prior(beta(1, 1), nlpar = 'guess', lb = 0, ub = 1) keeps its lb/ub; the uniform density is dropped")
 
 bv("post", "ML: summary(fit_ir3)", summary(fit_ir3), NA_character_, "")
 

@@ -200,9 +200,14 @@ test_that("declared modes are arguments of frm() or frmtmb_control()", {
   ft <- frm_compat_features()
   modes <- ft$key[ft$kind == "mode"]
   known <- c(names(formals(frm)), names(formals(frmtmb_control)))
-  # "bounds" is the registry's name for the lower/upper argument pair
-  known <- c(known, if (all(c("lower", "upper") %in% known)) "bounds")
+  # "bounds" is the registry's name for the box constraints set_prior()
+  # carries as lb/ub. It stopped being an argument pair of its own when
+  # frm(lower =, upper =) was retired in 0.49, so `prior` is what backs
+  # it now
+  known <- c(known, if ("prior" %in% known) "bounds")
   expect_true(all(modes %in% known))
+  # and the retired pair really is gone, so a stale call fails loudly
+  expect_false(any(c("lower", "upper") %in% names(formals(frm))))
 })
 
 test_that("declared post-fit methods are callable", {
@@ -397,7 +402,8 @@ test_that("declared refusals at the fit stage really refuse", {
 
   expect_equal(frm_compat("profile", "bounds")$status, "refused")
   expect_error(frm(y ~ x, data = d, family = gaussian(),
-                   lower = c("x" = -10),
+                   prior = set_prior("", class = "b", coef = "x",
+                                     lb = -10),
                    control = frmtmb_control(profile = TRUE)),
                "bounds")
 })

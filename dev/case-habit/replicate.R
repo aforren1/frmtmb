@@ -240,39 +240,31 @@ build_formula <- function(model) {
 ## The ridge of habit_lik.m:47 is a Gaussian MAP penalty: 1/(2 sd^2) = 1000.
 PEN_SD <- 1 / sqrt(2 * HB_AA)
 
-## House style is to carry bounds in the prior vocabulary, not in frm(lower=,
-## upper=). That is what the hierarchical model below does, by transforming
-## each bounded parameter inside its own body.
+## House style is to carry bounds in the prior vocabulary, and since v0.49
+## that is available here: set_prior("", nlpar = "muA", lb = 0, ub = 0.75)
+## addresses the nonlinear parameter and produces the same hard box the
+## optimizer gets from it. It is a hard box, not a transform.
 ##
-## Here it is not available, for two separate reasons.
+## Until v0.49 it did not. The bound was keyed by the design-matrix column
+## name of the parameter's own sub-formula, which is "(Intercept)" for every
+## one of them, so the bound named no outer parameter (the fit refused with
+## "Unknown parameter(s) in bounds: (Intercept)") and, with several nonlinear
+## parameters, all of them collided on that single key. The distribution path
+## was never affected, which is why the two normal() penalties below always
+## worked through nlpar.
 ##
-## 1. AN ADDRESSING GAP. set_prior("", nlpar = "muA", lb = 0, ub = 0.75) is
-##    refused with
-##      Unknown parameter(s) in bounds: (Intercept).
-##      Available: muA_(Intercept), sgA_(Intercept), ...
-##    R/priors.R:861-862 key the bound as lower[tg$name], and tg$name is
-##    cn[k] (R/priors.R:831), the design-matrix column name of the nonlinear
-##    parameter's own sub-formula, which is "(Intercept)". resolve_bounds()
-##    (R/priors.R:1297-1322) matches against outer_par_names(), which spells
-##    the same parameter "muA_(Intercept)". The distribution path is
-##    unaffected because it keys on the index-based nm_of(tg$comp, tg$idx),
-##    which is why the two normal() penalties below do work through nlpar.
-##    With several nonlinear parameters, every bound additionally collides on
-##    the one key "(Intercept)". Reproduced on the package's own documented
-##    nl example, so it is not specific to this model.
+## Note that lb/ub is a hard box and NOT a transform. That distinction
+## matters for this stage: it reproduces a box-constrained fmincon run whose
+## optima mostly sit exactly ON a bound (qA is at its limit for the large
+## majority of participants, being unidentified from rho), and a logit
+## transform would turn an attainable boundary into an asymptote. The
+## hierarchical model below transforms inside each body because it wants a
+## smooth interior; here the box is the point, and lb/ub gives one.
 ##
-## 2. EVEN ONCE FIXED, A TRANSFORM WOULD BE WRONG HERE. The point of this
-##    stage is to reproduce a box-constrained fmincon run, and most of these
-##    optima sit exactly ON a bound: qA is at its limit for the large
-##    majority of participants, by design, because it is not separately
-##    identified from rho. A logit transform turns an attainable boundary
-##    into an asymptote, so the replication would no longer be comparing like
-##    with like. Hard boxes are the right tool for reproducing hard boxes.
-##
-## So frm(lower=, upper=) is used here as a deliberate stopgap. Reason 1 is
-## the one that bears on whether those arguments can be retired: prior-carried
-## bounds currently cannot address a nonlinear parameter at all.
-BOUNDS_VIA_PRIOR <- FALSE
+## Every parameter is declared intercept-only, so the bare names HB_LOWER
+## carries and the prior's nlpar= spelling resolve to the same positions. The
+## switch stays so the two can be checked against each other.
+BOUNDS_VIA_PRIOR <- TRUE
 
 build_prior <- function(model, penalize = TRUE) {
   pars <- MODEL_PARS[[model]]

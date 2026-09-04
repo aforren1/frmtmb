@@ -35,7 +35,8 @@ parameters).}
 \item{nlpar}{Nonlinear parameter of an \code{nl = TRUE} formula. See
 Nonlinear parameters.}
 
-\item{lb, ub}{Optional hard bounds.}
+\item{lb, ub}{Optional hard bounds, on the scale described in Hard
+bounds.}
 }
 \value{
 A \code{frmtmb_priorlist}.
@@ -63,7 +64,23 @@ narrow with \code{group}.
 does, by \code{group}; \code{set_prior("lkj(2)", class = "cor")} covers every
 correlated block of the model, which is brms's spelling. See
 The LKJ prior below.
+\item \code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"}: the R-side residual
+correlation of an \code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} or \code{unstr()}
+term, under brms's own class names. \code{"ar"}, \code{"ma"} and \code{"cosy"}
+take an ordinary density on the NATURAL coefficient with that
+map's Jacobian applied, as class \code{"sd"} does; \code{"cortime"} takes
+\code{lkj(eta)} on an \code{unstr()} time correlation as a whole. Narrow to
+one response with \code{resp}. See Residual correlation below.
+\item \code{"rescor"}: the residual correlation BETWEEN responses of a
+multivariate model (\code{set_rescor(TRUE)}), as a whole. \code{lkj(eta)}
+only, as brms spells it.
 \item \code{"theta"}: raw internal covariance parameters (escape hatch).
+\code{coef} names one by its internal name and spans all three
+covariance components: \code{"theta_2"} for a random-effect block,
+\code{"thetaac_1"} for a residual autocorrelation, \code{"thetar_1"} for a
+residual correlation. This is the one spelling that reaches a
+single parameter of a structure whose natural coefficients are not
+free of one another.
 }
 
 When priors overlap, later specifications override earlier ones, so
@@ -71,10 +88,76 @@ put class-wide priors first and coefficient-specific ones after. A
 class \code{"theta"} prior on a position an earlier \code{"cor"} prior covers
 replaces that whole LKJ term, and the other way round, so "later
 wins" holds between the two spellings as well.
-\code{lb}/\code{ub} become hard bounds (via Stan's constrained transforms in
-\code{frmtmb.sample::frm_sample()}); for class \code{"sd"} they apply on the
-sd scale.
+\code{lb}/\code{ub} become hard bounds. See Hard bounds.
 }
+\section{Hard bounds}{
+
+\code{lb}/\code{ub} are how a box constraint is written. A specification may
+carry bounds alone (\code{prior = ""}), a distribution alone, or both, and
+a later bounds-only specification tightens an entry an earlier
+distribution created rather than replacing it.
+
+A bound is addressed exactly like the distribution beside it, so
+\code{set_prior("", nlpar = "guess", lb = 0, ub = 1)} bounds the nonlinear
+parameter \code{guess}, and \code{dpar}, \code{resp}, \code{group} and \code{coef} narrow a
+bound the same way they narrow a density. As with a distribution,
+class \code{"b"} with \code{nlpar} covers EVERY coefficient of that parameter;
+\code{coef} picks out one.
+
+The scale is the parameter's own: class \code{"sd"} bounds a standard
+deviation on the sd scale (frmtmb stores its log), classes \code{"ar"},
+\code{"ma"} and \code{"cosy"} bound the natural coefficient of a residual
+structure, and class \code{"theta"} bounds an internal covariance
+parameter itself, one position at a time with \code{coef = "theta_2"},
+\code{"thetaac_1"} or \code{"thetar_1"}. Everything else is bounded on the
+internal (link) scale, so a bound on a log-linked dispersion is a
+bound on its logarithm.
+
+In \code{\link[=frm]{frm()}} a bound is a box constraint handed to the optimizer; in
+\code{frmtmb.sample::frm_sample()} it becomes one of Stan's constrained
+transforms. Both take this spelling and no other: the \code{lower}/\code{upper}
+arguments of releases before 0.49 are gone rather than aliased, and a
+call still using them fails as an unused argument. Every outer
+parameter they could reach has a class here, down to a single
+internal covariance parameter.
+
+Where the two spellings differed, this one broadcasts: a bound
+carried by \verb{nlpar =} covers every coefficient of that parameter, the
+way a prior does, and \code{coef} narrows it to one. When two
+specifications bound the same parameter the later one wins, so a
+bounds-only specification after a wide one tightens it.
+}
+
+\section{Residual correlation}{
+
+frmtmb holds an \code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} or \code{unstr()}
+residual block in one unconstrained vector, chosen so the optimizer
+cannot step outside the stationary and invertible region. A prior is
+still written about the parameter brms names, and carried onto that
+vector with the log Jacobian of the map, exactly as class \code{"sd"}
+carries a density on a standard deviation onto its logarithm. So
+\code{set_prior("normal(0, 0.5)", class = "ar")} is a density on the AR
+coefficient itself, and \code{summary()} reports the parameter the prior
+was written about.
+
+Bounds behave the same way where the map allows it. A first-order
+\code{ar}, \code{ma} or \code{cosy} coefficient is a monotone function of one
+internal parameter, so \code{lb}/\code{ub} map exactly onto a box. At order two
+and above they do not: \code{ar[1]} is a function of every internal
+parameter of the block at once, so no box in internal space is the
+box asked for, and \code{lb}/\code{ub} are refused rather than approximated.
+Little is lost, because the parameterization already guarantees
+stationarity and invertibility, which is what such a bound is usually
+for; where a hard box really is wanted, \code{class = "theta"} with
+\code{coef = "thetaac_1"} bounds one internal parameter.
+
+\code{cosy} is bounded below at \code{-1/(d - 1)} for \code{d} time points, where a
+compound-symmetric matrix stops being positive definite, and a bound
+outside that window is refused rather than clamped. brms bounds
+\code{cosy} on \verb{[0, 1]} instead, so a negative estimate here has no brms
+counterpart.
+}
+
 \section{The LKJ prior}{
 
 \code{lkj(eta)} is the density \code{det(C)^(eta - 1)} over a block's
@@ -156,6 +239,16 @@ fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
 
 # an empty distribution string sets a hard bound only
 set_prior("", class = "b", coef = "x", lb = 0)
+
+# bounds address a nonlinear parameter the way a distribution does,
+# so a guessing rate is held in [0, 1]
+set_prior("", nlpar = "guess", lb = 0, ub = 1)
+
+# the residual-correlation classes are brms's own names
+set_prior("normal(0, 0.5)", class = "ar")
+set_prior("lkj(2)", class = "rescor")
+# and one internal covariance parameter, by its name
+set_prior("", class = "theta", coef = "thetaac_1", lb = -2, ub = 2)
 
 # class "cor" addresses a correlated block as a whole, brms's
 # spelling; eta > 1 pulls the correlation toward zero

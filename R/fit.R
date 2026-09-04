@@ -80,14 +80,6 @@
 #'   (default [stats::na.omit]). Rows dropped for missingness are
 #'   reported in a message; wrap the call in `suppressMessages()` to
 #'   silence it.
-#' @param lower,upper Optional named numeric vectors of hard box
-#'   constraints on outer parameters (brms `lb`/`ub`), on the internal
-#'   scale, e.g. `lower = c(b = 0)` for a nonlinear rate parameter.
-#'   Names as in `confint()` rows, with parentheses optional; a
-#'   nonlinear parameter declared intercept-only (`b ~ 1`) may be named
-#'   bare, as in that example, which resolves to `b_(Intercept)`. One
-#'   that carries several coefficients is refused rather than resolved
-#'   to one of them.
 #' @param prior Optional [set_prior()] specification. This makes the
 #'   fit MAP / regularized ML (glmmTMB's `priors=` in spirit): useful
 #'   for stabilizing singular variance components or separating
@@ -99,6 +91,16 @@
 #'   scope. The argument takes brms's spelling, `prior`; the `priors`
 #'   of releases before 0.43 is gone rather than aliased, and a call
 #'   still using it fails as an unused argument.
+#'
+#'   This is also where HARD BOUNDS are written, as `lb`/`ub` on a
+#'   specification that may carry no distribution at all:
+#'   `set_prior("", nlpar = "guess", lb = 0, ub = 1)` is a box
+#'   constraint and nothing else. The `lower`/`upper` arguments of
+#'   releases before 0.49 are gone rather than aliased, and a call still
+#'   using them fails as an unused argument; every outer parameter they
+#'   could reach has a `set_prior()` class, down to a single internal
+#'   covariance parameter (`class = "theta", coef = "thetaac_1"`). See
+#'   [set_prior()]'s Hard bounds section.
 #'
 #'   *The spelling is brms's; the SEMANTICS are not.* A prior here is a
 #'   penalty on the likelihood and the answer is one mode. It is not a
@@ -389,7 +391,7 @@
 #' @export
 frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 control = frmtmb_control(), se = FALSE,
-                na.action = stats::na.omit, lower = NULL, upper = NULL,
+                na.action = stats::na.omit,
                 prior = NULL, quadrature = FALSE, data2 = list(),
                 dry_run = NULL, verbose = FALSE) {
   cl <- match.call()
@@ -469,7 +471,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   if (identical(dry_run, "frame")) return(frame)
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
-                control = control, se = se, lower = lower, upper = upper,
+                control = control, se = se, lower = NULL, upper = NULL,
                 prior = prior, quadrature = quadrature, data2 = data2,
                 objective_only = identical(dry_run, "objective"),
                 # the user's own call is the one place a placed start is
@@ -637,6 +639,12 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       nlp <- neg_log_prior_fn(ri$entries)
       nll <- function(pars) nll0(pars) + nlp(pars)
     }
+    # The prior is the ONLY source of bounds now that frm() has no
+    # lower/upper of its own. `lower`/`upper` still arrive from the
+    # refit paths (allfit, anova, influence, simulate), which forward
+    # the box a fit was built with alongside its prior; those two agree
+    # by construction, so the merge is idempotent there and exists to
+    # keep a caller that forwards only the box from losing it.
     if (length(ri$lower)) {
       lower <- utils::modifyList(as.list(ri$lower),
                                  as.list(lower %||% c()))
