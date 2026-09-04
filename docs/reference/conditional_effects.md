@@ -280,7 +280,7 @@ family, whose probabilities have no threshold Jacobian to differentiate.
 ## Draws objects
 
 On a `frmtmb_draws` object from
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 the same grids are evaluated once per posterior draw, and `estimate__`,
 `lower__`, `upper__` and `se__` are the pointwise mean, quantiles and
 standard deviation of the drawn curves. There is no `band =` or

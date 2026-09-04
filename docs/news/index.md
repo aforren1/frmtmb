@@ -61,12 +61,12 @@ the package split, and a shipping case study.
 
 - The posterior diagnostics and the posterior half of the brms migration
   live in frmtmb.sample as documents of their own
-  (`vignette("posterior-diagnostics", package = "frmtmb.sample")`,
-  `vignette("brms-posterior", package = "frmtmb.sample")`); core keeps
-  the maximum-likelihood halves and points across. The case-studies
-  wiener section is replaced by a shifted-lognormal custom family
-  cross-checked against the built-in to machine precision, with the
-  drift-diffusion model deferred to frmtmb.ddm.
+  ([`vignette("posterior-diagnostics", package = "frmtmb.sample")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/posterior-diagnostics.html),
+  [`vignette("brms-posterior", package = "frmtmb.sample")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/brms-posterior.html));
+  core keeps the maximum-likelihood halves and points across. The
+  case-studies wiener section is replaced by a shifted-lognormal custom
+  family cross-checked against the built-in to machine precision, with
+  the drift-diffusion model deferred to frmtmb.ddm.
 - New `habit_prep` data and
   [`vignette("habit")`](https://aforren1.github.io/frmtmb/articles/habit.md):
   a case study replicating the response-preparation model of Hardwick,
@@ -199,7 +199,7 @@ companion packages in this repository.
 - [`?frm`](https://aforren1.github.io/frmtmb/reference/frm.md) gains
   “The Laplace approximation, and how to check it”, naming the
   in-package remedies and pointing at
-  [`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html)
+  [`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.html)
   for the direct measurement.
 - Core’s boundary test now asserts zero: no core file names a structured
   family or an ODE symbol outside the two family homes that remain until

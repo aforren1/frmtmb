@@ -46,7 +46,7 @@ loop; they are integrated out.
 **Laplace approximation.** The method that integrates the inner
 parameters out of the joint likelihood to leave a marginal likelihood in
 the outer parameters alone. It comes from TMB and RTMB.
-[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html)
+[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.html)
 audits it against NUTS draws on the same objective.
 
 **ML and REML.** Under maximum likelihood, only `b` is inner.

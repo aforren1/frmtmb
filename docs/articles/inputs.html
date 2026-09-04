@@ -42,6 +42,15 @@
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -122,7 +131,7 @@ outer loop; they are integrated out.</p>
 <p><strong>Laplace approximation.</strong> The method that integrates
 the inner parameters out of the joint likelihood to leave a marginal
 likelihood in the outer parameters alone. It comes from TMB and RTMB.
-<code><a href="https://aforren1.github.io/frmtmb/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code> audits it against NUTS draws
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code> audits it against NUTS draws
 on the same objective.</p>
 <p><strong>ML and REML.</strong> Under maximum likelihood, only
 <code>b</code> is inner. <code>REML = TRUE</code> moves the fixed

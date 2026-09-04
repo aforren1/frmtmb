@@ -1,7 +1,7 @@
 # Priors used in a fit
 
 On draws from
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 this reports the priors the sampler applied, which on the formula
 interface includes the brms default priors it chose (see the Default
 priors section of that function).
@@ -20,7 +20,7 @@ prior_summary(object, ...)
 - object:
 
   A `frmtmb_fit`, or a `frmtmb_draws` from
-  [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html).
+  [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html).
 
 - ...:
 

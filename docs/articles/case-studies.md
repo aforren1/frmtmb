@@ -973,7 +973,7 @@ anova(frm(bf(y ~ x) + sratio(), data = dord), fcs)
 This study moved. `hmm()` now lives in the `frmtmb.latent` package, and
 the animal-track fit, its cross-checks against hmmTMB and depmixS4, and
 the list of what the HMM surface refuses are in
-`vignette("latent", package = "frmtmb.latent")`.
+[`vignette("latent", package = "frmtmb.latent")`](https://aforren1.github.io/frmtmb/frmtmb.latent/articles/latent.html).
 
 ## 10. Function-on-scalar regression
 
@@ -1475,8 +1475,11 @@ A drift-diffusion model sat in this slot until frmtmb.ddm existed: a
 first-passage density written as a series, a boundary indicator arriving
 through `vint()`, and a non-decision time bounded exactly as the shift
 is above. That family is a package now, and the package does the density
-better than a case study did. `vignette("ddm", package = "frmtmb.ddm")`
-is the worked model, and `frmtmb.ddm::wiener()` is the family.
+better than a case study did.
+[`vignette("ddm", package = "frmtmb.ddm")`](https://aforren1.github.io/frmtmb/frmtmb.ddm/articles/ddm.html)
+is the worked model, and
+[`frmtmb.ddm::wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.html)
+is the family.
 
 Two lessons live there rather than here:
 
@@ -1711,8 +1714,8 @@ is excluded from
 because a matrix covariate has no single value to hold the other
 predictors at. A family whose likelihood does not factorize over the
 rows refuses more than that:
-`vignette("latent", package = "frmtmb.latent")` works through the whole
-refusal set of one such family.
+[`vignette("latent", package = "frmtmb.latent")`](https://aforren1.github.io/frmtmb/frmtmb.latent/articles/latent.html)
+works through the whole refusal set of one such family.
 
 The identity-refit check of section 1 belongs in any model that reads a
 matrix from `data2`. It is the one test that a structured covariance

@@ -1,0 +1,46 @@
+Adds two families whose latent variable is a discrete state to the model
+grammar of 'frmtmb'. 'hmm()' fits hidden Markov models with
+covariate-dependent transitions, summing the state sequence out exactly
+with the forward algorithm and decoding it with the forward-backward and
+Viterbi passes. 'lca()' fits latent class analysis in the manner of
+'poLCA', with conditionally independent polytomous items and a
+multinomial logit on the class membership. Both are written entirely
+against the structured-family protocol that 'frmtmb' exports, so neither
+needs a branch inside the core package.
+
+# Package index
+
+## All functions
+
+- [`hmm()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm.md)
+  : Hidden Markov models
+
+- [`hmm_probs()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_probs.md)
+  : Posterior state probabilities of an hmm fit
+
+- [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_viterbi.md)
+  : Most likely state path of an hmm fit (Viterbi)
+
+- [`lca()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.md)
+  : Latent class analysis
+
+- [`lca_probs()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca_probs.md)
+  :
+
+  Posterior class membership of an
+  [`lca()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.md)
+  fit
+
+- [`lca_profiles()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca_profiles.md)
+  :
+
+  The fitted item profiles of an
+  [`lca()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.md)
+  fit
+
+# Articles
+
+### All vignettes
+
+- [Hidden Markov models and latent class
+  analysis](https://aforren1.github.io/frmtmb/frmtmb.latent/articles/latent.md):

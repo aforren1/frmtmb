@@ -38,7 +38,7 @@ A `frmtmb_prior` object.
 
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) takes them
 as a MAP penalty, and so does
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html),
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html),
 where they take over exactly the parameters they name and leave the rest
 of the prior stack in place.
 [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)

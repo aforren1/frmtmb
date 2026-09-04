@@ -16,7 +16,7 @@ Description: Samples the posterior of a model assembled by 'frmtmb',
     predictive checks, and conversion to the 'posterior' and 'coda'
     draws formats.
 License: GPL (>= 2)
-URL: https://aforren1.github.io/frmtmb/,
+URL: https://aforren1.github.io/frmtmb/frmtmb.sample,
     https://github.com/aforren1/frmtmb
 BugReports: https://github.com/aforren1/frmtmb/issues
 Encoding: UTF-8
@@ -53,3 +53,4 @@ Suggests:
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.0
+Config/Needs/website: pkgdown

@@ -11,7 +11,7 @@ formulas. Most users want
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md),
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
 and
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 instead. Nothing here validates its arguments the way the user-facing
 surface does.
 

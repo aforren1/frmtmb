@@ -32,7 +32,7 @@ A single integer.
 
 As with the `as_draws` family, the objects that answer these with a
 number come from
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html).
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html).
 
 ## Examples
 

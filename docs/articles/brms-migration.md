@@ -486,8 +486,9 @@ Nothing in the grammar changes when you sample, which is why the two
 halves split cleanly. What does change is everything around the draws:
 the argument names of the call, the parameter spellings, and which
 `brmsfit` methods have no counterpart.
-`vignette("brms-posterior", package = "frmtmb.sample")` is that half,
-and `vignette("posterior-diagnostics", package = "frmtmb.sample")`
+[`vignette("brms-posterior", package = "frmtmb.sample")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/brms-posterior.html)
+is that half, and
+[`vignette("posterior-diagnostics", package = "frmtmb.sample")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/posterior-diagnostics.html)
 covers the diagnostics of a sampled fit.
 
 ## When you still want brms

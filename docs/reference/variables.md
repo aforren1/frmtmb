@@ -9,7 +9,7 @@ targeting) accept: fixed-effect coefficients under their
 stripped, natural-scale random-effect summaries (`sd_<group>__<term>`,
 `cor_<group>__<t1>__<t2>`), and `sigma` when the residual SD is a
 scalar. The brms spelling; for sampled fits, `variables()` on the
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 result lists the draw columns instead.
 
 ## Usage

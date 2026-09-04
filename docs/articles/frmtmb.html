@@ -42,6 +42,15 @@
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -407,10 +416,10 @@ through <code><a href="../reference/pp_check.html">pp_check()</a></code>, and ef
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="../reference/conditional_effects.html">conditional_effects</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The same fitted objective can be handed to NUTS for full Bayes on the
 same model. That lives in the companion package
-<strong>frmtmb.sample</strong>: <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code>
+<strong>frmtmb.sample</strong>: <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code>
 returns draws with the whole posterior method surface
 (<code>posterior_epred()</code>, <code><a href="../reference/hypothesis.html">hypothesis()</a></code>,
-<code><a href="../reference/loo.html">loo()</a></code>), and <code><a href="https://aforren1.github.io/frmtmb/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code>
+<code><a href="../reference/loo.html">loo()</a></code>), and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code>
 audits the Laplace approximation against them.</p>
 <p>See <code><a href="../articles/inputs.html">vignette("inputs")</a></code> for what <code><a href="../reference/frm.html">frm()</a></code>
 accepts and what it costs to run,

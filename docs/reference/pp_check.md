@@ -53,7 +53,7 @@ pp_check(
 
   lme4's spelling of `re_formula`, accepted as an alias. Pass one or the
   other, not both; see the *Argument spellings* section of
-  [`frmtmb.sample::posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.html).
+  [`frmtmb.sample::posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.html).
 
 ## Value
 

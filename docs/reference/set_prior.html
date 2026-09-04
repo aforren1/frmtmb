@@ -34,6 +34,13 @@ sets bounds only.'></head><body>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -187,7 +194,7 @@ parameter itself, one position at a time with <code>coef = "theta_2"</code>,
 internal (link) scale, so a bound on a log-linked dispersion is a
 bound on its logarithm.</p>
 <p>In <code><a href="frm.html">frm()</a></code> a bound is a box constraint handed to the optimizer; in
-<code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> it becomes one of Stan's constrained
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> it becomes one of Stan's constrained
 transforms. Both take this spelling and no other: the <code>lower</code>/<code>upper</code>
 arguments of releases before 0.49 are gone rather than aliased, and a
 call still using them fails as an unused argument. Every outer
@@ -277,7 +284,7 @@ a claim about where to begin. Without a located prior a nonlinear
 model still needs <code>start</code>, because <code><a href="frm.html">frm()</a></code> evaluates the objective
 AT the starting values; <code><a href="par_template.html">par_template()</a></code> names them.</p>
 <p><code>resp</code> picks one response of a multivariate model; the default
-priors of <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> still stay off there (see
+priors of <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> still stay off there (see
 its Default priors section), so a multivariate model's priors are the
 ones
 written by hand.</p>
