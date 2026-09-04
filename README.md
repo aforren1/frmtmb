@@ -98,13 +98,11 @@ GitHub:
 remotes::install_github("aforren1/frmtmb")
 ```
 
-One optional dependency, RTMBode, is not on CRAN either. It is
-needed only by `frm_ode()`. Install it from r-universe:
+Ordinary differential equation dynamics live in a separate package,
+`frmtmb.ode`, in this repository:
 
 ```r
-install.packages("RTMBode", repos = c(
-  "https://kaskr.r-universe.dev",
-  "https://cloud.r-project.org"))
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 ```
 
 ## Example
@@ -208,9 +206,10 @@ three layers:
   latent class analysis with class-membership regression.
   `custom_family()` takes a plain R log-density. The test suite fits
   a Wiener drift-diffusion model in about 15 lines.
-- Ordinary differential equations: `frm_ode()` solves compartment
-  models inside nonlinear formulas (population pharmacokinetics),
-  with repeated dosing, infusions, and estimated bioavailability.
+- Ordinary differential equations: the `frmtmb.ode` package adds
+  `frm_ode()`, which solves compartment models inside nonlinear
+  formulas (population pharmacokinetics), with repeated dosing,
+  infusions, and estimated bioavailability.
 - The addition terms are `weights()`, `trials()` (counts or
   proportions), `cens()`, `trunc()`, `se()` (meta-analysis), `mi()`,
   and `vint()`/`vreal()`.

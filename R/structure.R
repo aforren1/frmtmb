@@ -63,6 +63,19 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #' that changes the likelihood and nothing else needs: give `loglik` and
 #' leave the rest alone.
 #'
+#' @section Extending frmtmb from another package:
+#' This is one of three seams a package outside frmtmb uses, and it is
+#' the one for a family. Attach a structure to a family and the core
+#' needs no branch that names the family, which is what lets the family
+#' ship somewhere else. [frmtmb_register_frame_check()] is the seam for
+#' a feature that is NOT a family and still has to refuse a data problem
+#' the assembled frame shows: register a check at load time and the core
+#' calls it on every frame. [frmtmb-extension-api] is the read-only
+#' accessor set both kinds of extension use to reach a fit. The worked
+#' example of the second seam is the `frmtmb.ode` package, whose
+#' `frm_ode()` refuses a dynamics input that varies inside a solve
+#' group; its registration is three lines of `.onLoad()`.
+#'
 #' `loglik = NULL` keeps the family's own rowwise `lpdf` and makes the
 #' structure a CAPABILITY DECLARATION instead. That is what a family
 #' whose likelihood does factorize per row but which still has to refuse
@@ -279,7 +292,7 @@ frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
     list(frame_vars = frame_vars, keep_na = isTRUE(keep_na),
          check_spec = check_spec, frame_block = frame_block,
          check_frame = check_frame, check_fit = check_fit,
-         loglik = if (!is.null(loglik)) ad_overload_fn(loglik),
+         loglik = if (!is.null(loglik)) frmtmb_ad_overload(loglik),
          unit = unit,
          fitted_mean = fitted_mean, fitted_var = fitted_var,
          latent_probs = latent_probs, sim_ctx = sim_ctx,
@@ -632,4 +645,98 @@ structure_gate <- function(st, flag, generic, context = NULL) {
   if (!is.null(context)) msg <- ref[[paste0(flag, ".", context)]]
   msg <- msg %||% ref[[flag]] %||% generic
   stop(msg, call. = FALSE)
+}
+
+# ------------------------------------------ frame-check contributor seam
+#
+# Some refusals can only be stated once the design matrices exist:
+# valid_y() runs before the predictors are built, and
+# frmtmb_structure(check_frame =) is reached through a family, so a
+# feature that is not a family has no way in. This registry is that way
+# in. The core consults it at one point of frame assembly, just before
+# the per-family check_frame slots run.
+#
+# A registry rather than a generic: at that point of assembly no object
+# belongs to the extension, so a generic would need a class invented for
+# it to dispatch on. Registration order is kept and every check runs.
+# Contributions are append-only, which is the only safe direction when
+# any one check can stop the fit.
+
+frmtmb_frame_checks <- new.env(parent = emptyenv())
+frmtmb_frame_checks$fns <- list()
+
+#' Check an assembled model frame from another package
+#'
+#' Registers a function that frmtmb calls on every model frame it
+#' assembles, after the response and the design matrices are built and
+#' before the objective is taped. A package that adds model syntax of
+#' its own uses this to refuse a data problem that only the assembled
+#' frame can show. Register from the contributing package's `.onLoad()`.
+#'
+#' The check is called as `fn(spec, frame)` and its return value is
+#' discarded. To refuse a model, call `stop()` with a message that says
+#' what is wrong and what the user can do instead. A check with nothing
+#' to say returns without error. The frame is a read-only view: a check
+#' must not try to change the model.
+#'
+#' `frame` is a named list. These elements are the contract:
+#'
+#' \describe{
+#'   \item{`spec`}{The parsed model specification, the same object the
+#'     first argument carries.}
+#'   \item{`n_obs`}{Number of observations.}
+#'   \item{`y`}{The response, already coerced.}
+#'   \item{`y_levels`}{Response levels for a categorical family, else
+#'     `NULL`.}
+#'   \item{`aterm_values`}{Values of the addition terms, by response.}
+#'   \item{`data_frame`}{The model frame, one row per observation.}
+#'   \item{`linpred`}{`function(resp_name, dpar)` giving the linear
+#'     predictor of one distributional or nonlinear parameter, or `NULL`
+#'     when there is none. Elements `X` and `Z` are its fixed and random
+#'     design matrices. Use this accessor. The key format of the
+#'     `linpreds` list itself is internal and can change.}
+#' }
+#'
+#' Other elements of `frame` are internal assembly structures. They are
+#' present, but they are not part of the contract.
+#'
+#' @param fn A function of two arguments, the model specification and
+#'   the assembled frame.
+#' @return `NULL`, invisibly. Called for the registration.
+#' @seealso [frmtmb_structure()] for the family-side protocol, and
+#'   [frmtmb-extension-api] for the accessors an extension may use
+#' @examples
+#' # the shape of a check: refuse what only the assembled frame shows
+#' check_not_constant <- function(spec, frame) {
+#'   if (length(unique(frame$y)) == 1L) {
+#'     stop("The response takes one value, so nothing can be estimated.",
+#'          call. = FALSE)
+#'   }
+#' }
+#'
+#' # a registration lasts for the session, so it belongs in the
+#' # contributing package's .onLoad(), not in a script
+#' \dontrun{
+#' frmtmb_register_frame_check(check_not_constant)
+#' }
+#' @export
+frmtmb_register_frame_check <- function(fn) {
+  if (!is.function(fn)) {
+    stop("frmtmb_register_frame_check(fn =) must be a function, not ",
+         class(fn)[1L], ".", call. = FALSE)
+  }
+  if (length(formals(fn)) < 2L) {
+    stop("frmtmb_register_frame_check(fn =) must take two arguments, ",
+         "the model specification and the assembled frame.", call. = FALSE)
+  }
+  frmtmb_frame_checks$fns <- c(frmtmb_frame_checks$fns, fn)
+  invisible(NULL)
+}
+
+#' Run every registered frame check.
+#'
+#' @noRd
+run_frame_checks <- function(spec, frame) {
+  for (fn in frmtmb_frame_checks$fns) fn(spec, frame)
+  invisible(NULL)
 }

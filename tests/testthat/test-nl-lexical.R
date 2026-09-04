@@ -7,7 +7,7 @@
 # in the formula environment to something `model.frame()` could never
 # hold as a column: a function, a list (a data.frame is one), an
 # environment, a language object. Those are the arguments of a helper -
-# `frm_ode(pk_dyn, ..., events = doses)` - not column references.
+# `solve_pk(pk_dyn, ..., events = doses)` - not column references.
 #
 # The boundary matters in both directions, so this file pins both
 # sides: the refused types resolve lexically, and vectors and matrices

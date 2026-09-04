@@ -13,14 +13,10 @@ jobs:
   pkgcheck:
     runs-on: ubuntu-latest
     env:
-      # The action's container installs our dependencies with pak, which
-      # cannot read Additional_repositories from DESCRIPTION, so RTMBode
-      # (r-universe-only Suggests) breaks resolution. The container's
-      # entrypoint is a plain Rscript with the workspace as its working
-      # directory, so it sources this profile, which sets repos to
-      # CRAN plus the kaskr repository; pak forwards the session's
-      # repos option. Verified locally: pak resolves RTMBode 1.0 with
-      # the profile, fails without it.
+      # The container's entrypoint is a plain Rscript with the workspace
+      # as its working directory, so it sources this profile. It carries
+      # the sampler-gate setting below, which the container does not
+      # always pass through as an environment variable.
       R_PROFILE_USER: .github/pkgcheck.Rprofile
       # Chain-agreement test gates are off here: seeded Stan chains are
       # not platform-deterministic, and this container repeatedly draws

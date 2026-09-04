@@ -153,8 +153,8 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
   links <- lapply(links, get_link)
   # user-written densities run with the AD overloads in scope; a
   # function that already binds them itself is left untouched
-  lpdf <- ad_overload_fn(lpdf)
-  if (!is.null(lcdf)) lcdf <- ad_overload_fn(lcdf)
+  lpdf <- frmtmb_ad_overload(lpdf)
+  if (!is.null(lcdf)) lcdf <- frmtmb_ad_overload(lcdf)
   if (!is.null(structure) && !inherits(structure, "frmtmb_structure")) {
     stop("frmtmb_family(structure =) must come from frmtmb_structure(), ",
          "which is what declares a likelihood that does not factorize ",

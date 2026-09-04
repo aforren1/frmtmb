@@ -302,7 +302,6 @@ case sensitive and accepts unambiguous prefixes. `"response"` and
 | `conditional_effects()` | `band` | `"wald"`, `"profile"`, `"boot"` |
 | `hmm()` | `init` | `"stationary"`, `"estimated"`, `"uniform"` |
 | `loo_compare()` | `criterion` | `"loo"`, `"waic"` |
-| `frm_ode()` | `on_error` | `"penalize"`, `"error"` |
 | `vcov_cluster()` | `type` | `"CR0"`, `"CR1"`, `"CR1p"`, `"CR1S"` |
 
 `confint(method =)` is the one place that accepts two spellings of the

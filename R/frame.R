@@ -688,9 +688,9 @@ nl_lexical_only <- function(obj) {
 #' that is not a nonlinear parameter and asks the combined model frame
 #' for it. That is right for `pk_ode(exp(lka), time, dose)`, where only
 #' the arguments are symbols, and wrong as soon as a helper takes
-#' another object as an argument - `frm_ode(pk_dyn, ...)` would ask
+#' another object as an argument - `solve_pk(pk_dyn, ...)` would ask
 #' `model.frame()` for a column named `pk_dyn`, and
-#' `frm_ode(..., events = doses)` for a column named `doses`. The body
+#' `solve_pk(..., events = doses)` for a column named `doses`. The body
 #' is evaluated in its own formula environment anyway, so a name that
 #' is not a column of `data` and resolves there to something
 #' `model.frame()` could never accept as a column of any data - see
@@ -2215,11 +2215,6 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
   }
 
-  # frm_ode() reads its dynamics inputs off each group's first row, and
-  # cannot see whether they vary inside the group once they are AD
-  # values; here the designs and the grouping column are both in hand
-  check_ode_constancy(spec, linpreds, mf)
-
   # A refusal that depends on the DESIGN rather than on the response
   # cannot be stated from valid_y(): the predictors do not exist yet
   # when that runs. The frame handed over is the assembled one minus
@@ -2227,7 +2222,19 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   frame_so_far <- list(spec = spec, n_obs = n, y = y, y_levels = y_levels,
                        aterm_values = aterm_values, linpreds = linpreds,
                        re_blocks = re_blocks, blocks = blocks,
-                       autocor = autocor, data_frame = mf)
+                       autocor = autocor, data_frame = mf,
+                       # the supported way for a check outside this
+                       # package to reach a linear predictor, so the key
+                       # format of `linpreds` stays ours to change
+                       linpred = function(resp_name, dpar) {
+                         linpreds[[linpred_key(resp_name, dpar)]]
+                       })
+
+  # Checks contributed from another package run first: a feature that
+  # adds its own syntax refuses its own data problems before a family
+  # gets to speak about the response.
+  run_frame_checks(spec, frame_so_far)
+
   for (resp_ in spec$responses) {
     cf_ <- fam_structure(resp_$family)[["check_frame"]]
     if (!is.null(cf_)) cf_(spec, frame_so_far)

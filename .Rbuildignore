@@ -1,6 +1,7 @@
 ^\.github$
 ^\.git$
 ^dev$
+^extensions$
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$

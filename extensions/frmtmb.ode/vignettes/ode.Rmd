@@ -11,8 +11,9 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 # the package load must sit in this unconditional chunk: the tangled
 # script skips eval-gated chunks, so a library() inside one leaves
-# every later unconditional chunk without frm()
-library(frmtmb)
+# every later unconditional chunk without frm(). frmtmb.ode depends on
+# frmtmb, so this one call attaches the formula grammar as well
+library(frmtmb.ode)
 has_ode <- requireNamespace("RTMBode", quietly = TRUE)
 # figures are a second, independent option: the vignette renders whole
 # without either package
@@ -29,9 +30,16 @@ other `frm()` model.
 
 ## Setup
 
-`frm_ode()` needs the **RTMBode** package, which supplies a
-differentiable interface to the **deSolve** integrators. It is not on
-CRAN:
+`frm_ode()` is in **frmtmb.ode**, a package of its own that adds the
+solver to frmtmb's formula grammar. Both live in the same repository:
+
+```{r, eval = FALSE}
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
+```
+
+It needs the **RTMBode** package in turn, which supplies a
+differentiable interface to the **deSolve** integrators. RTMBode is not
+on CRAN:
 
 ```{r, eval = FALSE}
 install.packages("RTMBode", repos = c(
@@ -39,7 +47,7 @@ install.packages("RTMBode", repos = c(
   "https://cloud.r-project.org"))
 ```
 
-Everything below is skipped if it is not installed.
+Everything below is skipped if RTMBode is not installed.
 
 ## A population pharmacokinetic model
 

@@ -17,8 +17,8 @@
 #' gives Wald, profile-likelihood, likelihood-root or bootstrap
 #' intervals. `anova()` and `drop1()` give likelihood-ratio tests.
 #' `vignette("frmtmb")`, `vignette("brms-migration")`,
-#' `vignette("case-studies")`, `vignette("diagnostics")` and
-#' `vignette("ode")` all report their models this way. `set_prior()` on
+#' `vignette("case-studies")` and `vignette("diagnostics")` all report
+#' their models this way. `set_prior()` on
 #' a `frm()` fit gives a penalized (MAP) point estimate, which is
 #' regularization and not posterior inference.
 #'

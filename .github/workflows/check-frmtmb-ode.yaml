@@ -1,0 +1,83 @@
+# R CMD check for the ODE extension, extensions/frmtmb.ode.
+#
+# The extension is not part of the core tarball (.Rbuildignore excludes
+# extensions/), so the core workflows never see it. This job installs the
+# core package from the checkout, then checks the extension against that
+# build. The path filter includes the core R sources as well as the
+# extension's own tree, because the extension consumes two core exports
+# and a change to either is what would break it.
+#
+# One runner and one R version, binary packages only, on purpose: the
+# extension compiles nothing. Its own R code is pure R, and every
+# compiled dependency it reaches (RTMB, RTMBode, deSolve) comes as a
+# binary from the RSPM or r-universe build. A matrix here would only
+# re-check the core's portability, which R-CMD-check.yaml already does on
+# four platforms.
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'extensions/frmtmb.ode/**'
+      - 'R/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '.github/workflows/check-frmtmb-ode.yaml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'extensions/frmtmb.ode/**'
+      - 'R/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '.github/workflows/check-frmtmb-ode.yaml'
+  workflow_dispatch:
+
+name: check-frmtmb.ode
+
+jobs:
+  check-frmtmb-ode:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      NOT_CRAN: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+          # RTMBode is on r-universe, not CRAN. pak does not read
+          # Additional_repositories from the extension's DESCRIPTION, but
+          # it honors the repos option this input writes to the Rprofile.
+          extra-repositories: 'https://kaskr.r-universe.dev'
+      # The core's own dependencies, resolved from the root DESCRIPTION,
+      # so that R CMD INSTALL below has everything it needs.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+      - name: Install the core package from this checkout
+        run: R CMD INSTALL --no-multiarch --with-keep.source .
+        shell: bash
+      # The extension's own dependencies, read from its DESCRIPTION and
+      # installed directly rather than through pak. pak resolves every
+      # dependency against a repository, and frmtmb is in no repository:
+      # the build wanted here is the one installed from the checkout in
+      # the step above, so frmtmb is skipped along with anything else
+      # already present.
+      - name: Install the extension's dependencies
+        run: |
+          d <- read.dcf("extensions/frmtmb.ode/DESCRIPTION")
+          f <- intersect(c("Imports", "Suggests"), colnames(d))
+          p <- unlist(strsplit(paste(d[, f], collapse = ","), ","))
+          p <- trimws(sub("[(].*", "", p))
+          p <- setdiff(p[nzchar(p)], rownames(installed.packages()))
+          if (length(p)) install.packages(p)
+        shell: Rscript {0}
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          working-directory: extensions/frmtmb.ode
+          args: 'c("--no-manual")'
+          upload-snapshots: true

@@ -509,6 +509,6 @@ if (requireNamespace("RTMBode", quietly = TRUE)) {
 }
 \seealso{
 \code{\link[=frm_ode_failures]{frm_ode_failures()}} for the groups a penalty was written
-into, \code{\link[=bf]{bf()}} for the nonlinear formula grammar, and
+into, \code{\link[frmtmb:bf]{frmtmb::bf()}} for the nonlinear formula grammar, and
 \code{vignette("ode")} for a worked population pharmacokinetic model.
 }

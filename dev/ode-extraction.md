@@ -1,8 +1,19 @@
 # Extracting the ODE seam: frmtmb.ode
 
-Status: design, written 2026-09-03 against v0.45.0. Executes after
-protocol steps 6 through 9 land (the ratchet and frame.R would
-otherwise be contested by two lanes).
+Status: EXECUTED 2026-09-03 on branch wt-odeext against v0.46.0.
+extensions/frmtmb.ode exists and holds frm_ode(); core keeps neither
+R/ode.R nor any RTMBode dependency. Written as design against v0.45.0,
+to execute after protocol steps 6 through 9 landed (the ratchet and
+frame.R would otherwise have been contested by two lanes).
+
+Corrections found in execution, kept here because the note is the
+record: frame.R reached ode.R ONCE, not twice. The only core reference
+to any R/ode.R symbol was check_ode_constancy() at frame.R:2221. The
+supposed second hook, the nl-body auto-wrap riding ad_overload_fn, is
+not ODE-specific at all: drop_nl_lexical_datavars() accepts any
+function, list, environment or language object, and frm_ode appeared in
+it only as prose. Core also carried NO ODE compat rows, so the
+compat-row migration this note anticipated had nothing to move.
 
 ## Layout
 

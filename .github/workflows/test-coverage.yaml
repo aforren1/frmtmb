@@ -24,10 +24,6 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
-          # RTMBode (Suggests) lives on r-universe, not CRAN; pak does
-          # not read Additional_repositories from DESCRIPTION, but it
-          # honors the repos option this input writes to the Rprofile
-          extra-repositories: 'https://kaskr.r-universe.dev'
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::covr, any::xml2

@@ -1,17 +1,7 @@
 # Sourced by the pkgcheck-action container via R_PROFILE_USER (set in
-# .github/workflows/pkgcheck.yaml). The action installs the package's
-# dependencies with pak, which cannot read Additional_repositories from
-# DESCRIPTION; RTMBode (Suggests) only exists on r-universe. At
-# user-profile time getOption("repos") can still be NULL (the CRAN
-# default is applied later in startup), so a CRAN entry is set
-# explicitly rather than relying on an append.
-local({
-  r <- getOption("repos")
-  if (!length(r) || identical(unname(r), "@CRAN@")) {
-    r <- c(CRAN = "https://cloud.r-project.org")
-  }
-  options(repos = c(r, kaskr = "https://kaskr.r-universe.dev"))
-})
+# .github/workflows/pkgcheck.yaml). Every dependency of the core package
+# is on CRAN, so this profile no longer has repositories to add; the ODE
+# extension is the one r-universe consumer and it is not checked here.
 
 # belt and suspenders for the workflow env (see pkgcheck.yaml)
 Sys.setenv(FRMTMB_SAMPLER_GATES = "false")

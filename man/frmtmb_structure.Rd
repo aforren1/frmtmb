@@ -112,6 +112,20 @@ with \code{frmtmb_family(structure = )}.
 Every slot defaults to the rowwise behavior, which is what a family
 that changes the likelihood and nothing else needs: give \code{loglik} and
 leave the rest alone.
+}
+\section{Extending frmtmb from another package}{
+
+This is one of three seams a package outside frmtmb uses, and it is
+the one for a family. Attach a structure to a family and the core
+needs no branch that names the family, which is what lets the family
+ship somewhere else. \code{\link[=frmtmb_register_frame_check]{frmtmb_register_frame_check()}} is the seam for
+a feature that is NOT a family and still has to refuse a data problem
+the assembled frame shows: register a check at load time and the core
+calls it on every frame. \link{frmtmb-extension-api} is the read-only
+accessor set both kinds of extension use to reach a fit. The worked
+example of the second seam is the \code{frmtmb.ode} package, whose
+\code{frm_ode()} refuses a dynamics input that varies inside a solve
+group; its registration is three lines of \code{.onLoad()}.
 
 \code{loglik = NULL} keeps the family's own rowwise \code{lpdf} and makes the
 structure a CAPABILITY DECLARATION instead. That is what a family
@@ -121,6 +135,7 @@ still refuses \code{REML}, \code{residuals(type = "osa")} and random effects in
 its gating predictor, and each of those refusals is a property of the
 family rather than of the method that meets it.
 }
+
 \section{The block}{
 
 \code{frame_block()} returns the \strong{block}: a plain list of DATA, stored

@@ -14,8 +14,6 @@ reference:
   - num_factor
   - frmtmb-autocor
   - frmtmb-multimembership
-  - frm_ode
-  - frm_ode_failures
 - title: Fitting
   contents:
   - frm
@@ -28,6 +26,8 @@ reference:
   contents:
   - frmtmb_family
   - frmtmb_structure
+  - frmtmb_register_frame_check
+  - frmtmb_ad_overload
   - frmtmb-extension-api
   - latent_probs
   - frmtmb-families
@@ -119,5 +119,4 @@ articles:
   - brms-migration
   - case-studies
   - diagnostics
-  - ode
   - compatibility

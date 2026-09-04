@@ -16,6 +16,14 @@
 # models live well below that ceiling; a stacked system does not. No
 # future optimization may collapse the loop.
 
+#' Default for a `NULL` left side.
+#'
+#' frmtmb has one of these, but it is internal there and base R gained
+#' `%||%` only in 4.4, later than this package's floor.
+#'
+#' @noRd
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
 # Adaptive integrators only. A fixed-step integrator run at deSolve's
 # default step count does not solve the system to the tolerance the
 # likelihood is defined at, so it returns a *different* likelihood, not
@@ -1171,7 +1179,7 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #' ```
 #'
 #' @seealso [frm_ode_failures()] for the groups a penalty was written
-#'   into, [bf()] for the nonlinear formula grammar, and
+#'   into, [frmtmb::bf()] for the nonlinear formula grammar, and
 #'   `vignette("ode")` for a worked population pharmacokinetic model.
 #'
 #' @examples
@@ -1258,7 +1266,7 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
   }
   # user code runs with the AD overloads in scope, so a dynamics
   # function need not carry the ADoverload boilerplate itself
-  dynamics <- ad_overload_fn(dynamics)
+  dynamics <- frmtmb::frmtmb_ad_overload(dynamics)
   if (length(method) != 1L || !is.character(method) ||
         !method %in% ode_adaptive_methods) {
     stop("`method` must name an adaptive integrator, one of: ",
@@ -1664,6 +1672,9 @@ frm_ode_failures <- function() {
 # values. That matters: the failure mode this catches (a time-varying
 # covariate on a dynamics parameter) is invisible to a value-based check
 # at a start value of zero, which is the usual start value.
+#
+# frmtmb calls this through frmtmb_register_frame_check(), which .onLoad
+# fills in. The core therefore names neither this package nor frm_ode().
 
 #' Every `frm_ode()` call inside an expression, matched to its formals.
 #'
@@ -1706,8 +1717,13 @@ missing_arg <- function(x) is.name(x) && !nzchar(as.character(x))
 #' symbol `group =` can be resolved against the model frame; anything
 #' computed is left to the runtime check in [frm_ode()].
 #'
+#' The signature is `frmtmb_register_frame_check()`'s: `frame` supplies
+#' the model frame and the `linpred()` accessor.
+#'
 #' @noRd
-check_ode_constancy <- function(spec, linpreds, mf) {
+check_ode_constancy <- function(spec, frame) {
+  mf <- frame[["data_frame"]]
+  linpred <- frame[["linpred"]]
   for (resp in spec$responses) {
     # every nonlinear body of the response, not just mu's: nlf() can put
     # a solve behind any parameter
@@ -1729,7 +1745,7 @@ check_ode_constancy <- function(spec, linpreds, mf) {
         aexpr <- cl[[arg]]
         if (is.null(aexpr)) next
         for (np in intersect(all.vars(aexpr), nlpars)) {
-          lp <- linpreds[[linpred_key(resp$resp_name, np)]]
+          lp <- linpred(resp$resp_name, np)
           if (is.null(lp)) next
           bad <- c(ode_varying_cols(lp$X, gi),
                    ode_varying_cols(lp$Z, gi))
