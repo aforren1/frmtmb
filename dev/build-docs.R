@@ -104,6 +104,42 @@ check_metadata <- function(pkg, dir) {
   invisible()
 }
 
+# pkgdown writes one redirect stub per help-page ALIAS, so that a URL
+# minted before two topics were merged still resolves. On a
+# case-insensitive filesystem, which is to say on Windows and on macOS,
+# that destroys a page whenever one alias differs from the page's own
+# name only by case. frmtmb has exactly one such pair: the `loo` topic
+# carries brms's deprecated `LOO` spelling, so `reference/LOO.html` and
+# `reference/loo.html` are one file, and the stub lands on the real
+# page. pkgdown then refuses to repair it, because the stub is not a
+# file pkgdown wrote. A site built on Linux is correct; one built here
+# is not, and the damage is silent.
+#
+# So: find the stubs that point at themselves and render those topics
+# again. Rendering last is what makes it stick.
+repair_case_collisions <- function(pkg, dir) {
+  dest <- yaml::read_yaml(file.path(dir, "_pkgdown.yml"))$destination %||% "docs"
+  ref <- file.path(dir, dest, "reference")
+  if (!dir.exists(ref)) return(invisible())
+  hit <- character(0)
+  for (f in list.files(ref, pattern = "[.]html$", full.names = TRUE)) {
+    if (file.size(f) > 1000) next
+    txt <- paste(readLines(f, warn = FALSE), collapse = " ")
+    if (!grepl("http-equiv=\"refresh\"", txt, fixed = TRUE)) next
+    # a stub whose target is its own file name is the collision: the
+    # alias it was written for differs from this page only in case
+    if (grepl(paste0("/", basename(f), "\""), txt, fixed = TRUE)) {
+      hit <- c(hit, sub("[.]html$", "", basename(f)))
+    }
+  }
+  if (!length(hit)) return(invisible())
+  message("--- repairing case-collided pages: ", paste(hit, collapse = ", "))
+  file.remove(file.path(ref, paste0(hit, ".html")))
+  pkgdown::build_reference(pkg = dir, topics = hit, preview = FALSE,
+                           lazy = FALSE, devel = FALSE)
+  invisible()
+}
+
 wanted <- commandArgs(trailingOnly = TRUE)
 if (length(wanted) == 0) wanted <- names(PKGS)
 if (!all(wanted %in% names(PKGS))) {
@@ -138,6 +174,7 @@ for (pkg in wanted) {
     new_process = FALSE
   )
   check_metadata(pkg, PKGS[[pkg]])
+  repair_case_collisions(pkg, PKGS[[pkg]])
 }
 
 message(sprintf("--- done in %.1f min",
