@@ -316,26 +316,18 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | nl          |     ?     |    ?     |   \+   |    ?    |  ?   |  ?   |   ?    |    ?    |
 | mixture     |    \+     |    ?     |   x    |    x    |  x   |  x   |   ?    |    ?    |
 | mixture_mvn |     ?     |    ?     |   x    |    x    |  ?   |  ?   |   ?    |    ?    |
-| hmm         |     x     |    \+    |   x    |    x    |  x   |  x   |   ?    |    ?    |
-| lca         |     x     |    x     |   x    |    x    |  x   |  x   |   x    |    x    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | x | rescor + weights(); rescor + se() | Refused. |
-| x | hmm + weights() | Refused: weights() scales a per-row log-density, and an HMM’s contribution is per sequence. |
-| x | lca + weights(); lca + trials(); lca + cens(); lca + trunc(); lca + se(); and 3 more | Refused: an lca() response is a matrix of item codes with no per-row weight, censoring window, trial count or known standard error to attach an addition term to. One message covers the whole set. |
 | x | rescor + cens() | Refused. This pair was once accepted with the censoring silently dropped. |
 | x | mixture + cens() | Refused: mixture() has no CDF, so the CDF guard rejects cens(). |
 | x | mixture_mvn + cens(); mixture_mvn + trunc() | Refused: mixture_mvn() has no CDF. |
-| x | hmm + cens() | Refused: censoring replaces a row’s density with a CDF difference, which the forward recursion has no room for. |
 | x | rescor + trunc() | Refused. This pair was once accepted with the truncation silently dropped. |
 | x | mixture + trunc() | Refused: mixture() has no CDF. |
-| x | hmm + trunc() | Refused for the same reason as cens(). |
 | x | mixture + se() | Refused: se() is supported for gaussian and student families only. |
-| x | hmm + se() | Refused: a known measurement SD is a per-row modification of the emission density; combining it with the state sum is not implemented. |
 | x | rescor + mi() | Refused: mi() cannot be combined with rescor = TRUE. |
 | x | mixture + mi() | Refused: mi() on the mixture response is not supported. |
-| x | hmm + mi() | Refused: an NA response is handled by hmm() itself - the row is kept and its emission masked, so the chain keeps its length - and needs no latent parameter. |
 
 ### Structures and post-fit methods
 
@@ -360,17 +352,11 @@ other.
 | nl | \+ | ~ | ? | ? | ? | x | ? | ? |
 | mixture | ? | ? | ~ | ? | ? | ? | ? | ? |
 | mixture_mvn | ? | ? | \+ | ? | ? | ? | ? | ? |
-| hmm | \+ | ~ | ~ | ~ | x | ? | ? | ? |
-| lca | x | ~ | \+ | x | x | ? | \+ | ? |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | ~ | nl + predict | Point predictions work. se.fit is not supported for the nonlinear predictor; request a nonlinear parameter with dpar instead. |
 | ~ | mixture + simulate | Works only when every component family has a simulator. |
-| ~ | hmm + predict | type = “link” and dpar = work normally, including the transition logits. type = “response” equals fitted() in sample; it is refused for newdata (state occupancy conditions on the observed responses of a whole sequence) and se.fit is refused on the response scale. |
-| ~ | lca + predict | predict() returns the gating linear predictor (theta1 by default, any theta with dpar =), including on newdata. type = “response” is refused with the fitted() message. |
-| ~ | hmm + simulate | A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. Since v0.36 the chain walk is the family’s structured simulator (fam\$sim_ctx), so posterior_predict() and frm_simulate() reach it too; posterior_predict(newdata =) is refused, because the sequence structure indexes the fitted rows. |
-| ~ | hmm + residuals | type = “response” and “pearson” are computed against the occupancy-weighted mean, with the pearson scale the law-of-total-variance mixture variance. type = “deviance” is refused: there is no per-row likelihood to saturate. |
 | x | mvbf + fitted; rescor + fitted | Refused: fitted() calls single_response() and stops with ‘fitted() is not supported yet for multivariate fits’. Predict one response at a time instead: predict(fit, resp = ). |
 | x | mvbf + simulate; mvbf + residuals; mvbf + emmeans | Refused: the post-fit methods below are univariate-only for now. |
 | x | mvbf + residuals_osa | Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included. |
@@ -378,10 +364,6 @@ other.
 | x | rescor + residuals; rescor + residuals_osa | Refused: residuals() is not supported for multivariate fits yet. |
 | x | rescor + emmeans | Refused: emmeans support is univariate-only for now. |
 | x | nl + emmeans | Refused: emmeans support needs a linear mu predictor. |
-| x | lca + fitted | Refused: the response is a matrix of nominal item codes, so there is no mean to fit. lca_probs() and lca_profiles() are the post-fit surface. |
-| x | lca + residuals | Refused for the same reason as fitted(): no fitted mean, so no residual. |
-| x | hmm + residuals_osa | Refused: one-step prediction needs the taped density of one observation given the earlier ones, and the tape holds a forward recursion over each whole sequence with no registered observation vector. |
-| x | lca + residuals_osa | Refused: one observation is a subject’s whole item response pattern, not a value with a univariate conditional CDF to step through. |
 
 ## Within-group residual correlation
 
@@ -429,13 +411,13 @@ reshapes a per-row contribution has nothing left to reshape.
 | ~ | ar() + prior; ma() + prior; arma() + prior; cosy() + prior; unstr() + prior | Priors on the fixed effects and on random-effect covariance parameters work as usual. set_prior() cannot target the residual-correlation parameters themselves yet; bounds on thetaac\_\* are the available lever. |
 | x | ar() + quadrature; ma() + quadrature; arma() + quadrature; cosy() + quadrature; unstr() + quadrature | Refused: the Gauss-Kronrod rule integrates a random effect against per-observation densities, and this residual is a joint density over each group. |
 
-|         | mvbf | rescor | \|ID\| | nl  | mixture | mixture_mvn | hmm | lca |
-|:--------|:----:|:------:|:------:|:---:|:-------:|:-----------:|:---:|:---:|
-| ar()    |  \+  |   x    |   ?    |  x  |    x    |      x      |  x  |  ?  |
-| ma()    |  \+  |   x    |   ?    |  x  |    x    |      x      |  x  |  ?  |
-| arma()  |  \+  |   x    |   ?    |  x  |    x    |      x      |  x  |  ?  |
-| cosy()  |  \+  |   x    |   ?    |  x  |    x    |      x      |  x  |  ?  |
-| unstr() |  \+  |   x    |   ?    |  x  |    x    |      x      |  x  |  ?  |
+|         | mvbf | rescor | \|ID\| | nl  | mixture | mixture_mvn |
+|:--------|:----:|:------:|:------:|:---:|:-------:|:-----------:|
+| ar()    |  \+  |   x    |   ?    |  x  |    x    |      x      |
+| ma()    |  \+  |   x    |   ?    |  x  |    x    |      x      |
+| arma()  |  \+  |   x    |   ?    |  x  |    x    |      x      |
+| cosy()  |  \+  |   x    |   ?    |  x  |    x    |      x      |
+| unstr() |  \+  |   x    |   ?    |  x  |    x    |      x      |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -443,7 +425,6 @@ reshapes a per-row contribution has nothing left to reshape.
 | x | ar() + nl; ma() + nl; arma() + nl; cosy() + nl; unstr() + nl | Refused: a nonlinear mu is arbitrary R code, so the term would be evaluated rather than read. brms reaches this model through acformula(), which has no analog here. |
 | x | ar() + mixture; ma() + mixture; arma() + mixture; cosy() + mixture; unstr() + mixture | Refused: a mixture likelihood has no single residual to correlate. The term is rejected as sitting on mu1 rather than mu, which is also how brms rejects it. |
 | x | ar() + mixture_mvn; ma() + mixture_mvn; arma() + mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn | Refused for the same reason as mixture(). |
-| x | ar() + hmm; ma() + hmm; arma() + hmm; cosy() + hmm; unstr() + hmm | Refused: a residual correlation term is rejected as sitting on mu1 rather than mu, exactly as it is for mixture(), and for the same reason - there is no single residual to correlate. |
 
 ## Predictor specials
 
@@ -486,11 +467,11 @@ row; see `?frmtmb-multimembership`.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1660 | 32%   |
-| conditional |  1759 | 34%   |
-| refused     |   763 | 15%   |
+| works       |  1646 | 33%   |
+| conditional |  1729 | 35%   |
+| refused     |   696 | 14%   |
 | broken      |     0 | 0%    |
-| untested    |   966 | 19%   |
+| untested    |   864 | 18%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To

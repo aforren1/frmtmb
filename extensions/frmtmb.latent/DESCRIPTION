@@ -24,7 +24,7 @@ Language: en-US
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1),
-    frmtmb (>= 0.47.0.9000)
+    frmtmb (>= 0.48.0)
 Imports:
     RTMB (>= 1.9),
     stats

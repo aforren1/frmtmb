@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -263,6 +263,35 @@ are given. See <code><a href="frmtmb_control.html">frmtmb_control()</a></code> f
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>frmtmb_fit</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-a-nonlinear-body-sees">What a nonlinear body sees<a class="anchor" aria-label="anchor" href="#what-a-nonlinear-body-sees"></a></h2>
+
+
+<p>The body of a nonlinear formula - the response formula under
+<code>nl = TRUE</code>, or an <code><a href="nlf.html">nlf()</a></code> body - is evaluated as a small language
+for the AD tape, not as ordinary R. A function it CALLS is looked up
+in RTMB first, so a bare <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">pnorm()</a></code>, <code><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">qgamma()</a></code>, <code><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis()</a></code>,
+<code><a href="https://rdrr.io/r/base/Bessel.html" class="external-link">besselK()</a></code> or <code><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix()</a></code> in a body is RTMB's tape-capable version.
+The <code>RTMB::</code> prefix is no longer needed, and writing it changes
+nothing: both spellings tape to the same function and give the same
+fit.</p>
+<p>RTMB WINS. It wins over the search path and over a function of the
+same name that you defined yourself, because the body is a language
+with its own vocabulary rather than a piece of your session. To reach
+a different <code>pnorm</code> inside a body, qualify it: <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">stats::pnorm()</a></code> is
+the escape hatch, and so is <code>myPkg::pnorm()</code>.</p>
+<p>Nothing else changes. Only the names RTMB replaces are shadowed, and
+only where the body calls them, so a helper function of your own, an
+object the body reads, and every name that is not in RTMB still
+resolve in the formula's environment exactly as before. A name the
+body READS is never shadowed either, so a data frame called <code>df</code> or a
+vector called <code>order</code> keeps its meaning.</p>
+<p>The rule stops at the end-user surface. A <code><a href="frmtmb_family.html">frmtmb_family()</a></code>
+log-density and a <code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> log-likelihood are ordinary R
+functions written by an extension author, and they keep resolving
+lexically: qualify with <code>RTMB::</code> there, and see <code><a href="frmtmb_ad_overload.html">frmtmb_ad_overload()</a></code>
+for the rest of that contract.</p>
     </div>
     <div class="section level2">
     <h2 id="the-laplace-approximation-and-how-to-check-it">The Laplace approximation, and how to check it<a class="anchor" aria-label="anchor" href="#the-laplace-approximation-and-how-to-check-it"></a></h2>

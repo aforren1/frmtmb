@@ -170,13 +170,11 @@ An object of class `frmtmb_family`.
 
 Some families cannot draw a response one row at a time: a group-level
 [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
-draws one class per group, an
-[`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) walks a
-Markov chain per sequence, and a
+draws one class per group, a
 [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
 draw needs the class covariances, which are family-level extras rather
-than dpars. Those families supply `sim_ctx(ctx)` instead of
-`sim(dpars, aterms, n)`.
+than dpars, and a hidden Markov family walks a chain per sequence. Those
+families supply `sim_ctx(ctx)` instead of `sim(dpars, aterms, n)`.
 
 `ctx` is a list with `fit` (any object carrying `spec`, `frame` and
 `estimates` - a fitted model, one posterior draw, or the de novo shim),

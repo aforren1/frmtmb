@@ -13,7 +13,7 @@ likelihood was normalized on."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -111,15 +111,15 @@ effects; <code>NA</code> redraws them from their estimated distribution
 <p>Most families draw each row on its own. Some cannot, and those go
 through one implementation that <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, <code>posterior_predict()</code>
 and <code><a href="frm_simulate.html">frm_simulate()</a></code> all reach (see <code>sim_ctx</code> in
-<code><a href="frmtmb_family.html">frmtmb_family()</a></code>):</p><ul><li><p>an <code><a href="hmm.html">hmm()</a></code> draw walks the hidden Markov chain forward per
-sequence and then emits from each row's state;</p></li>
-<li><p>a <code>mixture(groups = ~g)</code> draw takes one class per GROUP and then
+<code><a href="frmtmb_family.html">frmtmb_family()</a></code>):</p><ul><li><p>a <code>mixture(groups = ~g)</code> draw takes one class per GROUP and then
 simulates each row from its group's component;</p></li>
 <li><p>a <code><a href="mixture_mvn.html">mixture_mvn()</a></code> draw takes a class per row and then a
 multivariate normal with that class's own covariance;</p></li>
 <li><p>a residual correlation term (<code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>cosy()</code>, ...) is one
 multivariate residual draw per group added to the mean predictor,
-so the draws carry the fitted autocorrelation.</p></li>
+so the draws carry the fitted autocorrelation;</p></li>
+<li><p>a family from an extension package draws through whatever its
+structure declares, by the same route.</p></li>
 </ul><p>A structured draw covers whole sequences or groups, so <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>
 rejection cannot resample single rows within it (every structured
 model refuses <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> when the frame is assembled) and

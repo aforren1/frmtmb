@@ -164,11 +164,10 @@ group; its registration is three lines of `.onLoad()`.
 `loglik = NULL` keeps the family's own rowwise `lpdf` and makes the
 structure a CAPABILITY DECLARATION instead. That is what a family whose
 likelihood does factorize per row but which still has to refuse things
-in its own words wants:
-[`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) is rowwise
-per subject and still refuses `REML`, `residuals(type = "osa")` and
-random effects in its gating predictor, and each of those refusals is a
-property of the family rather than of the method that meets it.
+in its own words wants: `lca()` is rowwise per subject and still refuses
+`REML`, `residuals(type = "osa")` and random effects in its gating
+predictor, and each of those refusals is a property of the family rather
+than of the method that meets it.
 
 ## The block
 

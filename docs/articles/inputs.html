@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -695,21 +695,13 @@ matching is case sensitive and accepts unambiguous prefixes.
 </td>
 </tr>
 <tr class="odd">
-<td><code><a href="../reference/hmm.html">hmm()</a></code></td>
-<td><code>init</code></td>
-<td>
-<code>"stationary"</code>, <code>"estimated"</code>,
-<code>"uniform"</code>
-</td>
-</tr>
-<tr class="even">
 <td><code><a href="../reference/loo.html">loo_compare()</a></code></td>
 <td><code>criterion</code></td>
 <td>
 <code>"loo"</code>, <code>"waic"</code>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code><a href="../reference/vcov_cluster.html">vcov_cluster()</a></code></td>
 <td><code>type</code></td>
 <td>
@@ -768,6 +760,19 @@ means there. So <code>nlf(sigma ~ ls + th * log(abs(mu)))</code> is a
 variance function of the model’s own mean, unless <code>data</code>
 carries a column <code>mu</code>, in which case it is a variance
 function of that column.</p>
+<p><strong>In a nonlinear body, a function resolves in RTMB
+first.</strong> That order is for the names a body READS. A name a body
+CALLS follows a different one: RTMB, then the formula’s own environment,
+then the search path. A bare <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">pnorm()</a></code>,
+<code><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">qgamma()</a></code>, <code><a href="https://rdrr.io/r/stats/Beta.html" class="external-link">dbeta()</a></code>, <code><a href="https://rdrr.io/r/base/Bessel.html" class="external-link">besselK()</a></code> or
+<code><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix()</a></code> in a body is therefore RTMB’s tape-capable
+version, with no <code>RTMB::</code> prefix and no
+<code><a href="https://github.com/kaskr/RTMB" class="external-link">library(RTMB)</a></code>, and it beats a function of the same name
+that you defined yourself. Qualify with <code>stats::</code> to reach
+the other one. Only the names RTMB replaces are shadowed, so a helper of
+your own is found where it always was; and because only the CALLED names
+are shadowed, a data frame named <code>df</code> or a vector named
+<code>order</code> still reads as your object.</p>
 <p><strong>The internal <code>.eta_&lt;dpar&gt;</code> names are
 unreachable from <code>data</code>.</strong> The objective keeps each
 linear predictor beside its parameter under a reserved

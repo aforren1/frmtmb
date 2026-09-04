@@ -1,4 +1,21 @@
-# Accessors for a structured family written outside frmtmb
+# The two fitting options every mixture-type family refuses, in its own name.
+
+A mixture likelihood is invariant to permuting its components, so the
+location coefficients enter a multimodal objective. Both `REML` and
+`profile = TRUE` integrate those coefficients out with a Laplace
+approximation about a single inner mode, which is not defined here: the
+inner Newton solve walks between the component modes and the fit either
+dies at "NA/NaN gradient evaluation" or reports an optimum with a
+gradient near 1e9. Quadrature is unaffected, because it marginalizes the
+random effects, not the coefficients.
+
+The conservative all-`FALSE` default is right for a family whose
+likelihood does not factorize: it starts fully refused and opts in. It
+is exactly wrong for a family whose likelihood DOES factorize and which
+carries a structure only to hold the two or three refusals that belong
+to it, because there every other capability already works and a flag
+would only take it away. This is the starting point for that second
+kind, so such a family names what it refuses and nothing else.
 
 The read-only surface a
 [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
@@ -22,6 +39,10 @@ among them.
 ``` r
 response_mean(fam, dpars, aterms)
 
+mixture_multimodal_refusals(what)
+
+mixture_posterior(fit)
+
 as_frmtmb_family(x)
 
 eval_dpars(fit, b = fit$estimates[["b"]])
@@ -31,6 +52,10 @@ single_response(fit, what)
 fit_extras(fit)
 
 dpar_linpred(frame, params, resp, dpar)
+
+structure_supports_all(...)
+
+frame_block_of(frame, resp)
 ```
 
 ## Arguments
@@ -48,24 +73,26 @@ dpar_linpred(frame, params, resp, dpar)
   Evaluated addition terms for the response,
   `fit$frame$aterm_values[[resp]]`.
 
+- what:
+
+  For `single_response()`, the calling function as it should open a
+  refusal: `"latent_probs()"`. For `mixture_multimodal_refusals()`, the
+  family as the refusal should name it: `"an lca() family"`.
+
+- fit:
+
+  A `frmtmb_fit`.
+
 - x:
 
   A family: a `frmtmb_family`, a
   [`stats::family()`](https://rdrr.io/r/stats/family.html) object, a
   family constructor, or a family name.
 
-- fit:
-
-  A `frmtmb_fit`.
-
 - b:
 
   Random-effect vector to evaluate at, defaulting to the fit's own
   estimates. `NULL` drops the random-effect contribution.
-
-- what:
-
-  The calling function, as it should open a refusal: `"latent_probs()"`.
 
 - frame:
 
@@ -81,14 +108,26 @@ dpar_linpred(frame, params, resp, dpar)
   The response name and the distributional parameter name, as
   `eval_dpars()` returns them.
 
+- ...:
+
+  Capability flags to override, named as in the `supports` table of
+  [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md).
+
 ## Value
 
 `single_response()` a response spec; `eval_dpars()` a nested list of
 numeric vectors; `fit_extras()` a named list or `NULL`; `dpar_linpred()`
 a numeric vector or `NULL`; `response_mean()` a numeric vector;
-`as_frmtmb_family()` a `frmtmb_family`.
+`as_frmtmb_family()` a `frmtmb_family`; `frame_block_of()` a list or
+`NULL`; `structure_supports_all()` a named list of logicals;
+`mixture_posterior()` a matrix of class probabilities;
+`mixture_multimodal_refusals()` a list of two refusal strings.
 
 ## Details
+
+`what` is the family as the sentence should name it. These used to be
+one message listing every mixture-type family, raised from one gate in
+fit.R that knew all three by name; each family states its own now.
 
 They are documented together because they are one contract with one
 promise: what they return is stable, so a family in another package can
@@ -144,6 +183,41 @@ object is internal and may be renamed without notice.
   family constructor or a name. A family that WRAPS another one calls
   this on its argument, so that `hmm(2, gaussian)`, `hmm(2, gaussian())`
   and `hmm(2, "gaussian")` all mean the same thing.
+
+- `frame_block_of()`:
+
+  The block a `frame_block` slot built for one response, or `NULL` when
+  it built none. This is the read half of that slot: the block is
+  written once at frame assembly and read back by every slot that runs
+  at the estimates, and where a frame keeps its blocks is not a layout
+  an extension should spell for itself.
+
+- `structure_supports_all()`:
+
+  A `supports` list with every capability TRUE and the named ones
+  overridden. The starting point for the second kind of structure: a
+  family whose likelihood DOES factorize over rows and which declares a
+  structure only to carry the two or three refusals that belong to it.
+  Writing the TRUEs out by hand instead would silently take away each
+  new capability frmtmb adds.
+
+- `mixture_posterior()`:
+
+  The posterior class probabilities of any family that implements the
+  `fam$mix` component interface, which is what
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md),
+  [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
+  and a latent-class family all do. A family implementing that interface
+  uses this as its whole `latent_probs` slot rather than deriving the
+  same quantity a second time.
+
+- `mixture_multimodal_refusals()`:
+
+  The `refusals` entries for `reml` and `profile` owed by a family whose
+  likelihood is invariant to permuting its components. `what` is the
+  family as the sentence should name it, for example
+  `"an lca() family"`. The fact refused is the same one in every such
+  family, so the sentence is issued from one place rather than copied.
 
 ## See also
 

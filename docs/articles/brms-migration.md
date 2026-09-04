@@ -196,6 +196,28 @@ frm(bf(y ~ x) + nlf(sigma ~ ls + th * log(abs(mu))) +
       lf(ls ~ 1, th ~ 1), data = d)
 ```
 
+### Distribution functions in a body
+
+brms writes a nonlinear body in Stan, where `Phi()` and the rest belong
+to the language. Here the body is R evaluated onto an AD tape, and a
+function the body CALLS is looked up in RTMB first:
+
+``` r
+
+# a probit-shaped body: no RTMB:: prefix, no library(RTMB)
+frm(bf(y ~ a * pnorm(b * x + c0), a ~ 1, b ~ 1, c0 ~ 1, nl = TRUE),
+    data = d, start = list(beta = c(1, 1, 0)))
+```
+
+`pnorm`, `qgamma`, `plogis`, `dbeta`, `besselK`, `matrix` and their
+relatives all resolve this way, and RTMB wins over a function of the
+same name that you defined yourself. Write
+[`stats::pnorm()`](https://rdrr.io/r/stats/Normal.html) when you want
+the other one. The rule covers only the names RTMB replaces, and only
+where the body calls them, so your own helpers and the objects a body
+reads are untouched. The `RTMB::` prefix keeps working and gives the
+identical fit.
+
 ## Multi-membership
 
 `(1 | mm(g1, g2))` means what it means in brms: the observation belongs

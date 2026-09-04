@@ -236,6 +236,45 @@ frm(
 
 An object of class `frmtmb_fit`.
 
+## What a nonlinear body sees
+
+The body of a nonlinear formula - the response formula under
+`nl = TRUE`, or an
+[`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) body - is
+evaluated as a small language for the AD tape, not as ordinary R. A
+function it CALLS is looked up in RTMB first, so a bare
+[`pnorm()`](https://rdrr.io/r/stats/Normal.html),
+[`qgamma()`](https://rdrr.io/r/stats/GammaDist.html),
+[`plogis()`](https://rdrr.io/r/stats/Logistic.html),
+[`besselK()`](https://rdrr.io/r/base/Bessel.html) or
+[`matrix()`](https://rdrr.io/r/base/matrix.html) in a body is RTMB's
+tape-capable version. The `RTMB::` prefix is no longer needed, and
+writing it changes nothing: both spellings tape to the same function and
+give the same fit.
+
+RTMB WINS. It wins over the search path and over a function of the same
+name that you defined yourself, because the body is a language with its
+own vocabulary rather than a piece of your session. To reach a different
+`pnorm` inside a body, qualify it:
+[`stats::pnorm()`](https://rdrr.io/r/stats/Normal.html) is the escape
+hatch, and so is `myPkg::pnorm()`.
+
+Nothing else changes. Only the names RTMB replaces are shadowed, and
+only where the body calls them, so a helper function of your own, an
+object the body reads, and every name that is not in RTMB still resolve
+in the formula's environment exactly as before. A name the body READS is
+never shadowed either, so a data frame called `df` or a vector called
+`order` keeps its meaning.
+
+The rule stops at the end-user surface. A
+[`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+log-density and a
+[`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
+log-likelihood are ordinary R functions written by an extension author,
+and they keep resolving lexically: qualify with `RTMB::` there, and see
+[`frmtmb_ad_overload()`](https://aforren1.github.io/frmtmb/reference/frmtmb_ad_overload.md)
+for the rest of that contract.
+
 ## The Laplace approximation, and how to check it
 
 Random effects are integrated out by the Laplace approximation, which

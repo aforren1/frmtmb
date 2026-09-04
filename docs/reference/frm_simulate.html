@@ -15,7 +15,7 @@ them."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -131,13 +131,15 @@ the family (any dummy values do; they only anchor the design).</p>
 <p>Draws come back in the response's own type, exactly as
 <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>'s do: an ordered factor for an ordinal family, an
 unordered one for a categorical family, and a matrix column for a
-matrix response (<code><a href="frmtmb-families.html">multinomial()</a></code>, <code><a href="mixture_mvn.html">mixture_mvn()</a></code>, <code><a href="lca.html">lca()</a></code>).</p>
+matrix response (<code><a href="frmtmb-families.html">multinomial()</a></code>, <code><a href="mixture_mvn.html">mixture_mvn()</a></code>).</p>
 <p>The structured families draw here through the same implementation
-<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> uses (see its Structured draws section): <code><a href="hmm.html">hmm()</a></code> walks
-its chain per sequence, <code>mixture(groups = ~g)</code> takes one class per
-group, <code><a href="mixture_mvn.html">mixture_mvn()</a></code> uses its class covariances, and a residual
+<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> uses (see its Structured draws section):
+<code>mixture(groups = ~g)</code> takes one class per group, <code><a href="mixture_mvn.html">mixture_mvn()</a></code>
+uses its class covariances, a residual
 correlation term (<code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, ...) contributes one correlated
-residual per group. The de novo frame carries those structures, so
+residual per group, and a family from an extension package draws
+through whatever its structure declares. The de novo frame carries
+those structures, so
 nothing is lost relative to a fit; <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code> and friends need their
 <code>thetaac</code> entry in the internal <code>newparams</code> spelling, since a
 correlation parameter has no natural-scale name here.</p>

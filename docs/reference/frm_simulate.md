@@ -76,19 +76,18 @@ Draws come back in the response's own type, exactly as
 factor for an ordinal family, an unordered one for a categorical family,
 and a matrix column for a matrix response
 ([`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
-[`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md),
-[`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md)).
+[`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)).
 
 The structured families draw here through the same implementation
 [`simulate()`](https://rdrr.io/r/stats/simulate.html) uses (see its
-Structured draws section):
-[`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) walks its
-chain per sequence, `mixture(groups = ~g)` takes one class per group,
+Structured draws section): `mixture(groups = ~g)` takes one class per
+group,
 [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
-uses its class covariances, and a residual correlation term
+uses its class covariances, a residual correlation term
 ([`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, ...) contributes one
-correlated residual per group. The de novo frame carries those
-structures, so nothing is lost relative to a fit;
+correlated residual per group, and a family from an extension package
+draws through whatever its structure declares. The de novo frame carries
+those structures, so nothing is lost relative to a fit;
 [`ar()`](https://rdrr.io/r/stats/ar.html) and friends need their
 `thetaac` entry in the internal `newparams` spelling, since a
 correlation parameter has no natural-scale name here.

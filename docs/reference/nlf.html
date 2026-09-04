@@ -13,7 +13,7 @@ needs its own formula, or columns of the data."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -115,6 +115,11 @@ function of the model's own mean that nlme writes as
 <code>nlf(sigma ~ ls + th * log(abs(mu)))</code> is
 <code>sd = exp(ls) * |mu|^th</code>. A column of the data still wins over the
 parameter name, so a body ported from brms keeps its meaning.</p>
+<p>A function the body CALLS is looked up in RTMB before anywhere else,
+so a bare <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">pnorm()</a></code> or <code><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">qgamma()</a></code> is the tape-capable version and
+needs no <code>RTMB::</code> prefix. See the "What a nonlinear body sees"
+section of <code><a href="frm.html">frm()</a></code> for the whole rule, including the <code>stats::</code> escape
+hatch.</p>
 <p>Like <code><a href="lf.html">lf()</a></code>, an <code>nlf()</code> in a multivariate model must be added to the
 <code><a href="bf.html">bf()</a></code> of the response it belongs to, before the responses are
 combined.</p>

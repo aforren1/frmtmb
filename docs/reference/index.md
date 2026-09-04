@@ -50,12 +50,17 @@
   : Make a user-written function tape-safe
 
 - [`response_mean()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  [`mixture_multimodal_refusals()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  [`mixture_posterior()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
   [`as_frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
   [`eval_dpars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
   [`single_response()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
   [`fit_extras()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
   [`dpar_linpred()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
-  : Accessors for a structured family written outside frmtmb
+  [`structure_supports_all()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  [`frame_block_of()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  : The two fitting options every mixture-type family refuses, in its
+  own name.
 
 - [`latent_probs()`](https://aforren1.github.io/frmtmb/reference/latent_probs.md)
   : Posterior probabilities of the latent states
@@ -110,30 +115,6 @@
   The fitted baseline-hazard simplex of a
   [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   fit.
-
-- [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) : Hidden
-  Markov models
-
-- [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md)
-  : Posterior state probabilities of an hmm fit
-
-- [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/reference/hmm_viterbi.md)
-  : Most likely state path of an hmm fit (Viterbi)
-
-- [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) : Latent
-  class analysis
-
-- [`lca_probs()`](https://aforren1.github.io/frmtmb/reference/lca_probs.md)
-  :
-
-  Posterior class membership of an
-  [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) fit
-
-- [`lca_profiles()`](https://aforren1.github.io/frmtmb/reference/lca_profiles.md)
-  :
-
-  The fitted item profiles of an
-  [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) fit
 
 - [`frmtmb-student-re`](https://aforren1.github.io/frmtmb/reference/frmtmb-student-re.md)
   : Student-t distributed random effects

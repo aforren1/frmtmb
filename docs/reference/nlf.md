@@ -63,6 +63,14 @@ function of the model's own mean that nlme writes as
 column of the data still wins over the parameter name, so a body ported
 from brms keeps its meaning.
 
+A function the body CALLS is looked up in RTMB before anywhere else, so
+a bare [`pnorm()`](https://rdrr.io/r/stats/Normal.html) or
+[`qgamma()`](https://rdrr.io/r/stats/GammaDist.html) is the tape-capable
+version and needs no `RTMB::` prefix. See the "What a nonlinear body
+sees" section of
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) for the
+whole rule, including the `stats::` escape hatch.
+
 Like [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md), an
 `nlf()` in a multivariate model must be added to the
 [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) of the

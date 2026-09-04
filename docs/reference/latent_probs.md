@@ -25,8 +25,7 @@ latent_probs(fit, ...)
 ## Value
 
 A numeric matrix with one named column per latent state. Its rows are
-observations for a family whose class belongs to the row
-([`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md), a
+observations for a family whose class belongs to the row (`lca()`, a
 rowwise
 [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md))
 and groups for one whose class belongs to a group
@@ -37,20 +36,15 @@ and groups for one whose class belongs to a group
 This is one entry point for every structured family, and the family
 decides what it returns.
 [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md),
-[`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md)
-and
-[`lca_probs()`](https://aforren1.github.io/frmtmb/reference/lca_probs.md)
-are the same computation under family-specific names and checks; use
-whichever names what you fitted.
+`hmm_probs()` and `lca_probs()` are the same computation under
+family-specific names and checks; use whichever names what you fitted.
 
 ## See also
 
 [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md),
 [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md),
-[`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md),
-[`lca_probs()`](https://aforren1.github.io/frmtmb/reference/lca_probs.md),
-[`hmm_viterbi()`](https://aforren1.github.io/frmtmb/reference/hmm_viterbi.md)
-for the decoded path rather than the probabilities
+`hmm_probs()`, `lca_probs()`, `hmm_viterbi()` for the decoded path
+rather than the probabilities
 
 ## Examples
 

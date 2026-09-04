@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -2174,35 +2174,13 @@ homdiag term.</td>
 <td align="center">?</td>
 <td align="center">?</td>
 </tr>
-<tr class="odd">
-<td align="left">hmm</td>
-<td align="center">x</td>
-<td align="center">+</td>
-<td align="center">x</td>
-<td align="center">x</td>
-<td align="center">x</td>
-<td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
-</tr>
-<tr class="even">
-<td align="left">lca</td>
-<td align="center">x</td>
-<td align="center">x</td>
-<td align="center">x</td>
-<td align="center">x</td>
-<td align="center">x</td>
-<td align="center">x</td>
-<td align="center">x</td>
-<td align="center">x</td>
-</tr>
 </tbody>
 </table>
 <table class="table">
 <colgroup>
-<col width="2%">
-<col width="29%">
-<col width="68%">
+<col width="5%">
+<col width="34%">
+<col width="59%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -2214,21 +2192,6 @@ homdiag term.</td>
 <td align="left">x</td>
 <td align="left">rescor + weights(); rescor + se()</td>
 <td align="left">Refused.</td>
-</tr>
-<tr class="even">
-<td align="left">x</td>
-<td align="left">hmm + weights()</td>
-<td align="left">Refused: weights() scales a per-row log-density, and an
-HMM’s contribution is per sequence.</td>
-</tr>
-<tr class="odd">
-<td align="left">x</td>
-<td align="left">lca + weights(); lca + trials(); lca + cens(); lca +
-trunc(); lca + se(); and 3 more</td>
-<td align="left">Refused: an lca() response is a matrix of item codes
-with no per-row weight, censoring window, trial count or known standard
-error to attach an addition term to. One message covers the whole
-set.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
@@ -2249,25 +2212,14 @@ cens().</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
-<td align="left">hmm + cens()</td>
-<td align="left">Refused: censoring replaces a row’s density with a CDF
-difference, which the forward recursion has no room for.</td>
-</tr>
-<tr class="even">
-<td align="left">x</td>
 <td align="left">rescor + trunc()</td>
 <td align="left">Refused. This pair was once accepted with the
 truncation silently dropped.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">mixture + trunc()</td>
 <td align="left">Refused: mixture() has no CDF.</td>
-</tr>
-<tr class="even">
-<td align="left">x</td>
-<td align="left">hmm + trunc()</td>
-<td align="left">Refused for the same reason as cens().</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
@@ -2277,29 +2229,15 @@ families only.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
-<td align="left">hmm + se()</td>
-<td align="left">Refused: a known measurement SD is a per-row
-modification of the emission density; combining it with the state sum is
-not implemented.</td>
-</tr>
-<tr class="odd">
-<td align="left">x</td>
 <td align="left">rescor + mi()</td>
 <td align="left">Refused: mi() cannot be combined with rescor =
 TRUE.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">mixture + mi()</td>
 <td align="left">Refused: mi() on the mixture response is not
 supported.</td>
-</tr>
-<tr class="odd">
-<td align="left">x</td>
-<td align="left">hmm + mi()</td>
-<td align="left">Refused: an NA response is handled by hmm() itself -
-the row is kept and its emission masked, so the chain keeps its length -
-and needs no latent parameter.</td>
 </tr>
 </tbody>
 </table>
@@ -2404,35 +2342,13 @@ other.</p>
 <td align="center">?</td>
 <td align="center">?</td>
 </tr>
-<tr class="odd">
-<td align="left">hmm</td>
-<td align="center">+</td>
-<td align="center">~</td>
-<td align="center">~</td>
-<td align="center">~</td>
-<td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
-<td align="center">?</td>
-</tr>
-<tr class="even">
-<td align="left">lca</td>
-<td align="center">x</td>
-<td align="center">~</td>
-<td align="center">+</td>
-<td align="center">x</td>
-<td align="center">x</td>
-<td align="center">?</td>
-<td align="center">+</td>
-<td align="center">?</td>
-</tr>
 </tbody>
 </table>
 <table class="table">
 <colgroup>
-<col width="1%">
-<col width="11%">
-<col width="87%">
+<col width="3%">
+<col width="21%">
+<col width="75%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -2452,40 +2368,6 @@ instead.</td>
 <td align="left">mixture + simulate</td>
 <td align="left">Works only when every component family has a
 simulator.</td>
-</tr>
-<tr class="odd">
-<td align="left">~</td>
-<td align="left">hmm + predict</td>
-<td align="left">type = “link” and dpar = work normally, including the
-transition logits. type = “response” equals fitted() in sample; it is
-refused for newdata (state occupancy conditions on the observed
-responses of a whole sequence) and se.fit is refused on the response
-scale.</td>
-</tr>
-<tr class="even">
-<td align="left">~</td>
-<td align="left">lca + predict</td>
-<td align="left">predict() returns the gating linear predictor (theta1
-by default, any theta with dpar =), including on newdata. type =
-“response” is refused with the fitted() message.</td>
-</tr>
-<tr class="odd">
-<td align="left">~</td>
-<td align="left">hmm + simulate</td>
-<td align="left">A draw walks the chain forward per sequence and then
-emits, so it needs the emission family to have a simulator. re.form and
-censored = TRUE are refused. Since v0.36 the chain walk is the family’s
-structured simulator (fam$sim_ctx), so posterior_predict() and
-frm_simulate() reach it too; posterior_predict(newdata =) is refused,
-because the sequence structure indexes the fitted rows.</td>
-</tr>
-<tr class="even">
-<td align="left">~</td>
-<td align="left">hmm + residuals</td>
-<td align="left">type = “response” and “pearson” are computed against
-the occupancy-weighted mean, with the pearson scale the
-law-of-total-variance mixture variance. type = “deviance” is refused:
-there is no per-row likelihood to saturate.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
@@ -2529,34 +2411,6 @@ now.</td>
 <td align="left">nl + emmeans</td>
 <td align="left">Refused: emmeans support needs a linear mu
 predictor.</td>
-</tr>
-<tr class="even">
-<td align="left">x</td>
-<td align="left">lca + fitted</td>
-<td align="left">Refused: the response is a matrix of nominal item
-codes, so there is no mean to fit. lca_probs() and lca_profiles() are
-the post-fit surface.</td>
-</tr>
-<tr class="odd">
-<td align="left">x</td>
-<td align="left">lca + residuals</td>
-<td align="left">Refused for the same reason as fitted(): no fitted
-mean, so no residual.</td>
-</tr>
-<tr class="even">
-<td align="left">x</td>
-<td align="left">hmm + residuals_osa</td>
-<td align="left">Refused: one-step prediction needs the taped density of
-one observation given the earlier ones, and the tape holds a forward
-recursion over each whole sequence with no registered observation
-vector.</td>
-</tr>
-<tr class="odd">
-<td align="left">x</td>
-<td align="left">lca + residuals_osa</td>
-<td align="left">Refused: one observation is a subject’s whole item
-response pattern, not a value with a univariate conditional CDF to step
-through.</td>
 </tr>
 </tbody>
 </table>
@@ -3099,17 +2953,6 @@ density over each group.</td>
 </tbody>
 </table>
 <table class="table">
-<colgroup>
-<col width="10%">
-<col width="8%">
-<col width="10%">
-<col width="21%">
-<col width="5%">
-<col width="12%">
-<col width="17%">
-<col width="6%">
-<col width="6%">
-</colgroup>
 <thead><tr class="header">
 <th align="left"></th>
 <th align="center">mvbf</th>
@@ -3118,8 +2961,6 @@ density over each group.</td>
 <th align="center">nl</th>
 <th align="center">mixture</th>
 <th align="center">mixture_mvn</th>
-<th align="center">hmm</th>
-<th align="center">lca</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
@@ -3130,8 +2971,6 @@ density over each group.</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">x</td>
-<td align="center">?</td>
 </tr>
 <tr class="even">
 <td align="left">ma()</td>
@@ -3141,8 +2980,6 @@ density over each group.</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">x</td>
-<td align="center">?</td>
 </tr>
 <tr class="odd">
 <td align="left">arma()</td>
@@ -3152,8 +2989,6 @@ density over each group.</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">x</td>
-<td align="center">?</td>
 </tr>
 <tr class="even">
 <td align="left">cosy()</td>
@@ -3163,8 +2998,6 @@ density over each group.</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">x</td>
-<td align="center">?</td>
 </tr>
 <tr class="odd">
 <td align="left">unstr()</td>
@@ -3174,8 +3007,6 @@ density over each group.</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">x</td>
-<td align="center">?</td>
 </tr>
 </tbody>
 </table>
@@ -3221,14 +3052,6 @@ is also how brms rejects it.</td>
 <td align="left">ar() + mixture_mvn; ma() + mixture_mvn; arma() +
 mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
 <td align="left">Refused for the same reason as mixture().</td>
-</tr>
-<tr class="odd">
-<td align="left">x</td>
-<td align="left">ar() + hmm; ma() + hmm; arma() + hmm; cosy() + hmm;
-unstr() + hmm</td>
-<td align="left">Refused: a residual correlation term is rejected as
-sitting on mu1 rather than mu, exactly as it is for mixture(), and for
-the same reason - there is no single residual to correlate.</td>
 </tr>
 </tbody>
 </table>
@@ -3439,18 +3262,18 @@ column.</td>
 <tbody>
 <tr class="odd">
 <td align="left">works</td>
-<td align="right">1660</td>
-<td align="left">32%</td>
+<td align="right">1646</td>
+<td align="left">33%</td>
 </tr>
 <tr class="even">
 <td align="left">conditional</td>
-<td align="right">1759</td>
-<td align="left">34%</td>
+<td align="right">1729</td>
+<td align="left">35%</td>
 </tr>
 <tr class="odd">
 <td align="left">refused</td>
-<td align="right">763</td>
-<td align="left">15%</td>
+<td align="right">696</td>
+<td align="left">14%</td>
 </tr>
 <tr class="even">
 <td align="left">broken</td>
@@ -3459,8 +3282,8 @@ column.</td>
 </tr>
 <tr class="odd">
 <td align="left">untested</td>
-<td align="right">966</td>
-<td align="left">19%</td>
+<td align="right">864</td>
+<td align="left">18%</td>
 </tr>
 </tbody>
 </table>

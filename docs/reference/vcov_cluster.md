@@ -85,10 +85,10 @@ likelihood term is a product over rows. Fits that fail either condition
 are refused with the reason: a random effect whose level spans two
 clusters (including crossed effects, `mm()` pooled levels, a global
 smooth, `gp()`, `car()` and the SPDE), a group-level mixture whose
-groups span clusters, an `autocor()` residual,
-[`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md),
-`rescor = TRUE`, `mi()`/`me()`, `REML = TRUE`, `profile = TRUE`,
-`quadrature = TRUE`, and any fit made with priors.
+groups span clusters, an `autocor()` residual, a family whose structure
+does not declare `cluster_robust`, `rescor = TRUE`, `mi()`/`me()`,
+`REML = TRUE`, `profile = TRUE`, `quadrature = TRUE`, and any fit made
+with priors.
 [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
 is the fallback in every one of those cases.
 

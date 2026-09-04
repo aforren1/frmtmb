@@ -59,10 +59,6 @@ through one implementation that
 all reach (see `sim_ctx` in
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)):
 
-- an [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) draw
-  walks the hidden Markov chain forward per sequence and then emits from
-  each row's state;
-
 - a `mixture(groups = ~g)` draw takes one class per GROUP and then
   simulates each row from its group's component;
 
@@ -74,7 +70,10 @@ all reach (see `sim_ctx` in
 - a residual correlation term
   ([`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `cosy()`, ...) is
   one multivariate residual draw per group added to the mean predictor,
-  so the draws carry the fitted autocorrelation.
+  so the draws carry the fitted autocorrelation;
+
+- a family from an extension package draws through whatever its
+  structure declares, by the same route.
 
 A structured draw covers whole sequences or groups, so
 [`trunc()`](https://rdrr.io/r/base/Round.html) rejection cannot resample

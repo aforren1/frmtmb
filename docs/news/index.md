@@ -1,5 +1,85 @@
 # Changelog
 
+## frmtmb 0.48.0
+
+The structured-family protocol completes, nonlinear bodies get an
+AD-safe scope, and the extension API passes its first outsider test.
+
+- A nonlinear formula body is now a scope of its own: a function it
+  CALLS resolves in RTMB before the formula environment and the search
+  path, so a bare [`pnorm()`](https://rdrr.io/r/stats/Normal.html),
+  [`qgamma()`](https://rdrr.io/r/stats/GammaDist.html),
+  [`plogis()`](https://rdrr.io/r/stats/Logistic.html),
+  [`besselK()`](https://rdrr.io/r/base/Bessel.html) or
+  [`matrix()`](https://rdrr.io/r/base/matrix.html) in an `nl = TRUE`
+  body or an
+  [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) is the
+  tape-capable version, with no `RTMB::` prefix. The prefixed spelling
+  gives the identical fit;
+  [`stats::pnorm()`](https://rdrr.io/r/stats/Normal.html) is the escape
+  hatch; RTMB wins over a same-named function of your own; and only
+  names a body calls are shadowed, so a data frame named `df` still
+  reads as your object. The shadowed names are the RTMB exports that
+  collide with base or stats and are numerically identical to them
+  (`qchisq` is excluded because RTMB reimplements it), which keeps the
+  taped and numeric evaluations of one body the same function. One
+  narrow caveat: [`splinefun()`](https://rdrr.io/r/stats/splinefun.html)
+  in a body now supports only the `fmm`, `periodic` and `natural`
+  methods; spell
+  [`stats::splinefun()`](https://rdrr.io/r/stats/splinefun.html) for
+  `monoH.FC` or `hyman`. Extension-author surfaces (family
+  log-densities, structure log-likelihoods) keep explicit qualification.
+
+- New companion package `frmtmb.ddm`: the Wiener drift-diffusion family
+  with brms’s parameterization, agreeing with RWiener to better than
+  1e-12 through a tape-safe two-series blend. It was built against the
+  exported extension API alone, with no core change and no reach into
+  internals, which makes it the API’s first acceptance test from an
+  outsider’s position; its findings ledger drives the next round of
+  interface hardening.
+
+- `hmm()` and `lca()` moved to the companion package `frmtmb.latent`,
+  with `hmm_probs()`, `hmm_viterbi()`, `lca_probs()`, `lca_profiles()`,
+  their tests and the HMM case study. Install it with
+  `remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.latent")`.
+  Nothing about either family changed in the move.
+
+- [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md),
+  [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
+  and
+  [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
+  stay in core, and
+  [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
+  still reports the class probabilities of an `lca()` fit. The two meet
+  through the family object’s component interface rather than through a
+  class, so neither package has to know about the other.
+
+- [`?"frmtmb-extension-api"`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  gains the four accessors an out-of-tree structured family needs and
+  could not reach:
+  [`frame_block_of()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  (the read half of a structure’s `frame_block` slot),
+  [`structure_supports_all()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  (the starting point for a family whose likelihood IS rowwise and which
+  declares a structure only to carry its refusals),
+  [`mixture_posterior()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  (one posterior implementation for every family that implements the
+  component interface) and
+  [`mixture_multimodal_refusals()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+  (the REML and profiling refusals a component-permutation-invariant
+  family owes, issued from one place so that core and an extension
+  cannot word the same fact differently).
+
+- The core boundary test is no longer a ratchet. Every policed token now
+  maps to an empty list of allowed homes, so no core file may name a
+  structured family or an ODE symbol anywhere at all. Its positive
+  control moved to the extension’s sources, and it is the control alone
+  that skips when `extensions/` is not in the tree.
+
+- `Suggests`: `depmixS4`, `hmmTMB` and `poLCA` dropped. They were the
+  reference implementations those two families were checked against, and
+  they travel with them.
+
 ## frmtmb 0.47.0
 
 The monorepo split: the ODE seam and the sampling surface leave core for
@@ -60,12 +140,8 @@ The structured-family protocol completes in-package: hmm and lca ride
   returns the posterior latent-state probabilities of any family that
   declares them.
   [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md),
-  [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md)
-  and
-  [`lca_probs()`](https://aforren1.github.io/frmtmb/reference/lca_probs.md)
-  are unchanged and now reach it;
-  [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/reference/hmm_viterbi.md)
-  stays its own decoding pass.
+  `hmm_probs()` and `lca_probs()` are unchanged and now reach it;
+  `hmm_viterbi()` stays its own decoding pass.
 - New extension API on one page,
   [`?"frmtmb-extension-api"`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md):
   [`single_response()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md),
@@ -87,10 +163,8 @@ The structured-family protocol completes in-package: hmm and lca ride
   carries only the refusals that belong to it, and its capability flags
   default to TRUE so it names what it refuses instead of enumerating
   what already works.
-- No core file branches on
-  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) or
-  [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) any
-  more. `fit$frame$hmm_g` is gone; a hidden-Markov structure’s data is
+- No core file branches on `hmm()` or `lca()` any more.
+  `fit$frame$hmm_g` is gone; a hidden-Markov structure’s data is
   `fit$frame$blocks[[response]]`. The compatibility matrix takes both
   families’ rows from the families themselves through a registration the
   boundary test polices.
@@ -99,8 +173,8 @@ The structured-family protocol completes in-package: hmm and lca ride
   listed
   [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md),
   [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
-  and [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md)
-  whichever one was fitted; everything after the colon is unchanged.
+  and `lca()` whichever one was fitted; everything after the colon is
+  unchanged.
 - Fits are bit-identical to 0.45.0, and
   [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
   resolves every feature pair to the same status.
@@ -120,11 +194,9 @@ extensions split.
   [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
   gains `structure =`. A structured family can now be written outside
   the package; `dev/structured-family-protocol.md` is the contract.
-- `mixture(groups = )` and
-  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) reach
-  the core through that one slot. The objective’s response loop has one
-  branch for both instead of one each, the model frame carries one
-  `blocks` slot, and
+- `mixture(groups = )` and `hmm()` reach the core through that one slot.
+  The objective’s response loop has one branch for both instead of one
+  each, the model frame carries one `blocks` slot, and
   [`predict()`](https://rdrr.io/r/stats/predict.html),
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
   [`residuals()`](https://rdrr.io/r/stats/residuals.html),
@@ -518,7 +590,7 @@ hand-maintained counts in favor of an enforced uniqueness property.
   [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md),
   [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md),
   [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
-  [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md),
+  `lca()`,
   [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
   [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md),
   [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md),
@@ -772,10 +844,9 @@ for upstream.
   that `frm_sample(fit)`’s flat improper priors leave them unregularized
   and recommends the formula route or `priors =` for model comparison.
 - A likelihood with no per-observation column refuses rather than
-  inventing one: R-side autocorrelation,
-  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md),
-  `mixture(groups =)`, in-model imputation, and laplace-marginalized
-  draws. Each names [`AIC()`](https://rdrr.io/r/stats/AIC.html) or
+  inventing one: R-side autocorrelation, `hmm()`, `mixture(groups =)`,
+  in-model imputation, and laplace-marginalized draws. Each names
+  [`AIC()`](https://rdrr.io/r/stats/AIC.html) or
   [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
   as the replacement.
 
@@ -991,8 +1062,7 @@ sampling, and t2() newdata prediction.
   fixed: `mixture(groups =)` drew a class per ROW instead of per group
   in `posterior_predict()` and
   [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md),
-  and residual autocorrelation draws were independent there.
-  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) and
+  and residual autocorrelation draws were independent there. `hmm()` and
   [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
   gained simulators on all three paths;
   [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
@@ -1095,11 +1165,9 @@ sampling, and t2() newdata prediction.
   likelihood does not factor over the clustering factor: a random effect
   whose level spans two clusters (crossed effects, `mm()` pooled levels,
   a global smooth, `gp()`, `car()`, `spde()`), a group-level mixture
-  whose groups span clusters, `autocor()`,
-  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md),
-  `rescor = TRUE`, `mi()`/`me()`, `REML = TRUE`,
-  `frmtmb_control(profile = TRUE)`, `quadrature = TRUE`, and any fit
-  made with priors.
+  whose groups span clusters, `autocor()`, `hmm()`, `rescor = TRUE`,
+  `mi()`/`me()`, `REML = TRUE`, `frmtmb_control(profile = TRUE)`,
+  `quadrature = TRUE`, and any fit made with priors.
   [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
   is the documented fallback.
 - `"CR2"`/`"CR3"` are refused rather than approximated: the
@@ -1358,42 +1426,33 @@ Hidden Markov models as a first-class family.
   `K - 1` free logits, `"uniform"` fixes them. Stationary is refused
   when a transition cell carries a predictor, because a time-varying
   chain has no single stationary distribution.
-- [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md)
-  returns the smoothed state occupancies `P(S_t = k | y)` from a
-  forward-backward pass - the
+- `hmm_probs()` returns the smoothed state occupancies `P(S_t = k | y)`
+  from a forward-backward pass - the
   [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
-  analog - and
-  [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/reference/hmm_viterbi.md)
-  the maximum-a-posteriori state path.
+  analog - and `hmm_viterbi()` the maximum-a-posteriori state path.
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
   `predict(type = "response")` and the response and pearson residuals
-  all route through
-  [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md),
-  so they report the occupancy-weighted mean
-  `sum_k P(S_t = k | y) mu_k(x_t)` rather than any single state’s.
+  all route through `hmm_probs()`, so they report the occupancy-weighted
+  mean `sum_k P(S_t = k | y) mu_k(x_t)` rather than any single state’s.
   [`simulate()`](https://rdrr.io/r/stats/simulate.html) walks the chain
   forward per sequence and then emits, so DHARMa and
   [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
   see the fitted persistence.
 - A missing response is a time point the chain passes through without
-  emitting:
-  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) keeps
-  the row and masks its emission instead of letting `na.action` drop it,
-  which would shorten the chain and bias the transition matrix.
-  [`nobs()`](https://rdrr.io/r/stats/nobs.html) counts every row;
+  emitting: `hmm()` keeps the row and masks its emission instead of
+  letting `na.action` drop it, which would shorten the chain and bias
+  the transition matrix. [`nobs()`](https://rdrr.io/r/stats/nobs.html)
+  counts every row;
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
   [`residuals()`](https://rdrr.io/r/stats/residuals.html) are `NA` there
-  while
-  [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md)
-  is not.
+  while `hmm_probs()` is not.
 
 ### Refusals
 
 - `REML`, `quadrature = TRUE` and `frmtmb_control(profile = TRUE)` are
-  refused on an
-  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) fit,
-  each with the reason. REML in particular used to run and produce a
-  partial restricted likelihood matching no standard definition.
+  refused on an `hmm()` fit, each with the reason. REML in particular
+  used to run and produce a partial restricted likelihood matching no
+  standard definition.
 - [`weights()`](https://rdrr.io/r/stats/weights.html), `cens()`,
   [`trunc()`](https://rdrr.io/r/base/Round.html), `se()` and `mi()` on
   the response, multivariate models and `rescor`,
@@ -1425,8 +1484,7 @@ Hidden Markov models as a first-class family.
   even for a gaussian response, because the integrand is a mixture over
   state sequences: the measured bias is -0.126 in the log-likelihood
   (8.9e-5 relative) and 4.4e-4 in the parameters against adaptive
-  quadrature.
-  [`?hmm`](https://aforren1.github.io/frmtmb/reference/hmm.md) says so.
+  quadrature. `?hmm` says so.
 - The tape build grows slightly faster than linearly in the number of
   rows: about 1.9 s at 20 000 rows, against milliseconds to evaluate it.
   Below 5 000 rows nothing is noticeable.
@@ -1461,13 +1519,11 @@ Hidden Markov models as a first-class family.
   [`optim()`](https://rdrr.io/r/stats/optim.html) reference on simulated
   data agrees to 1.5e-9, and a one-item fit reaches the saturated
   single-categorical likelihood to 5.6e-11.
-- [`lca_profiles()`](https://aforren1.github.io/frmtmb/reference/lca_profiles.md)
-  returns the class-conditional item-response probability tables
-  (poLCA’s `probs`) with the estimated class sizes attached, and prints
-  them.
-  [`lca_probs()`](https://aforren1.github.io/frmtmb/reference/lca_probs.md)
-  returns posterior class membership per subject (poLCA’s `posterior`)
-  with the relative entropy of the classification attached; it is
+- `lca_profiles()` returns the class-conditional item-response
+  probability tables (poLCA’s `probs`) with the estimated class sizes
+  attached, and prints them. `lca_probs()` returns posterior class
+  membership per subject (poLCA’s `posterior`) with the relative entropy
+  of the classification attached; it is
   [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)
   under an LCA-specific name and check.
 - `lca(na.rm = FALSE)` keeps subjects with missing items and masks each
@@ -1477,18 +1533,16 @@ Hidden Markov models as a first-class family.
 
 ### Notes
 
-- [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) starting
-  values are deterministic: subjects are scored by the mean of their
-  item codes rescaled to `[0, 1]`, cut into `K` equal-count slices, and
-  each slice’s smoothed category proportions seed one class. Class 1 is
-  the low-score end, so a data set always gets the same labeling.
-  Multimodality is unchanged;
-  [`?lca`](https://aforren1.github.io/frmtmb/reference/lca.md) shows the
+- `lca()` starting values are deterministic: subjects are scored by the
+  mean of their item codes rescaled to `[0, 1]`, cut into `K`
+  equal-count slices, and each slice’s smoothed category proportions
+  seed one class. Class 1 is the low-score end, so a data set always
+  gets the same labeling. Multimodality is unchanged; `?lca` shows the
   perturbed-`start` loop that replaces poLCA’s `nrep`.
-- [`lca()`](https://aforren1.github.io/frmtmb/reference/lca.md) v1
-  refuses random effects, smooths and `gp()` anywhere in the model (that
-  is the growth-mixture shape, which `mixture(..., groups = ~g)` fits),
-  `REML`, `profile = TRUE`, `quadrature`, every addition term,
+- `lca()` v1 refuses random effects, smooths and `gp()` anywhere in the
+  model (that is the growth-mixture shape, which
+  `mixture(..., groups = ~g)` fits), `REML`, `profile = TRUE`,
+  `quadrature`, every addition term,
   [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md), and
   `residuals(type = "osa")`.
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
@@ -1557,8 +1611,7 @@ completions, and plot conveniences.
   today through
   [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
   with `vint()` payloads, validated against depmixS4 and hmmTMB. No
-  user-facing grammar yet; the design for a first-class
-  [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) family
+  user-facing grammar yet; the design for a first-class `hmm()` family
   is recorded.
 
 ## frmtmb 0.33.0

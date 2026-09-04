@@ -315,7 +315,6 @@ case sensitive and accepts unambiguous prefixes. `"response"` and
 | [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md) | `check_nlev_1`, `check_olre` | `"warning"`, `"ignore"`, `"stop"` |
 | [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) | `class` | `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"` |
 | [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md) | `band` | `"wald"`, `"profile"`, `"boot"` |
-| [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) | `init` | `"stationary"`, `"estimated"`, `"uniform"` |
 | [`loo_compare()`](https://aforren1.github.io/frmtmb/reference/loo.md) | `criterion` | `"loo"`, `"waic"` |
 | [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md) | `type` | `"CR0"`, `"CR1"`, `"CR1p"`, `"CR1S"` |
 
@@ -372,6 +371,22 @@ ahead of it is what keeps every body brms accepts meaning here what it
 means there. So `nlf(sigma ~ ls + th * log(abs(mu)))` is a variance
 function of the model’s own mean, unless `data` carries a column `mu`,
 in which case it is a variance function of that column.
+
+**In a nonlinear body, a function resolves in RTMB first.** That order
+is for the names a body READS. A name a body CALLS follows a different
+one: RTMB, then the formula’s own environment, then the search path. A
+bare [`pnorm()`](https://rdrr.io/r/stats/Normal.html),
+[`qgamma()`](https://rdrr.io/r/stats/GammaDist.html),
+[`dbeta()`](https://rdrr.io/r/stats/Beta.html),
+[`besselK()`](https://rdrr.io/r/base/Bessel.html) or
+[`matrix()`](https://rdrr.io/r/base/matrix.html) in a body is therefore
+RTMB’s tape-capable version, with no `RTMB::` prefix and no
+[`library(RTMB)`](https://github.com/kaskr/RTMB), and it beats a
+function of the same name that you defined yourself. Qualify with
+`stats::` to reach the other one. Only the names RTMB replaces are
+shadowed, so a helper of your own is found where it always was; and
+because only the CALLED names are shadowed, a data frame named `df` or a
+vector named `order` still reads as your object.
 
 **The internal `.eta_<dpar>` names are unreachable from `data`.** The
 objective keeps each linear predictor beside its parameter under a

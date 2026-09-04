@@ -1,8 +1,32 @@
-# frmtmb (development version)
+# frmtmb 0.48.0
 
-The structured-family protocol completes: the last two families core
-knew by name leave for a companion package, and the boundary between
-core and its extensions reaches zero with no exemptions left.
+The structured-family protocol completes, nonlinear bodies get an
+AD-safe scope, and the extension API passes its first outsider test.
+
+* A nonlinear formula body is now a scope of its own: a function it
+  CALLS resolves in RTMB before the formula environment and the
+  search path, so a bare `pnorm()`, `qgamma()`, `plogis()`,
+  `besselK()` or `matrix()` in an `nl = TRUE` body or an `nlf()` is
+  the tape-capable version, with no `RTMB::` prefix. The prefixed
+  spelling gives the identical fit; `stats::pnorm()` is the escape
+  hatch; RTMB wins over a same-named function of your own; and only
+  names a body calls are shadowed, so a data frame named `df` still
+  reads as your object. The shadowed names are the RTMB exports that
+  collide with base or stats and are numerically identical to them
+  (`qchisq` is excluded because RTMB reimplements it), which keeps
+  the taped and numeric evaluations of one body the same function.
+  One narrow caveat: `splinefun()` in a body now supports only the
+  `fmm`, `periodic` and `natural` methods; spell
+  `stats::splinefun()` for `monoH.FC` or `hyman`. Extension-author
+  surfaces (family log-densities, structure log-likelihoods) keep
+  explicit qualification.
+* New companion package `frmtmb.ddm`: the Wiener drift-diffusion
+  family with brms's parameterization, agreeing with RWiener to
+  better than 1e-12 through a tape-safe two-series blend. It was
+  built against the exported extension API alone, with no core
+  change and no reach into internals, which makes it the API's first
+  acceptance test from an outsider's position; its findings ledger
+  drives the next round of interface hardening.
 
 * `hmm()` and `lca()` moved to the companion package
   `frmtmb.latent`, with `hmm_probs()`, `hmm_viterbi()`,

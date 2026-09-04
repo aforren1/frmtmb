@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -226,9 +226,9 @@ that refuses.</p></dd>
 
 
 <p>Some families cannot draw a response one row at a time: a group-level
-<code><a href="mixture.html">mixture()</a></code> draws one class per group, an <code><a href="hmm.html">hmm()</a></code> walks a Markov
-chain per sequence, and a <code><a href="mixture_mvn.html">mixture_mvn()</a></code> draw needs the class
-covariances, which are family-level extras rather than dpars. Those
+<code><a href="mixture.html">mixture()</a></code> draws one class per group, a <code><a href="mixture_mvn.html">mixture_mvn()</a></code> draw needs
+the class covariances, which are family-level extras rather than
+dpars, and a hidden Markov family walks a chain per sequence. Those
 families supply <code>sim_ctx(ctx)</code> instead of <code>sim(dpars, aterms, n)</code>.</p>
 <p><code>ctx</code> is a list with <code>fit</code> (any object carrying <code>spec</code>, <code>frame</code> and
 <code>estimates</code> - a fitted model, one posterior draw, or the de novo
