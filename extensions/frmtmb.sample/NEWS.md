@@ -1,3 +1,13 @@
+# frmtmb.sample (development version)
+
+* `frmtmb.latent` joins `Suggests`. `hmm()` and `lca()` left frmtmb
+  for that package, so the tests here that sample one of them qualify
+  the call and skip when it is absent. The compatibility rules this
+  package registers for those two pairs are unchanged and need no
+  guard: a rule naming a feature the matrix does not have contributes
+  nothing, so `frm_compat()` is correct whether or not the other
+  package is loaded.
+
 # frmtmb.sample 0.1.0
 
 First release, extracted from frmtmb 0.46.0.

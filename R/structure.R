@@ -79,7 +79,7 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #' `loglik = NULL` keeps the family's own rowwise `lpdf` and makes the
 #' structure a CAPABILITY DECLARATION instead. That is what a family
 #' whose likelihood does factorize per row but which still has to refuse
-#' things in its own words wants: [lca()] is rowwise per subject and
+#' things in its own words wants: `lca()` is rowwise per subject and
 #' still refuses `REML`, `residuals(type = "osa")` and random effects in
 #' its gating predictor, and each of those refusals is a property of the
 #' family rather than of the method that meets it.
@@ -311,7 +311,8 @@ frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
 #' a flag would only take it away. This is the starting point for that
 #' second kind, so such a family names what it refuses and nothing else.
 #'
-#' @noRd
+#' @rdname frmtmb-extension-api
+#' @export
 structure_supports_all <- function(...) {
   utils::modifyList(as.list(!frmtmb_structure_flags), list(...))
 }
@@ -422,18 +423,18 @@ print.frmtmb_structure <- function(x, ...) {
 #' observed. Rows sum to one.
 #'
 #' This is one entry point for every structured family, and the family
-#' decides what it returns. [mixture_probs()], [hmm_probs()] and
-#' [lca_probs()] are the same computation under family-specific names
+#' decides what it returns. [mixture_probs()], `hmm_probs()` and
+#' `lca_probs()` are the same computation under family-specific names
 #' and checks; use whichever names what you fitted.
 #'
 #' @param fit A `frmtmb_fit` whose family declares latent states.
 #' @param ... Passed to methods; none of the built-in families take any.
 #' @return A numeric matrix with one named column per latent state. Its
 #'   rows are observations for a family whose class belongs to the row
-#'   ([lca()], a rowwise [mixture()]) and groups for one whose class
+#'   (`lca()`, a rowwise [mixture()]) and groups for one whose class
 #'   belongs to a group (`mixture(groups = )`).
-#' @seealso [frmtmb_structure()], [mixture_probs()], [hmm_probs()],
-#'   [lca_probs()], [hmm_viterbi()] for the decoded path rather than the
+#' @seealso [frmtmb_structure()], [mixture_probs()], `hmm_probs()`,
+#'   `lca_probs()`, `hmm_viterbi()` for the decoded path rather than the
 #'   probabilities
 #' @examples
 #' set.seed(1)
@@ -511,11 +512,38 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'     constructor or a name. A family that WRAPS another one calls this
 #'     on its argument, so that `hmm(2, gaussian)`, `hmm(2, gaussian())`
 #'     and `hmm(2, "gaussian")` all mean the same thing.}
+#'   \item{`frame_block_of()`}{The block a `frame_block` slot built for
+#'     one response, or `NULL` when it built none. This is the read half
+#'     of that slot: the block is written once at frame assembly and
+#'     read back by every slot that runs at the estimates, and where a
+#'     frame keeps its blocks is not a layout an extension should spell
+#'     for itself.}
+#'   \item{`structure_supports_all()`}{A `supports` list with every
+#'     capability TRUE and the named ones overridden. The starting point
+#'     for the second kind of structure: a family whose likelihood DOES
+#'     factorize over rows and which declares a structure only to carry
+#'     the two or three refusals that belong to it. Writing the TRUEs
+#'     out by hand instead would silently take away each new capability
+#'     frmtmb adds.}
+#'   \item{`mixture_posterior()`}{The posterior class probabilities of
+#'     any family that implements the `fam$mix` component interface,
+#'     which is what `mixture()`, `mixture_mvn()` and a latent-class
+#'     family all do. A family implementing that interface uses this as
+#'     its whole `latent_probs` slot rather than deriving the same
+#'     quantity a second time.}
+#'   \item{`mixture_multimodal_refusals()`}{The `refusals` entries for
+#'     `reml` and `profile` owed by a family whose likelihood is
+#'     invariant to permuting its components. `what` is the family as
+#'     the sentence should name it, for example `"an lca() family"`. The
+#'     fact refused is the same one in every such family, so the
+#'     sentence is issued from one place rather than copied.}
 #' }
 #'
 #' @param fit A `frmtmb_fit`.
-#' @param what The calling function, as it should open a refusal:
-#'   `"latent_probs()"`.
+#' @param what For `single_response()`, the calling function as it
+#'   should open a refusal: `"latent_probs()"`. For
+#'   `mixture_multimodal_refusals()`, the family as the refusal should
+#'   name it: `"an lca() family"`.
 #' @param b Random-effect vector to evaluate at, defaulting to the fit's
 #'   own estimates. `NULL` drops the random-effect contribution.
 #' @param frame A `fit$frame`, or the frame a `check_fit` slot is given.
@@ -530,10 +558,16 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'   `fit$frame$aterm_values[[resp]]`.
 #' @param x A family: a `frmtmb_family`, a `stats::family()` object, a
 #'   family constructor, or a family name.
+#' @param ... Capability flags to override, named as in the `supports`
+#'   table of [frmtmb_structure()].
 #' @return `single_response()` a response spec; `eval_dpars()` a nested
 #'   list of numeric vectors; `fit_extras()` a named list or `NULL`;
 #'   `dpar_linpred()` a numeric vector or `NULL`; `response_mean()` a
-#'   numeric vector; `as_frmtmb_family()` a `frmtmb_family`.
+#'   numeric vector; `as_frmtmb_family()` a `frmtmb_family`;
+#'   `frame_block_of()` a list or `NULL`; `structure_supports_all()` a
+#'   named list of logicals; `mixture_posterior()` a matrix of class
+#'   probabilities; `mixture_multimodal_refusals()` a list of two
+#'   refusal strings.
 #' @seealso [frmtmb_structure()] for the protocol these serve, and
 #'   [frmtmb_family()] for the family object they read
 #' @examples
@@ -562,9 +596,8 @@ fam_structure <- function(fam) {
   if (is.null(fam)) NULL else fam[["structure"]]
 }
 
-#' The frame block of one response, or `NULL`.
-#'
-#' @noRd
+#' @rdname frmtmb-extension-api
+#' @export
 frame_block_of <- function(frame, resp) {
   (frame[["blocks"]] %||% list())[[resp]]
 }

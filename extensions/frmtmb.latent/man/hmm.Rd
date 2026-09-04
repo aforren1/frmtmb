@@ -18,7 +18,7 @@ hmm(
 the \verb{tr\{i\}\{j\}} dpar names stop being unambiguous).}
 
 \item{family}{The state-dependent (emission) family. Any univariate
-family with a \code{mu} parameter works, plus \code{\link[=multinomial]{multinomial()}} for
+family with a \code{mu} parameter works, plus \code{\link[frmtmb:multinomial]{frmtmb::multinomial()}} for
 categorical emissions. Ordinal families, mixtures and nested \code{hmm()}
 components are refused.}
 
@@ -50,7 +50,7 @@ predictors compose with it unchanged.
 \section{Parameters}{
 
 Each of the wrapped family's distributional parameters is copied once
-per state and suffixed with the state index, exactly as \code{\link[=mixture]{mixture()}}
+per state and suffixed with the state index, exactly as \code{\link[frmtmb:mixture]{mixture()}}
 does: \code{hmm(2, gaussian())} has \code{mu1}, \code{mu2}, \code{sigma1}, \code{sigma2}. The
 main model formula applies to every state's location parameter;
 override one state with \code{bf(y ~ x, mu2 ~ x + (1 | id))}. Every dpar
@@ -98,14 +98,14 @@ any single state's.
 \section{Label switching and local optima}{
 
 The likelihood is invariant to permuting the states, so the state
-means start at spread response quantiles (see \code{\link[=mixture]{mixture()}}); a start
+means start at spread response quantiles (see \code{\link[frmtmb:mixture]{mixture()}}); a start
 with every state mean equal sits on the symmetry axis and the
 optimizer never leaves it. Relabeling between runs is expected and is
 not fought. Multimodality is real and is not signalled by any
 convergence diagnostic: on a random-effect model the default cold
 start has been measured converging 8.1 log-likelihood units below the
 global optimum with \code{convergence == 0} and a positive-definite
-Hessian. Compare several starts (\code{\link[=frm_allfit]{frm_allfit()}}) before reporting.
+Hessian. Compare several starts (\code{\link[frmtmb:frm_allfit]{frm_allfit()}}) before reporting.
 }
 
 \section{Missing responses}{
@@ -142,7 +142,7 @@ does; judge \verb{max|grad|} per observation rather than in absolute terms.
 An unpenalized multinomial logit will send an emission or transition
 probability to 0 whenever a category is rare inside a state, and the
 optimizer then reports singular convergence at a perfectly good
-optimum. \code{\link[=set_prior]{set_prior()}} on the affected logit is the remedy.
+optimum. \code{\link[frmtmb:set_prior]{set_prior()}} on the affected logit is the remedy.
 }
 
 \section{Random effects and the Laplace approximation}{
@@ -167,7 +167,7 @@ location coefficients, which matches no standard definition),
 \code{rescor}, \code{residuals(type = "osa")}, \code{predict(se.fit = TRUE)} on the
 response scale, and \code{conditional_effects()}. A grouping in which every
 sequence has length 1 is refused too: the chain is then unidentified
-and the model is a \code{\link[=mixture]{mixture()}}.
+and the model is a \code{\link[frmtmb:mixture]{mixture()}}.
 }
 
 \examples{
@@ -208,5 +208,5 @@ frm(bf(y ~ 1),
 }
 }
 \seealso{
-\code{\link[=hmm_probs]{hmm_probs()}}, \code{\link[=hmm_viterbi]{hmm_viterbi()}}, \code{\link[=mixture]{mixture()}}
+\code{\link[=hmm_probs]{hmm_probs()}}, \code{\link[=hmm_viterbi]{hmm_viterbi()}}, \code{\link[frmtmb:mixture]{mixture()}}
 }

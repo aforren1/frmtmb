@@ -40,15 +40,15 @@ through one implementation that \code{\link[=simulate]{simulate()}}, \code{poste
 and \code{\link[=frm_simulate]{frm_simulate()}} all reach (see \code{sim_ctx} in
 \code{\link[=frmtmb_family]{frmtmb_family()}}):
 \itemize{
-\item an \code{\link[=hmm]{hmm()}} draw walks the hidden Markov chain forward per
-sequence and then emits from each row's state;
 \item a \code{mixture(groups = ~g)} draw takes one class per GROUP and then
 simulates each row from its group's component;
 \item a \code{\link[=mixture_mvn]{mixture_mvn()}} draw takes a class per row and then a
 multivariate normal with that class's own covariance;
 \item a residual correlation term (\code{ar()}, \code{ma()}, \code{cosy()}, ...) is one
 multivariate residual draw per group added to the mean predictor,
-so the draws carry the fitted autocorrelation.
+so the draws carry the fitted autocorrelation;
+\item a family from an extension package draws through whatever its
+structure declares, by the same route.
 }
 
 A structured draw covers whole sequences or groups, so \code{trunc()}

@@ -18,8 +18,6 @@ has_nlme <- requireNamespace("nlme", quietly = TRUE)
 has_phy <- has_ape && has_nlme
 has_metafor <- requireNamespace("metafor", quietly = TRUE)
 has_tinyplot <- requireNamespace("tinyplot", quietly = TRUE)
-has_depmix <- requireNamespace("depmixS4", quietly = TRUE)
-has_hmmtmb <- requireNamespace("hmmTMB", quietly = TRUE)
 has_rwiener <- requireNamespace("RWiener", quietly = TRUE)
 has_circular <- requireNamespace("circular", quietly = TRUE)
 ```
@@ -31,7 +29,7 @@ numbers against a package or a closed form that computes the same thing
 a different way. The datasets are small so that this page rebuilds in
 under a minute.
 
-Eight sections carry a figure. The figures use
+Most sections carry a figure. The figures use
 [tinyplot](https://cran.r-project.org/package=tinyplot), which is a
 suggested package, and they are skipped when it is not installed.
 
@@ -816,187 +814,10 @@ anova(frm(bf(y ~ x) + sratio(), data = dord), fcs)
 
 ## 9. Hidden Markov models for an animal track
 
-An animal alternates between behavioral modes. While it forages it
-takes short, undirected steps; while it travels it takes long ones. The
-mode is not observed, but it persists, so the movement package
-literature models it as a Markov chain over the steps and the step
-length as a state-dependent distribution (Michelot, Langrock and
-Patterson 2016, *Methods in Ecology and Evolution* 7, the moveHMM
-paper; Michelot 2022, the hmmTMB paper; Zucchini, MacDonald and
-Langrock 2016). `hmm(K, family)` writes that model as a family, so the
-state sequence is summed out exactly by the forward algorithm and every
-other part of the grammar still applies.
-
-The simulated track below has 12 animals, 60 steps each, and two
-states with well separated log step lengths.
-
-```{r hmm-data}
-set.seed(2001)
-G <- matrix(c(0.92, 0.08, 0.18, 0.82), 2, 2, byrow = TRUE)
-one_track <- function(id, nt = 60L) {
-  s <- integer(nt); s[1] <- 1L
-  for (t in 2:nt) s[t] <- sample.int(2L, 1L, prob = G[s[t - 1L], ])
-  data.frame(track = id, step = seq_len(nt), state = s,
-             logstep = rnorm(nt, c(1.4, 3.1)[s], c(0.45, 0.55)[s]))
-}
-mv <- do.call(rbind, lapply(1:12, one_track))
-```
-
-`time =` says which column orders the chain and `group =` says which
-column cuts it into sequences. Both take a bare name or a one-sided
-formula. `init = "stationary"` gives the chain the stationary
-distribution of its own transition matrix, which costs no parameters.
-
-```{r hmm-fit}
-fhmm <- frm(bf(logstep ~ 1),
-            family = hmm(K = 2, gaussian(), time = step, group = track,
-                         init = "stationary"),
-            data = mv)
-e <- unlist(fixef(fhmm))
-rbind(estimated = c(exp(e[["sigma1.(Intercept)"]]), e[["mu1.(Intercept)"]],
-                    e[["mu2.(Intercept)"]], exp(e[["sigma2.(Intercept)"]])),
-      simulated = c(0.45, 1.4, 3.1, 0.55))[, c(2, 1, 3, 4)] |>
-  `colnames<-`(c("mean1", "sd1", "mean2", "sd2")) |> round(4)
-```
-
-The transition matrix is a row-wise multinomial logit with state 1 as
-the reference cell of every row, which is depmixS4's convention. Turn
-the two free logits `tr12` and `tr22` back into probabilities by hand.
-
-```{r hmm-tpm}
-tpm_row <- function(z) { p <- exp(c(0, z)); p / sum(p) }
-Ghat <- rbind(tpm_row(e[["tr12.(Intercept)"]]),
-              tpm_row(e[["tr22.(Intercept)"]]))
-dimnames(Ghat) <- list(paste0("from", 1:2), paste0("to", 1:2))
-round(Ghat, 4)
-round(G, 4)
-```
-
-`hmm_probs()` gives the smoothed state probability of every row from a
-forward-backward pass, and `hmm_viterbi()` gives the most probable
-whole path. The two answer different questions: the first is marginal
-per row, the second is joint over the sequence.
-
-```{r hmm-decode}
-c(occupancy_state1 = mean(hmm_probs(fhmm)[, 1]),
-  viterbi_accuracy = mean(hmm_viterbi(fhmm) == mv$state))
-```
-
-### Cross-check against hmmTMB and depmixS4
-
-The same model has two reference implementations. hmmTMB fits the
-stationary-start version, and depmixS4 fits the free-start version by
-expectation maximization. Fit each on the same track and compare the
-maximized log likelihood.
-
-```{r hmm-hmmtmb, eval = has_hmmtmb}
-dh <- data.frame(ID = mv$track, step = mv$step, logstep = mv$logstep)
-hid <- hmmTMB::MarkovChain$new(data = dh, n_states = 2,
-                               initial_state = "stationary")
-hid$update_tpm(matrix(c(0.9, 0.1, 0.1, 0.9), 2, 2, byrow = TRUE))
-obs <- hmmTMB::Observation$new(
-  data = dh, n_states = 2, dists = list(logstep = "norm"),
-  par = list(logstep = list(mean = c(1.5, 3.0), sd = c(0.5, 0.5))))
-hm <- hmmTMB::HMM$new(obs = obs, hid = hid)
-hm$fit(silent = TRUE)
-c(frmtmb = as.numeric(logLik(fhmm)), hmmTMB = hm$llk(),
-  difference = as.numeric(logLik(fhmm)) - hm$llk())
-```
-
-```{r hmm-hmmtmb-assert, eval = has_hmmtmb}
-stopifnot(abs(as.numeric(logLik(fhmm)) - hm$llk()) < 1e-6,
-          max(abs(sort(as.numeric(hm$par()$obspar["logstep.mean", , 1])) -
-                    sort(c(e[["mu1.(Intercept)"]],
-                           e[["mu2.(Intercept)"]])))) < 1e-4)
-```
-
-hmmTMB starts from generic values rather than from the frmtmb answer,
-so this is a check of the optimum and not only of the likelihood.
-
-depmixS4 leaves the initial distribution free, so compare it with
-`init = "estimated"`. Its expectation-maximization run is
-multimodal, so take the best of several random starts.
-
-```{r hmm-depmix, eval = has_depmix}
-fest <- frm(bf(logstep ~ 1),
-            family = hmm(K = 2, gaussian(), time = step, group = track,
-                         init = "estimated"), data = mv)
-dm <- depmixS4::depmix(logstep ~ 1, data = mv, nstates = 2,
-                       ntimes = as.integer(table(mv$track)))
-set.seed(3)
-best <- -Inf
-sink(nullfile())          # depmixS4 reports every EM run on stdout
-for (i in 1:5) {
-  ff <- try(suppressMessages(depmixS4::fit(
-    dm, verbose = FALSE, emcontrol = depmixS4::em.control(
-      random.start = TRUE, tol = 1e-12, maxit = 5000))), silent = TRUE)
-  if (!inherits(ff, "try-error")) {
-    best <- max(best, as.numeric(depmixS4::logLik(ff)))
-  }
-}
-sink()
-c(frmtmb = as.numeric(logLik(fest)), depmixS4 = best,
-  difference = as.numeric(logLik(fest)) - best)
-```
-
-```{r hmm-depmix-assert, eval = has_depmix}
-stopifnot(abs(as.numeric(logLik(fest)) - best) < 1e-6)
-```
-
-The three packages agree on the maximum to better than 1e-6. The free
-start costs one parameter and buys about 3.7 log-likelihood points on
-12 sequences, which is what a free start usually buys when the chain is
-sticky.
-
-One track, drawn against time and colored by its decoded state, is the
-picture the model is for.
-
-```{r hmm-fig, eval = has_tinyplot, fig.width = 7, fig.height = 3.8, fig.alt = "Plot of log step length against step number for one 60-step track. The points are colored by the decoded state: low points near 1.4 in one color and high points near 3.1 in the other. Two horizontal dashed lines mark the two fitted state means. The colors come in runs rather than alternating, which is the persistence of the Markov chain."}
-one <- mv[mv$track == 1, ]
-one$decoded <- factor(hmm_viterbi(fhmm)[mv$track == 1],
-                      labels = c("state 1", "state 2"))
-tinyplot::tinyplot(logstep ~ step | decoded, data = one, type = "p",
-                   pch = 16, theme = "clean2", xlab = "step",
-                   ylab = "log step length")
-abline(h = c(e[["mu1.(Intercept)"]], e[["mu2.(Intercept)"]]), lty = 2,
-       col = "gray40")
-```
-
-The colors come in runs. That persistence is the whole difference
-between an HMM and the two-component mixture of section 6, and it is
-what the transition matrix measures.
-
-### What the HMM surface refuses
-
-The refusals below are documented rather than worked around. Each one
-has a reason that a workaround would hide.
-
-```{r hmm-refusals, error = TRUE}
-conditional_effects(fhmm)
-residuals(fhmm, type = "deviance")
-```
-
-`conditional_effects()` needs an expected response on a synthetic
-covariate grid. Under an HMM the expected response weights the state
-means by the posterior occupancies, and those depend on the observed
-responses of a whole sequence, so they do not exist on a grid. Plot one
-state's own predictor with `predict(dpar = "mu2")`, or the occupancies
-from `hmm_probs()`.
-
-`residuals(type = "deviance")`, and frmtmb.sample's `log_lik()` and
-`loo()`, all need a
-likelihood that factors into one term per observation. An HMM's
-smallest independent unit is a sequence, so a per-observation column
-would be a group and leaving one out would drop a whole track. Compare
-HMM fits with `AIC()` or `frm_bootstrap()`.
-
-This section also does not cover the parts of the surface that do work:
-transition covariates (`trans = ~x`, or `bf(y ~ 1, tr12 ~ x)` for one
-cell), non-gaussian emissions, and random effects inside a state's
-linear predictor. The last one is approximate: the Laplace
-approximation integrates the random effect outside the exact state sum,
-and the integrand is a mixture over state sequences rather than a
-gaussian. `?hmm` gives the measured size of that bias.
+This study moved. `hmm()` now lives in the `frmtmb.latent` package,
+and the animal-track fit, its cross-checks against hmmTMB and
+depmixS4, and the list of what the HMM surface refuses are in
+`vignette("latent", package = "frmtmb.latent")`.
 
 ## 10. Function-on-scalar regression
 
@@ -1661,13 +1482,13 @@ and each one is handled above:
   is how section 11 bounds the non-decision time by the data. The
   object needs `name`, `linkfun`, `linkinv` and `mu_eta`.
 
-Three model classes on this page are refused by parts of the
-post-fitting surface, and the refusals are deliberate. An `hmm()` fit
-has no per-observation likelihood, so `log_lik()`, `loo()`,
-`residuals(type = "deviance")` and `conditional_effects()` all say so
-instead of inventing one. A term built on matrix columns is excluded
-from `conditional_effects()`, because a matrix covariate has no single
-value to hold the other predictors at.
+Some models on this page are refused by parts of the post-fitting
+surface, and the refusals are deliberate. A term built on matrix
+columns is excluded from `conditional_effects()`, because a matrix
+covariate has no single value to hold the other predictors at. A
+family whose likelihood does not factorize over the rows refuses more
+than that: `vignette("latent", package = "frmtmb.latent")` works
+through the whole refusal set of one such family.
 
 The identity-refit check of section 1 belongs in any model that reads a
 matrix from `data2`. It is the one test that a structured covariance

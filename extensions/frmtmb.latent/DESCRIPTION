@@ -1,0 +1,41 @@
+Package: frmtmb.latent
+Title: Latent-State Families for 'frmtmb' Models
+Version: 0.1.0
+Authors@R:
+    person("Alex", "Forrence", email = "alex.forrence@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9728-6337"))
+Description: Adds two families whose latent variable is a discrete
+    state to the model grammar of 'frmtmb'. 'hmm()' fits hidden Markov
+    models with covariate-dependent transitions, summing the state
+    sequence out exactly with the forward algorithm and decoding it with
+    the forward-backward and Viterbi passes. 'lca()' fits latent class
+    analysis in the manner of 'poLCA', with conditionally independent
+    polytomous items and a multinomial logit on the class membership.
+    Both are written entirely against the structured-family protocol
+    that 'frmtmb' exports, so neither needs a branch inside the core
+    package.
+License: GPL (>= 2)
+URL: https://aforren1.github.io/frmtmb/,
+    https://github.com/aforren1/frmtmb
+BugReports: https://github.com/aforren1/frmtmb/issues
+Encoding: UTF-8
+Language: en-US
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1),
+    frmtmb (>= 0.47.0.9000)
+Imports:
+    RTMB (>= 1.9),
+    stats
+Suggests:
+    depmixS4,
+    hmmTMB,
+    knitr,
+    poLCA,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    tinyplot
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0

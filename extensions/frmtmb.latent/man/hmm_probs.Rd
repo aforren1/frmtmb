@@ -15,8 +15,8 @@ columns named \verb{state1 ... stateK}.
 }
 \description{
 The smoothed occupancy \code{P(S_t = k | y)} for every row of the data,
-from a forward-backward pass at the estimates. This is the \code{\link[=mixture]{mixture()}}
-analog \code{\link[=mixture_probs]{mixture_probs()}}, one rung up: an HMM's per-row state
+from a forward-backward pass at the estimates. This is the \code{\link[frmtmb:mixture]{mixture()}}
+analog \code{\link[frmtmb:mixture_probs]{mixture_probs()}}, one rung up: an HMM's per-row state
 probability conditions on the WHOLE sequence, not on that row alone,
 which is why it needs a backward pass and cannot come out of the
 family's density.

@@ -191,7 +191,7 @@ test_that("mixture_mvn() refuses REML and profile too", {
   expect_s3_class(frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dz),
                   "frmtmb_fit")
   # each family states the refusal in its own name now: this used to be
-  # one message in fit.R listing mixture(), mixture_mvn() and lca()
+  # one message in fit.R listing every mixture-type family by name
   expect_error(frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dz,
                    REML = TRUE), "mixture_mvn\\(\\)")
   expect_error(frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dz,

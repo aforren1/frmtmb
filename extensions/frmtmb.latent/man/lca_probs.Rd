@@ -26,7 +26,7 @@ for a partition with no ambiguity and 0 when every subject is
 equally likely to be in any class. Values above about 0.8 are the
 usual rule of thumb for classes worth naming.
 
-This is \code{\link[=mixture_probs]{mixture_probs()}} under an LCA-specific name and check; the
+This is \code{\link[frmtmb:mixture_probs]{mixture_probs()}} under an LCA-specific name and check; the
 two return the same matrix for an \code{\link[=lca]{lca()}} fit.
 }
 \examples{
@@ -46,5 +46,5 @@ attr(p, "entropy")            # classification quality, 0 to 1
 table(max.col(p), truth = cl) # the modal assignment, up to relabeling
 }
 \seealso{
-\code{\link[=lca]{lca()}}, \code{\link[=lca_profiles]{lca_profiles()}}, \code{\link[=mixture_probs]{mixture_probs()}}
+\code{\link[=lca]{lca()}}, \code{\link[=lca_profiles]{lca_profiles()}}, \code{\link[frmtmb:mixture_probs]{mixture_probs()}}
 }

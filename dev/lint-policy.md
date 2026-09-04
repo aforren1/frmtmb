@@ -47,10 +47,12 @@ guards against cannot arise. The package already uses `seq_len()` and
 
 ### 3. `sapply()`
 
-Zero hits in package code. The one `sapply(` string in `R/` is in a
-roxygen `@examples` block in `R/lca.R`, where the example shows a user
-how to summarize a list of refits. Example code is user-facing prose
-about a normal R idiom, so it stays.
+Zero hits in package code. The one `sapply(` string this section was
+written about sat in a roxygen `@examples` block, where the example
+showed a user how to summarize a list of refits. Example code is
+user-facing prose about a normal R idiom, so it stayed. That file left
+for `extensions/frmtmb.latent` with protocol step 10; the ruling is
+kept here because it is about examples in general, not about that one.
 
 ### 4. `any(is.na(x))` and `any(duplicated(x))`
 

@@ -127,7 +127,7 @@
 #'   Rubin (1987) for multiple-imputation pooling. A method whose
 #'   reference belongs to one function carries it on that function's own
 #'   help page: [vcov_cluster()] (Liang and Zeger 1986; Cameron and
-#'   Miller 2015), [influence.frmtmb_fit()], [lca()] and
+#'   Miller 2015), [influence.frmtmb_fit()], `lca()` and
 #'   [anova.frmtmb_multiple()].
 #' @srrstats {G1.1} The "Algorithm provenance" section states that
 #'   frmtmb introduces no new estimator. It is a new implementation, in

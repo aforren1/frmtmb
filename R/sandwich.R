@@ -232,8 +232,9 @@ cluster_guard <- function(fit, cl) {
     }
   }
   # group-level (latent-class) mixtures: same condition on the
-  # mixture's own grouping. hmm() fits were refused above, so a block
-  # still standing here carries the mixture's group incidence.
+  # mixture's own grouping. A family that does not declare
+  # cluster_robust was refused above, so a block still standing here
+  # carries a group incidence this can read.
   for (r in names(frame[["blocks"]] %||% list())) {
     mg <- frame_block_of(frame, r)
     tg <- methods::as(methods::as(mg$Gt, "generalMatrix"), "TsparseMatrix")
@@ -371,7 +372,8 @@ cluster_scores_at <- function(fit, cl) {
 #' condition are refused with the reason: a random effect whose level
 #' spans two clusters (including crossed effects, `mm()` pooled levels,
 #' a global smooth, `gp()`, `car()` and the SPDE), a group-level
-#' mixture whose groups span clusters, an `autocor()` residual, `hmm()`,
+#' mixture whose groups span clusters, an `autocor()` residual, a
+#' family whose structure does not declare `cluster_robust`,
 #' `rescor = TRUE`, `mi()`/`me()`, `REML = TRUE`, `profile = TRUE`,
 #' `quadrature = TRUE`, and any fit made with priors. [frm_bootstrap()]
 #' is the fallback in every one of those cases.

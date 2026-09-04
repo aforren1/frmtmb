@@ -70,9 +70,9 @@
 #' @return An object of class `frmtmb_family`.
 #' @section Structured simulators:
 #' Some families cannot draw a response one row at a time: a group-level
-#' [mixture()] draws one class per group, an [hmm()] walks a Markov
-#' chain per sequence, and a [mixture_mvn()] draw needs the class
-#' covariances, which are family-level extras rather than dpars. Those
+#' [mixture()] draws one class per group, a [mixture_mvn()] draw needs
+#' the class covariances, which are family-level extras rather than
+#' dpars, and a hidden Markov family walks a chain per sequence. Those
 #' families supply `sim_ctx(ctx)` instead of `sim(dpars, aterms, n)`.
 #'
 #' `ctx` is a list with `fit` (any object carrying `spec`, `frame` and
@@ -2671,7 +2671,8 @@ mixture <- function(..., groups = NULL) {
 #' one message listing every mixture-type family, raised from one gate
 #' in fit.R that knew all three by name; each family states its own now.
 #'
-#' @noRd
+#' @rdname frmtmb-extension-api
+#' @export
 mixture_multimodal_refusals <- function(what) {
   list(
     reml = paste0(
@@ -2851,7 +2852,8 @@ mixture_probs <- function(fit) {
 #' three, and `mixture_probs()` and `lca_probs()` reach it through the
 #' `latent_probs()` generic.
 #'
-#' @noRd
+#' @rdname frmtmb-extension-api
+#' @export
 mixture_posterior <- function(fit) {
   rspec <- single_response(fit, "mixture_probs()")
   fam <- rspec$family

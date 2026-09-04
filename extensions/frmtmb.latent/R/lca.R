@@ -766,6 +766,3 @@ lca_compat_rules <- function() {
     "See the REML, profile, quadrature, prior, bounds and sparse_x rules; autoscale and verbose are untested.")
   b$rules()
 }
-
-frmtmb_register_compat(features = c(lca = "structure"),
-                       rules = lca_compat_rules)

@@ -2,15 +2,24 @@
 % Please edit documentation in R/families.R, R/predict.R, R/structure.R
 \name{response_mean}
 \alias{response_mean}
+\alias{mixture_multimodal_refusals}
+\alias{mixture_posterior}
 \alias{as_frmtmb_family}
 \alias{eval_dpars}
 \alias{single_response}
 \alias{fit_extras}
 \alias{dpar_linpred}
+\alias{structure_supports_all}
 \alias{frmtmb-extension-api}
-\title{Accessors for a structured family written outside frmtmb}
+\alias{frame_block_of}
+\title{The two fitting options every mixture-type family refuses, in its own
+name.}
 \usage{
 response_mean(fam, dpars, aterms)
+
+mixture_multimodal_refusals(what)
+
+mixture_posterior(fit)
 
 as_frmtmb_family(x)
 
@@ -21,6 +30,10 @@ single_response(fit, what)
 fit_extras(fit)
 
 dpar_linpred(frame, params, resp, dpar)
+
+structure_supports_all(...)
+
+frame_block_of(frame, resp)
 }
 \arguments{
 \item{fam}{A \code{frmtmb_family}.}
@@ -31,16 +44,18 @@ dpar_linpred(frame, params, resp, dpar)
 \item{aterms}{Evaluated addition terms for the response,
 \code{fit$frame$aterm_values[[resp]]}.}
 
-\item{x}{A family: a \code{frmtmb_family}, a \code{stats::family()} object, a
-family constructor, or a family name.}
+\item{what}{For \code{single_response()}, the calling function as it
+should open a refusal: \code{"latent_probs()"}. For
+\code{mixture_multimodal_refusals()}, the family as the refusal should
+name it: \code{"an lca() family"}.}
 
 \item{fit}{A \code{frmtmb_fit}.}
 
+\item{x}{A family: a \code{frmtmb_family}, a \code{stats::family()} object, a
+family constructor, or a family name.}
+
 \item{b}{Random-effect vector to evaluate at, defaulting to the fit's
 own estimates. \code{NULL} drops the random-effect contribution.}
-
-\item{what}{The calling function, as it should open a refusal:
-\code{"latent_probs()"}.}
 
 \item{frame}{A \code{fit$frame}, or the frame a \code{check_fit} slot is given.}
 
@@ -49,14 +64,38 @@ own estimates. \code{NULL} drops the random-effect contribution.}
 
 \item{resp, dpar}{The response name and the distributional parameter
 name, as \code{eval_dpars()} returns them.}
+
+\item{...}{Capability flags to override, named as in the \code{supports}
+table of \code{\link[=frmtmb_structure]{frmtmb_structure()}}.}
 }
 \value{
 \code{single_response()} a response spec; \code{eval_dpars()} a nested
 list of numeric vectors; \code{fit_extras()} a named list or \code{NULL};
 \code{dpar_linpred()} a numeric vector or \code{NULL}; \code{response_mean()} a
-numeric vector; \code{as_frmtmb_family()} a \code{frmtmb_family}.
+numeric vector; \code{as_frmtmb_family()} a \code{frmtmb_family};
+\code{frame_block_of()} a list or \code{NULL}; \code{structure_supports_all()} a
+named list of logicals; \code{mixture_posterior()} a matrix of class
+probabilities; \code{mixture_multimodal_refusals()} a list of two
+refusal strings.
 }
 \description{
+A mixture likelihood is invariant to permuting its components, so the
+location coefficients enter a multimodal objective. Both \code{REML} and
+\code{profile = TRUE} integrate those coefficients out with a Laplace
+approximation about a single inner mode, which is not defined here:
+the inner Newton solve walks between the component modes and the fit
+either dies at "NA/NaN gradient evaluation" or reports an optimum
+with a gradient near 1e9. Quadrature is unaffected, because it
+marginalizes the random effects, not the coefficients.
+
+The conservative all-\code{FALSE} default is right for a family whose
+likelihood does not factorize: it starts fully refused and opts in.
+It is exactly wrong for a family whose likelihood DOES factorize and
+which carries a structure only to hold the two or three refusals that
+belong to it, because there every other capability already works and
+a flag would only take it away. This is the starting point for that
+second kind, so such a family names what it refuses and nothing else.
+
 The read-only surface a \code{\link[=frmtmb_structure]{frmtmb_structure()}} slot may use. A
 structure's \code{fitted_mean}, \code{fitted_var}, \code{latent_probs} and \code{sim_ctx}
 run at the estimates and outside the AD tape, and they are handed a
@@ -67,6 +106,10 @@ family's needs are already public: \code{\link[=frm]{frm()}}, \code{\link[=bf]{b
 \code{\link[=hypothesis]{hypothesis()}} among them.
 }
 \details{
+\code{what} is the family as the sentence should name it. These used to be
+one message listing every mixture-type family, raised from one gate
+in fit.R that knew all three by name; each family states its own now.
+
 They are documented together because they are one contract with one
 promise: what they return is stable, so a family in another package
 can be written against them. Everything else in a fit, a frame or a
@@ -105,6 +148,31 @@ given as a \code{frmtmb_family}, a \code{stats::family()}, a bare family
 constructor or a name. A family that WRAPS another one calls this
 on its argument, so that \code{hmm(2, gaussian)}, \code{hmm(2, gaussian())}
 and \code{hmm(2, "gaussian")} all mean the same thing.}
+\item{\code{frame_block_of()}}{The block a \code{frame_block} slot built for
+one response, or \code{NULL} when it built none. This is the read half
+of that slot: the block is written once at frame assembly and
+read back by every slot that runs at the estimates, and where a
+frame keeps its blocks is not a layout an extension should spell
+for itself.}
+\item{\code{structure_supports_all()}}{A \code{supports} list with every
+capability TRUE and the named ones overridden. The starting point
+for the second kind of structure: a family whose likelihood DOES
+factorize over rows and which declares a structure only to carry
+the two or three refusals that belong to it. Writing the TRUEs
+out by hand instead would silently take away each new capability
+frmtmb adds.}
+\item{\code{mixture_posterior()}}{The posterior class probabilities of
+any family that implements the \code{fam$mix} component interface,
+which is what \code{mixture()}, \code{mixture_mvn()} and a latent-class
+family all do. A family implementing that interface uses this as
+its whole \code{latent_probs} slot rather than deriving the same
+quantity a second time.}
+\item{\code{mixture_multimodal_refusals()}}{The \code{refusals} entries for
+\code{reml} and \code{profile} owed by a family whose likelihood is
+invariant to permuting its components. \code{what} is the family as
+the sentence should name it, for example \code{"an lca() family"}. The
+fact refused is the same one in every such family, so the
+sentence is issued from one place rather than copied.}
 }
 }
 \examples{

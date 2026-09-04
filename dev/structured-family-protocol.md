@@ -1,8 +1,8 @@
 # The structured-family protocol
 
-Status: approved 2026-09-03; steps 1 through 9 implemented (1-5 at
-v0.44.0 and v0.45.0, 6-9 after). Only step 10, the move to another
-package, is left.
+Status: approved 2026-09-03; COMPLETE. Steps 1 through 9 implemented
+(1-5 at v0.44.0 and v0.45.0, 6-9 after); step 10, the move to another
+package, landed after v0.47.0.
 Written 2026-09-03 against v0.43.0; revised same date with the
 packaging decision (monorepo), the boundary-test ratchet, and the
 interop split notes.
@@ -41,6 +41,12 @@ consumed by core at a fixed set of call sites, with no family name in
 core. `mixture()` moves onto the protocol first and keeps its test
 suite unchanged; that is the acceptance test for the seam. `hmm()` and
 `lca()` follow and can then live in another package.
+
+This goal is met. Both families left for `extensions/frmtmb.latent` in
+step 10, carrying their tests and their compatibility rules with them
+and reaching the core only through its exported extension API; the
+boundary test is no longer a ratchet with exempt files but a
+zero-tolerance assertion over the whole of `R/`.
 
 Out of scope: R-side residual structures (`autocor`) and `frm_ode()`.
 Autocor has the same shape (it replaces `lpdf` for a response) but hangs
@@ -261,12 +267,24 @@ One test in the core suite: grep every file in `R/` except the
 structured families' own for the tokens `hmm`, `lca`, `mix_g`,
 `hmm_g` (word boundaries, outside roxygen text), and fail on a hit.
 
-It cannot start at zero, because the branches it polices exist until
-steps 6 and 7 delete them. So it starts as a RATCHET: the test pins
-the current file-by-token hit inventory exactly, fails on any NEW
-hit, and each protocol step that deletes a branch shrinks the pinned
-inventory in the same commit. At step 7 the inventory reaches empty
-and the test becomes the zero-tolerance boundary. `mixture` tokens
+It could not start at zero, because the branches it polices existed
+until steps 6 and 7 deleted them. So it started as a RATCHET: the test
+pinned the current file-by-token hit inventory exactly, failed on any
+NEW hit, and each protocol step that deleted a branch shrank the
+pinned inventory in the same commit. The exempt list outlived the
+inventory by three steps, because `R/hmm.R` and `R/lca.R` were
+themselves in `R/` until step 10 moved them out.
+
+As built, the test is now the boundary rather than a countdown to it:
+every token maps to an empty list of allowed homes, so a hit anywhere
+in core `R/` fails. Its positive control moved with the families. A
+scanner that matched nothing anywhere would pass the boundary
+vacuously, and the control used to prove otherwise by reading the
+exempt homes inside core; it now reads
+`extensions/frmtmb.latent/R`, and it is the CONTROL that skips when
+`extensions/` is absent, never the boundary assertion.
+
+`mixture` tokens
 are not policed: mixture is the in-core reference implementation and
 stays.
 
@@ -286,10 +304,15 @@ onerous for anyone:
 - CI partitions by path filters; the test files already map one to
   one, so the suites split for free.
 
-Package naming is an open decision (working names: `frmtmb` the core,
-`frmtmb.ode`, `frmtmb.sample`; the structured families likely ride in
-`frmtmb.sample` or their own `frmtmb.markov`-style package once they
-exist outside core).
+Package names as built: `frmtmb` the core, `frmtmb.ode`,
+`frmtmb.sample`, and `frmtmb.latent` for the two structured families.
+They took a package of their own rather than riding in
+`frmtmb.sample`, because the sampling surface is a dependency they do
+not need and their reference packages are not its reference packages.
+`frmtmb.latent` is still a working name: nothing outside the monorepo
+depends on it yet, so renaming it costs one DESCRIPTION, one workflow
+file, the pointers in the core README and case-studies vignette, and
+the extension path in the boundary test's positive control.
 
 Tier context, from the split memo this protocol serves:
 
@@ -313,7 +336,8 @@ Tier context, from the split memo this protocol serves:
   tmbstan), which costs core its own approximation-verifier - core's
   docs then point at the draws package for it, rather than staying
   silent.
-- Tier 3, hmm and lca, wait on this protocol.
+- Tier 3, hmm and lca, waited on this protocol and left with step 10
+  for `frmtmb.latent`. Nothing in core names them any more.
 
 ## Order of work
 
@@ -334,7 +358,18 @@ Tier context, from the split memo this protocol serves:
 8. [x] `latent_probs()` generic; aliases.
 9. [x] Export the accessor list above, document `frmtmb_structure()`
    as the extension API with hmm as the worked example.
-10. [ ] Move hmm.R, lca.R and their tests to the extension package.
+10. [x] Move hmm.R, lca.R and their tests to the extension package.
+    Landed as `extensions/frmtmb.latent` (one package for both
+    latent-state families). Four accessors joined the extension API to
+    make it compile out of tree: `frame_block_of()`,
+    `structure_supports_all()`, `mixture_posterior()` and
+    `mixture_multimodal_refusals()`. Step 9's list was otherwise
+    complete, and two of its guesses were wrong in the useful
+    direction: neither `linpred_key()` nor `assemble_frame()` is
+    reached at all. The written inventory is
+    `extensions/frmtmb.latent/dev/out-of-tree-inventory.md`, and the
+    extension's own suite re-runs the scan so a later edit cannot
+    quietly reach for an internal again.
 
 Four things landed with steps 6 through 9 that this document did not
 anticipate, and its text above is the design as approved rather than as

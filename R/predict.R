@@ -2490,15 +2490,15 @@ apply_censoring <- function(y, win) {
 #' through one implementation that [simulate()], `posterior_predict()`
 #' and [frm_simulate()] all reach (see `sim_ctx` in
 #' [frmtmb_family()]):
-#' - an [hmm()] draw walks the hidden Markov chain forward per
-#'   sequence and then emits from each row's state;
 #' - a `mixture(groups = ~g)` draw takes one class per GROUP and then
 #'   simulates each row from its group's component;
 #' - a [mixture_mvn()] draw takes a class per row and then a
 #'   multivariate normal with that class's own covariance;
 #' - a residual correlation term (`ar()`, `ma()`, `cosy()`, ...) is one
 #'   multivariate residual draw per group added to the mean predictor,
-#'   so the draws carry the fitted autocorrelation.
+#'   so the draws carry the fitted autocorrelation;
+#' - a family from an extension package draws through whatever its
+#'   structure declares, by the same route.
 #'
 #' A structured draw covers whole sequences or groups, so `trunc()`
 #' rejection cannot resample single rows within it (every structured

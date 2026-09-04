@@ -1,6 +1,6 @@
 Package: frmtmb
 Title: Formula-Based Regression Models via 'RTMB'
-Version: 0.47.0
+Version: 0.47.0.9000
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -41,13 +41,11 @@ Suggests:
     circular,
     clubSandwich,
     data.table,
-    depmixS4,
     DHARMa,
     emmeans,
     fmesher,
     GLMMadaptive,
     glmmTMB,
-    hmmTMB,
     insight,
     knitr,
     lme4,
@@ -62,7 +60,6 @@ Suggests:
     nlme,
     nloptr,
     nnet,
-    poLCA,
     posterior,
     quantreg,
     rmarkdown,

@@ -77,7 +77,7 @@ refits <- replicate(10, simplify = FALSE,
 sapply(refits, logLik)
 }\if{html}{\out{</div>}}
 
-and keep the best. \code{\link[=frm_allfit]{frm_allfit()}} is a different check: it re-runs
+and keep the best. \code{\link[frmtmb:frm_allfit]{frm_allfit()}} is a different check: it re-runs
 the four optimizers from the SAME start, so it tests the optimizer,
 not the surface. Ordering the gating intercepts through \code{lower} and
 \code{upper} is the way to pin the labeling itself.
@@ -127,7 +127,7 @@ growth-mixture shape - use \code{mixture(..., groups = ~g)} for that),
 \code{REML} and \code{frmtmb_control(profile = TRUE)} (the classes are
 exchangeable, so there is no single inner mode), \code{quadrature}, every
 addition term (\code{weights()}, \code{cens()}, \code{trunc()}, \code{se()}, \code{mi()},
-\code{trials()}), \code{\link[=mvbf]{mvbf()}}, and \code{residuals(type = "osa")}.
+\code{trials()}), \code{\link[frmtmb:mvbf]{mvbf()}}, and \code{residuals(type = "osa")}.
 }
 
 \examples{
@@ -154,7 +154,7 @@ Package for Polytomous Variable Latent Class Analysis. \emph{Journal of
 Statistical Software}, 42(10), 1-29.
 }
 \seealso{
-\code{\link[=lca_probs]{lca_probs()}}, \code{\link[=lca_profiles]{lca_profiles()}}, \code{\link[=mixture]{mixture()}} for a mixture
-of continuous responses, \code{\link[=mixture_mvn]{mixture_mvn()}} for model-based
+\code{\link[=lca_probs]{lca_probs()}}, \code{\link[=lca_profiles]{lca_profiles()}}, \code{\link[frmtmb:mixture]{mixture()}} for a mixture
+of continuous responses, \code{\link[frmtmb:mixture_mvn]{mixture_mvn()}} for model-based
 clustering of a numeric matrix.
 }
