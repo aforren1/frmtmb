@@ -1,5 +1,12 @@
 # The response-preparation ("habit") model of Hardwick et al. (2019)
 
+> **This directory is the development record.** The shipping version of the
+> case study is `vignette("habit")`, and the data it uses is the `habit_prep`
+> data object, rebuilt from the authors' MIT-licensed OSF deposit by
+> `data-raw/habit_prep.R`. Findings recorded here that do not appear in the
+> vignette are deliberate: they are notes for the maintainer, not reader-facing
+> material.
+
 Working notes for a frmtmb replication of the model in:
 
 > Hardwick RM, Forrence AD, Krakauer JW, Haith AM (2019). Time-dependent

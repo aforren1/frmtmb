@@ -1,0 +1,39 @@
+frmtmb as a whole is distributed under GPL (>= 2); see the LICENSE file.
+
+The data object `habit_prep` (data/habit_prep.rda) is not original to frmtmb.
+It is derived from the data deposit accompanying:
+
+  Hardwick RM, Forrence AD, Krakauer JW, Haith AM (2019). Time-dependent
+  competition between goal-directed and habitual response preparation.
+  Nature Human Behaviour, 3, 1252-1262. doi:10.1038/s41562-019-0725-0
+
+  Deposit: Hardwick RM, Haith AM (2019). "Time-Dependent Competition Between
+  Goal-Directed and Habitual Response Selection." https://osf.io/3fjez/
+
+The deposit is released under the MIT License, reproduced below from its own
+LICENCE.txt. data-raw/habit_prep.R rebuilds the object from the deposit and
+records exactly which parts of it are used.
+
+----------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2019, Robert Michael Hardwick and Adrian Mark Haith.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
