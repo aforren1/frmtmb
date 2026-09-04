@@ -148,6 +148,35 @@
 #'   are given. See [frmtmb_control()] for the levels and the output.
 #' @return An object of class `frmtmb_fit`.
 #'
+#' @section What a nonlinear body sees:
+#' The body of a nonlinear formula - the response formula under
+#' `nl = TRUE`, or an [nlf()] body - is evaluated as a small language
+#' for the AD tape, not as ordinary R. A function it CALLS is looked up
+#' in RTMB first, so a bare `pnorm()`, `qgamma()`, `plogis()`,
+#' `besselK()` or `matrix()` in a body is RTMB's tape-capable version.
+#' The `RTMB::` prefix is no longer needed, and writing it changes
+#' nothing: both spellings tape to the same function and give the same
+#' fit.
+#'
+#' RTMB WINS. It wins over the search path and over a function of the
+#' same name that you defined yourself, because the body is a language
+#' with its own vocabulary rather than a piece of your session. To reach
+#' a different `pnorm` inside a body, qualify it: `stats::pnorm()` is
+#' the escape hatch, and so is `myPkg::pnorm()`.
+#'
+#' Nothing else changes. Only the names RTMB replaces are shadowed, and
+#' only where the body calls them, so a helper function of your own, an
+#' object the body reads, and every name that is not in RTMB still
+#' resolve in the formula's environment exactly as before. A name the
+#' body READS is never shadowed either, so a data frame called `df` or a
+#' vector called `order` keeps its meaning.
+#'
+#' The rule stops at the end-user surface. A [frmtmb_family()]
+#' log-density and a [frmtmb_structure()] log-likelihood are ordinary R
+#' functions written by an extension author, and they keep resolving
+#' lexically: qualify with `RTMB::` there, and see [frmtmb_ad_overload()]
+#' for the rest of that contract.
+#'
 #' @section The Laplace approximation, and how to check it:
 #' Random effects are integrated out by the Laplace approximation,
 #' which assumes the integrand is close to Gaussian around the

@@ -261,6 +261,12 @@ print.frmtmb_lf <- function(x, ...) {
 #' `sd = exp(ls) * |mu|^th`. A column of the data still wins over the
 #' parameter name, so a body ported from brms keeps its meaning.
 #'
+#' A function the body CALLS is looked up in RTMB before anywhere else,
+#' so a bare `pnorm()` or `qgamma()` is the tape-capable version and
+#' needs no `RTMB::` prefix. See the "What a nonlinear body sees"
+#' section of [frm()] for the whole rule, including the `stats::` escape
+#' hatch.
+#'
 #' Like [lf()], an `nlf()` in a multivariate model must be added to the
 #' `bf()` of the response it belongs to, before the responses are
 #' combined.

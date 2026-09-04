@@ -352,6 +352,18 @@ accepts meaning here what it means there. So
 model's own mean, unless `data` carries a column `mu`, in which case it
 is a variance function of that column.
 
+**In a nonlinear body, a function resolves in RTMB first.** That order
+is for the names a body READS. A name a body CALLS follows a different
+one: RTMB, then the formula's own environment, then the search path. A
+bare `pnorm()`, `qgamma()`, `dbeta()`, `besselK()` or `matrix()` in a
+body is therefore RTMB's tape-capable version, with no `RTMB::` prefix
+and no `library(RTMB)`, and it beats a function of the same name that
+you defined yourself. Qualify with `stats::` to reach the other one.
+Only the names RTMB replaces are shadowed, so a helper of your own is
+found where it always was; and because only the CALLED names are
+shadowed, a data frame named `df` or a vector named `order` still reads
+as your object.
+
 **The internal `.eta_<dpar>` names are unreachable from `data`.** The
 objective keeps each linear predictor beside its parameter under a
 reserved `.eta_` name, for the families that need the untransformed

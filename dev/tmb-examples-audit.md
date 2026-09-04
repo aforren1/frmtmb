@@ -569,6 +569,12 @@ data). Users reaching for a distribution function inside an `nl` body
 should be told to prefix it, because the failure message points at the
 formula rather than at the search path.
 
+RESOLVED (lane wt-nlenv), the other way round: rather than tell users to
+prefix, the body became a scope that sees RTMB's math first, so the bare
+spelling is the one that works and the prefixed one still does.
+`test-tmb-examples.R` keeps its `RTMB::`-prefixed formulas as the
+compatibility case.
+
 **`Vectorize()` over advectors needs RTMB attached.** Building a
 per-observation marginalization with `Vectorize()`, as
 `adaptive_integration.R` does, fails with "Invalid argument to

@@ -53,6 +53,12 @@ function of the model's own mean that nlme writes as
 \verb{sd = exp(ls) * |mu|^th}. A column of the data still wins over the
 parameter name, so a body ported from brms keeps its meaning.
 
+A function the body CALLS is looked up in RTMB before anywhere else,
+so a bare \code{pnorm()} or \code{qgamma()} is the tape-capable version and
+needs no \verb{RTMB::} prefix. See the "What a nonlinear body sees"
+section of \code{\link[=frm]{frm()}} for the whole rule, including the \verb{stats::} escape
+hatch.
+
 Like \code{\link[=lf]{lf()}}, an \code{nlf()} in a multivariate model must be added to the
 \code{bf()} of the response it belongs to, before the responses are
 combined.

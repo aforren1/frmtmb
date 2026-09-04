@@ -292,9 +292,10 @@ test_that("transform: a latent AR(1) field pushed through a gamma quantile", {
                          random = "u", silent = TRUE)
   opt <- suppressWarnings(nlminb(obj$par, obj$fn, obj$gr, lower = 1e-6))
 
-  # The nl body is evaluated in the formula's own environment, so the
-  # RTMB:: prefixes are load bearing: bare qgamma/pnorm find the stats
-  # versions unless the user has attached RTMB.
+  # The RTMB:: prefixes are no longer load bearing - a body looks a
+  # called function up in RTMB first - so this is now the compatibility
+  # case: the old spelling still reaches the same fit. The bare spelling
+  # is checked against it in test-nl-rtmb-scope.R.
   pin <- c(theta_1 = 0)
   fit <- suppressWarnings(
     frm(bf(y ~ RTMB::qgamma(RTMB::pnorm(z), shape, scale),

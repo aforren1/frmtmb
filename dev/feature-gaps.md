@@ -1355,16 +1355,23 @@ are, in order:
    and it is the same node the pharmacometrics tier above wants for
    linear compartment models.
 
-Two smaller findings from the audit that belong in user-facing docs:
+Two smaller findings from the audit that belonged in user-facing docs.
+CLOSED (lane wt-nlenv), by making the `nl` body a scope of its own
+rather than by documenting the trap:
 
-* An `nl` formula body resolves functions lexically, so a bare
-  `pnorm()`/`qgamma()` inside one finds the `stats` version and fails
-  with a message that points at the formula rather than at the search
-  path. `RTMB::pnorm()` works whether or not RTMB is attached, and gives
-  the identical fit.
-* `Vectorize()` over advectors loses the class unless RTMB is attached;
-  `do.call("c", lapply(...))` does not. Same family as the known
-  `matrix()` masking trap.
+* An `nl` formula body resolved functions lexically, so a bare
+  `pnorm()`/`qgamma()` inside one found the `stats` version and failed
+  with a message that pointed at the formula rather than at the search
+  path. A body now looks a CALLED function up in RTMB first
+  (`nl_rtmb_shadow`, R/ad-env.R), so both spellings work and give the
+  identical fit. `RTMB::pnorm()` still works, and is still what an
+  extension author writes in a family log-density, which the rule
+  deliberately does not cover.
+* `Vectorize()` over advectors lost the class unless RTMB was attached;
+  `do.call("c", lapply(...))` did not. Same family as the known
+  `matrix()` masking trap. `Vectorize` and `matrix` are both in the
+  shadow set, so this one is closed inside an `nl` body and open
+  everywhere else.
 
 ## The hand-translated brms vignette audit (2026-09-03, lane wt-brmsvig)
 

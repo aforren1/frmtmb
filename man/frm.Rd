@@ -187,6 +187,37 @@ An object of class \code{frmtmb_fit}.
 Fits a model specified with \code{\link[=bf]{bf()}} by maximum likelihood, using the
 Laplace approximation for random effects through RTMB.
 }
+\section{What a nonlinear body sees}{
+
+The body of a nonlinear formula - the response formula under
+\code{nl = TRUE}, or an \code{\link[=nlf]{nlf()}} body - is evaluated as a small language
+for the AD tape, not as ordinary R. A function it CALLS is looked up
+in RTMB first, so a bare \code{pnorm()}, \code{qgamma()}, \code{plogis()},
+\code{besselK()} or \code{matrix()} in a body is RTMB's tape-capable version.
+The \verb{RTMB::} prefix is no longer needed, and writing it changes
+nothing: both spellings tape to the same function and give the same
+fit.
+
+RTMB WINS. It wins over the search path and over a function of the
+same name that you defined yourself, because the body is a language
+with its own vocabulary rather than a piece of your session. To reach
+a different \code{pnorm} inside a body, qualify it: \code{stats::pnorm()} is
+the escape hatch, and so is \code{myPkg::pnorm()}.
+
+Nothing else changes. Only the names RTMB replaces are shadowed, and
+only where the body calls them, so a helper function of your own, an
+object the body reads, and every name that is not in RTMB still
+resolve in the formula's environment exactly as before. A name the
+body READS is never shadowed either, so a data frame called \code{df} or a
+vector called \code{order} keeps its meaning.
+
+The rule stops at the end-user surface. A \code{\link[=frmtmb_family]{frmtmb_family()}}
+log-density and a \code{\link[=frmtmb_structure]{frmtmb_structure()}} log-likelihood are ordinary R
+functions written by an extension author, and they keep resolving
+lexically: qualify with \verb{RTMB::} there, and see \code{\link[=frmtmb_ad_overload]{frmtmb_ad_overload()}}
+for the rest of that contract.
+}
+
 \section{The Laplace approximation, and how to check it}{
 
 Random effects are integrated out by the Laplace approximation,

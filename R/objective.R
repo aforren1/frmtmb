@@ -214,7 +214,8 @@ build_objective <- function(frame) {
         # gradient; it exists because a body name that resolved to an
         # environment object instead of a column fails here, far from
         # the cause
-        eta <- tryCatch(eval(lp$nl_body, ev, ad_overload_env(lp$nl_env)),
+        eta <- tryCatch(eval(lp$nl_body, ev,
+                             ad_overload_env(lp$nl_env, lp$nl_body)),
                         error = function(e) nl_body_error(e, lp))
         dparv[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
         dparv[[lp$resp]][[paste0(".eta_", lp$dpar)]] <- eta
