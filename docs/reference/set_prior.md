@@ -57,7 +57,7 @@ set_prior(
 
 - lb, ub:
 
-  Optional hard bounds.
+  Optional hard bounds, on the scale described in Hard bounds.
 
 ## Value
 
@@ -84,16 +84,99 @@ Classes and their scales:
   correlated block of the model, which is brms's spelling. See The LKJ
   prior below.
 
-- `"theta"`: raw internal covariance parameters (escape hatch).
+- `"ar"`, `"ma"`, `"cosy"`, `"cortime"`: the R-side residual correlation
+  of an [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`,
+  `cosy()` or `unstr()` term, under brms's own class names. `"ar"`,
+  `"ma"` and `"cosy"` take an ordinary density on the NATURAL
+  coefficient with that map's Jacobian applied, as class `"sd"` does;
+  `"cortime"` takes `lkj(eta)` on an `unstr()` time correlation as a
+  whole. Narrow to one response with `resp`. See Residual correlation
+  below.
+
+- `"rescor"`: the residual correlation BETWEEN responses of a
+  multivariate model (`set_rescor(TRUE)`), as a whole. `lkj(eta)` only,
+  as brms spells it.
+
+- `"theta"`: raw internal covariance parameters (escape hatch). `coef`
+  names one by its internal name and spans all three covariance
+  components: `"theta_2"` for a random-effect block, `"thetaac_1"` for a
+  residual autocorrelation, `"thetar_1"` for a residual correlation.
+  This is the one spelling that reaches a single parameter of a
+  structure whose natural coefficients are not free of one another.
 
 When priors overlap, later specifications override earlier ones, so put
 class-wide priors first and coefficient-specific ones after. A class
 `"theta"` prior on a position an earlier `"cor"` prior covers replaces
 that whole LKJ term, and the other way round, so "later wins" holds
-between the two spellings as well. `lb`/`ub` become hard bounds (via
-Stan's constrained transforms in
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html));
-for class `"sd"` they apply on the sd scale.
+between the two spellings as well. `lb`/`ub` become hard bounds. See
+Hard bounds.
+
+## Hard bounds
+
+`lb`/`ub` are how a box constraint is written. A specification may carry
+bounds alone (`prior = ""`), a distribution alone, or both, and a later
+bounds-only specification tightens an entry an earlier distribution
+created rather than replacing it.
+
+A bound is addressed exactly like the distribution beside it, so
+`set_prior("", nlpar = "guess", lb = 0, ub = 1)` bounds the nonlinear
+parameter `guess`, and `dpar`, `resp`, `group` and `coef` narrow a bound
+the same way they narrow a density. As with a distribution, class `"b"`
+with `nlpar` covers EVERY coefficient of that parameter; `coef` picks
+out one.
+
+The scale is the parameter's own: class `"sd"` bounds a standard
+deviation on the sd scale (frmtmb stores its log), classes `"ar"`,
+`"ma"` and `"cosy"` bound the natural coefficient of a residual
+structure, and class `"theta"` bounds an internal covariance parameter
+itself, one position at a time with `coef = "theta_2"`, `"thetaac_1"` or
+`"thetar_1"`. Everything else is bounded on the internal (link) scale,
+so a bound on a log-linked dispersion is a bound on its logarithm.
+
+In [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) a bound
+is a box constraint handed to the optimizer; in
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+it becomes one of Stan's constrained transforms. Both take this spelling
+and no other: the `lower`/`upper` arguments of releases before 0.49 are
+gone rather than aliased, and a call still using them fails as an unused
+argument. Every outer parameter they could reach has a class here, down
+to a single internal covariance parameter.
+
+Where the two spellings differed, this one broadcasts: a bound carried
+by `nlpar =` covers every coefficient of that parameter, the way a prior
+does, and `coef` narrows it to one. When two specifications bound the
+same parameter the later one wins, so a bounds-only specification after
+a wide one tightens it.
+
+## Residual correlation
+
+frmtmb holds an [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`,
+`arma()`, `cosy()` or `unstr()` residual block in one unconstrained
+vector, chosen so the optimizer cannot step outside the stationary and
+invertible region. A prior is still written about the parameter brms
+names, and carried onto that vector with the log Jacobian of the map,
+exactly as class `"sd"` carries a density on a standard deviation onto
+its logarithm. So `set_prior("normal(0, 0.5)", class = "ar")` is a
+density on the AR coefficient itself, and
+[`summary()`](https://rdrr.io/r/base/summary.html) reports the parameter
+the prior was written about.
+
+Bounds behave the same way where the map allows it. A first-order `ar`,
+`ma` or `cosy` coefficient is a monotone function of one internal
+parameter, so `lb`/`ub` map exactly onto a box. At order two and above
+they do not: `ar[1]` is a function of every internal parameter of the
+block at once, so no box in internal space is the box asked for, and
+`lb`/`ub` are refused rather than approximated. Little is lost, because
+the parameterization already guarantees stationarity and invertibility,
+which is what such a bound is usually for; where a hard box really is
+wanted, `class = "theta"` with `coef = "thetaac_1"` bounds one internal
+parameter.
+
+`cosy` is bounded below at `-1/(d - 1)` for `d` time points, where a
+compound-symmetric matrix stops being positive definite, and a bound
+outside that window is refused rather than clamped. brms bounds `cosy`
+on `[0, 1]` instead, so a negative estimate here has no brms
+counterpart.
 
 ## The LKJ prior
 
@@ -187,6 +270,20 @@ fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
 # an empty distribution string sets a hard bound only
 set_prior("", class = "b", coef = "x", lb = 0)
 #> (bounds only) class=b coef=x lb=0
+
+# bounds address a nonlinear parameter the way a distribution does,
+# so a guessing rate is held in [0, 1]
+set_prior("", nlpar = "guess", lb = 0, ub = 1)
+#> (bounds only) class=b nlpar=guess lb=0 ub=1
+
+# the residual-correlation classes are brms's own names
+set_prior("normal(0, 0.5)", class = "ar")
+#> normal(0, 0.5) class=ar
+set_prior("lkj(2)", class = "rescor")
+#> lkj(2) class=rescor
+# and one internal covariance parameter, by its name
+set_prior("", class = "theta", coef = "thetaac_1", lb = -2, ub = 2)
+#> (bounds only) class=theta coef=thetaac_1 lb=-2 ub=2
 
 # class "cor" addresses a correlated block as a whole, brms's
 # spelling; eta > 1 pulls the correlation toward zero

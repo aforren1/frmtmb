@@ -46,6 +46,13 @@
 - [`frmtmb_register_frame_check()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_frame_check.md)
   : Check an assembled model frame from another package
 
+- [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
+  : Add an addition term from another package
+
+- [`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+  [`compat_rule_builder()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+  : Contribute to the compatibility matrix from another package
+
 - [`frmtmb_ad_overload()`](https://aforren1.github.io/frmtmb/reference/frmtmb_ad_overload.md)
   : Make a user-written function tape-safe
 
@@ -230,8 +237,6 @@
   [`find_linpred`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`arg_unset`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`re_form_arg`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
-  [`frmtmb_register_compat`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
-  [`compat_rule_builder`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   : Core internals for a sampling extension
 - [`influence(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
   [`cooks.distance(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
@@ -300,3 +305,5 @@
 - [`frmtmb`](https://aforren1.github.io/frmtmb/reference/frmtmb-package.md)
   [`frmtmb-package`](https://aforren1.github.io/frmtmb/reference/frmtmb-package.md)
   : frmtmb: Formula-Based Regression Models via 'RTMB'
+- [`habit_prep`](https://aforren1.github.io/frmtmb/reference/habit_prep.md)
+  : Forced-response habit data from Hardwick et al. (2019)

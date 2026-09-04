@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -2871,7 +2872,7 @@ this model’.</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
-<td align="center">~</td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
 </tr>
@@ -2882,7 +2883,7 @@ this model’.</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
-<td align="center">~</td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
 </tr>
@@ -2893,7 +2894,7 @@ this model’.</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
-<td align="center">~</td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
 </tr>
@@ -2904,7 +2905,7 @@ this model’.</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
-<td align="center">~</td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
 </tr>
@@ -2915,7 +2916,7 @@ this model’.</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
-<td align="center">~</td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
 </tr>
@@ -2924,33 +2925,22 @@ this model’.</td>
 <table class="table">
 <colgroup>
 <col width="2%">
-<col width="31%">
-<col width="65%">
+<col width="39%">
+<col width="57%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
 <th align="left">Pairs</th>
 <th align="left">Note</th>
 </tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">~</td>
-<td align="left">ar() + prior; ma() + prior; arma() + prior; cosy() +
-prior; unstr() + prior</td>
-<td align="left">Priors on the fixed effects and on random-effect
-covariance parameters work as usual. set_prior() cannot target the
-residual-correlation parameters themselves yet; bounds on thetaac_* are
-the available lever.</td>
-</tr>
-<tr class="even">
+<tbody><tr class="odd">
 <td align="left">x</td>
 <td align="left">ar() + quadrature; ma() + quadrature; arma() +
 quadrature; cosy() + quadrature; unstr() + quadrature</td>
 <td align="left">Refused: the Gauss-Kronrod rule integrates a random
 effect against per-observation densities, and this residual is a joint
 density over each group.</td>
-</tr>
-</tbody>
+</tr></tbody>
 </table>
 <table class="table">
 <thead><tr class="header">
@@ -3262,12 +3252,12 @@ column.</td>
 <tbody>
 <tr class="odd">
 <td align="left">works</td>
-<td align="right">1646</td>
+<td align="right">1651</td>
 <td align="left">33%</td>
 </tr>
 <tr class="even">
 <td align="left">conditional</td>
-<td align="right">1729</td>
+<td align="right">1724</td>
 <td align="left">35%</td>
 </tr>
 <tr class="odd">

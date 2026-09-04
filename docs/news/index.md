@@ -1,5 +1,82 @@
 # Changelog
 
+## frmtmb 0.49.0
+
+One way to bound a thing, a hardened family API, vignettes divided along
+the package split, and a shipping case study.
+
+### Bounds and the last prior classes
+
+- Hard bounds now speak the prior vocabulary and nothing else. A bound
+  addressed by `nlpar`, `dpar` or `resp` was previously refused
+  (`Unknown parameter(s) in bounds: (Intercept)`) because it was keyed
+  by the design-matrix column name of the parameter’s own sub-formula;
+  bounds are now keyed by the parameter-template position, so a bound
+  lands where the distribution beside it lands.
+- [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  gains brms’s class names for the residual-correlation surfaces:
+  `"ar"`, `"ma"` and `"cosy"` carry a density on the natural coefficient
+  with the transform’s Jacobian (the composite Levinson-Durbin
+  determinant derived in closed form and pinned against numeric
+  differentiation in the suite), `"cortime"` takes `lkj()` on an
+  `unstr()` time correlation, and `"rescor"` takes `lkj()` on a
+  multivariate model’s residual correlation. `class = "theta"` spans all
+  three covariance components by internal name. A first-order `ar`, `ma`
+  or `cosy` bound maps exactly; at order two and above `lb`/`ub` are
+  refused with the reason and the `class = "theta"` alternative.
+- `frm(lower =, upper =)` and `frm_sample(lower =, upper =)` are
+  removed, not aliased: every outer parameter they could reach has a
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  class. A stale call fails as an unused argument, and `frm_sample()`
+  refuses the names explicitly because its `...` would otherwise have
+  passed them to the sampler and sampled unbounded in silence.
+- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  no longer offers a random-effect `theta` row for a model with a
+  residual autocorrelation structure and no random effects (a `$`
+  partial match of exactly the kind the codebase polices, now bracketed
+  with a regression test).
+
+### The family API, hardened
+
+- [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  gains `required_aterms` (an absent required addition term is refused
+  at assembly instead of reaching the density as `NULL` and returning a
+  fit with a log-likelihood of zero), and the objective refuses any
+  log-density that returns nothing for a non-empty response.
+  `family_finalize(fam, y, aterms)` lets a family derive link bounds
+  from the data, and the slot call order it relies on is documented from
+  measurement.
+- New
+  [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md):
+  a package adds an addition term of its own, with an arity and a
+  coercion, instead of routing per-row data through `vint()`; the
+  unknown-term refusal names both routes.
+- Custom link objects are validated at family construction; a non-finite
+  `init_dpars` value through its link warns instead of dropping
+  silently; [`anova()`](https://rdrr.io/r/stats/anova.html) warns when
+  two models’ fixed effects are non-nested by name and by column space;
+  the compatibility registration seam has its own documented page.
+
+### Vignettes and the case study
+
+- The posterior diagnostics and the posterior half of the brms migration
+  live in frmtmb.sample as documents of their own
+  (`vignette("posterior-diagnostics", package = "frmtmb.sample")`,
+  `vignette("brms-posterior", package = "frmtmb.sample")`); core keeps
+  the maximum-likelihood halves and points across. The case-studies
+  wiener section is replaced by a shifted-lognormal custom family
+  cross-checked against the built-in to machine precision, with the
+  drift-diffusion model deferred to frmtmb.ddm.
+- New `habit_prep` data and
+  [`vignette("habit")`](https://aforren1.github.io/frmtmb/articles/habit.md):
+  a case study replicating the response-preparation model of Hardwick,
+  Forrence, Krakauer and Haith (2019, Nature Human Behaviour) with
+  [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) on a
+  [`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  family, the full per-subject sweep run live, and a hierarchical
+  `(1 | p | participant)` fit replacing 58 separate ones. Data under the
+  MIT license of the authors’ OSF deposit; see `inst/COPYRIGHTS`.
+
 ## frmtmb 0.48.0
 
 The structured-family protocol completes, nonlinear bodies get an
@@ -108,7 +185,7 @@ companion packages in this repository.
   documented contract. New extension seams:
   [`frmtmb_register_frame_check()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_frame_check.md)
   (a frame check an extension registers at load),
-  [`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
   (compatibility-matrix rows), a prior-defaults registry behind
   [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md),
   and

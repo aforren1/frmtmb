@@ -400,15 +400,14 @@ reshapes a per-row contribution has nothing left to reshape.
 
 |         | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
 |:--------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
-| ar()    |  \+  |     x      |   \+    |    \+     |    \+    |   ~   |   \+   |   \+    |
-| ma()    |  \+  |     x      |   \+    |    \+     |    \+    |   ~   |   \+   |   \+    |
-| arma()  |  \+  |     x      |   \+    |    \+     |    \+    |   ~   |   \+   |   \+    |
-| cosy()  |  \+  |     x      |   \+    |    \+     |    \+    |   ~   |   \+   |   \+    |
-| unstr() |  \+  |     x      |   \+    |    \+     |    \+    |   ~   |   \+   |   \+    |
+| ar()    |  \+  |     x      |   \+    |    \+     |    \+    |  \+   |   \+   |   \+    |
+| ma()    |  \+  |     x      |   \+    |    \+     |    \+    |  \+   |   \+   |   \+    |
+| arma()  |  \+  |     x      |   \+    |    \+     |    \+    |  \+   |   \+   |   \+    |
+| cosy()  |  \+  |     x      |   \+    |    \+     |    \+    |  \+   |   \+   |   \+    |
+| unstr() |  \+  |     x      |   \+    |    \+     |    \+    |  \+   |   \+   |   \+    |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
-| ~ | ar() + prior; ma() + prior; arma() + prior; cosy() + prior; unstr() + prior | Priors on the fixed effects and on random-effect covariance parameters work as usual. set_prior() cannot target the residual-correlation parameters themselves yet; bounds on thetaac\_\* are the available lever. |
 | x | ar() + quadrature; ma() + quadrature; arma() + quadrature; cosy() + quadrature; unstr() + quadrature | Refused: the Gauss-Kronrod rule integrates a random effect against per-observation densities, and this residual is a joint density over each group. |
 
 |         | mvbf | rescor | \|ID\| | nl  | mixture | mixture_mvn |
@@ -467,8 +466,8 @@ row; see `?frmtmb-multimembership`.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1646 | 33%   |
-| conditional |  1729 | 35%   |
+| works       |  1651 | 33%   |
+| conditional |  1724 | 35%   |
 | refused     |   696 | 14%   |
 | broken      |     0 | 0%    |
 | untested    |   864 | 18%   |

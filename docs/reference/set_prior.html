@@ -15,7 +15,7 @@ sets bounds only.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,6 +31,7 @@ sets bounds only.'></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -116,7 +117,8 @@ Nonlinear parameters.</p></dd>
 
 
 <dt id="arg-lb-ub">lb, ub<a class="anchor" aria-label="anchor" href="#arg-lb-ub"></a></dt>
-<dd><p>Optional hard bounds.</p></dd>
+<dd><p>Optional hard bounds, on the scale described in Hard
+bounds.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -138,15 +140,93 @@ narrow with <code>group</code>.</p></li>
 does, by <code>group</code>; <code>set_prior("lkj(2)", class = "cor")</code> covers every
 correlated block of the model, which is brms's spelling. See
 The LKJ prior below.</p></li>
-<li><p><code>"theta"</code>: raw internal covariance parameters (escape hatch).</p></li>
+<li><p><code>"ar"</code>, <code>"ma"</code>, <code>"cosy"</code>, <code>"cortime"</code>: the R-side residual
+correlation of an <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>, <code>cosy()</code> or <code>unstr()</code>
+term, under brms's own class names. <code>"ar"</code>, <code>"ma"</code> and <code>"cosy"</code>
+take an ordinary density on the NATURAL coefficient with that
+map's Jacobian applied, as class <code>"sd"</code> does; <code>"cortime"</code> takes
+<code>lkj(eta)</code> on an <code>unstr()</code> time correlation as a whole. Narrow to
+one response with <code>resp</code>. See Residual correlation below.</p></li>
+<li><p><code>"rescor"</code>: the residual correlation BETWEEN responses of a
+multivariate model (<code>set_rescor(TRUE)</code>), as a whole. <code>lkj(eta)</code>
+only, as brms spells it.</p></li>
+<li><p><code>"theta"</code>: raw internal covariance parameters (escape hatch).
+<code>coef</code> names one by its internal name and spans all three
+covariance components: <code>"theta_2"</code> for a random-effect block,
+<code>"thetaac_1"</code> for a residual autocorrelation, <code>"thetar_1"</code> for a
+residual correlation. This is the one spelling that reaches a
+single parameter of a structure whose natural coefficients are not
+free of one another.</p></li>
 </ul><p>When priors overlap, later specifications override earlier ones, so
 put class-wide priors first and coefficient-specific ones after. A
 class <code>"theta"</code> prior on a position an earlier <code>"cor"</code> prior covers
 replaces that whole LKJ term, and the other way round, so "later
 wins" holds between the two spellings as well.
-<code>lb</code>/<code>ub</code> become hard bounds (via Stan's constrained transforms in
-<code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code>); for class <code>"sd"</code> they apply on the
-sd scale.</p>
+<code>lb</code>/<code>ub</code> become hard bounds. See Hard bounds.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="hard-bounds">Hard bounds<a class="anchor" aria-label="anchor" href="#hard-bounds"></a></h2>
+
+
+<p><code>lb</code>/<code>ub</code> are how a box constraint is written. A specification may
+carry bounds alone (<code>prior = ""</code>), a distribution alone, or both, and
+a later bounds-only specification tightens an entry an earlier
+distribution created rather than replacing it.</p>
+<p>A bound is addressed exactly like the distribution beside it, so
+<code>set_prior("", nlpar = "guess", lb = 0, ub = 1)</code> bounds the nonlinear
+parameter <code>guess</code>, and <code>dpar</code>, <code>resp</code>, <code>group</code> and <code>coef</code> narrow a
+bound the same way they narrow a density. As with a distribution,
+class <code>"b"</code> with <code>nlpar</code> covers EVERY coefficient of that parameter;
+<code>coef</code> picks out one.</p>
+<p>The scale is the parameter's own: class <code>"sd"</code> bounds a standard
+deviation on the sd scale (frmtmb stores its log), classes <code>"ar"</code>,
+<code>"ma"</code> and <code>"cosy"</code> bound the natural coefficient of a residual
+structure, and class <code>"theta"</code> bounds an internal covariance
+parameter itself, one position at a time with <code>coef = "theta_2"</code>,
+<code>"thetaac_1"</code> or <code>"thetar_1"</code>. Everything else is bounded on the
+internal (link) scale, so a bound on a log-linked dispersion is a
+bound on its logarithm.</p>
+<p>In <code><a href="frm.html">frm()</a></code> a bound is a box constraint handed to the optimizer; in
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> it becomes one of Stan's constrained
+transforms. Both take this spelling and no other: the <code>lower</code>/<code>upper</code>
+arguments of releases before 0.49 are gone rather than aliased, and a
+call still using them fails as an unused argument. Every outer
+parameter they could reach has a class here, down to a single
+internal covariance parameter.</p>
+<p>Where the two spellings differed, this one broadcasts: a bound
+carried by <code>nlpar =</code> covers every coefficient of that parameter, the
+way a prior does, and <code>coef</code> narrows it to one. When two
+specifications bound the same parameter the later one wins, so a
+bounds-only specification after a wide one tightens it.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="residual-correlation">Residual correlation<a class="anchor" aria-label="anchor" href="#residual-correlation"></a></h2>
+
+
+<p>frmtmb holds an <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>, <code>cosy()</code> or <code>unstr()</code>
+residual block in one unconstrained vector, chosen so the optimizer
+cannot step outside the stationary and invertible region. A prior is
+still written about the parameter brms names, and carried onto that
+vector with the log Jacobian of the map, exactly as class <code>"sd"</code>
+carries a density on a standard deviation onto its logarithm. So
+<code>set_prior("normal(0, 0.5)", class = "ar")</code> is a density on the AR
+coefficient itself, and <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> reports the parameter the prior
+was written about.</p>
+<p>Bounds behave the same way where the map allows it. A first-order
+<code>ar</code>, <code>ma</code> or <code>cosy</code> coefficient is a monotone function of one
+internal parameter, so <code>lb</code>/<code>ub</code> map exactly onto a box. At order two
+and above they do not: <code>ar[1]</code> is a function of every internal
+parameter of the block at once, so no box in internal space is the
+box asked for, and <code>lb</code>/<code>ub</code> are refused rather than approximated.
+Little is lost, because the parameterization already guarantees
+stationarity and invertibility, which is what such a bound is usually
+for; where a hard box really is wanted, <code>class = "theta"</code> with
+<code>coef = "thetaac_1"</code> bounds one internal parameter.</p>
+<p><code>cosy</code> is bounded below at <code>-1/(d - 1)</code> for <code>d</code> time points, where a
+compound-symmetric matrix stops being positive definite, and a bound
+outside that window is refused rather than clamped. brms bounds
+<code>cosy</code> on <code>[0, 1]</code> instead, so a negative estimate here has no brms
+counterpart.</p>
     </div>
     <div class="section level2">
     <h2 id="the-lkj-prior">The LKJ prior<a class="anchor" aria-label="anchor" href="#the-lkj-prior"></a></h2>
@@ -237,6 +317,20 @@ omitted rather than accepted and ignored.</p>
 <span class="r-in"><span><span class="co"># an empty distribution string sets a hard bound only</span></span></span>
 <span class="r-in"><span><span class="fu">set_prior</span><span class="op">(</span><span class="st">""</span>, class <span class="op">=</span> <span class="st">"b"</span>, coef <span class="op">=</span> <span class="st">"x"</span>, lb <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (bounds only) class=b coef=x lb=0</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># bounds address a nonlinear parameter the way a distribution does,</span></span></span>
+<span class="r-in"><span><span class="co"># so a guessing rate is held in [0, 1]</span></span></span>
+<span class="r-in"><span><span class="fu">set_prior</span><span class="op">(</span><span class="st">""</span>, nlpar <span class="op">=</span> <span class="st">"guess"</span>, lb <span class="op">=</span> <span class="fl">0</span>, ub <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (bounds only) class=b nlpar=guess lb=0 ub=1</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># the residual-correlation classes are brms's own names</span></span></span>
+<span class="r-in"><span><span class="fu">set_prior</span><span class="op">(</span><span class="st">"normal(0, 0.5)"</span>, class <span class="op">=</span> <span class="st">"ar"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> normal(0, 0.5) class=ar</span>
+<span class="r-in"><span><span class="fu">set_prior</span><span class="op">(</span><span class="st">"lkj(2)"</span>, class <span class="op">=</span> <span class="st">"rescor"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> lkj(2) class=rescor</span>
+<span class="r-in"><span><span class="co"># and one internal covariance parameter, by its name</span></span></span>
+<span class="r-in"><span><span class="fu">set_prior</span><span class="op">(</span><span class="st">""</span>, class <span class="op">=</span> <span class="st">"theta"</span>, coef <span class="op">=</span> <span class="st">"thetaac_1"</span>, lb <span class="op">=</span> <span class="op">-</span><span class="fl">2</span>, ub <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (bounds only) class=theta coef=thetaac_1 lb=-2 ub=2</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># class "cor" addresses a correlated block as a whole, brms's</span></span></span>
 <span class="r-in"><span><span class="co"># spelling; eta &gt; 1 pulls the correlation toward zero</span></span></span>

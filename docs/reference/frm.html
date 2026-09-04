@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,6 +25,7 @@ Laplace approximation for random effects through RTMB."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -66,8 +67,6 @@ Laplace approximation for random effects through RTMB.</p>
 <span>  control <span class="op">=</span> <span class="fu"><a href="frmtmb_control.html">frmtmb_control</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  se <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  na.action <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span>,</span>
-<span>  lower <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  upper <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  prior <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  quadrature <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  data2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -166,17 +165,6 @@ reported in a message; wrap the call in <code><a href="https://rdrr.io/r/base/me
 silence it.</p></dd>
 
 
-<dt id="arg-lower-upper">lower, upper<a class="anchor" aria-label="anchor" href="#arg-lower-upper"></a></dt>
-<dd><p>Optional named numeric vectors of hard box
-constraints on outer parameters (brms <code>lb</code>/<code>ub</code>), on the internal
-scale, e.g. <code>lower = c(b = 0)</code> for a nonlinear rate parameter.
-Names as in <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> rows, with parentheses optional; a
-nonlinear parameter declared intercept-only (<code>b ~ 1</code>) may be named
-bare, as in that example, which resolves to <code>b_(Intercept)</code>. One
-that carries several coefficients is refused rather than resolved
-to one of them.</p></dd>
-
-
 <dt id="arg-prior">prior<a class="anchor" aria-label="anchor" href="#arg-prior"></a></dt>
 <dd><p>Optional <code><a href="set_prior.html">set_prior()</a></code> specification. This makes the
 fit MAP / regularized ML (glmmTMB's <code>priors=</code> in spirit): useful
@@ -189,6 +177,15 @@ out of a brms script work whichever package's <code><a href="prior.html">prior()
 scope. The argument takes brms's spelling, <code>prior</code>; the <code>priors</code>
 of releases before 0.43 is gone rather than aliased, and a call
 still using it fails as an unused argument.</p>
+<p>This is also where HARD BOUNDS are written, as <code>lb</code>/<code>ub</code> on a
+specification that may carry no distribution at all:
+<code>set_prior("", nlpar = "guess", lb = 0, ub = 1)</code> is a box
+constraint and nothing else. The <code>lower</code>/<code>upper</code> arguments of
+releases before 0.49 are gone rather than aliased, and a call still
+using them fails as an unused argument; every outer parameter they
+could reach has a <code><a href="set_prior.html">set_prior()</a></code> class, down to a single internal
+covariance parameter (<code>class = "theta", coef = "thetaac_1"</code>). See
+<code><a href="set_prior.html">set_prior()</a></code>'s Hard bounds section.</p>
 <p><em>The spelling is brms's; the SEMANTICS are not.</em> A prior here is a
 penalty on the likelihood and the answer is one mode. It is not a
 posterior, and no interval this fit reports is a credible
@@ -368,6 +365,7 @@ Wald standard error. <code><a href="../articles/diagnostics.html">vignette("diag
 <span class="r-in"><span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span>, <span class="va">sigma</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">fit2</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Likelihood-ratio tests</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                            Df  logLik    AIC  Chisq Chi Df Pr(&gt;Chisq)   </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x + (1 | g)             4 -145.75 299.49                            </span>

@@ -31,7 +31,8 @@ machinery is untouched; the usual finite-mixture ML caveats apply
 instead: the likelihood is invariant to component relabeling, so the
 component means are initialized on spread-out response quantiles,
 and multimodality is real (compare starts, or order the intercepts
-through \code{lower}/\code{upper}). Component families with extra parameters
+with bounds: \code{set_prior("", class = "Intercept", dpar = ..., lb = )}
+per component). Component families with extra parameters
 (ordinal) are not supported.
 
 With \code{groups = ~g} the mixture moves to the group level (latent

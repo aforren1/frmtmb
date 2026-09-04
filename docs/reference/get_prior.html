@@ -5,17 +5,21 @@ pass to set_prior(). The default in every slot is flat (this is
 maximum likelihood until priors are set; the formula route of
 frmtmb.sample::frm_sample() has its own brms defaults, which
 prior_summary() reports). Classes &quot;sd&quot; and &quot;cor&quot; are targeted
-by group and nlpar; class &quot;theta&quot; rows name the raw internal
-covariance parameters (escape hatch, including correlations one at a
-time)."><meta property="og:description" content="The set_prior() counterpart of brms's get_prior(): one row per
+by group and nlpar; the residual-correlation classes (&quot;ar&quot;,
+&quot;ma&quot;, &quot;cosy&quot;, &quot;cortime&quot;, &quot;rescor&quot;) by resp; and class
+&quot;theta&quot; rows name the raw internal covariance parameters (escape
+hatch, including correlations one at a time, across all three
+covariance components)."><meta property="og:description" content="The set_prior() counterpart of brms's get_prior(): one row per
 slot a prior can target, with the class/coef/dpar/group values to
 pass to set_prior(). The default in every slot is flat (this is
 maximum likelihood until priors are set; the formula route of
 frmtmb.sample::frm_sample() has its own brms defaults, which
 prior_summary() reports). Classes &quot;sd&quot; and &quot;cor&quot; are targeted
-by group and nlpar; class &quot;theta&quot; rows name the raw internal
-covariance parameters (escape hatch, including correlations one at a
-time)."></head><body>
+by group and nlpar; the residual-correlation classes (&quot;ar&quot;,
+&quot;ma&quot;, &quot;cosy&quot;, &quot;cortime&quot;, &quot;rescor&quot;) by resp; and class
+&quot;theta&quot; rows name the raw internal covariance parameters (escape
+hatch, including correlations one at a time, across all three
+covariance components)."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -23,7 +27,7 @@ time)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +43,7 @@ time)."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -71,9 +76,11 @@ pass to <code><a href="set_prior.html">set_prior()</a></code>. The default in ev
 maximum likelihood until priors are set; the formula route of
 <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> has its own brms defaults, which
 <code><a href="prior_summary.html">prior_summary()</a></code> reports). Classes <code>"sd"</code> and <code>"cor"</code> are targeted
-by <code>group</code> and <code>nlpar</code>; class <code>"theta"</code> rows name the raw internal
-covariance parameters (escape hatch, including correlations one at a
-time).</p>
+by <code>group</code> and <code>nlpar</code>; the residual-correlation classes (<code>"ar"</code>,
+<code>"ma"</code>, <code>"cosy"</code>, <code>"cortime"</code>, <code>"rescor"</code>) by <code>resp</code>; and class
+<code>"theta"</code> rows name the raw internal covariance parameters (escape
+hatch, including correlations one at a time, across all three
+covariance components).</p>
     </div>
 
     <div class="section level2">

@@ -959,6 +959,7 @@ A proportional odds fit is the null model, and
 
 anova(frm(bf(y ~ x) + sratio(), data = dord), fcs)
 #> Likelihood-ratio tests
+#> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
 #> 
 #>           Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)    
 #> y ~ x      4 -645.57 1299.1                             
@@ -1281,300 +1282,214 @@ The refusal names the matrix columns itself and points at the way out.
 Draw the coefficient function from
 [`predict()`](https://rdrr.io/r/stats/predict.html) as above.
 
-## 11. A drift-diffusion model as a custom family
+## 11. A custom family with a bounded parameter
 
-The drift-diffusion model is the standard account of a two-choice
-decision: evidence accumulates as a Wiener process with drift until it
-reaches one of two boundaries, and the crossing time and the boundary
-are the response time and the choice (Ratcliff 1978; Ratcliff and McKoon
-2008). Its first-passage density is a research-grade special function,
-and the point of this section is that in frmtmb it is a plain R
-function.
+A family here is an R function that returns a log density, and the tape
+differentiates it.
+[`vignette("frmtmb")`](https://aforren1.github.io/frmtmb/articles/frmtmb.md)
+writes the smallest one there is: a Poisson, one distributional
+parameter, one link named by string. This section writes the next one
+up. Three distributional parameters, a link that no name covers, and a
+support that depends on a parameter the model estimates.
 
-The density itself is Navarro and Fuss (2009, *Journal of Mathematical
-Psychology* 53). Write the lower-boundary density with drift `v`,
-boundary separation `a` and relative start point `w` as a scale change
-onto a normalized time `u = t / a^2`, and give the normalized density as
-the small-time series. The tape cannot branch on a parameter, so the
-number of terms is **fixed** at `K = 10` rather than chosen from the
-error bound at each evaluation. The accuracy that buys is measured
-below.
+The example is the shifted lognormal, which brms spells
+[`shifted_lognormal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md):
+a lognormal density displaced by a shift, read in response-time work as
+the time the process spent doing something other than what the lognormal
+describes. frmtmb has that family built in, and that is the point of
+choosing it. The built-in is an exact reference for the custom version,
+so the section ends with a check that holds to machine precision rather
+than an appeal to plausibility.
+
+### The density
+
+The density of `y = shift + Lognormal(mu, sigma)` follows from the
+change of variables `z = log(y - shift)`, whose Jacobian contributes the
+`-z` term:
 
 ``` r
 
-# log first-passage density at the LOWER boundary, Navarro and Fuss
-# (2009) small-time series with a fixed 2K + 1 terms. Plain arithmetic
-# only, so the same function serves the tape and the figure.
-wiener_lpdf1 <- function(t, v, a, w, K = 10L) {
-  u <- t / a^2
-  s <- 0
-  for (k in -K:K) s <- s + (w + 2 * k) * exp(-(w + 2 * k)^2 / (2 * u))
-  -v * a * w - v^2 * t / 2 - 2 * log(a) -
-    0.5 * (log(2 * pi) + 3 * log(u)) + log(s)
+# plain arithmetic only: no c(), no [<-, so the same function serves
+# the tape and the closed-form check below
+sln_lpdf <- function(y, mu, sigma, shift) {
+  z <- log(y - shift)
+  -log(sigma) - z - 0.5 * (log(2 * pi) + ((z - mu) / sigma)^2)
 }
 ```
 
-The upper boundary needs no second series. Reflecting the process maps
-an upper crossing onto a lower one with `w -> 1 - w` and `v -> -v`, and
-the reflection is driven by a column of the **data**, not by a
-parameter, so it is arithmetic on the tape rather than a branch. The
-boundary indicator travels as `vint()`, which is the addition term that
-hands integer covariates to a custom family.
+### The link that no name covers
 
-The non-decision time `ndt` is the awkward parameter, because the
-support of the density depends on it: the density is defined only for
-`rt > ndt`. A log link would let the optimizer step past `min(rt)` and
-produce [`log()`](https://rdrr.io/r/base/Log.html) of a negative number.
-Instead give `ndt` a scaled logit link onto `(0, U)`, with `U` fixed at
-family-construction time. The support then holds for every value of the
-linear predictor, and the tape still never branches. The one caveat is
-arithmetic rather than algebra: past a linear predictor near 37 the
-logit saturates in double precision and `ndt` rounds to `U` exactly. The
-density is what keeps the optimizer away from that corner, because a
-first-passage density goes to zero faster than any power of the decision
-time and the log likelihood falls off well before the link saturates.
+The density is defined only for `y > shift`, so the support moves with a
+parameter. The built-in family gives `shift` a log link and lets the
+optimizer discover the boundary: a step past `min(y)` makes the
+objective `NaN`, which nlminb treats as a rejected step. That works, and
+it depends on the optimizer’s response to a `NaN`.
+
+The alternative is to make the constraint structural. Give the shift a
+logit scaled onto `(0, U)`, with `U` fixed when the family is built, and
+no finite linear predictor can violate the support. A link is a list of
+`name`, `linkfun`, `linkinv` and `mu_eta`, and every place that takes a
+link name takes such a list instead.
 
 ``` r
 
-wiener <- function(max_ndt) {
-  force(max_ndt)
-  ndt_link <- list(
+shifted_ln <- function(max_shift) {
+  force(max_shift)
+  shift_link <- list(
     name = "scaled_logit",
-    linkfun = function(mu) log(mu / (max_ndt - mu)),
-    linkinv = function(eta) max_ndt / (1 + exp(-eta)),
+    linkfun = function(mu) log(mu / (max_shift - mu)),
+    linkinv = function(eta) max_shift / (1 + exp(-eta)),
     mu_eta = function(eta) {
-      p <- 1 / (1 + exp(-eta)); max_ndt * p * (1 - p)
+      p <- 1 / (1 + exp(-eta)); max_shift * p * (1 - p)
     })
   custom_family(
-    "wiener",
-    dpars = c("mu", "bs", "ndt", "bias"),
-    links = list(mu = "identity", bs = "log", ndt = ndt_link,
-                 bias = "logit"),
+    "shifted_ln",
+    dpars = c("mu", "sigma", "shift"),
+    links = list(mu = "identity", sigma = "log", shift = shift_link),
     lpdf = function(y, dpars, aterms) {
-      up <- aterms$vint1                        # 1 for an upper response
-      wiener_lpdf1(y - dpars$ndt,
-                   dpars$mu * (1 - 2 * up),
-                   dpars$bs,
-                   dpars$bias + up * (1 - 2 * dpars$bias))
+      sln_lpdf(y, dpars$mu, dpars$sigma, dpars$shift)
     },
-    init_dpars = list(mu = function(y, aterms) 0.5,
-                      bs = function(y, aterms) 1.5,
-                      ndt = function(y, aterms) 0.5 * min(y),
-                      bias = function(y, aterms) 0.5),
+    init_dpars = list(
+      mu = function(y, aterms) mean(log(y - min(y) / 2)),
+      sigma = function(y, aterms) stats::sd(log(y - min(y) / 2)),
+      shift = function(y, aterms) min(y) / 2),
     type = "continuous")
 }
 ```
 
-`mu` is the drift rate, `bs` the boundary separation, and `bias` the
-relative start point. The names follow brms, which calls the same family
-`wiener(link_bs, link_ndt, link_bias)` with a `dec()` addition term for
-the boundary:
+`init_dpars` reads the data and returns a starting value per parameter
+on the RESPONSE scale; the link puts it on the linear-predictor scale. A
+bounded link needs that start to be inside the bound, which is why
+`min(y) / 2` rather than `min(y)`.
 
-``` r
+The one arithmetic caveat is the same one every bounded link has. Past a
+linear predictor near 37 the logit saturates in double precision and the
+shift rounds to `U` exactly. The density keeps the optimizer away from
+that corner, because the log likelihood falls off long before the link
+saturates.
 
-# brms, for comparison. Not run here: it compiles Stan code.
-brms::brm(brms::bf(rt | dec(response) ~ x, bs ~ 1, ndt ~ 1, bias ~ 1),
-          family = brms::wiener(), data = dat)
-# frmtmb: the boundary is a vint() payload the lpdf reads itself
-frm(bf(rt | vint(upper) ~ x, bias = 0.5),
-    family = wiener(max_ndt = min(dat$rt)), data = dat)
-```
+### Check it before fitting it
 
 [`check_custom_family()`](https://aforren1.github.io/frmtmb/reference/check_custom_family.md)
-compares the density against a finite- difference gradient and against a
-re-taped evaluation, which catches the usual tape-safety mistakes before
-any fitting.
+evaluates the density on a tape, compares its gradient against a finite
+difference, and re-tapes to catch the mistakes that make a family work
+once and fail on the second call. Because the density is plain
+arithmetic, the same function also checks against a closed form:
+[`dlnorm()`](https://rdrr.io/r/stats/Lognormal.html) at the shifted
+response.
 
 ``` r
 
-set.seed(9)
-probe_y <- runif(50, 0.4, 1.5)
-c(tape_check = check_custom_family(
-  wiener(max_ndt = 0.4), y = probe_y,
-  dpars = list(mu = rep(1, 50), bs = rep(1.6, 50), ndt = rep(0.2, 50),
-               bias = rep(0.5, 50)),
-  aterms = list(vint1 = rep(0:1, 25))))
-#> tape_check 
-#>       TRUE
+set.seed(12)
+probe <- 0.3 + rlnorm(50, -0.4, 0.35)
+check_custom_family(shifted_ln(max_shift = 0.3), y = probe,
+                    dpars = list(mu = rep(-0.4, 50),
+                                 sigma = rep(0.35, 50),
+                                 shift = rep(0.15, 50)))
+sln_grid <- expand.grid(y = c(0.35, 0.6, 1.2, 3), mu = c(-1, 0, 1),
+                        sigma = c(0.2, 0.8), shift = c(0.05, 0.3))
+with(sln_grid, {
+  ref <- dlnorm(y - shift, mu, sigma, log = TRUE)
+  c(cases = length(ref),
+    max_relative_error = max(abs(sln_lpdf(y, mu, sigma, shift) - ref) /
+                               abs(ref)))
+})
+#>              cases max_relative_error 
+#>       4.800000e+01       7.012572e-16
 ```
 
-### Simulating and fitting
-
-The generating process is the definition of the model, so simulate it
-directly: step a two-boundary diffusion forward until it is absorbed.
-This uses no package. Two conditions differ in drift, which is the
-standard experimental manipulation.
+### Fitting
 
 ``` r
 
-r_ddm <- function(n, v, a, w, ndt, dt = 1e-4, tmax = 5) {
-  v <- rep_len(v, n); x <- rep(a * w, n); live <- rep(TRUE, n)
-  tt <- numeric(n); up <- integer(n); step <- 0L
-  while (any(live) && step * dt < tmax) {
-    step <- step + 1L
-    x[live] <- x[live] + v[live] * dt + rnorm(sum(live), 0, sqrt(dt))
-    hi <- live & x >= a; lo <- live & x <= 0
-    tt[hi | lo] <- step * dt; up[hi] <- 1L
-    live <- live & !hi & !lo
-  }
-  data.frame(rt = tt + ndt, upper = up)[!live, ]
-}
-set.seed(404)
-cond <- rep(c(-1, 1), each = 350)
-dat <- r_ddm(700, v = 0.4 + 0.9 * cond, a = 1.4, w = 0.5, ndt = 0.28)
-dat$x <- cond
-c(n = nrow(dat), p_upper = mean(dat$upper), min_rt = min(dat$rt))
-#>           n     p_upper      min_rt 
-#> 700.0000000   0.5657143   0.3338000
-```
-
-The step size `dt = 1e-4` makes the simulated crossing times accurate to
-about a percent in the recovered parameters, which is inside the
-sampling noise of 700 trials.
-
-``` r
-
-fddm <- frm(bf(rt | vint(upper) ~ x, bias = 0.5),
-            family = wiener(max_ndt = min(dat$rt)), data = dat)
-e <- unlist(fixef(fddm))
-ndt_hat <- min(dat$rt) / (1 + exp(-e[["ndt.(Intercept)"]]))
-se <- sqrt(diag(vcov(fddm)))
+set.seed(11)
+sln_d <- data.frame(x = rnorm(400))
+sln_d$rt <- 0.25 + rlnorm(400, -0.4 + 0.3 * sln_d$x, 0.35)
+fsl <- frm(bf(rt ~ x), family = shifted_ln(max_shift = min(sln_d$rt)),
+           data = sln_d)
+e <- unlist(fixef(fsl))
+shift_hat <- min(sln_d$rt) / (1 + exp(-e[["shift.(Intercept)"]]))
 out <- rbind(
   estimated = c(e[["mu.(Intercept)"]], e[["mu.x"]],
-                exp(e[["bs.(Intercept)"]]), ndt_hat),
-  simulated = c(0.4, 0.9, 1.4, 0.28),
-  # vcov() leaves mu's coefficients bare and prefixes every other
-  # dpar; the last two errors go through the links by the delta method
-  standard_error = c(se[["(Intercept)"]], se[["x"]],
-                     exp(e[["bs.(Intercept)"]]) * se[["bs_(Intercept)"]],
-                     ndt_hat * (1 - ndt_hat / min(dat$rt)) *
-                       se[["ndt_(Intercept)"]]))
-colnames(out) <- c("drift_intercept", "drift_slope", "boundary", "ndt")
-round(out, 4)
-#>                drift_intercept drift_slope boundary    ndt
-#> estimated               0.3139      0.8876   1.4240 0.2788
-#> simulated               0.4000      0.9000   1.4000 0.2800
-#> standard_error          0.0570      0.0584   0.0282 0.0051
+                exp(e[["sigma.(Intercept)"]]), shift_hat),
+  simulated = c(-0.4, 0.3, 0.35, 0.25))
+colnames(out) <- c("mu_intercept", "mu_slope", "sigma", "shift")
+round(out, 3)
+#>           mu_intercept mu_slope sigma shift
+#> estimated       -0.425    0.303 0.371 0.281
+#> simulated       -0.400    0.300 0.350 0.250
 ```
 
-The boundary, the non-decision time and the drift slope come back inside
-one standard error. The drift intercept sits about one and a half
-standard errors low, which is ordinary sampling behavior at 700 trials
-and not evidence about the density. The two checks below pin the density
-itself.
-
-`bias = 0.5` on the right of
-[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) fixes that
-distributional parameter at a constant on the **response** scale, which
-is the unbiased start point of the simple story.
-
-The truncation is fixed, so report the largest normalized time the fit
-actually reached. The series is exact to 1e-9 for `u` up to about 4 and
-degrades past 6, and the degradation is cancellation in double precision
-rather than truncation: a larger `K` does not fix it.
+The shift is the parameter the data speak about least. Only the smallest
+response times carry information about it, so its standard error is wide
+and its point estimate sits above the generating value here. Read it
+with the interval rather than on its own:
 
 ``` r
 
-c(max_normalized_time = max((dat$rt - ndt_hat) /
-                              exp(e[["bs.(Intercept)"]])^2))
-#> max_normalized_time 
-#>            1.554543
+# a monotone link carries the interval, so map the endpoints through it
+ci <- confint(fsl)["shift_(Intercept)", ]
+round(min(sln_d$rt) / (1 + exp(-ci)), 3)
+#>   lwr   upr   est 
+#> 0.188 0.350 0.281
 ```
 
-### Cross-check against RWiener
+### Cross-check against the built-in family
 
-RWiener implements the same density in C with an adaptive term count.
-Check the R function against it pointwise first.
+The built-in
+[`shifted_lognormal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+is the same likelihood under a different link for the shift. A
+reparameterization moves the optimizer path, not the optimum, so both
+fits should reach the same maximum and the same shift on the response
+scale.
 
 ``` r
 
-gr <- expand.grid(t = c(0.05, 0.15, 0.4, 0.8, 1.5, 2.5),
-                  a = c(0.8, 1.4, 2.2), w = c(0.35, 0.5, 0.7),
-                  v = c(-1.5, 0, 1.5))
-rel <- mapply(function(t, a, w, v) {
-  ref <- log(RWiener::dwiener(t + 0.2, a, 0.2, w, v, resp = "lower"))
-  abs(wiener_lpdf1(t, v, a, w) - ref) / abs(ref)
-}, gr$t, gr$a, gr$w, gr$v)
-c(cases = length(rel), max_relative_error = max(rel))
-#>              cases max_relative_error 
-#>       1.620000e+02       8.728694e-11
+fbi <- frm(bf(rt ~ x), family = shifted_lognormal(), data = sln_d)
+eb <- unlist(fixef(fbi))
+c(custom = as.numeric(logLik(fsl)), builtin = as.numeric(logLik(fbi)),
+  loglik_difference = as.numeric(logLik(fsl)) - as.numeric(logLik(fbi)),
+  shift_difference = shift_hat - exp(eb[["ndt.(Intercept)"]]))
+#>            custom           builtin loglik_difference  shift_difference 
+#>      1.478009e+00      1.478009e+00     -3.042011e-14     -2.572238e-09
 ```
 
 ``` r
 
-stopifnot(max(rel) < 1e-8)
+stopifnot(
+  abs(as.numeric(logLik(fsl)) - as.numeric(logLik(fbi))) < 1e-6,
+  abs(shift_hat - exp(eb[["ndt.(Intercept)"]])) < 1e-4,
+  with(sln_grid, max(abs(sln_lpdf(y, mu, sigma, shift) -
+                           dlnorm(y - shift, mu, sigma, log = TRUE)))) <
+    1e-12)
 ```
 
-Then check the fitted log likelihood: evaluate RWiener’s density at the
-frmtmb estimates on the same 700 trials and add the logs.
+That equality is the check to write for any custom family that shadows
+something already implemented, in this package or another one. It costs
+one extra fit and it tests the whole path: the density, the links, the
+starts and the optimizer.
 
-``` r
+### The harder cases, and where they went
 
-drift <- e[["mu.(Intercept)"]] + e[["mu.x"]] * dat$x
-ll_ref <- sum(mapply(function(q, up, v) {
-  log(RWiener::dwiener(q, exp(e[["bs.(Intercept)"]]), ndt_hat, 0.5, v,
-                       resp = if (up == 1) "upper" else "lower"))
-}, dat$rt, dat$upper, drift))
-c(frmtmb = as.numeric(logLik(fddm)), RWiener = ll_ref,
-  difference = as.numeric(logLik(fddm)) - ll_ref)
-#>        frmtmb       RWiener    difference 
-#> -4.096528e+02 -4.096528e+02 -1.705303e-13
-```
+A drift-diffusion model sat in this slot until frmtmb.ddm existed: a
+first-passage density written as a series, a boundary indicator arriving
+through `vint()`, and a non-decision time bounded exactly as the shift
+is above. That family is a package now, and the package does the density
+better than a case study did. `vignette("ddm", package = "frmtmb.ddm")`
+is the worked model, and `frmtmb.ddm::wiener()` is the family.
 
-``` r
+Two lessons live there rather than here:
 
-stopifnot(abs(as.numeric(logLik(fddm)) - ll_ref) < 1e-8)
-```
-
-The density agrees with the C implementation to better than 1e-10
-relative over 162 parameter settings, and the two log likelihoods on the
-fitted data agree to 1e-12.
-
-``` r
-
-tg <- seq(min(dat$rt), quantile(dat$rt, 0.99), length.out = 200)
-dens <- function(up) {
-  v <- (e[["mu.(Intercept)"]] + e[["mu.x"]] * 0) * (1 - 2 * up)
-  w <- 0.5
-  exp(wiener_lpdf1(tg - ndt_hat, v, exp(e[["bs.(Intercept)"]]), w))
-}
-br <- seq(min(dat$rt), max(dat$rt) + 0.05, by = 0.05)
-hu <- hist(dat$rt[dat$upper == 1], breaks = br, plot = FALSE)
-hl <- hist(dat$rt[dat$upper == 0], breaks = br, plot = FALSE)
-sc <- nrow(dat) * 0.05
-tinyplot::tinyplot(x = hu$mids, y = hu$counts / sc, type = "h", lwd = 6,
-                   col = "gray70", theme = "clean2",
-                   ylim = c(-max(hl$counts / sc) - 0.2,
-                            max(hu$counts / sc) + 0.2),
-                   xlab = "response time (s)", ylab = "density")
-tinyplot::plt_add(x = hl$mids, y = -hl$counts / sc, type = "h", lwd = 6,
-                  col = "gray85")
-lines(tg, dens(1), col = "steelblue4", lwd = 2)
-lines(tg, -dens(0), col = "firebrick", lwd = 2)
-abline(h = 0, col = "gray40")
-```
-
-![Two histograms of response time back to back. The upper half of the
-plot holds the upper-boundary responses as bars rising from zero, with a
-fitted density curve over them. The lower half holds the lower-boundary
-responses as bars hanging below zero, with its own fitted density curve.
-Both curves rise steeply after the non-decision time near 0.28 seconds
-and decay with a long right tail. The upper histogram is much taller,
-because most responses hit the upper
-boundary.](case-studies_files/figure-html/ddm-fig-1.png)
-
-The two curves are the same density at the two boundaries. Their areas
-are the two choice proportions, which is why the lower-boundary curve is
-the smaller one: the drift points up.
-
-What this showcase does not do. There is no trial-to-trial variability
-in drift, start point or non-decision time, so it is the pure Wiener
-model and not the full Ratcliff model, whose likelihood needs an
-integral over the drift distribution at every row. There is no
-contaminant mixture for fast guesses and slow lapses. And the fixed
-truncation is a real constraint: check `max_normalized_time` above on
-your own data, because a small boundary separation with long response
-times will leave the range where the series is exact.
+- An integer covariate reaching the density through `vint()`, which
+  arrives as the `aterms` argument of the `lpdf`.
+  [`?custom_family`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  has a worked example of that, and the ddm vignette explains why the
+  decision indicator has to travel that way.
+- What to do when the density is a series whose term count would have to
+  depend on a parameter. The tape cannot branch on a parameter, so the
+  choice is between one fixed truncation, which fails outside the range
+  it covers, and evaluating both series and blending them. The ddm
+  vignette measures both.
 
 ## 12. Circular regression
 
@@ -1756,11 +1671,10 @@ Every cross-check on this page runs when the page is built, and the
 [`stopifnot()`](https://rdrr.io/r/base/stopifnot.html) calls fail the
 build if a number moves. The strongest of them are also pinned in
 `tests/testthat/test-case-studies.R`, so they run in the test suite as
-well. The Wiener density of section 11 has a file of its own,
-`tests/testthat/test-vignette-wiener.R`: a page that writes a
-research-grade density and validates it deserves a test that holds the
-same numbers, and that file also measures where the fixed truncation
-stops being exact.
+well. Section 11 states the general rule: a custom family that shadows
+an implemented one should be checked against it, because that comparison
+exercises the density, the links, the starts and the optimizer in one
+number.
 
 Several points of friction showed up while writing these case studies,
 and each one is handled above:
@@ -1787,7 +1701,7 @@ and each one is handled above:
   directly, with no grouping column needed in `newdata`. Section 10
   draws its figure that way.
 - A custom family may pass a link OBJECT rather than a link name, which
-  is how section 11 bounds the non-decision time by the data. The object
+  is how section 11 bounds a shift parameter by the data. The object
   needs `name`, `linkfun`, `linkinv` and `mu_eta`.
 
 Some models on this page are refused by parts of the post-fitting

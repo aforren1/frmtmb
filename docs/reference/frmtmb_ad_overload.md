@@ -4,13 +4,15 @@ Returns `f` with RTMB's tape-safe replacements for
 [`c()`](https://rdrr.io/r/base/c.html), `[<-` and `diag<-` bound at the
 top of its body. Call it on any function a user supplies that frmtmb
 will later put on an AD tape, so that the user does not have to carry
-the binding boilerplate. frmtmb applies it to every function slot of
-[`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
-and
-[`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md);
-a package that takes tape-side functions of its own applies it to those.
-It is safe to call on any object: a non-function and a primitive come
-back unchanged.
+the binding boilerplate. frmtmb applies it to the tape-side slots and to
+those only:
+[`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)'s
+`lpdf` and `lcdf`, and
+[`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)'s
+`loglik`. `valid_y`, `sim`, `post$mean_fn` and the rest run on doubles,
+off the tape, where the bindings would buy nothing. A package that takes
+tape-side functions of its own applies this to those. It is safe to call
+on any object: a non-function and a primitive come back unchanged.
 
 ## Usage
 
@@ -57,7 +59,7 @@ helper that builds advectors needs the explicit spelling of its own.
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
 and
 [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md),
-whose function slots frmtmb wraps with this
+whose tape-side slots frmtmb wraps with this
 
 ## Examples
 

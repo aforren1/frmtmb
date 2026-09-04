@@ -88,10 +88,7 @@ likelihood-ratio tests, AIC).
   profile intervals, [`anova()`](https://rdrr.io/r/stats/anova.html)
   gives likelihood-ratio tests, and
   [`AIC()`](https://rdrr.io/r/stats/AIC.html)/[`BIC()`](https://rdrr.io/r/stats/AIC.html)
-  replace [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md)
-  (or install **frmtmb.sample**, whose
-  [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) is the
-  real one, on sampled draws).
+  replace [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md).
 
 - `posterior_predict()` becomes
   [`simulate()`](https://rdrr.io/r/stats/simulate.html);
@@ -473,15 +470,43 @@ IS the model, and [`body()`](https://rdrr.io/r/base/body.html),
 [`environment()`](https://rdrr.io/r/base/environment.html), and the
 debugger work on it like on any R function.
 
+## The posterior half of the port
+
+This page ports the model grammar and the frequentist workflow built
+around it. The sampling workflow ports as well, into the companion
+package **frmtmb.sample**. `frm_sample()` takes the same
+[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) object this
+page describes, assembles it through the same code path, and runs Stan’s
+NUTS on the frmtmb objective under brms’s default priors; the draws it
+returns carry the brms post-processing surface, with the real
+[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) on it.
+`as_tmbstan()` hands the objective to tmbstan directly.
+
+Nothing in the grammar changes when you sample, which is why the two
+halves split cleanly. What does change is everything around the draws:
+the argument names of the call, the parameter spellings, and which
+`brmsfit` methods have no counterpart.
+`vignette("brms-posterior", package = "frmtmb.sample")` is that half,
+and `vignette("posterior-diagnostics", package = "frmtmb.sample")`
+covers the diagnostics of a sampled fit.
+
 ## When you still want brms
 
-Genuine prior information, full posterior uncertainty for derived
-quantities, models with discrete latent structure beyond
-observation-level mixtures, or `loo`-based model comparison. A practical
-workflow is model screening in frmtmb and a final fit in brms. The
-companion package **frmtmb.sample** is the third option:
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
-runs NUTS on the frmtmb objective under brms’s default priors and gives
-back the posterior method surface, and
-[`frmtmb.sample::as_tmbstan()`](https://aforren1.github.io/frmtmb/reference/as_tmbstan.html)
-hands the objective to tmbstan directly.
+With **frmtmb.sample** installed, a posterior, brms’s default priors and
+[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md)-based
+comparison are all available here, so the reasons to reach for brms
+itself are narrower than they look:
+
+- a marginal likelihood, and so a Bayes factor;
+- `reloo()` or `kfold()` on a model whose LOO approximation fails, since
+  both need refits that this package does not do;
+- discrete latent structure beyond observation-level mixtures;
+- a family or term neither package here implements, which
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  answers per feature;
+- Stan code you intend to read, extend or hand to somebody else.
+
+A practical workflow is model screening with
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md), which
+costs seconds, sampling the survivors with `frm_sample()`, and a final
+fit in brms for the questions in that list.

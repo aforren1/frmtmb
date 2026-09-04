@@ -188,7 +188,7 @@ print.frmtmb_par_template <- function(x, n = 10L, ...) {
 #' An UNNAMED vector is positional and must be full length, which is the
 #' contract every existing call relies on. A NAMED vector addresses
 #' entries by name through the same paren-tolerant matcher `confint()`
-#' and `lower=` use, overrides those and leaves the rest at their
+#' uses, overrides those and leaves the rest at their
 #' defaults. Mixing the two in one vector is refused rather than guessed
 #' at: neither reading is safe when half the entries are labeled.
 #'

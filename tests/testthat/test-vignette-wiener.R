@@ -1,6 +1,11 @@
-## The drift-diffusion custom family of vignette("case-studies").
+## The drift-diffusion custom family formerly worked in
+## vignette("case-studies") (that section now points at frmtmb.ddm,
+## which supersedes the fixed-truncation density kept here). The test
+## stays in core as a custom_family() regression: it exercises the
+## constructor, check_custom_family() and the fit surface on a density
+## defined entirely in user code.
 ##
-## The vignette validates a research-grade density it writes itself, so
+## The vignette validated a research-grade density it wrote itself, so
 ## the density is pinned here as well: a vignette that only re-derives
 ## its own arithmetic proves nothing, and a change in RTMB's arithmetic
 ## or in the family contract has to break a test, not a page build.

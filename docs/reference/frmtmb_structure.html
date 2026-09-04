@@ -17,7 +17,7 @@ with frmtmb_family(structure = )."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,7 @@ with frmtmb_family(structure = )."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -206,17 +207,22 @@ leave the rest alone.</p>
     <h2 id="extending-frmtmb-from-another-package">Extending frmtmb from another package<a class="anchor" aria-label="anchor" href="#extending-frmtmb-from-another-package"></a></h2>
 
 
-<p>This is one of three seams a package outside frmtmb uses, and it is
-the one for a family. Attach a structure to a family and the core
-needs no branch that names the family, which is what lets the family
-ship somewhere else. <code><a href="frmtmb_register_frame_check.html">frmtmb_register_frame_check()</a></code> is the seam for
-a feature that is NOT a family and still has to refuse a data problem
-the assembled frame shows: register a check at load time and the core
-calls it on every frame. <a href="frmtmb-extension-api.html">frmtmb-extension-api</a> is the read-only
-accessor set both kinds of extension use to reach a fit. The worked
-example of the second seam is the <code>frmtmb.ode</code> package, whose
-<code>frm_ode()</code> refuses a dynamics input that varies inside a solve
-group; its registration is three lines of <code>.onLoad()</code>.</p>
+<p>This is the seam for a family whose likelihood does not factorize
+over rows. Attach a structure to a family and the core needs no
+branch that names the family, which is what lets the family ship
+somewhere else. The other seams are registries, each filled from a
+contributing package's <code>.onLoad()</code>:
+<code><a href="frmtmb_register_frame_check.html">frmtmb_register_frame_check()</a></code> for a feature that is NOT a family
+and still has to refuse a data problem only the assembled frame
+shows; <code><a href="frmtmb_register_aterm.html">frmtmb_register_aterm()</a></code> for an addition term of the
+family's own, so its per-row data keeps the spelling its literature
+uses instead of <code>vint()</code>; and <code><a href="frmtmb_register_compat.html">frmtmb_register_compat()</a></code> for the
+rows <code><a href="frm_compat.html">frm_compat()</a></code> reports about it. <a href="frmtmb-extension-api.html">frmtmb-extension-api</a> is the
+read-only accessor set every kind of extension uses to reach a fit.
+The worked example of the frame-check seam is the <code>frmtmb.ode</code>
+package, whose <code>frm_ode()</code> refuses a dynamics input that varies
+inside a solve group; its registration is three lines of
+<code>.onLoad()</code>.</p>
 <p><code>loglik = NULL</code> keeps the family's own rowwise <code>lpdf</code> and makes the
 structure a CAPABILITY DECLARATION instead. That is what a family
 whose likelihood does factorize per row but which still has to refuse

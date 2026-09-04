@@ -3,13 +3,17 @@
 one component per parameter block (beta, betad, theta, ...),
 each a named numeric vector. It answers &quot;what do I call these?&quot;
 before there is a fit to ask, which is what frm(start =),
-frm_simulate()'s newparams =, and frm(lower =)/upper = all
-need."><meta property="og:description" content="The parameter vector a model optimizes, as an editable named list:
+frm_simulate()'s newparams =, and every box constraint all need:
+these are the names a bound resolves to, and the names
+set_prior()'s coef takes for a raw covariance parameter
+(class = &quot;theta&quot;, coef = &quot;thetaac_1&quot;)."><meta property="og:description" content="The parameter vector a model optimizes, as an editable named list:
 one component per parameter block (beta, betad, theta, ...),
 each a named numeric vector. It answers &quot;what do I call these?&quot;
 before there is a fit to ask, which is what frm(start =),
-frm_simulate()'s newparams =, and frm(lower =)/upper = all
-need."></head><body>
+frm_simulate()'s newparams =, and every box constraint all need:
+these are the names a bound resolves to, and the names
+set_prior()'s coef takes for a raw covariance parameter
+(class = &quot;theta&quot;, coef = &quot;thetaac_1&quot;)."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -17,7 +21,7 @@ need."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +37,7 @@ need."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -63,8 +68,10 @@ need."></head><body>
 one component per parameter block (<code>beta</code>, <code>betad</code>, <code>theta</code>, ...),
 each a named numeric vector. It answers "what do I call these?"
 before there is a fit to ask, which is what <code>frm(start =)</code>,
-<code><a href="frm_simulate.html">frm_simulate()</a></code>'s <code>newparams =</code>, and <code>frm(lower =)</code>/<code>upper =</code> all
-need.</p>
+<code><a href="frm_simulate.html">frm_simulate()</a></code>'s <code>newparams =</code>, and every box constraint all need:
+these are the names a bound resolves to, and the names
+<code><a href="set_prior.html">set_prior()</a></code>'s <code>coef</code> takes for a raw covariance parameter
+(<code>class = "theta"</code>, <code>coef = "thetaac_1"</code>).</p>
     </div>
 
     <div class="section level2">

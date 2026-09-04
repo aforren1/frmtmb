@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -231,13 +232,10 @@ assumption, <code><a href="../reference/frm_bootstrap.html">frm_bootstrap()</a><
 distribution, and <code>frm(quadrature = TRUE)</code> replaces the
 Laplace approximation itself with adaptive quadrature.</p>
 <p>To measure the violation rather than route around it, install the
-companion package <strong>frmtmb.sample</strong> and read its
-<code>sampling</code> vignette.
-<code><a href="https://aforren1.github.io/frmtmb/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code> samples this very objective
-with NUTS and reports how far each posterior mean sits from its
-maximum-likelihood estimate, in posterior standard deviations, beside
-the ratio of the posterior standard deviation to the Wald standard
-error.</p>
+companion package <strong>frmtmb.sample</strong> and read
+<code>vignette("posterior-diagnostics", package = "frmtmb.sample")</code>,
+which covers <code>check_laplace()</code> and the diagnostics of a
+sampled fit; this page stays with the maximum-likelihood side.</p>
 </div>
 <div class="section level2">
 <h2 id="variance-components-on-their-natural-scale">Variance components on their natural scale<a class="anchor" aria-label="anchor" href="#variance-components-on-their-natural-scale"></a>

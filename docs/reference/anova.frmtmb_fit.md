@@ -54,6 +54,20 @@ the one-component case, or use
 [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
 for a simulation-based reference.
 
+## Nesting is assumed, not verified
+
+A likelihood-ratio statistic has a chi-square null distribution only
+when the smaller model is a restriction of the larger.
+[`anova()`](https://rdrr.io/r/stats/anova.html) cannot verify that in
+general: nesting through a nonlinear reparameterization, or through a
+constraint that ties parameters across distributional parameters, is
+invisible to anything the fitted objects carry. What it does check is
+cheap and stated: if neither model's fixed-effect coefficient names are
+a subset of the other's, and neither fixed-effect design sits inside the
+other's column space, it warns. A comparison that passes that check is
+not thereby verified to be nested. Two models that are genuinely not
+nested are compared by AIC, not by this table.
+
 ## Examples
 
 ``` r
@@ -67,6 +81,7 @@ m0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 m1 <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
 anova(m0, m1)
 #> Likelihood-ratio tests
+#> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
 #> 
 #>                     Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)
 #> y ~ x + (1 | g)      4 -334.52 677.04                         
@@ -77,6 +92,7 @@ anova(m0, m1)
 m2 <- frm(bf(y ~ x) + gaussian(), data = dd)
 anova(m2, m0)
 #> Likelihood-ratio tests
+#> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
 #> 
 #>                 Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)    
 #> y ~ x            3 -352.75 711.51                             
@@ -90,6 +106,7 @@ r0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, REML = TRUE)
 r1 <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd, REML = TRUE)
 anova(r0, r1)
 #> Likelihood-ratio tests
+#> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
 #> 
 #>                 Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)    
 #> y ~ x + (1 | g)  2 -336.69 677.39                             
@@ -103,6 +120,7 @@ try(anova(r0, rz))
 anova(r0, rz, refit = TRUE)
 #> anova(): refitting 2 REML models with ML: y ~ x + (1 | g); y ~ x + z + (1 | g)
 #> Likelihood-ratio tests
+#> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
 #> 
 #>                     Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)
 #> y ~ x + (1 | g)      4 -334.52 677.04                         

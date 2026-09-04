@@ -165,26 +165,15 @@ a formal defaults to when `NULL` and `NA` are both real settings and
 neither can double as unset; `re_form_arg()` resolves the pair, refusing
 rather than guessing when both are given.
 
-## The compatibility registry
-
-`frmtmb_register_compat()` contributes feature rows and compatibility
-rules to
-[`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
-from another package's `.onLoad()`, and `compat_rule_builder()` is the
-accumulator that makes a contributed rule read like a core one.
-Contributions are appended, and rules of equal specificity resolve
-later-wins, so a contributed rule may override a core default and a core
-default can never silently override a contributed one.
-
 ## See also
 
 [frmtmb-extension-api](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
-for the family-level accessors a structured family uses, and
+for the family-level accessors a structured family uses,
 [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
-for the protocol those serve.
-[`vignette("compatibility")`](https://aforren1.github.io/frmtmb/articles/compatibility.md)
-for
-[`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md).
+for the protocol those serve, and
+[`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+for the compatibility registry, which was documented here while it had
+no page of its own.
 
 ## Examples
 

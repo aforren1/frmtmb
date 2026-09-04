@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -253,9 +254,8 @@ at random in a bounded range instead.</p>
 <li><p>Posterior summaries become ML estimates: <code><a href="../reference/fixef.html">fixef()</a></code>
 returns point estimates, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> gives Wald or profile
 intervals, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> gives likelihood-ratio tests, and
-<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>/<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> replace <code><a href="../reference/loo.html">loo()</a></code> (or
-install <strong>frmtmb.sample</strong>, whose <code><a href="../reference/loo.html">loo()</a></code> is the
-real one, on sampled draws).</p></li>
+<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>/<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> replace
+<code><a href="../reference/loo.html">loo()</a></code>.</p></li>
 <li><p><code>posterior_predict()</code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>;
 <code>posterior_epred()</code> over <code>newdata</code> becomes
 <code>predict(newdata, type = "response")</code>. On a
@@ -649,17 +649,47 @@ the closure IS the model, and <code><a href="https://rdrr.io/r/base/body.html" c
 function.</p>
 </div>
 <div class="section level2">
+<h2 id="the-posterior-half-of-the-port">The posterior half of the port<a class="anchor" aria-label="anchor" href="#the-posterior-half-of-the-port"></a>
+</h2>
+<p>This page ports the model grammar and the frequentist workflow built
+around it. The sampling workflow ports as well, into the companion
+package <strong>frmtmb.sample</strong>. <code>frm_sample()</code> takes
+the same <code><a href="../reference/bf.html">bf()</a></code> object this page describes, assembles it
+through the same code path, and runs Stan’s NUTS on the frmtmb objective
+under brms’s default priors; the draws it returns carry the brms
+post-processing surface, with the real <code><a href="../reference/loo.html">loo()</a></code> on it.
+<code>as_tmbstan()</code> hands the objective to tmbstan directly.</p>
+<p>Nothing in the grammar changes when you sample, which is why the two
+halves split cleanly. What does change is everything around the draws:
+the argument names of the call, the parameter spellings, and which
+<code>brmsfit</code> methods have no counterpart.
+<code>vignette("brms-posterior", package = "frmtmb.sample")</code> is
+that half, and
+<code>vignette("posterior-diagnostics", package = "frmtmb.sample")</code>
+covers the diagnostics of a sampled fit.</p>
+</div>
+<div class="section level2">
 <h2 id="when-you-still-want-brms">When you still want brms<a class="anchor" aria-label="anchor" href="#when-you-still-want-brms"></a>
 </h2>
-<p>Genuine prior information, full posterior uncertainty for derived
-quantities, models with discrete latent structure beyond
-observation-level mixtures, or <code>loo</code>-based model comparison.
-A practical workflow is model screening in frmtmb and a final fit in
-brms. The companion package <strong>frmtmb.sample</strong> is the third
-option: <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> runs NUTS on the frmtmb
-objective under brms’s default priors and gives back the posterior
-method surface, and <code><a href="https://aforren1.github.io/frmtmb/reference/as_tmbstan.html">frmtmb.sample::as_tmbstan()</a></code> hands the
-objective to tmbstan directly.</p>
+<p>With <strong>frmtmb.sample</strong> installed, a posterior, brms’s
+default priors and <code><a href="../reference/loo.html">loo()</a></code>-based comparison are all available
+here, so the reasons to reach for brms itself are narrower than they
+look:</p>
+<ul>
+<li>a marginal likelihood, and so a Bayes factor;</li>
+<li>
+<code>reloo()</code> or <code>kfold()</code> on a model whose LOO
+approximation fails, since both need refits that this package does not
+do;</li>
+<li>discrete latent structure beyond observation-level mixtures;</li>
+<li>a family or term neither package here implements, which
+<code><a href="../reference/frm_compat.html">frm_compat()</a></code> answers per feature;</li>
+<li>Stan code you intend to read, extend or hand to somebody else.</li>
+</ul>
+<p>A practical workflow is model screening with <code><a href="../reference/frm.html">frm()</a></code>,
+which costs seconds, sampling the survivors with
+<code>frm_sample()</code>, and a final fit in brms for the questions in
+that list.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

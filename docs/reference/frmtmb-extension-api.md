@@ -222,9 +222,14 @@ object is internal and may be renamed without notice.
 ## See also
 
 [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
-for the protocol these serve, and
+for the protocol these serve,
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
-for the family object they read
+for the family object they read, and the registries an extension fills
+from its own `.onLoad()`:
+[`frmtmb_register_frame_check()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_frame_check.md),
+[`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
+and
+[`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
 
 ## Examples
 

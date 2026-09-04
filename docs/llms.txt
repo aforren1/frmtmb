@@ -223,8 +223,10 @@ layers:
   [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   proportional hazards with a flexible baseline and Laplace frailties.
   [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
-  takes a plain R log-density. The test suite fits a Wiener
-  drift-diffusion model in about 15 lines.
+  takes a plain R log-density; section 11 of
+  [`vignette("case-studies")`](https://aforren1.github.io/frmtmb/articles/case-studies.md)
+  writes one with a data-bounded link and checks it against the built-in
+  family it shadows.
 - Discrete latent states: the `frmtmb.latent` package adds `hmm(K)` for
   hidden Markov models, with covariate-dependent transitions and
   forward-backward decoding, and `lca(K)` for latent class analysis with
@@ -379,6 +381,13 @@ and `NEWS.md` for the changelog.
 
 - [`frmtmb_register_frame_check()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_frame_check.md)
   : Check an assembled model frame from another package
+
+- [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
+  : Add an addition term from another package
+
+- [`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+  [`compat_rule_builder()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+  : Contribute to the compatibility matrix from another package
 
 - [`frmtmb_ad_overload()`](https://aforren1.github.io/frmtmb/reference/frmtmb_ad_overload.md)
   : Make a user-written function tape-safe
@@ -564,8 +573,6 @@ and `NEWS.md` for the changelog.
   [`find_linpred`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`arg_unset`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`re_form_arg`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
-  [`frmtmb_register_compat`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
-  [`compat_rule_builder`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   : Core internals for a sampling extension
 - [`influence(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
   [`cooks.distance(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
@@ -634,6 +641,8 @@ and `NEWS.md` for the changelog.
 - [`frmtmb`](https://aforren1.github.io/frmtmb/reference/frmtmb-package.md)
   [`frmtmb-package`](https://aforren1.github.io/frmtmb/reference/frmtmb-package.md)
   : frmtmb: Formula-Based Regression Models via 'RTMB'
+- [`habit_prep`](https://aforren1.github.io/frmtmb/reference/habit_prep.md)
+  : Forced-response habit data from Hardwick et al. (2019)
 
 # Articles
 
@@ -649,5 +658,7 @@ and `NEWS.md` for the changelog.
   literature](https://aforren1.github.io/frmtmb/articles/case-studies.md):
 - [Model
   diagnostics](https://aforren1.github.io/frmtmb/articles/diagnostics.md):
+- [Case study: a race between habit and
+  intention](https://aforren1.github.io/frmtmb/articles/habit.md):
 - [Feature
   compatibility](https://aforren1.github.io/frmtmb/articles/compatibility.md):

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -854,6 +855,7 @@ tests the restriction.</p>
 <div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="../reference/frmtmb-families.html">sratio</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dord</span><span class="op">)</span>, <span class="va">fcs</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Likelihood-ratio tests</span></span>
+<span><span class="co">#&gt; Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;           Df  logLik    AIC  Chisq Chi Df Pr(&gt;Chisq)    </span></span>
 <span><span class="co">#&gt; y ~ x      4 -645.57 1299.1                             </span></span>
@@ -1133,248 +1135,193 @@ above.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="a-drift-diffusion-model-as-a-custom-family">11. A drift-diffusion model as a custom family<a class="anchor" aria-label="anchor" href="#a-drift-diffusion-model-as-a-custom-family"></a>
+<h2 id="a-custom-family-with-a-bounded-parameter">11. A custom family with a bounded parameter<a class="anchor" aria-label="anchor" href="#a-custom-family-with-a-bounded-parameter"></a>
 </h2>
-<p>The drift-diffusion model is the standard account of a two-choice
-decision: evidence accumulates as a Wiener process with drift until it
-reaches one of two boundaries, and the crossing time and the boundary
-are the response time and the choice (Ratcliff 1978; Ratcliff and McKoon
-2008). Its first-passage density is a research-grade special function,
-and the point of this section is that in frmtmb it is a plain R
-function.</p>
-<p>The density itself is Navarro and Fuss (2009, <em>Journal of
-Mathematical Psychology</em> 53). Write the lower-boundary density with
-drift <code>v</code>, boundary separation <code>a</code> and relative
-start point <code>w</code> as a scale change onto a normalized time
-<code>u = t / a^2</code>, and give the normalized density as the
-small-time series. The tape cannot branch on a parameter, so the number
-of terms is <strong>fixed</strong> at <code>K = 10</code> rather than
-chosen from the error bound at each evaluation. The accuracy that buys
-is measured below.</p>
-<div class="sourceCode" id="cb59"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># log first-passage density at the LOWER boundary, Navarro and Fuss</span></span>
-<span><span class="co"># (2009) small-time series with a fixed 2K + 1 terms. Plain arithmetic</span></span>
-<span><span class="co"># only, so the same function serves the tape and the figure.</span></span>
-<span><span class="va">wiener_lpdf1</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span>, <span class="va">v</span>, <span class="va">a</span>, <span class="va">w</span>, <span class="va">K</span> <span class="op">=</span> <span class="fl">10L</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">u</span> <span class="op">&lt;-</span> <span class="va">t</span> <span class="op">/</span> <span class="va">a</span><span class="op">^</span><span class="fl">2</span></span>
-<span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
-<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">k</span> <span class="kw">in</span> <span class="op">-</span><span class="va">K</span><span class="op">:</span><span class="va">K</span><span class="op">)</span> <span class="va">s</span> <span class="op">&lt;-</span> <span class="va">s</span> <span class="op">+</span> <span class="op">(</span><span class="va">w</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">k</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="op">(</span><span class="va">w</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">k</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">/</span> <span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">u</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">-</span><span class="va">v</span> <span class="op">*</span> <span class="va">a</span> <span class="op">*</span> <span class="va">w</span> <span class="op">-</span> <span class="va">v</span><span class="op">^</span><span class="fl">2</span> <span class="op">*</span> <span class="va">t</span> <span class="op">/</span> <span class="fl">2</span> <span class="op">-</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span> <span class="op">-</span></span>
-<span>    <span class="fl">0.5</span> <span class="op">*</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">pi</span><span class="op">)</span> <span class="op">+</span> <span class="fl">3</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">u</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-<p>The upper boundary needs no second series. Reflecting the process
-maps an upper crossing onto a lower one with <code>w -&gt; 1 - w</code>
-and <code>v -&gt; -v</code>, and the reflection is driven by a column of
-the <strong>data</strong>, not by a parameter, so it is arithmetic on
-the tape rather than a branch. The boundary indicator travels as
-<code>vint()</code>, which is the addition term that hands integer
-covariates to a custom family.</p>
-<p>The non-decision time <code>ndt</code> is the awkward parameter,
-because the support of the density depends on it: the density is defined
-only for <code>rt &gt; ndt</code>. A log link would let the optimizer
-step past <code>min(rt)</code> and produce <code><a href="https://rdrr.io/r/base/Log.html" class="external-link">log()</a></code> of a
-negative number. Instead give <code>ndt</code> a scaled logit link onto
-<code>(0, U)</code>, with <code>U</code> fixed at family-construction
-time. The support then holds for every value of the linear predictor,
-and the tape still never branches. The one caveat is arithmetic rather
-than algebra: past a linear predictor near 37 the logit saturates in
-double precision and <code>ndt</code> rounds to <code>U</code> exactly.
-The density is what keeps the optimizer away from that corner, because a
-first-passage density goes to zero faster than any power of the decision
-time and the log likelihood falls off well before the link
-saturates.</p>
-<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">wiener</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">max_ndt</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/force.html" class="external-link">force</a></span><span class="op">(</span><span class="va">max_ndt</span><span class="op">)</span></span>
-<span>  <span class="va">ndt_link</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    name <span class="op">=</span> <span class="st">"scaled_logit"</span>,</span>
-<span>    linkfun <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">mu</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">mu</span> <span class="op">/</span> <span class="op">(</span><span class="va">max_ndt</span> <span class="op">-</span> <span class="va">mu</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    linkinv <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">eta</span><span class="op">)</span> <span class="va">max_ndt</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">eta</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    mu_eta <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">eta</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="va">p</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">eta</span><span class="op">)</span><span class="op">)</span>; <span class="va">max_ndt</span> <span class="op">*</span> <span class="va">p</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">p</span><span class="op">)</span></span>
-<span>    <span class="op">}</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="../reference/frmtmb_family.html">custom_family</a></span><span class="op">(</span></span>
-<span>    <span class="st">"wiener"</span>,</span>
-<span>    dpars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mu"</span>, <span class="st">"bs"</span>, <span class="st">"ndt"</span>, <span class="st">"bias"</span><span class="op">)</span>,</span>
-<span>    links <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="st">"identity"</span>, bs <span class="op">=</span> <span class="st">"log"</span>, ndt <span class="op">=</span> <span class="va">ndt_link</span>,</span>
-<span>                 bias <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span>,</span>
-<span>    lpdf <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="va">up</span> <span class="op">&lt;-</span> <span class="va">aterms</span><span class="op">$</span><span class="va">vint1</span>                        <span class="co"># 1 for an upper response</span></span>
-<span>      <span class="fu">wiener_lpdf1</span><span class="op">(</span><span class="va">y</span> <span class="op">-</span> <span class="va">dpars</span><span class="op">$</span><span class="va">ndt</span>,</span>
-<span>                   <span class="va">dpars</span><span class="op">$</span><span class="va">mu</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">up</span><span class="op">)</span>,</span>
-<span>                   <span class="va">dpars</span><span class="op">$</span><span class="va">bs</span>,</span>
-<span>                   <span class="va">dpars</span><span class="op">$</span><span class="va">bias</span> <span class="op">+</span> <span class="va">up</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">dpars</span><span class="op">$</span><span class="va">bias</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="op">}</span>,</span>
-<span>    init_dpars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">aterms</span><span class="op">)</span> <span class="fl">0.5</span>,</span>
-<span>                      bs <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">aterms</span><span class="op">)</span> <span class="fl">1.5</span>,</span>
-<span>                      ndt <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">aterms</span><span class="op">)</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span>,</span>
-<span>                      bias <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">aterms</span><span class="op">)</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
-<span>    type <span class="op">=</span> <span class="st">"continuous"</span><span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-<p><code>mu</code> is the drift rate, <code>bs</code> the boundary
-separation, and <code>bias</code> the relative start point. The names
-follow brms, which calls the same family
-<code>wiener(link_bs, link_ndt, link_bias)</code> with a
-<code>dec()</code> addition term for the boundary:</p>
-<div class="sourceCode" id="cb61"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># brms, for comparison. Not run here: it compiles Stan code.</span></span>
-<span><span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brm.html" class="external-link">brm</a></span><span class="op">(</span><span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsformula.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">response</span><span class="op">)</span> <span class="op">~</span> <span class="va">x</span>, <span class="va">bs</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">ndt</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">bias</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>          family <span class="op">=</span> <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span>
-<span><span class="co"># frmtmb: the boundary is a vint() payload the lpdf reads itself</span></span>
-<span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="va">x</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
-<span>    family <span class="op">=</span> <span class="fu">wiener</span><span class="op">(</span>max_ndt <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../reference/check_custom_family.html">check_custom_family()</a></code> compares the density against a
-finite- difference gradient and against a re-taped evaluation, which
-catches the usual tape-safety mistakes before any fitting.</p>
-<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">9</span><span class="op">)</span></span>
-<span><span class="va">probe_y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">0.4</span>, <span class="fl">1.5</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>tape_check <span class="op">=</span> <span class="fu"><a href="../reference/check_custom_family.html">check_custom_family</a></span><span class="op">(</span></span>
-<span>  <span class="fu">wiener</span><span class="op">(</span>max_ndt <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span>, y <span class="op">=</span> <span class="va">probe_y</span>,</span>
-<span>  dpars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">50</span><span class="op">)</span>, bs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1.6</span>, <span class="fl">50</span><span class="op">)</span>, ndt <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">50</span><span class="op">)</span>,</span>
-<span>               bias <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">50</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>vint1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">1</span>, <span class="fl">25</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; tape_check </span></span>
-<span><span class="co">#&gt;       TRUE</span></span></code></pre></div>
+<p>A family here is an R function that returns a log density, and the
+tape differentiates it. <code><a href="../articles/frmtmb.html">vignette("frmtmb")</a></code> writes the
+smallest one there is: a Poisson, one distributional parameter, one link
+named by string. This section writes the next one up. Three
+distributional parameters, a link that no name covers, and a support
+that depends on a parameter the model estimates.</p>
+<p>The example is the shifted lognormal, which brms spells
+<code><a href="../reference/frmtmb-families.html">shifted_lognormal()</a></code>: a lognormal density displaced by a
+shift, read in response-time work as the time the process spent doing
+something other than what the lognormal describes. frmtmb has that
+family built in, and that is the point of choosing it. The built-in is
+an exact reference for the custom version, so the section ends with a
+check that holds to machine precision rather than an appeal to
+plausibility.</p>
 <div class="section level3">
-<h3 id="simulating-and-fitting">Simulating and fitting<a class="anchor" aria-label="anchor" href="#simulating-and-fitting"></a>
+<h3 id="the-density">The density<a class="anchor" aria-label="anchor" href="#the-density"></a>
 </h3>
-<p>The generating process is the definition of the model, so simulate it
-directly: step a two-boundary diffusion forward until it is absorbed.
-This uses no package. Two conditions differ in drift, which is the
-standard experimental manipulation.</p>
-<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">r_ddm</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">n</span>, <span class="va">v</span>, <span class="va">a</span>, <span class="va">w</span>, <span class="va">ndt</span>, <span class="va">dt</span> <span class="op">=</span> <span class="fl">1e-4</span>, <span class="va">tmax</span> <span class="op">=</span> <span class="fl">5</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">v</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep_len</a></span><span class="op">(</span><span class="va">v</span>, <span class="va">n</span><span class="op">)</span>; <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">a</span> <span class="op">*</span> <span class="va">w</span>, <span class="va">n</span><span class="op">)</span>; <span class="va">live</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="va">n</span><span class="op">)</span></span>
-<span>  <span class="va">tt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>; <span class="va">up</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>; <span class="va">step</span> <span class="op">&lt;-</span> <span class="fl">0L</span></span>
-<span>  <span class="kw">while</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">live</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="va">step</span> <span class="op">*</span> <span class="va">dt</span> <span class="op">&lt;</span> <span class="va">tmax</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">step</span> <span class="op">&lt;-</span> <span class="va">step</span> <span class="op">+</span> <span class="fl">1L</span></span>
-<span>    <span class="va">x</span><span class="op">[</span><span class="va">live</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">x</span><span class="op">[</span><span class="va">live</span><span class="op">]</span> <span class="op">+</span> <span class="va">v</span><span class="op">[</span><span class="va">live</span><span class="op">]</span> <span class="op">*</span> <span class="va">dt</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">live</span><span class="op">)</span>, <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="va">hi</span> <span class="op">&lt;-</span> <span class="va">live</span> <span class="op">&amp;</span> <span class="va">x</span> <span class="op">&gt;=</span> <span class="va">a</span>; <span class="va">lo</span> <span class="op">&lt;-</span> <span class="va">live</span> <span class="op">&amp;</span> <span class="va">x</span> <span class="op">&lt;=</span> <span class="fl">0</span></span>
-<span>    <span class="va">tt</span><span class="op">[</span><span class="va">hi</span> <span class="op">|</span> <span class="va">lo</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">step</span> <span class="op">*</span> <span class="va">dt</span>; <span class="va">up</span><span class="op">[</span><span class="va">hi</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1L</span></span>
-<span>    <span class="va">live</span> <span class="op">&lt;-</span> <span class="va">live</span> <span class="op">&amp;</span> <span class="op">!</span><span class="va">hi</span> <span class="op">&amp;</span> <span class="op">!</span><span class="va">lo</span></span>
-<span>  <span class="op">}</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>rt <span class="op">=</span> <span class="va">tt</span> <span class="op">+</span> <span class="va">ndt</span>, upper <span class="op">=</span> <span class="va">up</span><span class="op">)</span><span class="op">[</span><span class="op">!</span><span class="va">live</span>, <span class="op">]</span></span>
-<span><span class="op">}</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">404</span><span class="op">)</span></span>
-<span><span class="va">cond</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">350</span><span class="op">)</span></span>
-<span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu">r_ddm</span><span class="op">(</span><span class="fl">700</span>, v <span class="op">=</span> <span class="fl">0.4</span> <span class="op">+</span> <span class="fl">0.9</span> <span class="op">*</span> <span class="va">cond</span>, a <span class="op">=</span> <span class="fl">1.4</span>, w <span class="op">=</span> <span class="fl">0.5</span>, ndt <span class="op">=</span> <span class="fl">0.28</span><span class="op">)</span></span>
-<span><span class="va">dat</span><span class="op">$</span><span class="va">x</span> <span class="op">&lt;-</span> <span class="va">cond</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span>, p_upper <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">upper</span><span class="op">)</span>, min_rt <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt;           n     p_upper      min_rt </span></span>
-<span><span class="co">#&gt; 700.0000000   0.5657143   0.3338000</span></span></code></pre></div>
-<p>The step size <code>dt = 1e-4</code> makes the simulated crossing
-times accurate to about a percent in the recovered parameters, which is
-inside the sampling noise of 700 trials.</p>
-<div class="sourceCode" id="cb64"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fddm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="va">x</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
-<span>            family <span class="op">=</span> <span class="fu">wiener</span><span class="op">(</span>max_ndt <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span>
-<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fddm</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">ndt_hat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">e</span><span class="op">[[</span><span class="st">"ndt.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov</a></span><span class="op">(</span><span class="va">fddm</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
-<span>  estimated <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"mu.(Intercept)"</span><span class="op">]</span><span class="op">]</span>, <span class="va">e</span><span class="op">[[</span><span class="st">"mu.x"</span><span class="op">]</span><span class="op">]</span>,</span>
-<span>                <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"bs.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="va">ndt_hat</span><span class="op">)</span>,</span>
-<span>  simulated <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.4</span>, <span class="fl">0.9</span>, <span class="fl">1.4</span>, <span class="fl">0.28</span><span class="op">)</span>,</span>
-<span>  <span class="co"># vcov() leaves mu's coefficients bare and prefixes every other</span></span>
-<span>  <span class="co"># dpar; the last two errors go through the links by the delta method</span></span>
-<span>  standard_error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">se</span><span class="op">[[</span><span class="st">"(Intercept)"</span><span class="op">]</span><span class="op">]</span>, <span class="va">se</span><span class="op">[[</span><span class="st">"x"</span><span class="op">]</span><span class="op">]</span>,</span>
-<span>                     <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"bs.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">*</span> <span class="va">se</span><span class="op">[[</span><span class="st">"bs_(Intercept)"</span><span class="op">]</span><span class="op">]</span>,</span>
-<span>                     <span class="va">ndt_hat</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">ndt_hat</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span></span>
-<span>                       <span class="va">se</span><span class="op">[[</span><span class="st">"ndt_(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"drift_intercept"</span>, <span class="st">"drift_slope"</span>, <span class="st">"boundary"</span>, <span class="st">"ndt"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">out</span>, <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="co">#&gt;                drift_intercept drift_slope boundary    ndt</span></span>
-<span><span class="co">#&gt; estimated               0.3139      0.8876   1.4240 0.2788</span></span>
-<span><span class="co">#&gt; simulated               0.4000      0.9000   1.4000 0.2800</span></span>
-<span><span class="co">#&gt; standard_error          0.0570      0.0584   0.0282 0.0051</span></span></code></pre></div>
-<p>The boundary, the non-decision time and the drift slope come back
-inside one standard error. The drift intercept sits about one and a half
-standard errors low, which is ordinary sampling behavior at 700 trials
-and not evidence about the density. The two checks below pin the density
-itself.</p>
-<p><code>bias = 0.5</code> on the right of <code><a href="../reference/bf.html">bf()</a></code> fixes that
-distributional parameter at a constant on the <strong>response</strong>
-scale, which is the unbiased start point of the simple story.</p>
-<p>The truncation is fixed, so report the largest normalized time the
-fit actually reached. The series is exact to 1e-9 for <code>u</code> up
-to about 4 and degrades past 6, and the degradation is cancellation in
-double precision rather than truncation: a larger <code>K</code> does
-not fix it.</p>
-<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>max_normalized_time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span> <span class="op">-</span> <span class="va">ndt_hat</span><span class="op">)</span> <span class="op">/</span></span>
-<span>                              <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"bs.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; max_normalized_time </span></span>
-<span><span class="co">#&gt;            1.554543</span></span></code></pre></div>
+<p>The density of <code>y = shift + Lognormal(mu, sigma)</code> follows
+from the change of variables <code>z = log(y - shift)</code>, whose
+Jacobian contributes the <code>-z</code> term:</p>
+<div class="sourceCode" id="cb59"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># plain arithmetic only: no c(), no [&lt;-, so the same function serves</span></span>
+<span><span class="co"># the tape and the closed-form check below</span></span>
+<span><span class="va">sln_lpdf</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">mu</span>, <span class="va">sigma</span>, <span class="va">shift</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">y</span> <span class="op">-</span> <span class="va">shift</span><span class="op">)</span></span>
+<span>  <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">sigma</span><span class="op">)</span> <span class="op">-</span> <span class="va">z</span> <span class="op">-</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">pi</span><span class="op">)</span> <span class="op">+</span> <span class="op">(</span><span class="op">(</span><span class="va">z</span> <span class="op">-</span> <span class="va">mu</span><span class="op">)</span> <span class="op">/</span> <span class="va">sigma</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="cross-check-against-rwiener">Cross-check against RWiener<a class="anchor" aria-label="anchor" href="#cross-check-against-rwiener"></a>
+<h3 id="the-link-that-no-name-covers">The link that no name covers<a class="anchor" aria-label="anchor" href="#the-link-that-no-name-covers"></a>
 </h3>
-<p>RWiener implements the same density in C with an adaptive term count.
-Check the R function against it pointwise first.</p>
-<div class="sourceCode" id="cb66"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">gr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.15</span>, <span class="fl">0.4</span>, <span class="fl">0.8</span>, <span class="fl">1.5</span>, <span class="fl">2.5</span><span class="op">)</span>,</span>
-<span>                  a <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.8</span>, <span class="fl">1.4</span>, <span class="fl">2.2</span><span class="op">)</span>, w <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.35</span>, <span class="fl">0.5</span>, <span class="fl">0.7</span><span class="op">)</span>,</span>
-<span>                  v <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1.5</span>, <span class="fl">0</span>, <span class="fl">1.5</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">rel</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mapply.html" class="external-link">mapply</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">t</span>, <span class="va">a</span>, <span class="va">w</span>, <span class="va">v</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">ref</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu">RWiener</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/RWiener/man/wienerdist.html" class="external-link">dwiener</a></span><span class="op">(</span><span class="va">t</span> <span class="op">+</span> <span class="fl">0.2</span>, <span class="va">a</span>, <span class="fl">0.2</span>, <span class="va">w</span>, <span class="va">v</span>, resp <span class="op">=</span> <span class="st">"lower"</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu">wiener_lpdf1</span><span class="op">(</span><span class="va">t</span>, <span class="va">v</span>, <span class="va">a</span>, <span class="va">w</span><span class="op">)</span> <span class="op">-</span> <span class="va">ref</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">ref</span><span class="op">)</span></span>
-<span><span class="op">}</span>, <span class="va">gr</span><span class="op">$</span><span class="va">t</span>, <span class="va">gr</span><span class="op">$</span><span class="va">a</span>, <span class="va">gr</span><span class="op">$</span><span class="va">w</span>, <span class="va">gr</span><span class="op">$</span><span class="va">v</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cases <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">rel</span><span class="op">)</span>, max_relative_error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">rel</span><span class="op">)</span><span class="op">)</span></span>
+<p>The density is defined only for <code>y &gt; shift</code>, so the
+support moves with a parameter. The built-in family gives
+<code>shift</code> a log link and lets the optimizer discover the
+boundary: a step past <code>min(y)</code> makes the objective
+<code>NaN</code>, which nlminb treats as a rejected step. That works,
+and it depends on the optimizer’s response to a <code>NaN</code>.</p>
+<p>The alternative is to make the constraint structural. Give the shift
+a logit scaled onto <code>(0, U)</code>, with <code>U</code> fixed when
+the family is built, and no finite linear predictor can violate the
+support. A link is a list of <code>name</code>, <code>linkfun</code>,
+<code>linkinv</code> and <code>mu_eta</code>, and every place that takes
+a link name takes such a list instead.</p>
+<div class="sourceCode" id="cb60"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">shifted_ln</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">max_shift</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/force.html" class="external-link">force</a></span><span class="op">(</span><span class="va">max_shift</span><span class="op">)</span></span>
+<span>  <span class="va">shift_link</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    name <span class="op">=</span> <span class="st">"scaled_logit"</span>,</span>
+<span>    linkfun <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">mu</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">mu</span> <span class="op">/</span> <span class="op">(</span><span class="va">max_shift</span> <span class="op">-</span> <span class="va">mu</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    linkinv <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">eta</span><span class="op">)</span> <span class="va">max_shift</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">eta</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    mu_eta <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">eta</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">p</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">eta</span><span class="op">)</span><span class="op">)</span>; <span class="va">max_shift</span> <span class="op">*</span> <span class="va">p</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">p</span><span class="op">)</span></span>
+<span>    <span class="op">}</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/frmtmb_family.html">custom_family</a></span><span class="op">(</span></span>
+<span>    <span class="st">"shifted_ln"</span>,</span>
+<span>    dpars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mu"</span>, <span class="st">"sigma"</span>, <span class="st">"shift"</span><span class="op">)</span>,</span>
+<span>    links <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="st">"identity"</span>, sigma <span class="op">=</span> <span class="st">"log"</span>, shift <span class="op">=</span> <span class="va">shift_link</span><span class="op">)</span>,</span>
+<span>    lpdf <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="fu">sln_lpdf</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span><span class="op">$</span><span class="va">mu</span>, <span class="va">dpars</span><span class="op">$</span><span class="va">sigma</span>, <span class="va">dpars</span><span class="op">$</span><span class="va">shift</span><span class="op">)</span></span>
+<span>    <span class="op">}</span>,</span>
+<span>    init_dpars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      mu <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">aterms</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">y</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>      sigma <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">aterms</span><span class="op">)</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">y</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>      shift <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">aterms</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span>,</span>
+<span>    type <span class="op">=</span> <span class="st">"continuous"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p><code>init_dpars</code> reads the data and returns a starting value
+per parameter on the RESPONSE scale; the link puts it on the
+linear-predictor scale. A bounded link needs that start to be inside the
+bound, which is why <code>min(y) / 2</code> rather than
+<code>min(y)</code>.</p>
+<p>The one arithmetic caveat is the same one every bounded link has.
+Past a linear predictor near 37 the logit saturates in double precision
+and the shift rounds to <code>U</code> exactly. The density keeps the
+optimizer away from that corner, because the log likelihood falls off
+long before the link saturates.</p>
+</div>
+<div class="section level3">
+<h3 id="check-it-before-fitting-it">Check it before fitting it<a class="anchor" aria-label="anchor" href="#check-it-before-fitting-it"></a>
+</h3>
+<p><code><a href="../reference/check_custom_family.html">check_custom_family()</a></code> evaluates the density on a tape,
+compares its gradient against a finite difference, and re-tapes to catch
+the mistakes that make a family work once and fail on the second call.
+Because the density is plain arithmetic, the same function also checks
+against a closed form: <code><a href="https://rdrr.io/r/stats/Lognormal.html" class="external-link">dlnorm()</a></code> at the shifted
+response.</p>
+<div class="sourceCode" id="cb61"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">12</span><span class="op">)</span></span>
+<span><span class="va">probe</span> <span class="op">&lt;-</span> <span class="fl">0.3</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Lognormal.html" class="external-link">rlnorm</a></span><span class="op">(</span><span class="fl">50</span>, <span class="op">-</span><span class="fl">0.4</span>, <span class="fl">0.35</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/check_custom_family.html">check_custom_family</a></span><span class="op">(</span><span class="fu">shifted_ln</span><span class="op">(</span>max_shift <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span>, y <span class="op">=</span> <span class="va">probe</span>,</span>
+<span>                    dpars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.4</span>, <span class="fl">50</span><span class="op">)</span>,</span>
+<span>                                 sigma <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0.35</span>, <span class="fl">50</span><span class="op">)</span>,</span>
+<span>                                 shift <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="fl">50</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sln_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.35</span>, <span class="fl">0.6</span>, <span class="fl">1.2</span>, <span class="fl">3</span><span class="op">)</span>, mu <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>                        sigma <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.8</span><span class="op">)</span>, shift <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">sln_grid</span>, <span class="op">{</span></span>
+<span>  <span class="va">ref</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Lognormal.html" class="external-link">dlnorm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">-</span> <span class="va">shift</span>, <span class="va">mu</span>, <span class="va">sigma</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>cases <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">ref</span><span class="op">)</span>,</span>
+<span>    max_relative_error <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu">sln_lpdf</span><span class="op">(</span><span class="va">y</span>, <span class="va">mu</span>, <span class="va">sigma</span>, <span class="va">shift</span><span class="op">)</span> <span class="op">-</span> <span class="va">ref</span><span class="op">)</span> <span class="op">/</span></span>
+<span>                               <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">ref</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
 <span><span class="co">#&gt;              cases max_relative_error </span></span>
-<span><span class="co">#&gt;       1.620000e+02       8.728694e-11</span></span></code></pre></div>
-<div class="sourceCode" id="cb67"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">rel</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1e-8</span><span class="op">)</span></span></code></pre></div>
-<p>Then check the fitted log likelihood: evaluate RWiener’s density at
-the frmtmb estimates on the same 700 trials and add the logs.</p>
-<div class="sourceCode" id="cb68"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">drift</span> <span class="op">&lt;-</span> <span class="va">e</span><span class="op">[[</span><span class="st">"mu.(Intercept)"</span><span class="op">]</span><span class="op">]</span> <span class="op">+</span> <span class="va">e</span><span class="op">[[</span><span class="st">"mu.x"</span><span class="op">]</span><span class="op">]</span> <span class="op">*</span> <span class="va">dat</span><span class="op">$</span><span class="va">x</span></span>
-<span><span class="va">ll_ref</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mapply.html" class="external-link">mapply</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">q</span>, <span class="va">up</span>, <span class="va">v</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu">RWiener</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/RWiener/man/wienerdist.html" class="external-link">dwiener</a></span><span class="op">(</span><span class="va">q</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"bs.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="va">ndt_hat</span>, <span class="fl">0.5</span>, <span class="va">v</span>,</span>
-<span>                       resp <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="va">up</span> <span class="op">==</span> <span class="fl">1</span><span class="op">)</span> <span class="st">"upper"</span> <span class="kw">else</span> <span class="st">"lower"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span>, <span class="va">dat</span><span class="op">$</span><span class="va">rt</span>, <span class="va">dat</span><span class="op">$</span><span class="va">upper</span>, <span class="va">drift</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>frmtmb <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fddm</span><span class="op">)</span><span class="op">)</span>, RWiener <span class="op">=</span> <span class="va">ll_ref</span>,</span>
-<span>  difference <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fddm</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="va">ll_ref</span><span class="op">)</span></span>
-<span><span class="co">#&gt;        frmtmb       RWiener    difference </span></span>
-<span><span class="co">#&gt; -4.096528e+02 -4.096528e+02 -1.705303e-13</span></span></code></pre></div>
-<div class="sourceCode" id="cb69"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fddm</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="va">ll_ref</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1e-8</span><span class="op">)</span></span></code></pre></div>
-<p>The density agrees with the C implementation to better than 1e-10
-relative over 162 parameter settings, and the two log likelihoods on the
-fitted data agree to 1e-12.</p>
-<div class="sourceCode" id="cb70"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span>, <span class="fl">0.99</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
-<span><span class="va">dens</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">up</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">v</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"mu.(Intercept)"</span><span class="op">]</span><span class="op">]</span> <span class="op">+</span> <span class="va">e</span><span class="op">[[</span><span class="st">"mu.x"</span><span class="op">]</span><span class="op">]</span> <span class="op">*</span> <span class="fl">0</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">up</span><span class="op">)</span></span>
-<span>  <span class="va">w</span> <span class="op">&lt;-</span> <span class="fl">0.5</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu">wiener_lpdf1</span><span class="op">(</span><span class="va">tg</span> <span class="op">-</span> <span class="va">ndt_hat</span>, <span class="va">v</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"bs.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="va">w</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="va">br</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.05</span>, by <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
-<span><span class="va">hu</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/hist.html" class="external-link">hist</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">[</span><span class="va">dat</span><span class="op">$</span><span class="va">upper</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span>, breaks <span class="op">=</span> <span class="va">br</span>, plot <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">hl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/graphics/hist.html" class="external-link">hist</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">[</span><span class="va">dat</span><span class="op">$</span><span class="va">upper</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span>, breaks <span class="op">=</span> <span class="va">br</span>, plot <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">sc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.05</span></span>
-<span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">hu</span><span class="op">$</span><span class="va">mids</span>, y <span class="op">=</span> <span class="va">hu</span><span class="op">$</span><span class="va">counts</span> <span class="op">/</span> <span class="va">sc</span>, type <span class="op">=</span> <span class="st">"h"</span>, lwd <span class="op">=</span> <span class="fl">6</span>,</span>
-<span>                   col <span class="op">=</span> <span class="st">"gray70"</span>, theme <span class="op">=</span> <span class="st">"clean2"</span>,</span>
-<span>                   ylim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">hl</span><span class="op">$</span><span class="va">counts</span> <span class="op">/</span> <span class="va">sc</span><span class="op">)</span> <span class="op">-</span> <span class="fl">0.2</span>,</span>
-<span>                            <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">hu</span><span class="op">$</span><span class="va">counts</span> <span class="op">/</span> <span class="va">sc</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.2</span><span class="op">)</span>,</span>
-<span>                   xlab <span class="op">=</span> <span class="st">"response time (s)"</span>, ylab <span class="op">=</span> <span class="st">"density"</span><span class="op">)</span></span>
-<span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot_add.html" class="external-link">plt_add</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">hl</span><span class="op">$</span><span class="va">mids</span>, y <span class="op">=</span> <span class="op">-</span><span class="va">hl</span><span class="op">$</span><span class="va">counts</span> <span class="op">/</span> <span class="va">sc</span>, type <span class="op">=</span> <span class="st">"h"</span>, lwd <span class="op">=</span> <span class="fl">6</span>,</span>
-<span>                  col <span class="op">=</span> <span class="st">"gray85"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">tg</span>, <span class="fu">dens</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, col <span class="op">=</span> <span class="st">"steelblue4"</span>, lwd <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">tg</span>, <span class="op">-</span><span class="fu">dens</span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>, col <span class="op">=</span> <span class="st">"firebrick"</span>, lwd <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>h <span class="op">=</span> <span class="fl">0</span>, col <span class="op">=</span> <span class="st">"gray40"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="case-studies_files/figure-html/ddm-fig-1.png" class="r-plt" alt="Two histograms of response time back to back. The upper half of the plot holds the upper-boundary responses as bars rising from zero, with a fitted density curve over them. The lower half holds the lower-boundary responses as bars hanging below zero, with its own fitted density curve. Both curves rise steeply after the non-decision time near 0.28 seconds and decay with a long right tail. The upper histogram is much taller, because most responses hit the upper boundary." width="672"></p>
-<p>The two curves are the same density at the two boundaries. Their
-areas are the two choice proportions, which is why the lower-boundary
-curve is the smaller one: the drift points up.</p>
-<p>What this showcase does not do. There is no trial-to-trial
-variability in drift, start point or non-decision time, so it is the
-pure Wiener model and not the full Ratcliff model, whose likelihood
-needs an integral over the drift distribution at every row. There is no
-contaminant mixture for fast guesses and slow lapses. And the fixed
-truncation is a real constraint: check <code>max_normalized_time</code>
-above on your own data, because a small boundary separation with long
-response times will leave the range where the series is exact.</p>
+<span><span class="co">#&gt;       4.800000e+01       7.012572e-16</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="fitting">Fitting<a class="anchor" aria-label="anchor" href="#fitting"></a>
+</h3>
+<div class="sourceCode" id="cb62"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">11</span><span class="op">)</span></span>
+<span><span class="va">sln_d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">400</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sln_d</span><span class="op">$</span><span class="va">rt</span> <span class="op">&lt;-</span> <span class="fl">0.25</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Lognormal.html" class="external-link">rlnorm</a></span><span class="op">(</span><span class="fl">400</span>, <span class="op">-</span><span class="fl">0.4</span> <span class="op">+</span> <span class="fl">0.3</span> <span class="op">*</span> <span class="va">sln_d</span><span class="op">$</span><span class="va">x</span>, <span class="fl">0.35</span><span class="op">)</span></span>
+<span><span class="va">fsl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">shifted_ln</span><span class="op">(</span>max_shift <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">sln_d</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>           data <span class="op">=</span> <span class="va">sln_d</span><span class="op">)</span></span>
+<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fsl</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">shift_hat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">sln_d</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">e</span><span class="op">[[</span><span class="st">"shift.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  estimated <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"mu.(Intercept)"</span><span class="op">]</span><span class="op">]</span>, <span class="va">e</span><span class="op">[[</span><span class="st">"mu.x"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>                <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"sigma.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="va">shift_hat</span><span class="op">)</span>,</span>
+<span>  simulated <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.4</span>, <span class="fl">0.3</span>, <span class="fl">0.35</span>, <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mu_intercept"</span>, <span class="st">"mu_slope"</span>, <span class="st">"sigma"</span>, <span class="st">"shift"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">out</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;           mu_intercept mu_slope sigma shift</span></span>
+<span><span class="co">#&gt; estimated       -0.425    0.303 0.371 0.281</span></span>
+<span><span class="co">#&gt; simulated       -0.400    0.300 0.350 0.250</span></span></code></pre></div>
+<p>The shift is the parameter the data speak about least. Only the
+smallest response times carry information about it, so its standard
+error is wide and its point estimate sits above the generating value
+here. Read it with the interval rather than on its own:</p>
+<div class="sourceCode" id="cb63"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># a monotone link carries the interval, so map the endpoints through it</span></span>
+<span><span class="va">ci</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">fsl</span><span class="op">)</span><span class="op">[</span><span class="st">"shift_(Intercept)"</span>, <span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">sln_d</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">ci</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   lwr   upr   est </span></span>
+<span><span class="co">#&gt; 0.188 0.350 0.281</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="cross-check-against-the-built-in-family">Cross-check against the built-in family<a class="anchor" aria-label="anchor" href="#cross-check-against-the-built-in-family"></a>
+</h3>
+<p>The built-in <code><a href="../reference/frmtmb-families.html">shifted_lognormal()</a></code> is the same likelihood
+under a different link for the shift. A reparameterization moves the
+optimizer path, not the optimum, so both fits should reach the same
+maximum and the same shift on the response scale.</p>
+<div class="sourceCode" id="cb64"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fbi</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/frmtmb-families.html">shifted_lognormal</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">sln_d</span><span class="op">)</span></span>
+<span><span class="va">eb</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fbi</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>custom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fsl</span><span class="op">)</span><span class="op">)</span>, builtin <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fbi</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  loglik_difference <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fsl</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fbi</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  shift_difference <span class="op">=</span> <span class="va">shift_hat</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">eb</span><span class="op">[[</span><span class="st">"ndt.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;            custom           builtin loglik_difference  shift_difference </span></span>
+<span><span class="co">#&gt;      1.478009e+00      1.478009e+00     -3.042011e-14     -2.572238e-09</span></span></code></pre></div>
+<div class="sourceCode" id="cb65"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fsl</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fbi</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1e-6</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">shift_hat</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">eb</span><span class="op">[[</span><span class="st">"ndt.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1e-4</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">sln_grid</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu">sln_lpdf</span><span class="op">(</span><span class="va">y</span>, <span class="va">mu</span>, <span class="va">sigma</span>, <span class="va">shift</span><span class="op">)</span> <span class="op">-</span></span>
+<span>                           <span class="fu"><a href="https://rdrr.io/r/stats/Lognormal.html" class="external-link">dlnorm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">-</span> <span class="va">shift</span>, <span class="va">mu</span>, <span class="va">sigma</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;</span></span>
+<span>    <span class="fl">1e-12</span><span class="op">)</span></span></code></pre></div>
+<p>That equality is the check to write for any custom family that
+shadows something already implemented, in this package or another one.
+It costs one extra fit and it tests the whole path: the density, the
+links, the starts and the optimizer.</p>
+</div>
+<div class="section level3">
+<h3 id="the-harder-cases-and-where-they-went">The harder cases, and where they went<a class="anchor" aria-label="anchor" href="#the-harder-cases-and-where-they-went"></a>
+</h3>
+<p>A drift-diffusion model sat in this slot until frmtmb.ddm existed: a
+first-passage density written as a series, a boundary indicator arriving
+through <code>vint()</code>, and a non-decision time bounded exactly as
+the shift is above. That family is a package now, and the package does
+the density better than a case study did.
+<code>vignette("ddm", package = "frmtmb.ddm")</code> is the worked
+model, and <code>frmtmb.ddm::wiener()</code> is the family.</p>
+<p>Two lessons live there rather than here:</p>
+<ul>
+<li>An integer covariate reaching the density through
+<code>vint()</code>, which arrives as the <code>aterms</code> argument
+of the <code>lpdf</code>. <code><a href="../reference/frmtmb_family.html">?custom_family</a></code> has a worked
+example of that, and the ddm vignette explains why the decision
+indicator has to travel that way.</li>
+<li>What to do when the density is a series whose term count would have
+to depend on a parameter. The tape cannot branch on a parameter, so the
+choice is between one fixed truncation, which fails outside the range it
+covers, and evaluating both series and blending them. The ddm vignette
+measures both.</li>
+</ul>
 </div>
 </div>
 <div class="section level2">
@@ -1391,7 +1338,7 @@ and a concentration <code>kappa</code> (Fisher 1993; Mardia and Jupp
 rotates through the day, and the breeze is both steadier and stronger in
 the afternoon. Both facts are in the model, because <code>kappa</code>
 takes a formula of its own.</p>
-<div class="sourceCode" id="cb71"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb66"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># exact rejection sampling from a von Mises, uniform proposal</span></span>
 <span><span class="va">rvon_mises</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">n</span>, <span class="va">mu</span>, <span class="va">kappa</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">mu</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep_len</a></span><span class="op">(</span><span class="va">mu</span>, <span class="va">n</span><span class="op">)</span>; <span class="va">kappa</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep_len</a></span><span class="op">(</span><span class="va">kappa</span>, <span class="va">n</span><span class="op">)</span></span>
@@ -1415,7 +1362,7 @@ takes a formula of its own.</p>
 first two derivatives match at the ends of the range. That is the right
 basis for a covariate that is itself periodic, and it saves the model
 from predicting a jump at midnight.</p>
-<div class="sourceCode" id="cb72"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb67"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fvm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">angle</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">hour</span>, bs <span class="op">=</span> <span class="st">"cc"</span>, k <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>,</span>
 <span>              <span class="va">kappa</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">hour</span>, bs <span class="op">=</span> <span class="st">"cc"</span>, k <span class="op">=</span> <span class="fl">8</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>           family <span class="op">=</span> <span class="fu"><a href="../reference/frmtmb-families.html">von_mises</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">wind</span><span class="op">)</span></span>
@@ -1446,7 +1393,7 @@ resultant vector, and the concentration solves
 <code>A1(kappa) = I1(kappa) / I0(kappa) = Rbar</code>, where
 <code>Rbar</code> is the length of that vector. Neither expression uses
 any part of frmtmb.</p>
-<div class="sourceCode" id="cb73"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb68"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">78</span><span class="op">)</span></span>
 <span><span class="va">w0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>angle <span class="op">=</span> <span class="fu">rvon_mises</span><span class="op">(</span><span class="fl">500</span>, <span class="fl">0.8</span>, <span class="fl">2.2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">f0</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">angle</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/frmtmb-families.html">von_mises</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">w0</span><span class="op">)</span></span>
@@ -1465,7 +1412,7 @@ any part of frmtmb.</p>
 <span><span class="co">#&gt; frmtmb            0.823811 2.289763</span></span>
 <span><span class="co">#&gt; closed_form       0.823811 2.289763</span></span>
 <span><span class="co">#&gt; simulated         0.800000 2.200000</span></span></code></pre></div>
-<div class="sourceCode" id="cb74"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb69"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">f0</span>, newdata <span class="op">=</span> <span class="va">w0</span><span class="op">[</span><span class="fl">1</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>,</span>
 <span>                         type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span><span class="op">)</span> <span class="op">-</span></span>
@@ -1477,13 +1424,13 @@ any part of frmtmb.</p>
 <code><a href="https://rdrr.io/pkg/circular/man/mle.vonmises.html" class="external-link">circular::mle.vonmises()</a></code> gives the same mean direction and
 a concentration that differs in the fourth decimal, because it applies a
 small-sample bias correction to <code>kappa</code> by default.</p>
-<div class="sourceCode" id="cb75"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb70"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">circular</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/circular/man/mle.vonmises.html" class="external-link">mle.vonmises</a></span><span class="op">(</span><span class="fu">circular</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/circular/man/circular.html" class="external-link">circular</a></span><span class="op">(</span><span class="va">w0</span><span class="op">$</span><span class="va">angle</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>circular_mu <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">mu</span><span class="op">)</span>, circular_kappa <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">m</span><span class="op">$</span><span class="va">kappa</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    circular_mu circular_kappa </span></span>
 <span><span class="co">#&gt;      0.8238112      2.2829061</span></span></code></pre></div>
 <p>The daily cycle is easier to see on the circle than in a table.</p>
-<div class="sourceCode" id="cb76"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb71"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">hg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>hour <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">24</span>, length.out <span class="op">=</span> <span class="fl">200</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">mu_g</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fvm</span>, newdata <span class="op">=</span> <span class="va">hg</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">kp_g</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fvm</span>, newdata <span class="op">=</span> <span class="va">hg</span>, dpar <span class="op">=</span> <span class="st">"kappa"</span>,</span>
@@ -1501,7 +1448,7 @@ small-sample bias correction to <code>kappa</code> by default.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">hg</span><span class="op">$</span><span class="va">hour</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">0.7</span> <span class="op">+</span> <span class="fl">0.8</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">cos</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span> <span class="op">(</span><span class="va">hg</span><span class="op">$</span><span class="va">hour</span> <span class="op">-</span> <span class="fl">15</span><span class="op">)</span> <span class="op">/</span> <span class="fl">24</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>      lty <span class="op">=</span> <span class="fl">2</span>, col <span class="op">=</span> <span class="st">"gray30"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="case-studies_files/figure-html/vm-fig-1.png" class="r-plt" alt="Two stacked panels against hour of day from 0 to 24. The upper panel holds 600 gray points of wind direction in radians, with a blue fitted curve that rises to about 1 radian near hour 6, crosses zero near hour 12, and falls to about minus 1 near hour 18. The lower panel holds the fitted concentration as a red curve, low near hour 3 and peaking above 4 near hour 15. The gray points scatter widely where the red curve is low and tightly where it is high." width="672"></p>
-<div class="sourceCode" id="cb77"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb72"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span><span class="va">op</span><span class="op">)</span></span></code></pre></div>
 <p>The points crowd around the blue line in the afternoon and spread out
 before dawn, which is the red curve read off the data.</p>
@@ -1525,11 +1472,10 @@ be rotated to the middle of the interval before fitting.</p>
 <code><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot()</a></code> calls fail the build if a number moves. The
 strongest of them are also pinned in
 <code>tests/testthat/test-case-studies.R</code>, so they run in the test
-suite as well. The Wiener density of section 11 has a file of its own,
-<code>tests/testthat/test-vignette-wiener.R</code>: a page that writes a
-research-grade density and validates it deserves a test that holds the
-same numbers, and that file also measures where the fixed truncation
-stops being exact.</p>
+suite as well. Section 11 states the general rule: a custom family that
+shadows an implemented one should be checked against it, because that
+comparison exercises the density, the links, the starts and the
+optimizer in one number.</p>
 <p>Several points of friction showed up while writing these case
 studies, and each one is handled above:</p>
 <ul>
@@ -1557,9 +1503,9 @@ gives the population coefficient function directly, with no grouping
 column needed in <code>newdata</code>. Section 10 draws its figure that
 way.</li>
 <li>A custom family may pass a link OBJECT rather than a link name,
-which is how section 11 bounds the non-decision time by the data. The
-object needs <code>name</code>, <code>linkfun</code>,
-<code>linkinv</code> and <code>mu_eta</code>.</li>
+which is how section 11 bounds a shift parameter by the data. The object
+needs <code>name</code>, <code>linkfun</code>, <code>linkinv</code> and
+<code>mu_eta</code>.</li>
 </ul>
 <p>Some models on this page are refused by parts of the post-fitting
 surface, and the refusals are deliberate. A term built on matrix columns

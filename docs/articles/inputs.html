@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -326,17 +327,6 @@ and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">
 <code>NA</code> in the original positions.</td>
 </tr>
 <tr class="odd">
-<td>
-<code>lower</code>, <code>upper</code>
-</td>
-<td>Named numeric vectors over the outer parameters, on the internal
-scale, using the names <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> prints.</td>
-<td>A name that is not an outer parameter is an error. Under
-<code>REML = TRUE</code> or <code>frmtmb_control(profile = TRUE)</code>
-the fixed effects are not outer parameters, so bounds naming them are
-refused rather than silently applied elsewhere.</td>
-</tr>
-<tr class="even">
 <td><code>prior</code></td>
 <td>A <code><a href="../reference/set_prior.html">set_prior()</a></code> specification, or a
 <code>brmsprior</code> object brms built, which is translated row by
@@ -349,14 +339,14 @@ unused argument.</td>
 distribution. A brms prior class with no faithful frmtmb spelling is
 refused by name rather than translated into a different density.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>quadrature</code></td>
 <td>Length-one logical. Scalar random-intercept models only.</td>
 <td>Any other structure, and <code>mi()</code>, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>,
 <code>REML = TRUE</code> or <code>profile = TRUE</code>, is an error
 naming the conflict.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>data2</code></td>
 <td>Named list of objects that the formula names and <code>data</code>
 cannot hold: the adjacency matrix of <code>car()</code>, the mesh triple
@@ -365,14 +355,14 @@ of <code>spde()</code>, and the matrices of <code>gr(prec = )</code>,
 <td>Anything that is not a named list is an error. A name a formula asks
 for and does not find is an error naming it.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>dry_run</code></td>
 <td>
 <code>NULL</code>, <code>"spec"</code>, <code>"frame"</code> or
 <code>"objective"</code>.</td>
 <td>Any other value is ignored and the model fits normally.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>verbose</code></td>
 <td>
 <code>FALSE</code>, <code>TRUE</code>, or an integer level: 0

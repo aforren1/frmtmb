@@ -1711,8 +1711,8 @@ resolve_bounds <- function(fit, lower, upper) {
     out <- rep(fill, length(nm))
     if (is.null(x)) return(out)
     if (is.null(names(x)) || any(names(x) == "")) {
-      stop("Bounds must be named numeric vectors, e.g. ",
-           "lower = c(x = 0)", call. = FALSE)
+      stop("Bounds must be named numeric vectors over parameter ",
+           "names, e.g. c(x = 0)", call. = FALSE)
     }
     # the paren-tolerant addressing of confint(parm =), so a name copied
     # out of a hypothesis() expression works here too, plus the bare

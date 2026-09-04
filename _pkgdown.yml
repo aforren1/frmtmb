@@ -27,6 +27,8 @@ reference:
   - frmtmb_family
   - frmtmb_structure
   - frmtmb_register_frame_check
+  - frmtmb_register_aterm
+  - frmtmb_register_compat
   - frmtmb_ad_overload
   - frmtmb-extension-api
   - latent_probs

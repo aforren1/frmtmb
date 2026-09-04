@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,6 +40,7 @@
     <li><a class="dropdown-item" href="articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -149,7 +150,7 @@
 <li>
 <code>mo()</code> fits monotonic effects. <code>mi()</code> imputes continuous predictors in one step, and <code>mi(sdx)</code> models measurement error. <code>cs()</code> fits category-specific ordinal effects. <code>mo()</code> and <code>mi()</code> support two-way interactions.</li>
 <li>Multivariate models use <code>mvbf</code>, per-response families, and <code>rescor</code>. Nonlinear formulas use <code>nl = TRUE</code>. <code>multinomial(K)</code> takes a matrix response.</li>
-<li>The families include the usual GLM(M) set plus student, tweedie, compois, beta-binomial, skew-normal, ex-gaussian, weibull, shifted lognormal, and quantile regression (<code>asym_laplace</code>), with zero-inflated and hurdle variants and four ordinal families. <code><a href="reference/mixture.html">mixture()</a></code> fits finite mixtures, including group-level latent classes (<code>mixture(..., groups = ~g)</code>) with class-specific random effects for growth-mixture models. <code>mixture_mvn(K, D, model =)</code> fits multivariate gaussian components over mclust’s covariance taxonomy, with covariate-dependent means and gating. <code><a href="reference/frmtmb-families.html">categorical()</a></code> fits nominal responses, <code><a href="reference/frmtmb-families.html">von_mises()</a></code> circular ones, and <code><a href="reference/frmtmb-families.html">cox()</a></code> proportional hazards with a flexible baseline and Laplace frailties. <code><a href="reference/frmtmb_family.html">custom_family()</a></code> takes a plain R log-density. The test suite fits a Wiener drift-diffusion model in about 15 lines.</li>
+<li>The families include the usual GLM(M) set plus student, tweedie, compois, beta-binomial, skew-normal, ex-gaussian, weibull, shifted lognormal, and quantile regression (<code>asym_laplace</code>), with zero-inflated and hurdle variants and four ordinal families. <code><a href="reference/mixture.html">mixture()</a></code> fits finite mixtures, including group-level latent classes (<code>mixture(..., groups = ~g)</code>) with class-specific random effects for growth-mixture models. <code>mixture_mvn(K, D, model =)</code> fits multivariate gaussian components over mclust’s covariance taxonomy, with covariate-dependent means and gating. <code><a href="reference/frmtmb-families.html">categorical()</a></code> fits nominal responses, <code><a href="reference/frmtmb-families.html">von_mises()</a></code> circular ones, and <code><a href="reference/frmtmb-families.html">cox()</a></code> proportional hazards with a flexible baseline and Laplace frailties. <code><a href="reference/frmtmb_family.html">custom_family()</a></code> takes a plain R log-density; section 11 of <code><a href="articles/case-studies.html">vignette("case-studies")</a></code> writes one with a data-bounded link and checks it against the built-in family it shadows.</li>
 <li>Discrete latent states: the <code>frmtmb.latent</code> package adds <code>hmm(K)</code> for hidden Markov models, with covariate-dependent transitions and forward-backward decoding, and <code>lca(K)</code> for latent class analysis with class-membership regression.</li>
 <li>Ordinary differential equations: the <code>frmtmb.ode</code> package adds <code>frm_ode()</code>, which solves compartment models inside nonlinear formulas (population pharmacokinetics), with repeated dosing, infusions, and estimated bioavailability.</li>
 <li>The addition terms are <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>trials()</code> (counts or proportions), <code>cens()</code>, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code>se()</code> (meta-analysis), <code>mi()</code>, and <code>vint()</code>/<code>vreal()</code>.</li>

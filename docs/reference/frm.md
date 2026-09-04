@@ -17,8 +17,6 @@ frm(
   control = frmtmb_control(),
   se = FALSE,
   na.action = stats::na.omit,
-  lower = NULL,
-  upper = NULL,
   prior = NULL,
   quadrature = FALSE,
   data2 = list(),
@@ -123,17 +121,6 @@ frm(
   [`suppressMessages()`](https://rdrr.io/r/base/message.html) to silence
   it.
 
-- lower, upper:
-
-  Optional named numeric vectors of hard box constraints on outer
-  parameters (brms `lb`/`ub`), on the internal scale, e.g.
-  `lower = c(b = 0)` for a nonlinear rate parameter. Names as in
-  [`confint()`](https://rdrr.io/r/stats/confint.html) rows, with
-  parentheses optional; a nonlinear parameter declared intercept-only
-  (`b ~ 1`) may be named bare, as in that example, which resolves to
-  `b_(Intercept)`. One that carries several coefficients is refused
-  rather than resolved to one of them.
-
 - prior:
 
   Optional
@@ -151,6 +138,18 @@ frm(
   in scope. The argument takes brms's spelling, `prior`; the `priors` of
   releases before 0.43 is gone rather than aliased, and a call still
   using it fails as an unused argument.
+
+  This is also where HARD BOUNDS are written, as `lb`/`ub` on a
+  specification that may carry no distribution at all:
+  `set_prior("", nlpar = "guess", lb = 0, ub = 1)` is a box constraint
+  and nothing else. The `lower`/`upper` arguments of releases before
+  0.49 are gone rather than aliased, and a call still using them fails
+  as an unused argument; every outer parameter they could reach has a
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  class, down to a single internal covariance parameter
+  (`class = "theta", coef = "thetaac_1"`). See
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)'s
+  Hard bounds section.
 
   *The spelling is brms's; the SEMANTICS are not.* A prior here is a
   penalty on the likelihood and the answer is one mode. It is not a
@@ -353,6 +352,7 @@ VarCorr(fit)
 fit2 <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
 anova(fit, fit2)
 #> Likelihood-ratio tests
+#> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
 #> 
 #>                            Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)   
 #> y ~ x + (1 | g)             4 -145.75 299.49                            

@@ -24,6 +24,8 @@ frmtmb_family(
   sim_refusal = NULL,
   primary_dpars = "mu",
   lcdf = NULL,
+  required_aterms = character(0),
+  family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
   structure = NULL
@@ -43,6 +45,8 @@ custom_family(
   sim_refusal = NULL,
   primary_dpars = "mu",
   lcdf = NULL,
+  required_aterms = character(0),
+  family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
   structure = NULL
@@ -138,6 +142,27 @@ custom_family(
   probabilities; enables `cens()` and
   [`trunc()`](https://rdrr.io/r/base/Round.html) addition terms.
 
+- required_aterms:
+
+  Character vector of addition-term values the density cannot do
+  without, named as they reach `aterms`: `"vint1"`, `"vreal2"`,
+  `"trials"`. Frame assembly refuses a model that omits one, naming the
+  family, the term and the spelling that supplies it. Without the
+  declaration an absent term reaches the density as `NULL`, arithmetic
+  on it gives `numeric(0)`, and the log-likelihood becomes a sum over
+  nothing: a fit that returns, with a log-likelihood of zero. Declare
+  every per-row datum the density indexes.
+
+- family_finalize:
+
+  Optional function `(fam, y, aterms)` returning a family. It runs once
+  at frame assembly, after the response is coerced and validated and
+  before any link is used, and whatever it returns is the family the
+  rest of the fit sees. It is how a family derives a link bound, a
+  default, or an extra slot FROM the data instead of asking the user for
+  a quantity the framework already holds (see Deriving a family from the
+  data).
+
 - extra_pars:
 
   Optional function `(y, aterms)` returning a named list of numeric
@@ -193,6 +218,74 @@ groups, [`trunc()`](https://rdrr.io/r/base/Round.html) rejection and
 \[ \]: R:%20 \[simulate()\]: R:simulate() \[frm_simulate()\]:
 R:frm_simulate()
 
+## Slot call order
+
+The order the slots run in is part of the contract, because a family
+that derives anything from the data depends on it. Measured on an
+instrumented family, one fit of one response:
+
+1.  `valid_y(y, aterms)`, once, at frame assembly, with the response
+    coerced and the addition terms evaluated.
+
+2.  `family_finalize(fam, y, aterms)`, once, immediately after, and
+    still before any link function is called.
+
+3.  `aterm_data()` and `extra_pars(y, aterms)`, once each, at assembly.
+
+4.  `init_dpars[[dpar]](y, aterms)`, once per dpar, when the starting
+    values are built; each value goes straight through that dpar's
+    `linkfun`.
+
+5.  `linkinv` and `lpdf`, on the tape, from then on.
+
+`post$mean_fn`, `post$var_fn`, `post$dev_fn` and `sim` are never called
+by [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md). They
+run only when a post-fit method asks for them.
+
+So a link may read anything `valid_y` or `family_finalize` computed, and
+neither of those may read anything a link produced.
+
+## Deriving a family from the data
+
+Some families are not fully determined until the response is in hand. A
+shifted family whose density is zero below a non-decision time wants a
+link bounded above by `min(y)`, so that the constraint is structural
+rather than left to the optimizer. The bound is a property of the data,
+and the family object is built before
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) sees any.
+
+`family_finalize` closes that gap. It receives the family, the coerced
+response and the evaluated addition terms, and returns the family the
+fit will use:
+
+    shifted <- frmtmb_family(
+      "shifted", dpars = c("mu", "ndt"),
+      links = list(mu = "log", ndt = "log"),
+      lpdf = function(y, dpars, aterms) { ... },
+      family_finalize = function(fam, y, aterms) {
+        # a logit onto (0, min(y)): ndt cannot reach the smallest
+        # observation, whatever the optimizer tries
+        ub <- min(y)
+        fam$links$ndt <- list(
+          name    = paste0("scaled_logit(0, ", signif(ub, 4), ")"),
+          linkfun = function(mu) log(mu / (ub - mu)),
+          linkinv = function(eta) ub / (1 + exp(-eta)),
+          mu_eta  = function(eta) {
+            p <- 1 / (1 + exp(-eta))
+            ub * p * (1 - p)
+          }
+        )
+        fam
+      }
+    )
+
+Replacing a link this way replaces it everywhere: the starting values,
+the tape, and every post-fit method read the finalized family. The
+alternative an extension reached for before this slot existed was to
+have `valid_y` write the bound into an environment the link closures
+read at call time, which works only for as long as the call order
+happens to hold and leaves the family object lying about what it is.
+
 ## Tape-safe scope
 
 `lpdf` and `lcdf` run with RTMB's tape-safe
@@ -201,6 +294,20 @@ automatically (the `"c" <- RTMB::ADoverload("c")` boilerplate is spliced
 in unless the function already binds it), so base spellings keep the
 automatic-differentiation class. A helper the density CALLS still needs
 its own bindings: lexical scope does not travel into other functions.
+
+## See also
+
+[`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
+for a likelihood that does not factorize over rows,
+[`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
+for giving the family's per-row data a name of its own instead of
+`vint()`,
+[`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+for telling
+[`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+what the family does and does not combine with, and
+[frmtmb-extension-api](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
+for the accessors a family outside frmtmb may use
 
 ## Examples
 
@@ -213,6 +320,9 @@ fam <- custom_family(
   lpdf = function(y, dpars, aterms) {
     RTMB::dbinom(y, aterms$vint1, dpars$mu, log = TRUE)
   },
+  # the density indexes vint1, so a model without it is refused
+  # rather than fitted against a zero-length log-likelihood
+  required_aterms = "vint1",
   type = "discrete"
 )
 fit <- frm(bf(y | vint(size) ~ x) + fam, data = dd)

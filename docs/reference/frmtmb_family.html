@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,6 +31,7 @@ not branch on parameter values."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -80,6 +81,8 @@ not branch on parameter values.</p>
 <span>  sim_refusal <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  primary_dpars <span class="op">=</span> <span class="st">"mu"</span>,</span>
 <span>  lcdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  required_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
+<span>  family_finalize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  drop_intercept <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  structure <span class="op">=</span> <span class="cn">NULL</span></span>
@@ -99,6 +102,8 @@ not branch on parameter values.</p>
 <span>  sim_refusal <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  primary_dpars <span class="op">=</span> <span class="st">"mu"</span>,</span>
 <span>  lcdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  required_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
+<span>  family_finalize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  drop_intercept <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  structure <span class="op">=</span> <span class="cn">NULL</span></span>
@@ -193,6 +198,28 @@ returning probabilities; enables <code>cens()</code> and <code><a href="https://
 terms.</p></dd>
 
 
+<dt id="arg-required-aterms">required_aterms<a class="anchor" aria-label="anchor" href="#arg-required-aterms"></a></dt>
+<dd><p>Character vector of addition-term values the
+density cannot do without, named as they reach <code>aterms</code>:
+<code>"vint1"</code>, <code>"vreal2"</code>, <code>"trials"</code>. Frame assembly refuses a model
+that omits one, naming the family, the term and the spelling that
+supplies it. Without the declaration an absent term reaches the
+density as <code>NULL</code>, arithmetic on it gives <code>numeric(0)</code>, and the
+log-likelihood becomes a sum over nothing: a fit that returns, with
+a log-likelihood of zero. Declare every per-row datum the density
+indexes.</p></dd>
+
+
+<dt id="arg-family-finalize">family_finalize<a class="anchor" aria-label="anchor" href="#arg-family-finalize"></a></dt>
+<dd><p>Optional function <code>(fam, y, aterms)</code> returning
+a family. It runs once at frame assembly, after the response is
+coerced and validated and before any link is used, and whatever it
+returns is the family the rest of the fit sees. It is how a family
+derives a link bound, a default, or an extra slot FROM the data
+instead of asking the user for a quantity the framework already
+holds (see Deriving a family from the data).</p></dd>
+
+
 <dt id="arg-extra-pars">extra_pars<a class="anchor" aria-label="anchor" href="#arg-extra-pars"></a></dt>
 <dd><p>Optional function <code>(y, aterms)</code> returning a named
 list of numeric starting vectors for family-level parameters outside
@@ -246,6 +273,68 @@ refused.</p>
 [frm_simulate()]: R:frm_simulate()</p>
     </div>
     <div class="section level2">
+    <h2 id="slot-call-order">Slot call order<a class="anchor" aria-label="anchor" href="#slot-call-order"></a></h2>
+
+
+<p>The order the slots run in is part of the contract, because a family
+that derives anything from the data depends on it. Measured on an
+instrumented family, one fit of one response:</p><ol><li><p><code>valid_y(y, aterms)</code>, once, at frame assembly, with the response
+coerced and the addition terms evaluated.</p></li>
+<li><p><code>family_finalize(fam, y, aterms)</code>, once, immediately after, and
+still before any link function is called.</p></li>
+<li><p><code>aterm_data()</code> and <code>extra_pars(y, aterms)</code>, once each, at
+assembly.</p></li>
+<li><p><code>init_dpars[[dpar]](y, aterms)</code>, once per dpar, when the starting
+values are built; each value goes straight through that dpar's
+<code>linkfun</code>.</p></li>
+<li><p><code>linkinv</code> and <code>lpdf</code>, on the tape, from then on.</p></li>
+</ol><p><code>post$mean_fn</code>, <code>post$var_fn</code>, <code>post$dev_fn</code> and <code>sim</code> are never
+called by <code><a href="frm.html">frm()</a></code>. They run only when a post-fit method asks for
+them.</p>
+<p>So a link may read anything <code>valid_y</code> or <code>family_finalize</code> computed,
+and neither of those may read anything a link produced.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="deriving-a-family-from-the-data">Deriving a family from the data<a class="anchor" aria-label="anchor" href="#deriving-a-family-from-the-data"></a></h2>
+
+
+<p>Some families are not fully determined until the response is in hand.
+A shifted family whose density is zero below a non-decision time
+wants a link bounded above by <code>min(y)</code>, so that the constraint is
+structural rather than left to the optimizer. The bound is a property
+of the data, and the family object is built before <code><a href="frm.html">frm()</a></code> sees any.</p>
+<p><code>family_finalize</code> closes that gap. It receives the family, the
+coerced response and the evaluated addition terms, and returns the
+family the fit will use:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">shifted</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frmtmb_family.html">frmtmb_family</a></span><span class="op">(</span></span>
+<span>  <span class="st">"shifted"</span>, dpars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mu"</span>, <span class="st">"ndt"</span><span class="op">)</span>,</span>
+<span>  links <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="st">"log"</span>, ndt <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span>,</span>
+<span>  lpdf <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span><span class="op">)</span> <span class="op">{</span> <span class="va">...</span> <span class="op">}</span>,</span>
+<span>  family_finalize <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">fam</span>, <span class="va">y</span>, <span class="va">aterms</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># a logit onto (0, min(y)): ndt cannot reach the smallest</span></span>
+<span>    <span class="co"># observation, whatever the optimizer tries</span></span>
+<span>    <span class="va">ub</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span></span>
+<span>    <span class="va">fam</span><span class="op">$</span><span class="va">links</span><span class="op">$</span><span class="va">ndt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      name    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"scaled_logit(0, "</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">signif</a></span><span class="op">(</span><span class="va">ub</span>, <span class="fl">4</span><span class="op">)</span>, <span class="st">")"</span><span class="op">)</span>,</span>
+<span>      linkfun <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">mu</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">mu</span> <span class="op">/</span> <span class="op">(</span><span class="va">ub</span> <span class="op">-</span> <span class="va">mu</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>      linkinv <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">eta</span><span class="op">)</span> <span class="va">ub</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">eta</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>      mu_eta  <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">eta</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="va">p</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">eta</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="va">ub</span> <span class="op">*</span> <span class="va">p</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">p</span><span class="op">)</span></span>
+<span>      <span class="op">}</span></span>
+<span>    <span class="op">)</span></span>
+<span>    <span class="va">fam</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">)</span></span></code></pre><p></p></div>
+<p>Replacing a link this way replaces it everywhere: the starting
+values, the tape, and every post-fit method read the finalized
+family. The alternative an extension reached for before this slot
+existed was to have <code>valid_y</code> write the bound into an environment the
+link closures read at call time, which works only for as long as the
+call order happens to hold and leaves the family object lying about
+what it is.</p>
+    </div>
+    <div class="section level2">
     <h2 id="tape-safe-scope">Tape-safe scope<a class="anchor" aria-label="anchor" href="#tape-safe-scope"></a></h2>
 
 
@@ -256,6 +345,16 @@ function already binds it), so base spellings keep the
 automatic-differentiation class. A helper the density CALLS still
 needs its own bindings: lexical scope does not travel into other
 functions.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> for a likelihood that does not
+factorize over rows, <code><a href="frmtmb_register_aterm.html">frmtmb_register_aterm()</a></code> for giving the
+family's per-row data a name of its own instead of <code>vint()</code>,
+<code><a href="frmtmb_register_compat.html">frmtmb_register_compat()</a></code> for telling <code><a href="frm_compat.html">frm_compat()</a></code> what the
+family does and does not combine with, and
+<a href="frmtmb-extension-api.html">frmtmb-extension-api</a> for the accessors a family outside frmtmb
+may use</p></div>
     </div>
 
     <div class="section level2">
@@ -268,6 +367,9 @@ functions.</p>
 <span class="r-in"><span>  lpdf <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>    <span class="fu">RTMB</span><span class="fu">::</span><span class="fu">dbinom</span><span class="op">(</span><span class="va">y</span>, <span class="va">aterms</span><span class="op">$</span><span class="va">vint1</span>, <span class="va">dpars</span><span class="op">$</span><span class="va">mu</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">}</span>,</span></span>
+<span class="r-in"><span>  <span class="co"># the density indexes vint1, so a model without it is refused</span></span></span>
+<span class="r-in"><span>  <span class="co"># rather than fitted against a zero-length log-likelihood</span></span></span>
+<span class="r-in"><span>  required_aterms <span class="op">=</span> <span class="st">"vint1"</span>,</span></span>
 <span class="r-in"><span>  type <span class="op">=</span> <span class="st">"discrete"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">size</span><span class="op">)</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="va">fam</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>

@@ -147,19 +147,26 @@ the rest alone.
 
 ## Extending frmtmb from another package
 
-This is one of three seams a package outside frmtmb uses, and it is the
-one for a family. Attach a structure to a family and the core needs no
-branch that names the family, which is what lets the family ship
-somewhere else.
+This is the seam for a family whose likelihood does not factorize over
+rows. Attach a structure to a family and the core needs no branch that
+names the family, which is what lets the family ship somewhere else. The
+other seams are registries, each filled from a contributing package's
+`.onLoad()`:
 [`frmtmb_register_frame_check()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_frame_check.md)
-is the seam for a feature that is NOT a family and still has to refuse a
-data problem the assembled frame shows: register a check at load time
-and the core calls it on every frame.
+for a feature that is NOT a family and still has to refuse a data
+problem only the assembled frame shows;
+[`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
+for an addition term of the family's own, so its per-row data keeps the
+spelling its literature uses instead of `vint()`; and
+[`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+for the rows
+[`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+reports about it.
 [frmtmb-extension-api](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
-is the read-only accessor set both kinds of extension use to reach a
-fit. The worked example of the second seam is the `frmtmb.ode` package,
-whose `frm_ode()` refuses a dynamics input that varies inside a solve
-group; its registration is three lines of `.onLoad()`.
+is the read-only accessor set every kind of extension uses to reach a
+fit. The worked example of the frame-check seam is the `frmtmb.ode`
+package, whose `frm_ode()` refuses a dynamics input that varies inside a
+solve group; its registration is three lines of `.onLoad()`.
 
 `loglik = NULL` keeps the family's own rowwise `lpdf` and makes the
 structure a CAPABILITY DECLARATION instead. That is what a family whose

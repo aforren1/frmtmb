@@ -223,8 +223,10 @@ layers:
   [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   proportional hazards with a flexible baseline and Laplace frailties.
   [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
-  takes a plain R log-density. The test suite fits a Wiener
-  drift-diffusion model in about 15 lines.
+  takes a plain R log-density; section 11 of
+  [`vignette("case-studies")`](https://aforren1.github.io/frmtmb/articles/case-studies.md)
+  writes one with a data-bounded link and checks it against the built-in
+  family it shadows.
 - Discrete latent states: the `frmtmb.latent` package adds `hmm(K)` for
   hidden Markov models, with covariate-dependent transitions and
   forward-backward decoding, and `lca(K)` for latent class analysis with

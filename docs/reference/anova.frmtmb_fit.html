@@ -19,7 +19,7 @@ refuses the rest with the reason (glmmTMB#776)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,7 @@ refuses the rest with the reason (glmmTMB#776)."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -115,6 +116,22 @@ for a single component. lme4 and glmmTMB report the same naive
 p-value; halve it for the one-component case, or use
 <code><a href="frm_bootstrap.html">frm_bootstrap()</a></code> for a simulation-based reference.</p>
     </div>
+    <div class="section level2">
+    <h2 id="nesting-is-assumed-not-verified">Nesting is assumed, not verified<a class="anchor" aria-label="anchor" href="#nesting-is-assumed-not-verified"></a></h2>
+
+
+<p>A likelihood-ratio statistic has a chi-square null distribution only
+when the smaller model is a restriction of the larger. <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code>
+cannot verify that in general: nesting through a nonlinear
+reparameterization, or through a constraint that ties parameters
+across distributional parameters, is invisible to anything the
+fitted objects carry. What it does check is cheap and stated: if
+neither model's fixed-effect coefficient names are a subset of the
+other's, and neither fixed-effect design sits inside the other's
+column space, it warns. A comparison that passes that check is not
+thereby verified to be nested. Two models that are genuinely not
+nested are compared by AIC, not by this table.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -128,6 +145,7 @@ p-value; halve it for the one-component case, or use
 <span class="r-in"><span><span class="va">m1</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">z</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="va">m0</span>, <span class="va">m1</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Likelihood-ratio tests</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                     Df  logLik    AIC  Chisq Chi Df Pr(&gt;Chisq)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x + (1 | g)      4 -334.52 677.04                         </span>
@@ -138,6 +156,7 @@ p-value; halve it for the one-component case, or use
 <span class="r-in"><span><span class="va">m2</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="va">m2</span>, <span class="va">m0</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Likelihood-ratio tests</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 Df  logLik    AIC  Chisq Chi Df Pr(&gt;Chisq)    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x            3 -352.75 711.51                             </span>
@@ -151,6 +170,7 @@ p-value; halve it for the one-component case, or use
 <span class="r-in"><span><span class="va">r1</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="va">x</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>, REML <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="va">r0</span>, <span class="va">r1</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Likelihood-ratio tests</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                 Df  logLik    AIC  Chisq Chi Df Pr(&gt;Chisq)    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x + (1 | g)  2 -336.69 677.39                             </span>
@@ -164,6 +184,7 @@ p-value; halve it for the one-component case, or use
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova</a></span><span class="op">(</span><span class="va">r0</span>, <span class="va">rz</span>, refit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> anova(): refitting 2 REML models with ML: y ~ x + (1 | g); y ~ x + z + (1 | g)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Likelihood-ratio tests</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                     Df  logLik    AIC  Chisq Chi Df Pr(&gt;Chisq)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> y ~ x + (1 | g)      4 -334.52 677.04                         </span>

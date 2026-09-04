@@ -73,7 +73,11 @@ present, but they are not part of the contract.
 ## See also
 
 [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
-for the family-side protocol, and
+for the family-side protocol,
+[`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
+and
+[`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+for the other two registries, and
 [frmtmb-extension-api](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
 for the accessors an extension may use
 

@@ -23,7 +23,7 @@ arguments the way the user-facing surface does."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.48.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,7 @@ arguments the way the user-facing surface does."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
+    <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -235,22 +236,12 @@ settings and neither can double as unset; <code>re_form_arg()</code> resolves
 the pair, refusing rather than guessing when both are given.</p>
     </div>
     <div class="section level2">
-    <h2 id="the-compatibility-registry">The compatibility registry<a class="anchor" aria-label="anchor" href="#the-compatibility-registry"></a></h2>
-
-
-<p><code>frmtmb_register_compat()</code> contributes feature rows and
-compatibility rules to <code><a href="frm_compat.html">frm_compat()</a></code> from another package's
-<code>.onLoad()</code>, and <code>compat_rule_builder()</code> is the accumulator that
-makes a contributed rule read like a core one. Contributions are
-appended, and rules of equal specificity resolve later-wins, so a
-contributed rule may override a core default and a core default can
-never silently override a contributed one.</p>
-    </div>
-    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><a href="frmtmb-extension-api.html">frmtmb-extension-api</a> for the family-level accessors a
-structured family uses, and <code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> for the protocol
-those serve. <code><a href="../articles/compatibility.html">vignette("compatibility")</a></code> for <code><a href="frm_compat.html">frm_compat()</a></code>.</p></div>
+structured family uses, <code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> for the protocol
+those serve, and <code><a href="frmtmb_register_compat.html">frmtmb_register_compat()</a></code> for the compatibility
+registry, which was documented here while it had no page of its
+own.</p></div>
     </div>
 
     <div class="section level2">

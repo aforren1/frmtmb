@@ -5,7 +5,11 @@ component per parameter block (`beta`, `betad`, `theta`, ...), each a
 named numeric vector. It answers "what do I call these?" before there is
 a fit to ask, which is what `frm(start =)`,
 [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)'s
-`newparams =`, and `frm(lower =)`/`upper =` all need.
+`newparams =`, and every box constraint all need: these are the names a
+bound resolves to, and the names
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)'s
+`coef` takes for a raw covariance parameter (`class = "theta"`,
+`coef = "thetaac_1"`).
 
 ## Usage
 

@@ -11,8 +11,10 @@ priors are set; the formula route of
 has its own brms defaults, which
 [`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md)
 reports). Classes `"sd"` and `"cor"` are targeted by `group` and
-`nlpar`; class `"theta"` rows name the raw internal covariance
-parameters (escape hatch, including correlations one at a time).
+`nlpar`; the residual-correlation classes (`"ar"`, `"ma"`, `"cosy"`,
+`"cortime"`, `"rescor"`) by `resp`; and class `"theta"` rows name the
+raw internal covariance parameters (escape hatch, including correlations
+one at a time, across all three covariance components).
 
 ## Usage
 

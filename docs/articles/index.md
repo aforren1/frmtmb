@@ -12,5 +12,7 @@
   literature](https://aforren1.github.io/frmtmb/articles/case-studies.md):
 - [Model
   diagnostics](https://aforren1.github.io/frmtmb/articles/diagnostics.md):
+- [Case study: a race between habit and
+  intention](https://aforren1.github.io/frmtmb/articles/habit.md):
 - [Feature
   compatibility](https://aforren1.github.io/frmtmb/articles/compatibility.md):

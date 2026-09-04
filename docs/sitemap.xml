@@ -5,6 +5,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/articles/compatibility.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/diagnostics.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/frmtmb.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/articles/habit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/inputs.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/ode.html</loc></url>
@@ -70,6 +71,8 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_ad_overload.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_control.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_family.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_register_frame_check.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_structure.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_allfit.html</loc></url>
@@ -85,6 +88,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/getCall.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/getME.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/get_prior.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/habit_prep.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/hmm.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/hmm_probs.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/hmm_viterbi.html</loc></url>

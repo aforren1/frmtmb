@@ -172,12 +172,10 @@ replaces it with a resampling distribution, and `frm(quadrature = TRUE)`
 replaces the Laplace approximation itself with adaptive quadrature.
 
 To measure the violation rather than route around it, install the
-companion package **frmtmb.sample** and read its `sampling` vignette.
-[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html)
-samples this very objective with NUTS and reports how far each posterior
-mean sits from its maximum-likelihood estimate, in posterior standard
-deviations, beside the ratio of the posterior standard deviation to the
-Wald standard error.
+companion package **frmtmb.sample** and read
+`vignette("posterior-diagnostics", package = "frmtmb.sample")`, which
+covers `check_laplace()` and the diagnostics of a sampled fit; this page
+stays with the maximum-likelihood side.
 
 ## Variance components on their natural scale
 
