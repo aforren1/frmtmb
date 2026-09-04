@@ -198,6 +198,14 @@ quantile(sims,   c(0.1, 0.5, 0.9))
   the response time given the boundary. It does not jointly model which
   boundary was reached, so it is not a substitute for fitting choice and
   time together.
+- **There is no across-trial variability, and no contaminant
+  mixture.** Drift, start point and non-decision time are constant
+  within a condition, which makes this the pure Wiener model rather
+  than the full Ratcliff model. The Ratcliff likelihood integrates over
+  a drift distribution at every row, and fast guesses and slow lapses
+  need a mixture component that is not here. A random effect over
+  subjects models variation BETWEEN participants, which is a different
+  claim from variation between trials.
 
 `frm_compat("wiener")` states each of these, along with what was tested
 and what merely was not.
@@ -219,6 +227,12 @@ is a branch on a parameter -- and RTMB advectors carry no comparison
 operators, so it does not even tape. Branching on the response alone
 would tape and would be wrong, because the same response time falls on
 either side of the criterion depending on the boundary separation.
+
+The two BOUNDARIES are the case where that rule works in your favor.
+Only the lower-boundary density is written, because reflecting the
+process maps an upper crossing onto a lower one with `bias -> 1 - bias`
+and `mu -> -mu`, and the reflection is driven by the `vint()` column,
+which is data. Arithmetic on a data column tapes.
 
 This package evaluates **both** series at a fixed truncation and blends
 their logs with a logistic weight in `log(u)`: Navarro and Fuss's
