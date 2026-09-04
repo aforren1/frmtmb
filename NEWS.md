@@ -1,3 +1,41 @@
+# frmtmb 0.47.0
+
+The monorepo split: the ODE seam and the sampling surface leave core
+for companion packages in this repository.
+
+* The sampling surface moved to the companion package
+  `frmtmb.sample`: `frm_sample()`, `as_tmbstan()`, `check_laplace()`,
+  and every `frmtmb_draws` method, including `log_lik()`, `loo()`,
+  `posterior_epred()` and `conditional_effects()` on draws. Install
+  it with `remotes::install_github("aforren1/frmtmb", subdir =
+  "extensions/frmtmb.sample")`. Absent it, `frm_sample()` is not
+  found, and the fit-side methods that need draws name the package
+  and the call in their refusal. Core keeps every generic it still
+  defines a method for, so one `loo()` serves both packages in a
+  session.
+* Ordinary differential equation dynamics moved to the companion
+  package `frmtmb.ode` (`frm_ode()`, its tests, its vignette). With
+  it go the RTMBode suggestion and the `Additional_repositories`
+  line: core's dependencies now resolve entirely from CRAN.
+* New public interface `?"frmtmb-sampling-api"`: the internals a
+  sampling extension is written against, as one documented contract.
+  New extension seams: `frmtmb_register_frame_check()` (a frame
+  check an extension registers at load), `frmtmb_register_compat()`
+  (compatibility-matrix rows), a prior-defaults registry behind
+  `get_prior()`, and `frmtmb_ad_overload()` (the tape-safe wrapper
+  for user functions, previously internal).
+* `get_prior()` reports the default a slot actually has: `(flat)`
+  with frmtmb alone, which is what `frm()` does, and the sampling
+  defaults once `frmtmb.sample` registers them.
+* `?frm` gains "The Laplace approximation, and how to check it",
+  naming the in-package remedies and pointing at
+  `frmtmb.sample::check_laplace()` for the direct measurement.
+* Core's boundary test now asserts zero: no core file names a
+  structured family or an ODE symbol outside the two family homes
+  that remain until they move out in turn.
+* `Suggests`: `coda` and `bridgesampling` dropped; no core code
+  registers on them any more.
+
 # frmtmb 0.46.0
 
 The structured-family protocol completes in-package: hmm and lca ride

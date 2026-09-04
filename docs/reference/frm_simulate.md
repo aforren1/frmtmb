@@ -137,14 +137,13 @@ With `prior`, each of the `nsim` simulations draws a fresh parameter
 vector from the
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
 specification and simulates from it - the analog of brms's
-`sample_prior = "only"` followed by
-[`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md).
-Draws are taken on the scale each class defines: class
-`"b"`/`"Intercept"` on the link scale, class `"sd"` on the natural SD
-scale (mapped to `theta` afterwards), class `"theta"` on the internal
-scale. `lb`/`ub` truncate by rejection. The drawn values come back as
-`attr(result, "pars")`, one row per simulation, so a prior-predictive
-check can relate parameters to outcomes.
+`sample_prior = "only"` followed by `posterior_predict()`. Draws are
+taken on the scale each class defines: class `"b"`/`"Intercept"` on the
+link scale, class `"sd"` on the natural SD scale (mapped to `theta`
+afterwards), class `"theta"` on the internal scale. `lb`/`ub` truncate
+by rejection. The drawn values come back as `attr(result, "pars")`, one
+row per simulation, so a prior-predictive check can relate parameters to
+outcomes.
 
 Parameters without a prior keep their `newparams` value. Whenever
 `prior` are used, or `newparams` uses the natural spelling, every fixed
@@ -163,13 +162,13 @@ sims <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
                                       sd_g__Intercept = 0.5),
                      nsim = 3, seed = 1)
 head(sims)
-#>       sim_1     sim_2      sim_3
-#> 1 1.2395400 0.7365957 1.02084829
-#> 2 1.8014212 1.2716813 0.39374746
-#> 3 1.3753279 0.5891786 0.20332262
-#> 4 1.5944320 2.3008817 1.06594687
-#> 5 2.6140092 1.3184590 0.07503977
-#> 6 0.6230005 0.4061450 0.17173320
+#>       sim_1        sim_2      sim_3
+#> 1 0.8476542  0.344709864  0.6289625
+#> 2 1.6862256  1.156485736  0.2785519
+#> 3 0.2897796 -0.496369784 -0.8822257
+#> 4 2.2704655  2.976915206  1.7419804
+#> 5 1.7904259  0.494875611 -0.7485436
+#> 6 0.2114016 -0.005453893 -0.2398657
 # the same thing on the internal scale
 par_template(bf(y ~ x + (1 | g)) + gaussian(), dd)   # the layout
 #> <frmtmb parameter template> starting values

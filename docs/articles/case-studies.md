@@ -1175,10 +1175,9 @@ sequence, so they do not exist on a grid. Plot one state’s own predictor
 with `predict(dpar = "mu2")`, or the occupancies from
 [`hmm_probs()`](https://aforren1.github.io/frmtmb/reference/hmm_probs.md).
 
-`residuals(type = "deviance")`,
-[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
-and [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) all
-need a likelihood that factors into one term per observation. An HMM’s
+`residuals(type = "deviance")`, and frmtmb.sample’s `log_lik()` and
+[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md), all need
+a likelihood that factors into one term per observation. An HMM’s
 smallest independent unit is a sequence, so a per-observation column
 would be a group and leaving one out would drop a whole track. Compare
 HMM fits with [`AIC()`](https://rdrr.io/r/stats/AIC.html) or
@@ -2012,8 +2011,7 @@ and each one is handled above:
 Three model classes on this page are refused by parts of the
 post-fitting surface, and the refusals are deliberate. An
 [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) fit has no
-per-observation likelihood, so
-[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md),
+per-observation likelihood, so `log_lik()`,
 [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md),
 `residuals(type = "deviance")` and
 [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)

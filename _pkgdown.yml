@@ -62,22 +62,14 @@ reference:
   - anova.frmtmb_fit
   - anova.frmtmb_multiple
   - drop1.frmtmb_fit
-  - as_tmbstan
-  - frm_sample
-  - posterior_epred
   - as_draws
-  - log_lik
   - loo
   - bayes_R2
   - posterior_summary
-  - pp_mixture
+  - expose_functions
   - draws-dimensions
-  - draws-structure
-  - draws-diagnostics
-  - frmtmb-loo-refusals
-  - frmtmb-draws-refusals
   - getME.frmtmb_fit
-  - check_laplace
+  - frmtmb-sampling-api
   - influence.frmtmb_fit
   - plot.frmtmb_influence
   - set_prior

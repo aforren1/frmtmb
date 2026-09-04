@@ -103,16 +103,12 @@ frmtmb is not on CRAN yet. Install the development version from GitHub:
 remotes::install_github("aforren1/frmtmb")
 ```
 
-One optional dependency, RTMBode, is not on CRAN either. It is needed
-only by
-[`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md).
-Install it from r-universe:
+Ordinary differential equation dynamics live in a separate package,
+`frmtmb.ode`, in this repository:
 
 ``` r
 
-install.packages("RTMBode", repos = c(
-  "https://kaskr.r-universe.dev",
-  "https://cloud.r-project.org"))
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 ```
 
 ## Example
@@ -230,11 +226,10 @@ layers:
   [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
   takes a plain R log-density. The test suite fits a Wiener
   drift-diffusion model in about 15 lines.
-- Ordinary differential equations:
-  [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
-  solves compartment models inside nonlinear formulas (population
-  pharmacokinetics), with repeated dosing, infusions, and estimated
-  bioavailability.
+- Ordinary differential equations: the `frmtmb.ode` package adds
+  `frm_ode()`, which solves compartment models inside nonlinear formulas
+  (population pharmacokinetics), with repeated dosing, infusions, and
+  estimated bioavailability.
 - The addition terms are
   [`weights()`](https://rdrr.io/r/stats/weights.html), `trials()`
   (counts or proportions), `cens()`,
@@ -279,14 +274,11 @@ layers:
   [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
   specifications. That is the `sample_prior = "only"` prior-predictive
   workflow, without MCMC.
-- [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
-  runs NUTS on the fitted objective and returns a full draws surface
-  ([`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
-  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+- `frm_sample()` runs NUTS on the fitted objective and returns a full
+  draws surface (`posterior_epred()`, `posterior_predict()`,
   [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
   [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)).
-  [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
-  audits the approximation.
+  `check_laplace()` audits the approximation.
 - Diagnostics include one-step-ahead residuals calibrated for censored,
   truncated, and ordinal responses, deviance residuals across the GLM
   families, and response-scale `se.fit` for every family through the
@@ -313,9 +305,8 @@ frmtmb is maturing. The package is not yet on CRAN.
 - **Internal structure can change.** Fields of the fitted object that no
   exported method reaches are not part of the API. Use the accessors.
 - **Some parts are still moving.** Multivariate coverage of the post-fit
-  methods, the mixture families, and
-  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
-  gain features between releases.
+  methods, the mixture families, and `frm_sample()` gain features
+  between releases.
 
 Version numbers stay below 1.0 until the CRAN release. Breaking changes
 are listed in `NEWS.md`.

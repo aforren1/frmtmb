@@ -1,47 +1,24 @@
-# Convert draws to a posterior draws object
+# Convert to a posterior draws object
 
-Convert draws to a posterior draws object
+The `as_draws` family converts an object holding posterior draws into
+one of the posterior package's draws formats. frmtmb defines the
+generics so that they work whether or not posterior is attached, and
+registers methods with posterior so that its own spellings dispatch too.
 
 ## Usage
 
 ``` r
 as_draws(x, ...)
 
-# S3 method for class 'frmtmb_draws'
-as_draws(x, ...)
-
-# S3 method for class 'frmtmb_draws'
-as.array(x, ...)
-
-as_draws_matrix(x, ...)
-
-# S3 method for class 'frmtmb_draws'
 as_draws_matrix(x, ...)
 
 as_draws_array(x, ...)
 
-# S3 method for class 'frmtmb_draws'
-as_draws_array(x, ...)
-
-as_draws_df(x, ...)
-
-# S3 method for class 'frmtmb_draws'
 as_draws_df(x, ...)
 
 as_draws_list(x, ...)
 
-# S3 method for class 'frmtmb_draws'
-as_draws_list(x, ...)
-
 as_draws_rvars(x, ...)
-
-# S3 method for class 'frmtmb_draws'
-as_draws_rvars(x, ...)
-
-as.mcmc(x, ...)
-
-# S3 method for class 'frmtmb_draws'
-as.mcmc(x, combine_chains = FALSE, ...)
 
 # S3 method for class 'frmtmb_multiple'
 as_draws(x, ...)
@@ -51,54 +28,34 @@ as_draws(x, ...)
 
 - x:
 
-  A `frmtmb_draws` object.
+  An object holding draws.
 
 - ...:
 
-  Unused.
-
-- combine_chains:
-
-  If `TRUE`, one `mcmc` object over the pooled draws; otherwise an
-  `mcmc.list` with one component per chain, which is what coda's
-  diagnostics (`gelman.diag()`) need.
+  Passed to methods.
 
 ## Value
 
-A
-[`posterior::draws_matrix`](https://mc-stan.org/posterior/reference/draws_matrix.html):
-one column per sampled variable and one row per draw.
+A posterior draws object of the requested format.
+
+## Details
+
+Core has no object that carries draws:
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) is maximum
+likelihood and
+[`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
+pools point estimates, so its methods explain that rather than inventing
+a draws matrix. Install `frmtmb.sample` and sample with
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+to get an object these convert.
 
 ## Examples
 
 ``` r
-# \donttest{
-if (requireNamespace("posterior", quietly = TRUE)) {
-  set.seed(9)
-  dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
-  dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
-  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-  ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
-
-  # hands the draws to the posterior package, keeping the frmtmb
-  # parameter names
-  dm <- as_draws(ds)
-  posterior::summarise_draws(dm)
-  # which is what variables() lists
-  head(variables(ds))
-}
-#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
-#>   Intercept          student_t(3, 1, 2.5)
-#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
-#>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
-#>   b                  (flat), as brms leaves slopes
-#> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#bulk-ess
-#> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#tail-ess
-#> [1] "Intercept"       "x"               "sigma_Intercept" "b[1]"           
-#> [5] "b[2]"            "b[3]"           
-# }
+# frm_multiple() pools estimates rather than carrying draws, so it
+# answers with the reason rather than a matrix
+dd <- data.frame(y = rnorm(40), x = rnorm(40))
+fits <- frm_multiple(bf(y ~ x) + gaussian(), data = list(dd, dd))
+try(as_draws(fits))
+#> Error : as_draws() needs draws, and a frm_multiple() result has none: it is m maximum-likelihood fits pooled by Rubin's rules, with no chains. Read the pooled tables from `x$pooled` and `x$pooled_varcorr` or test with hypothesis(), and use frm_sample() on one imputation's fit (`x$fits[[1]]`) for draws
 ```

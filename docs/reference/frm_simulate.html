@@ -15,7 +15,7 @@ them."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,6 @@ them."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -180,7 +179,7 @@ spelling.</p>
 <p>With <code>prior</code>, each of the <code>nsim</code> simulations draws a fresh
 parameter vector from the <code><a href="set_prior.html">set_prior()</a></code> specification and simulates
 from it - the analog of brms's <code>sample_prior = "only"</code> followed by
-<code><a href="posterior_epred.html">posterior_predict()</a></code>. Draws are taken on the scale each class
+<code>posterior_predict()</code>. Draws are taken on the scale each class
 defines: class <code>"b"</code>/<code>"Intercept"</code> on the link scale, class <code>"sd"</code>
 on the natural SD scale (mapped to <code>theta</code> afterwards), class
 <code>"theta"</code> on the internal scale. <code>lb</code>/<code>ub</code> truncate by rejection.
@@ -204,13 +203,13 @@ zero effect or unit SD.</p>
 <span class="r-in"><span>                                      sd_g__Intercept <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                     nsim <span class="op">=</span> <span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">sims</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       sim_1     sim_2      sim_3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 1.2395400 0.7365957 1.02084829</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 1.8014212 1.2716813 0.39374746</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 1.3753279 0.5891786 0.20332262</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 1.5944320 2.3008817 1.06594687</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 2.6140092 1.3184590 0.07503977</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.6230005 0.4061450 0.17173320</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       sim_1        sim_2      sim_3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.8476542  0.344709864  0.6289625</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 1.6862256  1.156485736  0.2785519</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.2897796 -0.496369784 -0.8822257</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 2.2704655  2.976915206  1.7419804</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 1.7904259  0.494875611 -0.7485436</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.2114016 -0.005453893 -0.2398657</span>
 <span class="r-in"><span><span class="co"># the same thing on the internal scale</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="par_template.html">par_template</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">dd</span><span class="op">)</span>   <span class="co"># the layout</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;frmtmb parameter template&gt; starting values</span>

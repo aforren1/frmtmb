@@ -159,7 +159,7 @@ frm(
   given brms's own priors returns `sd(patient)` 0.38 against brms's
   posterior mean of 0.40. That is a measurement on one model, though,
   not a property of the translation. Use
-  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
   when the posterior is the answer.
 
   *A prior with a location places a nonlinear start.* brms uses its
@@ -220,7 +220,7 @@ frm(
   parameter template without fitting; `"objective"` additionally tapes
   the objective and returns an UNFITTED object carrying it, which is
   what
-  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+  [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
   samples when it is given a formula rather than a fit. Methods that
   report a maximum-likelihood quantity refuse on that object.
 
@@ -235,6 +235,33 @@ frm(
 ## Value
 
 An object of class `frmtmb_fit`.
+
+## The Laplace approximation, and how to check it
+
+Random effects are integrated out by the Laplace approximation, which
+assumes the integrand is close to Gaussian around the conditional mode;
+the Wald intervals [`confint()`](https://rdrr.io/r/stats/confint.html)
+reports assume the log-likelihood is close to quadratic at the optimum.
+Both degrade in the same places: variance components estimated from few
+groups, and binary data in small clusters.
+
+Three remedies are in this package. `confint(method = "profile")`
+replaces the quadratic assumption with a profile likelihood,
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+with a resampling distribution, and `quadrature = TRUE` replaces the
+Laplace approximation itself with adaptive quadrature (the test suite
+checks that fit against `lme4::glmer(nAGQ = 25)` and GLMMadaptive in
+exactly the regime where the Laplace fit is biased).
+
+To MEASURE the violation rather than route around it, install the
+`frmtmb.sample` package and call
+[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html).
+It runs NUTS on this very objective and reports how far the posterior
+mean sits from the maximum-likelihood estimate in posterior standard
+deviations, and the ratio of the posterior standard deviation to the
+Wald standard error.
+[`vignette("diagnostics")`](https://aforren1.github.io/frmtmb/articles/diagnostics.md)
+works through it.
 
 ## Examples
 

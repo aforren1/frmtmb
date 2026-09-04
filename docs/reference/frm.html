@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,7 +25,6 @@ Laplace approximation for random effects through RTMB."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -197,7 +196,7 @@ interval. The two land close where the data dominates: a kidney
 frailty model given brms's own priors returns <code>sd(patient)</code> 0.38
 against brms's posterior mean of 0.40. That is a measurement on
 one model, though, not a property of the translation. Use
-<code><a href="frm_sample.html">frm_sample()</a></code> when the posterior is the answer.</p>
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> when the posterior is the answer.</p>
 <p><em>A prior with a location places a nonlinear start.</em> brms uses its
 priors to place the sampler, and <code>frm()</code> now reads them the same
 way, for nonlinear parameters only: where <code>start</code> does not set it,
@@ -250,8 +249,8 @@ session do not need the calling environment to still exist.</p></dd>
 without touching <code>data</code>; <code>"frame"</code> returns the assembled design
 matrices and parameter template without fitting; <code>"objective"</code>
 additionally tapes the objective and returns an UNFITTED object
-carrying it, which is what <code><a href="frm_sample.html">frm_sample()</a></code> samples when it is given
-a formula rather than a fit. Methods that report a
+carrying it, which is what <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> samples
+when it is given a formula rather than a fit. Methods that report a
 maximum-likelihood quantity refuse on that object.</p></dd>
 
 
@@ -264,6 +263,30 @@ are given. See <code><a href="frmtmb_control.html">frmtmb_control()</a></code> f
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>frmtmb_fit</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="the-laplace-approximation-and-how-to-check-it">The Laplace approximation, and how to check it<a class="anchor" aria-label="anchor" href="#the-laplace-approximation-and-how-to-check-it"></a></h2>
+
+
+<p>Random effects are integrated out by the Laplace approximation,
+which assumes the integrand is close to Gaussian around the
+conditional mode; the Wald intervals <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> reports assume the
+log-likelihood is close to quadratic at the optimum. Both degrade in
+the same places: variance components estimated from few groups, and
+binary data in small clusters.</p>
+<p>Three remedies are in this package. <code>confint(method = "profile")</code>
+replaces the quadratic assumption with a profile likelihood,
+<code><a href="frm_bootstrap.html">frm_bootstrap()</a></code> with a resampling distribution, and
+<code>quadrature = TRUE</code> replaces the Laplace approximation itself with
+adaptive quadrature (the test suite checks that fit against
+<code>lme4::glmer(nAGQ = 25)</code> and GLMMadaptive in exactly the regime where
+the Laplace fit is biased).</p>
+<p>To MEASURE the violation rather than route around it, install the
+<code>frmtmb.sample</code> package and call <code><a href="https://aforren1.github.io/frmtmb/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code>. It
+runs NUTS on this very objective and reports how far the posterior
+mean sits from the maximum-likelihood estimate in posterior standard
+deviations, and the ratio of the posterior standard deviation to the
+Wald standard error. <code><a href="../articles/diagnostics.html">vignette("diagnostics")</a></code> works through it.</p>
     </div>
 
     <div class="section level2">

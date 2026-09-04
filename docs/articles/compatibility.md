@@ -144,44 +144,44 @@ without a simulator cannot be simulated from. A family without a mean
 function has no [`fitted()`](https://rdrr.io/r/stats/fitted.values.html)
 value.
 
-|  | fitted | predict | simulate | residuals | residuals_osa | emmeans | frm_sample | confint_profile | hypothesis_profile |
-|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| gaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| student | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| shifted_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| skew_normal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| exgaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| asym_laplace | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| Gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| weibull | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| exponential | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| inverse.gaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| beta | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| tweedie | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
-| poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| nbinom1 | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| geometric | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| compois | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
-| binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| bernoulli | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| beta_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| multinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_beta | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| hurdle_poisson | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
-| hurdle_gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| hurdle_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
-| cumulative | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
-| sratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
-| cratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
-| acat | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
-| categorical | ~ | ~ | \+ | x | x | ~ | ~ | ~ | ~ |
-| von_mises | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
-| cox | x | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
+|  | fitted | predict | simulate | residuals | residuals_osa | emmeans | confint_profile | hypothesis_profile |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| gaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| student | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| shifted_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| skew_normal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| exgaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| asym_laplace | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| Gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| weibull | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| exponential | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| inverse.gaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| beta | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| tweedie | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ |
+| poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| nbinom1 | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| geometric | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| compois | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ |
+| binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| bernoulli | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| beta_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| multinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| zero_inflated_poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| zero_inflated_negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| zero_inflated_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| zero_inflated_beta | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| hurdle_poisson | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ |
+| hurdle_gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| hurdle_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
+| cumulative | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ |
+| sratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ |
+| cratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ |
+| acat | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ |
+| categorical | ~ | ~ | \+ | x | x | ~ | ~ | ~ |
+| von_mises | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ |
+| cox | x | ~ | x | ~ | ~ | ~ | ~ | ~ |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -190,7 +190,6 @@ value.
 | ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; student + residuals; student + confint_profile; and 98 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
 | ~ | gaussian + residuals_osa; student + residuals_osa; lognormal + residuals_osa; shifted_lognormal + residuals_osa; skew_normal + residuals_osa; and 25 more | One-step-ahead residuals need the family to register its observation through OBS(). |
 | ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 27 more | Univariate fits only, and the mu predictor must be linear. |
-| ~ | gaussian + frm_sample; student + frm_sample; lognormal + frm_sample; shifted_lognormal + frm_sample; skew_normal + frm_sample; and 31 more | Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = “random” for a multimodal posterior. |
 | ~ | cumulative + fitted; sratio + fitted; cratio + fitted; acat + fitted | Returns the same n x K matrix of category probabilities predict(type = “response”) returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The predict(type = “response”) == fitted() identity holds. The latent linear predictor is predict(fit, type = “link”), which is also what emmeans and insight see. |
 | ~ | cumulative + predict; sratio + predict; cratio + predict; acat + predict | type = “response” returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response’s own levels), not a vector: an ordinal response has no mean. It equals fitted(). cs() terms are honored and re-evaluated on newdata. type = “link” gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale. |
 | ~ | cumulative + residuals; sratio + residuals; cratio + residuals; acat + residuals | “response” and “pearson” score the categories by the same codes 1..K the likelihood uses: y - sum_k k \* P(y = k), standardized by that distribution’s own sd. That is a residual on a SCORE, not on the ordinal scale; “osa” and dharma_residuals() use only the order. “deviance” is refused, as for every family without a standard unit deviance. |
@@ -349,27 +348,25 @@ surface is not univariate-only:
 [`confint()`](https://rdrr.io/r/stats/confint.html),
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
 and
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
 read the outer parameter vector, which a multivariate fit has like any
 other.
 
-|  | fitted | predict | simulate | residuals | residuals_osa | emmeans | frm_sample | confint_profile | hypothesis_profile |
-|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| mvbf | x | \+ | x | x | x | x | \+ | \+ | \+ |
-| rescor | x | \+ | x | x | x | x | \+ | \+ | \+ |
-| \|ID\| | ? | ? | ? | ? | ? | ? | ~ | ? | ? |
-| nl | \+ | ~ | ? | ? | ? | x | ? | ? | ? |
-| mixture | ? | ? | ~ | ? | ? | ? | ~ | ? | ? |
-| mixture_mvn | ? | ? | \+ | ? | ? | ? | ~ | ? | ? |
-| hmm | \+ | ~ | ~ | ~ | x | ? | \+ | ? | ? |
-| lca | x | ~ | \+ | x | x | ? | \+ | \+ | ? |
+|  | fitted | predict | simulate | residuals | residuals_osa | emmeans | confint_profile | hypothesis_profile |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| mvbf | x | \+ | x | x | x | x | \+ | \+ |
+| rescor | x | \+ | x | x | x | x | \+ | \+ |
+| \|ID\| | ? | ? | ? | ? | ? | ? | ? | ? |
+| nl | \+ | ~ | ? | ? | ? | x | ? | ? |
+| mixture | ? | ? | ~ | ? | ? | ? | ? | ? |
+| mixture_mvn | ? | ? | \+ | ? | ? | ? | ? | ? |
+| hmm | \+ | ~ | ~ | ~ | x | ? | ? | ? |
+| lca | x | ~ | \+ | x | x | ? | \+ | ? |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
-| ~ | \|ID\| + frm_sample; mixture_mvn + frm_sample | Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = “random” for a multimodal posterior. |
 | ~ | nl + predict | Point predictions work. se.fit is not supported for the nonlinear predictor; request a nonlinear parameter with dpar instead. |
 | ~ | mixture + simulate | Works only when every component family has a simulator. |
-| ~ | mixture + frm_sample | Mixture posteriors are multimodal. Sample with init = “random” rather than the mode-anchored default. |
 | ~ | hmm + predict | type = “link” and dpar = work normally, including the transition logits. type = “response” equals fitted() in sample; it is refused for newdata (state occupancy conditions on the observed responses of a whole sequence) and se.fit is refused on the response scale. |
 | ~ | lca + predict | predict() returns the gating linear predictor (theta1 by default, any theta with dpar =), including on newdata. type = “response” is refused with the fitted() message. |
 | ~ | hmm + simulate | A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. Since v0.36 the chain walk is the family’s structured simulator (fam\$sim_ctx), so posterior_predict() and frm_simulate() reach it too; posterior_predict(newdata =) is refused, because the sequence structure indexes the fitted rows. |
@@ -489,11 +486,11 @@ row; see `?frmtmb-multimembership`.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1664 | 32%   |
-| conditional |  1861 | 35%   |
-| refused     |   764 | 15%   |
+| works       |  1660 | 32%   |
+| conditional |  1759 | 34%   |
+| refused     |   763 | 15%   |
 | broken      |     0 | 0%    |
-| untested    |   967 | 18%   |
+| untested    |   966 | 19%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To

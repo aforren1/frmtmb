@@ -1,6 +1,6 @@
 Package: frmtmb.ode
 Title: Ordinary Differential Equation Dynamics for 'frmtmb' Models
-Version: 0.46.0
+Version: 0.1.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),

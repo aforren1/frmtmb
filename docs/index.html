@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,7 +40,6 @@
     <li><a class="dropdown-item" href="articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -97,11 +96,9 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span><span class="op">)</span></span></code></pre></div>
-<p>One optional dependency, RTMBode, is not on CRAN either. It is needed only by <code><a href="reference/frm_ode.html">frm_ode()</a></code>. Install it from r-universe:</p>
+<p>Ordinary differential equation dynamics live in a separate package, <code>frmtmb.ode</code>, in this repository:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"RTMBode"</span>, repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"https://kaskr.r-universe.dev"</span>,</span>
-<span>  <span class="st">"https://cloud.r-project.org"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.ode"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
@@ -151,7 +148,7 @@
 <code>mo()</code> fits monotonic effects. <code>mi()</code> imputes continuous predictors in one step, and <code>mi(sdx)</code> models measurement error. <code>cs()</code> fits category-specific ordinal effects. <code>mo()</code> and <code>mi()</code> support two-way interactions.</li>
 <li>Multivariate models use <code>mvbf</code>, per-response families, and <code>rescor</code>. Nonlinear formulas use <code>nl = TRUE</code>. <code>multinomial(K)</code> takes a matrix response.</li>
 <li>The families include the usual GLM(M) set plus student, tweedie, compois, beta-binomial, skew-normal, ex-gaussian, weibull, shifted lognormal, and quantile regression (<code>asym_laplace</code>), with zero-inflated and hurdle variants and four ordinal families. <code><a href="reference/mixture.html">mixture()</a></code> fits finite mixtures, including group-level latent classes (<code>mixture(..., groups = ~g)</code>) with class-specific random effects for growth-mixture models. <code>mixture_mvn(K, D, model =)</code> fits multivariate gaussian components over mclust’s covariance taxonomy, with covariate-dependent means and gating. <code><a href="reference/frmtmb-families.html">categorical()</a></code> fits nominal responses, <code><a href="reference/frmtmb-families.html">von_mises()</a></code> circular ones, and <code><a href="reference/frmtmb-families.html">cox()</a></code> proportional hazards with a flexible baseline and Laplace frailties. <code>hmm(K)</code> fits hidden Markov models with covariate-dependent transitions and forward-backward decoding (<code><a href="reference/hmm_probs.html">hmm_probs()</a></code>, <code><a href="reference/hmm_viterbi.html">hmm_viterbi()</a></code>); <code>lca(K)</code> fits poLCA-style latent class analysis with class-membership regression. <code><a href="reference/frmtmb_family.html">custom_family()</a></code> takes a plain R log-density. The test suite fits a Wiener drift-diffusion model in about 15 lines.</li>
-<li>Ordinary differential equations: <code><a href="reference/frm_ode.html">frm_ode()</a></code> solves compartment models inside nonlinear formulas (population pharmacokinetics), with repeated dosing, infusions, and estimated bioavailability.</li>
+<li>Ordinary differential equations: the <code>frmtmb.ode</code> package adds <code>frm_ode()</code>, which solves compartment models inside nonlinear formulas (population pharmacokinetics), with repeated dosing, infusions, and estimated bioavailability.</li>
 <li>The addition terms are <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>trials()</code> (counts or proportions), <code>cens()</code>, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code>se()</code> (meta-analysis), <code>mi()</code>, and <code>vint()</code>/<code>vreal()</code>.</li>
 </ul>
 </div>
@@ -164,7 +161,7 @@
 <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> offers Wald, profile, likelihood-root, and bootstrap intervals. <code><a href="reference/hypothesis.html">hypothesis()</a></code> tests expressions of coefficients, with natural-scale <code>sd_</code>/<code>cor_</code> names for ICC-type quantities. <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> and <code><a href="https://rdrr.io/r/stats/add1.html" class="external-link">drop1()</a></code> give likelihood-ratio tests. <code><a href="reference/frm_bootstrap.html">frm_bootstrap()</a></code>, <code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code> with <code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">cooks.distance()</a></code> and <code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">dfbetas()</a></code>, <code><a href="reference/frm_allfit.html">frm_allfit()</a></code>, and <code><a href="reference/frm_multiple.html">frm_multiple()</a></code> (Rubin pooling, including variance components and hypotheses) complete the set.</li>
 <li>Simulation goes both ways. <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws from a fit. <code><a href="reference/frm_simulate.html">frm_simulate()</a></code> draws from a bare design, with natural-scale parameters (<code>sd_g__Intercept = 0.7</code>) or with parameters drawn per replicate from <code><a href="reference/set_prior.html">set_prior()</a></code> specifications. That is the <code>sample_prior = "only"</code> prior-predictive workflow, without MCMC.</li>
 <li>
-<code><a href="reference/frm_sample.html">frm_sample()</a></code> runs NUTS on the fitted objective and returns a full draws surface (<code><a href="reference/posterior_epred.html">posterior_epred()</a></code>, <code><a href="reference/posterior_epred.html">posterior_predict()</a></code>, <code><a href="reference/hypothesis.html">hypothesis()</a></code>, <code><a href="reference/pp_check.html">pp_check()</a></code>). <code><a href="reference/check_laplace.html">check_laplace()</a></code> audits the approximation.</li>
+<code>frm_sample()</code> runs NUTS on the fitted objective and returns a full draws surface (<code>posterior_epred()</code>, <code>posterior_predict()</code>, <code><a href="reference/hypothesis.html">hypothesis()</a></code>, <code><a href="reference/pp_check.html">pp_check()</a></code>). <code>check_laplace()</code> audits the approximation.</li>
 <li>Diagnostics include one-step-ahead residuals calibrated for censored, truncated, and ordinal responses, deviance residuals across the GLM families, and response-scale <code>se.fit</code> for every family through the joint delta method. DHARMa, <code><a href="reference/pp_check.html">pp_check()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>, and <code><a href="reference/conditional_effects.html">conditional_effects()</a></code> are supported. Hooks for emmeans, marginaleffects, and insight/easystats are registered.</li>
 </ul>
 </div>
@@ -180,7 +177,7 @@
 <li>
 <strong>Internal structure can change.</strong> Fields of the fitted object that no exported method reaches are not part of the API. Use the accessors.</li>
 <li>
-<strong>Some parts are still moving.</strong> Multivariate coverage of the post-fit methods, the mixture families, and <code><a href="reference/frm_sample.html">frm_sample()</a></code> gain features between releases.</li>
+<strong>Some parts are still moving.</strong> Multivariate coverage of the post-fit methods, the mixture families, and <code>frm_sample()</code> gain features between releases.</li>
 </ul>
 <p>Version numbers stay below 1.0 until the CRAN release. Breaking changes are listed in <code>NEWS.md</code>.</p>
 <p>The package is actively developed and maintained. Planned work: full multivariate support in every post-fit method, more reference comparisons, and CRAN submission.</p>

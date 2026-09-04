@@ -141,7 +141,7 @@ uniroot),
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md),
 `lower`/`upper` bounds and
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
 all work on them; [`anova()`](https://rdrr.io/r/stats/anova.html)
 compares nested gating formulas at one `K`.
 

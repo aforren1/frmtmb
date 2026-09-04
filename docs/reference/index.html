@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,6 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -105,20 +104,6 @@
 
         </dt>
         <dd>Multi-membership random effects</dd>
-
-        <dt>
-
-          <code><a href="frm_ode.html">frm_ode()</a></code>
-
-        </dt>
-        <dd>Solve an ODE once per group inside a nonlinear predictor</dd>
-
-        <dt>
-
-          <code><a href="frm_ode_failures.html">frm_ode_failures()</a></code>
-
-        </dt>
-        <dd>Groups whose ODE solve failed in the last <code><a href="../reference/frm_ode.html">frm_ode()</a></code> call</dd>
       </dl></div><div class="section level2">
       <h2 id="fitting">Fitting<a class="anchor" aria-label="anchor" href="#fitting"></a></h2>
 
@@ -193,6 +178,20 @@
 
         </dt>
         <dd>Declare a non-rowwise likelihood to the core</dd>
+
+        <dt>
+
+          <code><a href="frmtmb_register_frame_check.html">frmtmb_register_frame_check()</a></code>
+
+        </dt>
+        <dd>Check an assembled model frame from another package</dd>
+
+        <dt>
+
+          <code><a href="frmtmb_ad_overload.html">frmtmb_ad_overload()</a></code>
+
+        </dt>
+        <dd>Make a user-written function tape-safe</dd>
 
         <dt>
 
@@ -429,42 +428,14 @@
 
         <dt>
 
-          <code><a href="as_tmbstan.html">as_tmbstan()</a></code>
+          <code><a href="as_draws.html">as_draws()</a></code> <code><a href="as_draws.html">as_draws_matrix()</a></code> <code><a href="as_draws.html">as_draws_array()</a></code> <code><a href="as_draws.html">as_draws_df()</a></code> <code><a href="as_draws.html">as_draws_list()</a></code> <code><a href="as_draws.html">as_draws_rvars()</a></code>
 
         </dt>
-        <dd>Sample from a frmtmb fit with tmbstan (NUTS)</dd>
+        <dd>Convert to a posterior draws object</dd>
 
         <dt>
 
-          <code><a href="frm_sample.html">frm_sample()</a></code>
-
-        </dt>
-        <dd>Sample a model with NUTS</dd>
-
-        <dt>
-
-          <code><a href="posterior_epred.html">posterior_epred()</a></code> <code><a href="posterior_epred.html">posterior_linpred()</a></code> <code><a href="posterior_epred.html">posterior_predict()</a></code>
-
-        </dt>
-        <dd>Expected-value and predictive draws from sampled parameters</dd>
-
-        <dt>
-
-          <code><a href="as_draws.html">as_draws()</a></code> <code><a href="as_draws.html">as.array(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="as_draws.html">as_draws_matrix()</a></code> <code><a href="as_draws.html">as_draws_array()</a></code> <code><a href="as_draws.html">as_draws_df()</a></code> <code><a href="as_draws.html">as_draws_list()</a></code> <code><a href="as_draws.html">as_draws_rvars()</a></code> <code><a href="as_draws.html">as.mcmc()</a></code>
-
-        </dt>
-        <dd>Convert draws to a posterior draws object</dd>
-
-        <dt>
-
-          <code><a href="log_lik.html">log_lik()</a></code>
-
-        </dt>
-        <dd>Pointwise log-likelihood of posterior draws</dd>
-
-        <dt>
-
-          <code><a href="loo.html">loo()</a></code> <code><a href="loo.html">waic()</a></code> <code><a href="loo.html">loo_compare()</a></code> <code><a href="loo.html">psis()</a></code> <code><a href="loo.html">LOO()</a></code> <code><a href="loo.html">WAIC()</a></code>
+          <code><a href="loo.html">loo()</a></code> <code><a href="loo.html">waic()</a></code> <code><a href="loo.html">loo_compare()</a></code> <code><a href="loo.html">LOO()</a></code> <code><a href="loo.html">WAIC()</a></code>
 
         </dt>
         <dd>Approximate leave-one-out cross-validation</dd>
@@ -478,17 +449,17 @@
 
         <dt>
 
-          <code><a href="posterior_summary.html">posterior_summary()</a></code> <code><a href="posterior_summary.html">posterior_interval()</a></code> <code><a href="posterior_summary.html">predictive_interval()</a></code> <code><a href="posterior_summary.html">predictive_error()</a></code>
+          <code><a href="posterior_summary.html">posterior_summary()</a></code>
 
         </dt>
         <dd>Summaries and intervals of draws</dd>
 
         <dt>
 
-          <code><a href="pp_mixture.html">pp_mixture()</a></code>
+          <code><a href="expose_functions.html">expose_functions()</a></code>
 
         </dt>
-        <dd>Posterior mixture-component probabilities</dd>
+        <dd>Expose a model's compiled functions</dd>
 
         <dt>
 
@@ -499,34 +470,6 @@
 
         <dt>
 
-          <code><a href="draws-structure.html">nobs(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="draws-structure.html">formula(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="draws-structure.html">family(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="draws-structure.html">getCall(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="draws-structure.html">coef(<i>&lt;frmtmb_draws&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Model structure behind a set of draws</dd>
-
-        <dt>
-
-          <code><a href="draws-diagnostics.html">mcmc_plot()</a></code> <code><a href="draws-diagnostics.html">pairs(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="draws-diagnostics.html">nuts_params()</a></code> <code><a href="draws-diagnostics.html">log_posterior()</a></code> <code><a href="draws-diagnostics.html">rhat()</a></code> <code><a href="draws-diagnostics.html">neff_ratio()</a></code>
-
-        </dt>
-        <dd>Sampler diagnostics and MCMC plots</dd>
-
-        <dt>
-
-          <code><a href="frmtmb-loo-refusals.html">loo_moment_match()</a></code> <code><a href="frmtmb-loo-refusals.html">loo_subsample()</a></code> <code><a href="frmtmb-loo-refusals.html">reloo()</a></code> <code><a href="frmtmb-loo-refusals.html">kfold()</a></code> <code><a href="frmtmb-loo-refusals.html">bridge_sampler()</a></code> <code><a href="frmtmb-loo-refusals.html">bayes_factor()</a></code> <code><a href="frmtmb-loo-refusals.html">post_prob()</a></code>
-
-        </dt>
-        <dd>Refusals for the refit-based and marginal-likelihood brmsfit methods</dd>
-
-        <dt>
-
-          <code><a href="frmtmb-draws-refusals.html">stancode()</a></code> <code><a href="frmtmb-draws-refusals.html">standata()</a></code> <code><a href="frmtmb-draws-refusals.html">expose_functions()</a></code> <code><a href="frmtmb-draws-refusals.html">plot(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="frmtmb-draws-refusals.html">update(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="frmtmb-draws-refusals.html">restructure()</a></code> <code><a href="frmtmb-draws-refusals.html">posterior_samples()</a></code> <code><a href="frmtmb-draws-refusals.html">nsamples()</a></code> <code><a href="frmtmb-draws-refusals.html">parnames()</a></code>
-
-        </dt>
-        <dd>Methods a ported brms script may call that frmtmb does not have</dd>
-
-        <dt>
-
           <code><a href="getME.frmtmb_fit.html">getME(<i>&lt;frmtmb_fit&gt;</i>)</a></code>
 
         </dt>
@@ -534,10 +477,10 @@
 
         <dt>
 
-          <code><a href="check_laplace.html">check_laplace()</a></code>
+          <code><a href="frmtmb-sampling-api.html">frmtmb-sampling-api</a></code> <code><a href="frmtmb-sampling-api.html">build_objective</a></code> <code><a href="frmtmb-sampling-api.html">row_lpdf</a></code> <code><a href="frmtmb-sampling-api.html">with_cs_offsets</a></code> <code><a href="frmtmb-sampling-api.html">us_chol_cor</a></code> <code><a href="frmtmb-sampling-api.html">aterms_for_newdata</a></code> <code><a href="frmtmb-sampling-api.html">has_trunc</a></code> <code><a href="frmtmb-sampling-api.html">as_priorlist</a></code> <code><a href="frmtmb-sampling-api.html">resolve_prior_input</a></code> <code><a href="frmtmb-sampling-api.html">neg_log_prior_fn</a></code> <code><a href="frmtmb-sampling-api.html">resolve_bounds</a></code> <code><a href="frmtmb-sampling-api.html">spec_target</a></code> <code><a href="frmtmb-sampling-api.html">frmtmb_register_prior_defaults</a></code> <code><a href="frmtmb-sampling-api.html">ncp_eligible</a></code> <code><a href="frmtmb-sampling-api.html">ncp_scale_b</a></code> <code><a href="frmtmb-sampling-api.html">ncp_unscale_b</a></code> <code><a href="frmtmb-sampling-api.html">covstruct_has_chol</a></code> <code><a href="frmtmb-sampling-api.html">block_sd_idx</a></code> <code><a href="frmtmb-sampling-api.html">block_cor_prior</a></code> <code><a href="frmtmb-sampling-api.html">block_n_cor</a></code> <code><a href="frmtmb-sampling-api.html">is_student_block</a></code> <code><a href="frmtmb-sampling-api.html">sim_can</a></code> <code><a href="frmtmb-sampling-api.html">sim_note</a></code> <code><a href="frmtmb-sampling-api.html">sim_context</a></code> <code><a href="frmtmb-sampling-api.html">sim_draw</a></code> <code><a href="frmtmb-sampling-api.html">sim_is_structured</a></code> <code><a href="frmtmb-sampling-api.html">par_name_bare</a></code> <code><a href="frmtmb-sampling-api.html">outer_par_names</a></code> <code><a href="frmtmb-sampling-api.html">estimated_coef_names</a></code> <code><a href="frmtmb-sampling-api.html">log_sd_theta_index</a></code> <code><a href="frmtmb-sampling-api.html">sdr_of</a></code> <code><a href="frmtmb-sampling-api.html">require_fitted</a></code> <code><a href="frmtmb-sampling-api.html">hyp_parse_all</a></code> <code><a href="frmtmb-sampling-api.html">hyp_vals_only</a></code> <code><a href="frmtmb-sampling-api.html">hyp_env_vals</a></code> <code><a href="frmtmb-sampling-api.html">hyp_eval</a></code> <code><a href="frmtmb-sampling-api.html">hyp_tail_p</a></code> <code><a href="frmtmb-sampling-api.html">ce_grids_build</a></code> <code><a href="frmtmb-sampling-api.html">ce_boot_one</a></code> <code><a href="frmtmb-sampling-api.html">ce_finalize</a></code> <code><a href="frmtmb-sampling-api.html">ce_cats_display</a></code> <code><a href="frmtmb-sampling-api.html">ce_structure_check</a></code> <code><a href="frmtmb-sampling-api.html">ce_re_formula</a></code> <code><a href="frmtmb-sampling-api.html">find_linpred</a></code> <code><a href="frmtmb-sampling-api.html">arg_unset</a></code> <code><a href="frmtmb-sampling-api.html">re_form_arg</a></code> <code><a href="frmtmb-sampling-api.html">frmtmb_register_compat</a></code> <code><a href="frmtmb-sampling-api.html">compat_rule_builder</a></code>
 
         </dt>
-        <dd>Check the Laplace/Wald approximation against NUTS</dd>
+        <dd>Core internals for a sampling extension</dd>
 
         <dt>
 
@@ -579,7 +522,7 @@
           <code><a href="frmtmb-priors.html">prior_normal()</a></code> <code><a href="frmtmb-priors.html">prior_t()</a></code> <code><a href="frmtmb-priors.html">prior_lkj()</a></code>
 
         </dt>
-        <dd>Prior specifications for frm_sample</dd>
+        <dd>Prior objects, addressed by internal parameter name</dd>
 
         <dt>
 

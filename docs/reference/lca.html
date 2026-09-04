@@ -13,7 +13,7 @@ items conditionally independent given the class,"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,7 +29,6 @@ items conditionally independent given the class,"></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -178,7 +177,8 @@ returns the gating linear predictor (<code>theta1</code> by default, any
 <code>theta</code> with <code>dpar =</code>), on <code>newdata</code> as well.</p>
 <p>The gating coefficients are ordinary fixed effects, so <code><a href="fixef.html">fixef()</a></code>,
 <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> (Wald, profile and uniroot), <code><a href="hypothesis.html">hypothesis()</a></code>,
-<code><a href="set_prior.html">set_prior()</a></code>, <code>lower</code>/<code>upper</code> bounds and <code><a href="frm_sample.html">frm_sample()</a></code> all work on
+<code><a href="set_prior.html">set_prior()</a></code>, <code>lower</code>/<code>upper</code> bounds and
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> all work on
 them; <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> compares nested gating formulas at one <code>K</code>.</p>
 <p>Refused in this version: random effects and smooths anywhere in the
 model (latent classes plus continuous random effects is the

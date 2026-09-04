@@ -40,10 +40,14 @@
 #' `trunc()` folded in; it runs on numeric dpar values as readily as on
 #' the tape, which is what makes a pointwise `log_lik()` reproduce the
 #' fitted density exactly instead of approximating it.
-#' `with_cs_offsets()` applies category-specific offsets to evaluated
-#' dpars, and `us_chol_cor(theta, K)` is the unstructured correlation
-#' matrix of a `thetar` segment, which a `set_rescor(TRUE)` model's
-#' joint row density needs.
+#' `with_cs_offsets(fit, rspec, dpv)` takes one response spec from
+#' `fit$spec$responses` and the dpar-value list `eval_dpars()` returns
+#' for that response, and gives back the same list with the
+#' category-specific (`cs()`) offsets applied; on a model without
+#' `cs()` terms it returns `dpv` unchanged, so it is safe to call
+#' unconditionally before `row_lpdf()`. `us_chol_cor(theta, K)` is the
+#' unstructured correlation matrix of a `thetar` segment, which a
+#' `set_rescor(TRUE)` model's joint row density needs.
 #'
 #' @section The prior seam:
 #' The prior VOCABULARY - [set_prior()], [prior_normal()] and its
@@ -105,10 +109,14 @@
 #'
 #' @section The hypothesis expression engine:
 #' `hyp_parse_all()` turns hypothesis strings into expressions and
-#' per-expression directions, once. `hyp_vals_only()` and
-#' `hyp_env_vals()` build the evaluation environment at ONE parameter
-#' vector, and `hyp_eval()` evaluates one expression in it, so a caller
-#' with many parameter vectors parses once and evaluates many times.
+#' per-expression directions, once. `hyp_vals_only(fit)` reads the
+#' fit's current estimates into a flat named value vector plus a
+#' parallel component vector (which template component each value came
+#' from); `hyp_env_vals(fit, vals, comp)` takes exactly that pair and
+#' builds the evaluation environment, and `hyp_eval()` evaluates one
+#' expression in it - so a caller with many parameter vectors parses
+#' once, then per vector swaps the estimates in and calls
+#' `hyp_vals_only()` and `hyp_env_vals()` again.
 #' `hyp_tail_p()` is the tail probability of a directional claim.
 #'
 #' @section The conditional-effects engine:

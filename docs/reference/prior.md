@@ -49,7 +49,7 @@ both are brms's.
 A frmtmb prior and a brms prior are different objects, and with brms
 attached after frmtmb its `prior()` masks this one. Nothing breaks:
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) and
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
 accept a `brmsprior` object and translate its rows, so
 `c(prior(...), prior(...))` copied out of a brms script works whichever
 `prior()` was in scope.

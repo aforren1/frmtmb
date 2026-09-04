@@ -54,8 +54,7 @@ A data frame with `nsim` columns and a `"seed"` attribute.
 Most families draw each row on its own. Some cannot, and those go
 through one implementation that
 [`simulate()`](https://rdrr.io/r/stats/simulate.html),
-[`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-and
+`posterior_predict()` and
 [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
 all reach (see `sim_ctx` in
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)):
@@ -89,8 +88,7 @@ indexes the rows the model was fitted on.
 On a `cens()` fit the default draws the LATENT, uncensored response: the
 model describes the latent distribution, and censoring is a property of
 the observation process, not of the response. This matches brms, whose
-[`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-also ignores `cens()` (and whose
+`posterior_predict()` also ignores `cens()` (and whose
 [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
 therefore drops the censored rows). The draws are then not comparable
 with the observed values on censored rows, which is why

@@ -108,8 +108,7 @@ custom_family(
 
   Optional numeric simulator `(dpars, aterms, n)` returning `n` response
   draws; used by [`simulate()`](https://rdrr.io/r/stats/simulate.html),
-  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-  and
+  `posterior_predict()` and
   [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md).
   It is stateless and rowwise: it sees the distributional parameters and
   nothing else. A family whose extra parameters (`extra_pars`) enter the
@@ -188,13 +187,13 @@ own data; see
 [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)).
 Read its fields with `[[ ]]`.
 
-The same `sim_ctx()` serves \[simulate()\], \[posterior_predict()\] and
+The same `sim_ctx()` serves \[simulate()\], `posterior_predict()` and
 \[frm_simulate()\]. Because a structured draw covers whole sequences or
 groups, [`trunc()`](https://rdrr.io/r/base/Round.html) rejection and
 `newdata` cannot apply to it and are refused.
 
-\[ \]: R:%20 \[simulate()\]: R:simulate() \[posterior_predict()\]:
-R:posterior_predict() \[frm_simulate()\]: R:frm_simulate()
+\[ \]: R:%20 \[simulate()\]: R:simulate() \[frm_simulate()\]:
+R:frm_simulate()
 
 ## Tape-safe scope
 

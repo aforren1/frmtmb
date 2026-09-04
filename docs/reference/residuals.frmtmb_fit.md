@@ -65,11 +65,10 @@ refused.
 is not a substitute on a censored fit, because
 [`simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md)
 draws the latent uncensored response by default (as brms's
-[`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-does) and those draws are not comparable with the observed censored
-values; `simulate(censored = TRUE)` makes them comparable, but the
-resulting point mass at each censoring point is not a distribution
-DHARMa's rank transform can use.
+`posterior_predict()` does) and those draws are not comparable with the
+observed censored values; `simulate(censored = TRUE)` makes them
+comparable, but the resulting point mass at each censoring point is not
+a distribution DHARMa's rank transform can use.
 
 ## Ordinal responses
 

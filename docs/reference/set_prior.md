@@ -92,7 +92,7 @@ class-wide priors first and coefficient-specific ones after. A class
 that whole LKJ term, and the other way round, so "later wins" holds
 between the two spellings as well. `lb`/`ub` become hard bounds (via
 Stan's constrained transforms in
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md));
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html));
 for class `"sd"` they apply on the sd scale.
 
 ## The LKJ prior
@@ -147,7 +147,7 @@ the objective AT the starting values;
 names them.
 
 `resp` picks one response of a multivariate model; the default priors of
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
 still stay off there (see its Default priors section), so a multivariate
 model's priors are the ones written by hand.
 
@@ -202,16 +202,16 @@ VarCorr(fitc)
 
 # get_prior() shows which rows a design offers
 get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
-#>    prior     class    coef group  dpar nlpar resp lb ub
-#> 1 (flat) Intercept                                NA NA
-#> 2 (flat)         b                                NA NA
-#> 3 (flat)         b       x                        NA NA
-#> 4 (flat)         b       z                        NA NA
-#> 5 (flat) Intercept               sigma            NA NA
-#> 6 (flat)        sd                                NA NA
-#> 7 (flat)        sd             g                  NA NA
-#> 8 (flat)     theta                                NA NA
-#> 9 (flat)     theta theta_1                        NA NA
+#>                    prior     class    coef group  dpar nlpar resp lb ub
+#> 1 student_t(3, 1.5, 2.5) Intercept                                NA NA
+#> 2                 (flat)         b                                NA NA
+#> 3                 (flat)         b       x                        NA NA
+#> 4                 (flat)         b       z                        NA NA
+#> 5   student_t(3, 0, 2.5) Intercept               sigma            NA NA
+#> 6   student_t(3, 0, 2.5)        sd                                NA NA
+#> 7   student_t(3, 0, 2.5)        sd             g                  NA NA
+#> 8                 (flat)     theta                                NA NA
+#> 9                 (flat)     theta theta_1                        NA NA
 
 # prior() quotes its first argument, brms's spelling, and reaches
 # the same machinery

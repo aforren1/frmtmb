@@ -15,7 +15,7 @@ sets bounds only.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,6 @@ sets bounds only.'></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -146,7 +145,8 @@ class <code>"theta"</code> prior on a position an earlier <code>"cor"</code> pri
 replaces that whole LKJ term, and the other way round, so "later
 wins" holds between the two spellings as well.
 <code>lb</code>/<code>ub</code> become hard bounds (via Stan's constrained transforms in
-<code><a href="frm_sample.html">frm_sample()</a></code>); for class <code>"sd"</code> they apply on the sd scale.</p>
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code>); for class <code>"sd"</code> they apply on the
+sd scale.</p>
     </div>
     <div class="section level2">
     <h2 id="the-lkj-prior">The LKJ prior<a class="anchor" aria-label="anchor" href="#the-lkj-prior"></a></h2>
@@ -197,8 +197,9 @@ a claim about where to begin. Without a located prior a nonlinear
 model still needs <code>start</code>, because <code><a href="frm.html">frm()</a></code> evaluates the objective
 AT the starting values; <code><a href="par_template.html">par_template()</a></code> names them.</p>
 <p><code>resp</code> picks one response of a multivariate model; the default
-priors of <code><a href="frm_sample.html">frm_sample()</a></code> still stay off there (see its Default
-priors section), so a multivariate model's priors are the ones
+priors of <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> still stay off there (see
+its Default priors section), so a multivariate model's priors are the
+ones
 written by hand.</p>
 <p>brms's <code>tag</code> and <code>check</code> have no counterpart: <code>tag</code> names a prior
 for reuse inside a Stan program, and <code>check</code> passes an unchecked
@@ -251,16 +252,16 @@ omitted rather than accepted and ignored.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># get_prior() shows which rows a design offers</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="get_prior.html">get_prior</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="va">z</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    prior     class    coef group  dpar nlpar resp lb ub</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (flat) Intercept                                NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 (flat)         b                                NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (flat)         b       x                        NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (flat)         b       z                        NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 (flat) Intercept               sigma            NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 (flat)        sd                                NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7 (flat)        sd             g                  NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8 (flat)     theta                                NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9 (flat)     theta theta_1                        NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    prior     class    coef group  dpar nlpar resp lb ub</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 student_t(3, 1.5, 2.5) Intercept                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2                 (flat)         b                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3                 (flat)         b       x                        NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4                 (flat)         b       z                        NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5   student_t(3, 0, 2.5) Intercept               sigma            NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6   student_t(3, 0, 2.5)        sd                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7   student_t(3, 0, 2.5)        sd             g                  NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                 (flat)     theta                                NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9                 (flat)     theta theta_1                        NA NA</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># prior() quotes its first argument, brms's spelling, and reaches</span></span></span>
 <span class="r-in"><span><span class="co"># the same machinery</span></span></span>

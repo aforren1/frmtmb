@@ -455,8 +455,7 @@ dpar formulas, `nl = TRUE`, aterm names (`weights`, `trials`, `cens`,
 Unsupported brms terms fail at parse time with a clear message naming
 the term. brms code ports mechanically, priors included:
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md),
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
-and
+`frm_sample()` and
 [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
 spell the argument `prior`, as brms does;
 [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md),

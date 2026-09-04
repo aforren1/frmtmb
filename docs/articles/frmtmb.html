@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,6 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -372,7 +371,7 @@ deviation):</p>
 <p>Give <code>prior</code> instead and every simulation draws its own
 parameter vector first - the analog of brms’s
 <code>sample_prior = "only"</code> followed by
-<code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>. The drawn parameters come back as an
+<code>posterior_predict()</code>. The drawn parameters come back as an
 attribute, so a prior-predictive check can relate parameters to
 outcomes:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
@@ -405,15 +404,13 @@ through <code><a href="../reference/pp_check.html">pp_check()</a></code>, and ef
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="../reference/dharma_residuals.html">dharma_residuals</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="../reference/conditional_effects.html">conditional_effects</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>And the fitted objective can be handed to NUTS for full Bayes on the
-same model - <code><a href="../reference/frm_sample.html">frm_sample()</a></code> returns draws with the full
-method surface (<code><a href="../reference/posterior_epred.html">posterior_epred()</a></code>,
-<code><a href="../reference/hypothesis.html">hypothesis()</a></code>, <code><a href="../reference/pp_check.html">pp_check()</a></code>), and
-<code><a href="../reference/check_laplace.html">check_laplace()</a></code> audits the Laplace approximation against
-them:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/check_laplace.html">check_laplace</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<p>The same fitted objective can be handed to NUTS for full Bayes on the
+same model. That lives in the companion package
+<strong>frmtmb.sample</strong>: <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code>
+returns draws with the whole posterior method surface
+(<code>posterior_epred()</code>, <code><a href="../reference/hypothesis.html">hypothesis()</a></code>,
+<code><a href="../reference/loo.html">loo()</a></code>), and <code><a href="https://aforren1.github.io/frmtmb/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code>
+audits the Laplace approximation against them.</p>
 <p>See <code><a href="../articles/inputs.html">vignette("inputs")</a></code> for what <code><a href="../reference/frm.html">frm()</a></code>
 accepts and what it costs to run,
 <code><a href="../articles/brms-migration.html">vignette("brms-migration")</a></code> for the brms feature map, and

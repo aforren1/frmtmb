@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,6 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -1026,12 +1025,12 @@ state means by the posterior occupancies, and those depend on the
 observed responses of a whole sequence, so they do not exist on a grid.
 Plot one state’s own predictor with <code>predict(dpar = "mu2")</code>,
 or the occupancies from <code><a href="../reference/hmm_probs.html">hmm_probs()</a></code>.</p>
-<p><code>residuals(type = "deviance")</code>, <code><a href="../reference/log_lik.html">log_lik()</a></code> and
-<code><a href="../reference/loo.html">loo()</a></code> all need a likelihood that factors into one term per
-observation. An HMM’s smallest independent unit is a sequence, so a
-per-observation column would be a group and leaving one out would drop a
-whole track. Compare HMM fits with <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> or
-<code><a href="../reference/frm_bootstrap.html">frm_bootstrap()</a></code>.</p>
+<p><code>residuals(type = "deviance")</code>, and frmtmb.sample’s
+<code>log_lik()</code> and <code><a href="../reference/loo.html">loo()</a></code>, all need a likelihood
+that factors into one term per observation. An HMM’s smallest
+independent unit is a sequence, so a per-observation column would be a
+group and leaving one out would drop a whole track. Compare HMM fits
+with <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> or <code><a href="../reference/frm_bootstrap.html">frm_bootstrap()</a></code>.</p>
 <p>This section also does not cover the parts of the surface that do
 work: transition covariates (<code>trans = ~x</code>, or
 <code>bf(y ~ 1, tr12 ~ x)</code> for one cell), non-gaussian emissions,
@@ -1735,7 +1734,7 @@ object needs <code>name</code>, <code>linkfun</code>,
 <p>Three model classes on this page are refused by parts of the
 post-fitting surface, and the refusals are deliberate. An
 <code><a href="../reference/hmm.html">hmm()</a></code> fit has no per-observation likelihood, so
-<code><a href="../reference/log_lik.html">log_lik()</a></code>, <code><a href="../reference/loo.html">loo()</a></code>,
+<code>log_lik()</code>, <code><a href="../reference/loo.html">loo()</a></code>,
 <code>residuals(type = "deviance")</code> and
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> all say so instead of inventing one.
 A term built on matrix columns is excluded from

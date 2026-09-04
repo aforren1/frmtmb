@@ -32,21 +32,6 @@ conditional_effects(
   data = NULL,
   ...
 )
-
-# S3 method for class 'frmtmb_draws'
-conditional_effects(
-  x,
-  effects = NULL,
-  resp = NULL,
-  dpar = NULL,
-  resolution = 100,
-  prob = 0.95,
-  ndraws = NULL,
-  re_formula = NA,
-  conditions = list(),
-  data = NULL,
-  ...
-)
 ```
 
 ## Arguments
@@ -295,7 +280,7 @@ family, whose probabilities have no threshold Jacobian to differentiate.
 ## Draws objects
 
 On a `frmtmb_draws` object from
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
 the same grids are evaluated once per posterior draw, and `estimate__`,
 `lower__`, `upper__` and `se__` are the pointwise mean, quantiles and
 standard deviation of the drawn curves. There is no `band =` or
@@ -303,8 +288,9 @@ standard deviation of the drawn curves. There is no `band =` or
 nonlinear predictor and a nominal per-category display work without a
 delta method, and the method runs on formula-route draws that have no
 maximum-likelihood fit behind them. `ndraws` thins the draws evenly for
-a cheaper curve. Draws from `frm_sample(laplace = TRUE)` are refused:
-the sampled vector no longer aligns with the model's parameter template.
+a cheaper curve. Draws from a sampling run with `laplace = TRUE` are
+refused: the sampled vector no longer aligns with the model's parameter
+template.
 
 ## Which predictors are plotted by default
 

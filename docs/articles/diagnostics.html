@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,6 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -226,36 +225,26 @@ functions (brms users know this display):</p>
 </h2>
 <p>Wald standard errors and the Laplace approximation share failure
 modes: variance components with few groups, binary data with tiny
-clusters. <code><a href="../reference/check_laplace.html">check_laplace()</a></code> samples the fitted objective with
-NUTS (initialized at the ML mode) and compares posterior means and SDs
-against the ML estimates and Wald SEs; large <code>z_shift</code> or
-<code>sd_ratio</code> far from 1 flags parameters where Wald intervals
-should not be trusted - use <code>confint(method = "profile")</code> or
-the posterior itself for those.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/check_laplace.html">check_laplace</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">2</span>, iter <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></code></pre></div>
-<p>The drawn posterior is also a diagnostic object in its own right;
-bayesplot works on the draws:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span>,</span>
-<span>                 prior <span class="op">=</span> <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 5)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>                   <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-intervals.html" class="external-link">mcmc_intervals</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>,</span>
-<span>                          pars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"(Intercept)"</span>, <span class="st">"x"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>With no <code>prior =</code> argument, <code><a href="../reference/frm_sample.html">frm_sample()</a></code>
-applies brms’s default priors on either of its routes, and reports the
-ones it chose. <code>prior = "flat"</code> opts out and samples the
-likelihood: fine as a diagnostic, fragile as inference.
-<code><a href="../reference/check_laplace.html">check_laplace()</a></code> asks for that flat density itself, because
-it measures the Laplace approximation of the objective the fit
-maximized, and a default prior would change what is being measured.</p>
+clusters. Three things in this package route around that:
+<code>confint(method = "profile")</code> replaces the quadratic
+assumption, <code><a href="../reference/frm_bootstrap.html">frm_bootstrap()</a></code> replaces it with a resampling
+distribution, and <code>frm(quadrature = TRUE)</code> replaces the
+Laplace approximation itself with adaptive quadrature.</p>
+<p>To measure the violation rather than route around it, install the
+companion package <strong>frmtmb.sample</strong> and read its
+<code>sampling</code> vignette.
+<code><a href="https://aforren1.github.io/frmtmb/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code> samples this very objective
+with NUTS and reports how far each posterior mean sits from its
+maximum-likelihood estimate, in posterior standard deviations, beside
+the ratio of the posterior standard deviation to the Wald standard
+error.</p>
 </div>
 <div class="section level2">
 <h2 id="variance-components-on-their-natural-scale">Variance components on their natural scale<a class="anchor" aria-label="anchor" href="#variance-components-on-their-natural-scale"></a>
 </h2>
 <p><code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> reports random-effect SDs and
 correlations with delta-method intervals on interpretable scales:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/confint_varcorr.html">confint_varcorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   block        term type  estimate       lwr       upr</span></span>
 <span><span class="co">#&gt; 1 1 | g (Intercept)   sd 0.4783034 0.3383263 0.6761937</span></span></code></pre></div>

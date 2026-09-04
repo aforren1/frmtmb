@@ -13,7 +13,7 @@ likelihood was normalized on."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,7 +29,6 @@ likelihood was normalized on."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -110,7 +109,7 @@ effects; <code>NA</code> redraws them from their estimated distribution
 
 
 <p>Most families draw each row on its own. Some cannot, and those go
-through one implementation that <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, <code><a href="posterior_epred.html">posterior_predict()</a></code>
+through one implementation that <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, <code>posterior_predict()</code>
 and <code><a href="frm_simulate.html">frm_simulate()</a></code> all reach (see <code>sim_ctx</code> in
 <code><a href="frmtmb_family.html">frmtmb_family()</a></code>):</p><ul><li><p>an <code><a href="hmm.html">hmm()</a></code> draw walks the hidden Markov chain forward per
 sequence and then emits from each row's state;</p></li>
@@ -134,7 +133,7 @@ rows the model was fitted on.</p>
 <p>On a <code>cens()</code> fit the default draws the LATENT, uncensored response:
 the model describes the latent distribution, and censoring is a
 property of the observation process, not of the response. This
-matches brms, whose <code><a href="posterior_epred.html">posterior_predict()</a></code> also ignores <code>cens()</code> (and
+matches brms, whose <code>posterior_predict()</code> also ignores <code>cens()</code> (and
 whose <code><a href="pp_check.html">pp_check()</a></code> therefore drops the censored rows). The draws are
 then not comparable with the observed values on censored rows, which
 is why <code><a href="dharma_residuals.html">dharma_residuals()</a></code> and <code>residuals(type = "osa")</code> refuse or

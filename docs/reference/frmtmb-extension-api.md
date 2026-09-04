@@ -11,7 +11,7 @@ family's needs are already public:
 [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md),
 [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md),
-[`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+`posterior_predict()`,
 [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
 and
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)

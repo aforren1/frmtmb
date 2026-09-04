@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,6 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -122,8 +121,8 @@ outer loop; they are integrated out.</p>
 <p><strong>Laplace approximation.</strong> The method that integrates
 the inner parameters out of the joint likelihood to leave a marginal
 likelihood in the outer parameters alone. It comes from TMB and RTMB.
-<code><a href="../reference/check_laplace.html">check_laplace()</a></code> audits it against NUTS draws on the same
-objective.</p>
+<code><a href="https://aforren1.github.io/frmtmb/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code> audits it against NUTS draws
+on the same objective.</p>
 <p><strong>ML and REML.</strong> Under maximum likelihood, only
 <code>b</code> is inner. <code>REML = TRUE</code> moves the fixed
 effects into the inner set as well, so they are integrated out too. This
@@ -208,7 +207,7 @@ inside a block, at
 <code>(level - 1) * dim + offset + coefficient</code>. Terms linked with
 an <code>|ID|</code> key are merged into one block, which is only a
 matter of where their columns land.</p>
-<p><strong>Stage 3, generate.</strong> <code>build_objective()</code>
+<p><strong>Stage 3, generate.</strong> <code><a href="../reference/frmtmb-sampling-api.html">build_objective()</a></code>
 closes over the assembled matrices and returns a plain R function of the
 parameter list. Family, link and covariance dispatch all resolve before
 taping, so the closure stays vectorized and free of branches on
@@ -711,13 +710,6 @@ matching is case sensitive and accepts unambiguous prefixes.
 </td>
 </tr>
 <tr class="odd">
-<td><code><a href="../reference/frm_ode.html">frm_ode()</a></code></td>
-<td><code>on_error</code></td>
-<td>
-<code>"penalize"</code>, <code>"error"</code>
-</td>
-</tr>
-<tr class="even">
 <td><code><a href="../reference/vcov_cluster.html">vcov_cluster()</a></code></td>
 <td><code>type</code></td>
 <td>

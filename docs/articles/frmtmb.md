@@ -342,9 +342,8 @@ str(sims, max.level = 0)
 
 Give `prior` instead and every simulation draws its own parameter vector
 first - the analog of brms’s `sample_prior = "only"` followed by
-[`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md).
-The drawn parameters come back as an attribute, so a prior-predictive
-check can relate parameters to outcomes:
+`posterior_predict()`. The drawn parameters come back as an attribute,
+so a prior-predictive check can relate parameters to outcomes:
 
 ``` r
 
@@ -387,22 +386,15 @@ plot(dharma_residuals(fit))
 plot(conditional_effects(fit))
 ```
 
-And the fitted objective can be handed to NUTS for full Bayes on the
-same model -
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
-returns draws with the full method surface
-([`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md),
+The same fitted objective can be handed to NUTS for full Bayes on the
+same model. That lives in the companion package **frmtmb.sample**:
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+returns draws with the whole posterior method surface
+(`posterior_epred()`,
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
-[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)),
-and
-[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
-audits the Laplace approximation against them:
-
-``` r
-
-ds <- frm_sample(fit, chains = 4)
-check_laplace(fit)
-```
+[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md)), and
+[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html)
+audits the Laplace approximation against them.
 
 See
 [`vignette("inputs")`](https://aforren1.github.io/frmtmb/articles/inputs.md)

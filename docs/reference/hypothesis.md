@@ -25,9 +25,6 @@ hypothesis(
   ...
 )
 
-# S3 method for class 'frmtmb_draws'
-hypothesis(x, hypothesis, alpha = 0.05, class = NULL, group = NULL, ...)
-
 # S3 method for class 'frmtmb_multiple'
 hypothesis(x, hypothesis, alpha = 0.05, class = NULL, group = NULL, ...)
 ```

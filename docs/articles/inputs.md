@@ -46,7 +46,7 @@ loop; they are integrated out.
 **Laplace approximation.** The method that integrates the inner
 parameters out of the joint likelihood to leave a marginal likelihood in
 the outer parameters alone. It comes from TMB and RTMB.
-[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
+[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html)
 audits it against NUTS draws on the same objective.
 
 **ML and REML.** Under maximum likelihood, only `b` is inner.
@@ -133,10 +133,12 @@ ordered level major and coefficient minor inside a block, at
 key are merged into one block, which is only a matter of where their
 columns land.
 
-**Stage 3, generate.** `build_objective()` closes over the assembled
-matrices and returns a plain R function of the parameter list. Family,
-link and covariance dispatch all resolve before taping, so the closure
-stays vectorized and free of branches on parameters.
+**Stage 3, generate.**
+[`build_objective()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+closes over the assembled matrices and returns a plain R function of the
+parameter list. Family, link and covariance dispatch all resolve before
+taping, so the closure stays vectorized and free of branches on
+parameters.
 
 **Stage 4, tape and optimize.** `RTMB::MakeADFun()` tapes the closure
 with `random = "b"` (and `"beta"` under REML),
@@ -315,7 +317,6 @@ case sensitive and accepts unambiguous prefixes. `"response"` and
 | [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md) | `band` | `"wald"`, `"profile"`, `"boot"` |
 | [`hmm()`](https://aforren1.github.io/frmtmb/reference/hmm.md) | `init` | `"stationary"`, `"estimated"`, `"uniform"` |
 | [`loo_compare()`](https://aforren1.github.io/frmtmb/reference/loo.md) | `criterion` | `"loo"`, `"waic"` |
-| [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md) | `on_error` | `"penalize"`, `"error"` |
 | [`vcov_cluster()`](https://aforren1.github.io/frmtmb/reference/vcov_cluster.md) | `type` | `"CR0"`, `"CR1"`, `"CR1p"`, `"CR1S"` |
 
 `confint(method =)` is the one place that accepts two spellings of the

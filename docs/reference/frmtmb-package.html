@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,6 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -107,8 +106,9 @@ object API is stable: <code><a href="frm.html">frm()</a></code>, the accessor me
 constructors keep their current behavior. Fields of the fitted object
 that no exported method reaches are internal and can change; use the
 accessors.</p>
-<p>Multivariate coverage of the post-fit methods, the mixture families,
-and <code><a href="frm_sample.html">frm_sample()</a></code> still gain features between releases. Version
+<p>Multivariate coverage of the post-fit methods and the mixture
+families still gain features between releases, as does the sampling
+surface in the companion package <code>frmtmb.sample</code>. Version
 numbers stay below 1.0 until the CRAN release. Breaking changes are
 listed in <code>NEWS.md</code>. The package is actively developed and maintained.</p>
     </div>

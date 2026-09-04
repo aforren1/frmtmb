@@ -19,16 +19,6 @@ pp_check(
   re.form = arg_unset(),
   ...
 )
-
-# S3 method for class 'frmtmb_draws'
-pp_check(
-  object,
-  type = "dens_overlay",
-  ndraws = 50,
-  re_formula = arg_unset(),
-  re.form = arg_unset(),
-  ...
-)
 ```
 
 ## Arguments
@@ -56,14 +46,14 @@ pp_check(
   function). On a fit it is passed to
   [`simulate()`](https://rdrr.io/r/stats/simulate.html) and defaults to
   `NA`, which simulates new random effects; on draws it is passed to
-  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-  and defaults to `NULL`, because a draw already carries its own.
+  `posterior_predict()` and defaults to `NULL`, because a draw already
+  carries its own.
 
 - re.form:
 
   lme4's spelling of `re_formula`, accepted as an alias. Pass one or the
   other, not both; see the *Argument spellings* section of
-  [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md).
+  [`frmtmb.sample::posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.html).
 
 ## Value
 

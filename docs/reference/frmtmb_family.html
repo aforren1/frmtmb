@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,6 @@ not branch on parameter values."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -161,7 +160,7 @@ refused by the method that needs it.</p></dd>
 
 <dt id="arg-sim">sim<a class="anchor" aria-label="anchor" href="#arg-sim"></a></dt>
 <dd><p>Optional numeric simulator <code>(dpars, aterms, n)</code> returning <code>n</code>
-response draws; used by <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, <code><a href="posterior_epred.html">posterior_predict()</a></code> and
+response draws; used by <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, <code>posterior_predict()</code> and
 <code><a href="frm_simulate.html">frm_simulate()</a></code>. It is stateless and rowwise: it sees the
 distributional parameters and nothing else. A family whose extra
 parameters (<code>extra_pars</code>) enter the draw declares a fourth
@@ -238,13 +237,12 @@ distributional parameters), <code>aterms</code>, <code>n</code>, <code>extra</co
 extra parameters) and the frame structures <code>autocor</code> and <code>block</code>
 (the structured family's own data; see <code><a href="frmtmb_structure.html">frmtmb_structure()</a></code>).
 Read its fields with <code>[[ ]]</code>.</p>
-<p>The same <code>sim_ctx()</code> serves [simulate()], [posterior_predict()] and
+<p>The same <code>sim_ctx()</code> serves [simulate()], <code>posterior_predict()</code> and
 [frm_simulate()]. Because a structured draw covers whole sequences or
 groups, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> rejection and <code>newdata</code> cannot apply to it and are
 refused.</p>
 <p>[ ]: R:%20
 [simulate()]: R:simulate()
-[posterior_predict()]: R:posterior_predict()
 [frm_simulate()]: R:frm_simulate()</p>
     </div>
     <div class="section level2">

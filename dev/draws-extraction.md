@@ -256,3 +256,16 @@ consolidator, after both extractions merge. What the consolidator needs
 to do there is flip it to the zero-tolerance form - an empty `pinned`,
 and the vacuity guard rewritten to assert that the scan found nothing
 rather than that it found something.
+
+## Consolidation status (v0.47.0)
+
+Executed: the boundary test is rewritten in its zero-tolerance form
+(empty-safe scan, empty expectation, and a positive-control scan of
+the exempt family homes replacing the old vacuity guard). One
+correction to this lane's report: the extension's tests reach core
+internals through `frmtmb:::` at 19 sites over 6 distinct symbols
+(`covstruct_registry`, `ncp_block_chol`, `is_arg_unset`,
+`resolve_priors`, `autocor_natural`, `kron_cov_index`), not the four
+the report stated. Tests-only and tolerated, but it is coupling: a
+core refactor of any of the six breaks the extension's suite without
+breaking its code. Burn down opportunistically.

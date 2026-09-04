@@ -88,19 +88,21 @@ likelihood-ratio tests, AIC).
   profile intervals, [`anova()`](https://rdrr.io/r/stats/anova.html)
   gives likelihood-ratio tests, and
   [`AIC()`](https://rdrr.io/r/stats/AIC.html)/[`BIC()`](https://rdrr.io/r/stats/AIC.html)
-  replace [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md).
+  replace [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md)
+  (or install **frmtmb.sample**, whose
+  [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) is the
+  real one, on sampled draws).
 
-- [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-  becomes [`simulate()`](https://rdrr.io/r/stats/simulate.html);
-  [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-  over `newdata` becomes `predict(newdata, type = "response")`. On a
-  `cens()` response both draw the LATENT uncensored value, as brms does;
+- `posterior_predict()` becomes
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html);
+  `posterior_epred()` over `newdata` becomes
+  `predict(newdata, type = "response")`. On a `cens()` response both
+  draw the LATENT uncensored value, as brms does;
   `simulate(censored = TRUE)` applies the censoring mechanism instead.
 
-- `sample_prior = "only"` plus
-  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-  becomes `frm_simulate(formula, data, prior = set_prior(...))`, which
-  draws a parameter vector per simulation and returns it alongside the
+- `sample_prior = "only"` plus `posterior_predict()` becomes
+  `frm_simulate(formula, data, prior = set_prior(...))`, which draws a
+  parameter vector per simulation and returns it alongside the
   responses.
 
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
@@ -454,5 +456,10 @@ debugger work on it like on any R function.
 Genuine prior information, full posterior uncertainty for derived
 quantities, models with discrete latent structure beyond
 observation-level mixtures, or `loo`-based model comparison. A practical
-workflow is model screening in frmtmb and a final fit in brms;
-`as_tmbstan(fit)` also runs NUTS on the frmtmb objective directly.
+workflow is model screening in frmtmb and a final fit in brms. The
+companion package **frmtmb.sample** is the third option:
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+runs NUTS on the frmtmb objective under brms’s default priors and gives
+back the posterior method surface, and
+[`frmtmb.sample::as_tmbstan()`](https://aforren1.github.io/frmtmb/reference/as_tmbstan.html)
+hands the objective to tmbstan directly.

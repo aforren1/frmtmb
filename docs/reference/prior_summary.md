@@ -1,18 +1,14 @@
 # Priors used in a fit
 
 On draws from
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
 this reports the priors the sampler applied, which on the formula
 interface includes the brms default priors it chose (see the Default
-priors section of
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)).
+priors section of that function).
 
 ## Usage
 
 ``` r
-# S3 method for class 'frmtmb_draws'
-prior_summary(object, ...)
-
 prior_summary(object, ...)
 
 # S3 method for class 'frmtmb_fit'
@@ -23,8 +19,8 @@ prior_summary(object, ...)
 
 - object:
 
-  A `frmtmb_fit`, or `frmtmb_draws` from
-  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md).
+  A `frmtmb_fit`, or a `frmtmb_draws` from
+  [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html).
 
 - ...:
 

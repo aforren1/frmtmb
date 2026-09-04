@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,6 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -254,16 +253,17 @@ at random in a bounded range instead.</p>
 <li><p>Posterior summaries become ML estimates: <code><a href="../reference/fixef.html">fixef()</a></code>
 returns point estimates, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> gives Wald or profile
 intervals, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> gives likelihood-ratio tests, and
-<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>/<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> replace
-<code><a href="../reference/loo.html">loo()</a></code>.</p></li>
-<li><p><code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>;
-<code><a href="../reference/posterior_epred.html">posterior_epred()</a></code> over <code>newdata</code> becomes
+<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>/<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> replace <code><a href="../reference/loo.html">loo()</a></code> (or
+install <strong>frmtmb.sample</strong>, whose <code><a href="../reference/loo.html">loo()</a></code> is the
+real one, on sampled draws).</p></li>
+<li><p><code>posterior_predict()</code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>;
+<code>posterior_epred()</code> over <code>newdata</code> becomes
 <code>predict(newdata, type = "response")</code>. On a
 <code>cens()</code> response both draw the LATENT uncensored value, as
 brms does; <code>simulate(censored = TRUE)</code> applies the censoring
 mechanism instead.</p></li>
 <li><p><code>sample_prior = "only"</code> plus
-<code><a href="../reference/posterior_epred.html">posterior_predict()</a></code> becomes
+<code>posterior_predict()</code> becomes
 <code>frm_simulate(formula, data, prior = set_prior(...))</code>, which
 draws a parameter vector per simulation and returns it alongside the
 responses.</p></li>
@@ -606,7 +606,7 @@ for simulation-based residual checks use
 itself: an ordinary R closure that <code>RTMB::MakeADFun()</code> tapes,
 rebuilt deterministically from the fitted frame.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">nll</span> <span class="op">&lt;-</span> <span class="fu">frmtmb</span><span class="fu">:::</span><span class="fu">build_objective</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">frame</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">nll</span> <span class="op">&lt;-</span> <span class="fu">frmtmb</span><span class="fu">:::</span><span class="fu"><a href="../reference/frmtmb-sampling-api.html">build_objective</a></span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">frame</span><span class="op">)</span></span>
 <span><span class="fu">nll</span><span class="op">(</span><span class="va">fit</span><span class="op">$</span><span class="va">estimates</span><span class="op">)</span>   <span class="co"># joint negative log density at the estimates</span></span></code></pre></div>
 <p>Two properties matter when reading it:</p>
 <ul>
@@ -636,8 +636,11 @@ function.</p>
 quantities, models with discrete latent structure beyond
 observation-level mixtures, or <code>loo</code>-based model comparison.
 A practical workflow is model screening in frmtmb and a final fit in
-brms; <code>as_tmbstan(fit)</code> also runs NUTS on the frmtmb
-objective directly.</p>
+brms. The companion package <strong>frmtmb.sample</strong> is the third
+option: <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> runs NUTS on the frmtmb
+objective under brms’s default priors and gives back the posterior
+method surface, and <code><a href="https://aforren1.github.io/frmtmb/reference/as_tmbstan.html">frmtmb.sample::as_tmbstan()</a></code> hands the
+objective to tmbstan directly.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

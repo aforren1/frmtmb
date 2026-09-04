@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,6 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
@@ -716,16 +715,15 @@ family without a simulator cannot be simulated from. A family without a
 mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> value.</p>
 <table class="table">
 <colgroup>
-<col width="18%">
-<col width="5%">
+<col width="20%">
 <col width="6%">
 <col width="7%">
 <col width="8%">
-<col width="10%">
-<col width="6%">
 <col width="8%">
 <col width="12%">
-<col width="14%">
+<col width="7%">
+<col width="13%">
+<col width="16%">
 </colgroup>
 <thead><tr class="header">
 <th align="left"></th>
@@ -735,7 +733,6 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <th align="center">residuals</th>
 <th align="center">residuals_osa</th>
 <th align="center">emmeans</th>
-<th align="center">frm_sample</th>
 <th align="center">confint_profile</th>
 <th align="center">hypothesis_profile</th>
 </tr></thead>
@@ -745,7 +742,6 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -762,14 +758,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">lognormal</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -786,14 +780,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">skew_normal</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -810,14 +802,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">asym_laplace</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -834,14 +824,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">weibull</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -858,14 +846,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">inverse.gaussian</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -882,14 +868,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">tweedie</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">x</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -906,14 +890,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">negbinomial</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -930,14 +912,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">geometric</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -954,14 +934,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">binomial</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -978,14 +956,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">beta_binomial</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1002,14 +978,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">zero_inflated_poisson</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1026,14 +1000,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">zero_inflated_binomial</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1050,14 +1022,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">hurdle_poisson</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">x</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1074,14 +1044,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">hurdle_lognormal</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1098,7 +1066,6 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">sratio</td>
@@ -1107,7 +1074,6 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">+</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1122,7 +1088,6 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">acat</td>
@@ -1131,7 +1096,6 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">+</td>
 <td align="center">~</td>
 <td align="center">+</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1146,7 +1110,6 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="odd">
 <td align="left">von_mises</td>
@@ -1158,14 +1121,12 @@ mean function has no <code><a href="https://rdrr.io/r/stats/fitted.values.html" 
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
-<td align="center">~</td>
 </tr>
 <tr class="even">
 <td align="left">cox</td>
 <td align="center">x</td>
 <td align="center">~</td>
 <td align="center">x</td>
-<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
 <td align="center">~</td>
@@ -1228,15 +1189,6 @@ linear.</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>
-<td align="left">gaussian + frm_sample; student + frm_sample; lognormal
-+ frm_sample; shifted_lognormal + frm_sample; skew_normal + frm_sample;
-and 31 more</td>
-<td align="left">Chains start jittered around the fitted mode. Use
-init_jitter to widen the spread, or init = “random” for a multimodal
-posterior.</td>
-</tr>
-<tr class="odd">
-<td align="left">~</td>
 <td align="left">cumulative + fitted; sratio + fitted; cratio + fitted;
 acat + fitted</td>
 <td align="left">Returns the same n x K matrix of category probabilities
@@ -1246,7 +1198,7 @@ predict(type = “response”) == fitted() identity holds. The latent linear
 predictor is predict(fit, type = “link”), which is also what emmeans and
 insight see.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">cumulative + predict; sratio + predict; cratio +
 predict; acat + predict</td>
@@ -1257,7 +1209,7 @@ fitted(). cs() terms are honored and re-evaluated on newdata. type =
 “link” gives the latent predictor, which is where se.fit is available;
 se.fit is refused on the response scale.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">cumulative + residuals; sratio + residuals; cratio +
 residuals; acat + residuals</td>
@@ -1268,7 +1220,7 @@ SCORE, not on the ordinal scale; “osa” and dharma_residuals() use only
 the order. “deviance” is refused, as for every family without a standard
 unit deviance.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">cumulative + emmeans; sratio + emmeans; cratio +
 emmeans; acat + emmeans</td>
@@ -1280,7 +1232,7 @@ probabilities use predict(fit, type = “response”) or
 conditional_effects(), which are on a different scale from these
 means.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">categorical + fitted</td>
 <td align="left">Returns the n x K matrix of category probabilities, not
@@ -1288,7 +1240,7 @@ a vector: a nominal response has no mean, so the modelled response is
 the category distribution. The predict(type = “response”) == fitted()
 identity holds.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">categorical + predict</td>
 <td align="left">type = “response” returns an n x K matrix of category
@@ -1299,53 +1251,53 @@ predict(type = “link”, dpar = “mu<level>”), which is where se.fit
 works.</level>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">von_mises + fitted</td>
 <td align="left">Returns the mean DIRECTION in radians on (-pi, pi],
 which is what brms’s posterior_epred() reports for this family; a
 circular response has no arithmetic mean.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">cox + predict</td>
 <td align="left">type = “response” and fitted() are refused: a survival
 time has no mean the censored rows identify. type = “link” gives the log
 hazard ratio, and cox_baseline() the fitted baseline weights.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">tweedie + simulate; compois + simulate; hurdle_poisson
 + simulate</td>
 <td align="left">Refused: this family has no simulator yet.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">categorical + residuals</td>
 <td align="left">Refused: the categories carry no order, so no residual
 has a scale to live on. Compare fitted(fit), the n x K category
 probabilities, against the observed categories instead.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">categorical + residuals_osa</td>
 <td align="left">Refused with residuals() as a whole: a one-step-ahead
 residual is a CDF value, and a nominal response has no CDF.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">von_mises + residuals_osa</td>
 <td align="left">Refused upstream: RTMBdist::dvm() rejects the osa
 observation object, because a wrapped support has no one-step CDF on the
 line.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">cox + fitted</td>
 <td align="left">Refused: a survival time has no mean on the response
 scale here. Use predict(type = “link”) for the log hazard ratio.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">cox + simulate</td>
 <td align="left">Refused: drawing a survival time means inverting the
@@ -2359,20 +2311,20 @@ predicts one response at a time, through
 <code>predict(fit, resp = )</code>, and refuses <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>,
 <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code>. The inference
 surface is not univariate-only: <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>,
-<code><a href="../reference/hypothesis.html">hypothesis()</a></code> and <code><a href="../reference/frm_sample.html">frm_sample()</a></code> read the outer
-parameter vector, which a multivariate fit has like any other.</p>
-<table style="width:100%;" class="table">
+<code><a href="../reference/hypothesis.html">hypothesis()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code>
+read the outer parameter vector, which a multivariate fit has like any
+other.</p>
+<table class="table">
 <colgroup>
-<col width="11%">
-<col width="6%">
+<col width="13%">
 <col width="7%">
 <col width="7%">
 <col width="8%">
-<col width="11%">
-<col width="7%">
 <col width="9%">
 <col width="13%">
-<col width="15%">
+<col width="7%">
+<col width="14%">
+<col width="17%">
 </colgroup>
 <thead><tr class="header">
 <th align="left"></th>
@@ -2382,7 +2334,6 @@ parameter vector, which a multivariate fit has like any other.</p>
 <th align="center">residuals</th>
 <th align="center">residuals_osa</th>
 <th align="center">emmeans</th>
-<th align="center">frm_sample</th>
 <th align="center">confint_profile</th>
 <th align="center">hypothesis_profile</th>
 </tr></thead>
@@ -2397,7 +2348,6 @@ parameter vector, which a multivariate fit has like any other.</p>
 <td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
-<td align="center">+</td>
 </tr>
 <tr class="even">
 <td align="left">rescor</td>
@@ -2409,7 +2359,6 @@ parameter vector, which a multivariate fit has like any other.</p>
 <td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
-<td align="center">+</td>
 </tr>
 <tr class="odd">
 <td align="left">|ID|</td>
@@ -2419,7 +2368,6 @@ parameter vector, which a multivariate fit has like any other.</p>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
-<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">?</td>
 </tr>
@@ -2433,7 +2381,6 @@ parameter vector, which a multivariate fit has like any other.</p>
 <td align="center">x</td>
 <td align="center">?</td>
 <td align="center">?</td>
-<td align="center">?</td>
 </tr>
 <tr class="odd">
 <td align="left">mixture</td>
@@ -2443,7 +2390,6 @@ parameter vector, which a multivariate fit has like any other.</p>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
-<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">?</td>
 </tr>
@@ -2455,7 +2401,6 @@ parameter vector, which a multivariate fit has like any other.</p>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
-<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">?</td>
 </tr>
@@ -2467,7 +2412,6 @@ parameter vector, which a multivariate fit has like any other.</p>
 <td align="center">~</td>
 <td align="center">x</td>
 <td align="center">?</td>
-<td align="center">+</td>
 <td align="center">?</td>
 <td align="center">?</td>
 </tr>
@@ -2480,7 +2424,6 @@ parameter vector, which a multivariate fit has like any other.</p>
 <td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
-<td align="center">+</td>
 <td align="center">?</td>
 </tr>
 </tbody>
@@ -2488,8 +2431,8 @@ parameter vector, which a multivariate fit has like any other.</p>
 <table class="table">
 <colgroup>
 <col width="1%">
-<col width="12%">
-<col width="86%">
+<col width="11%">
+<col width="87%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -2499,29 +2442,16 @@ parameter vector, which a multivariate fit has like any other.</p>
 <tbody>
 <tr class="odd">
 <td align="left">~</td>
-<td align="left">|ID| + frm_sample; mixture_mvn + frm_sample</td>
-<td align="left">Chains start jittered around the fitted mode. Use
-init_jitter to widen the spread, or init = “random” for a multimodal
-posterior.</td>
-</tr>
-<tr class="even">
-<td align="left">~</td>
 <td align="left">nl + predict</td>
 <td align="left">Point predictions work. se.fit is not supported for the
 nonlinear predictor; request a nonlinear parameter with dpar
 instead.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">mixture + simulate</td>
 <td align="left">Works only when every component family has a
 simulator.</td>
-</tr>
-<tr class="even">
-<td align="left">~</td>
-<td align="left">mixture + frm_sample</td>
-<td align="left">Mixture posteriors are multimodal. Sample with init =
-“random” rather than the mode-anchored default.</td>
 </tr>
 <tr class="odd">
 <td align="left">~</td>
@@ -3509,17 +3439,17 @@ column.</td>
 <tbody>
 <tr class="odd">
 <td align="left">works</td>
-<td align="right">1664</td>
+<td align="right">1660</td>
 <td align="left">32%</td>
 </tr>
 <tr class="even">
 <td align="left">conditional</td>
-<td align="right">1861</td>
-<td align="left">35%</td>
+<td align="right">1759</td>
+<td align="left">34%</td>
 </tr>
 <tr class="odd">
 <td align="left">refused</td>
-<td align="right">764</td>
+<td align="right">763</td>
 <td align="left">15%</td>
 </tr>
 <tr class="even">
@@ -3529,8 +3459,8 @@ column.</td>
 </tr>
 <tr class="odd">
 <td align="left">untested</td>
-<td align="right">967</td>
-<td align="left">18%</td>
+<td align="right">966</td>
+<td align="left">19%</td>
 </tr>
 </tbody>
 </table>

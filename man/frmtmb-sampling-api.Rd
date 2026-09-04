@@ -90,10 +90,14 @@ log-density composition the objective itself runs, with \code{cens()} and
 \code{trunc()} folded in; it runs on numeric dpar values as readily as on
 the tape, which is what makes a pointwise \code{log_lik()} reproduce the
 fitted density exactly instead of approximating it.
-\code{with_cs_offsets()} applies category-specific offsets to evaluated
-dpars, and \code{us_chol_cor(theta, K)} is the unstructured correlation
-matrix of a \code{thetar} segment, which a \code{set_rescor(TRUE)} model's
-joint row density needs.
+\code{with_cs_offsets(fit, rspec, dpv)} takes one response spec from
+\code{fit$spec$responses} and the dpar-value list \code{eval_dpars()} returns
+for that response, and gives back the same list with the
+category-specific (\code{cs()}) offsets applied; on a model without
+\code{cs()} terms it returns \code{dpv} unchanged, so it is safe to call
+unconditionally before \code{row_lpdf()}. \code{us_chol_cor(theta, K)} is the
+unstructured correlation matrix of a \code{thetar} segment, which a
+\code{set_rescor(TRUE)} model's joint row density needs.
 }
 
 \section{The prior seam}{
@@ -165,10 +169,14 @@ never optimized.
 \section{The hypothesis expression engine}{
 
 \code{hyp_parse_all()} turns hypothesis strings into expressions and
-per-expression directions, once. \code{hyp_vals_only()} and
-\code{hyp_env_vals()} build the evaluation environment at ONE parameter
-vector, and \code{hyp_eval()} evaluates one expression in it, so a caller
-with many parameter vectors parses once and evaluates many times.
+per-expression directions, once. \code{hyp_vals_only(fit)} reads the
+fit's current estimates into a flat named value vector plus a
+parallel component vector (which template component each value came
+from); \code{hyp_env_vals(fit, vals, comp)} takes exactly that pair and
+builds the evaluation environment, and \code{hyp_eval()} evaluates one
+expression in it - so a caller with many parameter vectors parses
+once, then per vector swaps the estimates in and calls
+\code{hyp_vals_only()} and \code{hyp_env_vals()} again.
 \code{hyp_tail_p()} is the tail probability of a directional claim.
 }
 

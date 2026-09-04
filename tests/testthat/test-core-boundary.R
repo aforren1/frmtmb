@@ -1,30 +1,20 @@
-# The core/extensions boundary, ratcheted.
+# The core/extensions boundary, at zero.
 #
-# dev/structured-family-protocol.md replaces the per-family branches in
-# core with one `fam$structure` slot, after which hmm() and lca() can
-# live in another package and R/hmm.R, R/lca.R and R/ode.R are the only
-# places their names appear. This test measures the distance left to go:
-# it counts the family names still reachable from core files and pins
-# the count.
-#
-# The ratchet runs one way. A pinned entry may shrink or disappear -
-# that is the refactor working, and the test stays green - but a hit in
-# a file/token pair that is not pinned, or a count above what is pinned,
-# fails. So a new branch cannot be added to core, and a family name
-# cannot spread to a core file it has not already reached.
+# This test began as a growth-only ratchet: dev/structured-family-
+# protocol.md replaced the per-family branches in core with one
+# `fam$structure` slot, and the pinned inventory measured the distance
+# left to go, shrinking release by release (25 pairs at v0.44.0, 15 at
+# v0.45.0, 4 at v0.46.0). The extraction round emptied it: the ODE seam
+# left for extensions/frmtmb.ode, the sampling surface for
+# extensions/frmtmb.sample, and with them the last tokens. The test is
+# now the boundary itself: NO core file may name hmm, lca, their frame
+# slots, or the ODE symbols, outside the two family homes that remain
+# in core until protocol step 10 moves them out.
 #
 # `mixture` is deliberately NOT policed. It stays in core as the
 # protocol's reference implementation of the structured-family seam.
-#
-# To regenerate the inventory after a refactor step, run the scan below
-# over a clean tree and paste the result over `pinned`:
-#
-#   tokens <- list(hmm = c("hmm.R", "lca.R"), lca = c("hmm.R", "lca.R"),
-#                  mix_g = c("hmm.R", "lca.R"), hmm_g = c("hmm.R", "lca.R"),
-#                  frm_ode = "ode.R", RTMBode = "ode.R")
-#   (the body of boundary_scan() below, with rdir = "R")
 
-test_that("no core file grows a structured-family or ODE reference", {
+test_that("no core file carries a structured-family or ODE reference", {
   # positive identification of the package SOURCE tree, not just an R/
   # directory: one CI layout offered an existing-but-empty ../../R, and
   # the guard must fail closed (skip) rather than open (assert nothing)
@@ -37,27 +27,29 @@ test_that("no core file grows a structured-family or ODE reference", {
   skip_if_not(is_src,
               "package sources are not available (installed-package run)")
 
-  # each token maps to the files that are allowed to spell it: a
-  # family's own home, and R/ode.R for the ODE symbols
+  # each token maps to the files still allowed to spell it: the two
+  # family homes that live in core until step 10. R/ode.R is gone, so
+  # the ODE symbols have no allowed home at all.
   tokens <- list(
     hmm     = c("hmm.R", "lca.R"),
     lca     = c("hmm.R", "lca.R"),
     mix_g   = c("hmm.R", "lca.R"),
     hmm_g   = c("hmm.R", "lca.R"),
-    frm_ode = "ode.R",
-    RTMBode = "ode.R"
+    frm_ode = character(0),
+    RTMBode = character(0)
   )
 
   # R's own \b counts `_` as a word character, so `\bhmm\b` would miss
-  # hmm_check_fit() - exactly the branch this test exists to see. The
+  # hmm_check_fit() - exactly the symbols this test exists to see. The
   # boundary is therefore spelled against letters and digits only, which
   # still keeps `lca` out of `allcaps` and `hmm` out of a longer word.
-  boundary_scan <- function(rdir) {
+  boundary_scan <- function(rdir, exempt = TRUE) {
     files <- sort(basename(list.files(rdir, pattern = "\\.R$")))
     out <- integer(0)
     for (tok in names(tokens)) {
       pat <- paste0("(?<![A-Za-z0-9])", tok, "(?![A-Za-z0-9])")
-      for (f in setdiff(files, tokens[[tok]])) {
+      scan_files <- if (exempt) setdiff(files, tokens[[tok]]) else files
+      for (f in scan_files) {
         ln <- readLines(file.path(rdir, f), warn = FALSE)
         # roxygen and comment lines are prose about the seam, not the
         # seam itself. A trailing comment on a code line still counts.
@@ -68,55 +60,26 @@ test_that("no core file grows a structured-family or ODE reference", {
         if (n > 0L) out[paste0(f, "|", tok)] <- n
       }
     }
-    out[order(names(out))]
+    if (length(out)) out[order(names(out))] else out
   }
 
-  # Measured after the protocol's steps 6 through 9 landed; see the
-  # regeneration note above. hmm_g and mix_g are gone entirely, no core
-  # file branches on either family any more, and compat.R's feature
-  # matrix takes their rows from the families themselves through its
-  # contributor seam. Three entries are left, and neither of the two
-  # kinds is a branch:
-  #
-  #  - interop.R names frm_ode() and RTMBode in one refusal message, an
-  #    ODE seam this protocol does not cover (it is a nonlinear-body
-  #    seam, not a family one).
-  #  - methods-draws.R names lca item codes twice, as ONE EXAMPLE among
-  #    three of a matrix-valued response, inside two stop() messages
-  #    that read the response's shape and never the family. It is prose
-  #    that goes stale at step 10, not coupling.
-  pinned <- c(
-    "interop.R|RTMBode" = 1L,
-    "interop.R|frm_ode" = 1L,
-    "methods-draws.R|lca" = 2L
-  )
-  pinned <- pinned[order(names(pinned))]
+  # positive control: a scanner that matched nothing anywhere would
+  # pass the boundary vacuously, so prove it still sees the tokens in
+  # the exempt family homes before trusting the empty result
+  control <- boundary_scan(rdir, exempt = FALSE)
+  expect_gt(sum(control), 0L)
 
   found <- boundary_scan(rdir)
-
-  # a scan that matches nothing would pass every assertion below, so
-  # check the scanner still sees the seam it is measuring
-  expect_gt(sum(found), 0L)
-
-  grew <- character(0)
-  for (k in names(found)) {
-    was <- if (k %in% names(pinned)) pinned[[k]] else 0L
-    if (found[[k]] > was) {
-      grew <- c(grew, sprintf("  %s: %d pinned, %d found", k, was,
-                              found[[k]]))
-    }
-  }
+  hits <- sprintf("  %s: %d", names(found), found)
   expect_identical(
-    grew, character(0),
+    names(found), NULL,
     info = paste0(
-      "A core file gained a structured-family or ODE reference:\n",
-      paste(grew, collapse = "\n"),
-      "\n\nThis inventory is a one-way ratchet. The structured-family ",
-      "protocol (dev/structured-family-protocol.md) shrinks it to ",
-      "empty as hmm(), lca() and the ODE seam move behind ",
-      "fam$structure; entries may shrink or vanish freely. Nothing may ",
-      "grow it: put the new branch behind the family's own slot ",
-      "instead, or move the code into R/hmm.R, R/lca.R or R/ode.R. ",
+      "A core file names a structured family or an ODE symbol:\n",
+      paste(hits, collapse = "\n"),
+      "\n\nThe boundary is zero: put the branch behind the family's ",
+      "own fam$structure slot, register it through the exported seams ",
+      "(frmtmb_register_frame_check, frmtmb_register_compat), or move ",
+      "the code into R/hmm.R, R/lca.R or the extension packages. ",
       "mixture() is not policed - it stays in core as the reference ",
       "implementation."
     )

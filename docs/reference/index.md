@@ -4,36 +4,20 @@
 
 - [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) : Set up a
   model formula
-
 - [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md) : Add
   parameter formulas to a model formula
-
 - [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) : Add a
   nonlinear parameter formula to a model formula
-
 - [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   : Combine formulas into a multivariate model
-
 - [`num_factor()`](https://aforren1.github.io/frmtmb/reference/num_factor.md)
   : Factor with numeric-coded levels for coordinate covariance
   structures
-
 - [`frmtmb-autocor`](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.md)
   : Within-group residual correlation (R-side autocorrelation)
-
 - [`frmtmb-multimembership`](https://aforren1.github.io/frmtmb/reference/frmtmb-multimembership.md)
   : Multi-membership random effects
-
-- [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
-  : Solve an ODE once per group inside a nonlinear predictor
-
-- [`frm_ode_failures()`](https://aforren1.github.io/frmtmb/reference/frm_ode_failures.md)
-  :
-
-  Groups whose ODE solve failed in the last
-  [`frm_ode()`](https://aforren1.github.io/frmtmb/reference/frm_ode.md)
-  call
 
 ## Fitting
 
@@ -58,6 +42,12 @@
 
 - [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
   : Declare a non-rowwise likelihood to the core
+
+- [`frmtmb_register_frame_check()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_frame_check.md)
+  : Check an assembled model frame from another package
+
+- [`frmtmb_ad_overload()`](https://aforren1.github.io/frmtmb/reference/frmtmb_ad_overload.md)
+  : Make a user-written function tape-safe
 
 - [`response_mean()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
   [`as_frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
@@ -187,81 +177,81 @@
   : Pooled model comparison across imputations (D1, D2, D3)
 - [`drop1(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/drop1.frmtmb_fit.md)
   : Single-term deletions
-- [`as_tmbstan()`](https://aforren1.github.io/frmtmb/reference/as_tmbstan.md)
-  : Sample from a frmtmb fit with tmbstan (NUTS)
-- [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
-  : Sample a model with NUTS
-- [`posterior_epred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-  [`posterior_linpred()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-  [`posterior_predict()`](https://aforren1.github.io/frmtmb/reference/posterior_epred.md)
-  : Expected-value and predictive draws from sampled parameters
 - [`as_draws()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
-  [`as.array(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
   [`as_draws_matrix()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
   [`as_draws_array()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
   [`as_draws_df()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
   [`as_draws_list()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
   [`as_draws_rvars()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
-  [`as.mcmc()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
-  : Convert draws to a posterior draws object
-- [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
-  : Pointwise log-likelihood of posterior draws
+  : Convert to a posterior draws object
 - [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md)
   [`waic()`](https://aforren1.github.io/frmtmb/reference/loo.md)
   [`loo_compare()`](https://aforren1.github.io/frmtmb/reference/loo.md)
-  [`psis()`](https://aforren1.github.io/frmtmb/reference/loo.md)
   [`LOO()`](https://aforren1.github.io/frmtmb/reference/loo.md)
   [`WAIC()`](https://aforren1.github.io/frmtmb/reference/loo.md) :
   Approximate leave-one-out cross-validation
 - [`bayes_R2()`](https://aforren1.github.io/frmtmb/reference/bayes_R2.md)
   : Bayesian R-squared
 - [`posterior_summary()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
-  [`posterior_interval()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
-  [`predictive_interval()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
-  [`predictive_error()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
   : Summaries and intervals of draws
-- [`pp_mixture()`](https://aforren1.github.io/frmtmb/reference/pp_mixture.md)
-  : Posterior mixture-component probabilities
+- [`expose_functions()`](https://aforren1.github.io/frmtmb/reference/expose_functions.md)
+  : Expose a model's compiled functions
 - [`ndraws()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
   [`nchains()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
   [`niterations()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
   [`nvariables()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
   : Size of a draws object
-- [`nobs(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-structure.md)
-  [`formula(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-structure.md)
-  [`family(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-structure.md)
-  [`getCall(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-structure.md)
-  [`coef(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-structure.md)
-  : Model structure behind a set of draws
-- [`mcmc_plot()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
-  [`pairs(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
-  [`nuts_params()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
-  [`log_posterior()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
-  [`rhat()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
-  [`neff_ratio()`](https://aforren1.github.io/frmtmb/reference/draws-diagnostics.md)
-  : Sampler diagnostics and MCMC plots
-- [`loo_moment_match()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
-  [`loo_subsample()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
-  [`reloo()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
-  [`kfold()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
-  [`bridge_sampler()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
-  [`bayes_factor()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
-  [`post_prob()`](https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.md)
-  : Refusals for the refit-based and marginal-likelihood brmsfit methods
-- [`stancode()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
-  [`standata()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
-  [`expose_functions()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
-  [`plot(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
-  [`update(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
-  [`restructure()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
-  [`posterior_samples()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
-  [`nsamples()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
-  [`parnames()`](https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.md)
-  : Methods a ported brms script may call that frmtmb does not have
 - [`getME(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/getME.frmtmb_fit.md)
   : Extract components of a fit, lme4 style
-- [`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
-  : Check the Laplace/Wald approximation against NUTS
+- [`frmtmb-sampling-api`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`build_objective`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`row_lpdf`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`with_cs_offsets`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`us_chol_cor`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`aterms_for_newdata`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`has_trunc`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`as_priorlist`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`resolve_prior_input`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`neg_log_prior_fn`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`resolve_bounds`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`spec_target`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`frmtmb_register_prior_defaults`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ncp_eligible`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ncp_scale_b`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ncp_unscale_b`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`covstruct_has_chol`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`block_sd_idx`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`block_cor_prior`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`block_n_cor`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`is_student_block`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`sim_can`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`sim_note`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`sim_context`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`sim_draw`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`sim_is_structured`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`par_name_bare`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`outer_par_names`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`estimated_coef_names`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`log_sd_theta_index`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`sdr_of`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`require_fitted`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_parse_all`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_vals_only`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_env_vals`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_eval`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_tail_p`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_grids_build`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_boot_one`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_finalize`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_cats_display`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_structure_check`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_re_formula`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`find_linpred`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`arg_unset`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`re_form_arg`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`frmtmb_register_compat`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`compat_rule_builder`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  : Core internals for a sampling extension
 - [`influence(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
   [`cooks.distance(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
   [`dfbeta(`*`<frmtmb_influence>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
@@ -280,7 +270,7 @@
 - [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   [`prior_t()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   [`prior_lkj()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
-  : Prior specifications for frm_sample
+  : Prior objects, addressed by internal parameter name
 - [`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md)
   : Priors used in a fit
 

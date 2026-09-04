@@ -21,7 +21,7 @@ bf(y ~ x, mu2 ~ 1)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,7 +37,6 @@ bf(y ~ x, mu2 ~ 1)."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -119,7 +118,7 @@ well-separated problems). <code>quadrature = TRUE</code> makes the integral
 numerically exact when the per-group integrand is univariate (one
 scalar random intercept, in one class); with class-specific
 intercepts in several classes the coordinates couple and quadrature
-remains approximate - use <code><a href="check_laplace.html">check_laplace()</a></code> to judge.
+remains approximate - use <code><a href="https://aforren1.github.io/frmtmb/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code> to judge.
 Mixing-weight predictors are evaluated at each group's first row
 (use group-constant covariates). <code><a href="mixture_probs.html">mixture_probs()</a></code> returns the
 posterior class probabilities per group (or per observation for

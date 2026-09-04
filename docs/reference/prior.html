@@ -19,7 +19,7 @@ build a prior from strings computed at run time."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,7 +35,6 @@ build a prior from strings computed at run time."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -107,8 +106,9 @@ plain strings; both exist so that priors can be built
 programmatically, and both are brms's.</p>
 <p>A frmtmb prior and a brms prior are different objects, and with brms
 attached after frmtmb its <code>prior()</code> masks this one. Nothing breaks:
-<code><a href="frm.html">frm()</a></code> and <code><a href="frm_sample.html">frm_sample()</a></code> accept a <code>brmsprior</code> object and translate
-its rows, so <code>c(prior(...), prior(...))</code> copied out of a brms script
+<code><a href="frm.html">frm()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> accept a <code>brmsprior</code> object
+and translate its rows, so <code>c(prior(...), prior(...))</code> copied out of a
+brms script
 works whichever <code>prior()</code> was in scope.</p>
     </div>
 

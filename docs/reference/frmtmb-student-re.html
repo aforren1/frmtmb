@@ -15,7 +15,7 @@ latent, because the t's tail can hold it."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,6 @@ latent, because the t's tail can hold it."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -135,7 +134,7 @@ the scale came back three times the exact one.</p></li>
 marginalizes a scalar random intercept by Gauss-Kronrod quadrature
 instead, which over a t latent is EXACT, not merely better; it is the
 one to run when a t block's variance component matters and the groups
-are small. <code><a href="check_laplace.html">check_laplace()</a></code> measures the same thing without
+are small. <code><a href="https://aforren1.github.io/frmtmb/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code> measures the same thing without
 refitting, by NUTS on the objective: its <code>z_shift</code> for
 <code>theta</code> reproduced the displacement above to within a percentage
 point in the probe.</p>

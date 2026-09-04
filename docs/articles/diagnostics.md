@@ -165,39 +165,19 @@ one.](diagnostics_files/figure-html/pp-check-1.png)
 
 Wald standard errors and the Laplace approximation share failure modes:
 variance components with few groups, binary data with tiny clusters.
-[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
-samples the fitted objective with NUTS (initialized at the ML mode) and
-compares posterior means and SDs against the ML estimates and Wald SEs;
-large `z_shift` or `sd_ratio` far from 1 flags parameters where Wald
-intervals should not be trusted - use `confint(method = "profile")` or
-the posterior itself for those.
+Three things in this package route around that:
+`confint(method = "profile")` replaces the quadratic assumption,
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+replaces it with a resampling distribution, and `frm(quadrature = TRUE)`
+replaces the Laplace approximation itself with adaptive quadrature.
 
-``` r
-
-check_laplace(fit, chains = 2, iter = 1000)
-```
-
-The drawn posterior is also a diagnostic object in its own right;
-bayesplot works on the draws:
-
-``` r
-
-ds <- frm_sample(fit, chains = 4,
-                 prior = set_prior("normal(0, 5)", class = "b") +
-                   set_prior("exponential(1)", class = "sd"))
-bayesplot::mcmc_intervals(as.matrix(ds),
-                          pars = c("(Intercept)", "x"))
-```
-
-With no `prior =` argument,
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
-applies brms’s default priors on either of its routes, and reports the
-ones it chose. `prior = "flat"` opts out and samples the likelihood:
-fine as a diagnostic, fragile as inference.
-[`check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.md)
-asks for that flat density itself, because it measures the Laplace
-approximation of the objective the fit maximized, and a default prior
-would change what is being measured.
+To measure the violation rather than route around it, install the
+companion package **frmtmb.sample** and read its `sampling` vignette.
+[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html)
+samples this very objective with NUTS and reports how far each posterior
+mean sits from its maximum-likelihood estimate, in posterior standard
+deviations, beside the ratio of the posterior standard deviation to the
+Wald standard error.
 
 ## Variance components on their natural scale
 

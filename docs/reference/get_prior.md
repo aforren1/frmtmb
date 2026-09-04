@@ -7,7 +7,7 @@ target, with the class/coef/dpar/group values to pass to
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md).
 The default in every slot is flat (this is maximum likelihood until
 priors are set; the formula route of
-[`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
 has its own brms defaults, which
 [`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md)
 reports). Classes `"sd"` and `"cor"` are targeted by `group` and
@@ -60,13 +60,13 @@ addresses (see its Nonlinear parameters section).
 dd <- data.frame(y = rnorm(60), x = rnorm(60),
                  g = factor(rep(1:6, 10)))
 get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-#>    prior     class    coef group  dpar nlpar resp lb ub
-#> 1 (flat) Intercept                                NA NA
-#> 2 (flat)         b                                NA NA
-#> 3 (flat)         b       x                        NA NA
-#> 4 (flat) Intercept               sigma            NA NA
-#> 5 (flat)        sd                                NA NA
-#> 6 (flat)        sd             g                  NA NA
-#> 7 (flat)     theta                                NA NA
-#> 8 (flat)     theta theta_1                        NA NA
+#>                     prior     class    coef group  dpar nlpar resp lb ub
+#> 1 student_t(3, -0.1, 2.5) Intercept                                NA NA
+#> 2                  (flat)         b                                NA NA
+#> 3                  (flat)         b       x                        NA NA
+#> 4    student_t(3, 0, 2.5) Intercept               sigma            NA NA
+#> 5    student_t(3, 0, 2.5)        sd                                NA NA
+#> 6    student_t(3, 0, 2.5)        sd             g                  NA NA
+#> 7                  (flat)     theta                                NA NA
+#> 8                  (flat)     theta theta_1                        NA NA
 ```

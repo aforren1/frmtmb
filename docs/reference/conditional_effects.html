@@ -19,7 +19,7 @@ conditional_smooths()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.46.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.47.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,7 +35,6 @@ conditional_smooths()."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
-    <li><a class="dropdown-item" href="../articles/ode.html">Differential equation models</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -92,21 +91,6 @@ terms are included, so this also covers what brms calls
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  conditions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  surface <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">...</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">conditional_effects</span><span class="op">(</span></span>
-<span>  <span class="va">x</span>,</span>
-<span>  effects <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  resolution <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>  prob <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re_formula <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>  conditions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -345,15 +329,17 @@ differentiate.</p>
     <h2 id="draws-objects">Draws objects<a class="anchor" aria-label="anchor" href="#draws-objects"></a></h2>
 
 
-<p>On a <code>frmtmb_draws</code> object from <code><a href="frm_sample.html">frm_sample()</a></code> the same grids are
-evaluated once per posterior draw, and <code>estimate__</code>, <code>lower__</code>,
+<p>On a <code>frmtmb_draws</code> object from <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> the
+same grids are evaluated once per posterior draw, and <code>estimate__</code>,
+<code>lower__</code>,
 <code>upper__</code> and <code>se__</code> are the pointwise mean, quantiles and standard
 deviation of the drawn curves. There is no <code>band =</code> or <code>method =</code> to
 choose (the band IS the posterior quantile band), a nonlinear
 predictor and a nominal per-category display work without a delta
 method, and the method runs on formula-route draws that have no
 maximum-likelihood fit behind them. <code>ndraws</code> thins the draws
-evenly for a cheaper curve. Draws from <code>frm_sample(laplace = TRUE)</code>
+evenly for a cheaper curve. Draws from a sampling run with
+<code>laplace = TRUE</code>
 are refused: the sampled vector no longer aligns with the model's
 parameter template.</p>
     </div>
