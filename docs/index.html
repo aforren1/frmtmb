@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -96,8 +96,9 @@
 </ul>
 <p>frmtmb supplies the combination: distributional regression on every parameter of the family, nonlinear formulas, multivariate responses with <code>rescor</code>, effects correlated across formulas with <code>|ID|</code>, custom families written as plain R log-densities, and the lme4 random-effect grammar with structured and spatial covariances, all under maximum likelihood or REML. The package generates each model’s objective as an R closure and differentiates it on the RTMB tape, so it does not select from a fixed set of likelihoods. Features that would each need a bespoke implementation become ordinary code paths, and they compose with each other.</p>
 <p>The second need is migration. brms code ports by changing <code>brm()</code> to <code><a href="reference/frm.html">frm()</a></code>. The priors can stay where they are: <code>frm(prior = )</code> takes brms’s own spelling, <code><a href="reference/prior.html">prior()</a></code> builds the specification <code><a href="reference/set_prior.html">set_prior()</a></code> does, and a prior object brms itself built is translated. The fit is then MAP, so a prior is a penalty on the likelihood rather than a posterior. A measured audit of the brms vignettes puts about 7 of 10 of their model calls through that transform unchanged; over every call the vignettes make, post-processing included, about 4 of 10 run unchanged, and most of the rest need one spelling change or get a refusal that names the replacement. A user can therefore screen models at millisecond speed, then return to brms for the final Bayesian fit with the same formula. <code><a href="articles/brms-migration.html">vignette("brms-migration")</a></code> maps the features and states, under “When you still want brms”, the cases that belong in brms.</p>
+<p><strong>A small core, with the rest in companion packages.</strong> The core package fits models and reports on them. Everything that needs another engine or another literature ships beside it: NUTS sampling, ordinary differential equations, discrete latent states, and drift-diffusion response times each live in their own package in this repository. That keeps the core’s dependencies on CRAN, keeps its promise of no compilation exact, and makes the part that matters reviewable on its own. The seam is public: <code><a href="reference/frmtmb_family.html">frmtmb_family()</a></code>, <code><a href="reference/frmtmb_structure.html">frmtmb_structure()</a></code> and the registration functions are the same interface the companion packages use, so a family written outside this repository reaches the core the same way <code>hmm()</code> does.</p>
 <p><strong>Audience.</strong> Applied statisticians and quantitative researchers who already write brms formulas, and who need a likelihood-based answer: for a maximum-likelihood workflow, for a model that must fit in seconds inside a simulation or a bootstrap, for a report that asks for confidence intervals and likelihood-ratio tests, or for a teaching setting where no toolchain can be installed. Fields where this comes up include psychology and psychophysics, ecology, pharmacometrics, and meta-analysis.</p>
-<p>Related work: glmmTMB is the closest relative, a mature and fast TMB-based mixed-model package. frmtmb matches its fits where the models overlap and follows its conventions in several places. <a href="https://github.com/norimune/BayesRTMB" class="external-link">BayesRTMB</a> is a Bayesian-first, Stan-like modeling layer on the same RTMB backend. <a href="https://paulbuerkner.com/brms/" class="external-link">brms</a> itself is the right tool when you want priors and full posterior inference; the shared grammar is meant to make movement between the two easy.</p>
+<p>Related work: glmmTMB is the closest relative, a mature and fast TMB-based mixed-model package. frmtmb matches its fits where the models overlap and follows its conventions in several places. <a href="https://github.com/norimune/BayesRTMB" class="external-link">BayesRTMB</a> is a Bayesian-first, Stan-like modeling layer on the same RTMB backend. <a href="https://github.com/Tony-Myers/qbrms" class="external-link">qbrms</a> also reads brms syntax and sends it to a different engine, INLA, which fits approximate posteriors for latent Gaussian models; frmtmb instead maximizes the likelihood and takes families and nonlinear bodies that INLA’s model class does not cover. <a href="https://paulbuerkner.com/brms/" class="external-link">brms</a> itself is the right tool when you want priors and full posterior inference; the shared grammar is meant to make movement between the two easy.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -106,11 +107,43 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span><span class="op">)</span></span></code></pre></div>
-<p>Three companion packages live in this repository, each installed the same way. <code>frmtmb.sample</code> adds NUTS sampling and the posterior method surface, <code>frmtmb.latent</code> adds the discrete latent-state families <code>hmm()</code> and <code>lca()</code>, and <code>frmtmb.ode</code> adds ordinary differential equation dynamics.</p>
+<p>Four companion packages live in this repository, each installed the same way and each documented on its own part of the site.</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>package</th>
+<th>adds</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample</a></td>
+<td>NUTS sampling through tmbstan, and the posterior method surface</td>
+</tr>
+<tr>
+<td><a href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent</a></td>
+<td>discrete latent states: <code>hmm()</code> and <code>lca()</code>
+</td>
+</tr>
+<tr>
+<td><a href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode</a></td>
+<td>ordinary differential equation dynamics: <code>frm_ode()</code>
+</td>
+</tr>
+<tr>
+<td><a href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm</a></td>
+<td>drift-diffusion response times: <code>wiener()</code>
+</td>
+</tr>
+</tbody>
+</table>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.sample"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.latent"</span><span class="op">)</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.ode"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.ode"</span><span class="op">)</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.ddm"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
@@ -131,15 +164,16 @@
 <span></span>
 <span><span class="fu"><a href="reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)"</span>,</span>
 <span>           method <span class="op">=</span> <span class="st">"boot"</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="articles/habit.html">vignette("habit")</a></code> is a longer worked example: it replicates a published response-preparation model, fits every participant in a few seconds, and then fits the hierarchical version that the original per-participant procedure could not express.</p>
 </div>
 <div class="section level2">
 <h2 id="status">Status<a class="anchor" aria-label="anchor" href="#status"></a>
 </h2>
-<p>Pre-release (v0.39). The goal is a CRAN release. Validation has three layers:</p>
+<p>Pre-release. The goal is a CRAN release. Validation has three layers:</p>
 <ul>
-<li>The suite contains more than 5000 tests. Every model class is compared with an exact reference: glmmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive, quantreg, mice, closed-form marginals, or hand-written ML.</li>
+<li>Every model class is compared with an exact external reference: glmmTMB, lme4, mgcv, nlme, MASS, survival, nnet, GLMMadaptive, quantreg, mice, closed-form marginals, or hand-written maximum likelihood. The core suite and each companion package’s suite run on every change, and each companion package has its own check workflow.</li>
 <li>The model-building layer is compared with brms itself. Design matrices, random-effect structures, and special-term data agree with <code><a href="https://paulbuerkner.com/brms/reference/standata.html" class="external-link">brms::make_standata()</a></code> to near machine precision. An opt-in tier verifies that our estimates equal the mode of the Stan programs that brms generates.</li>
-<li>A pairwise grammar fuzzer sweeps feature combinations against metamorphic invariants. The resulting compatibility map is queryable with <code><a href="reference/frm_compat.html">frm_compat()</a></code> and is published as the <a href="https://aforren1.github.io/frmtmb/articles/compatibility.html">feature compatibility</a> article.</li>
+<li>A pairwise grammar fuzzer sweeps feature combinations against metamorphic invariants. The resulting compatibility map is queryable with <code><a href="reference/frm_compat.html">frm_compat()</a></code>, which the companion packages contribute their own rows to, and is published as the <a href="https://aforren1.github.io/frmtmb/articles/compatibility.html">feature compatibility</a> article.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -158,23 +192,21 @@
 <code>gp(x)</code> fits an exact Gaussian process and predicts with kriging. <code>gp(x, k = 30)</code> uses the Hilbert-space approximation with brms’s exact input convention, so the same call is the same approximation. Up to three dimensions are supported, with per-dimension lengthscales; <code>iso = TRUE</code> shares one.</li>
 <li>
 <code>mo()</code> fits monotonic effects. <code>mi()</code> imputes continuous predictors in one step, and <code>mi(sdx)</code> models measurement error. <code>cs()</code> fits category-specific ordinal effects. <code>mo()</code> and <code>mi()</code> support two-way interactions.</li>
-<li>Multivariate models use <code>mvbf</code>, per-response families, and <code>rescor</code>. Nonlinear formulas use <code>nl = TRUE</code>. <code>multinomial(K)</code> takes a matrix response.</li>
+<li>Multivariate models use <code>mvbf</code>, per-response families, and <code>rescor</code>. Nonlinear formulas use <code>nl = TRUE</code>. Inside a nonlinear body, a bare <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">pnorm()</a></code> or <code><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">qgamma()</a></code> is the tape-capable version, so a process model reads as it would on paper. <code>multinomial(K)</code> takes a matrix response.</li>
 <li>The families include the usual GLM(M) set plus student, tweedie, compois, beta-binomial, skew-normal, ex-gaussian, weibull, shifted lognormal, and quantile regression (<code>asym_laplace</code>), with zero-inflated and hurdle variants and four ordinal families. <code><a href="reference/mixture.html">mixture()</a></code> fits finite mixtures, including group-level latent classes (<code>mixture(..., groups = ~g)</code>) with class-specific random effects for growth-mixture models. <code>mixture_mvn(K, D, model =)</code> fits multivariate gaussian components over mclust’s covariance taxonomy, with covariate-dependent means and gating. <code><a href="reference/frmtmb-families.html">categorical()</a></code> fits nominal responses, <code><a href="reference/frmtmb-families.html">von_mises()</a></code> circular ones, and <code><a href="reference/frmtmb-families.html">cox()</a></code> proportional hazards with a flexible baseline and Laplace frailties. <code><a href="reference/frmtmb_family.html">custom_family()</a></code> takes a plain R log-density; section 11 of <code><a href="articles/case-studies.html">vignette("case-studies")</a></code> writes one with a data-bounded link and checks it against the built-in family it shadows.</li>
-<li>Discrete latent states: the <code>frmtmb.latent</code> package adds <code>hmm(K)</code> for hidden Markov models, with covariate-dependent transitions and forward-backward decoding, and <code>lca(K)</code> for latent class analysis with class-membership regression.</li>
-<li>Ordinary differential equations: the <code>frmtmb.ode</code> package adds <code>frm_ode()</code>, which solves compartment models inside nonlinear formulas (population pharmacokinetics), with repeated dosing, infusions, and estimated bioavailability.</li>
-<li>The addition terms are <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>trials()</code> (counts or proportions), <code>cens()</code>, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code>se()</code> (meta-analysis), <code>mi()</code>, and <code>vint()</code>/<code>vreal()</code>.</li>
+<li>The addition terms are <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>trials()</code> (counts or proportions), <code>cens()</code>, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code>se()</code> (meta-analysis), <code>mi()</code>, and <code>vint()</code>/<code>vreal()</code>. A companion package can register one of its own.</li>
+<li>The companion packages extend the same grammar. <code>frmtmb.latent</code> adds <code>hmm(K)</code> for hidden Markov models, with covariate-dependent transitions and forward-backward decoding, and <code>lca(K)</code> for latent class analysis with class-membership regression. <code>frmtmb.ode</code> adds <code>frm_ode()</code>, which solves compartment models inside nonlinear formulas (population pharmacokinetics), with repeated dosing, infusions, and estimated bioavailability. <code>frmtmb.ddm</code> adds <code>wiener()</code>, the drift-diffusion first-passage density, with a formula for each of the drift rate, boundary separation, non-decision time and starting bias.</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="estimation-and-inference">Estimation and inference<a class="anchor" aria-label="anchor" href="#estimation-and-inference"></a>
 </h2>
 <ul>
-<li>Estimation is ML or REML. <code>quadrature = TRUE</code> uses adaptive quadrature for scalar random effects. <code><a href="reference/set_prior.html">set_prior()</a></code> and <code><a href="reference/prior.html">prior()</a></code> give MAP estimation with the brms spelling, <code>nlpar =</code> and <code>resp =</code> included. Hard bounds and pluggable optimizers are available. <code><a href="reference/frmtmb_control.html">frmtmb_control()</a></code> offers <code>profile = TRUE</code> for many-coefficient models, <code>sparse_x = TRUE</code> for many-level fixed factors, <code>autoscale = TRUE</code> for badly scaled predictors, and <code>verbose =</code> for timed progress on slow fits.</li>
+<li>Estimation is ML or REML. <code>quadrature = TRUE</code> uses adaptive quadrature for scalar random effects. <code><a href="reference/set_prior.html">set_prior()</a></code> and <code><a href="reference/prior.html">prior()</a></code> give MAP estimation with the brms spelling, <code>nlpar =</code> and <code>resp =</code> included, and the same call carries hard bounds through <code>lb</code>/<code>ub</code>: the prior vocabulary is the only way to bound a parameter, and it reaches every one of them, including the residual-correlation classes <code>ar</code>, <code>ma</code>, <code>cosy</code>, <code>cortime</code> and <code>rescor</code>. <code><a href="reference/frmtmb_control.html">frmtmb_control()</a></code> offers pluggable optimizers, <code>profile = TRUE</code> for many-coefficient models, <code>sparse_x = TRUE</code> for many-level fixed factors, <code>autoscale = TRUE</code> for badly scaled predictors, and <code>verbose =</code> for timed progress on slow fits. <code><a href="reference/par_template.html">par_template()</a></code> reports the names and starting values a model takes, before there is a fit to ask.</li>
 <li>
 <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> offers Wald, profile, likelihood-root, and bootstrap intervals. <code><a href="reference/hypothesis.html">hypothesis()</a></code> tests expressions of coefficients, with natural-scale <code>sd_</code>/<code>cor_</code> names for ICC-type quantities. <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> and <code><a href="https://rdrr.io/r/stats/add1.html" class="external-link">drop1()</a></code> give likelihood-ratio tests. <code><a href="reference/frm_bootstrap.html">frm_bootstrap()</a></code>, <code><a href="https://rdrr.io/r/stats/lm.influence.html" class="external-link">influence()</a></code> with <code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">cooks.distance()</a></code> and <code><a href="https://rdrr.io/r/stats/influence.measures.html" class="external-link">dfbetas()</a></code>, <code><a href="reference/frm_allfit.html">frm_allfit()</a></code>, and <code><a href="reference/frm_multiple.html">frm_multiple()</a></code> (Rubin pooling, including variance components and hypotheses) complete the set.</li>
 <li>Simulation goes both ways. <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws from a fit. <code><a href="reference/frm_simulate.html">frm_simulate()</a></code> draws from a bare design, with natural-scale parameters (<code>sd_g__Intercept = 0.7</code>) or with parameters drawn per replicate from <code><a href="reference/set_prior.html">set_prior()</a></code> specifications. That is the <code>sample_prior = "only"</code> prior-predictive workflow, without MCMC.</li>
-<li>
-<code>frm_sample()</code> runs NUTS on the fitted objective and returns a full draws surface (<code>posterior_epred()</code>, <code>posterior_predict()</code>, <code><a href="reference/hypothesis.html">hypothesis()</a></code>, <code><a href="reference/pp_check.html">pp_check()</a></code>). <code>check_laplace()</code> audits the approximation.</li>
+<li>Posterior inference lives in <code>frmtmb.sample</code>. Its <code>frm_sample()</code> runs NUTS on the fitted objective, or on a formula with brms’s default priors, and returns a full draws surface (<code>posterior_epred()</code>, <code>posterior_predict()</code>, <code><a href="reference/hypothesis.html">hypothesis()</a></code>, <code><a href="reference/pp_check.html">pp_check()</a></code>, <code><a href="reference/loo.html">loo()</a></code>). Its <code>check_laplace()</code> measures the Laplace and Wald approximations against the sampler on the same objective.</li>
 <li>Diagnostics include one-step-ahead residuals calibrated for censored, truncated, and ordinal responses, deviance residuals across the GLM families, and response-scale <code>se.fit</code> for every family through the joint delta method. DHARMa, <code><a href="reference/pp_check.html">pp_check()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>, and <code><a href="reference/conditional_effects.html">conditional_effects()</a></code> are supported. Hooks for emmeans, marginaleffects, and insight/easystats are registered.</li>
 </ul>
 </div>
@@ -188,9 +220,11 @@
 <li>
 <strong>The fitted-object API is stable.</strong> <code><a href="reference/frm.html">frm()</a></code>, the accessor methods (<code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>, <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, and the rest), and the family constructors keep their current behavior.</li>
 <li>
+<strong>The extension interface is public and settled.</strong> <code><a href="reference/frmtmb_family.html">frmtmb_family()</a></code>, <code><a href="reference/frmtmb_structure.html">frmtmb_structure()</a></code> and the registration functions are documented as one contract, and the companion packages in this repository are written against it with no reach into internals. <code>frmtmb.ddm</code> was built that way as a test of it.</li>
+<li>
 <strong>Internal structure can change.</strong> Fields of the fitted object that no exported method reaches are not part of the API. Use the accessors.</li>
 <li>
-<strong>Some parts are still moving.</strong> Multivariate coverage of the post-fit methods, the mixture families, and <code>frm_sample()</code> gain features between releases.</li>
+<strong>Some parts are still moving.</strong> Multivariate coverage of the post-fit methods and the mixture families gain features between releases.</li>
 </ul>
 <p>Version numbers stay below 1.0 until the CRAN release. Breaking changes are listed in <code>NEWS.md</code>.</p>
 <p>The package is actively developed and maintained. Planned work: full multivariate support in every post-fit method, more reference comparisons, and CRAN submission.</p>
@@ -198,7 +232,7 @@
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<p>Run <code>citation("frmtmb")</code> in R. Please also cite RTMB, TMB, and tmbstan.</p>
+<p>Run <code>citation("frmtmb")</code> in R. Please also cite RTMB and TMB, and tmbstan if you sampled.</p>
 </div>
 <div class="section level2">
 <h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>

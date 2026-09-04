@@ -70,6 +70,18 @@ with the same formula. `vignette("brms-migration")` maps the
 features and states, under "When you still want brms", the cases
 that belong in brms.
 
+**A small core, with the rest in companion packages.** The core
+package fits models and reports on them. Everything that needs
+another engine or another literature ships beside it: NUTS sampling,
+ordinary differential equations, discrete latent states, and
+drift-diffusion response times each live in their own package in
+this repository. That keeps the core's dependencies on CRAN, keeps
+its promise of no compilation exact, and makes the part that matters
+reviewable on its own. The seam is public: `frmtmb_family()`,
+`frmtmb_structure()` and the registration functions are the same
+interface the companion packages use, so a family written outside
+this repository reaches the core the same way `hmm()` does.
+
 **Audience.** Applied statisticians and quantitative researchers who
 already write brms formulas, and who need a likelihood-based answer:
 for a maximum-likelihood workflow, for a model that must fit in
@@ -84,9 +96,13 @@ TMB-based mixed-model package. frmtmb matches its fits where the
 models overlap and follows its conventions in several places.
 [BayesRTMB](https://github.com/norimune/BayesRTMB) is a
 Bayesian-first, Stan-like modeling layer on the same RTMB backend.
-[brms](https://paulbuerkner.com/brms/) itself is the right tool when
-you want priors and full posterior inference; the shared grammar is
-meant to make movement between the two easy.
+[qbrms](https://github.com/Tony-Myers/qbrms) also reads brms syntax
+and sends it to a different engine, INLA, which fits approximate
+posteriors for latent Gaussian models; frmtmb instead maximizes the
+likelihood and takes families and nonlinear bodies that INLA's model
+class does not cover. [brms](https://paulbuerkner.com/brms/) itself
+is the right tool when you want priors and full posterior inference;
+the shared grammar is meant to make movement between the two easy.
 
 ## Installation
 
@@ -98,16 +114,21 @@ GitHub:
 remotes::install_github("aforren1/frmtmb")
 ```
 
-Three companion packages live in this repository, each installed the
-same way. `frmtmb.sample` adds NUTS sampling and the posterior method
-surface, `frmtmb.latent` adds the discrete latent-state families
-`hmm()` and `lca()`, and `frmtmb.ode` adds ordinary differential
-equation dynamics.
+Four companion packages live in this repository, each installed the
+same way and each documented on its own part of the site.
+
+| package | adds |
+|---|---|
+| [frmtmb.sample](https://aforren1.github.io/frmtmb/frmtmb.sample/) | NUTS sampling through tmbstan, and the posterior method surface |
+| [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()` and `lca()` |
+| [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
+| [frmtmb.ddm](https://aforren1.github.io/frmtmb/frmtmb.ddm/) | drift-diffusion response times: `wiener()` |
 
 ```r
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.sample")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.latent")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ddm")
 ```
 
 ## Example
@@ -130,15 +151,21 @@ hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)",
            method = "boot")
 ```
 
+`vignette("habit")` is a longer worked example: it replicates a
+published response-preparation model, fits every participant in a
+few seconds, and then fits the hierarchical version that the
+original per-participant procedure could not express.
+
 ## Status
 
-Pre-release (v0.39). The goal is a CRAN release. Validation has
-three layers:
+Pre-release. The goal is a CRAN release. Validation has three layers:
 
-- The suite contains more than 5000 tests. Every model class is compared
-  with an exact reference: glmmTMB, lme4, mgcv, MASS, survival,
-  nnet, GLMMadaptive, quantreg, mice, closed-form marginals, or
-  hand-written ML.
+- Every model class is compared with an exact external reference:
+  glmmTMB, lme4, mgcv, nlme, MASS, survival, nnet, GLMMadaptive,
+  quantreg, mice, closed-form marginals, or hand-written maximum
+  likelihood. The core suite and each companion package's suite run
+  on every change, and each companion package has its own check
+  workflow.
 - The model-building layer is compared with brms itself. Design
   matrices, random-effect structures, and special-term data agree
   with `brms::make_standata()` to near machine precision. An opt-in
@@ -146,7 +173,8 @@ three layers:
   programs that brms generates.
 - A pairwise grammar fuzzer sweeps feature combinations against
   metamorphic invariants. The resulting compatibility map is
-  queryable with `frm_compat()` and is published as the
+  queryable with `frm_compat()`, which the companion packages
+  contribute their own rows to, and is published as the
   [feature compatibility](https://aforren1.github.io/frmtmb/articles/compatibility.html)
   article.
 
@@ -192,7 +220,9 @@ three layers:
   `cs()` fits category-specific ordinal effects. `mo()` and `mi()`
   support two-way interactions.
 - Multivariate models use `mvbf`, per-response families, and
-  `rescor`. Nonlinear formulas use `nl = TRUE`. `multinomial(K)`
+  `rescor`. Nonlinear formulas use `nl = TRUE`. Inside a nonlinear
+  body, a bare `pnorm()` or `qgamma()` is the tape-capable version,
+  so a process model reads as it would on paper. `multinomial(K)`
   takes a matrix response.
 - The families include the usual GLM(M) set plus student, tweedie,
   compois, beta-binomial, skew-normal, ex-gaussian, weibull, shifted
@@ -209,28 +239,36 @@ three layers:
   `custom_family()` takes a plain R log-density; section 11 of
   `vignette("case-studies")` writes one with a data-bounded link and
   checks it against the built-in family it shadows.
-- Discrete latent states: the `frmtmb.latent` package adds `hmm(K)`
-  for hidden Markov models, with covariate-dependent transitions and
-  forward-backward decoding, and `lca(K)` for latent class analysis
-  with class-membership regression.
-- Ordinary differential equations: the `frmtmb.ode` package adds
-  `frm_ode()`, which solves compartment models inside nonlinear
-  formulas (population pharmacokinetics), with repeated dosing,
-  infusions, and estimated bioavailability.
 - The addition terms are `weights()`, `trials()` (counts or
   proportions), `cens()`, `trunc()`, `se()` (meta-analysis), `mi()`,
-  and `vint()`/`vreal()`.
+  and `vint()`/`vreal()`. A companion package can register one of
+  its own.
+- The companion packages extend the same grammar. `frmtmb.latent`
+  adds `hmm(K)` for hidden Markov models, with covariate-dependent
+  transitions and forward-backward decoding, and `lca(K)` for latent
+  class analysis with class-membership regression. `frmtmb.ode` adds
+  `frm_ode()`, which solves compartment models inside nonlinear
+  formulas (population pharmacokinetics), with repeated dosing,
+  infusions, and estimated bioavailability. `frmtmb.ddm` adds
+  `wiener()`, the drift-diffusion first-passage density, with a
+  formula for each of the drift rate, boundary separation,
+  non-decision time and starting bias.
 
 ## Estimation and inference
 
 - Estimation is ML or REML. `quadrature = TRUE` uses adaptive
   quadrature for scalar random effects. `set_prior()` and `prior()`
   give MAP estimation with the brms spelling, `nlpar =` and `resp =`
-  included. Hard bounds and pluggable
-  optimizers are available. `frmtmb_control()` offers
+  included, and the same call carries hard bounds through `lb`/`ub`:
+  the prior vocabulary is the only way to bound a parameter, and it
+  reaches every one of them, including the residual-correlation
+  classes `ar`, `ma`, `cosy`, `cortime` and `rescor`.
+  `frmtmb_control()` offers pluggable optimizers,
   `profile = TRUE` for many-coefficient models, `sparse_x = TRUE`
   for many-level fixed factors, `autoscale = TRUE` for badly scaled
   predictors, and `verbose =` for timed progress on slow fits.
+  `par_template()` reports the names and starting values a model
+  takes, before there is a fit to ask.
 - `confint()` offers Wald, profile, likelihood-root, and bootstrap
   intervals. `hypothesis()` tests expressions of coefficients, with
   natural-scale `sd_`/`cor_` names for ICC-type quantities.
@@ -243,10 +281,12 @@ three layers:
   parameters (`sd_g__Intercept = 0.7`) or with parameters drawn per
   replicate from `set_prior()` specifications. That is the
   `sample_prior = "only"` prior-predictive workflow, without MCMC.
-- `frm_sample()` runs NUTS on the fitted objective and returns a
-  full draws surface (`posterior_epred()`, `posterior_predict()`,
-  `hypothesis()`, `pp_check()`). `check_laplace()` audits the
-  approximation.
+- Posterior inference lives in `frmtmb.sample`. Its `frm_sample()`
+  runs NUTS on the fitted objective, or on a formula with brms's
+  default priors, and returns a full draws surface
+  (`posterior_epred()`, `posterior_predict()`, `hypothesis()`,
+  `pp_check()`, `loo()`). Its `check_laplace()` measures the Laplace
+  and Wald approximations against the sampler on the same objective.
 - Diagnostics include one-step-ahead residuals calibrated for
   censored, truncated, and ordinal responses, deviance residuals
   across the GLM families, and response-scale `se.fit` for every
@@ -264,12 +304,17 @@ frmtmb is maturing. The package is not yet on CRAN.
 - **The fitted-object API is stable.** `frm()`, the accessor methods
   (`coef()`, `confint()`, `vcov()`, `predict()`, and the rest), and
   the family constructors keep their current behavior.
+- **The extension interface is public and settled.**
+  `frmtmb_family()`, `frmtmb_structure()` and the registration
+  functions are documented as one contract, and the companion
+  packages in this repository are written against it with no reach
+  into internals. `frmtmb.ddm` was built that way as a test of it.
 - **Internal structure can change.** Fields of the fitted object
   that no exported method reaches are not part of the API. Use the
   accessors.
 - **Some parts are still moving.** Multivariate coverage of the
-  post-fit methods, the mixture families, and `frm_sample()` gain
-  features between releases.
+  post-fit methods and the mixture families gain features between
+  releases.
 
 Version numbers stay below 1.0 until the CRAN release. Breaking
 changes are listed in `NEWS.md`.
@@ -280,7 +325,8 @@ comparisons, and CRAN submission.
 
 ## Citation
 
-Run `citation("frmtmb")` in R. Please also cite RTMB, TMB, and tmbstan.
+Run `citation("frmtmb")` in R. Please also cite RTMB and TMB, and
+tmbstan if you sampled.
 
 ## Contributing
 
