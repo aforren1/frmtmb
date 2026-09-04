@@ -1,0 +1,256 @@
+---
+title: "Drift-diffusion models of two-choice response times"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Drift-diffusion models of two-choice response times}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+has_rw <- requireNamespace("RWiener", quietly = TRUE)
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>",
+  # every fit and every reference value needs the simulator or the
+  # reference density, so the whole vignette is gated on one flag
+  eval = has_rw
+)
+library(frmtmb.ddm)
+```
+
+```{r, echo = FALSE, eval = !has_rw, comment = NA}
+cat("RWiener is not installed, so this vignette was built without\n",
+    "running its examples. Install RWiener to reproduce them.\n")
+```
+
+## What the model says
+
+A participant sees a letter string and decides whether it is a word.
+The drift-diffusion model says that evidence accumulates noisily from a
+starting point until it reaches one of two boundaries, and the response
+time is when it gets there. Four quantities describe that:
+
+- `mu`, the **drift rate**: how fast evidence arrives, and in which
+  direction. This is the one that usually carries the experimental
+  effect.
+- `bs`, the **boundary separation**: how much evidence is required.
+  Wide boundaries mean slow, accurate responses.
+- `ndt`, the **non-decision time**: encoding the stimulus and moving the
+  finger, which no amount of deciding accounts for.
+- `bias`, the **relative start point**: where accumulation begins
+  between the boundaries. 0.5 is unbiased.
+
+The names are brms's, so a model written for `brms::wiener()` reads the
+same here.
+
+## Simulating an experiment
+
+`ddm_simulate()` draws response times and boundary choices jointly, the
+way an experiment produces them. Here, words and non-words differ in
+drift rate and in nothing else, which is the standard claim about a
+lexical decision task.
+
+```{r simulate}
+set.seed(20240903)
+n <- 1200
+word <- rep(c(0, 1), each = n / 2)
+dat <- ddm_simulate(n,
+                    mu = 0.3 + 1.0 * word,   # words drift faster
+                    bs = 1.5,
+                    ndt = 0.30,
+                    bias = 0.5)
+dat$lex <- factor(word, labels = c("nonword", "word"))
+head(dat)
+```
+
+`upper` is the decision: 1 for a response at the upper boundary, 0 for
+the lower one.
+
+```{r describe}
+with(dat, tapply(rt, list(lex, upper), mean))
+with(dat, tapply(rt, lex, length))
+prop.table(table(dat$lex, dat$upper), margin = 1)
+```
+
+## The decision indicator
+
+brms spells the boundary a trial ended at as `rt | dec(decision)`.
+frmtmb's addition terms are a closed set and `dec()` is not one of them,
+so this family reads the indicator from `vint()` instead:
+
+```{r spelling, eval = FALSE}
+# brms
+brm(rt | dec(decision) ~ lex, family = wiener(), data = dat)
+
+# here
+frm(bf(rt | vint(upper) ~ lex), family = wiener(), data = dat)
+```
+
+`upper` must already be coded 0/1. Unlike `dec()`, `vint()` will not
+take a factor, and passing anything else is refused rather than
+silently coerced.
+
+## Fitting
+
+Drift depends on lexicality; everything else is constant across trials.
+`bias = 0.5` fixes the start point on the response scale, which is the
+usual choice when nothing in the design would bias it.
+
+```{r fit}
+fit <- frm(bf(rt | vint(upper) ~ lex, bias = 0.5),
+           family = wiener(), data = dat)
+summary(fit)
+```
+
+Read the coefficients on their own scales. Drift is on the identity
+scale, so the `lexword` coefficient is the change in drift rate
+directly.
+Boundary separation is on the log scale. The non-decision time is on a
+logit scaled onto `(0, min(rt))`, which is what keeps it inside the
+support:
+
+```{r coefs}
+e <- unlist(fixef(fit))
+c(drift_nonword = e[["mu.(Intercept)"]],
+  drift_word_gain = e[["mu.lexword"]],
+  boundary = exp(e[["bs.(Intercept)"]]),
+  ndt = min(dat$rt) / (1 + exp(-e[["ndt.(Intercept)"]])))
+```
+
+Against the values the data were generated from -- drift 0.3 and 1.3,
+boundary 1.5, non-decision time 0.30 -- that is the recovery this design
+supports at `r n` trials.
+
+## Why the non-decision time needs a bounded link
+
+The density is exactly zero for a response time at or below `ndt`. A log
+link would let the optimizer propose a non-decision time above the
+fastest observed response, where the likelihood is not merely small but
+undefined, and it would find out only by stepping there.
+
+So `ndt` gets a logit scaled onto `(0, max_ndt)`, with `max_ndt`
+defaulting to the smallest response time in the data. The constraint
+becomes structural: no finite linear predictor can violate it.
+
+```{r ndt-link}
+lk <- wiener(max_ndt = 0.4)$links[["ndt"]]
+lk$linkinv(c(-10, -2, 0, 2, 10))   # always strictly inside (0, 0.4)
+```
+
+Pass `max_ndt` explicitly when you intend to `predict()` on new data
+whose fastest response differs from the training set's.
+
+## Predictions
+
+`fitted()` and `predict(type = "response")` give the mean response time,
+conditional on the boundary that row ended at, in closed form.
+
+```{r predict}
+nd <- data.frame(lex = factor(c("nonword", "word")), upper = c(1, 1))
+predict(fit, newdata = nd, type = "response")
+```
+
+`vint()` is required on `newdata` as well; there is no default boundary,
+because the conditional mean genuinely depends on it.
+
+One caution that looks like a bug and is not. With `bias` fixed at 0.5,
+the conditional mean decision time is the **same** at both boundaries,
+for any drift rate. That is a theorem about the diffusion, not an
+oversight: an unbiased start gives fast and slow responses the same
+average time whichever way they go. Free the bias and the two separate:
+
+```{r bias-free}
+set.seed(7)
+d2 <- ddm_simulate(900, mu = 0.7, bs = 1.4, ndt = 0.25, bias = 0.35)
+f2 <- frm(bf(rt | vint(upper) ~ 1), family = wiener(), data = d2)
+c(pred_upper = predict(f2, newdata = data.frame(upper = 1),
+                       type = "response"),
+  pred_lower = predict(f2, newdata = data.frame(upper = 0),
+                       type = "response"),
+  obs_upper = mean(d2$rt[d2$upper == 1]),
+  obs_lower = mean(d2$rt[d2$upper == 0]))
+```
+
+## Simulating from a fit
+
+`simulate()` draws response times at each row's own boundary, by
+inverse transform through the first-passage quantile function. Comparing
+those draws with the observed times is the usual posterior-predictive
+sanity check.
+
+```{r simulate-fit}
+set.seed(3)
+sims <- as.matrix(simulate(fit, nsim = 100))
+c(observed = mean(dat$rt), simulated = mean(sims))
+quantile(dat$rt, c(0.1, 0.5, 0.9))
+quantile(sims,   c(0.1, 0.5, 0.9))
+```
+
+## What this family does not do
+
+- **`cens()` and `trunc()` are refused.** They need a distribution
+  function, and the family declares none. The Wiener first-passage CDF
+  is a third series with its own truncation problem, and it is not
+  written here.
+- **`residuals(type = "pearson")` and `"deviance"` are refused.** No
+  variance function and no unit deviance. `type = "response"` works.
+- **The decision is data, not a modelled outcome.** This family models
+  the response time given the boundary. It does not jointly model which
+  boundary was reached, so it is not a substitute for fitting choice and
+  time together.
+
+`frm_compat("wiener")` states each of these, along with what was tested
+and what merely was not.
+
+```{r compat}
+frm_compat("wiener")[, c("feature_b", "status")]
+```
+
+## The density
+
+The likelihood is the Wiener first-passage time density of Navarro and
+Fuss (2009). They give two series for it: one that converges quickly at
+small normalized times `u = t / a^2`, one that converges quickly at
+large ones, and a criterion for choosing between them per evaluation.
+
+An automatic-differentiation tape cannot make that choice. `u` depends
+on the boundary separation, which is a parameter, so a comparison on `u`
+is a branch on a parameter -- and RTMB advectors carry no comparison
+operators, so it does not even tape. Branching on the response alone
+would tape and would be wrong, because the same response time falls on
+either side of the criterion depending on the boundary separation.
+
+This package evaluates **both** series at a fixed truncation and blends
+their logs with a logistic weight in `log(u)`: Navarro and Fuss's
+criterion with the step smoothed. The weight saturates to exactly 0 and
+exactly 1 outside a narrow band, and inside that band both series are
+accurate, so any convex combination of them is accurate too.
+
+The cost is that every evaluation pays for both series. What it buys is
+a density that holds over the whole range of normalized times rather
+than the part a single truncation happens to cover:
+
+```{r accuracy}
+u <- c(0.005, 0.05, 0.4, 2, 8, 30)
+ref <- vapply(u, function(uu) {
+  log(RWiener::dwiener(uu + 1e-12, 1, 1e-12, 0.45, 1, resp = "lower"))
+}, 0)
+mine <- vapply(u, function(uu) {
+  frmtmb.ddm:::ddm_lpdf_lower(uu, 1, 1, 0.45)
+}, 0)
+small_only <- vapply(u, function(uu) {
+  frmtmb.ddm:::ddm_log_gs(uu, 0.45) - 1 * 1 * 0.45 - 1 * 1 * uu / 2
+}, 0)
+data.frame(u,
+           blended_rel_err = abs(mine - ref) / abs(ref),
+           small_time_only_rel_err = abs(small_only - ref) / abs(ref))
+```
+
+The last column is what a fixed truncation of the small-time series
+alone would give. It is fine until it is not.
+
+## Reference
+
+Navarro, D. J. and Fuss, I. G. (2009). Fast and accurate calculations
+for first-passage times in Wiener diffusion models. *Journal of
+Mathematical Psychology*, 53(4), 222-230.
