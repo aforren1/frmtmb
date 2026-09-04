@@ -95,6 +95,7 @@ reference:
 - title: Package
   contents:
   - frmtmb-package
+  - habit_prep
 
 articles:
 - title: Guides
@@ -105,4 +106,5 @@ articles:
   - brms-migration
   - case-studies
   - diagnostics
+  - habit
   - compatibility

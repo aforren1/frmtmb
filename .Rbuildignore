@@ -16,3 +16,4 @@
 ^codemeta\.json$
 ^CRAN-SUBMISSION$
 ^Rplots\.pdf$
+^data-raw$

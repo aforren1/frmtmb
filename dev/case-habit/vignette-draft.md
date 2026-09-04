@@ -1,5 +1,9 @@
 # Case study draft: replicating a response-preparation model
 
+> **Superseded.** This draft became `vignettes/habit.Rmd`. Read that for the
+> shipping version. The draft is kept because it records reasoning and
+> alternatives the vignette has no room for.
+
 **Status: draft narrative, not a vignette.** This is deliberately not an `.Rmd`
 in `vignettes/`. The data it describes cannot ship until licensing is settled,
 so this file holds the story in a form that can become a vignette on the day it
