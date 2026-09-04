@@ -50,10 +50,13 @@ if (!file.exists("DESCRIPTION") ||
   stop("run this from the repository root")
 }
 
-# Installing into .libPaths()[1] replaces whatever build of these five
-# packages is already there. Set FRMTMB_DOCS_LIB to keep the working
-# library untouched.
-LIB <- Sys.getenv("FRMTMB_DOCS_LIB", unset = .libPaths()[1])
+# A throwaway library by default, because this script installs all five
+# packages and the working library is where the versions being developed
+# live. Point FRMTMB_DOCS_LIB at a persistent directory to skip
+# reinstalling on every run; the installs take well under a minute
+# against the site build's several.
+LIB <- Sys.getenv("FRMTMB_DOCS_LIB",
+                  unset = file.path(tempdir(), "frmtmb-docs-lib"))
 dir.create(LIB, showWarnings = FALSE, recursive = TRUE)
 .libPaths(c(LIB, .libPaths()))
 
