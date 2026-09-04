@@ -693,19 +693,19 @@ get_prior <- function(formula, data = NULL, family = NULL,
     )
   }
 
-  for (lp in frame$linpreds) {
-    if (!is.null(lp$constant) || !is.null(lp$nl_body)) next
-    rspec <- spec$responses[[lp$resp]]
+  for (lp in frame[["linpreds"]]) {
+    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
+    rspec <- spec$responses[[lp[["resp"]]]]
     # location dpars are the default target (dpar = ""), matching
     # set_prior()'s resolution
-    dpar_lab <- if (lp$dpar %in% rspec$primary_dpars) "" else lp$dpar
-    resp_lab <- if (multi) lp$resp else ""
-    nl_lab <- if (lp$dpar %in% (rspec$nlpars %||% character(0))) {
-      lp$dpar
+    dpar_lab <- if (lp[["dpar"]] %in% rspec$primary_dpars) "" else lp[["dpar"]]
+    resp_lab <- if (multi) lp[["resp"]] else ""
+    nl_lab <- if (lp[["dpar"]] %in% (rspec$nlpars %||% character(0))) {
+      lp[["dpar"]]
     } else {
       ""
     }
-    cn <- colnames(lp$X)
+    cn <- colnames(lp[["X"]])
     # a nonlinear parameter's sub-formula is not centered, so its whole
     # coefficient vector including the intercept is class "b" - brms's
     # own listing, and what set_prior(nlpar =) addresses
@@ -733,8 +733,9 @@ get_prior <- function(formula, data = NULL, family = NULL,
 
   sd_rows <- list()
   cor_rows <- list()
-  for (bk in frame$re_blocks) {
-    key <- list(group = bk$group_name, nlpar = block_nlpar(spec, frame, bk),
+  for (bk in frame[["re_blocks"]]) {
+    key <- list(group = bk[["group_name"]], nlpar = block_nlpar(spec, frame,
+                                                                bk),
                 resp = if (multi) block_resp(frame, bk) else "")
     if (length(block_sd_idx(bk))) sd_rows[[length(sd_rows) + 1L]] <- key
     if (identical(block_cor_prior(bk), "lkj")) {
@@ -751,14 +752,14 @@ get_prior <- function(formula, data = NULL, family = NULL,
   }
   # the R-side residual structures, under the class names brms shows for
   # them. `resp` narrows a class to one response, as it does above
-  for (rs in names(frame$autocor %||% list())) {
-    ac <- frame$autocor[[rs]]
+  for (rs in names(frame[["autocor"]] %||% list())) {
+    ac <- frame[["autocor"]][[rs]]
     resp_lab <- if (multi) rs else ""
     for (cl in names(autocor_prior_classes)) {
       if (length(autocor_class_idx(ac, cl))) add(cl, resp = resp_lab)
     }
   }
-  if (length(frame$par_template[["thetar"]] %||% numeric(0))) add("rescor")
+  if (length(frame[["par_template"]][["thetar"]] %||% numeric(0))) add("rescor")
 
   # class "theta" is the raw internal escape hatch, and it spans all
   # three covariance components: the residual-correlation ones carry no
@@ -768,9 +769,9 @@ get_prior <- function(formula, data = NULL, family = NULL,
   # [[ ]] rather than $ here and below: `$theta` partial-matches
   # `thetaac` in a model that has a residual structure and no random
   # effects, which offered a random-effect row for a model with none
-  if (length(frame$par_template[["theta"]] %||% numeric(0))) add("theta")
+  if (length(frame[["par_template"]][["theta"]] %||% numeric(0))) add("theta")
   for (cmp in theta_components) {
-    v <- frame$par_template[[cmp]] %||% numeric(0)
+    v <- frame[["par_template"]][[cmp]] %||% numeric(0)
     if (!length(v)) next
     for (nm in par_template_names(v, cmp)) add("theta", coef = nm)
   }
@@ -788,9 +789,9 @@ get_prior <- function(formula, data = NULL, family = NULL,
 #'
 #' @noRd
 block_linpreds <- function(frame, bk) {
-  keys <- vapply(bk$components %||% list(),
+  keys <- vapply(bk[["components"]] %||% list(),
                  function(cp) cp$lp_key %||% "", "")
-  lps <- frame$linpreds[keys[nzchar(keys)]]
+  lps <- frame[["linpreds"]][keys[nzchar(keys)]]
   Filter(Negate(is.null), lps)
 }
 
@@ -801,8 +802,8 @@ block_linpreds <- function(frame, bk) {
 block_nlpar <- function(spec, frame, bk) {
   lps <- block_linpreds(frame, bk)
   np <- unique(vapply(lps, function(lp) {
-    nl <- spec$responses[[lp$resp]]$nlpars %||% character(0)
-    if (lp$dpar %in% nl) lp$dpar else ""
+    nl <- spec$responses[[lp[["resp"]]]]$nlpars %||% character(0)
+    if (lp[["dpar"]] %in% nl) lp[["dpar"]] else ""
   }, ""))
   np <- np[nzchar(np)]
   if (length(np) == 1L) np else ""
@@ -823,7 +824,7 @@ block_resp <- function(frame, bk) {
 #'
 #' @noRd
 block_addressed <- function(spec, frame, bk, s) {
-  if (nzchar(s$group) && !identical(bk$group_name, s$group)) return(FALSE)
+  if (nzchar(s$group) && !identical(bk[["group_name"]], s$group)) return(FALSE)
   want_np <- nzchar(s$nlpar %||% "")
   want_rs <- nzchar(s$resp %||% "")
   want_dp <- nzchar(s$dpar)
@@ -889,7 +890,7 @@ theta_components <- c("theta", "thetaac", "thetar")
 #' @noRd
 theta_coef_target <- function(frame, coef) {
   nms_of <- function(cmp) {
-    v <- frame$par_template[[cmp]] %||% numeric(0)
+    v <- frame[["par_template"]][[cmp]] %||% numeric(0)
     if (!length(v)) character(0) else par_template_names(v, cmp)
   }
   if (!nzchar(coef %||% "")) {
@@ -963,17 +964,17 @@ resolve_priorlist <- function(fit, pl) {
            ". A distributional parameter is addressed with dpar =",
            call. = FALSE)
     }
-    for (lp in frame$linpreds) {
-      if (!is.null(lp$constant) || !is.null(lp$nl_body)) next
-      rspec <- fit$spec$responses[[lp$resp]]
-      if (nzchar(s$resp %||% "") && !identical(lp$resp, s$resp)) next
-      is_loc <- lp$dpar %in% rspec$primary_dpars
+    for (lp in frame[["linpreds"]]) {
+      if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
+      rspec <- fit$spec$responses[[lp[["resp"]]]]
+      if (nzchar(s$resp %||% "") && !identical(lp[["resp"]], s$resp)) next
+      is_loc <- lp[["dpar"]] %in% rspec$primary_dpars
       if (want_np) {
-        if (!identical(lp$dpar, s$nlpar)) next
+        if (!identical(lp[["dpar"]], s$nlpar)) next
       } else if (nzchar(s$dpar)) {
-        if (!identical(lp$dpar, s$dpar)) next
+        if (!identical(lp[["dpar"]], s$dpar)) next
       } else if (!is_loc) next
-      cn <- colnames(lp$X)
+      cn <- colnames(lp[["X"]])
       pick <- if (s$class == "Intercept") {
         which(cn == "(Intercept)")
       } else if (nzchar(s$coef)) {
@@ -996,11 +997,12 @@ resolve_priorlist <- function(fit, pl) {
       # matrix column alone ("(Intercept)") names no outer parameter and
       # collides across sub-formulas, so read the name off the template
       # position rather than off the column
-      pnm <- par_template_names(frame$par_template[[lp$par]], lp$par)
+      pnm <- par_template_names(frame[["par_template"]][[lp[["par"]]]],
+        lp[["par"]])
       for (k in pick) {
-        out[[length(out) + 1L]] <- list(comp = lp$par,
-                                        idx = lp$idx[k],
-                                        name = pnm[lp$idx[k]])
+        out[[length(out) + 1L]] <- list(comp = lp[["par"]],
+                                        idx = lp[["idx"]][k],
+                                        name = pnm[lp[["idx"]][k]])
       }
     }
     if (!length(out) &&
@@ -1017,7 +1019,7 @@ resolve_priorlist <- function(fit, pl) {
   # refusal names what the model actually has, so a class aimed at the
   # wrong structure says so rather than silently matching nothing.
   resolve_ac_class <- function(s) {
-    acs <- frame$autocor %||% list()
+    acs <- frame[["autocor"]] %||% list()
     hit <- FALSE
     for (rs in names(acs)) {
       ac <- acs[[rs]]
@@ -1025,12 +1027,12 @@ resolve_priorlist <- function(fit, pl) {
       within <- autocor_class_idx(ac, s$class)
       if (is.null(within) || !length(within)) next
       hit <- TRUE
-      idx <- ac$theta_idx[within]
+      idx <- ac[["theta_idx"]][within]
       tr <- autocor_trans(ac, s$class)
-      nms <- par_template_names(frame$par_template[["thetaac"]], "thetaac")
+      nms <- par_template_names(frame[["par_template"]][["thetaac"]], "thetaac")
       if (!is.null(s$dist)) {
         dst <- if (identical(s$class, "cortime")) {
-          lkj_dist(s$dist$eta, list(kind = "chol", d = ac$d))
+          lkj_dist(s$dist$eta, list(kind = "chol", d = ac[["d"]]))
         } else {
           trans_dist(s$dist, tr)
         }
@@ -1083,7 +1085,7 @@ resolve_priorlist <- function(fit, pl) {
   # matrix held as the same row-normalized Cholesky a `us` block uses,
   # so the LKJ density and its Jacobian carry over unchanged.
   resolve_rescor <- function(s) {
-    n_r <- length(frame$par_template[["thetar"]] %||% numeric(0))
+    n_r <- length(frame[["par_template"]][["thetar"]] %||% numeric(0))
     if (!n_r) {
       stop("No residual correlation matches ", spec_target(s),
            ". This model has none: it needs two or more responses and ",
@@ -1121,12 +1123,12 @@ resolve_priorlist <- function(fit, pl) {
       }
     } else if (s$class == "sd") {
       hit <- FALSE
-      for (bk in frame$re_blocks) {
+      for (bk in frame[["re_blocks"]]) {
         if (!block_addressed(fit$spec, frame, bk, s)) next
-        sd_i <- covstruct_registry[[bk$covstruct]]$sd_idx(bk$dim)
+        sd_i <- covstruct_registry[[bk[["covstruct"]]]]$sd_idx(bk[["dim"]])
         for (k in sd_i) {
           hit <- TRUE
-          i <- bk$theta_idx[k]
+          i <- bk[["theta_idx"]][k]
           key <- nm_of("theta", i)
           if (!is.null(s$dist)) {
             assigned[[key]] <- list(comp = "theta", idx = i,
@@ -1149,18 +1151,18 @@ resolve_priorlist <- function(fit, pl) {
     } else if (s$class == "cor") {
       hit <- FALSE
       refused <- character(0)
-      for (bk in frame$re_blocks) {
+      for (bk in frame[["re_blocks"]]) {
         if (!block_addressed(fit$spec, frame, bk, s)) next
-        cs <- bk$covstruct
+        cs <- bk[["covstruct"]]
         if (cs %in% names(lkj_refusals)) {
-          refused <- c(refused, paste0(bk$term_label, " [", cs, "]: ",
+          refused <- c(refused, paste0(bk[["term_label"]], " [", cs, "]: ",
                                        unname(lkj_refusals[[cs]])))
           next
         }
         spec <- block_cor_spec(bk)
         if (is.null(spec)) next
         hit <- TRUE
-        idx <- bk$theta_idx[spec$idx]
+        idx <- bk[["theta_idx"]][spec$idx]
         claim("theta", idx)
         assigned[[nm_of("theta", idx)]] <-
           list(comp = "theta", idx = idx,
@@ -1171,8 +1173,8 @@ resolve_priorlist <- function(fit, pl) {
         # a refused structure is named with its reason; otherwise the
         # model simply has no correlation to prior, and the message says
         # what it does have
-        have <- unique(vapply(frame$re_blocks, function(bk) {
-          paste0(bk$term_label, " [", bk$covstruct, "]")
+        have <- unique(vapply(frame[["re_blocks"]], function(bk) {
+          paste0(bk[["term_label"]], " [", bk[["covstruct"]], "]")
         }, ""))
         stop("No random-effect correlations match ", spec_target(s),
              ". ",
@@ -1194,7 +1196,7 @@ resolve_priorlist <- function(fit, pl) {
       # natural-scale class can express a box constraint on.
       tgt <- theta_coef_target(frame, s$coef)
       cmp <- tgt$comp
-      nms <- par_template_names(frame$par_template[[cmp]] %||% numeric(0),
+      nms <- par_template_names(frame[["par_template"]][[cmp]] %||% numeric(0),
                                 cmp)
       for (i in tgt$idx) {
         key <- nm_of(cmp, i)
@@ -1489,15 +1491,15 @@ autocor_prior_classes <- list(
 #'
 #' @noRd
 autocor_class_idx <- function(ac, cls) {
-  st <- ac$struct
+  st <- ac[["struct"]]
   if (!st %in% autocor_prior_classes[[cls]]) return(NULL)
   switch(cls,
-    ar = if (ac$p) seq_len(ac$p),
-    ma = if (ac$q) {
-      (if (identical(st, "arma")) ac$p else 0L) + seq_len(ac$q)
+    ar = if (ac[["p"]]) seq_len(ac[["p"]]),
+    ma = if (ac[["q"]]) {
+      (if (identical(st, "arma")) ac[["p"]] else 0L) + seq_len(ac[["q"]])
     },
     cosy = 1L,
-    cortime = seq_len(autocor_n_cor(ac$d))
+    cortime = seq_len(autocor_n_cor(ac[["d"]]))
   )
 }
 
@@ -1509,7 +1511,8 @@ autocor_class_idx <- function(ac, cls) {
 #'
 #' @noRd
 autocor_trans <- function(ac, cls) {
-  if (identical(cls, "cosy")) return(list(map = "cosy", a = 1 / (ac$d - 1)))
+  if (identical(cls, "cosy")) return(list(map = "cosy",
+                                          a = 1 / (ac[["d"]] - 1)))
   if (identical(cls, "cortime")) return(NULL)
   list(map = "levinson")
 }
@@ -1578,7 +1581,7 @@ ac_bound_theta <- function(v, tr, ac, cls, what) {
     a <- tr$a
     if (v <= -a || v >= 1) {
       stop("class = \"cosy\" ", what, " = ", v, " is outside the window ",
-           "a compound-symmetric correlation of ", ac$d,
+           "a compound-symmetric correlation of ", ac[["d"]],
            " time points can occupy, (", format(-a), ", 1)",
            call. = FALSE)
     }
@@ -1627,13 +1630,13 @@ resolve_prior_input <- function(fit, prior) {
 #' @noRd
 resolve_priors <- function(fit, prior) {
   stopifnot(is.list(prior), !is.null(names(prior)))
-  tpl <- fit$frame$par_template
+  tpl <- fit$frame[["par_template"]]
   comp_names <- list()
   for (cp in setdiff(names(tpl), c("b", "miss"))) {
     v <- names(tpl[[cp]])
     if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
-    if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
-      v[fit$frame$betad_fixed_idx] <- NA   # mapped: no prior
+    if (cp == "betad" && length(fit$frame[["betad_fixed_idx"]])) {
+      v[fit$frame[["betad_fixed_idx"]]] <- NA   # mapped: no prior
     }
     comp_names[[cp]] <- v
   }

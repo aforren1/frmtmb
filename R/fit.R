@@ -464,8 +464,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # the assembled spec stays the frame's, which is what every other
   # stage has always read.
   for (rn_ in names(spec$responses)) {
-    if (is.null(spec$responses[[rn_]]$family$family_finalize)) next
-    spec$responses[[rn_]] <- frame$spec$responses[[rn_]]
+    if (is.null(spec$responses[[rn_]]$family[["family_finalize"]])) next
+    spec$responses[[rn_]] <- frame[["spec"]]$responses[[rn_]]
   }
   check_re_structure(spec, frame, control)
   if (identical(dry_run, "frame")) return(frame)
@@ -530,9 +530,9 @@ vb_plural <- function(n, what) {
 #'
 #' @noRd
 vb_frame_detail <- function(frame) {
-  paste0(frame$n_obs, " obs, ",
-         vb_plural(length(frame$linpreds), "linear predictor"), ", ",
-         vb_plural(length(frame$re_blocks), "random-effect block"))
+  paste0(frame[["n_obs"]], " obs, ",
+         vb_plural(length(frame[["linpreds"]]), "linear predictor"), ", ",
+         vb_plural(length(frame[["re_blocks"]]), "random-effect block"))
 }
 
 #' First line of a fit: the family and every mode that changes what the
@@ -540,7 +540,7 @@ vb_frame_detail <- function(frame) {
 #'
 #' @noRd
 vb_fit_detail <- function(spec, REML, control, quadrature, prior) {
-  fams <- vapply(spec$responses, function(r) r$family$family %||% "?", "")
+  fams <- vapply(spec$responses, function(r) r$family[["family"]] %||% "?", "")
   opt <- control$optimizer %||% "nlminb"
   if (is.function(opt)) opt <- "custom"
   flags <- c(if (isTRUE(REML)) "REML" else "ML",
@@ -687,9 +687,9 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     # result is EXACT rather than approximate, which makes
     # quadrature = TRUE the recommended check on a t-block Laplace fit
     # (see ?frmtmb-student-re and dev/tre-feasibility.md section 4).
-    scalar_iid <- vapply(frame$re_blocks, function(bk) {
-      bk$dim == 1L &&
-        bk$covstruct %in% c("us", "diag", "homdiag", "us_t", "diag_t")
+    scalar_iid <- vapply(frame[["re_blocks"]], function(bk) {
+      bk[["dim"]] == 1L &&
+        bk[["covstruct"]] %in% c("us", "diag", "homdiag", "us_t", "diag_t")
     }, TRUE)
     if (!length(scalar_iid) || !all(scalar_iid)) {
       stop("quadrature = TRUE currently supports scalar random ",
@@ -700,12 +700,12 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       stop("quadrature = TRUE cannot be combined with REML = TRUE",
            call. = FALSE)
     }
-    if (length(frame$autocor %||% list())) {
+    if (length(frame[["autocor"]] %||% list())) {
       # the Gauss-Kronrod rule integrates one scalar random effect
       # against a PRODUCT of per-row densities; an R-side residual is a
       # joint density over each group, so no per-row integrand exists
       stop("quadrature = TRUE cannot be combined with the residual ",
-           "correlation term ", frame$autocor[[1L]]$label,
+           "correlation term ", frame[["autocor"]][[1L]]$label,
            ": the rule integrates a random effect against ",
            "per-observation densities, and this residual is a joint ",
            "density over each group. Use quadrature = FALSE (Laplace) ",
@@ -720,7 +720,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     # neighborhood of the mode and is unaffected. Refusing beats
     # reporting logLik = +Inf as a converged fit.
     trunc_resp <- names(which(vapply(
-      frame$aterm_values,
+      frame[["aterm_values"]],
       function(a) !is.null(a$trunc_lb) || !is.null(a$trunc_ub), TRUE)))
     if (length(trunc_resp)) {
       stop("quadrature = TRUE cannot be combined with trunc() (",
@@ -756,11 +756,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # optimum. See quad_fit() for why. The Laplace objective is kept
   # afterwards because it is the only source of the conditional modes.
   lap_obj <- if (is.null(integrate)) NULL else {
-    RTMB::MakeADFun(nll, template, random = random, map = frame$map,
+    RTMB::MakeADFun(nll, template, random = random, map = frame[["map"]],
                     silent = TRUE)
   }
   obj <- if (is.null(integrate)) {
-    RTMB::MakeADFun(nll, template, random = random, map = frame$map,
+    RTMB::MakeADFun(nll, template, random = random, map = frame[["map"]],
                     profile = profile_arg, silent = TRUE)
   } else lap_obj
   if (vb) {
@@ -801,7 +801,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb),
                error = function(e) {
                  rs <- fit_recovery_starts(obj, nll, template, random,
-                                           frame$map, frame, start,
+                                           frame[["map"]], frame, start,
                                            ctl_opt, bounds, par_units,
                                            prior_entries)
                  for (lbl in names(rs)) {
@@ -818,7 +818,7 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                  stop(e)
                }))
   } else {
-    qf <- quad_fit(nll, template, random, frame$map, integrate, lap_obj,
+    qf <- quad_fit(nll, template, random, frame[["map"]], integrate, lap_obj,
                    ctl_opt, bounds, par_units, frame, vb)
     obj <- qf$obj
     opt <- qf$opt
@@ -828,16 +828,16 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # sdreport (a quarter of typical fit time) is computed on demand
   # through sdr_of() unless se = TRUE asked for it now.
   est <- obj$env$parList(opt$par)
-  for (nm in names(frame$par_template)) {
-    names(est[[nm]]) <- names(frame$par_template[[nm]])
+  for (nm in names(frame[["par_template"]])) {
+    names(est[[nm]]) <- names(frame[["par_template"]][[nm]])
   }
   # under integrate= (quadrature), parList leaves outer components NA;
   # the optimizer vector is authoritative for them either way
   pn <- names(opt$par)
   for (cp in setdiff(unique(pn), random %||% character(0))) {
-    pos <- seq_along(frame$par_template[[cp]])
-    if (cp == "betad" && length(frame$betad_fixed_idx)) {
-      pos <- setdiff(pos, frame$betad_fixed_idx)
+    pos <- seq_along(frame[["par_template"]][[cp]])
+    if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+      pos <- setdiff(pos, frame[["betad_fixed_idx"]])
     }
     est[[cp]][pos] <- unname(opt$par[pn == cp])
   }
@@ -891,8 +891,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
 unfitted_object <- function(spec, frame, obj, template, bform, cl, REML,
                             prior, data2, control, lower, upper) {
   est <- template
-  for (nm in names(frame$par_template)) {
-    names(est[[nm]]) <- names(frame$par_template[[nm]])
+  for (nm in names(frame[["par_template"]])) {
+    names(est[[nm]]) <- names(frame[["par_template"]][[nm]])
   }
   structure(
     list(spec = spec, frame = frame, obj = obj, opt = NULL, sdr = NULL,
@@ -1034,7 +1034,7 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
   if (length(lap_tpl$theta)) {
     seeds <- c(seeds, lapply(c(-0.5, 0.5, -1), function(s) {
       tpl <- lap_tpl
-      tpl$theta <- tpl$theta + s
+      tpl[["theta"]] <- tpl[["theta"]] + s
       tpl
     }))
   }
@@ -1068,7 +1068,7 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
 #'
 #' @noRd
 quad_breakdown_message <- function(frame, theta) {
-  blocks <- frame$re_blocks %||% list()
+  blocks <- frame[["re_blocks"]] %||% list()
   desc <- function(b) paste0("'", b$term_label, "' (", b$n_levels,
                              " levels)")
   sds <- vapply(blocks, function(b) {
@@ -1081,7 +1081,7 @@ quad_breakdown_message <- function(frame, theta) {
     why <- c(why, paste0("the model asks for an iterated integral over ",
                          length(blocks), " nested blocks (",
                          paste(vapply(blocks, desc, ""), collapse = ", "),
-                         ") on ", frame$n_obs, " observations, and the ",
+                         ") on ", frame[["n_obs"]], " observations, and the ",
                          "outer integrand is itself the frozen ",
                          "rescaling of the inner one"))
   }
@@ -1349,26 +1349,26 @@ re_check_act <- function(what, msg) {
 #' @noRd
 check_re_structure <- function(spec, frame, control) {
   gaussian_like <- c("gaussian", "student", "lognormal")
-  for (bk in frame$re_blocks) {
+  for (bk in frame[["re_blocks"]]) {
     # smooth / gp / hsgp blocks carry a synthetic n_levels of 1 and no
     # grouping levels at all; only real grouping factors are checked
-    if (is.null(bk$levels)) next
+    if (is.null(bk[["levels"]])) next
     # A structured block over several terms per level (ar1, us, the
     # spatial covstructs) is a single realization of a field, and one
     # group level is the normal way to write it; only a SCALAR term
     # loses its variance to a single level.
-    if (bk$n_levels == 1L && bk$dim == 1L) {
+    if (bk[["n_levels"]] == 1L && bk[["dim"]] == 1L) {
       re_check_act(
         control$check_nlev_1,
-        paste0("Grouping factor '", bk$group_name, "' in `",
-               bk$term_label, "` has a single level, so its variance is ",
+        paste0("Grouping factor '", bk[["group_name"]], "' in `",
+               bk[["term_label"]], "` has a single level, so its variance is ",
                "not identified and collapses to zero. Drop the term (it ",
                "is absorbed by the intercept), or set ",
                "frmtmb_control(check_nlev_1 = \"ignore\")"))
       next
     }
-    lp <- frame$linpreds[[bk$components[[1L]]$lp_key]]
-    resp <- spec$responses[[lp$resp]]
+    lp <- frame[["linpreds"]][[bk[["components"]][[1L]]$lp_key]]
+    resp <- spec$responses[[lp[["resp"]]]]
     fam <- resp$family
     if (is.null(fam)) next
     # se() supplies the residual sd row by row and a constant dpar pins
@@ -1376,8 +1376,9 @@ check_re_structure <- function(spec, frame, control) {
     # observation-level variance, so the two are identified. That is
     # exactly the random-effects meta-analysis, where the
     # observation-level term IS the between-study variance.
-    sigma_free <- is.null(resp$aterms$se) &&
-      is.null(frame$linpreds[[linpred_key(lp$resp, "sigma")]]$constant)
+    sigma_free <- is.null(resp$aterms[["se"]]) &&
+      is.null(frame[["linpreds"]][[linpred_key(lp[["resp"]],
+                                  "sigma")]]$constant)
     # A known-structure block is not an OLRE even with one row per
     # level. Its levels are correlated through the fixed relationship
     # matrix (gr(cov = A), gr(prec = Q)) or its covariance is fixed
@@ -1386,15 +1387,15 @@ check_re_structure <- function(spec, frame, control) {
     # reparameterization of it. That is the animal model: the additive
     # genetic variance and the residual variance are separately
     # identified precisely BECAUSE A is not the identity.
-    structured <- bk$covstruct %in% c("gr_cov", "gr_prec", "equalto")
+    structured <- bk[["covstruct"]] %in% c("gr_cov", "gr_prec", "equalto")
     if (sigma_free && !structured &&
-        bk$n_levels == frame$n_obs && bk$dim == 1L &&
-        fam$family %in% gaussian_like &&
-        bk$dpar %in% (fam$primary_dpars %||% "mu")) {
+        bk[["n_levels"]] == frame[["n_obs"]] && bk[["dim"]] == 1L &&
+        fam[["family"]] %in% gaussian_like &&
+        bk[["dpar"]] %in% (fam[["primary_dpars"]] %||% "mu")) {
       re_check_act(
         control$check_olre,
-        paste0("`", bk$term_label, "` gives every observation its own ",
-               "random effect, and for a ", fam$family, " response that ",
+        paste0("`", bk[["term_label"]], "` gives every observation its own ",
+               "random effect, and for a ", fam[["family"]], " response that ",
                "variance is confounded with the residual sd: only their ",
                "sum is identified, so the split between them is ",
                "arbitrary. Observation-level random effects are ",
@@ -1458,8 +1459,8 @@ outer_from_template <- function(tpl, obj, frame) {
   for (cp in unique(pn)) {
     v <- tpl[[cp]]
     if (is.null(v)) return(NULL)
-    if (cp == "betad" && length(frame$betad_fixed_idx)) {
-      v <- v[-frame$betad_fixed_idx]
+    if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+      v <- v[-frame[["betad_fixed_idx"]]]
     }
     out <- c(out, unname(v))
   }
@@ -1705,18 +1706,19 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
 #' @noRd
 make_start <- function(frame, start, prior_entries = NULL,
                        announce = FALSE) {
-  tpl <- frame$par_template
-  for (lp in frame$linpreds) {
-    if (!is.null(lp$constant)) next   # mapped; keep link(constant)
-    resp <- frame$spec$responses[[lp$resp]]
-    init_fn <- resp$family$init_dpars[[lp$dpar]]
+  tpl <- frame[["par_template"]]
+  for (lp in frame[["linpreds"]]) {
+    if (!is.null(lp[["constant"]])) next   # mapped; keep link(constant)
+    resp <- frame[["spec"]]$responses[[lp[["resp"]]]]
+    init_fn <- resp$family[["init_dpars"]][[lp[["dpar"]]]]
     if (is.null(init_fn)) next
-    icpt <- match("(Intercept)", colnames(lp$X))
+    icpt <- match("(Intercept)", colnames(lp[["X"]]))
     if (is.na(icpt)) next
-    raw <- init_fn(frame$y[[lp$resp]], frame$aterm_values[[lp$resp]])
-    val <- lp$link$linkfun(raw)
+    raw <- init_fn(frame[["y"]][[lp[["resp"]]]],
+      frame[["aterm_values"]][[lp[["resp"]]]])
+    val <- lp[["link"]]$linkfun(raw)
     if (is.finite(val)) {
-      tpl[[lp$par]][lp$idx[icpt]] <- val
+      tpl[[lp[["par"]]]][lp[["idx"]][icpt]] <- val
     } else if (announce) {
       # A bounded link sends an init at or past its bound to Inf, and
       # the value used to be dropped without a word: the fit then
@@ -1724,8 +1726,8 @@ make_start <- function(frame, start, prior_entries = NULL,
       # failed optimization with nothing pointing at the cause.
       # Announced on the same flag as the prior-start message, so the
       # autoscale pre-fit and the recovery restarts do not repeat it.
-      warning("Starting value ", format(raw[1L]), " for ", lp$dpar,
-              " is ", format(val[1L]), " through its ", lp$link$name,
+      warning("Starting value ", format(raw[1L]), " for ", lp[["dpar"]],
+              " is ", format(val[1L]), " through its ", lp[["link"]]$name,
               " link, so it was ignored and that intercept starts from ",
               "zero on the link scale. Give init_dpars a value inside ",
               "the link's range, or pass start =", call. = FALSE)
@@ -1744,7 +1746,7 @@ make_start <- function(frame, start, prior_entries = NULL,
       }
       tpl[[nm]] <- resolve_start_component(tpl[[nm]], start[[nm]], nm)
     }
-    claimed <- start_claimed_idx(frame$par_template[["beta"]],
+    claimed <- start_claimed_idx(frame[["par_template"]][["beta"]],
                                  start[["beta"]], "beta")
   }
   if (announce && length(placed)) {

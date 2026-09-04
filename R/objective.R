@@ -34,10 +34,10 @@ bound_rows <- function(v, i) if (length(v) == 1L) v else v[i]
 #' @noRd
 row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
   "[<-" <- RTMB::ADoverload("[<-")
-  ll <- if (is.null(fam$extra_pars)) {
-    fam$lpdf(yobs, dpv, av)
+  ll <- if (is.null(fam[["extra_pars"]])) {
+    fam[["lpdf"]](yobs, dpv, av)
   } else {
-    fam$lpdf(yobs, dpv, av, extra)
+    fam[["lpdf"]](yobs, dpv, av, extra)
   }
   # The backstop for the silent-wrong-answer case that
   # `required_aterms` closes by declaration, kept here because it needs
@@ -48,7 +48,7 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
   # check, not a value check, so it resolves while the tape is being
   # built and leaves no branch on it.
   if (length(ll) == 0L && length(yobs) > 0L) {
-    stop("The '", fam$family, "' density returned no values for ",
+    stop("The '", fam[["family"]], "' density returned no values for ",
          length(yobs), " observations. The usual cause is an addition ",
          "term the density reads that the model does not supply: an ",
          "absent one is NULL, and NULL in arithmetic is a zero-length ",
@@ -62,12 +62,12 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
   # uses. Composing the two the other way round (censor against the
   # whole line, then divide by the window) is a different, wrong
   # likelihood.
-  trunc_on <- !is.null(av$trunc_lb) || !is.null(av$trunc_ub)
+  trunc_on <- !is.null(av[["trunc_lb"]]) || !is.null(av[["trunc_ub"]])
   Fub <- 1
   Flb <- 0
   if (trunc_on) {
-    lb <- av$trunc_lb
-    if (!is.null(lb) && identical(fam$type, "discrete")) {
+    lb <- av[["trunc_lb"]]
+    if (!is.null(lb) && identical(fam[["type"]], "discrete")) {
       # inclusive lower bound: P(lb <= Y <= ub) needs F(lb - 1)
       # (brms#1903 off-by-one)
       if (any(lb < 1)) {
@@ -76,14 +76,14 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
       }
       lb <- lb - 1
     }
-    if (!is.null(av$trunc_ub)) {
-      Fub <- fam_lcdf(fam, av$trunc_ub, dpv, av, extra)
+    if (!is.null(av[["trunc_ub"]])) {
+      Fub <- fam_lcdf(fam, av[["trunc_ub"]], dpv, av, extra)
     }
     if (!is.null(lb)) {
       Flb <- fam_lcdf(fam, lb, dpv, av, extra)
     }
   }
-  if (!is.null(av$cens)) {
+  if (!is.null(av[["cens"]])) {
     # censoring codes are data, so grouped sub-assignment (one
     # vectorized [<- per group) replaces the density on censored rows
     # without parameter branching or 0 * -Inf hazards. Right censoring
@@ -92,7 +92,7 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
     # Fub = 1 and Flb = 0. The discrete F(lb - 1) convention carries
     # over unchanged: F(y) already includes the point y, which is what a
     # left-censored count observes.
-    cen <- av$cens
+    cen <- av[["cens"]]
     Fv <- fam_lcdf(fam, yraw, dpv, av, extra)
     i_r <- which(cen == 1)
     i_l <- which(cen == -1)
@@ -100,7 +100,7 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
     if (length(i_r)) ll[i_r] <- log(bound_rows(Fub, i_r) - Fv[i_r])
     if (length(i_l)) ll[i_l] <- log(Fv[i_l] - bound_rows(Flb, i_l))
     if (length(i_i)) {
-      F2 <- fam_lcdf(fam, av$cens_y2, dpv, av, extra)
+      F2 <- fam_lcdf(fam, av[["cens_y2"]], dpv, av, extra)
       # an interval is already a windowed difference of CDFs, so only
       # the division by the window mass below is missing; an interval
       # reaching outside [lb, ub] is a data contradiction (the response
@@ -124,10 +124,10 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
 #'
 #' @noRd
 build_objective <- function(frame) {
-  lps <- frame$linpreds
-  blocks <- frame$re_blocks
+  lps <- frame[["linpreds"]]
+  blocks <- frame[["re_blocks"]]
   block_fns <- lapply(blocks, function(bk) {
-    covstruct_registry[[bk$covstruct]]$nll
+    covstruct_registry[[bk[["covstruct"]]]]$nll
   })
   # Non-centered blocks (frm_sample(reparameterize = TRUE) only, set on
   # a private copy of the frame): the sampled vector for these is z, and
@@ -136,15 +136,15 @@ build_objective <- function(frame) {
   # parameterization of the integrated variable irrelevant.
   ncp_idx <- frame[["ncp_blocks"]] %||% integer(0)
   is_ncp <- seq_along(blocks) %in% ncp_idx
-  spec <- frame$spec
+  spec <- frame[["spec"]]
   resps <- spec$responses
   rescor <- isTRUE(spec$rescor)
-  y <- frame$y
-  atv <- frame$aterm_values
-  n <- frame$n_obs
-  acs <- frame$autocor %||% list()
+  y <- frame[["y"]]
+  atv <- frame[["aterm_values"]]
+  n <- frame[["n_obs"]]
+  acs <- frame[["autocor"]] %||% list()
 
-  extra_names <- frame$extra_names %||% character(0)
+  extra_names <- frame[["extra_names"]] %||% character(0)
 
   # Cluster-robust scores (R/sandwich.R) need the per-cluster pieces of
   # the objective as a function of one extra parameter each, so that
@@ -167,8 +167,8 @@ build_objective <- function(frame) {
     bfull <- pars[["b"]]
     for (i in ncp_idx) {
       bk <- blocks[[i]]
-      bfull[bk$b_idx] <- ncp_scale_b(bk, pars[["b"]][bk$b_idx],
-                                     pars[["theta"]][bk$theta_idx])
+      bfull[bk[["b_idx"]]] <- ncp_scale_b(bk, pars[["b"]][bk[["b_idx"]]],
+                                     pars[["theta"]][bk[["theta_idx"]]])
     }
 
     for (i in seq_along(blocks)) {
@@ -176,12 +176,12 @@ build_objective <- function(frame) {
       if (is_ncp[i]) {
         # the block's whole density: the transform took the entire
         # factor out, so what is left is standard normal
-        nll <- nll - sum(RTMB::dnorm(pars[["b"]][bk$b_idx], 0, 1,
+        nll <- nll - sum(RTMB::dnorm(pars[["b"]][bk[["b_idx"]]], 0, 1,
                                      log = TRUE))
         next
       }
-      nll <- nll - block_fns[[i]](bfull[bk$b_idx],
-                                  pars[["theta"]][bk$theta_idx], bk)
+      nll <- nll - block_fns[[i]](bfull[bk[["b_idx"]]],
+                                  pars[["theta"]][bk[["theta_idx"]]], bk)
     }
 
     extra <- NULL
@@ -192,7 +192,7 @@ build_objective <- function(frame) {
 
     # coefficient-space vector for the Z products (rr blocks expand
     # their factors through the loadings)
-    bvec <- if (isTRUE(frame$has_rr)) {
+    bvec <- if (isTRUE(frame[["has_rr"]])) {
       expand_b(frame, bfull, pars[["theta"]])
     } else {
       bfull
@@ -200,8 +200,8 @@ build_objective <- function(frame) {
 
     # mi(): observed-or-latent value vectors per imputation response
     mivals <- list()
-    for (vn in names(frame$mi_map %||% list())) {
-      mm_ <- frame$mi_map[[vn]]
+    for (vn in names(frame[["mi_map"]] %||% list())) {
+      mm_ <- frame[["mi_map"]][[vn]]
       xv <- y[[vn]]
       xv[mm_$rows] <- pars[["miss"]][mm_$idx]
       mivals[[vn]] <- xv
@@ -215,7 +215,7 @@ build_objective <- function(frame) {
 
     dparv <- list()
     for (lp in lps) {
-      if (!is.null(lp$nl_body)) {
+      if (!is.null(lp[["nl_body"]])) {
         # nonlinear predictor: arbitrary R code over the nlpar values and
         # raw data columns, evaluated straight onto the tape. The linear
         # predictors were put in dependency order at parse time, so
@@ -225,59 +225,59 @@ build_objective <- function(frame) {
         # same body means in brms. `nl_dpar_refs` are the names that had
         # no column behind them and read another parameter's per-row
         # value instead (a variance function of the fitted mean).
-        ev <- c(dparv[[lp$resp]][c(lp$nl_pars, lp$nl_dpar_refs)],
-                lp$data_list)
+        ev <- c(dparv[[lp[["resp"]]]][c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])],
+                lp[["data_list"]])
         # the body is taped once, so the handler costs nothing per
         # gradient; it exists because a body name that resolved to an
         # environment object instead of a column fails here, far from
         # the cause
-        eta <- tryCatch(eval(lp$nl_body, ev,
-                             ad_overload_env(lp$nl_env, lp$nl_body)),
+        eta <- tryCatch(eval(lp[["nl_body"]], ev,
+                             ad_overload_env(lp[["nl_env"]], lp[["nl_body"]])),
                         error = function(e) nl_body_error(e, lp))
-        dparv[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
-        dparv[[lp$resp]][[paste0(".eta_", lp$dpar)]] <- eta
+        dparv[[lp[["resp"]]]][[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
+        dparv[[lp[["resp"]]]][[paste0(".eta_", lp[["dpar"]])]] <- eta
         next
       }
       # as.vector, not drop: it collapses both Matrix and advector results
-      eta <- if (ncol(lp$X)) {
-        as.vector(lp$X %*% pars[[lp$par]][lp$idx])
+      eta <- if (ncol(lp[["X"]])) {
+        as.vector(lp[["X"]] %*% pars[[lp[["par"]]]][lp[["idx"]]])
       } else {
         rep(0, n)   # threshold-only ordinal model
       }
-      if (!is.null(lp$Z)) {
-        eta <- eta + as.vector(lp$Z %*% bvec)
+      if (!is.null(lp[["Z"]])) {
+        eta <- eta + as.vector(lp[["Z"]] %*% bvec)
       }
-      if (!is.null(lp$offset)) {
-        eta <- eta + lp$offset
+      if (!is.null(lp[["offset"]])) {
+        eta <- eta + lp[["offset"]]
       }
       # monotonic terms: scale coefficient (in beta, zero X column)
       # times D * cumulative simplex at the observed category
-      for (mi in lp$mo %||% list()) {
+      for (mi in lp[["mo"]] %||% list()) {
         zeta <- exp(c(0, pars[[mi$zeta]]))
         zeta <- zeta / sum(zeta)
         cz0 <- c(0, cumsum(zeta))
         term <- mi$D * cz0[mi$codes + 1L]
         if (!is.null(mi$mult)) term <- term * mi$mult
-        eta <- eta + pars[[lp$par]][lp$idx[mi$col]] * term
+        eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mi$col]] * term
       }
       # mi(x) terms: coefficient times the observed-or-latent values
-      for (mt in lp$mi %||% list()) {
+      for (mt in lp[["mi"]] %||% list()) {
         xv <- mivals[[mt$var]] %||% y[[mt$var]]
         if (!is.null(mt$mult)) xv <- xv * mt$mult
-        eta <- eta + pars[[lp$par]][lp$idx[mt$col]] * xv
+        eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mt$col]] * xv
       }
       # cs(x) terms: n x (K-1) threshold-specific offsets, consumed by
       # the sequential ordinal lpdfs through dpars$.cs
-      if (length(lp$cs %||% list())) {
+      if (length(lp[["cs"]] %||% list())) {
         CS <- 0
-        for (ct in lp$cs) {
+        for (ct in lp[["cs"]]) {
           bcs <- pars[[ct$par]]
           CS <- CS + RTMB::matrix(ct$vals, n, 1) %*%
             RTMB::matrix(bcs, 1, length(bcs))
         }
-        dparv[[lp$resp]][[".cs"]] <- CS
+        dparv[[lp[["resp"]]]][[".cs"]] <- CS
       }
-      dparv[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
+      dparv[[lp[["resp"]]]][[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
       # The linear predictor rides along beside the inverse-linked value
       # under a reserved `.eta_` name. An inverse link saturates -
       # plogis(40) is exactly 1, exp(-800) is exactly 0 - so a density
@@ -290,7 +290,7 @@ build_objective <- function(frame) {
       # supplies it: the numeric post-fit paths (fitted(), simulate(),
       # the CDFs) pass the dpar values alone, and there nothing is
       # differentiated, so the saturation is harmless.
-      dparv[[lp$resp]][[paste0(".eta_", lp$dpar)]] <- eta
+      dparv[[lp[["resp"]]]][[paste0(".eta_", lp[["dpar"]])]] <- eta
     }
 
     if (rescor) {
@@ -320,11 +320,11 @@ build_objective <- function(frame) {
           # aterm that would reshape a per-row contribution was refused
           # at frame assembly, so nothing below this point applies.
           ac <- acs[[r]]
-          R <- autocor_cor(pars[["thetaac"]][ac$theta_idx], ac)
+          R <- autocor_cor(pars[["thetaac"]][ac[["theta_idx"]]], ac)
           sg <- dparv[[r]]$sigma
           z <- (y[[r]] - dparv[[r]]$mu) / sg
           lsig <- if (length(sg) == 1L) n * log(sg) else sum(log(sg))
-          nu <- if (isTRUE(ac$student)) dparv[[r]]$nu[1] else NULL
+          nu <- if (isTRUE(ac[["student"]])) dparv[[r]]$nu[1] else NULL
           nll <- nll - autocor_loglik(z, R, ac, lsig, nu)
           next
         }

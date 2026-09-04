@@ -91,9 +91,9 @@ frm_multiple <- function(formula, data, level = 0.95, ...) {
 
   nm <- estimated_coef_names(fits[[1]])
   cf <- vapply(fits, function(f) {
-    bd <- f$estimates$betad
-    if (length(fx <- f$frame$betad_fixed_idx)) bd <- bd[-fx]
-    c(f$estimates$beta, bd)
+    bd <- f$estimates[["betad"]]
+    if (length(fx <- f$frame[["betad_fixed_idx"]])) bd <- bd[-fx]
+    c(f$estimates[["beta"]], bd)
   }, numeric(length(nm)))
   cf <- matrix(cf, nrow = length(nm), dimnames = list(nm, NULL))
   us <- vapply(fits, function(f) diag(vcov(f)), numeric(length(nm)))
@@ -323,8 +323,8 @@ pooled_order <- function(a, b) {
   }
   # Same guard as anova.frmtmb_fit, applied imputation by imputation:
   # likelihoods computed on different data are not on a common scale.
-  na <- vapply(a$fits, function(f) as.integer(f$frame$n_obs), 0L)
-  nb <- vapply(b$fits, function(f) as.integer(f$frame$n_obs), 0L)
+  na <- vapply(a$fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
+  nb <- vapply(b$fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
   if (!identical(na, nb)) {
     stop("anova() needs both fits fit to the same imputed datasets; ",
          "imputation ", which(na != nb)[1], " has ", na[which(na != nb)[1]],
@@ -389,11 +389,11 @@ pooled_wald_parts <- function(big, small, constraint) {
   U <- array(NA_real_, c(k, k, m))
   for (j in seq_len(m)) {
     f <- big$fits[[j]]
-    cf <- c(f$estimates$beta,
-            if (length(fx <- f$frame$betad_fixed_idx)) {
-              f$estimates$betad[-fx]
+    cf <- c(f$estimates[["beta"]],
+            if (length(fx <- f$frame[["betad_fixed_idx"]])) {
+              f$estimates[["betad"]][-fx]
             } else {
-              f$estimates$betad
+              f$estimates[["betad"]]
             })
     names(cf) <- estimated_coef_names(f)
     Q[, j] <- cf[tested]

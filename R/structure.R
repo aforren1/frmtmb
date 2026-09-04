@@ -461,7 +461,7 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
   if (is.null(lp)) {
     stop("latent_probs() needs a family that declares latent states, ",
          "through frmtmb_structure(latent_probs = ). The '",
-         rspec$family$family, "' family declares none: only a mixture, ",
+         rspec$family[["family"]], "' family declares none: only a mixture, ",
          "a hidden Markov chain or a latent class measurement model has ",
          "states to report", call. = FALSE)
   }

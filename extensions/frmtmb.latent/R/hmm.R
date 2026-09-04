@@ -69,15 +69,15 @@ hmm_tr_names <- function(K) {
 #'
 #' @noRd
 hmm_dpar_is_constant <- function(dp) {
-  if (!is.null(dp$constant)) return(TRUE)
-  if (!is.null(dp$nl_body)) return(FALSE)
+  if (!is.null(dp[["constant"]])) return(TRUE)
+  if (!is.null(dp[["nl_body"]])) return(FALSE)
   lists_empty <- vapply(
     c("re", "smooth", "mo", "miterms", "csterms", "gpterms",
       "carterms", "spdeterms"),
     function(nm) !length(dp[[nm]] %||% list()), TRUE
   )
   if (!all(lists_empty)) return(FALSE)
-  f <- dp$fixed
+  f <- dp[["fixed"]]
   is.null(f) || identical(deparse1(f[[length(f)]]), "1")
 }
 
@@ -644,7 +644,7 @@ hmm_check_aterms <- function(resp, spec, av) {
   }
   bad <- intersect(c("weights", "cens", "trunc_lb", "trunc_ub", "se"),
                    names(av))
-  if (isTRUE(resp$aterms$mi)) bad <- c(bad, "mi")
+  if (isTRUE(resp$aterms[["mi"]])) bad <- c(bad, "mi")
   if (length(bad)) {
     lab <- c(weights = "weights()", cens = "cens()",
              trunc_lb = "trunc()", trunc_ub = "trunc()", se = "se()",
@@ -952,7 +952,7 @@ hmm_parts <- function(fit, dp = NULL, need_lpmat = TRUE) {
   hs <- fam[["hmm"]]
   K <- hs$K
   dp <- dp %||% eval_dpars(fit)[[rspec$resp_name]]
-  av <- fit$frame$aterm_values[[rspec$resp_name]]
+  av <- fit$frame[["aterm_values"]][[rspec$resp_name]]
   n <- hg[["n"]]
   lpmat <- if (!need_lpmat) NULL else {
     matrix(vapply(seq_len(K), function(k) {

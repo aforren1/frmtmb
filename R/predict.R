@@ -37,7 +37,7 @@ get_joint_cov <- function(fit) {
 #' @noRd
 coef_b <- function(fit, b = fit$estimates[["b"]]) {
   if (is.null(b)) return(b)
-  expand_b(fit$frame, b, fit$estimates$theta)
+  expand_b(fit$frame, b, fit$estimates[["theta"]])
 }
 
 #' Numeric `mo()` column values: D times the cumulative simplex at the
@@ -56,7 +56,7 @@ mo_col_values <- function(fit, mi, codes = mi$codes) {
 #'
 #' @noRd
 mo_codes <- function(fit, lp, mi, newdata) {
-  env <- fit$spec$responses[[lp$resp]]$formula_env
+  env <- fit$spec$responses[[lp[["resp"]]]]$formula_env
   v <- eval(mi$expr, newdata, env)
   if (!is.null(mi$levels)) {
     v <- factor(v, levels = mi$levels, ordered = TRUE)
@@ -77,9 +77,9 @@ mo_codes <- function(fit, lp, mi, newdata) {
 #'
 #' @noRd
 mi_values <- function(fit, vn) {
-  xv <- fit$frame$y[[vn]]
-  mm_ <- fit$frame$mi_map[[vn]]
-  if (!is.null(mm_)) xv[mm_$rows] <- fit$estimates$miss[mm_$idx]
+  xv <- fit$frame[["y"]][[vn]]
+  mm_ <- fit$frame[["mi_map"]][[vn]]
+  if (!is.null(mm_)) xv[mm_$rows] <- fit$estimates[["miss"]][mm_$idx]
   xv
 }
 
@@ -88,12 +88,12 @@ mi_values <- function(fit, vn) {
 #'
 #' @noRd
 patch_mo_cols <- function(fit, lp, X) {
-  for (mi in lp$mo %||% list()) {
+  for (mi in lp[["mo"]] %||% list()) {
     v <- mo_col_values(fit, mi)
     if (!is.null(mi$mult)) v <- v * mi$mult
     X[, mi$col] <- v
   }
-  for (mt in lp$mi %||% list()) {
+  for (mt in lp[["mi"]] %||% list()) {
     v <- mi_values(fit, mt$var)
     if (!is.null(mt$mult)) v <- v * mt$mult
     X[, mt$col] <- v
@@ -158,7 +158,7 @@ smooth_group_var <- function(sm, mf = NULL) {
 #' @noRd
 smooth_group_block_ids <- function(lp) {
   ids <- integer(0)
-  for (si in lp$smooths %||% list()) {
+  for (si in lp[["smooths"]] %||% list()) {
     if (!is.null(si$group_var)) ids <- c(ids, si$block_ids)
   }
   ids
@@ -246,17 +246,17 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
 #' @noRd
 pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
                         use_re = TRUE) {
-  env <- fit$spec$responses[[lp$resp]]$formula_env
-  tt <- patch_predvars(lp$terms, fit$frame$predvar_map)
+  env <- fit$spec$responses[[lp[["resp"]]]]$formula_env
+  tt <- patch_predvars(lp[["terms"]], fit$frame[["predvar_map"]])
   mfp <- stats::model.frame(tt, newdata, na.action = stats::na.pass,
-                            xlev = xlev_for(lp$xlevels, tt))
+                            xlev = xlev_for(lp[["xlevels"]], tt))
   # sparse_x fits keep newdata designs sparse too; NA rows must stay NA
   # in eta, and sparse.model.matrix silently zeroes NA factor rows, so
   # frames with NAs fall back to the dense builder
-  X <- if (isTRUE(fit$frame$sparse_x) && !anyNA(mfp)) {
-    sparse_mm(tt, mfp, contrasts.arg = lp$contrasts)
+  X <- if (isTRUE(fit$frame[["sparse_x"]]) && !anyNA(mfp)) {
+    sparse_mm(tt, mfp, contrasts.arg = lp[["contrasts"]])
   } else {
-    stats::model.matrix(tt, mfp, contrasts.arg = lp$contrasts)
+    stats::model.matrix(tt, mfp, contrasts.arg = lp[["contrasts"]])
   }
   # Estimability against a rank-deficient fit. A prediction is a linear
   # functional of beta, so it is identified only when the new design row
@@ -265,22 +265,22 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   # keeps rows that restate a kept column - x2 = 2 * x, or a cell whose
   # aliased indicator is implied by the kept ones - exact.
   nonest <- rep(FALSE, nrow(X))
-  if (!is.null(lp$alias_null)) {
-    Xa <- as.matrix(X[, rownames(lp$alias_null), drop = FALSE])
+  if (!is.null(lp[["alias_null"]])) {
+    Xa <- as.matrix(X[, rownames(lp[["alias_null"]]), drop = FALSE])
     scl <- max(abs(Xa[is.finite(Xa)]), 1)
     # NA rows already predict NA; keep them out of the estimability vote
-    nonest <- rowSums(abs(Xa %*% lp$alias_null) > 1e-8 * scl,
+    nonest <- rowSums(abs(Xa %*% lp[["alias_null"]]) > 1e-8 * scl,
                       na.rm = TRUE) > 0
   }
   # frozen intercept-drop / rank-deficiency column set from fit time
-  X <- X[, lp$param_colnames, drop = FALSE]
+  X <- X[, lp[["param_colnames"]], drop = FALSE]
   off <- extract_offset(tt, mfp, env)
 
   # Smooths: rebuild the (wiggly, fixed) split of the basis for newdata.
   # Either way the result has the wiggly columns first (in rand order)
   # and the null-space columns last, matching the fitted X layout.
   sm_parts <- list()
-  for (si in lp$smooths %||% list()) {
+  for (si in lp[["smooths"]] %||% list()) {
     # A smooth indexed by a grouping factor holds that factor's own
     # deviations, so a population-level prediction drops it the way it
     # drops (1 | g). smooth2random() leaves such a term no null space,
@@ -313,7 +313,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       pos <- pos + si$nr[r]
       if (drop_grp) next
       sm_parts[[length(sm_parts) + 1L]] <- list(
-        bk = fit$frame$re_blocks[[si$block_ids[r]]],
+        bk = fit$frame[["re_blocks"]][[si$block_ids[r]]],
         Xr = Xr_new
       )
     }
@@ -330,11 +330,11 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   # Exact gp at unseen positions kriges: conditional-mean weights
   # K* K^-1 at the fitted kernel slot into Xr, and the conditional
   # variance diag(K** - K* K^-1 K*') rides along for se.fit.
-  for (gi in lp$gps %||% list()) {
+  for (gi in lp[["gps"]] %||% list()) {
     Xc <- do.call(cbind, lapply(gi$exprs, function(ex) {
       as.numeric(eval(ex, newdata, env))
     }))
-    bk <- fit$frame$re_blocks[[gi$block_id]]
+    bk <- fit$frame[["re_blocks"]][[gi$block_id]]
     extra_var <- NULL
     if (gi$type == "hsgp") {
       # dmax/center/L are the fitted scaling, so an in-sample newdata
@@ -344,8 +344,8 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       pos <- gi$positions
       j <- match(pos_rowkey(Xc), pos_rowkey(pos))
       if (anyNA(j)) {
-        th <- fit$estimates$theta[bk$theta_idx]
-        K <- unname(covstruct_registry$gp$vcov(th, bk))
+        th <- fit$estimates[["theta"]][bk[["theta_idx"]]]
+        K <- unname(covstruct_registry[["gp"]]$vcov(th, bk))
         Ks <- gp_cross_cov(th, bk, Xc, pos)
         Xr <- t(solve(K, t(Ks)))
         # observed rows reduce to indicators (K* row = K row), so their
@@ -379,12 +379,12 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     }
     m
   }
-  for (mi in lp$mo %||% list()) {
+  for (mi in lp[["mo"]] %||% list()) {
     v <- mo_col_values(fit, mi, mo_codes(fit, lp, mi, newdata)) *
       nd_mult(mi$mult_expr)
     X <- cbind(X, matrix(v, ncol = 1, dimnames = list(NULL, mi$label)))
   }
-  for (mt in lp$mi %||% list()) {
+  for (mt in lp[["mi"]] %||% list()) {
     v <- newdata[[mt$var]]
     if (is.null(v) || anyNA(v)) {
       stop("mi(", mt$var, "): newdata must supply complete values",
@@ -403,10 +403,10 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   }
 
   re_parts <- list()
-  for (bk in fit$frame$re_blocks) {
-    if (bk$covstruct %in% c("smooth", "gp", "hsgp")) next
-    for (comp in bk$components) {
-      if (comp$lp_key != linpred_key(lp$resp, lp$dpar)) next
+  for (bk in fit$frame[["re_blocks"]]) {
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) next
+    for (comp in bk[["components"]]) {
+      if (comp$lp_key != linpred_key(lp[["resp"]], lp[["dpar"]])) next
       if (!is.null(comp$mm)) {
         # One re_part per MEMBER, its design already scaled by that
         # member's weight. re_eta() and re_design_matrix() both
@@ -416,15 +416,16 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         # way a new level of an ordinary factor does.
         re_parts <- c(re_parts,
                       mm_newdata_parts(comp, bk, newdata, env,
-                                       lp$xlevels, fit$frame$predvar_map,
+                                       lp[["xlevels"]],
+                      fit$frame[["predvar_map"]],
                                        allow_new_levels))
         next
       }
       tt2 <- stats::terms(stats::as.formula(call("~", comp$bar[[2]]),
                                             env = env))
-      tt2 <- patch_predvars(tt2, fit$frame$predvar_map)
+      tt2 <- patch_predvars(tt2, fit$frame[["predvar_map"]])
       mf2 <- stats::model.frame(tt2, newdata, na.action = stats::na.pass,
-                                xlev = xlev_for(lp$xlevels, tt2))
+                                xlev = xlev_for(lp[["xlevels"]], tt2))
       mm <- stats::model.matrix(tt2, mf2)
       if (!identical(colnames(mm), comp$cnms)) {
         stop("Random-effect design for `", comp$label, "` does not match ",
@@ -436,10 +437,10 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       # an spde block's levels are mesh ROW NUMBERS, so the node has to
       # be read as a number here too: as.character() on a double would
       # spell node 100000 as "1e+05" and lose the column
-      gv <- if (bk$covstruct == "spde") spde_node_labels(gvr) else {
+      gv <- if (bk[["covstruct"]] == "spde") spde_node_labels(gvr) else {
         as.character(gvr)
       }
-      j <- match(gv, bk$levels)
+      j <- match(gv, bk[["levels"]])
       if (anyNA(j) && !allow_new_levels) {
         stop("New levels in grouping factor `", deparse1(comp$bar[[3]]),
              "`: ", paste(unique(gv[is.na(j)]), collapse = ", "),
@@ -461,7 +462,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
 mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
                              predvar_map, allow_new_levels) {
   mms <- comp$mm
-  iw <- mm_index_weights(mms, newdata, env, bk$levels)
+  iw <- mm_index_weights(mms, newdata, env, bk[["levels"]])
   tt2 <- stats::terms(stats::as.formula(call("~", mms$lhs), env = env))
   md <- mm_member_designs(mms, newdata, env, iw$n_members,
                           predvar_map = predvar_map,
@@ -476,7 +477,7 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
   gv <- mm_member_values(mms, newdata, env)
   if (anyNA(iw$J) && !allow_new_levels) {
     new <- unique(unlist(lapply(gv, function(v) {
-      setdiff(as.character(v), bk$levels)
+      setdiff(as.character(v), bk[["levels"]])
     }), use.names = FALSE))
     stop("New levels in multi-membership factor `", mms$label, "`: ",
          paste(new, collapse = ", "),
@@ -502,7 +503,7 @@ re_eta <- function(re_parts, cvec, n) {
   eta <- numeric(n)
   for (rp in re_parts) {
     bk <- rp$bk
-    B <- t(matrix(cvec[bk$c_idx], nrow = bk$dim))  # levels x D
+    B <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))  # levels x D
     cols <- rp$comp$offset + seq_len(rp$comp$dim)
     contrib <- rowSums(rp$mm * B[rp$j, cols, drop = FALSE])
     # only unmatched LEVELS predict at the population value; an NA in
@@ -519,7 +520,7 @@ re_eta <- function(re_parts, cvec, n) {
 sm_eta <- function(sm_parts, cvec) {
   eta <- 0
   for (sp in sm_parts) {
-    eta <- eta + drop(sp$Xr %*% cvec[sp$bk$c_idx])
+    eta <- eta + drop(sp$Xr %*% cvec[sp$bk[["c_idx"]]])
   }
   eta
 }
@@ -533,27 +534,28 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
   # (draws_fit_at), so the draws surface is unaffected.
   require_fitted(fit, "predict() / fitted() / residuals() / simulate()")
   est <- fit$estimates
-  if (!is.null(b)) b <- expand_b(fit$frame, b, est$theta)
+  if (!is.null(b)) b <- expand_b(fit$frame, b, est[["theta"]])
   out <- list()
-  for (lp in fit$frame$linpreds) {
-    if (!is.null(lp$nl_body)) {
-      ev <- c(out[[lp$resp]][c(lp$nl_pars, lp$nl_dpar_refs)],
-              lp$data_list)
-      eta <- eval(lp$nl_body, ev, ad_overload_env(lp$nl_env, lp$nl_body))
-      out[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
+  for (lp in fit$frame[["linpreds"]]) {
+    if (!is.null(lp[["nl_body"]])) {
+      ev <- c(out[[lp[["resp"]]]][c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])],
+              lp[["data_list"]])
+      eta <- eval(lp[["nl_body"]], ev, ad_overload_env(lp[["nl_env"]],
+        lp[["nl_body"]]))
+      out[[lp[["resp"]]]][[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
       next
     }
-    eta <- if (ncol(lp$X)) {
-      drop(as.matrix(patch_mo_cols(fit, lp, lp$X) %*%
-                       est[[lp$par]][lp$idx]))
+    eta <- if (ncol(lp[["X"]])) {
+      drop(as.matrix(patch_mo_cols(fit, lp, lp[["X"]]) %*%
+                       est[[lp[["par"]]]][lp[["idx"]]]))
     } else {
-      numeric(fit$frame$n_obs)
+      numeric(fit$frame[["n_obs"]])
     }
-    if (!is.null(lp$Z)) {
-      eta <- eta + as.numeric(lp$Z %*% b)
+    if (!is.null(lp[["Z"]])) {
+      eta <- eta + as.numeric(lp[["Z"]] %*% b)
     }
-    if (!is.null(lp$offset)) eta <- eta + lp$offset
-    out[[lp$resp]][[lp$dpar]] <- lp$link$linkinv(eta)
+    if (!is.null(lp[["offset"]])) eta <- eta + lp[["offset"]]
+    out[[lp[["resp"]]]][[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
   }
   out
 }
@@ -566,11 +568,11 @@ re_design_matrix <- function(re_parts, n, q) {
   ii <- integer(0); jj <- integer(0); xx <- numeric(0)
   for (rp in re_parts) {
     bk <- rp$bk
-    D <- bk$dim
+    D <- bk[["dim"]]
     ok <- which(!is.na(rp$j))
     for (k in seq_len(rp$comp$dim)) {
       ii <- c(ii, ok)
-      jj <- c(jj, bk$c_idx[(rp$j[ok] - 1L) * D + rp$comp$offset + k])
+      jj <- c(jj, bk[["c_idx"]][(rp$j[ok] - 1L) * D + rp$comp$offset + k])
       xx <- c(xx, rp$mm[ok, k])
     }
   }
@@ -587,32 +589,33 @@ rr_jacobians <- function(fit) {
   est <- fit$estimates
   ii <- integer(0); jj <- integer(0); xx <- numeric(0)
   th_cols <- list()
-  for (bk in frame$re_blocks) {
-    if (bk$covstruct == "rr") {
-      L <- rr_loadings(est$theta[bk$theta_idx], bk$dim, bk$rank)
-      for (l in seq_len(bk$n_levels)) {
-        rows <- bk$c_idx[(l - 1L) * bk$dim + seq_len(bk$dim)]
-        cols <- bk$b_idx[(l - 1L) * bk$rank + seq_len(bk$rank)]
-        ii <- c(ii, rep(rows, times = bk$rank))
-        jj <- c(jj, rep(cols, each = bk$dim))
+  for (bk in frame[["re_blocks"]]) {
+    if (bk[["covstruct"]] == "rr") {
+      L <- rr_loadings(est[["theta"]][bk[["theta_idx"]]], bk[["dim"]],
+        bk[["rank"]])
+      for (l in seq_len(bk[["n_levels"]])) {
+        rows <- bk[["c_idx"]][(l - 1L) * bk[["dim"]] + seq_len(bk[["dim"]])]
+        cols <- bk[["b_idx"]][(l - 1L) * bk[["rank"]] + seq_len(bk[["rank"]])]
+        ii <- c(ii, rep(rows, times = bk[["rank"]]))
+        jj <- c(jj, rep(cols, each = bk[["dim"]]))
         xx <- c(xx, as.vector(L))
       }
-      for (j in bk$theta_idx) {
-        h <- 1e-6 * max(1, abs(est$theta[j]))
-        tp <- est$theta; tp[j] <- tp[j] + h
-        tn <- est$theta; tn[j] <- tn[j] - h
+      for (j in bk[["theta_idx"]]) {
+        h <- 1e-6 * max(1, abs(est[["theta"]][j]))
+        tp <- est[["theta"]]; tp[j] <- tp[j] + h
+        tn <- est[["theta"]]; tn[j] <- tn[j] - h
         dvec <- (expand_b(frame, est[["b"]], tp) -
                    expand_b(frame, est[["b"]], tn)) / (2 * h)
         th_cols[[length(th_cols) + 1L]] <- list(j = j, dvec = dvec)
       }
     } else {
-      ii <- c(ii, bk$c_idx)
-      jj <- c(jj, bk$b_idx)
-      xx <- c(xx, rep(1, length(bk$b_idx)))
+      ii <- c(ii, bk[["c_idx"]])
+      jj <- c(jj, bk[["b_idx"]])
+      xx <- c(xx, rep(1, length(bk[["b_idx"]])))
     }
   }
   list(Jb = Matrix::sparseMatrix(i = ii, j = jj, x = xx,
-                                 dims = c(frame$n_c,
+                                 dims = c(frame[["n_c"]],
                                           length(est[["b"]]))),
        th_cols = th_cols)
 }
@@ -634,8 +637,8 @@ single_response <- function(fit, what) {
 #'
 #' @noRd
 mean_is_mu <- function(fam) {
-  is.null(fam$post$mean_fn) ||
-    identical(body(fam$post$mean_fn), quote(dpars$mu))
+  is.null(fam[["post"]]$mean_fn) ||
+    identical(body(fam[["post"]]$mean_fn), quote(dpars[["mu"]]))
 }
 
 #' Whether a response carries `trunc()` bounds, from the spec (the stored
@@ -731,8 +734,8 @@ aterms_for_newdata <- function(rspec, newdata) {
     }
     if (!is.null(v)) av[[nm]] <- v
   }
-  if (!is.null(rspec$aterms$se_sigma)) {
-    av$se_sigma <- rspec$aterms$se_sigma
+  if (!is.null(rspec$aterms[["se_sigma"]])) {
+    av[["se_sigma"]] <- rspec$aterms[["se_sigma"]]
   }
   av
 }
@@ -748,7 +751,7 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
   if (is.null(newdata) && is.null(re.form)) {
     # exactly fitted(): dpars at the estimates, conditional on the modes
     dp <- eval_dpars(fit)[[rn]]
-    out <- response_mean(fam, dp, fit$frame$aterm_values[[rn]])
+    out <- response_mean(fam, dp, fit$frame[["aterm_values"]][[rn]])
     return(napred(fit, out))
   }
   dp <- list()
@@ -761,8 +764,8 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
   av <- if (is.null(newdata)) {
     # in-sample dpar predictions come back napredict-ed; pad the
     # per-observation aterm values the same way (a no-op under na.omit)
-    lapply(fit$frame$aterm_values[[rn]], function(v) {
-      if (is.numeric(v) && length(v) == fit$frame$n_obs) {
+    lapply(fit$frame[["aterm_values"]][[rn]], function(v) {
+      if (is.numeric(v) && length(v) == fit$frame[["n_obs"]]) {
         napred(fit, v)
       } else {
         v
@@ -1065,7 +1068,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   # "response" means there is the category distribution, one row of K
   # probabilities per observation (the brms fitted()/epred convention).
   # The mu predictor is still reachable as type = "link" or dpar = "mu".
-  if (identical(rspec$family$type, "ordinal") && is.null(dpar) &&
+  if (identical(rspec$family[["type"]], "ordinal") && is.null(dpar) &&
       type %in% c("response", "conditional")) {
     if (se.fit) {
       stop("se.fit is not supported on the response scale for an ",
@@ -1080,7 +1083,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   # A nominal response has no mean either: "response" is the K-vector of
   # category probabilities, the same convention the ordinal families and
   # brms both follow.
-  if (identical(rspec$family$type, "categorical") && is.null(dpar) &&
+  if (identical(rspec$family[["type"]], "categorical") && is.null(dpar) &&
       type %in% c("response", "conditional")) {
     if (se.fit) {
       stop("se.fit is not supported on the response scale for a ",
@@ -1140,7 +1143,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     if (is.na(dpar)) {
       stop("type = '", type, "' needs a family with a ",
            if (type == "disp") "dispersion" else "zero-inflation/hurdle",
-           " parameter; family '", rspec$family$family, "' has none",
+           " parameter; family '", rspec$family[["family"]], "' has none",
            call. = FALSE)
     }
     type <- if (type == "zlink") "link" else "response"
@@ -1164,14 +1167,14 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
     rspec$primary_dpars[1]
   key <- linpred_key(resp, dpar)
-  lp <- object$frame$linpreds[[key]]
+  lp <- object$frame[["linpreds"]][[key]]
   if (is.null(lp)) {
     stop("Unknown dpar: '", dpar, "' for response '", resp,
          "'. Available: ", paste(names(rspec$dpars), collapse = ", "),
          call. = FALSE)
   }
 
-  if (!is.null(lp$nl_body)) {
+  if (!is.null(lp[["nl_body"]])) {
     if (se.fit) {
       stop("se.fit is not supported for the nonlinear predictor yet; ",
            "request the nonlinear parameters (dpar = '",
@@ -1182,23 +1185,24 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     # back through this same branch, so a chain of nlf() formulas
     # unwinds by recursion in dependency order.
     vals <- list()
-    for (np in lp$nl_pars) {
+    for (np in lp[["nl_pars"]]) {
       vals[[np]] <- predict(object, newdata = newdata, dpar = np,
                             resp = resp, re.form = re.form,
                             allow_new_levels = allow_new_levels)
     }
     # a reference to another dpar reads its VALUE, so it comes back on
     # the response scale (through that parameter's link inverse)
-    for (dr in lp$nl_dpar_refs %||% character(0)) {
+    for (dr in lp[["nl_dpar_refs"]] %||% character(0)) {
       vals[[dr]] <- predict(object, newdata = newdata, dpar = dr,
                             type = "response", resp = resp,
                             re.form = re.form,
                             allow_new_levels = allow_new_levels)
     }
     dl <- if (is.null(newdata)) {
-      lp$data_list
+      lp[["data_list"]]
     } else {
-      lapply(stats::setNames(names(lp$data_list), names(lp$data_list)),
+      lapply(stats::setNames(names(lp[["data_list"]]),
+             names(lp[["data_list"]])),
              function(v) {
                if (is.null(newdata[[v]])) {
                  stop("Variable '", v, "' missing from newdata",
@@ -1207,22 +1211,22 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
                newdata[[v]]
              })
     }
-    eta <- eval(lp$nl_body, c(vals, dl),
-                ad_overload_env(lp$nl_env, lp$nl_body))
-    out <- if (type == "response") lp$link$linkinv(eta) else eta
+    eta <- eval(lp[["nl_body"]], c(vals, dl),
+                ad_overload_env(lp[["nl_env"]], lp[["nl_body"]]))
+    out <- if (type == "response") lp[["link"]]$linkinv(eta) else eta
     return(if (is.null(newdata)) napred(object, out) else out)
   }
 
   ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
-  eta <- ed$eta
-  n <- ed$n
+  eta <- ed[["eta"]]
+  n <- ed[["n"]]
 
   if (!se.fit) {
-    out <- if (type == "response") lp$link$linkinv(eta) else eta
+    out <- if (type == "response") lp[["link"]]$linkinv(eta) else eta
     return(if (is.null(newdata)) napred(object, out) else out)
   }
 
-  has_rr <- isTRUE(object$frame$has_rr)
+  has_rr <- isTRUE(object$frame[["has_rr"]])
   rrj <- if (has_rr) rr_jacobians(object)
   jc <- get_joint_cov(object)
   da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
@@ -1238,11 +1242,11 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   se_eta <- sqrt(var_eta)
   # the kept columns still have a finite variance, but it is not the
   # standard error of anything the fit estimates
-  if (any(ed$nonest)) se_eta[ed$nonest] <- NA_real_
+  if (any(ed[["nonest"]])) se_eta[ed[["nonest"]]] <- NA_real_
 
   out <- if (type == "response") {
-    list(fit = lp$link$linkinv(eta),
-         se.fit = abs(lp$link$mu_eta(eta)) * se_eta)
+    list(fit = lp[["link"]]$linkinv(eta),
+         se.fit = abs(lp[["link"]]$mu_eta(eta)) * se_eta)
   } else {
     list(fit = eta, se.fit = se_eta)
   }
@@ -1260,34 +1264,34 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
 #' @noRd
 lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   est <- object$estimates
-  key <- linpred_key(lp$resp, lp$dpar)
+  key <- linpred_key(lp[["resp"]], lp[["dpar"]])
   re_parts <- list()
   sm_parts <- list()
   nonest <- FALSE
-  sm_ids <- which(vapply(object$frame$re_blocks, function(bk) {
-    bk$covstruct %in% c("smooth", "gp", "hsgp") &&
-      any(vapply(bk$components, function(cp) cp$lp_key == key, TRUE))
+  sm_ids <- which(vapply(object$frame[["re_blocks"]], function(bk) {
+    bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") &&
+      any(vapply(bk[["components"]], function(cp) cp$lp_key == key, TRUE))
   }, TRUE))
   # the blocks a population-level prediction keeps: gp()/hsgp() curves
   # and the POPULATION smooths, but not a smooth whose basis is indexed
   # by a grouping factor (see smooth_group_var())
   if (!use_re) sm_ids <- setdiff(sm_ids, smooth_group_block_ids(lp))
-  sm_blocks <- object$frame$re_blocks[sm_ids]
+  sm_blocks <- object$frame[["re_blocks"]][sm_ids]
 
   if (is.null(newdata)) {
-    X <- patch_mo_cols(object, lp, lp$X)
-    off <- lp$offset
-    n <- object$frame$n_obs
-    eta <- drop(as.matrix(X %*% est[[lp$par]][lp$idx]))
-    if (!is.null(lp$Z)) {
+    X <- patch_mo_cols(object, lp, lp[["X"]])
+    off <- lp[["offset"]]
+    n <- object$frame[["n_obs"]]
+    eta <- drop(as.matrix(X %*% est[[lp[["par"]]]][lp[["idx"]]]))
+    if (!is.null(lp[["Z"]])) {
       cvec <- coef_b(object)
       if (use_re) {
-        eta <- eta + as.numeric(lp$Z %*% cvec)
+        eta <- eta + as.numeric(lp[["Z"]] %*% cvec)
       } else if (length(sm_blocks)) {
         # population-level: drop group effects but keep the smooth curve
         for (bk in sm_blocks) {
-          eta <- eta + as.numeric(lp$Z[, bk$c_idx, drop = FALSE] %*%
-                                    cvec[bk$c_idx])
+          eta <- eta + as.numeric(lp[["Z"]][, bk[["c_idx"]], drop = FALSE] %*%
+                                    cvec[bk[["c_idx"]]])
         }
       }
     }
@@ -1300,7 +1304,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
     sm_parts <- pd$sm_parts
     nonest <- pd$nonest
     n <- nrow(X)
-    eta <- drop(as.matrix(X %*% est[[lp$par]][lp$idx]))
+    eta <- drop(as.matrix(X %*% est[[lp[["par"]]]][lp[["idx"]]]))
     cvec <- coef_b(object)
     if (use_re && length(re_parts)) {
       eta <- eta + re_eta(re_parts, cvec, n)
@@ -1316,7 +1320,7 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   if (any(nonest)) {
     warning("Rank-deficient fit: ", sum(nonest), " row(s) of newdata are ",
             "not estimable because they load on the dropped column(s) ",
-            paste(lp$dropped_colnames, collapse = ", "),
+            paste(lp[["dropped_colnames"]], collapse = ", "),
             "; predicting NA there", call. = FALSE)
     eta[nonest] <- NA_real_
   }
@@ -1349,7 +1353,7 @@ warn_modes_conditional_se <- function() {
 lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
   est <- object$estimates
   rn <- jc$names
-  X <- ed$X
+  X <- ed[["X"]]
   add_b_cols <- function(A, coef_pos, Zc, b_pos, th_pos) {
     if (has_rr) {
       A <- Matrix::cbind2(A, Zc %*% rrj$Jb)
@@ -1364,25 +1368,25 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
     }
     list(A = A, coef_pos = coef_pos)
   }
-  if (lp$par == "beta") {
-    coef_pos <- which(rn == "beta")[lp$idx]
+  if (lp[["par"]] == "beta") {
+    coef_pos <- which(rn == "beta")[lp[["idx"]]]
     A <- X
   } else {
-    tpl_len <- length(object$frame$par_template$betad)
-    est_rank <- match(lp$idx,
+    tpl_len <- length(object$frame[["par_template"]][["betad"]])
+    est_rank <- match(lp[["idx"]],
                       setdiff(seq_len(tpl_len),
-                              object$frame$betad_fixed_idx))
+                              object$frame[["betad_fixed_idx"]]))
     keep <- !is.na(est_rank)
     coef_pos <- which(rn == "betad")[est_rank[keep]]
     A <- X[, keep, drop = FALSE]
   }
-  if (length(object$frame$re_blocks)) {
+  if (length(object$frame[["re_blocks"]])) {
     b_pos <- which(rn == "b")
     th_pos <- which(rn == "theta")
     would_add <- if (is.null(newdata)) {
-      !is.null(lp$Z) && (use_re || length(ed$sm_blocks) > 0L)
+      !is.null(lp[["Z"]]) && (use_re || length(ed[["sm_blocks"]]) > 0L)
     } else {
-      (use_re && length(ed$re_parts) > 0L) || length(ed$sm_parts) > 0L
+      (use_re && length(ed[["re_parts"]]) > 0L) || length(ed[["sm_parts"]]) > 0L
     }
     if (!length(b_pos) && would_add) {
       # A marginalized (quadrature) objective has no b in its parameter
@@ -1394,27 +1398,27 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
       return(list(A = A, coef_pos = coef_pos))
     }
     if (is.null(newdata)) {
-      if (use_re && !is.null(lp$Z)) {
-        upd <- add_b_cols(A, coef_pos, lp$Z, b_pos, th_pos)
+      if (use_re && !is.null(lp[["Z"]])) {
+        upd <- add_b_cols(A, coef_pos, lp[["Z"]], b_pos, th_pos)
         A <- upd$A
         coef_pos <- upd$coef_pos
-      } else if (!use_re && length(ed$sm_blocks) && !is.null(lp$Z)) {
-        for (bk in ed$sm_blocks) {
-          A <- Matrix::cbind2(A, lp$Z[, bk$c_idx, drop = FALSE])
-          coef_pos <- c(coef_pos, b_pos[bk$b_idx])
+      } else if (!use_re && length(ed[["sm_blocks"]]) && !is.null(lp[["Z"]])) {
+        for (bk in ed[["sm_blocks"]]) {
+          A <- Matrix::cbind2(A, lp[["Z"]][, bk[["c_idx"]], drop = FALSE])
+          coef_pos <- c(coef_pos, b_pos[bk[["b_idx"]]])
         }
       }
     } else {
-      if (use_re && length(ed$re_parts)) {
-        Zn <- re_design_matrix(ed$re_parts, ed$n,
-                               object$frame$n_c %||% length(est[["b"]]))
+      if (use_re && length(ed[["re_parts"]])) {
+        Zn <- re_design_matrix(ed[["re_parts"]], ed[["n"]],
+                               object$frame[["n_c"]] %||% length(est[["b"]]))
         upd <- add_b_cols(A, coef_pos, Zn, b_pos, th_pos)
         A <- upd$A
         coef_pos <- upd$coef_pos
       }
-      for (sp in ed$sm_parts) {
+      for (sp in ed[["sm_parts"]]) {
         A <- Matrix::cbind2(A, sp$Xr)
-        coef_pos <- c(coef_pos, b_pos[sp$bk$b_idx])
+        coef_pos <- c(coef_pos, b_pos[sp$bk[["b_idx"]]])
       }
     }
   }
@@ -1431,21 +1435,22 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
 #' @noRd
 lp_extra_var <- function(object, ed, use_re) {
   nl <- list()
-  if (use_re && length(ed$re_parts)) {
-    th <- object$estimates$theta
-    for (rp in ed$re_parts) {
+  if (use_re && length(ed[["re_parts"]])) {
+    th <- object$estimates[["theta"]]
+    for (rp in ed[["re_parts"]]) {
       nas <- which(is.na(rp$j))
       if (!length(nas)) next
       bk <- rp$bk
       # the levels ARE the structure there, so there is no marginal
       # variance to hand an unseen one
-      if (bk$covstruct %in% c("gr_cov", "gr_prec", "car", "spde")) next
-      S <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
+      if (bk[["covstruct"]] %in% c("gr_cov", "gr_prec", "car", "spde")) next
+      S <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]],
+        bk)
       # a Student-t block's registry vcov() is the SCALE matrix; the
       # variance an unseen level contributes is nu/(nu-2) times it. The
       # interval is still built as a gaussian one, so it is the right
       # variance around a heavier-tailed truth, not the right quantile
-      if (is_student_block(bk)) S <- S * student_var_factor(bk$dist_nu)
+      if (is_student_block(bk)) S <- S * student_var_factor(bk[["dist_nu"]])
       nl[[length(nl) + 1L]] <- list(
         bk = bk,
         S = S,
@@ -1455,7 +1460,7 @@ lp_extra_var <- function(object, ed, use_re) {
     }
   }
   gp <- list()
-  for (sp in ed$sm_parts) {
+  for (sp in ed[["sm_parts"]]) {
     if (!is.null(sp$extra_var)) gp[[length(gp) + 1L]] <- sp$extra_var
   }
   list(new_levels = nl, gp = gp)
@@ -1490,12 +1495,12 @@ extra_var_blocks <- function(nl, n, weights = NULL) {
     if (!length(e$nas)) next
     kv <- e$new_key %||% rep(".", n)
     w <- if (is.null(weights)) rep(1, n) else weights[[idx]]
-    bkey <- as.character(e$bk$c_idx[1L])
+    bkey <- as.character(e$bk[["c_idx"]][1L])
     for (lev in unique(kv[e$nas])) {
       rows <- e$nas[!is.na(kv[e$nas]) & kv[e$nas] == lev]
       if (!length(rows)) next
       key <- paste0(bkey, "\r", lev)
-      B <- out[[key]] %||% list(S = e$S, M = matrix(0, n, e$bk$dim),
+      B <- out[[key]] %||% list(S = e$S, M = matrix(0, n, e$bk[["dim"]]),
                                 rows = integer(0))
       B$M[rows, e$cols] <- B$M[rows, e$cols] +
         w[rows] * e$mm[rows, , drop = FALSE]
@@ -1540,7 +1545,7 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   fam <- rspec$family
   rnm <- rspec$resp_name
   jc <- get_joint_cov(object)
-  has_rr <- isTRUE(object$frame$has_rr)
+  has_rr <- isTRUE(object$frame[["has_rr"]])
   rrj <- if (has_rr) rr_jacobians(object)
   dnames <- names(rspec$dpars)
   eds <- list()
@@ -1548,8 +1553,8 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   evs <- list()
   dp <- list()
   for (dnm in dnames) {
-    lp <- object$frame$linpreds[[linpred_key(rnm, dnm)]]
-    if (!is.null(lp$nl_body)) {
+    lp <- object$frame[["linpreds"]][[linpred_key(rnm, dnm)]]
+    if (!is.null(lp[["nl_body"]])) {
       stop("se.fit is not supported on the response scale for a ",
            "nonlinear predictor yet; request the nonlinear parameters ",
            "(dpar = '", rspec$nlpars[1], "', ...) instead", call. = FALSE)
@@ -1559,25 +1564,25 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
     das[[dnm]] <- lp_delta_A(object, lp, ed, newdata, use_re, jc,
                              has_rr, rrj)
     evs[[dnm]] <- lp_extra_var(object, ed, use_re)
-    dp[[dnm]] <- lp$link$linkinv(ed$eta)
+    dp[[dnm]] <- lp[["link"]]$linkinv(ed[["eta"]])
   }
   n <- eds[[1L]]$n
   av <- if (is.null(newdata)) {
-    object$frame$aterm_values[[rnm]]
+    object$frame[["aterm_values"]][[rnm]]
   } else {
     aterms_for_newdata(rspec, newdata)
   }
   m <- response_mean(fam, dp, av)
   if (is.null(m) || !is.numeric(m) || !is.null(dim(m)) || length(m) != n) {
     stop("se.fit is not available for the expected response of family '",
-         fam$family, "': its mean is not one number per observation",
+         fam[["family"]], "': its mean is not one number per observation",
          call. = FALSE)
   }
 
   grad <- list()
   for (dnm in dnames) {
-    lp <- object$frame$linpreds[[linpred_key(rnm, dnm)]]
-    grad[[dnm]] <- mean_eta_grad(fam, dp, av, dnm, lp$link, eds[[dnm]]$eta)
+    lp <- object$frame[["linpreds"]][[linpred_key(rnm, dnm)]]
+    grad[[dnm]] <- mean_eta_grad(fam, dp, av, dnm, lp[["link"]], eds[[dnm]]$eta)
   }
 
   # one gradient row per observation over the union of coefficient
@@ -1639,7 +1644,7 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
 model.frame.frmtmb_fit <- function(formula, ...) {
   # the stored combined frame survives even when the caller's data
   # environment is gone (lme4 test-formulaEval.R bug class)
-  formula$frame$data_frame
+  formula$frame[["data_frame"]]
 }
 
 #' Reinsert NAs for `na.exclude` fits (`napredict` is a no-op for
@@ -1647,7 +1652,7 @@ model.frame.frmtmb_fit <- function(formula, ...) {
 #'
 #' @noRd
 napred <- function(fit, x) {
-  stats::napredict(fit$frame$na_action, x)
+  stats::napredict(fit$frame[["na_action"]], x)
 }
 
 #' Fitted values
@@ -1686,23 +1691,23 @@ fitted.frmtmb_fit <- function(object, ...) {
                   fm(object, frame_block_of(object$frame,
                                             rspec$resp_name))))
   }
-  if (identical(rspec$family$type, "ordinal")) {
+  if (identical(rspec$family[["type"]], "ordinal")) {
     # no mean exists; the modelled response IS the category
     # distribution, and predict(type = "response") agrees by construction
     return(predict_ordinal(object, rspec, NULL, TRUE, FALSE))
   }
-  if (identical(rspec$family$type, "categorical")) {
+  if (identical(rspec$family[["type"]], "categorical")) {
     # same reasoning: the modelled response IS the category distribution
     return(predict_categorical(object, rspec, NULL, TRUE, FALSE))
   }
   dp <- eval_dpars(object)[[rspec$resp_name]]
-  if (!"mu" %in% names(dp) && is.null(rspec$family$post$mean_fn)) {
-    stop("fitted() is not defined for family '", rspec$family$family, "'",
+  if (!"mu" %in% names(dp) && is.null(rspec$family[["post"]]$mean_fn)) {
+    stop("fitted() is not defined for family '", rspec$family[["family"]], "'",
          call. = FALSE)
   }
   fam <- rspec$family
   out <- response_mean(fam, dp,
-                       object$frame$aterm_values[[rspec$resp_name]])
+                       object$frame[["aterm_values"]][[rspec$resp_name]])
   napred(object, out)
 }
 
@@ -1714,7 +1719,7 @@ ordinal_ncat <- function(fit) {
   raw <- fit$estimates[["tau_raw"]]
   if (is.null(raw)) {
     rspec <- single_response(fit, "residuals()")
-    return(max(fit$frame$y[[rspec$resp_name]]))
+    return(max(fit$frame[["y"]][[rspec$resp_name]]))
   }
   length(raw) + 1L
 }
@@ -1727,9 +1732,9 @@ ordinal_ncat <- function(fit) {
 #'
 #' @noRd
 ord_cs_values <- function(object, lp, newdata, n) {
-  cst <- lp$cs %||% list()
+  cst <- lp[["cs"]] %||% list()
   if (!length(cst)) return(list())
-  env <- object$spec$responses[[lp$resp]]$formula_env
+  env <- object$spec$responses[[lp[["resp"]]]]$formula_env
   lapply(cst, function(ct) {
     v <- if (is.null(newdata)) {
       ct$vals
@@ -1781,12 +1786,12 @@ ord_probs_from_eta <- function(fam, eta, cs, extra, K) {
   P <- matrix(NA_real_, n, K)
   # ordinal lpdfs take the extras (thresholds) as a fourth argument;
   # categorical's takes three - dispatch on arity like fam_lcdf() does
-  four <- length(formals(fam$lpdf)) >= 4L
+  four <- length(formals(fam[["lpdf"]])) >= 4L
   for (k in seq_len(K)) {
     P[, k] <- exp(as.numeric(if (four) {
-      fam$lpdf(rep.int(k, n), dp, list(), extra)
+      fam[["lpdf"]](rep.int(k, n), dp, list(), extra)
     } else {
-      fam$lpdf(rep.int(k, n), dp, list())
+      fam[["lpdf"]](rep.int(k, n), dp, list())
     }))
   }
   # analytically the rows already sum to one; the division only removes
@@ -1802,29 +1807,29 @@ ord_probs_from_eta <- function(fam, eta, cs, extra, K) {
 ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
                       allow_new_levels = FALSE) {
   fam <- rspec$family
-  lp <- object$frame$linpreds[[linpred_key(rspec$resp_name, "mu")]]
-  if (!is.null(lp$nl_body)) {
+  lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, "mu")]]
+  if (!is.null(lp[["nl_body"]])) {
     stop("type = \"response\" is not supported for an ordinal family ",
          "with a nonlinear predictor", call. = FALSE)
   }
   ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
-  eta <- unname(ed$eta)
+  eta <- unname(ed[["eta"]])
   n <- length(eta)
   K <- ordinal_ncat(object)
   cs <- ord_cs_offsets(object, lp, newdata, n, K - 1L)
   # the ordinal lpdfs read only `extra` (the thresholds and the cs
   # coefficients); no addition term enters a category probability
   P <- ord_probs_from_eta(fam, eta, cs, fit_extras(object), K)
-  colnames(P) <- object$frame$y_levels[[rspec$resp_name]] %||%
+  colnames(P) <- object$frame[["y_levels"]][[rspec$resp_name]] %||%
     as.character(seq_len(K))
-  rn <- names(ed$eta)
+  rn <- names(ed[["eta"]])
   if (is.null(rn) && is.null(newdata)) {
-    rn <- rownames(object$frame$data_frame)
+    rn <- rownames(object$frame[["data_frame"]])
   }
   if (!is.null(rn) && length(rn) == n) rownames(P) <- rn
   # a row that cannot be estimated from the retained design columns has
   # no category distribution either
-  if (any(ed$nonest)) P[ed$nonest, ] <- NA_real_
+  if (any(ed[["nonest"]])) P[ed[["nonest"]], ] <- NA_real_
   P
 }
 
@@ -1862,27 +1867,27 @@ cat_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   nonest <- NULL
   rn <- NULL
   for (j in seq_along(dpn)) {
-    lp <- object$frame$linpreds[[linpred_key(rspec$resp_name, dpn[j])]]
-    if (!is.null(lp$nl_body)) {
+    lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, dpn[j])]]
+    if (!is.null(lp[["nl_body"]])) {
       stop("type = \"response\" is not supported for a categorical ",
            "family with a nonlinear predictor", call. = FALSE)
     }
     ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
     if (is.null(E)) {
-      n <- length(ed$eta)
+      n <- length(ed[["eta"]])
       E <- matrix(0, n, K)
       nonest <- rep(FALSE, n)
-      rn <- names(ed$eta)
+      rn <- names(ed[["eta"]])
     }
-    E[, j + 1L] <- unname(ed$eta)
-    nonest <- nonest | ed$nonest
+    E[, j + 1L] <- unname(ed[["eta"]])
+    nonest <- nonest | ed[["nonest"]]
   }
   P <- exp(E - apply(E, 1L, max))
   P <- P / rowSums(P)
-  colnames(P) <- object$frame$y_levels[[rspec$resp_name]] %||%
+  colnames(P) <- object$frame[["y_levels"]][[rspec$resp_name]] %||%
     as.character(seq_len(K))
   if (is.null(rn) && is.null(newdata)) {
-    rn <- rownames(object$frame$data_frame)
+    rn <- rownames(object$frame[["data_frame"]])
   }
   if (!is.null(rn) && length(rn) == nrow(P)) rownames(P) <- rn
   if (any(nonest)) P[nonest, ] <- NA_real_
@@ -1922,7 +1927,7 @@ predict_categorical <- function(object, rspec, newdata, use_re,
 ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re) {
   fam <- rspec$family
   K <- ordinal_ncat(object)
-  eta <- unname(ed$eta)
+  eta <- unname(ed[["eta"]])
   n <- length(eta)
   extra <- fit_extras(object)
   csv <- ord_cs_values(object, lp, newdata, n)
@@ -1935,7 +1940,7 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re) {
   P0 <- probs(eta, CS, extra)
 
   jc <- get_joint_cov(object)
-  has_rr <- isTRUE(object$frame$has_rr)
+  has_rr <- isTRUE(object$frame[["has_rr"]])
   rrj <- if (has_rr) rr_jacobians(object)
   da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
   A <- as.matrix(da$A)
@@ -1983,12 +1988,12 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re) {
     for (i in seq_along(extra_d)) G[, n_beta + i] <- extra_d[[i]][, k]
     SE[, k] <- sqrt(pmax(rowSums((G %*% V) * G), 0))
   }
-  if (any(ed$nonest)) {
-    P0[ed$nonest, ] <- NA_real_
-    SE[ed$nonest, ] <- NA_real_
+  if (any(ed[["nonest"]])) {
+    P0[ed[["nonest"]], ] <- NA_real_
+    SE[ed[["nonest"]], ] <- NA_real_
   }
   colnames(P0) <- colnames(SE) <-
-    object$frame$y_levels[[rspec$resp_name]] %||% as.character(seq_len(K))
+    object$frame[["y_levels"]][[rspec$resp_name]] %||% as.character(seq_len(K))
   list(P = P0, se = SE)
 }
 
@@ -2216,7 +2221,7 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
   type <- match.arg(type)
   rspec <- single_response(object, "residuals()")
   fam <- rspec$family
-  if (identical(fam$type, "categorical")) {
+  if (identical(fam[["type"]], "categorical")) {
     # nothing here is defined on a nominal scale: the categories carry
     # no order, so there is no y - E[Y] to form and no CDF to invert
     stop("residuals() is not defined for a categorical family: the ",
@@ -2242,13 +2247,13 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
     fm <- st[["fitted_mean"]]
     if (!is.null(fm)) {
       blk <- frame_block_of(object$frame, rspec$resp_name)
-      r <- object$frame$y[[rspec$resp_name]] - fm(object, blk)
+      r <- object$frame[["y"]][[rspec$resp_name]] - fm(object, blk)
       if (type == "pearson") {
         fv <- st[["fitted_var"]]
         if (is.null(fv)) {
           stop("residuals(type = \"pearson\") needs the conditional ",
                "variance of each row given the whole response, and the ",
-               "'", fam$family, "' family declares no fitted_var(). Use ",
+               "'", fam[["family"]], "' family declares no fitted_var(). Use ",
                "type = \"response\"", call. = FALSE)
         }
         r <- r / sqrt(fv(object, blk))
@@ -2260,27 +2265,27 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
     }
   }
   if (type == "osa") {
-    if (!is.null(object$frame$autocor[[rspec$resp_name]])) {
+    if (!is.null(object$frame[["autocor"]][[rspec$resp_name]])) {
       # oneStepPredict needs the taped density of ONE observation given
       # the previous ones; under an R-side residual the tape holds a
       # joint density per group and never registers an observation
       # vector (no OBS() call), so there is nothing to step through
       stop("residuals(type = \"osa\") is not available for a fit with a ",
            "residual correlation term (",
-           object$frame$autocor[[rspec$resp_name]]$label,
+           object$frame[["autocor"]][[rspec$resp_name]]$label,
            "): the likelihood is a joint density per group, not a ",
            "product of per-observation terms. Use type = \"pearson\", ",
            "which divides by the marginal residual SD, or ",
            "dharma_residuals(), which uses simulate() and does draw ",
            "correlated residuals", call. = FALSE)
     }
-    av0 <- object$frame$aterm_values[[rspec$resp_name]]
-    tb <- trunc_bounds(av0, object$frame$n_obs)
-    cb <- osa_cens_domain(av0, object$frame$y[[rspec$resp_name]])
-    ordinal <- identical(fam$type, "ordinal")
+    av0 <- object$frame[["aterm_values"]][[rspec$resp_name]]
+    tb <- trunc_bounds(av0, object$frame[["n_obs"]])
+    cb <- osa_cens_domain(av0, object$frame[["y"]][[rspec$resp_name]])
+    ordinal <- identical(fam[["type"]], "ordinal")
     method <- osa_method %||%
       if (!is.null(tb) || !is.null(cb) || ordinal) "oneStepGeneric"
-      else if (identical(fam$family, "gaussian")) "fullGaussian"
+      else if (identical(fam[["family"]], "gaussian")) "fullGaussian"
       else "oneStepGeneric"
     if (!is.null(cb) && !identical(method, "oneStepGeneric")) {
       # a censored row's contribution is a probability MASS, so its
@@ -2292,7 +2297,7 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
     args <- list(obj = object$obj, observation.name = ".frm_obs",
                  method = method, trace = FALSE, ...)
     if (method == "oneStepGeneric") {
-      args$discrete <- identical(fam$type, "discrete") || ordinal
+      args$discrete <- identical(fam[["type"]], "discrete") || ordinal
       if (ordinal) {
         # the taped lpdf is a proper pmf on 1..K once the category is
         # selected arithmetically (see ord_cat_sel)
@@ -2345,41 +2350,41 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
     if (!is.null(cb)) {
       # censored rows carry no residual of their own; they enter only as
       # the conditioning event
-      full <- rep(NA_real_, object$frame$n_obs)
+      full <- rep(NA_real_, object$frame[["n_obs"]])
       full[cb$subset] <- r
       r <- full
     }
     return(napred(object, r))
   }
-  if (identical(fam$type, "ordinal") &&
+  if (identical(fam[["type"]], "ordinal") &&
       type %in% c("response", "pearson")) {
     # scored by the category codes the likelihood itself uses; see
     # ord_cat_moments()
     mom <- ord_cat_moments(object, rspec)
-    r <- object$frame$y[[rspec$resp_name]] - mom$mean
+    r <- object$frame[["y"]][[rspec$resp_name]] - mom$mean
     if (type == "pearson") r <- r / sqrt(mom$var)
     return(napred(object, r))
   }
   dp <- eval_dpars(object)[[rspec$resp_name]]
-  av <- object$frame$aterm_values[[rspec$resp_name]]
-  yv <- object$frame$y[[rspec$resp_name]]
+  av <- object$frame[["aterm_values"]][[rspec$resp_name]]
+  yv <- object$frame[["y"]][[rspec$resp_name]]
   if (type == "deviance") {
     return(napred(object, deviance_residuals(fam, yv, dp, av,
-                                             object$frame$n_obs)))
+                                             object$frame[["n_obs"]])))
   }
   # on a truncated response the residual is against the truncated mean,
   # which is what the data were actually drawn from
   mu <- response_mean(fam, dp, av)
   r <- yv - mu
   if (type == "pearson") {
-    if (is.null(fam$post$var_fn)) {
-      stop("Family '", fam$family, "' has no variance function; ",
+    if (is.null(fam[["post"]]$var_fn)) {
+      stop("Family '", fam[["family"]], "' has no variance function; ",
            "pearson residuals are unavailable", call. = FALSE)
     }
     # the scale stays the untruncated family variance; only the centering
     # is truncation-aware, so pearson residuals on a truncated model are
     # slightly conservative
-    v <- fam$post$var_fn(dp, av)
+    v <- fam[["post"]]$var_fn(dp, av)
     r <- r / sqrt(v)
   }
   napred(object, r)
@@ -2391,60 +2396,61 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
 #'
 #' @noRd
 draw_b <- function(fit) {
-  th <- fit$estimates$theta
+  th <- fit$estimates[["theta"]]
   b <- numeric(length(fit$estimates[["b"]] %||% numeric(0)))
-  for (bk in fit$frame$re_blocks) {
-    if (bk$covstruct == "rr") {
+  for (bk in fit$frame[["re_blocks"]]) {
+    if (bk[["covstruct"]] == "rr") {
       # standard-normal factors; eval_dpars expands them via loadings
-      b[bk$b_idx] <- stats::rnorm(length(bk$b_idx))
+      b[bk[["b_idx"]]] <- stats::rnorm(length(bk[["b_idx"]]))
       next
     }
-    if (bk$covstruct == "gr_cov") {
+    if (bk[["covstruct"]] == "gr_cov") {
       # correlation is across levels, not within them
-      S <- covstruct_registry$gr_cov$vcov(th[bk$theta_idx], bk)
-      K <- kronecker(bk$aux_A, S)
-      b[bk$b_idx] <- drop(crossprod(chol(K),
+      S <- covstruct_registry[["gr_cov"]]$vcov(th[bk[["theta_idx"]]], bk)
+      K <- kronecker(bk[["aux_A"]], S)
+      b[bk[["b_idx"]]] <- drop(crossprod(chol(K),
                                     stats::rnorm(nrow(K))))
       next
     }
-    if (bk$covstruct == "gr_prec") {
+    if (bk[["covstruct"]] == "gr_prec") {
       # x = U^-1 z with U'U = Q has covariance Q^-1; for correlated
       # slopes Q is the level-major Kronecker precision Q (x) Sigma^-1
-      Qb <- if (bk$dim == 1L) {
-        exp(-2 * th[bk$theta_idx[1]]) * bk$aux_Q
+      Qb <- if (bk[["dim"]] == 1L) {
+        exp(-2 * th[bk[["theta_idx"]][1]]) * bk[["aux_Q"]]
       } else {
-        S <- covstruct_registry$gr_prec$vcov(th[bk$theta_idx], bk)
-        Matrix::kronecker(bk$aux_Q, methods::as(solve(unname(S)),
+        S <- covstruct_registry[["gr_prec"]]$vcov(th[bk[["theta_idx"]]], bk)
+        Matrix::kronecker(bk[["aux_Q"]], methods::as(solve(unname(S)),
                                                 "generalMatrix"))
       }
       U <- Matrix::chol(Qb)
-      b[bk$b_idx] <- as.vector(Matrix::solve(U,
-                                             stats::rnorm(length(bk$b_idx))))
+      b[bk[["b_idx"]]] <- as.vector(
+        Matrix::solve(U, stats::rnorm(length(bk[["b_idx"]]))))
       next
     }
-    if (bk$covstruct == "car") {
+    if (bk[["covstruct"]] == "car") {
       # the whole field is one draw from its (dense) covariance
-      K <- car_cov(th[bk$theta_idx], bk)
-      b[bk$b_idx] <- drop(crossprod(chol(K), stats::rnorm(nrow(K))))
+      K <- car_cov(th[bk[["theta_idx"]]], bk)
+      b[bk[["b_idx"]]] <- drop(crossprod(chol(K), stats::rnorm(nrow(K))))
       next
     }
-    if (bk$covstruct == "spde") {
-      U <- Matrix::chol(spde_prec(th[bk$theta_idx], bk))
-      b[bk$b_idx] <- as.vector(Matrix::solve(U,
-                                             stats::rnorm(bk$n_levels)))
+    if (bk[["covstruct"]] == "spde") {
+      U <- Matrix::chol(spde_prec(th[bk[["theta_idx"]]], bk))
+      b[bk[["b_idx"]]] <- as.vector(Matrix::solve(U,
+                                             stats::rnorm(bk[["n_levels"]])))
       next
     }
-    V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
+    V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]], bk)
     L <- chol(V)
-    U <- matrix(stats::rnorm(bk$n_levels * bk$dim), bk$n_levels) %*% L
+    U <- matrix(stats::rnorm(bk[["n_levels"]] * bk[["dim"]]),
+      bk[["n_levels"]]) %*% L
     if (is_student_block(bk)) {
       # V is the SCALE matrix, and the mixing variable is per LEVEL -
       # shared across that level's coefficients, which is what makes the
       # draw a multivariate t rather than d independent ones
-      nu <- bk$dist_nu
-      U <- U * sqrt(nu / stats::rchisq(bk$n_levels, df = nu))
+      nu <- bk[["dist_nu"]]
+      U <- U * sqrt(nu / stats::rchisq(bk[["n_levels"]], df = nu))
     }
-    b[bk$b_idx] <- as.vector(t(U))   # level-major
+    b[bk[["b_idx"]]] <- as.vector(t(U))   # level-major
   }
   b
 }
@@ -2458,7 +2464,7 @@ draw_b <- function(fit) {
 #'
 #' @noRd
 cens_window <- function(av, yobs) {
-  cen <- av$cens
+  cen <- av[["cens"]]
   if (any(cen == 2)) {
     stop("simulate(censored = TRUE) is defined for left- and ",
          "right-censored rows; an interval-censored observation is an ",
@@ -2612,24 +2618,24 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     }
   }
   if (!sim_can(fam)) {
-    stop("simulate(): family '", fam$family, "' has no simulator yet",
+    stop("simulate(): family '", fam[["family"]], "' has no simulator yet",
          sim_note(fam), call. = FALSE)
   }
   marginal <- !is.null(re.form) && !inherits(re.form, "formula") &&
     is.na(re.form)
   n <- stats::nobs(object)
   out <- vector("list", nsim)
-  av <- object$frame$aterm_values[[rspec$resp_name]]
+  av <- object$frame[["aterm_values"]][[rspec$resp_name]]
   cwin <- NULL
   if (isTRUE(censored)) {
-    if (is.null(av$cens)) {
+    if (is.null(av[["cens"]])) {
       stop("simulate(censored = TRUE) needs a cens() response",
            call. = FALSE)
     }
-    cwin <- cens_window(av, object$frame$y[[rspec$resp_name]])
+    cwin <- cens_window(av, object$frame[["y"]][[rspec$resp_name]])
   }
   for (s in seq_len(nsim)) {
-    b_use <- if (marginal && length(object$frame$re_blocks)) {
+    b_use <- if (marginal && length(object$frame[["re_blocks"]])) {
       draw_b(object)
     } else {
       object$estimates[["b"]]
@@ -2652,7 +2658,7 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
 #' @rdname frmtmb-extension-api
 #' @export
 fit_extras <- function(fit) {
-  nms <- fit$frame$extra_names %||% character(0)
+  nms <- fit$frame[["extra_names"]] %||% character(0)
   if (!length(nms)) return(NULL)
   fit$estimates[nms]
 }
@@ -2660,10 +2666,10 @@ fit_extras <- function(fit) {
 #' @rdname frmtmb-extension-api
 #' @export
 dpar_linpred <- function(frame, params, resp, dpar) {
-  lp <- frame$linpreds[[linpred_key(resp, dpar)]]
-  if (is.null(lp) || !ncol(lp$X)) return(NULL)
-  eta <- drop(as.matrix(lp$X %*% params[[lp$par]][lp$idx]))
-  if (!is.null(lp$offset)) eta <- eta + lp$offset
+  lp <- frame[["linpreds"]][[linpred_key(resp, dpar)]]
+  if (is.null(lp) || !ncol(lp[["X"]])) return(NULL)
+  eta <- drop(as.matrix(lp[["X"]] %*% params[[lp[["par"]]]][lp[["idx"]]]))
+  if (!is.null(lp[["offset"]])) eta <- eta + lp[["offset"]]
   eta
 }
 
@@ -2673,13 +2679,13 @@ dpar_linpred <- function(frame, params, resp, dpar) {
 #'
 #' @noRd
 with_cs_offsets <- function(fit, rspec, dpv) {
-  for (lp in fit$frame$linpreds) {
-    if (!length(lp$cs %||% list())) next
+  for (lp in fit$frame[["linpreds"]]) {
+    if (!length(lp[["cs"]] %||% list())) next
     CS <- 0
-    for (ct in lp$cs) {
+    for (ct in lp[["cs"]]) {
       CS <- CS + outer(ct$vals, fit$estimates[[ct$par]])
     }
-    dpv[[lp$resp]][[".cs"]] <- CS
+    dpv[[lp[["resp"]]]][[".cs"]] <- CS
   }
   dpv
 }
@@ -2692,14 +2698,14 @@ with_cs_offsets <- function(fit, rspec, dpv) {
 #'
 #' @noRd
 sim_restore_type <- function(fit, rspec, v) {
-  lv <- fit$frame$y_levels[[rspec$resp_name]]
+  lv <- fit$frame[["y_levels"]][[rspec$resp_name]]
   if (!is.null(lv)) {
     # a categorical response's levels are nominal: ordering the draws
     # would claim an order the model never used
     v <- factor(lv[v], levels = lv,
-                ordered = !identical(rspec$family$type, "categorical"))
+                ordered = !identical(rspec$family[["type"]], "categorical"))
   } else if (is.matrix(v)) {
-    yv <- fit$frame$y[[rspec$resp_name]]
+    yv <- fit$frame[["y"]][[rspec$resp_name]]
     if (is.matrix(yv) && !is.null(colnames(yv))) colnames(v) <- colnames(yv)
   }
   napred(fit, v)
@@ -2722,7 +2728,7 @@ sim_as_data_frame <- function(out) {
 #'
 #' @noRd
 na_unpad <- function(fit, x) {
-  na <- fit$frame$na_action
+  na <- fit$frame[["na_action"]]
   if (is.null(na) || !inherits(na, "exclude")) return(x)
   idx <- unclass(na)
   if (is.matrix(x) || is.data.frame(x)) x[-idx, , drop = FALSE] else x[-idx]

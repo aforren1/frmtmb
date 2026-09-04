@@ -29,7 +29,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
   ce_structure_check(rspec)
-  if (length(fit$frame$re_blocks) &&
+  if (length(fit$frame[["re_blocks"]]) &&
       !any(startsWith(colnames(x$draws), "b["))) {
     stop("conditional_effects() on draws from frm_sample(laplace = ",
          "TRUE) cannot rebuild the per-draw parameter vectors: the ",

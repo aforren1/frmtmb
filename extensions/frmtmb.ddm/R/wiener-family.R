@@ -127,7 +127,8 @@ wiener <- function(max_ndt = NULL, link = "identity") {
     links = list(mu = link, bs = "log", ndt = ndt_link, bias = "logit"),
     lpdf = function(y, dpars, aterms) {
       up <- aterms[["vint1"]]
-      ddm_lpdf_both(y - dpars$ndt, dpars$mu, dpars$bs, dpars$bias, up)
+      ddm_lpdf_both(y - dpars[["ndt"]],
+                        dpars[["mu"]], dpars[["bs"]], dpars[["bias"]], up)
     },
     valid_y = function(y, aterms) {
       ddm_check_response(y, aterms, st)

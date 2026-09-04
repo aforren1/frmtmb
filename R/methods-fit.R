@@ -17,8 +17,8 @@ par_est_se <- function(fit, vcov = NULL) {
     for (cp in unique(om$comp)) {
       i <- om$comp == cp
       pos <- seq_along(est[[cp]])
-      if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
-        pos <- setdiff(pos, fit$frame$betad_fixed_idx)
+      if (cp == "betad" && length(fit$frame[["betad_fixed_idx"]])) {
+        pos <- setdiff(pos, fit$frame[["betad_fixed_idx"]])
       }
       se[[cp]][pos] <- sd_all[i]
     }
@@ -32,8 +32,8 @@ par_est_se <- function(fit, vcov = NULL) {
   } else {
     as.list(sdr_of(fit), what = "Std. Error")
   }
-  if (length(fit$frame$betad_fixed_idx)) {
-    se$betad[fit$frame$betad_fixed_idx] <- NA_real_
+  if (length(fit$frame[["betad_fixed_idx"]])) {
+    se$betad[fit$frame[["betad_fixed_idx"]]] <- NA_real_
   }
   list(est = est, se = se)
 }
@@ -47,7 +47,7 @@ print.frmtmb_fit <- function(x, ...) {
     cat("frmtmb fit:", deparse1(formula(x)), "\n")
   }
   fam_str <- paste(vapply(x$spec$responses,
-                          function(r) r$family$family, ""),
+                          function(r) r$family[["family"]], ""),
                    collapse = ", ")
   cat("Family:", fam_str, "  Method:",
       paste0(if (x$REML) "REML" else "ML",
@@ -61,7 +61,7 @@ print.frmtmb_fit <- function(x, ...) {
     cat(" ", nm, ":\n", sep = "")
     print(fixef(x)[[nm]], digits = 4)
   }
-  if (length(x$frame$re_blocks)) {
+  if (length(x$frame[["re_blocks"]])) {
     cat("\nRandom effects:\n")
     print(VarCorr(x))
   }
@@ -75,9 +75,9 @@ print.frmtmb_fit <- function(x, ...) {
 #' @noRd
 coef_block_key <- function(fit, lp) {
   if (length(fit$spec$responses) > 1) {
-    paste(lp$resp, lp$dpar, sep = "_")
+    paste(lp[["resp"]], lp[["dpar"]], sep = "_")
   } else {
-    lp$dpar
+    lp[["dpar"]]
   }
 }
 
@@ -98,9 +98,9 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
   }
   ps <- par_est_se(object, vcov)
   coefs <- list()
-  for (lp in object$frame$linpreds) {
-    est <- ps$est[[lp$par]][lp$idx]
-    se <- ps$se[[lp$par]][lp$idx]
+  for (lp in object$frame[["linpreds"]]) {
+    est <- ps$est[[lp[["par"]]]][lp[["idx"]]]
+    se <- ps$se[[lp[["par"]]]][lp[["idx"]]]
     z <- est / se
     cm <- if (is.null(rdf)) {
       cbind(Estimate = est, `Std. Error` = se, `z value` = z,
@@ -109,7 +109,7 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
       cbind(Estimate = est, `Std. Error` = se, `t value` = z,
             `Pr(>|t|)` = 2 * stats::pt(-abs(z), rdf))
     }
-    rownames(cm) <- colnames(lp$X)
+    rownames(cm) <- colnames(lp[["X"]])
     coefs[[coef_block_key(object, lp)]] <- cm
   }
   structure(
@@ -140,7 +140,7 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
          smooth_edf = smooth_edf(object),
          extras = local({
            ex <- list()
-           for (nm in object$frame$extra_names %||% character(0)) {
+           for (nm in object$frame[["extra_names"]] %||% character(0)) {
              cm <- cbind(Estimate = ps$est[[nm]],
                          `Std. Error` = ps$se[[nm]])
              rownames(cm) <- paste0(nm, "_", seq_len(nrow(cm)))
@@ -149,8 +149,8 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
            ex
          }),
          fixed_dpars = local({
-           fx <- Filter(function(lp) !is.null(lp$constant),
-                        object$frame$linpreds)
+           fx <- Filter(function(lp) !is.null(lp[["constant"]]),
+                        object$frame[["linpreds"]])
            stats::setNames(vapply(fx, `[[`, numeric(1), "constant"),
                            vapply(fx, function(lp) {
                              coef_block_key(object, lp)
@@ -162,7 +162,7 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
 
 #' @export
 print.summary.frmtmb_fit <- function(x, ...) {
-  cat("Family:", x$family$family, "\n")
+  cat("Family:", x$family[["family"]], "\n")
   cat("Formula:", deparse1(x$formula), "\n")
   cat("Method:", if (x$REML) "REML" else "ML",
       "  nobs:", x$nobs, "\n")
@@ -217,7 +217,7 @@ print.summary.frmtmb_fit <- function(x, ...) {
 n_outer_est <- function(object) {
   n <- length(object$opt$par)
   if (isTRUE(object$control$profile)) {
-    n <- n + length(object$frame$par_template$beta)
+    n <- n + length(object$frame[["par_template"]][["beta"]])
   }
   n
 }
@@ -227,17 +227,17 @@ logLik.frmtmb_fit <- function(object, ...) {
   require_fitted(object, "logLik() (and AIC(), BIC(), anova())")
   structure(-object$opt$objective,
             df = n_outer_est(object),
-            nobs = object$frame$n_obs,
+            nobs = object$frame[["n_obs"]],
             REML = object$REML,
             class = "logLik")
 }
 
 #' @export
-nobs.frmtmb_fit <- function(object, ...) object$frame$n_obs
+nobs.frmtmb_fit <- function(object, ...) object$frame[["n_obs"]]
 
 #' @export
 df.residual.frmtmb_fit <- function(object, ...) {
-  object$frame$n_obs - n_outer_est(object)
+  object$frame[["n_obs"]] - n_outer_est(object)
 }
 
 #' @export
@@ -274,7 +274,7 @@ rescor_matrix <- function(fit) {
   }
   if (!isTRUE(fit$spec$rescor)) return(NULL)
   K <- length(fit$spec$responses)
-  C <- us_chol_cor(fit$estimates$thetar, K)
+  C <- us_chol_cor(fit$estimates[["thetar"]], K)
   dimnames(C) <- list(names(fit$spec$responses),
                       names(fit$spec$responses))
   C
@@ -293,12 +293,12 @@ formula.frmtmb_fit <- function(x, ...) {
 #'
 #' @noRd
 estimated_coef_names <- function(fit) {
-  tpl <- fit$frame$par_template
-  nm_betad <- names(tpl$betad)
-  if (length(fit$frame$betad_fixed_idx)) {
-    nm_betad <- nm_betad[-fit$frame$betad_fixed_idx]
+  tpl <- fit$frame[["par_template"]]
+  nm_betad <- names(tpl[["betad"]])
+  if (length(fit$frame[["betad_fixed_idx"]])) {
+    nm_betad <- nm_betad[-fit$frame[["betad_fixed_idx"]]]
   }
-  c(names(tpl$beta), nm_betad)
+  c(names(tpl[["beta"]]), nm_betad)
 }
 
 #' Covariance matrix of the fixed-effect estimates
@@ -402,7 +402,7 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
       # which is what the naming invariant asks for, and the block
       # comes out of the joint precision rather than cov.fixed. Use
       # vcov(object) for the fixed-effect covariance.
-      comps <- setdiff(names(object$frame$par_template),
+      comps <- setdiff(names(object$frame[["par_template"]]),
                        c("b", "miss", "beta"))
       keep <- unlist(lapply(comps, function(cp) which(rn == cp)))
       onm <- outer_par_names(object)
@@ -469,25 +469,25 @@ coef.frmtmb_fit <- function(object, ...) {
   fe <- fixef(object)
   cvec <- coef_b(object)
   out <- list()
-  for (bk in object$frame$re_blocks) {
-    if (bk$covstruct == "smooth") next
-    bmat <- t(matrix(cvec[bk$c_idx], nrow = bk$dim))
-    for (cp in bk$components) {
-      lp <- object$frame$linpreds[[cp$lp_key]]
+  for (bk in object$frame[["re_blocks"]]) {
+    if (bk[["covstruct"]] == "smooth") next
+    bmat <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))
+    for (cp in bk[["components"]]) {
+      lp <- object$frame[["linpreds"]][[cp$lp_key]]
       key <- coef_block_key(object, lp)
       # a second term on the same factor adds its modes to the same
       # frame; the fixed effects are broadcast only once
-      gname <- bk$group_name
+      gname <- bk[["group_name"]]
       df <- out[[key]][[gname]]
-      if (!is.null(df) && !identical(rownames(df), bk$levels)) {
-        gname <- bk$term_label
+      if (!is.null(df) && !identical(rownames(df), bk[["levels"]])) {
+        gname <- bk[["term_label"]]
         df <- out[[key]][[gname]]
       }
       if (is.null(df)) {
         fev <- fe[[key]]
         df <- as.data.frame(
-          matrix(fev, nrow = bk$n_levels, ncol = length(fev),
-                 byrow = TRUE, dimnames = list(bk$levels, names(fev))),
+          matrix(fev, nrow = bk[["n_levels"]], ncol = length(fev),
+                 byrow = TRUE, dimnames = list(bk[["levels"]], names(fev))),
           optional = TRUE
         )
       }
@@ -507,11 +507,12 @@ coef.frmtmb_fit <- function(object, ...) {
     # GLM-style fits: the mu vector alone, unless another dpar is
     # actually modeled with covariates
     if (length(object$spec$responses) == 1L && "mu" %in% names(fe)) {
-      aux <- Filter(function(lp) lp$dpar != "mu",
-                    object$frame$linpreds)
+      aux <- Filter(function(lp) lp[["dpar"]] != "mu",
+                    object$frame[["linpreds"]])
       simple <- all(vapply(aux, function(lp) {
-        !is.null(lp$constant) ||
-          (ncol(lp$X) == 1L && identical(colnames(lp$X), "(Intercept)"))
+        !is.null(lp[["constant"]]) ||
+          (ncol(lp[["X"]]) == 1L && identical(colnames(lp[["X"]]),
+                           "(Intercept)"))
       }, TRUE))
       if (simple) return(fe[["mu"]])
     }
@@ -546,9 +547,9 @@ fixef.frmtmb_fit <- function(object, ...) {
   require_fitted(object, "fixef()")
   est <- object$estimates
   out <- list()
-  for (lp in object$frame$linpreds) {
-    v <- est[[lp$par]][lp$idx]
-    names(v) <- colnames(lp$X)
+  for (lp in object$frame[["linpreds"]]) {
+    v <- est[[lp[["par"]]]][lp[["idx"]]]
+    names(v) <- colnames(lp[["X"]])
     out[[coef_block_key(object, lp)]] <- v
   }
   out
@@ -598,16 +599,16 @@ ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
     }
   }
   out <- list()
-  for (bk in object$frame$re_blocks) {
-    M <- t(matrix(cvec[bk$c_idx], nrow = bk$dim))
-    dimnames(M) <- list(bk$levels, bk$cnms)
+  for (bk in object$frame[["re_blocks"]]) {
+    M <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))
+    dimnames(M) <- list(bk[["levels"]], bk[["cnms"]])
     if (!is.null(csd)) {
       # rr factors live in a different space than the displayed
       # coefficients; no conditional SDs for those blocks
-      S <- if (bk$covstruct == "rr") {
+      S <- if (bk[["covstruct"]] == "rr") {
         matrix(NA_real_, nrow(M), ncol(M))
       } else {
-        t(matrix(csd[bk$b_idx], nrow = bk$dim))
+        t(matrix(csd[bk[["b_idx"]]], nrow = bk[["dim"]]))
       }
       dimnames(S) <- dimnames(M)
       attr(M, "condSD") <- S
@@ -617,7 +618,7 @@ ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
     # permanent-environment (1 | id) both deparse to "1 | id")
     out[[length(out) + 1L]] <- M
   }
-  names(out) <- vapply(object$frame$re_blocks, `[[`, "", "term_label")
+  names(out) <- vapply(object$frame[["re_blocks"]], `[[`, "", "term_label")
   structure(out, class = "ranef_frmtmb")
 }
 
@@ -716,29 +717,30 @@ VarCorr <- function(x, ...) UseMethod("VarCorr")
 #' @export
 VarCorr.frmtmb_fit <- function(x, ...) {
   require_fitted(x, "VarCorr()")
-  th <- x$estimates$theta
-  out <- lapply(x$frame$re_blocks, function(bk) {
-    if (bk$covstruct == "smooth") {
+  th <- x$estimates[["theta"]]
+  out <- lapply(x$frame[["re_blocks"]], function(bk) {
+    if (bk[["covstruct"]] == "smooth") {
       # one smoothing variance; the k x k identity blowup is noise
-      matrix(exp(th[bk$theta_idx])^2, 1, 1,
+      matrix(exp(th[bk[["theta_idx"]]])^2, 1, 1,
              dimnames = list("sd(wiggle)", "sd(wiggle)"))
-    } else if (bk$covstruct %in% c("gp", "hsgp")) {
+    } else if (bk[["covstruct"]] %in% c("gp", "hsgp")) {
       # marginal GP sd; the range lives in confint_varcorr
-      matrix(exp(th[bk$theta_idx[1]])^2, 1, 1,
+      matrix(exp(th[bk[["theta_idx"]][1]])^2, 1, 1,
              dimnames = list("sd(gp)", "sd(gp)"))
     } else {
-      V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
+      V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]],
+        bk)
       if (is_student_block(bk)) {
         # On a gr(dist = "student") block this is the SCALE matrix, not
         # the covariance: brms names the same quantity `sd_<group>__...`
         # and frmtmb keeps that name, so the matrix is tagged instead of
         # silently converted. The variance is `nu/(nu-2)` times it.
-        attr(V, "dist_nu") <- bk$dist_nu
+        attr(V, "dist_nu") <- bk[["dist_nu"]]
       }
       V
     }
   })
-  names(out) <- vapply(x$frame$re_blocks, `[[`, "", "term_label")
+  names(out) <- vapply(x$frame[["re_blocks"]], `[[`, "", "term_label")
   structure(out, class = "VarCorr_frmtmb")
 }
 

@@ -19,7 +19,7 @@
 #'
 #' @noRd
 nat_slots <- function(frame) {
-  tpl <- frame$par_template
+  tpl <- frame[["par_template"]]
   slots <- list()
   dup <- character(0)
   put <- function(nm, s) {
@@ -30,7 +30,7 @@ nat_slots <- function(frame) {
     nms <- names(tpl[[comp]])
     for (i in seq_along(nms)) {
       # dpars fixed to a constant are not parameters
-      if (comp == "betad" && i %in% frame$betad_fixed_idx) next
+      if (comp == "betad" && i %in% frame[["betad_fixed_idx"]]) next
       put(gsub("[()]", "", nms[i]),
           list(kind = "coef", comp = comp, idx = i))
     }
@@ -38,27 +38,27 @@ nat_slots <- function(frame) {
 
   # response-scale alias for an intercept-only dispersion dpar, so
   # `sigma = 0.7` means an SD of 0.7 rather than log(0.7)
-  for (lp in frame$linpreds) {
-    if (!identical(lp$par, "betad") || !is.null(lp$constant) ||
-        !is.null(lp$nl_body) || !is.null(lp$Z)) next
-    if (!identical(colnames(lp$X), "(Intercept)")) next
-    put(lp$dpar, list(kind = "dpar", comp = "betad", idx = lp$idx[1L],
-                      link = lp$link))
+  for (lp in frame[["linpreds"]]) {
+    if (!identical(lp[["par"]], "betad") || !is.null(lp[["constant"]]) ||
+        !is.null(lp[["nl_body"]]) || !is.null(lp[["Z"]])) next
+    if (!identical(colnames(lp[["X"]]), "(Intercept)")) next
+    put(lp[["dpar"]], list(kind = "dpar", comp = "betad", idx = lp[["idx"]][1L],
+                      link = lp[["link"]]))
   }
 
-  for (bi in seq_along(frame$re_blocks)) {
-    bk <- frame$re_blocks[[bi]]
-    reg <- covstruct_registry[[bk$covstruct]]
+  for (bi in seq_along(frame[["re_blocks"]])) {
+    bk <- frame[["re_blocks"]][[bi]]
+    reg <- covstruct_registry[[bk[["covstruct"]]]]
     if (is.null(reg$from_natural)) next
-    d <- bk$dim
-    if (identical(bk$covstruct, "smooth")) {
+    d <- bk[["dim"]]
+    if (identical(bk[["covstruct"]], "smooth")) {
       # a smooth basis has one smoothing SD, not one per basis column
-      put(paste0("sds_", hyp_san(bk$group_name)),
+      put(paste0("sds_", hyp_san(bk[["group_name"]])),
           list(kind = "sd", blk = bi, pos = seq_len(d)))
       next
     }
-    g <- hyp_san(bk$group_name)
-    tn <- hyp_san(bk$cnms)
+    g <- hyp_san(bk[["group_name"]])
+    tn <- hyp_san(bk[["cnms"]])
     shared <- length(reg$sd_idx(d)) == 1L && d > 1L
     for (j in seq_len(d)) {
       put(paste0("sd_", g, "__", tn[j]),
@@ -81,9 +81,9 @@ nat_slots <- function(frame) {
 #'
 #' @noRd
 nat_sd_theta_idx <- function(frame, slot) {
-  bk <- frame$re_blocks[[slot$blk]]
-  reg <- covstruct_registry[[bk$covstruct]]
-  unique(bk$theta_idx[reg$sd_idx(bk$dim)[slot$pos]])
+  bk <- frame[["re_blocks"]][[slot$blk]]
+  reg <- covstruct_registry[[bk[["covstruct"]]]]
+  unique(bk[["theta_idx"]][reg$sd_idx(bk[["dim"]])[slot$pos]])
 }
 
 #' Whether `newparams` speaks the internal parameterization: every name
@@ -101,17 +101,17 @@ is_internal_newparams <- function(np, tpl) {
 #'
 #' @noRd
 check_natural_supported <- function(frame) {
-  extra <- setdiff(names(frame$par_template),
+  extra <- setdiff(names(frame[["par_template"]]),
                    c("beta", "betad", "b", "theta"))
   if (length(extra)) {
     stop("Natural-scale newparams does not cover the parameter ",
          "component(s) ", paste(extra, collapse = ", "),
          "; use the internal spelling", call. = FALSE)
   }
-  for (bk in frame$re_blocks) {
-    if (is.null(covstruct_registry[[bk$covstruct]]$from_natural)) {
-      stop("Natural-scale newparams cannot set the '", bk$covstruct,
-           "' block (", bk$term_label, "): no inverse map from ",
+  for (bk in frame[["re_blocks"]]) {
+    if (is.null(covstruct_registry[[bk[["covstruct"]]]]$from_natural)) {
+      stop("Natural-scale newparams cannot set the '", bk[["covstruct"]],
+           "' block (", bk[["term_label"]], "): no inverse map from ",
            "standard deviations and correlations. Structures with one: ",
            paste(sort(names(Filter(function(e) !is.null(e$from_natural),
                                    covstruct_registry))),
@@ -153,9 +153,9 @@ apply_natural <- function(est, frame, slots, np) {
   sds <- list()
   cors <- list()
   for (bi in blk_ids) {
-    bk <- frame$re_blocks[[bi]]
-    V <- covstruct_registry[[bk$covstruct]]$vcov(
-      est$theta[bk$theta_idx], bk)
+    bk <- frame[["re_blocks"]][[bi]]
+    V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(
+      est[["theta"]][bk[["theta_idx"]]], bk)
     s <- sqrt(diag(as.matrix(V)))
     sds[[as.character(bi)]] <- s
     cors[[as.character(bi)]] <- if (all(s > 0)) {
@@ -190,10 +190,10 @@ apply_natural <- function(est, frame, slots, np) {
   }
 
   for (bi in blk_ids) {
-    bk <- frame$re_blocks[[bi]]
+    bk <- frame[["re_blocks"]][[bi]]
     key <- as.character(bi)
-    est$theta[bk$theta_idx] <-
-      covstruct_registry[[bk$covstruct]]$from_natural(sds[[key]],
+    est[["theta"]][bk[["theta_idx"]]] <-
+      covstruct_registry[[bk[["covstruct"]]]]$from_natural(sds[[key]],
                                                       cors[[key]], bk)
   }
   est
@@ -240,7 +240,7 @@ draw_prior_entry <- function(e, label, max_try = 1000L) {
 #' @noRd
 prior_entry_label <- function(frame, slots, e) {
   if (e$comp %in% c("beta", "betad")) {
-    nms <- names(frame$par_template[[e$comp]])
+    nms <- names(frame[["par_template"]][[e$comp]])
     return(gsub("[()]", "", nms[e$idx]))
   }
   for (nm in names(slots)) {
@@ -278,14 +278,14 @@ draw_prior_pars <- function(est, entries, labels) {
 #' @noRd
 check_coverage <- function(frame, slots, np_internal, np_natural,
                            entries) {
-  tpl <- frame$par_template
+  tpl <- frame[["par_template"]]
   missing_nm <- character(0)
 
   for (comp in intersect(c("beta", "betad"), names(tpl))) {
     if (comp %in% names(np_internal)) next
     nms <- names(tpl[[comp]])
     for (i in seq_along(nms)) {
-      if (comp == "betad" && i %in% frame$betad_fixed_idx) next
+      if (comp == "betad" && i %in% frame[["betad_fixed_idx"]]) next
       set_nat <- any(vapply(names(np_natural), function(nm) {
         s <- slots[[nm]]
         !is.null(s) && s$kind %in% c("coef", "dpar") &&
@@ -309,7 +309,7 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
     }
   }
 
-  if (!"theta" %in% names(np_internal) && length(frame$re_blocks)) {
+  if (!"theta" %in% names(np_internal) && length(frame[["re_blocks"]])) {
     prior_theta <- unlist(lapply(entries, function(e) {
       if (identical(e$comp, "theta")) as.integer(e$idx) else NULL
     }))
@@ -319,13 +319,13 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
         nat_sd_theta_idx(frame, s)
       }
     }))
-    for (bk in frame$re_blocks) {
-      reg <- covstruct_registry[[bk$covstruct]]
+    for (bk in frame[["re_blocks"]]) {
+      reg <- covstruct_registry[[bk[["covstruct"]]]]
       # a structure with no natural map needs its whole theta segment
       need <- if (is.null(reg$from_natural)) {
-        bk$theta_idx
+        bk[["theta_idx"]]
       } else {
-        bk$theta_idx[reg$sd_idx(bk$dim)]
+        bk[["theta_idx"]][reg$sd_idx(bk[["dim"]])]
       }
       gone <- setdiff(need, c(prior_theta, nat_theta))
       if (length(gone)) {
@@ -486,7 +486,7 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
   }
   rspec <- spec$responses[[1L]]
   if (!sim_can(rspec$family)) {
-    stop("frm_simulate(): family '", rspec$family$family,
+    stop("frm_simulate(): family '", rspec$family[["family"]],
          "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
   }
   if (is.null(newparams) && is.null(prior)) {
@@ -497,7 +497,7 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
     stop("newparams must be a named list", call. = FALSE)
   }
 
-  est <- frame$par_template
+  est <- frame[["par_template"]]
   internal <- is_internal_newparams(newparams, est)
   np_internal <- if (internal) newparams else list()
   np_natural <- if (internal) list() else newparams
@@ -533,8 +533,8 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
   }
 
   fixed_b <- "b" %in% names(np_internal)
-  av <- frame$aterm_values[[rspec$resp_name]]
-  n <- frame$n_obs
+  av <- frame[["aterm_values"]][[rspec$resp_name]]
+  n <- frame[["n_obs"]]
   out <- vector("list", nsim)
   pars <- if (length(entries)) {
     matrix(NA_real_, nsim, length(entries),
@@ -561,7 +561,7 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
     }
     dp <- with_cs_offsets(shim, rspec,
                           eval_dpars(shim, b = b_use))[[rspec$resp_name]]
-    ex <- frame$extra_names %||% character(0)
+    ex <- frame[["extra_names"]] %||% character(0)
     out[[s]] <- sim_draw(sim_context(
       shim, rspec, dp, aterms = av, n = n,
       extra = if (length(ex)) est_s[ex]))

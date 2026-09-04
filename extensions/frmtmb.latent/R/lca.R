@@ -488,7 +488,7 @@ lca <- function(K, ncat = NULL, na.rm = TRUE) {
   # the posterior class probabilities then serves mixture(),
   # mixture_mvn() and lca() alike, which is why mixture_probs() works on
   # an lca fit and lca_probs() is documented as the same matrix.
-  fam$mix <- list(
+  fam[["mix"]] <- list(
     K = K,
     comp_lpdf = function(y, dpars, aterms, k, extra) {
       lca_comp_lpdf(y, K, extra, k)
@@ -496,7 +496,7 @@ lca <- function(K, ncat = NULL, na.rm = TRUE) {
     comp_dpars = function(dpars_all, k) list(),
     log_pi = function(dpars_all) lca_log_pi(dpars_all, K)
   )
-  fam$lca <- list(K = K, na_rm = na_rm)
+  fam[["lca"]] <- list(K = K, na_rm = na_rm)
   fam[["structure"]] <- lca_structure(na_rm)
   fam
 }
@@ -559,9 +559,9 @@ check_lca_structure <- function(spec, linpreds) {
   # mvbf() is already refused upstream, by the extra-parameter guard in
   # the response loop, which runs before the predictors exist
   for (lp in linpreds) {
-    if (!is.null(lp$Z) || length(lp$smooth %||% list())) {
+    if (!is.null(lp[["Z"]]) || length(lp[["smooth"]] %||% list())) {
       stop("lca() does not support random effects, smooths or gp() ",
-           "terms in the class-membership predictor ('", lp$dpar,
+           "terms in the class-membership predictor ('", lp[["dpar"]],
            "'). A latent class with continuous random effects is the ",
            "growth-mixture model; mixture(..., groups = ~g) fits that ",
            "shape", call. = FALSE)
@@ -608,13 +608,13 @@ lca_profiles <- function(fit) {
   if (!is_lca_family(fam)) {
     stop("lca_profiles() needs a fit with an lca() family", call. = FALSE)
   }
-  K <- fam$lca$K
+  K <- fam[["lca"]]$K
   # the item structure comes from THIS fit's parameters, so one saved
   # lca() object handed to several differently shaped data sets reports
   # each fit correctly
-  ex <- fit$estimates[fit$frame$extra_names %||% character(0)]
+  ex <- fit$estimates[fit$frame[["extra_names"]] %||% character(0)]
   tabs <- lca_profile_tables(ex, K)
-  yv <- lca_matrix(fit$frame$y[[rspec$resp_name]])
+  yv <- lca_matrix(fit$frame[["y"]][[rspec$resp_name]])
   item_names <- colnames(yv) %||% paste0("item", seq_along(tabs))
   out <- lapply(seq_along(tabs), function(j) {
     m <- t(vapply(tabs[[j]], exp, numeric(length(tabs[[j]][[1L]]))))
@@ -624,7 +624,7 @@ lca_profiles <- function(fit) {
   })
   names(out) <- item_names
   dp <- eval_dpars(fit)[[rspec$resp_name]]
-  lw <- fam$mix$log_pi(dp)
+  lw <- fam[["mix"]]$log_pi(dp)
   sizes <- vapply(lw, function(l) mean(exp(rep(l, length.out = nrow(yv)))),
                   numeric(1))
   structure(out, class_sizes = stats::setNames(

@@ -42,7 +42,7 @@ cr_adjust <- function(type, G, N, p) {
 #'
 #' @noRd
 resolve_cluster <- function(fit, cluster) {
-  n <- fit$frame$n_obs
+  n <- fit$frame[["n_obs"]]
   if (inherits(cluster, "formula")) {
     if (length(cluster) != 2L) {
       stop("`cluster` must be a one-sided formula such as ~ g",
@@ -56,7 +56,7 @@ resolve_cluster <- function(fit, cluster) {
     }
     ex <- cluster[[2L]]
     env <- environment(cluster) %||% parent.frame()
-    v <- tryCatch(eval(ex, fit$frame$data_frame, env),
+    v <- tryCatch(eval(ex, fit$frame[["data_frame"]], env),
                   error = function(e) NULL)
     if (is.null(v) || length(v) != n) {
       # a clustering variable that is in the data but not in the model
@@ -66,8 +66,8 @@ resolve_cluster <- function(fit, cluster) {
       v2 <- if (is.null(d0)) NULL else {
         tryCatch(eval(ex, d0, env), error = function(e) NULL)
       }
-      if (!is.null(v2) && !is.null(fit$frame$na_action)) {
-        v2 <- v2[-unclass(fit$frame$na_action)]
+      if (!is.null(v2) && !is.null(fit$frame[["na_action"]])) {
+        v2 <- v2[-unclass(fit$frame[["na_action"]])]
       }
       v <- v2 %||% v
     }
@@ -77,8 +77,8 @@ resolve_cluster <- function(fit, cluster) {
            "factor itself as `cluster`", call. = FALSE)
     }
   } else if (is.character(cluster) && length(cluster) == 1L &&
-             cluster %in% names(fit$frame$data_frame)) {
-    v <- fit$frame$data_frame[[cluster]]
+             cluster %in% names(fit$frame[["data_frame"]])) {
+    v <- fit$frame[["data_frame"]][[cluster]]
   } else {
     v <- cluster
   }
@@ -104,17 +104,17 @@ resolve_cluster <- function(fit, cluster) {
 #' @noRd
 re_prior_units <- function(frame) {
   coupled <- c("gr_cov", "gr_prec", "car", "spde")
-  u <- integer(frame$n_c %||% 0L)
+  u <- integer(frame[["n_c"]] %||% 0L)
   if (!length(u)) return(u)
   id <- 0L
-  for (bk in frame$re_blocks) {
-    cols <- bk$c_idx
-    if (bk$covstruct %in% coupled) {
+  for (bk in frame[["re_blocks"]]) {
+    cols <- bk[["c_idx"]]
+    if (bk[["covstruct"]] %in% coupled) {
       id <- id + 1L
       u[cols] <- id
       next
     }
-    d <- bk$dim
+    d <- bk[["dim"]]
     nlev <- length(cols) %/% d
     u[cols] <- id + rep(seq_len(nlev), each = d)
     id <- id + nlev
@@ -130,9 +130,9 @@ re_prior_units <- function(frame) {
 re_incidence <- function(frame) {
   ii <- integer(0)
   jj <- integer(0)
-  for (lp in frame$linpreds) {
-    if (is.null(lp$Z)) next
-    tz <- methods::as(methods::as(lp$Z, "generalMatrix"), "TsparseMatrix")
+  for (lp in frame[["linpreds"]]) {
+    if (is.null(lp[["Z"]])) next
+    tz <- methods::as(methods::as(lp[["Z"]], "generalMatrix"), "TsparseMatrix")
     keep <- tz@x != 0
     ii <- c(ii, tz@i[keep] + 1L)
     jj <- c(jj, tz@j[keep] + 1L)
@@ -176,9 +176,9 @@ cluster_guard <- function(fit, cl) {
          "penalized estimator. Refit without priors, or use ",
          "frm_bootstrap()", call. = FALSE)
   }
-  if (length(frame$autocor %||% list())) {
+  if (length(frame[["autocor"]] %||% list())) {
     stop("vcov_cluster() does not support the residual correlation ",
-         "term ", frame$autocor[[1L]]$label, ": its density is a joint ",
+         "term ", frame[["autocor"]][[1L]]$label, ": its density is a joint ",
          "one over each group rather than a product over rows, so the ",
          "cluster weights do not reach it. Use frm_bootstrap()",
          call. = FALSE)
@@ -197,7 +197,7 @@ cluster_guard <- function(fit, cl) {
          "cluster weights do not reach. Use frm_bootstrap()",
          call. = FALSE)
   }
-  if (length(frame$mi_map %||% list())) {
+  if (length(frame[["mi_map"]] %||% list())) {
     stop("vcov_cluster() does not support mi() / me() fits: the latent ",
          "values are parameters of the outer problem and their ",
          "contribution belongs to no cluster. Use frm_bootstrap()",
@@ -219,10 +219,10 @@ cluster_guard <- function(fit, cl) {
       pairs <- unique(cbind(uu, ci[inc$i]))
       bad <- pairs[duplicated(pairs[, 1L]), 1L]
       if (length(bad)) {
-        blk <- frame$re_blocks[[which(vapply(
-          frame$re_blocks,
-          function(bk) any(u[bk$c_idx] %in% bad), TRUE))[1L]]]
-        stop("the random effect ", blk$term_label, " crosses ",
+        blk <- frame[["re_blocks"]][[which(vapply(
+          frame[["re_blocks"]],
+          function(bk) any(u[bk[["c_idx"]]] %in% bad), TRUE))[1L]]]
+        stop("the random effect ", blk[["term_label"]], " crosses ",
              "`cluster`: one of its levels loads on rows in more than ",
              "one cluster, so the marginal likelihood does not factor ",
              "over clusters and a per-cluster score is not defined. ",
@@ -299,15 +299,15 @@ cluster_scores_at <- function(fit, cl) {
   # the hook is set on a PRIVATE copy of the frame; the frame stored on
   # the fit never carries it, so no other method can see the extra
   # parameter
-  frame$cluster_w <- lapply(
-    stats::setNames(nm = names(frame$aterm_values)),
+  frame[["cluster_w"]] <- lapply(
+    stats::setNames(nm = names(frame[["aterm_values"]])),
     function(r) as.integer(cl))
   tpl <- fit$obj$env$parameters
-  tpl$clw <- rep(1, length(gs))
+  tpl[["clw"]] <- rep(1, length(gs))
   ri <- fit$obj$env$random
   random <- if (length(ri)) unique(names(fit$obj$env$par)[ri])
   obj <- RTMB::MakeADFun(build_objective(frame), tpl, random = random,
-                         map = frame$map, silent = TRUE)
+                         map = frame[["map"]], silent = TRUE)
   keep <- names(obj$par) != "clw"
   if (!identical(names(obj$par)[keep], names(fit$opt$par))) {
     stop("the cluster-weighted objective did not reproduce the ",
@@ -463,7 +463,7 @@ vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
          "line up; this is a bug in frmtmb", call. = FALSE)
   }
   G <- nrow(S)
-  N <- object$frame$n_obs
+  N <- object$frame[["n_obs"]]
   p <- length(object$opt$par)
   if (type %in% c("CR1p", "CR1S") && G <= p) {
     warning("type = '", type, "' needs more clusters (", G,

@@ -34,7 +34,7 @@
 #' @export
 influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                                  force = FALSE, ...) {
-  data <- data %||% model$frame$data_frame
+  data <- data %||% model$frame[["data_frame"]]
   if (!is.null(groups)) {
     gv <- data[[groups]]
     if (is.null(gv)) {
@@ -58,7 +58,7 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
   # constant-dpar coefficients stay out and cooks.distance/dfbetas
   # conform with the covariance matrix
   full_fe <- get_coef.frmtmb_fit(model)
-  full_th <- model$estimates$theta
+  full_th <- model$estimates[["theta"]]
   ctl <- model$control %||% frmtmb_control()
   # one refit per unit: inheriting a verbose fit's control here would
   # print hundreds of stage lines for a result that is already a table
@@ -92,8 +92,8 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
     fe_i <- get_coef.frmtmb_fit(fit_i)
     fe[i, names(fe_i)] <- fe_i
     if (length(full_th) &&
-        length(fit_i$estimates$theta) == length(full_th)) {
-      th[i, ] <- fit_i$estimates$theta
+        length(fit_i$estimates[["theta"]]) == length(full_th)) {
+      th[i, ] <- fit_i$estimates[["theta"]]
     }
   }
   structure(list(fixed = fe, theta = th, fixed_full = full_fe,
@@ -105,7 +105,7 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
 #'
 #' @noRd
 outer_theta_names <- function(fit) {
-  th <- fit$estimates$theta
+  th <- fit$estimates[["theta"]]
   if (!length(th)) return(character(0))
   stats::setNames(th, paste0("theta_", seq_along(th)))
 }

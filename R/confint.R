@@ -32,7 +32,7 @@ model_label <- function(fit) {
 #'
 #' @noRd
 outer_par_map <- function(fit) {
-  tpl <- fit$frame$par_template
+  tpl <- fit$frame[["par_template"]]
   # mirror the MakeADFun random= construction in fit_assembled: b and
   # the mi() latent component are always inner, beta under REML or
   # control profile = TRUE
@@ -46,8 +46,8 @@ outer_par_map <- function(fit) {
     if (cp %in% random) next
     v <- names(tpl[[cp]])
     if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
-    if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
-      v <- v[-fit$frame$betad_fixed_idx]
+    if (cp == "betad" && length(fit$frame[["betad_fixed_idx"]])) {
+      v <- v[-fit$frame[["betad_fixed_idx"]]]
     }
     nm <- c(nm, v)
     comp <- c(comp, rep(cp, length(v)))
@@ -117,18 +117,18 @@ par_alias_index <- function(fit) {
     nms <<- c(nms, nm)
     pos <<- c(pos, p)
   }
-  for (bk in fit$frame$re_blocks %||% list()) {
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
     # the same blocks hyp_env_vals names, for the same reason
-    if (bk$covstruct %in% c("smooth", "gp", "hsgp", "car", "spde")) next
-    reg <- covstruct_registry[[bk$covstruct]]
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")) next
+    reg <- covstruct_registry[[bk[["covstruct"]]]]
     if (is.null(reg) || is.null(reg$sd_idx)) next
-    si <- tryCatch(as.integer(reg$sd_idx(bk$dim)),
+    si <- tryCatch(as.integer(reg$sd_idx(bk[["dim"]])),
                    error = function(e) integer(0))
     if (!length(si)) next
-    g <- hyp_san(bk$group_name)
-    tn <- hyp_san(bk$cnms)
+    g <- hyp_san(bk[["group_name"]])
+    tn <- hyp_san(bk[["cnms"]])
     at <- function(i) {
-      ti <- bk$theta_idx[i]
+      ti <- bk[["theta_idx"]][i]
       if (is.na(ti) || ti < 1L || ti > length(th_pos)) NA_integer_ else
         th_pos[ti]
     }
@@ -136,7 +136,7 @@ par_alias_index <- function(fit) {
       add(paste0("sd_", g, "__", tn[j]), at(si[min(j, length(si))]))
     }
     if (length(tn) > 1L) {
-      rest <- setdiff(seq_len(reg$npar(bk$dim)), si)
+      rest <- setdiff(seq_len(reg$npar(bk[["dim"]])), si)
       if (length(rest) == 1L) {
         for (j in seq_len(length(tn) - 1L)) {
           for (k in seq(j + 1L, length(tn))) {
@@ -146,11 +146,11 @@ par_alias_index <- function(fit) {
       }
     }
   }
-  for (ac in fit$frame$autocor %||% list()) {
-    if (length(ac$theta_idx) != 1L) next
-    nat <- autocor_natural(fit$estimates$thetaac[ac$theta_idx], ac)
+  for (ac in fit$frame[["autocor"]] %||% list()) {
+    if (length(ac[["theta_idx"]]) != 1L) next
+    nat <- autocor_natural(fit$estimates[["thetaac"]][ac[["theta_idx"]]], ac)
     if (length(nat) != 1L) next
-    p <- ac$theta_idx[1L]
+    p <- ac[["theta_idx"]][1L]
     add(hyp_san(names(nat)[1L]),
         if (p >= 1L && p <= length(ac_pos)) ac_pos[p] else NA_integer_)
   }
@@ -173,9 +173,9 @@ par_alias_index <- function(fit) {
 #'
 #' @noRd
 nlpar_bare_alias <- function(fit) {
-  spec <- fit$frame$spec
+  spec <- fit$frame[["spec"]]
   nm <- outer_par_names(fit)
-  tpl <- fit$frame$par_template
+  tpl <- fit$frame[["par_template"]]
   mv <- length(spec$responses) > 1L
   pos <- integer(0)
   pnm <- character(0)
@@ -186,12 +186,12 @@ nlpar_bare_alias <- function(fit) {
       # never displace a real parameter name, and never claim a bare
       # name twice (two responses can declare the same nlpar)
       if (bare %in% nm || bare %in% pnm || bare %in% names(amb)) next
-      for (lp in fit$frame$linpreds) {
-        if (!identical(lp$resp, resp$resp_name) ||
-            !identical(lp$dpar, np)) {
+      for (lp in fit$frame[["linpreds"]]) {
+        if (!identical(lp[["resp"]], resp$resp_name) ||
+            !identical(lp[["dpar"]], np)) {
           next
         }
-        full <- names(tpl[[lp$par]])[lp$idx]
+        full <- names(tpl[[lp[["par"]]]])[lp[["idx"]]]
         hit <- stats::na.omit(match(full, nm))
         if (length(hit) == 1L) {
           pnm <- c(pnm, bare)
@@ -468,51 +468,51 @@ varcorr_trans_rows <- function(fit) {
   sdr <- sdr_of(fit)
   Vfull <- sdr$cov.fixed
   th_pos <- which(rownames(Vfull) == "theta")
-  th <- fit$estimates$theta
+  th <- fit$estimates[["theta"]]
   rows <- list()
   add <- function(term, type, est_t, se_t, bk) {
     rows[[length(rows) + 1L]] <<- data.frame(
-      block = bk$term_label, term = term, type = type,
+      block = bk[["term_label"]], term = term, type = type,
       est_t = est_t, se_t = se_t
     )
   }
-  for (bk in fit$frame$re_blocks) {
-    Vth <- Vfull[th_pos[bk$theta_idx], th_pos[bk$theta_idx],
+  for (bk in fit$frame[["re_blocks"]]) {
+    Vth <- Vfull[th_pos[bk[["theta_idx"]]], th_pos[bk[["theta_idx"]]],
                  drop = FALSE]
-    t0 <- th[bk$theta_idx]
-    if (bk$covstruct == "smooth") {
+    t0 <- th[bk[["theta_idx"]]]
+    if (bk[["covstruct"]] == "smooth") {
       add("sd(wiggle)", "sd", t0[1], sqrt(Vth[1, 1]), bk)
       next
     }
-    if (bk$covstruct %in% c("gp", "hsgp")) {
+    if (bk[["covstruct"]] %in% c("gp", "hsgp")) {
       se_t <- sqrt(diag(Vth))
       add("sd(gp)", "sd", t0[1], se_t[1], bk)
       # hsgp estimates the lengthscale on brms's rescaled inputs, but the
       # reported range belongs in data units. The scale factor is a data
       # constant, so the shift on the log scale is exact and the se rides
       # through unchanged. The exact gp keeps the raw scale (dmax NULL).
-      log_dmax <- log(bk$gp_dmax %||% 1)
+      log_dmax <- log(bk[["gp_dmax"]] %||% 1)
       # iso: one shared range; otherwise one per dimension
       nr <- length(t0) - 1L
       for (j in seq_len(nr)) {
         term_j <- if (nr == 1L) "range(gp)" else {
-          paste0("range(gp, ", bk$gp_vars[j], ")")
+          paste0("range(gp, ", bk[["gp_vars"]][j], ")")
         }
         add(term_j, "range", t0[1 + j] + log_dmax, se_t[1 + j], bk)
       }
       next
     }
-    if (bk$covstruct == "car") {
+    if (bk[["covstruct"]] == "car") {
       se_t <- sqrt(diag(Vth))
       add("sd(car)", "sd", t0[1], se_t[1], bk)
       if (length(t0) > 1L) {
         # brms's names for the two mixing parameters, both on (0, 1)
-        nm <- if (identical(bk$car_type, "bym2")) "rhocar" else "car"
+        nm <- if (identical(bk[["car_type"]], "bym2")) "rhocar" else "car"
         add(nm, "prop", t0[2], se_t[2], bk)
       }
       next
     }
-    if (bk$covstruct == "spde") {
+    if (bk[["covstruct"]] == "spde") {
       # sigma and range are analytic functions of (log tau, log kappa):
       # log sigma = -log tau - log kappa - log(4 pi) / 2 and
       # log range = log(8) / 2 - log kappa, so the delta method is one
@@ -524,13 +524,13 @@ varcorr_trans_rows <- function(fit) {
           sqrt(Vth[2, 2]), bk)
       next
     }
-    if (bk$covstruct == "equalto") next   # nothing estimated
+    if (bk[["covstruct"]] == "equalto") next   # nothing estimated
     # g(theta): log-sds then atanh-correlations, via the block's vcov.
     # The clamp keeps the CENTRAL DIFFERENCES finite; it must not reach
     # the reported estimate, which is why est0 below is computed
     # separately from the covariance itself.
     gfun <- function(tt) {
-      V <- covstruct_registry[[bk$covstruct]]$vcov(tt, bk)
+      V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(tt, bk)
       sds <- sqrt(diag(V))
       out <- log(sds)
       if (nrow(V) > 1) {
@@ -552,7 +552,7 @@ varcorr_trans_rows <- function(fit) {
     J <- matrix(J, nrow = length(g0))
     se_g <- sqrt(pmax(diag(J %*% Vth %*% t(J)), 0))
 
-    d <- bk$dim
+    d <- bk[["dim"]]
     # Transformed-scale estimates read off the covariance without the
     # clamp. A component ON the boundary of its parameter space - a
     # standard deviation collapsed to zero, a correlation at +/-1 - maps
@@ -561,7 +561,7 @@ varcorr_trans_rows <- function(fit) {
     # infinite point does not exist. Without this the clamp inside gfun
     # flattened the jacobian row to zero and the block reported
     # lwr == est == upr == 0.9999, a zero-width interval AT the clamp.
-    V0 <- covstruct_registry[[bk$covstruct]]$vcov(t0, bk)
+    V0 <- covstruct_registry[[bk[["covstruct"]]]]$vcov(t0, bk)
     sds0 <- sqrt(diag(V0))
     est0 <- log(sds0)
     bd <- sds0 <= 0
@@ -580,13 +580,14 @@ varcorr_trans_rows <- function(fit) {
 
     n_sd <- length(g0) - if (d > 1) d * (d - 1) / 2 else 0
     for (i in seq_len(n_sd)) {
-      add(bk$cnms[min(i, length(bk$cnms))], "sd", est0[i], se_g[i], bk)
+      add(bk[["cnms"]][min(i,
+                           length(bk[["cnms"]]))], "sd", est0[i], se_g[i], bk)
     }
     if (d > 1) {
       pairs <- which(lower.tri(diag(d)), arr.ind = TRUE)
       for (k in seq_len(nrow(pairs))) {
-        add(paste0("cor(", bk$cnms[pairs[k, 2]], ",",
-                   bk$cnms[pairs[k, 1]], ")"),
+        add(paste0("cor(", bk[["cnms"]][pairs[k, 2]], ",",
+                   bk[["cnms"]][pairs[k, 1]], ")"),
             "cor", est0[n_sd + k], se_g[n_sd + k], bk)
       }
     }
@@ -706,8 +707,8 @@ confint_varcorr <- function(fit, level = 0.95) {
 #'
 #' @noRd
 smooth_edf <- function(fit) {
-  blocks <- Filter(function(bk) bk$covstruct == "smooth",
-                   fit$frame$re_blocks)
+  blocks <- Filter(function(bk) bk[["covstruct"]] == "smooth",
+                   fit$frame[["re_blocks"]])
   if (!length(blocks)) return(NULL)
   sdr <- sdr_of(fit)
   dcr <- sdr$diag.cov.random
@@ -715,13 +716,13 @@ smooth_edf <- function(fit) {
   # par.random holds the `random` components in template order; b entries
   # are the ones named "b"
   b_pos <- which(names(sdr$par.random) == "b")
-  th <- fit$estimates$theta
+  th <- fit$estimates[["theta"]]
   out <- vapply(blocks, function(bk) {
-    prior_var <- exp(th[bk$theta_idx])^2
-    k <- bk$dim
+    prior_var <- exp(th[bk[["theta_idx"]]])^2
+    k <- bk[["dim"]]
     # +1 null-space columns live in beta; conventionally reported as the
     # penalized-part edf
-    k - sum(dcr[b_pos[bk$b_idx]]) / prior_var
+    k - sum(dcr[b_pos[bk[["b_idx"]]]]) / prior_var
   }, numeric(1))
   stats::setNames(out, vapply(blocks, `[[`, "", "term_label"))
 }
@@ -743,18 +744,18 @@ separation_families <- c("binomial", "bernoulli", "beta_binomial",
 #' @noRd
 diagnose_separation <- function(fit, ps) {
   rows <- list()
-  for (lp in fit$frame$linpreds) {
-    fam <- fit$spec$responses[[lp$resp]]$family
-    if (!fam$family %in% separation_families) next
-    if (!lp$dpar %in% (fam$primary_dpars %||% "mu")) next
-    if (is.null(lp$X) || !ncol(lp$X)) next
-    est <- ps$est[[lp$par]][lp$idx]
-    se <- ps$se[[lp$par]][lp$idx]
+  for (lp in fit$frame[["linpreds"]]) {
+    fam <- fit$spec$responses[[lp[["resp"]]]]$family
+    if (!fam[["family"]] %in% separation_families) next
+    if (!lp[["dpar"]] %in% (fam[["primary_dpars"]] %||% "mu")) next
+    if (is.null(lp[["X"]]) || !ncol(lp[["X"]])) next
+    est <- ps$est[[lp[["par"]]]][lp[["idx"]]]
+    se <- ps$se[[lp[["par"]]]][lp[["idx"]]]
     hit <- which(abs(est) > 10 & (!is.finite(se) | se > 10))
     for (i in hit) {
       rows[[length(rows) + 1L]] <- data.frame(
         parameter = paste0(coef_block_key(fit, lp), ": ",
-                           colnames(lp$X)[i]),
+                           colnames(lp[["X"]])[i]),
         estimate = est[i], std.error = se[i]
       )
     }
@@ -773,9 +774,9 @@ diagnose_separation <- function(fit, ps) {
 #' @noRd
 diagnose_predictor_scale <- function(fit, tol = 3) {
   rows <- list()
-  for (lp in fit$frame$linpreds) {
-    if (is.null(lp$X) || !ncol(lp$X)) next
-    X <- as.matrix(lp$X)
+  for (lp in fit$frame[["linpreds"]]) {
+    if (is.null(lp[["X"]]) || !ncol(lp[["X"]])) next
+    X <- as.matrix(lp[["X"]])
     for (j in seq_len(ncol(X))) {
       if (identical(colnames(X)[j], "(Intercept)")) next
       s <- stats::sd(X[, j])
@@ -802,7 +803,7 @@ diagnose_predictor_scale <- function(fit, tol = 3) {
 #'
 #' @noRd
 diagnose_singular <- function(fit, tol = 1e-4) {
-  if (!length(fit$frame$re_blocks)) return(NULL)
+  if (!length(fit$frame[["re_blocks"]])) return(NULL)
   vc <- tryCatch(as.data.frame(VarCorr(fit)), error = function(e) NULL)
   if (is.null(vc) || !nrow(vc)) return(NULL)
   is_cor <- !is.na(vc$var2)
@@ -838,33 +839,33 @@ diagnose_singular <- function(fit, tol = 1e-4) {
 log_sd_theta_index <- function(fit) {
   idx <- integer(0)
   nms <- character(0)
-  for (bk in fit$frame$re_blocks %||% list()) {
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
     # blocks whose confint() rows are hand-written carry their own name
-    shared <- switch(bk$covstruct,
+    shared <- switch(bk[["covstruct"]],
                      smooth = "sd(wiggle)", gp = "sd(gp)",
                      hsgp = "sd(gp)", car = "sd(car)",
                      spde = NA_character_, equalto = NA_character_,
                      NULL)
     if (!is.null(shared)) {
       if (is.na(shared)) next
-      idx <- c(idx, bk$theta_idx[1L])
-      nms <- c(nms, paste0(bk$term_label, " ", shared))
+      idx <- c(idx, bk[["theta_idx"]][1L])
+      nms <- c(nms, paste0(bk[["term_label"]], " ", shared))
       next
     }
-    reg <- covstruct_registry[[bk$covstruct]]
+    reg <- covstruct_registry[[bk[["covstruct"]]]]
     si <- if (is.null(reg)) integer(0) else {
-      tryCatch(as.integer(reg$sd_idx(bk$dim)),
+      tryCatch(as.integer(reg$sd_idx(bk[["dim"]])),
                error = function(e) integer(0))
     }
     for (i in seq_along(si)) {
-      idx <- c(idx, bk$theta_idx[si[i]])
+      idx <- c(idx, bk[["theta_idx"]][si[i]])
       # the generic confint() path labels sd rows by column name, and
       # falls back to the first when one sd is shared across columns
-      nms <- c(nms, paste0(bk$term_label, " ",
-                           bk$cnms[min(i, length(bk$cnms))]))
+      nms <- c(nms, paste0(bk[["term_label"]], " ",
+                           bk[["cnms"]][min(i, length(bk[["cnms"]]))]))
     }
   }
-  th_n <- length(fit$estimates$theta %||% numeric(0))
+  th_n <- length(fit$estimates[["theta"]] %||% numeric(0))
   keep <- !is.na(idx) & idx >= 1L & idx <= th_n
   stats::setNames(idx[keep], nms[keep])
 }
@@ -939,7 +940,7 @@ diagnose <- function(fit, quiet = FALSE) {
   }
   # theta is absent from fits with no random effects; abs(NULL) is an
   # error, not an empty result
-  th <- fit$estimates$theta %||% numeric(0)
+  th <- fit$estimates[["theta"]] %||% numeric(0)
   # only the log-sd components; see log_sd_theta_index()
   sd_i <- log_sd_theta_index(fit)
   ps <- tryCatch(suppressWarnings(par_est_se(fit)),
@@ -1053,14 +1054,14 @@ same_column_space <- function(A, B, tol = 1e-8) {
 #' @noRd
 reml_designs <- function(fit) {
   parts <- list()
-  for (lp in fit$frame$linpreds) {
-    if (!identical(lp$par, "beta")) next
-    X <- if (is.null(lp$X)) {
-      matrix(numeric(0), fit$frame$n_obs, 0L)
+  for (lp in fit$frame[["linpreds"]]) {
+    if (!identical(lp[["par"]], "beta")) next
+    X <- if (is.null(lp[["X"]])) {
+      matrix(numeric(0), fit$frame[["n_obs"]], 0L)
     } else {
-      as.matrix(lp$X)
+      as.matrix(lp[["X"]])
     }
-    parts[[linpred_key(lp$resp, lp$dpar)]] <- X
+    parts[[linpred_key(lp[["resp"]], lp[["dpar"]])]] <- X
   }
   parts[order(names(parts))]
 }
@@ -1093,13 +1094,13 @@ reml_comparable <- function(fits) {
 #' @noRd
 fixef_designs <- function(fit) {
   parts <- list()
-  for (lp in fit$frame$linpreds) {
-    X <- if (is.null(lp$X)) {
-      matrix(numeric(0), fit$frame$n_obs, 0L)
+  for (lp in fit$frame[["linpreds"]]) {
+    X <- if (is.null(lp[["X"]])) {
+      matrix(numeric(0), fit$frame[["n_obs"]], 0L)
     } else {
-      as.matrix(lp$X)
+      as.matrix(lp[["X"]])
     }
-    parts[[linpred_key(lp$resp, lp$dpar)]] <- X
+    parts[[linpred_key(lp[["resp"]], lp[["dpar"]])]] <- X
   }
   parts[order(names(parts))]
 }
@@ -1111,7 +1112,7 @@ fixef_designs <- function(fit) {
 #'
 #' @noRd
 fixef_coef_names <- function(fit) {
-  tpl <- fit$frame$par_template
+  tpl <- fit$frame[["par_template"]]
   c(names(tpl[["beta"]]), names(tpl[["betad"]]))
 }
 
@@ -1324,7 +1325,7 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   # false-positives on identical frames and misses NA-dropped rows;
   # comparing the response actually used catches the real cases.
   # [lme4#622]
-  nobs_all <- vapply(fits, function(f) as.integer(f$frame$n_obs), 0L)
+  nobs_all <- vapply(fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
   if (length(unique(nobs_all)) > 1L) {
     stop("anova() needs fits with the same number of observations (got ",
          paste(unique(nobs_all), collapse = ", "),
@@ -1423,7 +1424,7 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
     nb$formula <- nf
     cl <- object$call
     cl$formula <- nb
-    cl$data <- object$frame$data_frame
+    cl$data <- object$frame[["data_frame"]]
     # same reason for data2: the stored structural objects go in by
     # value, so the refit does not need the names the user passed to
     # still resolve where the call is evaluated
@@ -1627,14 +1628,15 @@ hyp_san <- function(s) gsub("[^[:alnum:]_.]", "", gsub("[()]", "", s))
 #' @noRd
 hyp_vals_only <- function(fit) {
   est <- fit$estimates
-  bd <- est$betad
-  if (length(fx <- fit$frame$betad_fixed_idx)) bd <- bd[-fx]
+  bd <- est[["betad"]]
+  if (length(fx <- fit$frame[["betad_fixed_idx"]])) bd <- bd[-fx]
   list(
-    vals = c(est$beta, bd, est$theta, est$thetaac, est$thetar),
-    comp = c(rep("beta", length(est$beta)), rep("betad", length(bd)),
-             rep("theta", length(est$theta)),
-             rep("thetaac", length(est$thetaac)),
-             rep("thetar", length(est$thetar)))
+    vals = c(est[["beta"]], bd,
+       est[["theta"]], est[["thetaac"]], est[["thetar"]]),
+    comp = c(rep("beta", length(est[["beta"]])), rep("betad", length(bd)),
+             rep("theta", length(est[["theta"]])),
+             rep("thetaac", length(est[["thetaac"]])),
+             rep("thetar", length(est[["thetar"]])))
   )
 }
 
@@ -1775,7 +1777,7 @@ hyp_env_vals <- function(fit, vals, comp) {
   }
 
   th <- vals[comp == "theta"]
-  for (bk in fit$frame$re_blocks) {
+  for (bk in fit$frame[["re_blocks"]]) {
     # Excluded: the structures whose theta segment is not a set of
     # standard deviations and correlations at all. `smooth` carries one
     # inverse smoothing parameter, `gp`/`hsgp` a marginal sd plus
@@ -1789,10 +1791,10 @@ hyp_env_vals <- function(fit, vals, comp) {
     # Kronecker path - which is exactly the quantity brms names
     # sd_<group>__<term>. equalto contributes fixed constants (it
     # estimates nothing), so its names read as knowns.
-    if (bk$covstruct %in% c("smooth", "gp", "hsgp", "car", "spde")) next
-    V <- covstruct_registry[[bk$covstruct]]$vcov(th[bk$theta_idx], bk)
-    tn <- hyp_san(bk$cnms)
-    g <- hyp_san(bk$group_name)
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")) next
+    V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]], bk)
+    tn <- hyp_san(bk[["cnms"]])
+    g <- hyp_san(bk[["group_name"]])
     sds <- sqrt(diag(V))
     for (j in seq_along(sds)) {
       nm <- paste0("sd_", g, "__", tn[j])
@@ -1812,8 +1814,8 @@ hyp_env_vals <- function(fit, vals, comp) {
   # R-side residual correlation: brms's own names, sanitized the way
   # every other name here is (ar[1] -> ar1, cortime__1__2 unchanged)
   thac <- vals[comp == "thetaac"]
-  for (ac in fit$frame$autocor %||% list()) {
-    nat <- autocor_natural(thac[ac$theta_idx], ac)
+  for (ac in fit$frame[["autocor"]] %||% list()) {
+    nat <- autocor_natural(thac[ac[["theta_idx"]]], ac)
     for (j in seq_along(nat)) {
       nm <- hyp_san(names(nat)[j])
       put(nm, unname(nat[j]), "the residual autocorrelation")
@@ -1823,19 +1825,19 @@ hyp_env_vals <- function(fit, vals, comp) {
   if (length(fit$spec$responses) == 1L) {
     # put() keeps a covariate literally named `sigma` visible under that
     # name (the v0.21 guard) and files the residual SD under `.sigma`
-    for (lp in fit$frame$linpreds) {
-      if (lp$dpar != "sigma") next
-      if (!is.null(lp$constant)) {
-        put("sigma", lp$constant, "the residual standard deviation")
-      } else if (ncol(lp$X) == 1L &&
-                 identical(colnames(lp$X), "(Intercept)") &&
-                 is.null(lp$Z) && lp$par == "betad") {
-        tpl_len <- length(fit$frame$par_template$betad)
-        rk <- match(lp$idx, setdiff(seq_len(tpl_len),
-                                    fit$frame$betad_fixed_idx))
+    for (lp in fit$frame[["linpreds"]]) {
+      if (lp[["dpar"]] != "sigma") next
+      if (!is.null(lp[["constant"]])) {
+        put("sigma", lp[["constant"]], "the residual standard deviation")
+      } else if (ncol(lp[["X"]]) == 1L &&
+                 identical(colnames(lp[["X"]]), "(Intercept)") &&
+                 is.null(lp[["Z"]]) && lp[["par"]] == "betad") {
+        tpl_len <- length(fit$frame[["par_template"]][["betad"]])
+        rk <- match(lp[["idx"]], setdiff(seq_len(tpl_len),
+                                    fit$frame[["betad_fixed_idx"]]))
         bd <- vals[comp == "betad"]
         if (!is.na(rk)) {
-          put("sigma", lp$link$linkinv(bd[rk]),
+          put("sigma", lp[["link"]]$linkinv(bd[rk]),
               "the residual standard deviation")
         }
       }

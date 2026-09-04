@@ -35,7 +35,8 @@ ce_aterms <- function(rspec, nd, cset, n) {
     }
     if (!is.null(v)) av[[nm]] <- v
   }
-  if (!is.null(rspec$aterms$se_sigma)) av$se_sigma <- rspec$aterms$se_sigma
+  if (!is.null(rspec$aterms[["se_sigma"]]))
+    av[["se_sigma"]] <- rspec$aterms[["se_sigma"]]
   av
 }
 
@@ -100,23 +101,23 @@ ce_second_values <- function(col) {
 #'
 #' @noRd
 ce_lp_vars <- function(lp) {
-  v <- if (is.null(lp$terms)) {
+  v <- if (is.null(lp[["terms"]])) {
     character(0)
   } else {
-    all.vars(stats::delete.response(lp$terms))
+    all.vars(stats::delete.response(lp[["terms"]]))
   }
   # a factor-smooth's own grouping factor is not a predictor to display:
   # the curve is drawn at the population level, which drops that term,
   # so varying its levels would draw the same line several times. It
   # stays plottable when the model also has it as a fixed effect, since
   # the terms object above contributes it then.
-  for (si in lp$smooths %||% list()) {
+  for (si in lp[["smooths"]] %||% list()) {
     v <- c(v, setdiff(si$sm$term, si$group_var %||% character(0)))
   }
-  for (m in lp$mo %||% list()) {
+  for (m in lp[["mo"]] %||% list()) {
     v <- c(v, all.vars(m$expr), all.vars(m$mult_expr))
   }
-  for (m in lp$mi %||% list()) {
+  for (m in lp[["mi"]] %||% list()) {
     v <- c(v, m$var, all.vars(m$mult_expr))
   }
   unique(v)
@@ -138,12 +139,12 @@ ce_lp_vars <- function(lp) {
 #' @noRd
 ce_plot_vars <- function(x, rspec, lp, resp, seen = character(0)) {
   v <- ce_lp_vars(lp)
-  if (!is.null(lp$nl_body)) {
-    v <- c(v, names(lp$data_list),
-           setdiff(all.vars(lp$nl_body), rspec$nlpars))
-    reach <- c(lp$nl_pars %||% rspec$nlpars, lp$nl_dpar_refs)
+  if (!is.null(lp[["nl_body"]])) {
+    v <- c(v, names(lp[["data_list"]]),
+           setdiff(all.vars(lp[["nl_body"]]), rspec$nlpars))
+    reach <- c(lp[["nl_pars"]] %||% rspec$nlpars, lp[["nl_dpar_refs"]])
     for (np in setdiff(reach, seen)) {
-      lpn <- x$frame$linpreds[[linpred_key(resp, np)]]
+      lpn <- x$frame[["linpreds"]][[linpred_key(resp, np)]]
       if (!is.null(lpn)) {
         v <- c(v, ce_plot_vars(x, rspec, lpn, resp, c(seen, np)))
       }
@@ -165,7 +166,7 @@ ce_plot_vars <- function(x, rspec, lp, resp, seen = character(0)) {
 #'
 #' @noRd
 ce_lp_pairs <- function(lp) {
-  tt <- lp$terms
+  tt <- lp[["terms"]]
   if (is.null(tt)) return(character(0))
   ord <- attr(tt, "order")
   fac <- attr(tt, "factors")
@@ -190,10 +191,10 @@ ce_lp_pairs <- function(lp) {
 #' @noRd
 ce_plot_pairs <- function(x, rspec, lp, resp, seen = character(0)) {
   p <- ce_lp_pairs(lp)
-  if (!is.null(lp$nl_body)) {
-    reach <- c(lp$nl_pars %||% rspec$nlpars, lp$nl_dpar_refs)
+  if (!is.null(lp[["nl_body"]])) {
+    reach <- c(lp[["nl_pars"]] %||% rspec$nlpars, lp[["nl_dpar_refs"]])
     for (np in setdiff(reach, seen)) {
-      lpn <- x$frame$linpreds[[linpred_key(resp, np)]]
+      lpn <- x$frame[["linpreds"]][[linpred_key(resp, np)]]
       if (!is.null(lpn)) {
         p <- c(p, ce_plot_pairs(x, rspec, lpn, resp, c(seen, np)))
       }
@@ -216,7 +217,7 @@ ce_plot_pairs <- function(x, rspec, lp, resp, seen = character(0)) {
 #' @noRd
 ce_cats_display <- function(rspec, dpar) {
   is.null(dpar) &&
-    isTRUE(rspec$family$type %in% c("ordinal", "categorical"))
+    isTRUE(rspec$family[["type"]] %in% c("ordinal", "categorical"))
 }
 
 #' One conditional-effects grid: every predictor at its reference value
@@ -395,15 +396,15 @@ ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot,
 #'
 #' @noRd
 ce_outer_comp <- function(fit) {
-  tpl <- fit$frame$par_template
+  tpl <- fit$frame[["par_template"]]
   random <- c("b", "miss")
   if (fit$REML || isTRUE(fit$control$profile)) random <- c(random, "beta")
   comp <- character(0)
   for (cp in names(tpl)) {
     if (cp %in% random) next
     len <- length(tpl[[cp]])
-    if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
-      len <- len - length(fit$frame$betad_fixed_idx)
+    if (cp == "betad" && length(fit$frame[["betad_fixed_idx"]])) {
+      len <- len - length(fit$frame[["betad_fixed_idx"]])
     }
     comp <- c(comp, rep(cp, len))
   }
@@ -443,25 +444,25 @@ ce_profile_check <- function(x, rspec, lp, dpar_given, categorical) {
          "not outer parameters there. Use band = \"boot\"",
          call. = FALSE)
   }
-  if (!is.null(lp$nl_body)) {
+  if (!is.null(lp[["nl_body"]])) {
     stop("band = \"profile\" is not available for a nonlinear ",
          "predictor: a grid value is not a linear combination of the ",
          "nonlinear parameters. Use band = \"boot\"", call. = FALSE)
   }
   if (!dpar_given && (!mean_is_mu(rspec$family) || has_trunc(rspec))) {
     stop("band = \"profile\" cannot cover the expected response of ",
-         "family '", rspec$family$family, "': it runs through more ",
+         "family '", rspec$family[["family"]], "': it runs through more ",
          "than one distributional parameter (zero inflation, a hurdle, ",
          "a dispersion) or through truncation bounds, so it is not a ",
          "single linear combination of the parameters. Use ",
          "band = \"boot\", or name one predictor with dpar =",
          call. = FALSE)
   }
-  key <- linpred_key(lp$resp, lp$dpar)
+  key <- linpred_key(lp[["resp"]], lp[["dpar"]])
   sm <- Filter(function(bk) {
-    bk$covstruct %in% c("smooth", "gp", "hsgp") &&
-      any(vapply(bk$components, function(cp) cp$lp_key == key, TRUE))
-  }, x$frame$re_blocks)
+    bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") &&
+      any(vapply(bk[["components"]], function(cp) cp$lp_key == key, TRUE))
+  }, x$frame[["re_blocks"]])
   if (length(sm)) {
     stop("band = \"profile\" cannot cover a predictor carrying a ",
          "smooth, gp() or hsgp() term: the basis coefficients are ",
@@ -492,14 +493,14 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
   ed <- lp_eta_design(x, lp, nd, FALSE, FALSE)
   comp <- ce_outer_comp(x)
   par <- x$opt$par
-  X <- as.matrix(ed$X)
-  if (lp$par == "beta") {
-    pos <- which(comp == "beta")[lp$idx]
+  X <- as.matrix(ed[["X"]])
+  if (lp[["par"]] == "beta") {
+    pos <- which(comp == "beta")[lp[["idx"]]]
     keep <- rep(TRUE, ncol(X))
   } else {
-    tpl_len <- length(x$frame$par_template$betad)
-    est_rank <- match(lp$idx, setdiff(seq_len(tpl_len),
-                                      x$frame$betad_fixed_idx))
+    tpl_len <- length(x$frame[["par_template"]][["betad"]])
+    est_rank <- match(lp[["idx"]], setdiff(seq_len(tpl_len),
+                                      x$frame[["betad_fixed_idx"]]))
     keep <- !is.na(est_rank)
     pos <- which(comp == "betad")[est_rank[keep]]
   }
@@ -509,7 +510,7 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
          "with its outer parameter vector (a mapped, fixed or profiled ",
          "coefficient block). Use band = \"boot\"", call. = FALSE)
   }
-  eta <- ed$eta
+  eta <- ed[["eta"]]
   n <- length(eta)
   target <- 0.5 * stats::qchisq(prob, df = 1)
   sel <- if (is.numeric(v1) && !is.matrix(v1) && n1 > profile_points) {
@@ -822,7 +823,7 @@ ce_structure_check <- function(rspec) {
 #' @noRd
 ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
                            conditions, data) {
-  base <- data %||% x$frame$data_frame
+  base <- data %||% x$frame[["data_frame"]]
 
   vars <- ce_plot_vars(x, rspec, lp, resp)
   vars <- vars[vars %in% names(base)]
@@ -841,7 +842,7 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
                       function(v) all(v %in% vars), TRUE)]
     effects <- c(vars, prs)
     if (!length(effects) && length(mat_vars)) {
-      terms_on <- vapply(lp$smooths %||% list(), function(si) {
+      terms_on <- vapply(lp[["smooths"]] %||% list(), function(si) {
         if (any(smooth_pred_vars(si$sm) %in% mat_vars)) si$label else ""
       }, "")
       terms_on <- terms_on[nzchar(terms_on)]
@@ -907,8 +908,8 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
   # drops numeric condition variables from the raw-point match: a group
   # id is a label an observation carries, even when it is stored as a
   # number, so it matches exactly
-  groups <- vapply(x$frame$re_blocks %||% list(),
-                   function(bk) bk$group_name %||% "", "")
+  groups <- vapply(x$frame[["re_blocks"]] %||% list(),
+                   function(bk) bk[["group_name"]] %||% "", "")
   groups <- unique(unlist(strsplit(groups, ":", fixed = TRUE)))
 
   list(base = base, effects = effects, cond_sets = cond_sets,
@@ -1066,9 +1067,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # THRESHOLDS (ord_prob_se); a nominal family has none, so its bands
   # come from refits until someone writes that Jacobian
   if (categorical && band != "boot" &&
-      !identical(rspec$family$type, "ordinal")) {
+      !identical(rspec$family[["type"]], "ordinal")) {
     stop("conditional_effects() has no analytic standard error for the ",
-         "category probabilities of family '", rspec$family$family,
+         "category probabilities of family '", rspec$family[["family"]],
          "': the delta method it uses is written for ordinal thresholds. ",
          "Use band = \"boot\"", call. = FALSE)
   }
@@ -1093,14 +1094,14 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
     }
   }
   if (categorical && !pop_level &&
-      identical(rspec$family$type, "ordinal") && band != "boot") {
+      identical(rspec$family[["type"]], "ordinal") && band != "boot") {
     stop("the ordinal per-category delta method is written for the ",
          "population-level curve; with re_formula use band = ",
          "\"boot\", or ask for dpar = \"mu\"", call. = FALSE)
   }
   # a nonlinear predictor has no delta-method standard error, so it
   # needs a band that never asks for one: boot refits, predict simulates
-  if (!is.null(lp$nl_body) && band != "boot" && method != "predict") {
+  if (!is.null(lp[["nl_body"]]) && band != "boot" && method != "predict") {
     stop("conditional_effects() cannot put a ", band, " band on a ",
          "nonlinear predictor: predict() has no standard error for it. ",
          "Use band = \"boot\", which refits instead of differentiating, ",
@@ -1136,7 +1137,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       bd$bs$t[, bd$offsets[gi] + seq_len(bd$lens[gi]), drop = FALSE]
     }
     if (categorical) {
-      if (identical(rspec$family$type, "ordinal")) {
+      if (identical(rspec$family[["type"]], "ordinal")) {
         ed <- lp_eta_design(x, lp, nd, FALSE, FALSE)
         ps <- ord_prob_se(x, rspec, lp, ed, nd, FALSE)
       } else {
@@ -1181,14 +1182,14 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         p <- predict(x, newdata = nd, type = "link", dpar = dpar,
                      resp = resp, re.form = re_formula, se.fit = TRUE,
                      ...)
-        df$estimate__ <- lp$link$linkinv(p$fit)
+        df$estimate__ <- lp[["link"]]$linkinv(p$fit)
         df$se__ <- p$se.fit
-        df$lower__ <- lp$link$linkinv(p$fit - z * p$se.fit)
-        df$upper__ <- lp$link$linkinv(p$fit + z * p$se.fit)
+        df$lower__ <- lp[["link"]]$linkinv(p$fit - z * p$se.fit)
+        df$upper__ <- lp[["link"]]$linkinv(p$fit + z * p$se.fit)
       }
       if (method == "predict") {
         fam <- rspec$family
-        if (is.null(fam$sim)) {
+        if (is.null(fam[["sim"]])) {
           stop("method = 'predict' needs a family with a simulator",
                call. = FALSE)
         }
@@ -1225,8 +1226,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                                profile_points)
       # the link is monotone but not necessarily increasing (inverse,
       # 1/mu), so the endpoints are sorted after the transform
-      lo <- lp$link$linkinv(pci$lower)
-      up <- lp$link$linkinv(pci$upper)
+      lo <- lp[["link"]]$linkinv(pci$lower)
+      up <- lp[["link"]]$linkinv(pci$upper)
       df$lower__ <- pmin(lo, up)
       df$upper__ <- pmax(lo, up)
       pfail <- pfail + c(pci$fails, pci$tried)
@@ -1583,7 +1584,7 @@ plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
     # the panel needs one number per row: the expected category index,
     # which is what the residual on the vertical axis was taken against
     rspec <- x$spec$responses[[1L]]
-    ordinal <- identical(rspec$family$type, "ordinal")
+    ordinal <- identical(rspec$family[["type"]], "ordinal")
     ft <- if (ordinal) {
       napred(x, ord_cat_moments(x, rspec)$mean)
     } else {
@@ -1664,7 +1665,7 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   # this the frequentist analog of the posterior predictive check.
   re_form <- re_form_arg(re_formula, re.form, "pp_check()", default = NA)
   rspec <- single_response(object, "pp_check()")
-  y <- object$frame$y[[1L]]
+  y <- object$frame[["y"]][[1L]]
   if (is.matrix(y)) {
     stop("pp_check() on a fit supports vector responses", call. = FALSE)
   }
@@ -1672,7 +1673,7 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
                                     re.form = re_form))
   # ordinal draws come back as ordered factors carrying the response's
   # levels; bayesplot compares them with y, which is the 1..K codes
-  yrep <- if (identical(rspec$family$type, "ordinal")) {
+  yrep <- if (identical(rspec$family[["type"]], "ordinal")) {
     matrix(unlist(lapply(sims, as.integer), use.names = FALSE),
            nrow = nrow(sims))
   } else {

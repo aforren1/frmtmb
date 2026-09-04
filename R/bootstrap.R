@@ -50,7 +50,7 @@ frm_bootstrap <- function(fit, FUN = function(f) unlist(fixef(f)),
   # own levels, but the fit stores the 1..K codes and refit() takes
   # newresp as given: handed a factor, as.vector() turns it into text and
   # every refit dies inside the objective. Match what the fit holds.
-  if (length(fit$frame$y) == 1L && !is.factor(fit$frame$y[[1L]]) &&
+  if (length(fit$frame[["y"]]) == 1L && !is.factor(fit$frame[["y"]][[1L]]) &&
       any(vapply(sims, is.factor, TRUE))) {
     sims[] <- lapply(sims, function(v) if (is.factor(v)) as.integer(v) else v)
   }

@@ -7,12 +7,12 @@
 #'
 #' @noRd
 draws_par_index <- function(fit) {
-  tpl <- fit$frame$par_template
+  tpl <- fit$frame[["par_template"]]
   idx <- list()
   pos <- 0L
   for (cp in names(tpl)) {
     len <- length(tpl[[cp]])
-    if (cp == "betad" && length(fx <- fit$frame$betad_fixed_idx)) {
+    if (cp == "betad" && length(fx <- fit$frame[["betad_fixed_idx"]])) {
       len <- len - length(fx)
     }
     idx[[cp]] <- pos + seq_len(len)
@@ -40,10 +40,10 @@ draws_base_fit <- function(x) {
 #' @noRd
 draws_fit_at <- function(x, i, idx = draws_par_index(x$fit)) {
   fit <- draws_base_fit(x)
-  est <- fit$frame$par_template   # mapped betad entries keep link(const)
+  est <- fit$frame[["par_template"]]   # mapped betad entries keep link(const)
   row <- x$draws[i, ]
   for (cp in names(idx)) {
-    if (cp == "betad" && length(fx <- fit$frame$betad_fixed_idx)) {
+    if (cp == "betad" && length(fx <- fit$frame[["betad_fixed_idx"]])) {
       pos <- setdiff(seq_along(est[[cp]]), fx)
       est[[cp]][pos] <- row[idx[[cp]]]
     } else {
@@ -121,7 +121,7 @@ VarCorr.frmtmb_draws <- function(x, ...) {
   if (is.null(idx$theta)) return(NULL)
   th_draws <- x$draws[, idx$theta, drop = FALSE]
   per_draw <- lapply(seq_len(nrow(th_draws)), function(i) {
-    fit$estimates$theta <- th_draws[i, ]
+    fit$estimates[["theta"]] <- th_draws[i, ]
     # the exported generic, not core's method by name: the method is
     # core's to move or rename and this only ever wanted the dispatch
     as.data.frame(VarCorr(fit))$sdcor
@@ -153,7 +153,7 @@ prior_summary.frmtmb_draws <- function(object, ...) {
 #' @export
 ranef.frmtmb_draws <- function(object, ...) {
   fit <- object$fit
-  if (!length(fit$frame$re_blocks)) return(list())
+  if (!length(fit$frame[["re_blocks"]])) return(list())
   idx <- draws_par_index(fit)
   n <- nrow(object$draws)
   per <- vector("list", n)
@@ -440,13 +440,13 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
   if (!sim_can(rspec$family)) {
-    stop("posterior_predict(): family '", rspec$family$family,
+    stop("posterior_predict(): family '", rspec$family[["family"]],
          "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
   }
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws)
   av <- if (is.null(newdata)) {
-    fit$frame$aterm_values[[resp]]
+    fit$frame[["aterm_values"]][[resp]]
   } else if (has_trunc(rspec)) {
     # truncation bounds must follow the newdata rows, or the draws land
     # outside the support the likelihood was normalized on
@@ -530,7 +530,7 @@ pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
   re_form <- re_form_arg(re_formula, re.form, "pp_check()")
   fit <- object$fit
   rspec <- single_response(fit, "pp_check()")
-  y <- fit$frame$y[[1L]]
+  y <- fit$frame[["y"]][[1L]]
   if (is.matrix(y)) {
     stop("pp_check() on draws supports vector responses", call. = FALSE)
   }
@@ -851,7 +851,7 @@ predictive_error.frmtmb_draws <- function(object, resp = NULL,
   re_form <- re_form_arg(re_formula, re.form, "predictive_error()")
   fit <- draws_base_fit(object)
   resp <- resp %||% names(fit$spec$responses)[1L]
-  y <- fit$frame$y[[resp]]
+  y <- fit$frame[["y"]][[resp]]
   if (is.matrix(y)) {
     stop("predictive_error() needs a vector response; this one is a ",
          "matrix (multinomial counts, mixture_mvn columns or lca ",

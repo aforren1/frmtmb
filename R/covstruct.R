@@ -406,11 +406,11 @@ covstruct_registry <- list(
     npar = function(dim) dim + dim * (dim - 1L) / 2L,
     sd_idx = function(dim) seq_len(dim),
     from_natural = function(sds, C, blk) {
-      if (blk$dim == 1L) return(log(sds[1L]))
+      if (blk[["dim"]] == 1L) return(log(sds[1L]))
       c(log(sds), us_theta_cor(C))
     },
     nll = function(b, theta, blk) {
-      d <- blk$dim
+      d <- blk[["dim"]]
       if (d == 1L) {
         return(sum(RTMB::dnorm(b, 0, exp(theta), log = TRUE)))
       }
@@ -424,7 +424,7 @@ covstruct_registry <- list(
       sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
     },
     vcov = function(theta, blk) {
-      d <- blk$dim
+      d <- blk[["dim"]]
       if (d == 1L) {
         V <- matrix(exp(theta)^2, 1, 1)
       } else {
@@ -432,7 +432,7 @@ covstruct_registry <- list(
         C <- us_chol_cor(theta[-seq_len(d)], d)
         V <- C * (sdv %o% sdv)
       }
-      dimnames(V) <- list(blk$cnms, blk$cnms)
+      dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
     start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
@@ -442,12 +442,12 @@ covstruct_registry <- list(
     sd_idx = function(dim) seq_len(dim),
     from_natural = function(sds, C, blk) log(sds),
     nll = function(b, theta, blk) {
-      sdv <- rep(exp(theta), times = blk$n_levels)
+      sdv <- rep(exp(theta), times = blk[["n_levels"]])
       sum(RTMB::dnorm(b, 0, sdv, log = TRUE))
     },
     vcov = function(theta, blk) {
-      V <- diag(exp(theta)^2, nrow = blk$dim)
-      dimnames(V) <- list(blk$cnms, blk$cnms)
+      V <- diag(exp(theta)^2, nrow = blk[["dim"]])
+      dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
     start = function(dim) numeric(dim)
@@ -459,17 +459,17 @@ covstruct_registry <- list(
     npar = function(dim) dim + dim * (dim - 1L) / 2L,
     sd_idx = function(dim) seq_len(dim),
     from_natural = function(sds, C, blk) {
-      if (blk$dim == 1L) return(log(sds[1L]))
+      if (blk[["dim"]] == 1L) return(log(sds[1L]))
       c(log(sds), us_theta_cor(C))
     },
     nll = function(b, theta, blk) {
-      d <- blk$dim
-      if (d == 1L) return(student_lpdf_scalar(b, theta[1], blk$dist_nu))
+      d <- blk[["dim"]]
+      if (d == 1L) return(student_lpdf_scalar(b, theta[1], blk[["dist_nu"]]))
       W <- us_chol_L(theta[-seq_len(d)], d) * exp(theta[seq_len(d)])
-      student_lpdf(b, W, blk$dist_nu, d, blk$n_levels)
+      student_lpdf(b, W, blk[["dist_nu"]], d, blk[["n_levels"]])
     },
     vcov = function(theta, blk) {
-      d <- blk$dim
+      d <- blk[["dim"]]
       if (d == 1L) {
         V <- matrix(exp(theta)^2, 1, 1)
       } else {
@@ -477,7 +477,7 @@ covstruct_registry <- list(
         C <- us_chol_cor(theta[-seq_len(d)], d)
         V <- C * (sdv %o% sdv)
       }
-      dimnames(V) <- list(blk$cnms, blk$cnms)
+      dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
     start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
@@ -487,21 +487,21 @@ covstruct_registry <- list(
     sd_idx = function(dim) seq_len(dim),
     from_natural = function(sds, C, blk) log(sds),
     nll = function(b, theta, blk) {
-      d <- blk$dim
-      if (d == 1L) return(student_lpdf_scalar(b, theta[1], blk$dist_nu))
+      d <- blk[["dim"]]
+      if (d == 1L) return(student_lpdf_scalar(b, theta[1], blk[["dist_nu"]]))
       # a diagonal SCALE matrix, but still ONE mixing variable per level
       # (probe E: brms shares `dfm` across the coefficients of a level
       # even under cor = FALSE), so this is a multivariate t and not a
       # product of d univariate ones. The quadratic form couples the
       # level's coefficients even though the scale matrix does not.
-      z <- b * rep(exp(-theta), times = blk$n_levels)
-      dim(z) <- c(d, blk$n_levels)
-      student_lpdf_core(RTMB::colSums(z * z), sum(theta), blk$dist_nu,
-                        d, blk$n_levels)
+      z <- b * rep(exp(-theta), times = blk[["n_levels"]])
+      dim(z) <- c(d, blk[["n_levels"]])
+      student_lpdf_core(RTMB::colSums(z * z), sum(theta), blk[["dist_nu"]],
+                        d, blk[["n_levels"]])
     },
     vcov = function(theta, blk) {
-      V <- diag(exp(theta)^2, nrow = blk$dim)
-      dimnames(V) <- list(blk$cnms, blk$cnms)
+      V <- diag(exp(theta)^2, nrow = blk[["dim"]])
+      dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
     start = function(dim) numeric(dim)
@@ -509,13 +509,14 @@ covstruct_registry <- list(
   homdiag = list(
     npar = function(dim) 1L,
     sd_idx = function(dim) 1L,
-    from_natural = function(sds, C, blk) homogeneous_sd(sds, blk$covstruct),
+    from_natural = function(sds, C, blk) homogeneous_sd(sds,
+                                                        blk[["covstruct"]]),
     nll = function(b, theta, blk) {
       sum(RTMB::dnorm(b, 0, exp(theta), log = TRUE))
     },
     vcov = function(theta, blk) {
-      V <- diag(exp(theta)^2, nrow = blk$dim)
-      dimnames(V) <- list(blk$cnms, blk$cnms)
+      V <- diag(exp(theta)^2, nrow = blk[["dim"]])
+      dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
     start = function(dim) 0
@@ -526,13 +527,13 @@ covstruct_registry <- list(
     npar = function(dim) 2L,
     sd_idx = function(dim) 1L,
     nll = function(b, theta, blk) {
-      ar1_lpdf(b, exp(theta[1]), theta[2], blk$dim)
+      ar1_lpdf(b, exp(theta[1]), theta[2], blk[["dim"]])
     },
     vcov = function(theta, blk) {
-      d <- blk$dim
+      d <- blk[["dim"]]
       rho <- theta[2] / sqrt(1 + theta[2]^2)
       V <- exp(theta[1])^2 * rho^abs(outer(seq_len(d), seq_len(d), "-"))
-      dimnames(V) <- list(blk$cnms, blk$cnms)
+      dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
     start = function(dim) c(0, 0)
@@ -543,7 +544,7 @@ covstruct_registry <- list(
     npar = function(dim) dim + 1L,
     sd_idx = function(dim) seq_len(dim),
     nll = function(b, theta, blk) {
-      d <- blk$dim
+      d <- blk[["dim"]]
       sdv <- exp(theta[seq_len(d)])
       a <- 1 / (d - 1)
       rho <- -a + (1 + a) / (1 + exp(-theta[d + 1L]))
@@ -553,13 +554,13 @@ covstruct_registry <- list(
       sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
     },
     vcov = function(theta, blk) {
-      d <- blk$dim
+      d <- blk[["dim"]]
       sdv <- exp(theta[seq_len(d)])
       a <- 1 / (d - 1)
       rho <- -a + (1 + a) / (1 + exp(-theta[d + 1L]))
       C <- diag(d) * (1 - rho) + rho
       V <- C * (sdv %o% sdv)
-      dimnames(V) <- list(blk$cnms, blk$cnms)
+      dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
     start = function(dim) numeric(dim + 1L)
@@ -569,17 +570,17 @@ covstruct_registry <- list(
 # Continuous-position AR / exponential covariance over num_factor()
 # levels: Sigma_ij = sd^2 * exp(-rate * |t_i - t_j|). theta = (log sd,
 # log rate); blk$aux_D holds the distance matrix.
-covstruct_registry$ou <- list(
+covstruct_registry[["ou"]] <- list(
   npar = function(dim) 2L,
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
-    Sigma <- exp(2 * theta[1]) * exp(-exp(theta[2]) * blk$aux_D)
-    dim(b) <- c(blk$dim, length(b) %/% blk$dim)
+    Sigma <- exp(2 * theta[1]) * exp(-exp(theta[2]) * blk[["aux_D"]])
+    dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
     sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
   },
   vcov = function(theta, blk) {
-    V <- exp(theta[1])^2 * exp(-exp(theta[2]) * blk$aux_D)
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V <- exp(theta[1])^2 * exp(-exp(theta[2]) * blk[["aux_D"]])
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) c(0, 0)
@@ -589,12 +590,12 @@ covstruct_registry$ou <- list(
 # log-sds plus banded correlations rho_k = phi_k / sqrt(1 + phi_k^2).
 # PD is not guaranteed for every parameter value (same as glmmTMB); the
 # optimizer stays in the feasible region.
-covstruct_registry$toep <- list(
+covstruct_registry[["toep"]] <- list(
   npar = function(dim) 2L * dim - 1L,
   sd_idx = function(dim) seq_len(dim),
   nll = function(b, theta, blk) {
     "[<-" <- RTMB::ADoverload("[<-")
-    d <- blk$dim
+    d <- blk[["dim"]]
     sdv <- exp(theta[seq_len(d)])
     phi <- theta[d + seq_len(d - 1L)]
     cvec <- rep(phi[1], d)
@@ -609,32 +610,32 @@ covstruct_registry$toep <- list(
     sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
   },
   vcov = function(theta, blk) {
-    d <- blk$dim
+    d <- blk[["dim"]]
     sdv <- exp(theta[seq_len(d)])
     phi <- theta[d + seq_len(d - 1L)]
     cvec <- c(1, phi / sqrt(1 + phi^2))
     C <- matrix(cvec[abs(outer(seq_len(d), seq_len(d), "-")) + 1L], d, d)
     V <- C * (sdv %o% sdv)
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) numeric(2L * dim - 1L)
 )
 
 # Heterogeneous AR(1): d log-sds plus one phi (rho = phi/sqrt(1+phi^2)).
-covstruct_registry$hetar1 <- list(
+covstruct_registry[["hetar1"]] <- list(
   npar = function(dim) dim + 1L,
   sd_idx = function(dim) seq_len(dim),
   nll = function(b, theta, blk) {
-    d <- blk$dim
+    d <- blk[["dim"]]
     ar1_lpdf(b, exp(theta[seq_len(d)]), theta[d + 1L], d)
   },
   vcov = function(theta, blk) {
-    d <- blk$dim
+    d <- blk[["dim"]]
     sdv <- exp(theta[seq_len(d)])
     rho <- theta[d + 1L] / sqrt(1 + theta[d + 1L]^2)
     V <- rho^abs(outer(seq_len(d), seq_len(d), "-")) * (sdv %o% sdv)
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) numeric(dim + 1L)
@@ -642,11 +643,11 @@ covstruct_registry$hetar1 <- list(
 
 # Homogeneous compound symmetry: one log-sd plus one correlation on
 # (-1/(d-1), 1).
-covstruct_registry$homcs <- list(
+covstruct_registry[["homcs"]] <- list(
   npar = function(dim) 2L,
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
-    d <- blk$dim
+    d <- blk[["dim"]]
     a <- 1 / (d - 1)
     rho <- -a + (1 + a) / (1 + exp(-theta[2]))
     C <- diag(d) * (1 - rho) + rho
@@ -655,23 +656,23 @@ covstruct_registry$homcs <- list(
     sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
   },
   vcov = function(theta, blk) {
-    d <- blk$dim
+    d <- blk[["dim"]]
     a <- 1 / (d - 1)
     rho <- -a + (1 + a) / (1 + exp(-theta[2]))
     V <- exp(theta[1])^2 * (diag(d) * (1 - rho) + rho)
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) c(0, 0)
 )
 
 # Homogeneous Toeplitz: one log-sd plus d-1 banded correlations.
-covstruct_registry$homtoep <- list(
+covstruct_registry[["homtoep"]] <- list(
   npar = function(dim) dim,
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
     "[<-" <- RTMB::ADoverload("[<-")
-    d <- blk$dim
+    d <- blk[["dim"]]
     phi <- theta[1L + seq_len(d - 1L)]
     cvec <- rep(phi[1], d)
     cvec[1] <- 1
@@ -685,12 +686,12 @@ covstruct_registry$homtoep <- list(
     sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
   },
   vcov = function(theta, blk) {
-    d <- blk$dim
+    d <- blk[["dim"]]
     phi <- theta[1L + seq_len(d - 1L)]
     cvec <- c(1, phi / sqrt(1 + phi^2))
     C <- matrix(cvec[abs(outer(seq_len(d), seq_len(d), "-")) + 1L], d, d)
     V <- exp(theta[1])^2 * C
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) numeric(dim)
@@ -706,25 +707,25 @@ spatial_entry <- function(corr_fn, npar_k) {
     npar = function(dim) npar_k,
     sd_idx = function(dim) 1L,
     nll = function(b, theta, blk) {
-      Sigma <- exp(2 * theta[1]) * corr_fn(blk$aux_D, theta)
-      dim(b) <- c(blk$dim, length(b) %/% blk$dim)
+      Sigma <- exp(2 * theta[1]) * corr_fn(blk[["aux_D"]], theta)
+      dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
       sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
     },
     vcov = function(theta, blk) {
-      V <- exp(theta[1])^2 * corr_fn(blk$aux_D, theta)
+      V <- exp(theta[1])^2 * corr_fn(blk[["aux_D"]], theta)
       V <- as.matrix(V)
-      dimnames(V) <- list(blk$cnms, blk$cnms)
+      dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
       V
     },
     start = function(dim) numeric(npar_k)
   )
 }
 
-covstruct_registry$exp <- spatial_entry(
+covstruct_registry[["exp"]] <- spatial_entry(
   function(D, theta) exp(-D / exp(theta[2])), 2L
 )
 
-covstruct_registry$gau <- spatial_entry(
+covstruct_registry[["gau"]] <- spatial_entry(
   function(D, theta) exp(-(D / exp(theta[2]))^2), 2L
 )
 
@@ -735,7 +736,7 @@ covstruct_registry$gau <- spatial_entry(
 # the optimizer cannot step into 0 * Inf territory (which is where both
 # we and glmmTMB otherwise die). Compare fits at the covariance level,
 # not the theta level.
-covstruct_registry$mat <- spatial_entry(
+covstruct_registry[["mat"]] <- spatial_entry(
   function(D, theta) {
     d <- nrow(D)
     mask <- as.numeric(D > 0)
@@ -756,35 +757,35 @@ covstruct_registry$mat <- spatial_entry(
 # dimension d * n_levels; the Kronecker product is assembled from
 # precomputed index maps (blk$aux_kron). Dense solve: fine into the
 # hundreds of levels, revisit (sparse precision) for thousands.
-covstruct_registry$gr_cov <- list(
+covstruct_registry[["gr_cov"]] <- list(
   npar = function(dim) dim + dim * (dim - 1L) / 2L,
   sd_idx = function(dim) seq_len(dim),
   # the natural values describe the WITHIN-level covariance; the
   # across-level structure is the fixed matrix A
   from_natural = function(sds, C, blk) {
-    if (blk$dim == 1L) return(log(sds[1L]))
+    if (blk[["dim"]] == 1L) return(log(sds[1L]))
     c(log(sds), us_theta_cor(C))
   },
   nll = function(b, theta, blk) {
-    if (blk$dim == 1L) {
-      Sigma <- exp(2 * theta[1]) * blk$aux_A
+    if (blk[["dim"]] == 1L) {
+      Sigma <- exp(2 * theta[1]) * blk[["aux_A"]]
       return(sum(RTMB::dmvnorm(b, 0, Sigma, log = TRUE)))
     }
-    S <- us_sigma(theta, blk$dim)
-    D <- blk$dim * blk$n_levels
-    K <- RTMB::matrix(as.vector(blk$aux_A)[blk$aux_kron$ia] *
-                        as.vector(S)[blk$aux_kron$is], D, D)
+    S <- us_sigma(theta, blk[["dim"]])
+    D <- blk[["dim"]] * blk[["n_levels"]]
+    K <- RTMB::matrix(as.vector(blk[["aux_A"]])[blk[["aux_kron"]]$ia] *
+                        as.vector(S)[blk[["aux_kron"]]$is], D, D)
     sum(RTMB::dmvnorm(b, 0, K, log = TRUE))
   },
   vcov = function(theta, blk) {
-    d <- blk$dim
+    d <- blk[["dim"]]
     V <- if (d == 1L) {
       matrix(exp(theta[1])^2, 1, 1)
     } else {
       sdv <- exp(theta[seq_len(d)])
       us_chol_cor(theta[-seq_len(d)], d) * (sdv %o% sdv)
     }
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
@@ -802,40 +803,40 @@ covstruct_registry$gr_cov <- list(
 # block per stored entry of Q). It is assembled on the tape as an
 # AD-weighted sum of the fixed sparse matrices Q (x) E_ab (blk$aux_Qk),
 # so nothing but the d(d+1)/2 weights depends on the parameters.
-covstruct_registry$gr_prec <- list(
+covstruct_registry[["gr_prec"]] <- list(
   npar = function(dim) dim + dim * (dim - 1L) / 2L,
   sd_idx = function(dim) seq_len(dim),
   # the natural values describe the WITHIN-level covariance; the
   # across-level structure is the fixed precision Q
   from_natural = function(sds, C, blk) {
-    if (blk$dim == 1L) return(log(sds[1L]))
+    if (blk[["dim"]] == 1L) return(log(sds[1L]))
     c(log(sds), us_theta_cor(C))
   },
   nll = function(b, theta, blk) {
-    if (blk$dim == 1L) {
-      Qs <- exp(-2 * theta[1]) * blk$aux_Q
+    if (blk[["dim"]] == 1L) {
+      Qs <- exp(-2 * theta[1]) * blk[["aux_Q"]]
       return(sum(RTMB::dgmrf(b, 0, Qs, log = TRUE)))
     }
     # RTMB::solve, not base's: the S4 advector method is not imported
-    Sinv <- RTMB::solve(us_sigma(theta, blk$dim))
+    Sinv <- RTMB::solve(us_sigma(theta, blk[["dim"]]))
     # no zero to start from: an AD-weighted sparse matrix has no
     # additive identity, so the first term seeds the sum
     Qs <- NULL
-    for (e in blk$aux_Qk) {
+    for (e in blk[["aux_Qk"]]) {
       term <- Sinv[e[["a"]], e[["b"]]] * e[["M"]]
       Qs <- if (is.null(Qs)) term else Qs + term
     }
     sum(RTMB::dgmrf(b, 0, Qs, log = TRUE))
   },
   vcov = function(theta, blk) {
-    d <- blk$dim
+    d <- blk[["dim"]]
     V <- if (d == 1L) {
       matrix(exp(theta[1])^2, 1, 1)
     } else {
       sdv <- exp(theta[seq_len(d)])
       us_chol_cor(theta[-seq_len(d)], d) * (sdv %o% sdv)
     }
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) numeric(dim + dim * (dim - 1L) / 2L)
@@ -1253,7 +1254,7 @@ car_aux <- function(W, type, con_sd = car_con_sd_default) {
 #'
 #' @noRd
 car_cov <- function(theta, blk) {
-  a <- blk$aux_car
+  a <- blk[["aux_car"]]
   s2 <- exp(2 * theta[1])
   if (a[["type"]] == "escar") {
     rho <- car_rho(theta[2])
@@ -1268,14 +1269,14 @@ car_cov <- function(theta, blk) {
   s2 * as.matrix(Matrix::solve(a[["K"]]))
 }
 
-covstruct_registry$car <- list(
+covstruct_registry[["car"]] <- list(
   npar = function(dim) {
     stop("car npar needs the type; handled at the frame call site",
          call. = FALSE)
   },
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
-    a <- blk$aux_car
+    a <- blk[["aux_car"]]
     n <- a[["n"]]
     if (a[["type"]] == "bym2") {
       # the mixture has no sparse precision, so the dense marginal
@@ -1352,14 +1353,14 @@ spde_sd <- function(theta) {
   1 / (exp(theta[1]) * exp(theta[2]) * sqrt(4 * pi))
 }
 
-covstruct_registry$spde <- list(
+covstruct_registry[["spde"]] <- list(
   npar = function(dim) {
     stop("spde npar is fixed at 2; handled at the frame call site",
          call. = FALSE)
   },
   sd_idx = function(dim) integer(0),
   nll = function(b, theta, blk) {
-    a <- blk$aux_spde
+    a <- blk[["aux_spde"]]
     kap2 <- exp(2 * theta[2])
     Q <- exp(2 * theta[1]) * (kap2 * kap2 * a[["M0"]] +
                                 (2 * kap2) * a[["M1"]] + a[["M2"]])
@@ -1378,7 +1379,7 @@ covstruct_registry$spde <- list(
 #'
 #' @noRd
 spde_prec <- function(theta, blk) {
-  a <- blk$aux_spde
+  a <- blk[["aux_spde"]]
   kap2 <- exp(2 * theta[2])
   exp(2 * theta[1]) * (kap2 * kap2 * a[["M0"]] + (2 * kap2) * a[["M1"]] +
                          a[["M2"]])
@@ -1413,11 +1414,11 @@ gp_start <- function(D, iso) numeric(gp_npar(D, iso))
 #' @noRd
 gp_corr <- function(theta, blk) {
   Q <- 0
-  for (j in seq_along(blk$aux_D2)) {
-    rho <- if (isTRUE(blk$gp_iso)) exp(theta[2]) else exp(theta[1 + j])
-    Q <- Q + blk$aux_D2[[j]] / (2 * rho^2)
+  for (j in seq_along(blk[["aux_D2"]])) {
+    rho <- if (isTRUE(blk[["gp_iso"]])) exp(theta[2]) else exp(theta[1 + j])
+    Q <- Q + blk[["aux_D2"]][[j]] / (2 * rho^2)
   }
-  exp(-Q) + diag(1e-6, nrow(blk$aux_D2[[1]]))
+  exp(-Q) + diag(1e-6, nrow(blk[["aux_D2"]][[1]]))
 }
 
 #' Numeric `K(X*, X)` of a fitted exact-gp block at new coordinates Xnew
@@ -1431,14 +1432,14 @@ gp_cross_cov <- function(theta, blk, Xnew, pos) {
   same <- 1
   for (j in seq_len(ncol(pos))) {
     dj <- outer(Xnew[, j], pos[, j], "-")
-    rho <- if (isTRUE(blk$gp_iso)) exp(theta[2]) else exp(theta[1 + j])
+    rho <- if (isTRUE(blk[["gp_iso"]])) exp(theta[2]) else exp(theta[1 + j])
     Q <- Q + dj^2 / (2 * rho^2)
     same <- same * (dj == 0)
   }
   exp(2 * theta[1]) * (exp(-Q) + 1e-6 * same)
 }
 
-covstruct_registry$gp <- list(
+covstruct_registry[["gp"]] <- list(
   npar = function(dim) {
     stop("gp npar needs the dimension count; handled at the frame ",
          "call site", call. = FALSE)
@@ -1446,12 +1447,12 @@ covstruct_registry$gp <- list(
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
     Sigma <- exp(2 * theta[1]) * gp_corr(theta, blk)
-    dim(b) <- c(blk$dim, length(b) %/% blk$dim)
+    dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
     sum(RTMB::dmvnorm(t(b), 0, Sigma, log = TRUE))
   },
   vcov = function(theta, blk) {
     V <- as.matrix(exp(theta[1])^2 * gp_corr(theta, blk))
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) {
@@ -1536,21 +1537,21 @@ hsgp_start <- function(D, iso) {
   c(0, rep(log(0.1), gp_npar(D, iso) - 1L))
 }
 
-covstruct_registry$hsgp <- list(
+covstruct_registry[["hsgp"]] <- list(
   npar = function(dim) {
     stop("hsgp npar needs the dimension count; handled at the frame ",
          "call site", call. = FALSE)
   },
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
-    sum(RTMB::dnorm(b, 0, hsgp_sds(theta, blk$aux_omega, blk$gp_iso),
+    sum(RTMB::dnorm(b, 0, hsgp_sds(theta, blk[["aux_omega"]], blk[["gp_iso"]]),
                     log = TRUE))
   },
   vcov = function(theta, blk) {
-    V <- diag(as.numeric(hsgp_sds(theta, blk$aux_omega,
-                                  blk$gp_iso))^2,
-              nrow = blk$dim)
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V <- diag(as.numeric(hsgp_sds(theta, blk[["aux_omega"]],
+                                  blk[["gp_iso"]]))^2,
+              nrow = blk[["dim"]])
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) {
@@ -1562,16 +1563,16 @@ covstruct_registry$hsgp <- list(
 # Known, fully fixed within-level covariance (glmmTMB equalto): b ~
 # N(0, V) with V supplied by the user - zero parameters (meta-analysis
 # sampling covariances and similar).
-covstruct_registry$equalto <- list(
+covstruct_registry[["equalto"]] <- list(
   npar = function(dim) 0L,
   sd_idx = function(dim) integer(0),
   nll = function(b, theta, blk) {
-    dim(b) <- c(blk$dim, length(b) %/% blk$dim)
-    sum(RTMB::dmvnorm(t(b), 0, blk$aux_A, log = TRUE))
+    dim(b) <- c(blk[["dim"]], length(b) %/% blk[["dim"]])
+    sum(RTMB::dmvnorm(t(b), 0, blk[["aux_A"]], log = TRUE))
   },
   vcov = function(theta, blk) {
-    V <- blk$aux_A
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    V <- blk[["aux_A"]]
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) numeric(0)
@@ -1618,7 +1619,7 @@ rr_loadings <- function(theta, dim, rank) {
   L
 }
 
-covstruct_registry$rr <- list(
+covstruct_registry[["rr"]] <- list(
   npar = function(dim) {
     stop("rr npar needs the rank; handled at the frame call site",
          call. = FALSE)
@@ -1628,9 +1629,9 @@ covstruct_registry$rr <- list(
     sum(RTMB::dnorm(b, 0, 1, log = TRUE))
   },
   vcov = function(theta, blk) {
-    L <- rr_loadings(theta, blk$dim, blk$rank)
+    L <- rr_loadings(theta, blk[["dim"]], blk[["rank"]])
     V <- as.matrix(L %*% t(L))
-    dimnames(V) <- list(blk$cnms, blk$cnms)
+    dimnames(V) <- list(blk[["cnms"]], blk[["cnms"]])
     V
   },
   start = function(dim) {
@@ -1645,16 +1646,16 @@ covstruct_registry$rr <- list(
 #'
 #' @noRd
 expand_b <- function(frame, b, theta) {
-  if (!isTRUE(frame$has_rr)) return(b)
+  if (!isTRUE(frame[["has_rr"]])) return(b)
   "[<-" <- RTMB::ADoverload("[<-")
-  cvec <- rep(b[1] * 0, frame$n_c)   # keeps the advector class if taped
-  for (bk in frame$re_blocks) {
-    if (bk$covstruct == "rr") {
-      L <- rr_loadings(theta[bk$theta_idx], bk$dim, bk$rank)
-      Fm <- RTMB::matrix(b[bk$b_idx], bk$rank, bk$n_levels)
-      cvec[bk$c_idx] <- as.vector(L %*% Fm)
+  cvec <- rep(b[1] * 0, frame[["n_c"]])   # keeps the advector class if taped
+  for (bk in frame[["re_blocks"]]) {
+    if (bk[["covstruct"]] == "rr") {
+      L <- rr_loadings(theta[bk[["theta_idx"]]], bk[["dim"]], bk[["rank"]])
+      Fm <- RTMB::matrix(b[bk[["b_idx"]]], bk[["rank"]], bk[["n_levels"]])
+      cvec[bk[["c_idx"]]] <- as.vector(L %*% Fm)
     } else {
-      cvec[bk$c_idx] <- b[bk$b_idx]
+      cvec[bk[["c_idx"]]] <- b[bk[["b_idx"]]]
     }
   }
   cvec
@@ -1692,23 +1693,23 @@ cor_spec_chol <- function(d) {
   list(kind = "chol", d = d, idx = d + seq_len(d * (d - 1L) / 2L))
 }
 
-covstruct_registry$us$cor_spec <- cor_spec_chol
-covstruct_registry$us_t$cor_spec <- cor_spec_chol
-covstruct_registry$gr_cov$cor_spec <- cor_spec_chol
-covstruct_registry$gr_prec$cor_spec <- cor_spec_chol
-covstruct_registry$cs$cor_spec <- function(d) {
+covstruct_registry[["us"]]$cor_spec <- cor_spec_chol
+covstruct_registry[["us_t"]]$cor_spec <- cor_spec_chol
+covstruct_registry[["gr_cov"]]$cor_spec <- cor_spec_chol
+covstruct_registry[["gr_prec"]]$cor_spec <- cor_spec_chol
+covstruct_registry[["cs"]]$cor_spec <- function(d) {
   if (d < 2L) return(NULL)
   list(kind = "cs", d = d, idx = d + 1L)
 }
-covstruct_registry$homcs$cor_spec <- function(d) {
+covstruct_registry[["homcs"]]$cor_spec <- function(d) {
   if (d < 2L) return(NULL)
   list(kind = "cs", d = d, idx = 2L)
 }
-covstruct_registry$ar1$cor_spec <- function(d) {
+covstruct_registry[["ar1"]]$cor_spec <- function(d) {
   if (d < 2L) return(NULL)
   list(kind = "ar1", d = d, idx = 2L)
 }
-covstruct_registry$hetar1$cor_spec <- function(d) {
+covstruct_registry[["hetar1"]]$cor_spec <- function(d) {
   if (d < 2L) return(NULL)
   list(kind = "ar1", d = d, idx = d + 1L)
 }
@@ -1906,36 +1907,36 @@ us_chol_scaled <- function(theta, d) {
   us_chol_L(theta[-seq_len(d)], d) * exp(theta[seq_len(d)])
 }
 
-covstruct_registry$us$chol_L <- function(theta, blk) {
+covstruct_registry[["us"]]$chol_L <- function(theta, blk) {
   us_chol_scaled(theta, blk[["dim"]])
 }
-covstruct_registry$diag$chol_sd <- function(theta, blk) exp(theta)
-covstruct_registry$homdiag$chol_sd <- function(theta, blk) {
+covstruct_registry[["diag"]]$chol_sd <- function(theta, blk) exp(theta)
+covstruct_registry[["homdiag"]]$chol_sd <- function(theta, blk) {
   rep(exp(theta[1]), blk[["dim"]])
 }
-covstruct_registry$hsgp$chol_sd <- function(theta, blk) {
+covstruct_registry[["hsgp"]]$chol_sd <- function(theta, blk) {
   hsgp_sds(theta, blk[["aux_omega"]], blk[["gp_iso"]])
 }
-covstruct_registry$equalto$chol_L <- function(theta, blk) {
+covstruct_registry[["equalto"]]$chol_L <- function(theta, blk) {
   t(chol(blk[["aux_A"]]))
 }
-covstruct_registry$cs$chol_L <- function(theta, blk) {
+covstruct_registry[["cs"]]$chol_L <- function(theta, blk) {
   d <- blk[["dim"]]
   a <- 1 / (d - 1)
   rho <- -a + (1 + a) / (1 + exp(-theta[d + 1L]))
   cs_chol_cor(rho, d) * exp(theta[seq_len(d)])
 }
-covstruct_registry$homcs$chol_L <- function(theta, blk) {
+covstruct_registry[["homcs"]]$chol_L <- function(theta, blk) {
   d <- blk[["dim"]]
   a <- 1 / (d - 1)
   rho <- -a + (1 + a) / (1 + exp(-theta[2]))
   cs_chol_cor(rho, d) * exp(theta[1])
 }
-covstruct_registry$ar1$chol_L <- function(theta, blk) {
+covstruct_registry[["ar1"]]$chol_L <- function(theta, blk) {
   rho <- theta[2] / sqrt(1 + theta[2]^2)
   ar1_chol_cor(rho, blk[["dim"]]) * exp(theta[1])
 }
-covstruct_registry$hetar1$chol_L <- function(theta, blk) {
+covstruct_registry[["hetar1"]]$chol_L <- function(theta, blk) {
   d <- blk[["dim"]]
   rho <- theta[d + 1L] / sqrt(1 + theta[d + 1L]^2)
   ar1_chol_cor(rho, d) * exp(theta[seq_len(d)])
@@ -1944,10 +1945,10 @@ covstruct_registry$hetar1$chol_L <- function(theta, blk) {
 # a Kronecker product's factor is the Kronecker product of the factors.
 # A is fixed data, so its factor is a constant; only the small
 # within-level one moves with theta.
-covstruct_registry$gr_cov$chol_L <- function(theta, blk) {
+covstruct_registry[["gr_cov"]]$chol_L <- function(theta, blk) {
   us_chol_scaled(theta, blk[["dim"]])
 }
-covstruct_registry$gr_cov$chol_A <- function(blk) {
+covstruct_registry[["gr_cov"]]$chol_A <- function(blk) {
   t(chol(as.matrix(blk[["aux_A"]])))
 }
 
@@ -2072,4 +2073,4 @@ ncp_block_chol <- function(bk, theta) {
 # Smooth wiggly blocks are iid-Gaussian with one variance (the inverse
 # smoothing parameter); reuse the homdiag machinery under its own name so
 # blocks stay self-describing.
-covstruct_registry$smooth <- covstruct_registry$homdiag
+covstruct_registry[["smooth"]] <- covstruct_registry[["homdiag"]]

@@ -30,7 +30,7 @@ draws_chain_id <- function(x) {
 #' @noRd
 draws_require_b <- function(x, what) {
   fit <- x$fit
-  if (!length(fit$frame$re_blocks)) return(invisible(NULL))
+  if (!length(fit$frame[["re_blocks"]])) return(invisible(NULL))
   if (any(startsWith(colnames(x$draws), "b["))) return(invisible(NULL))
   stop(what, " needs draws of the random effects, and these draws come ",
        "from frm_sample(laplace = TRUE), which integrates them out ",
@@ -129,7 +129,7 @@ draws_row_loglik <- function(fit, resp) {
     fam <- rspecs[[r]]$family
     yv <- frame[["y"]][[r]]
     ll <- row_lpdf(fam, yv, yv, dpv[[r]], av, extra)
-    out <- out + (av$weights %||% 1) * as.numeric(ll)
+    out <- out + (av[["weights"]] %||% 1) * as.numeric(ll)
   }
   out
 }

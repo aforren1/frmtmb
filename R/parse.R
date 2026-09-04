@@ -175,16 +175,16 @@ parse_response <- function(formula) {
           stop("trunc() takes named bounds: trunc(lb = ...), ",
                "trunc(ub = ...), or both", call. = FALSE)
         }
-        if (!is.null(args$lb)) aterms$trunc_lb <- args$lb
-        if (!is.null(args$ub)) aterms$trunc_ub <- args$ub
+        if (!is.null(args$lb)) aterms[["trunc_lb"]] <- args$lb
+        if (!is.null(args$ub)) aterms[["trunc_ub"]] <- args$ub
       } else if (nm == "cens") {
         args <- as.list(tm)[-1]
         if (length(args) < 1 || length(args) > 2) {
           stop("cens() takes the censoring code and optionally interval ",
                "upper bounds: cens(c) or cens(c, y2)", call. = FALSE)
         }
-        aterms$cens <- args[[1]]
-        if (length(args) == 2) aterms$cens_y2 <- args[[2]]
+        aterms[["cens"]] <- args[[1]]
+        if (length(args) == 2) aterms[["cens_y2"]] <- args[[2]]
       } else if (nm == "mi") {
         # x | mi() ~ ...: the response may contain NAs; missing entries
         # become latent parameters (one-step imputation). With known
@@ -194,8 +194,8 @@ parse_response <- function(formula) {
           stop("mi() on the response side takes at most one argument ",
                "(known measurement SDs)", call. = FALSE)
         }
-        aterms$mi <- TRUE
-        if (length(tm) == 2L) aterms$mi_sd <- tm[[2]]
+        aterms[["mi"]] <- TRUE
+        if (length(tm) == 2L) aterms[["mi_sd"]] <- tm[[2]]
       } else if (nm %in% c("vint", "vreal")) {
         # custom-family data vectors (brms vint()/vreal()): each
         # argument becomes aterms$vint1, vint2, ... for the lpdf
@@ -213,9 +213,9 @@ parse_response <- function(formula) {
           stop("se() takes the known SDs and optionally sigma = TRUE: ",
                "se(x) or se(x, sigma = TRUE)", call. = FALSE)
         }
-        aterms$se <- args[[which(nms == "")]]
+        aterms[["se"]] <- args[[which(nms == "")]]
         if ("sigma" %in% nms) {
-          aterms$se_sigma <- eval_spec_arg(args[["sigma"]], "sigma",
+          aterms[["se_sigma"]] <- eval_spec_arg(args[["sigma"]], "sigma",
                                            environment(formula),
                                            fn = "se")
         }
@@ -261,22 +261,22 @@ parse_response <- function(formula) {
 rewrite_cbind_response <- function(ri, fam) {
   resp <- ri$resp
   if (!is.call(resp) || !identical(resp[[1L]], as.name("cbind")) ||
-      !fam$family %in% c("binomial", "beta_binomial")) {
+      !fam[["family"]] %in% c("binomial", "beta_binomial")) {
     return(ri)
   }
   args <- as.list(resp)[-1L]
   nms <- names(args) %||% rep("", length(args))
   if (length(args) != 2L || any(nzchar(nms))) {
-    stop("A cbind() ", fam$family, " response takes exactly two unnamed ",
+    stop("A cbind() ", fam[["family"]], " response takes exactly two unnamed ",
          "columns: cbind(successes, failures)", call. = FALSE)
   }
-  if (!is.null(ri$aterms$trials)) {
+  if (!is.null(ri$aterms[["trials"]])) {
     stop("cbind(successes, failures) already carries the number of ",
          "trials; drop the trials() addition term (write either ",
          "cbind(s, f) ~ ... or s | trials(n) ~ ...)", call. = FALSE)
   }
   ri$resp <- args[[1L]]
-  ri$aterms$trials <- call("+", args[[1L]], args[[2L]])
+  ri$aterms[["trials"]] <- call("+", args[[1L]], args[[2L]])
   ri$cbind_resp <- TRUE
   ri
 }
@@ -1213,13 +1213,13 @@ pull_autocor <- function(dpars, resp_name) {
 #' @noRd
 plain_dpar <- function(dp, fam, constant = NULL) {
   if (!is.null(constant)) {
-    lv <- fam$links[[dp]]$linkfun(constant)
+    lv <- fam[["links"]][[dp]]$linkfun(constant)
     if (!is.finite(lv)) {
       stop("Constant ", dp, " = ", constant, " is not in the range of ",
-           "the ", fam$links[[dp]]$name, " link", call. = FALSE)
+           "the ", fam[["links"]][[dp]]$name, " link", call. = FALSE)
     }
   }
-  list(name = dp, link = fam$links[[dp]], fixed = ~1, re = list(),
+  list(name = dp, link = fam[["links"]][[dp]], fixed = ~1, re = list(),
        rhs = ~1, smooth = list(), constant = constant)
 }
 
@@ -1349,7 +1349,7 @@ parse_one_response <- function(bform) {
   shared_env <- new.env(parent = env)
   ri <- rewrite_cbind_response(parse_response(f), fam)
 
-  primaries <- fam$primary_dpars %||% "mu"
+  primaries <- fam[["primary_dpars"]] %||% "mu"
   pforms <- bform$pforms
   pfix <- bform$pfix
   nlforms <- bform$nlforms %||% list()
@@ -1363,7 +1363,7 @@ parse_one_response <- function(bform) {
   # formula carrying an nlf() can reach it) and is how the composed
   # brms idiom `bf(y ~ a) + nlf(a ~ ...)` is written in the wild.
   main_rhs <- reformulas::RHSForm(f)
-  nlf_pars <- setdiff(names(nlforms), fam$dpars)
+  nlf_pars <- setdiff(names(nlforms), fam[["dpars"]])
   mu_by_flag <- isTRUE(bform$nl) ||
     (length(nlf_pars) && !primaries[1L] %in% names(nl_bodies) &&
        length(intersect(all.vars(main_rhs), nlf_pars)) > 0L)
@@ -1398,7 +1398,7 @@ parse_one_response <- function(bform) {
   # `sigma ~ z` on a family without sigma has to stay the plain "dpar
   # not available" it has always been.
   nlpars <- if (length(nl_dpars)) {
-    setdiff(c(names(pforms), nl_dpars), fam$dpars)
+    setdiff(c(names(pforms), nl_dpars), fam[["dpars"]])
   } else {
     character(0)
   }
@@ -1437,19 +1437,19 @@ parse_one_response <- function(bform) {
     }
   }
 
-  if (!is.null(ri$aterms$se) && !isTRUE(ri$aterms$se_sigma) &&
-      "sigma" %in% fam$dpars &&
+  if (!is.null(ri$aterms[["se"]]) && !isTRUE(ri$aterms[["se_sigma"]]) &&
+      "sigma" %in% fam[["dpars"]] &&
       !"sigma" %in% c(names(pforms), names(pfix), nl_dpars)) {
     # se() without sigma = TRUE: the residual SD is the known se alone,
     # so the sigma dpar is mapped out (its value is unused by the lpdf)
     pfix$sigma <- 1
   }
   extra <- c(names(pforms), names(pfix), nl_dpars)
-  allowed <- c(setdiff(fam$dpars, primaries[1L]), nlpars,
+  allowed <- c(setdiff(fam[["dpars"]], primaries[1L]), nlpars,
                intersect(nl_dpars, primaries))
   unknown <- setdiff(extra, allowed)
   if (length(unknown)) {
-    stop("dpar(s) not available for family '", fam$family, "': ",
+    stop("dpar(s) not available for family '", fam[["family"]], "': ",
          paste(unknown, collapse = ", "),
          " (available: ", paste(allowed, collapse = ", "), ")",
          call. = FALSE)
@@ -1466,7 +1466,7 @@ parse_one_response <- function(bform) {
   # predictor without making the user spell out K * (K - 1) of them. It
   # is a default, so an explicit `tr12 ~ z` or `tr12 = 0` still wins.
   for (dp in names(fam[["default_forms"]] %||% list())) {
-    if (dp %in% fam$dpars && !dp %in% extra) {
+    if (dp %in% fam[["dpars"]] && !dp %in% extra) {
       pforms[[dp]] <- fam[["default_forms"]][[dp]]
     }
   }
@@ -1484,19 +1484,19 @@ parse_one_response <- function(bform) {
   for (np in nlpars) {
     dpars[[np]] <- if (np %in% nl_dpars) {
       nl_dpar(np, get_link("identity"), nl_bodies[[np]], nlpars,
-              fam$dpars, nl_envs[[np]])
+              fam[["dpars"]], nl_envs[[np]])
     } else {
       lin_dpar(np, get_link("identity"))
     }
   }
-  for (dp in fam$dpars) {
+  for (dp in fam[["dpars"]]) {
     dpars[[dp]] <- if (dp %in% nl_dpars) {
-      nl_dpar(dp, fam$links[[dp]], nl_bodies[[dp]], nlpars, fam$dpars,
+      nl_dpar(dp, fam[["links"]][[dp]], nl_bodies[[dp]], nlpars, fam[["dpars"]],
               nl_envs[[dp]])
     } else if (dp %in% names(pforms)) {
-      lin_dpar(dp, fam$links[[dp]])
+      lin_dpar(dp, fam[["links"]][[dp]])
     } else if (dp %in% primaries) {
-      c(list(name = dp, link = fam$links[[dp]], constant = NULL), main_lp)
+      c(list(name = dp, link = fam[["links"]][[dp]], constant = NULL), main_lp)
     } else {
       plain_dpar(dp, fam, pfix[[dp]])
     }
@@ -1584,13 +1584,13 @@ check_id_covstructs <- function(spec) {
   labs <- character(0)
   for (resp in spec$responses) {
     for (dp in resp$dpars) {
-      for (z in dp$re %||% list()) {
+      for (z in dp[["re"]] %||% list()) {
         if (is.null(z$id)) next
         ids <- c(ids, z$id)
         id_labels <- c(id_labels, z$id_label)
         groups <- c(groups, deparse1(z$id_group))
         cls <- c(cls, z$covstruct)
-        labs <- c(labs, paste0(resp$resp_name, " ", dp$name, ": (",
+        labs <- c(labs, paste0(resp$resp_name, " ", dp[["name"]], ": (",
                                deparse1(z$bar), ") [", z$covstruct, "]"))
       }
     }
@@ -1646,7 +1646,7 @@ parse_spec <- function(bform) {
     }
     rescor <- isTRUE(bform$rescor)
     if (rescor) {
-      fams <- vapply(resps, function(r) r$family$family, "")
+      fams <- vapply(resps, function(r) r$family[["family"]], "")
       if (!all(fams == "gaussian")) {
         stop("rescor = TRUE requires all responses to be gaussian ",
              "(got: ", paste(unique(fams), collapse = ", "), ")",
@@ -1675,7 +1675,7 @@ parse_spec <- function(bform) {
 print.frmtmb_spec <- function(x, ...) {
   cat("<frmtmb spec>\n")
   for (r in x$responses) {
-    cat("Response: ", r$resp_name, "  [", r$family$family, "]\n", sep = "")
+    cat("Response: ", r$resp_name, "  [", r$family[["family"]], "]\n", sep = "")
     if (!is.null(r$autocor)) {
       cat("  residual correlation: ", r$autocor$label, "\n", sep = "")
     }
@@ -1685,23 +1685,23 @@ print.frmtmb_spec <- function(x, ...) {
                  collapse = ", "), "\n", sep = "")
     }
     for (dp in r$dpars) {
-      if (!is.null(dp$constant)) {
-        cat("  ", dp$name, " = ", dp$constant, " (fixed)\n", sep = "")
+      if (!is.null(dp[["constant"]])) {
+        cat("  ", dp[["name"]], " = ", dp[["constant"]], " (fixed)\n", sep = "")
         next
       }
-      cat("  ", dp$name, " (", dp$link$name, "): ",
-          deparse1(dp$fixed), sep = "")
-      if (length(dp$smooth)) {
+      cat("  ", dp[["name"]], " (", dp[["link"]]$name, "): ",
+          deparse1(dp[["fixed"]]), sep = "")
+      if (length(dp[["smooth"]])) {
         cat(" + smooths: ",
-            paste(vapply(dp$smooth, function(s) s$label %||%
+            paste(vapply(dp[["smooth"]], function(s) s$label %||%
                            paste0("s(", paste(s$term, collapse = ","), ")"),
                          ""), collapse = ", "), sep = "")
       }
-      if (length(dp$re)) {
+      if (length(dp[["re"]])) {
         cat(" + RE: ",
-            paste0(vapply(dp$re, function(z) deparse1(z$bar), ""),
-                   " [", vapply(dp$re, `[[`, "", "covstruct"),
-                   ifelse(vapply(dp$re, function(z) is.null(z$id), TRUE),
+            paste0(vapply(dp[["re"]], function(z) deparse1(z$bar), ""),
+                   " [", vapply(dp[["re"]], `[[`, "", "covstruct"),
+                   ifelse(vapply(dp[["re"]], function(z) is.null(z$id), TRUE),
                           "", ", ID"), "]",
                    collapse = ", "), sep = "")
       }

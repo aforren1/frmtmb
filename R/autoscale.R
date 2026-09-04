@@ -17,19 +17,19 @@
 #' @noRd
 autoscale_plan <- function(frame) {
   plan <- list()
-  for (key in names(frame$linpreds)) {
-    lp <- frame$linpreds[[key]]
-    if (!is.null(lp$nl_body)) next     # no design matrix of its own
-    if (!is.null(lp$constant)) next    # mapped to a fixed value
-    if (is.null(lp$X) || lp$n_param_cols == 0L) next
+  for (key in names(frame[["linpreds"]])) {
+    lp <- frame[["linpreds"]][[key]]
+    if (!is.null(lp[["nl_body"]])) next     # no design matrix of its own
+    if (!is.null(lp[["constant"]])) next    # mapped to a fixed value
+    if (is.null(lp[["X"]]) || lp[["n_param_cols"]] == 0L) next
     icpt <- match("(Intercept)",
-                  colnames(lp$X)[seq_len(lp$n_param_cols)])
+                  colnames(lp[["X"]])[seq_len(lp[["n_param_cols"]])])
     cols <- integer(0)
     center <- numeric(0)
     scale <- numeric(0)
-    for (j in seq_len(lp$n_param_cols)) {
+    for (j in seq_len(lp[["n_param_cols"]])) {
       if (!is.na(icpt) && j == icpt) next
-      xj <- lp$X[, j]
+      xj <- lp[["X"]][, j]
       if (length(unique(xj)) <= 2L) next
       s <- stats::sd(xj)
       if (!is.finite(s) || s == 0) next
@@ -39,7 +39,7 @@ autoscale_plan <- function(frame) {
     }
     if (!length(cols)) next
     plan[[key]] <- list(cols = cols, center = center, scale = scale,
-                        icpt = icpt, par = lp$par, idx = lp$idx)
+                        icpt = icpt, par = lp[["par"]], idx = lp[["idx"]])
   }
   if (!length(plan)) NULL else plan
 }
@@ -50,10 +50,10 @@ autoscale_plan <- function(frame) {
 autoscale_frame <- function(frame, plan) {
   for (key in names(plan)) {
     pl <- plan[[key]]
-    X <- frame$linpreds[[key]]$X
+    X <- frame[["linpreds"]][[key]]$X
     Xs <- sweep(X[, pl$cols, drop = FALSE], 2, pl$center)
     X[, pl$cols] <- sweep(Xs, 2, pl$scale, "/")
-    frame$linpreds[[key]]$X <- X
+    frame[["linpreds"]][[key]]$X <- X
   }
   frame
 }
@@ -160,15 +160,15 @@ autoscale_sdreport <- function(fit, jp = needs_jp(fit)) {
 #'
 #' @noRd
 autoscale_units <- function(frame, plan, par_names) {
-  unit <- lapply(frame$par_template, function(v) rep(1, length(v)))
+  unit <- lapply(frame[["par_template"]], function(v) rep(1, length(v)))
   for (pl in plan) {
     unit[[pl$par]][pl$idx[pl$cols]] <- 1 / pl$scale
   }
   out <- numeric(0)
   for (cp in unique(par_names)) {
     u <- unit[[cp]]
-    if (cp == "betad" && length(frame$betad_fixed_idx)) {
-      u <- u[-frame$betad_fixed_idx]
+    if (cp == "betad" && length(frame[["betad_fixed_idx"]])) {
+      u <- u[-frame[["betad_fixed_idx"]]]
     }
     out <- c(out, u)
   }

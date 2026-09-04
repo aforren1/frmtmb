@@ -86,9 +86,10 @@ ddm_mean_rt <- function(dpars, aterms) {
     stop("wiener: the mean response time is conditional on the boundary ",
          "a trial ended at, which is missing. See ?wiener.", call. = FALSE)
   }
-  n <- max(lengths(list(dpars$mu, dpars$bs, dpars$ndt, dpars$bias, up)))
-  v <- rep_len(dpars$mu, n); a <- rep_len(dpars$bs, n)
-  t0 <- rep_len(dpars$ndt, n); w <- rep_len(dpars$bias, n)
+  n <- max(lengths(list(dpars[["mu"]], dpars[["bs"]],
+           dpars[["ndt"]], dpars[["bias"]], up)))
+  v <- rep_len(dpars[["mu"]], n); a <- rep_len(dpars[["bs"]], n)
+  t0 <- rep_len(dpars[["ndt"]], n); w <- rep_len(dpars[["bias"]], n)
   u <- rep_len(up, n)
   t0 + ddm_cond_mean_dt(v, a, w, u)
 }
@@ -110,8 +111,8 @@ ddm_sim_rt <- function(dpars, aterms, n) {
     stop("wiener: simulating a response time needs the boundary each ",
          "row ended at, which is missing. See ?wiener.", call. = FALSE)
   }
-  v <- rep_len(dpars$mu, n); a <- rep_len(dpars$bs, n)
-  t0 <- rep_len(dpars$ndt, n); w <- rep_len(dpars$bias, n)
+  v <- rep_len(dpars[["mu"]], n); a <- rep_len(dpars[["bs"]], n)
+  t0 <- rep_len(dpars[["ndt"]], n); w <- rep_len(dpars[["bias"]], n)
   u <- rep_len(up, n)
 
   if (!requireNamespace("RWiener", quietly = TRUE)) {

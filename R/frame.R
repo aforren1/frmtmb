@@ -41,15 +41,15 @@ extract_offset <- function(tt, mf, env) {
 #'
 #' @noRd
 dpar_frame_rhs <- function(dp) {
-  if (!is.null(dp$nl_body)) {
-    parts <- lapply(dp$datavars, as.name)
+  if (!is.null(dp[["nl_body"]])) {
+    parts <- lapply(dp[["datavars"]], as.name)
     if (!length(parts)) return(1)
     out <- NULL
     for (p in parts) out <- if (is.null(out)) p else call("+", out, p)
     return(out)
   }
-  parts <- list(reformulas::RHSForm(dp$fixed))
-  for (rt in dp$re %||% list()) {
+  parts <- list(reformulas::RHSForm(dp[["fixed"]]))
+  for (rt in dp[["re"]] %||% list()) {
     if (is.null(rt$mm)) {
       parts <- c(parts, list(rt$bar[[2]], rt$bar[[3]]))
       next
@@ -63,23 +63,23 @@ dpar_frame_rhs <- function(dp) {
       parts <- c(parts, list(as.name(v)))
     }
   }
-  for (sspec in dp$smooth %||% list()) {
+  for (sspec in dp[["smooth"]] %||% list()) {
     for (tm in sspec$term) parts <- c(parts, list(as.name(tm)))
     if (!is.null(sspec$by) && sspec$by != "NA") {
       parts <- c(parts, list(as.name(sspec$by)))
     }
   }
-  for (ent in dp$mo %||% list()) {
+  for (ent in dp[["mo"]] %||% list()) {
     for (v in all.vars(ent$expr)) parts <- c(parts, list(as.name(v)))
     if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
   }
-  for (ent in dp$miterms %||% list()) {
+  for (ent in dp[["miterms"]] %||% list()) {
     if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
   }
-  for (cexpr in dp$csterms %||% list()) {
+  for (cexpr in dp[["csterms"]] %||% list()) {
     for (v in all.vars(cexpr)) parts <- c(parts, list(as.name(v)))
   }
-  for (ge in dp$gpterms %||% list()) {
+  for (ge in dp[["gpterms"]] %||% list()) {
     for (ex in ge$exprs) {
       for (v in all.vars(ex)) parts <- c(parts, list(as.name(v)))
     }
@@ -90,7 +90,7 @@ dpar_frame_rhs <- function(dp) {
   # (gr = factor(node)) is evaluated against the frame at assembly, the
   # way every other special resolves its arguments, and model.frame
   # cannot be asked to carry the call itself.
-  for (ce in c(dp$carterms %||% list(), dp$spdeterms %||% list())) {
+  for (ce in c(dp[["carterms"]] %||% list(), dp[["spdeterms"]] %||% list())) {
     for (v in all.vars(ce$gr_expr)) parts <- c(parts, list(as.name(v)))
   }
   out <- NULL
@@ -157,11 +157,11 @@ extract_y <- function(resp, mf) {
     y <- eval(resp$resp_expr, mf, resp$formula_env)
   }
   lv <- NULL
-  if (identical(resp$family$type, "categorical")) {
+  if (identical(resp$family[["type"]], "categorical")) {
     # a nominal response: the level order fixes the reference category
     # and the dpar names, and the codes carry no meaning without the
     # labels, so simulate() and the probability columns can restore them
-    known <- resp$family$cat_levels
+    known <- resp$family[["cat_levels"]]
     lv <- if (!is.null(known)) {
       # frm() already read the levels off this response (and said so, if
       # coercing a character vector); repeating the message here would
@@ -178,7 +178,7 @@ extract_y <- function(resp, mf) {
       categorical_y_levels(y, deparse1(resp$resp_expr))
     }
     if (!is.null(lv)) y <- as.numeric(factor(y, levels = lv))
-  } else if (is.factor(y) && identical(resp$family$type, "ordinal")) {
+  } else if (is.factor(y) && identical(resp$family[["type"]], "ordinal")) {
     # brms accepts an unordered factor here and silently reads level
     # order as category order, which is alphabetical unless the user set
     # it. Match that behavior (refusing would break working brms code)
@@ -198,7 +198,7 @@ extract_y <- function(resp, mf) {
     lv <- levels(y)
     y <- as.numeric(y)   # category codes 1..K in level order
   } else if (is.factor(y)) {
-    if (!identical(resp$family$family, "binomial") || nlevels(y) != 2L) {
+    if (!identical(resp$family[["family"]], "binomial") || nlevels(y) != 2L) {
       stop("Factor responses are only supported for binomial families ",
            "with 2 levels (ordinal families accept ordered factors)",
            call. = FALSE)
@@ -714,15 +714,15 @@ drop_nl_lexical_datavars <- function(spec, data) {
   for (i in seq_along(spec$responses)) {
     for (nm in names(spec$responses[[i]]$dpars)) {
       dp <- spec$responses[[i]]$dpars[[nm]]
-      if (is.null(dp$nl_body) || !length(dp$datavars)) next
-      keep <- vapply(dp$datavars, function(v) {
+      if (is.null(dp[["nl_body"]]) || !length(dp[["datavars"]])) next
+      keep <- vapply(dp[["datavars"]], function(v) {
         if (v %in% dn) return(TRUE)
-        obj <- tryCatch(get0(v, envir = dp$nl_env, ifnotfound = NULL),
+        obj <- tryCatch(get0(v, envir = dp[["nl_env"]], ifnotfound = NULL),
                         error = function(e) NULL)
         !nl_lexical_only(obj)
       }, TRUE)
-      spec$responses[[i]]$dpars[[nm]]$datavars <- dp$datavars[keep]
-      spec$responses[[i]]$dpars[[nm]]$nl_lexical <- dp$datavars[!keep]
+      spec$responses[[i]]$dpars[[nm]]$datavars <- dp[["datavars"]][keep]
+      spec$responses[[i]]$dpars[[nm]]$nl_lexical <- dp[["datavars"]][!keep]
     }
   }
   spec
@@ -757,7 +757,7 @@ resolve_nl_dpar_refs <- function(spec, data) {
       refs <- setdiff(refs, dn)
       spec$responses[[i]]$dpars[[nm]]$nl_dpar_refs <- refs
       spec$responses[[i]]$dpars[[nm]]$datavars <-
-        setdiff(dp$datavars, refs)
+        setdiff(dp[["datavars"]], refs)
     }
   }
   spec
@@ -767,7 +767,7 @@ resolve_nl_dpar_refs <- function(spec, data) {
 #'
 #' @noRd
 nl_body_error <- function(e, lp) {
-  lex <- lp$nl_lexical %||% character(0)
+  lex <- lp[["nl_lexical"]] %||% character(0)
   extra <- if (length(lex)) {
     paste0(" These names in the body are not columns of `data` and were ",
            "resolved outside the data, in the formula environment: ",
@@ -812,11 +812,12 @@ nonpredictor_frame_vars <- function(spec) {
     out <- c(out, all.vars(resp$autocor$time_expr),
              all.vars(resp$autocor$gr_expr))
     for (dp in resp$dpars) {
-      for (rt in dp$re %||% list()) {
+      for (rt in dp[["re"]] %||% list()) {
         out <- c(out, if (is.null(rt$mm)) deparse1(rt$bar[[3L]]) else
                         rt$mm$gvars)
       }
-      for (ce in c(dp$carterms %||% list(), dp$spdeterms %||% list())) {
+      for (ce in c(dp[["carterms"]] %||% list(),
+           dp[["spdeterms"]] %||% list())) {
         out <- c(out, all.vars(ce$gr_expr))
       }
     }
@@ -1026,7 +1027,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # dropping it changes the estimand rather than the sample.
   mi_cols <- vapply(
     Filter(function(r) {
-      isTRUE(r$aterms$mi) ||
+      isTRUE(r$aterms[["mi"]]) ||
         isTRUE(fam_structure(r$family)[["keep_na"]])
     }, spec$responses),
     function(r) deparse1(r$resp_expr), ""
@@ -1137,8 +1138,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
       as.numeric(v)
     }), at_names)
-    if (!is.null(resp$aterms$se_sigma)) {
-      av$se_sigma <- resp$aterms$se_sigma   # logical flag, not data
+    if (!is.null(resp$aterms[["se_sigma"]])) {
+      av[["se_sigma"]] <- resp$aterms[["se_sigma"]]   # logical flag, not data
     }
     # Before EVERY other guard, including the structured one, because
     # each of them is handed `av`: a declared term that is absent leaves
@@ -1146,10 +1147,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # The failure this replaces is silent - NULL in the density's
     # arithmetic gives numeric(0), the log-likelihood sums over nothing,
     # and the fit RETURNS, with a log-likelihood of zero.
-    req_at <- resp$family$required_aterms %||% character(0)
+    req_at <- resp$family[["required_aterms"]] %||% character(0)
     miss_at <- setdiff(req_at, unique(c(names(av), names(resp$aterms))))
     if (length(miss_at)) {
-      stop(resp$family$family, ": the density needs ",
+      stop(resp$family[["family"]], ": the density needs ",
            paste0("`", miss_at, "`", collapse = ", "),
            ", which nothing on this response supplies. Write the ",
            "addition term: ", resp$resp_name, " | ",
@@ -1161,8 +1162,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # family's missing CDF further down
     st_ <- fam_structure(resp$family)
     if (!is.null(st_[["check_spec"]])) st_[["check_spec"]](resp, spec, av)
-    if (isTRUE(resp$aterms$mi)) {
-      if (!resp$family$family %in% c("gaussian", "student")) {
+    if (isTRUE(resp$aterms[["mi"]])) {
+      if (!resp$family[["family"]] %in% c("gaussian", "student")) {
         stop("mi() responses need a gaussian or student model",
              call. = FALSE)
       }
@@ -1178,10 +1179,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (is.matrix(yv)) {
         stop("mi() responses must be numeric vectors", call. = FALSE)
       }
-      if (!is.null(av$mi_sd)) {
+      if (!is.null(av[["mi_sd"]])) {
         # measurement error (brms me()): every true value is latent;
         # observed values get a N(latent, sd) term in the objective
-        if (any(av$mi_sd <= 0)) {
+        if (any(av[["mi_sd"]] <= 0)) {
           stop("mi(sd): measurement SDs must be positive", call. = FALSE)
         }
         obs <- which(!is.na(yv))
@@ -1192,7 +1193,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         rows <- seq_along(yv)
         mi_map[[resp$resp_name]] <- list(
           rows = rows, idx = n_miss + rows,
-          se = av$mi_sd, obs = obs
+          se = av[["mi_sd"]], obs = obs
         )
         n_miss <- n_miss + length(rows)
         miss_init <- c(miss_init,
@@ -1212,12 +1213,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         }
       }
     }
-    if (!is.null(resp$aterms$cens_y2)) {
-      v <- as.numeric(eval(resp$aterms$cens_y2, data, resp$formula_env))
+    if (!is.null(resp$aterms[["cens_y2"]])) {
+      v <- as.numeric(eval(resp$aterms[["cens_y2"]], data, resp$formula_env))
       if (!is.null(attr(mf, "na.action"))) {
         v <- v[-attr(mf, "na.action")]
       }
-      av$cens_y2 <- v
+      av[["cens_y2"]] <- v
     }
     for (vn in grep("^vint", names(av), value = TRUE)) {
       if (any(av[[vn]] != round(av[[vn]]))) {
@@ -1225,8 +1226,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
              call. = FALSE)
       }
     }
-    if (!is.null(av$weights)) {
-      if (any(av$weights < 0)) {
+    if (!is.null(av[["weights"]])) {
+      if (any(av[["weights"]] < 0)) {
         stop("weights() must be non-negative", call. = FALSE)
       }
       if (spec$rescor) {
@@ -1238,58 +1239,59 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # truncation, or known-se machinery; without this guard those
     # terms were silently dropped (wrong likelihood, no warning)
     if (spec$rescor &&
-        (!is.null(av$cens) || !is.null(av$trunc_lb) ||
-         !is.null(av$trunc_ub) || !is.null(av$se))) {
+        (!is.null(av[["cens"]]) || !is.null(av[["trunc_lb"]]) ||
+         !is.null(av[["trunc_ub"]]) || !is.null(av[["se"]]))) {
       stop("cens()/trunc()/se() cannot be combined with rescor = TRUE",
            call. = FALSE)
     }
-    if (!is.null(av$cens) || !is.null(av$trunc_lb) ||
-        !is.null(av$trunc_ub)) {
-      if (is.null(resp$family$lcdf)) {
+    if (!is.null(av[["cens"]]) || !is.null(av[["trunc_lb"]]) ||
+        !is.null(av[["trunc_ub"]])) {
+      if (is.null(resp$family[["lcdf"]])) {
         stop("cens()/trunc() need a family with a CDF (currently: ",
              "gaussian, lognormal, poisson, exponential, weibull, ",
              "inverse.gaussian, cox). The list is not closed: a family ",
              "supplies one through the lcdf argument of ",
              "frmtmb_family()", call. = FALSE)
       }
-      if (!is.null(av$cens) && identical(resp$family$type, "discrete")) {
+      if (!is.null(av[["cens"]]) && identical(resp$family[["type"]],
+        "discrete")) {
         stop("cens() is not supported for discrete families yet ",
              "(truncation is)", call. = FALSE)
       }
-      if (!is.null(av$cens) && !all(av$cens %in% c(-1, 0, 1, 2))) {
+      if (!is.null(av[["cens"]]) && !all(av[["cens"]] %in% c(-1, 0, 1, 2))) {
         stop("cens() codes must be -1 (left), 0 (observed), 1 (right), ",
              "or 2 (interval), or the matching names \"left\", \"none\", ",
              "\"right\", \"interval\"; got: ",
-             paste(unique(av$cens[!av$cens %in% c(-1, 0, 1, 2)]),
+             paste(unique(av[["cens"]][!av[["cens"]] %in% c(-1, 0, 1, 2)]),
                    collapse = ", "), call. = FALSE)
       }
-      if (!is.null(av$cens) && any(av$cens == 2)) {
-        i2 <- av$cens == 2
-        if (is.null(av$cens_y2)) {
+      if (!is.null(av[["cens"]]) && any(av[["cens"]] == 2)) {
+        i2 <- av[["cens"]] == 2
+        if (is.null(av[["cens_y2"]])) {
           stop("Interval censoring (code 2) needs upper bounds: ",
                "cens(c, y2)", call. = FALSE)
         }
-        if (anyNA(av$cens_y2[i2])) {
+        if (anyNA(av[["cens_y2"]][i2])) {
           stop("cens() upper bounds must not be NA on interval-censored ",
                "rows", call. = FALSE)
         }
         yv <- y[[resp$resp_name]]
-        if (any(av$cens_y2[i2] <= yv[i2])) {
+        if (any(av[["cens_y2"]][i2] <= yv[i2])) {
           stop("Interval upper bounds (y2) must exceed the lower bounds ",
                "(the response)", call. = FALSE)
         }
         # NA bounds on non-interval rows are legal and unused; make them
         # harmless for the taped CDF evaluation
-        av$cens_y2[!i2 | is.na(av$cens_y2)] <-
-          yv[!i2 | is.na(av$cens_y2)]
+        av[["cens_y2"]][!i2 | is.na(av[["cens_y2"]])] <-
+          yv[!i2 | is.na(av[["cens_y2"]])]
       }
     }
-    if (!is.null(av$se)) {
-      if (!resp$family$family %in% c("gaussian", "student")) {
+    if (!is.null(av[["se"]])) {
+      if (!resp$family[["family"]] %in% c("gaussian", "student")) {
         stop("se() is supported for gaussian and student families only",
              call. = FALSE)
       }
-      if (any(av$se <= 0)) {
+      if (any(av[["se"]] <= 0)) {
         stop("se() values must be positive", call. = FALSE)
       }
     }
@@ -1299,7 +1301,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # integer counts in [0, trials]" message, which names neither
     # column. [glmmTMB#1319]
     if (isTRUE(resp$cbind_resp)) {
-      fails <- av$trials - y[[resp$resp_name]]
+      fails <- av[["trials"]] - y[[resp$resp_name]]
       if (any(fails < 0) || any(fails != round(fails))) {
         stop("cbind(successes, failures): the failure column must hold ",
              "non-negative integer counts", call. = FALSE)
@@ -1307,13 +1309,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     # glm/glmer compatibility: a proportion response with trials()
     # becomes integer counts before validation
-    if (resp$family$family %in% c("binomial", "beta_binomial") &&
-        !is.null(av$trials)) {
+    if (resp$family[["family"]] %in% c("binomial", "beta_binomial") &&
+        !is.null(av[["trials"]])) {
       yv <- y[[resp$resp_name]]
       if (is.numeric(yv) && !is.matrix(yv) && any(yv != round(yv))) {
-        yc <- yv * av$trials
+        yc <- yv * av[["trials"]]
         if (max(abs(yc - round(yc))) > 1e-6) {
-          stop(resp$family$family, ": a proportion response times ",
+          stop(resp$family[["family"]], ": a proportion response times ",
                "trials() must give integer counts", call. = FALSE)
         }
         y[[resp$resp_name]] <- round(yc)
@@ -1332,16 +1334,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (!is.null(resp$autocor)) {
       ac <- check_autocor_response(resp, spec, av, y[[resp$resp_name]])
       ac <- autocor_block(ac, resp$resp_name, mf, resp$formula_env, n)
-      ac$theta_idx <- n_thetaac + seq_len(ac$npar)
-      ac$block_label <- if (length(spec$responses) > 1L) {
-        paste0(resp$resp_name, " ", ac$label)
-      } else ac$label
-      ac$student <- identical(resp$family$family, "student")
-      n_thetaac <- n_thetaac + ac$npar
+      ac[["theta_idx"]] <- n_thetaac + seq_len(ac[["npar"]])
+      ac[["block_label"]] <- if (length(spec$responses) > 1L) {
+        paste0(resp$resp_name, " ", ac[["label"]])
+      } else ac[["label"]]
+      ac[["student"]] <- identical(resp$family[["family"]], "student")
+      n_thetaac <- n_thetaac + ac[["npar"]]
       autocor[[resp$resp_name]] <- ac
     }
-    if (!is.null(resp$family$valid_y)) {
-      resp$family$valid_y(y[[resp$resp_name]], av)
+    if (!is.null(resp$family[["valid_y"]])) {
+      resp$family[["valid_y"]](y[[resp$resp_name]], av)
     }
     # A family that is not fully determined until the response is in
     # hand - a link bounded above by min(y), a default only the data can
@@ -1351,11 +1353,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # link this way is betting on it. Whatever comes back becomes the
     # family every later stage reads, so the per-dpar link copies the
     # parse made from the ORIGINAL family are refreshed with it.
-    if (!is.null(resp$family$family_finalize)) {
-      fam_fin <- resp$family$family_finalize(resp$family,
+    if (!is.null(resp$family[["family_finalize"]])) {
+      fam_fin <- resp$family[["family_finalize"]](resp$family,
                                              y[[resp$resp_name]], av)
       if (!inherits(fam_fin, "frmtmb_family")) {
-        stop(resp$family$family, ": family_finalize() must return a ",
+        stop(resp$family[["family"]], ": family_finalize() must return a ",
              "family object, not ", arg_desc(fam_fin),
              ". Modify the family it is given and return it",
              call. = FALSE)
@@ -1373,16 +1375,16 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # (the Cox baseline's spline bases). It is a function of the
     # validated response, so it is built here, once, and rides with the
     # addition-term values the objective already bakes into the tape.
-    if (!is.null(resp$family$aterm_data)) {
-      av <- c(av, resp$family$aterm_data(y[[resp$resp_name]], av))
+    if (!is.null(resp$family[["aterm_data"]])) {
+      av <- c(av, resp$family[["aterm_data"]](y[[resp$resp_name]], av))
     }
-    if (!is.null(resp$family$extra_pars)) {
+    if (!is.null(resp$family[["extra_pars"]])) {
       if (length(spec$responses) > 1) {
         stop("Families with extra parameters ('",
-             resp$family$family, "') are not supported in multivariate ",
+             resp$family[["family"]], "') are not supported in multivariate ",
              "fits yet", call. = FALSE)
       }
-      extras <- resp$family$extra_pars(y[[resp$resp_name]], av)
+      extras <- resp$family[["extra_pars"]](y[[resp$resp_name]], av)
     }
     aterm_values[[resp$resp_name]] <- av
   }
@@ -1396,20 +1398,20 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
 
   for (resp in spec$responses) {
     for (dp in resp$dpars) {
-      lp_key <- linpred_key(resp$resp_name, dp$name)
-      is_primary <- dp$name %in% resp$primary_dpars
+      lp_key <- linpred_key(resp$resp_name, dp[["name"]])
+      is_primary <- dp[["name"]] %in% resp$primary_dpars
       par_name <- if (is_primary) "beta" else "betad"
-      dp_prefix <- if (identical(dp$name, "mu")) "" else
-        paste0(dp$name, ": ")
+      dp_prefix <- if (identical(dp[["name"]], "mu")) "" else
+        paste0(dp[["name"]], ": ")
       if (length(spec$responses) > 1) {
         dp_prefix <- paste0(resp$resp_name, " ", dp_prefix)
       }
 
-      if (!is.null(dp$nl_body)) {
+      if (!is.null(dp[["nl_body"]])) {
         # a nonlinear dpar has no design of its own: it is evaluated
         # from the nonlinear-parameter values and the raw data columns
         # inside the objective, after the parameters it names
-        data_list <- lapply(stats::setNames(dp$datavars, dp$datavars),
+        data_list <- lapply(stats::setNames(dp[["datavars"]], dp[["datavars"]]),
                             function(v) {
                               val <- mf[[v]]
                               if (is.null(val)) {
@@ -1420,22 +1422,22 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                               val
                             })
         linpreds[[lp_key]] <- list(
-          resp = resp$resp_name, dpar = dp$name, X = NULL,
+          resp = resp$resp_name, dpar = dp[["name"]], X = NULL,
           n_param_cols = 0L, Z = NULL, par = "beta", idx = integer(0),
-          offset = NULL, link = dp$link, terms = NULL, xlevels = NULL,
+          offset = NULL, link = dp[["link"]], terms = NULL, xlevels = NULL,
           contrasts = NULL, smooths = list(), comp_ids = integer(0),
-          constant = NULL, nl_body = dp$nl_body, data_list = data_list,
-          nl_env = dp$nl_env, nl_lexical = dp$nl_lexical,
-          nl_pars = dp$nl_pars %||% character(0),
-          nl_dpar_refs = dp$nl_dpar_refs %||% character(0)
+          constant = NULL, nl_body = dp[["nl_body"]], data_list = data_list,
+          nl_env = dp[["nl_env"]], nl_lexical = dp[["nl_lexical"]],
+          nl_pars = dp[["nl_pars"]] %||% character(0),
+          nl_dpar_refs = dp[["nl_dpar_refs"]] %||% character(0)
         )
         next
       }
 
-      tt <- stats::terms(dp$fixed)
+      tt <- stats::terms(dp[["fixed"]])
       X <- if (sparse_x) sparse_mm(tt, mf) else stats::model.matrix(tt, mf)
       contr <- attr(X, "contrasts")   # subsetting X below drops the attr
-      if (isTRUE(resp$family$drop_intercept) && is_primary) {
+      if (isTRUE(resp$family[["drop_intercept"]]) && is_primary) {
         # thresholds replace the intercept; a threshold-only model
         # (y ~ 1) leaves X with zero columns, which is fine
         X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
@@ -1476,14 +1478,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       xlev <- stats::.getXlevels(stats::terms(mf), mf)
       comp_ids <- integer(0)
 
-      if (length(dp$re)) {
-        bars <- lapply(dp$re, `[[`, "bar")
+      if (length(dp[["re"]])) {
+        bars <- lapply(dp[["re"]], `[[`, "bar")
         # mm() bars never reach mkReTrms: their grouping expression is a
         # call reformulas cannot evaluate, and their design row loads
         # several levels at once. They are built below instead, into a
         # component of exactly the same shape, so everything downstream
         # (blocks, theta, ranef, VarCorr, simulate) is unchanged.
-        is_mm <- vapply(dp$re, function(z) !is.null(z$mm), TRUE)
+        is_mm <- vapply(dp[["re"]], function(z) !is.null(z$mm), TRUE)
         plain_k <- which(!is_mm)
         rt_pos <- integer(length(bars))
         rt_pos[plain_k] <- seq_along(plain_k)
@@ -1498,9 +1500,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           fassign <- attr(rt$flist, "assign")
         }
         for (k in seq_along(bars)) {
-          cs_name <- dp$re[[k]]$covstruct
+          cs_name <- dp[["re"]][[k]]$covstruct
           if (is_mm[k]) {
-            mms <- dp$re[[k]]$mm
+            mms <- dp[["re"]][[k]]$mm
             gvals <- mm_member_values(mms, mf, resp$formula_env)
             levs <- mm_pooled_levels(gvals)
             iw <- mm_index_weights(mms, mf, resp$formula_env, levs)
@@ -1508,7 +1510,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                                     iw$n_members)
             Zk <- mm_local_Z(iw$J, iw$W, md$designs, length(levs))
             components[[length(components) + 1L]] <- list(
-              lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
+              lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
               covstruct = cs_name, id = NULL, rank = NULL,
               dim = length(md$cnms), n_levels = length(levs),
               levels = levs, cnms = md$cnms,
@@ -1559,7 +1561,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           aux_Q <- NULL
           aux_Qk <- NULL
           if (cs_name == "gr_prec") {
-            Q <- lookup_structural(dp$re[[k]]$cov_expr, data2, data,
+            Q <- lookup_structural(dp[["re"]][[k]]$cov_expr, data2, data,
                                    resp$formula_env, "gr(prec = )")
             if (is.null(rownames(Q)) ||
                 !all(levels(fac) %in% rownames(Q))) {
@@ -1572,7 +1574,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             if (d_k > 1L) aux_Qk <- kron_prec_parts(aux_Q, d_k)
           }
           if (cs_name == "gr_cov") {
-            A <- lookup_structural(dp$re[[k]]$cov_expr, data2, data,
+            A <- lookup_structural(dp[["re"]][[k]]$cov_expr, data2, data,
                                    resp$formula_env, "gr(cov = )")
             if (!is.matrix(A) || nrow(A) != ncol(A)) {
               stop("gr(cov=): cov must be a square matrix", call. = FALSE)
@@ -1588,7 +1590,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             }
           }
           if (cs_name == "equalto") {
-            V <- lookup_structural(dp$re[[k]]$cov_expr, data2, data,
+            V <- lookup_structural(dp[["re"]][[k]]$cov_expr, data2, data,
                                    resp$formula_env, "equalto()")
             if (!is.matrix(V) || nrow(V) != d_k || ncol(V) != d_k) {
               stop("equalto(): V must be a ", d_k, " x ", d_k,
@@ -1599,12 +1601,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           Zk <- Matrix::t(rt$Zt[rt$Gp[kk] + seq_len(len_k), ,
                                 drop = FALSE])
           components[[length(components) + 1L]] <- list(
-            lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
-            covstruct = cs_name, id = dp$re[[k]]$id,
-            rank = dp$re[[k]]$rank,
+            lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
+            covstruct = cs_name, id = dp[["re"]][[k]]$id,
+            rank = dp[["re"]][[k]]$rank,
             # gr(dist = "student"): the FIXED degrees of freedom of the
             # t latent, NULL on every gaussian block
-            dist_nu = dp$re[[k]]$dist_nu,
+            dist_nu = dp[["re"]][[k]]$dist_nu,
             dim = d_k, n_levels = len_k %/% d_k,
             levels = levels(fac), cnms = rt$cnms[[kk]],
             bar = bars[[k]], Zlocal = Zk, aux_A = aux_A,
@@ -1621,7 +1623,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # iid-Gaussian component whose variance is the inverse smoothing
       # parameter.
       sm_info <- list()
-      for (sspec in dp$smooth %||% list()) {
+      for (sspec in dp[["smooth"]] %||% list()) {
         # modCon = 3 ("set fit and predict constraint to fit constraint").
         # A t2 smooth carries two identifiability constraints: `C`, absorbed
         # into `X`/`S` for fitting, and `Cp`, absorbed into `Xp`/`Sp` and
@@ -1649,7 +1651,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             Xr <- re2$rand[[r]]
             k_r <- ncol(Xr)
             components[[length(components) + 1L]] <- list(
-              lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
+              lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
               covstruct = "smooth", id = NULL,
               dim = k_r, n_levels = 1L,
               levels = NULL, cnms = paste0(sm$label, ".", seq_len(k_r)),
@@ -1701,7 +1703,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # spectral-density prior SDs). D up to 3; iso shares one
       # lengthscale, the default is one per dimension (brms).
       gp_info <- list()
-      for (ge in dp$gpterms %||% list()) {
+      for (ge in dp[["gpterms"]] %||% list()) {
         Xc <- do.call(cbind, lapply(ge$exprs, function(ex) {
           as.numeric(eval(ex, mf, resp$formula_env))
         }))
@@ -1726,7 +1728,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                                                pos_rowkey(pos)),
                                      x = 1, dims = c(nrow(Xc), npos))
           components[[length(components) + 1L]] <- list(
-            lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
+            lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
             covstruct = "gp", id = NULL,
             dim = npos, n_levels = 1L,
             levels = NULL, cnms = paste0(lab0, ".", seq_len(npos)),
@@ -1780,7 +1782,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           Phi <- hsgp_basis(xc, omega, Lb)
           M_b <- nrow(omega)
           components[[length(components) + 1L]] <- list(
-            lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
+            lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
             covstruct = "hsgp", id = NULL,
             dim = M_b, n_levels = 1L,
             levels = NULL, cnms = paste0(lab0, ".", seq_len(M_b)),
@@ -1805,7 +1807,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # location, so the block looks like (1 | g) with a structured
       # precision; a synthetic bar keeps the prediction, ranef() and
       # VarCorr() paths unchanged.
-      for (ce in c(dp$carterms %||% list(), dp$spdeterms %||% list())) {
+      for (ce in c(dp[["carterms"]] %||% list(),
+           dp[["spdeterms"]] %||% list())) {
         is_car <- !is.null(ce$M_expr)
         fn <- if (is_car) "car" else "spde"
         gv <- eval(ce$gr_expr, mf, resp$formula_env)
@@ -1840,7 +1843,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         Zc <- Matrix::sparseMatrix(i = seq_along(j_loc), j = j_loc, x = 1,
                                    dims = c(length(j_loc), length(locs)))
         components[[length(components) + 1L]] <- list(
-          lp_key = lp_key, dpar = dp$name, resp = resp$resp_name,
+          lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
           covstruct = fn, id = NULL,
           dim = 1L, n_levels = length(locs),
           levels = locs, cnms = "(Intercept)",
@@ -1860,7 +1863,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # simplex-weighted values); the simplex parameters join `extras`.
       mo_info <- list()
       mo_zetas <- list()   # simplexes are shared per mo() variable
-      for (ent in dp$mo %||% list()) {
+      for (ent in dp[["mo"]] %||% list()) {
         mexpr <- ent$expr
         v <- eval(mexpr, mf, resp$formula_env)
         if (is.factor(v)) {
@@ -1912,10 +1915,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # as with mo); the values are observed-or-latent, supplied by the
       # objective and the numeric prediction paths
       mi_info <- list()
-      for (ent in dp$miterms %||% list()) {
+      for (ent in dp[["miterms"]] %||% list()) {
         vn <- deparse1(ent$expr)
         tgt <- spec$responses[[vn]]
-        if (is.null(tgt) || !isTRUE(tgt$aterms$mi)) {
+        if (is.null(tgt) || !isTRUE(tgt$aterms[["mi"]])) {
           stop("mi(", vn, ") needs a matching imputation model: ",
                "add bf(", vn, " | mi() ~ ...)", call. = FALSE)
         }
@@ -1942,14 +1945,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # Category-specific ordinal effects cs(x): K-1 coefficients per
       # term (extras), entering the threshold-specific predictors.
       cs_info <- list()
-      if (length(dp$csterms %||% list())) {
-        if (!identical(resp$family$type, "ordinal") ||
-            identical(resp$family$family, "cumulative")) {
+      if (length(dp[["csterms"]] %||% list())) {
+        if (!identical(resp$family[["type"]], "ordinal") ||
+            identical(resp$family[["family"]], "cumulative")) {
           stop("cs() needs an sratio, cratio, or acat family",
                call. = FALSE)
         }
         K_cs <- max(y[[resp$resp_name]])
-        for (cexpr in dp$csterms) {
+        for (cexpr in dp[["csterms"]]) {
           v <- as.numeric(eval(cexpr, mf, resp$formula_env))
           csname <- paste0("bcs", length(extras) + 1L)
           extras[[csname]] <- numeric(K_cs - 1L)
@@ -1961,7 +1964,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
 
       cn <- colnames(X)
-      if (!identical(dp$name, "mu")) cn <- paste(dp$name, cn, sep = "_")
+      if (!identical(dp[["name"]],
+          "mu")) cn <- paste(dp[["name"]], cn, sep = "_")
       if (length(spec$responses) > 1) {
         cn <- paste(resp$resp_name, cn, sep = "_")
       }
@@ -1971,14 +1975,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       } else {
         idx <- length(betad_names) + seq_len(ncol(X))
         betad_names <- c(betad_names, cn)
-        if (!is.null(dp$constant)) {
+        if (!is.null(dp[["constant"]])) {
           betad_fixed_idx <- c(betad_fixed_idx, idx)
         }
       }
 
       linpreds[[lp_key]] <- list(
         resp = resp$resp_name,
-        dpar = dp$name,
+        dpar = dp[["name"]],
         X = X,
         n_param_cols = n_param_cols,
         param_colnames = param_colnames,
@@ -1988,7 +1992,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         par = par_name,
         idx = idx,
         offset = if (!is.null(off)) as.numeric(off),
-        link = dp$link,
+        link = dp[["link"]],
         terms = tt,
         xlevels = xlev,
         contrasts = contr,
@@ -1998,7 +2002,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         mi = mi_info,
         cs = cs_info,
         comp_ids = comp_ids,
-        constant = dp$constant
+        constant = dp[["constant"]]
       )
     }
   }
@@ -2179,78 +2183,78 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   ## ids; assemble the parameter template.
   for (key in names(linpreds)) {
     lp <- linpreds[[key]]
-    if (length(lp$comp_ids)) {
+    if (length(lp[["comp_ids"]])) {
       ii <- integer(0); jj <- integer(0); xx <- numeric(0)
-      for (ci in lp$comp_ids) {
+      for (ci in lp[["comp_ids"]]) {
         cp <- components[[ci]]
         bk <- re_blocks[[comp_block[ci]]]
         Tk <- methods::as(cp$Zlocal, "TsparseMatrix")
         loc_col <- Tk@j + 1L
         lev <- (loc_col - 1L) %/% cp$dim + 1L
         cf <- (loc_col - 1L) %% cp$dim + 1L
-        glob <- bk$c_idx[(lev - 1L) * bk$dim + comp_offset[ci] + cf]
+        glob <- bk[["c_idx"]][(lev - 1L) * bk[["dim"]] + comp_offset[ci] + cf]
         ii <- c(ii, Tk@i + 1L)
         jj <- c(jj, glob)
         xx <- c(xx, Tk@x)
       }
-      lp$Z <- Matrix::sparseMatrix(i = ii, j = jj, x = xx,
+      lp[["Z"]] <- Matrix::sparseMatrix(i = ii, j = jj, x = xx,
                                    dims = c(n, n_c))
     }
-    if (length(lp$smooths)) {
-      lp$smooths <- lapply(lp$smooths, function(si) {
+    if (length(lp[["smooths"]])) {
+      lp[["smooths"]] <- lapply(lp[["smooths"]], function(si) {
         si$block_ids <- comp_block[si$comp_ids]
         si
       })
     }
-    if (length(lp$gps)) {
-      lp$gps <- lapply(lp$gps, function(gi) {
+    if (length(lp[["gps"]])) {
+      lp[["gps"]] <- lapply(lp[["gps"]], function(gi) {
         gi$block_id <- comp_block[gi$comp_id]
         gi
       })
     }
-    lp$comp_ids <- NULL
+    lp[["comp_ids"]] <- NULL
     linpreds[[key]] <- lp
   }
 
   par_template <- list(beta = stats::setNames(numeric(length(beta_names)),
                                               beta_names))
   if (length(betad_names)) {
-    par_template$betad <- stats::setNames(numeric(length(betad_names)),
+    par_template[["betad"]] <- stats::setNames(numeric(length(betad_names)),
                                           betad_names)
   }
-  if (n_b) par_template$b <- numeric(n_b)
+  if (n_b) par_template[["b"]] <- numeric(n_b)
   if (n_theta) {
     th0 <- numeric(n_theta)
     for (bk in re_blocks) {
-      th0[bk$theta_idx] <- if (bk$covstruct == "rr") {
-        rr_start(bk$dim, bk$rank)
-      } else if (bk$covstruct == "hsgp") {
-        hsgp_start(bk$gp_D, bk$gp_iso)
-      } else if (bk$covstruct == "gp") {
-        gp_start(bk$gp_D, bk$gp_iso)
-      } else if (bk$covstruct == "car") {
-        car_start(bk$car_type)
-      } else if (bk$covstruct == "spde") {
+      th0[bk[["theta_idx"]]] <- if (bk[["covstruct"]] == "rr") {
+        rr_start(bk[["dim"]], bk[["rank"]])
+      } else if (bk[["covstruct"]] == "hsgp") {
+        hsgp_start(bk[["gp_D"]], bk[["gp_iso"]])
+      } else if (bk[["covstruct"]] == "gp") {
+        gp_start(bk[["gp_D"]], bk[["gp_iso"]])
+      } else if (bk[["covstruct"]] == "car") {
+        car_start(bk[["car_type"]])
+      } else if (bk[["covstruct"]] == "spde") {
         spde_start()
       } else {
-        covstruct_registry[[bk$covstruct]]$start(bk$dim)
+        covstruct_registry[[bk[["covstruct"]]]]$start(bk[["dim"]])
       }
     }
-    par_template$theta <- th0
+    par_template[["theta"]] <- th0
   }
   if (n_thetaac) {
     # R-side residual correlation parameters. They are covariance
     # parameters, so they stay OUTER under REML exactly as theta does:
     # REML integrates the mu fixed effects and nothing else.
     thac0 <- numeric(n_thetaac)
-    for (ac in autocor) thac0[ac$theta_idx] <- autocor_start(ac)
-    par_template$thetaac <- thac0
+    for (ac in autocor) thac0[ac[["theta_idx"]]] <- autocor_start(ac)
+    par_template[["thetaac"]] <- thac0
   }
   if (spec$rescor) {
     K <- length(spec$responses)
-    par_template$thetar <- numeric(K * (K - 1L) / 2L)
+    par_template[["thetar"]] <- numeric(K * (K - 1L) / 2L)
   }
-  if (n_miss) par_template$miss <- miss_init
+  if (n_miss) par_template[["miss"]] <- miss_init
   for (nm in names(extras)) {
     if (nm %in% names(par_template)) {
       stop("Extra-parameter name collides with the template: ", nm,
@@ -2262,12 +2266,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # Constant dpars: fix their betad entries at link(constant) via map.
   map <- list()
   if (length(betad_fixed_idx)) {
-    mp <- seq_along(par_template$betad)
+    mp <- seq_along(par_template[["betad"]])
     mp[betad_fixed_idx] <- NA
     map$betad <- factor(mp)
     for (lp in linpreds) {
-      if (!is.null(lp$constant)) {
-        par_template$betad[lp$idx] <- lp$link$linkfun(lp$constant)
+      if (!is.null(lp[["constant"]])) {
+        par_template[["betad"]][lp[["idx"]]] <-
+          lp[["link"]]$linkfun(lp[["constant"]])
       }
     }
   }
@@ -2319,21 +2324,26 @@ print.frmtmb_frame <- function(x, ...) {
   cat("<frmtmb frame> ", x$n_obs, " observations, ",
       length(x$spec$responses), " response(s)\n", sep = "")
   for (lp in x$linpreds) {
-    cat("  ", lp$resp, ".", lp$dpar, ": X[", nrow(lp$X), " x ",
-        ncol(lp$X), "]", sep = "")
-    if (!is.null(lp$Z)) cat(", Z[", nrow(lp$Z), " x ", ncol(lp$Z), "]",
+    cat("  ", lp[["resp"]], ".", lp[["dpar"]], ": X[", nrow(lp[["X"]]), " x ",
+        ncol(lp[["X"]]), "]", sep = "")
+    if (!is.null(lp[["Z"]])) cat(", Z[",
+                                 nrow(lp[["Z"]]), " x ", ncol(lp[["Z"]]), "]",
                             sep = "")
-    cat(" -> ", lp$par, "[", min(lp$idx), ":", max(lp$idx), "]", sep = "")
-    if (!is.null(lp$constant)) cat("  (fixed at ", lp$constant, ")", sep = "")
+    cat(" -> ", lp[["par"]], "[", min(lp[["idx"]]), ":", max(lp[["idx"]]),
+      "]", sep = "")
+    if (!is.null(lp[["constant"]])) cat("  (fixed at ",
+                                        lp[["constant"]], ")", sep = "")
     cat("\n")
   }
   for (bk in x$re_blocks) {
-    cat("  RE block: ", bk$term_label, " [", bk$covstruct, "] dim=", bk$dim,
-        " levels=", bk$n_levels, "\n", sep = "")
+    cat("  RE block: ", bk[["term_label"]], " [",
+                           bk[["covstruct"]], "] dim=", bk[["dim"]],
+        " levels=", bk[["n_levels"]], "\n", sep = "")
   }
   for (ac in x$autocor %||% list()) {
-    cat("  R-side: ", ac$block_label, " [", ac$struct, "] times=", ac$d,
-        " groups=", ac$n_groups, " patterns=", length(ac$patterns),
+    cat("  R-side: ", ac[["block_label"]], " [",
+                                     ac[["struct"]], "] times=", ac[["d"]],
+        " groups=", ac[["n_groups"]], " patterns=", length(ac[["patterns"]]),
         "\n", sep = "")
   }
   cat("  parameters:",

@@ -1747,8 +1747,8 @@ check_ode_constancy <- function(spec, frame) {
         for (np in intersect(all.vars(aexpr), nlpars)) {
           lp <- linpred(resp$resp_name, np)
           if (is.null(lp)) next
-          bad <- c(ode_varying_cols(lp$X, gi),
-                   ode_varying_cols(lp$Z, gi))
+          bad <- c(ode_varying_cols(lp[["X"]], gi),
+                   ode_varying_cols(lp[["Z"]], gi))
           if (length(bad)) {
             stop("Nonlinear parameter '", np, "' is a dynamics input of ",
                  "frm_ode() but is not constant within '", gname,

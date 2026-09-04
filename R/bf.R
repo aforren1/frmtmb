@@ -521,7 +521,7 @@ print.frmtmb_formula <- function(x, ...) {
   for (f in x$pforms) cat(deparse1(f), "\n")
   for (nm in names(x$pfix)) cat(nm, "=", x$pfix[[nm]], "\n")
   if (!is.null(x$family)) {
-    cat("Family:", x$family$family, "\n")
+    cat("Family:", x$family[["family"]], "\n")
   }
   invisible(x)
 }

@@ -589,3 +589,39 @@ test_that("an autocor term inside an interaction is refused by name", {
     "separate term"
   )
 })
+
+# A residual autocorrelation with no random effects puts `thetaac` in
+# the estimates and no `theta` at all. `VarCorr()` reads the
+# random-effect covariance parameters as `estimates[["theta"]]`, and
+# while that read was spelled with `$` it partial-matched `thetaac`:
+# the autocorrelation parameters arrived where the covariance
+# parameters belong. Nothing came of it, because the only consumer is
+# a loop over `re_blocks` and that list is empty exactly when the
+# partial match is possible. The value was wrong and unused.
+#
+# This pins the shape rather than the spelling, so it still fails if a
+# later change starts reading `th` before it checks `re_blocks`. The
+# lint in test-bracket-access.R guards the spelling.
+test_that("VarCorr() on an autocorrelation-only model reads no theta", {
+  d <- ac_sim(seed = 3, G = 12, K = 6)
+  fit <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)), family = gaussian(),
+             data = d)
+
+  expect_true("thetaac" %in% names(fit$estimates))
+  expect_false("theta" %in% names(fit$estimates))
+  expect_length(fit$frame[["re_blocks"]], 0L)
+
+  # the exact read VarCorr() makes: NULL, not the autocorrelation block
+  expect_null(fit$estimates[["theta"]])
+
+  vc <- VarCorr(fit)
+  expect_length(vc, 0L)
+  expect_identical(names(vc), character(0))
+
+  # and the partial match itself, not just its consequences: with the
+  # option on, R reports every `$` that falls back, so this fails on
+  # the pre-sweep spelling and passes on `[[`
+  withr::local_options(warnPartialMatchDollar = TRUE)
+  expect_no_warning(VarCorr(fit))
+  expect_no_warning(summary(fit))
+})

@@ -105,14 +105,14 @@ mode_aligned_bounds <- function(obj, bounds, laplace, n) {
 prior_augmented_obj <- function(fit, entries) {
   nll <- build_objective(fit$frame)
   nlp <- neg_log_prior_fn(entries)
-  tpl <- fit$frame$par_template
+  tpl <- fit$frame[["par_template"]]
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
   random <- c(if (!is.null(tpl[["b"]])) "b",
               if (!is.null(tpl[["miss"]])) "miss")
   if (!length(random)) random <- NULL
   RTMB::MakeADFun(function(pars) nll(pars) + nlp(pars),
                   fit$estimates, random = random,
-                  map = fit$frame$map, silent = TRUE)
+                  map = fit$frame[["map"]], silent = TRUE)
 }
 
 # --- non-centered sampling --------------------------------------------
@@ -207,7 +207,7 @@ ncp_priored_theta <- function(entries) {
 #'
 #' @noRd
 ncp_plan <- function(fit, reparameterize, laplace, entries = NULL) {
-  blocks <- fit$frame$re_blocks %||% list()
+  blocks <- fit$frame[["re_blocks"]] %||% list()
   if (!isTRUE(reparameterize) || !length(blocks) || laplace) {
     return(list(idx = integer(0), centered = character(0),
                 labels = character(0)))
@@ -287,7 +287,7 @@ announce_ncp <- function(plan) {
 #' @noRd
 ncp_objective <- function(fit, idx, entries) {
   frame <- fit$frame
-  frame$ncp_blocks <- idx
+  frame[["ncp_blocks"]] <- idx
   nll <- build_objective(frame)
   fn <- if (length(entries)) {
     nlp <- neg_log_prior_fn(entries)
@@ -295,13 +295,13 @@ ncp_objective <- function(fit, idx, entries) {
   } else {
     nll
   }
-  tpl <- fit$frame$par_template
+  tpl <- fit$frame[["par_template"]]
   # [[ ]] to avoid $ partial matching ("b" matching "beta" in GLMs)
   random <- c(if (!is.null(tpl[["b"]])) "b",
               if (!is.null(tpl[["miss"]])) "miss")
   if (!length(random)) random <- NULL
   RTMB::MakeADFun(fn, ncp_start_pars(fit, idx), random = random,
-                  map = fit$frame$map, silent = TRUE)
+                  map = fit$frame[["map"]], silent = TRUE)
 }
 
 #' The starting parameter list on the non-centered scale: `z0 = L^-1 b`
@@ -312,11 +312,12 @@ ncp_objective <- function(fit, idx, entries) {
 #' @noRd
 ncp_start_pars <- function(fit, idx) {
   pars <- fit$estimates
-  th <- pars$theta %||% numeric(0)
+  th <- pars[["theta"]] %||% numeric(0)
   bv <- pars[["b"]]
   for (i in idx) {
-    bk <- fit$frame$re_blocks[[i]]
-    bv[bk$b_idx] <- ncp_unscale_b(bk, bv[bk$b_idx], th[bk$theta_idx])
+    bk <- fit$frame[["re_blocks"]][[i]]
+    bv[bk[["b_idx"]]] <- ncp_unscale_b(bk,
+                                       bv[bk[["b_idx"]]], th[bk[["theta_idx"]]])
   }
   pars[["b"]] <- bv
   pars
@@ -333,14 +334,14 @@ ncp_backtransform <- function(m, fit, idx) {
   pidx <- draws_par_index(fit)
   bc <- pidx[["b"]]
   tc <- pidx[["theta"]]
-  blocks <- fit$frame$re_blocks
+  blocks <- fit$frame[["re_blocks"]]
   for (r in seq_len(nrow(m))) {
     th <- unname(m[r, tc])
     for (i in idx) {
       bk <- blocks[[i]]
-      cols <- bc[bk$b_idx]
+      cols <- bc[bk[["b_idx"]]]
       m[r, cols] <- ncp_scale_b(bk, unname(m[r, cols]),
-                                th[bk$theta_idx])
+                                th[bk[["theta_idx"]]])
     }
   }
   m
@@ -362,13 +363,13 @@ ncp_backtransform <- function(m, fit, idx) {
 #'
 #' @noRd
 all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
-  tpl <- fit$frame$par_template
+  tpl <- fit$frame[["par_template"]]
   out <- character(0)
   for (cp in names(tpl)) {
     v <- names(tpl[[cp]])
     if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
-    if (cp == "betad" && length(fit$frame$betad_fixed_idx)) {
-      v <- v[-fit$frame$betad_fixed_idx]
+    if (cp == "betad" && length(fit$frame[["betad_fixed_idx"]])) {
+      v <- v[-fit$frame[["betad_fixed_idx"]]]
     }
     if (cp == "miss" && !include_random) next
     if (cp == "b") {
@@ -489,9 +490,9 @@ logscale_families <- c("lognormal", "shifted_lognormal",
 default_prior_scale <- function(fit) {
   rspec <- fit$spec$responses[[1L]]
   fam <- rspec$family
-  y <- fit$frame$y[[rspec$resp_name]]
-  link <- if (fam$family %in% logscale_families) "log" else {
-    fam$links[["mu"]]$name %||% "identity"
+  y <- fit$frame[["y"]][[rspec$resp_name]]
+  link <- if (fam[["family"]] %in% logscale_families) "log" else {
+    fam[["links"]][["mu"]]$name %||% "identity"
   }
   flat <- list(location = 0, scale = 2.5, link = link, centered = FALSE)
   if (is.null(y) || !is.numeric(y) || is.matrix(y) || !length(y)) {
@@ -499,8 +500,8 @@ default_prior_scale <- function(fit) {
   }
   # a factor response (its codes are labels, not numbers) and a family
   # whose dpars run over categories both skip the transform
-  if (!is.null(fit$frame$y_levels[[rspec$resp_name]])) return(flat)
-  if (fam$type %in% c("ordinal", "categorical")) return(flat)
+  if (!is.null(fit$frame[["y_levels"]][[rspec$resp_name]])) return(flat)
+  if (fam[["type"]] %in% c("ordinal", "categorical")) return(flat)
   if (!link %in% c("identity", "log", "inverse", "sqrt", "1/mu^2")) {
     return(flat)
   }
@@ -541,22 +542,22 @@ default_priors_for <- function(fit) {
   }
 
   nlpars <- rspec$nlpars %||% character(0)
-  for (lp in fit$frame$linpreds) {
-    if (!is.null(lp$constant) || !is.null(lp$nl_body)) next
-    if (!"(Intercept)" %in% colnames(lp$X)) next
+  for (lp in fit$frame[["linpreds"]]) {
+    if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
+    if (!"(Intercept)" %in% colnames(lp[["X"]])) next
     # a NONLINEAR parameter's coefficients are class "b" in brms, and
     # brms leaves class "b" flat: the response's median and mad say
     # nothing about a rate or a shape sitting inside a nonlinear body,
     # so a default there would be an invented prior rather than brms's
-    if (lp$dpar %in% nlpars) next
-    if (lp$dpar %in% rspec$primary_dpars) {
+    if (lp[["dpar"]] %in% nlpars) next
+    if (lp[["dpar"]] %in% rspec$primary_dpars) {
       add(set_prior(st(ps$location, ps$scale), class = "Intercept"))
-    } else if (identical(lp$dpar, "sigma") &&
-                 identical(lp$link$name, "log")) {
+    } else if (identical(lp[["dpar"]], "sigma") &&
+                 identical(lp[["link"]]$name, "log")) {
       # brms scales the prior on sigma itself by the response's mad
       # only when sigma is a single number; with a predictor the
       # intercept gets the plain student_t(3, 0, 2.5) on the log scale
-      if (ncol(lp$X) == 1L && is.null(lp$Z)) {
+      if (ncol(lp[["X"]]) == 1L && is.null(lp[["Z"]])) {
         add(natural_dpar_prior(st(0, ps$scale), "sigma"))
       } else {
         add(set_prior(st(0, 2.5), class = "Intercept", dpar = "sigma"))
@@ -564,7 +565,7 @@ default_priors_for <- function(fit) {
     }
   }
 
-  has_sd <- any(vapply(fit$frame$re_blocks, function(bk) {
+  has_sd <- any(vapply(fit$frame[["re_blocks"]], function(bk) {
     length(block_sd_idx(bk)) > 0L
   }, TRUE))
   if (has_sd) add(set_prior(st(0, ps$scale), class = "sd"))
@@ -572,7 +573,7 @@ default_priors_for <- function(fit) {
   # when some block's correlation HAS an LKJ density, so that a model
   # whose only correlated block is a toep() does not fail on a default
   # it cannot honor (default_prior_notes() names that block instead)
-  has_cor <- any(vapply(fit$frame$re_blocks, function(bk) {
+  has_cor <- any(vapply(fit$frame[["re_blocks"]], function(bk) {
     identical(block_cor_prior(bk), "lkj")
   }, TRUE))
   if (has_cor) add(set_prior("lkj(1)", class = "cor"))
@@ -599,7 +600,7 @@ default_prior_notes <- function(fit) {
                              " (brms leaves them flat too, as class b; ",
                              "set_prior(nlpar = ) writes them)"))
   }
-  if (identical(rspec$family$type, "ordinal")) {
+  if (identical(rspec$family[["type"]], "ordinal")) {
     notes <- c(notes, paste("no defaults for this family's thresholds",
                             "(brms priors them as its Intercept class)"))
   }
@@ -615,9 +616,9 @@ default_prior_notes <- function(fit) {
   }
   # correlations get lkj(1), brms's own default, wherever a density
   # exists for the block's parameterization; what is left is named
-  ungated <- unique(vapply(fit$frame$re_blocks, function(bk) {
+  ungated <- unique(vapply(fit$frame[["re_blocks"]], function(bk) {
     if (identical(block_cor_prior(bk), "unsupported")) {
-      paste0(bk$term_label, " [", bk$covstruct, "]")
+      paste0(bk[["term_label"]], " [", bk[["covstruct"]], "]")
     } else {
       ""
     }
@@ -813,7 +814,7 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
            "likelihood with improper flat priors; got \"",
            paste(prior, collapse = "\", \""), "\"", call. = FALSE)
     }
-    if (defaults && length(fit$frame$re_blocks)) {
+    if (defaults && length(fit$frame[["re_blocks"]])) {
       warning("prior = \"flat\": every variance component has a flat ",
               "prior on its log standard deviation, under which the ",
               "posterior need not be proper (it usually is not with ",
@@ -1298,7 +1299,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     # log-sd components read that way: a CAR mixing proportion or an
     # AR(1) phi at its own boundary is a large theta on a converged,
     # perfectly samplable fit (see log_sd_theta_index()).
-    th_all <- fit$estimates$theta %||% numeric(0)
+    th_all <- fit$estimates[["theta"]] %||% numeric(0)
     sd_i <- log_sd_theta_index(fit)
     ext <- sd_i[abs(th_all[sd_i]) > 8]
     if (length(ext)) {

@@ -61,7 +61,7 @@ dharma_residuals <- function(fit, nsim = 250, re.form = NULL,
   # needs an ordered support. Nominal category codes are an arbitrary
   # labeling: relabel the levels and every residual changes. Refusing is
   # the honest answer, not a rank transform over the level order.
-  if (identical(rspec$family$type, "categorical")) {
+  if (identical(rspec$family[["type"]], "categorical")) {
     stop("dharma_residuals() has no meaning for a nominal response: a ",
          "scaled quantile residual is the predictive distribution ",
          "function evaluated at the observation, and an unordered ",
@@ -70,7 +70,7 @@ dharma_residuals <- function(fit, nsim = 250, re.form = NULL,
          "compare observed and simulated category counts",
          call. = FALSE)
   }
-  ordinal <- identical(rspec$family$type, "ordinal")
+  ordinal <- identical(rspec$family[["type"]], "ordinal")
   # DHARMa works in fitted-row space, so the na.exclude padding
   # simulate() adds has to come back off
   sims <- na_unpad(fit, simulate(fit, nsim = nsim, seed = seed,
@@ -99,9 +99,9 @@ dharma_residuals <- function(fit, nsim = 250, re.form = NULL,
   }
   DHARMa::createDHARMa(
     simulatedResponse = sims,
-    observedResponse = fit$frame$y[[rspec$resp_name]],
+    observedResponse = fit$frame[["y"]][[rspec$resp_name]],
     fittedPredictedResponse = fpr,
-    integerResponse = identical(rspec$family$type, "discrete") || ordinal,
+    integerResponse = identical(rspec$family[["type"]], "discrete") || ordinal,
     ...
   )
 }

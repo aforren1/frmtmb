@@ -6,8 +6,8 @@
 #' @noRd
 find_linpred <- function(object, resp = NULL, dpar = "mu") {
   hits <- Filter(function(lp) {
-    lp$dpar == dpar && (is.null(resp) || lp$resp == resp)
-  }, object$frame$linpreds)
+    lp[["dpar"]] == dpar && (is.null(resp) || lp[["resp"]] == resp)
+  }, object$frame[["linpreds"]])
   if (!length(hits)) {
     stop("No linear predictor for dpar '", dpar, "'",
          if (!is.null(resp)) paste0(" of response '", resp, "'") else "",
@@ -50,20 +50,21 @@ find_linpred <- function(object, resp = NULL, dpar = "mu") {
 #' @export
 sigma.frmtmb_fit <- function(object, ...) {
   out <- vapply(object$spec$responses, function(rsp) {
-    if (!"sigma" %in% rsp$family$dpars) return(1)
-    av <- object$frame$aterm_values[[rsp$resp_name]]
+    if (!"sigma" %in% rsp$family[["dpars"]]) return(1)
+    av <- object$frame[["aterm_values"]][[rsp$resp_name]]
     if (!is.null(av[["se"]]) && !isTRUE(av[["se_sigma"]])) {
       return(0)   # se() fixes the residual SD per observation
     }
     lp <- NULL
-    for (l in object$frame$linpreds) {
+    for (l in object$frame[["linpreds"]]) {
       if (l$resp == rsp$resp_name && l$dpar == "sigma") lp <- l
     }
     if (is.null(lp)) return(1)
-    if (!is.null(lp$constant)) return(lp$constant)
-    if (ncol(lp$X) == 1L && identical(colnames(lp$X), "(Intercept)") &&
-        is.null(lp$Z)) {
-      return(lp$link$linkinv(object$estimates[[lp$par]][lp$idx]))
+    if (!is.null(lp[["constant"]])) return(lp[["constant"]])
+    if (ncol(lp[["X"]]) == 1L && identical(colnames(lp[["X"]]),
+      "(Intercept)") &&
+        is.null(lp[["Z"]])) {
+      return(lp[["link"]]$linkinv(object$estimates[[lp[["par"]]]][lp[["idx"]]]))
     }
     warning("sigma varies by observation; returning NA ",
             "(use predict(dpar = \"sigma\"))", call. = FALSE)
@@ -85,14 +86,14 @@ model.matrix.frmtmb_fit <- function(object, resp = NULL, dpar = "mu",
 
 #' @export
 weights.frmtmb_fit <- function(object, resp = NULL, ...) {
-  rn <- if (is.null(resp)) names(object$frame$y)[1L] else resp
-  w <- object$frame$aterm_values[[rn]][["weights"]]
-  if (is.null(w)) rep(1, object$frame$n_obs) else w
+  rn <- if (is.null(resp)) names(object$frame[["y"]])[1L] else resp
+  w <- object$frame[["aterm_values"]][[rn]][["weights"]]
+  if (is.null(w)) rep(1, object$frame[["n_obs"]]) else w
 }
 
 #' @export
 na.action.frmtmb_fit <- function(object, ...) {
-  object$frame$na_action
+  object$frame[["na_action"]]
 }
 
 #' @export
@@ -133,8 +134,8 @@ ngrps <- function(object, ...) UseMethod("ngrps")
 #' @rawNamespace S3method(lme4::ngrps,frmtmb_fit)
 #' @export
 ngrps.frmtmb_fit <- function(object, ...) {
-  bks <- Filter(function(bk) bk$covstruct != "smooth",
-                object$frame$re_blocks)
+  bks <- Filter(function(bk) bk[["covstruct"]] != "smooth",
+                object$frame[["re_blocks"]])
   ng <- vapply(bks, `[[`, 0L, "n_levels")
   names(ng) <- vapply(bks, `[[`, "", "group_name")
   ng[!duplicated(names(ng))]
@@ -212,10 +213,10 @@ refit <- function(object, newresp, ...) UseMethod("refit")
 #' @export
 refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
   frame <- object$frame
-  if (length(frame$y) != 1L) {
+  if (length(frame[["y"]]) != 1L) {
     stop("refit() supports univariate models", call. = FALSE)
   }
-  y0 <- frame$y[[1L]]
+  y0 <- frame[["y"]][[1L]]
   if (is.matrix(y0)) {
     newresp <- as.matrix(newresp)
     if (!identical(dim(newresp), dim(y0))) {
@@ -229,7 +230,7 @@ refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
       stop("newresp must have length ", length(y0), call. = FALSE)
     }
   }
-  frame$y[[1L]] <- newresp
+  frame[["y"]][[1L]] <- newresp
   fit_assembled(object$spec, frame, object$bform, object$call,
                 REML = object$REML, start = start,
                 control = object$control %||% frmtmb_control(),

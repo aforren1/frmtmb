@@ -30,8 +30,8 @@ new_par_template <- function(tpl, frame, fitted) {
                                  par_template_names(tpl[[nm]], nm))
   }
   fixed <- list()
-  if (length(frame$betad_fixed_idx)) {
-    fixed$betad <- as.integer(frame$betad_fixed_idx)
+  if (length(frame[["betad_fixed_idx"]])) {
+    fixed$betad <- as.integer(frame[["betad_fixed_idx"]])
   }
   structure(tpl, fitted = isTRUE(fitted), fixed = fixed,
             class = c("frmtmb_par_template", "list"))
@@ -260,11 +260,11 @@ start_claimed_idx <- function(cur, val, comp) {
 #' @noRd
 nl_beta_positions <- function(frame) {
   out <- integer(0)
-  for (lp in frame$linpreds) {
-    if (!identical(lp$par, "beta")) next
-    if (!is.null(lp$nl_body) || !is.null(lp$constant)) next
-    nl <- frame$spec$responses[[lp$resp]]$nlpars %||% character(0)
-    if (lp$dpar %in% nl) out <- c(out, as.integer(lp$idx))
+  for (lp in frame[["linpreds"]]) {
+    if (!identical(lp[["par"]], "beta")) next
+    if (!is.null(lp[["nl_body"]]) || !is.null(lp[["constant"]])) next
+    nl <- frame[["spec"]]$responses[[lp[["resp"]]]]$nlpars %||% character(0)
+    if (lp[["dpar"]] %in% nl) out <- c(out, as.integer(lp[["idx"]]))
   }
   out
 }
@@ -289,7 +289,7 @@ prior_nl_starts <- function(frame, entries) {
   pos <- nl_beta_positions(frame)
   out <- list()
   if (!length(pos) || !length(entries)) return(out)
-  nms <- par_template_names(frame$par_template[["beta"]], "beta")
+  nms <- par_template_names(frame[["par_template"]][["beta"]], "beta")
   for (e in entries) {
     if (!identical(e$comp, "beta") || length(e$idx) != 1L) next
     if (!identical(e$scale %||% "internal", "internal")) next

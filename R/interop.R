@@ -52,11 +52,11 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
                                 tol = 1e-4) {
   stopifnot(inherits(family, "frmtmb_family"))
   check_positive(tol, "tol")
-  if (!setequal(names(dpars), family$dpars)) {
+  if (!setequal(names(dpars), family[["dpars"]])) {
     stop("`dpars` must supply test values for exactly: ",
-         paste(family$dpars, collapse = ", "), call. = FALSE)
+         paste(family[["dpars"]], collapse = ", "), call. = FALSE)
   }
-  f <- function(p) -sum(family$lpdf(y, p, aterms))
+  f <- function(p) -sum(family[["lpdf"]](y, p, aterms))
   v0 <- f(lapply(dpars, as.numeric))
   if (!is.finite(v0)) {
     stop("lpdf is not finite at the test values", call. = FALSE)
@@ -109,8 +109,8 @@ emm_mu_linpred <- function(object) {
     stop("emmeans support is univariate-only for now", call. = FALSE)
   }
   rspec <- object$spec$responses[[1]]
-  lp <- object$frame$linpreds[[linpred_key(rspec$resp_name, "mu")]]
-  if (is.null(lp) || !is.null(lp$nl_body)) {
+  lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, "mu")]]
+  if (is.null(lp) || !is.null(lp[["nl_body"]])) {
     stop("emmeans support needs a linear mu predictor", call. = FALSE)
   }
   lp
@@ -124,21 +124,21 @@ emm_mu_linpred <- function(object) {
 #' @exportS3Method marginaleffects::get_coef
 get_coef.frmtmb_fit <- function(model, ...) {
   est <- model$estimates
-  bd <- est$betad
-  if (length(model$frame$betad_fixed_idx)) {
-    bd <- bd[-model$frame$betad_fixed_idx]
+  bd <- est[["betad"]]
+  if (length(model$frame[["betad_fixed_idx"]])) {
+    bd <- bd[-model$frame[["betad_fixed_idx"]]]
   }
-  stats::setNames(c(est$beta, bd), estimated_coef_names(model))
+  stats::setNames(c(est[["beta"]], bd), estimated_coef_names(model))
 }
 
 #' @exportS3Method marginaleffects::set_coef
 set_coef.frmtmb_fit <- function(model, coefs, ...) {
-  tpl <- model$frame$par_template
-  nb <- length(tpl$beta)
-  model$estimates$beta[] <- coefs[seq_len(nb)]
-  if (!is.null(tpl$betad)) {
-    keep <- setdiff(seq_along(tpl$betad), model$frame$betad_fixed_idx)
-    model$estimates$betad[keep] <- coefs[nb + seq_along(keep)]
+  tpl <- model$frame[["par_template"]]
+  nb <- length(tpl[["beta"]])
+  model$estimates[["beta"]][] <- coefs[seq_len(nb)]
+  if (!is.null(tpl[["betad"]])) {
+    keep <- setdiff(seq_along(tpl[["betad"]]), model$frame[["betad_fixed_idx"]])
+    model$estimates[["betad"]][keep] <- coefs[nb + seq_along(keep)]
   }
   model
 }
@@ -174,7 +174,7 @@ get_predict.frmtmb_fit <- function(model, newdata, type = "response",
 recover_data.frmtmb_fit <- function(object, ..., data = NULL) {
   lp <- emm_mu_linpred(object)
   emmeans::recover_data(object$call,
-                        stats::delete.response(lp$terms),
+                        stats::delete.response(lp[["terms"]]),
                         na.action = NULL,
                         data = data %||% model.frame(object), ...)
 }
@@ -184,13 +184,13 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ...) {
   lp <- emm_mu_linpred(object)
   m <- stats::model.frame(trms, grid, na.action = stats::na.pass,
                           xlev = xlev)
-  X <- stats::model.matrix(trms, m, contrasts.arg = lp$contrasts)
+  X <- stats::model.matrix(trms, m, contrasts.arg = lp[["contrasts"]])
   # The fitted design is not always model.matrix()'s: an ordinal family
   # drops the intercept (the K-1 thresholds take its place), and a
   # rank-deficient fit drops aliased columns. Select the fitted columns
   # by name, or the basis is not conformable with bhat and emmeans fails
   # with "Non-conformable elements in reference grid".
-  pn <- lp$param_colnames[seq_len(lp$n_param_cols)]
+  pn <- lp[["param_colnames"]][seq_len(lp[["n_param_cols"]])]
   if (!identical(colnames(X), pn)) {
     keep <- match(pn, colnames(X))
     if (anyNA(keep)) {
@@ -200,8 +200,8 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ...) {
     }
     X <- X[, keep, drop = FALSE]
   }
-  idx <- lp$idx[seq_len(lp$n_param_cols)]
-  bhat <- object$estimates[[lp$par]][idx]
+  idx <- lp[["idx"]][seq_len(lp[["n_param_cols"]])]
+  bhat <- object$estimates[[lp[["par"]]]][idx]
   V <- vcov(object)[idx, idx, drop = FALSE]
   list(X = X, bhat = bhat, nbasis = matrix(NA), V = V,
        dffun = function(k, dfargs) Inf, dfargs = list(), misc = list())
@@ -223,9 +223,9 @@ frmtmb_getME_vocab <- c("X", "Z", "Zt", "beta", "fixef", "b", "theta",
 #'
 #' @noRd
 getME_group_blocks <- function(object) {
-  Filter(function(bk) !bk$covstruct %in% c("smooth", "gp", "hsgp") &&
-           !is.null(bk$components[[1L]]$bar),
-         object$frame$re_blocks)
+  Filter(function(bk) !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp") &&
+           !is.null(bk[["components"]][[1L]]$bar),
+         object$frame[["re_blocks"]])
 }
 
 #' Labels for the random-effect coefficient vector, which is also the
@@ -234,10 +234,11 @@ getME_group_blocks <- function(object) {
 #'
 #' @noRd
 re_coef_labels <- function(frame) {
-  if (!length(frame$re_blocks)) return(character(0))
-  unlist(lapply(frame$re_blocks, function(bk) {
-    lv <- bk$levels %||% as.character(seq_len(bk$n_levels))
-    paste0(rep(lv, each = bk$dim), ".", rep(bk$cnms, bk$n_levels))
+  if (!length(frame[["re_blocks"]])) return(character(0))
+  unlist(lapply(frame[["re_blocks"]], function(bk) {
+    lv <- bk[["levels"]] %||% as.character(seq_len(bk[["n_levels"]]))
+    paste0(rep(lv,
+               each = bk[["dim"]]), ".", rep(bk[["cnms"]], bk[["n_levels"]]))
   }), use.names = FALSE)
 }
 
@@ -248,24 +249,24 @@ re_coef_labels <- function(frame) {
 getME_flist <- function(object) {
   out <- list()
   for (bk in getME_group_blocks(object)) {
-    comp <- bk$components[[1L]]
+    comp <- bk[["components"]][[1L]]
     # a multi-membership row belongs to several levels at once, so there
     # is no per-observation grouping factor to report; lme4's flist has
     # no representation for one, and returning the first member would
     # be a wrong answer rather than a missing one
     if (!is.null(comp$mm)) next
-    lp <- object$frame$linpreds[[comp$lp_key]]
-    env <- object$spec$responses[[lp$resp]]$formula_env
+    lp <- object$frame[["linpreds"]][[comp$lp_key]]
+    env <- object$spec$responses[[lp[["resp"]]]]$formula_env
     gv <- tryCatch(
-      as.character(eval(comp$bar[[3L]], object$frame$data_frame, env)),
+      as.character(eval(comp$bar[[3L]], object$frame[["data_frame"]], env)),
       error = function(e) NULL
     )
-    if (length(gv) != object$frame$n_obs) {
+    if (length(gv) != object$frame[["n_obs"]]) {
       stop("getME(\"flist\"): cannot rebuild the grouping factor for `",
-           bk$term_label, "`", call. = FALSE)
+           bk[["term_label"]], "`", call. = FALSE)
     }
-    nm <- bk$group_name
-    if (is.null(out[[nm]])) out[[nm]] <- factor(gv, levels = bk$levels)
+    nm <- bk[["group_name"]]
+    if (is.null(out[[nm]])) out[[nm]] <- factor(gv, levels = bk[["levels"]])
   }
   out
 }
@@ -377,14 +378,14 @@ getME.frmtmb_fit <- function(object, name, resp = NULL, ...) {
     if (is.null(Z)) {
       Z <- Matrix::sparseMatrix(i = integer(0), j = integer(0),
                                 x = numeric(0),
-                                dims = c(object$frame$n_obs,
-                                         object$frame$n_c %||% 0L))
+                                dims = c(object$frame[["n_obs"]],
+                                         object$frame[["n_c"]] %||% 0L))
     }
-    dimnames(Z) <- list(rownames(object$frame$data_frame),
+    dimnames(Z) <- list(rownames(object$frame[["data_frame"]]),
                         re_coef_labels(object$frame))
     Z
   }
-  theta <- object$estimates$theta %||% numeric(0)
+  theta <- object$estimates[["theta"]] %||% numeric(0)
   names(theta) <- if (length(theta)) {
     paste0("theta_", seq_along(theta))
   }
@@ -394,7 +395,7 @@ getME.frmtmb_fit <- function(object, name, resp = NULL, ...) {
     Z = mu_Z(),
     Zt = Matrix::t(mu_Z()),
     beta = ,
-    fixef = object$estimates$beta,
+    fixef = object$estimates[["beta"]],
     b = {
       bv <- coef_b(object) %||% numeric(0)
       stats::setNames(as.numeric(bv), re_coef_labels(object$frame))

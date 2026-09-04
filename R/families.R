@@ -401,8 +401,9 @@ pnorm_diff <- function(a, b) {
 #'
 #' @noRd
 resid_sd <- function(sigma, aterms) {
-  if (is.null(aterms$se)) return(sigma)
-  if (isTRUE(aterms$se_sigma)) sqrt(sigma^2 + aterms$se^2) else aterms$se
+  if (is.null(aterms[["se"]])) return(sigma)
+  if (isTRUE(aterms[["se_sigma"]])) sqrt(sigma^2 + aterms[["se"]]^
+    2) else aterms[["se"]]
 }
 
 #' `trunc()` bounds from an aterm-value list as a pair of length-n
@@ -427,16 +428,16 @@ trunc_bounds <- function(aterms, n) {
 #' @rdname frmtmb-extension-api
 #' @export
 response_mean <- function(fam, dpars, aterms) {
-  mu <- if (!is.null(fam$post$mean_fn)) {
-    fam$post$mean_fn(dpars, aterms)
+  mu <- if (!is.null(fam[["post"]]$mean_fn)) {
+    fam[["post"]]$mean_fn(dpars, aterms)
   } else {
-    dpars$mu
+    dpars[["mu"]]
   }
   tb <- trunc_bounds(aterms, length(mu))
   if (is.null(tb)) return(mu)
-  tmf <- fam$post$trunc_mean_fn
+  tmf <- fam[["post"]]$trunc_mean_fn
   if (is.null(tmf)) {
-    stop("Family '", fam$family, "' has no truncated mean; fitted(), ",
+    stop("Family '", fam[["family"]], "' has no truncated mean; fitted(), ",
          "residuals() and predict(type = \"response\") would report the ",
          "untruncated mean", call. = FALSE)
   }
@@ -488,7 +489,7 @@ deviance_family_names <- function() {
   nms <- names(family_registry)
   ok <- vapply(nms, function(nm) {
     fam <- tryCatch(family_registry[[nm]](), error = function(e) NULL)
-    !is.null(fam) && !is.null(fam$post$dev_fn)
+    !is.null(fam) && !is.null(fam[["post"]]$dev_fn)
   }, TRUE)
   sort(unique(nms[ok]))
 }
@@ -501,10 +502,10 @@ deviance_family_names <- function() {
 #'
 #' @noRd
 deviance_residuals <- function(fam, y, dpars, aterms, n) {
-  dev <- fam$post$dev_fn
+  dev <- fam[["post"]]$dev_fn
   if (is.null(dev)) {
     stop("residuals(type = \"deviance\") is not available for family '",
-         fam$family, "': it has no standard unit deviance. Families ",
+         fam[["family"]], "': it has no standard unit deviance. Families ",
          "with one: ", paste(deviance_family_names(), collapse = ", "),
          ". Use type = \"osa\" or dharma_residuals() instead.",
          call. = FALSE)
@@ -515,13 +516,13 @@ deviance_residuals <- function(fam, y, dpars, aterms, n) {
          "family, not the likelihood the model was fitted with. Use ",
          "type = \"osa\", which builds its CDF on [lb, ub]", call. = FALSE)
   }
-  if (!is.null(aterms$cens) && any(aterms$cens != 0)) {
+  if (!is.null(aterms[["cens"]]) && any(aterms[["cens"]] != 0)) {
     stop("residuals(type = \"deviance\") is not defined on a cens()ed ",
          "response: a censored row observes an event, not a value, so it ",
          "has no unit deviance. Use type = \"osa\"", call. = FALSE)
   }
   d <- dev(y, dpars, aterms)
-  w <- aterms$weights %||% 1
+  w <- aterms[["weights"]] %||% 1
   # rounding can push an exactly saturated row a few ulps below zero
   sign(y - response_mean(fam, dpars, aterms)) * sqrt(pmax(w * d, 0))
 }
@@ -552,10 +553,10 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
   # families whose draws need parameters outside the dpar system
   # (ordinal thresholds) declare a fourth argument; the rest keep the
   # three-argument contract
-  fam_sim <- if (length(formals(fam$sim)) >= 4L) {
-    function(dp, av, nn) fam$sim(dp, av, nn, extra)
+  fam_sim <- if (length(formals(fam[["sim"]])) >= 4L) {
+    function(dp, av, nn) fam[["sim"]](dp, av, nn, extra)
   } else {
-    fam$sim
+    fam[["sim"]]
   }
   y <- fam_sim(dpars, aterms, n)
   tb <- trunc_bounds(aterms, n)
@@ -713,10 +714,11 @@ fam_gaussian <- function(link = "identity") {
     dpars = c("mu", "sigma"),
     links = list(mu = link, sigma = "log"),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dnorm(y, dpars$mu, resid_sd(dpars$sigma, aterms), log = TRUE)
+      RTMB::dnorm(y, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms),
+                log = TRUE)
     },
     lcdf = function(q, dpars, aterms) {
-      RTMB::pnorm((q - dpars$mu) / resid_sd(dpars$sigma, aterms))
+      RTMB::pnorm((q - dpars[["mu"]]) / resid_sd(dpars[["sigma"]], aterms))
     },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
@@ -724,8 +726,8 @@ fam_gaussian <- function(link = "identity") {
     ),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) resid_sd(dpars$sigma, aterms)^2,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars, aterms) resid_sd(dpars[["sigma"]], aterms)^2,
       # sigma is the dispersion, so it divides out of the unit deviance.
       # se() breaks that: the residual sd is row-specific, and a raw
       # squared residual would then compare rows of different precision
@@ -733,20 +735,20 @@ fam_gaussian <- function(link = "identity") {
       # weight sigma^2 / s_i^2, which is 1 without se(); se() alone maps
       # sigma out at 1, so the row weight is the usual 1 / se_i^2.
       dev_fn = function(y, dpars, aterms) {
-        s <- resid_sd(dpars$sigma, aterms)
-        (y - dpars$mu)^2 * (dpars$sigma / s)^2
+        s <- resid_sd(dpars[["sigma"]], aterms)
+        (y - dpars[["mu"]])^2 * (dpars[["sigma"]] / s)^2
       },
       # mu + sigma * (phi(a) - phi(b)) / (Phi(b) - Phi(a))
       trunc_mean_fn = function(dpars, aterms, lb, ub) {
-        s <- resid_sd(dpars$sigma, aterms)
-        a <- (lb - dpars$mu) / s
-        b <- (ub - dpars$mu) / s
-        dpars$mu + s * (stats::dnorm(a) - stats::dnorm(b)) /
+        s <- resid_sd(dpars[["sigma"]], aterms)
+        a <- (lb - dpars[["mu"]]) / s
+        b <- (ub - dpars[["mu"]]) / s
+        dpars[["mu"]] + s * (stats::dnorm(a) - stats::dnorm(b)) /
           pnorm_diff(a, b)
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rnorm(n, dpars$mu, resid_sd(dpars$sigma, aterms))
+      stats::rnorm(n, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms))
     }
   )
 }
@@ -761,30 +763,30 @@ fam_poisson <- function(link = "log") {
     dpars = "mu",
     links = list(mu = link),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dpois(y, dpars$mu, log = TRUE)
+      RTMB::dpois(y, dpars[["mu"]], log = TRUE)
     },
     lcdf = function(q, dpars, aterms) {
-      RTMB::ppois(q, dpars$mu)
+      RTMB::ppois(q, dpars[["mu"]])
     },
     valid_y = count_y("poisson"),
     init_dpars = list(mu = function(y, aterms) mean(y) + 0.1),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars, aterms) dpars[["mu"]],
       dev_fn = function(y, dpars, aterms) {
-        2 * (ylogy_mu(y, dpars$mu) - (y - dpars$mu))
+        2 * (ylogy_mu(y, dpars[["mu"]]) - (y - dpars[["mu"]]))
       },
       # sum_{lb}^{ub} y dpois(y) = mu * (F(ub-1) - F(lb-2)), over the
       # same F(ub) - F(lb-1) normalizer the likelihood uses: the
       # inclusive lower bound keeps its own mass (brms#1903)
       trunc_mean_fn = function(dpars, aterms, lb, ub) {
-        mu <- dpars$mu
+        mu <- dpars[["mu"]]
         mu * (stats::ppois(ub - 1, mu) - stats::ppois(lb - 2, mu)) /
           (stats::ppois(ub, mu) - stats::ppois(lb - 1, mu))
       }
     ),
-    sim = function(dpars, aterms, n) stats::rpois(n, dpars$mu)
+    sim = function(dpars, aterms, n) stats::rpois(n, dpars[["mu"]])
   )
 }
 
@@ -806,15 +808,15 @@ fam_binomial <- function(link = "logit") {
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms$trials %||% 1
+      size <- aterms[["trials"]] %||% 1
       lo <- robust_logit(dpars, lk)
       if (is.null(lo)) {
-        return(RTMB::dbinom(y, size, dpars$mu, log = TRUE))
+        return(RTMB::dbinom(y, size, dpars[["mu"]], log = TRUE))
       }
       RTMB::dbinom_robust(y, size, lo, log = TRUE)
     },
     valid_y = function(y, aterms) {
-      size <- aterms$trials %||% 1
+      size <- aterms[["trials"]] %||% 1
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         stop("binomial: response must be integer counts in [0, trials]",
              call. = FALSE)
@@ -822,23 +824,24 @@ fam_binomial <- function(link = "logit") {
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        size <- aterms$trials %||% 1
+        size <- aterms[["trials"]] %||% 1
         p <- mean(y / size)
         min(max(p, 0.02), 0.98)
       }
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu * (aterms$trials %||% 1),
+      mean_fn = function(dpars,
+                         aterms) dpars[["mu"]] * (aterms[["trials"]] %||% 1),
       var_fn = function(dpars, aterms) {
-        (aterms$trials %||% 1) * dpars$mu * (1 - dpars$mu)
+        (aterms[["trials"]] %||% 1) * dpars[["mu"]] * (1 - dpars[["mu"]])
       },
       dev_fn = function(y, dpars, aterms) {
-        binomial_deviance(y, dpars$mu, aterms$trials %||% 1)
+        binomial_deviance(y, dpars[["mu"]], aterms[["trials"]] %||% 1)
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rbinom(n, aterms$trials %||% 1, dpars$mu)
+      stats::rbinom(n, aterms[["trials"]] %||% 1, dpars[["mu"]])
     }
   )
 }
@@ -853,7 +856,8 @@ fam_Gamma <- function(link = "log") {
     dpars = c("mu", "shape"),
     links = list(mu = link, shape = "log"),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dgamma(y, shape = dpars$shape, scale = dpars$mu / dpars$shape,
+      RTMB::dgamma(y, shape = dpars[["shape"]],
+                                       scale = dpars[["mu"]] / dpars[["shape"]],
                    log = TRUE)
     },
     valid_y = positive_y("Gamma"),
@@ -865,13 +869,14 @@ fam_Gamma <- function(link = "log") {
     ),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu^2 / dpars$shape,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars, aterms) dpars[["mu"]]^2 / dpars[["shape"]],
       # 1 / shape is the dispersion and divides out
-      dev_fn = function(y, dpars, aterms) gamma_deviance(y, dpars$mu)
+      dev_fn = function(y, dpars, aterms) gamma_deviance(y, dpars[["mu"]])
     ),
     sim = function(dpars, aterms, n) {
-      stats::rgamma(n, shape = dpars$shape, scale = dpars$mu / dpars$shape)
+      stats::rgamma(n, shape = dpars[["shape"]],
+                                      scale = dpars[["mu"]] / dpars[["shape"]])
     }
   )
 }
@@ -887,10 +892,10 @@ fam_lognormal <- function(link = "identity") {
     dpars = c("mu", "sigma"),
     links = list(mu = link, sigma = "log"),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dnorm(log(y), dpars$mu, dpars$sigma, log = TRUE) - log(y)
+      RTMB::dnorm(log(y), dpars[["mu"]], dpars[["sigma"]], log = TRUE) - log(y)
     },
     lcdf = function(q, dpars, aterms) {
-      RTMB::pnorm((log(q) - dpars$mu) / dpars$sigma)
+      RTMB::pnorm((log(q) - dpars[["mu"]]) / dpars[["sigma"]])
     },
     valid_y = positive_y("lognormal"),
     init_dpars = list(
@@ -900,22 +905,24 @@ fam_lognormal <- function(link = "identity") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) {
-        exp(dpars$mu + dpars$sigma^2 / 2)
+        exp(dpars[["mu"]] + dpars[["sigma"]]^2 / 2)
       },
       var_fn = function(dpars, aterms) {
-        (exp(dpars$sigma^2) - 1) * exp(2 * dpars$mu + dpars$sigma^2)
+        (exp(dpars[["sigma"]]^2) - 1) * exp(2 * dpars[["mu"]] +
+          dpars[["sigma"]]^2)
       },
       # E[Y] * (Phi(b - sigma) - Phi(a - sigma)) / (Phi(b) - Phi(a)),
       # a, b the log-scale standardized bounds
       trunc_mean_fn = function(dpars, aterms, lb, ub) {
-        sg <- dpars$sigma
-        a <- (log(pmax(lb, 0)) - dpars$mu) / sg
-        b <- (log(ub) - dpars$mu) / sg
-        exp(dpars$mu + sg^2 / 2) * pnorm_diff(a - sg, b - sg) /
+        sg <- dpars[["sigma"]]
+        a <- (log(pmax(lb, 0)) - dpars[["mu"]]) / sg
+        b <- (log(ub) - dpars[["mu"]]) / sg
+        exp(dpars[["mu"]] + sg^2 / 2) * pnorm_diff(a - sg, b - sg) /
           pnorm_diff(a, b)
       }
     ),
-    sim = function(dpars, aterms, n) stats::rlnorm(n, dpars$mu, dpars$sigma)
+    sim = function(dpars, aterms,
+                   n) stats::rlnorm(n, dpars[["mu"]], dpars[["sigma"]])
   )
 }
 
@@ -930,8 +937,8 @@ fam_student <- function(link = "identity") {
     dpars = c("mu", "sigma", "nu"),
     links = list(mu = link, sigma = "log", nu = "logm1"),
     lpdf = function(y, dpars, aterms) {
-      sd_t <- resid_sd(dpars$sigma, aterms)
-      RTMB::dt((y - dpars$mu) / sd_t, df = dpars$nu, log = TRUE) -
+      sd_t <- resid_sd(dpars[["sigma"]], aterms)
+      RTMB::dt((y - dpars[["mu"]]) / sd_t, df = dpars[["nu"]], log = TRUE) -
         log(sd_t)
     },
     init_dpars = list(
@@ -941,15 +948,16 @@ fam_student <- function(link = "identity") {
     ),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
       var_fn = function(dpars, aterms) {
-        sd_t <- resid_sd(dpars$sigma, aterms)
-        ifelse(dpars$nu > 2, sd_t^2 * dpars$nu / (dpars$nu - 2),
+        sd_t <- resid_sd(dpars[["sigma"]], aterms)
+        ifelse(dpars[["nu"]] > 2, sd_t^2 * dpars[["nu"]] / (dpars[["nu"]] - 2),
                NA_real_)
       }
     ),
     sim = function(dpars, aterms, n) {
-      dpars$mu + resid_sd(dpars$sigma, aterms) * stats::rt(n, dpars$nu)
+      dpars[["mu"]] + resid_sd(dpars[["sigma"]], aterms) * stats::rt(n,
+        dpars[["nu"]])
     }
   )
 }
@@ -971,8 +979,9 @@ fam_negbinomial <- function(link = "log") {
       # log(var - mu) = 2 log(mu) - log(shape) and never divides.
       lmu <- robust_logmu(dpars, lk)
       if (is.null(lmu)) {
-        return(RTMB::dnbinom2(y, dpars$mu,
-                              dpars$mu + dpars$mu^2 / dpars$shape,
+        return(RTMB::dnbinom2(y, dpars[["mu"]],
+                              dpars[["mu"]] + dpars[["mu"]]^2 /
+                                       dpars[["shape"]],
                               log = TRUE))
       }
       RTMB::dnbinom_robust(y, lmu, 2 * lmu - log_dpar(dpars, "shape"),
@@ -989,14 +998,15 @@ fam_negbinomial <- function(link = "log") {
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu + dpars$mu^2 / dpars$shape,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars,
+        aterms) dpars[["mu"]] + dpars[["mu"]]^2 / dpars[["shape"]],
       dev_fn = function(y, dpars, aterms) {
-        nbinom_deviance(y, dpars$mu, dpars$shape)
+        nbinom_deviance(y, dpars[["mu"]], dpars[["shape"]])
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rnbinom(n, size = dpars$shape, mu = dpars$mu)
+      stats::rnbinom(n, size = dpars[["shape"]], mu = dpars[["mu"]])
     }
   )
 }
@@ -1016,7 +1026,8 @@ fam_nbinom1 <- function(link = "log") {
       # var - mu = mu * phi, so log(var - mu) = log(mu) + log(phi)
       lmu <- robust_logmu(dpars, lk)
       if (is.null(lmu)) {
-        return(RTMB::dnbinom2(y, dpars$mu, dpars$mu * (1 + dpars$phi),
+        return(RTMB::dnbinom2(y, dpars[["mu"]],
+               dpars[["mu"]] * (1 + dpars[["phi"]]),
                               log = TRUE))
       }
       RTMB::dnbinom_robust(y, lmu, lmu + log_dpar(dpars, "phi"),
@@ -1033,19 +1044,20 @@ fam_nbinom1 <- function(link = "log") {
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu * (1 + dpars$phi),
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars, aterms) dpars[["mu"]] * (1 + dpars[["phi"]]),
       # glmmTMB's convention: the negative-binomial unit deviance with
       # the size held at the FITTED row's mu / phi. Letting the size
       # follow the saturated mean instead is not a deviance at all - the
       # nbinom1 log-likelihood in mu is not maximized at mu = y once the
       # size moves with it, and the difference goes negative.
       dev_fn = function(y, dpars, aterms) {
-        nbinom_deviance(y, dpars$mu, dpars$mu / dpars$phi)
+        nbinom_deviance(y, dpars[["mu"]], dpars[["mu"]] / dpars[["phi"]])
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rnbinom(n, size = dpars$mu / dpars$phi, mu = dpars$mu)
+      stats::rnbinom(n,
+                     size = dpars[["mu"]] / dpars[["phi"]], mu = dpars[["mu"]])
     }
   )
 }
@@ -1066,7 +1078,7 @@ fam_beta <- function(link = "logit") {
       # exactly 0 past eta = 37: dbeta at shape 0 is -Inf. Taking the
       # pair off the log-odds keeps both shapes strictly positive.
       mp <- mu_pair(dpars, lk)
-      RTMB::dbeta(y, mp$p * dpars$phi, mp$q * dpars$phi, log = TRUE)
+      RTMB::dbeta(y, mp$p * dpars[["phi"]], mp$q * dpars[["phi"]], log = TRUE)
     },
     valid_y = function(y, aterms) {
       if (any(y <= 0) || any(y >= 1)) {
@@ -1082,23 +1094,24 @@ fam_beta <- function(link = "logit") {
     ),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
       var_fn = function(dpars, aterms) {
-        dpars$mu * (1 - dpars$mu) / (1 + dpars$phi)
+        dpars[["mu"]] * (1 - dpars[["mu"]]) / (1 + dpars[["phi"]])
       },
       # 2 (ll(y; y, phi) - ll(y; mu, phi)); the terms in y alone cancel
       # (the betareg deviance-residual definition). glmmTMB returns NA
       # for beta, so there is nothing to match there.
       dev_fn = function(y, dpars, aterms) {
-        mu <- dpars$mu
-        ph <- dpars$phi
+        mu <- dpars[["mu"]]
+        ph <- dpars[["phi"]]
         2 * (lgamma(mu * ph) + lgamma((1 - mu) * ph) -
                lgamma(y * ph) - lgamma((1 - y) * ph) +
                (y - mu) * ph * log(y / (1 - y)))
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rbeta(n, dpars$mu * dpars$phi, (1 - dpars$mu) * dpars$phi)
+      stats::rbeta(n, dpars[["mu"]] * dpars[["phi"]],
+        (1 - dpars[["mu"]]) * dpars[["phi"]])
     }
   )
 }
@@ -1114,7 +1127,8 @@ fam_tweedie <- function(link = "log") {
     dpars = c("mu", "phi", "power"),
     links = list(mu = link, phi = "log", power = "power12"),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dtweedie(y, dpars$mu, dpars$phi, dpars$power, log = TRUE)
+      RTMB::dtweedie(y, dpars[["mu"]], dpars[["phi"]], dpars[["power"]],
+                                       log = TRUE)
     },
     valid_y = function(y, aterms) {
       if (any(y < 0)) {
@@ -1128,13 +1142,14 @@ fam_tweedie <- function(link = "log") {
     ),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$phi * dpars$mu^dpars$power,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars,
+                        aterms) dpars[["phi"]] * dpars[["mu"]]^dpars[["power"]],
       # the standard Tweedie unit deviance (phi is the dispersion and
       # divides out); at y = 0 the first two terms vanish
       dev_fn = function(y, dpars, aterms) {
-        mu <- dpars$mu
-        p <- dpars$power
+        mu <- dpars[["mu"]]
+        p <- dpars[["power"]]
         2 * (y^(2 - p) / ((1 - p) * (2 - p)) -
                y * mu^(1 - p) / (1 - p) +
                mu^(2 - p) / (2 - p))
@@ -1154,7 +1169,7 @@ fam_compois <- function(link = "log") {
     dpars = c("mu", "nu"),
     links = list(mu = link, nu = "log"),
     lpdf = function(y, dpars, aterms) {
-      RTMB::dcompois2(y, dpars$mu, dpars$nu, log = TRUE)
+      RTMB::dcompois2(y, dpars[["mu"]], dpars[["nu"]], log = TRUE)
     },
     valid_y = count_y("compois"),
     init_dpars = list(
@@ -1163,7 +1178,7 @@ fam_compois <- function(link = "log") {
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu
+      mean_fn = function(dpars, aterms) dpars[["mu"]]
     )
   )
 }
@@ -1184,8 +1199,8 @@ fam_zi_poisson <- function(link = "log") {
       # -mu exactly, with no exp() to underflow.
       i0 <- as.numeric(y == 0)
       g <- gate_logs(dpars, "zi")
-      i0 * RTMB::logspace_add(g$l, g$l1m - dpars$mu) +
-        (1 - i0) * (g$l1m + RTMB::dpois(y, dpars$mu, log = TRUE))
+      i0 * RTMB::logspace_add(g$l, g$l1m - dpars[["mu"]]) +
+        (1 - i0) * (g$l1m + RTMB::dpois(y, dpars[["mu"]], log = TRUE))
     },
     valid_y = count_y("zero_inflated_poisson"),
     init_dpars = list(
@@ -1194,13 +1209,14 @@ fam_zi_poisson <- function(link = "log") {
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) (1 - dpars$zi) * dpars$mu,
+      mean_fn = function(dpars, aterms) (1 - dpars[["zi"]]) * dpars[["mu"]],
       var_fn = function(dpars, aterms) {
-        (1 - dpars$zi) * dpars$mu * (1 + dpars$zi * dpars$mu)
+        (1 - dpars[["zi"]]) * dpars[["mu"]] * (1 + dpars[["zi"]] *
+          dpars[["mu"]])
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rbinom(n, 1, 1 - dpars$zi) * stats::rpois(n, dpars$mu)
+      stats::rbinom(n, 1, 1 - dpars[["zi"]]) * stats::rpois(n, dpars[["mu"]])
     }
   )
 }
@@ -1220,16 +1236,17 @@ fam_zi_negbinomial <- function(link = "log") {
       g <- gate_logs(dpars, "zi")
       lmu <- robust_logmu(dpars, lk)
       if (is.null(lmu)) {
-        lp0 <- dpars$shape * (log(dpars$shape) -
-                                log(dpars$shape + dpars$mu))
-        base <- RTMB::dnbinom2(y, dpars$mu,
-                               dpars$mu + dpars$mu^2 / dpars$shape,
+        lp0 <- dpars[["shape"]] * (log(dpars[["shape"]]) -
+                                log(dpars[["shape"]] + dpars[["mu"]]))
+        base <- RTMB::dnbinom2(y, dpars[["mu"]],
+                               dpars[["mu"]] + dpars[["mu"]]^2 /
+                                 dpars[["shape"]],
                                log = TRUE)
       } else {
         # log P(0) = shape * log(shape / (shape + mu)), which is
         # -shape * log(1 + mu / shape) with the ratio taken in logs
         lsh <- log_dpar(dpars, "shape")
-        lp0 <- -dpars$shape *
+        lp0 <- -dpars[["shape"]] *
           RTMB::logspace_add(0 * lmu, lmu - lsh)
         base <- RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
       }
@@ -1243,11 +1260,11 @@ fam_zi_negbinomial <- function(link = "log") {
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) (1 - dpars$zi) * dpars$mu
+      mean_fn = function(dpars, aterms) (1 - dpars[["zi"]]) * dpars[["mu"]]
     ),
     sim = function(dpars, aterms, n) {
-      stats::rbinom(n, 1, 1 - dpars$zi) *
-        stats::rnbinom(n, size = dpars$shape, mu = dpars$mu)
+      stats::rbinom(n, 1, 1 - dpars[["zi"]]) *
+        stats::rnbinom(n, size = dpars[["shape"]], mu = dpars[["mu"]])
     }
   )
 }
@@ -1269,9 +1286,9 @@ fam_hurdle_poisson <- function(link = "log") {
       # log(1 - exp(-mu)) cancels to log(0) once mu underflows below
       # the double epsilon; expm1 keeps it, and the truth there is
       # simply log(mu).
-      lztrunc <- log(-expm1(-dpars$mu))
+      lztrunc <- log(-expm1(-dpars[["mu"]]))
       i0 * g$l +
-        (1 - i0) * (g$l1m + RTMB::dpois(y, dpars$mu, log = TRUE) -
+        (1 - i0) * (g$l1m + RTMB::dpois(y, dpars[["mu"]], log = TRUE) -
                       lztrunc)
     },
     valid_y = count_y("hurdle_poisson"),
@@ -1282,7 +1299,7 @@ fam_hurdle_poisson <- function(link = "log") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) {
-        (1 - dpars$hu) * dpars$mu / (1 - exp(-dpars$mu))
+        (1 - dpars[["hu"]]) * dpars[["mu"]] / (1 - exp(-dpars[["mu"]]))
       }
     )
   )
@@ -1302,7 +1319,7 @@ fam_bernoulli <- function(link = "logit") {
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
       lo <- robust_logit(dpars, lk)
-      if (is.null(lo)) return(RTMB::dbinom(y, 1, dpars$mu, log = TRUE))
+      if (is.null(lo)) return(RTMB::dbinom(y, 1, dpars[["mu"]], log = TRUE))
       RTMB::dbinom_robust(y, 1, lo, log = TRUE)
     },
     valid_y = function(y, aterms) {
@@ -1315,13 +1332,13 @@ fam_bernoulli <- function(link = "logit") {
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu * (1 - dpars$mu),
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars, aterms) dpars[["mu"]] * (1 - dpars[["mu"]]),
       dev_fn = function(y, dpars, aterms) {
-        binomial_deviance(y, dpars$mu, 1)
+        binomial_deviance(y, dpars[["mu"]], 1)
       }
     ),
-    sim = function(dpars, aterms, n) stats::rbinom(n, 1, dpars$mu)
+    sim = function(dpars, aterms, n) stats::rbinom(n, 1, dpars[["mu"]])
   )
 }
 
@@ -1339,7 +1356,8 @@ fam_geometric <- function(link = "log") {
       # var - mu = mu^2 (the negative binomial at shape 1)
       lmu <- robust_logmu(dpars, lk)
       if (is.null(lmu)) {
-        return(RTMB::dnbinom2(y, dpars$mu, dpars$mu * (1 + dpars$mu),
+        return(RTMB::dnbinom2(y, dpars[["mu"]],
+               dpars[["mu"]] * (1 + dpars[["mu"]]),
                               log = TRUE))
       }
       RTMB::dnbinom_robust(y, lmu, 2 * lmu, log = TRUE)
@@ -1348,15 +1366,15 @@ fam_geometric <- function(link = "log") {
     init_dpars = list(mu = function(y, aterms) mean(y) + 0.1),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu * (1 + dpars$mu),
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars, aterms) dpars[["mu"]] * (1 + dpars[["mu"]]),
       # negbinomial with the shape fixed at 1
       dev_fn = function(y, dpars, aterms) {
-        nbinom_deviance(y, dpars$mu, 1)
+        nbinom_deviance(y, dpars[["mu"]], 1)
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rnbinom(n, size = 1, mu = dpars$mu)
+      stats::rnbinom(n, size = 1, mu = dpars[["mu"]])
     }
   )
 }
@@ -1372,22 +1390,22 @@ fam_exponential <- function(link = "log") {
     dpars = "mu",
     links = list(mu = link),
     lpdf = function(y, dpars, aterms) {
-      -log(dpars$mu) - y / dpars$mu
+      -log(dpars[["mu"]]) - y / dpars[["mu"]]
     },
     lcdf = function(q, dpars, aterms) {
-      1 - exp(-q / dpars$mu)
+      1 - exp(-q / dpars[["mu"]])
     },
     valid_y = positive_y("exponential"),
     init_dpars = list(mu = function(y, aterms) mean(y)),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu^2,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars, aterms) dpars[["mu"]]^2,
       # Gamma with the shape fixed at 1
-      dev_fn = function(y, dpars, aterms) gamma_deviance(y, dpars$mu),
+      dev_fn = function(y, dpars, aterms) gamma_deviance(y, dpars[["mu"]]),
       # int_lb^ub y f(y) dy = (lb + mu) e^{-lb/mu} - (ub + mu) e^{-ub/mu}
       trunc_mean_fn = function(dpars, aterms, lb, ub) {
-        mu <- dpars$mu
+        mu <- dpars[["mu"]]
         lo <- pmax(lb, 0)
         el <- exp(-lo / mu)
         eu <- exp(-ub / mu)
@@ -1396,7 +1414,7 @@ fam_exponential <- function(link = "log") {
         ((lo + mu) * el - hi_term) / (el - eu)
       }
     ),
-    sim = function(dpars, aterms, n) stats::rexp(n, 1 / dpars$mu)
+    sim = function(dpars, aterms, n) stats::rexp(n, 1 / dpars[["mu"]])
   )
 }
 
@@ -1412,12 +1430,12 @@ fam_weibull <- function(link = "log") {
     links = list(mu = link, shape = "log"),
     lpdf = function(y, dpars, aterms) {
       # brms parameterization: mu is the mean, scale = mu/gamma(1+1/k)
-      sc <- dpars$mu / exp(lgamma(1 + 1 / dpars$shape))
-      RTMB::dweibull(y, shape = dpars$shape, scale = sc, log = TRUE)
+      sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / dpars[["shape"]]))
+      RTMB::dweibull(y, shape = dpars[["shape"]], scale = sc, log = TRUE)
     },
     lcdf = function(q, dpars, aterms) {
-      sc <- dpars$mu / exp(lgamma(1 + 1 / dpars$shape))
-      1 - exp(-(q / sc)^dpars$shape)
+      sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / dpars[["shape"]]))
+      1 - exp(-(q / sc)^dpars[["shape"]])
     },
     valid_y = positive_y("weibull"),
     init_dpars = list(
@@ -1426,27 +1444,27 @@ fam_weibull <- function(link = "log") {
     ),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
       var_fn = function(dpars, aterms) {
-        g1 <- exp(lgamma(1 + 1 / dpars$shape))
-        g2 <- exp(lgamma(1 + 2 / dpars$shape))
-        dpars$mu^2 * (g2 / g1^2 - 1)
+        g1 <- exp(lgamma(1 + 1 / dpars[["shape"]]))
+        g2 <- exp(lgamma(1 + 2 / dpars[["shape"]]))
+        dpars[["mu"]]^2 * (g2 / g1^2 - 1)
       },
       # int_lb^ub y f(y) dy = scale * gamma(1 + 1/k) * (P(1 + 1/k, zu) -
       # P(1 + 1/k, zl)) with z = (y/scale)^k; scale * gamma(1 + 1/k) = mu
       trunc_mean_fn = function(dpars, aterms, lb, ub) {
-        k <- dpars$shape
-        sc <- dpars$mu / exp(lgamma(1 + 1 / k))
+        k <- dpars[["shape"]]
+        sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / k))
         zl <- (pmax(lb, 0) / sc)^k
         zu <- (ub / sc)^k
-        dpars$mu * (stats::pgamma(zu, 1 + 1 / k) -
+        dpars[["mu"]] * (stats::pgamma(zu, 1 + 1 / k) -
                       stats::pgamma(zl, 1 + 1 / k)) /
           (exp(-zl) - exp(-zu))
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rweibull(n, shape = dpars$shape,
-                      scale = dpars$mu / gamma(1 + 1 / dpars$shape))
+      stats::rweibull(n, shape = dpars[["shape"]],
+                      scale = dpars[["mu"]] / gamma(1 + 1 / dpars[["shape"]]))
     }
   )
 }
@@ -1464,8 +1482,9 @@ fam_shifted_lognormal <- function(link = "identity") {
     lpdf = function(y, dpars, aterms) {
       # y <= ndt gives NaN, which the optimizer treats as a rejected
       # step; the ndt init keeps the start feasible
-      RTMB::dnorm(log(y - dpars$ndt), dpars$mu, dpars$sigma, log = TRUE) -
-        log(y - dpars$ndt)
+      RTMB::dnorm(log(y - dpars[["ndt"]]), dpars[["mu"]], dpars[["sigma"]],
+                                                      log = TRUE) -
+        log(y - dpars[["ndt"]])
     },
     valid_y = positive_y("shifted_lognormal"),
     init_dpars = list(
@@ -1476,11 +1495,11 @@ fam_shifted_lognormal <- function(link = "identity") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) {
-        dpars$ndt + exp(dpars$mu + dpars$sigma^2 / 2)
+        dpars[["ndt"]] + exp(dpars[["mu"]] + dpars[["sigma"]]^2 / 2)
       }
     ),
     sim = function(dpars, aterms, n) {
-      dpars$ndt + stats::rlnorm(n, dpars$mu, dpars$sigma)
+      dpars[["ndt"]] + stats::rlnorm(n, dpars[["mu"]], dpars[["sigma"]])
     }
   )
 }
@@ -1501,8 +1520,8 @@ fam_hurdle_gamma <- function(link = "log") {
       g <- gate_logs(dpars, "hu")
       i0 * g$l +
         (1 - i0) * (g$l1m +
-                      RTMB::dgamma(yp, shape = dpars$shape,
-                                   scale = dpars$mu / dpars$shape,
+                      RTMB::dgamma(yp, shape = dpars[["shape"]],
+                                   scale = dpars[["mu"]] / dpars[["shape"]],
                                    log = TRUE))
     },
     valid_y = function(y, aterms) {
@@ -1517,12 +1536,12 @@ fam_hurdle_gamma <- function(link = "log") {
     ),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) (1 - dpars$hu) * dpars$mu
+      mean_fn = function(dpars, aterms) (1 - dpars[["hu"]]) * dpars[["mu"]]
     ),
     sim = function(dpars, aterms, n) {
-      stats::rbinom(n, 1, 1 - dpars$hu) *
-        stats::rgamma(n, shape = dpars$shape,
-                      scale = dpars$mu / dpars$shape)
+      stats::rbinom(n, 1, 1 - dpars[["hu"]]) *
+        stats::rgamma(n, shape = dpars[["shape"]],
+                      scale = dpars[["mu"]] / dpars[["shape"]])
     }
   )
 }
@@ -1542,7 +1561,7 @@ fam_hurdle_lognormal <- function(link = "identity") {
       g <- gate_logs(dpars, "hu")
       i0 * g$l +
         (1 - i0) * (g$l1m +
-                      RTMB::dnorm(log(yp), dpars$mu, dpars$sigma,
+                      RTMB::dnorm(log(yp), dpars[["mu"]], dpars[["sigma"]],
                                   log = TRUE) - log(yp))
     },
     valid_y = function(y, aterms) {
@@ -1563,12 +1582,12 @@ fam_hurdle_lognormal <- function(link = "identity") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) {
-        (1 - dpars$hu) * exp(dpars$mu + dpars$sigma^2 / 2)
+        (1 - dpars[["hu"]]) * exp(dpars[["mu"]] + dpars[["sigma"]]^2 / 2)
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rbinom(n, 1, 1 - dpars$hu) *
-        stats::rlnorm(n, dpars$mu, dpars$sigma)
+      stats::rbinom(n, 1, 1 - dpars[["hu"]]) *
+        stats::rlnorm(n, dpars[["mu"]], dpars[["sigma"]])
     }
   )
 }
@@ -1585,13 +1604,13 @@ fam_zi_binomial <- function(link = "logit") {
     dpars = c("mu", "zi"),
     links = list(mu = lk, zi = "logit"),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms$trials %||% 1
+      size <- aterms[["trials"]] %||% 1
       i0 <- as.numeric(y == 0)
       g <- gate_logs(dpars, "zi")
       lo <- robust_logit(dpars, lk)
       if (is.null(lo)) {
-        lp0 <- size * log(1 - dpars$mu)
-        base <- RTMB::dbinom(y, size, dpars$mu, log = TRUE)
+        lp0 <- size * log(1 - dpars[["mu"]])
+        base <- RTMB::dbinom(y, size, dpars[["mu"]], log = TRUE)
       } else {
         # log P(0) = size * log(1 - mu), both terms off the log-odds
         lp0 <- size * log1m_inv_logit(lo)
@@ -1600,7 +1619,7 @@ fam_zi_binomial <- function(link = "logit") {
       i0 * RTMB::logspace_add(g$l, g$l1m + lp0) + (1 - i0) * (g$l1m + base)
     },
     valid_y = function(y, aterms) {
-      size <- aterms$trials %||% 1
+      size <- aterms[["trials"]] %||% 1
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         stop("zero_inflated_binomial: response must be integer counts ",
              "in [0, trials]", call. = FALSE)
@@ -1608,7 +1627,7 @@ fam_zi_binomial <- function(link = "logit") {
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        size <- aterms$trials %||% 1
+        size <- aterms[["trials"]] %||% 1
         min(max(mean(y / size), 0.05), 0.95)
       },
       zi = function(y, aterms) min(max(mean(y == 0) / 2, 0.05), 0.9)
@@ -1616,12 +1635,12 @@ fam_zi_binomial <- function(link = "logit") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) {
-        (1 - dpars$zi) * dpars$mu * (aterms$trials %||% 1)
+        (1 - dpars[["zi"]]) * dpars[["mu"]] * (aterms[["trials"]] %||% 1)
       }
     ),
     sim = function(dpars, aterms, n) {
-      stats::rbinom(n, 1, 1 - dpars$zi) *
-        stats::rbinom(n, aterms$trials %||% 1, dpars$mu)
+      stats::rbinom(n, 1, 1 - dpars[["zi"]]) *
+        stats::rbinom(n, aterms[["trials"]] %||% 1, dpars[["mu"]])
     }
   )
 }
@@ -1643,8 +1662,8 @@ fam_zi_beta <- function(link = "logit") {
       mp <- mu_pair(dpars, lk)
       i0 * g$l +
         (1 - i0) * (g$l1m +
-                      RTMB::dbeta(ya, mp$p * dpars$phi,
-                                  mp$q * dpars$phi, log = TRUE))
+                      RTMB::dbeta(ya, mp$p * dpars[["phi"]],
+                                  mp$q * dpars[["phi"]], log = TRUE))
     },
     valid_y = function(y, aterms) {
       if (any(y < 0) || any(y >= 1)) {
@@ -1661,11 +1680,12 @@ fam_zi_beta <- function(link = "logit") {
     ),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) (1 - dpars$zi) * dpars$mu
+      mean_fn = function(dpars, aterms) (1 - dpars[["zi"]]) * dpars[["mu"]]
     ),
     sim = function(dpars, aterms, n) {
-      stats::rbinom(n, 1, 1 - dpars$zi) *
-        stats::rbeta(n, dpars$mu * dpars$phi, (1 - dpars$mu) * dpars$phi)
+      stats::rbinom(n, 1, 1 - dpars[["zi"]]) *
+        stats::rbeta(n, dpars[["mu"]] * dpars[["phi"]],
+          (1 - dpars[["mu"]]) * dpars[["phi"]])
     }
   )
 }
@@ -1683,12 +1703,12 @@ fam_asym_laplace <- function(link = "identity") {
     lpdf = function(y, dpars, aterms) {
       # rho_p(u) = 0.5 * (|u| + (2p - 1) u); ML at fixed quantile p
       # reproduces quantile-regression point estimates
-      p <- dpars$quantile
-      u <- (y - dpars$mu) / dpars$sigma
+      p <- dpars[["quantile"]]
+      u <- (y - dpars[["mu"]]) / dpars[["sigma"]]
       # log(p) + log(1 - p) is the normalizer; an extreme quantile makes
       # one of them -Inf through the logit round trip
       gq <- gate_logs(dpars, "quantile")
-      gq$l + gq$l1m - log(dpars$sigma) -
+      gq$l + gq$l1m - log(dpars[["sigma"]]) -
         0.5 * (abs(u) + (2 * p - 1) * u)
     },
     init_dpars = list(
@@ -1699,13 +1719,13 @@ fam_asym_laplace <- function(link = "identity") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) {
-        dpars$mu + dpars$sigma * (1 - 2 * dpars$quantile) /
-          (dpars$quantile * (1 - dpars$quantile))
+        dpars[["mu"]] + dpars[["sigma"]] * (1 - 2 * dpars[["quantile"]]) /
+          (dpars[["quantile"]] * (1 - dpars[["quantile"]]))
       }
     ),
     sim = function(dpars, aterms, n) {
-      p <- dpars$quantile
-      dpars$mu + dpars$sigma *
+      p <- dpars[["quantile"]]
+      dpars[["mu"]] + dpars[["sigma"]] *
         (stats::rexp(n) / p - stats::rexp(n) / (1 - p))
     }
   )
@@ -1724,10 +1744,10 @@ fam_zi_asym_laplace <- function(link = "identity") {
                  zi = "logit"),
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
-      p <- dpars$quantile
-      u <- (y - dpars$mu) / dpars$sigma
+      p <- dpars[["quantile"]]
+      u <- (y - dpars[["mu"]]) / dpars[["sigma"]]
       gq <- gate_logs(dpars, "quantile")
-      ald <- gq$l + gq$l1m - log(dpars$sigma) -
+      ald <- gq$l + gq$l1m - log(dpars[["sigma"]]) -
         0.5 * (abs(u) + (2 * p - 1) * u)
       g <- gate_logs(dpars, "zi")
       i0 * g$l + (1 - i0) * (g$l1m + ald)
@@ -1744,15 +1764,15 @@ fam_zi_asym_laplace <- function(link = "identity") {
     type = "continuous",
     post = list(
       mean_fn = function(dpars, aterms) {
-        (1 - dpars$zi) *
-          (dpars$mu + dpars$sigma * (1 - 2 * dpars$quantile) /
-             (dpars$quantile * (1 - dpars$quantile)))
+        (1 - dpars[["zi"]]) *
+          (dpars[["mu"]] + dpars[["sigma"]] * (1 - 2 * dpars[["quantile"]]) /
+             (dpars[["quantile"]] * (1 - dpars[["quantile"]])))
       }
     ),
     sim = function(dpars, aterms, n) {
-      p <- dpars$quantile
-      stats::rbinom(n, 1, 1 - dpars$zi) *
-        (dpars$mu + dpars$sigma *
+      p <- dpars[["quantile"]]
+      stats::rbinom(n, 1, 1 - dpars[["zi"]]) *
+        (dpars[["mu"]] + dpars[["sigma"]] *
            (stats::rexp(n) / p - stats::rexp(n) / (1 - p)))
     }
   )
@@ -1838,8 +1858,8 @@ fam_huber <- function(link = "identity", k = 1.345) {
     dpars = c("mu", "sigma"),
     links = list(mu = link, sigma = "log"),
     lpdf = function(y, dpars, aterms) {
-      s <- resid_sd(dpars$sigma, aterms)
-      -log(s) - lognorm - huber_rho((y - dpars$mu) / s, k)
+      s <- resid_sd(dpars[["sigma"]], aterms)
+      -log(s) - lognorm - huber_rho((y - dpars[["mu"]]) / s, k)
     },
     init_dpars = list(
       mu = function(y, aterms) stats::median(y),
@@ -1851,19 +1871,19 @@ fam_huber <- function(link = "identity", k = 1.345) {
     type = "continuous",
     post = list(
       # symmetric about mu, so the mean is mu
-      mean_fn = function(dpars, aterms) dpars$mu,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
       var_fn = function(dpars, aterms) {
-        resid_sd(dpars$sigma, aterms)^2 * varu
+        resid_sd(dpars[["sigma"]], aterms)^2 * varu
       },
       # 2 (ll at mu = y - ll at mu), the scale held fixed: 2 sigma^2
       # rho_k(u), which collapses to the gaussian (y - mu)^2 as k grows
       dev_fn = function(y, dpars, aterms) {
-        s <- resid_sd(dpars$sigma, aterms)
-        2 * s^2 * huber_rho((y - dpars$mu) / s, k)
+        s <- resid_sd(dpars[["sigma"]], aterms)
+        2 * s^2 * huber_rho((y - dpars[["mu"]]) / s, k)
       }
     ),
     sim = function(dpars, aterms, n) {
-      dpars$mu + resid_sd(dpars$sigma, aterms) * rhuber_u(n, k)
+      dpars[["mu"]] + resid_sd(dpars[["sigma"]], aterms) * rhuber_u(n, k)
     }
   )
 }
@@ -1881,15 +1901,16 @@ fam_beta_binomial <- function(link = "logit") {
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = "log"),
     lpdf = function(y, dpars, aterms) {
-      size <- aterms$trials %||% 1
+      size <- aterms[["trials"]] %||% 1
       # RTMBdist has no log-odds form, so the robustness has to go into
       # the shapes: a zero second shape gives lgamma(0) = NaN
       mp <- mu_pair(dpars, lk)
-      RTMBdist::dbetabinom(y, size, mp$p * dpars$phi, mp$q * dpars$phi,
+      RTMBdist::dbetabinom(y, size, mp$p * dpars[["phi"]],
+                mp$q * dpars[["phi"]],
                            log = TRUE)
     },
     valid_y = function(y, aterms) {
-      size <- aterms$trials %||% 1
+      size <- aterms[["trials"]] %||% 1
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
         stop("beta_binomial: response must be integer counts in ",
              "[0, trials]", call. = FALSE)
@@ -1897,19 +1918,20 @@ fam_beta_binomial <- function(link = "logit") {
     },
     init_dpars = list(
       mu = function(y, aterms) {
-        p <- mean(y / (aterms$trials %||% 1))
+        p <- mean(y / (aterms[["trials"]] %||% 1))
         min(max(p, 0.02), 0.98)
       },
       phi = function(y, aterms) 5
     ),
     type = "discrete",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu * (aterms$trials %||% 1)
+      mean_fn = function(dpars,
+                         aterms) dpars[["mu"]] * (aterms[["trials"]] %||% 1)
     ),
     sim = function(dpars, aterms, n) {
-      RTMBdist::rbetabinom(n, aterms$trials %||% 1,
-                           dpars$mu * dpars$phi,
-                           (1 - dpars$mu) * dpars$phi)
+      RTMBdist::rbetabinom(n, aterms[["trials"]] %||% 1,
+                           dpars[["mu"]] * dpars[["phi"]],
+                           (1 - dpars[["mu"]]) * dpars[["phi"]])
     }
   )
 }
@@ -1925,7 +1947,7 @@ fam_skew_normal <- function(link = "identity") {
     dpars = c("mu", "sigma", "alpha"),
     links = list(mu = link, sigma = "log", alpha = "identity"),
     lpdf = function(y, dpars, aterms) {
-      RTMBdist::dskewnorm2(y, dpars$mu, dpars$sigma, dpars$alpha,
+      RTMBdist::dskewnorm2(y, dpars[["mu"]], dpars[["sigma"]], dpars[["alpha"]],
                            log = TRUE)
     },
     init_dpars = list(
@@ -1939,9 +1961,9 @@ fam_skew_normal <- function(link = "identity") {
       }
     ),
     type = "continuous",
-    post = list(mean_fn = function(dpars, aterms) dpars$mu),
+    post = list(mean_fn = function(dpars, aterms) dpars[["mu"]]),
     sim = function(dpars, aterms, n) {
-      RTMBdist::rskewnorm2(n, dpars$mu, dpars$sigma, dpars$alpha)
+      RTMBdist::rskewnorm2(n, dpars[["mu"]], dpars[["sigma"]], dpars[["alpha"]])
     }
   )
 }
@@ -1956,11 +1978,11 @@ fam_inverse_gaussian <- function(link = "log") {
     dpars = c("mu", "shape"),
     links = list(mu = link, shape = "log"),
     lpdf = function(y, dpars, aterms) {
-      RTMBdist::dinvgauss(y, mean = dpars$mu, shape = dpars$shape,
+      RTMBdist::dinvgauss(y, mean = dpars[["mu"]], shape = dpars[["shape"]],
                           log = TRUE)
     },
     lcdf = function(q, dpars, aterms) {
-      RTMBdist::pinvgauss(q, mean = dpars$mu, shape = dpars$shape)
+      RTMBdist::pinvgauss(q, mean = dpars[["mu"]], shape = dpars[["shape"]])
     },
     valid_y = positive_y("inverse.gaussian"),
     init_dpars = list(
@@ -1969,19 +1991,19 @@ fam_inverse_gaussian <- function(link = "log") {
     ),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$mu^3 / dpars$shape,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars, aterms) dpars[["mu"]]^3 / dpars[["shape"]],
       # 1 / shape is the dispersion and divides out
       dev_fn = function(y, dpars, aterms) {
-        (y - dpars$mu)^2 / (y * dpars$mu^2)
+        (y - dpars[["mu"]])^2 / (y * dpars[["mu"]]^2)
       },
       # Partial moment (Jorgensen): E[Y 1{Y <= x}] =
       # mu (Phi(z1) - e^{2 lambda / mu} Phi(-z2)), with the CDF the same
       # pair added instead of subtracted; the exponential factor
       # overflows on its own, so it rides in log space
       trunc_mean_fn = function(dpars, aterms, lb, ub) {
-        mu <- dpars$mu
-        lam <- dpars$shape
+        mu <- dpars[["mu"]]
+        lam <- dpars[["shape"]]
         part <- function(x) {
           r <- sqrt(lam / x)
           mu * (stats::pnorm(r * (x / mu - 1)) -
@@ -2003,7 +2025,7 @@ fam_inverse_gaussian <- function(link = "log") {
       }
     ),
     sim = function(dpars, aterms, n) {
-      RTMBdist::rinvgauss(n, mean = dpars$mu, shape = dpars$shape)
+      RTMBdist::rinvgauss(n, mean = dpars[["mu"]], shape = dpars[["shape"]])
     }
   )
 }
@@ -2020,8 +2042,8 @@ fam_exgaussian <- function(link = "identity") {
     dpars = c("mu", "sigma", "beta"),
     links = list(mu = link, sigma = "log", beta = "log"),
     lpdf = function(y, dpars, aterms) {
-      RTMBdist::dexgauss(y, dpars$mu - dpars$beta, dpars$sigma,
-                         1 / dpars$beta, log = TRUE)
+      RTMBdist::dexgauss(y, dpars[["mu"]] - dpars[["beta"]], dpars[["sigma"]],
+                         1 / dpars[["beta"]], log = TRUE)
     },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
@@ -2030,12 +2052,12 @@ fam_exgaussian <- function(link = "identity") {
     ),
     type = "continuous",
     post = list(
-      mean_fn = function(dpars, aterms) dpars$mu,
-      var_fn = function(dpars, aterms) dpars$sigma^2 + dpars$beta^2
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      var_fn = function(dpars, aterms) dpars[["sigma"]]^2 + dpars[["beta"]]^2
     ),
     sim = function(dpars, aterms, n) {
-      RTMBdist::rexgauss(n, dpars$mu - dpars$beta, dpars$sigma,
-                         1 / dpars$beta)
+      RTMBdist::rexgauss(n, dpars[["mu"]] - dpars[["beta"]], dpars[["sigma"]],
+                         1 / dpars[["beta"]])
     }
   )
 }
@@ -2117,7 +2139,7 @@ fam_cumulative <- function(link = "logit") {
       if (K1 > 1) {
         for (k in 2:K1) tau[k] <- tau[k - 1] + exp(raw[k])
       }
-      eta <- dpars$mu
+      eta <- dpars[["mu"]]
       K <- K1 + 1L
       ov <- osa_unwrap(y)
       if (!is.null(ov)) {
@@ -2330,8 +2352,8 @@ ord_cat_probs <- function(family, eta, tau, cs, link) {
 ord_sim <- function(family, ordered, link) {
   function(dpars, aterms, n, extra) {
     tau <- ord_tau_from_raw(extra$tau_raw, ordered)
-    P <- ord_cat_probs(family, rep(dpars$mu, length.out = n), tau,
-                       dpars$.cs, link)
+    P <- ord_cat_probs(family, rep(dpars[["mu"]], length.out = n), tau,
+                       dpars[[".cs"]], link)
     K <- ncol(P)
     # inverse-CDF sampling, one uniform per row
     cp <- t(apply(P, 1L, cumsum))
@@ -2390,11 +2412,12 @@ fam_sratio <- function(link = "logit") {
       n <- length(y)
       ov <- osa_unwrap(y)
       if (!is.null(ov)) {
-        return(ord_seq_lpdf_ad(ov$y, dpars$mu, tau, K1, dpars$.cs, Fcdf,
+        return(ord_seq_lpdf_ad(ov$y, dpars[["mu"]], tau, K1, dpars[[".cs"]],
+                         Fcdf,
                                stopping = TRUE) * ov$keep)
       }
-      M <- ord_eta_mat(dpars$mu, tau, n, K1)
-      if (!is.null(dpars$.cs)) M <- M - dpars$.cs
+      M <- ord_eta_mat(dpars[["mu"]], tau, n, K1)
+      if (!is.null(dpars[[".cs"]])) M <- M - dpars[[".cs"]]
       ind <- ord_indicators(y, K1)
       if (robust) {
         # log F and log(1 - F) straight out of logspace_add: the naive
@@ -2433,11 +2456,12 @@ fam_cratio <- function(link = "logit") {
       n <- length(y)
       ov <- osa_unwrap(y)
       if (!is.null(ov)) {
-        return(ord_seq_lpdf_ad(ov$y, dpars$mu, tau, K1, dpars$.cs, Fcdf,
+        return(ord_seq_lpdf_ad(ov$y, dpars[["mu"]], tau, K1, dpars[[".cs"]],
+                         Fcdf,
                                stopping = FALSE) * ov$keep)
       }
-      M <- ord_eta_mat(dpars$mu, tau, n, K1)   # tau_j - eta
-      if (!is.null(dpars$.cs)) M <- M - dpars$.cs
+      M <- ord_eta_mat(dpars[["mu"]], tau, n, K1)   # tau_j - eta
+      if (!is.null(dpars[[".cs"]])) M <- M - dpars[[".cs"]]
       ind <- ord_indicators(y, K1)
       if (robust) {
         # P = F(-M), so log(1 - P) = log F(M) and log P = log(1 - F(M));
@@ -2475,7 +2499,7 @@ fam_acat <- function(link = "logit") {
       tau <- extra$tau_raw
       K <- length(tau) + 1L
       n <- length(y)
-      eta <- dpars$mu
+      eta <- dpars[["mu"]]
       "c" <- RTMB::ADoverload("c")
       ct0 <- c(0, cumsum(tau))                 # length K
       ov <- osa_unwrap(y)
@@ -2486,8 +2510,8 @@ fam_acat <- function(link = "logit") {
         den <- NULL
         for (r in seq_len(K)) {
           Er <- (r - 1) * eta - ct0[r]
-          if (!is.null(dpars$.cs) && r >= 2L) {
-            acc <- acc + dpars$.cs[, r - 1L]
+          if (!is.null(dpars[[".cs"]]) && r >= 2L) {
+            acc <- acc + dpars[[".cs"]][, r - 1L]
             Er <- Er + acc
           }
           num <- num + sel[[r]] * Er
@@ -2502,9 +2526,9 @@ fam_acat <- function(link = "logit") {
       Rm <- matrix(rep(seq_len(K) - 1L, each = n), n, K)
       E <- Rm * eta -
         RTMB::matrix(1, n, 1) %*% RTMB::matrix(ct0, 1, K)
-      if (!is.null(dpars$.cs)) {
+      if (!is.null(dpars[[".cs"]])) {
         "[<-" <- RTMB::ADoverload("[<-")
-        CS <- dpars$.cs
+        CS <- dpars[[".cs"]]
         acc <- 0 * eta
         for (r in seq.int(2L, K)) {
           acc <- acc + CS[, r - 1L]
@@ -2718,7 +2742,7 @@ mixture <- function(..., groups = NULL) {
   )
   # internals for the objective's group-level branch and for
   # mixture_probs(): per-component log-densities and log mixing weights
-  fam$mix <- list(
+  fam[["mix"]] <- list(
     K = K,
     comp_lpdf = function(y, dpars, aterms, k) {
       comps[[k]]$lpdf(y, comp_dpars(dpars, k), aterms)
@@ -2749,12 +2773,12 @@ mixture <- function(..., groups = NULL) {
       stop("groups must be a one-sided formula: groups = ~g",
            call. = FALSE)
     }
-    fam$mix_groups <- groups
+    fam[["mix_groups"]] <- groups
     # A class belongs to the GROUP, so neither the likelihood nor the
     # draw is rowwise: the group's per-observation log-densities sum
     # BEFORE the logsumexp over classes, and the rowwise `sim` above
     # would give one group two classes. That is what a structure is.
-    fam[["structure"]] <- mixture_structure(fam$mix)
+    fam[["structure"]] <- mixture_structure(fam[["mix"]])
   }
   fam
 }
@@ -2944,7 +2968,7 @@ mixture_sim_groups <- function(ctx) {
 #' @export
 mixture_probs <- function(fit) {
   rspec <- single_response(fit, "mixture_probs()")
-  if (is.null(rspec$family$mix)) {
+  if (is.null(rspec$family[["mix"]])) {
     stop("mixture_probs() needs a mixture() family fit", call. = FALSE)
   }
   latent_probs(fit)
@@ -2962,24 +2986,24 @@ mixture_posterior <- function(fit) {
   rspec <- single_response(fit, "mixture_probs()")
   fam <- rspec$family
   dp <- eval_dpars(fit)[[rspec$resp_name]]
-  av <- fit$frame$aterm_values[[rspec$resp_name]]
-  yv <- fit$frame$y[[rspec$resp_name]]
-  lps_pi <- fam$mix$log_pi(dp)
-  K <- fam$mix$K
+  av <- fit$frame[["aterm_values"]][[rspec$resp_name]]
+  yv <- fit$frame[["y"]][[rspec$resp_name]]
+  lps_pi <- fam[["mix"]]$log_pi(dp)
+  K <- fam[["mix"]]$K
   # the group incidence of a group-level mixture, or NULL for a rowwise
   # one, where the posterior is per observation
   mg <- frame_block_of(fit$frame, rspec$resp_name)
-  w <- av$weights %||% 1
+  w <- av[["weights"]] %||% 1
   # matrix responses (mixture_mvn) have one density per ROW, so NROW,
   # not length; their class covariances live in the extra parameters
-  ex <- if (!is.null(fam$extra_pars)) {
-    fit$estimates[fit$frame$extra_names]
+  ex <- if (!is.null(fam[["extra_pars"]])) {
+    fit$estimates[fit$frame[["extra_names"]]]
   }
   M <- vapply(seq_len(K), function(k) {
     ll_k <- if (is.null(ex)) {
-      fam$mix$comp_lpdf(yv, dp, av, k)
+      fam[["mix"]]$comp_lpdf(yv, dp, av, k)
     } else {
-      fam$mix$comp_lpdf(yv, dp, av, k, ex)
+      fam[["mix"]]$comp_lpdf(yv, dp, av, k, ex)
     }
     if (!is.null(mg)) {
       as.vector(Matrix::t(mg$G) %*% (w * ll_k)) + lps_pi[[k]][mg$first]
@@ -3274,7 +3298,7 @@ mixture_mvn <- function(K, D, model = "VVV") {
   )
   # internals for mixture_probs(): same shape as mixture()'s, with the
   # extra (covariance) parameters as a fifth comp_lpdf argument
-  fam$mix <- list(
+  fam[["mix"]] <- list(
     K = K,
     D = D,
     cov_model = model,
@@ -3294,7 +3318,7 @@ mixture_mvn <- function(K, D, model = "VVV") {
   )
   # the class covariances are family-level EXTRAS, not dpars, so the
   # rowwise contract cannot see them; the structured one can
-  fam$sim_ctx <- mvn_sim_rows
+  fam[["sim_ctx"]] <- mvn_sim_rows
   # the likelihood is rowwise (one D-variate density per row), so the
   # structure carries nothing but the two multimodality refusals
   fam[["structure"]] <- frmtmb_structure(
@@ -3360,7 +3384,7 @@ fam_von_mises <- function(link = "tan_half") {
     dpars = c("mu", "kappa"),
     links = list(mu = link, kappa = "log"),
     lpdf = function(y, dpars, aterms) {
-      RTMBdist::dvm(y, dpars$mu, dpars$kappa, log = TRUE)
+      RTMBdist::dvm(y, dpars[["mu"]], dpars[["kappa"]], log = TRUE)
     },
     valid_y = function(y, aterms) {
       if (any(y < -pi) || any(y > pi)) {
@@ -3391,17 +3415,17 @@ fam_von_mises <- function(link = "tan_half") {
       # the mean DIRECTION, which is what brms's posterior_epred()
       # reports for this family; a circular response has no mean in the
       # arithmetic sense
-      mean_fn = function(dpars, aterms) dpars$mu,
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
       # the circular variance 1 - A(kappa), on (0, 1)
       var_fn = function(dpars, aterms) {
-        k <- dpars$kappa
+        k <- dpars[["kappa"]]
         1 - besselI(k, 1, expon.scaled = TRUE) /
           besselI(k, 0, expon.scaled = TRUE)
       }
     ),
     sim = function(dpars, aterms, n) {
-      rvon_mises(n, rep(dpars$mu, length.out = n),
-                 rep(dpars$kappa, length.out = n))
+      rvon_mises(n, rep(dpars[["mu"]], length.out = n),
+                 rep(dpars[["kappa"]], length.out = n))
     }
   )
 }
@@ -3532,8 +3556,8 @@ fam_categorical_impl <- function(dpar_names, levels = NULL,
     },
     primary_dpars = dpar_names
   )
-  fam$cat_levels <- levels
-  fam$cat_K <- K
+  fam[["cat_levels"]] <- levels
+  fam[["cat_K"]] <- K
   fam
 }
 
@@ -3558,7 +3582,7 @@ fam_categorical_deferred <- function(link = "logit") {
     },
     type = "categorical"
   )
-  fam$defer <- function(formula, data) {
+  fam[["defer"]] <- function(formula, data) {
     lv <- categorical_levels(formula, data)
     fam_categorical_impl(paste0("mu", lv[-1L]), levels = lv, link = link)
   }
@@ -3619,8 +3643,8 @@ categorical_y_levels <- function(y, label) {
 resolve_deferred_families <- function(bform, data) {
   if (is.null(data)) return(bform)
   one <- function(f) {
-    if (is.null(f$family) || is.null(f$family$defer)) return(f)
-    f$family <- f$family$defer(f$formula, data)
+    if (is.null(f$family) || is.null(f$family[["defer"]])) return(f)
+    f$family <- f$family[["defer"]](f$formula, data)
     f
   }
   if (inherits(bform, "frmtmb_mvformula")) {
@@ -3762,10 +3786,10 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
     links = list(mu = link),
     lpdf = function(y, dpars, aterms, extra) {
       s <- sbhaz(extra$sbhaz_raw)
-      bhaz <- as.vector(aterms$Zbhaz %*% s)
-      cbhaz <- as.vector(aterms$Zcbhaz %*% s)
+      bhaz <- as.vector(aterms[["Zbhaz"]] %*% s)
+      cbhaz <- as.vector(aterms[["Zcbhaz"]] %*% s)
       # log h(t) + log S(t), with h(t) = h0(t) * mu and mu = exp(eta)
-      log(bhaz) + log(dpars$mu) - cbhaz * dpars$mu
+      log(bhaz) + log(dpars[["mu"]]) - cbhaz * dpars[["mu"]]
     },
     lcdf = function(q, dpars, aterms, extra) {
       # F(t) = 1 - exp(-H0(t) * mu). Every bound a censored or truncated
@@ -3773,7 +3797,7 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
       # built once at frame assembly and is looked up by value here.
       cbhaz <- as.vector(cox_cbhaz_design(q, aterms) %*%
                            sbhaz(extra$sbhaz_raw))
-      1 - exp(-cbhaz * dpars$mu)
+      1 - exp(-cbhaz * dpars[["mu"]])
     },
     valid_y = function(y, aterms) {
       if (any(y <= 0)) {
@@ -3790,7 +3814,7 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
       # the baseline integrates to one over the observed window, so the
       # hazard ratio starts at the crude event rate
       mu = function(y, aterms) {
-        ev <- if (is.null(aterms$cens)) 1 else mean(aterms$cens == 0)
+        ev <- if (is.null(aterms[["cens"]])) 1 else mean(aterms[["cens"]] == 0)
         max(ev, 0.05) / mean(y)
       }
     ),
@@ -3809,7 +3833,7 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
       }
     ),
     extra_pars = function(y, aterms) {
-      list(sbhaz_raw = rep(0, ncol(aterms$Zbhaz) - 1L))
+      list(sbhaz_raw = rep(0, ncol(aterms[["Zbhaz"]]) - 1L))
     },
     # a deliberate omission, not a gap: every entry point repeats this
     # reason after its own refusal
@@ -3823,7 +3847,7 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
   )
   # the baseline bases are data, not parameters: they are built once
   # from the observed times and ride with the response's addition terms
-  fam$aterm_data <- function(y, aterms) {
+  fam[["aterm_data"]] <- function(y, aterms) {
     sp <- bhaz_spec(y, df, degree, intercept)
     out <- list(Zbhaz = mspline_design(y, sp), bhaz_spec = sp,
                 cox_cb = list(cox_cb_entry(y, sp)))
@@ -3836,7 +3860,7 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
     out$Zcbhaz <- out$cox_cb[[1L]]$Z
     out
   }
-  fam$cox_sbhaz <- sbhaz
+  fam[["cox_sbhaz"]] <- sbhaz
   fam
 }
 
@@ -3859,10 +3883,10 @@ cox_cb_entry <- function(q, sp) {
 #' @noRd
 cox_cbhaz_design <- function(q, aterms) {
   qn <- as.numeric(q)
-  for (e in aterms$cox_cb %||% list()) {
+  for (e in aterms[["cox_cb"]] %||% list()) {
     if (identical(e$q, qn)) return(e$Z)
   }
-  cox_cb_entry(qn, aterms$bhaz_spec)$Z
+  cox_cb_entry(qn, aterms[["bhaz_spec"]])$Z
 }
 
 #' Call a family's log-CDF, passing the family-level extra parameters to
@@ -3872,10 +3896,10 @@ cox_cbhaz_design <- function(q, aterms) {
 #'
 #' @noRd
 fam_lcdf <- function(fam, q, dpars, aterms, extra) {
-  if (length(formals(fam$lcdf)) >= 4L) {
-    fam$lcdf(q, dpars, aterms, extra)
+  if (length(formals(fam[["lcdf"]])) >= 4L) {
+    fam[["lcdf"]](q, dpars, aterms, extra)
   } else {
-    fam$lcdf(q, dpars, aterms)
+    fam[["lcdf"]](q, dpars, aterms)
   }
 }
 
@@ -3893,10 +3917,10 @@ fam_lcdf <- function(fam, q, dpars, aterms, extra) {
 cox_baseline <- function(fit) {
   rspec <- single_response(fit, "cox_baseline()")
   fam <- rspec$family
-  if (is.null(fam$cox_sbhaz)) {
+  if (is.null(fam[["cox_sbhaz"]])) {
     stop("cox_baseline() needs a cox() family fit", call. = FALSE)
   }
-  s <- fam$cox_sbhaz(fit$estimates[["sbhaz_raw"]])
+  s <- fam[["cox_sbhaz"]](fit$estimates[["sbhaz_raw"]])
   stats::setNames(s, paste0("s", seq_along(s)))
 }
 
@@ -3938,7 +3962,7 @@ fam_multinomial <- function(K) {
         stop("multinomial: response must be non-negative integer counts",
              call. = FALSE)
       }
-      tr <- aterms$trials
+      tr <- aterms[["trials"]]
       if (!is.null(tr) && any(rowSums(y) != tr)) {
         stop("multinomial: rowSums(response) must equal trials()",
              call. = FALSE)
@@ -3946,7 +3970,7 @@ fam_multinomial <- function(K) {
     },
     type = "discrete",
     sim = function(dpars, aterms, n) {
-      size <- aterms$trials
+      size <- aterms[["trials"]]
       if (is.null(size)) {
         stop("simulate(): a multinomial fit needs trials() to know how ",
              "many draws each row gets", call. = FALSE)
