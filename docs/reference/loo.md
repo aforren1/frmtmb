@@ -1,54 +1,37 @@
 # Approximate leave-one-out cross-validation
 
-`loo()` runs Pareto-smoothed importance-sampling LOO and `waic()` the
-widely applicable information criterion, both on the
-[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
-matrix, by handing it to
-[`loo::loo.matrix()`](https://mc-stan.org/loo/reference/loo.html) and
-[`loo::waic.matrix()`](https://mc-stan.org/loo/reference/waic.html)
-unchanged. The returned objects are the loo package's own, so
-[`print()`](https://rdrr.io/r/base/print.html) and
-[`loo::pareto_k_table()`](https://mc-stan.org/loo/reference/pareto-k-diagnostic.html)
-work on them directly. `loo_compare()` computes the criterion for each
-draws object it is given and ranks them; handed criteria instead of
-draws, it is
-[`loo::loo_compare()`](https://mc-stan.org/loo/reference/loo_compare.html)
-itself. `psis()` returns the smoothed importance weights alone.
+`loo()` and `waic()` estimate the expected log predictive density of a
+model from posterior draws: `loo()` by Pareto-smoothed importance
+sampling, `waic()` by the widely applicable information criterion.
+`loo_compare()` ranks several of them. `LOO()` and `WAIC()` are brms's
+deprecated capitalized spellings.
 
 ## Usage
 
 ``` r
 loo(x, ...)
 
-# S3 method for class 'frmtmb_draws'
-loo(x, ndraws = NULL, resp = NULL, ...)
+# S3 method for class 'frmtmb_fit'
+loo(x, ...)
 
 waic(x, ...)
 
-# S3 method for class 'frmtmb_draws'
-waic(x, ndraws = NULL, resp = NULL, ...)
+# S3 method for class 'frmtmb_fit'
+waic(x, ...)
 
 loo_compare(x, ...)
 
 # Default S3 method
 loo_compare(x, ...)
 
-# S3 method for class 'frmtmb_draws'
-loo_compare(x, ..., criterion = c("loo", "waic"), model_names = NULL)
-
-psis(log_ratios, ...)
-
-# S3 method for class 'frmtmb_draws'
-psis(log_ratios, ndraws = NULL, resp = NULL, ...)
-
 LOO(x, ...)
 
-# S3 method for class 'frmtmb_draws'
+# S3 method for class 'frmtmb_fit'
 LOO(x, ...)
 
 WAIC(x, ...)
 
-# S3 method for class 'frmtmb_draws'
+# S3 method for class 'frmtmb_fit'
 WAIC(x, ...)
 ```
 
@@ -56,126 +39,60 @@ WAIC(x, ...)
 
 - x:
 
-  A `frmtmb_draws` from
-  [`frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.md),
-  or (for `loo_compare()`) already-computed criteria.
+  A `frmtmb_fit`, or (with `frmtmb.sample` loaded) draws.
 
 - ...:
 
-  Further models for `loo_compare()`; otherwise passed to the loo
-  package function.
-
-- ndraws, resp:
-
-  Passed to
-  [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md).
-
-- criterion:
-
-  Which criterion `loo_compare()` computes for each draws object.
-
-- model_names:
-
-  Row names for the comparison; the default deparses the arguments, as
-  loo does.
-
-- log_ratios:
-
-  For `psis()`, the draws object whose negative pointwise log-likelihood
-  supplies the importance ratios.
+  Passed to methods.
 
 ## Value
 
-A `loo`, `waic`, `compare.loo` or `psis` object from the loo package.
+These methods signal an error on a maximum-likelihood fit.
 
 ## Details
 
-`LOO()` and `WAIC()` are brms's deprecated capitalized spellings and are
-defined only to name their replacements.
+All of these average a likelihood over posterior draws, so on a
+`frmtmb_fit` - which is one maximum-likelihood parameter vector - they
+refuse and name the two routes to an answer:
+[`AIC()`](https://rdrr.io/r/stats/AIC.html) and
+[`BIC()`](https://rdrr.io/r/stats/AIC.html), which are the
+maximum-likelihood analogues already available on the fit, or sampling
+the model first.
 
-## Priors, and what these numbers mean
+## Sampling
 
-These are posterior quantities, and they inherit the standing of the
-draws they are computed from. `frm_sample(fit)` samples the LIKELIHOOD
-under flat improper priors (that route is a diagnostic for the Laplace
-approximation, not a Bayesian analysis), so an elpd computed from it is
-likelihood-shaped and unregularized. Expect Pareto k warnings there for
-models with many group-level parameters, because a flat prior leaves
-those to be identified by the data alone, and an influential observation
-then moves them a long way. For model comparison, sample with priors:
-`frm_sample(formula, data)` applies brms's default priors, and
-`priors =` sets your own. The maximum-likelihood answer to the same
-question is [`AIC()`](https://rdrr.io/r/stats/AIC.html) on the fits, or
-[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md).
+The estimators for posterior draws are in the `frmtmb.sample` package,
+which also provides `frm_sample()`:
 
-## Relative efficiency
+    # install.packages("remotes")
+    remotes::install_github("aforren1/frmtmb",
+                            subdir = "extensions/frmtmb.sample")
+    library(frmtmb.sample)
+    loo(frm_sample(fit))
 
-`r_eff` defaults to
-[`loo::relative_eff()`](https://mc-stan.org/loo/reference/relative_eff.html)
-on the chain structure of the draws, which is what brms does. Thinning
-with `ndraws` breaks that structure, so `r_eff` is then dropped and the
-estimate is the one loo computes without an autocorrelation correction.
+It registers `frmtmb_draws` methods on these generics, so the spellings
+on this page are the ones that keep working once it is loaded.
 
 ## See also
 
-[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md),
-[`bayes_R2()`](https://aforren1.github.io/frmtmb/reference/bayes_R2.md)
+[`AIC()`](https://rdrr.io/r/stats/AIC.html) and
+[`BIC()`](https://rdrr.io/r/stats/AIC.html) for the maximum-likelihood
+comparison,
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+for a resampling one.
 
 ## Examples
 
 ``` r
-# \donttest{
-if (requireNamespace("tmbstan", quietly = TRUE) &&
-    requireNamespace("rstan", quietly = TRUE) &&
-    requireNamespace("loo", quietly = TRUE)) {
-  set.seed(9)
-  dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
-  dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+set.seed(1)
+dd <- data.frame(x = rnorm(40))
+dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+fit <- frm(bf(y ~ x) + gaussian(), data = dd)
 
-  # sample with priors: an elpd is a posterior quantity
-  d1 <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
-                   data = dd, chains = 1, iter = 500, refresh = 0)
-  d2 <- frm_sample(bf(y ~ 1 + (1 | g)), family = gaussian(),
-                   data = dd, chains = 1, iter = 500, refresh = 0)
-  loo_compare(d1, d2)
-  # the same thing, one step at a time
-  loo_compare(loo(d1), loo(d2))
-}
-#> frm_sample(): default priors (brms 2.23 defaults; priors = "flat" opts out)
-#>   Intercept          student_t(3, 0.8, 2.5)
-#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
-#>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
-#>   b                  (flat), as brms leaves slopes
-#> Warning: The largest R-hat is 1.07, indicating chains have not mixed.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#r-hat
-#> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#bulk-ess
-#> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#tail-ess
-#> frm_sample(): default priors (brms 2.23 defaults; priors = "flat" opts out)
-#>   Intercept          student_t(3, 0.8, 2.5)
-#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
-#>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
-#>   b                  (flat), as brms leaves slopes
-#> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#bulk-ess
-#> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#tail-ess
-#> Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-#> Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-#> Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-#> Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-#>   model elpd_diff se_diff p_worse diag_diff       diag_elpd
-#>  model1       0.0     0.0      NA           2 k_psis > 0.58
-#>  model2      -5.2     2.9    0.96   N < 100 1 k_psis > 0.58
-#> 
-#> Diagnostic flags present.
-#> See ?`loo-glossary` (sections `diag_diff` and `diag_elpd`)
-#> or https://mc-stan.org/loo/reference/loo-glossary.html.
-# }
+# the maximum-likelihood comparison is available directly
+AIC(fit)
+#> [1] 110.1729
+# the predictive one needs draws, and says so
+try(loo(fit))
+#> Error : loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sample::loo(frmtmb.sample::frm_sample(fit)) once that package is installed, or compare maximum-likelihood fits with AIC() or BIC()
 ```

@@ -143,6 +143,24 @@ test_that("the one-parameter maps are proper densities", {
 
 #' Sample the prior ALONE: no data, no likelihood, just the taped LKJ
 #' density over one block's correlation parameters.
+# This file is the one place core drives tmbstan directly, because the
+# thing under test is core's own taped LKJ density and the sampler is
+# only the instrument. That bypasses the refusal frmtmb.sample raises
+# before it samples, so the same check is repeated here: a tmbstan
+# built against StanHeaders 2.39 or later silently samples a standard
+# normal instead of the model, because tmbstan's code generator patches
+# only the first of the two log-density overloads stanc now emits.
+# Without this the draws ignore the prior entirely, and the marginal
+# assertions below fail as though the density were wrong. They are not:
+# the toolchain is, and a broken toolchain must skip rather than
+# indict the package.
+tmbstan_samples_the_model <- function() {
+  hpp <- system.file("model.hpp", package = "tmbstan")
+  !(nzchar(hpp) &&
+      any(grepl("std_normal_lpdf<propto__>(y)",
+                readLines(hpp, warn = FALSE), fixed = TRUE)))
+}
+
 prior_rho <- function(eta, d, seed) {
   k <- d * (d - 1L) / 2L
   dist <- frmtmb:::lkj_dist(eta, list(kind = "chol", d = d,
@@ -359,6 +377,10 @@ test_that("every pairwise correlation has the LKJ marginal", {
   skip_if_not(sampler_gates_on(), "chain-agreement gates are off")
   skip_if_not_installed("tmbstan")
   skip_if_not_installed("rstan")
+  skip_if_not(tmbstan_samples_the_model(),
+              paste("this tmbstan was built against StanHeaders >= 2.39,",
+                    "which samples a standard normal instead of the",
+                    "model; the draws would not test the LKJ density"))
   seed <- 0
   for (d in c(2L, 3L, 4L)) {
     for (eta in c(1, 2)) {

@@ -57,8 +57,9 @@ These functions never return; they signal an error.
 ## Details
 
 - `loo_moment_match()`, `loo_subsample()`, `reloo()` and `kfold()` all
-  need to refit the model on modified data. `frm_bootstrap()` is the
-  resampling machinery frmtmb does have, and
+  need to refit the model on modified data.
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.html)
+  is the resampling machinery frmtmb does have, and
   [`AIC()`](https://rdrr.io/r/stats/AIC.html) on the maximum-likelihood
   fits answers the comparison question directly.
 

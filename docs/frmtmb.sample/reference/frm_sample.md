@@ -75,10 +75,12 @@ frm_sample(
   unchanged. On both paths the brms default priors apply to whatever
   this argument, and a MAP fit's own prior, leave alone (see Default
   priors), and `prior = "flat"` opts out of them entirely. A `brmsprior`
-  object built by brms's own `prior()` is translated row by row. The
-  argument takes brms's spelling, `prior`; the `priors` of releases
-  before 0.43 is gone rather than aliased, and because this function's
-  `...` would otherwise swallow it, the old name is refused by name.
+  object built by brms's own
+  [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.html) is
+  translated row by row. The argument takes brms's spelling, `prior`;
+  the `priors` of releases before 0.43 is gone rather than aliased, and
+  because this function's `...` would otherwise swallow it, the old name
+  is refused by name.
 
 - init:
 

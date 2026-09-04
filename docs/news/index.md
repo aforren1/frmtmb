@@ -1,5 +1,43 @@
 # Changelog
 
+## frmtmb 0.49.1
+
+Internal hygiene and the documentation site. No user-facing behavior
+changes.
+
+- Every `$` read of a parameter template, an estimate list, an aterm
+  container, a random-effect, linear-predictor, autocor or eta-design
+  block, a family object, a simulator context, a distributional-
+  parameter list or the model frame is now a `[[` read, in core and in
+  all four extensions. `$` on a list falls back to partial matching, so
+  an absent slot returns a neighbor rather than `NULL`; that is what
+  once made `pars$b` read `beta`, `ctx$mix` read `mix_g`, and
+  `par_template$theta` read `thetaac`. Comparing the two trees with
+  every `$` normalized to `[[` shows no collateral edit in any of the
+  swept files. `dev/bracket-sweep.md` holds the inventory, separating
+  the containers whose collision was already reachable from those that
+  were only prone.
+- [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  no longer reads the residual-autocorrelation parameters where the
+  random-effect covariance parameters belong, on a model with an
+  autocorrelation structure and no random effects. The value was
+  discarded before it reached any output, so nothing printed changes.
+- A source-scanning test keeps those containers clean. It is keyed on
+  the container’s name rather than on `$`, so the user-facing spellings
+  (`fit$obj`, `x$fit`, `object$draws`) are untouched, and it polices
+  core and all four extensions from one list.
+- The reference sites for frmtmb and its four extensions are now one
+  site: each extension builds into a subdirectory of `docs/`, and a
+  reference to a function or a vignette in another of the five packages
+  becomes a link. Build them with `dev/build-docs.R`.
+- Three published reference pages have been broken since the sampling
+  surface moved out at 0.47.0. Redirect stubs left by that split
+  shadowed real topics, and `loo.html` redirected to its own URL;
+  pkgdown will not overwrite a file it did not write, so the real pages
+  were unreachable. All three are regenerated. An orphaned copy of the
+  ODE article, which belongs to the extension’s site, is removed from
+  the core site.
+
 ## frmtmb 0.49.0
 
 One way to bound a thing, a hardened family API, vignettes divided along

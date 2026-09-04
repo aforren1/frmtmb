@@ -78,7 +78,7 @@ formula).</p>
 <span>  reparameterize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  data2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  start <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  control <span class="op">=</span> <span class="fu">frmtmb_control</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_control.html" class="external-link">frmtmb_control</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  na.action <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span>,</span>
 <span>  REML <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  .diagnostic <span class="op">=</span> <span class="cn">FALSE</span></span>
@@ -127,7 +127,7 @@ prior terms added; a fitted model itself is unchanged. On both
 paths the brms default priors apply to whatever this argument, and
 a MAP fit's own prior, leave alone (see Default priors), and
 <code>prior = "flat"</code> opts out of them entirely. A <code>brmsprior</code> object
-built by brms's own <code>prior()</code> is translated row by row. The
+built by brms's own <code><a href="https://aforren1.github.io/frmtmb/reference/prior.html" class="external-link">prior()</a></code> is translated row by row. The
 argument takes brms's spelling, <code>prior</code>; the <code>priors</code> of releases
 before 0.43 is gone rather than aliased, and because this
 function's <code>...</code> would otherwise swallow it, the old name is
