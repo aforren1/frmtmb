@@ -726,14 +726,3 @@ test_that("time and group default to row order and one sequence", {
   expect_identical(hmm_viterbi(f1), ref$path)
 })
 
-test_that("frm_sample() runs on an hmm fit", {
-  skip_on_cran()
-  skip_if_not_installed("tmbstan")
-  dd <- sim_hmm(8, 12, G2, c(0, 3), c(0.6, 0.6), 4026)
-  fit <- frm(bf(y ~ 1),
-             family = hmm(K = 2, gaussian(), time = t, group = id),
-             data = dd)
-  s <- suppressWarnings(suppressMessages(
-    frm_sample(fit, chains = 1, iter = 200, refresh = 0)))
-  expect_s3_class(s, "frmtmb_draws")
-})

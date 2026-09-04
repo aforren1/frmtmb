@@ -87,24 +87,6 @@ dual_arg <- function(primary, alias, primary_name, alias_name, what,
   default
 }
 
-#' The refusal a function whose `...` would otherwise swallow the
-#' retired `priors =` spelling raises instead.
-#'
-#' The argument is `prior`, brms's spelling and the only one. R's
-#' partial matching cannot bind `priors` to it (a longer name is not a
-#' prefix of a shorter one), so every direct call fails loudly on its
-#' own. The exception is a function whose `...` stands ready to absorb
-#' the name in silence and fit the model with no priors at all.
-#'
-#' @noRd
-refuse_retired_priors <- function(dots, what) {
-  if (!"priors" %in% names(dots)) return(invisible(NULL))
-  stop(what, " takes `prior`, not `priors`: the argument follows brms's ",
-       "spelling, and this function's `...` would otherwise pass the ",
-       "old name through and fit with no priors at all. Rename it to ",
-       "`prior`", call. = FALSE)
-}
-
 #' The random-effect formula of a brms-named draws method, from either
 #' spelling. Kept as its own wrapper so that every call site names the
 #' same two spellings and only the function name and the default vary.

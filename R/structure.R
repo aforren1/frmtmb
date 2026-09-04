@@ -209,7 +209,7 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #' @param sim_ctx `function(ctx)` drawing the whole response, the
 #'   structured-simulator contract of [frmtmb_family()] with
 #'   `ctx[["block"]]` carrying the block. One implementation serves
-#'   [simulate()], [posterior_predict()] and [frm_simulate()].
+#'   [simulate()], `posterior_predict()` and [frm_simulate()].
 #' @param supports Named logical vector or list of capability flags; see
 #'   Capability flags. Unnamed entries and unknown names are refused.
 #' @param refusals Named list of one message per `FALSE` flag.
@@ -470,7 +470,7 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #' `frmtmb_fit`; these are how such a slot reads what it needs out of
 #' one without reaching into the fit's internal layout. The rest of a
 #' family's needs are already public: [frm()], [bf()], [fixef()],
-#' [set_prior()], [posterior_predict()], [conditional_effects()] and
+#' [set_prior()], `posterior_predict()`, [conditional_effects()] and
 #' [hypothesis()] among them.
 #'
 #' They are documented together because they are one contract with one

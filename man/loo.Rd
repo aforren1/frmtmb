@@ -2,33 +2,22 @@
 % Please edit documentation in R/loo.R
 \name{loo}
 \alias{loo}
-\alias{loo.frmtmb_draws}
 \alias{loo.frmtmb_fit}
 \alias{waic}
-\alias{waic.frmtmb_draws}
 \alias{waic.frmtmb_fit}
 \alias{loo_compare}
 \alias{loo_compare.default}
-\alias{loo_compare.frmtmb_draws}
-\alias{psis}
-\alias{psis.frmtmb_draws}
 \alias{LOO}
-\alias{LOO.frmtmb_draws}
 \alias{LOO.frmtmb_fit}
 \alias{WAIC}
-\alias{WAIC.frmtmb_draws}
 \alias{WAIC.frmtmb_fit}
 \title{Approximate leave-one-out cross-validation}
 \usage{
 loo(x, ...)
 
-\method{loo}{frmtmb_draws}(x, ndraws = NULL, resp = NULL, ...)
-
 \method{loo}{frmtmb_fit}(x, ...)
 
 waic(x, ...)
-
-\method{waic}{frmtmb_draws}(x, ndraws = NULL, resp = NULL, ...)
 
 \method{waic}{frmtmb_fit}(x, ...)
 
@@ -36,104 +25,65 @@ loo_compare(x, ...)
 
 \method{loo_compare}{default}(x, ...)
 
-\method{loo_compare}{frmtmb_draws}(x, ..., criterion = c("loo", "waic"), model_names = NULL)
-
-psis(log_ratios, ...)
-
-\method{psis}{frmtmb_draws}(log_ratios, ndraws = NULL, resp = NULL, ...)
-
 LOO(x, ...)
-
-\method{LOO}{frmtmb_draws}(x, ...)
 
 \method{LOO}{frmtmb_fit}(x, ...)
 
 WAIC(x, ...)
 
-\method{WAIC}{frmtmb_draws}(x, ...)
-
 \method{WAIC}{frmtmb_fit}(x, ...)
 }
 \arguments{
-\item{x}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}, or (for
-\code{loo_compare()}) already-computed criteria.}
+\item{x}{A \code{frmtmb_fit}, or (with \code{frmtmb.sample} loaded) draws.}
 
-\item{...}{Further models for \code{loo_compare()}; otherwise passed to
-the loo package function.}
-
-\item{ndraws, resp}{Passed to \code{\link[=log_lik]{log_lik()}}.}
-
-\item{criterion}{Which criterion \code{loo_compare()} computes for each
-draws object.}
-
-\item{model_names}{Row names for the comparison; the default deparses
-the arguments, as loo does.}
-
-\item{log_ratios}{For \code{psis()}, the draws object whose negative
-pointwise log-likelihood supplies the importance ratios.}
+\item{...}{Passed to methods.}
 }
 \value{
-A \code{loo}, \code{waic}, \code{compare.loo} or \code{psis} object from the loo
-package.
+These methods signal an error on a maximum-likelihood fit.
 }
 \description{
-\code{loo()} runs Pareto-smoothed importance-sampling LOO and \code{waic()} the
-widely applicable information criterion, both on the \code{\link[=log_lik]{log_lik()}}
-matrix, by handing it to \code{loo::loo.matrix()} and \code{loo::waic.matrix()}
-unchanged. The returned objects are the loo package's own, so
-\code{print()} and \code{loo::pareto_k_table()} work on them directly.
-\code{loo_compare()} computes the criterion for each draws object it is
-given and ranks them; handed criteria instead of draws, it is
-\code{loo::loo_compare()} itself. \code{psis()} returns the smoothed importance
-weights alone.
+\code{loo()} and \code{waic()} estimate the expected log predictive density of
+a model from posterior draws: \code{loo()} by Pareto-smoothed importance
+sampling, \code{waic()} by the widely applicable information criterion.
+\code{loo_compare()} ranks several of them. \code{LOO()} and \code{WAIC()} are
+brms's deprecated capitalized spellings.
 }
 \details{
-\code{LOO()} and \code{WAIC()} are brms's deprecated capitalized spellings and
-are defined only to name their replacements.
+All of these average a likelihood over posterior draws, so on a
+\code{frmtmb_fit} - which is one maximum-likelihood parameter vector -
+they refuse and name the two routes to an answer: \code{\link[=AIC]{AIC()}} and
+\code{\link[=BIC]{BIC()}}, which are the maximum-likelihood analogues already
+available on the fit, or sampling the model first.
 }
-\section{Priors, and what these numbers mean}{
+\section{Sampling}{
 
-These are posterior quantities, and they inherit the standing of the
-draws they are computed from. Both of \code{\link[=frm_sample]{frm_sample()}}'s routes apply
-brms's default priors, so these numbers are regularized the way brms
-regularizes them unless the call opted out with \code{prior = "flat"}.
-Under that opt-out the elpd is likelihood-shaped and unregularized:
-expect Pareto k warnings for models with many group-level
-parameters, because a flat prior leaves those to be identified by
-the data alone,
-and an influential observation then moves them a long way. The
-maximum-likelihood answer to the same question is \code{AIC()} on the
-fits, or \code{\link[=frm_bootstrap]{frm_bootstrap()}}.
-}
+The estimators for posterior draws are in the \code{frmtmb.sample}
+package, which also provides \code{frm_sample()}:
 
-\section{Relative efficiency}{
+\if{html}{\out{<div class="sourceCode">}}\preformatted{# install.packages("remotes")
+remotes::install_github("aforren1/frmtmb",
+                        subdir = "extensions/frmtmb.sample")
+library(frmtmb.sample)
+loo(frm_sample(fit))
+}\if{html}{\out{</div>}}
 
-\code{r_eff} defaults to \code{loo::relative_eff()} on the chain structure of
-the draws, which is what brms does. Thinning with \code{ndraws} breaks
-that structure, so \code{r_eff} is then dropped and the estimate is the
-one loo computes without an autocorrelation correction.
+It registers \code{frmtmb_draws} methods on these generics, so the
+spellings on this page are the ones that keep working once it is
+loaded.
 }
 
 \examples{
-\donttest{
-if (requireNamespace("tmbstan", quietly = TRUE) &&
-    requireNamespace("rstan", quietly = TRUE) &&
-    requireNamespace("loo", quietly = TRUE)) {
-  set.seed(9)
-  dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
-  dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+set.seed(1)
+dd <- data.frame(x = rnorm(40))
+dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+fit <- frm(bf(y ~ x) + gaussian(), data = dd)
 
-  # sample with priors: an elpd is a posterior quantity
-  d1 <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
-                   data = dd, chains = 1, iter = 500, refresh = 0)
-  d2 <- frm_sample(bf(y ~ 1 + (1 | g)), family = gaussian(),
-                   data = dd, chains = 1, iter = 500, refresh = 0)
-  loo_compare(d1, d2)
-  # the same thing, one step at a time
-  loo_compare(loo(d1), loo(d2))
-}
-}
+# the maximum-likelihood comparison is available directly
+AIC(fit)
+# the predictive one needs draws, and says so
+try(loo(fit))
 }
 \seealso{
-\code{\link[=log_lik]{log_lik()}}, \code{\link[=bayes_R2]{bayes_R2()}}
+\code{\link[=AIC]{AIC()}} and \code{\link[=BIC]{BIC()}} for the maximum-likelihood comparison,
+\code{\link[=frm_bootstrap]{frm_bootstrap()}} for a resampling one.
 }

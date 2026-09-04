@@ -117,7 +117,8 @@ returns the gating linear predictor (\code{theta1} by default, any
 
 The gating coefficients are ordinary fixed effects, so \code{fixef()},
 \code{confint()} (Wald, profile and uniroot), \code{hypothesis()},
-\code{set_prior()}, \code{lower}/\code{upper} bounds and \code{frm_sample()} all work on
+\code{set_prior()}, \code{lower}/\code{upper} bounds and
+\code{frmtmb.sample::frm_sample()} all work on
 them; \code{anova()} compares nested gating formulas at one \code{K}.
 
 Refused in this version: random effects and smooths anywhere in the

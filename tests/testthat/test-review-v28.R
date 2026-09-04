@@ -213,42 +213,6 @@ test_that("car() and spde() accept a call-valued gr", {
 
 # ------------------------------------------- A3 cores vs options(mc.cores)
 
-test_that("the Windows cores guard reads options(mc.cores)", {
-  # rstan defaults its cores argument to getOption("mc.cores", 1L), so
-  # an unset cores= still starts socket workers
-  old <- options(mc.cores = 2)
-  on.exit(options(old), add = TRUE)
-  expect_equal(stan_cores(list()), 2)
-  expect_equal(stan_cores(list(cores = 1)), 1)
-  options(mc.cores = NULL)
-  expect_equal(stan_cores(list()), 1)
-  expect_equal(stan_cores(list(cores = 3)), 3)
-})
-
-test_that("one chain under options(mc.cores) has nothing to note", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  if (.Platform$OS.type != "windows") {
-    skip("the parallel-chain startup note is Windows-only")
-  }
-  set.seed(6)
-  dd <- data.frame(x = stats::rnorm(60))
-  dd$y <- 1 + 0.5 * dd$x + stats::rnorm(60)
-  fit <- frm(bf(y ~ x) + gaussian(), data = dd)
-  # a single chain cannot be parallelized, so an inherited core count
-  # earns no startup note (test-parallel-chains.R asserts the note
-  # fires when there is something to parallelize)
-  old <- options(mc.cores = 2)
-  on.exit(options(old), add = TRUE)
-  # suppressWarnings: 100 post-warmup draws trip rstan's ESS advice,
-  # and this test is about the startup note, not mixing
-  expect_no_message(
-    ds <- suppressWarnings(frm_sample(fit, chains = 1, iter = 200,
-                                      refresh = 0, seed = 1)),
-    message = "parallel chains on Windows"
-  )
-  expect_s3_class(ds, "frmtmb_draws")
-})
 
 # --------------------------------------------- A4 fit_error_context
 

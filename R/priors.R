@@ -2,8 +2,8 @@
 # the prior_* constructors, brmsprior translation) and the fit-route
 # machinery that resolves it for frm()'s MAP penalty, frm_simulate()
 # and par_template(). The sampling-only side (default priors,
-# non-centering, the tmbstan bridge) lives in R/interop.R and leaves
-# with the future sampling package.
+# non-centering, the tmbstan bridge) is in the frmtmb.sample package;
+# the resolution machinery below is exported for it to reach.
 
 #' Set up priors brms-style
 #'
@@ -35,7 +35,8 @@
 #' replaces that whole LKJ term, and the other way round, so "later
 #' wins" holds between the two spellings as well.
 #' `lb`/`ub` become hard bounds (via Stan's constrained transforms in
-#' [frm_sample()]); for class `"sd"` they apply on the sd scale.
+#' `frmtmb.sample::frm_sample()`); for class `"sd"` they apply on the
+#' sd scale.
 #'
 #' @section The LKJ prior:
 #' `lkj(eta)` is the density `det(C)^(eta - 1)` over a block's
@@ -83,8 +84,9 @@
 #' AT the starting values; [par_template()] names them.
 #'
 #' `resp` picks one response of a multivariate model; the default
-#' priors of [frm_sample()] still stay off there (see its Default
-#' priors section), so a multivariate model's priors are the ones
+#' priors of `frmtmb.sample::frm_sample()` still stay off there (see
+#' its Default priors section), so a multivariate model's priors are the
+#' ones
 #' written by hand.
 #'
 #' brms's `tag` and `check` have no counterpart: `tag` names a prior
@@ -256,8 +258,9 @@ parse_prior_bound <- function(x, arg) {
 #'
 #' A frmtmb prior and a brms prior are different objects, and with brms
 #' attached after frmtmb its `prior()` masks this one. Nothing breaks:
-#' [frm()] and [frm_sample()] accept a `brmsprior` object and translate
-#' its rows, so `c(prior(...), prior(...))` copied out of a brms script
+#' [frm()] and `frmtmb.sample::frm_sample()` accept a `brmsprior` object
+#' and translate its rows, so `c(prior(...), prior(...))` copied out of a
+#' brms script
 #' works whichever `prior()` was in scope.
 #'
 #' @inheritParams set_prior
@@ -535,7 +538,7 @@ print.frmtmb_priorlist <- function(x, ...) {
 #' slot a prior can target, with the class/coef/dpar/group values to
 #' pass to `set_prior()`. The default in every slot is flat (this is
 #' maximum likelihood until priors are set; the formula route of
-#' [frm_sample()] has its own brms defaults, which
+#' `frmtmb.sample::frm_sample()` has its own brms defaults, which
 #' `prior_summary()` reports). Classes `"sd"` and `"cor"` are targeted
 #' by `group` and `nlpar`; class `"theta"` rows name the raw internal
 #' covariance parameters (escape hatch, including correlations one at a
@@ -573,10 +576,21 @@ get_prior <- function(formula, data = NULL, family = NULL,
 
   multi <- length(spec$responses) > 1L
   rows <- list()
+  # What the default in a slot IS depends on which routes the session
+  # has. frm() is flat everywhere until a prior is set; a sampling
+  # package applies its own defaults and registers them, so that this
+  # column is true of the session rather than true of core alone. With
+  # nothing registered the lookup is empty and every row reads "(flat)".
+  defs <- registered_prior_defaults(spec, frame)
   add <- function(class, coef = "", group = "", dpar = "", nlpar = "",
                   resp = "") {
+    # a default speaks for a CLASS, not for one coefficient of it: brms
+    # reports the class row and leaves the per-coefficient rows flat, and
+    # a per-coefficient row here would claim a default nothing applies
+    d <- if (nzchar(coef)) NULL else
+      defs[[prior_slot_key(class, dpar, nlpar, resp)]]
     rows[[length(rows) + 1L]] <<- data.frame(
-      prior = "(flat)", class = class, coef = coef, group = group,
+      prior = d %||% "(flat)", class = class, coef = coef, group = group,
       dpar = dpar, nlpar = nlpar, resp = resp, lb = NA_real_,
       ub = NA_real_
     )
@@ -625,10 +639,8 @@ get_prior <- function(formula, data = NULL, family = NULL,
   for (bk in frame$re_blocks) {
     key <- list(group = bk$group_name, nlpar = block_nlpar(spec, frame, bk),
                 resp = if (multi) block_resp(frame, bk) else "")
-    sd_i <- covstruct_registry[[bk$covstruct]]$sd_idx(bk$dim)
-    if (length(sd_i)) sd_rows[[length(sd_rows) + 1L]] <- key
-    if (!bk$covstruct %in% names(lkj_refusals) &&
-        !is.null(block_cor_spec(bk))) {
+    if (length(block_sd_idx(bk))) sd_rows[[length(sd_rows) + 1L]] <- key
+    if (identical(block_cor_prior(bk), "lkj")) {
       cor_rows[[length(cor_rows) + 1L]] <- key
     }
   }
@@ -964,36 +976,39 @@ prior_logdens <- function(x, dist, scale) {
   ld + jac
 }
 
-#' Prior specifications for frm_sample
+#' Prior objects, addressed by internal parameter name
 #'
-#' Priors apply on the INTERNAL parameter scale: coefficients are on
-#' their link scale, and covariance parameters (`theta_*`) are the
-#' unconstrained parameterization (log-SDs, scaled-Cholesky terms), so
-#' `prior_normal(0, 1)` on `theta_1` is a lognormal prior on that SD.
+#' The named-list prior spelling, as opposed to [set_prior()]'s classes.
+#' Priors written this way apply on the INTERNAL parameter scale:
+#' coefficients are on their link scale, and covariance parameters
+#' (`theta_*`) are the unconstrained parameterization (log-SDs,
+#' scaled-Cholesky terms), so `prior_normal(0, 1)` on `theta_1` is a
+#' lognormal prior on that standard deviation.
+#'
+#' [frm()] takes them as a MAP penalty, and so does
+#' `frmtmb.sample::frm_sample()`, where they take over exactly the
+#' parameters they name and leave the rest of the prior stack in place.
+#' [par_template()] and [get_prior()] name the addressable slots.
 #'
 #' @param location,scale,df Prior parameters.
 #' @return A `frmtmb_prior` object.
+#' @seealso [set_prior()] for the class-based spelling, which is the one
+#'   most models want.
 #' @examples
 #' # the objects themselves are cheap descriptions
 #' prior_normal(0, 2)
 #' prior_t(df = 3, location = 0, scale = 1)
 #'
-#' \donttest{
-#' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
 #' set.seed(9)
 #' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 #' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
-#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 #'
-#' # names are parameter names as in the draws, or whole components.
-#' # theta_1 is a log-SD, so a normal there is a lognormal on the SD.
-#' ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0,
-#'                  prior = list(beta = prior_normal(0, 5),
-#'                                theta_1 = prior_t(3, 0, 1)))
-#' summary(ds)
-#' }
-#' }
+#' # names are internal parameter names, or whole components. theta_1
+#' # is a log-SD, so a normal there is a lognormal on the SD.
+#' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+#'            prior = list(beta = prior_normal(0, 5),
+#'                         theta_1 = prior_t(3, 0, 1)))
+#' prior_summary(fit)
 #' @name frmtmb-priors
 NULL
 

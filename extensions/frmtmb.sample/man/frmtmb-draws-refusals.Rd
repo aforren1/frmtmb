@@ -6,9 +6,7 @@
 \alias{stancode.frmtmb_draws}
 \alias{standata}
 \alias{standata.frmtmb_draws}
-\alias{expose_functions}
 \alias{expose_functions.frmtmb_draws}
-\alias{expose_functions.frmtmb_fit}
 \alias{plot.frmtmb_draws}
 \alias{update.frmtmb_draws}
 \alias{restructure}
@@ -29,11 +27,7 @@ standata(object, ...)
 
 \method{standata}{frmtmb_draws}(object, ...)
 
-expose_functions(x, ...)
-
 \method{expose_functions}{frmtmb_draws}(x, ...)
-
-\method{expose_functions}{frmtmb_fit}(x, ...)
 
 \method{plot}{frmtmb_draws}(x, ...)
 

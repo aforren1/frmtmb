@@ -63,7 +63,7 @@ run at the estimates and outside the AD tape, and they are handed a
 \code{frmtmb_fit}; these are how such a slot reads what it needs out of
 one without reaching into the fit's internal layout. The rest of a
 family's needs are already public: \code{\link[=frm]{frm()}}, \code{\link[=bf]{bf()}}, \code{\link[=fixef]{fixef()}},
-\code{\link[=set_prior]{set_prior()}}, \code{\link[=posterior_predict]{posterior_predict()}}, \code{\link[=conditional_effects]{conditional_effects()}} and
+\code{\link[=set_prior]{set_prior()}}, \code{posterior_predict()}, \code{\link[=conditional_effects]{conditional_effects()}} and
 \code{\link[=hypothesis]{hypothesis()}} among them.
 }
 \details{

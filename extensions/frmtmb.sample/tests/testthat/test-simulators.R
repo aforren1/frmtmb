@@ -1,6 +1,14 @@
-# The simulator contract (R/families.R): one implementation per family,
-# reached identically by simulate() on a fit, posterior_predict() on a
-# draw, and frm_simulate() de novo.
+# The simulator contract (frmtmb's R/families.R): one implementation per
+# family, reached identically by simulate() on a fit,
+# posterior_predict() on a draw, and frm_simulate() de novo.
+#
+# The file lives HERE, in the sampling package, because one of its three
+# entry points does. The claim it makes is a cross-package one now -
+# frmtmb's simulator, reached through frmtmb's simulate() and
+# frm_simulate() and through this package's posterior_predict(), giving
+# the same draw - and this is the only suite that can make it. Splitting
+# it so that frmtmb kept a two-way version would have left two copies of
+# 350 lines to drift apart, and the two-way claim is the weaker half.
 #
 # Two things are asserted for every family that gained a simulator here.
 # DISTRIBUTIONAL: seeded moments or proportions match what the fitted
@@ -206,7 +214,7 @@ test_that("an autocor residual is one group draw on every path", {
                                   newparams = np_of(fit)))
 
   ac <- fit$frame$autocor[[1L]]
-  phi <- unname(autocor_natural(fit$estimates$thetaac[ac$theta_idx],
+  phi <- unname(frmtmb:::autocor_natural(fit$estimates$thetaac[ac$theta_idx],
                                 ac))[1L]
   lag1 <- function(y) {
     r <- matrix(y - as.vector(fitted(fit)), nrow = K)

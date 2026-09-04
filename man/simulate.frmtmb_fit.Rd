@@ -36,7 +36,7 @@ likelihood was normalized on.
 \section{Structured draws}{
 
 Most families draw each row on its own. Some cannot, and those go
-through one implementation that \code{\link[=simulate]{simulate()}}, \code{\link[=posterior_predict]{posterior_predict()}}
+through one implementation that \code{\link[=simulate]{simulate()}}, \code{posterior_predict()}
 and \code{\link[=frm_simulate]{frm_simulate()}} all reach (see \code{sim_ctx} in
 \code{\link[=frmtmb_family]{frmtmb_family()}}):
 \itemize{

@@ -80,7 +80,7 @@ Two checks, both already in the package. \code{quadrature = TRUE}
 marginalizes a scalar random intercept by Gauss-Kronrod quadrature
 instead, which over a t latent is EXACT, not merely better; it is the
 one to run when a t block's variance component matters and the groups
-are small. \code{\link[=check_laplace]{check_laplace()}} measures the same thing without
+are small. \code{frmtmb.sample::check_laplace()} measures the same thing without
 refitting, by NUTS on the objective: its \code{z_shift} for
 \code{theta} reproduced the displacement above to within a percentage
 point in the probe.

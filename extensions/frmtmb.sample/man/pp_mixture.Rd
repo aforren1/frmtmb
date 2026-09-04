@@ -22,14 +22,14 @@ otherwise the raw \verb{draws x observations x components} array.}
 }
 \value{
 An array; see \code{summary}. For a group-level mixture
-(\code{mixture(groups = )}, \code{\link[=lca]{lca()}}) the rows are groups, as in
-\code{\link[=mixture_probs]{mixture_probs()}}.
+(\code{mixture(groups = )}, \code{\link[frmtmb:lca]{frmtmb::lca()}}) the rows are groups, as in
+\code{\link[frmtmb:mixture_probs]{frmtmb::mixture_probs()}}.
 }
 \description{
-For a \code{\link[=mixture]{mixture()}}, \code{\link[=mixture_mvn]{mixture_mvn()}} or \code{\link[=lca]{lca()}} fit, the posterior
+For a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}, \code{\link[frmtmb:mixture_mvn]{frmtmb::mixture_mvn()}} or \code{\link[frmtmb:lca]{frmtmb::lca()}} fit, the posterior
 probability that each observation came from each component,
 propagating the uncertainty in the parameters: the fit-side
-\code{\link[=mixture_probs]{mixture_probs()}} computation is run at every draw. brms calls this
+\code{\link[frmtmb:mixture_probs]{frmtmb::mixture_probs()}} computation is run at every draw. brms calls this
 \code{pp_mixture()}.
 }
 \examples{

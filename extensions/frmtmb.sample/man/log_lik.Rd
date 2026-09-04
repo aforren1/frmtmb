@@ -28,7 +28,7 @@ observation (the rows the model was fitted on).
 The \verb{ndraws x nobs} matrix of per-observation log-densities, each row
 evaluated at one draw's own parameter vector. Every leave-one-out and
 information-criterion quantity in this package is a function of this
-matrix, and \code{\link[=loo]{loo()}}, \code{\link[=waic]{waic()}} and \code{loo::psis()} take it directly.
+matrix, and \code{\link[frmtmb:loo]{frmtmb::loo()}}, \code{\link[frmtmb:waic]{frmtmb::waic()}} and \code{loo::psis()} take it directly.
 }
 \section{What is conditioned on}{
 
@@ -63,13 +63,13 @@ one response's contribution alone.
 
 A model whose smallest independent unit is a group has no
 per-observation column to leave out, and this refuses rather than
-inventing one: R-side residual correlation (\link{frmtmb-autocor}), a
-\code{\link[=hmm]{hmm()}} sequence, and a group-level mixture (\code{mixture(groups = )}).
-An \code{\link[=lca]{lca()}} subject is one row, so its column is well defined and is
+inventing one: R-side residual correlation (\link[frmtmb:frmtmb-autocor]{frmtmb::frmtmb-autocor}), a
+\code{\link[frmtmb:hmm]{frmtmb::hmm()}} sequence, and a group-level mixture (\code{mixture(groups = )}).
+An \code{\link[frmtmb:lca]{frmtmb::lca()}} subject is one row, so its column is well defined and is
 not refused. In-model imputation (\code{mi()}, \code{me()}) is refused for the
 same kind of reason: a latent value is a parameter, not an
 observation. Use \code{AIC()} on the maximum-likelihood fits or
-\code{\link[=frm_bootstrap]{frm_bootstrap()}} for those.
+\code{\link[frmtmb:frm_bootstrap]{frmtmb::frm_bootstrap()}} for those.
 }
 
 \examples{
@@ -90,5 +90,5 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 }
 }
 \seealso{
-\code{\link[=loo]{loo()}}, \code{\link[=waic]{waic()}}, \code{\link[=bayes_R2]{bayes_R2()}}
+\code{\link[frmtmb:loo]{frmtmb::loo()}}, \code{\link[frmtmb:waic]{frmtmb::waic()}}, \code{\link[frmtmb:bayes_R2]{frmtmb::bayes_R2()}}
 }

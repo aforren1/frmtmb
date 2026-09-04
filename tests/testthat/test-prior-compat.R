@@ -229,7 +229,8 @@ test_that("get_prior lists a nonlinear parameter the way brms does", {
 test_that("every entry point spells the argument prior, brms's name", {
   # the contract, so an entry point added later cannot ship the retired
   # name: one spelling, brms's, with no alias behind it
-  for (fn in c("frm", "frm_sample", "frm_simulate")) {
+  # frm_sample() is asserted the same way in frmtmb.sample's suite
+  for (fn in c("frm", "frm_simulate")) {
     fo <- names(formals(getFromNamespace(fn, "frmtmb")))
     expect_true("prior" %in% fo, label = paste0(fn, " takes `prior`"))
     expect_false("priors" %in% fo,
@@ -249,10 +250,8 @@ test_that("the retired priors= spelling fails rather than passing", {
   expect_error(frm_simulate(bf(y ~ x) + gaussian(),
                             data.frame(x = 1:5, y = 0), priors = pl),
                "unused argument")
-  # frm_sample()'s `...` goes to tmbstan and WOULD have swallowed it,
-  # fitting with no priors at all, so that one is refused by name
-  expect_error(frm_sample(loss_form(), data = dd, priors = pl),
-               "takes `prior`, not `priors`")
+  # frm_sample()'s `...` WOULD have swallowed it, so that one is
+  # refused by name rather than by R; frmtmb.sample asserts it
 })
 
 test_that("prior = takes the same specification at every entry point", {
@@ -339,68 +338,6 @@ test_that("the loss model takes the vignette's priors and they bind", {
                fixef(map)$ult)
 })
 
-test_that("the loss model samples with the vignette's priors", {
-  skip_on_cran()
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  withr::local_options(mc.cores = 1)
-  dd <- loss_data()
-  vignette_priors <- c(prior(normal(5000, 1000), nlpar = "ult"),
-                       prior(normal(1, 2), nlpar = "omega"),
-                       prior(normal(45, 10), nlpar = "theta"))
-
-  # 300 iterations is not enough warmup for a three-parameter
-  # nonlinear body: the chain is still at its starting scale when it
-  # stops, which is a property of the model rather than of the priors
-  msg <- utils::capture.output(
-    ds <- suppressWarnings(frm_sample(
-      loss_form(), data = dd, prior = vignette_priors, chains = 1,
-      iter = 800, refresh = 0, seed = 5, start = loss_start)),
-    type = "message")
-
-  # the three user priors survive into the sampled model, beside the
-  # defaults for the slots they did not name
-  pl <- prior_summary(ds)
-  spelled <- vapply(unclass(pl), function(s) {
-    paste0(s$class, "/", s$nlpar, "/", s$dpar)
-  }, "")
-  expect_true(all(c("b/ult/", "b/omega/", "b/theta/") %in% spelled))
-  expect_true("sd//" %in% spelled)
-
-  # the disclosure says the nonlinear parameters would otherwise be
-  # flat, which is what brms does with them too
-  expect_match(paste(msg, collapse = " "), "nonlinear parameters stay flat")
-
-  m <- as.matrix(ds)
-  expect_true(all(c("ult_Intercept", "omega_Intercept",
-                    "theta_Intercept") %in% colnames(m)))
-  if (sampler_gates_on()) {
-    # the vignette's own structure, recovered: an ultimate loss near
-    # 5000 with omega and theta near the values the data was built
-    # from. Judged loosely, because this asserts that the priors are
-    # wired into the sampled density, not the mixing
-    expect_lt(abs(mean(m[, "ult_Intercept"]) - 5000), 1000)
-    expect_lt(abs(mean(m[, "omega_Intercept"]) - 1.3), 0.5)
-    expect_lt(abs(mean(m[, "theta_Intercept"]) - 45), 10)
-  }
-})
-
-test_that("a nonlinear parameter gets no default prior, as in brms", {
-  dd <- loss_data()
-  uf <- frm(loss_form(), data = dd, start = loss_start,
-            dry_run = "objective")
-  defs <- unclass(frmtmb:::default_priors_for(uf))
-  # brms leaves ult/omega/theta flat (they are its class "b"), and the
-  # response's median and mad describe none of them
-  expect_false(any(vapply(defs, function(s) {
-    identical(s$class, "Intercept") && !nzchar(s$dpar)
-  }, TRUE)))
-  # the variance component and sigma still get theirs
-  cls <- vapply(defs, `[[`, "", "class")
-  expect_true("sd" %in% cls)
-  expect_match(paste(frmtmb:::default_prior_notes(uf), collapse = " "),
-               "ult, omega, theta")
-})
 
 # ---- set_prior(resp =), the other addressing gap ----------------------
 

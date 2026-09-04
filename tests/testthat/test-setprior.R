@@ -66,18 +66,6 @@ test_that("sd-class priors act on the natural scale with the Jacobian", {
                tolerance = 1e-12)
 })
 
-test_that("set_prior bounds flow into frm_sample and augmented objective works", {
-  ri <- frmtmb:::resolve_prior_input(fit_sp,
-    set_prior("normal(0, 5)", class = "b") +
-      set_prior("", class = "b", coef = "x", lb = 0))
-  expect_identical(unname(ri$lower["x"]), 0)
-  obj2 <- frmtmb:::prior_augmented_obj(fit_sp, ri$entries)
-  # augmented objective = nll + sum of normal(0,5) over the two b coefs
-  b_coefs <- fit_sp$estimates$beta[c("x", "fb")]
-  nlp <- -sum(stats::dnorm(b_coefs, 0, 5, log = TRUE))
-  expect_lt(abs(obj2$fn(obj2$par) -
-                  (-as.numeric(logLik(fit_sp)) + nlp)), 1e-8)
-})
 
 test_that("RTMBdist families: beta_binomial matches glmmTMB", {
   skip_if_not_installed("glmmTMB")

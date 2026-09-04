@@ -40,8 +40,9 @@ programmatically, and both are brms's.
 
 A frmtmb prior and a brms prior are different objects, and with brms
 attached after frmtmb its \code{prior()} masks this one. Nothing breaks:
-\code{\link[=frm]{frm()}} and \code{\link[=frm_sample]{frm_sample()}} accept a \code{brmsprior} object and translate
-its rows, so \code{c(prior(...), prior(...))} copied out of a brms script
+\code{\link[=frm]{frm()}} and \code{frmtmb.sample::frm_sample()} accept a \code{brmsprior} object
+and translate its rows, so \code{c(prior(...), prior(...))} copied out of a
+brms script
 works whichever \code{prior()} was in scope.
 }
 \examples{

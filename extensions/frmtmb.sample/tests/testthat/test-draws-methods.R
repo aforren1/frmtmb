@@ -31,7 +31,7 @@ dm_case <- local({
 })
 
 fake_draws <- function(fit, n = 4L) {
-  lab <- c(frmtmb:::all_par_labels(fit), "lp__")
+  lab <- c(frmtmb.sample:::all_par_labels(fit), "lp__")
   structure(list(stanfit = NULL,
                  draws = matrix(0, n, length(lab),
                                 dimnames = list(NULL, lab)),
@@ -187,9 +187,9 @@ test_that("coef() is fixef broadcast plus each group's own draws", {
 
   # the estimate is the posterior mean of (fixed + that group's random
   # intercept), which is the fit-side coef() computed per draw
-  idx <- frmtmb:::draws_par_index(cs$ds$fit)
+  idx <- frmtmb.sample:::draws_par_index(cs$ds$fit)
   per <- vapply(seq_len(ndraws(cs$ds)), function(i) {
-    coef(frmtmb:::draws_fit_at(cs$ds, i, idx))$g[["(Intercept)"]]
+    coef(frmtmb.sample:::draws_fit_at(cs$ds, i, idx))$g[["(Intercept)"]]
   }, numeric(6L))
   expect_equal(unname(cf$g[, "Estimate", "(Intercept)"]),
                unname(rowMeans(per)), tolerance = 1e-12)
@@ -245,9 +245,9 @@ test_that("pp_mixture() propagates parameter uncertainty into the probabilities"
                matrix(1, ndraws(ds), 100L), tolerance = 1e-10)
 
   # each slice is the fit-side computation at that draw
-  idx <- frmtmb:::draws_par_index(ds$fit)
+  idx <- frmtmb.sample:::draws_par_index(ds$fit)
   expect_equal(unname(raw[3L, , ]),
-               unname(mixture_probs(frmtmb:::draws_fit_at(ds, 3L, idx))),
+               unname(mixture_probs(frmtmb.sample:::draws_fit_at(ds, 3L, idx))),
                tolerance = 1e-12)
 
   st <- pp_mixture(ds)

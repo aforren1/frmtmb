@@ -79,7 +79,9 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
   names and brms initializes at random in a bounded range instead.
 - Posterior summaries become ML estimates: `fixef()` returns point
   estimates, `confint()` gives Wald or profile intervals, `anova()`
-  gives likelihood-ratio tests, and `AIC()`/`BIC()` replace `loo()`.
+  gives likelihood-ratio tests, and `AIC()`/`BIC()` replace `loo()`
+  (or install **frmtmb.sample**, whose `loo()` is the real one, on
+  sampled draws).
 - `posterior_predict()` becomes `simulate()`; `posterior_epred()` over
   `newdata` becomes `predict(newdata, type = "response")`. On a
   `cens()` response both draw the LATENT uncensored value, as brms
@@ -383,5 +385,8 @@ Genuine prior information, full posterior uncertainty for derived
 quantities, models with discrete latent structure beyond
 observation-level mixtures, or `loo`-based model comparison. A
 practical workflow is model screening in frmtmb and a final fit in
-brms; `as_tmbstan(fit)` also runs NUTS on the frmtmb objective
+brms. The companion package **frmtmb.sample** is the third option:
+`frmtmb.sample::frm_sample()` runs NUTS on the frmtmb objective under
+brms's default priors and gives back the posterior method surface,
+and `frmtmb.sample::as_tmbstan()` hands the objective to tmbstan
 directly.

@@ -68,56 +68,6 @@ test_that("confint() works on mi() fits (miss is inner, not outer)", {
   expect_identical(rownames(Vf), nm)
 })
 
-test_that("frm_sample(prior=) works on a fixed-effects-only GLM", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  set.seed(404)
-  d <- data.frame(x = rnorm(80))
-  d$y <- rpois(80, exp(0.4 + 0.5 * d$x))
-  fit <- frm(bf(y ~ x) + poisson(), data = d)
-  # the $b partial match used to pass random = "b" for a template that
-  # only holds beta, so this errored in MakeADFun
-  # short-chain R-hat/ESS warnings are not what this test checks
-  ds <- suppressWarnings(
-    frm_sample(fit, chains = 1, iter = 800, refresh = 0,
-               prior = list(beta = prior_normal(0, 5))))
-  m <- as.matrix(ds)
-  expect_true("x" %in% colnames(m))
-  # judged against the chain's own spread: a seeded chain is not
-  # platform-deterministic, and this asserts wiring, not mixing
-  if (sampler_gates_on()) {
-    expect_lt(abs(mean(m[, "x"]) - unname(fit$estimates$beta[["x"]])),
-              5 * stats::sd(m[, "x"]) + 1e-8)
-  }
-})
-
-test_that("frm_sample(laplace = TRUE) runs and labels outer draws", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  set.seed(405)
-  d <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
-  d$y <- rnorm(80, 1 + 0.5 * d$x + rnorm(8, 0, 0.5)[d$g], 1)
-  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = d)
-  # rstan warns about lp__ under laplace; not what this test checks
-  ds <- suppressWarnings(
-    frm_sample(fit, chains = 1, iter = 400, refresh = 0,
-               laplace = TRUE))
-  m <- as.matrix(ds)
-  # no b columns are sampled, and theta keeps its own label instead of
-  # being misattributed as b[1]
-  expect_false(any(grepl("^b\\[", colnames(m))))
-  expect_true(any(grepl("theta", colnames(m))))
-  expect_true("x" %in% colnames(m))
-  # a laplace chain mixes poorly by construction (each leapfrog runs
-  # the inner solve), so a stuck chain UNDERSTATES its own spread; the
-  # wiring sanity is judged against the wider of the chain's spread and
-  # the Wald standard error
-  if (sampler_gates_on()) {
-    expect_lt(abs(mean(m[, "x"]) - unname(fit$estimates$beta[["x"]])),
-              5 * max(stats::sd(m[, "x"]),
-                      sqrt(diag(stats::vcov(fit)))[["x"]]) + 1e-8)
-  }
-})
 
 test_that("influence machinery works with a constant dpar", {
   set.seed(406)
@@ -154,37 +104,3 @@ test_that("NA in an RE-only design variable propagates to predictions", {
   expect_true(is.na(p[2]))
 })
 
-test_that("mode_inits anchors chain 1 and jitters the rest", {
-  mode <- c(a = 1, b = -2, c = 0.5)
-  ii <- mode_inits(mode, chains = 4, jitter = 0.25)
-  expect_length(ii, 4L)
-  expect_identical(ii[[1]], as.numeric(mode))
-  for (k in 2:4) {
-    expect_false(identical(ii[[k]], as.numeric(mode)))
-    expect_lt(max(abs(ii[[k]] - as.numeric(mode))), 2)  # modest jitter
-  }
-  # jitter = 0 restores identical mode starts
-  i0 <- mode_inits(mode, chains = 3, jitter = 0)
-  expect_true(all(vapply(i0, identical, TRUE, as.numeric(mode))))
-})
-
-test_that("frm_sample runs multiple chains with jittered mode inits", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  set.seed(409)
-  d <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
-  d$y <- rnorm(60, 1 + 0.5 * d$x + rnorm(6, 0, 0.5)[d$g], 1)
-  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = d)
-  ds <- suppressWarnings(
-    frm_sample(fit, chains = 2, iter = 300, refresh = 0))
-  a <- rstan::extract(ds$stanfit, permuted = FALSE)
-  expect_identical(dim(a)[2], 2L)
-  # a boundary-ish mode triggers the singular-init warning; the
-  # crippled 10-iteration run may warn on its own, so collect all
-  fit2 <- fit
-  fit2$estimates$theta <- c(-9)
-  w <- testthat::capture_warnings(
-    try(frm_sample(fit2, chains = 1, iter = 10, refresh = 0),
-        silent = TRUE))
-  expect_true(any(grepl("extreme covariance parameter", w)))
-})

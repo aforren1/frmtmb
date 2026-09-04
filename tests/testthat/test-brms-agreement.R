@@ -579,47 +579,6 @@ test_that("mo() ML matches brms's monotonic likelihood (vignette model)", {
                       tol = 1e-4)
 })
 
-test_that("ordinal posterior_epred has brms's draws x obs x category shape", {
-  skip_unless_brms_fit()
-  skip_if_not_installed("tmbstan")
-
-  # ?brms::posterior_epred.brmsfit: "an S x N x C array" for categorical
-  # and ordinal models, an S x N matrix otherwise. This is the agreement
-  # the frmtmb convention is copied from, checked against brms's own
-  # return rather than against the sentence.
-  set.seed(21)
-  n <- 200
-  dd <- data.frame(x = rnorm(n))
-  eta <- 0.9 * dd$x
-  p <- cbind(plogis(-0.8 - eta),
-             plogis(0.6 - eta) - plogis(-0.8 - eta),
-             1 - plogis(0.6 - eta))
-  dd$y <- factor(c("lo", "mid", "hi")[
-    apply(p, 1L, function(pr) sample(3L, 1L, prob = pr))],
-    levels = c("lo", "mid", "hi"), ordered = TRUE)
-  nd <- data.frame(x = c(-1, 0, 1, 2))
-
-  bfit <- brms::brm(brms::bf(y ~ x), data = dd, family = brms::cumulative(),
-                    chains = 1, iter = 1000, warmup = 500, seed = 1,
-                    refresh = 0, backend = "rstan")
-  bep <- brms::posterior_epred(bfit, newdata = nd)
-
-  fit <- frm(bf(y ~ x) + cumulative(), data = dd)
-  ds <- suppressWarnings(frm_sample(fit, chains = 1, iter = 1000,
-                                    refresh = 0, seed = 1))
-  ep <- posterior_epred(ds, newdata = nd)
-
-  expect_length(dim(ep), 3L)
-  expect_equal(dim(ep)[2:3], dim(bep)[2:3])
-  # brms names the category margin by the response's own levels and
-  # leaves the observation margin unnamed; we name the observation
-  # margin when the rows have names, which is additive
-  expect_equal(dimnames(ep)[[3]], levels(dd$y))
-  expect_equal(dimnames(bep)[[3]], levels(dd$y))
-  expect_null(dimnames(ep)[[1]])
-  expect_vector_equal(as.vector(apply(ep, c(2L, 3L), mean)),
-                      as.vector(apply(bep, c(2L, 3L), mean)), tol = 0.1)
-})
 
 test_that("distributional sleepstudy agrees with brms posterior means", {
   skip_unless_brms_fit()

@@ -79,46 +79,6 @@ test_that("zero-truncated poisson matches glmmTMB truncated_poisson", {
                "lb >= 1")
 })
 
-test_that("frm_sample returns named draws and check_laplace agrees on a clean model", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  set.seed(204)
-  dd <- data.frame(x = rnorm(150), g = factor(rep(1:15, 10)))
-  dd$y <- rnorm(150, 1 + 0.5 * dd$x + rnorm(15, 0, 0.8)[dd$g], 1)
-  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-
-  ds <- suppressWarnings(frm_sample(fit, chains = 1, iter = 600,
-                                    refresh = 0, seed = 1))
-  m <- as.matrix(ds)
-  # draws names are parenthesis-free (the brms convention; v0.36)
-  expect_true(all(c("Intercept", "x", "sigma_Intercept",
-                    "theta_1") %in% colnames(m)))
-  # judged against the chain's own spread: a seeded chain is not
-  # platform-deterministic, and this asserts wiring, not mixing
-  if (sampler_gates_on()) {
-    expect_lt(abs(mean(m[, "x"]) - fixef(fit)$mu[["x"]]),
-              5 * stats::sd(m[, "x"]) + 1e-8)
-  }
-
-  cl <- suppressWarnings(suppressMessages(
-    check_laplace(fit, chains = 1, iter = 600, refresh = 0, seed = 1)))
-  expect_s3_class(cl, "data.frame")
-  expect_true("ess_bulk" %in% names(cl))
-  # Wald and posterior agree on a well-behaved gaussian LMM, but only a
-  # HEALTHY chain can testify: on a platform whose chain wandered
-  # (measured, not assumed), the agreement claim is untestable
-  row_x <- cl[cl$parameter == "x", ]
-  # bulk ESS is necessary, not sufficient: a chain can mix on x while
-  # its flat-prior theta excursion fattens the marginal anyway, so the
-  # agreement claim is additionally gated per platform
-  if (sampler_gates_on() &&
-      is.finite(row_x$ess_bulk) && row_x$ess_bulk >= 100) {
-    expect_lt(abs(row_x$z_shift), 0.75)
-    expect_lt(abs(row_x$sd_ratio - 1), 0.5)
-  } else {
-    skip("chain too unhealthy on this platform to judge the agreement")
-  }
-})
 
 test_that("confint_varcorr matches glmmTMB's natural-scale intervals", {
   skip_if_not_installed("glmmTMB")

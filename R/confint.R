@@ -2100,8 +2100,8 @@ hypothesis <- function(x, ...) {
 #' names with parentheses stripped, natural-scale random-effect
 #' summaries (`sd_<group>__<term>`, `cor_<group>__<t1>__<t2>`), and
 #' `sigma` when the residual SD is a scalar. The brms spelling; for
-#' sampled fits, `variables()` on the [frm_sample()] result lists the
-#' draw columns instead.
+#' sampled fits, `variables()` on the `frmtmb.sample::frm_sample()`
+#' result lists the draw columns instead.
 #'
 #' A residual correlation term ([frmtmb-autocor]) contributes its
 #' natural-scale parameters under brms's names, sanitized the same way:

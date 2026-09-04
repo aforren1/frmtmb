@@ -24,24 +24,6 @@ test_that("emmeans marginal means match glmmTMB", {
   expect_length(ct_f$estimate, 3)
 })
 
-test_that("as_tmbstan hands the objective to NUTS", {
-  skip_if_not_installed("tmbstan")
-  set.seed(132)
-  dd <- data.frame(x = rnorm(80))
-  dd$y <- rnorm(80, 1 + 0.5 * dd$x, 1)
-  fit <- frm(bf(y ~ x) + gaussian(), data = dd)
-  sf <- suppressWarnings(as_tmbstan(fit, chains = 1, iter = 400,
-                                    refresh = 0, seed = 1))
-  expect_s4_class(sf, "stanfit")
-  skip_if_not_installed("rstan")
-  dr <- rstan::extract(sf, "beta")$beta
-  # judged against the chain's own spread: a seeded chain is not
-  # platform-deterministic, and this asserts wiring, not mixing
-  if (sampler_gates_on()) {
-    expect_lt(abs(mean(dr[, 1]) - fixef(fit)$mu[[1]]),
-              5 * stats::sd(dr[, 1]) + 1e-8)
-  }
-})
 
 # --- lme4::getME ------------------------------------------------------
 

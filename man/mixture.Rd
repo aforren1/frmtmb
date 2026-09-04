@@ -48,7 +48,7 @@ well-separated problems). \code{quadrature = TRUE} makes the integral
 numerically exact when the per-group integrand is univariate (one
 scalar random intercept, in one class); with class-specific
 intercepts in several classes the coordinates couple and quadrature
-remains approximate - use \code{\link[=check_laplace]{check_laplace()}} to judge.
+remains approximate - use \code{frmtmb.sample::check_laplace()} to judge.
 Mixing-weight predictors are evaluated at each group's first row
 (use group-constant covariates). \code{\link[=mixture_probs]{mixture_probs()}} returns the
 posterior class probabilities per group (or per observation for

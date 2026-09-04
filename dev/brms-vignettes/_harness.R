@@ -1,5 +1,14 @@
 # Shared harness for the hand-translated brms vignettes.
 #
+# ATTACH frmtmb.sample BEFORE RUNNING THESE SCRIPTS. Several of them
+# call frm_sample(), check_laplace(), log_lik() or loo(), which moved to
+# extensions/frmtmb.sample when the sampling surface was split out
+# (dev/draws-extraction.md). The scripts are deliberately NOT rewritten
+# to qualify those names: they are hand translations of brms vignettes
+# and the point is that the translated line reads like the brms line.
+# Install the extension and `library(frmtmb.sample)` first, and they run
+# as written.
+#
 # Why a harness and not plain `try()`: the audit needs a machine-countable
 # record of what each call did, so the scoreboard in
 # `dev/brms-vignette-audit.md` is measured and not remembered. Every

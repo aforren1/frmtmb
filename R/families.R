@@ -33,7 +33,7 @@
 #'   for `residuals(type = "deviance")`). A family that omits one is
 #'   refused by the method that needs it.
 #' @param sim Optional numeric simulator `(dpars, aterms, n)` returning `n`
-#'   response draws; used by [simulate()], [posterior_predict()] and
+#'   response draws; used by [simulate()], `posterior_predict()` and
 #'   [frm_simulate()]. It is stateless and rowwise: it sees the
 #'   distributional parameters and nothing else. A family whose extra
 #'   parameters (`extra_pars`) enter the draw declares a fourth
@@ -83,7 +83,7 @@
 #' (the structured family's own data; see [frmtmb_structure()]).
 #' Read its fields with `[[ ]]`.
 #'
-#' The same `sim_ctx()` serves [simulate()], [posterior_predict()] and
+#' The same `sim_ctx()` serves [simulate()], `posterior_predict()` and
 #' [frm_simulate()]. Because a structured draw covers whole sequences or
 #' groups, `trunc()` rejection and `newdata` cannot apply to it and are
 #' refused.
@@ -2456,7 +2456,7 @@ fam_acat <- function(link = "logit") {
 #' numerically exact when the per-group integrand is univariate (one
 #' scalar random intercept, in one class); with class-specific
 #' intercepts in several classes the coordinates couple and quadrature
-#' remains approximate - use [check_laplace()] to judge.
+#' remains approximate - use `frmtmb.sample::check_laplace()` to judge.
 #' Mixing-weight predictors are evaluated at each group's first row
 #' (use group-constant covariates). [mixture_probs()] returns the
 #' posterior class probabilities per group (or per observation for

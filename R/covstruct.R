@@ -168,7 +168,7 @@ homogeneous_sd <- function(sds, what) {
 #' marginalizes a scalar random intercept by Gauss-Kronrod quadrature
 #' instead, which over a t latent is EXACT, not merely better; it is the
 #' one to run when a t block's variance component matters and the groups
-#' are small. [check_laplace()] measures the same thing without
+#' are small. `frmtmb.sample::check_laplace()` measures the same thing without
 #' refitting, by NUTS on the objective: its `z_shift` for
 #' `theta` reproduced the displacement above to within a percentage
 #' point in the probe.
@@ -1739,6 +1739,51 @@ block_cor_spec <- function(bk) {
 #'
 #' @noRd
 block_n_cor <- function(bk) length(block_cor_spec(bk)[["idx"]] %||% integer(0))
+
+# The three readers below exist so that `covstruct_registry` and
+# `lkj_refusals` can stay internal while an extension package still asks
+# the questions the non-centering plan and the sampling default priors
+# ask (dev/draws-extraction.md). Exporting the registry would have made
+# every field of every structure's entry into stable API; these are the
+# three questions actually asked, and nothing else.
+
+#' Whether any Cholesky factor is registered for a block's structure,
+#' which is the first half of non-centering eligibility.
+#'
+#' @noRd
+covstruct_has_chol <- function(bk) {
+  reg <- covstruct_registry[[bk[["covstruct"]]]]
+  !is.null(reg[["chol_sd"]]) || !is.null(reg[["chol_L"]])
+}
+
+#' The positions WITHIN a block's theta segment that are standard
+#' deviations.
+#'
+#' @noRd
+block_sd_idx <- function(bk) {
+  covstruct_registry[[bk[["covstruct"]]]]$sd_idx(bk[["dim"]])
+}
+
+#' What correlation prior a block can carry: `"none"` (it has no
+#' correlation parameters), `"lkj"` (an LKJ density fits them), or
+#' `"unsupported"` (it has them, but its parameterization has no
+#' correlation matrix over the whole of it for a density to be about).
+#'
+#' Three-valued because both answers are needed and they are not
+#' complements: a caller choosing a default wants `"lkj"`, and a caller
+#' listing the slots left flat wants `"unsupported"` alone - a block
+#' with no correlations at all is not a gap.
+#'
+#' @noRd
+block_cor_prior <- function(bk) {
+  # the refusal is tested FIRST: a structure on the refusal list need
+  # not register a cor_spec at all (toep does not), and asking for the
+  # spec first would report it as having no correlation rather than as
+  # having one nothing can prior
+  if (bk[["covstruct"]] %in% names(lkj_refusals)) return("unsupported")
+  if (is.null(block_cor_spec(bk))) return("none")
+  "lkj"
+}
 
 # --------------------------------- non-centered parameterization -----
 #

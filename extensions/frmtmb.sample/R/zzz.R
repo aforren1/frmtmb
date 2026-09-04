@@ -1,0 +1,53 @@
+# What this package tells frmtmb about itself at load time.
+#
+# Both registrations use seams frmtmb exports for the purpose
+# (?frmtmb::`frmtmb-sampling-api`). Registering from .onLoad() rather
+# than at top level is what a contributor outside the package must do:
+# by then every namespace is sealed, so the collation-order question
+# that governs frmtmb's own in-package contributors does not arise.
+
+#' @noRd
+.onLoad <- function(libname, pkgname) {
+  frmtmb_register_compat(features = c(frm_sample = "method"),
+                         rules = sample_compat_rules)
+  # get_prior()'s default column is otherwise true of frm() alone. With
+  # this registered it reports what frm_sample() would apply, on the
+  # models frm_sample() would apply it to.
+  frmtmb_register_prior_defaults(function(spec, frame) {
+    # default_priors_for() reads only $spec and $frame of the object it
+    # is given, so the two the registry hands over are the whole of it
+    default_priors_for(list(spec = spec, frame = frame))
+  })
+  invisible()
+}
+
+#' The compatibility rules that name `frm_sample()`.
+#'
+#' They travel with the feature rather than staying behind, and that is
+#' the general rule: a pair rule belongs to whichever package makes the
+#' pair possible. `hmm x frm_sample` and `lca x frm_sample` are here for
+#' that reason even though `hmm()` and `lca()` are still frmtmb's - the
+#' pair only exists when this package is loaded, and a rule naming a
+#' feature the table does not have would dangle.
+#'
+#' @noRd
+sample_compat_rules <- function() {
+  b <- compat_rule_builder()
+  r <- b$r
+  r("rescor", "frm_sample", "works",
+    "Verified: tmbstan samples the multivariate outer parameters, the residual correlation included.")
+  r("mvbf", "frm_sample", "works",
+    "Verified: tmbstan samples the multivariate outer parameters. A boundary variance component still warns about mode initialization, as it does for a univariate fit.")
+  r("mixture", "frm_sample", "conditional",
+    "Mixture posteriors are multimodal. Sample with init = \"random\" rather than the mode-anchored default.")
+  r("hmm", "frm_sample", "works",
+    "Verified by a short run. The posterior is multimodal in the state labels, as a mixture's is.")
+  r("lca", "frm_sample", "works",
+    "Verified by a tiny fit: the objective has no random effects, so tmbstan samples the gating coefficients and item logits directly. The posterior is label-invariant, so read it with the same caution as any mixture posterior.")
+  # override: the jitter condition holds wherever frm_sample() is used,
+  # so it outranks the permissive and untested blanket defaults.
+  r("frm_sample", "*", "conditional",
+    "Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = \"random\" for a multimodal posterior.",
+    override = TRUE)
+  b$rules()
+}

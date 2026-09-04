@@ -2486,7 +2486,7 @@ apply_censoring <- function(y, win) {
 #'
 #' @section Structured draws:
 #' Most families draw each row on its own. Some cannot, and those go
-#' through one implementation that [simulate()], [posterior_predict()]
+#' through one implementation that [simulate()], `posterior_predict()`
 #' and [frm_simulate()] all reach (see `sim_ctx` in
 #' [frmtmb_family()]):
 #' - an [hmm()] draw walks the hidden Markov chain forward per
