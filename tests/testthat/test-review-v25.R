@@ -279,56 +279,6 @@ test_that("quadrature x predict(se.fit) reports modes-conditional SEs", {
 
 # ------------------------------------------------- B2 frm_sample bounds
 
-test_that("mode_inits pulls every chain strictly inside the bounds", {
-  lo <- c(0, -Inf, 2)
-  hi <- c(Inf, 1, 2.5)
-  set.seed(1)
-  inits <- frmtmb:::mode_inits(c(-5, 5, 10), chains = 6, jitter = 2,
-                               lower = lo, upper = hi)
-  expect_length(inits, 6L)
-  for (v in inits) {
-    expect_true(all(v > lo))
-    expect_true(all(v < hi))
-  }
-  # chain 1 is the mode anchor and is clamped like the rest
-  expect_true(all(inits[[1]] > lo))
-  # a zero jitter still clamps
-  z <- frmtmb:::mode_inits(c(-5, 5, 10), chains = 2, jitter = 0,
-                           lower = lo, upper = hi)
-  expect_true(all(z[[1]] > lo))
-  # unbounded sampling is untouched
-  expect_equal(frmtmb:::mode_inits(c(1, 2), 1, 0)[[1]], c(1, 2))
-
-  # a box narrower than the interior padding collapses to its midpoint
-  expect_equal(frmtmb:::clamp_into_bounds(1e6, 1, 1 + 1e-9), 1 + 5e-10)
-})
-
-test_that("frm_sample warns when a bound excludes the ML mode", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  set.seed(55)
-  n <- 120
-  dd <- data.frame(x = stats::rnorm(n), g = factor(rep(1:12, 10)))
-  dd$y <- 1 + 0.5 * dd$x + stats::rnorm(12, 0, 0.4)[dd$g] +
-    stats::rnorm(n)
-  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-  expect_lt(exp(fit$estimates$theta[[1]]), 1.5)
-
-  # rstan's own message for an init at or outside a bound names neither
-  # the parameter nor the bound, so frm_sample has to say it first
-  seen <- character(0)
-  ds <- withCallingHandlers(
-    frm_sample(fit, chains = 2, iter = 300, refresh = 0, seed = 3,
-               prior = set_prior("", class = "sd", lb = 1.5)),
-    warning = function(w) {
-      seen <<- c(seen, conditionMessage(w))
-      invokeRestart("muffleWarning")
-    })
-  expect_true(any(grepl("violates the requested bound", seen)))
-  # the bound applies on the internal (log-sd) scale, and every draw
-  # respects it: the chains started inside the box
-  expect_true(all(as.matrix(ds)[, "theta_1"] >= log(1.5)))
-})
 
 # --------------------------------------------- B3 vint()/vreal() newdata
 

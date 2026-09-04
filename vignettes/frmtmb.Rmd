@@ -308,15 +308,12 @@ plot(dharma_residuals(fit))
 plot(conditional_effects(fit))
 ```
 
-And the fitted objective can be handed to NUTS for full Bayes on the
-same model - `frm_sample()` returns draws with the full method
-surface (`posterior_epred()`, `hypothesis()`, `pp_check()`), and
-`check_laplace()` audits the Laplace approximation against them:
-
-```{r, eval = FALSE}
-ds <- frm_sample(fit, chains = 4)
-check_laplace(fit)
-```
+The same fitted objective can be handed to NUTS for full Bayes on the
+same model. That lives in the companion package **frmtmb.sample**:
+`frmtmb.sample::frm_sample()` returns draws with the whole posterior
+method surface (`posterior_epred()`, `hypothesis()`, `loo()`), and
+`frmtmb.sample::check_laplace()` audits the Laplace approximation
+against them.
 
 See `vignette("inputs")` for what `frm()` accepts and what it costs to
 run, `vignette("brms-migration")` for the brms feature map, and

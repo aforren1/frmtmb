@@ -52,8 +52,9 @@
 #' that no exported method reaches are internal and can change; use the
 #' accessors.
 #'
-#' Multivariate coverage of the post-fit methods, the mixture families,
-#' and [frm_sample()] still gain features between releases. Version
+#' Multivariate coverage of the post-fit methods and the mixture
+#' families still gain features between releases, as does the sampling
+#' surface in the companion package `frmtmb.sample`. Version
 #' numbers stay below 1.0 until the CRAN release. Breaking changes are
 #' listed in `NEWS.md`. The package is actively developed and maintained.
 #'

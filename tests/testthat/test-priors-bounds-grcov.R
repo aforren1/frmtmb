@@ -9,19 +9,6 @@ sim_lmm <- function(seed = 301, n = 150, ng = 15) {
   dd
 }
 
-test_that("prior-augmented objective equals nll + neg log prior", {
-  dd <- sim_lmm()
-  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-  pr <- list(x = prior_normal(0, 1), theta = prior_normal(0, 2))
-  ri <- frmtmb:::resolve_prior_input(fit, pr)
-  obj2 <- frmtmb:::prior_augmented_obj(fit, ri$entries)
-  est <- fit$opt$par
-  nlp_manual <-
-    -stats::dnorm(fixef(fit)$mu[["x"]], 0, 1, log = TRUE) -
-    stats::dnorm(fit$estimates$theta[1], 0, 2, log = TRUE)
-  expect_lt(abs(obj2$fn(obj2$par) -
-                  (-as.numeric(logLik(fit)) + nlp_manual)), 1e-8)
-})
 
 test_that("prior name resolution: classes, coefficients, errors", {
   dd <- sim_lmm()
@@ -35,24 +22,6 @@ test_that("prior name resolution: classes, coefficients, errors", {
                "prior object")
 })
 
-test_that("a tight prior pulls the posterior toward it", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  dd <- sim_lmm(seed = 302)
-  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-  ds <- suppressWarnings(
-    frm_sample(fit, chains = 1, iter = 600, refresh = 0, seed = 1,
-               prior = list(x = prior_normal(0, 0.01)))
-  )
-  m <- as.matrix(ds)
-  # shrunk to ~0: the posterior sd itself proves the prior bit, and the
-  # mean is judged against that sd rather than a platform-fragile number
-  if (sampler_gates_on()) {
-    expect_lt(stats::sd(m[, "x"]), 0.05)
-    expect_lt(abs(mean(m[, "x"])), 5 * stats::sd(m[, "x"]) + 1e-8)
-  }
-  expect_gt(fixef(fit)$mu[["x"]], 0.3)          # ML untouched
-})
 
 test_that("hard bounds constrain the ML fit", {
   dd <- sim_lmm(seed = 303)

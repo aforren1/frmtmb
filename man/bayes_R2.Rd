@@ -3,72 +3,34 @@
 \name{bayes_R2}
 \alias{bayes_R2}
 \alias{bayes_R2.frmtmb_fit}
-\alias{bayes_R2.frmtmb_draws}
 \title{Bayesian R-squared}
 \usage{
 bayes_R2(object, ...)
 
 \method{bayes_R2}{frmtmb_fit}(object, ...)
-
-\method{bayes_R2}{frmtmb_draws}(
-  object,
-  resp = NULL,
-  summary = TRUE,
-  probs = c(0.025, 0.975),
-  ndraws = NULL,
-  ...
-)
 }
 \arguments{
-\item{object}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
+\item{object}{A \code{frmtmb_fit}, or (with \code{frmtmb.sample} loaded) draws.}
 
-\item{...}{Unused.}
-
-\item{resp}{For a multivariate model, which response.}
-
-\item{summary}{If \code{TRUE} (the default, as in brms), summarize the
-draws into estimate, error and quantiles; if \code{FALSE}, return the
-\verb{ndraws x 1} matrix of R-squared draws.}
-
-\item{probs}{Quantiles for the summary.}
-
-\item{ndraws}{Number of draws to use (default: all).}
+\item{...}{Passed to methods.}
 }
 \value{
-A one-row summary matrix, or the matrix of draws when
-\code{summary = FALSE}.
+This method signals an error on a maximum-likelihood fit.
 }
 \description{
-The proportion of the outcome's variance the model explains, computed
-per draw and returned as a posterior distribution. This is the
-residual-based estimator of Gelman, Goodrich, Gabry and Vehtari
-(2019), \emph{R-squared for Bayesian regression models}, The American
-Statistician 73(3), which brms implements as
-\code{var(ypred_s) / (var(ypred_s) + var(y - ypred_s))} for each draw \code{s},
-with both variances taken over the observations. frmtmb computes the
-same expression on \code{\link[=posterior_epred]{posterior_epred()}} draws, so the two agree up to
-Monte Carlo error on the same model.
-}
-\details{
-Because the denominator is a per-draw variance rather than a fixed
-total sum of squares, the value is bounded in \verb{(0, 1)} by
-construction and does not have the classical R-squared's habit of
-exceeding 1 on posterior draws.
+The proportion of the outcome's variance a model explains, computed
+per posterior draw. A maximum-likelihood fit has one parameter
+vector rather than a posterior, so this refuses on a \code{frmtmb_fit}
+and names the route to draws; the estimator itself is in the
+\code{frmtmb.sample} package, on the same generic.
 }
 \examples{
-\donttest{
-if (requireNamespace("tmbstan", quietly = TRUE) &&
-    requireNamespace("rstan", quietly = TRUE)) {
-  set.seed(9)
-  dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
-  dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
-  ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
-                   data = dd, chains = 1, iter = 500, refresh = 0)
-  bayes_R2(ds)
-  quantile(bayes_R2(ds, summary = FALSE), c(0.1, 0.9))
-}
-}
+set.seed(1)
+dd <- data.frame(x = rnorm(40))
+dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+fit <- frm(bf(y ~ x) + gaussian(), data = dd)
+try(bayes_R2(fit))
 }
 \seealso{
-\code{\link[=log_lik]{log_lik()}}, \code{\link[=loo]{loo()}}
+\code{\link[=loo]{loo()}}
 }

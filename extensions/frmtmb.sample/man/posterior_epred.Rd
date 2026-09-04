@@ -52,12 +52,12 @@ posterior_predict(object, ...)
 
 \item{...}{Unused.}
 
-\item{newdata, resp}{As in \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}.}
+\item{newdata, resp}{As in \code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}.}
 
 \item{re_formula}{The random-effect switch, in brms's spelling:
 \code{NULL} (the default) conditions on each draw's own random effects,
 \code{NA} or \code{~0} gives the population-level quantity. Its meaning is
-\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}'s \code{re.form}; see \emph{Argument spellings}.}
+\code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}'s \code{re.form}; see \emph{Argument spellings}.}
 
 \item{re.form}{lme4's spelling of \code{re_formula}, accepted as an alias.
 Pass one or the other, not both.}
@@ -109,17 +109,17 @@ family (it draws one category per observation), and so is
 \code{posterior_linpred()}, which is a statement about one distributional
 parameter and stays an \code{n}-column matrix of the latent predictor.
 What does take the array shape in \code{posterior_predict()} is a
-matrix-valued RESPONSE: \code{\link[=multinomial]{multinomial()}} counts, \code{\link[=mixture_mvn]{mixture_mvn()}}
-draws and \code{\link[=lca]{lca()}} item codes give one row per observation, so the
+matrix-valued RESPONSE: \code{\link[frmtmb:multinomial]{frmtmb::multinomial()}} counts, \code{\link[frmtmb:mixture_mvn]{frmtmb::mixture_mvn()}}
+draws and \code{\link[frmtmb:lca]{frmtmb::lca()}} item codes give one row per observation, so the
 draws stack into \verb{draws x observations x columns}.
 }
 
 \section{Structured draws}{
 
 \code{posterior_predict()} uses the same simulator \code{\link[=simulate]{simulate()}} does,
-including the structured families (\code{\link[=hmm]{hmm()}}, \code{mixture(groups = )},
-\code{\link[=mixture_mvn]{mixture_mvn()}}) and residual correlation terms; see the Structured
-draws section of \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}}. Those draws index the rows
+including the structured families (\code{\link[frmtmb:hmm]{frmtmb::hmm()}}, \code{mixture(groups = )},
+\code{\link[frmtmb:mixture_mvn]{frmtmb::mixture_mvn()}}) and residual correlation terms; see the Structured
+draws section of \code{\link[frmtmb:simulate.frmtmb_fit]{frmtmb::simulate.frmtmb_fit()}}. Those draws index the rows
 the model was fitted on, so \code{newdata} is refused for them.
 }
 
@@ -127,8 +127,8 @@ the model was fitted on, so \code{newdata} is refused for them.
 
 frmtmb answers to two dialects, and this family sits on the seam.
 The rule is that a brms-NAMED function speaks brms's argument names,
-while frmtmb's own fit surface (\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}},
-\code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}}, \code{\link[=frm_bootstrap]{frm_bootstrap()}}) keeps lme4's, because
+while frmtmb's own fit surface (\code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}},
+\code{\link[frmtmb:simulate.frmtmb_fit]{frmtmb::simulate.frmtmb_fit()}}, \code{\link[frmtmb:frm_bootstrap]{frmtmb::frm_bootstrap()}}) keeps lme4's, because
 that is the heritage each name comes from and a reader should be able
 to tell which library a call was written against.
 

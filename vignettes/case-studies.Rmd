@@ -983,7 +983,8 @@ responses of a whole sequence, so they do not exist on a grid. Plot one
 state's own predictor with `predict(dpar = "mu2")`, or the occupancies
 from `hmm_probs()`.
 
-`residuals(type = "deviance")`, `log_lik()` and `loo()` all need a
+`residuals(type = "deviance")`, and frmtmb.sample's `log_lik()` and
+`loo()`, all need a
 likelihood that factors into one term per observation. An HMM's
 smallest independent unit is a sequence, so a per-observation column
 would be a group and leaving one out would drop a whole track. Compare

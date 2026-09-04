@@ -42,7 +42,7 @@ ll_case <- local({
 # decided by the model's STRUCTURE alone: assembling the objective is
 # cheap and neither fitting nor sampling adds anything to the test
 fake_draws <- function(fit, n = 4L) {
-  lab <- c(frmtmb:::all_par_labels(fit), "lp__")
+  lab <- c(frmtmb.sample:::all_par_labels(fit), "lp__")
   structure(list(stanfit = NULL,
                  draws = matrix(0, n, length(lab),
                                 dimnames = list(NULL, lab)),
@@ -57,9 +57,9 @@ test_that("log_lik() equals the closed-form gaussian density at each draw", {
   ll <- log_lik(cs$ds)
   expect_equal(dim(ll), c(nrow(cs$ds$draws), nrow(cs$dd)))
 
-  idx <- frmtmb:::draws_par_index(cs$ds$fit)
+  idx <- frmtmb.sample:::draws_par_index(cs$ds$fit)
   for (i in c(1L, 7L, 200L, nrow(cs$ds$draws))) {
-    sh <- frmtmb:::draws_fit_at(cs$ds, i, idx)
+    sh <- frmtmb.sample:::draws_fit_at(cs$ds, i, idx)
     b <- sh$estimates[["b"]]
     beta <- sh$estimates$beta
     # conditional on THIS draw's own group-level values, which is what
@@ -74,13 +74,13 @@ test_that("log_lik() equals the closed-form gaussian density at each draw", {
 test_that("log_lik() row sums are the taped likelihood at the same draw", {
   cs <- ll_case()
   ll <- log_lik(cs$ds)
-  idx <- frmtmb:::draws_par_index(cs$ds$fit)
+  idx <- frmtmb.sample:::draws_par_index(cs$ds$fit)
   i <- 42L
-  sh <- frmtmb:::draws_fit_at(cs$ds, i, idx)
+  sh <- frmtmb.sample:::draws_fit_at(cs$ds, i, idx)
   # the objective is -(row densities + random-effect prior), so removing
   # the block density leaves exactly the row sum
   pars <- sh$estimates
-  nll <- frmtmb:::build_objective(sh$frame)(pars)
+  nll <- frmtmb::build_objective(sh$frame)(pars)
   bk <- sh$frame$re_blocks[[1L]]
   re_prior <- frmtmb:::covstruct_registry[[bk$covstruct]]$nll(
     pars[["b"]][bk$b_idx], pars$theta[bk$theta_idx], bk)
@@ -100,8 +100,8 @@ test_that("log_lik() carries weights, truncation and censoring like the objectiv
   dw <- suppressWarnings(suppressMessages(
     frm_sample(fw, chains = 1, iter = 200, refresh = 0, seed = 2)))
   llw <- log_lik(dw)
-  idx <- frmtmb:::draws_par_index(dw$fit)
-  sh <- frmtmb:::draws_fit_at(dw, 5L, idx)
+  idx <- frmtmb.sample:::draws_par_index(dw$fit)
+  sh <- frmtmb.sample:::draws_fit_at(dw, 5L, idx)
   mu <- sh$estimates$beta[1] + sh$estimates$beta[2] * dd$x
   sg <- exp(sh$estimates$betad[1])
   expect_equal(llw[5L, ], dd$w * stats::dnorm(dd$y, mu, sg, log = TRUE),
@@ -113,8 +113,8 @@ test_that("log_lik() carries weights, truncation and censoring like the objectiv
   dts <- suppressWarnings(suppressMessages(
     frm_sample(ft, chains = 1, iter = 200, refresh = 0, seed = 2)))
   llt <- log_lik(dts)
-  idx <- frmtmb:::draws_par_index(dts$fit)
-  sh <- frmtmb:::draws_fit_at(dts, 5L, idx)
+  idx <- frmtmb.sample:::draws_par_index(dts$fit)
+  sh <- frmtmb.sample:::draws_fit_at(dts, 5L, idx)
   mu <- sh$estimates$beta[1] + sh$estimates$beta[2] * dt$x
   sg <- exp(sh$estimates$betad[1])
   expect_equal(llt[5L, ],
@@ -130,8 +130,8 @@ test_that("log_lik() carries weights, truncation and censoring like the objectiv
   dcs <- suppressWarnings(suppressMessages(
     frm_sample(fc, chains = 1, iter = 200, refresh = 0, seed = 2)))
   llc <- log_lik(dcs)
-  idx <- frmtmb:::draws_par_index(dcs$fit)
-  sh <- frmtmb:::draws_fit_at(dcs, 5L, idx)
+  idx <- frmtmb.sample:::draws_par_index(dcs$fit)
+  sh <- frmtmb.sample:::draws_fit_at(dcs, 5L, idx)
   mu <- sh$estimates$beta[1] + sh$estimates$beta[2] * dc$x
   sg <- exp(sh$estimates$betad[1])
   want <- stats::dnorm(dc$y, mu, sg, log = TRUE)
@@ -149,8 +149,8 @@ test_that("log_lik() takes trials() through the family, and ndraws thins", {
   ds <- suppressWarnings(suppressMessages(
     frm_sample(fit, chains = 1, iter = 200, refresh = 0, seed = 2)))
   ll <- log_lik(ds)
-  idx <- frmtmb:::draws_par_index(ds$fit)
-  sh <- frmtmb:::draws_fit_at(ds, 3L, idx)
+  idx <- frmtmb.sample:::draws_par_index(ds$fit)
+  sh <- frmtmb.sample:::draws_fit_at(ds, 3L, idx)
   p <- stats::plogis(sh$estimates$beta[1] + sh$estimates$beta[2] * dd$x)
   expect_equal(ll[3L, ], stats::dbinom(dd$s, dd$n, p, log = TRUE),
                tolerance = 1e-10)
@@ -176,10 +176,10 @@ test_that("an observation-level mixture keeps its per-row column", {
   # no random effects here, so the objective IS the negative row sum:
   # an end-to-end check of the whole composition with nothing
   # reconstructed by hand
-  idx <- frmtmb:::draws_par_index(ds$fit)
+  idx <- frmtmb.sample:::draws_par_index(ds$fit)
   for (i in c(6L, 50L)) {
-    sh <- frmtmb:::draws_fit_at(ds, i, idx)
-    nll <- frmtmb:::build_objective(sh$frame)(sh$estimates)
+    sh <- frmtmb.sample:::draws_fit_at(ds, i, idx)
+    nll <- frmtmb::build_objective(sh$frame)(sh$estimates)
     expect_equal(sum(ll[i, ]), as.numeric(-nll), tolerance = 1e-10)
   }
 })
@@ -201,10 +201,10 @@ test_that("log_lik() on a rescor model is the joint density per row", {
   # responses share one bivariate density
   expect_equal(ncol(ll), n)
 
-  idx <- frmtmb:::draws_par_index(ds$fit)
-  sh <- frmtmb:::draws_fit_at(ds, 4L, idx)
-  dp <- frmtmb:::eval_dpars(sh)
-  C <- frmtmb:::us_chol_cor(sh$estimates[["thetar"]], 2L)
+  idx <- frmtmb.sample:::draws_par_index(ds$fit)
+  sh <- frmtmb.sample:::draws_fit_at(ds, 4L, idx)
+  dp <- frmtmb::eval_dpars(sh)
+  C <- frmtmb::us_chol_cor(sh$estimates[["thetar"]], 2L)
   s1 <- rep(as.numeric(dp$y1$sigma), length.out = n)
   s2 <- rep(as.numeric(dp$y2$sigma), length.out = n)
   mu <- cbind(rep(as.numeric(dp$y1$mu), length.out = n),
@@ -233,7 +233,7 @@ test_that("loo() and waic() delegate to the loo package with r_eff", {
   ll <- log_lik(cs$ds)
   ref <- suppressWarnings(loo::loo.matrix(
     ll, r_eff = loo::relative_eff(exp(ll),
-                                  chain_id = frmtmb:::draws_chain_id(cs$ds))))
+                                  chain_id = frmtmb.sample:::draws_chain_id(cs$ds))))
   expect_equal(l$estimates, ref$estimates)
 
   w <- suppressWarnings(waic(cs$ds))
@@ -301,7 +301,7 @@ test_that("psis() smooths the leave-one-out importance ratios", {
   expect_s3_class(p, "psis")
   ll <- log_lik(cs$ds)
   ref <- suppressWarnings(loo::psis(-ll, r_eff = loo::relative_eff(
-    exp(ll), chain_id = frmtmb:::draws_chain_id(cs$ds))))
+    exp(ll), chain_id = frmtmb.sample:::draws_chain_id(cs$ds))))
   expect_equal(loo::pareto_k_values(p), loo::pareto_k_values(ref))
 })
 
@@ -385,7 +385,7 @@ test_that("log_lik() refuses laplace-marginalized draws", {
   dd <- ll_data()
   uf <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
             dry_run = "objective")
-  lab <- c(frmtmb:::all_par_labels(uf, include_random = FALSE), "lp__")
+  lab <- c(frmtmb.sample:::all_par_labels(uf, include_random = FALSE), "lp__")
   ds <- structure(list(stanfit = NULL,
                        draws = matrix(0, 4L, length(lab),
                                       dimnames = list(NULL, lab)),

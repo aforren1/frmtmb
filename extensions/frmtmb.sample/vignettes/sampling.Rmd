@@ -1,0 +1,166 @@
+---
+title: "Sampling a frmtmb model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Sampling a frmtmb model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+frmtmb fits by maximum likelihood. This package hands the same
+objective to Stan's NUTS sampler through tmbstan and gives back the
+posterior, under brms's default priors and with frmtmb's own parameter
+names.
+
+Nothing about the fit changes. The model is the one `frm()` already
+assembled; what is added is a posterior, and a starting point.
+
+```{r, eval = FALSE}
+library(frmtmb)
+library(frmtmb.sample)
+
+set.seed(9)
+dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+
+fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+ds <- frm_sample(fit, chains = 4)
+summary(ds)
+```
+
+## Two routes, one posterior
+
+`frm_sample()` takes either a fit or a formula.
+
+```{r, eval = FALSE}
+# from a fit: the ML mode anchors the chains and shortens warmup
+ds1 <- frm_sample(fit, chains = 4)
+
+# from a formula: assembled and taped, never optimized, so Stan's own
+# overdispersed initialization is the default
+ds2 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
+                  chains = 4)
+```
+
+Both sample the same posterior under the same default priors. What the
+fit adds is a starting point, not a different density.
+
+## The default priors
+
+Both routes apply brms 2.23's weakly-informative defaults, read off
+`brms::default_prior()` on matched models. The call reports what it
+chose, one line per class, and one line per slot it deliberately left
+flat, so a model that gets few defaults says so rather than looking
+flat by accident.
+
+`frmtmb::get_prior()` reports them too, once this package is loaded:
+
+```{r, eval = FALSE}
+# with frmtmb alone the default column reads "(flat)", which is what
+# frm() does. With frmtmb.sample loaded it reads what frm_sample()
+# would apply, because this package registers its defaults with
+# get_prior()
+get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+```
+
+`prior = "flat"` opts out and samples the bare likelihood. That is a
+fine diagnostic and fragile inference: under a flat prior on a log
+standard deviation the posterior need not be proper, and neither the
+chains nor Rhat can see it, so the opt-out warns when the model has
+variance components.
+
+A `set_prior()` specification takes over the classes it names and
+leaves the other defaults alone, which is brms's partial-override
+rule.
+
+```{r, eval = FALSE}
+ds <- frm_sample(fit, chains = 4,
+                 prior = set_prior("exponential(1)", class = "sd"))
+prior_summary(ds)
+```
+
+## Non-centering
+
+A random-effect block has a funnel in its centered joint posterior:
+the width of the prior on `b` is a standard deviation being sampled at
+the same time, so the region NUTS must explore narrows as that
+standard deviation shrinks and one step size cannot fit both ends.
+
+`reparameterize = TRUE`, the default, samples `z ~ N(0, I)` and
+computes `b = L(theta) z` on the tape. Each draw is mapped back
+through its own `theta`, so every method downstream reads the same
+`b[i]` columns and cannot tell the two routes apart.
+
+Not every block qualifies, and the call says which did not and why.
+A block is non-centered only when every parameter it has is a standard
+deviation or a correlation with a registered Cholesky factor, and
+every one of those parameters carries a prior. Both conditions are
+about not handing the sampler a direction it can run away in: removing
+the funnel without closing off the flat tail at `sd = 0` first trades
+a slow chain for a wrong one.
+
+See `?frm_sample` for which structures qualify, what it is worth, and
+the measurements behind that.
+
+## Checking the Laplace approximation
+
+`frmtmb::frm()` integrates random effects out with a Laplace
+approximation and reports Wald standard errors. Both assumptions
+degrade in the same places: variance components from few groups,
+binary data in small clusters.
+
+`check_laplace()` measures it. It samples the density the fit
+maximized -- and no other, which is why it opts out of the default
+priors explicitly rather than inheriting them -- and reports the shift
+of each posterior mean from its maximum-likelihood estimate in
+posterior standard deviations, beside the ratio of the posterior
+standard deviation to the Wald standard error.
+
+```{r, eval = FALSE}
+cl <- check_laplace(fit, chains = 2, iter = 1000)
+# large |z_shift| or sd_ratio far from 1 marks the parameters whose
+# Wald interval to replace with a profile or bootstrap one
+cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
+```
+
+The remedies are in frmtmb itself: `confint(method = "profile")`,
+`frm_bootstrap()`, and `frm(quadrature = TRUE)`.
+
+## The method surface
+
+The draws object supports the post-processing surface a brmsfit does,
+on the same generics:
+
+```{r, eval = FALSE}
+fixef(ds); ranef(ds); VarCorr(ds)
+posterior_epred(ds); posterior_predict(ds); posterior_linpred(ds)
+hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+conditional_effects(ds)
+pp_check(ds)
+log_lik(ds); loo(ds); waic(ds); bayes_R2(ds)
+as_draws(ds); as.array(ds); as.mcmc(ds)
+mcmc_plot(ds, type = "trace")
+```
+
+Parameter names drop parentheses on the draws side -- `Intercept`, not
+`(Intercept)` -- because that is the vocabulary posterior, bayesplot
+and `hypothesis()` already speak. `variables(ds)` lists them.
+
+## Known failure: a tmbstan built against StanHeaders 2.39
+
+stanc 2.39.0 emits two `log_prob_impl` overloads where 2.32 emitted
+one, and tmbstan's install-time code generator patches only the first.
+HMC then reads its value and gradient from the unpatched overload, so
+every chain samples a standard normal instead of the model, with the
+objective, priors and data all silently absent.
+
+`frm_sample()` and `as_tmbstan()` check the installed model source
+once per session and refuse such a build before sampling, rather than
+returning plausible garbage after it. If you hit that refusal, install
+a binary tmbstan build or reinstall tmbstan against StanHeaders
+2.32.10, and distrust any draws the affected installation already
+produced.

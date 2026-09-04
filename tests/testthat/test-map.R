@@ -41,22 +41,3 @@ test_that("an sd prior regularizes a singular variance component", {
   d <- diagnose(map, quiet = TRUE)
   expect_length(d$bad_se, 0)
 })
-
-test_that("a MAP fit's priors carry into frm_sample by default", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  set.seed(503)
-  dd <- data.frame(x = rnorm(100))
-  dd$y <- rnorm(100, 1 + 0.5 * dd$x, 1)
-  map <- frm(bf(y ~ x) + gaussian(), data = dd,
-             prior = set_prior("normal(0, 0.05)", class = "b",
-                                coef = "x"))
-  ds <- suppressWarnings(frm_sample(map, chains = 1, iter = 500,
-                                    refresh = 0, seed = 1))
-  # judged against the chain's own spread: a seeded chain is not
-  # platform-deterministic, and this asserts wiring, not mixing
-  mx <- as.matrix(ds)[, "x"]
-  if (sampler_gates_on()) {
-    expect_lt(abs(mean(mx)), 5 * stats::sd(mx) + 1e-8)
-  }
-})

@@ -90,7 +90,7 @@ one row per group.}
 \item{sim_ctx}{\verb{function(ctx)} drawing the whole response, the
 structured-simulator contract of \code{\link[=frmtmb_family]{frmtmb_family()}} with
 \code{ctx[["block"]]} carrying the block. One implementation serves
-\code{\link[=simulate]{simulate()}}, \code{\link[=posterior_predict]{posterior_predict()}} and \code{\link[=frm_simulate]{frm_simulate()}}.}
+\code{\link[=simulate]{simulate()}}, \code{posterior_predict()} and \code{\link[=frm_simulate]{frm_simulate()}}.}
 
 \item{supports}{Named logical vector or list of capability flags; see
 Capability flags. Unnamed entries and unknown names are refused.}

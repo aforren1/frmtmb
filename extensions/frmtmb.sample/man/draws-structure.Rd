@@ -37,7 +37,7 @@ from the formula route, which has no maximum-likelihood estimate.
 \code{coef()} is a posterior quantity, not a structural one: it summarizes
 the per-group coefficients (fixed effects plus that group's own
 random effects) over the draws, in the same nested shape
-\code{\link[=coef.frmtmb_fit]{coef.frmtmb_fit()}} returns, with a \verb{levels x statistics x coefficients} array in place of each data frame. That is brms's
+\code{\link[frmtmb:coef.frmtmb_fit]{frmtmb::coef.frmtmb_fit()}} returns, with a \verb{levels x statistics x coefficients} array in place of each data frame. That is brms's
 \code{coef.brmsfit} layout.
 }
 \examples{

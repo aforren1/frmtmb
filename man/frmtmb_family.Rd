@@ -78,7 +78,7 @@ for \code{residuals(type = "deviance")}). A family that omits one is
 refused by the method that needs it.}
 
 \item{sim}{Optional numeric simulator \verb{(dpars, aterms, n)} returning \code{n}
-response draws; used by \code{\link[=simulate]{simulate()}}, \code{\link[=posterior_predict]{posterior_predict()}} and
+response draws; used by \code{\link[=simulate]{simulate()}}, \code{posterior_predict()} and
 \code{\link[=frm_simulate]{frm_simulate()}}. It is stateless and rowwise: it sees the
 distributional parameters and nothing else. A family whose extra
 parameters (\code{extra_pars}) enter the draw declares a fourth
@@ -146,14 +146,13 @@ extra parameters) and the frame structures \code{autocor} and \code{block}
 (the structured family's own data; see \code{\link[=frmtmb_structure]{frmtmb_structure()}}).
 Read its fields with \verb{[[ ]]}.
 
-The same \code{sim_ctx()} serves [simulate()], [posterior_predict()] and
+The same \code{sim_ctx()} serves [simulate()], \code{posterior_predict()} and
 [frm_simulate()]. Because a structured draw covers whole sequences or
 groups, \code{trunc()} rejection and \code{newdata} cannot apply to it and are
 refused.
 
 [ ]: R:\%20
 [simulate()]: R:simulate()
-[posterior_predict()]: R:posterior_predict()
 [frm_simulate()]: R:frm_simulate()
 }
 

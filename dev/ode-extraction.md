@@ -79,6 +79,14 @@ core-only.
 
 ## The draws package (sequencing revised 2026-09-03)
 
+STATUS 2026-09-03: executed. `extensions/frmtmb.sample` exists and
+carries the whole sampling surface; the inventory that preceded the
+move is `dev/draws-extraction.md`. The tmbstan-refusal-string question
+this note left to the draws lane is resolved there (option (a): a
+generic "external solver" sentence, with no package named), so core
+names neither `frm_ode` nor RTMBode any more. One consequence for the
+ratchet is recorded at the end of that document.
+
 Maintainer decision: frmtmb.sample separates SOONER than the
 original "at CRAN time" plan, in the same round as the ODE
 extraction, because the sampling tests are the heaviest part of the

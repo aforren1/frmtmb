@@ -135,7 +135,7 @@ frmtmb_compat_features_tbl <- function() {
     lapply(c("mvbf", "rescor", "|ID|", "nl", "mixture",
              "mixture_mvn"), f, kind = "structure"),
     lapply(c("fitted", "predict", "simulate", "residuals",
-             "residuals_osa", "emmeans", "frm_sample",
+             "residuals_osa", "emmeans",
              "confint_profile", "hypothesis_profile"), f,
            kind = "method"),
     # formula-grammar spellings, which have their own restrictions and
@@ -543,15 +543,13 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: residuals() is not supported for multivariate fits yet.")
   r("rescor", "emmeans", "refused",
     "Refused: emmeans support is univariate-only for now.")
-  # confint(), hypothesis() and frm_sample() work on the outer
-  # parameter vector, which a multivariate fit has like any other:
-  # verified on a two-response gaussian fit, rescor = TRUE included.
+  # confint() and hypothesis() work on the outer parameter vector,
+  # which a multivariate fit has like any other: verified on a
+  # two-response gaussian fit, rescor = TRUE included.
   r("rescor", "confint_profile", "works",
     "Verified: the profiled and uniroot intervals for a per-response coefficient agree with the Wald interval on a two-response fit.")
   r("rescor", "hypothesis_profile", "works",
     "Verified: profile likelihood tests address the per-response coefficients by their vcov() names (y1_x and so on).")
-  r("rescor", "frm_sample", "works",
-    "Verified: tmbstan samples the multivariate outer parameters, the residual correlation included.")
 
   ## mvbf ------------------------------------------------------------------
   r("mvbf", "kind:method", "refused",
@@ -573,8 +571,6 @@ frmtmb_compat_rules_tbl <- function() {
     "Verified: the profiled and uniroot intervals for a per-response coefficient agree with the Wald interval on a two-response fit.")
   r("mvbf", "hypothesis_profile", "works",
     "Verified: profile likelihood tests address the per-response coefficients by their vcov() names (y1_x and so on).")
-  r("mvbf", "frm_sample", "works",
-    "Verified: tmbstan samples the multivariate outer parameters. A boundary variance component still warns about mode initialization, as it does for a univariate fit.")
   r("mvbf", "kind:family", "works",
     "Each response carries its own family unless rescor = TRUE.")
   r("mvbf", "kind:aterm", "works",
@@ -632,8 +628,6 @@ frmtmb_compat_rules_tbl <- function() {
   r("mixture", "weights()", "works", "Verified by a tiny fit.")
   r("mixture", "simulate", "conditional",
     "Works only when every component family has a simulator.")
-  r("mixture", "frm_sample", "conditional",
-    "Mixture posteriors are multimodal. Sample with init = \"random\" rather than the mode-anchored default.")
   r("mixture", "kind:covstruct", "untested", "")
   r("mixture_mvn", "simulate", "works",
     "Since v0.36 a structured simulator (fam$sim_ctx) draws a class per row from the gating weights and then a D-variate normal about that class's mean with that class's covariance, assembled from the family-level extras by the same sigma() the likelihood uses. A draw is an n x D matrix. simulate(), posterior_predict() and frm_simulate() all reach the same implementation.")
@@ -772,11 +766,6 @@ frmtmb_compat_rules_tbl <- function() {
     "Refused: emmeans support needs a linear mu predictor.")
   r("emmeans", "group:ordinal", "conditional",
     "Works on the LATENT linear predictor, emmeans's mode = \"latent\" convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use predict(fit, type = \"response\") or conditional_effects(), which are on a different scale from these means.")
-  # override: the jitter condition holds wherever frm_sample() is used,
-  # so it outranks the permissive and untested blanket defaults.
-  r("frm_sample", "*", "conditional",
-    "Chains start jittered around the fitted mode. Use init_jitter to widen the spread, or init = \"random\" for a multimodal posterior.",
-    override = TRUE)
   r("confint_profile", "kind:mode", "untested", "")
   r("hypothesis_profile", "kind:mode", "untested", "")
   r("predict", "kind:family", "conditional",

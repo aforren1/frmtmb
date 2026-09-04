@@ -72,7 +72,8 @@ class \code{"theta"} prior on a position an earlier \code{"cor"} prior covers
 replaces that whole LKJ term, and the other way round, so "later
 wins" holds between the two spellings as well.
 \code{lb}/\code{ub} become hard bounds (via Stan's constrained transforms in
-\code{\link[=frm_sample]{frm_sample()}}); for class \code{"sd"} they apply on the sd scale.
+\code{frmtmb.sample::frm_sample()}); for class \code{"sd"} they apply on the
+sd scale.
 }
 \section{The LKJ prior}{
 
@@ -123,8 +124,9 @@ model still needs \code{start}, because \code{frm()} evaluates the objective
 AT the starting values; \code{\link[=par_template]{par_template()}} names them.
 
 \code{resp} picks one response of a multivariate model; the default
-priors of \code{\link[=frm_sample]{frm_sample()}} still stay off there (see its Default
-priors section), so a multivariate model's priors are the ones
+priors of \code{frmtmb.sample::frm_sample()} still stay off there (see
+its Default priors section), so a multivariate model's priors are the
+ones
 written by hand.
 
 brms's \code{tag} and \code{check} have no counterpart: \code{tag} names a prior

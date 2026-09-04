@@ -777,3 +777,35 @@ print.VarCorr_frmtmb <- function(x, ...) {
   }
   invisible(x)
 }
+
+# ---- brms methods with nothing to do here ----------------------------
+
+#' Expose a model's compiled functions
+#'
+#' brms compiles Stan functions and `expose_functions()` makes them
+#' callable from R. frmtmb compiles nothing: the model is an R closure
+#' built by `build_objective()` and differentiated by RTMB, and a
+#' custom family's density is the plain R function handed to
+#' [custom_family()]. The method is defined so that a ported brms
+#' script gets that reason rather than "could not find function".
+#'
+#' @param x A `frmtmb_fit`.
+#' @param ... Ignored; this method always stops.
+#' @return This function never returns; it signals an error.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(40))
+#' dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+#' fit <- frm(bf(y ~ x) + gaussian(), data = dd)
+#' try(expose_functions(fit))
+#' @export
+expose_functions <- function(x, ...) UseMethod("expose_functions")
+
+#' @rdname expose_functions
+#' @exportS3Method brms::expose_functions
+#' @export
+expose_functions.frmtmb_fit <- function(x, ...) {
+  stop("expose_functions() has no Stan program to read on a frmtmb ",
+       "fit: a custom family's lpdf is the plain R function handed to ",
+       "custom_family(), callable as it is", call. = FALSE)
+}

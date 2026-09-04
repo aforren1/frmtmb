@@ -27,7 +27,7 @@ The \code{\link[=set_prior]{set_prior()}} counterpart of brms's \code{get_prior(
 slot a prior can target, with the class/coef/dpar/group values to
 pass to \code{set_prior()}. The default in every slot is flat (this is
 maximum likelihood until priors are set; the formula route of
-\code{\link[=frm_sample]{frm_sample()}} has its own brms defaults, which
+\code{frmtmb.sample::frm_sample()} has its own brms defaults, which
 \code{prior_summary()} reports). Classes \code{"sd"} and \code{"cor"} are targeted
 by \code{group} and \code{nlpar}; class \code{"theta"} rows name the raw internal
 covariance parameters (escape hatch, including correlations one at a

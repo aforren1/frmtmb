@@ -170,19 +170,3 @@ test_that("DHARMa residuals are uniform for a correct model", {
   dt <- DHARMa::testDispersion(dh_bad, plot = FALSE)
   expect_lt(dt$p.value, 0.05)
 })
-
-test_that("bayesplot consumes as_tmbstan draws", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  skip_if_not_installed("bayesplot")
-  set.seed(170)
-  dd <- data.frame(x = rnorm(60))
-  dd$y <- rnorm(60, 1 + 0.5 * dd$x, 1)
-  fit <- frm(bf(y ~ x) + gaussian(), data = dd)
-  sf <- suppressWarnings(as_tmbstan(fit, chains = 1, iter = 300,
-                                    refresh = 0, seed = 1))
-  dr <- rstan::extract(sf, permuted = FALSE)   # iters x chains x pars
-  iv <- bayesplot::mcmc_intervals_data(dr)
-  expect_true(nrow(iv) >= 3)
-  expect_true(all(is.finite(iv$m)))
-})

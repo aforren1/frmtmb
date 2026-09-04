@@ -142,11 +142,14 @@ ngrps.frmtmb_fit <- function(object, ...) {
 
 #' Priors used in a fit
 #'
-#' On draws from [frm_sample()] this reports the priors the sampler
-#' applied, which on the formula interface includes the brms default
-#' priors it chose (see the Default priors section of [frm_sample()]).
+#' On draws from `frmtmb.sample::frm_sample()` this reports the priors
+#' the sampler applied, which on the formula interface includes the brms
+#' default
+#' priors it chose (see the Default priors section of that
+#' function).
 #'
-#' @param object A `frmtmb_fit`, or `frmtmb_draws` from [frm_sample()].
+#' @param object A `frmtmb_fit`, or a `frmtmb_draws` from
+#'   `frmtmb.sample::frm_sample()`.
 #' @param ... Unused.
 #' @return The `frmtmb_priorlist` the fit was penalized with, or that
 #'   the sampler used, or (invisibly) `NULL` when there were none.

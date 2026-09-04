@@ -1364,8 +1364,6 @@ hmm_compat_rules <- function() {
   r("hmm", "simulate", "conditional",
     "A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. Since v0.36 the chain walk is the family's structured simulator (fam$sim_ctx), so posterior_predict() and frm_simulate() reach it too; posterior_predict(newdata =) is refused, because the sequence structure indexes the fitted rows.")
   r("hmm", "emmeans", "untested", "")
-  r("hmm", "frm_sample", "works",
-    "Verified by a short run. The posterior is multimodal in the state labels, as a mixture's is.")
   r("hmm", "confint_profile", "untested", "")
   r("hmm", "hypothesis_profile", "untested", "")
   r("hmm", "prior", "works",

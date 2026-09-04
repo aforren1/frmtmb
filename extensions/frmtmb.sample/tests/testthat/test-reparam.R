@@ -28,7 +28,7 @@ rp_data <- function(seed = 9, n = 60L, ng = 6L) {
 # a prior on every theta, which is the second half of the eligibility
 # gate; the formula interface's defaults supply the same thing
 theta_priors <- function(fit) {
-  frmtmb:::resolve_prior_input(fit, list(theta = prior_normal(0, 1)))
+  frmtmb::resolve_prior_input(fit, list(theta = prior_normal(0, 1)))
 }
 
 #' The z the sampler actually explored: the stanfit holds the parameters
@@ -78,8 +78,8 @@ test_that("every declared Cholesky accessor factorizes its own vcov", {
     expect_true(all(abs(L[upper.tri(L)]) < 1e-14))
     # and the map round-trips
     z <- stats::rnorm(bk$dim * bk$n_levels)
-    b <- frmtmb:::ncp_scale_b(bk, z, th)
-    expect_equal(frmtmb:::ncp_unscale_b(bk, b, th), z, tolerance = 1e-10)
+    b <- frmtmb::ncp_scale_b(bk, z, th)
+    expect_equal(frmtmb::ncp_unscale_b(bk, b, th), z, tolerance = 1e-10)
   }
 })
 
@@ -100,7 +100,7 @@ test_that("gr(cov = ) factors the level-major Kronecker covariance", {
               d * nl, d * nl)
   expect_equal(Lfull %*% t(Lfull), K, tolerance = 1e-10)
   z <- stats::rnorm(d * nl)
-  expect_equal(frmtmb:::ncp_scale_b(bk, z, th),
+  expect_equal(frmtmb::ncp_scale_b(bk, z, th),
                as.vector(Lfull %*% z), tolerance = 1e-10)
 })
 
@@ -108,7 +108,7 @@ test_that("gr(cov = ) factors the level-major Kronecker covariance", {
 
 test_that("a block is eligible when its factor consumes all its theta", {
   el <- function(cs, d = 2L) {
-    frmtmb:::ncp_eligible(list(covstruct = cs, dim = d, n_levels = 3L))
+    frmtmb::ncp_eligible(list(covstruct = cs, dim = d, n_levels = 3L))
   }
   # every parameter is a standard deviation: nothing to expose
   for (cs in c("diag", "homdiag", "smooth", "equalto", "hsgp")) {
@@ -122,7 +122,7 @@ test_that("a block is eligible when its factor consumes all its theta", {
   # decides (see ncp_plan below)
   for (cs in c("us", "cs", "homcs", "ar1", "hetar1", "gr_cov")) {
     expect_true(el(cs, 2L), info = cs)
-    expect_equal(frmtmb:::block_n_cor(list(covstruct = cs, dim = 2L)),
+    expect_equal(frmtmb::block_n_cor(list(covstruct = cs, dim = 2L)),
                  1L, info = cs)
   }
   # no factor at all
@@ -133,14 +133,14 @@ test_that("a block is eligible when its factor consumes all its theta", {
   # a Student-t latent is refused by its distribution, not by its
   # covariance structure: the same `us` factor exists, but the density
   # it belongs to is a scale mixture
-  expect_false(frmtmb:::ncp_eligible(
+  expect_false(frmtmb::ncp_eligible(
     list(covstruct = "us", dim = 1L, n_levels = 3L, dist_nu = 5)))
 
-  expect_match(frmtmb:::ncp_reason(list(covstruct = "car", dim = 1L)),
+  expect_match(frmtmb.sample:::ncp_reason(list(covstruct = "car", dim = 1L)),
                "sparse CAR")
-  expect_match(frmtmb:::ncp_reason(list(covstruct = "toep", dim = 2L)),
+  expect_match(frmtmb.sample:::ncp_reason(list(covstruct = "toep", dim = 2L)),
                "positive definite")
-  expect_match(frmtmb:::ncp_reason(
+  expect_match(frmtmb.sample:::ncp_reason(
     list(covstruct = "us", dim = 1L, dist_nu = 5)), "Student-t")
 })
 
@@ -148,19 +148,19 @@ test_that("a block whose sd has no prior stays centered", {
   dd <- rp_data()
   fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
   # the structure qualifies
-  expect_true(frmtmb:::ncp_eligible(fit$frame$re_blocks[[1L]]))
+  expect_true(frmtmb::ncp_eligible(fit$frame$re_blocks[[1L]]))
   # but with no prior on its variance, non-centering would hand the
   # chain the flat tail at sd = 0
-  bare <- frmtmb:::ncp_plan(fit, TRUE, FALSE, NULL)
+  bare <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, NULL)
   expect_length(bare$idx, 0L)
   expect_match(bare$centered, "flat prior")
   # with one, it qualifies
-  withp <- frmtmb:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
+  withp <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
   expect_equal(withp$idx, 1L)
   expect_length(withp$centered, 0L)
   # a prior on beta alone is not a prior on the variance
-  bo <- frmtmb:::resolve_prior_input(fit, list(beta = prior_normal(0, 5)))
-  expect_length(frmtmb:::ncp_plan(fit, TRUE, FALSE, bo$entries)$idx, 0L)
+  bo <- frmtmb::resolve_prior_input(fit, list(beta = prior_normal(0, 5)))
+  expect_length(frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, bo$entries)$idx, 0L)
 })
 
 test_that("laplace = TRUE ignores the reparameterization", {
@@ -169,9 +169,9 @@ test_that("laplace = TRUE ignores the reparameterization", {
   ent <- theta_priors(fit)$entries
   # the random effects are integrated out there, so there is no funnel
   # left to remove and the transform would only cost inner Newton steps
-  expect_length(frmtmb:::ncp_plan(fit, TRUE, TRUE, ent)$idx, 0L)
-  expect_length(frmtmb:::ncp_plan(fit, TRUE, TRUE, ent)$centered, 0L)
-  expect_length(frmtmb:::ncp_plan(fit, FALSE, FALSE, ent)$idx, 0L)
+  expect_length(frmtmb.sample:::ncp_plan(fit, TRUE, TRUE, ent)$idx, 0L)
+  expect_length(frmtmb.sample:::ncp_plan(fit, TRUE, TRUE, ent)$centered, 0L)
+  expect_length(frmtmb.sample:::ncp_plan(fit, FALSE, FALSE, ent)$idx, 0L)
 })
 
 test_that("a model with no random effects is unaffected", {
@@ -179,8 +179,8 @@ test_that("a model with no random effects is unaffected", {
   dd <- data.frame(x = stats::rnorm(40))
   dd$y <- stats::rnorm(40, 1 + 0.5 * dd$x, 1)
   fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
-  expect_length(frmtmb:::ncp_plan(fit, TRUE, FALSE, NULL)$idx, 0L)
-  expect_length(frmtmb:::ncp_plan(fit, TRUE, FALSE, NULL)$centered, 0L)
+  expect_length(frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, NULL)$idx, 0L)
+  expect_length(frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, NULL)$centered, 0L)
 })
 
 ## ---- the objective ---------------------------------------------------
@@ -193,8 +193,8 @@ test_that("the non-centered objective is the centered one plus the log-Jacobian"
   frc <- fit$frame
   frn <- frc
   frn$ncp_blocks <- 1L
-  f_c <- frmtmb:::build_objective(frc)
-  f_n <- frmtmb:::build_objective(frn)
+  f_c <- frmtmb::build_objective(frc)
+  f_n <- frmtmb::build_objective(frn)
 
   set.seed(11)
   p <- fit$estimates
@@ -204,7 +204,7 @@ test_that("the non-centered objective is the centered one plus the log-Jacobian"
   # floating point rather than the transform
   p$theta <- c(0.3, -0.2)
   pz <- p
-  pz$b <- frmtmb:::ncp_unscale_b(bk, p$b, p$theta[bk$theta_idx])
+  pz$b <- frmtmb::ncp_unscale_b(bk, p$b, p$theta[bk$theta_idx])
 
   L <- frmtmb:::ncp_block_chol(bk, p$theta[bk$theta_idx])
   jac <- bk$n_levels * sum(log(diag(L)))
@@ -229,8 +229,8 @@ test_that("the identity holds for a CORRELATED block too", {
   frc <- fit$frame
   frn <- frc
   frn$ncp_blocks <- 1L
-  f_c <- frmtmb:::build_objective(frc)
-  f_n <- frmtmb:::build_objective(frn)
+  f_c <- frmtmb::build_objective(frc)
+  f_n <- frmtmb::build_objective(frn)
 
   set.seed(21)
   p <- fit$estimates
@@ -239,7 +239,7 @@ test_that("the identity holds for a CORRELATED block too", {
   # theta is the third entry
   p$theta <- c(0.3, -0.2, 0.7)
   pz <- p
-  pz$b <- frmtmb:::ncp_unscale_b(bk, p$b, p$theta[bk$theta_idx])
+  pz$b <- frmtmb::ncp_unscale_b(bk, p$b, p$theta[bk$theta_idx])
 
   L <- frmtmb:::ncp_block_chol(bk, p$theta[bk$theta_idx])
   jac <- bk$n_levels * sum(log(diag(L)))
@@ -249,7 +249,7 @@ test_that("the identity holds for a CORRELATED block too", {
   p2 <- p
   p2$theta[3L] <- -1.5
   pz2 <- p2
-  pz2$b <- frmtmb:::ncp_unscale_b(bk, p2$b, p2$theta[bk$theta_idx])
+  pz2$b <- frmtmb::ncp_unscale_b(bk, p2$b, p2$theta[bk$theta_idx])
   L2 <- frmtmb:::ncp_block_chol(bk, p2$theta[bk$theta_idx])
   expect_gt(abs(sum(log(diag(L2))) - sum(log(diag(L)))), 1e-3)
   expect_equal(f_c(p2) - f_n(pz2), bk$n_levels * sum(log(diag(L2))),
@@ -271,9 +271,9 @@ test_that("the mode-anchored init starts the chains at the ML mode", {
   dd <- rp_data()
   fit <- frm(bf(y ~ x + diag(x | g)), family = gaussian(), data = dd)
   bk <- fit$frame$re_blocks[[1L]]
-  p0 <- frmtmb:::ncp_start_pars(fit, 1L)
+  p0 <- frmtmb.sample:::ncp_start_pars(fit, 1L)
   # z0 = L^-1 b_hat, so the transform sends the start back onto the mode
-  expect_equal(frmtmb:::ncp_scale_b(bk, p0[["b"]][bk$b_idx],
+  expect_equal(frmtmb::ncp_scale_b(bk, p0[["b"]][bk$b_idx],
                                     p0$theta[bk$theta_idx]),
                unname(fit$estimates[["b"]][bk$b_idx]), tolerance = 1e-10)
   expect_equal(p0$beta, fit$estimates$beta)
@@ -290,7 +290,7 @@ test_that("each b draw is L(theta of that draw) times its own z", {
                chains = 1, iter = 400, refresh = 0, seed = 4)))
   expect_equal(ds$reparam$blocks, 1L)
 
-  idx <- frmtmb:::draws_par_index(ds$fit)
+  idx <- frmtmb.sample:::draws_par_index(ds$fit)
   raw <- raw_stan_matrix(ds)
   bk <- ds$fit$frame$re_blocks[[1L]]
   bcol <- idx[["b"]][bk$b_idx]
@@ -324,20 +324,20 @@ test_that("a correlated block non-centers once its correlation is priored", {
     frm(bf(y ~ x + (x | g)), family = gaussian(), data = dd))
   # with no prior at all the block stays centered, and the reason names
   # the correlation rather than the standard deviation
-  bare <- frmtmb:::ncp_plan(fit, TRUE, FALSE, NULL)
+  bare <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, NULL)
   expect_length(bare$idx, 0L)
   expect_match(bare$centered, "improper")
   # a prior on the standard deviations alone is not enough: the
   # correlation is still flat
-  sd_only <- frmtmb:::resolve_prior_input(
+  sd_only <- frmtmb::resolve_prior_input(
     fit, set_prior("exponential(1)", class = "sd"))
-  expect_length(frmtmb:::ncp_plan(fit, TRUE, FALSE,
+  expect_length(frmtmb.sample:::ncp_plan(fit, TRUE, FALSE,
                                   sd_only$entries)$idx, 0L)
   # sd + cor covers every theta the block has, which is the gate
-  both <- frmtmb:::resolve_prior_input(
+  both <- frmtmb::resolve_prior_input(
     fit, set_prior("exponential(1)", class = "sd") +
       set_prior("lkj(1)", class = "cor"))
-  plan <- frmtmb:::ncp_plan(fit, TRUE, FALSE, both$entries)
+  plan <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, both$entries)
   expect_equal(plan$idx, 1L)
   expect_length(plan$centered, 0L)
 
@@ -349,7 +349,7 @@ test_that("a correlated block non-centers once its correlation is priored", {
 
   # the per-draw back-transform, by hand: b = L(sd, cor at THAT draw) z,
   # with L rebuilt from theta rather than by calling the transform
-  idx <- frmtmb:::draws_par_index(ds$fit)
+  idx <- frmtmb.sample:::draws_par_index(ds$fit)
   raw <- raw_stan_matrix(ds)
   bk <- ds$fit$frame$re_blocks[[1L]]
   bcol <- idx[["b"]][bk$b_idx]
@@ -510,13 +510,13 @@ test_that("the draws matrix has the same columns in the same order", {
 test_that("log_lik() row sums are the taped likelihood on non-centered draws", {
   cs <- rp_case()
   ll <- log_lik(cs$ncp)
-  idx <- frmtmb:::draws_par_index(cs$ncp$fit)
+  idx <- frmtmb.sample:::draws_par_index(cs$ncp$fit)
   i <- 42L
-  sh <- frmtmb:::draws_fit_at(cs$ncp, i, idx)
+  sh <- frmtmb.sample:::draws_fit_at(cs$ncp, i, idx)
   pars <- sh$estimates
   # the CENTERED objective, because the draw is on the centered scale:
   # that is the whole point of back-transforming at extraction
-  nll <- frmtmb:::build_objective(sh$frame)(pars)
+  nll <- frmtmb::build_objective(sh$frame)(pars)
   bk <- sh$frame$re_blocks[[1L]]
   re_prior <- frmtmb:::covstruct_registry[[bk$covstruct]]$nll(
     pars[["b"]][bk$b_idx], pars$theta[bk$theta_idx], bk)
@@ -626,11 +626,11 @@ test_that("a correlated non-centered run keeps the draws surface exactly", {
 test_that("log_lik() row sums hold on a correlated non-centered run", {
   cs <- rp_cor_case()
   ll <- log_lik(cs$ncp)
-  idx <- frmtmb:::draws_par_index(cs$ncp$fit)
+  idx <- frmtmb.sample:::draws_par_index(cs$ncp$fit)
   i <- 42L
-  sh <- frmtmb:::draws_fit_at(cs$ncp, i, idx)
+  sh <- frmtmb.sample:::draws_fit_at(cs$ncp, i, idx)
   pars <- sh$estimates
-  nll <- frmtmb:::build_objective(sh$frame)(pars)
+  nll <- frmtmb::build_objective(sh$frame)(pars)
   bk <- sh$frame$re_blocks[[1L]]
   re_prior <- frmtmb:::covstruct_registry[[bk$covstruct]]$nll(
     pars[["b"]][bk$b_idx], pars$theta[bk$theta_idx], bk)
@@ -671,7 +671,7 @@ test_that("a prior on an sd applies identically under both routes", {
   dd <- rp_data()
   fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
   pr <- list(theta_1 = prior_normal(0, 0.3))
-  ri <- frmtmb:::resolve_prior_input(fit, pr)
+  ri <- frmtmb::resolve_prior_input(fit, pr)
 
   # the prior lane never sees b (or z): it addresses theta, which is the
   # same parameter on either route
@@ -680,20 +680,20 @@ test_that("a prior on an sd applies identically under both routes", {
   frc <- fit$frame
   frn <- frc
   frn$ncp_blocks <- 1L
-  nlp <- frmtmb:::neg_log_prior_fn(ri$entries)
+  nlp <- frmtmb::neg_log_prior_fn(ri$entries)
   bk <- frc$re_blocks[[1L]]
   p <- fit$estimates
   set.seed(2)
   p$b <- stats::rnorm(length(p$b), 0, 0.4)
   p$theta <- 0.35
   pz <- p
-  pz$b <- frmtmb:::ncp_unscale_b(bk, p$b, p$theta[bk$theta_idx])
+  pz$b <- frmtmb::ncp_unscale_b(bk, p$b, p$theta[bk$theta_idx])
   # the prior term is the same NUMBER at the same model point
   expect_equal(nlp(p), nlp(pz))
 
   # and the augmented objectives still differ by the log-Jacobian alone
-  fc <- frmtmb:::build_objective(frc)
-  fn <- frmtmb:::build_objective(frn)
+  fc <- frmtmb::build_objective(frc)
+  fn <- frmtmb::build_objective(frn)
   L <- frmtmb:::ncp_block_chol(bk, p$theta[bk$theta_idx])
   jac <- bk$n_levels * sum(log(diag(L)))
   expect_equal((fc(p) + nlp(p)) - (fn(pz) + nlp(pz)), jac,
@@ -704,7 +704,7 @@ test_that("a prior on an sd applies identically under both routes", {
                prior = pr)))
   expect_equal(ds$reparam$blocks, 1L)
   # the prior is doing its job on the sampled theta, non-centered or not
-  tcol <- frmtmb:::draws_par_index(ds$fit)[["theta"]]
+  tcol <- frmtmb.sample:::draws_par_index(ds$fit)[["theta"]]
   expect_lt(stats::sd(ds$draws[, tcol]), 1)
 })
 
@@ -741,7 +741,7 @@ test_that("a Student-t block samples centered and says so", {
   dd$y <- stats::rnorm(60, 1 + 0.5 * dd$x + stats::rt(6, 5)[dd$g], 1)
   ff <- bf(y ~ x + (1 | gr(g, dist = "student")))
   fit <- frm(ff, family = gaussian(), data = dd)
-  plan <- frmtmb:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
+  plan <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
   expect_length(plan$idx, 0L)
   expect_match(plan$centered, "Student-t latent")
 
@@ -767,7 +767,7 @@ test_that("a mixed model non-centers only the block that qualifies", {
   ff <- bf(y ~ x + (1 | g) + (1 | gr(h, dist = "student")))
   fit <- frm(ff, family = gaussian(), data = dd)
   cs <- vapply(fit$frame$re_blocks, function(bk) bk$covstruct, "")
-  plan <- frmtmb:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
+  plan <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
   expect_equal(plan$idx, which(cs == "us"))
   expect_length(plan$centered, 1L)
   expect_match(plan$centered, "Student-t latent")
@@ -781,7 +781,7 @@ test_that("a mixed model non-centers only the block that qualifies", {
 
   # the transformed block moved, the centered one did not
   raw <- raw_stan_matrix(ds)
-  idx <- frmtmb:::draws_par_index(ds$fit)
+  idx <- frmtmb.sample:::draws_par_index(ds$fit)
   bk_n <- fit$frame$re_blocks[[which(cs == "us")]]
   bk_c <- fit$frame$re_blocks[[which(cs != "us")]]
   expect_gt(max(abs(ds$draws[, idx[["b"]][bk_n$b_idx]] -
@@ -807,7 +807,7 @@ test_that("smooth and diag blocks non-center through the sampler", {
   fit <- frm(ff, family = gaussian(), data = dd)
   cs <- vapply(fit$frame$re_blocks, function(bk) bk$covstruct, "")
   expect_true(all(cs %in% c("smooth", "diag")))
-  plan <- frmtmb:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
+  plan <- frmtmb.sample:::ncp_plan(fit, TRUE, FALSE, theta_priors(fit)$entries)
   expect_equal(plan$idx, seq_along(cs))
   expect_length(plan$centered, 0L)
 
@@ -815,7 +815,7 @@ test_that("smooth and diag blocks non-center through the sampler", {
     frm_sample(ff, family = gaussian(), data = dd, chains = 1,
                iter = 300, refresh = 0, seed = 17)))
   expect_equal(ds$reparam$blocks, seq_along(cs))
-  idx <- frmtmb:::draws_par_index(ds$fit)
+  idx <- frmtmb.sample:::draws_par_index(ds$fit)
   raw <- raw_stan_matrix(ds)
   for (i in seq_along(cs)) {
     bk <- ds$fit$frame$re_blocks[[i]]

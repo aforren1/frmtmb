@@ -15,44 +15,6 @@ sd_data <- function(seed = 9, n = 60L, ng = 6L) {
 
 ## ---- the unfitted object the formula route samples -------------------
 
-test_that("dry_run = 'objective' stops before the optimizer", {
-  dd <- sd_data()
-  uf <- frm(bf(y ~ x + (1 | g)) + gaussian(), dd, dry_run = "objective")
-  expect_s3_class(uf, "frmtmb_unfitted")
-  expect_s3_class(uf, "frmtmb_fit")
-  expect_null(uf$opt)
-  # the tape is real and evaluable, which is all the sampler needs
-  expect_true(is.finite(uf$obj$fn(uf$obj$par)))
-  # and the frame is a normal frame, so the draws surface has its
-  # structure
-  expect_equal(stats::nobs(uf), nrow(dd))
-  expect_length(uf$frame$re_blocks, 1L)
-
-  # quadrature has no unfitted form: its tape is calibrated at an optimum
-  dp <- dd
-  dp$y <- stats::rpois(nrow(dp), exp(0.3 + 0.4 * dp$x))
-  expect_error(frm(bf(y ~ x + (1 | g)) + poisson(), dp,
-                   quadrature = TRUE, dry_run = "objective"),
-               "no unfitted form")
-})
-
-test_that("methods needing an ML quantity refuse on an unfitted object", {
-  dd <- sd_data()
-  uf <- frm(bf(y ~ x + (1 | g)) + gaussian(), dd, dry_run = "objective")
-  for (f in list(function() summary(uf), function() stats::vcov(uf),
-                 function() stats::confint(uf), function() stats::logLik(uf),
-                 function() stats::AIC(uf), function() fixef(uf),
-                 function() ranef(uf), function() VarCorr(uf),
-                 function() stats::predict(uf), function() stats::fitted(uf),
-                 function() stats::residuals(uf),
-                 function() stats::simulate(uf), function() print(uf))) {
-    expect_error(f(), "needs a fitted model")
-  }
-  # what does NOT need one keeps working: the model description
-  expect_equal(stats::nobs(uf), nrow(dd))
-  expect_s3_class(stats::formula(uf), "formula")
-  expect_equal(stats::family(uf)$family, "gaussian")
-})
 
 ## ---- sampling ---------------------------------------------------------
 
@@ -124,7 +86,7 @@ test_that("the formula route samples the same posterior as the fit route", {
 # for comparison with brms's own default_prior() rows
 def_strings <- function(form, data, family = NULL) {
   uf <- frm(form, data, family = family, dry_run = "objective")
-  pl <- frmtmb:::default_priors_for(uf)
+  pl <- frmtmb.sample:::default_priors_for(uf)
   vapply(unclass(pl), function(s) {
     d <- if (identical(s$dist$kind, "lkj")) {
       paste0("lkj(", s$dist$eta, ")")
@@ -222,7 +184,7 @@ test_that("the zero shift is per element and only under a log-like link", {
   expect_equal(round(stats::median(log(dd$z + 0.1)), 1L), 0.1)
 
   scl <- function(form) {
-    frmtmb:::default_prior_scale(frm(form, dd, dry_run = "objective"))
+    frmtmb.sample:::default_prior_scale(frm(form, dd, dry_run = "objective"))
   }
   # log link: zeros only, so the location is log(median) = log(1) = 0
   expect_equal(scl(bf(z ~ x) + poisson())$location, 0)
@@ -245,13 +207,13 @@ test_that("the zero shift is per element and only under a log-like link", {
 test_that("brms's own conventions on slopes and on a modelled sigma hold", {
   dd <- sd_prior_data()
   # brms leaves slopes flat and so do we: no class "b" spec is produced
-  pl <- frmtmb:::default_priors_for(
+  pl <- frmtmb.sample:::default_priors_for(
     frm(bf(y ~ x + (1 | g)) + gaussian(), dd, dry_run = "objective"))
   expect_false("b" %in% vapply(unclass(pl), `[[`, "", "class"))
 
   # a sigma with its own predictor takes the plain student_t(3, 0, 2.5)
   # on the LOG scale, which is brms's own distinction
-  s2 <- unclass(frmtmb:::default_priors_for(
+  s2 <- unclass(frmtmb.sample:::default_priors_for(
     frm(bf(y2 ~ x, sigma ~ x) + gaussian(), dd, dry_run = "objective")))
   sg <- Filter(function(s) identical(s$dpar, "sigma"), s2)[[1L]]
   expect_equal(sg$dist$scale, 2.5)
@@ -261,26 +223,26 @@ test_that("brms's own conventions on slopes and on a modelled sigma hold", {
 test_that("every slot left flat is announced, never silently dropped", {
   dd <- sd_prior_data()
   notes <- function(form) {
-    frmtmb:::default_prior_notes(frm(form, dd, dry_run = "objective"))
+    frmtmb.sample:::default_prior_notes(frm(form, dd, dry_run = "objective"))
   }
   # an ordinal model's thresholds are not a design column, so
   # set_prior() cannot reach them; the priorlist really is empty here
   uf <- frm(bf(o ~ x) + cumulative(), dd, dry_run = "objective")
-  expect_null(frmtmb:::default_priors_for(uf))
+  expect_null(frmtmb.sample:::default_priors_for(uf))
   expect_match(notes(bf(o ~ x) + cumulative()), "thresholds")
   # ... and it is still announced rather than passing in silence
   msg <- capture_messages(
-    frmtmb:::sample_resolve_priors(uf, NULL))
+    frmtmb.sample:::sample_resolve_priors(uf, NULL))
   expect_match(paste(msg, collapse = ""), "thresholds")
   expect_match(paste(msg, collapse = ""), "see ?frm_sample", fixed = TRUE)
   # an ordinal model WITH random effects still gets its sd default
   uf2 <- frm(bf(o ~ x + (1 | g)) + cumulative(), dd,
              dry_run = "objective")
-  cls <- vapply(unclass(frmtmb:::default_priors_for(uf2)), `[[`, "",
+  cls <- vapply(unclass(frmtmb.sample:::default_priors_for(uf2)), `[[`, "",
                 "class")
   expect_equal(cls, "sd")
   expect_match(paste(capture_messages(
-    frmtmb:::sample_resolve_priors(uf2, NULL)), collapse = ""),
+    frmtmb.sample:::sample_resolve_priors(uf2, NULL)), collapse = ""),
     "thresholds")
 
   expect_match(notes(bf(z ~ x) + negbinomial()), "shape")
@@ -518,23 +480,23 @@ test_that("a prior is added to the sampled density exactly once", {
   mf <- frm(bf(y ~ x) + gaussian(), data = dd, prior = pl)
   p <- mf$obj$par
 
-  bare <- frmtmb:::prior_augmented_obj(mf, list())
+  bare <- frmtmb.sample:::prior_augmented_obj(mf, list())
   # the premise: the fit's own tape really does carry the penalty
   expect_gt(abs(mf$obj$fn(p) - bare$fn(p)), 1e-6)
   # rebuilding bare + the fit's own prior reproduces that tape exactly,
   # which is what makes the rebuild the safe way to add anything else
-  own <- frmtmb:::resolve_prior_input(mf, pl)
-  expect_equal(frmtmb:::prior_augmented_obj(mf, own$entries)$fn(p),
+  own <- frmtmb::resolve_prior_input(mf, pl)
+  expect_equal(frmtmb.sample:::prior_augmented_obj(mf, own$entries)$fn(p),
                mf$obj$fn(p), tolerance = 1e-8)
 
   # the sampling stack is defaults + the fit's prior, and the defaults
   # land on top of the penalized objective exactly once
-  defs <- frmtmb:::default_priors_for(mf)
-  all_e <- frmtmb:::resolve_prior_input(mf, defs + pl)$entries
-  def_e <- frmtmb:::resolve_prior_input(mf, defs)$entries
+  defs <- frmtmb.sample:::default_priors_for(mf)
+  all_e <- frmtmb::resolve_prior_input(mf, defs + pl)$entries
+  def_e <- frmtmb::resolve_prior_input(mf, defs)$entries
   expect_equal(
-    frmtmb:::prior_augmented_obj(mf, all_e)$fn(p) - mf$obj$fn(p),
-    frmtmb:::prior_augmented_obj(mf, def_e)$fn(p) - bare$fn(p),
+    frmtmb.sample:::prior_augmented_obj(mf, all_e)$fn(p) - mf$obj$fn(p),
+    frmtmb.sample:::prior_augmented_obj(mf, def_e)$fn(p) - bare$fn(p),
     tolerance = 1e-8)
 
   # and the resolved stack holds ONE entry per parameter position, so

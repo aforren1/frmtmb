@@ -327,7 +327,8 @@ test_that("the multivariate post-fit surface is declared as it behaves", {
                  info = st)
     expect_equal(frm_compat(st, "hypothesis_profile")$status, "works",
                  info = st)
-    expect_equal(frm_compat(st, "frm_sample")$status, "works", info = st)
+    # frm_sample was asserted here too; the feature and its rules moved
+    # to frmtmb.sample, whose own suite makes the same assertion
   }
 })
 

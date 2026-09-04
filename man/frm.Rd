@@ -123,7 +123,7 @@ interval. The two land close where the data dominates: a kidney
 frailty model given brms's own priors returns \code{sd(patient)} 0.38
 against brms's posterior mean of 0.40. That is a measurement on
 one model, though, not a property of the translation. Use
-\code{\link[=frm_sample]{frm_sample()}} when the posterior is the answer.
+\code{frmtmb.sample::frm_sample()} when the posterior is the answer.
 
 \emph{A prior with a location places a nonlinear start.} brms uses its
 priors to place the sampler, and \code{frm()} now reads them the same
@@ -172,8 +172,8 @@ session do not need the calling environment to still exist.}
 without touching \code{data}; \code{"frame"} returns the assembled design
 matrices and parameter template without fitting; \code{"objective"}
 additionally tapes the objective and returns an UNFITTED object
-carrying it, which is what \code{\link[=frm_sample]{frm_sample()}} samples when it is given
-a formula rather than a fit. Methods that report a
+carrying it, which is what \code{frmtmb.sample::frm_sample()} samples
+when it is given a formula rather than a fit. Methods that report a
 maximum-likelihood quantity refuse on that object.}
 
 \item{verbose}{Report fit progress; a shortcut for
@@ -187,6 +187,31 @@ An object of class \code{frmtmb_fit}.
 Fits a model specified with \code{\link[=bf]{bf()}} by maximum likelihood, using the
 Laplace approximation for random effects through RTMB.
 }
+\section{The Laplace approximation, and how to check it}{
+
+Random effects are integrated out by the Laplace approximation,
+which assumes the integrand is close to Gaussian around the
+conditional mode; the Wald intervals \code{confint()} reports assume the
+log-likelihood is close to quadratic at the optimum. Both degrade in
+the same places: variance components estimated from few groups, and
+binary data in small clusters.
+
+Three remedies are in this package. \code{confint(method = "profile")}
+replaces the quadratic assumption with a profile likelihood,
+\code{\link[=frm_bootstrap]{frm_bootstrap()}} with a resampling distribution, and
+\code{quadrature = TRUE} replaces the Laplace approximation itself with
+adaptive quadrature (the test suite checks that fit against
+\code{lme4::glmer(nAGQ = 25)} and GLMMadaptive in exactly the regime where
+the Laplace fit is biased).
+
+To MEASURE the violation rather than route around it, install the
+\code{frmtmb.sample} package and call \code{frmtmb.sample::check_laplace()}. It
+runs NUTS on this very objective and reports how far the posterior
+mean sits from the maximum-likelihood estimate in posterior standard
+deviations, and the ratio of the posterior standard deviation to the
+Wald standard error. \code{vignette("diagnostics")} works through it.
+}
+
 \examples{
 \dontrun{
 data(sleepstudy, package = "lme4")

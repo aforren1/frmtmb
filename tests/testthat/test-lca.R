@@ -471,14 +471,3 @@ test_that("what an lca() fit does support keeps working", {
   expect_s3_class(stats::update(fit, . ~ 1), "frmtmb_fit")
 })
 
-test_that("frm_sample() runs on an lca fit", {
-  skip_on_cran()
-  skip_if_not_installed("tmbstan")
-  s <- sim_lca_data(n = 150)
-  fit <- frm(bf(Y ~ 1), family = lca(K = 2), data = s$dd)
-  sm <- suppressWarnings(frm_sample(fit, chains = 1, iter = 400,
-                                    refresh = 0, seed = 1))
-  dr <- as.matrix(sm)
-  expect_equal(nrow(dr), 200L)
-  expect_true(ncol(dr) >= length(fit$opt$par))
-})

@@ -3,7 +3,6 @@
 \name{conditional_effects}
 \alias{conditional_effects}
 \alias{conditional_effects.frmtmb_fit}
-\alias{conditional_effects.frmtmb_draws}
 \title{Conditional effects of predictors}
 \usage{
 conditional_effects(x, ...)
@@ -24,20 +23,6 @@ conditional_effects(x, ...)
   seed = NULL,
   conditions = list(),
   surface = FALSE,
-  data = NULL,
-  ...
-)
-
-\method{conditional_effects}{frmtmb_draws}(
-  x,
-  effects = NULL,
-  resp = NULL,
-  dpar = NULL,
-  resolution = 100,
-  prob = 0.95,
-  ndraws = NULL,
-  re_formula = NA,
-  conditions = list(),
   data = NULL,
   ...
 )
@@ -258,15 +243,17 @@ differentiate.
 
 \section{Draws objects}{
 
-On a \code{frmtmb_draws} object from \code{\link[=frm_sample]{frm_sample()}} the same grids are
-evaluated once per posterior draw, and \code{estimate__}, \code{lower__},
+On a \code{frmtmb_draws} object from \code{frmtmb.sample::frm_sample()} the
+same grids are evaluated once per posterior draw, and \code{estimate__},
+\code{lower__},
 \code{upper__} and \code{se__} are the pointwise mean, quantiles and standard
 deviation of the drawn curves. There is no \verb{band =} or \verb{method =} to
 choose (the band IS the posterior quantile band), a nonlinear
 predictor and a nominal per-category display work without a delta
 method, and the method runs on formula-route draws that have no
 maximum-likelihood fit behind them. \code{ndraws} thins the draws
-evenly for a cheaper curve. Draws from \code{frm_sample(laplace = TRUE)}
+evenly for a cheaper curve. Draws from a sampling run with
+\code{laplace = TRUE}
 are refused: the sampled vector no longer aligns with the model's
 parameter template.
 }

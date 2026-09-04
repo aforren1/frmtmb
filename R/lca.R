@@ -313,7 +313,8 @@ lca_comp_lpdf <- function(y, K, extra, k) {
 #'
 #' The gating coefficients are ordinary fixed effects, so `fixef()`,
 #' `confint()` (Wald, profile and uniroot), `hypothesis()`,
-#' `set_prior()`, `lower`/`upper` bounds and `frm_sample()` all work on
+#' `set_prior()`, `lower`/`upper` bounds and
+#' `frmtmb.sample::frm_sample()` all work on
 #' them; `anova()` compares nested gating formulas at one `K`.
 #'
 #' Refused in this version: random effects and smooths anywhere in the
@@ -752,8 +753,6 @@ lca_compat_rules <- function() {
     "predict() returns the gating linear predictor (theta1 by default, any theta with dpar =), including on newdata. type = \"response\" is refused with the fitted() message.")
   r("lca", "simulate", "works",
     "Verified: simulate() draws a class per subject from its gating weights and then its items from that class's profile, and returns an n x J matrix per draw. Refitting a 4000-subject draw recovers the profiles it came from.")
-  r("lca", "frm_sample", "works",
-    "Verified by a tiny fit: the objective has no random effects, so tmbstan samples the gating coefficients and item logits directly. The posterior is label-invariant, so read it with the same caution as any mixture posterior.")
   r("lca", "confint_profile", "works",
     "Verified: profile intervals on a gating coefficient run.")
   r("lca", "emmeans", "untested", "")

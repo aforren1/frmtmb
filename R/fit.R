@@ -107,7 +107,7 @@
 #'   frailty model given brms's own priors returns `sd(patient)` 0.38
 #'   against brms's posterior mean of 0.40. That is a measurement on
 #'   one model, though, not a property of the translation. Use
-#'   [frm_sample()] when the posterior is the answer.
+#'   `frmtmb.sample::frm_sample()` when the posterior is the answer.
 #'
 #'   *A prior with a location places a nonlinear start.* brms uses its
 #'   priors to place the sampler, and `frm()` now reads them the same
@@ -140,14 +140,51 @@
 #'   without touching `data`; `"frame"` returns the assembled design
 #'   matrices and parameter template without fitting; `"objective"`
 #'   additionally tapes the objective and returns an UNFITTED object
-#'   carrying it, which is what [frm_sample()] samples when it is given
-#'   a formula rather than a fit. Methods that report a
+#'   carrying it, which is what `frmtmb.sample::frm_sample()` samples
+#'   when it is given a formula rather than a fit. Methods that report a
 #'   maximum-likelihood quantity refuse on that object.
 #' @param verbose Report fit progress; a shortcut for
 #'   `control = frmtmb_control(verbose =)`, whose value wins when both
 #'   are given. See [frmtmb_control()] for the levels and the output.
 #' @return An object of class `frmtmb_fit`.
 #'
+#' @section The Laplace approximation, and how to check it:
+#' Random effects are integrated out by the Laplace approximation,
+#' which assumes the integrand is close to Gaussian around the
+#' conditional mode; the Wald intervals `confint()` reports assume the
+#' log-likelihood is close to quadratic at the optimum. Both degrade in
+#' the same places: variance components estimated from few groups, and
+#' binary data in small clusters.
+#'
+#' Three remedies are in this package. `confint(method = "profile")`
+#' replaces the quadratic assumption with a profile likelihood,
+#' [frm_bootstrap()] with a resampling distribution, and
+#' `quadrature = TRUE` replaces the Laplace approximation itself with
+#' adaptive quadrature (the test suite checks that fit against
+#' `lme4::glmer(nAGQ = 25)` and GLMMadaptive in exactly the regime where
+#' the Laplace fit is biased).
+#'
+#' To MEASURE the violation rather than route around it, install the
+#' `frmtmb.sample` package and call `frmtmb.sample::check_laplace()`. It
+#' runs NUTS on this very objective and reports how far the posterior
+#' mean sits from the maximum-likelihood estimate in posterior standard
+#' deviations, and the ratio of the posterior standard deviation to the
+#' Wald standard error. `vignette("diagnostics")` works through it.
+#'
+#' @srrstats {RE1.4} The assumptions the fit rests on are documented,
+#'   and the consequences of violating them are both documented and
+#'   testable. The section above names the two approximations, the
+#'   regimes where each degrades, the three remedies inside this
+#'   package (`confint(method = "profile")`, [frm_bootstrap()] and
+#'   `quadrature = TRUE`), and the direct measurement in the companion
+#'   sampling package, which runs NUTS on the same objective and
+#'   reports the shift of the posterior mean from the
+#'   maximum-likelihood estimate in posterior standard deviations and
+#'   the ratio of the posterior standard deviation to the Wald standard
+#'   error. The quadrature fit is checked against
+#'   `lme4::glmer(nAGQ = 25)` and GLMMadaptive in the regime where the
+#'   Laplace fit is biased; `vignette("diagnostics")` works through the
+#'   whole question.
 #' @srrstats {RE1.0} Models are specified through a formula interface:
 #'   [bf()] builds a `frmtmb_formula` from one or more R formulas and a
 #'   family attaches with `+`. A plain formula plus `family =` is also

@@ -164,37 +164,6 @@ prior_rho <- function(eta, d, seed) {
   rho
 }
 
-test_that("every pairwise correlation has the LKJ marginal", {
-  skip_if_not(sampler_gates_on(), "chain-agreement gates are off")
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  seed <- 0
-  for (d in c(2L, 3L, 4L)) {
-    for (eta in c(1, 2)) {
-      seed <- seed + 1L
-      rho <- prior_rho(eta, d, seed)
-      a <- eta - 1 + d / 2      # the closed-form marginal shape
-      for (j in seq_len(ncol(rho))) {
-        ks <- suppressWarnings(
-          stats::ks.test(rho[, j], function(q) stats::pbeta((q + 1) / 2,
-                                                            a, a)))
-        # a chain of ~2000 thinned draws: the iid 5% critical value is
-        # 0.030, and the gate is set at twice it so that autocorrelation
-        # cannot fail a correct density, while a wrong exponent (the
-        # failure mode this guards) moves D by 0.2 or more
-        expect_lt(as.numeric(ks$statistic), 0.06,
-                  label = paste0("KS D (d = ", d, ", eta = ", eta,
-                                 ", pair ", j, ")"))
-        # the marginal's first two moments, against the chain's own
-        # Monte Carlo spread rather than a fixed number
-        mcse <- stats::sd(rho[, j]) / sqrt(length(rho[, j]) / 10)
-        expect_lt(abs(mean(rho[, j])), 5 * mcse)
-        expect_lt(abs(stats::sd(rho[, j]) - sqrt(1 / (2 * a + 1))),
-                  0.1 * sqrt(1 / (2 * a + 1)))
-      }
-    }
-  }
-})
 
 ## ---- the grammar ------------------------------------------------------
 
@@ -273,13 +242,9 @@ test_that("toep is refused by name, and stays out of the defaults", {
   expect_error(frmtmb:::resolve_prior_input(fit, set_prior("lkj(1)",
                                                            class = "cor")),
                "positive definite")
-  # the default builder skips it rather than failing, and says so
-  uf <- frm(bf(y ~ 1 + toep(t | g)) + gaussian(), dd,
-            dry_run = "objective")
-  cls <- vapply(unclass(frmtmb:::default_priors_for(uf)), `[[`, "",
-                "class")
-  expect_false("cor" %in% cls)
-  expect_match(frmtmb:::default_prior_notes(uf), "no LKJ density fits")
+  # the sampling DEFAULT builder skips it rather than failing, and says
+  # so; that half is asserted in frmtmb.sample, which owns the builder
+  # and cannot be reached from here
   # and it cannot be non-centered either, for the same reason
   expect_false(frmtmb:::ncp_eligible(fit$frame$re_blocks[[1L]]))
 })
@@ -339,51 +304,6 @@ test_that("the named-list spelling refuses an LKJ prior by name", {
 
 ## ---- the formula route ------------------------------------------------
 
-test_that("the formula route defaults to lkj(1) and takes an override", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-  dd <- lkj_data()
-  form <- bf(y ~ x + (x | g)) + gaussian()
-
-  msg <- capture_messages(suppressWarnings(
-    ds <- frm_sample(form, data = dd, chains = 1, iter = 500,
-                     refresh = 0, seed = 5)))
-  m <- paste(msg, collapse = "")
-  expect_match(m, "\n  cor  ")
-  expect_match(m, "lkj(1)", fixed = TRUE)
-  expect_match(m, "correlation matrix", fixed = TRUE)
-  pl <- unclass(prior_summary(ds))
-  expect_true("cor" %in% vapply(pl, `[[`, "", "class"))
-  # with the correlation priored the block non-centers, and the
-  # correlation parameter stays where the prior has mass instead of
-  # walking the improper tail the flat prior left open
-  expect_equal(ds$reparam$blocks, 1L)
-  expect_lt(max(abs(ds$draws[, "theta_3"])), 50)
-
-  # a user lkj takes over the class and leaves the rest of the defaults
-  ds2 <- suppressWarnings(suppressMessages(
-    frm_sample(form, data = dd, chains = 1, iter = 500, refresh = 0,
-               seed = 5, prior = set_prior("lkj(4)", class = "cor"))))
-  pl2 <- unclass(prior_summary(ds2))
-  cor2 <- Filter(function(s) identical(s$class, "cor"), pl2)
-  expect_length(cor2, 1L)
-  expect_equal(cor2[[1L]]$dist$eta, 4)
-  expect_true("sd" %in% vapply(pl2, `[[`, "", "class"))
-  # eta = 4 concentrates toward the identity, so the sampled
-  # correlation is tighter around zero than under lkj(1); judged in the
-  # chains' own spread, since these are two different chains
-  r1 <- ds$draws[, "theta_3"] / sqrt(1 + ds$draws[, "theta_3"]^2)
-  r4 <- ds2$draws[, "theta_3"] / sqrt(1 + ds2$draws[, "theta_3"]^2)
-  expect_lt(stats::sd(r4), stats::sd(r1))
-
-  # prior = "flat" opts out of the correlation default too, and the
-  # gate closes with it
-  ds3 <- suppressWarnings(suppressMessages(
-    frm_sample(form, data = dd, chains = 1, iter = 500, refresh = 0,
-               seed = 5, prior = "flat")))
-  expect_null(ds3$reparam)
-  expect_null(prior_summary(ds3))
-})
 
 ## ---- what the prior does to a fit ------------------------------------
 
@@ -433,4 +353,36 @@ test_that("frm() is untouched when no prior is given", {
   # and the objective the fit holds carries no prior term
   expect_equal(as.numeric(fit$obj$fn(fit$opt$par)),
                -as.numeric(logLik(fit)), tolerance = 1e-8)
+})
+
+test_that("every pairwise correlation has the LKJ marginal", {
+  skip_if_not(sampler_gates_on(), "chain-agreement gates are off")
+  skip_if_not_installed("tmbstan")
+  skip_if_not_installed("rstan")
+  seed <- 0
+  for (d in c(2L, 3L, 4L)) {
+    for (eta in c(1, 2)) {
+      seed <- seed + 1L
+      rho <- prior_rho(eta, d, seed)
+      a <- eta - 1 + d / 2      # the closed-form marginal shape
+      for (j in seq_len(ncol(rho))) {
+        ks <- suppressWarnings(
+          stats::ks.test(rho[, j], function(q) stats::pbeta((q + 1) / 2,
+                                                            a, a)))
+        # a chain of ~2000 thinned draws: the iid 5% critical value is
+        # 0.030, and the gate is set at twice it so that autocorrelation
+        # cannot fail a correct density, while a wrong exponent (the
+        # failure mode this guards) moves D by 0.2 or more
+        expect_lt(as.numeric(ks$statistic), 0.06,
+                  label = paste0("KS D (d = ", d, ", eta = ", eta,
+                                 ", pair ", j, ")"))
+        # the marginal's first two moments, against the chain's own
+        # Monte Carlo spread rather than a fixed number
+        mcse <- stats::sd(rho[, j]) / sqrt(length(rho[, j]) / 10)
+        expect_lt(abs(mean(rho[, j])), 5 * mcse)
+        expect_lt(abs(stats::sd(rho[, j]) - sqrt(1 / (2 * a + 1))),
+                  0.1 * sqrt(1 / (2 * a + 1)))
+      }
+    }
+  }
 })
