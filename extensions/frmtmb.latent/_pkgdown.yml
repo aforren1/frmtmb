@@ -1,0 +1,32 @@
+# Subsite for the latent-state extension.
+#
+# The site builds into the core package's docs/ tree, so that one
+# GitHub Pages deployment serves the core site and the four extension
+# sites together. Build it with dev/build-docs.R, not on its own: the
+# links between packages resolve only when every package is installed
+# first.
+url: https://aforren1.github.io/frmtmb/frmtmb.latent
+destination: ../../docs/frmtmb.latent
+
+template:
+  bootstrap: 5
+  light-switch: true
+
+# Naming any repo URL stops pkgdown from reading the rest off
+# DESCRIPTION, so the home URL is repeated here to keep the GitHub
+# icon in the navbar. The source URL points inside the extension
+# directory, because pkgdown takes the repository root as the package
+# root and this package is not at the root.
+repo:
+  url:
+    home: https://github.com/aforren1/frmtmb/
+    source: https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.latent/
+
+navbar:
+  structure:
+    left:  [core, reference, articles, news]
+    right: [search, github, lightswitch]
+  components:
+    core:
+      text: frmtmb
+      href: https://aforren1.github.io/frmtmb/

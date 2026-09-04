@@ -46,7 +46,7 @@ likelihood and
 [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
 pools point estimates, so its methods explain that rather than inventing
 a draws matrix. Install `frmtmb.sample` and sample with
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 to get an object these convert.
 
 ## Examples

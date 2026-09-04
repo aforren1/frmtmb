@@ -3,6 +3,27 @@ template:
   bootstrap: 5
   light-switch: true
 
+# Each extension builds its own site into a subdirectory of this one,
+# so the dropdown stays inside a single GitHub Pages deployment. The
+# structure is spelled out because naming a component replaces the
+# pkgdown default rather than adding to it.
+navbar:
+  structure:
+    left:  [intro, reference, articles, extensions, news]
+    right: [search, github, lightswitch]
+  components:
+    extensions:
+      text: Extensions
+      menu:
+      - text: frmtmb.ddm (drift-diffusion response times)
+        href: https://aforren1.github.io/frmtmb/frmtmb.ddm/
+      - text: frmtmb.latent (hidden Markov and latent class)
+        href: https://aforren1.github.io/frmtmb/frmtmb.latent/
+      - text: frmtmb.ode (differential equation dynamics)
+        href: https://aforren1.github.io/frmtmb/frmtmb.ode/
+      - text: frmtmb.sample (NUTS sampling and posteriors)
+        href: https://aforren1.github.io/frmtmb/frmtmb.sample/
+
 reference:
 - title: Model specification
   contents:

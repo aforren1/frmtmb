@@ -340,7 +340,7 @@ surface is not univariate-only:
 [`confint()`](https://rdrr.io/r/stats/confint.html),
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
 and
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 read the outer parameter vector, which a multivariate fit has like any
 other.
 

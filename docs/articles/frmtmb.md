@@ -388,12 +388,12 @@ plot(conditional_effects(fit))
 
 The same fitted objective can be handed to NUTS for full Bayes on the
 same model. That lives in the companion package **frmtmb.sample**:
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 returns draws with the whole posterior method surface
 (`posterior_epred()`,
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
 [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md)), and
-[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html)
+[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.html)
 audits the Laplace approximation against them.
 
 See

@@ -42,6 +42,15 @@
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul>
 </li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -871,7 +880,7 @@ tests the restriction.</p>
 <code>frmtmb.latent</code> package, and the animal-track fit, its
 cross-checks against hmmTMB and depmixS4, and the list of what the HMM
 surface refuses are in
-<code>vignette("latent", package = "frmtmb.latent")</code>.</p>
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.latent/articles/latent.html">vignette("latent", package = "frmtmb.latent")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="function-on-scalar-regression">10. Function-on-scalar regression<a class="anchor" aria-label="anchor" href="#function-on-scalar-regression"></a>
@@ -1307,8 +1316,8 @@ first-passage density written as a series, a boundary indicator arriving
 through <code>vint()</code>, and a non-decision time bounded exactly as
 the shift is above. That family is a package now, and the package does
 the density better than a case study did.
-<code>vignette("ddm", package = "frmtmb.ddm")</code> is the worked
-model, and <code>frmtmb.ddm::wiener()</code> is the family.</p>
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.ddm/articles/ddm.html">vignette("ddm", package = "frmtmb.ddm")</a></code> is the worked
+model, and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.html">frmtmb.ddm::wiener()</a></code> is the family.</p>
 <p>Two lessons live there rather than here:</p>
 <ul>
 <li>An integer covariate reaching the density through
@@ -1512,7 +1521,7 @@ surface, and the refusals are deliberate. A term built on matrix columns
 is excluded from <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code>, because a matrix
 covariate has no single value to hold the other predictors at. A family
 whose likelihood does not factorize over the rows refuses more than
-that: <code>vignette("latent", package = "frmtmb.latent")</code> works
+that: <code><a href="https://aforren1.github.io/frmtmb/frmtmb.latent/articles/latent.html">vignette("latent", package = "frmtmb.latent")</a></code> works
 through the whole refusal set of one such family.</p>
 <p>The identity-refit check of section 1 belongs in any model that reads
 a matrix from <code>data2</code>. It is the one test that a structured

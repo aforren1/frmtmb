@@ -158,7 +158,7 @@ frm(
   given brms's own priors returns `sd(patient)` 0.38 against brms's
   posterior mean of 0.40. That is a measurement on one model, though,
   not a property of the translation. Use
-  [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+  [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
   when the posterior is the answer.
 
   *A prior with a location places a nonlinear start.* brms uses its
@@ -219,7 +219,7 @@ frm(
   parameter template without fitting; `"objective"` additionally tapes
   the objective and returns an UNFITTED object carrying it, which is
   what
-  [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+  [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
   samples when it is given a formula rather than a fit. Methods that
   report a maximum-likelihood quantity refuse on that object.
 
@@ -293,7 +293,7 @@ exactly the regime where the Laplace fit is biased).
 
 To MEASURE the violation rather than route around it, install the
 `frmtmb.sample` package and call
-[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html).
+[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.html).
 It runs NUTS on this very objective and reports how far the posterior
 mean sits from the maximum-likelihood estimate in posterior standard
 deviations, and the ratio of the posterior standard deviation to the

@@ -53,7 +53,7 @@ integral numerically exact when the per-group integrand is univariate
 (one scalar random intercept, in one class); with class-specific
 intercepts in several classes the coordinates couple and quadrature
 remains approximate - use
-[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html)
+[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.html)
 to judge. Mixing-weight predictors are evaluated at each group's first
 row (use group-constant covariates).
 [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.md)

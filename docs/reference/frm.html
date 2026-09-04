@@ -28,6 +28,13 @@ Laplace approximation for random effects through RTMB."></head><body>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
+  </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -193,7 +200,7 @@ interval. The two land close where the data dominates: a kidney
 frailty model given brms's own priors returns <code>sd(patient)</code> 0.38
 against brms's posterior mean of 0.40. That is a measurement on
 one model, though, not a property of the translation. Use
-<code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> when the posterior is the answer.</p>
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> when the posterior is the answer.</p>
 <p><em>A prior with a location places a nonlinear start.</em> brms uses its
 priors to place the sampler, and <code>frm()</code> now reads them the same
 way, for nonlinear parameters only: where <code>start</code> does not set it,
@@ -246,7 +253,7 @@ session do not need the calling environment to still exist.</p></dd>
 without touching <code>data</code>; <code>"frame"</code> returns the assembled design
 matrices and parameter template without fitting; <code>"objective"</code>
 additionally tapes the objective and returns an UNFITTED object
-carrying it, which is what <code><a href="https://aforren1.github.io/frmtmb/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> samples
+carrying it, which is what <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> samples
 when it is given a formula rather than a fit. Methods that report a
 maximum-likelihood quantity refuse on that object.</p></dd>
 
@@ -308,7 +315,7 @@ adaptive quadrature (the test suite checks that fit against
 <code>lme4::glmer(nAGQ = 25)</code> and GLMMadaptive in exactly the regime where
 the Laplace fit is biased).</p>
 <p>To MEASURE the violation rather than route around it, install the
-<code>frmtmb.sample</code> package and call <code><a href="https://aforren1.github.io/frmtmb/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code>. It
+<code>frmtmb.sample</code> package and call <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.html">frmtmb.sample::check_laplace()</a></code>. It
 runs NUTS on this very objective and reports how far the posterior
 mean sits from the maximum-likelihood estimate in posterior standard
 deviations, and the ratio of the posterior standard deviation to the

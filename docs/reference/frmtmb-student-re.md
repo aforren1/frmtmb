@@ -78,7 +78,7 @@ marginalizes a scalar random intercept by Gauss-Kronrod quadrature
 instead, which over a t latent is EXACT, not merely better; it is the
 one to run when a t block's variance component matters and the groups
 are small.
-[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/reference/check_laplace.html)
+[`frmtmb.sample::check_laplace()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.html)
 measures the same thing without refitting, by NUTS on the objective: its
 `z_shift` for `theta` reproduced the displacement above to within a
 percentage point in the probe.

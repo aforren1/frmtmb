@@ -135,7 +135,7 @@ so a bound on a log-linked dispersion is a bound on its logarithm.
 
 In [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) a bound
 is a box constraint handed to the optimizer; in
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 it becomes one of Stan's constrained transforms. Both take this spelling
 and no other: the `lower`/`upper` arguments of releases before 0.49 are
 gone rather than aliased, and a call still using them fails as an unused
@@ -230,7 +230,7 @@ the objective AT the starting values;
 names them.
 
 `resp` picks one response of a multivariate model; the default priors of
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/reference/frm_sample.html)
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 still stay off there (see its Default priors section), so a multivariate
 model's priors are the ones written by hand.
 
