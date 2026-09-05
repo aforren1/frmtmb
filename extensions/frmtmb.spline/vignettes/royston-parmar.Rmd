@@ -1,0 +1,275 @@
+---
+title: "How to fit a flexible parametric survival model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{How to fit a flexible parametric survival model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
+                      fig.height = 4.2)
+has_tinyplot <- requireNamespace("tinyplot", quietly = TRUE)
+has_flexsurv <- requireNamespace("flexsurv", quietly = TRUE)
+knitr::opts_chunk$set(eval = has_flexsurv)
+library(frmtmb)
+library(frmtmb.spline)
+```
+
+A Cox model leaves the baseline hazard unspecified, which is what makes
+it robust and also what stops it from telling you the hazard. A
+Royston-Parmar model writes the log cumulative hazard as a natural
+cubic spline in log time. You get proportional hazards when you want
+them, a smooth estimated baseline you can plot, and time-varying
+effects when the proportional-hazards assumption fails.
+
+`royston_parmar()` is that family, parameterized exactly as
+`flexsurv::flexsurvspline()` parameterizes it.
+
+## The data
+
+`flexsurv`'s `bc` data: 686 breast cancer patients in three prognostic
+groups, recurrence-free survival in years, 299 events and 387
+right-censored rows.
+
+```{r data}
+data(bc, package = "flexsurv")
+table(bc$group, event = bc$censrec)
+```
+
+One thing to get right before anything else. frmtmb's `cens()` reads
+`0` as an observed event and `1` as right censored. A `Surv()` status
+column is the other way round. Convert it, once, and name the column
+for what it holds:
+
+```{r cens}
+bc$censored <- 1 - bc$censrec
+```
+
+## Fit it
+
+`df` is the degrees of freedom of the spline: the number of interior
+knots plus one. `df = 3` gives two interior knots and four coefficients,
+which is Royston and Parmar's usual starting point. The knots go at
+equally spaced quantiles of the log UNCENSORED times, which needs the
+response, so they are chosen when `frm()` assembles the model frame.
+
+```{r fit}
+fit <- frm(bf(recyrs | cens(censored) ~ group),
+           family = royston_parmar(df = 3), data = bc)
+fixef(fit)
+```
+
+`mu` is `gamma0`, the spline intercept, and the `group` coefficients sit
+on it. Because `gamma0` shifts the whole log cumulative hazard, those
+are LOG HAZARD RATIOS: the model is proportional hazards.
+
+```{r hr}
+exp(unlist(fixef(fit)$mu)[-1])
+```
+
+`gamma1` and upward are the other spline coefficients, and together with
+`gamma0` they are the baseline.
+
+## It is the same model flexsurv fits
+
+Not "close to". The same. Both packages evaluate one function, and the
+proof is to hand flexsurv's fitted coefficients to frmtmb's objective:
+
+```{r identity}
+fs <- flexsurv::flexsurvspline(survival::Surv(recyrs, censrec) ~ group,
+                               data = bc, k = 2, scale = "hazard")
+kn <- fs$knots
+o <- frm(bf(recyrs | cens(censored) ~ group),
+         family = royston_parmar(knots = kn[2:(length(kn) - 1)],
+                                 bknots = kn[c(1, length(kn))]),
+         data = bc, dry_run = "objective")
+cf <- fs$res[, "est"]
+gam <- cf[grep("^gamma", names(cf))]
+par <- c(gam[1], cf[!grepl("^gamma", names(cf))], gam[-1])
+c(flexsurv = fs$loglik, frmtmb_at_flexsurv_par = -o$obj$fn(par))
+```
+
+Those two numbers agree to about ten units in the last place of a
+number near 800. Note `flexsurv`'s `k` is this package's `df - 1`: `k`
+counts the interior knots and `df` counts them plus one.
+
+The two optima then agree as well:
+
+```{r optima}
+c(flexsurv = fs$loglik, frmtmb = as.numeric(logLik(fit)))
+```
+
+## Read the baseline off
+
+Every spline coefficient is a distributional parameter, so
+`predict(type = "link", dpar = )` reaches each of them and the fitted
+baseline is the basis times those coefficients. There is no penalized
+smooth in this model, so `frm_curve()` has no random-effect block to
+read and refuses; add an `s()` term and it applies here as it does
+anywhere else.
+
+```{r baseline}
+tg <- exp(seq(log(0.3), log(max(bc$recyrs)), length.out = 60))
+nd <- data.frame(recyrs = tg,
+                 group = factor("Good", levels = levels(bc$group)))
+lp <- lapply(c("mu", "gamma1", "gamma2", "gamma3"), function(dp) {
+  predict(fit, newdata = nd, type = "link", dpar = dp)
+})
+kn <- environment(family(fit)[["lpdf"]])$allknots
+x <- log(tg)
+# the Royston-Parmar basis, written out: a constant, x itself, and one
+# natural cubic term per interior knot, each linear beyond the boundary
+rp_basis <- function(knots, x) {
+  nk <- length(knots)
+  out <- list(rep(1, length(x)), x)
+  for (j in seq_len(nk - 2)) {
+    kj <- knots[j + 1]
+    lam <- (knots[nk] - kj) / (knots[nk] - knots[1])
+    out[[j + 2]] <- pmax(x - kj, 0)^3 - lam * pmax(x - knots[1], 0)^3 -
+      (1 - lam) * pmax(x - knots[nk], 0)^3
+  }
+  out
+}
+bas <- rp_basis(kn, x)
+logH <- Reduce(`+`, Map(function(b, g) b * as.numeric(g), bas, lp))
+S <- exp(-exp(logH))
+head(data.frame(t = round(tg, 3), logH = round(logH, 3),
+                survival = round(S, 3)), 4)
+```
+
+```{r fig-surv, eval = has_tinyplot, fig.alt = "Fitted survival curves for the three prognostic groups against time in years, each falling from 1. The good-prognosis curve stays above 0.8 at eight years, the medium curve reaches about 0.6 and the poor curve about 0.3. Step functions of the same three colors, the Kaplan-Meier estimates, track each fitted curve closely."}
+cols <- c("steelblue4", "goldenrod3", "firebrick")
+surv_of <- function(g) {
+  ndg <- data.frame(recyrs = tg,
+                    group = factor(g, levels = levels(bc$group)))
+  lps <- lapply(c("mu", "gamma1", "gamma2", "gamma3"), function(dp) {
+    as.numeric(predict(fit, newdata = ndg, type = "link", dpar = dp))
+  })
+  exp(-exp(Reduce(`+`, Map(`*`, bas, lps))))
+}
+tinyplot::tinyplot(x = tg, y = surv_of("Good"), type = "l", lwd = 2,
+                   col = cols[1], theme = "clean2", ylim = c(0, 1),
+                   xlab = "years", ylab = "survival",
+                   main = "Fitted survival against Kaplan-Meier")
+for (i in 2:3) {
+  tinyplot::tinyplot_add(x = tg, y = surv_of(levels(bc$group)[i]),
+                         type = "l", lwd = 2, col = cols[i])
+}
+km <- survival::survfit(survival::Surv(recyrs, censrec) ~ group, data = bc)
+km_s <- summary(km)
+for (i in seq_along(levels(bc$group))) {
+  k <- km_s$strata == levels(km_s$strata)[i]
+  lines(km_s$time[k], km_s$surv[k], type = "s", col = cols[i], lty = 3)
+}
+legend("bottomleft", levels(bc$group), col = cols, lwd = 2, bty = "n")
+```
+
+The fitted curves track the Kaplan-Meier estimates, which the model was
+never shown.
+
+## When hazards are not proportional
+
+A formula on `gamma0` shifts the whole curve, which is proportional
+hazards. A formula on any OTHER coefficient multiplies a function of log
+time, so it is a TIME-VARYING effect: `flexsurv` spells this `anc =`,
+and here it is an ordinary second formula.
+
+```{r tvc}
+ftv <- frm(bf(recyrs | cens(censored) ~ group, gamma1 ~ group),
+           family = royston_parmar(df = 3), data = bc)
+c(proportional = as.numeric(logLik(fit)),
+  time_varying = as.numeric(logLik(ftv)),
+  AIC_proportional = AIC(fit), AIC_time_varying = AIC(ftv))
+```
+
+`gamma1` multiplies `log(t)`, so letting it vary by group lets each
+group's hazard ratio drift with time rather than holding still.
+
+## What this family will not do
+
+`fitted()` and `predict(type = "response")` refuse, and say why. The
+mean of a survival time under this model is an integral of the fitted
+survival function with no closed form, and the censored rows do not
+identify its upper tail. `mu` is a spline coefficient, not a fitted
+value, and the identity link would let it pass for one:
+
+```{r refuse, error = TRUE}
+fitted(fit)
+```
+
+## The check you must run
+
+Two things in this family are floors rather than answers, and both are
+silent in the fitted object. `rp_floored()` is where they go to be read,
+and it REFUSES rather than reports:
+
+```{r floored}
+rp_floored(fit, action = "report")
+```
+
+Zero on both counts here. Run it on every fit whose data carry
+censoring, because neither `logLik()` nor `AIC()` can tell you.
+
+**Why it matters.** frmtmb forms a right-censored contribution as
+`log(1 - F(y))` on the probability scale, and core gives a family no
+complementary log-CDF slot to hand back `log S` directly. So the scored
+`log S` carries absolute error about `eps / S`: exact at `-log S` of 10,
+wrong by 1.7e-04 at 30, and floored at -35.127363 past 36. Past 30 its
+GRADIENT is exactly zero, so the optimizer prices such a row at a
+constant and fits the others as if it were free.
+
+That is not hypothetical. A 600-subject dataset with one subject
+censored far beyond every event time converges without a warning and
+reports a log likelihood thousands of units away from the model's, with
+a treatment coefficient wrong by tens of percent; `flexsurv` declines to
+fit the same data at all. `rp_floored()` refuses it:
+
+```{r floored-bad, error = TRUE}
+set.seed(20260905)
+n <- 600
+bad <- data.frame(grp = factor(rep(c("A", "B"), each = n / 2)))
+bad$t <- rweibull(n, shape = 1.6,
+                  scale = ifelse(bad$grp == "A", 0.30, 3.0))
+bad$censored <- 0L
+bad$t[1] <- 50
+bad$censored[1] <- 1L
+bad_fit <- frm(bf(t | cens(censored) ~ grp),
+               family = royston_parmar(df = 3), data = bad)
+c(converged = bad_fit$opt$convergence, logLik = as.numeric(logLik(bad_fit)))
+rp_floored(bad_fit)
+```
+
+The refusal is POST-FIT and cannot be otherwise: `logLik()` reads the
+optimizer's own value and the family protocol has no hook that runs when
+a fit finishes. `frm_curve()` and its two companions call `rp_floored()`
+for you, so the documented way to inspect this family will not draw a
+curve off a fit like that one.
+
+Monotonicity of the cumulative hazard is the second floor, and it is not
+enforced; `flexsurv` does not enforce it either, and a spline that turns
+over inside the data range is an over-parameterized fit rather than
+something the software should have prevented. Where it turns over there
+is no hazard and the true log density is `-Inf`, so this family floors
+it to keep the optimizer alive, which makes `logLik()` a
+pseudo-likelihood. `rp_floored()` counts those rows too. You can see the
+same thing directly in the slope of the fitted log cumulative hazard,
+which must stay positive:
+
+```{r monotone}
+dlogH <- diff(logH) / diff(x)
+c(min_slope = min(dlogH), all_increasing = all(dlogH > 0))
+```
+
+## How many knots
+
+More knots buy a more flexible baseline and cost degrees of freedom.
+Compare on AIC, as Royston and Parmar do:
+
+```{r df}
+sapply(1:5, function(k) {
+  AIC(frm(bf(recyrs | cens(censored) ~ group),
+          family = royston_parmar(df = k), data = bc))
+})
+```

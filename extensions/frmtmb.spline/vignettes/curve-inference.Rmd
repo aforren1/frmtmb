@@ -1,0 +1,283 @@
+---
+title: "How to report a fitted curve"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{How to report a fitted curve}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7,
+                      fig.height = 4.2)
+has_tinyplot <- requireNamespace("tinyplot", quietly = TRUE)
+library(frmtmb)
+library(frmtmb.spline)
+```
+
+You fitted a smooth. Now you have to report it, and a plot of the
+fitted line with a shaded band is not yet a claim. This article shows
+how to make three claims that are, on a movement dataset where the
+truth is known:
+
+* the curve lies inside a band, everywhere at once;
+* the curve is rising here and falling there;
+* the peak is at this time, plus or minus this much.
+
+## The data
+
+A reaching movement has a bell-shaped speed profile. Twenty subjects
+each make twelve reaches; every subject's profile has its own height
+and its own timing, and the measured speed is noisy.
+
+```{r data}
+set.seed(4)
+n_sub <- 20
+n_rep <- 12
+n_t <- 30
+peak <- function(t, h, s) h * exp(-0.5 * ((t - s) / 0.16)^2)
+sub <- rep(seq_len(n_sub), each = n_rep * n_t)
+d <- data.frame(
+  subject = factor(sub),
+  trial = rep(seq_len(n_sub * n_rep), each = n_t),
+  t = rep(seq(0, 1, length.out = n_t), times = n_sub * n_rep))
+h_sub <- rnorm(n_sub, 1, 0.12)
+s_sub <- rnorm(n_sub, 0.5, 0.04)
+d$v <- peak(d$t, h_sub[sub], s_sub[sub]) + rnorm(nrow(d), 0, 0.06)
+str(d, max.level = 1)
+```
+
+What is the population curve here? Not one subject's. Each subject
+peaks at its own time, so the AVERAGE of the twenty curves is a wider,
+slightly lower bump than any of them. That average is what a population
+smooth estimates, and it is the thing to compare against:
+
+```{r truth}
+pop_curve <- function(tt) {
+  rowMeans(vapply(seq_len(n_sub),
+                  function(i) peak(tt, h_sub[i], s_sub[i]),
+                  numeric(length(tt))))
+}
+c(peak_of_one_subject = max(peak(seq(0, 1, 0.001), 1, 0.5)),
+  peak_of_the_average = max(pop_curve(seq(0, 1, 0.001))))
+```
+
+Nothing below is told any of it.
+
+## Fit it
+
+`s(t)` is the population curve and `s(t, subject, bs = "fs")` gives
+every subject its own departure from it, with one shared smoothing
+parameter. This is an ordinary `frm()` call; nothing in this package
+changes how a model is fitted.
+
+```{r fit}
+fit <- frm(bf(v ~ s(t, k = 12) + s(t, subject, bs = "fs", k = 5)),
+           family = gaussian(), data = d)
+VarCorr(fit)
+```
+
+## 1. The curve, with a band that covers all of it
+
+`frm_curve()` evaluates the fitted linear predictor on a grid.
+`re.form = NA` drops the per-subject curves, so what comes back is the
+POPULATION curve.
+
+```{r curve}
+grid <- data.frame(t = seq(0, 1, length.out = 80))
+cv <- frm_curve(fit, newdata = grid, re.form = NA, nsim = 20000, seed = 1)
+cv
+```
+
+Two intervals come back. `.lower_ci` and `.upper_ci` are the ordinary
+pointwise interval: each point of the curve, taken on its own, is
+inside its own interval 95 percent of the time. `.lower_sim` and
+`.upper_sim` are the SIMULTANEOUS band: the WHOLE curve is inside it 95
+percent of the time.
+
+Those are different claims and the second is the one a figure invites.
+A 95 percent pointwise band drawn over 80 points does not cover the
+whole curve 95 percent of the time; it covers it far less often,
+because there are 80 chances to escape. The simultaneous critical value
+is the correction, and here it is about 2.7 rather than 1.96:
+
+```{r crit}
+c(pointwise = cv$.crit[1], simultaneous = cv$.crit_sim[1],
+  ratio = cv$.crit_sim[1] / cv$.crit[1])
+```
+
+The simultaneous critical value is simulated, so it comes with its own
+Monte Carlo standard error. Report it, or a reader cannot tell your
+2.72 from someone else's 2.70:
+
+```{r mcse}
+attr(cv, "check")$crit_mcse
+```
+
+The `"check"` attribute carries one more number, and it is the one that
+licenses everything above. frmtmb exports no route to the joint
+covariance of a grid prediction, so this package rebuilds it and then
+checks its own answer against `predict(se.fit = TRUE)`, which is
+exported. The two agree to about twelve significant figures:
+
+```{r check}
+attr(cv, "check")$cov_rel_error
+```
+
+If they ever did not, `frm_curve()` would refuse rather than report a
+band. The count of `predict()` calls the rebuild cost is there too, and
+it is small: at `re.form = NA` the per-subject coefficients contribute
+nothing and are skipped in blocks rather than one at a time.
+
+```{r ncall}
+attr(cv, "check")$n_predict
+```
+
+```{r fig-curve, eval = has_tinyplot, fig.alt = "The fitted population speed profile against time, a bell shape peaking near 1.0 at t = 0.5. A wide pale band is the simultaneous interval and a narrower darker band the pointwise interval. A dashed line, the truth, lies inside both across the whole range."}
+tt <- cv$t
+est <- cv$.estimate
+tinyplot::tinyplot(x = tt, y = est, type = "l", lwd = 2,
+                   col = "steelblue4", theme = "clean2",
+                   ylim = range(cv$.lower_sim, cv$.upper_sim),
+                   xlab = "time", ylab = "speed",
+                   main = "Population speed profile")
+tinyplot::tinyplot_add(x = c(tt, rev(tt)),
+                       y = c(cv$.lower_sim, rev(cv$.upper_sim)),
+                       type = "polygon", col = "#4682b422", border = NA)
+tinyplot::tinyplot_add(x = c(tt, rev(tt)),
+                       y = c(cv$.lower_ci, rev(cv$.upper_ci)),
+                       type = "polygon", col = "#4682b444", border = NA)
+tinyplot::tinyplot_add(x = tt, y = est, type = "l", lwd = 2,
+                       col = "steelblue4")
+tinyplot::tinyplot_add(x = grid$t, y = pop_curve(grid$t), type = "l",
+                       lty = 2, col = "grey30")
+```
+
+The population curve is inside the simultaneous band at every grid
+point, which is what the band claims:
+
+```{r cover}
+truth <- pop_curve(grid$t)
+c(inside_simultaneous = mean(truth >= cv$.lower_sim & truth <= cv$.upper_sim),
+  inside_pointwise = mean(truth >= cv$.lower_ci & truth <= cv$.upper_ci))
+```
+
+Both bands cover here, and that is not a contradiction: the difference
+between them is a statement about REPEATED datasets, not about this one.
+Over many datasets the pointwise band misses the whole curve far more
+often than 5 percent of the time and the simultaneous band misses it 5
+percent of the time.
+
+Two cautions about what "the truth" means. A band covers the curve the
+MODEL is estimating, so with 7200 observations the sampling error is
+small and the penalty's bias is most of what is left; and the estimand
+is the average of the twenty subject curves, not any one of them.
+Comparing against one subject's profile would put the "truth" outside
+the band over part of the range, and the band would not be at fault.
+
+## 2. Where the curve is rising
+
+The slope of the curve is a curve of its own, and it has the same two
+intervals. Where its band excludes zero, the speed is changing.
+
+```{r deriv}
+g2 <- data.frame(t = seq(0.05, 0.95, length.out = 40))
+d1 <- frm_curve_deriv(fit, var = "t", order = 1, newdata = g2,
+                      re.form = NA, nsim = 20000, seed = 2)
+rising <- d1$.lower_sim > 0
+falling <- d1$.upper_sim < 0
+c(rising_from = min(g2$t[rising]), rising_to = max(g2$t[rising]),
+  falling_from = min(g2$t[falling]), falling_to = max(g2$t[falling]))
+```
+
+Read that as a sentence: the speed is increasing over the first
+interval and decreasing over the second, and both statements hold
+simultaneously at the stated level.
+
+The step size is worth one paragraph. The derivative is a central
+difference of the DESIGN, and its step defaults to a fraction of the
+covariate's range, set per order: `1e-6` of the range at order 1 and
+`1e-4` at order 2. A single fixed step cannot serve both, because the
+second difference divides by the square of the step and turns
+floating-point cancellation into the dominant error long before the
+first difference notices. Pass `eps =` to override it.
+
+```{r eps}
+c(order_1 = attr(d1, "eps"),
+  order_2 = attr(frm_curve_deriv(fit, var = "t", order = 2, newdata = g2,
+                                 re.form = NA, simultaneous = FALSE),
+                 "eps"))
+```
+
+```{r fig-deriv, eval = has_tinyplot, fig.alt = "The first derivative of the fitted speed profile against time. It rises from zero, peaks near 3 at t = 0.35, crosses zero at t = 0.5 and falls to about minus 3 at t = 0.65 before returning toward zero. A shaded band around it excludes zero on both sides of the crossing."}
+t2 <- d1$t
+tinyplot::tinyplot(x = t2, y = d1$.estimate, type = "l", lwd = 2,
+                   col = "firebrick", theme = "clean2",
+                   ylim = range(d1$.lower_sim, d1$.upper_sim),
+                   xlab = "time", ylab = "d speed / d t",
+                   main = "Slope of the population profile")
+tinyplot::tinyplot_add(x = c(t2, rev(t2)),
+                       y = c(d1$.lower_sim, rev(d1$.upper_sim)),
+                       type = "polygon", col = "#b2222222", border = NA)
+tinyplot::tinyplot_add(x = t2, y = d1$.estimate, type = "l", lwd = 2,
+                       col = "firebrick")
+abline(h = 0, lty = 3)
+```
+
+## 3. Where the peak is
+
+A movement paper reports the TIME of peak speed, and usually reports it
+without an interval, because nothing hands one over. `frm_curve_feature()`
+does. The peak solves `f'(t) = 0`, so perturbing the fit moves it, and
+the implicit-function theorem turns the curve's covariance into the
+variance of its location:
+
+`var(t*) = var(f'(t*)) / f''(t*)^2`
+
+```{r peak}
+pk <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = g2,
+                        re.form = NA)
+pk
+```
+
+The average curve peaks near `t = 0.5`, and the estimate is inside a
+few hundredths of it. Note that `.value_se` is NOT inflated by the uncertainty in
+where the peak is: at a stationary point the derivative of the height
+with respect to the coefficients loses its location term, because
+`f'(t*)` is zero there. The height's standard error is the ordinary
+pointwise one at `t*`.
+
+Movement onset is the same calculation against a threshold instead of
+against zero. Every crossing the grid brackets comes back, so a
+threshold the profile passes twice gives two rows:
+
+```{r onset}
+frm_curve_feature(fit, var = "t", type = "crossing", at = 0.2,
+                  newdata = g2, re.form = NA)
+```
+
+## Per-subject curves
+
+Drop `re.form = NA` and supply the grouping column, and the same three
+functions describe THAT subject's curve, with the subject's own
+deviation and its uncertainty included.
+
+```{r subject}
+gs <- data.frame(t = seq(0.05, 0.95, length.out = 40),
+                 subject = factor(3, levels = levels(d$subject)))
+pk3 <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = gs,
+                         re.form = NULL)
+pk3[, c(".estimate", ".se", ".value", ".value_se")]
+```
+
+Subject 3's own peak time, against the population peak above. Repeat
+over subjects and you have per-subject peak latencies with standard
+errors, which is what a second-level analysis wants as input.
+
+## What to report
+
+* The simultaneous band, not the pointwise one, whenever the figure
+  invites a statement about the shape of the curve.
+* The simultaneous critical value WITH its Monte Carlo standard error.
+* For a feature, the estimate and its interval, and say which
+  derivative the implicit-function delta method was applied to.
