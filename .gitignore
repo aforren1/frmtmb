@@ -8,6 +8,7 @@ dev/srr-report.html
 dev/stan-cache/
 dev/stan-cache-priors/
 dev/bp-makevars
+dev/stan-cache-methods/
 dev/brmslp/
 
 # testthat writes these beside the tests when a run has failures
