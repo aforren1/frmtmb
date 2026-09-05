@@ -7,7 +7,7 @@
 #
 # It reuses the translator and the compile cache from helper-brms.R
 # (stan_pars_from_fit(), brms_stan_model(), brms_standata(),
-# brms_ranef_table(), brms_z_index()) and adds only what a prior needs.
+# brms_ranef_table(), brms_inner_index()) and adds only what a prior needs.
 # testthat sources helper files in alphabetical order, and
 # "helper-brms-priors.R" sorts BEFORE "helper-brms.R", so nothing here
 # may call those at source time. Everything below is a function body.
@@ -263,7 +263,9 @@ bp_check <- function(fit, fit0, sf, sf_flat, sdat, code, rtab = NULL,
   logJ <- attr(pars, "logJ")
   if (is.null(logJ)) logJ <- 0
   upars <- rstan::unconstrain_pars(sf, pars)
-  zidx <- brms_z_index(sf, pars)
+  # brms_z_index() became brms_inner_index() with a pattern when the
+  # tier grew smooth, GP, mi() and CAR blocks; this tier has only z
+  zidx <- brms_inner_index(sf, pars, pattern = "^z_[0-9]+$")
   gF <- rstan::grad_log_prob(sf, upars, adjust_transform = FALSE)
   gT <- rstan::grad_log_prob(sf, upars, adjust_transform = TRUE)
   lpF <- rstan::log_prob(sf, upars, adjust_transform = FALSE)
