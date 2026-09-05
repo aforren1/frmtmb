@@ -37,3 +37,21 @@ test_that("frm_sample runs parallel chains, formula route with ncp", {
   # would halve this
   expect_identical(posterior::ndraws(as_draws(ds)), 300L)
 })
+
+test_that("parallel chains refuse a family from a development namespace", {
+  skip_if_not_installed("tmbstan")
+  skip_if_not_installed("rstan")
+  skip_if_not_installed("lme4")
+  data(sleepstudy, package = "lme4")
+  fit <- frmtmb::frm(frmtmb::bf(Reaction ~ Days + (1 | Subject)) +
+                       stats::gaussian(), data = sleepstudy)
+  # under pkgload the core itself is the development namespace, and an
+  # installed core is none; the detector must say exactly which
+  dev <- dev_namespaces_of(fit)
+  expect_identical(dev, if (exists(".__DEVTOOLS__", asNamespace("frmtmb")))
+    "frmtmb" else character(0))
+  skip_on_os(c("mac", "linux", "solaris"))
+  local_mocked_bindings(dev_namespaces_of = function(fit) "frmtmb.ddm")
+  expect_error(frm_sample(fit, chains = 2, cores = 2, iter = 20, refresh = 0),
+               "as loaded by pkgload::load_all")
+})

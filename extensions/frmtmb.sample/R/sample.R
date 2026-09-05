@@ -391,6 +391,33 @@ stan_cores <- function(args) {
   as.numeric(args$cores %||% getOption("mc.cores", 1L))[1L]
 }
 
+#' Packages this model's code comes from that a worker process could
+#' not load. R serializes a closure's namespace by name, and when the
+#' receiving process cannot load that namespace it substitutes the
+#' global environment without stopping; the family then fails at its
+#' first internal call with "could not find function". A namespace
+#' built by pkgload::load_all() exists only in the session that built
+#' it, so every parallel chain on Windows fails that way, and rstan
+#' reports only that the chains returned no draws.
+#'
+#' @noRd
+dev_namespaces_of <- function(fit) {
+  fns <- list()
+  for (resp in fit[["spec"]][["responses"]]) {
+    fam <- resp[["family"]]
+    fns <- c(fns, unlist(rapply(unclass(fam), function(f) f,
+                                classes = "function", how = "list")))
+  }
+  nms <- vapply(fns, function(f) {
+    e <- topenv(environment(f) %||% globalenv())
+    if (isNamespace(e)) getNamespaceName(e) else ""
+  }, "")
+  nms <- unique(nms[nzchar(nms)])
+  nms[vapply(nms, function(n) {
+    exists(".__DEVTOOLS__", envir = asNamespace(n), inherits = FALSE)
+  }, TRUE)]
+}
+
 #' Assemble the unfitted object the formula interface samples.
 #'
 #' @noRd
@@ -1337,6 +1364,20 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                        mb$lower, mb$upper)
   }
   args <- list(obj = obj, init = init, ...)
+  # A development namespace cannot travel to a worker, so this is caught
+  # here by name rather than reported by rstan as empty chains.
+  dev <- if (.Platform$OS.type == "windows" && stan_cores(args) > 1 &&
+               (args$chains %||% 4) > 1) dev_namespaces_of(fit) else character(0)
+  if (length(dev)) {
+    stop("frm_sample(): cores = ", stan_cores(args), " starts one R ",
+         "process per chain on Windows, and each rebuilds the model from ",
+         "the packages in the library. This model's family comes from ",
+         paste(dev, collapse = " and "), " as loaded by ",
+         "pkgload::load_all(), which exists only in this session: a ",
+         "worker replaces it with the global environment and fails at the ",
+         "family's first internal call. Install the package, or run with ",
+         "cores = 1", call. = FALSE)
+  }
   # rstan runs parallel chains on PSOCK workers on Windows. The tape's
   # external pointer dies in serialization, but tmbstan ships the cure:
   # its sampling method calls fn() on the worker, which retapes from

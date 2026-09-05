@@ -1,5 +1,12 @@
 # frmtmb.sample (development version)
 
+* `frm_sample()` refuses parallel chains on Windows when the model's
+  family comes from a namespace built by `pkgload::load_all()`, naming the
+  package and the two remedies. A worker process cannot load such a
+  namespace, and R silently substitutes the global environment for it,
+  so the family failed at its first internal call and rstan reported
+  only that the chains returned no draws.
+
 * The defaults this package registers with `frmtmb::get_prior()` now
   answer `route = "sample"` only. Loading this package used to change
   the table `get_prior()` returned for every caller, an author asking
