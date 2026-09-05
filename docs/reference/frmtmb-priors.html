@@ -17,7 +17,7 @@ lognormal prior on that standard deviation."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,13 +32,14 @@ lognormal prior on that standard deviation."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
+    <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
@@ -82,6 +83,14 @@ lognormal prior on that standard deviation.</p>
 <span></span>
 <span><span class="fu">prior_t</span><span class="op">(</span>df <span class="op">=</span> <span class="fl">3</span>, location <span class="op">=</span> <span class="fl">0</span>, scale <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span></span>
+<span><span class="fu">prior_logistic</span><span class="op">(</span>location <span class="op">=</span> <span class="fl">0</span>, scale <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">prior_gamma</span><span class="op">(</span>shape <span class="op">=</span> <span class="fl">1</span>, rate <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">prior_inv_gamma</span><span class="op">(</span>shape <span class="op">=</span> <span class="fl">1</span>, scale <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">prior_beta</span><span class="op">(</span>shape1 <span class="op">=</span> <span class="fl">1</span>, shape2 <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
 <span><span class="fu">prior_lkj</span><span class="op">(</span>eta <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -90,7 +99,24 @@ lognormal prior on that standard deviation.</p>
 
 
 <dl><dt id="arg-location-scale-df">location, scale, df<a class="anchor" aria-label="anchor" href="#arg-location-scale-df"></a></dt>
-<dd><p>Prior parameters.</p></dd>
+<dd><p>Prior parameters. <code>scale</code> is also the
+second argument of <code>prior_inv_gamma()</code>, brms's
+<code>inv_gamma(shape, scale)</code>.</p></dd>
+
+
+<dt id="arg-shape-rate">shape, rate<a class="anchor" aria-label="anchor" href="#arg-shape-rate"></a></dt>
+<dd><p>Gamma prior parameters, brms's spelling
+(<code>gamma(shape, rate)</code>), both positive. The density has support on
+the positive line, so it belongs to a quantity that lives there: a
+brms <code>shape</code>, <code>phi</code>, <code>nu</code> or <code>kappa</code> row, which arrives on the
+parameter's own scale.</p></dd>
+
+
+<dt id="arg-shape-shape-">shape1, shape2<a class="anchor" aria-label="anchor" href="#arg-shape-shape-"></a></dt>
+<dd><p>Beta prior parameters, both positive. The
+density has support on <code>(0, 1)</code>, so it belongs to a quantity that
+lives there: brms's default on a zero-inflation <code>zi</code> or a hurdle
+<code>hu</code>, which reach it through their logit link.</p></dd>
 
 
 <dt id="arg-eta">eta<a class="anchor" aria-label="anchor" href="#arg-eta"></a></dt>

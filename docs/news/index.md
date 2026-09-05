@@ -1,5 +1,525 @@
 # Changelog
 
+## frmtmb 0.52.0
+
+A brms prior means what it means in brms; conditional_effects() plots
+the expected response and conditions on a new level; car(type =
+“esicar”) is the exactly constrained model; the spline seams a curve
+needs, and ps(), a penalized curve a nonlinear body can consume; and the
+drift-diffusion extension becomes frmtmb.eam with two more accumulator
+families.
+
+- New
+  [`vignette("reinforcement-learning")`](https://aforren1.github.io/frmtmb/articles/reinforcement-learning.md):
+  a worked example that writes a Rescorla-Wagner delta-learning family
+  for a two-armed bandit with
+  [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  and the structured protocol’s whole-response `loglik` slot, then fits
+  it hierarchically through the ordinary grammar. The family is not
+  exported. It lives in `inst/rl/rw-delta.R`, which the vignette reads
+  with
+  [`knitr::read_chunk()`](https://rdrr.io/pkg/knitr/man/read_chunk.html)
+  and `tests/testthat/test-rl-example.R` fits, so the page and the test
+  cannot drift apart. The example checks itself three ways: against an
+  independent scalar reference for the recursion, against a Stan
+  program’s `log_prob` at frmtmb’s own estimates (gated on
+  `FRMTMB_BRMS_FIT_TESTS`), and by parameter recovery over 100 simulated
+  datasets. It also measures what the Laplace approximation costs at 20
+  trials per subject, and names the one protocol seam it wanted and did
+  not find: `loglik` returns one scalar, so `frm(importance =)` and a
+  pointwise log-likelihood are out of reach even for a sequential family
+  whose likelihood does factorize. See `dev/rl-findings.md`.
+
+- The drift-diffusion extension is renamed frmtmb.eam (evidence
+  accumulation models); see its NEWS.
+
+The ten defects the brms post-fit method tier recorded in
+`dev/brms-methods-tests.md`, repaired. Nine of them are in
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md),
+which now returns brms’s frame, brms’s grid and brms’s numbers wherever
+the two packages mean the same thing.
+
+- BEHAVIOR CHANGE.
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  draws the EXPECTED RESPONSE on every family. Its default
+  `method = "epred"` took the point estimate as the inverse link of the
+  `mu` predictor, which is the expected response only when the family’s
+  mean is that. On a zero-inflated fit it plotted `exp(eta)` where the
+  mean is `(1 - zi) * exp(eta)`: 15% high at the first grid point and
+  268% high at the last, with no warning and a smooth curve of the right
+  shape. On a hurdle fit the error changed sign along the curve, 14%
+  below the mean at one end and 237% above at the other.
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  `predict(type = "response")` and
+  `conditional_effects(method = "predict")` were right all along, so the
+  package disagreed with itself on the plotting path alone.
+- Which fits move, in full. The gate is `mean_is_mu()`, so the default
+  curve changes for **fourteen** families: `asym_laplace`,
+  `beta_binomial`, `binomial`, `cox`, `hurdle_gamma`,
+  `hurdle_lognormal`, `hurdle_poisson`, `lognormal`,
+  `shifted_lognormal`, `zero_inflated_asym_laplace`,
+  `zero_inflated_beta`, `zero_inflated_binomial`,
+  `zero_inflated_negbinomial` and `zero_inflated_poisson`, plus any
+  response carrying [`trunc()`](https://rdrr.io/r/base/Round.html) and
+  any
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md).
+  Every other family is unchanged, bit for bit, which was checked family
+  by family.
+- `lognormal` was a defect of its own and nobody had reported it: its
+  `mu` link is the identity, so the old path plotted the LOG-SCALE
+  LOCATION as if it were the response. On a fit whose smallest
+  observation is 0.077 the drawn curve ran from **-1.489 to 1.454**,
+  negative for a strictly positive response, where the mean
+  `exp(mu + sigma^2/2)` runs 0.286 to 5.423. `shifted_lognormal`,
+  `asym_laplace` and `cox` move for the same reason.
+- The band on that curve is the delta method over EVERY distributional
+  parameter’s coefficients jointly, so the cross-parameter covariances
+  are in it rather than dropped. It is symmetric on the `mu` link’s
+  scale when the mean lives there, on the log scale when the mean is
+  positive, and on the response scale otherwise, which reduces exactly
+  to the old link-scale band wherever the mean is the inverse link of
+  `mu`. On a zero-inflated fit its width is within 13% of a 200-refit
+  bootstrap band’s.
+- BEHAVIOR CHANGE.
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  returns brms’s columns: the varied predictor, then every other model
+  variable at the value it is held at, then `cond__` (always, not only
+  under `conditions =`), `effect1__` and, for a two-variable effect,
+  `effect2__`. brms’s own
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) facets on
+  `cond__`, so ported faceting code has something to facet on, and the
+  held values are no longer invisible.
+- BEHAVIOR CHANGE. A two-variable effect holds its moderator at the
+  EXACT `mean +/- sd`, not at `signif(mean +/- sd, 3)`. Display rounding
+  moved to the `effect2__` label, where brms puts it. The curve was the
+  model evaluated at a covariate value nobody chose, and how wrong it
+  was depended on the coefficient rather than on anything visible in the
+  plot.
+- BEHAVIOR CHANGE. The two-variable grid varies the FIRST effect
+  slowest, as brms’s does, so the two frames now agree elementwise and a
+  script that indexes rows positionally ports.
+- `int_conditions =` is implemented, with brms’s meaning: a named list
+  of the values (or a function of the observed column) that one or both
+  variables of an effect are evaluated at. It was accepted, ignored, and
+  reported as an unknown argument to
+  [`predict()`](https://rdrr.io/r/stats/predict.html), a function the
+  user had not called.
+- BEHAVIOR CHANGE. `re_formula = NULL` conditions on a NEW group, as
+  brms does, and the grouping column of the returned frame says `NA`. It
+  used to take the first observed level silently: on `sleepstudy` that
+  was Subject 308, a curve 86.5 away from the population one at its
+  furthest point, with nothing in the frame to say whose it was and the
+  choice depending on factor level order. A new group’s conditional
+  modes are zero, so the curve is the population curve and the
+  random-effect variance goes into the band instead; brms draws that
+  group’s effects afresh per posterior draw, which is the paradigm
+  difference. To condition on an observed group, name it:
+  `conditions = list(g = "3")`.
+- BEHAVIOR CHANGE. `categorical =` is honored on an ordinal or
+  categorical fit, and the per-category layout is keyed `"x:cats__"` as
+  brms keys it. The argument was accepted and did nothing, so the other
+  layout could not be asked for at all, and `ce[["x:cats__"]]` was
+  `NULL` on a frmtmb result. The default is unchanged (one curve per
+  category, which is what brms’s own message asks the user to switch
+  to); `categorical = FALSE` gives brms’s default summary, the expected
+  category number `sum(k * p_k)`, with a delta-method band of its own.
+- BEHAVIOR CHANGE. A `mo()` predictor gets one grid point per LEVEL, as
+  brms does, instead of the 100-point continuous grid it shared with
+  every other numeric predictor. A monotonic effect is defined at the
+  ordered levels of its variable and nowhere between them, so 96 of
+  those 100 points were the model evaluated where it has no meaning.
+- BEHAVIOR CHANGE. A `trials()` variable is held at 1 on the effect grid
+  unless `conditions =` pins it, which is brms’s rule, and the call says
+  so once. A grid row is one artificial observation, so the mean number
+  of trials was not a whole number and the expected count over it was
+  not a quantity anyone asked for. `method = "predict"` used to refuse
+  the same model outright.
+- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  finds a covariate that sits on a distributional parameter rather than
+  on `mu`. On `bf(y ~ 1, theta1 ~ x) + mixture(...)` it refused with “No
+  plottable predictors found for dpar ‘mu1’”, naming the one linear
+  predictor it had looked at rather than the model the user fitted. It
+  falls back to every parameter of the response only when the selected
+  one has nothing to plot, so a model whose `dpar` does have terms
+  enumerates that parameter’s terms exactly as before.
+- An unknown argument to
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  is reported against
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md),
+  once per call. It used to be forwarded to
+  [`predict()`](https://rdrr.io/r/stats/predict.html) and reported
+  there, and only from the branches that forward: on an ordinal or
+  categorical fit an unknown argument was discarded in complete silence.
+- `conditional_effects(band = "boot", re_formula = NULL)` draws the new
+  group’s effects once per bootstrap replicate, so the interval carries
+  the group variance the way the wald band does. It did not: every
+  replicate predicted the new level’s zero modes, so the band was the
+  POPULATION band under another name: on sleepstudy 1.00x the population
+  band and 0.24x the wald band for the same stated quantity, and on an
+  ordinal fit bit-identical to the population frame in estimate AND
+  width, while the `NA` grouping column claimed otherwise. It matters
+  most there: the ordinal per-category delta method is refused with
+  `re_formula` and the message sends the user to `band = "boot"`, so
+  that was the only band available and it was the broken one. The
+  bootstrap band is now 3.6 to 4.2 times the population band on
+  sleepstudy and lands within 10% of the wald band at 100 refits. Blocks
+  whose levels ARE the structure (`gr_cov`, `gr_prec`, `car`, `spde`)
+  get zeroed rather than drawn, which is the same assumption the wald
+  band makes for them.
+- `effect2__` keeps one level per distinct moderator value. It took its
+  levels from `round(v, 2)`, so two values that rounded together became
+  ONE level. [`plot()`](https://rdrr.io/r/graphics/plot.default.html)
+  groups on that column, so it drew two curves as one series, and the
+  names on an `int_conditions` entry were dropped with them. The
+  rounding is the label only; labels widen past two decimals just far
+  enough to stay distinct.
+- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  accepts brms’s `method =` spellings (`"posterior_epred"`,
+  `"posterior_predict"`) as aliases; `"posterior_linpred"` is refused by
+  name, pointing at `dpar =`.
+- The expected-response display refuses an addition term whose value on
+  a grid row would be a reference value rather than a real one
+  (`trunc(lb = v)` with a variable bound), with the message
+  `method = "predict"` has always used. It used to average the bound
+  silently.
+- BEHAVIOR CHANGE. A mixture’s mixing weights have a response scale that
+  is the softmax over the component predictors, so
+  `predict(type = "response", dpar = "theta1")` returns brms’s
+  `posterior_epred(dpar = "theta1")` exactly. It returned the linear
+  predictor: not a probability, and on the tier’s own fit outside
+  `[0, 1]` on 1.25% of the rows, reaching 1.112. The likelihood is
+  untouched, the softmax having always been applied inside the density,
+  and `predict(type = "link", dpar = )` still returns the predictor. Its
+  standard error under `se.fit = TRUE` is the delta method through that
+  weight’s OWN predictor, `p (1 - p)`, which is exact for two components
+  and conservative for three or more, where the softmax also moves with
+  the other components’ predictors: measured 5.5% to 26.1% wider than
+  the joint delta method on a three-component fit, never narrower.
+  [`?mixture`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  says so and a test pins it.
+- BEHAVIOR CHANGE, and **what breaks is
+  `ranef(fit)[["Days | Subject"]]`, which now returns `NULL`**: a `NULL`
+  flows on into arithmetic as `numeric(0)` rather than erroring. Code
+  that indexed a random-effect list by the BLOCK label needs the
+  grouping factor instead (or `[[1]]`, or the `"term"` attribute).
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) keys
+  its list by the GROUPING FACTOR now, as brms and lme4 do and as this
+  package’s own [`coef()`](https://rdrr.io/r/stats/coef.html) already
+  did: `ranef(fit)$Subject` used to be `NULL` in a model where
+  `coef(fit)$Subject` was a data frame. The block label rides along in
+  each matrix’s `"term"` attribute, is what
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) puts in
+  its `grp` column, and is still
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)’s
+  key, so two terms on one factor stay distinguishable.
+  `frmtmb.sample`’s
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) on a
+  draws object follows core and is re-keyed with it; that package’s own
+  NEWS says so.
+- BEHAVIOR CHANGE. `predict(type = "response", dpar = "sigma")` on a
+  `y | se(s)` model with no `sigma = TRUE` reports 0, as brms does and
+  as this package’s own [`sigma()`](https://rdrr.io/r/stats/sigma.html)
+  already did. It reported the log link’s inverse of the mapped-out
+  coefficient, 1, which reads as an estimate of a parameter the density
+  does not have.
+
+### Behavior change
+
+- `car(type = "esicar")` is the exactly constrained intrinsic CAR brms
+  fits, and no longer an alias for `car(type = "icar")`. brms declares
+  `Nloc - 1` free values and sets the last to minus their sum; frmtmb
+  keeps `Nloc` coefficients and removes each connected component’s mean
+  on the way to the linear predictor, which is the same model and keeps
+  one coefficient per location for
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
+  [`predict()`](https://rdrr.io/r/stats/predict.html) and
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html). The normalizer
+  is the pseudo-determinant, `(Nloc - c) log tau + log|K|`. **A fit
+  spelled `esicar` changes**: refit it, or spell the term `icar` to keep
+  the softly constrained model it used to select. The new fit sits ABOVE
+  the old one, and not by much: on a 4 by 4 lattice the log-likelihood
+  rises by 4.0e-4 and `sd(car)` by 3.1e-5 relative, the bias the soft
+  constraint was always documented to carry. The constraint is what
+  changes exactly, not the numbers: the field now sums to zero to
+  machine precision instead of to about 1e-9.
+- `con_sd` does not change what an `esicar` term FITS. The constraint is
+  exact, so [`logLik()`](https://rdrr.io/r/stats/logLik.html), the
+  estimates and
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  are invariant to it. It is not inert everywhere, though: the
+  coordinate it scales reaches every delta-method standard error
+  (`predict(se.fit = TRUE)`) and every `ranef(condVar = TRUE)`
+  conditional standard deviation, as `con_sd^2` in the variance. At the
+  1e-3 default that is 1.3e-5 relative in a standard error, but it grows
+  a hundredfold per decade, so `con_sd = 0.1` inflates them by 7 to 13
+  percent. Leave `con_sd` alone on an `esicar` term. On `icar` and
+  `bym2` it means what it always did.
+
+### Improvements
+
+- The brms log-density tier gains row 19c-esicar, an identity with
+  brms’s own `sparse_icar_lpdf` program at the same parameter vector,
+  with the CAR normalizer admitted as a closed form in the data
+  (`0.5 Nloc log(2 pi) - 0.5 log det K`, residual 3.0e-13). The tier’s
+  exemption list drops from four divergences over three rows to three,
+  one per row; `bym2` is what is left of row 19c.
+- `esicar` on a disconnected adjacency matrix constrains each connected
+  component rather than the global sum alone, so the field stays proper
+  where brms’s own normalizer does not apply. The two agree whenever the
+  graph is connected.
+
+A brms prior specification now means in frmtmb what it means in brms.
+Four behavior changes, each measured against the Stan program brms
+generates: on every shape whose optimum is a real mode, frmtmb’s
+penalized objective is now brms’s posterior density up to one `log(2)`
+per lower-bounded parameter, which is a constant and moves no mode.
+
+- BEHAVIOR CHANGE: `frm(prior = )` applies what a brms prior row SAYS,
+  keyed on the `prior` string rather than on the table’s `source`
+  column. `frm(prior = brms::get_prior(...))` used to apply NOTHING and
+  say so in a message; it now fits a penalized model. The sharpest form
+  of the old behavior was that a row the USER had edited into a
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  table in place, the ordinary `gp$prior[i] <- "normal(0, 20)"`
+  workflow, was dropped too, because brms does not update `source` after
+  such an edit, and the message said brms had filled the row in. **What
+  to change:** a script that passed a
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  table for its slot listing and expected an unpenalized fit must now
+  blank the `prior` column, or not pass the table. A table containing a
+  class frmtmb keeps elsewhere (`sds`, `sdgp`, `lscale`, `simo`, brms’s
+  mixture `theta`) now stops the call with a named refusal where the row
+  used to be dropped in silence; blank that row, or write the frmtmb
+  class the message names.
+- BEHAVIOR CHANGE: a brms prior on a distributional parameter’s own
+  class (`sigma`, `shape`, `phi`, `nu`, `kappa`, `sigma1`, …) is
+  translated instead of refused, and it lands on that parameter ITSELF
+  through the dpar’s inverse link with that map’s log-Jacobian, which is
+  where brms puts it. On a nonlinear fit this reproduces brms’s mode to
+  nine figures where the row previously stopped the call. A bound on
+  such a row travels with it, so brms’s `lb = 0` on a log-linked
+  dispersion becomes no constraint rather than a floor of 1. The brms
+  classes `ar`, `ma`, `cosy`, `cortime` and `rescor` are carried over
+  too;
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  already spelled them the same way. **What to change:** nothing in a
+  frmtmb script. `set_prior("...", class = "Intercept", dpar = "sigma")`
+  still means a density on LOG sigma and is deliberately left alone, so
+  the two spellings now mean different things: write
+  `brms::prior(..., class = "sigma")` for brms’s meaning.
+  [`?set_prior`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  records the divergence and its measured size.
+- BEHAVIOR CHANGE: a `class = "Intercept"` prior is evaluated at the
+  intercept at the MEAN of the predictors, which is the intercept brms
+  constrains, rather than at the intercept at zero. On
+  `Reaction ~ Days`, where `mean(Days)` is 4.5, brms’s own default moved
+  the slope by 0.068 standard errors under the old placement and moves
+  it by 0.00003 under this one. Every sub-formula with an intercept is
+  centered separately, as in brms; nonlinear sub-formulas, a smooth’s
+  unpenalized columns and `mo()` terms are not centered on either side.
+  **What to change:** an existing `class = "Intercept"` prior on a model
+  with uncentered predictors now constrains a different quantity and its
+  fit moves. To keep the old meaning, name the intercept as a
+  coefficient instead: `class = "b", coef = "Intercept"`.
+- BEHAVIOR CHANGE: an ordinal family’s `class = "Intercept"` prior
+  addresses its THRESHOLDS, as the same row does in brms, instead of
+  failing with “Prior target not found”. The density sits on the
+  threshold vector at the predictor means, with the log-Jacobian of the
+  map from frmtmb’s internal `tau_raw`, and it reproduces brms’s density
+  exactly.
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  lists the slot. **What to change:** a script relying on that error
+  will now fit; `prior = list(tau_raw = )` still reaches the same
+  parameters on the internal scale.
+- `frm_simulate(prior = )` follows the same placements. A draw from a
+  distributional parameter’s own class is a draw of that parameter, and
+  a draw from `class = "Intercept"` is a draw of the intercept at the
+  predictor means; the `pars` attribute reports the value that was
+  WRITTEN, so it still round-trips through `newparams =`, whose
+  `Intercept` is the intercept at zero. On a model with uncentered
+  predictors that column now holds a different number.
+- BEHAVIOR CHANGE: a translated `class = "sd"` or `class = "cor"` row
+  carrying a `coef` is refused rather than applied to the whole block.
+  brms narrows such a row to one coefficient and writes
+  `exponential_lpdf(sd_1[2] | 1)`, keeping its default on the rest;
+  frmtmb resolves those classes per BLOCK and never read `coef`, so
+  every one of `coef = "Intercept"`, `coef = "x"` and no `coef` gave a
+  bit-identical objective. Applying a narrowed row is a WIDER prior than
+  the one asked for. **What to change:** drop the `coef` to prior the
+  whole block (`group` still selects which one), or address the one
+  parameter with `class = "theta"`. `coef` on class `"b"`, and `group`
+  on `"sd"`/`"cor"`, are unaffected: those do narrow, and are now
+  pinned.
+- `logistic(mu, s)`, `gamma(shape, rate)`, `inv_gamma(shape, scale)` and
+  `beta(shape1, shape2)` parse, with
+  [`prior_logistic()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md),
+  [`prior_gamma()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md),
+  [`prior_inv_gamma()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
+  and
+  [`prior_beta()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
+  exported beside the other prior constructors. Those are brms’s
+  defaults on a mixture proportion, on `shape`/`phi`/`nu`/`kappa`, and
+  on a zero-inflation `zi` or hurdle `hu`. Adding them takes every
+  negbinomial, zero-inflated and hurdle model out of the set of tables
+  that stop: of 20 shapes a brms user would actually write, 6 stopped
+  and 3 do now, all three for a CLASS frmtmb keeps elsewhere (`s()`,
+  `gp()`, `mo()`) rather than for want of a density.
+- Every refused row of a brms table is named in one message instead of
+  only the first. A `y ~ gp(x)` table carries both an `lscale` row and
+  an `sdgp` row and used to cost two edit rounds; it costs one now.
+- The refusal for brms’s mixture `theta` no longer names
+  `class = "Intercept", dpar = "theta2"`, a spelling that then failed
+  with “Prior target not found”. `sds`, `sdgp`, `lscale`, `sdcar` and
+  `car` are refused by name as well, each saying which frmtmb class
+  reaches the same parameters, instead of being offered the generic dpar
+  advice. brms’s shrinkage priors `horseshoe()`, `R2D2()` and `lasso()`
+  now reach that same “unsupported distribution” message; `R2D2()` used
+  to fall to a generic parse failure because its name is upper-case and
+  its argument list empty.
+- `tests/testthat/test-brms-priors.R` grew from 61 assertions to 83 and
+  every divergence it used to pin is now an identity.
+
+Two exported seams an extension needed and could not get, a log survivor
+function so that right censoring is exact rather than floored, a
+penalized spline a nonlinear body consumes by VALUE, and two defects
+found on the way.
+
+- NEW
+  [`frm_joint_cov()`](https://aforren1.github.io/frmtmb/reference/frm_joint_cov.md)
+  returns the joint covariance of everything the fit estimates: `beta`,
+  `betad`, `theta` and the random-effect coefficients `b` together.
+  `vcov(full = TRUE)` cannot return it, and is documented not to: its
+  row names are exactly
+  [`confint()`](https://rdrr.io/r/stats/confint.html)’s, so `b` is
+  absent under both of its branches. A penalized smooth’s wiggly part is
+  a random-effect block even when the smooth is a population term, so a
+  covariance that stops at the fixed effects covers none of it. The
+  result is memoized on the fit and carries a `labels` element naming
+  every row. It is also the only route to the covariance of an
+  AUTOSCALED fit: a fresh `RTMB::sdreport(getJointPrecision = TRUE)`
+  goes round the reparameterization and returns a covariance built on
+  the unscaled Hessian.
+- NEW
+  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md)
+  returns the design of a linear predictor over the coefficient vector:
+  `eta`, `A` (`d eta / d coef`), `coef_pos`, `V`, `coef_names` and
+  `extra_var`. `predict(se.fit = TRUE)` builds all of that internally
+  and keeps only the diagonal of `A V A'`; every delta-method quantity
+  over a fitted curve - a contrast between two grids, a simultaneous
+  band, a derivative, the time of a peak - needs the whole thing.
+  `predict(se.fit = TRUE)` is now written as a two-line consumer of it,
+  which is the test that the shape is right.
+- [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md)
+  serves the two cases nothing else could. For a NONLINEAR body `A` is a
+  Jacobian, taped from the body against the coefficients it reaches
+  through; `predict(se.fit = TRUE)` stays refused there and this is the
+  route. For an `rr()` block at `re.form = NULL` the loadings live in
+  `theta`, so a design over `(beta, b)` alone is incomplete; `A` carries
+  the loading columns and `coef_pos` names their `theta` rows. An exact
+  `gp()`’s kriging variance and a new grouping level’s marginal variance
+  come back in `extra_var`, separately, because neither is coefficient
+  uncertainty.
+- NEW `frmtmb_family(lccdf = )`, an optional LOG SURVIVOR function. Core
+  formed a right-censored row’s contribution as `log(1 - F)`, and a
+  double cannot represent the complement of a probability that has
+  rounded to one, so past that point the contribution was not merely
+  inaccurate: it was CONSTANT, with a gradient of exactly zero. An
+  optimizer prices such a row the same however far it moves. A family
+  that declares `lccdf` is scored from it instead. Measured on a
+  standard normal tail, `log(1 - pnorm(z))` is `-Inf` from z = 8.3 and
+  already 0.068 wrong at z = 8;
+  `pnorm(z, lower.tail = FALSE, log.p = TRUE)` is exact to z = 500,
+  value and derivative alike.
+- [`gaussian()`](https://rdrr.io/r/stats/family.html),
+  [`lognormal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`exponential()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`weibull()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  declare `lccdf`. [`poisson()`](https://rdrr.io/r/stats/family.html)
+  does not, because `cens()` is refused for discrete families;
+  [`inverse.gaussian()`](https://rdrr.io/r/stats/family.html) does not,
+  because RTMBdist’s upper tail is computed on the probability scale and
+  reaches `-Inf` at the same `log S = -34` that `log(1 - F)` does.
+  `lccdf` fixes RIGHT censoring and leaves left censoring, interval
+  censoring and truncation on the old footing, so a LEFT-TRUNCATED
+  survival model meets the same problem from the other side.
+- A family that supplies only `lccdf` and no `lcdf` now accepts right
+  censoring, and refuses left censoring, interval censoring and
+  [`trunc()`](https://rdrr.io/r/base/Round.html) by name.
+- NEW `ps(expr, k =, degree =, pad =, center =)`, a penalized
+  coefficient block whose VALUE a nonlinear body consumes, admitted only
+  inside `bf(..., nl = TRUE)` or
+  [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md). Every
+  other penalized smooth in frmtmb ends up multiplied by `Z`, which is
+  right for `s(x)` and useless for a body that needs the spline’s value
+  inside an expression
+  - `exp(amp) * ps(age + shift)` - because the argument is itself a
+    function of parameters and there is no fixed `Z` to build. The
+    second-difference penalty is eigensplit exactly as
+    [`mgcv::smooth2random()`](https://rdrr.io/pkg/mgcv/man/smooth2random.html)
+    splits `s()`: the null space joins the fixed coefficients and the
+    range space becomes one random-effect block with a single variance
+    in `theta`, so smoothness is estimated jointly with every other
+    variance component.
+- The [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) basis
+  is evaluated ON THE TAPE, as divided differences of truncated powers
+  spelled branch free with `0.5 * (e + abs(e))`. RTMB refuses
+  [`pmax()`](https://rdrr.io/r/base/Extremes.html) on an advector and
+  exports no `CondExp`, so the recursive Cox-de Boor form is unavailable
+  and this is the only construction there is. It agrees with
+  [`splines::splineDesign()`](https://rdrr.io/r/splines/splineDesign.html)
+  to 3.1e-13 absolute at `k = 12` and 1.8e-11 at `k = 40`, with an AD
+  input giving the same values bit for bit and the taped derivative
+  matching `splineDesign(derivs = 1)` to 4.5e-13. `k` above 50 is
+  refused, because a divided difference cancels terms of order
+  `(range / spacing)^degree`.
+- [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) refuses
+  `REML = TRUE`, `quadrature = TRUE`, `frmtmb_control(profile = TRUE)`
+  and multivariate models by name, and reports at fit end how many rows
+  the fitted transformation pushed outside its frozen knot span, where
+  the basis is exactly zero.
+- FIX a nonlinear body no longer loses a variable that appears only
+  inside a call in FUNCTION POSITION.
+  `all.vars(quote(a * curry(tv)(zv)))` is `c("a", "zv")`: it treats the
+  whole function-position subtree as the callee and drops it, arguments
+  included. Core collected a body’s data variables that way, so `tv` was
+  never asked of `data` and the body failed on it with R’s own “object
+  not found”, which names neither the argument nor the fault.
+  `bf(y ~ a * curry(tv)(zv), a ~ 1, nl = TRUE)` now fits, to the same
+  coefficient as `bf(y ~ a * curry2(tv, zv), ...)`.
+- BEHAVIOR CHANGE, and a fix: a nonlinear parameter whose design has NO
+  columns (`b ~ 0 + (1 | g)`, a parameter that is purely a random
+  effect) no longer adds a phantom entry to the parameter vector.
+  [`paste()`](https://rdrr.io/r/base/paste.html) recycles to its longest
+  argument, so a zero-column design came back from the
+  coefficient-naming lines as the single name `"b_"`. The parameter
+  entered no likelihood and no linear predictor indexed it, and the
+  outer Hessian was singular in exactly that direction, so
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html),
+  [`confint()`](https://rdrr.io/r/stats/confint.html) and every standard
+  error came back `NaN` with “the model is probably overparameterized”.
+- What changes for existing code: `beta` loses ONE entry per such
+  parameter, so a script with a hand-written `start = list(beta = )` for
+  a model that has one now fails with `start$beta must have length <n>`.
+  Drop the element that stood for the parameter with no fixed design; it
+  was never estimated, and `par_template(fit)` names what is left, in
+  order. Fits do not move: the phantom entered no likelihood, so the
+  optimum, the log-likelihood and every coefficient are unchanged, and
+  what was lost before and is recovered now is the standard errors. Two
+  of this package’s own tests carried such a vector and were edited for
+  it.
+- NEW a family may declare `post$fit_check(fit, resp)`, run once when a
+  fit finishes. [`logLik()`](https://rdrr.io/r/stats/logLik.html) reads
+  the optimizer’s own value, so a family whose likelihood is floored in
+  some region of the parameter space had nowhere to say so and no
+  extension could gate [`logLik()`](https://rdrr.io/r/stats/logLik.html)
+  or [`AIC()`](https://rdrr.io/r/stats/AIC.html). This is the hook that
+  closes it.
+- [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  gains [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) as a
+  special and `frm_lp_basis` as a method, with the rows for both.
+
 ## frmtmb 0.51.0
 
 One simplex per monotonic term, matching brms; importance sampling over
@@ -238,7 +758,7 @@ match.
   responses over from the frame, as
   [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) already
   did. This is what made
-  [`frmtmb.ddm::gddm()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm.html)
+  [`frmtmb.eam::gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.html)
   unreachable from
   [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md).
 
@@ -527,7 +1047,7 @@ the package split, and a shipping case study.
   core keeps the maximum-likelihood halves and points across. The
   case-studies wiener section is replaced by a shifted-lognormal custom
   family cross-checked against the built-in to machine precision, with
-  the drift-diffusion model deferred to frmtmb.ddm.
+  the drift-diffusion model deferred to frmtmb.eam.
 - New `habit_prep` data and
   [`vignette("habit")`](https://aforren1.github.io/frmtmb/articles/habit.md):
   a case study replicating the response-preparation model of Hardwick,
@@ -568,7 +1088,7 @@ AD-safe scope, and the extension API passes its first outsider test.
   `monoH.FC` or `hyman`. Extension-author surfaces (family
   log-densities, structure log-likelihoods) keep explicit qualification.
 
-- New companion package `frmtmb.ddm`: the Wiener drift-diffusion family
+- New companion package `frmtmb.eam`: the Wiener drift-diffusion family
   with brms’s parameterization, agreeing with RWiener to better than
   1e-12 through a tape-safe two-series blend. It was built against the
   exported extension API alone, with no core change and no reach into

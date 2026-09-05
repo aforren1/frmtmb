@@ -24,6 +24,7 @@ frmtmb_family(
   sim_refusal = NULL,
   primary_dpars = "mu",
   lcdf = NULL,
+  lccdf = NULL,
   required_aterms = character(0),
   family_finalize = NULL,
   extra_pars = NULL,
@@ -45,6 +46,7 @@ custom_family(
   sim_refusal = NULL,
   primary_dpars = "mu",
   lcdf = NULL,
+  lccdf = NULL,
   required_aterms = character(0),
   family_finalize = NULL,
   extra_pars = NULL,
@@ -108,6 +110,15 @@ custom_family(
   `residuals(type = "deviance")`). A family that omits one is refused by
   the method that needs it.
 
+  `post$fit_check(fit, resp)` is different in kind: it is run once, when
+  a fit FINISHES, and its return value is discarded. It is where a
+  family says something about where the optimizer landed, which nothing
+  else can: [`logLik()`](https://rdrr.io/r/stats/logLik.html) reads the
+  optimizer's own value, so a family whose likelihood is floored or
+  degenerate in some region had no way to report it. Warn from it rather
+  than stopping; a hook that throws is caught, reported as a warning
+  naming the family, and the fit is returned regardless.
+
 - sim:
 
   Optional numeric simulator `(dpars, aterms, n)` returning `n` response
@@ -141,6 +152,17 @@ custom_family(
   Optional vectorized AD log-safe CDF `(q, dpars, aterms)` returning
   probabilities; enables `cens()` and
   [`trunc()`](https://rdrr.io/r/base/Round.html) addition terms.
+
+- lccdf:
+
+  Optional vectorized AD LOG SURVIVOR function `(q, dpars, aterms)`
+  returning `log(1 - F(q))` directly. A family that declares it scores a
+  RIGHT-censored row from it instead of from `log(1 - F)`, which cannot
+  be accurate once `F` rounds to one (see Right censoring and the
+  representable tail). It is optional and independent of `lcdf`: a
+  family that supplies only `lccdf` accepts right censoring and refuses
+  left censoring, interval censoring and
+  [`trunc()`](https://rdrr.io/r/base/Round.html), each by name.
 
 - required_aterms:
 
@@ -295,6 +317,61 @@ alternative an extension reached for before this slot existed was to
 have `valid_y` write the bound into an environment the link closures
 read at call time, which works only for as long as the call order
 happens to hold and leaves the family object lying about what it is.
+
+## Right censoring and the representable tail
+
+Core forms a right-censored row's contribution as `log(Fub - F(y))`,
+which without truncation is `log(1 - F)`. A double cannot represent the
+complement of a probability that has rounded to one, so past that point
+the contribution is not merely inaccurate: it is CONSTANT, and its
+gradient is exactly zero. An optimizer then prices such a row the same
+however far it moves, and fits every other row as if the survivor were
+free. That failure is silent - the fit converges, and
+[`logLik()`](https://rdrr.io/r/stats/logLik.html) and
+[`AIC()`](https://rdrr.io/r/stats/AIC.html) report the floored number.
+
+`lccdf` removes the class for right censoring by giving core the
+quantity it actually needs. Measured on a standard normal tail, one
+process:
+
+|       |                       |                                                |
+|-------|-----------------------|------------------------------------------------|
+| **z** | **log(1 - pnorm(z))** | **pnorm(z, lower.tail = FALSE, log.p = TRUE)** |
+| 8.0   | -35.013               | -35.013                                        |
+| 8.3   | -Inf                  | -37.494                                        |
+| 37    | -Inf                  | -689.031                                       |
+| 500   | -Inf                  | -125007.13                                     |
+
+Both the value and the derivative are exact on the right, over the whole
+range.
+
+The built-in families that declare `lccdf` are
+[`gaussian()`](https://rdrr.io/r/stats/family.html),
+[`lognormal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`exponential()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`weibull()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+and
+[`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md).
+The last three have `log S` in closed form (`-q/mu`, `-(q/scale)^shape`,
+`-H0(t) * mu`); the first two use
+[`pnorm()`](https://rdrr.io/r/stats/Normal.html)'s own log upper tail.
+
+Two families with a CDF do NOT declare one, for measured reasons.
+[`inverse.gaussian()`](https://rdrr.io/r/stats/family.html) gains
+nothing: `RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)` is
+computed on the probability scale and reaches `-Inf` at the same
+`log S = -34` that `log(1 - F)` does.
+[`poisson()`](https://rdrr.io/r/stats/family.html) is discrete, and
+`cens()` is refused for discrete families, so the slot would be
+unreachable.
+
+`lccdf` fixes RIGHT censoring and nothing else. Left censoring is still
+`log(F(y) - Flb)`, interval censoring is still a difference of CDFs, and
+the truncation normalizer is still `log(Fub - Flb)`, so a LEFT-TRUNCATED
+survival model - delayed entry, which is routine - meets the identical
+representability problem from the other side. Closing that needs a
+windowed log-difference slot, and this is the first step rather than the
+last one.
 
 ## Tape-safe scope
 

@@ -281,11 +281,10 @@ groups, and
 reports them afterwards. Treat those rows as missing, not as
 predictions.
 
-If a fit reports `NA/NaN gradient evaluation`, run
-[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.html)
-on it, then call `frm_ode()` directly at the suspect parameter values
-with `on_error = "error"`: numerically it will name the group that
-cannot be solved.
+If a fit reports `NA/NaN gradient evaluation`, run `diagnose()` on it,
+then call `frm_ode()` directly at the suspect parameter values with
+`on_error = "error"`: numerically it will name the group that cannot be
+solved.
 
 Solver warnings from deSolve ("corrector convergence failed repeatedly",
 "exceeded maxsteps") during a fit come from the optimizer's probing

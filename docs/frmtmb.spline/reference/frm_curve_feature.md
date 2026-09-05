@@ -124,7 +124,7 @@ fit <- frmtmb::frm(frmtmb::bf(y ~ s(x, k = 8)),
 frm_curve_feature(fit, var = "x", type = "maximum",
                   newdata = data.frame(x = seq(0.05, 0.95, length.out = 41)))
 #> <frmtmb curve feature> maximum, 1 found, level 0.95
-#>   covariance checked against predict(se.fit = TRUE) to 5.11e-15 relative
+#>   covariance checked against predict(se.fit = TRUE) to 2.22e-16 relative
 #>   .feature .var .estimate       .se .lower_ci .upper_ci   .value .value_se
 #> 1  maximum    x 0.4911416 0.0163341 0.4591274 0.5231559 2.053619 0.0409223
 ```

@@ -15,7 +15,7 @@ them."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,13 +30,14 @@ them."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
+    <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
@@ -197,6 +198,16 @@ on the natural SD scale (mapped to <code>theta</code> afterwards), class
 The drawn values come back as <code>attr(result, "pars")</code>, one row per
 simulation, so a prior-predictive check can relate parameters to
 outcomes.</p>
+<p>That table reports each parameter on the scale <code>newparams</code> names it
+on, which for <code>Intercept</code> is the intercept at ZERO. A
+<code>class = "Intercept"</code> prior is a density on the intercept at the MEAN
+of the predictors (see the Where an intercept prior lands section of
+<code><a href="set_prior.html">set_prior()</a></code>), so on a design with uncentered predictors the number
+drawn and the number reported differ by <code>colMeans(X)</code> times the
+slopes. Reporting the written value is what lets a <code>pars</code> row be
+handed straight back as <code>newparams</code>. A prior on a distributional
+parameter's own brms class is likewise drawn on that parameter and
+reported there, not on its link scale.</p>
 <p>Parameters without a prior keep their <code>newparams</code> value. Whenever
 <code>prior</code> are used, or <code>newparams</code> uses the natural spelling, every
 fixed coefficient and every random-effect SD must be pinned by one
@@ -252,10 +263,10 @@ zero effect or unit SD.</p>
 <span class="r-in"><span>                   nsim <span class="op">=</span> <span class="fl">4</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">pp</span>, <span class="st">"pars"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            x  Intercept sd_g__Intercept sigma_Intercept</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 -0.6264538  0.3672866       1.9997498       0.4580301</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  0.4755095 -1.4198929       0.4586192       0.8145358</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 -1.9143594  2.3531666       3.3072809       1.4953203</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4  0.5101084 -0.3287517       0.3260219       1.5316271</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 -0.6264538  3.1311986       0.1457067       0.1397953</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  0.4755095 -2.4622073       1.5652413       0.8145358</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  1.1765833 -0.8155673       3.3072809       1.4953203</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 -0.1643758 -0.8160698       0.3260219       1.5316271</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

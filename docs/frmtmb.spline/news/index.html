@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,23 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.spline/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="frmtmbspline-020">frmtmb.spline 0.2.0<a class="anchor" aria-label="anchor" href="#frmtmbspline-020"></a></h2>
+<p>The three things this package had to work around are seams in frmtmb 0.52.0 now, so it stops working around them. Requires frmtmb (&gt;= 0.52.0).</p>
+<ul><li>The one internal this package reached into is gone. <code><a href="../reference/frm_curve.html">frm_curve()</a></code> and its two companions read <code>fit$cache$Vjoint</code> directly, which was written by an <code>@noRd</code> function and documented nowhere; they now call the exported <code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frmtmb::frm_lp_basis()</a></code>. <code><a href="../reference/frm_curve.html">?frm_curve</a></code>’s section on it changes from “The one internal this reaches into” to “The route to the covariance”.</li>
+<li>The design rebuild is gone with it. <code><a href="../reference/frm_curve.html">frm_curve()</a></code> used to rebuild the grid design by unit perturbation, one <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> call per contributing coefficient plus one probe per block of 24 that contributed nothing; <code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frm_lp_basis()</a></code> returns the design core already had. The <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> call count no longer depends on the number of coefficients at all, and the linearity probe that guarded the perturbation is no longer needed.</li>
+<li>
+<code><a href="../reference/frm_curve.html">frm_curve()</a></code> now works on a NONLINEAR (<code>nl = TRUE</code>) linear predictor, which it used to refuse. <code>A</code> is a Jacobian there rather than a design, and <code>predict(se.fit = TRUE)</code> is refused for a nonlinear predictor, so there is no second route to check against: <code>cov_rel_error</code> is <code>NA</code> and <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> says the check did not run rather than reporting a passing one that never did.</li>
+<li>
+<code><a href="../reference/frm_curve.html">frm_curve()</a></code> now works on an <code>rr()</code> block at <code>re.form = NULL</code>, which it used to refuse through the covariance check. A reduced-rank block’s loadings live in <code>theta</code>; the perturbation could not see the derivative with respect to them and the assembled standard errors came out 27 percent away from <code>predict(se.fit = TRUE)</code>’s. <code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frm_lp_basis()</a></code> carries the loading columns, and the two now agree exactly.</li>
+<li>An exact <code>gp()</code> term works too. Its kriging variance is not coefficient uncertainty, and <code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frm_lp_basis()</a></code> returns it separately as <code>extra_var</code> rather than folding it into <code>A V A'</code>.</li>
+<li>
+<code><a href="../reference/royston_parmar.html">royston_parmar()</a></code> declares frmtmb’s new <code>lccdf</code> slot, so a right-censored row is scored from <code>log S</code> directly, in closed form on all three scales: <code>-exp(eta)</code> on <code>"hazard"</code>, <code>-log1p(exp(eta))</code> on <code>"odds"</code> and <code>pnorm(eta, lower.tail = FALSE, log.p = TRUE)</code> on <code>"normal"</code>. The floor at -35.127363 is gone, and with it the region past <code>-log S = 30</code> where the term was flat and its gradient exactly zero. <code>cens()</code> moves from <code>conditional</code> to <code>works</code> in the compatibility table.</li>
+<li>
+<code><a href="../reference/rp_floored.html">rp_floored()</a></code>’s censored count is a DIAGNOSTIC rather than a refusal. It still reports censored rows whose fitted <code>-log S</code> passes 19.2, because such a row is one the data barely constrain, but it no longer stops: the arithmetic is exact there now. The MONOTONICITY floor is unchanged and still refuses, because a non-positive <code>d(eta)/d(log t)</code> means no hazard exists and the reported likelihood is a pseudo-likelihood rather than a density.</li>
+<li>
+<code><a href="../reference/royston_parmar.html">royston_parmar()</a></code> declares <code>post$fit_check</code>, frmtmb’s new fit-end hook, so a fit with a non-monotone row warns as it is returned rather than only when someone calls <code><a href="../reference/rp_floored.html">rp_floored()</a></code>.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="frmtmbspline-010">frmtmb.spline 0.1.0<a class="anchor" aria-label="anchor" href="#frmtmbspline-010"></a></h2>
 <p>First release. Two things a spline needs that a fit does not give you: inference about the CURVE rather than about its coefficients, and a survival family whose parameter is a spline.</p>
@@ -93,7 +110,7 @@
 </ul></div>
 <div class="section level3">
 <h3 id="deliberate-omissions-0-1-0">Deliberate omissions<a class="anchor" aria-label="anchor" href="#deliberate-omissions-0-1-0"></a></h3>
-<ul><li>No <code>post$mean_fn</code>, so <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code> are refused. The mean of a Royston-Parmar survival time has no closed form, and core’s <code>cox()</code> refuses for the same reason. Read the fitted log cumulative hazard with <code><a href="../reference/frm_curve.html">frm_curve()</a></code> instead.</li>
+<ul><li>No <code>post$mean_fn</code>, so <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code> are refused. The mean of a Royston-Parmar survival time has no closed form, and core’s <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-families.html" class="external-link">cox()</a></code> refuses for the same reason. Read the fitted log cumulative hazard with <code><a href="../reference/frm_curve.html">frm_curve()</a></code> instead.</li>
 <li>No exact basis derivative in <code><a href="../reference/frm_curve_deriv.html">frm_curve_deriv()</a></code>. The design is rebuilt through <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, which evaluates a basis and never differentiates one, so an exact derivative would mean reading mgcv smooth objects out of the fitted frame. That is a deeper reach into core than anything else here makes, for an error already at the tenth significant figure.</li>
 <li>Derivatives of order 3 and higher are refused rather than offered: a third central difference divides by <code>eps^3</code> and there is no step size at which it is accurate.</li>
 <li>No accurate log survival past <code>-log S</code> of about 19.2, and none at all past 36. See the <code><a href="../reference/rp_floored.html">rp_floored()</a></code> entries above: the squeeze that keeps the term finite rather than <code>-Inf</code> cannot also keep it accurate, because the number core asks a family for is <code>F</code> and the complement of a double near 1 is not representable. flexsurv computes <code>log S</code> directly and has no such region. The package’s answer is refusal by name rather than a silent floor, and the real fix is a core <code>lccdf</code> slot.</li>

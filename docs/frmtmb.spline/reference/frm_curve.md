@@ -129,83 +129,63 @@ reported by [`print()`](https://rdrr.io/r/base/print.html). On the
 package's own test models it is at the tenth significant figure or
 better.
 
-## The one internal this reaches into
+## The route to the covariance
 
-The covariance is read from `fit$cache$Vjoint`, and that is a read into
-frmtmb's INTERNALS rather than a sanctioned seam. The function that
-writes it, `get_joint_cov()`, is `@noRd`; neither `fit$cache` nor the
-`list(V =, names =)` shape of the memo appears in
-`?frmtmb::`frmtmb-extension-api“. Unlike `fit$obj` and
-\`fit\$estimates\`, which other extensions already read, this one has no
-precedent to point at. It is stated here rather than buried in a
-development note because a user is entitled to know which of a package's
-dependencies are contractual and which are not.
+Both halves come from frmtmb's own exported seam,
+[`frmtmb::frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html),
+which returns the design `A` over the coefficient vector, the joint
+covariance `V` at exactly the rows `A`'s columns sit at, and the
+variance that is NOT coefficient uncertainty (a new grouping level's
+marginal variance, an exact `gp()`'s kriging variance) as a separate
+element. `Sigma` is `A V A'`.
 
-It is made anyway, because every alternative was worse. Computing the
-covariance here instead means a second `sdreport()` per call, a dense
-Schur complement over coefficients the curve never touches (114 s and
-2.1 GB at 8000 random coefficients, against 8.2 s and 1.2 GB for the
-cache read), and a covariance that goes round `autoscale_sdreport()` and
-is therefore WRONG on an autoscaled fit. A public-but-wrong route was
-traded for a private-but-correct one.
+Up to frmtmb 0.51.0 there was no such seam. This package rebuilt `A` by
+unit perturbation, one
+[`predict()`](https://rdrr.io/r/stats/predict.html) call per
+contributing coefficient, and read `V` out of `fit$cache$Vjoint`, which
+was an internal with no precedent to point at. Both are gone: the
+reconstruction and the reach were replaced by one call, this package now
+requires frmtmb (\>= 0.52.0), and what the covariance check verifies has
+changed from "the reconstruction reproduced core's number" to "the seam
+is being read correctly".
 
-What happens if core changes it, in full:
+The check itself stays. Every call recomputes `sqrt(diag(Sigma))` and
+compares it with `predict(se.fit = TRUE)`, and refuses when the two
+disagree by more than `tol`. The measured agreement is in the `"check"`
+attribute and is reported by
+[`print()`](https://rdrr.io/r/base/print.html).
 
-- **The name or the shape changes.** The read returns `NULL`, the sparse
-  fallback runs, and the answer is the same one about 16 times slower.
-  No wrong number.
-
-- **The meaning of `V` changes without the name changing.** The
-  covariance check catches it: every call compares `sqrt(diag(Sigma))`
-  against `predict(se.fit = TRUE)` and refuses above `tol`. No wrong
-  number.
-
-- **It is absent.** It is absent on every FRESH fit, because it is a
-  memo rather than a slot. This is not a dependency on the cache being
-  warm: the `predict(se.fit = TRUE)` check runs first and warms it,
-  which is why that call is ordered ahead of the covariance and why the
-  ordering is enforced by an argument rather than by a comment.
-
-So the reach cannot produce a wrong answer; it can only become slow, or
-refuse. The standing ask is an exported accessor,
-`dev/spline-seam-proposal.md` Part 1a, which would remove it.
+The one case with nothing to check against is a nonlinear (`nl = TRUE`)
+body: `predict(se.fit = TRUE)` is refused there, so
+[`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
+is the only route to the number and `cov_rel_error` is `NA`.
+[`print()`](https://rdrr.io/r/base/print.html) says so rather than
+reporting a check that never ran.
 
 ## Cost
 
-What this call costs is dominated by ONE thing, and it is not the
-[`predict()`](https://rdrr.io/r/stats/predict.html) call count that the
-`"check"` attribute reports. It is the single `predict(se.fit = TRUE)`
-call, inside which core inverts the fit's joint precision matrix over
-EVERY coefficient, including the ones this curve does not touch.
-Measured at `re.form = NA` on a 20-point grid, one process each:
+What this call costs is dominated by ONE thing: the single
+`predict(se.fit = TRUE)` check call, inside which core inverts the fit's
+joint precision matrix over EVERY coefficient, including the ones this
+curve does not touch. Measured at `re.form = NA` on a 20-point grid, one
+process each:
 
-- `s(x, k = 10)`, 8 random coefficients: design rebuild 0.01 s,
-  `predict(se.fit = TRUE)` 0.29 s.
+- `s(x, k = 10)`, 8 random coefficients: 0.29 s.
 
 - `s(t, k = 8) + (1 + t | subject)`, 1000 subjects and 2006 random
-  coefficients: 0.07 s against 0.98 s.
+  coefficients: 0.98 s.
 
-- the same over 4000 subjects, 8006 random coefficients: 0.28 s against
-  6.87 s.
+- the same over 4000 subjects, 8006 random coefficients: 6.87 s.
 
-The design rebuild is a tenth of the cost at every size, and the
-covariance itself is FREE: it is read from the object
-`predict(se.fit = TRUE)` has already cached, not recomputed. Size a job
-from the joint-precision solve, which grows with the total number of
-coefficients in the fit, and not from the grid or the call count.
-
-The design is rebuilt with one
-[`predict()`](https://rdrr.io/r/stats/predict.html) call per
-contributing coefficient, plus one probe per block of `24` that
-contributes nothing, so the count does not grow with the number of
-LEVELS of a grouping factor. On the model
-[`vignette("curve-inference")`](https://aforren1.github.io/frmtmb/frmtmb.spline/articles/curve-inference.md)
-fits, `v ~ s(t, k = 12) + s(t, subject, bs = "fs", k = 5)` over 20
-subjects, that is 32 calls against 110 random coefficients; a
-factor-smooth model with NO population smooth needs far fewer, because
-at `re.form = NA` the `fs` term contributes nothing and the population
-curve is a constant. `tests/testthat/test-curve.R` pins both. The call
-count is in the `"check"` attribute.
+The design rebuild that used to sit beside those figures, and that was a
+tenth of them at every size, is gone:
+[`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
+returns the design core already had, so the
+[`predict()`](https://rdrr.io/r/stats/predict.html) call count no longer
+depends on the number of coefficients at all. The joint-precision solve
+is now the whole cost, it is paid once because core memoizes it, and it
+grows with the total number of coefficients in the fit rather than with
+the grid.
 
 ## References
 
@@ -232,10 +212,10 @@ cv <- frm_curve(fit, newdata = data.frame(x = seq(0, 1, length.out = 25)),
 head(cv[, c("x", ".estimate", ".se", ".lower_ci", ".lower_sim")])
 #> <frmtmb curve> , 6 grid points, level 
 #>   critical value: pointwise NULL
-#>   covariance checked against predict(se.fit = TRUE) to NULL relative, in  predict() calls
+#>   covariance NOT checked: predict(se.fit = TRUE) is refused for a nonlinear predictor, so there is no second route to compare against
 #>            x .estimate        .se  .lower_ci  .lower_sim
 #> 1 0.00000000 0.1320147 0.15875291 -0.1791353 -0.33430711
-#> 2 0.04166667 0.3413067 0.11074391  0.1242526  0.01600685
+#> 2 0.04166667 0.3413067 0.11074391  0.1242526  0.01600684
 #> 3 0.08333333 0.5478148 0.07848158  0.3939938  0.31728253
 #> 4 0.12500000 0.7472177 0.06874628  0.6124775  0.54528198
 #> 5 0.16666667 0.9386514 0.06827917  0.8048267  0.73808771

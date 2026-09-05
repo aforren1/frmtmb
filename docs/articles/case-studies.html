@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,7 @@
 <li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
+    <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
@@ -45,7 +46,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
-<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
@@ -1561,13 +1562,13 @@ links, the starts and the optimizer.</p>
 <div class="section level3">
 <h3 id="the-harder-cases-and-where-they-went">The harder cases, and where they went<a class="anchor" aria-label="anchor" href="#the-harder-cases-and-where-they-went"></a>
 </h3>
-<p>A drift-diffusion model sat in this slot until frmtmb.ddm existed: a
+<p>A drift-diffusion model sat in this slot until frmtmb.eam existed: a
 first-passage density written as a series, a boundary indicator arriving
 through <code>vint()</code>, and a non-decision time bounded exactly as
 the shift is above. That family is a package now, and the package does
 the density better than a case study did.
-<code><a href="https://aforren1.github.io/frmtmb/frmtmb.ddm/articles/ddm.html">vignette("ddm", package = "frmtmb.ddm")</a></code> is the worked
-model, and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.html">frmtmb.ddm::wiener()</a></code> is the family.</p>
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/articles/ddm.html">vignette("ddm", package = "frmtmb.eam")</a></code> is the worked
+model, and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html">frmtmb.eam::wiener()</a></code> is the family.</p>
 <p>Two lessons live there rather than here:</p>
 <ul>
 <li>An integer covariate reaching the density through
@@ -1725,6 +1726,219 @@ be rotated to the middle of the interval before fitting.</p>
 </div>
 </div>
 <div class="section level2">
+<h2 id="a-warped-population-growth-curve">13. A warped population growth curve<a class="anchor" aria-label="anchor" href="#a-warped-population-growth-curve"></a>
+</h2>
+<p>The models above all add a smooth to a linear predictor. This one
+does not: it estimates ONE population curve and lets each child see it
+shifted along its own time axis, which is a semiparametric nonlinear
+mixed-effects model (SNMM) in the sense of Ke and Wang (2001). The
+version fitted here is D’Alessandro, Thoresen and Sorensen (2026,
+arXiv:2603.11728), who apply it to infant height in the first two years
+of life:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">h</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">t</mi></mrow><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><msub><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">x</mi></mrow><mi>i</mi></msub><mo>+</mo><msub><mi>b</mi><mrow><mn>1</mn><mi>i</mi></mrow></msub><mo>+</mo><msup><mi>e</mi><mrow><msub><mi>β</mi><mn>2</mn></msub><msub><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">x</mi></mrow><mi>i</mi></msub></mrow></msup><mspace width="0.167em"></mspace><mi>f</mi><mo stretchy="false" form="prefix">(</mo><msub><mrow><mi mathvariant="normal">a</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi></mrow><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>+</mo><msub><mi>β</mi><mn>3</mn></msub><msub><mrow><mi mathvariant="normal">G</mi><mi mathvariant="normal">A</mi></mrow><mi>i</mi></msub><mo>+</mo><msub><mi>b</mi><mrow><mn>2</mn><mi>i</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo><msub><mi>ϵ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">
+\mathrm{hgt}_{ij} = \beta_0 + \beta_1 \mathrm{sex}_i + b_{1i}
+  + e^{\beta_2 \mathrm{sex}_i}\,
+    f(\mathrm{age}_{ij} + \beta_3 \mathrm{GA}_i + b_{2i}) + \epsilon_{ij}
+</annotation></semantics></math></p>
+<p>with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>b</mi><mi>i</mi></msub><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">g</mi></mrow><mo stretchy="false" form="prefix">(</mo><msubsup><mi>σ</mi><mrow><mi>b</mi><mn>1</mn></mrow><mn>2</mn></msubsup><mo>,</mo><msubsup><mi>σ</mi><mrow><mi>b</mi><mn>2</mn></mrow><mn>2</mn></msubsup><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">b_i \sim N(0, \mathrm{diag}(\sigma_{b1}^2, \sigma_{b2}^2))</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϵ</mi><mo>∼</mo><mi>N</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\epsilon \sim N(0, \sigma^2)</annotation></semantics></math>.
+<code>f</code> is the population growth curve,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>b</mi><mrow><mn>1</mn><mi>i</mi></mrow></msub><annotation encoding="application/x-tex">b_{1i}</annotation></semantics></math>
+moves a child up or down,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>b</mi><mrow><mn>2</mn><mi>i</mi></mrow></msub><annotation encoding="application/x-tex">b_{2i}</annotation></semantics></math>
+moves it earlier or later along the age axis, and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mn>3</mn></msub><annotation encoding="application/x-tex">\beta_3</annotation></semantics></math>
+says how much of that timing shift a week of gestational age buys.</p>
+<p>Nothing in <code>s(x)</code> can express this. A penalized smooth’s
+basis is evaluated at a COLUMN, so the frame can build <code>Z</code>
+once and the objective adds <code>Z b</code> to a predictor. Here the
+spline’s argument contains <code>b_{2i}</code>, which is a parameter, so
+there is no fixed <code>Z</code> to build: the basis has to be evaluated
+on the tape, at a point the fit moves. <code><a href="../reference/ps.html">ps()</a></code> is the term for
+that. It is admitted only inside a nonlinear body, it evaluates to the
+spline’s VALUE rather than adding itself to anything, and it carries the
+same mixed-model split <code>s()</code> does: the null space of the
+second-difference penalty joins the fixed coefficients and the range
+space becomes one random-effect block whose single variance is the
+inverse smoothing parameter.</p>
+<p>The data are <code>brokenstick::smocc_200</code>: 1942 height
+measurements on 200 Dutch children, 6 to 12 each. Age goes in as weeks
+so that
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mn>3</mn></msub><annotation encoding="application/x-tex">\beta_3</annotation></semantics></math>
+is a shift in weeks per week of gestation, and gestational age is
+centered at 40.</p>
+<div class="sourceCode" id="cb84"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu">brokenstick</span><span class="fu">::</span><span class="va">smocc_200</span></span>
+<span><span class="va">smocc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  id  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">raw</span><span class="op">$</span><span class="va">id</span><span class="op">)</span>,</span>
+<span>  age <span class="op">=</span> <span class="fl">52.1775</span> <span class="op">*</span> <span class="va">raw</span><span class="op">$</span><span class="va">age</span>,          <span class="co"># years to weeks</span></span>
+<span>  sex <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">raw</span><span class="op">$</span><span class="va">sex</span> <span class="op">==</span> <span class="st">"male"</span><span class="op">)</span>,</span>
+<span>  ga  <span class="op">=</span> <span class="va">raw</span><span class="op">$</span><span class="va">ga</span> <span class="op">-</span> <span class="fl">40</span>,                <span class="co"># weeks from term</span></span>
+<span>  hgt <span class="op">=</span> <span class="va">raw</span><span class="op">$</span><span class="va">hgt</span><span class="op">)</span></span>
+<span><span class="va">smocc</span> <span class="op">&lt;-</span> <span class="va">smocc</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">hgt</span><span class="op">)</span>, <span class="op">]</span></span>
+<span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/droplevels.html" class="external-link">droplevels</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">)</span>, children <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nlevels.html" class="external-link">nlevels</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb85"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_smocc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">hgt</span> <span class="op">~</span> <span class="va">int</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">amp</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="../reference/ps.html">ps</a></span><span class="op">(</span><span class="va">age</span> <span class="op">+</span> <span class="va">shift</span>, k <span class="op">=</span> <span class="fl">15</span>, pad <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span>,</span>
+<span>     <span class="va">int</span>   <span class="op">~</span> <span class="va">sex</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>,</span>
+<span>     <span class="va">amp</span>   <span class="op">~</span> <span class="fl">0</span> <span class="op">+</span> <span class="va">sex</span>,</span>
+<span>     <span class="va">shift</span> <span class="op">~</span> <span class="fl">0</span> <span class="op">+</span> <span class="va">ga</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>,</span>
+<span>     nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">smocc</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">68</span>, <span class="fl">2</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"int"</span>, <span class="st">"amp"</span>, <span class="st">"shift"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">)</span></span></code></pre></div>
+<p><code>k = 15</code> is the paper’s cubic basis with 11 interior
+knots. <code>pad = 0.25</code> widens the range the knots are placed on
+before they are frozen: the spline is evaluated at
+<code>age + shift</code>, the fitted shift SD is over three weeks, and
+the basis is exactly zero outside its knot span, so the padding has to
+cover where the fit will actually look. <code><a href="../reference/frm.html">frm()</a></code> reports at
+the end how many rows fell outside it, and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>
+reports it again for a grid that leaves the span.</p>
+<p>The knot RULE is not the paper’s, and this section is not a
+reimplementation of it. The paper’s section 2.3.1 rescales the spline
+argument to <code>[0, 1]</code> between bounds that move with the
+current variance estimates, so its knots follow the fit;
+<code><a href="../reference/ps.html">ps()</a></code> freezes knots on a padded data range, because moving
+knots make the penalty matrix and its eigendecomposition functions of
+the parameters and because a basis rebuilt between fitting and
+prediction is a different basis. The two are related constructions that
+agree on this application. See <code><a href="../reference/ps.html">?ps</a></code>.</p>
+<p>The estimates against the paper’s Table 1:</p>
+<div class="sourceCode" id="cb86"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fx</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">)</span></span>
+<span><span class="va">vc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">)</span></span>
+<span><span class="va">got</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>beta0 <span class="op">=</span> <span class="va">fx</span><span class="op">$</span><span class="va">int</span><span class="op">[[</span><span class="st">"(Intercept)"</span><span class="op">]</span><span class="op">]</span>, beta1 <span class="op">=</span> <span class="va">fx</span><span class="op">$</span><span class="va">int</span><span class="op">[[</span><span class="st">"sex"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>         beta2 <span class="op">=</span> <span class="va">fx</span><span class="op">$</span><span class="va">amp</span><span class="op">[[</span><span class="st">"sex"</span><span class="op">]</span><span class="op">]</span>,         beta3 <span class="op">=</span> <span class="va">fx</span><span class="op">$</span><span class="va">shift</span><span class="op">[[</span><span class="st">"ga"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>         sd_b1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">vc</span><span class="op">[[</span><span class="st">"int: 1 | id"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>         sd_b2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">vc</span><span class="op">[[</span><span class="st">"shift: 1 | id"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>         sigma <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">fx</span><span class="op">$</span><span class="va">sigma</span><span class="op">[[</span><span class="st">"(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">paper</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>beta0 <span class="op">=</span> <span class="fl">68.2</span>, beta1 <span class="op">=</span> <span class="fl">1.80</span>, beta2 <span class="op">=</span> <span class="fl">0.00</span>, beta3 <span class="op">=</span> <span class="fl">1.00</span>,</span>
+<span>           sd_b1 <span class="op">=</span> <span class="fl">2.86</span>, sd_b2 <span class="op">=</span> <span class="fl">3.28</span>, sigma <span class="op">=</span> <span class="fl">1.05</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>frmtmb <span class="op">=</span> <span class="va">got</span>, paper <span class="op">=</span> <span class="va">paper</span>, difference <span class="op">=</span> <span class="va">got</span> <span class="op">-</span> <span class="va">paper</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<p>Six of the seven agree to the published precision. The intercept is
+0.55 cm higher, and that is an identifiability convention rather than a
+disagreement. <code><a href="../reference/ps.html">ps()</a></code> constrains the spline’s COEFFICIENTS to
+sum to zero. The paper says only that it applies “a sum-to-zero
+constraint to ensure identifiability of an intercept term” and does not
+say on what, so the right thing to do is measure rather than attribute:
+re-centering the curve to its own fitted values moves the intercept onto
+the published one.</p>
+<div class="sourceCode" id="cb87"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pt</span> <span class="op">&lt;-</span> <span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">$</span><span class="va">linpreds</span><span class="op">[[</span><span class="st">"hgt.mu"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">ps_terms</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">bk</span> <span class="op">&lt;-</span> <span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">$</span><span class="va">re_blocks</span><span class="op">[[</span><span class="va">pt</span><span class="op">$</span><span class="va">block_id</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">p</span> <span class="op">&lt;-</span> <span class="va">fit_smocc</span><span class="op">$</span><span class="va">estimates</span></span>
+<span><span class="va">bn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">$</span><span class="va">par_template</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span></span>
+<span><span class="va">gam</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">pt</span><span class="op">$</span><span class="va">U0</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="va">pt</span><span class="op">$</span><span class="va">beta_idx</span><span class="op">]</span> <span class="op">+</span> <span class="va">pt</span><span class="op">$</span><span class="va">Us</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">p</span><span class="op">$</span><span class="va">b</span><span class="op">[</span><span class="va">bk</span><span class="op">$</span><span class="va">b_idx</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">arg</span> <span class="op">&lt;-</span> <span class="va">smocc</span><span class="op">$</span><span class="va">age</span> <span class="op">+</span> <span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"shift_ga"</span>, <span class="va">bn</span><span class="op">)</span><span class="op">]</span> <span class="op">*</span> <span class="va">smocc</span><span class="op">$</span><span class="va">ga</span> <span class="op">+</span></span>
+<span>  <span class="va">p</span><span class="op">$</span><span class="va">b</span><span class="op">[</span><span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">$</span><span class="va">re_blocks</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">b_idx</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">curve_at_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span></span>
+<span>  <span class="fu">splines</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/splines/splineDesign.html" class="external-link">splineDesign</a></span><span class="op">(</span><span class="va">pt</span><span class="op">$</span><span class="va">knots</span>, <span class="va">arg</span>, ord <span class="op">=</span> <span class="va">pt</span><span class="op">$</span><span class="va">ord</span>,</span>
+<span>                        outer.ok <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">gam</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>beta0 <span class="op">=</span> <span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"int_(Intercept)"</span>, <span class="va">bn</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>  recentred <span class="op">=</span> <span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"int_(Intercept)"</span>, <span class="va">bn</span><span class="op">)</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">curve_at_data</span><span class="op">)</span>,</span>
+<span>  paper <span class="op">=</span> <span class="fl">68.2</span><span class="op">)</span></span></code></pre></div>
+<p>Whatever the paper’s constraint was, the two intercepts describe the
+same fitted surface to 0.002 cm once the curve is centered the same way.
+Nothing that depends on the curve’s SHAPE moves with the convention at
+all.</p>
+<p>The likelihood is checked against the paper’s equations written out
+in plain R, with the basis taken from
+<code><a href="https://rdrr.io/r/splines/splineDesign.html" class="external-link">splines::splineDesign()</a></code> rather than from the branch-free
+construction the objective tapes:</p>
+<div class="sourceCode" id="cb88"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">lp</span> <span class="op">&lt;-</span> <span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">$</span><span class="va">linpreds</span><span class="op">[[</span><span class="st">"hgt.mu"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">pt</span> <span class="op">&lt;-</span> <span class="va">lp</span><span class="op">$</span><span class="va">ps_terms</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">bk</span> <span class="op">&lt;-</span> <span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">$</span><span class="va">re_blocks</span><span class="op">[[</span><span class="va">pt</span><span class="op">$</span><span class="va">block_id</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">bn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">$</span><span class="va">par_template</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span></span>
+<span><span class="va">p</span>  <span class="op">&lt;-</span> <span class="va">fit_smocc</span><span class="op">$</span><span class="va">estimates</span></span>
+<span></span>
+<span><span class="va">gamma</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">pt</span><span class="op">$</span><span class="va">U0</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="va">pt</span><span class="op">$</span><span class="va">beta_idx</span><span class="op">]</span> <span class="op">+</span> <span class="va">pt</span><span class="op">$</span><span class="va">Us</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">p</span><span class="op">$</span><span class="va">b</span><span class="op">[</span><span class="va">bk</span><span class="op">$</span><span class="va">b_idx</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">arg</span> <span class="op">&lt;-</span> <span class="va">smocc</span><span class="op">$</span><span class="va">age</span> <span class="op">+</span> <span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"shift_ga"</span>, <span class="va">bn</span><span class="op">)</span><span class="op">]</span> <span class="op">*</span> <span class="va">smocc</span><span class="op">$</span><span class="va">ga</span> <span class="op">+</span></span>
+<span>  <span class="va">p</span><span class="op">$</span><span class="va">b</span><span class="op">[</span><span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">$</span><span class="va">re_blocks</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">b_idx</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">f_hat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="fu">splines</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/splines/splineDesign.html" class="external-link">splineDesign</a></span><span class="op">(</span><span class="va">pt</span><span class="op">$</span><span class="va">knots</span>, <span class="va">arg</span>, ord <span class="op">=</span> <span class="va">pt</span><span class="op">$</span><span class="va">ord</span>,</span>
+<span>                                         outer.ok <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">gamma</span><span class="op">)</span></span>
+<span><span class="va">mu</span> <span class="op">&lt;-</span> <span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"int_(Intercept)"</span>, <span class="va">bn</span><span class="op">)</span><span class="op">]</span> <span class="op">+</span></span>
+<span>  <span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"int_sex"</span>, <span class="va">bn</span><span class="op">)</span><span class="op">]</span> <span class="op">*</span> <span class="va">smocc</span><span class="op">$</span><span class="va">sex</span> <span class="op">+</span></span>
+<span>  <span class="va">p</span><span class="op">$</span><span class="va">b</span><span class="op">[</span><span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">$</span><span class="va">re_blocks</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">b_idx</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">]</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"amp_sex"</span>, <span class="va">bn</span><span class="op">)</span><span class="op">]</span> <span class="op">*</span> <span class="va">smocc</span><span class="op">$</span><span class="va">sex</span><span class="op">)</span> <span class="op">*</span> <span class="va">f_hat</span></span>
+<span></span>
+<span><span class="va">blk</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">$</span><span class="va">re_blocks</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">ref</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">dnorm</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">hgt</span>, <span class="va">mu</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">betad</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">dnorm</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">b</span><span class="op">[</span><span class="fu">blk</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">b_idx</span><span class="op">]</span>, <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="fu">blk</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">theta_idx</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>            log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">dnorm</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">b</span><span class="op">[</span><span class="fu">blk</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">$</span><span class="va">b_idx</span><span class="op">]</span>, <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="fu">blk</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">$</span><span class="va">theta_idx</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>            log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">dnorm</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">b</span><span class="op">[</span><span class="va">bk</span><span class="op">$</span><span class="va">b_idx</span><span class="op">]</span>, <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">bk</span><span class="op">$</span><span class="va">theta_idx</span><span class="op">]</span><span class="op">)</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">joint</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="fu">frmtmb</span><span class="fu">:::</span><span class="fu"><a href="../reference/frmtmb-sampling-api.html">build_objective</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">)</span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>frmtmb <span class="op">=</span> <span class="va">joint</span>, reference <span class="op">=</span> <span class="va">ref</span>, difference <span class="op">=</span> <span class="va">joint</span> <span class="op">-</span> <span class="va">ref</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">joint</span> <span class="op">-</span> <span class="va">ref</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1e-8</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="the-curve-with-a-band">The curve, with a band<a class="anchor" aria-label="anchor" href="#the-curve-with-a-band"></a>
+</h3>
+<p><code>predict(se.fit = TRUE)</code> refuses a nonlinear predictor,
+and it is right to: the map from coefficients to <code>eta</code> is not
+a design matrix there, it is a Jacobian. <code><a href="../reference/frm_lp_basis.html">frm_lp_basis()</a></code> is
+the route. It tapes the body against every coefficient the body reaches
+through, including the <code><a href="../reference/ps.html">ps()</a></code> block’s own, and returns that
+Jacobian with the joint covariance at exactly the rows its columns sit
+at.</p>
+<div class="sourceCode" id="cb89"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>age <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">130</span>, length.out <span class="op">=</span> <span class="fl">120</span><span class="op">)</span>, sex <span class="op">=</span> <span class="fl">0</span>, ga <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>                   id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">lb</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_lp_basis.html">frm_lp_basis</a></span><span class="op">(</span><span class="va">fit_smocc</span>, newdata <span class="op">=</span> <span class="va">grid</span>, re.form <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
+<span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="op">(</span><span class="va">lb</span><span class="op">$</span><span class="va">A</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">lb</span><span class="op">$</span><span class="va">V</span><span class="op">)</span> <span class="op">*</span> <span class="va">lb</span><span class="op">$</span><span class="va">A</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">band</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>age <span class="op">=</span> <span class="va">grid</span><span class="op">$</span><span class="va">age</span>, fit <span class="op">=</span> <span class="va">lb</span><span class="op">$</span><span class="va">eta</span>,</span>
+<span>                   lo <span class="op">=</span> <span class="va">lb</span><span class="op">$</span><span class="va">eta</span> <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">se</span>, hi <span class="op">=</span> <span class="va">lb</span><span class="op">$</span><span class="va">eta</span> <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">band</span>, <span class="fl">3</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<p>The whole grid’s covariance, <code>A V A'</code>, is what a
+SIMULTANEOUS band needs, and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.html">frmtmb.spline::frm_curve()</a></code>
+builds one from the same two objects. It refused a nonlinear body until
+this seam existed.</p>
+<div class="sourceCode" id="cb90"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu">frmtmb.spline</span><span class="fu">::</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.html">frm_curve</a></span><span class="op">(</span><span class="va">fit_smocc</span>, newdata <span class="op">=</span> <span class="va">grid</span>, re.form <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>                               nsim <span class="op">=</span> <span class="fl">5000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb91"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span><span class="va">hgt</span> <span class="op">~</span> <span class="va">age</span>, data <span class="op">=</span> <span class="va">smocc</span><span class="op">[</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span></span>
+<span>                     <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">40</span><span class="op">]</span>, <span class="op">]</span>,</span>
+<span>                   type <span class="op">=</span> <span class="st">"p"</span>, col <span class="op">=</span> <span class="st">"grey70"</span>, cex <span class="op">=</span> <span class="fl">0.4</span>,</span>
+<span>                   xlab <span class="op">=</span> <span class="st">"age (weeks)"</span>, ylab <span class="op">=</span> <span class="st">"height (cm)"</span>,</span>
+<span>                   main <span class="op">=</span> <span class="st">"SMOCC: population growth curve"</span><span class="op">)</span></span>
+<span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot_add.html" class="external-link">tinyplot_add</a></span><span class="op">(</span><span class="va">hi</span> <span class="op">~</span> <span class="va">age</span>, data <span class="op">=</span> <span class="va">band</span>, type <span class="op">=</span> <span class="st">"l"</span>, lty <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot_add.html" class="external-link">tinyplot_add</a></span><span class="op">(</span><span class="va">lo</span> <span class="op">~</span> <span class="va">age</span>, data <span class="op">=</span> <span class="va">band</span>, type <span class="op">=</span> <span class="st">"l"</span>, lty <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot_add.html" class="external-link">tinyplot_add</a></span><span class="op">(</span><span class="va">fit</span> <span class="op">~</span> <span class="va">age</span>, data <span class="op">=</span> <span class="va">band</span>, type <span class="op">=</span> <span class="st">"l"</span>, lwd <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="what-a-ps-block-refuses">What a <code>ps()</code> block refuses<a class="anchor" aria-label="anchor" href="#what-a-ps-block-refuses"></a>
+</h3>
+<p><code>REML = TRUE</code>, <code>quadrature = TRUE</code>,
+<code>frmtmb_control(profile = TRUE)</code> and multivariate models are
+refused by name. The first three integrate out something the block has
+already put inside the Laplace approximation; the fourth is untested
+rather than known to be wrong, and is refused for that reason. The
+importance correction refuses every nonlinear predictor already, so a
+<code><a href="../reference/ps.html">ps()</a></code> block inside one is refused by that guard rather than
+by a new one.</p>
+<div class="sourceCode" id="cb92"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">hgt</span> <span class="op">~</span> <span class="va">int</span> <span class="op">+</span> <span class="fu"><a href="../reference/ps.html">ps</a></span><span class="op">(</span><span class="va">age</span>, k <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>, <span class="va">int</span> <span class="op">~</span> <span class="fl">1</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>        data <span class="op">=</span> <span class="va">smocc</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">200</span>, <span class="op">]</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, REML <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The basis itself is a divided difference of truncated powers written
+branch free, because RTMB refuses <code><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax()</a></code> on an AD type and
+exports no <code>CondExp</code>, so the recursive Cox-de Boor form is
+unavailable. It agrees with <code><a href="https://rdrr.io/r/splines/splineDesign.html" class="external-link">splines::splineDesign()</a></code> to
+3.1e-13 absolute at <code>k = 12</code> and 1.8e-11 at
+<code>k = 40</code>, and the error grows like
+<code>k^(degree - 1)</code> because a divided difference cancels terms
+of order <code>(range / spacing)^degree</code>. <code>k</code> above 50
+is refused for that reason. See <code><a href="../reference/ps.html">?ps</a></code>.</p>
+</div>
+</div>
+<div class="section level2">
 <h2 id="where-the-checks-live">Where the checks live<a class="anchor" aria-label="anchor" href="#where-the-checks-live"></a>
 </h2>
 <p>Every cross-check on this page runs when the page is built, and the
@@ -1771,6 +1985,17 @@ multivariate fit. <code><a href="https://rdrr.io/r/stats/predict.html" class="ex
 fitted value for one response is one call and a residual is a
 subtraction. Section 9 draws its figure that way, and reads the other
 level of the same model out of <code><a href="../reference/ranef.html">ranef()</a></code>.</li>
+<li>
+<code>predict(se.fit = TRUE)</code> refuses a nonlinear predictor,
+and a <code><a href="../reference/ps.html">ps()</a></code> curve is one. <code><a href="../reference/frm_lp_basis.html">frm_lp_basis()</a></code> is the
+route: it returns <code>d eta / d coef</code> as a Jacobian, taped
+rather than perturbed, together with the joint covariance at the rows
+its columns sit at. Section 13 draws its band that way.</li>
+<li>A <code><a href="../reference/ps.html">ps()</a></code> basis is FROZEN on the padded range of its
+argument at data time, with every nonlinear parameter at zero, and it is
+exactly zero outside that span. <code>pad =</code> is what covers the
+distance the fit then moves; a fit reports how many rows it left
+behind.</li>
 </ul>
 <p>Some models on this page are refused by parts of the post-fitting
 surface, and the refusals are deliberate. A term built on matrix columns
@@ -1788,7 +2013,7 @@ hidden Markov model to an animal track, cross-checks it against hmmTMB
 and depmixS4, and lists what a likelihood that does not factorize over
 the rows refuses.</li>
 <li>
-<code><a href="https://aforren1.github.io/frmtmb/frmtmb.ddm/articles/ddm.html">vignette("ddm", package = "frmtmb.ddm")</a></code> fits the
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/articles/ddm.html">vignette("ddm", package = "frmtmb.eam")</a></code> fits the
 drift-diffusion first-passage density of section 11, and measures the
 two ways of truncating its series.</li>
 </ul>

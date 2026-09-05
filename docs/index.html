@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -39,6 +39,7 @@
 <li><a class="dropdown-item" href="articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="articles/case-studies.html">Case studies: models from the showcase literature</a></li>
+    <li><a class="dropdown-item" href="articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
     <li><a class="dropdown-item" href="articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="articles/compatibility.html">Feature compatibility</a></li>
@@ -47,7 +48,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
-<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
@@ -134,8 +135,8 @@
 </td>
 </tr>
 <tr>
-<td><a href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm</a></td>
-<td>response-time models: <code>wiener()</code>, <code>gddm()</code>, and the racing <code>lba()</code>
+<td><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam</a></td>
+<td>evidence accumulation models: <code>wiener()</code>, <code>gddm()</code>, <code>lba()</code>, <code>rdm()</code> and <code>wiener_gng()</code>
 </td>
 </tr>
 <tr>
@@ -149,7 +150,7 @@
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.sample"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.latent"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.ode"</span><span class="op">)</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.ddm"</span><span class="op">)</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.eam"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.spline"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -202,7 +203,7 @@
 <li>Multivariate models use <code>mvbf</code>, per-response families, and <code>rescor</code>. Nonlinear formulas use <code>nl = TRUE</code>. Inside a nonlinear body, a bare <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">pnorm()</a></code> or <code><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">qgamma()</a></code> is the tape-capable version, so a process model reads as it would on paper. <code>multinomial(K)</code> takes a matrix response.</li>
 <li>The families include the usual GLM(M) set plus student, tweedie, compois, beta-binomial, skew-normal, ex-gaussian, weibull, shifted lognormal, and quantile regression (<code>asym_laplace</code>), with zero-inflated and hurdle variants and four ordinal families. <code><a href="reference/mixture.html">mixture()</a></code> fits finite mixtures, including group-level latent classes (<code>mixture(..., groups = ~g)</code>) with class-specific random effects for growth-mixture models. <code>mixture_mvn(K, D, model =)</code> fits multivariate gaussian components over mclust’s covariance taxonomy, with covariate-dependent means and gating. <code><a href="reference/frmtmb-families.html">categorical()</a></code> fits nominal responses, <code><a href="reference/frmtmb-families.html">von_mises()</a></code> circular ones, and <code><a href="reference/frmtmb-families.html">cox()</a></code> proportional hazards with a flexible baseline and Laplace frailties. <code><a href="reference/frmtmb_family.html">custom_family()</a></code> takes a plain R log-density; section 11 of <code><a href="articles/case-studies.html">vignette("case-studies")</a></code> writes one with a data-bounded link and checks it against the built-in family it shadows.</li>
 <li>The addition terms are <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>trials()</code> (counts or proportions), <code>cens()</code>, <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code>se()</code> (meta-analysis), <code>mi()</code>, and <code>vint()</code>/<code>vreal()</code>. A companion package can register one of its own.</li>
-<li>The companion packages extend the same grammar. <code>frmtmb.latent</code> adds <code>hmm(K)</code> for hidden Markov models, with covariate-dependent transitions and forward-backward decoding, and <code>lca(K)</code> for latent class analysis with class-membership regression. <code>frmtmb.ode</code> adds <code>frm_ode()</code>, which solves compartment models inside nonlinear formulas (population pharmacokinetics), with repeated dosing, infusions, and estimated bioavailability. <code>frmtmb.ddm</code> adds <code>wiener()</code>, the drift-diffusion first-passage density, with a formula for each of the drift rate, boundary separation, non-decision time and starting bias, and Ratcliff’s across-trial variability as three more; <code>gddm()</code>, the generalized drift-diffusion model with time-varying drift and collapsing bounds, solved on a fixed grid; and <code>lba()</code>, the linear ballistic accumulator, which races any number of accumulators and so reaches choices with more than two alternatives.</li>
+<li>The companion packages extend the same grammar. <code>frmtmb.latent</code> adds <code>hmm(K)</code> for hidden Markov models, with covariate-dependent transitions and forward-backward decoding, and <code>lca(K)</code> for latent class analysis with class-membership regression. <code>frmtmb.ode</code> adds <code>frm_ode()</code>, which solves compartment models inside nonlinear formulas (population pharmacokinetics), with repeated dosing, infusions, and estimated bioavailability. <code>frmtmb.eam</code> adds <code>wiener()</code>, the drift-diffusion first-passage density, with a formula for each of the drift rate, boundary separation, non-decision time and starting bias, and Ratcliff’s across-trial variability as three more; <code>gddm()</code>, the generalized drift-diffusion model with time-varying drift and collapsing bounds, solved on a fixed grid; and <code>lba()</code>, the linear ballistic accumulator, which races any number of accumulators and so reaches choices with more than two alternatives.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -227,7 +228,7 @@
 <li>
 <strong>The fitted-object API is stable.</strong> <code><a href="reference/frm.html">frm()</a></code>, the accessor methods (<code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>, <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, and the rest), and the family constructors keep their current behavior.</li>
 <li>
-<strong>The extension interface is public and versioned.</strong> <code><a href="reference/frmtmb_family.html">frmtmb_family()</a></code>, <code><a href="reference/frmtmb_structure.html">frmtmb_structure()</a></code> and the registration functions are documented as one contract, and the companion packages in this repository are written against it with no reach into internals. <code>frmtmb.ddm</code> was built that way as a test of it. Each companion package pins the core version it needs, and the pin moves when the interface does.</li>
+<strong>The extension interface is public and versioned.</strong> <code><a href="reference/frmtmb_family.html">frmtmb_family()</a></code>, <code><a href="reference/frmtmb_structure.html">frmtmb_structure()</a></code> and the registration functions are documented as one contract, and the companion packages in this repository are written against it with no reach into internals. <code>frmtmb.eam</code> was built that way as a test of it. Each companion package pins the core version it needs, and the pin moves when the interface does.</li>
 <li>
 <strong>Internal structure can change.</strong> Fields of the fitted object that no exported method reaches are not part of the API. Use the accessors.</li>
 <li>

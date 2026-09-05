@@ -72,6 +72,11 @@ brms lists them and what
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
 addresses (see its Nonlinear parameters section).
 
+An ordinal family has no intercept column, so its class `"Intercept"`
+row names the THRESHOLD vector, which is what the same row means in
+brms. See the Ordinal thresholds section of
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md).
+
 ## Which route the defaults describe
 
 Every column but `prior` is a property of the design, and the design

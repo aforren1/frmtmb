@@ -144,50 +144,50 @@ without a simulator cannot be simulated from. A family without a mean
 function has no [`fitted()`](https://rdrr.io/r/stats/fitted.values.html)
 value.
 
-|  | fitted | predict | simulate | residuals | residuals_osa | emmeans | confint_profile | hypothesis_profile |
-|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| gaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| student | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| shifted_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| skew_normal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| exgaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| asym_laplace | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| Gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| weibull | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| exponential | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| inverse.gaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| beta | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| tweedie | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ |
-| poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| nbinom1 | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| geometric | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| compois | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ |
-| binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| bernoulli | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| beta_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| multinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| zero_inflated_beta | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| hurdle_poisson | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ |
-| hurdle_gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| hurdle_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ |
-| cumulative | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ |
-| sratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ |
-| cratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ |
-| acat | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ |
-| categorical | ~ | ~ | \+ | x | x | ~ | ~ | ~ |
-| von_mises | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ |
-| cox | x | ~ | x | ~ | ~ | ~ | ~ | ~ |
+|  | fitted | predict | simulate | residuals | residuals_osa | emmeans | confint_profile | hypothesis_profile | frm_lp_basis |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| gaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| student | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| shifted_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| skew_normal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| exgaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| asym_laplace | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| Gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| weibull | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| exponential | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| inverse.gaussian | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| beta | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| tweedie | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
+| poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| nbinom1 | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| geometric | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| compois | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
+| binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| bernoulli | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| beta_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| multinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| zero_inflated_poisson | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| zero_inflated_negbinomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| zero_inflated_binomial | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| zero_inflated_beta | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| hurdle_poisson | ~ | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
+| hurdle_gamma | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| hurdle_lognormal | ~ | ~ | \+ | ~ | ~ | ~ | ~ | ~ | ~ |
+| cumulative | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
+| sratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
+| cratio | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
+| acat | ~ | ~ | \+ | ~ | \+ | ~ | ~ | ~ | ~ |
+| categorical | ~ | ~ | \+ | x | x | ~ | ~ | ~ | ~ |
+| von_mises | ~ | ~ | \+ | ~ | x | ~ | ~ | ~ | ~ |
+| cox | x | ~ | x | ~ | ~ | ~ | ~ | ~ | ~ |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | ~ | gaussian + fitted; student + fitted; lognormal + fitted; shifted_lognormal + fitted; skew_normal + fitted; and 24 more | Needs a family with a mean function. |
 | ~ | gaussian + predict; student + predict; lognormal + predict; shifted_lognormal + predict; skew_normal + predict; and 25 more | Rank-deficient designs drop aliased columns at fit time. New data that is not estimable from the retained columns predicts NA and warns. |
-| ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; student + residuals; student + confint_profile; and 98 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
+| ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; gaussian + frm_lp_basis; student + residuals; and 134 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
 | ~ | gaussian + residuals_osa; student + residuals_osa; lognormal + residuals_osa; shifted_lognormal + residuals_osa; skew_normal + residuals_osa; and 25 more | One-step-ahead residuals need the family to register its observation through OBS(). |
 | ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 27 more | Univariate fits only, and the mu predictor must be linear. |
 | ~ | cumulative + fitted; sratio + fitted; cratio + fitted; acat + fitted | Returns the same n x K matrix of category probabilities predict(type = “response”) returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The predict(type = “response”) == fitted() identity holds. The latent linear predictor is predict(fit, type = “link”), which is also what emmeans and insight see. |
@@ -307,7 +307,7 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | ~ | gr_prec + prior; gr_prec + bounds; gr_prec + verbose | gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q). Terms sharing an \|ID\| key over the same factor and the same Q merge into one such block. |
 | ~ | smooth + prior; smooth + bounds; smooth + verbose | smooth is the internal structure behind s() and t2(); it is not written directly in a formula. |
 | ~ | gp + prior; gp + bounds; gp + verbose; hsgp + prior; hsgp + bounds; hsgp + verbose | gp() and hsgp() are predictor specials, not bar terms. Write gp(x), not (gp(x) \| g). |
-| ~ | car + prior; car + bounds; car + verbose | car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = “escar” is the proper CAR, “icar”/“esicar” the intrinsic one under a soft sum-to-zero constraint (con_sd), “bym2” the scaled mixture; escar needs every location to have a neighbor. M belongs in data2 = list(M = M). |
+| ~ | car + prior; car + bounds; car + verbose | car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = “escar” is the proper CAR, “esicar” the intrinsic one under an EXACT sum-to-zero constraint, “icar” the same field under brms’s soft constraint (con_sd), “bym2” the scaled mixture; escar needs every location to have a neighbor. con_sd changes no esicar estimate, but it does scale that type’s prediction standard errors and ranef() conditional SDs as con_sd^2 in the variance, so leave it at the default there. Every constrained type constrains each connected component, where brms constrains the global sum; the two agree on a connected graph. M belongs in data2 = list(M = M). |
 | ~ | spde + prior; spde + bounds; spde + verbose | spde(fem, gr = node) is a predictor special taking a mesh’s finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes BY ROW NUMBER (whole numbers in 1..nrow(M0), as integers or as a factor/character spelling of them), because the matrices carry no dimnames to match labels against. Unobserved nodes keep their column; a general projector matrix is not supported yet. The matrices belong in data2 = list(fem = fem). |
 | ~ | us_t + quadrature; diag_t + quadrature | Allowed for one-dimensional blocks, and RECOMMENDED there: the Gauss-Kronrod rule marginalizes a scalar t latent EXACTLY, where the Laplace default is approximate. Verified against adaptive Gauss-Hermite quadrature to 1e-6 in the log-likelihood and in every estimate. Correlated slopes are refused, as they are for a gaussian block. |
 | x | cs + quadrature; ar1 + quadrature; hetar1 + quadrature; ou + quadrature; toep + quadrature; and 14 more | Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term. |
@@ -352,21 +352,21 @@ and
 read the outer parameter vector, which a multivariate fit has like any
 other.
 
-|  | fitted | predict | simulate | residuals | residuals_osa | emmeans | confint_profile | hypothesis_profile |
-|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| mvbf | x | \+ | x | x | x | x | \+ | \+ |
-| rescor | x | \+ | x | x | x | x | \+ | \+ |
-| \|ID\| | ? | ? | ? | ? | ? | ? | ? | ? |
-| nl | \+ | ~ | ? | ? | ? | x | ? | ? |
-| mixture | ? | ? | ~ | ? | ? | ? | ? | ? |
-| mixture_mvn | ? | ? | \+ | ? | ? | ? | ? | ? |
+|  | fitted | predict | simulate | residuals | residuals_osa | emmeans | confint_profile | hypothesis_profile | frm_lp_basis |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| mvbf | x | \+ | x | x | x | x | \+ | \+ | x |
+| rescor | x | \+ | x | x | x | x | \+ | \+ | ? |
+| \|ID\| | ? | ? | ? | ? | ? | ? | ? | ? | ? |
+| nl | \+ | ~ | ? | ? | ? | x | ? | ? | \+ |
+| mixture | ? | ? | ~ | ? | ? | ? | ? | ? | ? |
+| mixture_mvn | ? | ? | \+ | ? | ? | ? | ? | ? | ? |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | ~ | nl + predict | Point predictions work. se.fit is not supported for the nonlinear predictor; request a nonlinear parameter with dpar instead. |
 | ~ | mixture + simulate | Works only when every component family has a simulator. |
 | x | mvbf + fitted; rescor + fitted | Refused: fitted() calls single_response() and stops with ‘fitted() is not supported yet for multivariate fits’. Predict one response at a time instead: predict(fit, resp = ). |
-| x | mvbf + simulate; mvbf + residuals; mvbf + emmeans | Refused: the post-fit methods below are univariate-only for now. |
+| x | mvbf + simulate; mvbf + residuals; mvbf + emmeans; mvbf + frm_lp_basis | Refused: the post-fit methods below are univariate-only for now. |
 | x | mvbf + residuals_osa | Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included. |
 | x | rescor + simulate | Refused: simulate() is not supported for multivariate fits yet. |
 | x | rescor + residuals; rescor + residuals_osa | Refused: residuals() is not supported for multivariate fits yet. |
@@ -444,6 +444,7 @@ reshapes a per-row contribution has nothing left to reshape.
 | mi_pred() | ? | ? | ? | ? | \+ | \+ | ? | ? | \+ |
 | gp_pred() | \+ | x | x | ? | ? | ? | ? | ? | ? |
 | cs_pred() | ? | ? | x | ? | \+ | \+ | ? | ? | \+ |
+| ps() | x | x | x | x | \+ | \+ | ? | ? | \+ |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
@@ -454,6 +455,10 @@ reshapes a per-row contribution has nothing left to reshape.
 | x | gp_pred() + quadrature | Refused in practice: gp() builds a wide block, so the scalar-intercept guard rejects it. |
 | x | gp_pred() + importance | Refused: gp() builds a field over all observations, not a set of independent groups. |
 | x | cs_pred() + importance | Refused: cs() contributes threshold-specific offsets as a matrix per observation, which the first version does not stack over draws. |
+| x | ps() + REML | REML integrates the fixed coefficients out, and a ps() block puts its own null space among them inside a body that is nonlinear in it. Refused by name. |
+| x | ps() + quadrature | Marginalizing the block by Gauss-Kronrod means integrating over a whole curve, and the rule takes one scalar random effect at a time. Refused by name. |
+| x | ps() + importance | Inherited: the importance correction refuses EVERY nonlinear predictor, because a body mixes parameter values with raw data columns and the corrected objective evaluates it once per draw. Not a restriction of ps(). |
+| x | ps() + profile | Profiling assumes the objective is quadratic in the fixed coefficients, which a nonlinear body makes it not. Refused by name. |
 
 The specials `mi()`, `gp()`, and `cs()` share a name with a covariance
 structure. The registry writes the predictor forms as `mi_pred()`,
@@ -479,11 +484,11 @@ row; see `?frmtmb-multimembership`.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1700 | 34%   |
-| conditional |  1737 | 34%   |
-| refused     |   727 | 14%   |
+| works       |  1768 | 34%   |
+| conditional |  1804 | 34%   |
+| refused     |   735 | 14%   |
 | broken      |     0 | 0%    |
-| untested    |   877 | 17%   |
+| untested    |   949 | 18%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To

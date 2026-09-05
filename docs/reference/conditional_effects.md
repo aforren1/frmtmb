@@ -30,6 +30,8 @@ conditional_effects(
   conditions = list(),
   surface = FALSE,
   data = NULL,
+  int_conditions = list(),
+  categorical = NULL,
   ...
 )
 ```
@@ -42,8 +44,10 @@ conditional_effects(
 
 - ...:
 
-  Passed to
+  `allow_new_levels`, passed to
   [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md).
+  Anything else is reported as unknown, by name, against
+  `conditional_effects()`.
 
 - effects:
 
@@ -70,14 +74,17 @@ conditional_effects(
 
 - method:
 
-  `"epred"` (default): Wald bands for the expected response.
-  `"predict"`: prediction intervals - quantile bands from `ndraws`
-  responses simulated from the family at each grid point (observation
-  noise; random effects stay excluded, as in brms with
-  `re_formula = NA`), around the expected response on the same scale as
-  the draws (a count under `trials()`, the truncated mean under
-  [`trunc()`](https://rdrr.io/r/base/Round.html)). The draws respect the
-  response's addition terms: literal
+  `"epred"` (default): Wald bands for the expected response, which for a
+  family whose mean is not the inverse link of its `mu` predictor
+  (zero-inflated, hurdle, `trials()`, truncated) is the MEAN and not
+  that predictor. brms's own spellings `"posterior_epred"` and
+  `"posterior_predict"` are accepted as aliases. `"predict"`: prediction
+  intervals - quantile bands from `ndraws` responses simulated from the
+  family at each grid point (observation noise; random effects stay
+  excluded, as in brms with `re_formula = NA`), around the expected
+  response on the same scale as the draws (a count under `trials()`, the
+  truncated mean under [`trunc()`](https://rdrr.io/r/base/Round.html)).
+  The draws respect the response's addition terms: literal
   [`trunc()`](https://rdrr.io/r/base/Round.html) bounds apply, and
   `trials()`, `se()` or variable
   [`trunc()`](https://rdrr.io/r/base/Round.html) bounds must be pinned
@@ -88,16 +95,26 @@ conditional_effects(
 - band:
 
   How the confidence band is built: `"wald"` (default, the delta method
-  on the link scale), `"profile"` (likelihood-root inversion per grid
-  point) or `"boot"` (parametric-bootstrap percentiles). See the band
-  section. Only for `method = "epred"`.
+  on the scale the band is symmetric on), `"profile"` (likelihood-root
+  inversion per grid point) or `"boot"` (parametric-bootstrap
+  percentiles). See the band section. Only for `method = "epred"`.
 
 - re_formula:
 
   The population switch, in brms's spelling: `NA` (the default) draws
-  the population-level curve, `NULL` conditions on the random effects of
-  the grid's reference group levels (set them with `conditions =`), and
-  a one-sided formula keeps the named terms. The fit surface's
+  the population-level curve, `NULL` conditions on a NEW, unobserved
+  group, and a one-sided formula keeps the named terms for one. A new
+  group's conditional modes are zero, so its curve IS the population
+  curve and what the group costs is spread: the band carries the
+  random-effect variance on top of the coefficient uncertainty, and the
+  grouping column of the returned frame is `NA` to say which group it
+  is. `band = "boot"` carries it too, by drawing that group's effects
+  once per bootstrap replicate rather than by adding a variance. To
+  condition on an OBSERVED group, name it in `conditions`
+  (`conditions = list(g = "3")`). brms draws a new group's random
+  effects afresh from the fitted covariance in every posterior draw, so
+  its curve is stochastic around this one; a maximum-likelihood fit has
+  the mode and the variance instead of draws. The fit surface's
   [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
   spells the same setting `re.form` after lme4; `conditional_effects()`
   takes brms's name because it is brms's function, and says so if handed
@@ -147,16 +164,41 @@ conditional_effects(
   store a raw variable (e.g. a variable used only inside
   [`poly()`](https://rdrr.io/r/stats/poly.html)).
 
+- int_conditions:
+
+  Named list giving the values one or both variables of an effect are
+  evaluated at, in place of the defaults (the range of a numeric grid,
+  `mean +/- sd` for a numeric moderator). An element is either the
+  values themselves or a function of the observed column, e.g.
+  `int_conditions = list(z = c(-1, 0, 1))` or
+  `list(z = function(v) quantile(v, c(0.1, 0.9)))`. Names on a numeric
+  vector become the moderator's `effect2__` labels. brms's argument,
+  with brms's meaning.
+
+- categorical:
+
+  Per-category display for a polytomous family: `TRUE` (the default
+  there) draws one curve per response category and keys the effect
+  `"x:cats__"`, as brms's `categorical = TRUE` does; `FALSE` draws the
+  expected CATEGORY NUMBER, `sum(k * p_k)`, which is brms's default.
+  Only for an ordinal or categorical family with no `dpar`; a nominal
+  family has no ordered categories to average and refuses `FALSE`.
+
 ## Value
 
-A named list of data frames (one per effect) with the varied variable(s)
-plus `estimate__`, `se__` (link scale), `lower__`, and `upper__`;
-printing it draws the plots. An ordinal fit adds a `cats__` column and
-one block of rows per response category. `plot(ce, points = TRUE)`
-overlays the raw observations (the brms argument), each panel showing
-only the observations that belong to its own condition; see the faceting
-section. No points are drawn for a per-category ordinal display, a
-non-mean `dpar`, or a matrix response (a message says so).
+A named list of data frames (one per effect), in brms's column layout:
+the varied variable(s), then every other model variable at the value it
+is held at, then `cond__` (the condition label, always present),
+`effect1__` and, for a two-variable effect, `effect2__` (the moderator
+as a display label: rounded to two decimals, levels descending), then
+`estimate__`, `se__` (on the scale the band is symmetric on), `lower__`
+and `upper__`. Printing it draws the plots. A polytomous fit adds a
+`cats__` column, one block of rows per response category, and keys the
+effect `"x:cats__"`. `plot(ce, points = TRUE)` overlays the raw
+observations (the brms argument), each panel showing only the
+observations that belong to its own condition; see the faceting section.
+No points are drawn for a per-category ordinal display, a non-mean
+`dpar`, or a matrix response (a message says so).
 
 ## Several conditions become one faceted page
 
@@ -206,7 +248,16 @@ have no mean, so the display is per CATEGORY, as brms's
 `categorical = TRUE` is: each effect data frame gains a `cats__` factor
 of the response's own levels and carries the fitted category probability
 in `estimate__`, with one curve per category in the plot (a second
-predictor gets a panel of its own).
+predictor gets a panel of its own). A one-variable effect is keyed
+`"x:cats__"` there, brms's key for that layout.
+
+That is the DEFAULT here and it is brms's non-default: brms's own
+default summarizes the categories into an expected category number and
+warns that it is treating an ordered factor as continuous.
+`categorical = FALSE` asks for that summary anyway, `sum(k * p_k)` with
+its own delta-method band (the category weights go on the gradient, so
+the covariances between the category probabilities are kept), keyed
+`"x"` and directly comparable with brms's default curve.
 
 `se__` is then on the probability scale, and the band is a Wald interval
 on the logit of the probability so it cannot leave `[0, 1]`. The
@@ -225,9 +276,17 @@ latent linear predictor.
 `band` picks how `lower__` and `upper__` are found. The estimate is the
 same curve in all three cases; only the band changes.
 
-- `"wald"` (default, and free): the delta-method standard error on the
-  link scale, back-transformed. Symmetric on the link scale by
-  construction.
+- `"wald"` (default, and free): the delta-method standard error,
+  back-transformed from the scale the band is symmetric on. For the
+  ordinary display that scale is the link scale. For the expected
+  response of a family whose mean runs through several distributional
+  parameters (zero inflation, a hurdle, `trials()`, truncation) the
+  standard error is the delta method over EVERY predictor's coefficients
+  jointly, so the cross-parameter covariances are in the band; the
+  band's scale is then the `mu` link's if the mean lives on it, the log
+  scale if the mean is positive (so the band cannot cross zero), and the
+  response scale otherwise. The two rules agree exactly wherever the
+  mean IS the inverse link of `mu`.
 
 - `"profile"`: one likelihood-root search
   ([`TMB::tmbroot()`](https://rdrr.io/pkg/TMB/man/tmbroot.html)) per
@@ -239,17 +298,35 @@ same curve in all three cases; only the band changes.
   or at a small sample size.
 
 - `"boot"`: percentiles of the grid predictions across the refits of ONE
-  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
-  (`re.form = NA`, the same population-level grid). One bootstrap serves
-  every effect, condition set and ordinal category of the call;
-  `attr(ce, "boot")` returns it, and passing it back as `boot =` costs
-  no refits at all.
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md).
+  One bootstrap serves every effect, condition set and ordinal category
+  of the call; `attr(ce, "boot")` returns it, and passing it back as
+  `boot =` costs no refits at all. Draws taken under `re_formula = NULL`
+  carry a new group's effects and draws taken without it do not, so the
+  two are not interchangeable and `boot =` refuses the swap by name
+  rather than returning the wrong band.
+
+A Student-t random-effect block enters either band as a GAUSSIAN with
+the t variance, `nu / (nu - 2)` times the scale matrix: the delta method
+has no other shape to offer, and the bootstrap draws the same way so
+that the two bands stay comparable. It is the right variance around a
+heavier-tailed truth, not the right quantile.
 
 What `se__` means follows the band: the Wald standard error (link scale,
 or the probability scale on the ordinal display) for `"wald"` and
 `"profile"` - the profile changes the endpoints, not the standard
 error - and the standard deviation of the bootstrap draws, on the
 displayed scale, for `"boot"`.
+
+The three bands answer the same question and need not give the same
+interval. Wald and bootstrap agree in the middle of a grid, and the
+remaining difference there is the bootstrap's own Monte Carlo error: on
+a zero-inflated fit the widths differ by 13% at 200 refits and 4% at
+800. At the ENDS of a grid where the estimate is poorly determined they
+need not converge at all: on a steep zero-inflated shape the Wald band
+stays about 28% wider at 3000 refits, because it is symmetric on its own
+scale and the percentile band is not. The point estimate is the same
+curve either way.
 
 Cost, and how it is capped. A root search is two constrained
 optimizations, so `band = "profile"` profiles at most `profile_points`

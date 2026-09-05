@@ -19,7 +19,7 @@ conditional_smooths()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,13 +34,14 @@ conditional_smooths()."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
+    <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
@@ -101,6 +102,8 @@ terms are included, so this also covers what brms calls
 <span>  conditions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  surface <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  data <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  int_conditions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  categorical <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -114,7 +117,9 @@ terms are included, so this also covers what brms calls
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed to <code><a href="predict.frmtmb_fit.html">predict.frmtmb_fit()</a></code>.</p></dd>
+<dd><p><code>allow_new_levels</code>, passed to <code><a href="predict.frmtmb_fit.html">predict.frmtmb_fit()</a></code>.
+Anything else is reported as unknown, by name, against
+<code>conditional_effects()</code>.</p></dd>
 
 
 <dt id="arg-effects">effects<a class="anchor" aria-label="anchor" href="#arg-effects"></a></dt>
@@ -143,7 +148,11 @@ predictor.</p></dd>
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
 <dd><p><code>"epred"</code> (default): Wald bands for the expected
-response. <code>"predict"</code>: prediction intervals - quantile bands from
+response, which for a family whose mean is not the inverse link of
+its <code>mu</code> predictor (zero-inflated, hurdle, <code>trials()</code>, truncated)
+is the MEAN and not that predictor. brms's own spellings
+<code>"posterior_epred"</code> and <code>"posterior_predict"</code> are accepted as
+aliases. <code>"predict"</code>: prediction intervals - quantile bands from
 <code>ndraws</code> responses simulated from the family at each grid point
 (observation noise; random effects stay excluded, as in brms with
 <code>re_formula = NA</code>), around the expected response on the same
@@ -158,7 +167,8 @@ an error rather than a silent default).</p></dd>
 
 <dt id="arg-band">band<a class="anchor" aria-label="anchor" href="#arg-band"></a></dt>
 <dd><p>How the confidence band is built: <code>"wald"</code> (default,
-the delta method on the link scale), <code>"profile"</code> (likelihood-root
+the delta method on the scale the band is symmetric on),
+<code>"profile"</code> (likelihood-root
 inversion per grid point) or <code>"boot"</code> (parametric-bootstrap
 percentiles). See the band section. Only for <code>method = "epred"</code>.</p></dd>
 
@@ -166,9 +176,20 @@ percentiles). See the band section. Only for <code>method = "epred"</code>.</p><
 <dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
 <dd><p>The population switch, in brms's spelling: <code>NA</code>
 (the default) draws the population-level curve, <code>NULL</code> conditions
-on the random effects of the grid's reference group levels (set
-them with <code>conditions =</code>), and a one-sided formula keeps the named
-terms. The fit surface's <code><a href="predict.frmtmb_fit.html">predict.frmtmb_fit()</a></code> spells the same
+on a NEW, unobserved group, and a one-sided formula keeps the named
+terms for one. A new group's conditional modes are zero, so its
+curve IS the population curve and what the group costs is spread:
+the band carries the random-effect variance on top of the
+coefficient uncertainty, and the grouping column of the returned
+frame is <code>NA</code> to say which group it is. <code>band = "boot"</code> carries it
+too, by drawing that group's effects once per bootstrap replicate
+rather than by adding a variance. To condition on an OBSERVED
+group, name it in <code>conditions</code> (<code>conditions = list(g = "3")</code>).
+brms draws a new group's random effects afresh from the fitted
+covariance in every posterior draw, so its curve is stochastic
+around this one; a maximum-likelihood fit has the mode and the
+variance instead of draws. The fit surface's
+<code><a href="predict.frmtmb_fit.html">predict.frmtmb_fit()</a></code> spells the same
 setting <code>re.form</code> after lme4; <code>conditional_effects()</code> takes brms's
 name because it is brms's function, and says so if handed the
 other spelling. <code>band = "profile"</code> exists only for the
@@ -217,13 +238,41 @@ values of the second.</p></dd>
 does not store a raw variable (e.g. a variable used only inside
 <code><a href="https://rdrr.io/r/stats/poly.html" class="external-link">poly()</a></code>).</p></dd>
 
+
+<dt id="arg-int-conditions">int_conditions<a class="anchor" aria-label="anchor" href="#arg-int-conditions"></a></dt>
+<dd><p>Named list giving the values one or both
+variables of an effect are evaluated at, in place of the defaults
+(the range of a numeric grid, <code>mean +/- sd</code> for a numeric
+moderator). An element is either the values themselves or a
+function of the observed column, e.g.
+<code>int_conditions = list(z = c(-1, 0, 1))</code> or
+<code>list(z = function(v) quantile(v, c(0.1, 0.9)))</code>. Names on a
+numeric vector become the moderator's <code>effect2__</code> labels. brms's
+argument, with brms's meaning.</p></dd>
+
+
+<dt id="arg-categorical">categorical<a class="anchor" aria-label="anchor" href="#arg-categorical"></a></dt>
+<dd><p>Per-category display for a polytomous family:
+<code>TRUE</code> (the default there) draws one curve per response category
+and keys the effect <code>"x:cats__"</code>, as brms's <code>categorical = TRUE</code>
+does; <code>FALSE</code> draws the expected CATEGORY NUMBER,
+<code>sum(k * p_k)</code>, which is brms's default. Only for an ordinal or
+categorical family with no <code>dpar</code>; a nominal family has no ordered
+categories to average and refuses <code>FALSE</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A named list of data frames (one per effect) with the varied
-variable(s) plus <code>estimate__</code>, <code>se__</code> (link scale), <code>lower__</code>, and
-<code>upper__</code>; printing it draws the plots. An ordinal fit adds a
-<code>cats__</code> column and one block of rows per response category.
+    <p>A named list of data frames (one per effect), in brms's
+column layout: the varied variable(s), then every other model
+variable at the value it is held at, then <code>cond__</code> (the condition
+label, always present), <code>effect1__</code> and, for a two-variable effect,
+<code>effect2__</code> (the moderator as a display label: rounded to two
+decimals, levels descending), then <code>estimate__</code>, <code>se__</code> (on the
+scale the band is symmetric on), <code>lower__</code> and <code>upper__</code>. Printing
+it draws the plots. A polytomous fit adds a <code>cats__</code> column, one
+block of rows per response category, and keys the effect
+<code>"x:cats__"</code>.
 <code>plot(ce, points = TRUE)</code> overlays the raw observations (the brms
 argument), each panel showing only the observations that belong to
 its own condition; see the faceting section. No points are drawn
@@ -272,7 +321,16 @@ the display is per CATEGORY, as brms's <code>categorical = TRUE</code> is: each
 effect data frame gains a <code>cats__</code> factor of the response's own
 levels and carries the fitted category probability in <code>estimate__</code>,
 with one curve per category in the plot (a second predictor gets a
-panel of its own).</p>
+panel of its own). A one-variable effect is keyed <code>"x:cats__"</code> there,
+brms's key for that layout.</p>
+<p>That is the DEFAULT here and it is brms's non-default: brms's own
+default summarizes the categories into an expected category number
+and warns that it is treating an ordered factor as continuous.
+<code>categorical = FALSE</code> asks for that summary anyway, <code>sum(k * p_k)</code>
+with its own delta-method band (the category weights go on the
+gradient, so the covariances between the category probabilities are
+kept), keyed <code>"x"</code> and directly comparable with brms's default
+curve.</p>
 <p><code>se__</code> is then on the probability scale, and the band is a Wald
 interval on the logit of the probability so it cannot leave <code>[0, 1]</code>.
 The standard errors are the delta method over the joint covariance of
@@ -289,9 +347,17 @@ latent linear predictor.</p>
 
 
 <p><code>band</code> picks how <code>lower__</code> and <code>upper__</code> are found. The estimate is
-the same curve in all three cases; only the band changes.</p><ul><li><p><code>"wald"</code> (default, and free): the delta-method standard error on
-the link scale, back-transformed. Symmetric on the link scale by
-construction.</p></li>
+the same curve in all three cases; only the band changes.</p><ul><li><p><code>"wald"</code> (default, and free): the delta-method standard error,
+back-transformed from the scale the band is symmetric on. For the
+ordinary display that scale is the link scale. For the expected
+response of a family whose mean runs through several distributional
+parameters (zero inflation, a hurdle, <code>trials()</code>, truncation) the
+standard error is the delta method over EVERY predictor's
+coefficients jointly, so the cross-parameter covariances are in the
+band; the band's scale is then the <code>mu</code> link's if the mean lives on
+it, the log scale if the mean is positive (so the band cannot cross
+zero), and the response scale otherwise. The two rules agree
+exactly wherever the mean IS the inverse link of <code>mu</code>.</p></li>
 <li><p><code>"profile"</code>: one likelihood-root search (<code><a href="https://rdrr.io/pkg/TMB/man/tmbroot.html" class="external-link">TMB::tmbroot()</a></code>) per grid
 point. A grid point's linear predictor is a linear combination of
 the coefficients, so the search inverts the likelihood ratio along
@@ -300,15 +366,32 @@ through it. The band is not symmetric and does not assume a
 quadratic log-likelihood, which is what makes it worth its cost
 near a boundary or at a small sample size.</p></li>
 <li><p><code>"boot"</code>: percentiles of the grid predictions across the refits of
-ONE <code><a href="frm_bootstrap.html">frm_bootstrap()</a></code> (<code>re.form = NA</code>, the same population-level
-grid). One bootstrap serves every effect, condition set and ordinal
-category of the call; <code>attr(ce, "boot")</code> returns it, and passing it
-back as <code>boot =</code> costs no refits at all.</p></li>
-</ul><p>What <code>se__</code> means follows the band: the Wald standard error (link
+ONE <code><a href="frm_bootstrap.html">frm_bootstrap()</a></code>. One bootstrap serves every effect, condition
+set and ordinal category of the call; <code>attr(ce, "boot")</code> returns
+it, and passing it back as <code>boot =</code> costs no refits at all. Draws
+taken under <code>re_formula = NULL</code> carry a new group's effects and
+draws taken without it do not, so the two are not
+interchangeable and <code>boot =</code> refuses the swap by name rather than
+returning the wrong band.</p></li>
+</ul><p>A Student-t random-effect block enters either band as a GAUSSIAN
+with the t variance, <code>nu / (nu - 2)</code> times the scale matrix: the
+delta method has no other shape to offer, and the bootstrap draws
+the same way so that the two bands stay comparable. It is the right
+variance around a heavier-tailed truth, not the right quantile.</p>
+<p>What <code>se__</code> means follows the band: the Wald standard error (link
 scale, or the probability scale on the ordinal display) for <code>"wald"</code>
 and <code>"profile"</code> - the profile changes the endpoints, not the standard
 error - and the standard deviation of the bootstrap draws, on the
 displayed scale, for <code>"boot"</code>.</p>
+<p>The three bands answer the same question and need not give the same
+interval. Wald and bootstrap agree in the middle of a grid, and the
+remaining difference there is the bootstrap's own Monte Carlo error:
+on a zero-inflated fit the widths differ by 13% at 200 refits and 4%
+at 800. At the ENDS of a grid where the estimate is poorly
+determined they need not converge at all: on a steep zero-inflated
+shape the Wald band stays about 28% wider at 3000 refits, because it
+is symmetric on its own scale and the percentile band is not. The
+point estimate is the same curve either way.</p>
 <p>Cost, and how it is capped. A root search is two constrained
 optimizations, so <code>band = "profile"</code> profiles at most
 <code>profile_points</code> (default 25) of a numeric grid, spread over its

@@ -1,13 +1,9 @@
-# Rows this family answered with a floor rather than with a density
+# Report the deep censored rows and the non-monotone rows of a fit
 
 Two things in
 [`royston_parmar()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
-are floors rather than answers, and both are silent in the fitted
-object: [`logLik()`](https://rdrr.io/r/stats/logLik.html) and
-[`AIC()`](https://rdrr.io/r/stats/AIC.html) report the floored value
-with nothing to say it is floored. This function is where that goes to
-be read, and by default it REFUSES rather than reports, because a fit in
-either region is one whose numbers are not the model's.
+used to be floors rather than answers. One of them is gone; the other
+refuses.
 
 ## Usage
 
@@ -25,13 +21,17 @@ rp_floored(object, action = c("error", "report"), max_nlogS = 19.2)
 
 - action:
 
-  `"error"`, the default, refuses when either floor was used. `"report"`
-  returns the same numbers without refusing.
+  `"error"`, the default, refuses when the MONOTONICITY floor was used.
+  The censored count never refuses under either value; since frmtmb
+  0.52.0 it is a diagnostic. `"report"` returns the same numbers without
+  refusing.
 
 - max_nlogS:
 
-  The largest `-log S` on a censored row that is still scored
-  accurately. The default 19.2 is where `eps / S` passes 1e-8.
+  The `-log S` on a censored row above which the row is reported as
+  barely constrained. The default 19.2 is where the OLD
+  probability-scale arithmetic passed 1e-8 of error; it is kept as the
+  threshold so that the two versions report the same rows.
 
 ## Value
 
@@ -40,29 +40,27 @@ A list with `n_censored_floored`, `max_nlogS`, `threshold`,
 was floored. The offending row indices are the `"rows"` attribute, a
 list with elements `censored` and `nonmonotone`.
 
-## The censored-row floor
+## The censored rows
 
-frmtmb forms a right-censored contribution as `log(1 - F(y))` on the
-probability scale (`R/objective.R:100`), so the scored `log S` carries
-absolute error about `.Machine$double.eps / S`. Past `-log S` of about
-19.2 that error passes 1e-8; past 30 the term is FLAT, its gradient
-exactly zero, and the optimizer prices the row at a constant.
+a report, no longer a floor: Up to frmtmb 0.51.0 core formed a
+right-censored contribution as `log(1 - F(y))` on the probability scale,
+so the scored `log S` carried absolute error about
+`.Machine$double.eps / S`: past `-log S` of about 19.2 that error passed
+1e-8, and past 30 the term was FLAT with a gradient of exactly zero.
 
-The size of the error is a property of the data rather than of the
-family: a floored row contributes -35.127363 instead of its own
-`-log S`, so the reported log likelihood is short by about `-log S - 35`
-per floored row. Two runs of one 600-subject design differing only in
-seed give 2.4e+03 and 2.166e+04, both converged without a warning and
-both with the treatment coefficient out by tens of percent.
+frmtmb 0.52.0 added the `lccdf` slot and this family supplies it, in
+closed form on all three scales, so a right-censored row is scored from
+`log S` directly and no complement is formed. Measured on the hazard
+scale, `-log S = 40` was scored as -35.127363 and is now scored as -40
+exactly.
 
-The quantity checked is `-log S` at the fitted parameters, on every
-censored row. It is one quantity for all three scales: `exp(eta)` on
-`"hazard"`, `log1p(exp(eta))` on `"odds"` and `-log(Phi(-eta))` on
-`"normal"`. On the hazard scale it is the cumulative hazard `H`.
-
-The real fix is a complementary log-CDF slot in core, so that a family
-can hand back `log S` instead of `F`. See `dev/spline-seam-proposal.md`
-in the package sources.
+The count is therefore a DIAGNOSTIC and never refuses. It still says
+something: a censored row whose fitted survival probability is
+`exp(-40)` is one the data barely constrain, whatever the arithmetic
+does. The quantity is `-log S` at the fitted parameters, and it is one
+quantity for all three scales: `exp(eta)` on `"hazard"`,
+`log1p(exp(eta))` on `"odds"` and `-log(Phi(-eta))` on `"normal"`. On
+the hazard scale it is the cumulative hazard `H`.
 
 ## The monotonicity floor
 
@@ -79,18 +77,15 @@ density's.
 
 ## What this cannot do
 
-The refusal is POST-FIT.
 [`logLik()`](https://rdrr.io/r/stats/logLik.html) reads
-`object$opt$objective` directly (`R/methods-fit.R:233-240`) and the
-family protocol has no hook that runs when a fit finishes, so nothing in
-this package can make [`logLik()`](https://rdrr.io/r/stats/logLik.html)
-or [`AIC()`](https://rdrr.io/r/stats/AIC.html) refuse on their own. The
-optimizer may therefore have walked through, or stopped inside, the flat
-region before this function is ever called. Call it on every
-[`royston_parmar()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
-fit whose data carry censoring;
+`object$opt$objective` directly, so a check that runs after the fit
+cannot make [`logLik()`](https://rdrr.io/r/stats/logLik.html) or
+[`AIC()`](https://rdrr.io/r/stats/AIC.html) refuse on their own. What
+frmtmb 0.52.0 does provide is a fit-end hook: this family declares
+`post$fit_check`, so a fit with a non-monotone row warns as it is
+returned rather than only when someone calls this function.
 [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
-and its two companions call it for you.
+and its two companions still call it for you.
 
 ## See also
 

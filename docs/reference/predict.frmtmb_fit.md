@@ -209,7 +209,14 @@ to plot.
 
 ## Standard errors of the expected response
 
-For a family whose mean is the `mu` dpar, `se.fit` on
+For a family whose mean is the `mu` dpar, `se.fit` on A dpar whose
+response scale is not its own link inverse, such as a
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+mixing weight reporting the softmax, takes the delta method through that
+transform with respect to its OWN predictor. That is exact for a
+two-component mixture and conservative for three or more; see
+[`?mixture`](https://aforren1.github.io/frmtmb/reference/mixture.md).
+
 `type = "response"` is the usual one-predictor delta method:
 `|dmu/deta| * se(eta)`.
 

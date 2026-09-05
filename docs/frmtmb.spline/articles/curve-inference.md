@@ -62,8 +62,9 @@ Nothing below is told any of it.
 
 `s(t)` is the population curve and `s(t, subject, bs = "fs")` gives
 every subject its own departure from it, with one shared smoothing
-parameter. This is an ordinary `frm()` call; nothing in this package
-changes how a model is fitted.
+parameter. This is an ordinary
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) call;
+nothing in this package changes how a model is fitted.
 
 ``` r
 
@@ -96,22 +97,22 @@ grid <- data.frame(t = seq(0, 1, length.out = 80))
 cv <- frm_curve(fit, newdata = grid, re.form = NA, nsim = 20000, seed = 1)
 cv
 #> <frmtmb curve> value, 80 grid points, level 0.95
-#>   critical value: pointwise 1.96, simultaneous 2.7281 (mcse 0.012)
-#>   covariance checked against predict(se.fit = TRUE) to 1.11e-15 relative, in 32 predict() calls
+#>   critical value: pointwise 1.96, simultaneous 2.7215 (mcse 0.012)
+#>   covariance checked against predict(se.fit = TRUE) to 2.22e-16 relative
 #>            t  .estimate        .se    .crit   .lower_ci .upper_ci .crit_sim
-#> 1 0.00000000 0.01721029 0.05442608 1.959964 -0.08946286 0.1238834  2.728083
-#> 2 0.01265823 0.01809867 0.05096266 1.959964 -0.08178630 0.1179836  2.728083
-#> 3 0.02531646 0.01926231 0.04757044 1.959964 -0.07397404 0.1124987  2.728083
-#> 4 0.03797468 0.02097641 0.04425974 1.959964 -0.06577109 0.1077239  2.728083
-#> 5 0.05063291 0.02350881 0.04103768 1.959964 -0.05692357 0.1039412  2.728083
-#> 6 0.06329114 0.02711400 0.03791211 1.959964 -0.04719236 0.1014204  2.728083
+#> 1 0.00000000 0.01721029 0.05442608 1.959964 -0.08946286 0.1238834  2.721471
+#> 2 0.01265823 0.01809867 0.05096266 1.959964 -0.08178630 0.1179836  2.721471
+#> 3 0.02531646 0.01926231 0.04757044 1.959964 -0.07397404 0.1124987  2.721471
+#> 4 0.03797468 0.02097641 0.04425974 1.959964 -0.06577109 0.1077239  2.721471
+#> 5 0.05063291 0.02350881 0.04103768 1.959964 -0.05692357 0.1039412  2.721471
+#> 6 0.06329114 0.02711400 0.03791211 1.959964 -0.04719236 0.1014204  2.721471
 #>    .lower_sim .upper_sim
-#> 1 -0.13126859  0.1656892
-#> 2 -0.12093171  0.1571290
-#> 3 -0.11051382  0.1490384
-#> 4 -0.09976785  0.1417207
-#> 5 -0.08844541  0.1354630
-#> 6 -0.07631339  0.1305414
+#> 1 -0.13090873  0.1653293
+#> 2 -0.12059475  0.1567921
+#> 3 -0.11019929  0.1487239
+#> 4 -0.09947521  0.1414280
+#> 5 -0.08817407  0.1351917
+#> 6 -0.07606271  0.1302907
 #>   ... 74 more rows
 ```
 
@@ -132,7 +133,7 @@ correction, and here it is about 2.7 rather than 1.96:
 c(pointwise = cv$.crit[1], simultaneous = cv$.crit_sim[1],
   ratio = cv$.crit_sim[1] / cv$.crit[1])
 #>    pointwise simultaneous        ratio 
-#>     1.959964     2.728083     1.391905
+#>     1.959964     2.721471     1.388531
 ```
 
 The simultaneous critical value is simulated, so it comes with its own
@@ -142,7 +143,7 @@ from someone else’s 2.70:
 ``` r
 
 attr(cv, "check")$crit_mcse
-#> [1] 0.01203202
+#> [1] 0.01239826
 ```
 
 The `"check"` attribute carries one more number, and it is the one that
@@ -154,7 +155,7 @@ exported. The two agree to about twelve significant figures:
 ``` r
 
 attr(cv, "check")$cov_rel_error
-#> [1] 1.110223e-15
+#> [1] 2.220446e-16
 ```
 
 If they ever did not,
@@ -168,7 +169,7 @@ one at a time.
 ``` r
 
 attr(cv, "check")$n_predict
-#> [1] 32
+#> [1] 1
 ```
 
 ``` r
@@ -302,7 +303,7 @@ pk <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = g2,
                         re.form = NA)
 pk
 #> <frmtmb curve feature> maximum, 1 found, level 0.95
-#>   covariance checked against predict(se.fit = TRUE) to 8.88e-16 relative
+#>   covariance checked against predict(se.fit = TRUE) to 0 relative
 #>   .feature .var .estimate         .se .lower_ci .upper_ci   .value  .value_se
 #> 1  maximum    t  0.513161 0.003104161  0.507077 0.5192451 1.012546 0.03321659
 ```
@@ -323,7 +324,7 @@ threshold the profile passes twice gives two rows:
 frm_curve_feature(fit, var = "t", type = "crossing", at = 0.2,
                   newdata = g2, re.form = NA)
 #> <frmtmb curve feature> crossing, 2 found, level 0.95
-#>   covariance checked against predict(se.fit = TRUE) to 1.55e-15 relative
+#>   covariance checked against predict(se.fit = TRUE) to 2.22e-16 relative
 #>   .feature .var .estimate         .se .lower_ci .upper_ci .value  .value_se
 #> 1 crossing    t 0.2150498 0.008193858 0.1989901 0.2311095    0.2 0.01710815
 #> 2 crossing    t 0.8101015 0.008411763 0.7936148 0.8265883    0.2 0.01828822

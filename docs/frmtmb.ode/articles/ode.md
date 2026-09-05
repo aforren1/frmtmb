@@ -7,8 +7,7 @@ from it; a population grows and is eaten.
 puts such a system inside a nonlinear formula, so the constants of the
 system are ordinary nonlinear parameters with fixed effects, random
 effects and covariates, and the model is fitted by maximum likelihood
-like any other
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) model.
+like any other `frm()` model.
 
 ## Setup
 
@@ -158,8 +157,7 @@ c(ka = ka, ke = ke, V = V,
 
 Everything downstream works as usual:
 [`predict()`](https://rdrr.io/r/stats/predict.html) on new times,
-[`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.html) for
-the subject deviations,
+`ranef()` for the subject deviations,
 [`confint()`](https://rdrr.io/r/stats/confint.html),
 [`simulate()`](https://rdrr.io/r/stats/simulate.html), `REML = TRUE`.
 
@@ -653,11 +651,9 @@ model is proportional plus additive,
 \mathrm{sd} = \sqrt{a^2 + (b\,\mu)^2},
 ```
 
-which [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.html)
-writes directly, because an
-[`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.html) body may
-read another parameter’s per-row value. `sigma` is reported on the log
-scale, so the body is half the log of the variance:
+which `nlf()` writes directly, because an `nlf()` body may read another
+parameter’s per-row value. `sigma` is reported on the log scale, so the
+body is half the log of the variance:
 
 ``` r
 
@@ -671,10 +667,8 @@ bf(conc ~ frm_ode(pk_dyn, init = list(dose, 0), times = time,
 
 `exp(ladd)` is the additive component and `exp(lprop)` the proportional
 one, both on the log scale so both stay positive. This needs no new
-machinery: it is
-[`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.html) plus the
-ODE body, and the two components come back separately in
-[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.html).
+machinery: it is `nlf()` plus the ODE body, and the two components come
+back separately in `fixef()`.
 
 ## Three things that will bite
 
@@ -739,9 +733,8 @@ means: do not try to fold the subjects into the state vector yourself.
 The tape is built once, but every gradient evaluation replays one
 adjoint solve per group, so the cost is linear in the number of groups
 and does not shrink with tape reuse. For the two-state model above,
-eight timepoints per subject, a whole
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) call
-including `sdreport()`:
+eight timepoints per subject, a whole `frm()` call including
+`sdreport()`:
 
 | subjects | rows | with [`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md) | with the closed form |
 |----|----|----|----|
@@ -844,7 +837,5 @@ Numerically it will name the group that cannot be solved.
 
 Solver warnings from **deSolve** (“corrector convergence failed
 repeatedly”, “exceeded maxsteps”) during a fit are normal noise from
-those probing steps. Judge the fit by
-[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.html)
-and the gradient at the optimum, not by whether the solver complained on
-the way.
+those probing steps. Judge the fit by `diagnose()` and the gradient at
+the optimum, not by whether the solver complained on the way.

@@ -144,6 +144,18 @@ by rejection. The drawn values come back as `attr(result, "pars")`, one
 row per simulation, so a prior-predictive check can relate parameters to
 outcomes.
 
+That table reports each parameter on the scale `newparams` names it on,
+which for `Intercept` is the intercept at ZERO. A `class = "Intercept"`
+prior is a density on the intercept at the MEAN of the predictors (see
+the Where an intercept prior lands section of
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)),
+so on a design with uncentered predictors the number drawn and the
+number reported differ by `colMeans(X)` times the slopes. Reporting the
+written value is what lets a `pars` row be handed straight back as
+`newparams`. A prior on a distributional parameter's own brms class is
+likewise drawn on that parameter and reported there, not on its link
+scale.
+
 Parameters without a prior keep their `newparams` value. Whenever
 `prior` are used, or `newparams` uses the natural spelling, every fixed
 coefficient and every random-effect SD must be pinned by one or the
@@ -199,8 +211,8 @@ pp <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
                    nsim = 4, seed = 1)
 head(attr(pp, "pars"))
 #>            x  Intercept sd_g__Intercept sigma_Intercept
-#> 1 -0.6264538  0.3672866       1.9997498       0.4580301
-#> 2  0.4755095 -1.4198929       0.4586192       0.8145358
-#> 3 -1.9143594  2.3531666       3.3072809       1.4953203
-#> 4  0.5101084 -0.3287517       0.3260219       1.5316271
+#> 1 -0.6264538  3.1311986       0.1457067       0.1397953
+#> 2  0.4755095 -2.4622073       1.5652413       0.8145358
+#> 3  1.1765833 -0.8155673       3.3072809       1.4953203
+#> 4 -0.1643758 -0.8160698       0.3260219       1.5316271
 ```

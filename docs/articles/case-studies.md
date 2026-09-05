@@ -1766,14 +1766,14 @@ starts and the optimizer.
 
 ### The harder cases, and where they went
 
-A drift-diffusion model sat in this slot until frmtmb.ddm existed: a
+A drift-diffusion model sat in this slot until frmtmb.eam existed: a
 first-passage density written as a series, a boundary indicator arriving
 through `vint()`, and a non-decision time bounded exactly as the shift
 is above. That family is a package now, and the package does the density
 better than a case study did.
-[`vignette("ddm", package = "frmtmb.ddm")`](https://aforren1.github.io/frmtmb/frmtmb.ddm/articles/ddm.html)
+[`vignette("ddm", package = "frmtmb.eam")`](https://aforren1.github.io/frmtmb/frmtmb.eam/articles/ddm.html)
 is the worked model, and
-[`frmtmb.ddm::wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.html)
+[`frmtmb.eam::wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html)
 is the family.
 
 Two lessons live there rather than here:
@@ -1963,6 +1963,254 @@ periodic covariate enters through a cyclic basis as above. And the
 ends of the link’s range too, so a phenomenon centered near `pi` should
 be rotated to the middle of the interval before fitting.
 
+## 13. A warped population growth curve
+
+The models above all add a smooth to a linear predictor. This one does
+not: it estimates ONE population curve and lets each child see it
+shifted along its own time axis, which is a semiparametric nonlinear
+mixed-effects model (SNMM) in the sense of Ke and Wang (2001). The
+version fitted here is D’Alessandro, Thoresen and Sorensen (2026,
+arXiv:2603.11728), who apply it to infant height in the first two years
+of life:
+
+``` math
+\mathrm{hgt}_{ij} = \beta_0 + \beta_1 \mathrm{sex}_i + b_{1i}
+  + e^{\beta_2 \mathrm{sex}_i}\,
+    f(\mathrm{age}_{ij} + \beta_3 \mathrm{GA}_i + b_{2i}) + \epsilon_{ij}
+```
+
+with $`b_i \sim N(0, \mathrm{diag}(\sigma_{b1}^2, \sigma_{b2}^2))`$ and
+$`\epsilon \sim N(0, \sigma^2)`$. `f` is the population growth curve,
+$`b_{1i}`$ moves a child up or down, $`b_{2i}`$ moves it earlier or
+later along the age axis, and $`\beta_3`$ says how much of that timing
+shift a week of gestational age buys.
+
+Nothing in `s(x)` can express this. A penalized smooth’s basis is
+evaluated at a COLUMN, so the frame can build `Z` once and the objective
+adds `Z b` to a predictor. Here the spline’s argument contains `b_{2i}`,
+which is a parameter, so there is no fixed `Z` to build: the basis has
+to be evaluated on the tape, at a point the fit moves.
+[`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) is the term
+for that. It is admitted only inside a nonlinear body, it evaluates to
+the spline’s VALUE rather than adding itself to anything, and it carries
+the same mixed-model split `s()` does: the null space of the
+second-difference penalty joins the fixed coefficients and the range
+space becomes one random-effect block whose single variance is the
+inverse smoothing parameter.
+
+The data are `brokenstick::smocc_200`: 1942 height measurements on 200
+Dutch children, 6 to 12 each. Age goes in as weeks so that $`\beta_3`$
+is a shift in weeks per week of gestation, and gestational age is
+centered at 40.
+
+``` r
+
+raw <- brokenstick::smocc_200
+smocc <- data.frame(
+  id  = factor(raw$id),
+  age = 52.1775 * raw$age,          # years to weeks
+  sex = as.numeric(raw$sex == "male"),
+  ga  = raw$ga - 40,                # weeks from term
+  hgt = raw$hgt)
+smocc <- smocc[!is.na(smocc$hgt), ]
+smocc$id <- droplevels(smocc$id)
+c(rows = nrow(smocc), children = nlevels(smocc$id))
+```
+
+``` r
+
+fit_smocc <- frm(
+  bf(hgt ~ int + exp(amp) * ps(age + shift, k = 15, pad = 0.25),
+     int   ~ sex + (1 | id),
+     amp   ~ 0 + sex,
+     shift ~ 0 + ga + (1 | id),
+     nl = TRUE),
+  data = smocc, family = gaussian(),
+  start = list(beta = c(68, 2, 0, 1, 0)))
+fixef(fit_smocc)[c("int", "amp", "shift")]
+VarCorr(fit_smocc)
+```
+
+`k = 15` is the paper’s cubic basis with 11 interior knots. `pad = 0.25`
+widens the range the knots are placed on before they are frozen: the
+spline is evaluated at `age + shift`, the fitted shift SD is over three
+weeks, and the basis is exactly zero outside its knot span, so the
+padding has to cover where the fit will actually look.
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) reports at
+the end how many rows fell outside it, and
+[`predict()`](https://rdrr.io/r/stats/predict.html) reports it again for
+a grid that leaves the span.
+
+The knot RULE is not the paper’s, and this section is not a
+reimplementation of it. The paper’s section 2.3.1 rescales the spline
+argument to `[0, 1]` between bounds that move with the current variance
+estimates, so its knots follow the fit;
+[`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) freezes
+knots on a padded data range, because moving knots make the penalty
+matrix and its eigendecomposition functions of the parameters and
+because a basis rebuilt between fitting and prediction is a different
+basis. The two are related constructions that agree on this application.
+See [`?ps`](https://aforren1.github.io/frmtmb/reference/ps.md).
+
+The estimates against the paper’s Table 1:
+
+``` r
+
+fx <- fixef(fit_smocc)
+vc <- VarCorr(fit_smocc)
+got <- c(beta0 = fx$int[["(Intercept)"]], beta1 = fx$int[["sex"]],
+         beta2 = fx$amp[["sex"]],         beta3 = fx$shift[["ga"]],
+         sd_b1 = sqrt(as.numeric(vc[["int: 1 | id"]])[1]),
+         sd_b2 = sqrt(as.numeric(vc[["shift: 1 | id"]])[1]),
+         sigma = exp(fx$sigma[["(Intercept)"]]))
+paper <- c(beta0 = 68.2, beta1 = 1.80, beta2 = 0.00, beta3 = 1.00,
+           sd_b1 = 2.86, sd_b2 = 3.28, sigma = 1.05)
+round(cbind(frmtmb = got, paper = paper, difference = got - paper), 3)
+```
+
+Six of the seven agree to the published precision. The intercept is 0.55
+cm higher, and that is an identifiability convention rather than a
+disagreement.
+[`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) constrains
+the spline’s COEFFICIENTS to sum to zero. The paper says only that it
+applies “a sum-to-zero constraint to ensure identifiability of an
+intercept term” and does not say on what, so the right thing to do is
+measure rather than attribute: re-centering the curve to its own fitted
+values moves the intercept onto the published one.
+
+``` r
+
+pt <- fit_smocc$frame$linpreds[["hgt.mu"]]$ps_terms[[1]]
+bk <- fit_smocc$frame$re_blocks[[pt$block_id]]
+p <- fit_smocc$estimates
+bn <- names(fit_smocc$frame$par_template$beta)
+gam <- as.vector(pt$U0 %*% p$beta[pt$beta_idx] + pt$Us %*% p$b[bk$b_idx])
+arg <- smocc$age + p$beta[match("shift_ga", bn)] * smocc$ga +
+  p$b[fit_smocc$frame$re_blocks[[2]]$b_idx][as.integer(smocc$id)]
+curve_at_data <- as.vector(
+  splines::splineDesign(pt$knots, arg, ord = pt$ord,
+                        outer.ok = TRUE) %*% gam)
+c(beta0 = p$beta[match("int_(Intercept)", bn)],
+  recentred = p$beta[match("int_(Intercept)", bn)] + mean(curve_at_data),
+  paper = 68.2)
+```
+
+Whatever the paper’s constraint was, the two intercepts describe the
+same fitted surface to 0.002 cm once the curve is centered the same way.
+Nothing that depends on the curve’s SHAPE moves with the convention at
+all.
+
+The likelihood is checked against the paper’s equations written out in
+plain R, with the basis taken from
+[`splines::splineDesign()`](https://rdrr.io/r/splines/splineDesign.html)
+rather than from the branch-free construction the objective tapes:
+
+``` r
+
+lp <- fit_smocc$frame$linpreds[["hgt.mu"]]
+pt <- lp$ps_terms[[1]]
+bk <- fit_smocc$frame$re_blocks[[pt$block_id]]
+bn <- names(fit_smocc$frame$par_template$beta)
+p  <- fit_smocc$estimates
+
+gamma <- as.vector(pt$U0 %*% p$beta[pt$beta_idx] + pt$Us %*% p$b[bk$b_idx])
+arg <- smocc$age + p$beta[match("shift_ga", bn)] * smocc$ga +
+  p$b[fit_smocc$frame$re_blocks[[2]]$b_idx][as.integer(smocc$id)]
+f_hat <- as.vector(splines::splineDesign(pt$knots, arg, ord = pt$ord,
+                                         outer.ok = TRUE) %*% gamma)
+mu <- p$beta[match("int_(Intercept)", bn)] +
+  p$beta[match("int_sex", bn)] * smocc$sex +
+  p$b[fit_smocc$frame$re_blocks[[1]]$b_idx][as.integer(smocc$id)] +
+  exp(p$beta[match("amp_sex", bn)] * smocc$sex) * f_hat
+
+blk <- function(i) fit_smocc$frame$re_blocks[[i]]
+ref <- sum(dnorm(smocc$hgt, mu, exp(p$betad[1]), log = TRUE)) +
+  sum(dnorm(p$b[blk(1)$b_idx], 0, exp(p$theta[blk(1)$theta_idx]),
+            log = TRUE)) +
+  sum(dnorm(p$b[blk(2)$b_idx], 0, exp(p$theta[blk(2)$theta_idx]),
+            log = TRUE)) +
+  sum(dnorm(p$b[bk$b_idx], 0, exp(p$theta[bk$theta_idx]), log = TRUE))
+joint <- -frmtmb:::build_objective(fit_smocc$frame)(p)
+c(frmtmb = joint, reference = ref, difference = joint - ref)
+stopifnot(abs(joint - ref) < 1e-8)
+```
+
+### The curve, with a band
+
+`predict(se.fit = TRUE)` refuses a nonlinear predictor, and it is right
+to: the map from coefficients to `eta` is not a design matrix there, it
+is a Jacobian.
+[`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md)
+is the route. It tapes the body against every coefficient the body
+reaches through, including the
+[`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) block’s own,
+and returns that Jacobian with the joint covariance at exactly the rows
+its columns sit at.
+
+``` r
+
+grid <- data.frame(age = seq(0, 130, length.out = 120), sex = 0, ga = 0,
+                   id = factor(levels(smocc$id)[1], levels(smocc$id)))
+lb <- frm_lp_basis(fit_smocc, newdata = grid, re.form = NA)
+se <- sqrt(pmax(rowSums((lb$A %*% lb$V) * lb$A), 0))
+band <- data.frame(age = grid$age, fit = lb$eta,
+                   lo = lb$eta - 1.96 * se, hi = lb$eta + 1.96 * se)
+head(round(band, 3), 3)
+```
+
+The whole grid’s covariance, `A V A'`, is what a SIMULTANEOUS band
+needs, and
+[`frmtmb.spline::frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.html)
+builds one from the same two objects. It refused a nonlinear body until
+this seam existed.
+
+``` r
+
+cv <- frmtmb.spline::frm_curve(fit_smocc, newdata = grid, re.form = NA,
+                               nsim = 5000, seed = 1)
+print(cv)
+```
+
+``` r
+
+tinyplot::tinyplot(hgt ~ age, data = smocc[smocc$id %in%
+                     levels(smocc$id)[1:40], ],
+                   type = "p", col = "grey70", cex = 0.4,
+                   xlab = "age (weeks)", ylab = "height (cm)",
+                   main = "SMOCC: population growth curve")
+tinyplot::tinyplot_add(hi ~ age, data = band, type = "l", lty = 2)
+tinyplot::tinyplot_add(lo ~ age, data = band, type = "l", lty = 2)
+tinyplot::tinyplot_add(fit ~ age, data = band, type = "l", lwd = 2)
+```
+
+### What a `ps()` block refuses
+
+`REML = TRUE`, `quadrature = TRUE`, `frmtmb_control(profile = TRUE)` and
+multivariate models are refused by name. The first three integrate out
+something the block has already put inside the Laplace approximation;
+the fourth is untested rather than known to be wrong, and is refused for
+that reason. The importance correction refuses every nonlinear predictor
+already, so a
+[`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) block inside
+one is refused by that guard rather than by a new one.
+
+``` r
+
+try(frm(bf(hgt ~ int + ps(age, k = 8), int ~ 1, nl = TRUE),
+        data = smocc[1:200, ], family = gaussian(), REML = TRUE))
+```
+
+The basis itself is a divided difference of truncated powers written
+branch free, because RTMB refuses
+[`pmax()`](https://rdrr.io/r/base/Extremes.html) on an AD type and
+exports no `CondExp`, so the recursive Cox-de Boor form is unavailable.
+It agrees with
+[`splines::splineDesign()`](https://rdrr.io/r/splines/splineDesign.html)
+to 3.1e-13 absolute at `k = 12` and 1.8e-11 at `k = 40`, and the error
+grows like `k^(degree - 1)` because a divided difference cancels terms
+of order `(range / spacing)^degree`. `k` above 50 is refused for that
+reason. See [`?ps`](https://aforren1.github.io/frmtmb/reference/ps.md).
+
 ## Where the checks live
 
 Every cross-check on this page runs when the page is built, and the
@@ -2008,6 +2256,18 @@ and each one is handled above:
   residual is a subtraction. Section 9 draws its figure that way, and
   reads the other level of the same model out of
   [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md).
+- `predict(se.fit = TRUE)` refuses a nonlinear predictor, and a
+  [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) curve is
+  one.
+  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md)
+  is the route: it returns `d eta / d coef` as a Jacobian, taped rather
+  than perturbed, together with the joint covariance at the rows its
+  columns sit at. Section 13 draws its band that way.
+- A [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) basis is
+  FROZEN on the padded range of its argument at data time, with every
+  nonlinear parameter at zero, and it is exactly zero outside that span.
+  `pad =` is what covers the distance the fit then moves; a fit reports
+  how many rows it left behind.
 
 Some models on this page are refused by parts of the post-fitting
 surface, and the refusals are deliberate. A term built on matrix columns
@@ -2025,7 +2285,7 @@ as the next two studies in the tour.
   fits a hidden Markov model to an animal track, cross-checks it against
   hmmTMB and depmixS4, and lists what a likelihood that does not
   factorize over the rows refuses.
-- [`vignette("ddm", package = "frmtmb.ddm")`](https://aforren1.github.io/frmtmb/frmtmb.ddm/articles/ddm.html)
+- [`vignette("ddm", package = "frmtmb.eam")`](https://aforren1.github.io/frmtmb/frmtmb.eam/articles/ddm.html)
   fits the drift-diffusion first-passage density of section 11, and
   measures the two ways of truncating its series.
 

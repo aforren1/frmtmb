@@ -36,7 +36,8 @@ likelihood-ratio tests, AIC).
   `REML = TRUE` replaces priors as the small-sample correction for
   variance components.
 
-- A `prior = c(prior(...), prior(...))` argument is kept as it stands.
+- A `prior = c(prior(...), prior(...))` argument is kept as it stands,
+  and so is `prior = get_prior(...)`.
   [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) spells
   the argument `prior`, as brms does, and
   [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md),
@@ -49,6 +50,13 @@ likelihood-ratio tests, AIC).
   [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md) was
   in scope.
 
+  A row applies whatever its `prior` string says. That is brms’s own
+  rule, and it means a table edited in place, the ordinary
+  `gp <- get_prior(...); gp$prior[i] <- "normal(0, 20)"` workflow, is
+  honored. Earlier releases keyed the decision on the table’s `source`
+  column, which brms does not update after such an edit, so the edited
+  row was dropped.
+
   What the fit MEANS changes. `frm(prior = )` is MAP: the density is a
   PENALTY on the likelihood and the answer is one mode, not a posterior,
   so the reported log likelihood, AIC and
@@ -59,9 +67,43 @@ likelihood-ratio tests, AIC).
   guarantee, and the two numbers are not the same quantity. Read a prior
   here as regularization.
 
-  A prior class frmtmb cannot mean the same way brms does (`sigma`,
-  brms’s mixture `theta`) is refused by name rather than translated into
-  something else.
+  Where a prior LANDS is brms’s placement, class by class. A density on
+  `sigma`, `shape`, `phi`, `nu` or another distributional parameter is a
+  density on that parameter itself, as in brms, rather than on its
+  logarithm; a `class = "Intercept"` density is evaluated at the
+  intercept at the MEAN of the predictors, which is the one brms
+  constrains; and an ordinal family’s `class = "Intercept"` reaches the
+  thresholds. On four of the shapes measured against Stan, frmtmb’s
+  penalized objective is now brms’s posterior density up to one `log(2)`
+  per lower-bounded parameter, a constant that moves no mode.
+
+  **One divergence remains, and it is in frmtmb’s own spelling rather
+  than in the translation.**
+  `set_prior("student_t(3, 0, 2.5)", class = "Intercept", dpar = "sigma")`
+  means a density on LOG sigma here, and keeps that meaning; the same
+  row written brms’s way,
+  `prior(student_t(3, 0, 2.5), class = "sigma")`, means a density on
+  sigma. Port the brms spelling rather than rewriting it by hand: the
+  link spelling captures about 35 percent of the intended shift on a fit
+  with sigma near 0.135, and effectively none of it where brms’s
+  data-derived scale is large.
+
+  A prior class frmtmb keeps somewhere else (brms’s mixture `theta`,
+  `simo`, `sds`, `sdgp`, `lscale`, `sdcar`, `car`) is refused by name,
+  with the class that reaches the same parameters where one exists,
+  rather than translated into something else. So is a `coef` on a `sd`
+  or `cor` row: frmtmb addresses a whole random-effect block there, and
+  applying a narrowed row without its `coef` would put the density on
+  every standard deviation of the block.
+
+  Because rows now apply, such a row in a
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  table stops the call where it used to be dropped in silence: on a
+  model with `s()`, `gp()`, `mo()` or `car()`, blank that row or write
+  the frmtmb class the message names. Every refused row of a table is
+  named in one message, so one edit round is enough. Of 20 shapes a brms
+  user would actually write, 3 stop: `s()`, `gp()` and `mo()`. The rest
+  translate, zero-inflated, hurdle and negbinomial models included.
 
 - A prior with a location DOES place a nonlinear start. brms uses its
   priors to place its sampler, and
@@ -429,7 +471,11 @@ the stats/lme4 spelling for standard generics:
   latent linear predictor is `predict(type = "link")`.
 - [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
   on an ordinal fit draws one probability curve per response category,
-  which is what brms draws under `categorical = TRUE`.
+  which is what brms draws under `categorical = TRUE`, and keys the
+  effect `"x:cats__"` as brms does there. It is the default here because
+  brms’s own default warns that it is treating an ordered factor as
+  continuous; `categorical = FALSE` asks for that summary, the expected
+  category number.
 - [`coef()`](https://rdrr.io/r/stats/coef.html) is the per-group
   convention shared by all three packages: fixed effects plus
   conditional modes per grouping level.

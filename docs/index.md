@@ -128,7 +128,7 @@ way and each documented on its own part of the site.
 | [frmtmb.sample](https://aforren1.github.io/frmtmb/frmtmb.sample/) | NUTS sampling through tmbstan, and the posterior method surface |
 | [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()` and `lca()` |
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
-| [frmtmb.ddm](https://aforren1.github.io/frmtmb/frmtmb.ddm/) | response-time models: `wiener()`, `gddm()`, and the racing `lba()` |
+| [frmtmb.eam](https://aforren1.github.io/frmtmb/frmtmb.eam/) | evidence accumulation models: `wiener()`, `gddm()`, `lba()`, `rdm()` and `wiener_gng()` |
 | [frmtmb.spline](https://aforren1.github.io/frmtmb/frmtmb.spline/) | curve inference on any fitted smooth, and the flexible parametric survival family `royston_parmar()` |
 
 ``` r
@@ -136,7 +136,7 @@ way and each documented on its own part of the site.
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.sample")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.latent")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
-remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ddm")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.eam")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.spline")
 ```
 
@@ -273,7 +273,7 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   class analysis with class-membership regression. `frmtmb.ode` adds
   `frm_ode()`, which solves compartment models inside nonlinear formulas
   (population pharmacokinetics), with repeated dosing, infusions, and
-  estimated bioavailability. `frmtmb.ddm` adds `wiener()`, the
+  estimated bioavailability. `frmtmb.eam` adds `wiener()`, the
   drift-diffusion first-passage density, with a formula for each of the
   drift rate, boundary separation, non-decision time and starting bias,
   and Ratcliff’s across-trial variability as three more; `gddm()`, the
@@ -364,7 +364,7 @@ frmtmb is maturing. The package is not yet on CRAN.
   [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
   and the registration functions are documented as one contract, and the
   companion packages in this repository are written against it with no
-  reach into internals. `frmtmb.ddm` was built that way as a test of it.
+  reach into internals. `frmtmb.eam` was built that way as a test of it.
   Each companion package pins the core version it needs, and the pin
   moves when the interface does.
 - **Internal structure can change.** Fields of the fitted object that no

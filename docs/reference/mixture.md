@@ -2,11 +2,17 @@
 
 `mixture(fam1, fam2, ...)` builds a K-component mixture: each component
 keeps its own distributional parameters, suffixed by the component index
-(`mu1`, `sigma1`, `mu2`, ...), and the mixing proportions come from
-`theta1 ... theta{K-1}` (multinomial-logit against the last component,
-each with its own linear predictor - so mixing weights may depend on
-covariates). The main model formula applies to every component mean;
-override per component with `bf(y ~ x, mu2 ~ 1)`.
+(`mu1`, `sigma1`, `mu2`, ...), and the mixing A mixing weight's RESPONSE
+scale is the softmax over the component predictors, so
+`predict(type = "response", dpar = "theta1")` is a probability while
+`type = "link"` stays the predictor the density works on. Under
+`se.fit = TRUE` that probability's standard error is the delta method
+through its OWN predictor, `p (1 - p)` times the predictor's standard
+error. For two components that is exact. For three or more the softmax
+also moves with the other components' predictors, and those terms are
+dropped, so the standard error is CONSERVATIVE: measured 5.5% to 26.1%
+wider than the joint delta method on a three-component fit, never
+narrower.
 
 ## Usage
 
@@ -29,6 +35,11 @@ mixture(..., groups = NULL)
 A `frmtmb_family`.
 
 ## Details
+
+proportions come from `theta1 ... theta{K-1}` (multinomial-logit against
+the last component, each with its own linear predictor - so mixing
+weights may depend on covariates). The main model formula applies to
+every component mean; override per component with `bf(y ~ x, mu2 ~ 1)`.
 
 The likelihood is a parameter-branch-free logsumexp, so Laplace
 machinery is untouched; the usual finite-mixture ML caveats apply

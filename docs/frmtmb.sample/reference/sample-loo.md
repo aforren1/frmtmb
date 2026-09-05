@@ -146,6 +146,9 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess
+#> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#tail-ess
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 0.8, 2.5)
 #>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
@@ -157,11 +160,9 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#> Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-#> Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
-#>   model elpd_diff se_diff p_worse diag_diff       diag_elpd
-#>  model1       0.0     0.0      NA           3 k_psis > 0.58
-#>  model2      -5.2     2.9    0.96   N < 100                
+#>   model elpd_diff se_diff p_worse diag_diff diag_elpd
+#>  model1       0.0     0.0      NA                    
+#>  model2      -5.8     2.9    0.98   N < 100          
 #> 
 #> Diagnostic flags present.
 #> See ?`loo-glossary` (sections `diag_diff` and `diag_elpd`)

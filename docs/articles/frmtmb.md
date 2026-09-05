@@ -182,10 +182,17 @@ c(smooth = AIC(fs), gp = AIC(fg))
 matrix, with brms’s spelling and all four of its types. `M` is a
 symmetric binary adjacency matrix whose dimnames name the locations,
 `gr` is the grouping variable that maps observations onto them, and
-`type` is one of `"escar"` (the proper CAR, default), `"icar"` and its
-alias `"esicar"` (intrinsic), or `"bym2"` (the scaled mixture of a
-spatial and an unstructured part). `sd(car)` is the field scale; `escar`
-and `bym2` add a mixing parameter on `(0, 1)`, reported by
+`type` names the field:
+
+| `type` | field | sum-to-zero constraint |
+|----|----|----|
+| `"escar"` | proper CAR, `Q = tau (D - rho W)` (default) | none, and none is needed |
+| `"esicar"` | intrinsic CAR, `Q = tau (D - W)` | exact |
+| `"icar"` | the same intrinsic CAR | soft, at scale `con_sd` |
+| `"bym2"` | scaled mixture of a spatial and an unstructured part | soft, at scale `con_sd` |
+
+`sd(car)` is the field scale; `escar` and `bym2` add a mixing parameter
+on `(0, 1)`, reported by
 [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
 under brms’s names `car` and `rhocar`.
 
@@ -215,12 +222,44 @@ confint_varcorr(fc)
 #> 2 car(W, gr = loc, type = "escar")     car prop 0.951133 0.5172424 0.9971797
 ```
 
-An intrinsic CAR is improper - the field is identified only up to a
-constant per connected component - so `icar`, `esicar` and `bym2` add
-brms’s soft sum-to-zero constraint, whose scale is `con_sd` (brms’s
-`1e-3` by default, relative to the field’s own sd). Tightening it walks
-the fit onto the exactly constrained likelihood; the default is already
-four orders below the standard error of `sd(car)`.
+An intrinsic CAR is improper: the field is identified only up to a
+constant per connected component, so something has to pin that constant
+down. `esicar` and `icar` are the two answers, and they are two
+different models here as they are in brms.
+
+`esicar` imposes the constraint exactly. The field the linear predictor
+sees sums to zero within every connected component to machine precision,
+and the likelihood is normalized by the pseudo-determinant. This is the
+model brms writes as `Nloc - 1` free values with the last set to minus
+their sum.
+
+`icar` imposes it softly, through the term brms writes as
+`normal(sum(zcar) | 0, con_sd * Nloc)` on the field standardized by its
+own sd. `con_sd` defaults to brms’s `1e-3`. The soft constraint is the
+same model as an extra random intercept of sd `con_sd * sd(car)`, so it
+sits a little below `esicar`: on a 4 by 4 lattice the gap is `4e-4` in
+the log-likelihood and `3e-5` relative in `sd(car)`, four orders below
+that parameter’s own standard error. Each decade of `con_sd` buys two
+more digits, at some cost in optimizer robustness.
+
+Because `esicar` constrains exactly, `con_sd` does not change what it
+fits: the likelihood, the estimates and `sd(car)` are all invariant to
+it. It is not inert everywhere, though. The coordinate it scales is
+carried into the standard errors from `predict(se.fit = TRUE)` and the
+conditional standard deviations from `ranef(condVar = TRUE)`, as
+`con_sd^2` in the variance. At the default that is `1.3e-5` relative,
+far below any digit worth reporting, but it grows a hundredfold per
+decade, so `con_sd = 0.1` would inflate those standard errors by about a
+tenth. Leave `con_sd` at its default on an `esicar` term.
+
+All three constrained types differ from brms in one way that only shows
+on a disconnected adjacency matrix: frmtmb constrains each connected
+component, brms constrains the global sum. On a connected graph, which
+is the usual case, the two are the same constraint.
+
+Under frmtmb 0.51.0 and earlier, `esicar` selected the `icar` model.
+Refit an `esicar` model to get the constrained one, or spell the term
+`icar` to keep what you had.
 
 `spde()` fits a Matern field over a finite-element mesh: it takes the
 mesh’s three matrices
@@ -363,10 +402,10 @@ pp <- frm_simulate(form, dd, nsim = 50, seed = 2,
                                dpar = "sigma"))
 pars <- attr(pp, "pars")
 head(pars, 3)
-#>            x   Intercept sd_g__Intercept sigma_Intercept
-#> 1 -0.8969145  0.36969837      0.08952618      0.96788388
-#> 2 -0.5431617 -0.03157483      1.43689377      1.89509840
-#> 3  0.6668503  1.54729045      1.12473222     -0.03551988
+#>             x Intercept sd_g__Intercept sigma_Intercept
+#> 1 -0.89691455  3.267664     0.146652670      -0.9618920
+#> 2  1.36691810  4.070181     0.867184124       0.7864103
+#> 3 -0.04712552  1.338871     0.003779148      -2.0074329
 # does the prior imply plausible data? slope against outcome spread
 plot(pars$x, apply(pp, 2, sd), xlab = "slope", ylab = "sd(y)")
 ```

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,7 @@
 <li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
+    <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
@@ -45,7 +46,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
-<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
@@ -225,12 +226,19 @@ posterior. <code>REML = TRUE</code> replaces priors as the small-sample
 correction for variance components.</p></li>
 <li>
 <p>A <code>prior = c(prior(...), prior(...))</code> argument is kept
-as it stands. <code><a href="../reference/frm.html">frm()</a></code> spells the argument <code>prior</code>,
-as brms does, and <code><a href="../reference/prior.html">prior()</a></code>, <code><a href="../reference/prior.html">prior_()</a></code> and
+as it stands, and so is <code>prior = get_prior(...)</code>.
+<code><a href="../reference/frm.html">frm()</a></code> spells the argument <code>prior</code>, as brms does,
+and <code><a href="../reference/prior.html">prior()</a></code>, <code><a href="../reference/prior.html">prior_()</a></code> and
 <code><a href="../reference/prior.html">prior_string()</a></code> build the same specification
 <code><a href="../reference/set_prior.html">set_prior()</a></code> does; a prior object that brms itself built is
 translated row by row, so the argument works whichever package’s
 <code><a href="../reference/prior.html">prior()</a></code> was in scope.</p>
+<p>A row applies whatever its <code>prior</code> string says. That is
+brms’s own rule, and it means a table edited in place, the ordinary
+<code>gp &lt;- get_prior(...); gp$prior[i] &lt;- "normal(0, 20)"</code>
+workflow, is honored. Earlier releases keyed the decision on the table’s
+<code>source</code> column, which brms does not update after such an
+edit, so the edited row was dropped.</p>
 <p>What the fit MEANS changes. <code>frm(prior = )</code> is MAP: the
 density is a PENALTY on the likelihood and the answer is one mode, not a
 posterior, so the reported log likelihood, AIC and <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code>
@@ -239,9 +247,45 @@ weak: a kidney model with brms’s own priors gives
 <code>sd(patient)</code> 0.38 against brms’s posterior mean of 0.40. But
 “close” is a measurement, not a guarantee, and the two numbers are not
 the same quantity. Read a prior here as regularization.</p>
-<p>A prior class frmtmb cannot mean the same way brms does
-(<code>sigma</code>, brms’s mixture <code>theta</code>) is refused by
-name rather than translated into something else.</p>
+<p>Where a prior LANDS is brms’s placement, class by class. A density on
+<code>sigma</code>, <code>shape</code>, <code>phi</code>,
+<code>nu</code> or another distributional parameter is a density on that
+parameter itself, as in brms, rather than on its logarithm; a
+<code>class = "Intercept"</code> density is evaluated at the intercept
+at the MEAN of the predictors, which is the one brms constrains; and an
+ordinal family’s <code>class = "Intercept"</code> reaches the
+thresholds. On four of the shapes measured against Stan, frmtmb’s
+penalized objective is now brms’s posterior density up to one
+<code>log(2)</code> per lower-bounded parameter, a constant that moves
+no mode.</p>
+<p><strong>One divergence remains, and it is in frmtmb’s own spelling
+rather than in the translation.</strong>
+<code>set_prior("student_t(3, 0, 2.5)", class = "Intercept", dpar = "sigma")</code>
+means a density on LOG sigma here, and keeps that meaning; the same row
+written brms’s way,
+<code>prior(student_t(3, 0, 2.5), class = "sigma")</code>, means a
+density on sigma. Port the brms spelling rather than rewriting it by
+hand: the link spelling captures about 35 percent of the intended shift
+on a fit with sigma near 0.135, and effectively none of it where brms’s
+data-derived scale is large.</p>
+<p>A prior class frmtmb keeps somewhere else (brms’s mixture
+<code>theta</code>, <code>simo</code>, <code>sds</code>,
+<code>sdgp</code>, <code>lscale</code>, <code>sdcar</code>,
+<code>car</code>) is refused by name, with the class that reaches the
+same parameters where one exists, rather than translated into something
+else. So is a <code>coef</code> on a <code>sd</code> or <code>cor</code>
+row: frmtmb addresses a whole random-effect block there, and applying a
+narrowed row without its <code>coef</code> would put the density on
+every standard deviation of the block.</p>
+<p>Because rows now apply, such a row in a <code><a href="../reference/get_prior.html">get_prior()</a></code>
+table stops the call where it used to be dropped in silence: on a model
+with <code>s()</code>, <code>gp()</code>, <code>mo()</code> or
+<code>car()</code>, blank that row or write the frmtmb class the message
+names. Every refused row of a table is named in one message, so one edit
+round is enough. Of 20 shapes a brms user would actually write, 3 stop:
+<code>s()</code>, <code>gp()</code> and <code>mo()</code>. The rest
+translate, zero-inflated, hurdle and negbinomial models
+included.</p>
 </li>
 <li>
 <p>A prior with a location DOES place a nonlinear start. brms uses
@@ -617,7 +661,11 @@ predictor is <code>predict(type = "link")</code>.</li>
 <li>
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> on an ordinal fit draws one
 probability curve per response category, which is what brms draws under
-<code>categorical = TRUE</code>.</li>
+<code>categorical = TRUE</code>, and keys the effect
+<code>"x:cats__"</code> as brms does there. It is the default here
+because brms’s own default warns that it is treating an ordered factor
+as continuous; <code>categorical = FALSE</code> asks for that summary,
+the expected category number.</li>
 <li>
 <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> is the per-group convention shared by all three
 packages: fixed effects plus conditional modes per grouping level.</li>

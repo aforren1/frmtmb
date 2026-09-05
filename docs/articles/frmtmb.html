@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,7 @@
 <li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
+    <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
@@ -45,7 +46,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
-<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
@@ -238,11 +239,45 @@ brms. Reported lengthscales stay in data units.</p>
 adjacency matrix, with brms’s spelling and all four of its types.
 <code>M</code> is a symmetric binary adjacency matrix whose dimnames
 name the locations, <code>gr</code> is the grouping variable that maps
-observations onto them, and <code>type</code> is one of
-<code>"escar"</code> (the proper CAR, default), <code>"icar"</code> and
-its alias <code>"esicar"</code> (intrinsic), or <code>"bym2"</code> (the
-scaled mixture of a spatial and an unstructured part).
-<code>sd(car)</code> is the field scale; <code>escar</code> and
+observations onto them, and <code>type</code> names the field:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th><code>type</code></th>
+<th>field</th>
+<th>sum-to-zero constraint</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>"escar"</code></td>
+<td>proper CAR, <code>Q = tau (D - rho W)</code> (default)</td>
+<td>none, and none is needed</td>
+</tr>
+<tr class="even">
+<td><code>"esicar"</code></td>
+<td>intrinsic CAR, <code>Q = tau (D - W)</code>
+</td>
+<td>exact</td>
+</tr>
+<tr class="odd">
+<td><code>"icar"</code></td>
+<td>the same intrinsic CAR</td>
+<td>soft, at scale <code>con_sd</code>
+</td>
+</tr>
+<tr class="even">
+<td><code>"bym2"</code></td>
+<td>scaled mixture of a spatial and an unstructured part</td>
+<td>soft, at scale <code>con_sd</code>
+</td>
+</tr>
+</tbody>
+</table>
+<p><code>sd(car)</code> is the field scale; <code>escar</code> and
 <code>bym2</code> add a mixing parameter on <code>(0, 1)</code>,
 reported by <code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> under brms’s names
 <code>car</code> and <code>rhocar</code>.</p>
@@ -269,13 +304,45 @@ reported by <code><a href="../reference/confint_varcorr.html">confint_varcorr()<
 <span><span class="co">#&gt;                              block    term type estimate       lwr       upr</span></span>
 <span><span class="co">#&gt; 1 car(W, gr = loc, type = "escar") sd(car)   sd 1.111466 0.8096418 1.5258056</span></span>
 <span><span class="co">#&gt; 2 car(W, gr = loc, type = "escar")     car prop 0.951133 0.5172424 0.9971797</span></span></code></pre></div>
-<p>An intrinsic CAR is improper - the field is identified only up to a
-constant per connected component - so <code>icar</code>,
-<code>esicar</code> and <code>bym2</code> add brms’s soft sum-to-zero
-constraint, whose scale is <code>con_sd</code> (brms’s <code>1e-3</code>
-by default, relative to the field’s own sd). Tightening it walks the fit
-onto the exactly constrained likelihood; the default is already four
-orders below the standard error of <code>sd(car)</code>.</p>
+<p>An intrinsic CAR is improper: the field is identified only up to a
+constant per connected component, so something has to pin that constant
+down. <code>esicar</code> and <code>icar</code> are the two answers, and
+they are two different models here as they are in brms.</p>
+<p><code>esicar</code> imposes the constraint exactly. The field the
+linear predictor sees sums to zero within every connected component to
+machine precision, and the likelihood is normalized by the
+pseudo-determinant. This is the model brms writes as
+<code>Nloc - 1</code> free values with the last set to minus their
+sum.</p>
+<p><code>icar</code> imposes it softly, through the term brms writes as
+<code>normal(sum(zcar) | 0, con_sd * Nloc)</code> on the field
+standardized by its own sd. <code>con_sd</code> defaults to brms’s
+<code>1e-3</code>. The soft constraint is the same model as an extra
+random intercept of sd <code>con_sd * sd(car)</code>, so it sits a
+little below <code>esicar</code>: on a 4 by 4 lattice the gap is
+<code>4e-4</code> in the log-likelihood and <code>3e-5</code> relative
+in <code>sd(car)</code>, four orders below that parameter’s own standard
+error. Each decade of <code>con_sd</code> buys two more digits, at some
+cost in optimizer robustness.</p>
+<p>Because <code>esicar</code> constrains exactly, <code>con_sd</code>
+does not change what it fits: the likelihood, the estimates and
+<code>sd(car)</code> are all invariant to it. It is not inert
+everywhere, though. The coordinate it scales is carried into the
+standard errors from <code>predict(se.fit = TRUE)</code> and the
+conditional standard deviations from <code>ranef(condVar = TRUE)</code>,
+as <code>con_sd^2</code> in the variance. At the default that is
+<code>1.3e-5</code> relative, far below any digit worth reporting, but
+it grows a hundredfold per decade, so <code>con_sd = 0.1</code> would
+inflate those standard errors by about a tenth. Leave
+<code>con_sd</code> at its default on an <code>esicar</code> term.</p>
+<p>All three constrained types differ from brms in one way that only
+shows on a disconnected adjacency matrix: frmtmb constrains each
+connected component, brms constrains the global sum. On a connected
+graph, which is the usual case, the two are the same constraint.</p>
+<p>Under frmtmb 0.51.0 and earlier, <code>esicar</code> selected the
+<code>icar</code> model. Refit an <code>esicar</code> model to get the
+constrained one, or spell the term <code>icar</code> to keep what you
+had.</p>
 <p><code>spde()</code> fits a Matern field over a finite-element mesh:
 it takes the mesh’s three matrices (<code><a href="https://inlabru-org.github.io/fmesher/reference/fm_fem.html" class="external-link">fmesher::fm_fem()</a></code>’s
 <code>c0</code>/<code>g1</code>/<code>g2</code>, or INLA’s
@@ -402,10 +469,10 @@ outcomes:</p>
 <span>                               dpar <span class="op">=</span> <span class="st">"sigma"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">pars</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">pp</span>, <span class="st">"pars"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">pars</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="co">#&gt;            x   Intercept sd_g__Intercept sigma_Intercept</span></span>
-<span><span class="co">#&gt; 1 -0.8969145  0.36969837      0.08952618      0.96788388</span></span>
-<span><span class="co">#&gt; 2 -0.5431617 -0.03157483      1.43689377      1.89509840</span></span>
-<span><span class="co">#&gt; 3  0.6668503  1.54729045      1.12473222     -0.03551988</span></span>
+<span><span class="co">#&gt;             x Intercept sd_g__Intercept sigma_Intercept</span></span>
+<span><span class="co">#&gt; 1 -0.89691455  3.267664     0.146652670      -0.9618920</span></span>
+<span><span class="co">#&gt; 2  1.36691810  4.070181     0.867184124       0.7864103</span></span>
+<span><span class="co">#&gt; 3 -0.04712552  1.338871     0.003779148      -2.0074329</span></span>
 <span><span class="co"># does the prior imply plausible data? slope against outcome spread</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">x</span>, <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">pp</span>, <span class="fl">2</span>, <span class="va">sd</span><span class="op">)</span>, xlab <span class="op">=</span> <span class="st">"slope"</span>, ylab <span class="op">=</span> <span class="st">"sd(y)"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="frmtmb_files/figure-html/prior-pred-1.png" class="r-plt" alt="Scatter plot of the standard deviation of each simulated response set against the slope that generated it. The points form a U shape, because a larger slope of either sign spreads the outcome more." width="576"></p>

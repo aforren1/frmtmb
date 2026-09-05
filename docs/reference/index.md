@@ -8,6 +8,8 @@
   parameter formulas to a model formula
 - [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) : Add a
   nonlinear parameter formula to a model formula
+- [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) : A
+  penalized spline whose value a nonlinear body consumes
 - [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md)
   : Combine formulas into a multivariate model
@@ -255,6 +257,10 @@
   : Enumerate the targetable prior slots
 - [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   [`prior_t()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
+  [`prior_logistic()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
+  [`prior_gamma()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
+  [`prior_inv_gamma()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
+  [`prior_beta()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   [`prior_lkj()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   : Prior objects, addressed by internal parameter name
 - [`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md)
@@ -288,6 +294,10 @@
   : Estimated residual correlation matrix (rescor fits), else NULL
 - [`vcov(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/vcov.frmtmb_fit.md)
   : Covariance matrix of the fixed-effect estimates
+- [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md)
+  : The design of a linear predictor over the coefficient vector
+- [`frm_joint_cov()`](https://aforren1.github.io/frmtmb/reference/frm_joint_cov.md)
+  : The joint covariance of the fixed and random coefficients
 - [`sigma(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/sigma.frmtmb_fit.md)
   : Residual standard deviation
 

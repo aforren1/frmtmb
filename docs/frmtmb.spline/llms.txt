@@ -28,7 +28,7 @@ rest.
 - [`royston_parmar()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
   : The Royston and Parmar flexible parametric survival family
 - [`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md)
-  : Rows this family answered with a floor rather than with a density
+  : Report the deep censored rows and the non-monotone rows of a fit
 
 # Articles
 

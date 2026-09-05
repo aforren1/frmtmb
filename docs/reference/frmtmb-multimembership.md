@@ -156,7 +156,7 @@ summary(fit)
 #> (Intercept) -0.652812   0.051576 -12.657 < 2.2e-16
 # one coefficient per pooled school level
 ranef(fit)
-#> $1 | mm(school1, school2)
+#> $mm(school1, school2)   (1 | mm(school1, school2))
 #>   (Intercept)
 #> a  0.18370669
 #> b -0.02184145

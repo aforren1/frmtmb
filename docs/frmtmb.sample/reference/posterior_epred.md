@@ -210,14 +210,20 @@ head(posterior_linpred(ds, newdata = nd, ndraws = 5))
 #>   Intercept          student_t(3, 0, 2.5)
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
 #>   b                  (flat), as brms leaves slopes
+#> Warning: The largest R-hat is 1.13, indicating chains have not mixed.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#r-hat
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess
-#>             [,1]       [,2]      [,3]
-#> [1,] -0.34673055 -0.1204018 0.1059269
-#> [2,]  0.17182952  0.3451118 0.5183942
-#> [3,] -0.12957334  0.2246253 0.5788240
-#> [4,]  0.09809158  0.3436258 0.5891600
-#> [5,]  0.07641280  0.3309746 0.5855364
+#> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#tail-ess
+#>             [,1]      [,2]      [,3]
+#> [1,]  0.48954070 0.6555560 0.8215714
+#> [2,]  0.33465244 0.7663111 1.1979698
+#> [3,] -0.34015303 0.1554798 0.6511126
+#> [4,]  0.08794828 0.3320401 0.5761320
+#> [5,]  0.28325834 0.5987430 0.9142276
 # }
 ```

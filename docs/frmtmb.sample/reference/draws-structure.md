@@ -76,9 +76,12 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess
-#>    Estimate Est.Error        Q2.5    Q97.5
-#> 1 0.8430866 0.2615370  0.37389391 1.354788
-#> 2 0.5154862 0.2922578 -0.06618975 0.965672
-#> 3 0.9697659 0.2697711  0.54900417 1.565481
+#> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#tail-ess
+#>    Estimate Est.Error        Q2.5     Q97.5
+#> 1 0.8583955 0.2323509  0.45341821 1.3930465
+#> 2 0.5032729 0.2806606 -0.09471659 0.9853131
+#> 3 0.9747994 0.2673924  0.51807145 1.5560093
 # }
 ```

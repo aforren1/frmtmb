@@ -1,5 +1,73 @@
 # Changelog
 
+## frmtmb.spline 0.2.0
+
+The three things this package had to work around are seams in frmtmb
+0.52.0 now, so it stops working around them. Requires frmtmb (\>=
+0.52.0).
+
+- The one internal this package reached into is gone.
+  [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
+  and its two companions read `fit$cache$Vjoint` directly, which was
+  written by an `@noRd` function and documented nowhere; they now call
+  the exported
+  [`frmtmb::frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html).
+  [`?frm_curve`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)’s
+  section on it changes from “The one internal this reaches into” to
+  “The route to the covariance”.
+- The design rebuild is gone with it.
+  [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
+  used to rebuild the grid design by unit perturbation, one
+  [`predict()`](https://rdrr.io/r/stats/predict.html) call per
+  contributing coefficient plus one probe per block of 24 that
+  contributed nothing;
+  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
+  returns the design core already had. The
+  [`predict()`](https://rdrr.io/r/stats/predict.html) call count no
+  longer depends on the number of coefficients at all, and the linearity
+  probe that guarded the perturbation is no longer needed.
+- [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
+  now works on a NONLINEAR (`nl = TRUE`) linear predictor, which it used
+  to refuse. `A` is a Jacobian there rather than a design, and
+  `predict(se.fit = TRUE)` is refused for a nonlinear predictor, so
+  there is no second route to check against: `cov_rel_error` is `NA` and
+  [`print()`](https://rdrr.io/r/base/print.html) says the check did not
+  run rather than reporting a passing one that never did.
+- [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
+  now works on an `rr()` block at `re.form = NULL`, which it used to
+  refuse through the covariance check. A reduced-rank block’s loadings
+  live in `theta`; the perturbation could not see the derivative with
+  respect to them and the assembled standard errors came out 27 percent
+  away from `predict(se.fit = TRUE)`’s.
+  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
+  carries the loading columns, and the two now agree exactly.
+- An exact `gp()` term works too. Its kriging variance is not
+  coefficient uncertainty, and
+  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
+  returns it separately as `extra_var` rather than folding it into
+  `A V A'`.
+- [`royston_parmar()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
+  declares frmtmb’s new `lccdf` slot, so a right-censored row is scored
+  from `log S` directly, in closed form on all three scales: `-exp(eta)`
+  on `"hazard"`, `-log1p(exp(eta))` on `"odds"` and
+  `pnorm(eta, lower.tail = FALSE, log.p = TRUE)` on `"normal"`. The
+  floor at -35.127363 is gone, and with it the region past `-log S = 30`
+  where the term was flat and its gradient exactly zero. `cens()` moves
+  from `conditional` to `works` in the compatibility table.
+- [`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md)’s
+  censored count is a DIAGNOSTIC rather than a refusal. It still reports
+  censored rows whose fitted `-log S` passes 19.2, because such a row is
+  one the data barely constrain, but it no longer stops: the arithmetic
+  is exact there now. The MONOTONICITY floor is unchanged and still
+  refuses, because a non-positive `d(eta)/d(log t)` means no hazard
+  exists and the reported likelihood is a pseudo-likelihood rather than
+  a density.
+- [`royston_parmar()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
+  declares `post$fit_check`, frmtmb’s new fit-end hook, so a fit with a
+  non-monotone row warns as it is returned rather than only when someone
+  calls
+  [`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md).
+
 ## frmtmb.spline 0.1.0
 
 First release. Two things a spline needs that a fit does not give you:
@@ -236,8 +304,10 @@ survival family whose parameter is a spline.
 - No `post$mean_fn`, so
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
   `predict(type = "response")` are refused. The mean of a Royston-Parmar
-  survival time has no closed form, and core’s `cox()` refuses for the
-  same reason. Read the fitted log cumulative hazard with
+  survival time has no closed form, and core’s
+  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.html)
+  refuses for the same reason. Read the fitted log cumulative hazard
+  with
   [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
   instead.
 - No exact basis derivative in

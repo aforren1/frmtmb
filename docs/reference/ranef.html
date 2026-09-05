@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -22,13 +22,14 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
+    <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
@@ -90,8 +91,14 @@ matrix, in matching layout.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A named list of levels-by-coefficients matrices, one per
-random-effect term. <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> gives the long form (with a
-<code>condsd</code> column when <code>condVar = TRUE</code> was used).</p>
+random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
+key it (so <code>ranef(fit)$g</code> and <code>coef(fit)$g</code> name the same group).
+Two terms on one factor give two entries under one name, so index
+by position when a model has them; each matrix carries the block
+label that tells them apart in its <code>"term"</code> attribute, which is
+also the key <code><a href="VarCorr.html">VarCorr()</a></code> uses and the <code>grp</code> column of
+<code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>. That long form (with a <code>condsd</code> column when
+<code>condVar = TRUE</code> was used) is what broom.mixed-style code reads.</p>
     </div>
 
     <div class="section level2">
@@ -103,7 +110,7 @@ random-effect term. <code><a href="https://rdrr.io/r/base/as.data.frame.html" cl
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># one matrix per random-effect term, levels by coefficients</span></span></span>
 <span class="r-in"><span><span class="fu">ranef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $1 | g</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $g   (1 | g)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    (Intercept)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1   -0.7929115</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2    0.1938107</span>
@@ -116,6 +123,11 @@ random-effect term. <code><a href="https://rdrr.io/r/base/as.data.frame.html" cl
 <span class="r-out co"><span class="r-pr">#&gt;</span> 9   -0.2011950</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10   0.9405886</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span><span class="fu">ranef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">g</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="op">]</span>                 <span class="co"># keyed by the grouping factor</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          1          2          3 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -0.7929115  0.1938107 -0.6968785 </span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu">ranef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">g</span>, <span class="st">"term"</span><span class="op">)</span>          <span class="co"># the block it came from</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "1 | g"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># condVar adds the conditional SDs a caterpillar plot needs</span></span></span>
 <span class="r-in"><span><span class="va">re</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">ranef</span><span class="op">(</span><span class="va">fit</span>, condVar <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>

@@ -4,7 +4,8 @@ Builds prior specifications with brms spelling:
 `set_prior("normal(0, 5)", class = "b")`. Combine several with `+` or
 [`c()`](https://rdrr.io/r/base/c.html). Distributions: `normal(mu, sd)`,
 `student_t(df, mu, sd)`, `cauchy(mu, sd)`, `exponential(rate)`,
-`lkj(eta)`; an empty string sets bounds only.
+`logistic(mu, s)`, `gamma(shape, rate)`, `lkj(eta)`; an empty string
+sets bounds only.
 
 ## Usage
 
@@ -32,7 +33,9 @@ set_prior(
 
 - class:
 
-  `"b"`, `"Intercept"`, `"sd"`, `"cor"`, or `"theta"`.
+  `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, or one of the
+  residual-structure classes `"ar"`, `"ma"`, `"cosy"`, `"cortime"` and
+  `"rescor"`.
 
 - coef:
 
@@ -71,7 +74,12 @@ Classes and their scales:
   parameters), excluding the intercept; narrow to one coefficient with
   `coef`. Link scale.
 
-- `"Intercept"`: the intercept of `dpar`. Link scale.
+- `"Intercept"`: the intercept of `dpar`, at the MEAN of that
+  sub-formula's predictors, which is the intercept brms's own
+  `Intercept` prior constrains. Link scale. See Where an intercept prior
+  lands. On an ordinal family the thresholds are the intercept, here as
+  in brms, so this class addresses the whole threshold vector; see
+  Ordinal thresholds.
 
 - `"sd"`: random-effect standard deviations (and smoothing SDs), on the
   NATURAL sd scale with the log-Jacobian applied, so
@@ -110,6 +118,62 @@ class-wide priors first and coefficient-specific ones after. A class
 that whole LKJ term, and the other way round, so "later wins" holds
 between the two spellings as well. `lb`/`ub` become hard bounds. See
 Hard bounds.
+
+## Where an intercept prior lands
+
+brms centers its design matrix and constrains the intercept at the MEAN
+of the predictors, recovering the reported one as
+`b_Intercept = Intercept - dot_product(means_X, b)`. frmtmb
+parameterizes by the intercept at zero and evaluates a class
+`"Intercept"` density at `b0 + means_X'b`, so the two packages constrain
+the same quantity. The map between the two parameterizations is unit
+triangular and carries no Jacobian.
+
+This matters whenever a predictor is not centered. On `Reaction ~ Days`,
+where `mean(Days)` is 4.5, the intercept at zero is strongly correlated
+with the slope and the intercept at the mean is orthogonal to it, so a
+prior on the first biases the slope and a prior on the second does not.
+Earlier releases used the intercept at zero, and
+[`brms::get_prior()`](https://paulbuerkner.com/brms/reference/default_prior.html)'s
+own default there moved the slope by 0.068 standard errors; it now moves
+it by 0.00003.
+
+Every sub-formula with an intercept is centered separately, as brms does
+(`means_X`, `means_X_sigma`, ...). A NONLINEAR parameter's sub-formula
+is not centered on either side, and neither are a smooth's unpenalized
+columns or a `mo()` term, which sit outside brms's `Xc` as well. To put
+a density on the intercept at zero, name it as a coefficient instead:
+`class = "b", coef = "Intercept"`, which is also how a
+`brms::bf(center = FALSE)` model's prior arrives.
+
+## Ordinal thresholds
+
+[`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+and
+[`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+have no intercept column: the thresholds replace it. brms priors them as
+its `Intercept` class and so does frmtmb, so
+`set_prior("student_t(3, 0, 2.5)", class = "Intercept")` on an ordinal
+model addresses the whole threshold vector. It addresses the THRESHOLDS,
+at the mean of the predictors, with the log-Jacobian of the map from
+frmtmb's internal storage;
+[`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+and
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+hold `(tau_1, log increments)`, which is the same map Stan's `ordered`
+type applies, and
+[`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+and
+[`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+hold the thresholds themselves. `lb`/`ub` are refused there, because one
+number cannot box a whole vector of ordered thresholds.
+
+`prior = list(tau_raw = prior_normal(0, 5))` reaches the same parameters
+on the INTERNAL scale, one entry per threshold, which is the escape
+hatch to use when the increments rather than the thresholds are what a
+prior is about.
 
 ## Hard bounds
 
@@ -233,6 +297,65 @@ names them.
 [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 still stay off there (see its Default priors section), so a multivariate
 model's priors are the ones written by hand.
+
+## Translating a brms prior
+
+`frm(prior = )` takes a `brmsprior` object directly, whether it came
+from
+[`brms::set_prior()`](https://paulbuerkner.com/brms/reference/set_prior.html),
+[`brms::prior()`](https://paulbuerkner.com/brms/reference/set_prior.html)
+or
+[`brms::get_prior()`](https://paulbuerkner.com/brms/reference/default_prior.html).
+A row applies whatever its `prior` string says, which is brms's own
+rule; an empty string is brms's flat default and applies nothing. The
+`source` column is not read. Earlier releases dropped rows marked
+`source == "default"` were dropped, which lost a prior the user had
+edited into a
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+table in place, because brms does not update `source` after that edit.
+
+brms's class vocabulary is wider than the one above, and it is carried
+over rather than refused wherever the two packages mean the same
+parameter:
+
+- `b`, `Intercept`, `sd`, `cor`, `ar`, `ma`, `cosy`, `cortime` and
+  `rescor` are frmtmb's own class names and keep their meaning.
+
+- a DISTRIBUTIONAL parameter's own class (`sigma`, `shape`, `phi`, `nu`,
+  `kappa`, `sigma1`, ...) is a density on that parameter ITSELF in brms.
+  It lands on the parameter itself here too, through the dpar's inverse
+  link with that map's log-Jacobian, which is the change of variables
+  class `"sd"` performs. A bound on such a row travels with it, so
+  brms's `lb = 0` on a log-linked dispersion becomes no constraint
+  rather than a floor of 1.
+
+- `theta`/`theta1`/`theta2`, `simo`, `sds`, `sdgp`, `lscale`, `sdcar`
+  and `car` are refused by name, each saying where frmtmb keeps that
+  quantity instead. A refusal is deliberate: translating one of them
+  would produce a different model rather than no model.
+
+- a `coef` on a `sd` or `cor` row is refused for the same reason. brms
+  narrows such a row to one coefficient of a block; frmtmb resolves
+  those classes per BLOCK, so applying the row without its `coef` would
+  put the density on every standard deviation of the block, which is a
+  wider prior than the one written. `coef` on class `"b"` narrows as it
+  does in brms and is unaffected.
+
+Every refused row of a table is named in ONE message, because a table is
+edited as a whole and stopping at the first bad row costs a round trip
+per bad row.
+
+**frmtmb's own spelling for a distributional parameter is the one place
+the two packages still differ.**
+`set_prior("student_t(3, 0, 2.5)", class = "Intercept", dpar = "sigma")`
+is a density on LOG sigma, the parameter frmtmb stores, and it keeps
+that meaning; the same row spelled brms's way,
+`brms::prior(student_t(3, 0, 2.5), class = "sigma")`, is a density on
+sigma. The two are not the same prior: on a nonlinear fit with `sigma`
+near 0.135 the link spelling captures about 35 percent of the shift the
+natural one produces, and on `sleepstudy`, where brms's default scale is
+calibrated to a sigma near 31, it captures none of it. Write the brms
+spelling when brms's meaning is wanted.
 
 brms's `tag` and `check` have no counterpart: `tag` names a prior for
 reuse inside a Stan program, and `check` passes an unchecked string

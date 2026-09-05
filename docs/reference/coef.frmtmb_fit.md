@@ -66,7 +66,7 @@ head(coef(fit)$g)
 all.equal(coef(fit)$g[["(Intercept)"]],
           fixef(fit)$mu[["(Intercept)"]] + ranef(fit)$g[, 1],
           check.attributes = FALSE)
-#> [1] "Numeric: lengths (10, 0) differ"
+#> [1] TRUE
 
 # without random effects there are no groups, so coef() is fixef()
 coef(frm(bf(y ~ x) + gaussian(), data = dd))

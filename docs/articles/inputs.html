@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,7 @@
 <li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
+    <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
@@ -45,7 +46,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
-<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
@@ -346,15 +347,21 @@ and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">
 <tr class="odd">
 <td><code>prior</code></td>
 <td>A <code><a href="../reference/set_prior.html">set_prior()</a></code> specification, or a
-<code>brmsprior</code> object brms built, which is translated row by
-row. Makes the fit penalized (MAP), so the reported log likelihood is
-penalized too. Spelled as brms spells it; the <code>priors</code> of
-releases before 0.43 is gone, and a call still using it fails as an
-unused argument.</td>
+<code>brmsprior</code> object brms built with <code><a href="../reference/prior.html">prior()</a></code> or
+<code><a href="../reference/get_prior.html">get_prior()</a></code>, which is translated row by row: a row applies
+whatever its <code>prior</code> string says, and lands where brms puts
+it (a distributional parameter’s own class on that parameter, a
+<code>class = "Intercept"</code> density at the intercept at the
+predictor means). Makes the fit penalized (MAP), so the reported log
+likelihood is penalized too. Spelled as brms spells it; the
+<code>priors</code> of releases before 0.43 is gone, and a call still
+using it fails as an unused argument.</td>
 <td>
 <code><a href="../reference/set_prior.html">set_prior()</a></code> checks the argument count of each
-distribution. A brms prior class with no faithful frmtmb spelling is
-refused by name rather than translated into a different density.</td>
+distribution. A brms prior class with no faithful frmtmb spelling, and a
+<code>coef</code> on a class frmtmb resolves per block, are refused by
+name rather than translated into a different density or applied wider
+than asked; every refused row of a table is named in one message.</td>
 </tr>
 <tr class="even">
 <td><code>quadrature</code></td>
@@ -660,8 +667,9 @@ matching is case sensitive and accepts unambiguous prefixes.
 <td><code><a href="../reference/conditional_effects.html">conditional_effects()</a></code></td>
 <td><code>method</code></td>
 <td>
-<code>"epred"</code>, <code>"predict"</code>
-</td>
+<code>"epred"</code>, <code>"predict"</code> (brms’s
+<code>"posterior_epred"</code> and <code>"posterior_predict"</code> are
+accepted as aliases)</td>
 </tr>
 <tr class="odd">
 <td>

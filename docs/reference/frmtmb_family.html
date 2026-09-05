@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,13 +30,14 @@ not branch on parameter values."></head><body>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/inputs.html">Inputs and preprocessing</a></li>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
+    <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ddm/">frmtmb.ddm (drift-diffusion response times)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
@@ -89,6 +90,7 @@ not branch on parameter values.</p>
 <span>  sim_refusal <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  primary_dpars <span class="op">=</span> <span class="st">"mu"</span>,</span>
 <span>  lcdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  lccdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  required_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  family_finalize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -110,6 +112,7 @@ not branch on parameter values.</p>
 <span>  sim_refusal <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  primary_dpars <span class="op">=</span> <span class="st">"mu"</span>,</span>
 <span>  lcdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  lccdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  required_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  family_finalize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -168,7 +171,15 @@ shares one latent predictor across the categories and
 residuals) and <code>dev_fn(y, dpars, aterms)</code> (the unit deviance
 <code>2 * (loglik of the saturated fit - loglik at the fitted value)</code>,
 for <code>residuals(type = "deviance")</code>). A family that omits one is
-refused by the method that needs it.</p></dd>
+refused by the method that needs it.</p>
+<p><code>post$fit_check(fit, resp)</code> is different in kind: it is run once,
+when a fit FINISHES, and its return value is discarded. It is where
+a family says something about where the optimizer landed, which
+nothing else can: <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> reads the optimizer's own value, so a
+family whose likelihood is floored or degenerate in some region had
+no way to report it. Warn from it rather than stopping; a hook that
+throws is caught, reported as a warning naming the family, and the
+fit is returned regardless.</p></dd>
 
 
 <dt id="arg-sim">sim<a class="anchor" aria-label="anchor" href="#arg-sim"></a></dt>
@@ -204,6 +215,17 @@ under REML.</p></dd>
 <dd><p>Optional vectorized AD log-safe CDF <code>(q, dpars, aterms)</code>
 returning probabilities; enables <code>cens()</code> and <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> addition
 terms.</p></dd>
+
+
+<dt id="arg-lccdf">lccdf<a class="anchor" aria-label="anchor" href="#arg-lccdf"></a></dt>
+<dd><p>Optional vectorized AD LOG SURVIVOR function
+<code>(q, dpars, aterms)</code> returning <code>log(1 - F(q))</code> directly. A family
+that declares it scores a RIGHT-censored row from it instead of
+from <code>log(1 - F)</code>, which cannot be accurate once <code>F</code> rounds to one
+(see Right censoring and the representable tail). It is optional
+and independent of <code>lcdf</code>: a family that supplies only <code>lccdf</code>
+accepts right censoring and refuses left censoring, interval
+censoring and <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, each by name.</p></dd>
 
 
 <dt id="arg-required-aterms">required_aterms<a class="anchor" aria-label="anchor" href="#arg-required-aterms"></a></dt>
@@ -350,6 +372,42 @@ existed was to have <code>valid_y</code> write the bound into an environment the
 link closures read at call time, which works only for as long as the
 call order happens to hold and leaves the family object lying about
 what it is.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="right-censoring-and-the-representable-tail">Right censoring and the representable tail<a class="anchor" aria-label="anchor" href="#right-censoring-and-the-representable-tail"></a></h2>
+
+
+<p>Core forms a right-censored row's contribution as <code>log(Fub - F(y))</code>,
+which without truncation is <code>log(1 - F)</code>. A double cannot represent
+the complement of a probability that has rounded to one, so past that
+point the contribution is not merely inaccurate: it is CONSTANT, and
+its gradient is exactly zero. An optimizer then prices such a row the
+same however far it moves, and fits every other row as if the
+survivor were free. That failure is silent - the fit converges, and
+<code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> and <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> report the floored number.</p>
+<p><code>lccdf</code> removes the class for right censoring by giving core the
+quantity it actually needs. Measured on a standard normal tail, one
+process:</p>
+<table class="table table"><tr><td><strong>z</strong></td><td><strong>log(1 - pnorm(z))</strong></td><td><strong>pnorm(z, lower.tail = FALSE, log.p = TRUE)</strong></td></tr><tr><td>8.0</td><td>-35.013</td><td>-35.013</td></tr><tr><td>8.3</td><td>-Inf</td><td>-37.494</td></tr><tr><td>37</td><td>-Inf</td><td>-689.031</td></tr><tr><td>500</td><td>-Inf</td><td>-125007.13</td></tr></table><p>Both the value and the derivative are exact on the right, over the
+whole range.</p>
+<p>The built-in families that declare <code>lccdf</code> are <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code>,
+<code><a href="frmtmb-families.html">lognormal()</a></code>, <code><a href="frmtmb-families.html">exponential()</a></code>, <code><a href="frmtmb-families.html">weibull()</a></code> and <code><a href="frmtmb-families.html">cox()</a></code>. The last
+three have <code>log S</code> in closed form (<code>-q/mu</code>, <code>-(q/scale)^shape</code>,
+<code>-H0(t) * mu</code>); the first two use <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">pnorm()</a></code>'s own log upper tail.</p>
+<p>Two families with a CDF do NOT declare one, for measured reasons.
+<code><a href="https://rdrr.io/r/stats/family.html" class="external-link">inverse.gaussian()</a></code> gains nothing:
+<code>RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)</code> is computed
+on the probability scale and reaches <code>-Inf</code> at the same
+<code>log S = -34</code> that <code>log(1 - F)</code> does. <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson()</a></code> is discrete, and
+<code>cens()</code> is refused for discrete families, so the slot would be
+unreachable.</p>
+<p><code>lccdf</code> fixes RIGHT censoring and nothing else. Left censoring is
+still <code>log(F(y) - Flb)</code>, interval censoring is still a difference of
+CDFs, and the truncation normalizer is still <code>log(Fub - Flb)</code>, so a
+LEFT-TRUNCATED survival model - delayed entry, which is routine -
+meets the identical representability problem from the other side.
+Closing that needs a windowed log-difference slot, and this is the
+first step rather than the last one.</p>
     </div>
     <div class="section level2">
     <h2 id="tape-safe-scope">Tape-safe scope<a class="anchor" aria-label="anchor" href="#tape-safe-scope"></a></h2>

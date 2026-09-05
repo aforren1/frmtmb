@@ -15,6 +15,14 @@ prior_normal(location = 0, scale = 1)
 
 prior_t(df = 3, location = 0, scale = 1)
 
+prior_logistic(location = 0, scale = 1)
+
+prior_gamma(shape = 1, rate = 1)
+
+prior_inv_gamma(shape = 1, scale = 1)
+
+prior_beta(shape1 = 1, shape2 = 1)
+
 prior_lkj(eta = 1)
 ```
 
@@ -22,7 +30,22 @@ prior_lkj(eta = 1)
 
 - location, scale, df:
 
-  Prior parameters.
+  Prior parameters. `scale` is also the second argument of
+  `prior_inv_gamma()`, brms's `inv_gamma(shape, scale)`.
+
+- shape, rate:
+
+  Gamma prior parameters, brms's spelling (`gamma(shape, rate)`), both
+  positive. The density has support on the positive line, so it belongs
+  to a quantity that lives there: a brms `shape`, `phi`, `nu` or `kappa`
+  row, which arrives on the parameter's own scale.
+
+- shape1, shape2:
+
+  Beta prior parameters, both positive. The density has support on
+  `(0, 1)`, so it belongs to a quantity that lives there: brms's default
+  on a zero-inflation `zi` or a hurdle `hu`, which reach it through
+  their logit link.
 
 - eta:
 
