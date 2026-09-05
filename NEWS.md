@@ -113,6 +113,18 @@ addition terms.
   refuse. Neither should reach a family that declares its requirements
   correctly today.
 
+* The brms log-density identity tier covers eight more shapes of the
+  plan's matrix: multivariate responses with `set_rescor(TRUE)` and with
+  `(1 | ID | g)` merged across responses (rows 8 and 9), `mi()`
+  imputation together with `mi(sd)` measurement error (row 4), a
+  nonlinear model with a random effect on an nlpar (row 6), `s()` and
+  `t2()` (row 11), the Hilbert-space `gp(k =)` (row 10), `ar(cov =
+  TRUE)`, `cosy()` and `unstr()` residual correlation (row 18), and
+  `car()` in its escar and icar forms (row 19). Four divergences over
+  three rows are recorded and asserted rather than skipped: the exact
+  `gp()` nugget, brms's `ar(cov = FALSE)` likelihood, and the esicar and
+  bym2 CAR parameterizations. See `dev/brms-likelihood-tests.md`.
+
 # frmtmb 0.50.0
 
 The Laplace approximation, corrected by importance sampling; and
