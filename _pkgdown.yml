@@ -23,6 +23,8 @@ navbar:
         href: https://aforren1.github.io/frmtmb/frmtmb.ode/
       - text: frmtmb.sample (NUTS sampling and posteriors)
         href: https://aforren1.github.io/frmtmb/frmtmb.sample/
+      - text: frmtmb.spline (curve inference and spline survival)
+        href: https://aforren1.github.io/frmtmb/frmtmb.spline/
 
 reference:
 - title: Model specification
