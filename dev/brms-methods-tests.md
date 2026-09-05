@@ -458,11 +458,14 @@ Two things are worse here than in the zero-inflated case:
    response at one end of the grid and 237% above at the other, so it
    is not even monotonically biased, and no eyeball check of the plot
    would read as "too high".
-2. The workaround does not exist. `conditional_effects(method =
+2. The workaround exists only since 0.51.0. `conditional_effects(method =
    "predict")` gives brms's answer on a zero-inflated fit; on
-   `hurdle_poisson` it signals "method = 'predict' needs a family with
-   a simulator". There is no argument that produces the expected
-   response for a hurdle fit.
+   `hurdle_poisson` it signalled "method = 'predict' needs a family with
+   a simulator" until the same release gave that family a simulator
+   (the simulate lane, merged after this tier was written). Its
+   estimate is a simulation mean of the response, so it reaches the
+   expected response up to Monte Carlo error, and the test asserts that
+   rather than the old refusal.
 
 Pinned by a block in `test-brms-methods.R` that is gated on
 `skip_on_cran()` and nothing else, since it needs neither brms nor a

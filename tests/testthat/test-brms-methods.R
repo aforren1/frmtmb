@@ -795,8 +795,8 @@ test_that("the conditional_effects defect is live on hurdle too", {
   # curve is the conditional mean of the truncated count component
   # rather than the expected response. Unlike the zero-inflated case the
   # error changes SIGN along the curve, and unlike the zero-inflated
-  # case method = "predict" is not a way out: hurdle_poisson has no
-  # simulator. See dev/brms-methods-tests.md finding 1b.
+  # case method = "predict" is a way out only because hurdle_poisson
+  # gained a simulator in 0.51.0. See dev/brms-methods-tests.md finding 1b.
   skip_on_cran()
 
   set.seed(13)
@@ -827,9 +827,15 @@ test_that("the conditional_effects defect is live on hurdle too", {
   expect_exact_num(fitted(fh), predict(fh, type = "response"),
                    label = "hurdle fitted() is predict(response)")
 
-  # the zero-inflated workaround is not available here
-  expect_error(conditional_effects(fh, method = "predict"),
-               "needs a family with a simulator")
+  # the zero-inflated workaround is available here since 0.51.0, when
+  # hurdle_poisson gained a simulator: its estimate is a simulation mean
+  # of the response, which is the expected response up to Monte Carlo
+  # error and nowhere near the conditional mean the default path plots
+  set.seed(7)
+  pm <- suppressWarnings(conditional_effects(fh, method = "predict"))$x
+  cond <- as.numeric(predict(fh, newdata = nd, type = "conditional"))
+  expect_lt(max(abs(pm$estimate__ / epred - 1)), 0.15)
+  expect_true(all(abs(pm$estimate__ - epred) < abs(pm$estimate__ - cond)))
 })
 
 test_that("the ordinal branch forwards no dots, so nothing warns", {

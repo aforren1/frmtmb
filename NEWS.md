@@ -150,8 +150,9 @@ addition terms.
   response `(1 - zi) * exp(eta)`. On the tier's own data the plotted
   curve is 15% above the expected response at the first grid point and
   268% above it at the last. The same defect is live on the hurdle
-  families, where the error changes sign along the curve and no
-  argument produces the expected response at all, and neither case
+  families, where the error changes sign along the curve and only
+  `method = "predict"`, which draws responses, reaches the expected
+  response, and neither case
   needs brms to see: `fitted()` and `predict(type = "response")` on the
   same fit already disagree with the plot.
 
