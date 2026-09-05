@@ -1,3 +1,79 @@
+# frmtmb (development version)
+
+Two seams an extension had to work around: a compatibility rule that
+named a feature nobody had, and a family that needs either of two
+addition terms.
+
+* `frmtmb_register_compat()` now REFUSES a rule whose sides the registry
+  cannot resolve, rather than accepting it and matching no pair. A rule
+  that matches no pair is dropped without a word, so the contributing
+  package's table reads as complete while covering less than it claims,
+  which is the worst thing a compatibility surface can do. It happened:
+  a drift-diffusion extension wrote `mixture()` where the vocabulary
+  says `mixture`, and named `dec()` before that term was a feature at
+  all, and lost two `wiener` rows for a release. The refusal names the
+  rule, the spelling, and the nearest entry in the vocabulary when one
+  is close. Unknown kinds (`"kind:fmaily"`), unknown groups and statuses
+  outside the declared five are refused the same way, as is a rule
+  naming one feature on BOTH sides, which cannot match either: the
+  resolved table holds unordered pairs of distinct features. Nothing is
+  committed until every rule resolves, so a refused registration leaves
+  the vocabulary as it found it.
+
+* `frmtmb_register_compat(expects = )` is the one legitimate exception:
+  feature names the rules refer to but the registering package does not
+  supply, because another package does. They are exempt from the check
+  and are NOT added to the vocabulary, so such a rule lies dormant until
+  the package that owns the feature is loaded, which is what makes the
+  rule true. `frmtmb.sample` needs it for its `hmm x frm_sample` and
+  `lca x frm_sample` rules, which it only suggests the owner of; before
+  this, those two rows were silently dropped in every session that did
+  not also load `frmtmb.latent`.
+
+  The argument declares an expectation, so it is held to one at both
+  ends. A name the vocabulary already holds is refused, because it
+  exempts nothing. A name still unresolved when `frm_compat()` is
+  called is REPORTED there, in an `unresolved` attribute the print
+  method names under the rows, rather than leaving the rule to match no
+  pair in silence. It cannot honestly become a row: there is no such
+  feature in the session, so there is no pair, and inventing one would
+  put a feature in the table that nothing implements. The report is
+  also what makes a misspelling inside `expects` findable, which
+  registration cannot do, since the whole point of the argument is that
+  the owner is absent.
+
+* `frmtmb_register_aterm()` now contributes the term to the
+  compatibility vocabulary as well, as the feature `"<name>()"` of kind
+  `"aterm"`. A registered term that `frm_compat()` cannot describe is a
+  gap by construction: `frm()` would accept a term the table refuses to
+  answer about. A package that also declares the feature in
+  `frmtmb_register_compat(features = )` meets a no-op rather than a
+  duplicate, and one display name registered under two kinds is an
+  error. A name the vocabulary already holds under another kind is
+  refused, and neither registry keeps anything: `s()` is a smooth, so
+  `frmtmb_register_aterm("s")` would give one spelling two meanings in
+  one formula, and thirteen names (`s`, `t2`, `mo`, `ar`, `ma`, `mm`,
+  `mmc` and the rest) are taken this way.
+
+* `frmtmb_family(required_aterms = )` now takes ALTERNATIVES as well as
+  a conjunction. A character vector still names the terms a density
+  needs all of. A list adds the choice: an element of length one is
+  required, and an element of length more than one is a set of
+  spellings, any one of which will do, so
+  `required_aterms = list(c("dec", "vint1"), "vreal1")` reads as one of
+  `dec` or `vint1`, and `vreal1`. The refusal names every alternative in
+  an unmet group and writes the first into its example formula. A family
+  whose per-row datum arrives under either of two terms had to hand-roll
+  that refusal inside `valid_y()`, where it fires after the frame is
+  built and where nothing about the framework can check it.
+
+  Two smaller changes to the same argument. `required_aterms` now
+  refuses a missing or empty entry, `c("vint1", NA)`, which used to be
+  accepted and could then name no term; and `list()` is now accepted as
+  no requirements at all, which the character-vector-only check used to
+  refuse. Neither should reach a family that declares its requirements
+  correctly today.
+
 # frmtmb 0.50.0
 
 The Laplace approximation, corrected by importance sampling; and

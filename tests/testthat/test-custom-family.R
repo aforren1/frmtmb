@@ -167,13 +167,77 @@ test_that("a zero-length log-density is refused even undeclared", {
                "returned no values for 80 observations")
 })
 
-test_that("required_aterms takes a character vector only", {
-  expect_error(
+test_that("required_aterms takes a character vector or a list of them", {
+  bad <- function(req) {
     custom_family("bad_req", dpars = "mu", links = list(mu = "log"),
                   lpdf = function(y, dpars, aterms) y,
-                  required_aterms = list("vint1")),
-    "names the addition terms"
-  )
+                  required_aterms = req)
+  }
+  expect_error(bad(list(1)), "a character vector for the values it needs")
+  expect_error(bad(42), "a character vector for the values it needs")
+  expect_error(bad(c("vint1", NA)), "missing or empty")
+  # the two legal spellings: a conjunction, and a group of alternatives
+  expect_s3_class(bad(c("vint1", "vint2")), "frmtmb_family")
+  expect_s3_class(bad(list("vint1", c("dec", "vint1"))), "frmtmb_family")
+})
+
+# A family whose per-row datum arrives under either of two spellings.
+# That is the shape required_aterms could not express: the refusal had
+# to be hand-rolled inside valid_y, where it fires after the frame is
+# built and where nothing about the framework can check it.
+either_fam <- function(req) {
+  custom_family(
+    "either", dpars = "mu", links = list(mu = "log"),
+    lpdf = function(y, dpars, aterms) RTMB::dpois(y, dpars$mu, log = TRUE),
+    required_aterms = req, type = "discrete")
+}
+
+either_dat <- function(n = 60) {
+  set.seed(11)
+  dd <- data.frame(size = 3L, z = 1.5, x = stats::rnorm(n))
+  dd$y <- stats::rpois(n, exp(0.4 + 0.3 * dd$x))
+  dd
+}
+
+test_that("an any-of group is met by either alternative", {
+  dd <- either_dat()
+  req <- list(c("vint1", "vreal1"))
+  expect_s3_class(frm(bf(y | vint(size) ~ x) + either_fam(req), data = dd),
+                  "frmtmb_fit")
+  expect_s3_class(frm(bf(y | vreal(z) ~ x) + either_fam(req), data = dd),
+                  "frmtmb_fit")
+})
+
+test_that("an unmet any-of group is refused by naming the alternatives", {
+  dd <- either_dat()
+  err <- tryCatch(frm(bf(y ~ x) + either_fam(list(c("dec", "vint1"))),
+                      data = dd),
+                  error = conditionMessage)
+  expect_match(err, "the density needs one of `dec` or `vint1`",
+               fixed = TRUE)
+  # the example formula writes one alternative, because a formula has
+  # to pick one to be a formula
+  expect_match(err, "y | dec(<column>) ~ ...", fixed = TRUE)
+})
+
+test_that("all-of and any-of mix in one declaration", {
+  dd <- either_dat()
+  req <- list(c("dec", "vint1"), "vreal1")
+  # nothing supplied: both requirements are reported, the plain one
+  # first so the sentence does not trail a bare name off a choice
+  err <- tryCatch(frm(bf(y ~ x) + either_fam(req), data = dd),
+                  error = conditionMessage)
+  expect_match(err, "needs `vreal1`, one of `dec` or `vint1`", fixed = TRUE)
+  expect_match(err, "y | vreal(<column>) + dec(<column>) ~ ...",
+               fixed = TRUE)
+  # the choice met, the plain requirement still missing
+  err2 <- tryCatch(frm(bf(y | vint(size) ~ x) + either_fam(req), data = dd),
+                   error = conditionMessage)
+  expect_match(err2, "the density needs `vreal1`,", fixed = TRUE)
+  expect_false(grepl("one of", err2, fixed = TRUE))
+  expect_s3_class(
+    frm(bf(y | vint(size) + vreal(z) ~ x) + either_fam(req), data = dd),
+    "frmtmb_fit")
 })
 
 test_that("family_finalize derives a link from the response", {

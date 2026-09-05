@@ -106,15 +106,25 @@ under REML.}
 returning probabilities; enables \code{cens()} and \code{trunc()} addition
 terms.}
 
-\item{required_aterms}{Character vector of addition-term values the
-density cannot do without, named as they reach \code{aterms}:
-\code{"vint1"}, \code{"vreal2"}, \code{"trials"}. Frame assembly refuses a model
-that omits one, naming the family, the term and the spelling that
-supplies it. Without the declaration an absent term reaches the
-density as \code{NULL}, arithmetic on it gives \code{numeric(0)}, and the
-log-likelihood becomes a sum over nothing: a fit that returns, with
-a log-likelihood of zero. Declare every per-row datum the density
-indexes.}
+\item{required_aterms}{The addition-term values the density cannot do
+without, named as they reach \code{aterms}: \code{"vint1"}, \code{"vreal2"},
+\code{"trials"}. A character vector names the terms it needs ALL of. A
+LIST adds the alternative: an element of length one is a term that
+must be there, and an element of length more than one is a set of
+spellings, ANY one of which will do, so
+\code{required_aterms = list(c("dec", "vint1"), "vreal1")} reads as one
+of \code{dec} or \code{vint1}, and \code{vreal1}. A family that reads the same
+datum from either of two terms declares it that way instead of
+hand-rolling the refusal.
+
+Frame assembly refuses a model that leaves a requirement unmet,
+naming the family, the terms and the spelling that supplies them;
+for a set of alternatives it names all of them and writes the first
+into the example formula. Without the declaration an absent term
+reaches the density as \code{NULL}, arithmetic on it gives \code{numeric(0)},
+and the log-likelihood becomes a sum over nothing: a fit that
+returns, with a log-likelihood of zero. Declare every per-row datum
+the density indexes.}
 
 \item{family_finalize}{Optional function \verb{(fam, y, aterms)} returning
 a family. It runs once at frame assembly, after the response is

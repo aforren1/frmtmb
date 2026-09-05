@@ -1147,14 +1147,33 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # The failure this replaces is silent - NULL in the density's
     # arithmetic gives numeric(0), the log-likelihood sums over nothing,
     # and the fit RETURNS, with a log-likelihood of zero.
-    req_at <- resp$family[["required_aterms"]] %||% character(0)
-    miss_at <- setdiff(req_at, unique(c(names(av), names(resp$aterms))))
+    have_at <- unique(c(names(av), names(resp$aterms)))
+    # Each group is a set of spellings the density reads ANY of, and a
+    # plain character vector makes every entry a group of one, so the
+    # conjunction the argument has always meant is unchanged.
+    miss_at <- Filter(
+      function(g) !any(g %in% have_at),
+      required_aterm_groups(resp$family[["required_aterms"]]))
+    # Plain requirements first, so a message carrying both reads
+    # "`vreal1`, one of `dec` or `vint1`" rather than trailing a bare
+    # name off the end of a choice. A message of plain ones only is
+    # unaffected, which is what every family declaring the old spelling
+    # gets.
+    miss_at <- miss_at[order(lengths(miss_at) > 1L)]
     if (length(miss_at)) {
+      needs <- vapply(miss_at, function(g) {
+        if (length(g) == 1L) paste0("`", g, "`")
+        else paste0("one of ", paste0("`", g, "`", collapse = " or "))
+      }, "")
+      # The example writes the FIRST alternative of each unmet group.
+      # Which others there are is in the sentence above it; a formula
+      # has to pick one spelling to be a formula at all.
+      spell <- vapply(miss_at, function(g) aterm_spelling(g[[1L]]), "")
       stop(resp$family[["family"]], ": the density needs ",
-           paste0("`", miss_at, "`", collapse = ", "),
+           paste(needs, collapse = ", "),
            ", which nothing on this response supplies. Write the ",
            "addition term: ", resp$resp_name, " | ",
-           paste(vapply(miss_at, aterm_spelling, ""), collapse = " + "),
+           paste(spell, collapse = " + "),
            " ~ ...", call. = FALSE)
     }
     # before the generic aterm guards, so a structured response is

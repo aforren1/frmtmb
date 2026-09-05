@@ -57,6 +57,28 @@ frmtmb_compat_contrib$rules <- list()
 #' override a core default and a core default can never silently
 #' override a contributed one.
 #'
+#' @section What registration refuses:
+#' A rule side names a feature, a whole kind (`"kind:family"`), a named
+#' group (`"group:cdf"`), or everything (`"*"`). A side that names none
+#' of those matches no pair, and a rule that matches no pair is dropped
+#' without a word: the contributing package's table then reads as
+#' complete while covering less than it claims, which is the worst thing
+#' a compatibility surface can do. So registration refuses it, naming
+#' the rule, the spelling, and the nearest entry in the vocabulary when
+#' one is close.
+#'
+#' The check runs against the vocabulary AFTER `features` is added, so a
+#' package names its own new features freely in its own rules. It runs
+#' at registration, which means `rules` is called once there: keep it a
+#' pure builder that reads nothing but its own arguments.
+#'
+#' An addition term registered with [frmtmb_register_aterm()] is added
+#' to the vocabulary for you, as `"<name>()"` of kind `"aterm"`. A
+#' registered term the table cannot describe would be a gap by
+#' construction, so the registrant is not asked to say it twice; saying
+#' it anyway is a no-op. Register the term BEFORE the rules that name
+#' it.
+#'
 #' @section Status vocabulary:
 #' Every rule declares one of three states, and the third is the reason
 #' the registry exists: a guard that does not exist looks exactly like a
@@ -73,8 +95,12 @@ frmtmb_compat_contrib$rules <- list()
 #'   name to its kind: `c("hmm" = "structure")`, `c("dec()" = "aterm")`.
 #'   The display name is how the feature is written in a formula or a
 #'   call, parentheses included for a callable one; the kind groups it
-#'   in the printed matrix (`"family"`, `"covstruct"`, `"aterm"`,
-#'   `"special"`, `"autocor"`, `"mode"`, `"structure"`).
+#'   in the printed matrix and decides which kind-level rules reach it,
+#'   and is one of `"family"`, `"covstruct"`, `"aterm"`, `"special"`,
+#'   `"autocor"`, `"mode"`, `"structure"`, `"method"`, `"grammar"`.
+#'   A name the registry already carries under the same kind is a no-op,
+#'   so a reload is not an error and neither is declaring an addition
+#'   term that [frmtmb_register_aterm()] has already declared for you.
 #' @param rules A FUNCTION of no arguments returning a rule data frame,
 #'   not the data frame itself, so that contributed rules are built on
 #'   demand exactly as the core ones are. Build the frame with
@@ -83,6 +109,28 @@ frmtmb_compat_contrib$rules <- list()
 #'   `rules()` to return the accumulated frame. `a` and `b` are display
 #'   names, `"*"` matches every feature, and `override = TRUE` says the
 #'   rule beats a more specific one rather than losing to it.
+#' @param expects Character vector of feature names the rules refer to
+#'   but this package does not supply, because another package does.
+#'   They are exempt from the check below and are NOT added to the
+#'   vocabulary: a rule naming one of them lies dormant until the
+#'   package that owns the feature is loaded, which is what makes the
+#'   rule true. Use it for that and nothing else. A feature in the table
+#'   that nothing implements is the failure the registry exists to
+#'   prevent.
+#'
+#'   A name the vocabulary already holds is refused, because the
+#'   declaration then exempts nothing: give it a kind in `features =`,
+#'   or drop it. A name still unresolved when [frm_compat()] is called
+#'   is reported there, in the `unresolved` attribute the print method
+#'   shows, so a rule waiting for a package that never arrives is
+#'   visible rather than silent. That is what makes a misspelling
+#'   inside `expects` findable: the check here cannot catch one, since
+#'   the whole point is that the owner is absent.
+#'
+#'   The near-miss guess in a refusal is searched over the vocabulary
+#'   only, never over `expects`, so a misspelling of an expected name
+#'   is refused without a suggestion. Pointing at a feature that is not
+#'   in the session would be its own confusion.
 #' @return `NULL`, invisibly. Called for the registration.
 #'   `compat_rule_builder()` returns a list with elements `r` and
 #'   `rules`.
@@ -98,24 +146,330 @@ frmtmb_compat_contrib$rules <- list()
 #'       "The family supplies no lcdf, so there is no CDF to censor with.")
 #'   b$r("wiener", "*", "untested",
 #'       "Not exercised outside this package's own suite.")
+#'   b$r("wiener", "hmm", "untested",
+#'       "Another package's feature, so the rule waits for it.")
 #'   frmtmb_register_compat(features = c("wiener" = "family"),
-#'                          rules = b$rules)
+#'                          rules = b$rules, expects = "hmm")
 #' }
 #' # the accumulator on its own, which is all a rule set is
 #' b <- compat_rule_builder()
 #' b$r("dec()", "trials()", "refused", "Different response shapes.")
 #' b$rules()
 #' @export
-frmtmb_register_compat <- function(features = NULL, rules = NULL) {
-  if (length(features)) {
+frmtmb_register_compat <- function(features = NULL, rules = NULL,
+                                   expects = character(0)) {
+  arg <- "frmtmb_register_compat()"
+  who <- compat_registrant(parent.frame())
+  # Assembled once and passed down. It costs tens of milliseconds, and
+  # every millisecond here is on the load time of the package that
+  # registers.
+  known <- frmtmb_compat_features_tbl()
+  add <- compat_new_features(features, paste0(arg, " features ="), known)
+  if (!is.character(expects) || anyNA(expects)) {
+    stop("frmtmb_register_compat(expects =) names the features a rule ",
+         "refers to but this package does not supply, as a character ",
+         "vector, and got ", arg_desc(expects), call. = FALSE)
+  }
+  # expects = exempts a name from the resolvability check, so a name
+  # the session already has is an exemption from nothing. Accepting it
+  # would let a package declare an expectation that was met before it
+  # spoke, which reads as a forward reference and is not one.
+  here <- intersect(expects, c(known$name, names(features)))
+  if (length(here)) {
+    stop("frmtmb_register_compat(expects =) names '", here[[1L]],
+         "', and the registry already has that feature, so the ",
+         "declaration exempts nothing. expects = is for a feature ",
+         "another package supplies and this session may not have. ",
+         "Drop it, or give it a kind in features = if this package ",
+         "supplies it.", call. = FALSE)
+  }
+  if (!is.null(rules)) {
+    if (!is.function(rules)) {
+      stop("frmtmb_register_compat(rules =) takes a FUNCTION of no ",
+           "arguments returning a rule data frame, not the frame ",
+           "itself, so that a contributed rule is built on demand ",
+           "exactly as a core one is. Got ", arg_desc(rules),
+           call. = FALSE)
+    }
+    # rules() is called HERE now, at registration, so a builder that
+    # throws takes down the registrant's .onLoad(). It used to run
+    # lazily inside frm_compat(). Raw, the error arrives out of
+    # loadNamespace() with nothing naming the argument that called it.
+    df <- tryCatch(rules(), error = function(e) {
+      stop(arg, " called the rules = builder", who,
+           " and it failed, which stops the whole registration: the ",
+           "builder runs once at registration so that a rule naming ",
+           "nothing is refused here rather than dropped later, so it ",
+           "must read nothing but its own arguments. It said: ",
+           conditionMessage(e), call. = FALSE)
+    })
+    compat_check_rules(df, unique(c(known$name, names(features))),
+                       expects, arg)
+  }
+  # Nothing is committed until every rule has resolved, so a refused
+  # registration leaves the vocabulary as it found it rather than half
+  # filled with the features of a rule set that never took.
+  if (length(add)) {
     frmtmb_compat_contrib$features <-
-      c(frmtmb_compat_contrib$features, list(features))
+      c(frmtmb_compat_contrib$features, list(add))
   }
   if (!is.null(rules)) {
     frmtmb_compat_contrib$rules <-
       c(frmtmb_compat_contrib$rules, list(rules))
   }
   invisible(NULL)
+}
+
+#' The kinds a feature may carry.
+#'
+#' A closed set, because the kind is what decides which kind-level rules
+#' reach a feature. A novel kind would put its feature outside every one
+#' of them and leave it with the bare `* x *` default against the whole
+#' package, which is a vocabulary entry that says nothing.
+#'
+#' @noRd
+frmtmb_compat_kinds <- c("family", "covstruct", "aterm", "special",
+                         "autocor", "mode", "structure", "method",
+                         "grammar")
+
+#' The package a registration came from, as a clause to drop into a
+#' message, or "" when the caller is not a package.
+#'
+#' Registration runs from a contributor's `.onLoad()`, so a failure
+#' arrives out of `loadNamespace()` where the user has no call stack to
+#' read. Naming the package is the only thing that says whose load it
+#' was.
+#'
+#' @noRd
+compat_registrant <- function(env) {
+  top <- topenv(env)
+  if (!isNamespace(top)) return("")
+  nm <- environmentName(top)
+  if (!nzchar(nm) || identical(nm, "frmtmb")) return("")
+  paste0(" that ", nm, " gave it")
+}
+
+#' `a` or `an` before a quoted kind.
+#'
+#' Two of the nine kinds begin with a vowel, and "as a 'aterm' feature"
+#' is the sort of thing a registrant reads once and then mistrusts the
+#' rest of the message for.
+#'
+#' @noRd
+compat_kind_article <- function(kind) {
+  paste0(if (grepl("^[aeiou]", kind)) "an" else "a", " '", kind, "'")
+}
+
+#' Validate a contributed `features` vector and return the entries the
+#' vocabulary does not already hold.
+#'
+#' A name the registry already carries under the SAME kind is a no-op
+#' rather than an error: reloading the contributing package does it, and
+#' so does a package that declares an addition term
+#' `frmtmb_register_aterm()` has already declared on its behalf. Two
+#' kinds for one name is an error, because only one of them can be true.
+#'
+#' @noRd
+compat_new_features <- function(features, arg,
+                                known = frmtmb_compat_features_tbl()) {
+  if (is.null(features) || !length(features)) return(NULL)
+  if (!is.character(features) || anyNA(features) ||
+      is.null(names(features)) || anyNA(names(features)) ||
+      !all(nzchar(names(features))) || !all(nzchar(features))) {
+    stop(arg, " maps each feature's DISPLAY name to its kind, as a ",
+         "named character vector with no empty entry on either side: ",
+         "c(\"wiener\" = \"family\", \"dec()\" = \"aterm\"). Got ",
+         arg_desc(features), call. = FALSE)
+  }
+  bad <- setdiff(unname(features), frmtmb_compat_kinds)
+  if (length(bad)) {
+    stop(arg, " gives a feature the kind '", bad[[1L]],
+         "', and the registry has no such kind. A kind is one of: ",
+         paste(frmtmb_compat_kinds, collapse = ", "),
+         ". It is what decides which pairs the feature is asked about.",
+         call. = FALSE)
+  }
+  # A name repeated inside ONE call is the cross-call clash below, one
+  # scope inward: dropping the second entry accepts a declaration that
+  # does nothing and says nothing, which is the defect this whole seam
+  # exists to refuse. A repeat under the SAME kind is the harmless half
+  # and stays silent, because a rule set may spell a term out that
+  # frmtmb_register_aterm() already declared.
+  dup <- duplicated(names(features))
+  if (any(dup)) {
+    first <- match(names(features), names(features))
+    bad <- which(dup & unname(features) != unname(features)[first])
+    if (length(bad)) {
+      i <- bad[[1L]]
+      stop(arg, " registers '", names(features)[[i]], "' as ",
+           compat_kind_article(unname(features)[[i]]), " feature, and ",
+           "the same call already gives that name the kind '",
+           unname(features)[[first[[i]]]],
+           "'. One display name carries one kind.", call. = FALSE)
+    }
+    features <- features[!dup]
+  }
+  hit <- match(names(features), known$name)
+  clash <- which(!is.na(hit) & known$kind[hit] != unname(features))
+  if (length(clash)) {
+    i <- clash[[1L]]
+    stop(arg, " registers '", names(features)[[i]], "' as ",
+         compat_kind_article(unname(features)[[i]]), " feature, and ",
+         "the registry already holds that name under the kind '",
+         known$kind[[hit[[i]]]],
+         "'. One display name carries one kind.", call. = FALSE)
+  }
+  out <- features[is.na(hit)]
+  if (length(out)) out else NULL
+}
+
+#' The vocabulary entry for an addition term registered through
+#' `frmtmb_register_aterm()`.
+#'
+#' A registered term that `frm_compat()` cannot describe is a gap by
+#' construction: `frm()` would accept a term the table refuses to answer
+#' about. Contributing the entry here is what makes forgetting it
+#' impossible.
+#'
+#' @noRd
+compat_new_aterm_feature <- function(name) {
+  display <- paste0(name, "()")
+  # Built once here and handed down, so the collision check and the
+  # feature add share one pass over the vocabulary instead of two.
+  known <- frmtmb_compat_features_tbl()
+  hit <- match(display, known$name)
+  if (!is.na(hit) && !identical(known$kind[[hit]], "aterm")) {
+    # The generic "one display name carries one kind" is true but says
+    # nothing to a term author. The collision is a grammar fact: s() is
+    # a smooth, so `y | s(col) ~ x` would give one spelling two
+    # meanings in one formula.
+    stop("frmtmb_register_aterm() cannot register '", name,
+         "', because '", display, "' already means something else in a ",
+         "formula: the compatibility vocabulary holds it as ",
+         compat_kind_article(known$kind[[hit]]), " feature. A formula ",
+         "writing ", display, " could not say which was meant, so ",
+         "nothing has been registered. Choose another name.",
+         call. = FALSE)
+  }
+  add <- compat_new_features(stats::setNames("aterm", display),
+                             "frmtmb_register_aterm()", known)
+  if (length(add)) {
+    frmtmb_compat_contrib$features <-
+      c(frmtmb_compat_contrib$features, list(add))
+  }
+  invisible(NULL)
+}
+
+#' Refuse a contributed rule the registry cannot resolve.
+#'
+#' A rule side that names nothing matches no pair and is dropped in
+#' silence, so the contributing package's table looks complete while
+#' covering less than it claims. Refusing at registration is the whole
+#' point: the alternative is finding out a release later, which is how
+#' two wiener rows were lost for a round.
+#'
+#' `vocab` is the display names the rules may use: the registry's own
+#' plus the features this registration is adding, so a package may name
+#' its own. A feature
+#' another package supplies is named in `expects` instead, because
+#' adding it here would put a feature in the table that nothing
+#' implements.
+#'
+#' @noRd
+compat_check_rules <- function(df, vocab, expects, arg) {
+  cols <- c("feature_a", "feature_b", "status", "note")
+  # The columns are read as patterns and statuses, so a frame carrying
+  # factors or numbers is refused here rather than deep inside
+  # startsWith() with a message about the wrong thing.
+  chr <- function(z) is.character(z) && !anyNA(z)
+  if (!is.data.frame(df) || !all(cols %in% names(df)) ||
+      !chr(df$feature_a) || !chr(df$feature_b) || !chr(df$status)) {
+    stop(arg, " must return a data frame carrying feature_a, ",
+         "feature_b, status and note. Build it with ",
+         "compat_rule_builder(): its r() records one rule and its ",
+         "rules() returns the frame. Got ", arg_desc(df), call. = FALSE)
+  }
+  if (!nrow(df)) return(invisible(NULL))
+  known <- c(vocab, expects)
+  for (k in seq_len(nrow(df))) {
+    lbl <- paste0("`", df$feature_a[[k]], " x ", df$feature_b[[k]], "`")
+    for (pat in c(df$feature_a[[k]], df$feature_b[[k]])) {
+      if (identical(pat, "*")) next
+      if (startsWith(pat, "kind:")) {
+        if (!substring(pat, 6L) %in% frmtmb_compat_kinds) {
+          stop(arg, ": the rule ", lbl, " matches on '", pat,
+               "', and there is no such kind of feature. The kinds ",
+               "are: ", paste(frmtmb_compat_kinds, collapse = ", "),
+               ".", call. = FALSE)
+        }
+      } else if (startsWith(pat, "group:")) {
+        if (!substring(pat, 7L) %in% names(frmtmb_compat_groups_lst)) {
+          stop(arg, ": the rule ", lbl, " matches on '", pat,
+               "', and the registry has no such feature group. The ",
+               "groups are: ",
+               paste(names(frmtmb_compat_groups_lst), collapse = ", "),
+               ".", call. = FALSE)
+        }
+      } else if (!pat %in% known) {
+        stop(arg, ": the rule ", lbl, " names '", pat, "', and the ",
+             "registry has no such feature, so the rule would match no ",
+             "pair and be dropped without a word.",
+             compat_near_feature(pat, vocab),
+             " Give the feature a kind in features = if this package ",
+             "supplies it, or name it in expects = if another package ",
+             "does. frm_compat_features() lists the vocabulary.",
+             call. = FALSE)
+      }
+    }
+    if (df$feature_a[[k]] == df$feature_b[[k]] &&
+          compat_spec(df$feature_a[[k]]) == 3L) {
+      stop(arg, ": the rule ", lbl, " names one feature on both sides. ",
+           "The resolved table holds unordered pairs of DISTINCT ",
+           "features, so this matches no pair either. State it in the ",
+           "note of a rule against something the feature really meets.",
+           call. = FALSE)
+    }
+    if (!df$status[[k]] %in% frmtmb_compat_statuses) {
+      stop(arg, ": the rule ", lbl, " declares the status '",
+           df$status[[k]], "', which is not one of: ",
+           paste(frmtmb_compat_statuses, collapse = ", "),
+           ". The last of them is the point of the registry: an absent ",
+           "guard and a passing guard look the same from outside.",
+           call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
+
+#' The vocabulary entry a misspelling was probably aiming at, as a
+#' sentence to append to the refusal, or "" when nothing is close.
+#'
+#' The commonest miss is the parentheses: a display name carries them
+#' for a callable feature and not otherwise, so `mixture()` for
+#' `mixture` is the shape to expect. Those are matched exactly, and
+#' anything else falls to an approximate match kept deliberately tight,
+#' because a confident wrong suggestion costs more than none.
+#'
+#' @noRd
+compat_near_feature <- function(bad, known) {
+  # The parenthesis test runs BOTH directions. The first two terms
+  # catch `bad` carrying parentheses the entry does not; the third
+  # catches `bad` missing them, which used to fall through to agrep()
+  # and be answered confidently and wrongly: for `se`, agrep ranked
+  # `us` (one edit) above `se()` (two), so a misspelled addition term
+  # was pointed at an unstructured covariance.
+  hit <- known[known == sub("\\(\\)$", "", bad) |
+                 paste0(known, "()") == bad |
+                 known == paste0(bad, "()")]
+  if (!length(hit)) {
+    cand <- agrep(bad, known, max.distance = 0.2, value = TRUE,
+                  ignore.case = TRUE)
+    if (length(cand)) {
+      d <- utils::adist(bad, cand, ignore.case = TRUE)[1L, ]
+      hit <- cand[d <= 2L][order(d[d <= 2L])]
+    }
+  }
+  if (length(hit)) paste0(" Did you mean '", hit[[1L]], "'?") else ""
 }
 
 #' @rdname frmtmb_register_compat
@@ -148,8 +502,8 @@ compat_rule_builder <- function() {
 #'         features; the key never does.
 #'
 #' @noRd
-frmtmb_compat_features_tbl <- function() {
-  contrib <- unlist(frmtmb_compat_contrib$features)
+frmtmb_compat_features_tbl <- function(extra = NULL) {
+  contrib <- c(unlist(frmtmb_compat_contrib$features), extra)
   f <- function(name, kind) {
     key <- sub("\\(\\)$", "", name)
     if (key %in% names(frmtmb_compat_special_keys)) {
@@ -172,7 +526,7 @@ frmtmb_compat_features_tbl <- function() {
             "toep", "homtoep", "homcs", "exp", "gau", "mat", "rr",
             "equalto", "gr_cov", "gr_prec", "smooth", "gp", "hsgp",
             "car", "spde", "us_t", "diag_t")
-  do.call(rbind, c(
+  out <- do.call(rbind, c(
     lapply(fams, f, kind = "family"),
     lapply(covs, f, kind = "covstruct"),
     lapply(c("weights()", "trials()", "cens()", "trunc()", "se()",
@@ -203,6 +557,12 @@ frmtmb_compat_features_tbl <- function() {
       f(names(contrib)[[i]], unname(contrib[[i]]))
     })
   ))
+  # One row per display name. A registration may repeat a name the
+  # registry already holds, and a second row would give the feature a
+  # pair with itself and double every pair it has with anything else.
+  out <- out[!duplicated(out$name), , drop = FALSE]
+  rownames(out) <- NULL
+  out
 }
 
 # The special vocabulary collides with the covariance vocabulary: gp,
@@ -1068,6 +1428,22 @@ compat_sig_rank <- function(pa, pb) {
   4L * pmax(a, b) + pmin(a, b)
 }
 
+#' Rule sides no feature in this session answers to.
+#'
+#' Only a bare name can be one. `"*"`, `kind:` and `group:` sides are
+#' checked against closed sets at registration and cannot dangle, and a
+#' bare name is checked against the vocabulary there too -- unless the
+#' registrant declared it in `frmtmb_register_compat(expects =)`, which
+#' says another package supplies it. Whether that package is loaded is
+#' a fact about the session and not about the registration, so query
+#' time is the only place the answer exists.
+#'
+#' @noRd
+compat_unresolved_sides <- function(rules, vocab) {
+  pat <- unique(c(rules$feature_a, rules$feature_b))
+  sort(setdiff(pat[compat_spec(pat) == 3L], vocab))
+}
+
 #' Does `pat` cover the feature at position i of the feature table?
 #'
 #' @noRd
@@ -1244,6 +1620,19 @@ frm_compat_rules <- function() {
 #' exist looks exactly like a guard that passed, so the absence of an
 #' error was never evidence of support.
 #'
+#' @section Rule sides this session cannot resolve:
+#' A rule may name a feature another package owns, declared through
+#' `frmtmb_register_compat(expects =)`. Until that package is loaded
+#' there is no such feature and so no pair, and the rule matches
+#' nothing. Such a side cannot honestly be a row here, because a row
+#' would put a feature in the table that nothing in this session
+#' implements; it is reported instead. The returned table carries the
+#' names in an `unresolved` attribute and the print method names them
+#' under the rows. Both appear only when the session holds one, so a
+#' session with no forward reference gets the plain data frame it
+#' always got. Load the package that owns the feature, or read the
+#' names as the list of rules that are waiting for one.
+#'
 #' @param feature_a,feature_b Feature names, as given by
 #'   [frm_compat_features()]. Supply both for one pair, one for every
 #'   pair involving that feature, or neither for the whole table. Both
@@ -1252,7 +1641,10 @@ frm_compat_rules <- function() {
 #' @param status Optional character vector; keep only these statuses.
 #' @return A data frame with columns `feature_a`, `kind_a`,
 #'   `feature_b`, `kind_b`, `status`, and `note`. Family pairs are
-#'   omitted, because a model carries one family.
+#'   omitted, because a model carries one family. When the session
+#'   holds an unresolved rule side, the frame also carries an
+#'   `unresolved` attribute and the class `frmtmb_compat`, whose print
+#'   method names them; see the section below.
 #' @seealso [frm_compat_rules()], [frm_compat_features()]
 #' @examples
 #' # one pair
@@ -1334,5 +1726,47 @@ frm_compat <- function(feature_a = NULL, feature_b = NULL,
     }
   }
   rownames(out) <- NULL
+
+  # A side declared through frmtmb_register_compat(expects =) is a
+  # forward reference to a feature another package owns. Until that
+  # package loads there is no such feature, so there is no pair, so the
+  # rule can never be a row here: reporting it as one would put a
+  # feature in the table that nothing in the session implements, which
+  # is the lie the registry exists to refuse. Reporting it beside the
+  # table is what is left, and saying nothing is what the strict
+  # registration was built to stop.
+  #
+  # The attribute and the class are attached only when there IS one, so
+  # a session holding no forward reference -- the core alone, and every
+  # session before an extension declared one -- gets exactly the plain
+  # data frame it got before.
+  un <- compat_unresolved_sides(rules, ft$name)
+  if (length(un)) {
+    attr(out, "unresolved") <- un
+    class(out) <- c("frmtmb_compat", class(out))
+  }
   out
+}
+
+#' @export
+print.frmtmb_compat <- function(x, ...) {
+  un <- attr(x, "unresolved")
+  y <- x
+  attr(y, "unresolved") <- NULL
+  class(y) <- "data.frame"
+  print(y, ...)
+  if (length(un)) {
+    msg <- paste0(
+      "Unresolved rule sides in this session: ",
+      paste0("'", un, "'", collapse = ", "),
+      ". A registered rule names ", if (length(un) > 1L) "each" else "it",
+      ", declared through frmtmb_register_compat(expects =) as a ",
+      "feature another package supplies. No feature here answers to ",
+      if (length(un) > 1L) "them" else "it",
+      ", so ", if (length(un) > 1L) "those rules match" else
+        "that rule matches",
+      " no pair until the owning package is loaded.")
+    cat("\n", paste(strwrap(msg), collapse = "\n"), "\n", sep = "")
+  }
+  invisible(x)
 }

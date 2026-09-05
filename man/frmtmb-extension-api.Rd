@@ -175,6 +175,40 @@ fact refused is the same one in every such family, so the
 sentence is issued from one place rather than copied.}
 }
 }
+\section{What the registries hold you to}{
+
+The three registries an extension fills from its own \code{.onLoad()}
+check what they are given, because a registration that is accepted
+and then does nothing is indistinguishable from one that worked.
+
+\itemize{
+\item \code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}} refuses a rule whose sides it
+cannot resolve. A side names a feature, a kind, a group or \code{"*"};
+anything else matches no pair, so the rule is dropped in silence
+and the table reads as complete while covering less. Name a
+feature your package supplies in \verb{features =}, and one another
+package supplies in \verb{expects =}. A name \verb{expects =} gives that
+the vocabulary already holds is refused too, because it exempts
+nothing; one still unresolved when \code{\link[=frm_compat]{frm_compat()}} is called is
+reported there rather than dropped.
+\item \code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}} adds the term to that vocabulary
+itself, as \code{"<name>()"} of kind \code{"aterm"}. A term \code{frm()} accepts
+and \code{frm_compat()} cannot describe is a gap by construction, and
+the seam that creates the term is the only place that can close
+it without asking the registrant to remember. Register the term
+BEFORE the rules that name it; declaring it in \verb{features =}
+anyway is a no-op. A name the vocabulary already holds under
+another kind is refused, and nothing is registered on either
+side.
+\item \code{\link[=frmtmb_family]{frmtmb_family()}} takes \code{required_aterms} as a conjunction
+(a character vector) or as one with choices in it (a list, whose
+elements of length more than one are alternatives). Declare the
+choice rather than refusing it by hand in \code{valid_y}: the
+framework refuses before the frame is built and names every
+alternative.
+}
+}
+
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(50))

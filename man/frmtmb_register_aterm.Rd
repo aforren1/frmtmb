@@ -45,6 +45,22 @@ contributed term is not a route to that.
 Registering a name twice replaces the earlier entry, so that
 reloading the contributing package is not an error. The eight core
 terms cannot be replaced.
+
+The term joins the compatibility vocabulary at the same time, as the
+feature \code{"<name>()"} of kind \code{"aterm"}, so that \code{\link[=frm_compat]{frm_compat()}} can be
+asked about it and \code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}} rules may name it. A
+term \code{frm()} accepts and the table cannot describe would be a gap by
+construction, so the registrant is not asked to declare it twice;
+declaring it in \code{frmtmb_register_compat(features =)} anyway is a
+no-op rather than a duplicate. Register the term BEFORE the rules
+that name it.
+
+A name the vocabulary already holds under another kind is refused,
+and nothing is registered on either side: \code{s()} is a smooth, so
+\code{frmtmb_register_aterm("s")} would give one spelling two meanings in
+one formula. Thirteen names are taken this way: \code{s}, \code{t2}, \code{mo},
+\code{mi_pred}, \code{gp_pred}, \code{cs_pred}, \code{ar}, \code{ma}, \code{arma}, \code{cosy},
+\code{unstr}, \code{mm} and \code{mmc}.
 }
 \examples{
 # a decision indicator, given as a factor and delivered as 0/1
