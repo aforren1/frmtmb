@@ -762,6 +762,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # of. The structure also gets to look at where the fit STARTS, which
   # is where a multimodal likelihood's traps are.
   check_structure_fit(spec, frame, template, REML, quadrature, control)
+  # ps() blocks refuse the same three options for a reason of their
+  # own: each integrates out something a penalized block has already
+  # put inside the Laplace approximation.
+  check_ps_fit(frame, REML, quadrature, control)
 
   # The importance correction reweights the SAME Laplace integral, so
   # every guard the Laplace fit passes still applies and only the
@@ -989,6 +993,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     if (vb) vb_stage("sdreport", t0)
   }
   chk <- check_convergence(fit, control)
+  # Fit-end checks: a family that wants to inspect its own fit, and the
+  # knot-span coverage of any ps() block. Both need the finished object,
+  # which is why neither can live in family_finalize() or in the frame.
+  fit_end_checks(fit)
   if (vb) {
     vb_stage("done", t_fit,
              paste0("objective ", format(fit$opt$objective, digits = 8),
@@ -1033,6 +1041,19 @@ unfitted_object <- function(spec, frame, obj, template, bform, cl, REML,
 #' still tells the user which call to change.
 #'
 #' @noRd
+#' The object really is a fit, before anything reaches into its slots.
+#'
+#' Without this the first reach lands inside `sdreport()` and the reader
+#' gets a message from three packages down that names neither the
+#' argument nor the fault.
+#'
+#' @noRd
+require_frmtmb_fit <- function(fit, what) {
+  if (inherits(fit, "frmtmb_fit")) return(invisible(NULL))
+  stop(what, " needs a model fitted by frm(), not ", arg_desc(fit),
+       call. = FALSE)
+}
+
 require_fitted <- function(fit, what) {
   if (!inherits(fit, "frmtmb_unfitted")) return(invisible(NULL))
   stop(what, " needs a fitted model. This object was assembled by ",

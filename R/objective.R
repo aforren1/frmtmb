@@ -93,11 +93,34 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
     # over unchanged: F(y) already includes the point y, which is what a
     # left-censored count observes.
     cen <- av[["cens"]]
-    Fv <- fam_lcdf(fam, yraw, dpv, av, extra)
     i_r <- which(cen == 1)
     i_l <- which(cen == -1)
     i_i <- which(cen == 2)
-    if (length(i_r)) ll[i_r] <- log(bound_rows(Fub, i_r) - Fv[i_r])
+    # `log S` on the LOG scale where the family can supply it. Without
+    # `lccdf` a right-censored row is scored as `log(1 - F)`, and once
+    # `F` rounds to one that number is not merely inaccurate, it is
+    # constant: its gradient is exactly zero, so the optimizer prices
+    # every such row the same however far it moves. Measured on a
+    # gaussian tail, `log(1 - pnorm(z))` is -Inf from z = 8.3 and
+    # `pnorm(z, lower.tail = FALSE, log.p = TRUE)` is exact to z = 500.
+    lS <- if (has_lccdf(fam) && length(i_r)) {
+      fam_lccdf(fam, yraw, dpv, av, extra)
+    }
+    need_F <- length(i_l) || length(i_i) || (length(i_r) && is.null(lS))
+    Fv <- if (need_F) fam_lcdf(fam, yraw, dpv, av, extra)
+    if (length(i_r)) {
+      ll[i_r] <- if (is.null(lS)) {
+        log(bound_rows(Fub, i_r) - Fv[i_r])
+      } else if (is.null(av[["trunc_ub"]])) {
+        lS[i_r]
+      } else {
+        # P(y < Y <= ub) = S(y) - S(ub), taken as a log difference so
+        # that the exact log survivor is never round-tripped through a
+        # probability whose complement is not representable
+        lSu <- fam_lccdf(fam, av[["trunc_ub"]], dpv, av, extra)
+        lS[i_r] + log1p(-exp(bound_rows(lSu, i_r) - lS[i_r]))
+      }
+    }
     if (length(i_l)) ll[i_l] <- log(Fv[i_l] - bound_rows(Flb, i_l))
     if (length(i_i)) {
       F2 <- fam_lcdf(fam, av[["cens_y2"]], dpv, av, extra)
@@ -287,7 +310,12 @@ build_objective <- function(frame) {
         # no column behind them and read another parameter's per-row
         # value instead (a variance function of the fitted mean).
         ev <- c(dparv[[lp[["resp"]]]][c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])],
-                lp[["data_list"]])
+                lp[["data_list"]],
+                # ps() blocks: one closure per term, built from the
+                # CURRENT coefficients. It has to be rebuilt here, per
+                # call, rather than captured in `nl_env`, which parse
+                # time fixed before any coefficient existed.
+                ps_env(lp, pars, bvec))
         # the body is taped once, so the handler costs nothing per
         # gradient; it exists because a body name that resolved to an
         # environment object instead of a column fails here, far from

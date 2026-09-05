@@ -246,12 +246,38 @@ sp_rp_family <- function(cfg, allknots) {
       odds = 1 - 1 / (1 + exp(eta)),
       normal = RTMB::pnorm(eta, 0, 1)))
   }
+  # log S in closed form, on all three scales. frmtmb >= 0.52.0 scores a
+  # right-censored row from this instead of from log(1 - F), so the
+  # squeeze above no longer stands between the model and the number:
+  # `sp_squeeze()` bounds F away from 1 and therefore floors log S at
+  # -35.127363, while none of the three expressions below forms a
+  # complement at all.
+  #
+  # The hazard scale's cap is 700 here and 30 in the log density above,
+  # and the two are answering different questions. The density's cap
+  # exists so that `exp(eta)` cannot overflow into an Inf whose gradient
+  # is NaN one line later, and an EVENT row's cumulative hazard is
+  # bounded by the observed times anyway. A censored row's is not: the
+  # whole point of the slot is that a survivor censored far past every
+  # event contributes its own -H however large that is, so capping at
+  # exp(30) would put back a floor at log S = -1.1e13. 700 is where the
+  # double itself runs out, and the term is exact everywhere below it.
+  ccdf <- function(q, dpars, aterms) {
+    sp_rp_need_knots(allknots)
+    x <- log(q)
+    eta <- sp_rp_eta(sp_rp_basis(allknots, x), gam_of(dpars))
+    switch(cfg$scale,
+      hazard = -exp(sp_cap(eta, 700)),
+      odds = -sp_log1pexp(eta),
+      normal = RTMB::pnorm(eta, 0, 1, lower.tail = FALSE, log.p = TRUE))
+  }
   custom_family(
     "royston_parmar",
     dpars = dpars,
     links = links,
     lpdf = ll,
     lcdf = cdf,
+    lccdf = ccdf,
     valid_y = function(y, aterms) sp_rp_valid_y(y),
     family_finalize = function(fam, y, aterms) {
       sp_rp_family(cfg, sp_rp_knots(cfg, y, aterms))
@@ -275,6 +301,26 @@ sp_rp_family <- function(cfg, allknots) {
              "gives any spline coefficient, and frm_curve() reads the ",
              "fitted log cumulative hazard off with a band",
              call. = FALSE)
+      },
+      # frmtmb >= 0.52.0 runs this when a fit finishes. It is the only
+      # place a family can say anything about where the optimizer
+      # LANDED: logLik() reads object$opt$objective directly, so a
+      # monotonicity floor was invisible to anyone who fitted and read
+      # AIC() without calling rp_floored(). Reporting rather than
+      # refusing, because frm() has already done the work and throwing
+      # it away helps nobody; rp_floored() is still the refusal.
+      fit_check = function(fit, resp) {
+        r <- try(rp_floored(fit, action = "report"), silent = TRUE)
+        if (inherits(r, "try-error")) return(invisible(NULL))
+        if (r$n_nonmonotone) {
+          warning(r$n_nonmonotone, " of ", r$n_obs, " observed rows have ",
+                  "a non-positive d(eta)/d(log t) at the fitted ",
+                  "parameters, so no hazard exists there and this fit's ",
+                  "logLik() and AIC() are of a floored pseudo-likelihood ",
+                  "rather than of a density. rp_floored() names the rows; ",
+                  "fewer knots is the remedy", call. = FALSE)
+        }
+        invisible(NULL)
       }
     ),
     sim = function(dpars, aterms, n) {

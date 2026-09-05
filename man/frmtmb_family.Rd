@@ -19,6 +19,7 @@ frmtmb_family(
   sim_refusal = NULL,
   primary_dpars = "mu",
   lcdf = NULL,
+  lccdf = NULL,
   required_aterms = character(0),
   family_finalize = NULL,
   extra_pars = NULL,
@@ -40,6 +41,7 @@ custom_family(
   sim_refusal = NULL,
   primary_dpars = "mu",
   lcdf = NULL,
+  lccdf = NULL,
   required_aterms = character(0),
   family_finalize = NULL,
   extra_pars = NULL,
@@ -79,7 +81,16 @@ shares one latent predictor across the categories and
 residuals) and \code{dev_fn(y, dpars, aterms)} (the unit deviance
 \verb{2 * (loglik of the saturated fit - loglik at the fitted value)},
 for \code{residuals(type = "deviance")}). A family that omits one is
-refused by the method that needs it.}
+refused by the method that needs it.
+
+\code{post$fit_check(fit, resp)} is different in kind: it is run once,
+when a fit FINISHES, and its return value is discarded. It is where
+a family says something about where the optimizer landed, which
+nothing else can: \code{logLik()} reads the optimizer's own value, so a
+family whose likelihood is floored or degenerate in some region had
+no way to report it. Warn from it rather than stopping; a hook that
+throws is caught, reported as a warning naming the family, and the
+fit is returned regardless.}
 
 \item{sim}{Optional numeric simulator \verb{(dpars, aterms, n)} returning \code{n}
 response draws; used by \code{\link[=simulate]{simulate()}}, \code{posterior_predict()} and
@@ -105,6 +116,15 @@ under REML.}
 \item{lcdf}{Optional vectorized AD log-safe CDF \verb{(q, dpars, aterms)}
 returning probabilities; enables \code{cens()} and \code{trunc()} addition
 terms.}
+
+\item{lccdf}{Optional vectorized AD LOG SURVIVOR function
+\verb{(q, dpars, aterms)} returning \code{log(1 - F(q))} directly. A family
+that declares it scores a RIGHT-censored row from it instead of
+from \code{log(1 - F)}, which cannot be accurate once \code{F} rounds to one
+(see Right censoring and the representable tail). It is optional
+and independent of \code{lcdf}: a family that supplies only \code{lccdf}
+accepts right censoring and refuses left censoring, interval
+censoring and \code{trunc()}, each by name.}
 
 \item{required_aterms}{The addition-term values the density cannot do
 without, named as they reach \code{aterms}: \code{"vint1"}, \code{"vreal2"},
@@ -255,6 +275,55 @@ existed was to have \code{valid_y} write the bound into an environment the
 link closures read at call time, which works only for as long as the
 call order happens to hold and leaves the family object lying about
 what it is.
+}
+
+\section{Right censoring and the representable tail}{
+
+Core forms a right-censored row's contribution as \code{log(Fub - F(y))},
+which without truncation is \code{log(1 - F)}. A double cannot represent
+the complement of a probability that has rounded to one, so past that
+point the contribution is not merely inaccurate: it is CONSTANT, and
+its gradient is exactly zero. An optimizer then prices such a row the
+same however far it moves, and fits every other row as if the
+survivor were free. That failure is silent - the fit converges, and
+\code{logLik()} and \code{AIC()} report the floored number.
+
+\code{lccdf} removes the class for right censoring by giving core the
+quantity it actually needs. Measured on a standard normal tail, one
+process:
+
+\tabular{lrr}{
+\strong{z} \tab \strong{log(1 - pnorm(z))} \tab
+\strong{pnorm(z, lower.tail = FALSE, log.p = TRUE)} \cr
+8.0 \tab -35.013 \tab -35.013 \cr
+8.3 \tab -Inf \tab -37.494 \cr
+37 \tab -Inf \tab -689.031 \cr
+500 \tab -Inf \tab -125007.13
+}
+
+Both the value and the derivative are exact on the right, over the
+whole range.
+
+The built-in families that declare \code{lccdf} are \code{\link[=gaussian]{gaussian()}},
+\code{\link[=lognormal]{lognormal()}}, \code{\link[=exponential]{exponential()}}, \code{\link[=weibull]{weibull()}} and \code{\link[=cox]{cox()}}. The last
+three have \verb{log S} in closed form (\code{-q/mu}, \code{-(q/scale)^shape},
+\code{-H0(t) * mu}); the first two use \code{pnorm()}'s own log upper tail.
+
+Two families with a CDF do NOT declare one, for measured reasons.
+\code{\link[=inverse.gaussian]{inverse.gaussian()}} gains nothing:
+\code{RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)} is computed
+on the probability scale and reaches \code{-Inf} at the same
+\verb{log S = -34} that \code{log(1 - F)} does. \code{\link[=poisson]{poisson()}} is discrete, and
+\code{cens()} is refused for discrete families, so the slot would be
+unreachable.
+
+\code{lccdf} fixes RIGHT censoring and nothing else. Left censoring is
+still \code{log(F(y) - Flb)}, interval censoring is still a difference of
+CDFs, and the truncation normalizer is still \code{log(Fub - Flb)}, so a
+LEFT-TRUNCATED survival model - delayed entry, which is routine -
+meets the identical representability problem from the other side.
+Closing that needs a windowed log-difference slot, and this is the
+first step rather than the last one.
 }
 
 \section{Tape-safe scope}{

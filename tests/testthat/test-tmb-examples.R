@@ -303,7 +303,12 @@ test_that("transform: a latent AR(1) field pushed through a gamma quantile", {
   fit <- suppressWarnings(
     frm(bf(y ~ RTMB::qgamma(RTMB::pnorm(z), shape, scale),
            z ~ 0 + ar1(tim + 0 | g), shape ~ 1, scale ~ 1, nl = TRUE),
-        family = gaussian(), data = dd, start = list(beta = c(0, 2, 3)),
+        # `z ~ 0 + ar1(...)` has NO fixed coefficient. It used to add a
+        # phantom one anyway (`paste()` recycling a zero-column design
+        # to the single name "z_"), which nothing indexed and which
+        # made the outer Hessian singular; the leading 0 here was that
+        # entry's starting value.
+        family = gaussian(), data = dd, start = list(beta = c(2, 3)),
         prior = pin))
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
   # theta_2 -> rho is the reference's phi
@@ -336,7 +341,7 @@ test_that("transform2: the same field through a beta quantile", {
   fit <- suppressWarnings(
     frm(bf(y ~ RTMB::qbeta(RTMB::pnorm(z), shape1, shape2),
            z ~ 0 + ar1(tim + 0 | g), shape1 ~ 1, shape2 ~ 1, nl = TRUE),
-        family = gaussian(), data = dd, start = list(beta = c(0, .5, 2)),
+        family = gaussian(), data = dd, start = list(beta = c(.5, 2)),
         prior = pin))
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
 })

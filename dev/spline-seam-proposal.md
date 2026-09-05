@@ -1,9 +1,27 @@
 # A core API for splines the objective consumes nonlinearly
 
 Written from `extensions/frmtmb.spline` on branch `wt-spline`, base
-commit 5dfdd84 (core 0.50.0). **Nothing proposed here was implemented.**
-This document says what core would have to grow, why, and what each
-addition would oblige the rest of core to say.
+commit 5dfdd84 (core 0.50.0). It said what core would have to grow, why,
+and what each addition would oblige the rest of core to say.
+
+**STATUS: every part below is IMPLEMENTED, in frmtmb 0.52.0 and
+frmtmb.spline 0.2.0, on branch `wt-spline-core`.** Each part carries a
+short note saying what landed and where; the measurements are in
+`dev/spline-core-findings.md`. Where the implementation departs from the
+proposal, the note says so and why. The text of the proposal is left as
+it was written, so that the argument and the outcome can be read
+against each other.
+
+| part | status | landed as |
+|---|---|---|
+| 1a, the joint-covariance accessor | implemented | `frm_joint_cov()`, `R/predict.R` |
+| 1b, `frm_lp_basis()` | implemented, with the nonlinear branch | `R/predict.R` |
+| 1c, the `lccdf` slot | implemented, five families of seven | `R/families.R`, `R/objective.R`, `R/frame.R` |
+| 1c's alternative, a post-fit family hook | implemented as well | `post$fit_check`, `R/fit-end.R` |
+| 2, `ps()` | implemented for consumer (i) | `R/ps.R` |
+| 2, consumer (ii), shape constraints | NOT implemented | see the note under it |
+| 2, consumer (iii), ODE inputs | NOT implemented, deferred by contract | see the note under it |
+| 3, the parser defect | implemented | `nl_body_vars()`, `R/parse.R` |
 
 There are two proposals, and they are independent. The first is small
 and pays for itself immediately. The second is the real one.
@@ -150,6 +168,19 @@ reading an internal.
 
 #### Part 1a. An accessor for the cached joint covariance (five lines)
 
+> **IMPLEMENTED** as `frm_joint_cov()` (`R/predict.R`). It is the thin
+> wrapper this section asks for, plus one element the internal object
+> did not carry: `labels`, one label per row
+> (`beta.<coefficient>`, `b.<block>.<level>.<name>`, `theta.<i>`),
+> because the component names alone do not say which coefficient a row
+> is and a caller assembling a curve has to line its columns up against
+> something. The autoscaled hole is closed, and closed by construction:
+> the accessor reads the cache `sdr_of()` fills through
+> `autoscale_sdreport()`, so nothing about it has to know that
+> autoscaling exists. `frmtmb.spline` 0.2.0 no longer reads
+> `fit$cache$Vjoint`.
+
+
 ```r
 frm_joint_cov(object)     # or simply export get_joint_cov()
 #> list(V = <p x p>, names = character(p))
@@ -185,6 +216,60 @@ precision at all, so the extension refuses that combination rather than
 guessing. An accessor closes that hole too.
 
 #### Part 1b. `frm_lp_basis()` (for reach, not for cost)
+
+> **IMPLEMENTED** (`R/predict.R`), with the shape this section
+> specifies plus one element: `nonest`, the rows that load on a
+> direction a rank-deficient design could not identify, which
+> `predict()` was already computing and turning into `NA` standard
+> errors.
+>
+> `predict(se.fit = TRUE)` IS written in terms of it, which this
+> section names as the test that the seam is the right one. Measured
+> before that rewrite, so that the comparison was between two
+> independent routes: agreement 2.776e-17 relative on
+> `y ~ s(x, k = 8) + (1 | g)` at `re.form = NA` and at `re.form = NULL`,
+> and 0.000e+00 in sample. After the rewrite the two are the same
+> statement and agree exactly, which is no longer evidence of anything
+> and is the point.
+>
+> **The nonlinear branch was implemented rather than deferred**, and it
+> is the departure from this section worth naming. This document said
+> `A` for a nonlinear body "is computable, by taping the body's
+> derivative with respect to the coefficients, and it is a bigger job
+> than Part 1". It is, and Part 2's consumer (i) cannot be read without
+> it: a warped population curve has no standard error otherwise. So
+> `frm_lp_basis()` tapes the body. `eta` is affine in the coefficients
+> of every LINEAR dpar the body names, exactly, so the whole body is a
+> composition of affine maps, link inverses and R code, and taping that
+> composition against the coefficient subvector gives the Jacobian with
+> no perturbation and no finite difference. Measured against a central
+> difference of `predict()` in each coefficient: 4.48e-10 on
+> `ult * (1 - exp(-exp(lrc) * t))`, which is the finite difference's
+> own error.
+>
+> `R/predict.R:1179`'s refusal STAYS. `predict(se.fit = TRUE)` still
+> refuses a nonlinear predictor, and `frm_lp_basis()` is the documented
+> route. Lifting the refusal would have made `predict()` return a
+> first-order delta method over a warped curve without the caller
+> asking for one.
+>
+> `allow_new_levels = TRUE` and a contributing exact `gp()` are REFUSED
+> in the nonlinear branch, by name: neither variance has a chain rule
+> through a nonlinear body that has been measured.
+>
+> The compat rows this section asks for are registered.
+> `rr` is **`works`**, not `conditional`: this section is right that
+> `A` over `(beta, b)` is incomplete for a reduced-rank block and that
+> the missing piece is `rr_jacobians()`, and the implementation returns
+> that piece rather than leaving a caller to discover it is absent, so
+> there is nothing left conditional about it. Measured on a 5-trait
+> `rr(d = 2)` fit over 60 groups: 0.000e+00 at `re.form = NA` (5
+> columns) and at `re.form = NULL` (134 columns, 9 of them `theta`).
+> `gp` is `works` for the same reason, with the kriging variance in
+> `extra_var`; measured 0.000e+00 with `extra_var` 7.3e-07 to 8.5e-07.
+> `emmeans` was NOT rewritten in terms of it, which this section lists
+> as an eventual rather than an immediate ask.
+
 
 One exported function, and it already exists as two private ones.
 
@@ -255,6 +340,41 @@ worth exporting.
   into `A V A'`.
 
 #### Part 1c. An `lccdf` slot, found on the way
+
+> **IMPLEMENTED**, at the five sites this section enumerates, and the
+> POST-FIT FAMILY HOOK it offers as the alternative was implemented as
+> well rather than instead. They close different things and neither
+> subsumes the other: `lccdf` removes the floor, and `post$fit_check`
+> (`R/fit-end.R`, called from `fit_assembled()`) is how a family says
+> anything at all about where the optimizer LANDED, which is the limit
+> this document records twice.
+>
+> Measured, gaussian right censoring: `log(1 - F)` is `-Inf` from
+> z = 8.3 and already 0.068 wrong at z = 8; the slot is exact to
+> z = 500 (`log S = -125007.13`). The GRADIENT is the failure and it
+> fails earlier: 6.6 percent low at z = 8, `Inf` at z = 10 and 20,
+> `NaN` at z = 40.
+>
+> **Five built-in families, not six.** `gaussian()`, `lognormal()`,
+> `exponential()`, `weibull()` and `cox()`. `poisson()` is discrete and
+> `cens()` is refused for discrete families, so the slot would be
+> unreachable. `inverse.gaussian()` gains NOTHING and the refusal is
+> measured rather than assumed:
+> `RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)` is computed on
+> the probability scale and reaches `-Inf` at the same `log S = -34`
+> that `log(1 - F)` does.
+>
+> This section's warning that the class is not closed is kept
+> verbatim in the documentation. Left censoring, interval censoring and
+> the truncation normalizer are unchanged. Right censoring UNDER
+> `trunc(ub)` IS exact, because the windowed difference is taken as a
+> log difference rather than round-tripped through a probability.
+>
+> `frmtmb.spline` 0.2.0's `royston_parmar()` supplies `lccdf`. On the
+> 600-subject design this document's review built, whose reported log
+> likelihood was 2.166e+04 away from the exact one, the reported value
+> is now 1.9e-12 away from it.
+
 
 A family can declare `lpdf` and `lcdf`, and core forms the
 right-censored contribution as `log(Fub - F(y))`, which without
@@ -334,7 +454,38 @@ not spend the afternoon rediscovering them.
 
 ## Part 2. A penalized coefficient block a nonlinear body can consume
 
-This is the real proposal, and this lane must NOT implement it.
+> **IMPLEMENTED for consumer (i)** as `ps(expr, k =, degree =, pad =,
+> center =)` (`R/ps.R`). Consumer (ii) is not implemented and consumer
+> (iii) is deferred; see the notes under each.
+>
+> Four departures from the design below, each measured or forced:
+>
+> 1. `penalty`, `by` and `id` are not arguments. The penalty is the
+>    second difference, full stop. `by` and `id` are a factor-smooth
+>    surface this has not been measured on.
+> 2. `center = TRUE` is a new argument and the default. B-splines are a
+>    partition of unity, so without a sum-to-zero constraint on the
+>    coefficients the curve's level is confounded with any intercept in
+>    the body, which consumer (i) always has. The paper consumer (i)
+>    comes from constrains the fitted basis instead; the two conventions
+>    differ by a constant that lands on the intercept and nothing
+>    shape-dependent moves.
+> 3. `pad` is a new argument. The knots are frozen on the range of the
+>    expression's DATA-TIME value with every nonlinear parameter at
+>    zero, and the basis is exactly zero outside its span, so `pad` is
+>    what covers the distance the fit then moves. The paper's adaptive
+>    knot scaling (its section 2.3.1) would make the penalty matrix
+>    depend on the variance parameters; freezing is `poly()`'s rule and
+>    this document's own.
+> 4. `k > 50` is refused. The divided difference cancels terms of order
+>    `(range / spacing)^degree`, so the agreement with `splineDesign()`
+>    degrades like `k^(degree - 1)`: 3.1e-13 at k = 12, 1.8e-11 at
+>    k = 40.
+>
+> The table below is right about `ev` and it was the load-bearing word:
+> the closures live in the per-call evaluation frame and are rebuilt
+> from the current coefficients on every objective call, every
+> `eval_dpars()` and every `predict(newdata =)`.
 
 ### The shape of the problem
 
@@ -508,6 +659,18 @@ unlicensed. It was not read and nothing from it is here.)
 
 #### (ii) Shape-constrained smooths through exponentiated coefficients
 
+> **NOT IMPLEMENTED.** The reason is scope rather than difficulty, and
+> it should be recorded honestly: consumer (i) needed the parse, the
+> frame, the tape closure and a nonlinear delta method, and the
+> coefficient map this consumer adds is a fifth piece that touches the
+> same four. `ps()` has NO `shape` argument, so nothing here is half
+> done and nothing claims to be. The design below still reads correctly
+> against the implementation: the block is the same block, the map goes
+> where the basis meets the coefficients (`ps_coefs()`, `R/ps.R`), and
+> the Jacobian this consumer would need for standard errors is already
+> free, because `frm_lp_basis()` tapes the body rather than assuming it
+> is linear.
+
 A monotone increasing curve is a spline whose coefficient DIFFERENCES
 are positive, which is Pya and Wood's construction: the free parameters
 are unconstrained, the coefficients are their exponentials cumulated,
@@ -544,6 +707,19 @@ the identity as the default, and the `shape` argument is that map.
   the other.
 
 #### (iii) Spline-valued time-varying inputs for `frmtmb.ode`
+
+> **NOT IMPLEMENTED, and deferred to that package's owner by contract.**
+> Nothing in `extensions/frmtmb.ode` was touched. What has changed is
+> that the capability this consumer needs now exists: `ps()` evaluates
+> its basis at an arbitrary tape-valued argument, which is exactly what
+> a solver's adaptively chosen time points require, and the branch-free
+> construction is measured against `splineDesign()` with an AD input in
+> `dev/spline-core-findings.md`. What the ODE lane must still decide is
+> unchanged and is stated at the end of this section: whether a `ps()`
+> input's coefficients are estimated jointly with the ODE parameters
+> and what that does to the step count. One thing it can now assume: a
+> `ps()` block IS a random-effect block with one variance, so "jointly"
+> is the only option the frame offers.
 
 `extensions/frmtmb.ode/R/ode.R:512-549` builds a time-varying input as a
 PIECEWISE-CONSTANT function of time: the input's value is looked up in a
@@ -586,6 +762,23 @@ be one commit and it should not be one lane.
 ---
 
 ## Part 3. A parser defect found on the way (a CORE item)
+
+> **IMPLEMENTED** as `nl_body_vars()` (`R/parse.R`), replacing
+> `all.vars()` at the three sites that read a nonlinear body. The
+> walker below is right and is what landed, with three cases added that
+> it does not mention and that a naive walker gets wrong: `::` and
+> `:::` collect nothing (a package name is not a variable), and a
+> `function` literal is handed back to `all.vars()` because its formals
+> are a pairlist rather than a call. `$` and `@` are NOT special-cased,
+> because `all.vars()` does collect the field name and narrowing that
+> would be a regression in the other direction. A test asserts the
+> walker agrees with `all.vars()` on eight ordinary bodies.
+>
+> The refusal wording this section asks about was NOT changed. With the
+> walker fixed the message is no longer reached by the case that
+> prompted it, and rewording a message on the strength of a case that
+> can no longer produce it is how a message stops describing what
+> happened.
 
 This one is not about splines and does not wait on anything in Part 1 or
 Part 2. It is a defect in core's nonlinear-body variable collector, it

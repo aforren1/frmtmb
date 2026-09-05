@@ -1274,14 +1274,67 @@ plain_dpar <- function(dp, fam, constant = NULL) {
 #'
 #' @noRd
 nl_dpar <- function(name, link, body, nlpars, dparnames, env) {
-  vars <- all.vars(body)
+  # ps() terms are pulled out of the body BEFORE the variables are
+  # collected, because the body the objective evaluates is the rewritten
+  # one: each ps() call becomes a call to a per-term closure that the
+  # objective puts in `ev`, and the closure's argument is the ps()
+  # expression, so the variables it names are collected from the
+  # rewritten body exactly as they were from the original.
+  ps <- ps_extract(body, name)
+  body <- ps$body
+  vars <- nl_body_vars(body)
   pars <- intersect(vars, nlpars)
   list(name = name, link = link, nl_body = body,
        nl_pars = pars,
        nl_dpar_refs = setdiff(intersect(vars, dparnames), c(name, pars)),
        datavars = setdiff(vars, pars), nl_env = env,
+       ps_terms = ps$terms,
        fixed = NULL, re = list(), rhs = NULL,
        smooth = list(), constant = NULL)
+}
+
+#' Free variable names in an expression, INCLUDING the arguments of a
+#' call that sits in function position.
+#'
+#' `all.vars()` treats the whole function-position subtree of `f(x)(y)`
+#' as the callee and drops it, arguments included:
+#' `all.vars(quote(a * curry(tv)(zv)))` is `c("a", "zv")` and loses `tv`.
+#' A nonlinear body's data variables were collected that way, so a
+#' variable named only inside a curried call was never asked of `data`
+#' and the body then failed on it at evaluation time with R's own
+#' "object not found", which names neither the argument nor the fault.
+#'
+#' `::` and `:::` keep `all.vars()`'s convention exactly, which is that a
+#' package name is not a variable. `$` and `@` keep theirs too, which is
+#' the opposite one: `all.vars()` DOES collect the field name, so this
+#' walker does as well rather than quietly narrowing what a body may
+#' name. A `function` literal is handed back to `all.vars()` because its
+#' formals are a pairlist, not a call.
+#'
+#' @noRd
+nl_body_vars <- function(e) {
+  if (!is.call(e)) return(all.vars(e))
+  fn <- e[[1L]]
+  if (is.name(fn)) {
+    nm <- as.character(fn)
+    if (nm %in% c("::", ":::")) return(character(0))
+    if (nm == "function") return(all.vars(e))
+  }
+  v <- if (is.call(fn)) nl_body_vars(fn) else character(0)
+  for (i in seq_along(e)[-1L]) {
+    # An empty argument, as in `m[, 1]`, is the missing-argument symbol.
+    # It can be EXTRACTED without complaint and cannot be passed on, and
+    # the error fires at the callee rather than at the extraction, so
+    # guarding the extraction alone is not enough: it has to be forced
+    # here, inside the handler's reach.
+    a <- tryCatch({
+      ai <- e[[i]]
+      force(ai)
+      ai
+    }, error = function(err) NULL)
+    if (!is.null(a)) v <- c(v, nl_body_vars(a))
+  }
+  unique(v)
 }
 
 #' Put one response's dpars in dependency order.
@@ -1396,7 +1449,7 @@ parse_one_response <- function(bform) {
   nlf_pars <- setdiff(names(nlforms), fam[["dpars"]])
   mu_by_flag <- isTRUE(bform$nl) ||
     (length(nlf_pars) && !primaries[1L] %in% names(nl_bodies) &&
-       length(intersect(all.vars(main_rhs), nlf_pars)) > 0L)
+       length(intersect(nl_body_vars(main_rhs), nlf_pars)) > 0L)
   if (primaries[1L] %in% names(nl_bodies)) {
     # An explicit nlf() for the location parameter WINS over the
     # response formula's right-hand side, so that side would be
@@ -1457,7 +1510,7 @@ parse_one_response <- function(bform) {
            "bf(..., a ~ 1, nl = TRUE), lf(a ~ 1) or nlf()", call. = FALSE)
     }
     used <- unique(unlist(lapply(nl_bodies, function(b) {
-      intersect(all.vars(b), nlpars)
+      intersect(nl_body_vars(b), nlpars)
     })))
     miss <- setdiff(nlpars, used %||% character(0))
     if (length(miss)) {

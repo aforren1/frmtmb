@@ -2,18 +2,22 @@
 % Please edit documentation in R/rp-check.R
 \name{rp_floored}
 \alias{rp_floored}
-\title{Rows this family answered with a floor rather than with a density}
+\title{Report the deep censored rows and the non-monotone rows of a fit}
 \usage{
 rp_floored(object, action = c("error", "report"), max_nlogS = 19.2)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit} with a \code{\link[=royston_parmar]{royston_parmar()}} family.}
 
-\item{action}{\code{"error"}, the default, refuses when either floor was
-used. \code{"report"} returns the same numbers without refusing.}
+\item{action}{\code{"error"}, the default, refuses when the MONOTONICITY
+floor was used. The censored count never refuses under either
+value; since frmtmb 0.52.0 it is a diagnostic. \code{"report"} returns
+the same numbers without refusing.}
 
-\item{max_nlogS}{The largest \verb{-log S} on a censored row that is still
-scored accurately. The default 19.2 is where \code{eps / S} passes 1e-8.}
+\item{max_nlogS}{The \verb{-log S} on a censored row above which the row
+is reported as barely constrained. The default 19.2 is where the
+OLD probability-scale arithmetic passed 1e-8 of error; it is kept
+as the threshold so that the two versions report the same rows.}
 }
 \value{
 A list with \code{n_censored_floored}, \code{max_nlogS}, \code{threshold},
@@ -22,37 +26,30 @@ nothing was floored. The offending row indices are the \code{"rows"}
 attribute, a list with elements \code{censored} and \code{nonmonotone}.
 }
 \description{
-Two things in \code{royston_parmar()} are floors rather than answers, and
-both are silent in the fitted object: \code{logLik()} and \code{AIC()} report
-the floored value with nothing to say it is floored. This function is
-where that goes to be read, and by default it REFUSES rather than
-reports, because a fit in either region is one whose numbers are not
-the model's.
+Two things in \code{royston_parmar()} used to be floors rather than
+answers. One of them is gone; the other refuses.
 }
-\section{The censored-row floor}{
+\section{The censored rows}{
+ a report, no longer a floor:
+Up to frmtmb 0.51.0 core formed a right-censored contribution as
+\code{log(1 - F(y))} on the probability scale, so the scored \verb{log S}
+carried absolute error about \code{.Machine$double.eps / S}: past \verb{-log S}
+of about 19.2 that error passed 1e-8, and past 30 the term was FLAT
+with a gradient of exactly zero.
 
-frmtmb forms a right-censored contribution as \code{log(1 - F(y))} on the
-probability scale (\code{R/objective.R:100}), so the scored \verb{log S} carries
-absolute error about \code{.Machine$double.eps / S}. Past \verb{-log S} of about
-19.2 that error passes 1e-8; past 30 the term is FLAT, its gradient
-exactly zero, and the optimizer prices the row at a constant.
+frmtmb 0.52.0 added the \code{lccdf} slot and this family supplies it, in
+closed form on all three scales, so a right-censored row is scored
+from \verb{log S} directly and no complement is formed. Measured on the
+hazard scale, \verb{-log S = 40} was scored as -35.127363 and is now
+scored as -40 exactly.
 
-The size of the error is a property of the data rather than of the
-family: a floored row contributes -35.127363 instead of its own
-\verb{-log S}, so the reported log likelihood is short by about
-\verb{-log S - 35} per floored row. Two runs of one 600-subject design
-differing only in seed give 2.4e+03 and 2.166e+04, both converged
-without a warning and both with the treatment coefficient out by tens
-of percent.
-
-The quantity checked is \verb{-log S} at the fitted parameters, on every
-censored row. It is one quantity for all three scales: \code{exp(eta)} on
-\code{"hazard"}, \code{log1p(exp(eta))} on \code{"odds"} and \code{-log(Phi(-eta))} on
-\code{"normal"}. On the hazard scale it is the cumulative hazard \code{H}.
-
-The real fix is a complementary log-CDF slot in core, so that a family
-can hand back \verb{log S} instead of \code{F}. See \code{dev/spline-seam-proposal.md}
-in the package sources.
+The count is therefore a DIAGNOSTIC and never refuses. It still says
+something: a censored row whose fitted survival probability is
+\code{exp(-40)} is one the data barely constrain, whatever the arithmetic
+does. The quantity is \verb{-log S} at the fitted parameters, and it is
+one quantity for all three scales: \code{exp(eta)} on \code{"hazard"},
+\code{log1p(exp(eta))} on \code{"odds"} and \code{-log(Phi(-eta))} on \code{"normal"}.
+On the hazard scale it is the cumulative hazard \code{H}.
 }
 
 \section{The monotonicity floor}{
@@ -70,14 +67,12 @@ density's.
 
 \section{What this cannot do}{
 
-The refusal is POST-FIT. \code{logLik()} reads \code{object$opt$objective}
-directly (\code{R/methods-fit.R:233-240}) and the family protocol has no
-hook that runs when a fit finishes, so nothing in this package can
-make \code{logLik()} or \code{AIC()} refuse on their own. The optimizer may
-therefore have walked through, or stopped inside, the flat region
-before this function is ever called. Call it on every
-\code{royston_parmar()} fit whose data carry censoring; \code{frm_curve()} and
-its two companions call it for you.
+\code{logLik()} reads \code{object$opt$objective} directly, so a check that
+runs after the fit cannot make \code{logLik()} or \code{AIC()} refuse on their
+own. What frmtmb 0.52.0 does provide is a fit-end hook: this family
+declares \code{post$fit_check}, so a fit with a non-monotone row warns as
+it is returned rather than only when someone calls this function.
+\code{frm_curve()} and its two companions still call it for you.
 }
 
 \examples{

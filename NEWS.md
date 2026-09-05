@@ -313,6 +313,123 @@ per lower-bounded parameter, which is a constant and moves no mode.
 * `tests/testthat/test-brms-priors.R` grew from 61 assertions to 83 and
   every divergence it used to pin is now an identity.
 
+Two exported seams an extension needed and could not get, a log
+survivor function so that right censoring is exact rather than floored,
+a penalized spline a nonlinear body consumes by VALUE, and two defects
+found on the way.
+
+* NEW `frm_joint_cov()` returns the joint covariance of everything the
+  fit estimates: `beta`, `betad`, `theta` and the random-effect
+  coefficients `b` together. `vcov(full = TRUE)` cannot return it, and
+  is documented not to: its row names are exactly `confint()`'s, so `b`
+  is absent under both of its branches. A penalized smooth's wiggly part
+  is a random-effect block even when the smooth is a population term, so
+  a covariance that stops at the fixed effects covers none of it. The
+  result is memoized on the fit and carries a `labels` element naming
+  every row. It is also the only route to the covariance of an
+  AUTOSCALED fit: a fresh `RTMB::sdreport(getJointPrecision = TRUE)`
+  goes round the reparameterization and returns a covariance built on
+  the unscaled Hessian.
+* NEW `frm_lp_basis()` returns the design of a linear predictor over the
+  coefficient vector: `eta`, `A` (`d eta / d coef`), `coef_pos`, `V`,
+  `coef_names` and `extra_var`. `predict(se.fit = TRUE)` builds all of
+  that internally and keeps only the diagonal of `A V A'`; every
+  delta-method quantity over a fitted curve - a contrast between two
+  grids, a simultaneous band, a derivative, the time of a peak - needs
+  the whole thing. `predict(se.fit = TRUE)` is now written as a two-line
+  consumer of it, which is the test that the shape is right.
+* `frm_lp_basis()` serves the two cases nothing else could. For a
+  NONLINEAR body `A` is a Jacobian, taped from the body against the
+  coefficients it reaches through; `predict(se.fit = TRUE)` stays
+  refused there and this is the route. For an `rr()` block at
+  `re.form = NULL` the loadings live in `theta`, so a design over
+  `(beta, b)` alone is incomplete; `A` carries the loading columns and
+  `coef_pos` names their `theta` rows. An exact `gp()`'s kriging
+  variance and a new grouping level's marginal variance come back in
+  `extra_var`, separately, because neither is coefficient uncertainty.
+* NEW `frmtmb_family(lccdf = )`, an optional LOG SURVIVOR function. Core
+  formed a right-censored row's contribution as `log(1 - F)`, and a
+  double cannot represent the complement of a probability that has
+  rounded to one, so past that point the contribution was not merely
+  inaccurate: it was CONSTANT, with a gradient of exactly zero. An
+  optimizer prices such a row the same however far it moves. A family
+  that declares `lccdf` is scored from it instead. Measured on a
+  standard normal tail, `log(1 - pnorm(z))` is `-Inf` from z = 8.3 and
+  already 0.068 wrong at z = 8; `pnorm(z, lower.tail = FALSE, log.p =
+  TRUE)` is exact to z = 500, value and derivative alike.
+* `gaussian()`, `lognormal()`, `exponential()`, `weibull()` and `cox()`
+  declare `lccdf`. `poisson()` does not, because `cens()` is refused for
+  discrete families; `inverse.gaussian()` does not, because RTMBdist's
+  upper tail is computed on the probability scale and reaches `-Inf` at
+  the same `log S = -34` that `log(1 - F)` does. `lccdf` fixes RIGHT
+  censoring and leaves left censoring, interval censoring and
+  truncation on the old footing, so a LEFT-TRUNCATED survival model
+  meets the same problem from the other side.
+* A family that supplies only `lccdf` and no `lcdf` now accepts right
+  censoring, and refuses left censoring, interval censoring and
+  `trunc()` by name.
+* NEW `ps(expr, k =, degree =, pad =, center =)`, a penalized
+  coefficient block whose VALUE a nonlinear body consumes, admitted only
+  inside `bf(..., nl = TRUE)` or `nlf()`. Every other penalized smooth
+  in frmtmb ends up multiplied by `Z`, which is right for `s(x)` and
+  useless for a body that needs the spline's value inside an expression
+  - `exp(amp) * ps(age + shift)` - because the argument is itself a
+  function of parameters and there is no fixed `Z` to build. The
+  second-difference penalty is eigensplit exactly as
+  `mgcv::smooth2random()` splits `s()`: the null space joins the fixed
+  coefficients and the range space becomes one random-effect block with
+  a single variance in `theta`, so smoothness is estimated jointly with
+  every other variance component.
+* The `ps()` basis is evaluated ON THE TAPE, as divided differences of
+  truncated powers spelled branch free with `0.5 * (e + abs(e))`. RTMB
+  refuses `pmax()` on an advector and exports no `CondExp`, so the
+  recursive Cox-de Boor form is unavailable and this is the only
+  construction there is. It agrees with `splines::splineDesign()` to
+  3.1e-13 absolute at `k = 12` and 1.8e-11 at `k = 40`, with an AD input
+  giving the same values bit for bit and the taped derivative matching
+  `splineDesign(derivs = 1)` to 4.5e-13. `k` above 50 is refused,
+  because a divided difference cancels terms of order
+  `(range / spacing)^degree`.
+* `ps()` refuses `REML = TRUE`, `quadrature = TRUE`,
+  `frmtmb_control(profile = TRUE)` and multivariate models by name, and
+  reports at fit end how many rows the fitted transformation pushed
+  outside its frozen knot span, where the basis is exactly zero.
+* FIX a nonlinear body no longer loses a variable that appears only
+  inside a call in FUNCTION POSITION. `all.vars(quote(a * curry(tv)(zv)))`
+  is `c("a", "zv")`: it treats the whole function-position subtree as
+  the callee and drops it, arguments included. Core collected a body's
+  data variables that way, so `tv` was never asked of `data` and the
+  body failed on it with R's own "object not found", which names neither
+  the argument nor the fault. `bf(y ~ a * curry(tv)(zv), a ~ 1, nl =
+  TRUE)` now fits, to the same coefficient as
+  `bf(y ~ a * curry2(tv, zv), ...)`.
+* BEHAVIOR CHANGE, and a fix: a nonlinear parameter whose design has
+  NO columns (`b ~ 0 + (1 | g)`, a parameter that is purely a random
+  effect) no longer adds a phantom entry to the parameter vector.
+  `paste()` recycles to its longest argument, so a zero-column design
+  came back from the coefficient-naming lines as the single name
+  `"b_"`. The parameter entered no likelihood and no linear predictor
+  indexed it, and the outer Hessian was singular in exactly that
+  direction, so `vcov()`, `confint()` and every standard error came
+  back `NaN` with "the model is probably overparameterized".
+* What changes for existing code: `beta` loses ONE entry per such
+  parameter, so a script with a hand-written `start = list(beta = )`
+  for a model that has one now fails with `start$beta must have length
+  <n>`. Drop the element that stood for the parameter with no fixed
+  design; it was never estimated, and `par_template(fit)` names what is
+  left, in order. Fits do not move: the phantom entered no likelihood,
+  so the optimum, the log-likelihood and every coefficient are
+  unchanged, and what was lost before and is recovered now is the
+  standard errors. Two of this package's own tests carried such a
+  vector and were edited for it.
+* NEW a family may declare `post$fit_check(fit, resp)`, run once when a
+  fit finishes. `logLik()` reads the optimizer's own value, so a family
+  whose likelihood is floored in some region of the parameter space had
+  nowhere to say so and no extension could gate `logLik()` or `AIC()`.
+  This is the hook that closes it.
+* `frm_compat()` gains `ps()` as a special and `frm_lp_basis` as a
+  method, with the rows for both.
+
 # frmtmb 0.51.0
 
 One simplex per monotonic term, matching brms; importance sampling over

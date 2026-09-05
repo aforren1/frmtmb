@@ -1298,12 +1298,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     if (!is.null(av[["cens"]]) || !is.null(av[["trunc_lb"]]) ||
         !is.null(av[["trunc_ub"]])) {
-      if (is.null(resp$family[["lcdf"]])) {
+      # A family that declares only `lccdf` scores a RIGHT-censored row
+      # exactly and has nothing to say about a left bound, so it is
+      # admitted for right censoring alone. Everything else here still
+      # needs `lcdf`.
+      right_only <- is.null(av[["trunc_lb"]]) && is.null(av[["trunc_ub"]]) &&
+        !is.null(av[["cens"]]) && all(av[["cens"]] %in% c(0, 1))
+      if (is.null(resp$family[["lcdf"]]) &&
+          !(right_only && !is.null(resp$family[["lccdf"]]))) {
         stop("cens()/trunc() need a family with a CDF (currently: ",
              "gaussian, lognormal, poisson, exponential, weibull, ",
              "inverse.gaussian, cox). The list is not closed: a family ",
              "supplies one through the lcdf argument of ",
-             "frmtmb_family()", call. = FALSE)
+             "frmtmb_family(), and a family that only ever sees RIGHT ",
+             "censoring may supply the log survivor function through ",
+             "lccdf instead", call. = FALSE)
       }
       if (!is.null(av[["cens"]]) && identical(resp$family[["type"]],
         "discrete")) {
@@ -1473,15 +1482,69 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                               }
                               val
                             })
+        # ps() terms: the frozen knots and the eigensplit of the
+        # second-difference penalty. The null space joins the fixed
+        # coefficients here; the range space becomes a component below,
+        # deliberately WITHOUT a comp_id, because a nonlinear body reads
+        # the block through a closure rather than through `Z b` and
+        # there is no Z column for it to occupy.
+        ps_terms <- dp[["ps_terms"]] %||% list()
+        if (length(ps_terms) && length(spec$responses) > 1L) {
+          stop("ps() is not supported in a multivariate model yet: its ",
+               "block reaches the body through the per-call evaluation ",
+               "frame, and which response's frame that is has not been ",
+               "measured", call. = FALSE)
+        }
+        for (ti in seq_along(ps_terms)) {
+          pt <- ps_build(ps_terms[[ti]], mf, resp$nlpars %||% character(0),
+                         resp$formula_env)
+          cn <- paste0(dp_prefix, pt[["label"]], ".fx",
+                       seq_len(pt[["n_fixed"]]))
+          # The null space of the penalty is a FIXED coefficient of this
+          # predictor, so it belongs with the location coefficients. An
+          # nl `mu` is not "primary" (its own design is empty and core
+          # sends it to `betad`), and following that rule here would
+          # file a curve's unpenalized directions among the
+          # distributional parameters.
+          pt[["par"]] <- if (is_primary ||
+              dp[["name"]] %in% (resp$family[["primary_dpars"]] %||% "mu")) {
+            "beta"
+          } else {
+            "betad"
+          }
+          if (pt[["par"]] == "beta") {
+            pt[["beta_idx"]] <- length(beta_names) + seq_len(pt[["n_fixed"]])
+            beta_names <- c(beta_names, cn)
+          } else {
+            pt[["beta_idx"]] <- length(betad_names) + seq_len(pt[["n_fixed"]])
+            betad_names <- c(betad_names, cn)
+          }
+          components[[length(components) + 1L]] <- list(
+            lp_key = lp_key, dpar = dp[["name"]], resp = resp$resp_name,
+            covstruct = "smooth", id = NULL,
+            dim = pt[["n_pen"]], n_levels = 1L,
+            levels = NULL,
+            cnms = paste0(pt[["label"]], ".", seq_len(pt[["n_pen"]])),
+            bar = NULL,
+            Zlocal = methods::as(Matrix::Matrix(0, n, pt[["n_pen"]],
+                                                sparse = TRUE),
+                                 "CsparseMatrix"),
+            group_name = pt[["label"]],
+            label = paste0(dp_prefix, pt[["label"]])
+          )
+          pt[["comp_id"]] <- length(components)
+          ps_terms[[ti]] <- pt
+        }
         linpreds[[lp_key]] <- list(
           resp = resp$resp_name, dpar = dp[["name"]], X = NULL,
-          n_param_cols = 0L, Z = NULL, par = "beta", idx = integer(0),
+          n_param_cols = 0L, Z = NULL, par = par_name, idx = integer(0),
           offset = NULL, link = dp[["link"]], terms = NULL, xlevels = NULL,
           contrasts = NULL, smooths = list(), comp_ids = integer(0),
           constant = NULL, nl_body = dp[["nl_body"]], data_list = data_list,
           nl_env = dp[["nl_env"]], nl_lexical = dp[["nl_lexical"]],
           nl_pars = dp[["nl_pars"]] %||% character(0),
-          nl_dpar_refs = dp[["nl_dpar_refs"]] %||% character(0)
+          nl_dpar_refs = dp[["nl_dpar_refs"]] %||% character(0),
+          ps_terms = ps_terms
         )
         next
       }
@@ -2021,11 +2084,24 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         }
       }
 
+      # `paste()` recycles to the LONGEST argument, so a design with no
+      # columns at all - `b ~ 0 + (1 | g)`, a parameter that is purely a
+      # random effect - used to come back from these two lines as the
+      # single name "b_". The parameter template then carried a
+      # coefficient no linear predictor indexed (`idx` stayed empty), it
+      # entered no likelihood, and the outer Hessian was singular in
+      # exactly that direction: `vcov()` and every standard error came
+      # back NaN with "the model is probably overparameterized".
       cn <- colnames(X)
-      if (!identical(dp[["name"]],
-          "mu")) cn <- paste(dp[["name"]], cn, sep = "_")
-      if (length(spec$responses) > 1) {
-        cn <- paste(resp$resp_name, cn, sep = "_")
+      if (length(cn)) {
+        if (!identical(dp[["name"]], "mu")) {
+          cn <- paste(dp[["name"]], cn, sep = "_")
+        }
+        if (length(spec$responses) > 1) {
+          cn <- paste(resp$resp_name, cn, sep = "_")
+        }
+      } else {
+        cn <- character(0)
       }
       if (par_name == "beta") {
         idx <- length(beta_names) + seq_len(ncol(X))
@@ -2266,6 +2342,19 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       lp[["smooths"]] <- lapply(lp[["smooths"]], function(si) {
         si$block_ids <- comp_block[si$comp_ids]
         si
+      })
+    }
+    if (length(lp[["ps_terms"]] %||% list())) {
+      lp[["ps_terms"]] <- lapply(lp[["ps_terms"]], function(pt) {
+        bk <- re_blocks[[comp_block[pt[["comp_id"]]]]]
+        pt[["block_id"]] <- comp_block[pt[["comp_id"]]]
+        # coefficient space, not parameter space: an rr block elsewhere
+        # in the same model makes the two differ, and the closure reads
+        # the expanded vector. `b_idx` is kept as well because the joint
+        # covariance's rows are the PARAMETER vector.
+        pt[["c_idx"]] <- bk[["c_idx"]]
+        pt[["b_idx"]] <- bk[["b_idx"]]
+        pt
       })
     }
     if (length(lp[["gps"]])) {

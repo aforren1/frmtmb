@@ -104,83 +104,58 @@ and is reported by \code{print()}. On the package's own test models it is
 at the tenth significant figure or better.
 }
 
-\section{The one internal this reaches into}{
+\section{The route to the covariance}{
 
-The covariance is read from \code{fit$cache$Vjoint}, and that is a read
-into frmtmb's INTERNALS rather than a sanctioned seam. The function
-that writes it, \code{get_joint_cov()}, is \verb{@noRd}; neither \code{fit$cache}
-nor the \code{list(V =, names =)} shape of the memo appears in
-\verb{?frmtmb::}frmtmb-extension-api``. Unlike \code{fit$obj} and
-`fit$estimates`, which other extensions already read, this one has
-no precedent to point at. It is stated here rather than buried in a
-development note because a user is entitled to know which of a
-package's dependencies are contractual and which are not.
+Both halves come from frmtmb's own exported seam,
+\code{\link[frmtmb:frm_lp_basis]{frmtmb::frm_lp_basis()}}, which returns the design \code{A} over the
+coefficient vector, the joint covariance \code{V} at exactly the rows \code{A}'s
+columns sit at, and the variance that is NOT coefficient uncertainty
+(a new grouping level's marginal variance, an exact \code{gp()}'s kriging
+variance) as a separate element. \code{Sigma} is \verb{A V A'}.
 
-It is made anyway, because every alternative was worse. Computing
-the covariance here instead means a second \code{sdreport()} per call, a
-dense Schur complement over coefficients the curve never touches
-(114 s and 2.1 GB at 8000 random coefficients, against 8.2 s and
-1.2 GB for the cache read), and a covariance that goes round
-\code{autoscale_sdreport()} and is therefore WRONG on an autoscaled fit.
-A public-but-wrong route was traded for a private-but-correct one.
+Up to frmtmb 0.51.0 there was no such seam. This package rebuilt \code{A}
+by unit perturbation, one \code{predict()} call per contributing
+coefficient, and read \code{V} out of \code{fit$cache$Vjoint}, which was an
+internal with no precedent to point at. Both are gone: the
+reconstruction and the reach were replaced by one call, this package
+now requires frmtmb (>= 0.52.0), and what the covariance check
+verifies has changed from "the reconstruction reproduced core's
+number" to "the seam is being read correctly".
 
-What happens if core changes it, in full:
+The check itself stays. Every call recomputes \code{sqrt(diag(Sigma))} and
+compares it with \code{predict(se.fit = TRUE)}, and refuses when the two
+disagree by more than \code{tol}. The measured agreement is in the
+\code{"check"} attribute and is reported by \code{print()}.
 
-\itemize{
-\item \strong{The name or the shape changes.} The read returns \code{NULL},
-the sparse fallback runs, and the answer is the same one about
-16 times slower. No wrong number.
-\item \strong{The meaning of \code{V} changes without the name changing.}
-The covariance check catches it: every call compares
-\code{sqrt(diag(Sigma))} against \code{predict(se.fit = TRUE)} and refuses
-above \code{tol}. No wrong number.
-\item \strong{It is absent.} It is absent on every FRESH fit, because
-it is a memo rather than a slot. This is not a dependency on the
-cache being warm: the \code{predict(se.fit = TRUE)} check runs first
-and warms it, which is why that call is ordered ahead of the
-covariance and why the ordering is enforced by an argument
-rather than by a comment.
-}
-
-So the reach cannot produce a wrong answer; it can only become slow,
-or refuse. The standing ask is an exported accessor,
-\code{dev/spline-seam-proposal.md} Part 1a, which would remove it.
+The one case with nothing to check against is a nonlinear (\code{nl = TRUE}) body: \code{predict(se.fit = TRUE)} is refused there, so
+\code{frm_lp_basis()} is the only route to the number and \code{cov_rel_error}
+is \code{NA}. \code{print()} says so rather than reporting a check that never
+ran.
 }
 
 \section{Cost}{
 
-What this call costs is dominated by ONE thing, and it is not the
-\code{predict()} call count that the \code{"check"} attribute reports. It is
-the single \code{predict(se.fit = TRUE)} call, inside which core inverts
-the fit's joint precision matrix over EVERY coefficient, including
-the ones this curve does not touch. Measured at \code{re.form = NA} on a
+What this call costs is dominated by ONE thing: the single
+\code{predict(se.fit = TRUE)} check call, inside which core inverts the
+fit's joint precision matrix over EVERY coefficient, including the
+ones this curve does not touch. Measured at \code{re.form = NA} on a
 20-point grid, one process each:
 
 \itemize{
-\item \code{s(x, k = 10)}, 8 random coefficients: design rebuild 0.01 s,
-\code{predict(se.fit = TRUE)} 0.29 s.
+\item \code{s(x, k = 10)}, 8 random coefficients: 0.29 s.
 \item \code{s(t, k = 8) + (1 + t | subject)}, 1000 subjects and 2006
-random coefficients: 0.07 s against 0.98 s.
+random coefficients: 0.98 s.
 \item the same over 4000 subjects, 8006 random coefficients:
-0.28 s against 6.87 s.
+6.87 s.
 }
 
-The design rebuild is a tenth of the cost at every size, and the
-covariance itself is FREE: it is read from the object
-\code{predict(se.fit = TRUE)} has already cached, not recomputed. Size a
-job from the joint-precision solve, which grows with the total number
-of coefficients in the fit, and not from the grid or the call count.
-
-The design is rebuilt with one \code{predict()} call per contributing
-coefficient, plus one probe per block of \code{24} that contributes
-nothing, so the count does not grow with the number of LEVELS of a
-grouping factor. On the model \code{vignette("curve-inference")} fits,
-\code{v ~ s(t, k = 12) + s(t, subject, bs = "fs", k = 5)} over 20
-subjects, that is 32 calls against 110 random coefficients; a
-factor-smooth model with NO population smooth needs far fewer,
-because at \code{re.form = NA} the \code{fs} term contributes nothing and the
-population curve is a constant. \code{tests/testthat/test-curve.R} pins
-both. The call count is in the \code{"check"} attribute.
+The design rebuild that used to sit beside those figures, and that
+was a tenth of them at every size, is gone: \code{frm_lp_basis()} returns
+the design core already had, so the \code{predict()} call count no longer
+depends on the number of coefficients at all. The joint-precision
+solve is now the whole cost, it is paid once because core memoizes
+it, and it grows with the total number of coefficients in the fit
+rather than with the grid.
 }
 
 \examples{

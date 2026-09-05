@@ -31,6 +31,51 @@ get_joint_cov <- function(fit) {
   cache$Vjoint
 }
 
+#' The three argument checks `predict()` and `frm_lp_basis()` share.
+#'
+#' They take the same `newdata`, `re.form` and `resp`, and two functions
+#' describing one argument two ways is how a user learns that the second
+#' one is a different argument. One template each, which is also the
+#' property `test-message-uniqueness.R` asserts.
+#'
+#' @noRd
+check_re_form <- function(re.form) {
+  if (!is.null(re.form) && !inherits(re.form, "formula") &&
+        !(length(re.form) == 1L && is.na(re.form))) {
+    stop("`re.form` must be NULL to keep every random effect, NA to drop ",
+         "them all, or a one-sided formula naming the ones to keep, not ",
+         arg_desc(re.form), call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' Whether `re.form` keeps the random effects.
+#'
+#' `NULL` keeps them, `NA` drops them, and a one-sided formula keeps
+#' them unless it is `~0`. Factored out beside the message templates for
+#' the same reason those were: `predict()` and `frm_lp_basis()` take the
+#' same argument, and the whole point of section 3 of the review is that
+#' the two return the same numbers, which they can only do while they
+#' read the argument the same way.
+#'
+#' @noRd
+re_form_keeps <- function(re.form) {
+  if (is.null(re.form)) return(TRUE)
+  if (!inherits(re.form, "formula")) return(FALSE)
+  !identical(deparse1(re.form[[2]]), "0")
+}
+
+#' @noRd
+stop_unknown_response <- function(object, resp) {
+  stop("Unknown response: '", resp, "'. Available: ",
+       paste(names(object$spec$responses), collapse = ", "), call. = FALSE)
+}
+
+#' @noRd
+stop_newdata_missing <- function(v) {
+  stop("Variable '", v, "' missing from newdata", call. = FALSE)
+}
+
 #' Numeric coefficient-space vector for a fitted model (rr factors
 #' expanded through the loadings; identity otherwise).
 #'
@@ -539,7 +584,7 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
   for (lp in fit$frame[["linpreds"]]) {
     if (!is.null(lp[["nl_body"]])) {
       ev <- c(out[[lp[["resp"]]]][c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])],
-              lp[["data_list"]])
+              lp[["data_list"]], ps_env(lp, est, b))
       eta <- eval(lp[["nl_body"]], ev, ad_overload_env(lp[["nl_env"]],
         lp[["nl_body"]]))
       out[[lp[["resp"]]]][[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
@@ -551,7 +596,12 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
     } else {
       numeric(fit$frame[["n_obs"]])
     }
-    if (!is.null(lp[["Z"]])) {
+    # `b = NULL` is documented to drop the random-effect contribution,
+    # and dropping it means not forming the product at all: a sparse
+    # matrix times NULL sends Matrix's S4 dispatch into a recursion that
+    # ends in "evaluation nested too deeply", on every model with a
+    # block rather than only on unusual ones
+    if (!is.null(lp[["Z"]]) && !is.null(b)) {
       eta <- eta + as.numeric(lp[["Z"]] %*% b)
     }
     if (!is.null(lp[["offset"]])) eta <- eta + lp[["offset"]]
@@ -1099,23 +1149,14 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     stop("`newdata` must be a data frame, or NULL to predict on the ",
          "training data, not ", arg_desc(newdata), call. = FALSE)
   }
-  if (!is.null(re.form) && !inherits(re.form, "formula") &&
-        !(length(re.form) == 1L && is.na(re.form))) {
-    stop("`re.form` must be NULL to keep every random effect, NA to drop ",
-         "them all, or a one-sided formula naming the ones to keep, not ",
-         arg_desc(re.form), call. = FALSE)
-  }
+  check_re_form(re.form)
   type <- match.arg(type)
-  use_re <- is.null(re.form) ||
-    (inherits(re.form, "formula") && !identical(deparse1(re.form[[2]]), "0"))
-  if (!is.null(re.form) && !inherits(re.form, "formula")) use_re <- FALSE
+  use_re <- re_form_keeps(re.form)
 
   resp <- resp %||% names(object$spec$responses)[1]
   rspec <- object$spec$responses[[resp]]
   if (is.null(rspec)) {
-    stop("Unknown response: '", resp, "'. Available: ",
-         paste(names(object$spec$responses), collapse = ", "),
-         call. = FALSE)
+    stop_unknown_response(object, resp)
   }
   # An ordinal response has no mean on the response scale: what
   # "response" means there is the category distribution, one row of K
@@ -1260,13 +1301,17 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
              names(lp[["data_list"]])),
              function(v) {
                if (is.null(newdata[[v]])) {
-                 stop("Variable '", v, "' missing from newdata",
-                      call. = FALSE)
+                 stop_newdata_missing(v)
                }
                newdata[[v]]
              })
     }
-    eta <- eval(lp[["nl_body"]], c(vals, dl),
+    # `check` only on the newdata path: in sample the fit-end report has
+    # already said whatever there is to say about the knot span, and
+    # saying it again on every fitted() call would be noise.
+    eta <- eval(lp[["nl_body"]],
+                c(vals, dl, ps_env(lp, object$estimates, coef_b(object),
+                                   check = !is.null(newdata))),
                 ad_overload_env(lp[["nl_env"]], lp[["nl_body"]]))
     out <- if (type == "response") lp[["link"]]$linkinv(eta) else eta
     return(if (is.null(newdata)) napred(object, out) else out)
@@ -1308,19 +1353,16 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     return(if (is.null(newdata)) napred(object, out) else out)
   }
 
+  # The delta method is written as a two-line consumer of
+  # frm_lp_basis() on purpose: if predict() could not be written in
+  # terms of the exported seam, the seam would be the wrong shape.
   has_rr <- isTRUE(object$frame[["has_rr"]])
   rrj <- if (has_rr) rr_jacobians(object)
   jc <- get_joint_cov(object)
   da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
-  V <- jc$V[da$coef_pos, da$coef_pos, drop = FALSE]
-  A <- as.matrix(da$A)
-  var_eta <- pmax(rowSums((A %*% V) * A), 0)
-  ev <- lp_extra_var(object, ed, use_re)
-  for (B in extra_var_blocks(ev$new_levels, n)) {
-    Mr <- B$M[B$rows, , drop = FALSE]
-    var_eta[B$rows] <- var_eta[B$rows] + rowSums((Mr %*% B$S) * Mr)
-  }
-  for (gv in ev$gp) var_eta <- var_eta + gv
+  lb <- lp_basis_out(object, jc, ed[["eta"]], as.matrix(da$A), da$coef_pos,
+                     lp_extra_var_vec(object, ed, use_re), ed[["nonest"]])
+  var_eta <- pmax(rowSums((lb$A %*% lb$V) * lb$A), 0) + lb$extra_var
   se_eta <- sqrt(var_eta)
   # the kept columns still have a finite variance, but it is not the
   # standard error of anything the fit estimates
@@ -2838,4 +2880,411 @@ na_unpad <- function(fit, x) {
   if (is.null(na) || !inherits(na, "exclude")) return(x)
   idx <- unclass(na)
   if (is.matrix(x) || is.data.frame(x)) x[-idx, , drop = FALSE] else x[-idx]
+}
+
+#' The joint covariance of the fixed and random coefficients
+#'
+#' The covariance of everything the fit estimates, `beta`, `betad`,
+#' `theta` and the random-effect coefficients `b` together, in one
+#' matrix. It is what a delta method over a fitted CURVE needs and what
+#' [vcov()] cannot return: a penalized smooth's wiggly part is a
+#' random-effect block even when the smooth is a population term, so a
+#' covariance that stops at the fixed effects covers none of it.
+#'
+#' `vcov(full = TRUE)` returns the OUTER parameter vector's covariance
+#' and its row names are documented to be exactly [confint()]'s, so `b`
+#' is not in it and cannot be added. `frm_lp_basis()` is the accessor
+#' for a design at `newdata`; this is the accessor for the covariance
+#' those coefficients have.
+#'
+#' The result is memoized on the fit, so the joint-precision solve is
+#' paid once however many curves are drawn from it. It is also the ONLY
+#' route to the covariance of an AUTOSCALED fit
+#' (`frmtmb_control(autoscale = TRUE)`): a fresh
+#' `RTMB::sdreport(getJointPrecision = TRUE)` goes round the
+#' reparameterization and returns a covariance built on the unscaled
+#' Hessian, which is a different matrix and is not marked as one.
+#'
+#' @param object A fitted `frmtmb_fit`.
+#' @return A list with
+#' \describe{
+#'   \item{`V`}{the `p x p` joint covariance.}
+#'   \item{`names`}{length `p`; the PARAMETER COMPONENT each row belongs
+#'     to (`"beta"`, `"betad"`, `"b"`, `"theta"`, ...), which is what
+#'     [frm_lp_basis()]`$coef_pos` indexes.}
+#'   \item{`labels`}{length `p`; one label per row,
+#'     `beta.<coefficient>` for a fixed effect and `b.<block>.<level>`
+#'     for a random one.}
+#' }
+#' A fit with no random effects has no joint precision, and `V` is then
+#' the fixed-effect covariance `sdreport()$cov.fixed`; `names` says so.
+#' @seealso [frm_lp_basis()], [vcov()], [frmtmb-extension-api]
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, each = 10)))
+#' dd$y <- rnorm(120, 1 + 2 * dd$x + rnorm(12, 0, 0.5)[dd$g], 0.4)
+#' fit <- frm(bf(y ~ x + (1 | g)), data = dd)
+#' jc <- frm_joint_cov(fit)
+#' dim(jc$V)
+#' table(jc$names)
+#' head(jc$labels)
+#' @export
+frm_joint_cov <- function(object) {
+  require_frmtmb_fit(object, "frm_joint_cov()")
+  require_fitted(object, "frm_joint_cov()")
+  jc <- get_joint_cov(object)
+  jc$labels <- joint_coef_labels(object, jc)
+  jc
+}
+
+#' One label per row of the joint covariance.
+#'
+#' The component names alone do not say WHICH coefficient a row is, and
+#' a caller assembling a curve has to line its design columns up against
+#' something. Built here rather than cached with `V` so that the
+#' memoized object keeps the shape every internal consumer already
+#' reads.
+#'
+#' @noRd
+joint_coef_labels <- function(fit, jc = get_joint_cov(fit)) {
+  rn <- jc$names
+  if (is.null(rn)) return(NULL)
+  tpl <- fit$frame[["par_template"]]
+  out <- rn
+  for (cp in unique(rn)) {
+    i <- which(rn == cp)
+    nm <- if (cp == "b") b_coef_labels(fit) else names(tpl[[cp]])
+    if (is.null(nm) || length(nm) != length(i)) {
+      nm <- as.character(seq_along(i))
+    }
+    out[i] <- paste0(cp, ".", nm)
+  }
+  out
+}
+
+#' Per-coefficient labels of the `b` vector, block by block.
+#'
+#' @noRd
+b_coef_labels <- function(fit) {
+  out <- character(0)
+  for (bk in fit$frame[["re_blocks"]] %||% list()) {
+    lev <- bk[["levels"]]
+    nl <- bk[["n_levels"]]
+    d <- if (identical(bk[["covstruct"]], "rr")) bk[["rank"]] else bk[["dim"]]
+    cn <- bk[["cnms"]]
+    if (length(cn) != d) cn <- as.character(seq_len(d))
+    # a smooth or gp block is one unnamed "level", so it gets no level
+    # segment rather than an empty one
+    seg <- if (nl == 1L && is.null(lev)) rep("", d) else {
+      lv <- if (length(lev) == nl) lev else as.character(seq_len(nl))
+      paste0(rep(lv, each = d), ".")
+    }
+    out <- c(out, paste0(bk[["term_label"]], ".", seg, rep(cn, nl)))
+  }
+  out
+}
+
+#' The design of a linear predictor over the coefficient vector
+#'
+#' `predict(se.fit = TRUE)` builds a matrix `A` with one row per
+#' prediction and one column per contributing coefficient, forms
+#' `A V A'` and keeps only its diagonal. Every delta-method quantity
+#' over a fitted curve needs the whole thing: a contrast between two
+#' grids, an average marginal effect with a correct standard error, a
+#' simultaneous band, a derivative, the time of a peak. This returns the
+#' pieces so that an extension does not have to rebuild `A` by
+#' perturbation, one `predict()` call per coefficient.
+#'
+#' The name follows `emmeans::emm_basis()`, which is the same idea for
+#' the fixed block alone.
+#'
+#' @param object A fitted `frmtmb_fit`.
+#' @param newdata Data to build the design at, or `NULL` for the
+#'   training data.
+#' @param dpar,resp The distributional parameter and response to take
+#'   the linear predictor of. Both default the way [predict()] defaults
+#'   them.
+#' @param re.form `NULL` keeps every random effect, `NA` drops them all,
+#'   a one-sided formula keeps the ones it names.
+#' @param allow_new_levels Whether a grouping level the fit never saw is
+#'   allowed.
+#' @return A list with
+#' \describe{
+#'   \item{`eta`}{the linear predictor, exactly
+#'     `predict(type = "link")`.}
+#'   \item{`A`}{`n x p`; `d eta / d coef`.}
+#'   \item{`coef_pos`}{length `p`; the rows of `V` the columns of `A`
+#'     belong to, in `V`'s own order.}
+#'   \item{`V`}{`p x p`; [frm_joint_cov()] subset to `coef_pos`.}
+#'   \item{`coef_names`}{length `p`; the labels of those rows.}
+#'   \item{`extra_var`}{length `n`; variance that is NOT coefficient
+#'     uncertainty, kept separate rather than folded into `A V A'`
+#'     because an exact [gp()]'s kriging variance and a new grouping
+#'     level's marginal variance are not.}
+#'   \item{`nonest`}{length `n`; rows that load on a direction the
+#'     rank-deficient design could not identify.}
+#' }
+#' `var(eta)` is `rowSums((A %*% V) * A) + extra_var`, and
+#' `predict(se.fit = TRUE)` is written that way.
+#' @section A nonlinear body:
+#' For a nonlinear predictor `A` is a JACOBIAN rather than a design, and
+#' it is computed by taping the body against the coefficients it reaches
+#' through. That includes a [ps()] block, whose coefficients enter the
+#' body through a spline evaluated at an argument the parameters move.
+#' `predict(se.fit = TRUE)` stays refused for a nonlinear predictor;
+#' this is the route.
+#'
+#' The Jacobian is exact, and the delta method built on it is still a
+#' first-order approximation, which for a warped curve is a stronger
+#' assumption than it is for a linear one. `allow_new_levels = TRUE` is
+#' refused there, and so is a contributing exact [gp()], because neither
+#' variance has a chain rule through the body that has been measured.
+#' @section A reduced-rank block:
+#' An `rr()` block's loadings live in `theta`, so a design over
+#' `(beta, b)` alone is INCOMPLETE. `A` carries the loading columns
+#' too, through `rr_jacobians()`, and `coef_pos` names their `theta`
+#' rows; a caller therefore gets the whole delta method rather than
+#' discovering a missing piece.
+#' @seealso [frm_joint_cov()] for the covariance alone,
+#'   [frmtmb-extension-api]
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, each = 10)))
+#' dd$y <- rnorm(120, 1 + 2 * dd$x + rnorm(12, 0, 0.5)[dd$g], 0.4)
+#' fit <- frm(bf(y ~ x + (1 | g)), data = dd)
+#' nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
+#' lb <- frm_lp_basis(fit, newdata = nd, re.form = NA)
+#' str(lb$A)
+#' lb$coef_names
+#'
+#' # the covariance of the WHOLE grid, which predict() reduces to its
+#' # diagonal
+#' Sigma <- lb$A %*% lb$V %*% t(lb$A)
+#' all.equal(sqrt(diag(Sigma)),
+#'           predict(fit, newdata = nd, re.form = NA, se.fit = TRUE)$se.fit)
+#' @export
+frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
+                         re.form = NULL, allow_new_levels = FALSE) {
+  require_frmtmb_fit(object, "frm_lp_basis()")
+  require_fitted(object, "frm_lp_basis()")
+  check_flag(allow_new_levels, "allow_new_levels")
+  if (!is.null(newdata) && !is.data.frame(newdata)) {
+    stop("`newdata` must be a data frame, or NULL to use the training ",
+         "data, not ", arg_desc(newdata), call. = FALSE)
+  }
+  check_re_form(re.form)
+  use_re <- re_form_keeps(re.form)
+  resp <- resp %||% names(object$spec$responses)[1]
+  rspec <- object$spec$responses[[resp]]
+  if (is.null(rspec)) {
+    stop_unknown_response(object, resp)
+  }
+  dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
+    rspec$primary_dpars[1]
+  lp <- object$frame[["linpreds"]][[linpred_key(resp, dpar)]]
+  if (is.null(lp)) {
+    stop("frm_lp_basis(): unknown dpar '", dpar, "' for response '",
+         resp, "'. Available: ",
+         paste(names(rspec$dpars), collapse = ", "), call. = FALSE)
+  }
+  jc <- get_joint_cov(object)
+  if (!is.null(lp[["nl_body"]])) {
+    return(lp_basis_nl(object, lp, rspec, newdata, use_re,
+                       allow_new_levels, jc))
+  }
+  ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+  has_rr <- isTRUE(object$frame[["has_rr"]])
+  rrj <- if (has_rr) rr_jacobians(object)
+  da <- lp_delta_A(object, lp, ed, newdata, use_re, jc, has_rr, rrj)
+  lp_basis_out(object, jc, ed[["eta"]], as.matrix(da$A), da$coef_pos,
+               lp_extra_var_vec(object, ed, use_re), ed[["nonest"]])
+}
+
+#' The variance sources that are not coefficient uncertainty, summed to
+#' one vector per row. `predict()` adds them in place; a caller that
+#' gets `A` and `V` separately needs them separately too.
+#'
+#' @noRd
+lp_extra_var_vec <- function(object, ed, use_re) {
+  n <- ed[["n"]]
+  out <- numeric(n)
+  ev <- lp_extra_var(object, ed, use_re)
+  for (B in extra_var_blocks(ev$new_levels, n)) {
+    Mr <- B$M[B$rows, , drop = FALSE]
+    out[B$rows] <- out[B$rows] + rowSums((Mr %*% B$S) * Mr)
+  }
+  for (gv in ev$gp) out <- out + gv
+  out
+}
+
+#' Assemble the return value once, so the linear and nonlinear branches
+#' cannot drift into different shapes.
+#'
+#' @noRd
+lp_basis_out <- function(object, jc, eta, A, coef_pos, extra_var, nonest) {
+  lab <- joint_coef_labels(object, jc)
+  list(eta = eta, A = A, coef_pos = coef_pos,
+       V = jc$V[coef_pos, coef_pos, drop = FALSE],
+       coef_names = if (is.null(lab)) NULL else lab[coef_pos],
+       extra_var = extra_var,
+       nonest = nonest %||% rep(FALSE, length(eta)))
+}
+
+#' Which component of the parameter list each row of the joint
+#' covariance belongs to, and its index inside that component.
+#'
+#' @noRd
+joint_pos_map <- function(jc) {
+  rn <- jc$names
+  idx <- integer(length(rn))
+  for (cp in unique(rn)) {
+    i <- which(rn == cp)
+    idx[i] <- seq_along(i)
+  }
+  list(comp = rn, idx = idx)
+}
+
+#' `d eta / d coef` for a NONLINEAR predictor, by taping the body.
+#'
+#' `eta` is affine in the coefficients for every LINEAR dpar the body
+#' names, exactly: `eta(c) = eta(chat) + A (c - chat)`, with `A` the
+#' design `lp_delta_A()` already builds. So the whole body is a
+#' composition of affine maps, link inverses and whatever R code the
+#' body contains, and taping that composition against the coefficient
+#' subvector gives the Jacobian with no perturbation and no finite
+#' difference.
+#'
+#' A `ps()` block joins through the same tape: its closures are rebuilt
+#' from the perturbed parameter list on every tape evaluation, which is
+#' why they live in `ev` and not in `nl_env`.
+#'
+#' @noRd
+lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
+                        allow_new_levels, jc) {
+  if (isTRUE(allow_new_levels)) {
+    stop("frm_lp_basis(): allow_new_levels = TRUE is refused for a ",
+         "nonlinear predictor. A new level contributes its block's ",
+         "marginal variance, and how that variance passes through a ",
+         "nonlinear body has not been measured", call. = FALSE)
+  }
+  pm <- joint_pos_map(jc)
+  est <- object$estimates
+  parts <- list()          # per contributing dpar: eta_hat, A, coef_pos
+  build <- function(nm) {
+    if (!is.null(parts[[nm]])) return(invisible(NULL))
+    lpk <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, nm)]]
+    if (is.null(lpk)) {
+      stop("frm_lp_basis(): the nonlinear body names '", nm,
+           "', which is not a parameter of response '",
+           rspec$resp_name, "'", call. = FALSE)
+    }
+    if (!is.null(lpk[["nl_body"]])) {
+      for (sub in c(lpk[["nl_pars"]], lpk[["nl_dpar_refs"]])) build(sub)
+      parts[[nm]] <<- list(lp = lpk, nl = TRUE)
+      return(invisible(NULL))
+    }
+    edk <- lp_eta_design(object, lpk, newdata, use_re, FALSE)
+    ex <- lp_extra_var_vec(object, edk, use_re)
+    if (any(ex != 0)) {
+      stop("frm_lp_basis(): the nonlinear body reaches '", nm,
+           "', which contributes variance that is not coefficient ",
+           "uncertainty (an exact gp() kriging variance). Its chain ",
+           "rule through a nonlinear body has not been measured",
+           call. = FALSE)
+    }
+    has_rr <- isTRUE(object$frame[["has_rr"]])
+    dak <- lp_delta_A(object, lpk, edk, newdata, use_re, jc, has_rr,
+                      if (has_rr) rr_jacobians(object))
+    parts[[nm]] <<- list(lp = lpk, nl = FALSE, eta = unname(edk[["eta"]]),
+                         A = as.matrix(dak$A), pos = dak$coef_pos,
+                         nonest = edk[["nonest"]])
+    invisible(NULL)
+  }
+  for (nm in c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])) build(nm)
+
+  pos <- integer(0)
+  for (p in parts) if (!isTRUE(p$nl)) pos <- c(pos, p$pos)
+  # a ps() block reaches the body through its own coefficients rather
+  # than through any design, so its rows are added by name
+  for (lpk in c(list(lp), lapply(parts, `[[`, "lp"))) {
+    for (pt in lpk[["ps_terms"]] %||% list()) {
+      pos <- c(pos, which(pm$comp == pt[["par"]])[pt[["beta_idx"]]],
+               which(pm$comp == "b")[pt[["b_idx"]]])
+    }
+  }
+  pos <- sort(unique(pos))
+  if (!length(pos)) {
+    stop("frm_lp_basis(): the nonlinear predictor '", lp[["dpar"]],
+         "' reaches no estimated coefficient, so it has no design",
+         call. = FALSE)
+  }
+  chat <- vapply(pos, function(k) est[[pm$comp[k]]][pm$idx[k]], 0)
+
+  dl <- lp_basis_nl_data(object, newdata)
+  eta_fun <- function(cc) {
+    "[<-" <- RTMB::ADoverload("[<-")
+    pars <- est
+    for (k in seq_along(pos)) {
+      pars[[pm$comp[pos[k]]]][pm$idx[pos[k]]] <- cc[k]
+    }
+    bvec <- expand_b(object$frame, pars[["b"]], pars[["theta"]])
+    vals <- list()
+    ev_one <- function(lpk, nm) {
+      p <- parts[[nm]]
+      if (isTRUE(p$nl)) {
+        e <- eval(lpk[["nl_body"]],
+                  c(vals[c(lpk[["nl_pars"]], lpk[["nl_dpar_refs"]])],
+                    dl[[nm]], ps_env(lpk, pars, bvec)),
+                  ad_overload_env(lpk[["nl_env"]], lpk[["nl_body"]]))
+      } else {
+        e <- p$eta
+        for (k in seq_along(p$pos)) {
+          j <- match(p$pos[k], pos)
+          e <- e + p$A[, k] * (cc[j] - chat[j])
+        }
+      }
+      e
+    }
+    for (nm in names(parts)) {
+      p <- parts[[nm]]
+      e <- ev_one(p$lp, nm)
+      # the objective stores every dpar as linkinv(eta) and reads the
+      # body's names out of that store, so this does the same
+      vals[[nm]] <- p$lp[["link"]]$linkinv(e)
+    }
+    eval(lp[["nl_body"]],
+         c(vals[c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])],
+           dl[[lp[["dpar"]]]], ps_env(lp, pars, bvec)),
+         ad_overload_env(lp[["nl_env"]], lp[["nl_body"]]))
+  }
+  tp <- RTMB::MakeTape(eta_fun, chat)
+  eta <- as.numeric(tp(chat))
+  A <- tp$jacobian(chat)
+  nonest <- rep(FALSE, length(eta))
+  for (p in parts) {
+    if (!isTRUE(p$nl) && !is.null(p$nonest)) nonest <- nonest | p$nonest
+  }
+  lp_basis_out(object, jc, eta, A, pos, numeric(length(eta)), nonest)
+}
+
+#' The raw data columns each nonlinear body reads, at `newdata` or in
+#' sample, one list per dpar that has a body.
+#'
+#' @noRd
+lp_basis_nl_data <- function(object, newdata) {
+  out <- list()
+  for (lpk in object$frame[["linpreds"]]) {
+    if (is.null(lpk[["nl_body"]])) next
+    dl <- lpk[["data_list"]]
+    if (!is.null(newdata)) {
+      dl <- lapply(stats::setNames(names(dl), names(dl)), function(v) {
+        if (is.null(newdata[[v]])) {
+          stop_newdata_missing(v)
+        }
+        newdata[[v]]
+      })
+    }
+    out[[lpk[["dpar"]]]] <- dl
+  }
+  out
 }

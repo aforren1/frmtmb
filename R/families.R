@@ -32,6 +32,15 @@
 #'   `2 * (loglik of the saturated fit - loglik at the fitted value)`,
 #'   for `residuals(type = "deviance")`). A family that omits one is
 #'   refused by the method that needs it.
+#'
+#'   `post$fit_check(fit, resp)` is different in kind: it is run once,
+#'   when a fit FINISHES, and its return value is discarded. It is where
+#'   a family says something about where the optimizer landed, which
+#'   nothing else can: `logLik()` reads the optimizer's own value, so a
+#'   family whose likelihood is floored or degenerate in some region had
+#'   no way to report it. Warn from it rather than stopping; a hook that
+#'   throws is caught, reported as a warning naming the family, and the
+#'   fit is returned regardless.
 #' @param sim Optional numeric simulator `(dpars, aterms, n)` returning `n`
 #'   response draws; used by [simulate()], `posterior_predict()` and
 #'   [frm_simulate()]. It is stateless and rowwise: it sees the
@@ -52,6 +61,14 @@
 #' @param lcdf Optional vectorized AD log-safe CDF `(q, dpars, aterms)`
 #'   returning probabilities; enables `cens()` and `trunc()` addition
 #'   terms.
+#' @param lccdf Optional vectorized AD LOG SURVIVOR function
+#'   `(q, dpars, aterms)` returning `log(1 - F(q))` directly. A family
+#'   that declares it scores a RIGHT-censored row from it instead of
+#'   from `log(1 - F)`, which cannot be accurate once `F` rounds to one
+#'   (see Right censoring and the representable tail). It is optional
+#'   and independent of `lcdf`: a family that supplies only `lccdf`
+#'   accepts right censoring and refuses left censoring, interval
+#'   censoring and `trunc()`, each by name.
 #' @param required_aterms The addition-term values the density cannot do
 #'   without, named as they reach `aterms`: `"vint1"`, `"vreal2"`,
 #'   `"trials"`. A character vector names the terms it needs ALL of. A
@@ -219,6 +236,53 @@
 #' call order happens to hold and leaves the family object lying about
 #' what it is.
 #'
+#' @section Right censoring and the representable tail:
+#' Core forms a right-censored row's contribution as `log(Fub - F(y))`,
+#' which without truncation is `log(1 - F)`. A double cannot represent
+#' the complement of a probability that has rounded to one, so past that
+#' point the contribution is not merely inaccurate: it is CONSTANT, and
+#' its gradient is exactly zero. An optimizer then prices such a row the
+#' same however far it moves, and fits every other row as if the
+#' survivor were free. That failure is silent - the fit converges, and
+#' `logLik()` and `AIC()` report the floored number.
+#'
+#' `lccdf` removes the class for right censoring by giving core the
+#' quantity it actually needs. Measured on a standard normal tail, one
+#' process:
+#'
+#' \tabular{lrr}{
+#'   \strong{z} \tab \strong{log(1 - pnorm(z))} \tab
+#'     \strong{pnorm(z, lower.tail = FALSE, log.p = TRUE)} \cr
+#'   8.0 \tab -35.013 \tab -35.013 \cr
+#'   8.3 \tab -Inf \tab -37.494 \cr
+#'   37 \tab -Inf \tab -689.031 \cr
+#'   500 \tab -Inf \tab -125007.13
+#' }
+#'
+#' Both the value and the derivative are exact on the right, over the
+#' whole range.
+#'
+#' The built-in families that declare `lccdf` are [gaussian()],
+#' [lognormal()], [exponential()], [weibull()] and [cox()]. The last
+#' three have `log S` in closed form (`-q/mu`, `-(q/scale)^shape`,
+#' `-H0(t) * mu`); the first two use `pnorm()`'s own log upper tail.
+#'
+#' Two families with a CDF do NOT declare one, for measured reasons.
+#' [inverse.gaussian()] gains nothing:
+#' `RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)` is computed
+#' on the probability scale and reaches `-Inf` at the same
+#' `log S = -34` that `log(1 - F)` does. [poisson()] is discrete, and
+#' `cens()` is refused for discrete families, so the slot would be
+#' unreachable.
+#'
+#' `lccdf` fixes RIGHT censoring and nothing else. Left censoring is
+#' still `log(F(y) - Flb)`, interval censoring is still a difference of
+#' CDFs, and the truncation normalizer is still `log(Fub - Flb)`, so a
+#' LEFT-TRUNCATED survival model - delayed entry, which is routine -
+#' meets the identical representability problem from the other side.
+#' Closing that needs a windowed log-difference slot, and this is the
+#' first step rather than the last one.
+#'
 #' @section Tape-safe scope:
 #' `lpdf` and `lcdf` run with RTMB's tape-safe `c()`, `[<-` and
 #' `diag<-` in scope automatically (the
@@ -234,6 +298,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           post = list(), sim = NULL, sim_ctx = NULL,
                           sim_refusal = NULL,
                           primary_dpars = "mu", lcdf = NULL,
+                          lccdf = NULL,
                           required_aterms = character(0),
                           family_finalize = NULL,
                           extra_pars = NULL, drop_intercept = FALSE,
@@ -263,6 +328,13 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
   # function that already binds them itself is left untouched
   lpdf <- frmtmb_ad_overload(lpdf)
   if (!is.null(lcdf)) lcdf <- frmtmb_ad_overload(lcdf)
+  if (!is.null(lccdf)) {
+    if (!is.function(lccdf)) {
+      stop("frmtmb_family(lccdf =) must be a function (q, dpars, ",
+           "aterms) returning log S(q), or NULL", call. = FALSE)
+    }
+    lccdf <- frmtmb_ad_overload(lccdf)
+  }
   if (!is.null(structure) && !inherits(structure, "frmtmb_structure")) {
     stop("frmtmb_family(structure =) must come from frmtmb_structure(), ",
          "which is what declares a likelihood that does not factorize ",
@@ -275,7 +347,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
          valid_y = valid_y, init_dpars = init_dpars, type = type,
          post = post, sim = sim, sim_ctx = sim_ctx,
          sim_refusal = sim_refusal, primary_dpars = primary_dpars,
-         lcdf = lcdf, required_aterms = required_aterms,
+         lcdf = lcdf, lccdf = lccdf, required_aterms = required_aterms,
          family_finalize = family_finalize, extra_pars = extra_pars,
          drop_intercept = isTRUE(drop_intercept),
          structure = structure),
@@ -726,6 +798,10 @@ fam_gaussian <- function(link = "identity") {
     lcdf = function(q, dpars, aterms) {
       RTMB::pnorm((q - dpars[["mu"]]) / resid_sd(dpars[["sigma"]], aterms))
     },
+    lccdf = function(q, dpars, aterms) {
+      RTMB::pnorm((q - dpars[["mu"]]) / resid_sd(dpars[["sigma"]], aterms),
+                  lower.tail = FALSE, log.p = TRUE)
+    },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
       sigma = function(y, aterms) stats::sd(y)
@@ -902,6 +978,10 @@ fam_lognormal <- function(link = "identity") {
     },
     lcdf = function(q, dpars, aterms) {
       RTMB::pnorm((log(q) - dpars[["mu"]]) / dpars[["sigma"]])
+    },
+    lccdf = function(q, dpars, aterms) {
+      RTMB::pnorm((log(q) - dpars[["mu"]]) / dpars[["sigma"]],
+                  lower.tail = FALSE, log.p = TRUE)
     },
     valid_y = positive_y("lognormal"),
     init_dpars = list(
@@ -1528,6 +1608,10 @@ fam_exponential <- function(link = "log") {
     lcdf = function(q, dpars, aterms) {
       1 - exp(-q / dpars[["mu"]])
     },
+    # log S = -q / mu in closed form: no complement is ever formed
+    lccdf = function(q, dpars, aterms) {
+      -q / dpars[["mu"]]
+    },
     valid_y = positive_y("exponential"),
     init_dpars = list(mu = function(y, aterms) mean(y)),
     type = "continuous",
@@ -1569,6 +1653,10 @@ fam_weibull <- function(link = "log") {
     lcdf = function(q, dpars, aterms) {
       sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / dpars[["shape"]]))
       1 - exp(-(q / sc)^dpars[["shape"]])
+    },
+    lccdf = function(q, dpars, aterms) {
+      sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / dpars[["shape"]]))
+      -(q / sc)^dpars[["shape"]]
     },
     valid_y = positive_y("weibull"),
     init_dpars = list(
@@ -3993,6 +4081,12 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
                            sbhaz(extra$sbhaz_raw))
       1 - exp(-cbhaz * dpars[["mu"]])
     },
+    lccdf = function(q, dpars, aterms, extra) {
+      # log S = -H0(t) * mu, the cumulative hazard itself
+      cbhaz <- as.vector(cox_cbhaz_design(q, aterms) %*%
+                           sbhaz(extra$sbhaz_raw))
+      -cbhaz * dpars[["mu"]]
+    },
     valid_y = function(y, aterms) {
       if (any(y <= 0)) {
         stop("cox: the response is a survival time and must be ",
@@ -4096,6 +4190,24 @@ fam_lcdf <- function(fam, q, dpars, aterms, extra) {
     fam[["lcdf"]](q, dpars, aterms)
   }
 }
+
+#' Call a family's log survivor function, with the same extra-parameter
+#' arity shim `fam_lcdf()` carries.
+#'
+#' @noRd
+fam_lccdf <- function(fam, q, dpars, aterms, extra) {
+  if (length(formals(fam[["lccdf"]])) >= 4L) {
+    fam[["lccdf"]](q, dpars, aterms, extra)
+  } else {
+    fam[["lccdf"]](q, dpars, aterms)
+  }
+}
+
+#' Whether a family can score a RIGHT-censored row exactly, which it can
+#' when it declares `lccdf`.
+#'
+#' @noRd
+has_lccdf <- function(fam) !is.null(fam[["lccdf"]])
 
 #' The fitted baseline-hazard simplex of a `cox()` fit.
 #'

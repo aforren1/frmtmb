@@ -169,7 +169,7 @@ test_that("declared addition terms are the ones the parser accepts", {
 test_that("declared specials still parse", {
   ft <- frm_compat_features()
   expect_setequal(ft$key[ft$kind == "special"],
-                  c("s", "t2", "mo", "mi", "gp", "cs"))
+                  c("s", "t2", "mo", "mi", "gp", "cs", "ps"))
   set.seed(1)
   n <- 60
   d <- data.frame(
@@ -186,6 +186,12 @@ test_that("declared specials still parse", {
                       dry_run = "frame"), "frmtmb_frame")
   expect_s3_class(frm(y ~ gp(x, k = 5), data = d, family = gaussian(),
                       dry_run = "frame"), "frmtmb_frame")
+  # ps() is admitted only inside a nonlinear body, so its parse is the
+  # body's parse: it is rewritten to a per-term closure call and the
+  # block is allocated at frame assembly
+  expect_s3_class(frm(bf(y ~ lev + ps(x, k = 6), lev ~ 1, nl = TRUE),
+                      data = d, family = gaussian(), dry_run = "frame"),
+                  "frmtmb_frame")
   expect_s3_class(frm(o ~ cs(x), data = d, family = sratio(),
                       dry_run = "frame"), "frmtmb_frame")
 })
