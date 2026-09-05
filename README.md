@@ -70,7 +70,7 @@ with the same formula. `vignette("brms-migration")` maps the
 features and states, under "When you still want brms", the cases
 that belong in brms.
 
-**A small core, with the rest in companion packages.** The core
+**A scoped core, with the rest in companion packages.** The core
 package fits models and reports on them. Everything that needs
 another engine or another literature ships beside it: NUTS sampling,
 ordinary differential equations, discrete latent states, and
@@ -304,11 +304,11 @@ frmtmb is maturing. The package is not yet on CRAN.
 - **The fitted-object API is stable.** `frm()`, the accessor methods
   (`coef()`, `confint()`, `vcov()`, `predict()`, and the rest), and
   the family constructors keep their current behavior.
-- **The extension interface is public and settled.**
+- **The extension interface is public and versioned.**
   `frmtmb_family()`, `frmtmb_structure()` and the registration
   functions are documented as one contract, and the companion
   packages in this repository are written against it with no reach
-  into internals. `frmtmb.ddm` was built that way as a test of it.
+  into internals. `frmtmb.ddm` was built that way as a test of it. Each companion package pins the core version it needs, and the pin moves when the interface does.
 - **Internal structure can change.** Fields of the fitted object
   that no exported method reaches are not part of the API. Use the
   accessors.
