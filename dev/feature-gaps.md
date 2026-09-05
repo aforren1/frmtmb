@@ -284,33 +284,43 @@ regression (logLik to 1.1e-7, gating coefficients to 9.9e-7).
   with brms's `.car_scale` (reproduced exactly, tested against the
   formula).
 
-  CONSTRAINT. The intrinsic types take brms's soft sum-to-zero
+  CONSTRAINT. `icar` and `bym2` take brms's soft sum-to-zero
   constraint with its precision riding on tau (as in brms's
   non-centered zcar), applied per connected component. That keeps the
-  density proper - which is what makes ranef/predict/simulate defined
-  on the block - and keeps log|Q| exact. `con_sd` (default brms's
+  density proper, which is what makes ranef/predict/simulate defined
+  on the block, and keeps log|Q| exact. `con_sd` (default brms's
   1e-3) is the constraint sd relative to the field sd; the fit
-  converges quadratically onto the hard-constrained (esicar)
-  likelihood as it shrinks. Measured on a 4 x 4 lattice against a
-  hand-rolled hard sum-to-zero ML: 1e-3 off by 4.7e-4 in logLik
-  (3.6e-5 relative in sdcar), 1e-4 by 4.7e-6 (3.6e-7), 1e-5 by 4.5e-8
-  (3.7e-9), 1e-6 by 9.2e-10, 1e-7 lost to roundoff (1.1e-4). The
-  default stays at brms's value: the bias is four orders below the
-  parameter's own SE, and tighter settings cost optimizer robustness
-  (over 25 lattice refits nlminb reported false convergence 0 times
-  at 1e-3, once at 1e-4, 6 times at 1e-5). `esicar` selects the same
-  density as `icar` - the brms difference between them is a Stan
-  parameterization detail that ML does not see.
+  converges quadratically onto the hard-constrained likelihood as it
+  shrinks. Measured on a 4 x 4 lattice against a hand-rolled hard
+  sum-to-zero ML: 1e-3 off by 4.7e-4 in logLik (3.6e-5 relative in
+  sdcar), 1e-4 by 4.7e-6 (3.6e-7), 1e-5 by 4.5e-8 (3.7e-9), 1e-6 by
+  9.2e-10, 1e-7 lost to roundoff (1.1e-4). The default stays at brms's
+  value: the bias is four orders below the parameter's own SE, and
+  tighter settings cost optimizer robustness (over 25 lattice refits
+  nlminb reported false convergence 0 times at 1e-3, once at 1e-4, 6
+  times at 1e-5).
+
+  `esicar` selected that same density until 0.51.0 and no longer does.
+  It now imposes the constraint EXACTLY, as brms does: the coefficients
+  are centered per component on the way to the linear predictor, the
+  component means are left inert with a tau-free density, and log|Q| is
+  the pseudo-determinant (n - c) log tau + log|K|. Its likelihood does
+  not depend on con_sd at all. See R/covstruct.R:896-996.
 
   VALIDATION (tests/testthat/test-car-spde.R), all against a
   hand-rolled marginal-gaussian direct ML with the same block
   covariance, which the Laplace approximation reproduces exactly:
-  icar 4.8e-9 on the logLik, escar 1.1e-11, bym2 2.9e-12, spde
-  2.6e-11, plus a disconnected two-component graph (the rank
-  correction and the per-component constraint) and simulate-recover
-  over 15 lattice replicates for sdcar and rhocar. No opportunistic
-  cross-check was possible: neither CARBayes, spaMM, spdep, fmesher
-  nor INLA is installed here.
+  icar 4.8e-9 on the logLik, esicar 2.8e-10 against the HARD
+  constrained reference, escar 1.1e-11, bym2 2.9e-12, spde 2.6e-11,
+  plus a disconnected two-component graph for both intrinsic types
+  (the rank correction, the soft per-component constraint and the
+  exact one), a singleton component whose esicar field value is the
+  number zero, esicar's con_sd invariance under poisson as well as
+  gaussian, an esicar block beside an ordinary (1 | g) so that
+  expand_b() is shown centering one and copying the other, and
+  simulate-recover over 15 lattice replicates for sdcar and rhocar. No
+  opportunistic cross-check was possible: neither CARBayes, spaMM,
+  spdep, fmesher nor INLA is installed here.
 
   (2) `gr(g, prec = Q)` now takes correlated slopes. Precision-side
   Kronecker: inv(A (x) Sigma) = A^-1 (x) Sigma^-1, so the block

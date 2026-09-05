@@ -2090,6 +2090,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   n_c <- 0L      # coefficient space (the Z columns)
   n_theta <- 0L
   has_rr <- FALSE
+  has_esicar <- FALSE
 
   for (gd in group_defs) {
     cps <- components[gd]
@@ -2180,8 +2181,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       npar_k <- gp_npar(cps[[1]]$gp_D, cps[[1]]$gp_iso)
       nb_k <- D * n_levels
     } else if (cs_name == "car") {
-      # the CAR type decides whether there is a mixing parameter
+      # the CAR type decides whether there is a mixing parameter, and
+      # esicar's coefficients are its parameters CENTERED, so the frame
+      # has to say that expand_b() must run
       npar_k <- car_npar(cps[[1]]$car_type)
+      has_esicar <- has_esicar || identical(cps[[1]]$car_type, "esicar")
       nb_k <- D * n_levels
     } else if (cs_name == "spde") {
       npar_k <- spde_npar()
@@ -2364,7 +2368,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     list(spec = spec, n_obs = n, y = y, y_levels = y_levels,
          aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
-         n_c = n_c, has_rr = has_rr, mi_map = mi_map, blocks = blocks,
+         n_c = n_c, has_rr = has_rr, has_expand = has_rr || has_esicar,
+         mi_map = mi_map, blocks = blocks,
          autocor = autocor,
          par_template = par_template, map = map,
          betad_fixed_idx = betad_fixed_idx,

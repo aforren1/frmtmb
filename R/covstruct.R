@@ -897,10 +897,18 @@ kron_prec_parts <- function(Q, d) {
 # forms and (log sdcar, logit rho) for the two that mix, with
 # tau = 1 / sdcar^2 the precision multiplier.
 #
-#   escar          Q = tau (D - rho W), proper for rho in (0, 1)
-#   icar / esicar  Q = tau (D - W), intrinsic, sum-to-zero constrained
-#   bym2           sd^2 [(1 - rho) I + (rho / scale) K^-1], the
-#                  Riebler et al. scaled mixture brms implements
+#   escar    Q = tau (D - rho W), proper for rho in (0, 1); no
+#            constraint, because a proper CAR needs none
+#   esicar   Q = tau (D - W) on the sum-to-zero subspace, the
+#            constraint imposed EXACTLY
+#   icar     the same intrinsic precision under a SOFT sum-to-zero
+#            constraint, brms's normal(sum(zcar) | 0, con_sd Nloc)
+#   bym2     sd^2 [(1 - rho) I + (rho / scale) K^-1], the
+#            Riebler et al. scaled mixture brms implements
+#
+# esicar and icar are two different models, as they are in brms. The
+# two spellings selected one density here through 0.51.0; what each one
+# now costs is below.
 #
 # THE NORMALIZING CONSTANT is analytic in every case, so no
 # normalize-trick / on-tape log-determinant is needed and the density
@@ -910,40 +918,78 @@ kron_prec_parts <- function(Q, d) {
 #           with e_i the eigenvalues of D^-1/2 W D^-1/2 (fixed data).
 #   icar    the graph Laplacian L = D - W is rank n - c with c the
 #           number of connected components, so log|Q|* = (n - c) log
-#           tau + log|L|*. The constrained density below turns that
-#           into an exact n log tau (see the constraint note).
+#           tau + log|L|*. The soft constraint below turns that into an
+#           exact n log tau.
+#   esicar  the pseudo-determinant itself, (n - c) log tau + log|L|*,
+#           which is what brms's sparse_icar_lpdf computes.
 #
-# THE SUM-TO-ZERO CONSTRAINT. An intrinsic CAR is improper: L annihilates
-# the indicator of each connected component, so shifting the field
-# inside a component and the intercept the other way leaves the
-# likelihood untouched and the ML problem is rank deficient, not merely
-# ill conditioned. We adopt brms's remedy - a soft sum-to-zero
-# constraint whose precision rides on tau, as it does in brms's
-# non-centered zcar parameterization - so the whole block precision is
+# THE SUM-TO-ZERO CONSTRAINT. An intrinsic CAR is improper: L
+# annihilates the indicator s_j of each connected component, so shifting
+# the field inside a component and the intercept the other way leaves
+# the likelihood untouched and the ML problem is rank deficient, not
+# merely ill conditioned. The two intrinsic types answer that
+# differently, and both answers are brms's.
+#
+# icar, the SOFT answer. A rank-c update rides on tau:
 #
 #   Q(tau) = tau * K,   K = L + sum_j kappa_j s_j s_j',
 #   kappa_j = 1 / (con_sd n_j)^2,
 #
-# with s_j the indicator of component j (n_j levels). K is fixed data,
-# so log|Q| = n log tau + log|K| is exact and constant-free, and the
-# density is a proper Gaussian - which is what makes ranef(), predict()
-# and simulate() well defined on the block. The component sums are then
-# pinned at an sd of con_sd n_j sdcar rather than exactly zero, so the
-# fit approaches the hard-constrained (brms esicar) likelihood as
-# con_sd -> 0; `esicar` selects the same density.
-#
+# with n_j the size of component j. K is fixed data, so
+# log|Q| = n log tau + log|K| is exact and constant-free. The component
+# sums are pinned at an sd of con_sd n_j sdcar rather than exactly
+# zero, which is the same model as an extra random intercept of sd
+# con_sd sdcar per component. That intercept is confounded with beta_0,
+# and its convolution IS the bias against the exact constraint:
+# measured on a 4 x 4 lattice, 1e-3 is off by 4.7e-4 in the
+# log-likelihood (3.6e-5 relative in sdcar), 1e-4 by 4.7e-6 (3.6e-7),
+# 1e-5 by 4.5e-8 (3.7e-9), 1e-6 by 9.2e-10, and 1e-7 loses to roundoff
+# (1.1e-4). Tightening also costs optimizer robustness. The constraint
+# direction carries a factor con_sd^-2 of the block Hessian, and over 25
+# lattice refits nlminb reported false convergence 0 times at 1e-3, once
+# at 1e-4 and 6 times at 1e-5, so the loose default is the better trade.
 # con_sd defaults to brms's 1e-3, so the same call is the same model
-# here and there. Tightening it walks the fit onto the hard-constrained
-# (esicar) likelihood quadratically, and the walk is worth knowing:
-# measured on a 4 x 4 lattice against a hard sum-to-zero reference,
-# 1e-3 is off by 4.7e-4 in the log-likelihood (3.6e-5 relative in
-# sdcar), 1e-4 by 4.7e-6 (3.6e-7), 1e-5 by 4.5e-8 (3.7e-9), 1e-6 by
-# 9.2e-10, and 1e-7 loses to roundoff (1.1e-4). The bias at the default
-# is four orders below the parameter's own standard error, and the
-# tighter settings cost optimizer robustness - the constraint direction
-# carries a factor con_sd^-2 of the block Hessian, and over 25 lattice
-# refits nlminb reported false convergence 0 times at 1e-3, once at
-# 1e-4 and 6 times at 1e-5 - so the loose default is the better trade.
+# here and there.
+#
+# esicar, the EXACT answer, and it never solves a constrained problem.
+# The field that reaches the linear predictor is the CENTERED b,
+#
+#   c = b - sum_j s_j (s_j'b / n_j),
+#
+# applied in expand_b(), so 1'c = 0 within every component by
+# construction. The component means m_j = s_j'b / n_j are then inert:
+# they enter no linear predictor and no cross term. Give them a
+# tau-FREE density and the block precision is
+#
+#   Q(tau) = tau L + P0,   P0 = sum_j kappa_j s_j s_j',
+#
+# which is block diagonal on the orthogonal split R^n = range(L) plus
+# span{s_j}, because L kills every s_j and P0 kills everything
+# orthogonal to them. Three consequences, and they are the design:
+#
+#   1. log|Q| = (n - c) log tau + log|K| with the SAME K icar builds,
+#      since |tau L + P0| and |L + P0| differ only on range(L). The
+#      pseudo-determinant is exact and costs no new factorization.
+#   2. p(b) = p_hard(c) * prod_j N(m_j; 0, con_sd^2) exactly, and the
+#      predictor depends on c alone, so the m integral is 1 and the
+#      marginal likelihood IS the hard-constrained one. The Laplace
+#      approximation splits the same way, with an exactly Gaussian m
+#      block, so this holds to machine precision and not in a limit.
+#   3. logLik() is INVARIANT to con_sd, which is the signature that
+#      separates the two types: icar's moves with it and esicar's does
+#      not. con_sd only scales an inert coordinate here, and it is left
+#      at kappa_j so that the block Hessian's conditioning is icar's.
+#
+# m* = 0 exactly at the mode, because the m block is quadratic and
+# decoupled and one Newton step lands on it. So `b` is already centered
+# wherever anything reads it, and the inert coordinate carries variance
+# con_sd^2 = 1e-6, four orders below sdcar^2 on any real fit. That is
+# why the conditional-mode standard errors need no branch of their own.
+#
+# brms constrains the GLOBAL sum for esicar (rcar[Nloc] = -sum(zcar))
+# and normalizes by (Nloc - 1) log tau, which is right for a connected
+# graph and improper otherwise. The per-component form above agrees
+# with brms whenever c = 1 and stays proper when it is not.
 #
 # The price of any sum-to-zero constraint is a dense rank-c update
 # inside the block's Laplace Hessian, which caps the practical field
@@ -1204,7 +1250,10 @@ car_scale_factor <- function(W) {
 car_aux <- function(W, type, con_sd = car_con_sd_default) {
   n <- nrow(W)
   deg <- as.numeric(Matrix::rowSums(W))
-  L <- methods::as(Matrix::Diagonal(n, deg) - W, "generalMatrix")
+  # Csparse, not just generalMatrix: `L %*% b` runs on the tape for
+  # esicar, and RTMB's sparse product wants the compressed form
+  L <- methods::as(methods::as(Matrix::Diagonal(n, deg) - W,
+                               "generalMatrix"), "CsparseMatrix")
   aux <- list(type = type, n = n, W = W, L = L, deg = deg)
   if (type == "escar") {
     if (any(deg == 0)) {
@@ -1241,12 +1290,37 @@ car_aux <- function(W, type, con_sd = car_con_sd_default) {
   aux$ldet_K <- as.numeric(Matrix::determinant(aux$K,
                                                logarithm = TRUE)$modulus)
   aux$n_comp <- length(nj)
+  aux$comp <- comp
+  aux$nj <- nj
   if (type == "bym2") {
     # the scaled mixture needs the covariance of the unit-scale ICAR
     aux$Kinv <- as.matrix(Matrix::solve(aux$K))
     aux$scale <- car_scale_factor(W)
   }
   aux
+}
+
+#' The esicar field: `b` with each connected component's mean removed,
+#' so that the vector the linear predictor sees sums to zero within
+#' every component by construction. Runs on the tape (advector `b`) and
+#' off it, because expand_b() is the numeric path too.
+#'
+#' @noRd
+car_center <- function(b, a) {
+  m <- as.vector(a[["Sgrp"]] %*% b) / a[["nj"]]
+  b - m[a[["comp"]]]
+}
+
+#' The esicar block precision at a theta, `tau L + P0`. Unlike icar's
+#' `tau K` the rank-c term does NOT ride on tau: that is what makes the
+#' inert component means tau-free and the marginal likelihood the
+#' hard-constrained one.
+#'
+#' @noRd
+car_esicar_prec <- function(theta, a) {
+  P0 <- Matrix::t(a[["Sgrp"]]) %*%
+    Matrix::Diagonal(a[["n_comp"]], a[["kappa0"]]) %*% a[["Sgrp"]]
+  exp(-2 * theta[1]) * a[["L"]] + P0
 }
 
 #' Numeric covariance of the whole field at a theta (draws, VarCorr
@@ -1265,6 +1339,12 @@ car_cov <- function(theta, blk) {
     rho <- car_rho(theta[2])
     return(s2 * ((1 - rho) * diag(a[["n"]]) +
                    (rho / a[["scale"]]) * a[["Kinv"]]))
+  }
+  if (a[["type"]] == "esicar") {
+    # the covariance of `b`, which is what a draw needs; expand_b()
+    # centers it afterwards and the centered draw is the constrained
+    # field. Not s2 * anything: the rank-c term is tau-free.
+    return(as.matrix(Matrix::solve(car_esicar_prec(theta, a))))
   }
   s2 * as.matrix(Matrix::solve(a[["K"]]))
 }
@@ -1289,6 +1369,17 @@ covstruct_registry[["car"]] <- list(
       return(sum(RTMB::dmvnorm(b, 0, Sigma, log = TRUE)))
     }
     tau <- exp(-2 * theta[1])
+    if (a[["type"]] == "esicar") {
+      # Q = tau L + P0. The two terms live on complementary invariant
+      # subspaces, so the determinant splits into the pseudo-determinant
+      # brms normalizes by, (n - c) log tau + log|L|*, plus the inert
+      # means' own constant, whose sum with log|L|* IS log|K|.
+      quad_l <- sum(b * as.vector(a[["L"]] %*% b))
+      quad_p <- sum(a[["kappa0"]] * as.vector(a[["Sgrp"]] %*% b)^2)
+      ldet <- (n - a[["n_comp"]]) * log(tau) + a[["ldet_K"]]
+      return(0.5 * (ldet - n * log(2 * pi)) -
+               0.5 * (tau * quad_l + quad_p))
+    }
     if (a[["type"]] == "escar") {
       rho <- car_rho(theta[2])
       quad <- sum(a[["deg"]] * b^2) -
@@ -1640,13 +1731,55 @@ covstruct_registry[["rr"]] <- list(
   }
 )
 
+#' Whether a block is the hard-constrained intrinsic CAR, whose
+#' coefficients are the CENTERED parameters rather than the parameters.
+#' One predicate, because the frame flag and expand_b() have to agree
+#' about which blocks need the pass.
+#'
+#' @noRd
+block_is_esicar <- function(bk) {
+  identical(bk[["covstruct"]], "car") &&
+    identical(bk[["car_type"]], "esicar")
+}
+
+#' Whether a frame's `b` and its coefficient vector are different
+#' objects, so that `expand_b()` has to run. DERIVED from the blocks,
+#' with the frame's own flag only as a fast path.
+#'
+#' Deriving it rather than trusting `frame$has_expand` is the point.
+#' `[[` does not partially match, so a frame serialized before that
+#' field existed returns NULL, and a gate that took NULL for FALSE
+#' would evaluate an esicar block WITHOUT centering while its density
+#' still carried the constrained normalizer: two different models, no
+#' error, and only off the mode, which is exactly the regime
+#' `imp_frozen_proposal()` and `cluster_scores_at()` work in. The
+#' blocks cannot go stale the way a cached boolean can, because the
+#' same `car_type` chooses the density.
+#'
+#' @noRd
+frame_needs_expand <- function(frame) {
+  if (isTRUE(frame[["has_expand"]]) || isTRUE(frame[["has_rr"]])) {
+    return(TRUE)
+  }
+  bks <- frame[["re_blocks"]] %||% list()
+  any(vapply(bks, function(bk) {
+    identical(bk[["covstruct"]], "rr") || block_is_esicar(bk)
+  }, logical(1)))
+}
+
 #' Coefficient-space vector the Z matrices multiply: identical to b
-#' except for rr blocks, whose factors expand through the loadings.
+#' except for rr blocks, whose factors expand through the loadings, and
+#' esicar blocks, whose field is b with each component's mean removed.
 #' AD-safe (`RTMB::matrix` + `[<-` overload) and numeric-safe.
+#'
+#' Both exceptions have to happen HERE rather than in the block density,
+#' because the vector that reaches the linear predictor is the
+#' coefficient vector and not the parameter vector, and for esicar the
+#' whole point is that the predictor never sees the component means.
 #'
 #' @noRd
 expand_b <- function(frame, b, theta) {
-  if (!isTRUE(frame[["has_rr"]])) return(b)
+  if (!frame_needs_expand(frame)) return(b)
   "[<-" <- RTMB::ADoverload("[<-")
   cvec <- rep(b[1] * 0, frame[["n_c"]])   # keeps the advector class if taped
   for (bk in frame[["re_blocks"]]) {
@@ -1654,6 +1787,8 @@ expand_b <- function(frame, b, theta) {
       L <- rr_loadings(theta[bk[["theta_idx"]]], bk[["dim"]], bk[["rank"]])
       Fm <- RTMB::matrix(b[bk[["b_idx"]]], bk[["rank"]], bk[["n_levels"]])
       cvec[bk[["c_idx"]]] <- as.vector(L %*% Fm)
+    } else if (block_is_esicar(bk)) {
+      cvec[bk[["c_idx"]]] <- car_center(b[bk[["b_idx"]]], bk[["aux_car"]])
     } else {
       cvec[bk[["c_idx"]]] <- b[bk[["b_idx"]]]
     }

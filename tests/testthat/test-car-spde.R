@@ -79,8 +79,9 @@ test_that("icar matches a hand-rolled constrained-ICAR ML", {
 
 test_that("the soft sum-to-zero constraint converges to the hard one", {
   # the default is brms's 1e-3, whose distance from the exact
-  # (hard-constrained, brms esicar) likelihood is four orders below the
-  # parameter's own standard error; con_sd walks it down quadratically
+  # (hard-constrained) likelihood type = "esicar" fits is four orders
+  # below the parameter's own standard error; con_sd walks it down
+  # quadratically
   s <- car_lattice_data(42)
   W <- s$W
   A <- rbind(diag(s$n - 1), -1)
@@ -107,15 +108,56 @@ test_that("the soft sum-to-zero constraint converges to the hard one", {
   expect_equal(as.numeric(logLik(f_def)), as.numeric(logLik(f_1e3)))
 })
 
-test_that("esicar selects the same density as icar", {
+test_that("esicar matches a hand-rolled HARD-constrained ICAR ML", {
+  # brms's own esicar parameterization as the reference: Nloc - 1 free
+  # values and the last minus their sum, so cov(field) = sdcar^2 A Vz A'
+  # with A the constraint basis. frmtmb reaches the same model from the
+  # other side, keeping Nloc coefficients, centering them in
+  # expand_b() and leaving the component mean inert. The two have to
+  # agree to optimizer noise, because the Laplace approximation is
+  # exact here.
   s <- car_lattice_data(42)
   W <- s$W
-  f1 <- frm(bf(y ~ x + car(W, gr = loc, type = "icar")) + gaussian(),
-            data = s$d)
-  f2 <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
-            data = s$d)
-  expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f2)))
-  expect_vector_equal(f1$estimates$theta, f2$estimates$theta, tol = 1e-12)
+  A <- rbind(diag(s$n - 1), -1)
+  Vz <- solve(t(A) %*% s$L %*% A)
+  hard <- marginal_ml(s$d$y, s$X, s$Z,
+                      function(p) exp(2 * p[1]) * (A %*% Vz %*% t(A)),
+                      c(0, 0))
+  fit <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
+             data = s$d)
+  expect_lt(abs(as.numeric(logLik(fit)) - hard$logLik), 1e-7)
+  expect_vector_equal(c(fit$estimates$theta, fit$estimates$betad),
+                      hard$par, tol = 1e-5)
+  # EXACTLY zero, not merely small: icar's residual on this fit is 1e-9
+  expect_lt(abs(sum(ranef(fit)[[1]])), 1e-12)
+  expect_equal(unname(VarCorr(fit)[[1]][1, 1]),
+               exp(2 * fit$estimates$theta[1]))
+})
+
+test_that("esicar and icar are different models, by the predicted amount", {
+  # They selected one density through 0.51.0. icar's soft constraint is
+  # the same model as an extra random intercept of sd con_sd * sdcar,
+  # so its likelihood sits BELOW esicar's by the design note's bias,
+  # 4.0e-4 at the 1e-3 default on this lattice, and walks onto it
+  # quadratically as con_sd shrinks. esicar does not move at all,
+  # because con_sd only scales a coordinate its predictor never sees.
+  s <- car_lattice_data(42)
+  W <- s$W
+  ll <- function(ty, cs) {
+    as.numeric(logLik(frm(bf(y ~ x + car(W, gr = loc, type = ty,
+                                         con_sd = cs)) + gaussian(),
+                          data = s$d)))
+  }
+  gap <- ll("esicar", 1e-3) - ll("icar", 1e-3)
+  expect_gt(gap, 1e-4)
+  expect_lt(gap, 1e-3)
+  # the invariance IS the constraint being exact rather than tight
+  es <- vapply(c(1e-2, 1e-3, 1e-4), function(cs) ll("esicar", cs), 0)
+  ic <- vapply(c(1e-2, 1e-3, 1e-4), function(cs) ll("icar", cs), 0)
+  expect_lt(diff(range(es)), 1e-8)
+  expect_gt(diff(range(ic)), 1e-2)
+  # and each decade of con_sd buys icar two more digits toward esicar
+  expect_lt(abs(es[[3]] - ic[[3]]), abs(es[[2]] - ic[[2]]) / 50)
 })
 
 test_that("escar matches a hand-rolled proper-CAR ML", {
@@ -296,6 +338,288 @@ test_that("the car post-fit surface answers", {
   nd$loc <- factor("ZZ", levels = c(levels(s$d$loc), "ZZ"))
   expect_error(predict(fit, newdata = nd), "New levels")
   expect_silent(predict(fit, newdata = nd, allow_new_levels = TRUE))
+})
+
+test_that("the esicar post-fit surface reads the FULL field", {
+  # esicar keeps Nloc coefficients and centers them on the way to the
+  # predictor, so everything downstream sees one value per location,
+  # exactly as icar does. What is measured here is that they all read
+  # the CENTERED vector: a path that read the raw parameters instead
+  # would be off by the inert component mean.
+  s <- car_lattice_data(3)
+  W <- s$W
+  fit <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
+             data = s$d)
+  re <- ranef(fit)[[1]]
+  expect_equal(dim(re), c(s$n, 1L))
+  expect_equal(rownames(re), rownames(s$W))
+  expect_lt(abs(sum(re)), 1e-12)
+  expect_equal(colnames(VarCorr(fit)[[1]]), "sd(car)")
+  # in-sample and newdata prediction see the same design, standard
+  # errors included
+  rows <- c(1L, 10L, nrow(s$d))
+  p_in <- predict(fit, se.fit = TRUE)
+  p_nd <- predict(fit, newdata = s$d[rows, ], se.fit = TRUE)
+  expect_vector_equal(p_nd$fit, p_in$fit[rows], tol = 1e-10)
+  expect_vector_equal(p_nd$se.fit, p_in$se.fit[rows], tol = 1e-8)
+  # a draw is Nloc long and its field is on the constraint again
+  set.seed(1)
+  bdraw <- frmtmb:::draw_b(fit)
+  expect_length(bdraw, s$n)
+  cdraw <- frmtmb:::expand_b(fit$frame, bdraw, fit$estimates$theta)
+  expect_lt(abs(sum(cdraw)), 1e-12)
+  set.seed(1)
+  expect_equal(dim(simulate(fit, nsim = 2)), c(nrow(s$d), 2L))
+  # the importance correction refuses every car type by name already,
+  # and esicar keeps the level-major layout that refusal predates
+  expect_error(
+    frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
+        data = s$d, importance = 32),
+    "cannot correct the 'car' structure")
+})
+
+test_that("esicar centers its own block and leaves the others alone", {
+  # expand_b() now has two exceptions, and a model carrying an esicar
+  # block AND an ordinary one is where a mix-up would show: the CAR
+  # field must come out on the constraint and the iid intercepts must
+  # come out untouched. The reference is the marginal ML of the sum of
+  # both variance components, with the CAR one at its EXACT constrained
+  # covariance pinv(L).
+  set.seed(11)
+  W <- lattice_W(4, 4)
+  n <- nrow(W)
+  L <- diag(rowSums(W)) - W
+  ev <- eigen(L, symmetric = TRUE)
+  pos <- ev$values > 1e-8 * max(ev$values)
+  Lp <- ev$vectors[, pos] %*% diag(1 / ev$values[pos]) %*%
+    t(ev$vectors[, pos])
+  phi <- drop(crossprod(chol(Lp + diag(1e-10, n)), stats::rnorm(n)))
+  phi <- phi - mean(phi)
+  loc <- factor(rep(rownames(W), each = 8), levels = rownames(W))
+  g2 <- factor(rep(paste0("g", 1:8), length.out = length(loc)))
+  u <- stats::rnorm(8, 0, 0.6)
+  d <- data.frame(loc = loc, g2 = g2, x = stats::rnorm(length(loc)))
+  d$y <- 1 + 0.5 * d$x + phi[as.integer(d$loc)] + u[as.integer(d$g2)] +
+    stats::rnorm(nrow(d), 0, 0.5)
+  fit <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar") + (1 | g2)) +
+               gaussian(), data = d)
+  Zl <- stats::model.matrix(~ loc - 1, d)
+  Zg <- stats::model.matrix(~ g2 - 1, d)
+  ref <- marginal_ml(d$y, stats::model.matrix(~x, d),
+                     cbind(Zl, Zg),
+                     function(p) {
+                       as.matrix(Matrix::bdiag(exp(2 * p[1]) * Lp,
+                                               exp(2 * p[2]) * diag(8)))
+                     },
+                     c(0, log(0.6), log(0.5)))
+  expect_lt(abs(as.numeric(logLik(fit)) - ref$logLik), 1e-7)
+  re <- ranef(fit)
+  car_re <- re[[grep("car", names(re))]]
+  iid_re <- re[[grep("g2", names(re), fixed = TRUE)]]
+  expect_equal(nrow(car_re), n)
+  expect_equal(nrow(iid_re), 8L)
+  # the CAR block is on the constraint and the iid block is not, which
+  # is the whole point of centering ONE block
+  expect_lt(abs(sum(car_re)), 1e-12)
+  expect_gt(abs(sum(iid_re)), 1e-9)
+})
+
+test_that("esicar constrains a disconnected graph PER COMPONENT", {
+  # brms constrains the global sum only, which leaves an intrinsic
+  # field with two components improper. Constraining each component is
+  # the same model whenever there is one component and a proper one
+  # when there is not.
+  set.seed(99)
+  W1 <- lattice_W(2, 3)
+  n1 <- nrow(W1)
+  W <- matrix(0, 2 * n1, 2 * n1)
+  W[seq_len(n1), seq_len(n1)] <- W1
+  W[n1 + seq_len(n1), n1 + seq_len(n1)] <- W1
+  lv <- paste0("L", seq_len(2 * n1))
+  dimnames(W) <- list(lv, lv)
+  n <- 2 * n1
+  L <- diag(rowSums(W)) - W
+  S <- rbind(c(rep(1, n1), rep(0, n1)), c(rep(0, n1), rep(1, n1)))
+  K <- L + t(S) %*% diag(rep(1 / (1e-3 * n1)^2, 2)) %*% S
+  phi <- drop(crossprod(chol(solve(K)), stats::rnorm(n)))
+  loc <- factor(rep(lv, each = 8), levels = lv)
+  d <- data.frame(loc = loc, x = stats::rnorm(length(loc)))
+  d$y <- 1 + 0.5 * d$x + phi[as.integer(d$loc)] +
+    stats::rnorm(nrow(d), 0, 0.4)
+  fit <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
+             data = d)
+  # the reference is the Moore-Penrose inverse of the Laplacian, which
+  # IS the covariance of the field constrained on both null directions
+  ev <- eigen(L, symmetric = TRUE)
+  pos <- ev$values > 1e-8 * max(ev$values)
+  Lp <- ev$vectors[, pos] %*% diag(1 / ev$values[pos]) %*%
+    t(ev$vectors[, pos])
+  ref <- marginal_ml(d$y, stats::model.matrix(~x, d),
+                     stats::model.matrix(~ loc - 1, d),
+                     function(p) exp(2 * p[1]) * Lp, c(0, 0))
+  expect_lt(abs(as.numeric(logLik(fit)) - ref$logLik), 1e-7)
+  re <- ranef(fit)[[1]][, 1]
+  expect_lt(max(abs(c(sum(re[seq_len(n1)]),
+                      sum(re[n1 + seq_len(n1)])))), 1e-12)
+})
+
+test_that("the objective expands esicar whatever the frame's flag says", {
+  # frame_needs_expand() derives the answer from the BLOCKS instead of
+  # trusting frame$has_expand. `[[` does not partially match, so a
+  # frame serialized before that field existed hands back NULL, and a
+  # gate that read NULL as FALSE would evaluate the block WITHOUT
+  # centering while its density still carried the constrained
+  # normalizer: two different models and no error.
+  #
+  # It is invisible at the mode, because the inert coordinate is zero
+  # there, so the check has to be made OFF the mode. That is the regime
+  # imp_frozen_proposal() and cluster_scores_at() work in, and both
+  # rebuild the objective from a STORED fit$frame.
+  s <- car_lattice_data(42)
+  W <- s$W
+  fit <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
+             data = s$d)
+  pl <- fit$obj$env$parList(fit$obj$env$last.par.best)
+  ref <- frmtmb:::build_objective(fit$frame)
+  # a 0.51.0 frame: the field is absent, not FALSE
+  fr_old <- fit$frame
+  fr_old[["has_expand"]] <- NULL
+  expect_null(fr_old[["has_expand"]])
+  # and the belt-and-braces case, both flags actively FALSE
+  fr_off <- fit$frame
+  fr_off[["has_expand"]] <- FALSE
+  fr_off[["has_rr"]] <- FALSE
+  pl_off <- pl
+  pl_off$b <- pl$b + 0.37
+  # the shift has to be big enough that a missed centering would show
+  expect_gt(ref(pl_off) - ref(pl), 1e3)
+  for (frx in list(fr_old, fr_off)) {
+    g <- frmtmb:::build_objective(frx)
+    expect_equal(g(pl), ref(pl))
+    expect_equal(g(pl_off), ref(pl_off))
+  }
+})
+
+test_that("con_sd leaves the esicar fit alone but not its standard errors", {
+  # con_sd cannot move the likelihood: the coordinate it scales enters
+  # no linear predictor. It DOES reach the delta method, because
+  # lp_delta_A() pairs the Z columns with b through dc/db = I rather
+  # than the centering projection, so the coordinate's variance lands
+  # in every standard error as exactly con_sd^2.
+  #
+  # Pinned here with the number, not the direction, so that the exact
+  # Jacobian (R/predict.R) has something to flip when it lands.
+  s <- car_lattice_data(42)
+  W <- s$W
+  fit <- function(cs) {
+    frm(bf(y ~ x + car(W, gr = loc, type = "esicar", con_sd = cs)) +
+          gaussian(), data = s$d)
+  }
+  f3 <- fit(1e-3)
+  f4 <- fit(1e-4)
+  # what con_sd does NOT touch
+  expect_lt(abs(as.numeric(logLik(f3)) - as.numeric(logLik(f4))), 1e-8)
+  expect_vector_equal(f3$estimates$theta, f4$estimates$theta, tol = 1e-8)
+  expect_equal(unname(VarCorr(f3)[[1]][1, 1]),
+               exp(2 * f3$estimates$theta[1]))
+  # what it does: the variance excess is EXACTLY the difference of the
+  # two con_sd squared, which identifies the leak rather than merely
+  # bounding it
+  se3 <- predict(f3, se.fit = TRUE)$se.fit
+  se4 <- predict(f4, se.fit = TRUE)$se.fit
+  expect_lt(max(abs((se3^2 - se4^2) - (1e-3^2 - 1e-4^2))), 1e-10)
+  # 1.3e-5 relative in the standard error at the default
+  rel <- max(se3 / sqrt(se3^2 - 1e-3^2) - 1)
+  expect_gt(rel, 1e-5)
+  expect_lt(rel, 2e-5)
+  # ranef's conditional SDs leak the same way, and move with con_sd
+  sd3 <- attr(ranef(f3, condVar = TRUE)[[1]], "condSD")
+  sd4 <- attr(ranef(f4, condVar = TRUE)[[1]], "condSD")
+  expect_gt(max(sd3 - sd4), 0)
+  expect_lt(max(sd3 / sd4 - 1), 1e-4)
+})
+
+test_that("esicar handles a SINGLETON component", {
+  # A component of one level contributes zero free dimensions: the
+  # centering b_i - b_i is identically zero, and n - c counts it. The
+  # reference is the Moore-Penrose inverse of the Laplacian, which is
+  # the constrained covariance on all three components at once.
+  n <- 9L
+  W <- matrix(0, n, n)
+  for (i in c(1L, 2L, 3L, 5L, 6L, 7L)) {
+    W[i, i + 1L] <- 1
+    W[i + 1L, i] <- 1
+  }
+  lv <- paste0("L", seq_len(n))
+  dimnames(W) <- list(lv, lv)
+  set.seed(5)
+  L <- diag(rowSums(W)) - W
+  ev <- eigen(L, symmetric = TRUE)
+  pos <- ev$values > 1e-8 * max(ev$values)
+  expect_equal(sum(pos), n - 3L)
+  Lp <- ev$vectors[, pos] %*% diag(1 / ev$values[pos]) %*%
+    t(ev$vectors[, pos])
+  phi <- drop(crossprod(chol(Lp + diag(1e-10, n)), stats::rnorm(n)))
+  loc <- factor(rep(lv, each = 8), levels = lv)
+  d <- data.frame(loc = loc, x = stats::rnorm(length(loc)))
+  d$y <- 1 + 0.5 * d$x + phi[as.integer(d$loc)] +
+    stats::rnorm(nrow(d), 0, 0.4)
+  fit <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
+             data = d)
+  a <- fit$frame$re_blocks[[1]]$aux_car
+  expect_equal(a$n_comp, 3L)
+  expect_equal(as.numeric(a$nj), c(4, 4, 1))
+  re <- ranef(fit)[[1]][, 1]
+  # the singleton is not merely small, it is the number zero
+  expect_identical(re[[9]], 0)
+  expect_lt(max(abs(c(sum(re[1:4]), sum(re[5:8])))), 1e-12)
+  ref <- marginal_ml(d$y, stats::model.matrix(~x, d),
+                     stats::model.matrix(~ loc - 1, d),
+                     function(p) exp(2 * p[1]) * Lp, c(0, log(0.4)))
+  expect_lt(abs(as.numeric(logLik(fit)) - ref$logLik), 1e-7)
+  # icar cannot do either: its singleton is free and its likelihood
+  # sits below the constrained one
+  fi <- frm(bf(y ~ x + car(W, gr = loc, type = "icar")) + gaussian(),
+            data = d)
+  expect_gt(abs(ranef(fi)[[1]][, 1][[9]]), 1e-9)
+  expect_lt(as.numeric(logLik(fi)), as.numeric(logLik(fit)))
+  # escar still refuses a zero-degree location by name; the intrinsic
+  # types do not need to
+  expect_error(frm(bf(y ~ x + car(W, gr = loc, type = "escar")) +
+                     gaussian(), data = d),
+               "at least one")
+})
+
+test_that("esicar's con_sd invariance is not a gaussian accident", {
+  # The factorization does not depend on the family: the component
+  # means are decoupled from the data term whatever it is. Under
+  # poisson the Laplace approximation is no longer exact, and the
+  # invariance still holds, which says it comes from the model and not
+  # from the gaussian's exactness.
+  lattice <- lattice_W(4, 4)
+  n <- nrow(lattice)
+  set.seed(21)
+  K <- diag(rowSums(lattice)) - lattice + matrix(1 / (1e-3 * n)^2, n, n)
+  phi <- 0.6 * drop(crossprod(chol(solve(K)), stats::rnorm(n)))
+  loc <- factor(rep(rownames(lattice), each = 6),
+                levels = rownames(lattice))
+  d <- data.frame(loc = loc, x = stats::rnorm(length(loc)))
+  d$y <- stats::rpois(nrow(d),
+                      exp(1 + 0.3 * d$x + phi[as.integer(d$loc)]))
+  W <- lattice
+  ll <- function(ty, cs) {
+    as.numeric(logLik(frm(bf(y ~ x + car(W, gr = loc, type = ty,
+                                         con_sd = cs)) + poisson(),
+                          data = d)))
+  }
+  es <- c(ll("esicar", 1e-2), ll("esicar", 1e-4))
+  ic <- c(ll("icar", 1e-2), ll("icar", 1e-4))
+  expect_lt(diff(range(es)), 1e-8)
+  expect_gt(diff(range(ic)), 1e-4)
+  # and the constraint is still exact off the gaussian
+  fp <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + poisson(),
+            data = d)
+  expect_lt(abs(sum(ranef(fp)[[1]])), 1e-12)
 })
 
 test_that("car validates its adjacency matrix and its grammar", {

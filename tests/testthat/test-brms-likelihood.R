@@ -30,7 +30,10 @@
 # TERM was given its own simplex; that row is now an identity. Four
 # entries remain, over three rows: the exact `gp()` nugget (row 10a),
 # brms's `ar(cov = FALSE)` likelihood (row 18d), and the esicar and
-# bym2 CAR parameterizations (row 19c).
+# bym2 CAR parameterizations (row 19c). esicar left that list when it
+# was given the exact sum-to-zero constraint brms imposes and became
+# row 19c-esicar, an identity; three entries remain, over three rows,
+# and bym2 is what is left of row 19c.
 #
 # Stan compiles here. The whole file is opt-in, and skip_unless_brms()
 # calls skip_on_cran(), so outside R CMD check BOTH are needed:
@@ -1047,66 +1050,103 @@ test_that("check C: row 19, car(escar) and car(icar)", {
                 data2 = list(W = wmat))
 })
 
-test_that("row 19: esicar and bym2 have different latent variables", {
-  skip_unless_brms()
+test_that("row 19c-esicar: car(esicar) is the same model in both packages", {
+  skip_unless_brms_fit()
 
-  # EXEMPTION, two of them, and neither is arithmetic.
+  # esicar was an EXEMPTION here through 0.51.0, because frmtmb's
+  # esicar was its icar and brms's is not. brms imposes the sum-to-zero
+  # constraint exactly, and now so does frmtmb, so the row is an
+  # identity like 19a and 19b.
   #
-  # esicar: brms imposes the sum-to-zero constraint HARD, declaring
-  # Nloc - 1 free values and setting the last to minus their sum, and
-  # normalizes by (Nloc - 1) log tau. frmtmb imposes it softly, keeps
-  # all Nloc values, and normalizes by Nloc log tau plus the log
-  # determinant of the constrained precision. The gap between the two
-  # densities therefore moves with sdcar and is not a constant, so no
-  # parameter map closes it. frmtmb's esicar is in fact its icar: the
-  # two fits agree to the last digit.
-  #
-  # bym2: brms keeps the spatial and the non-spatial parts as SEPARATE
-  # latent vectors, 2 * Nloc of them plus rhocar, and frmtmb integrates
-  # the mixture into one dense marginal covariance over Nloc values.
-  # The two joint densities are functions of different arguments.
+  # The two parameterizations are still not the same vector. brms
+  # declares Nloc - 1 free values ON THE FIELD and derives the last as
+  # minus their sum; frmtmb keeps Nloc coefficients and centers them in
+  # expand_b(), which leaves the component mean an inert coordinate
+  # with a tau-free density. The map is therefore a truncation of the
+  # CENTERED vector and carries no Jacobian. icar is the contrast:
+  # there both sides standardize by sdcar and the map does carry one.
   s <- brms_car_data()
   d19 <- s$d
   wmat <- s$W
 
-  for (ty in c("esicar", "bym2")) {
-    bform <- brms::bf(stats::as.formula(
-      paste0("y ~ x + car(W, gr = loc, type = \"", ty, "\")")))
-    prior <- brms_flat_prior(bform, data = d19, family = gaussian(),
-                             data2 = list(W = wmat))
-    code <- brms::make_stancode(bform, data = d19, family = gaussian(),
-                                prior = prior, data2 = list(W = wmat))
-    nms <- brms_stan_par_names(code)
-    fit <- frm(bf(stats::as.formula(
-      paste0("y ~ x + car(W, gr = loc, type = \"", ty, "\")"))) +
-        gaussian(), data = d19, data2 = list(W = wmat))
-    bk <- brms_car_block(fit)
-    expect_identical(bk$aux_car$type, ty)
-    expect_length(bk$b_idx, 16L)
-    # the translator refuses by name rather than producing a map that
-    # cannot exist
-    expect_error(stan_pars_from_fit(fit, brms_standata(
-      bform, data = d19, family = gaussian(), prior = prior,
-      data2 = list(W = wmat)), code), "different set of latent")
-    if (identical(ty, "esicar")) {
-      # Nloc - 1 free values against frmtmb's Nloc
-      expect_true("zcar" %in% nms)
-      expect_true(grepl("rcar[Nloc] = - sum(zcar)", code, fixed = TRUE))
-    } else {
-      # two latent vectors and a mixing proportion against one vector
-      expect_true(all(c("zcar", "nszcar", "rhocar") %in% nms))
-    }
-  }
+  bform <- brms::bf(y ~ x + car(W, gr = loc, type = "esicar"))
+  fit <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
+             data = d19, data2 = list(W = wmat))
+  prior <- brms_flat_prior(bform, data = d19, family = gaussian(),
+                           data2 = list(W = wmat))
+  code <- brms::make_stancode(bform, data = d19, family = gaussian(),
+                              prior = prior, data2 = list(W = wmat))
+  sdat <- brms_standata(bform, data = d19, family = gaussian(),
+                        prior = prior, data2 = list(W = wmat))
+  sf <- suppressMessages(rstan::sampling(brms_stan_model(code),
+                                         data = sdat, chains = 0))
 
-  # frmtmb's esicar and its icar are the same model, which is the other
-  # half of the first divergence: brms's esicar is the constrained one
-  # and its icar is not.
-  f_ic <- frm(bf(y ~ x + car(W, gr = loc, type = "icar")) + gaussian(),
-              data = d19, data2 = list(W = wmat))
-  f_es <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
-              data = d19, data2 = list(W = wmat))
-  expect_lt(abs(as.numeric(logLik(f_ic)) - as.numeric(logLik(f_es))),
-            1e-10)
+  # brms's program, read rather than remembered: Nloc - 1 free values,
+  # the last determined, the field itself in the predictor (no sdcar
+  # factor, which is what separates esicar from icar), and the
+  # pseudo-determinant (Nloc - 1) log tau as the normalizer.
+  expect_true("zcar" %in% brms_stan_par_names(code))
+  expect_match(code, "vector[Nloc - 1] zcar;", fixed = TRUE)
+  expect_match(code, "rcar[Nloc] = - sum(zcar);", fixed = TRUE)
+  expect_match(code, "mu[n] += rcar[Jloc[n]];", fixed = TRUE)
+  expect_match(code, "(Nloc - 1) * log(tau)", fixed = TRUE)
+
+  # frmtmb's layout did NOT change: Nloc coefficients, level-major,
+  # which is what keeps ranef(), predict() and the importance layout
+  # reading one value per location.
+  bk <- brms_car_block(fit)
+  expect_identical(bk$aux_car$type, "esicar")
+  expect_length(bk$b_idx, 16L)
+  expect_length(bk$c_idx, 16L)
+
+  # the constraint is EXACT, not tight: the field sums to zero to
+  # machine precision, where icar's residual is ~1e-9
+  fld <- brms_car_field(fit, bk)
+  expect_lt(abs(sum(fld)), 1e-12)
+
+  pars <- stan_pars_from_fit(fit, sdat, code)
+  expect_setequal(names(pars), brms_stan_par_names(code))
+  expect_par_roundtrip(sf, pars)
+  expect_length(pars[["zcar"]], 15L)
+  # brms rebuilds the dropped value; it has to come back as frmtmb's
+  expect_lt(abs(-sum(pars[["zcar"]]) - fld[[16]]), 1e-12)
+  # no Jacobian, because neither side standardizes the field here
+  expect_identical(attr(pars, "logJ"), 0)
+  expect_lt(abs(pars[["sdcar"]] - exp(fit$estimates$theta[[1]])), 1e-14)
+
+  brms_lp_check(bform, gaussian(), d19, fit, joint = TRUE,
+                const = brms_car_const(sdat, "esicar"),
+                data2 = list(W = wmat))
+})
+
+test_that("row 19c: bym2 keeps a different latent set", {
+  skip_unless_brms()
+
+  # THE REMAINING EXEMPTION on this row, and it is not arithmetic.
+  # brms keeps the spatial and the non-spatial parts as SEPARATE latent
+  # vectors, 2 * Nloc of them plus rhocar, and frmtmb integrates the
+  # mixture into one dense marginal covariance over Nloc values. The
+  # two joint densities are functions of different arguments, so no
+  # parameter map exists and the translator refuses by name.
+  s <- brms_car_data()
+  d19 <- s$d
+  wmat <- s$W
+
+  bform <- brms::bf(y ~ x + car(W, gr = loc, type = "bym2"))
+  prior <- brms_flat_prior(bform, data = d19, family = gaussian(),
+                           data2 = list(W = wmat))
+  code <- brms::make_stancode(bform, data = d19, family = gaussian(),
+                              prior = prior, data2 = list(W = wmat))
+  fit <- frm(bf(y ~ x + car(W, gr = loc, type = "bym2")) + gaussian(),
+             data = d19, data2 = list(W = wmat))
+  bk <- brms_car_block(fit)
+  expect_identical(bk$aux_car$type, "bym2")
+  expect_length(bk$b_idx, 16L)
+  expect_true(all(c("zcar", "nszcar", "rhocar") %in%
+                    brms_stan_par_names(code)))
+  expect_error(stan_pars_from_fit(fit, brms_standata(
+    bform, data = d19, family = gaussian(), prior = prior,
+    data2 = list(W = wmat)), code), "different set of latent")
 })
 
 test_that("row 12b: an ordinal fit with mo() is the same model in both packages", {
