@@ -1,0 +1,141 @@
+# The brms log-density identity tier: tests/testthat/test-brms-likelihood.R.
+#
+# This is the only job that compiles Stan programs, so it is a separate
+# workflow rather than a tier inside R-CMD-check: it runs in parallel
+# with every other job by construction, and a slow compile never delays
+# the ordinary check. The weekly schedule keeps the identity honest
+# against new brms releases, which is where a silent divergence would
+# come from.
+#
+# The path filter includes R/ because the objective and the parameter
+# map live there, and a change to either is exactly what this job exists
+# to catch.
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'R/**'
+      - 'tests/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '.github/workflows/brms-likelihood.yaml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'R/**'
+      - 'tests/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '.github/workflows/brms-likelihood.yaml'
+  workflow_dispatch:
+  schedule:
+    # Mondays, early UTC, off the hour to stay out of the scheduling peak
+    - cron: '17 4 * * 1'
+
+name: brms-likelihood
+
+jobs:
+  brms-likelihood:
+    runs-on: ubuntu-latest
+    # Measured on the Windows development box: the file needs 24 Stan
+    # programs at 55 to 70 s each, and a run from an empty cache took
+    # 24.6 minutes end to end. Linux is faster, but the first run of
+    # this workflow, and any run whose restore-keys fallback misses,
+    # pays for all 24 at once.
+    timeout-minutes: 90
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      NOT_CRAN: "true"
+      # the whole file is gated on this: without it every test skips
+      FRMTMB_BRMS_FIT_TESTS: "true"
+      FRMTMB_STAN_CACHE: ${{ github.workspace }}/dev/stan-cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+      # rstan and brms are Suggests, and RSPM serves both as binaries.
+      # tmbstan is deliberately absent: this tier never samples, it only
+      # calls log_prob and grad_log_prob on a chains = 0 fit.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::rstan
+            any::brms
+            any::testthat
+            any::pkgload
+            any::lme4
+          needs: check
+      # The cache is content addressed per Stan program, so the key only
+      # has to change when the set of programs can change. That set is
+      # determined by the two test files and by the rstan version whose
+      # DSOs are stored, and the restore-keys prefix means a changed key
+      # still recovers every program that did not change.
+      - name: Write the compiled-model cache key
+        id: stankey
+        run: |
+          v <- as.character(packageVersion("rstan"))
+          h <- tools::md5sum(c("tests/testthat/test-brms-likelihood.R",
+                               "tests/testthat/helper-brms.R"))
+          dir.create("dev", showWarnings = FALSE)
+          writeLines(c(paste0("rstan ", v), paste0(names(h), " ", h)),
+                     "dev/stan-cache-key.txt")
+          cat("prefix=brms-stan-", v, "-\n", sep = "",
+              file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
+        shell: Rscript {0}
+      - uses: actions/cache@v4
+        with:
+          path: dev/stan-cache
+          key: ${{ steps.stankey.outputs.prefix }}${{ hashFiles('dev/stan-cache-key.txt') }}
+          restore-keys: ${{ steps.stankey.outputs.prefix }}
+      # rstan 2.32.7 emits "// [[Rcpp::plugins(cpp14)]]", so -std=c++1y
+      # rides in PKG_CXXFLAGS and lands AFTER the -std=gnu++17 that
+      # rstan's own CXX17STD override puts first. The last -std wins, the
+      # unit compiles as C++14, and StanHeaders 2.39.1 needs C++17: the
+      # first error is "'void_t' is not a member of 'std'". RSPM serves
+      # exactly that pair on noble and on jammy, and none of the three
+      # ingredients is platform-guarded, so Linux is affected too.
+      # CXX17FLAGS is the only lever that lands last; setting CXX17STD
+      # instead does not work, because it lands before PKG_CXXFLAGS.
+      # This is a no-op once the pair is fixed upstream.
+      - name: Force C++17 for rstan's generated models
+        run: |
+          mkdir -p ~/.R
+          echo 'CXX17FLAGS = -O2 -Wall -std=gnu++17' >> ~/.R/Makevars
+        shell: bash
+      # Only this tier runs. The rest of the suite is R-CMD-check's job,
+      # and repeating it here would double the cost of every push for no
+      # extra coverage.
+      - name: Run the brms log-density identity tier
+        run: |
+          # A skipped suite is green, so the gate is asserted before the
+          # run rather than inferred from the counts afterwards: a
+          # missing rstan would otherwise report success.
+          stopifnot(
+            requireNamespace("rstan", quietly = TRUE),
+            requireNamespace("brms", quietly = TRUE),
+            requireNamespace("lme4", quietly = TRUE),
+            identical(Sys.getenv("FRMTMB_BRMS_FIT_TESTS"), "true"),
+            identical(Sys.getenv("NOT_CRAN"), "true")
+          )
+          pkgload::load_all(".", quiet = TRUE)
+          res <- testthat::test_file(
+            "tests/testthat/test-brms-likelihood.R",
+            package = "frmtmb",
+            reporter = testthat::MultiReporter$new(list(
+              testthat::ProgressReporter$new(),
+              testthat::CheckReporter$new()
+            ))
+          )
+          df <- as.data.frame(res)
+          if (sum(df$failed) > 0 || any(df$error)) {
+            stop("the brms log-density identity tier failed")
+          }
+          if (any(df$skipped)) {
+            stop("a test skipped with the gate set: ",
+                 paste(df$test[df$skipped], collapse = "; "))
+          }
+        shell: Rscript {0}

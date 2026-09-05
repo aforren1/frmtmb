@@ -3,6 +3,28 @@
 Internal hygiene and the documentation site. No user-facing behavior
 changes.
 
+* A new opt-in test tier checks that frmtmb's objective is the same
+  function of the parameters as the Stan program brms generates from
+  the same formula with flat priors. At frmtmb's estimates the two log
+  densities agree to 1e-6 of the log-likelihood, and brms's gradient
+  there is zero, which is what catches a parameter-map error rather
+  than an arithmetic one. Random-effect models are compared on the
+  joint density at the conditional modes, since brms has no marginal
+  likelihood. The comparison against brms posterior means is gone: the
+  two estimands differ, so its tolerance was wide enough to hide a real
+  divergence. `tests/testthat/test-brms-likelihood.R`, gated by
+  `FRMTMB_BRMS_FIT_TESTS=true` and run weekly in its own workflow.
+
+* That tier found one shape the two packages do not spell the same way,
+  and the reason recorded for it in the v0.18 entry below is wrong.
+  `mo()` interactions share their variable's simplex, which that entry
+  justifies as the "brms convention". It is not the brms convention:
+  brms builds one simplex per special term, so under `y ~ mo(inc) * z`
+  brms gives the interaction its own monotonic shape while frmtmb
+  reuses the main effect's, and frmtmb's model has two fewer free
+  parameters. Only that claim is withdrawn here. The behavior itself is
+  unchanged and stays the maintainer's call.
+
 * Every `$` read of a parameter template, an estimate list, an aterm
   container, a random-effect, linear-predictor, autocor or eta-design
   block, a family object, a simulator context, a distributional-

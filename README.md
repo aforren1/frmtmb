@@ -169,8 +169,8 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
 - The model-building layer is compared with brms itself. Design
   matrices, random-effect structures, and special-term data agree
   with `brms::make_standata()` to near machine precision. An opt-in
-  tier verifies that our estimates equal the mode of the Stan
-  programs that brms generates.
+  tier verifies that our log-likelihood equals the Stan program's log
+  density at the estimate.
 - A pairwise grammar fuzzer sweeps feature combinations against
   metamorphic invariants. The resulting compatibility map is
   queryable with `frm_compat()`, which the companion packages

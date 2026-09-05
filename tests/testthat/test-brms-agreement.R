@@ -491,8 +491,12 @@ test_that("brms get_prior agrees on which special terms exist", {
 # Where a model has no latent effects and every prior is flat, the
 # posterior mode IS the MLE, so those models are compared through
 # rstan::optimizing() on brms's own generated Stan program and agree to
-# optimizer precision. Mixed models are compared to posterior means with
-# a loose tolerance instead.
+# optimizer precision.
+#
+# The comparison against posterior means that used to live here is
+# gone: the two estimands differ, so the only tolerance that let it
+# pass was also wide enough to hide a real divergence. Densities are
+# compared at a point in test-brms-likelihood.R instead.
 # ---------------------------------------------------------------------
 
 test_that("distributional gaussian ML matches the brms posterior mode", {
@@ -577,43 +581,6 @@ test_that("mo() ML matches brms's monotonic likelihood (vignette model)", {
   expect_vector_equal(op$par[["bsp[1]"]], fe[["moinc"]], tol = 1e-4)
   expect_vector_equal(op$par[["b_Intercept"]], fe[["(Intercept)"]],
                       tol = 1e-4)
-})
-
-
-test_that("distributional sleepstudy agrees with brms posterior means", {
-  skip_unless_brms_fit()
-  skip_if_not_installed("lme4")
-  data(sleepstudy, package = "lme4")
-
-  bform <- brms::bf(Reaction ~ Days + (Days | Subject), sigma ~ Days)
-  bfit <- brms::brm(bform, data = sleepstudy, family = gaussian(),
-                    chains = 2, iter = 1500, warmup = 500, cores = 2,
-                    seed = 1, refresh = 0, backend = "rstan")
-  fit <- frm(bf(Reaction ~ Days + (Days | Subject), sigma ~ Days) +
-               gaussian(), data = sleepstudy)
-
-  # Population-level effects: the marginal likelihood is flat enough in
-  # these that the posterior mean and the ML estimate sit well inside
-  # half a posterior SD of each other.
-  bfe <- brms::fixef(bfit)
-  ours <- c(Intercept = fixef(fit)$mu[["(Intercept)"]],
-            Days = fixef(fit)$mu[["Days"]],
-            sigma_Intercept = fixef(fit)$sigma[["(Intercept)"]],
-            sigma_Days = fixef(fit)$sigma[["Days"]])
-  for (nm in names(ours)) {
-    expect_lt(abs(bfe[nm, "Estimate"] - ours[[nm]]),
-              0.5 * bfe[nm, "Est.Error"])
-  }
-
-  # Variance components are the place where the two estimands really
-  # part company: a posterior mean of an SD is systematically larger
-  # than the ML estimate (no prior mass below zero, and the ML estimate
-  # is not corrected for the estimated fixed effects). Only the rough
-  # magnitude is comparable.
-  bsd <- brms::VarCorr(bfit)$Subject$sd[, "Estimate"]
-  osd <- sqrt(diag(VarCorr(fit)[[1]]))
-  expect_length(osd, length(bsd))
-  expect_lt(max(abs(bsd - osd) / bsd), 0.3)
 })
 
 test_that("R-side autocorrelation matches brms's time-series indexing", {

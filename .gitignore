@@ -5,3 +5,5 @@ tests/testthat/_problems
 *.Rcheck
 Rplots.pdf
 dev/srr-report.html
+dev/stan-cache/
+dev/brmslp/
