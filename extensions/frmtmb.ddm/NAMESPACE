@@ -19,6 +19,8 @@ export(gddm_simulate)
 export(gddm_start_point)
 export(gddm_start_term)
 export(gddm_start_uniform)
+export(lba)
+export(lba_simulate)
 export(wiener)
 importFrom(frmtmb,
   compat_rule_builder,
