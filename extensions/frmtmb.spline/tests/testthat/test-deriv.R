@@ -46,14 +46,23 @@ test_that("the step size that gratia fixes at 1e-7 would ruin order 2 here", {
                           simultaneous = FALSE)
   bad <- frm_curve_deriv(o$fit, var = "t", order = 2, newdata = g,
                          eps = 1e-7, simultaneous = FALSE)
-  # Cancellation at 1e-7 costs an ABSOLUTE amount, about 2 here, which
-  # does not shrink when the curve does. That is why the same step size
-  # is merely untidy on this curve, whose second derivative spans 360,
-  # and ruinous on a flatter one: test-gratia.R measures 1.76 on a curve
-  # whose second derivative is of order 5, which is 35 percent.
+  # Cancellation at 1e-7 costs an ABSOLUTE amount that does not shrink
+  # when the curve does: about 2 on Windows and 0.5 on Linux, since it
+  # is machine rounding divided by 1e-14 and the rounding differs by
+  # platform. So the claim is relative, not a number: the fixed step is
+  # thousands of times noisier than the measured one, whose own
+  # numerical error is read off by halving it. That is why the same
+  # step size is merely untidy on this curve, whose second derivative
+  # spans 360, and ruinous on a flatter one: test-gratia.R measures 1.76
+  # on a curve whose second derivative is of order 5, 35 percent.
   truth2 <- 60 * (1 - 6 * g$t + 6 * g$t^2)
   expect_lt(max(abs(good$.estimate - truth2)), 40)
-  expect_gt(max(abs(bad$.estimate - good$.estimate)), 1)
+  half <- frm_curve_deriv(o$fit, var = "t", order = 2, newdata = g,
+                          eps = attr(good, "eps") / 2, simultaneous = FALSE)
+  good_err <- max(abs(good$.estimate - half$.estimate))
+  bad_err <- max(abs(bad$.estimate - good$.estimate))
+  expect_gt(bad_err, 1000 * good_err)
+  expect_gt(bad_err, 0.05)
 })
 
 test_that("a derivative reuses a curve's grid and predictor", {
