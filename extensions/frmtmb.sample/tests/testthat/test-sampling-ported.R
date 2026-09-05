@@ -734,6 +734,24 @@ test_that("the multivariate post-fit surface declares frm_sample works", {
   }
 })
 
+test_that("with frmtmb.latent loaded no rule of this package dangles", {
+  # This package names hmm and lca in frmtmb_register_compat(expects =),
+  # which exempts them from the registration check because frmtmb.latent
+  # owns them. Nothing checks the names in expects = itself -- the whole
+  # point is that the owner may be absent -- so a typo there would be a
+  # rule that matches no pair and never says so, which is the defect the
+  # strict registration exists to refuse. frm_compat() reports what is
+  # still unresolved, and with the owner loaded this package must leave
+  # nothing behind.
+  skip_if_not_installed("frmtmb.latent")
+  loadNamespace("frmtmb.latent")
+  un <- attr(frm_compat("frm_sample"), "unresolved")
+  expect_false(any(c("hmm", "lca") %in% un))
+  for (st in c("hmm", "lca")) {
+    expect_equal(frm_compat(st, "frm_sample")$status, "works", info = st)
+  }
+})
+
 test_that("toep stays out of the default priors, and says so", {
   # frmtmb keeps the other half of this block: that set_prior("lkj(1)")
   # is refused on a toep block, and that the block cannot be

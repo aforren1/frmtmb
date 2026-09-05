@@ -5,7 +5,7 @@
 \alias{compat_rule_builder}
 \title{Contribute to the compatibility matrix from another package}
 \usage{
-frmtmb_register_compat(features = NULL, rules = NULL)
+frmtmb_register_compat(features = NULL, rules = NULL, expects = character(0))
 
 compat_rule_builder()
 }
@@ -14,8 +14,12 @@ compat_rule_builder()
 name to its kind: \code{c("hmm" = "structure")}, \code{c("dec()" = "aterm")}.
 The display name is how the feature is written in a formula or a
 call, parentheses included for a callable one; the kind groups it
-in the printed matrix (\code{"family"}, \code{"covstruct"}, \code{"aterm"},
-\code{"special"}, \code{"autocor"}, \code{"mode"}, \code{"structure"}).}
+in the printed matrix and decides which kind-level rules reach it,
+and is one of \code{"family"}, \code{"covstruct"}, \code{"aterm"}, \code{"special"},
+\code{"autocor"}, \code{"mode"}, \code{"structure"}, \code{"method"}, \code{"grammar"}.
+A name the registry already carries under the same kind is a no-op,
+so a reload is not an error and neither is declaring an addition
+term that \code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}} has already declared for you.}
 
 \item{rules}{A FUNCTION of no arguments returning a rule data frame,
 not the data frame itself, so that contributed rules are built on
@@ -24,6 +28,29 @@ demand exactly as the core ones are. Build the frame with
 \code{rules()} to return the accumulated frame. \code{a} and \code{b} are display
 names, \code{"*"} matches every feature, and \code{override = TRUE} says the
 rule beats a more specific one rather than losing to it.}
+
+\item{expects}{Character vector of feature names the rules refer to
+but this package does not supply, because another package does.
+They are exempt from the check below and are NOT added to the
+vocabulary: a rule naming one of them lies dormant until the
+package that owns the feature is loaded, which is what makes the
+rule true. Use it for that and nothing else. A feature in the table
+that nothing implements is the failure the registry exists to
+prevent.
+
+A name the vocabulary already holds is refused, because the
+declaration then exempts nothing: give it a kind in \verb{features =},
+or drop it. A name still unresolved when \code{\link[=frm_compat]{frm_compat()}} is called
+is reported there, in the \code{unresolved} attribute the print method
+shows, so a rule waiting for a package that never arrives is
+visible rather than silent. That is what makes a misspelling
+inside \code{expects} findable: the check here cannot catch one, since
+the whole point is that the owner is absent.
+
+The near-miss guess in a refusal is searched over the vocabulary
+only, never over \code{expects}, so a misspelling of an expected name
+is refused without a suggestion. Pointing at a feature that is not
+in the session would be its own confusion.}
 }
 \value{
 \code{NULL}, invisibly. Called for the registration.
@@ -51,6 +78,30 @@ of equal specificity resolve later-wins, so a contributed rule may
 override a core default and a core default can never silently
 override a contributed one.
 }
+\section{What registration refuses}{
+
+A rule side names a feature, a whole kind (\code{"kind:family"}), a named
+group (\code{"group:cdf"}), or everything (\code{"*"}). A side that names none
+of those matches no pair, and a rule that matches no pair is dropped
+without a word: the contributing package's table then reads as
+complete while covering less than it claims, which is the worst thing
+a compatibility surface can do. So registration refuses it, naming
+the rule, the spelling, and the nearest entry in the vocabulary when
+one is close.
+
+The check runs against the vocabulary AFTER \code{features} is added, so a
+package names its own new features freely in its own rules. It runs
+at registration, which means \code{rules} is called once there: keep it a
+pure builder that reads nothing but its own arguments.
+
+An addition term registered with \code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}} is added
+to the vocabulary for you, as \code{"<name>()"} of kind \code{"aterm"}. A
+registered term the table cannot describe would be a gap by
+construction, so the registrant is not asked to say it twice; saying
+it anyway is a no-op. Register the term BEFORE the rules that name
+it.
+}
+
 \section{Status vocabulary}{
 
 Every rule declares one of three states, and the third is the reason
@@ -73,8 +124,10 @@ contribute <- function() {
       "The family supplies no lcdf, so there is no CDF to censor with.")
   b$r("wiener", "*", "untested",
       "Not exercised outside this package's own suite.")
+  b$r("wiener", "hmm", "untested",
+      "Another package's feature, so the rule waits for it.")
   frmtmb_register_compat(features = c("wiener" = "family"),
-                         rules = b$rules)
+                         rules = b$rules, expects = "hmm")
 }
 # the accumulator on its own, which is all a rule set is
 b <- compat_rule_builder()

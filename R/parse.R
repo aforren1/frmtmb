@@ -43,6 +43,22 @@ core_aterms <- c("weights", "trials", "cens", "trunc", "se",
 #' reloading the contributing package is not an error. The eight core
 #' terms cannot be replaced.
 #'
+#' The term joins the compatibility vocabulary at the same time, as the
+#' feature `"<name>()"` of kind `"aterm"`, so that [frm_compat()] can be
+#' asked about it and [frmtmb_register_compat()] rules may name it. A
+#' term `frm()` accepts and the table cannot describe would be a gap by
+#' construction, so the registrant is not asked to declare it twice;
+#' declaring it in `frmtmb_register_compat(features =)` anyway is a
+#' no-op rather than a duplicate. Register the term BEFORE the rules
+#' that name it.
+#'
+#' A name the vocabulary already holds under another kind is refused,
+#' and nothing is registered on either side: `s()` is a smooth, so
+#' `frmtmb_register_aterm("s")` would give one spelling two meanings in
+#' one formula. Thirteen names are taken this way: `s`, `t2`, `mo`,
+#' `mi_pred`, `gp_pred`, `cs_pred`, `ar`, `ma`, `arma`, `cosy`,
+#' `unstr`, `mm` and `mmc`.
+#'
 #' @param name The term's name, as it is written in a formula, without
 #'   parentheses: `"dec"` accepts `y | dec(response) ~ x`.
 #' @param arity How many arguments the term takes. With `arity = 1` the
@@ -87,6 +103,18 @@ frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric) {
     stop("frmtmb_register_aterm(coerce =) must be a function of one ",
          "vector returning a numeric vector", call. = FALSE)
   }
+  # A registered term the compatibility table cannot describe is a gap
+  # by construction: frm() would accept a term frm_compat() refuses to
+  # answer about, and the registrant would have to remember to say the
+  # same thing in two places. Declaring it there anyway meets a no-op.
+  #
+  # This runs BEFORE the parser registration, and the order is the whole
+  # point: it is the last thing here that can refuse, so a refusal
+  # leaves both registries as it found them. Committing the term first
+  # let frmtmb_register_aterm("s") throw AND register, after which frm()
+  # accepted `y | s(col) ~ x` while frm_compat() described s() as a
+  # smooth: the split state this seam exists to make unreachable.
+  compat_new_aterm_feature(name)
   frmtmb_aterm_registry$reg[[name]] <-
     list(name = name, arity = as.integer(arity), coerce = coerce)
   invisible(NULL)

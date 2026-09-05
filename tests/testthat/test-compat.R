@@ -26,6 +26,9 @@ test_that("feature names are unique and every kind is populated", {
     unique(ft$kind),
     c("family", "covstruct", "aterm", "autocor", "special", "mode",
       "structure", "method", "grammar"))
+  # registration refuses a kind outside this set, so the set it checks
+  # against has to be the one the table is built from
+  expect_setequal(unique(ft$kind), frmtmb_compat_kinds)
 })
 
 test_that("no rule is stated twice for the same unordered pattern pair", {

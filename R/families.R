@@ -52,15 +52,25 @@
 #' @param lcdf Optional vectorized AD log-safe CDF `(q, dpars, aterms)`
 #'   returning probabilities; enables `cens()` and `trunc()` addition
 #'   terms.
-#' @param required_aterms Character vector of addition-term values the
-#'   density cannot do without, named as they reach `aterms`:
-#'   `"vint1"`, `"vreal2"`, `"trials"`. Frame assembly refuses a model
-#'   that omits one, naming the family, the term and the spelling that
-#'   supplies it. Without the declaration an absent term reaches the
-#'   density as `NULL`, arithmetic on it gives `numeric(0)`, and the
-#'   log-likelihood becomes a sum over nothing: a fit that returns, with
-#'   a log-likelihood of zero. Declare every per-row datum the density
-#'   indexes.
+#' @param required_aterms The addition-term values the density cannot do
+#'   without, named as they reach `aterms`: `"vint1"`, `"vreal2"`,
+#'   `"trials"`. A character vector names the terms it needs ALL of. A
+#'   LIST adds the alternative: an element of length one is a term that
+#'   must be there, and an element of length more than one is a set of
+#'   spellings, ANY one of which will do, so
+#'   `required_aterms = list(c("dec", "vint1"), "vreal1")` reads as one
+#'   of `dec` or `vint1`, and `vreal1`. A family that reads the same
+#'   datum from either of two terms declares it that way instead of
+#'   hand-rolling the refusal.
+#'
+#'   Frame assembly refuses a model that leaves a requirement unmet,
+#'   naming the family, the terms and the spelling that supplies them;
+#'   for a set of alternatives it names all of them and writes the first
+#'   into the example formula. Without the declaration an absent term
+#'   reaches the density as `NULL`, arithmetic on it gives `numeric(0)`,
+#'   and the log-likelihood becomes a sum over nothing: a fit that
+#'   returns, with a log-likelihood of zero. Declare every per-row datum
+#'   the density indexes.
 #' @param family_finalize Optional function `(fam, y, aterms)` returning
 #'   a family. It runs once at frame assembly, after the response is
 #'   coerced and validated and before any link is used, and whatever it
@@ -231,11 +241,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
   stopifnot(is.character(family), length(family) == 1,
             is.character(dpars), length(dpars) >= 1,
             is.function(lpdf))
-  if (!is.character(required_aterms)) {
-    stop("frmtmb_family(required_aterms =) names the addition terms the ",
-         "density cannot do without, as a character vector, not ",
-         arg_desc(required_aterms), call. = FALSE)
-  }
+  check_required_aterms(required_aterms)
   if (!is.null(family_finalize) && !is.function(family_finalize)) {
     stop("frmtmb_family(family_finalize =) must be a function ",
          "(fam, y, aterms) returning the family", call. = FALSE)
@@ -4470,4 +4476,54 @@ print.frmtmb_family <- function(x, ...) {
   cat("  dpars: ", paste0(x$dpars, " (", links[x$dpars], ")",
                           collapse = ", "), "\n", sep = "")
   invisible(x)
+}
+
+#' Validate `frmtmb_family(required_aterms =)`.
+#'
+#' Two spellings, because two things are being said. A character vector
+#' is a conjunction: every value named must reach the density. A list
+#' adds the disjunction: an element of length one is one required value,
+#' and an element of length more than one is a set of spellings the
+#' density reads ANY of. A family whose per-row datum arrives through
+#' either of two addition terms needs the second form; without it the
+#' refusal has to be hand-rolled inside `valid_y`, where it fires after
+#' the frame is built and says nothing the framework can check.
+#'
+#' @noRd
+check_required_aterms <- function(x) {
+  ok <- function(z) {
+    is.character(z) && length(z) >= 1L && !anyNA(z) && all(nzchar(z))
+  }
+  if (is.character(x)) {
+    if (length(x) && !ok(x)) {
+      stop("frmtmb_family(required_aterms =) names addition-term ",
+           "values, and one of the names it was given is missing or ",
+           "empty.", call. = FALSE)
+    }
+    return(invisible(NULL))
+  }
+  # !is.object: a data frame is a list of character columns often
+  # enough to be accepted by the test below and mean nothing here
+  if (is.list(x) && !is.object(x) && all(vapply(x, ok, NA))) {
+    return(invisible(NULL))
+  }
+  stop("frmtmb_family(required_aterms =) names the addition terms the ",
+       "density cannot do without: a character vector for the values it ",
+       "needs ALL of, or a list whose length-one elements are required ",
+       "and whose longer elements are alternatives, one of which must ",
+       "be supplied. Got ", arg_desc(x), call. = FALSE)
+}
+
+#' `required_aterms` as the groups frame assembly checks: each element
+#' is a set of addition-term values, at least one of which must reach
+#' the density.
+#'
+#' A character vector is a conjunction, so each of its entries becomes a
+#' group of one and the argument's original meaning is unchanged.
+#'
+#' @noRd
+required_aterm_groups <- function(x) {
+  if (is.null(x) || !length(x)) return(list())
+  if (is.character(x)) return(as.list(x))
+  lapply(x, as.character)
 }

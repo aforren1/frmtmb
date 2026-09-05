@@ -18,7 +18,10 @@ sides; an empty vector is an error rather than an empty answer.}
 \value{
 A data frame with columns \code{feature_a}, \code{kind_a},
 \code{feature_b}, \code{kind_b}, \code{status}, and \code{note}. Family pairs are
-omitted, because a model carries one family.
+omitted, because a model carries one family. When the session
+holds an unresolved rule side, the frame also carries an
+\code{unresolved} attribute and the class \code{frmtmb_compat}, whose print
+method names them; see the section below.
 }
 \description{
 Gives the declared status of a pair of package features. The status
@@ -42,6 +45,21 @@ The last status is the point of the registry. A guard that does not
 exist looks exactly like a guard that passed, so the absence of an
 error was never evidence of support.
 }
+\section{Rule sides this session cannot resolve}{
+
+A rule may name a feature another package owns, declared through
+\code{frmtmb_register_compat(expects =)}. Until that package is loaded
+there is no such feature and so no pair, and the rule matches
+nothing. Such a side cannot honestly be a row here, because a row
+would put a feature in the table that nothing in this session
+implements; it is reported instead. The returned table carries the
+names in an \code{unresolved} attribute and the print method names them
+under the rows. Both appear only when the session holds one, so a
+session with no forward reference gets the plain data frame it
+always got. Load the package that owns the feature, or read the
+names as the list of rules that are waiting for one.
+}
+
 \examples{
 # one pair
 frm_compat("rescor", "cens()")

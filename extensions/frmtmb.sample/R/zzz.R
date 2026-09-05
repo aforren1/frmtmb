@@ -8,8 +8,15 @@
 
 #' @noRd
 .onLoad <- function(libname, pkgname) {
+  # expects =: hmm and lca belong to frmtmb.latent, which this package
+  # only suggests, so the two rules naming them are a forward reference
+  # rather than a misspelling. Declaring them is what says so; without
+  # it frmtmb refuses the whole registration, and before frmtmb checked,
+  # the two rules were dropped in silence whenever frmtmb.latent was not
+  # loaded.
   frmtmb_register_compat(features = c(frm_sample = "method"),
-                         rules = sample_compat_rules)
+                         rules = sample_compat_rules,
+                         expects = c("hmm", "lca"))
   # This answers get_prior(route = "sample"), and nothing else: the
   # default route reports what frm() applies and reads no registry, so
   # loading this package cannot change the table a user was already
@@ -29,9 +36,10 @@
 #' They travel with the feature rather than staying behind, and that is
 #' the general rule: a pair rule belongs to whichever package makes the
 #' pair possible. `hmm x frm_sample` and `lca x frm_sample` are here for
-#' that reason even though `hmm()` and `lca()` are still frmtmb's - the
-#' pair only exists when this package is loaded, and a rule naming a
-#' feature the table does not have would dangle.
+#' that reason even though `hmm()` and `lca()` are frmtmb.latent's - the
+#' pair only exists when this package is loaded. They are declared in
+#' `frmtmb_register_compat(expects =)`, because a rule naming a feature
+#' the table does not have would otherwise dangle.
 #'
 #' @noRd
 sample_compat_rules <- function() {
