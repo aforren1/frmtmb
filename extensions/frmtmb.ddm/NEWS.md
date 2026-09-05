@@ -1,5 +1,29 @@
 # frmtmb.ddm (development version)
 
+* New `tests/testthat/test-gddm-reference.R`: `gddm()`'s generalized
+  components are now checked against PyDDM, the reference
+  implementation of Shinn, Lam and Murray (2020), rather than only
+  against this package. Nothing outside the solver checked them
+  before: the analytic Wiener comparison covers a constant drift and
+  fixed bounds and no more, the gradient tests show the derivative
+  matches the value it differentiates, and recovery is circular
+  because `gddm_simulate()` draws from the solver's own density on
+  purpose. Ten cases, covering leak at both signs, exponential and
+  linear collapse, the coherence nonlinearity at two coherences,
+  start-point variability and a lapse, are frozen into a fixture under
+  `tests/testthat/fixtures/`; no Python runs at test time, and
+  `dev/gddm-pyddm-reference.py` in the source repository regenerates
+  it. Each case compares the density at both boundaries, the two
+  boundary masses and the log-likelihood of a small fixed dataset,
+  and the test also requires
+  the disagreement to shrink as the grid is refined, so the reference
+  is what the solver converges to and not merely something it lands
+  near. One case is also checked against an Euler-Maruyama simulation
+  of the equation itself, so that two grid solvers cannot be wrong
+  together. The tolerances are measured, not guessed, and
+  `vignette("gddm")` records what the reference covers, what it does
+  not, and the one case where the two disagree.
+
 * `frm_simulate()` now works for `gddm()`. The family installs its
   density and its simulator in `family_finalize()`, so before frame
   assembly the family object carries neither, and frmtmb's
