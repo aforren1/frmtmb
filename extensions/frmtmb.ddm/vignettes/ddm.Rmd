@@ -1,8 +1,8 @@
 ---
-title: "Drift-diffusion models of two-choice response times"
+title: "Response time models: two-choice and multi-alternative"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Drift-diffusion models of two-choice response times}
+  %\VignetteIndexEntry{Response time models: two-choice and multi-alternative}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -263,7 +263,143 @@ data.frame(u,
 The last column is what a fixed truncation of the small-time series
 alone would give. It is fine until it is not.
 
-## Reference
+## More than two alternatives
+
+Everything above is one accumulator running between two absorbing
+boundaries. Two is not a simplification there, it is the whole
+geometry: the process is one-dimensional and there are two ends, so a
+`wiener()` fit can describe a yes/no decision and nothing wider. No
+choice of parameters reaches a third response.
+
+The linear ballistic accumulator gets there by changing what races.
+Each alternative gets its own accumulator, rising in a straight line
+from a start point drawn uniformly on `(0, A)` to a common threshold
+`b = A + k`. The rate is drawn once per trial from a normal
+distribution rather than varying within the trial, and it is that
+missing within-trial noise which buys the closed form: the outcome
+depends on one draw per accumulator, so the likelihood is the winner's
+density times the others' survival probabilities, for any number of
+accumulators.
+
+The chunks below run whether or not RWiener is installed, since the
+accumulator race needs neither it nor any other reference package.
+
+### An experiment with three responses
+
+A cue makes one of three alternatives more attractive, trial by trial,
+and leaves the other two alone. That is a design neither two-choice
+family can express, so it is worth building from scratch.
+`lba_simulate()` takes a matrix of drift means with one row per trial,
+which is how a covariate enters the generative model.
+
+```{r lba-sim, eval = TRUE}
+set.seed(20)
+N <- 1500
+cue <- rnorm(N)
+# the cue raises the evidence for alternative 2 and nothing else
+V <- cbind(2.4, 1.5 + 1.1 * cue, 0.9)
+dat3 <- lba_simulate(N, v = V, A = 0.5, k = 0.4, ndt = 0.2)
+dat3$cue <- cue
+head(dat3)
+table(dat3$choice)
+```
+
+The choice is data, exactly as the boundary indicator was, and reaches
+the family through `vint()`. It names the accumulator that responded,
+counting from one.
+
+```{r lba-fit, eval = TRUE}
+fit3 <- frm(bf(rt | vint(choice) ~ cue), family = lba(3), data = dat3)
+fixef(fit3)
+```
+
+Every drift is a primary parameter, so the main formula went to all
+three and each got its own coefficients. That is what makes the answer
+readable: the cue slope is near its true 1.1 on `v2` and near zero on
+`v1` and `v3`, which is the model recovering that the cue moved one
+alternative and not the others.
+
+```{r lba-slopes, eval = TRUE}
+vapply(c("v1", "v2", "v3"), function(p) fixef(fit3)[[p]][["cue"]],
+       numeric(1))
+```
+
+Had we known which alternative the cue acts on, we would have said so
+and left the other two drifts an intercept each:
+
+```{r lba-targeted, eval = TRUE}
+fit3b <- frm(bf(rt | vint(choice) ~ 1, v2 ~ cue), family = lba(3),
+             data = dat3)
+c(all_drifts = AIC(fit3), v2_only = AIC(fit3b))
+```
+
+The remaining parameters came back near the values they were drawn
+from. `A` and `k` carry log links and `ndt` the bounded link the Wiener
+family also uses, so read them through the link:
+
+```{r lba-pars, eval = TRUE}
+e <- fixef(fit3b)
+lk <- family(fit3b)$links$ndt
+c(A = exp(e$A[[1]]), k = exp(e$k[[1]]), ndt = lk$linkinv(e$ndt[[1]]),
+  truth_A = 0.5, truth_k = 0.4, truth_ndt = 0.2)
+```
+
+### Two conventions to know before comparing packages
+
+The model is identified only up to scale: multiply `A`, the threshold,
+every drift mean and the drift standard deviation by one constant and
+the distribution of `(choice, rt)` does not move. Something has to be
+held fixed, and this family fixes the drift standard deviation. It is
+the `sd_v` argument rather than a hidden constant, and it is carried on
+the family object, so a fit says what it held:
+
+```{r lba-sdv, eval = TRUE}
+family(fit3b)[["lba_sd_v"]]
+```
+
+The second convention is what happens to an accumulator whose drift
+comes out negative, since it would never reach the threshold. Following
+`rtdists`, drift rates are truncated at zero by default, which makes
+every accumulator arrive eventually and the choice probabilities sum to
+one. `lba(3, posdrift = FALSE)` leaves them untruncated, and the
+response distribution is then defective by design. The two are
+different models rather than a rescaling of each other, so a
+log-likelihood from one is not comparable with a log-likelihood from
+the other, nor with another package set the other way.
+
+### What it refuses
+
+A choice outside `1..n` is a data error, not a small likelihood, and is
+named as such rather than quietly fitted:
+
+```{r lba-refuse, eval = TRUE, error = TRUE}
+bad <- dat3
+bad$choice[7] <- 4L
+frm(bf(rt | vint(choice) ~ 1), family = lba(3), data = bad)
+```
+
+So is omitting the choice altogether, which the family declares through
+`required_aterms` so that frmtmb refuses it by name instead of building
+a log likelihood over no rows:
+
+```{r lba-refuse2, eval = TRUE, error = TRUE}
+frm(bf(rt ~ 1), family = lba(3), data = dat3)
+```
+
+A threshold inside the start-point range needs no refusal at all. The
+threshold is `A + k` with a log link on `k`, so it stays above the
+start-point range at every value of the linear predictor, and a trial
+that begins already finished is not a state the optimizer can reach.
+
+## References
+
+Brown, S. D. and Heathcote, A. (2008). The simplest complete model of
+choice response time: Linear ballistic accumulation. *Cognitive
+Psychology*, 57(3), 153-178.
+
+Donkin, C., Brown, S. D. and Heathcote, A. (2009). The overconstraint
+of response time models: Rethinking the scaling problem. *Psychonomic
+Bulletin & Review*, 16(6), 1129-1135.
 
 Navarro, D. J. and Fuss, I. G. (2009). Fast and accurate calculations
 for first-passage times in Wiener diffusion models. *Journal of

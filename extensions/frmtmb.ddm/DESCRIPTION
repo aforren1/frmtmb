@@ -14,7 +14,10 @@ Description: Adds the Wiener first-passage time family to 'frmtmb', for
     Fuss (2009) pair of series, written in plain R so that it
     differentiates exactly on an 'RTMB' tape, with a smooth weight
     between the two series because a tape cannot choose between them on
-    a parameter.
+    a parameter. Also adds the linear ballistic accumulator of Brown and
+    Heathcote (2008), a race between any number of accumulators that
+    reaches choices with more than two alternatives, which a diffusion
+    between two boundaries cannot.
 License: GPL (>= 2)
 URL: https://aforren1.github.io/frmtmb/frmtmb.ddm,
     https://github.com/aforren1/frmtmb
@@ -24,7 +27,7 @@ Language: en-US
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1),
-    frmtmb (>= 0.47.0)
+    frmtmb (>= 0.49.0)
 Imports:
     stats
 Suggests:
@@ -32,6 +35,7 @@ Suggests:
     knitr,
     numDeriv,
     rmarkdown,
+    rtdists,
     RTMB (>= 1.9),
     RWiener,
     testthat (>= 3.0.0)
