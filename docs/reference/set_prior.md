@@ -299,16 +299,17 @@ VarCorr(fitc)
 
 # get_prior() shows which rows a design offers
 get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
-#>                    prior     class    coef group  dpar nlpar resp lb ub
-#> 1 student_t(3, 1.5, 2.5) Intercept                                NA NA
-#> 2                 (flat)         b                                NA NA
-#> 3                 (flat)         b       x                        NA NA
-#> 4                 (flat)         b       z                        NA NA
-#> 5   student_t(3, 0, 2.5) Intercept               sigma            NA NA
-#> 6   student_t(3, 0, 2.5)        sd                                NA NA
-#> 7   student_t(3, 0, 2.5)        sd             g                  NA NA
-#> 8                 (flat)     theta                                NA NA
-#> 9                 (flat)     theta theta_1                        NA NA
+#> route = "fit": the prior defaults frm() applies
+#>    prior     class    coef group  dpar nlpar resp lb ub
+#> 1 (flat) Intercept                                NA NA
+#> 2 (flat)         b                                NA NA
+#> 3 (flat)         b       x                        NA NA
+#> 4 (flat)         b       z                        NA NA
+#> 5 (flat) Intercept               sigma            NA NA
+#> 6 (flat)        sd                                NA NA
+#> 7 (flat)        sd             g                  NA NA
+#> 8 (flat)     theta                                NA NA
+#> 9 (flat)     theta theta_1                        NA NA
 
 # prior() quotes its first argument, brms's spelling, and reaches
 # the same machinery

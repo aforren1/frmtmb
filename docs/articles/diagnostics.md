@@ -165,17 +165,172 @@ one.](diagnostics_files/figure-html/pp-check-1.png)
 
 Wald standard errors and the Laplace approximation share failure modes:
 variance components with few groups, binary data with tiny clusters.
-Three things in this package route around that:
+Four things in this package route around that:
 `confint(method = "profile")` replaces the quadratic assumption,
 [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
-replaces it with a resampling distribution, and `frm(quadrature = TRUE)`
-replaces the Laplace approximation itself with adaptive quadrature.
+replaces it with a resampling distribution, `frm(quadrature = TRUE)`
+replaces the Laplace approximation itself with adaptive quadrature, and
+`frm(importance = )` reweights it (the next section).
 
 To measure the violation rather than route around it, install the
 companion package **frmtmb.sample** and read
 [`vignette("posterior-diagnostics", package = "frmtmb.sample")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/posterior-diagnostics.html),
 which covers `check_laplace()` and the diagnostics of a sampled fit;
 this page stays with the maximum-likelihood side.
+
+## When the Laplace approximation is the problem
+
+The tools above ask whether the *reported uncertainty* is trustworthy.
+This section asks whether the *estimate* is, because the Laplace
+approximation has a regime where it is biased, and no interval method
+repairs a biased point estimate.
+
+The regime is the package’s named audience: a binary response in small
+clusters. The Laplace approximation replaces each group’s integral by a
+Gaussian centered on the conditional mode. For a Bernoulli response with
+a handful of rows per group, the integrand is skewed, the Gaussian does
+not match it, and the variance component comes out too small.
+
+`frm(importance =)` corrects that. It keeps the Laplace Gaussian, but
+uses it as a *proposal*: it draws from it, reweights the draws by how
+much the true integrand differs from it, and averages. The result is an
+unbiased estimate of the exact marginal likelihood, at every parameter
+value, not an approximation that is accurate only near the optimum. The
+method is Skaug and Fournier’s (2006), and it is what ADMB’s `-is`
+option does.
+
+``` r
+
+set.seed(7)
+ng <- 40
+per <- 5
+gg <- rep(seq_len(ng), each = per)
+xx <- rnorm(ng * per)
+bb <- cbind(rnorm(ng, 0, 1.5), rnorm(ng, 0, 1))
+bd <- data.frame(
+  y = rbinom(ng * per, 1,
+             plogis(-0.5 + 0.8 * xx + bb[gg, 1] + bb[gg, 2] * xx)),
+  x = xx, g = factor(gg)
+)
+```
+
+Fit it both ways. The correction takes a draw count, and 0 (the default)
+turns it off:
+
+``` r
+
+lap <- frm(bf(y ~ x + (x | g)) + binomial(), data = bd)
+imp <- frm(bf(y ~ x + (x | g)) + binomial(), data = bd,
+           importance = 500)
+c(laplace = as.numeric(logLik(lap)),
+  importance = as.numeric(logLik(imp)))
+#>    laplace importance 
+#>  -119.5584  -118.4392
+```
+
+The corrected log-likelihood is the honest one.
+[`print()`](https://rdrr.io/r/base/print.html) says so, and says how far
+it can be trusted:
+
+``` r
+
+imp
+#> frmtmb fit: y ~ x + (x | g) 
+#> Family: binomial   Method: ML 
+#> logLik: -118.439  AIC: 246.878  nobs: 200 
+#> Marginal likelihood: importance-corrected, 500 draws per group in 4 rounds (MCSE 0.11, min ESS 0.64 of 1) 
+#> 
+#> Fixed effects:
+#>  mu:
+#> (Intercept)           x 
+#>      -0.754       1.131 
+#> 
+#> Random effects:
+#>   x | g 
+#>         Name Std.Dev. (Intercept)
+#>  (Intercept)   1.0596            
+#>            x   2.3157     -0.0377
+```
+
+Note what this model is. The random effect is a correlated intercept and
+slope, so the per-group integral is two-dimensional. `quadrature = TRUE`
+cannot marginalize it at all: the Gauss-Kronrod transform underneath it
+integrates one scalar random effect at a time. The importance correction
+takes any block dimension, which is the main reason to reach for it.
+
+### Reading the effective sample size
+
+An importance estimate is only as good as the proposal’s coverage of the
+integrand. The effective sample size measures that coverage, one number
+per group, as a fraction of the draws:
+
+``` r
+
+summary(imp$importance$ess)
+#>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#>  0.6426  0.8354  0.8973  0.8801  0.9407  0.9924
+imp$importance$mcse
+#> [1] 0.1084586
+```
+
+Read it like this.
+
+- Near 1 means the weights are nearly equal, so the proposal matches the
+  integrand and almost every draw is doing work. For a gaussian response
+  it is exactly 1, because the Laplace approximation is already exact
+  and there is nothing to reweight.
+- Below `0.25` the fit warns and names the groups. That threshold is
+  placed by measurement, not by taste. Ordinary designs sit far above
+  it: 0.93 on the package’s probe design, 0.97 on a scalar random
+  intercept, exactly 1.00 for a gaussian response, 0.64 here. A proposal
+  that has genuinely stopped working sits far below it: half a log
+  standard deviation of displacement drops the worst group to 0.009. In
+  between, the threshold is meant to fire, and does. Forty groups of
+  three binary rows with a standard deviation of two report anywhere
+  from 0.08 to 0.62 depending on the sample, and the warning is right to
+  fire on the low half.
+- `mcse` is the Monte Carlo standard error of the corrected
+  log-likelihood, derived from those effective sample sizes. It is the
+  right scale for judging whether two corrected fits really differ.
+  Quadruple the draws to halve it.
+
+If the warning fires, raise `importance`. The estimate stays unbiased
+either way; what degrades is precision, and the effective sample size is
+what tells you so.
+
+### What it costs
+
+The correction tapes `N` stacked copies of the likelihood, so time and
+memory grow linearly in the draw count. On a 480-row, two-dimensional
+block with 60 groups, the gradient costs about 0.28 ms per draw against
+2.5 ms for the Laplace gradient, and the tape holds roughly 320 bytes
+per row and draw. A thousand draws on that model is a few seconds and
+about 180 MB. Start at a few hundred draws, read the effective sample
+sizes, and raise the count only if they ask for it.
+
+The fit proceeds in rounds. Each one freezes a proposal at the current
+estimate, optimizes, and refreezes; the loop stops when the estimates
+settle.
+[`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md)
+holds the seed, the round cap and the effective-sample-size threshold.
+The seed makes the fit reproducible to the last bit, and the draws come
+from a private random stream, so a fit neither reads nor disturbs the
+session’s random state.
+
+### Scope
+
+The first version corrects exactly one random-effect block over a
+grouping factor, of any dimension, for a single response whose family
+has a rowwise density. [`trunc()`](https://rdrr.io/r/base/Round.html)
+and `cens()` are supported, which is a real difference from
+`quadrature = TRUE`: that method has to refuse truncation because its
+far quadrature nodes underflow the truncation normalizer, while
+importance draws stay near the conditional mode. Truncation does not
+degrade the correction either. Walking a bound up past the response
+median, discarding 64 percent of the rows, still leaves the worst group
+holding 0.60 of its draws. Everything outside the scope is refused by
+name, with the remedy in the message. `frm_compat("importance")` lists
+the rules.
 
 ## Variance components on their natural scale
 

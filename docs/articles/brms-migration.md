@@ -495,13 +495,13 @@ covers the diagnostics of a sampled fit.
 
 With **frmtmb.sample** installed, a posterior, brms’s default priors and
 [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md)-based
-comparison are all available here, so the reasons to reach for brms
+comparison are all available here, and **frmtmb.latent** adds hidden
+Markov and latent class families, so the reasons to reach for brms
 itself are narrower than they look:
 
 - a marginal likelihood, and so a Bayes factor;
 - `reloo()` or `kfold()` on a model whose LOO approximation fails, since
   both need refits that this package does not do;
-- discrete latent structure beyond observation-level mixtures;
 - a family or term neither package here implements, which
   [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
   answers per feature;

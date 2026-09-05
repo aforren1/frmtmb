@@ -83,8 +83,13 @@ specification addresses.
 `frmtmb_register_prior_defaults()` is the other direction: it lets a
 package tell
 [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
-what defaults it would apply, so that the reported default is true of
-the routes the session actually has.
+what defaults it would apply.
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+reads the registry under `route = "sample"` ONLY, and refuses that route
+when nothing is registered. Its default `route = "fit"` reports what
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) applies
+and reads nothing, so a registration cannot change the answer of a call
+that did not ask about the sampling route.
 
 ## The covstruct block readers
 

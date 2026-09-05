@@ -1,5 +1,136 @@
 # Changelog
 
+## frmtmb 0.50.0
+
+The Laplace approximation, corrected by importance sampling; and
+get_prior() answers for one route, whatever is attached.
+
+- `frm(importance = )` replaces the Laplace approximation with an
+  importance-sampling correction of it (Skaug and Fournier 2006, the
+  ADMB `-is` option). Each group’s marginal likelihood is re-estimated
+  by drawing from the Laplace Gaussian and reweighting the draws, which
+  is unbiased for the exact integral at every parameter value rather
+  than accurate to `O(n^-1)` near the optimum. A positive integer is the
+  number of draws per group; `0`, the default, is off.
+
+- This is the correction for the case `quadrature = TRUE` cannot reach.
+  TMBad’s `marginal_gk` transform is one-dimensional in its C++, so a
+  block of dimension two returns `NaN` and the `dim` in the spec is
+  never read. The importance correction takes any block dimension. On
+  the package’s probe design, 60 groups of 8 Bernoulli rows with a
+  correlated random intercept and slope, the Laplace negative
+  log-likelihood of 299.302 and intercept of -0.691 become 297.915 and
+  -0.707 at 2000 draws, against GLMMadaptive’s adaptive Gauss-Hermite
+  values of 297.919 and -0.705. The gap is 0.12 of the fit’s own Monte
+  Carlo standard error, and 0.015 of the intercept’s standard error.
+
+- [`trunc()`](https://rdrr.io/r/base/Round.html) and `cens()` are
+  corrected rather than refused. This is a real difference from
+  quadrature, which must refuse
+  [`trunc()`](https://rdrr.io/r/base/Round.html) because its far nodes
+  drive the truncation normalizer to underflow; importance draws stay
+  within a few conditional standard deviations of the mode. Both were
+  measured, not assumed.
+
+- The fit reports how far it can be trusted. `fit$importance` records
+  the draw count, the seed, the rounds taken, the Monte Carlo standard
+  error of the corrected log-likelihood, and the effective sample size
+  of every group; [`print()`](https://rdrr.io/r/base/print.html) and
+  [`summary()`](https://rdrr.io/r/base/summary.html) give the summary
+  line. Below an effective sample size of 0.25 of the draw count the fit
+  warns and names the groups. That threshold is placed by measurement,
+  and against the anchor the fit reports from: ordinary designs report
+  0.93 to 1.00, a proposal displaced by half a log standard deviation
+  falls to 0.009, and a genuinely hard design (forty groups of three
+  binary rows) lands anywhere from 0.08 to 0.62, where firing is the
+  point.
+
+- The corrected log-likelihood is reported from a proposal frozen at the
+  estimate, not at the round’s starting point. The optimizer minimizes
+  the exact objective plus a Monte Carlo error that is exactly zero at
+  the anchor and grows away from it, so the value it stops at is
+  optimistic by construction and by an amount no draw count removes.
+
+- A fit whose iteration diverges refuses rather than reporting a
+  collapsed variance component. An unidentified covariance turns the
+  fixed-point iteration into a wander along a ridge, ending where every
+  importance weight is trivially equal and the effective sample sizes
+  therefore look perfect. The invariant that catches it is that the
+  correction must not make the fit worse than the correction at the
+  Laplace estimates.
+
+- [`logLik()`](https://rdrr.io/r/stats/logLik.html),
+  [`AIC()`](https://rdrr.io/r/stats/AIC.html),
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html) and
+  [`confint()`](https://rdrr.io/r/stats/confint.html) come from the
+  corrected objective through the ordinary `sdreport()` path;
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`predict()`](https://rdrr.io/r/stats/predict.html) work as usual,
+  because the conditional modes come from the Laplace inner solve at the
+  corrected optimum, as they already did under `quadrature = TRUE`.
+
+- `confint(method = "profile")` on a corrected fit profiles the frozen
+  proposal rather than refitting, which is deliberate: refreezing at
+  every grid point would make the profiled objective a different random
+  function at each one and destroy the smoothness the profile’s own
+  interpolation depends on, and it was measured at three times the cost
+  besides. What it does now is check the weights at the bound it returns
+  and warn, naming the parameter and the effective sample size, when the
+  bound lands where the proposal no longer covers the integrand. A
+  covariance parameter can walk far enough to get there; a fixed effect
+  generally does not.
+
+- Each round now starts its optimizer at the current estimate instead of
+  at the cold start template. The reported numbers are unchanged (the
+  probe gives the same negative log-likelihood and the same coefficients
+  to four decimals) and the fit is about 15 percent faster, but the
+  rounds no longer wander: one unidentified design that used to trip the
+  divergence guard now converges to within 0.013 of its adaptive
+  Gauss-Hermite reference.
+
+- [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md)
+  gains `importance_seed`, `importance_rounds` and `importance_ess`. The
+  draws come from a private random stream, so a fit neither reads nor
+  disturbs the session’s random state, and the same seed gives the same
+  answer to the last bit.
+
+- Everything outside the correction’s scope is refused by name at the
+  earliest point, with the remedy in the message: more than one
+  random-effect block, a block with no grouping factor, a covariance
+  that correlates the grouping levels, a multi-membership term, a second
+  response, `rescor`, a residual correlation term, a family that
+  supplies its own log-likelihood, a nonlinear predictor, `cs()`,
+  `mi()`, `REML = TRUE`, `profile = TRUE` and `quadrature = TRUE`.
+  `frm_compat("importance")` lists the rules.
+
+- [`vignette("diagnostics")`](https://aforren1.github.io/frmtmb/articles/diagnostics.md)
+  gains a section on when the Laplace approximation is the problem, what
+  the correction costs, and how to read the effective sample size.
+
+- **Behavior change.**
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  gains `route`, and its `prior` column no longer depends on which
+  packages are attached. Until now the column was filled from the
+  prior-defaults registry on every call, so the same call on the same
+  fit reported `(flat)` in every slot with frmtmb alone and brms’s
+  weakly-informative defaults once `frmtmb.sample` was loaded.
+  `route = "fit"`, the default, reports the defaults
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) applies,
+  which are flat, and reads no registry: its table is identical whatever
+  else is loaded. `route = "sample"` reports the defaults `frm_sample()`
+  applies, and refuses, naming `frmtmb.sample`, when no loaded package
+  states them. Readers who want the sampling defaults, which is what
+  brms’s
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  describes, must now ask for that route. `frm_sample()`’s own
+  precedence of call over fit over defaults is unchanged; only where
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  reads from has moved. The returned table gains class
+  `frmtmb_prior_rows` and a `route` attribute, and
+  [`print()`](https://rdrr.io/r/base/print.html) names the route on its
+  first line so that a copied table stays unambiguous.
+
 ## frmtmb 0.49.1
 
 Internal hygiene and the documentation site. No user-facing behavior

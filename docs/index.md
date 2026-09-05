@@ -75,7 +75,7 @@ formula.
 maps the features and states, under “When you still want brms”, the
 cases that belong in brms.
 
-**A small core, with the rest in companion packages.** The core package
+**A scoped core, with the rest in companion packages.** The core package
 fits models and reports on them. Everything that needs another engine or
 another literature ships beside it: NUTS sampling, ordinary differential
 equations, discrete latent states, and drift-diffusion response times
@@ -128,7 +128,7 @@ way and each documented on its own part of the site.
 | [frmtmb.sample](https://aforren1.github.io/frmtmb/frmtmb.sample/) | NUTS sampling through tmbstan, and the posterior method surface |
 | [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()` and `lca()` |
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
-| [frmtmb.ddm](https://aforren1.github.io/frmtmb/frmtmb.ddm/) | drift-diffusion response times: `wiener()` |
+| [frmtmb.ddm](https://aforren1.github.io/frmtmb/frmtmb.ddm/) | response-time models: `wiener()`, `gddm()`, and the racing `lba()` |
 
 ``` r
 
@@ -273,7 +273,12 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   (population pharmacokinetics), with repeated dosing, infusions, and
   estimated bioavailability. `frmtmb.ddm` adds `wiener()`, the
   drift-diffusion first-passage density, with a formula for each of the
-  drift rate, boundary separation, non-decision time and starting bias.
+  drift rate, boundary separation, non-decision time and starting bias,
+  and Ratcliff’s across-trial variability as three more; `gddm()`, the
+  generalized drift-diffusion model with time-varying drift and
+  collapsing bounds, solved on a fixed grid; and `lba()`, the linear
+  ballistic accumulator, which races any number of accumulators and so
+  reaches choices with more than two alternatives.
 
 ## Estimation and inference
 
@@ -352,12 +357,14 @@ frmtmb is maturing. The package is not yet on CRAN.
   [`vcov()`](https://rdrr.io/r/stats/vcov.html),
   [`predict()`](https://rdrr.io/r/stats/predict.html), and the rest),
   and the family constructors keep their current behavior.
-- **The extension interface is public and settled.**
+- **The extension interface is public and versioned.**
   [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md),
   [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
   and the registration functions are documented as one contract, and the
   companion packages in this repository are written against it with no
   reach into internals. `frmtmb.ddm` was built that way as a test of it.
+  Each companion package pins the core version it needs, and the pin
+  moves when the interface does.
 - **Internal structure can change.** Fields of the fitted object that no
   exported method reaches are not part of the API. Use the accessors.
 - **Some parts are still moving.** Multivariate coverage of the post-fit

@@ -968,12 +968,307 @@ anova(frm(bf(y ~ x) + sratio(), data = dord), fcs)
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
-## 9. Hidden Markov models for an animal track
+## 9. Multivariate responses with correlated residuals
 
-This study moved. `hmm()` now lives in the `frmtmb.latent` package, and
-the animal-track fit, its cross-checks against hmmTMB and depmixS4, and
-the list of what the HMM surface refuses are in
-[`vignette("latent", package = "frmtmb.latent")`](https://aforren1.github.io/frmtmb/frmtmb.latent/articles/latent.html).
+Two traits measured on the same animals are two responses, not one.
+brms’s multivariate vignette opens with two morphological traits of blue
+tit chicks, taken from MCMCglmm’s `BTdata` (Hadfield 2010, *Journal of
+Statistical Software* 33(2)). Chicks share foster nests, so a nest
+effect enters both traits. The traits are measured on the same chick, so
+what is left over after the nest effect correlates too. Drop the
+grouping factor and the model is Zellner’s seemingly unrelated
+regressions (1962, *Journal of the American Statistical Association*
+57).
+
+frmtmb writes this with one formula per response.
+[`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md) collects
+them, the `|ID|` identifier ties the two grouping blocks into a single
+covariance, and `rescor = TRUE` adds the residual correlation across
+responses. Section 1 fits a two-trait model the other way, in long
+format with the traits stacked into one response column. This section
+uses the wide spelling.
+
+The two correlations answer different questions. The `|ID|` block asks
+whether nests that are heavy are also long. `rescor` asks whether a
+chick that is heavy for its nest is also long for its nest. Nothing
+makes the answers agree. Here they have opposite signs, and the raw
+correlation of the two columns reports neither of them.
+
+``` r
+
+set.seed(1)
+n_nest <- 40L; per_nest <- 5L
+n_bird <- n_nest * per_nest
+nest <- factor(rep(seq_len(n_nest), each = per_nest))
+age <- rnorm(n_bird)
+# the nest effects correlate positively and the within-bird residuals
+# negatively, so the two levels disagree by construction
+Gt <- matrix(c(0.36, 0.162, 0.162, 0.2025), 2, 2)
+St <- matrix(c(0.64, -0.24, -0.24, 0.36), 2, 2)
+u <- matrix(rnorm(n_nest * 2), n_nest, 2) %*% chol(Gt)
+e <- matrix(rnorm(n_bird * 2), n_bird, 2) %*% chol(St)
+bt <- data.frame(
+  nest = nest, age = age,
+  mass = 1 + 0.5 * age + u[as.integer(nest), 1] + e[, 1],
+  tarsus = -0.5 + 0.9 * age + u[as.integer(nest), 2] + e[, 2])
+c(raw_correlation = cor(bt$mass, bt$tarsus),
+  correlation_of_nest_means = cor(tapply(bt$mass, bt$nest, mean),
+                                  tapply(bt$tarsus, bt$nest, mean)))
+#>           raw_correlation correlation_of_nest_means 
+#>                 0.2345493                 0.2976839
+```
+
+### The fit
+
+``` r
+
+fbt <- frm(mvbf(bf(mass ~ age + (1 | p | nest)),
+                bf(tarsus ~ age + (1 | p | nest)), rescor = TRUE) +
+             gaussian(), data = bt)
+confint_varcorr(fbt)
+#>                                  block
+#> 1 mass 1 | nest + tarsus 1 | nest [ID]
+#> 2 mass 1 | nest + tarsus 1 | nest [ID]
+#> 3 mass 1 | nest + tarsus 1 | nest [ID]
+#>                                             term type  estimate        lwr
+#> 1                            mass.mu:(Intercept)   sd 0.5874710 0.43338970
+#> 2                          tarsus.mu:(Intercept)   sd 0.4787522 0.35364080
+#> 3 cor(mass.mu:(Intercept),tarsus.mu:(Intercept))  cor 0.5273225 0.03750889
+#>         upr
+#> 1 0.7963323
+#> 2 0.6481258
+#> 3 0.8128362
+rescor_matrix(fbt)
+#>              mass     tarsus
+#> mass    1.0000000 -0.4466086
+#> tarsus -0.4466086  1.0000000
+```
+
+`p` is the `|ID|` label. It is an arbitrary name, and the only thing it
+does is say that these two bar terms are one block. One 2 by 2
+covariance comes back for it, so
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+reports two standard deviations and the correlation between them.
+[`rescor_matrix()`](https://aforren1.github.io/frmtmb/reference/rescor_matrix.md)
+reports the residual correlation, which is a separate matrix because it
+describes a different level.
+
+``` r
+
+Gh <- VarCorr(fbt)[[1]]
+out <- rbind(
+  estimated = c(sqrt(diag(Gh)), cov2cor(Gh)[1, 2], sigma(fbt),
+                rescor_matrix(fbt)[1, 2]),
+  simulated = c(sqrt(diag(Gt)), cov2cor(Gt)[1, 2], sqrt(diag(St)),
+                cov2cor(St)[1, 2]))
+colnames(out) <- c("sd_nest_mass", "sd_nest_tarsus", "cor_nest",
+                   "sigma_mass", "sigma_tarsus", "rescor")
+round(out, 3)
+#>           sd_nest_mass sd_nest_tarsus cor_nest sigma_mass sigma_tarsus rescor
+#> estimated        0.587          0.479    0.527      0.801        0.648 -0.447
+#> simulated        0.600          0.450    0.600      0.800        0.600 -0.500
+```
+
+Both correlations come back with the sign and the rough size the
+simulation put there. Neither is the raw correlation of the columns
+printed above, which sits between them and matches neither level.
+
+### Cross-check against the closed-form marginal likelihood
+
+This model needs no random effects to write down. Within one nest, stack
+both traits and the result is a multivariate normal whose covariance is
+`S %x% I + G %x% J`, where `S` is the residual matrix, `G` is the nest
+matrix, `I` is the identity and `J` is a matrix of ones. Nests are
+independent, so their log densities add.
+[`optim()`](https://rdrr.io/r/stats/optim.html) maximizes that sum with
+the regression coefficients profiled out by generalized least squares.
+It uses no part of frmtmb.
+
+``` r
+
+Xj <- lapply(levels(bt$nest), function(g)
+  kronecker(diag(2), cbind(1, bt$age[bt$nest == g])))
+yj <- lapply(levels(bt$nest), function(g)
+  c(bt$mass[bt$nest == g], bt$tarsus[bt$nest == g]))
+nll <- function(p) {
+  Lg <- matrix(c(exp(p[1]), p[2], 0, exp(p[3])), 2, 2)
+  Gp <- tcrossprod(Lg)
+  s <- exp(p[4:5]); rho <- tanh(p[6])
+  Sp <- outer(s, s) * matrix(c(1, rho, rho, 1), 2, 2)
+  V <- kronecker(Sp, diag(per_nest)) +
+    kronecker(Gp, matrix(1, per_nest, per_nest))
+  Vi <- solve(V)
+  M <- Reduce(`+`, lapply(Xj, function(X) crossprod(X, Vi %*% X)))
+  b <- solve(M, Reduce(`+`, Map(function(X, y) crossprod(X, Vi %*% y),
+                                Xj, yj)))
+  q <- sum(vapply(seq_along(yj), function(j) {
+    r <- yj[[j]] - Xj[[j]] %*% b; sum(r * (Vi %*% r))
+  }, 0))
+  as.numeric(0.5 * (2 * n_bird * log(2 * pi) +
+                      n_nest * determinant(V)$modulus + q))
+}
+# bounds, because an unbounded step can send the two scales far enough
+# apart to make V numerically singular before the optimizer recovers
+op <- optim(c(log(0.5), 0.1, log(0.5), log(0.8), log(0.6), atanh(-0.4)),
+            nll, method = "L-BFGS-B", lower = rep(-6, 6),
+            upper = rep(6, 6),
+            control = list(factr = 1e-2, pgtol = 0, maxit = 2000))
+Gc <- tcrossprod(matrix(c(exp(op$par[1]), op$par[2], 0, exp(op$par[3])),
+                        2, 2))
+out <- rbind(
+  frmtmb = c(sqrt(diag(Gh)), cov2cor(Gh)[1, 2], sigma(fbt),
+             rescor_matrix(fbt)[1, 2], as.numeric(logLik(fbt))),
+  closed_form = c(sqrt(diag(Gc)), cov2cor(Gc)[1, 2], exp(op$par[4:5]),
+                  tanh(op$par[6]), -op$value))
+colnames(out) <- c("sd_nest_mass", "sd_nest_tarsus", "cor_nest",
+                   "sigma_mass", "sigma_tarsus", "rescor", "logLik")
+round(out, 6)
+#>             sd_nest_mass sd_nest_tarsus cor_nest sigma_mass sigma_tarsus
+#> frmtmb          0.587471       0.478752 0.527323   0.801148     0.647953
+#> closed_form     0.587471       0.478752 0.527320   0.801149     0.647952
+#>                rescor    logLik
+#> frmtmb      -0.446609 -469.6262
+#> closed_form -0.446608 -469.6262
+```
+
+``` r
+
+stopifnot(
+  abs(as.numeric(logLik(fbt)) + op$value) < 1e-6,
+  max(abs(out["frmtmb", 1:6] - out["closed_form", 1:6])) < 1e-4
+)
+```
+
+The log likelihood agrees to under 1e-6 and every variance parameter to
+under 1e-4. The Laplace approximation is exact for a gaussian response,
+so the only thing that separates the two numbers is optimizer noise.
+
+### What each correlation buys
+
+Turn both correlations off and the multivariate fit is two univariate
+fits standing next to each other. That is the cheapest reference there
+is, and it is exact: the log likelihoods add.
+
+``` r
+
+fnone <- frm(mvbf(bf(mass ~ age + (1 | nest)),
+                  bf(tarsus ~ age + (1 | nest))) + gaussian(), data = bt)
+u1 <- frm(bf(mass ~ age + (1 | nest)) + gaussian(), data = bt)
+u2 <- frm(bf(tarsus ~ age + (1 | nest)) + gaussian(), data = bt)
+fid <- frm(mvbf(bf(mass ~ age + (1 | p | nest)),
+                bf(tarsus ~ age + (1 | p | nest))) + gaussian(), data = bt)
+c(two_separate_fits = as.numeric(logLik(u1)) + as.numeric(logLik(u2)),
+  uncoupled_mvbf = as.numeric(logLik(fnone)),
+  plus_ID = as.numeric(logLik(fid)),
+  plus_rescor = as.numeric(logLik(fbt)))
+#> two_separate_fits    uncoupled_mvbf           plus_ID       plus_rescor 
+#>         -488.7960         -488.7960         -487.3920         -469.6262
+stopifnot(abs(as.numeric(logLik(fnone)) - as.numeric(logLik(u1)) -
+                as.numeric(logLik(u2))) < 1e-6)
+```
+
+``` r
+
+c(uncoupled = AIC(fnone), plus_ID = AIC(fid), plus_rescor = AIC(fbt))
+#>   uncoupled     plus_ID plus_rescor 
+#>    993.5921    992.7840    959.2523
+```
+
+Each correlation costs one parameter. The `|ID|` correlation pays for
+itself by a little and the residual correlation by a lot. That order is
+the one the design implies: the nest correlation rests on one pair of
+effects per nest, and the residual correlation on one pair per chick.
+
+What `rescor` does not buy here is precision on the regression
+coefficients.
+
+``` r
+
+rbind(with_rescor = sqrt(diag(vcov(fbt)))[1:4],
+      without = sqrt(diag(vcov(fid)))[1:4])
+#>             mass_(Intercept)   mass_age tarsus_(Intercept) tarsus_age
+#> with_rescor        0.1088240 0.06550652         0.08850340 0.05299474
+#> without            0.1089682 0.06605192         0.08862042 0.05343937
+```
+
+The standard errors barely move, and Zellner’s result says why. When
+every equation carries the same predictors, correlating the errors
+leaves the coefficients exactly where equation-by-equation least squares
+puts them. The shared nest block stops that identity from being exact
+here, and what survives of it is a difference too small to report. The
+gain from `rescor` shows up when the equations carry different
+predictors, and, more often, in the correlation itself, which is usually
+the estimand rather than a nuisance. Section 1 reads a genetic
+correlation the same way.
+
+### Reading residuals off a multivariate fit
+
+[`residuals()`](https://rdrr.io/r/stats/residuals.html) refuses a
+multivariate fit, and says so.
+
+``` r
+
+residuals(fbt)
+#> Error:
+#> ! residuals() is not supported yet for multivariate fits
+```
+
+[`predict()`](https://rdrr.io/r/stats/predict.html) takes `resp`, so one
+response at a time is available, and a residual is the subtraction. The
+figure below needs both levels:
+[`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) for
+the nest effects, and that subtraction for what is left inside a nest.
+
+``` r
+
+re <- ranef(fbt)[[1]]
+r_mass <- bt$mass - as.numeric(predict(fbt, resp = "mass"))
+r_tarsus <- bt$tarsus - as.numeric(predict(fbt, resp = "tarsus"))
+pp <- par(mfrow = c(1, 2), mar = c(4, 4, 2.5, 1))
+tinyplot::tinyplot(x = re[, 1], y = re[, 2], type = "p", pch = 16,
+                   col = "steelblue4", theme = "clean2",
+                   main = "between nests", xlab = "mass", ylab = "tarsus")
+abline(h = 0, v = 0, lty = 3, col = "gray60")
+tinyplot::tinyplot(x = r_mass, y = r_tarsus, type = "p", pch = 16,
+                   cex = 0.6, col = "firebrick", theme = "clean2",
+                   main = "within a nest", xlab = "mass", ylab = "tarsus")
+abline(h = 0, v = 0, lty = 3, col = "gray60")
+```
+
+![Two scatter panels side by side. The left panel plots the 40 fitted
+nest effects for tarsus against those for mass; the cloud runs from
+lower left to upper right, so the two nest effects rise together. The
+right panel plots the 200 within-nest residuals for tarsus against those
+for mass; that cloud runs from upper left to lower right, the opposite
+direction. A dotted gray line marks zero on each axis of both
+panels.](case-studies_files/figure-html/bt-fig-1.png)
+
+``` r
+
+par(pp)
+```
+
+The two clouds lean opposite ways, and that is the whole point of
+fitting the two correlations separately. Read the clouds for their
+direction and not for their strength. The nest effects are shrunk toward
+zero, so the left cloud looks more correlated than the number the model
+reports.
+
+### What this does not cover
+
+`rescor` is gaussian only, and it describes the residuals of the
+responses, so it cannot be combined with a term that already describes
+them. An [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`,
+`cosy()` or `unstr()` term next to `rescor = TRUE` is refused, and so
+are mixtures and censored responses. One `|ID|` label must name one
+grouping specification: the same label over two different grouping
+factors is an error, because there is no single block for it to build.
+[`residuals()`](https://rdrr.io/r/stats/residuals.html) and
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) are not the
+only parts of the post-fitting surface that step back from a
+`rescor = TRUE` fit. `frm_compat("rescor")` lists the whole set, and
+[`vignette("compatibility")`](https://aforren1.github.io/frmtmb/articles/compatibility.md)
+says why the list is worth reading before the fit rather than after it.
 
 ## 10. Function-on-scalar regression
 
@@ -1706,6 +2001,13 @@ and each one is handled above:
 - A custom family may pass a link OBJECT rather than a link name, which
   is how section 11 bounds a shift parameter by the data. The object
   needs `name`, `linkfun`, `linkinv` and `mu_eta`.
+- [`residuals()`](https://rdrr.io/r/stats/residuals.html) and
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) refuse a
+  multivariate fit. [`predict()`](https://rdrr.io/r/stats/predict.html)
+  takes `resp`, so a fitted value for one response is one call and a
+  residual is a subtraction. Section 9 draws its figure that way, and
+  reads the other level of the same model out of
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md).
 
 Some models on this page are refused by parts of the post-fitting
 surface, and the refusals are deliberate. A term built on matrix columns
@@ -1713,9 +2015,19 @@ is excluded from
 [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md),
 because a matrix covariate has no single value to hold the other
 predictors at. A family whose likelihood does not factorize over the
-rows refuses more than that:
-[`vignette("latent", package = "frmtmb.latent")`](https://aforren1.github.io/frmtmb/frmtmb.latent/articles/latent.html)
-works through the whole refusal set of one such family.
+rows refuses more than that.
+
+Two subjects that were case studies here have packages of their own now,
+and each one carries a worked page written to this standard. Read them
+as the next two studies in the tour.
+
+- [`vignette("latent", package = "frmtmb.latent")`](https://aforren1.github.io/frmtmb/frmtmb.latent/articles/latent.html)
+  fits a hidden Markov model to an animal track, cross-checks it against
+  hmmTMB and depmixS4, and lists what a likelihood that does not
+  factorize over the rows refuses.
+- [`vignette("ddm", package = "frmtmb.ddm")`](https://aforren1.github.io/frmtmb/frmtmb.ddm/articles/ddm.html)
+  fits the drift-diffusion first-passage density of section 11, and
+  measures the two ways of truncating its series.
 
 The identity-refit check of section 1 belongs in any model that reads a
 matrix from `data2`. It is the one test that a structured covariance

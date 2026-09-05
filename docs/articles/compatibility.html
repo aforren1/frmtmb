@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -1330,22 +1330,24 @@ name outer parameters, so bounds on fixed effects are refused under
 <p><code>autoscale</code>, <code>sparse_x</code>, and
 <code>verbose</code> are different in kind. They change the arithmetic
 or the output, not the model.</p>
-<table style="width:100%;" class="table">
+<table class="table">
 <colgroup>
-<col width="13%">
-<col width="7%">
-<col width="14%">
-<col width="10%">
-<col width="13%">
+<col width="11%">
+<col width="6%">
 <col width="12%">
+<col width="12%">
+<col width="9%">
+<col width="11%">
+<col width="10%">
+<col width="7%">
 <col width="8%">
 <col width="9%">
-<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left"></th>
 <th align="center">REML</th>
 <th align="center">quadrature</th>
+<th align="center">importance</th>
 <th align="center">profile</th>
 <th align="center">autoscale</th>
 <th align="center">sparse_x</th>
@@ -1359,6 +1361,7 @@ or the output, not the model.</p>
 <td align="center"></td>
 <td align="center">x</td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">~</td>
@@ -1370,6 +1373,7 @@ or the output, not the model.</p>
 <td align="center">x</td>
 <td align="center"></td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1377,7 +1381,20 @@ or the output, not the model.</p>
 <td align="center">+</td>
 </tr>
 <tr class="odd">
+<td align="left">importance</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center"></td>
+<td align="center">x</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">+</td>
+</tr>
+<tr class="even">
 <td align="left">profile</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center"></td>
@@ -1387,8 +1404,9 @@ or the output, not the model.</p>
 <td align="center">x</td>
 <td align="center">+</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">autoscale</td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1398,31 +1416,34 @@ or the output, not the model.</p>
 <td align="center">+</td>
 <td align="center">+</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">sparse_x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
-<td align="center"></td>
-<td align="center">+</td>
-<td align="center">+</td>
-<td align="center">+</td>
-</tr>
-<tr class="even">
-<td align="left">prior</td>
-<td align="center">~</td>
-<td align="center">+</td>
-<td align="center">~</td>
-<td align="center">+</td>
 <td align="center">+</td>
 <td align="center"></td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
 </tr>
 <tr class="odd">
+<td align="left">prior</td>
+<td align="center">~</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center">~</td>
+<td align="center">+</td>
+<td align="center">+</td>
+<td align="center"></td>
+<td align="center">+</td>
+<td align="center">+</td>
+</tr>
+<tr class="even">
 <td align="left">bounds</td>
 <td align="center">x</td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">x</td>
 <td align="center">+</td>
@@ -1431,8 +1452,9 @@ or the output, not the model.</p>
 <td align="center"></td>
 <td align="center">+</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">verbose</td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1447,8 +1469,8 @@ or the output, not the model.</p>
 <table class="table">
 <colgroup>
 <col width="2%">
-<col width="8%">
-<col width="88%">
+<col width="9%">
+<col width="87%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -1478,16 +1500,31 @@ effects, so there is no inner problem left for REML to integrate.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
+<td align="left">REML + importance</td>
+<td align="left">Refused: the correction reweights the integral over the
+random effects, and REML puts the fixed effects into that same integral,
+where there is no per-group proposal for them.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
 <td align="left">REML + profile</td>
 <td align="left">Refused: profile = TRUE and REML both remove the fixed
 effects from the outer problem.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">REML + bounds</td>
 <td align="left">Refused: under REML the fixed effects leave the outer
 parameter vector, so bounds naming them are rejected as unknown
 parameters.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">quadrature + importance</td>
+<td align="left">Refused: two different corrections of the same
+approximation. Gauss-Kronrod marginalizes one scalar random intercept at
+a time; the importance correction reweights the Laplace Gaussian and
+takes any block dimension.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
@@ -1496,6 +1533,13 @@ parameters.</td>
 quadrature = TRUE.</td>
 </tr>
 <tr class="odd">
+<td align="left">x</td>
+<td align="left">importance + profile</td>
+<td align="left">Refused: profiling moves the fixed effects into the
+inner Laplace problem, and the corrected objective has no inner problem
+left to move them into.</td>
+</tr>
+<tr class="even">
 <td align="left">x</td>
 <td align="left">profile + bounds</td>
 <td align="left">Refused: with the fixed effects profiled out they leave
@@ -1510,20 +1554,22 @@ parameters.</td>
 </h3>
 <table style="width:100%;" class="table">
 <colgroup>
-<col width="12%">
-<col width="7%">
-<col width="14%">
 <col width="10%">
-<col width="13%">
+<col width="6%">
 <col width="12%">
+<col width="12%">
+<col width="9%">
+<col width="11%">
+<col width="10%">
+<col width="7%">
 <col width="8%">
 <col width="9%">
-<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left"></th>
 <th align="center">REML</th>
 <th align="center">quadrature</th>
+<th align="center">importance</th>
 <th align="center">profile</th>
 <th align="center">autoscale</th>
 <th align="center">sparse_x</th>
@@ -1539,12 +1585,14 @@ parameters.</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
+<td align="center">+</td>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">+</td>
 </tr>
 <tr class="even">
 <td align="left">trials()</td>
+<td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
@@ -1561,6 +1609,7 @@ parameters.</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
+<td align="center">+</td>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">+</td>
@@ -1572,6 +1621,7 @@ parameters.</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
+<td align="center">+</td>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">+</td>
@@ -1580,6 +1630,7 @@ parameters.</td>
 <td align="left">se()</td>
 <td align="center">+</td>
 <td align="center">+</td>
+<td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1590,6 +1641,7 @@ parameters.</td>
 <tr class="even">
 <td align="left">mi()</td>
 <td align="center">+</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1603,6 +1655,7 @@ parameters.</td>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
+<td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">?</td>
@@ -1611,6 +1664,7 @@ parameters.</td>
 </tr>
 <tr class="even">
 <td align="left">vreal()</td>
+<td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
@@ -1652,6 +1706,12 @@ REML, or profile for truncated responses.</td>
 <td align="left">Refused: the imputed values are themselves random
 effects that quadrature cannot marginalize.</td>
 </tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">mi() + importance</td>
+<td align="left">Refused: the imputed values are latent variables with
+no grouping factor, so they have no per-group proposal.</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1664,20 +1724,22 @@ the model must be a one-dimensional <code>us</code>, <code>diag</code>,
 or <code>homdiag</code> term.</p>
 <table class="table">
 <colgroup>
+<col width="8%">
+<col width="6%">
+<col width="13%">
+<col width="13%">
+<col width="9%">
+<col width="11%">
 <col width="10%">
 <col width="7%">
-<col width="15%">
-<col width="11%">
-<col width="13%">
-<col width="12%">
 <col width="8%">
-<col width="10%">
-<col width="11%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left"></th>
 <th align="center">REML</th>
 <th align="center">quadrature</th>
+<th align="center">importance</th>
 <th align="center">profile</th>
 <th align="center">autoscale</th>
 <th align="center">sparse_x</th>
@@ -1690,6 +1752,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">us</td>
 <td align="center">+</td>
 <td align="center">~</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1700,6 +1763,7 @@ or <code>homdiag</code> term.</p>
 <tr class="even">
 <td align="left">diag</td>
 <td align="center">+</td>
+<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
@@ -1712,6 +1776,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">homdiag</td>
 <td align="center">+</td>
 <td align="center">~</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1723,6 +1788,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">cs</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1734,6 +1800,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">ar1</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1745,6 +1812,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">hetar1</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1756,6 +1824,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">ou</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1767,6 +1836,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">toep</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1778,6 +1848,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">homtoep</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1789,6 +1860,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">homcs</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1800,6 +1872,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">exp</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1811,6 +1884,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">gau</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1822,6 +1896,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">mat</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1832,6 +1907,7 @@ or <code>homdiag</code> term.</p>
 <tr class="even">
 <td align="left">rr</td>
 <td align="center">+</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
@@ -1844,6 +1920,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">equalto</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1854,6 +1931,7 @@ or <code>homdiag</code> term.</p>
 <tr class="even">
 <td align="left">gr_cov</td>
 <td align="center">+</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
@@ -1866,6 +1944,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">gr_prec</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1876,6 +1955,7 @@ or <code>homdiag</code> term.</p>
 <tr class="even">
 <td align="left">smooth</td>
 <td align="center">+</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
@@ -1888,6 +1968,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">gp</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1898,6 +1979,7 @@ or <code>homdiag</code> term.</p>
 <tr class="even">
 <td align="left">hsgp</td>
 <td align="center">+</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
@@ -1910,6 +1992,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">car</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1920,6 +2003,7 @@ or <code>homdiag</code> term.</p>
 <tr class="even">
 <td align="left">spde</td>
 <td align="center">+</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
@@ -1932,6 +2016,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">us_t</td>
 <td align="center">+</td>
 <td align="center">~</td>
+<td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1943,6 +2028,7 @@ or <code>homdiag</code> term.</p>
 <td align="left">diag_t</td>
 <td align="center">+</td>
 <td align="center">~</td>
+<td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -1954,9 +2040,9 @@ or <code>homdiag</code> term.</p>
 </table>
 <table class="table">
 <colgroup>
-<col width="1%">
-<col width="17%">
-<col width="81%">
+<col width="0%">
+<col width="13%">
+<col width="85%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -1975,37 +2061,47 @@ one-dimensional integral.</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>
+<td align="left">us + importance; diag + importance; homdiag +
+importance; cs + importance; ar1 + importance; and 8 more</td>
+<td align="left">Allowed for exactly ONE such block, of any dimension.
+This is the correction for a correlated random slope, which quadrature
+cannot marginalize at all. Several blocks are refused: the integral
+becomes a nested one whose groups do not separate into independent
+proposals.</td>
+</tr>
+<tr class="odd">
+<td align="left">~</td>
 <td align="left">ar1 + prior; ar1 + bounds; ar1 + verbose</td>
 <td align="left">ar1() reads the level order. Over gapped integer levels
 it keeps positional semantics and warns. Use ou() over num_factor() for
 irregular spacing.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">hetar1 + prior; hetar1 + bounds; hetar1 + verbose</td>
 <td align="left">hetar1() reads the level order. Over gapped integer
 levels it keeps positional semantics and warns.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">ou + prior; ou + bounds; ou + verbose</td>
 <td align="left">ou() is the irregular-spacing structure. Build the
 levels with num_factor() so the metric distance is recoverable.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">exp + prior; exp + bounds; exp + verbose; gau + prior;
 gau + bounds; and 4 more</td>
 <td align="left">Spatial structures need coordinates built with
 num_factor(x, y).</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">rr + prior; rr + bounds; rr + verbose</td>
 <td align="left">rr() gives a reduced-rank block; the rank d must not
 exceed the term dimension.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">equalto + prior; equalto + bounds; equalto +
 verbose</td>
@@ -2013,7 +2109,7 @@ verbose</td>
 which must be square and match the term dimension, and belongs in data2
 = list(V = V).</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">gr_cov + prior; gr_cov + bounds; gr_cov + verbose</td>
 <td align="left">gr(cov = A) accepts correlated slopes; the block
@@ -2023,7 +2119,7 @@ list(A = A). Terms sharing an |ID| key over the same factor and the same
 A merge into one such block, which is the same model as writing the
 traits long with a single gr() term.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">gr_prec + prior; gr_prec + bounds; gr_prec +
 verbose</td>
@@ -2033,20 +2129,20 @@ so it stays as sparse as Q. Q needs dimnames covering every grouping
 level, and belongs in data2 = list(Q = Q). Terms sharing an |ID| key
 over the same factor and the same Q merge into one such block.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">smooth + prior; smooth + bounds; smooth + verbose</td>
 <td align="left">smooth is the internal structure behind s() and t2();
 it is not written directly in a formula.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">gp + prior; gp + bounds; gp + verbose; hsgp + prior;
 hsgp + bounds; hsgp + verbose</td>
 <td align="left">gp() and hsgp() are predictor specials, not bar terms.
 Write gp(x), not (gp(x) | g).</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">car + prior; car + bounds; car + verbose</td>
 <td align="left">car(M, gr = g, type = ) is a predictor special, not a
@@ -2058,7 +2154,7 @@ intrinsic one under a soft sum-to-zero constraint (con_sd), “bym2” the
 scaled mixture; escar needs every location to have a neighbor. M belongs
 in data2 = list(M = M).</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">spde + prior; spde + bounds; spde + verbose</td>
 <td align="left">spde(fem, gr = node) is a predictor special taking a
@@ -2069,7 +2165,7 @@ because the matrices carry no dimnames to match labels against.
 Unobserved nodes keep their column; a general projector matrix is not
 supported yet. The matrices belong in data2 = list(fem = fem).</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">us_t + quadrature; diag_t + quadrature</td>
 <td align="left">Allowed for one-dimensional blocks, and RECOMMENDED
@@ -2079,13 +2175,39 @@ Gauss-Hermite quadrature to 1e-6 in the log-likelihood and in every
 estimate. Correlated slopes are refused, as they are for a gaussian
 block.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">cs + quadrature; ar1 + quadrature; hetar1 + quadrature;
 ou + quadrature; toep + quadrature; and 14 more</td>
 <td align="left">Refused: quadrature marginalizes one scalar random
 intercept at a time. Every block must be a dimension-1 us, diag, or
 homdiag term.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">rr + importance; smooth + importance; gp + importance;
+hsgp + importance; us_t + importance; diag_t + importance</td>
+<td align="left">Refused by name at the scope check. The Student-t
+latents (us_t, diag_t) factorize over grouping levels but are not
+gaussian in a level’s coefficients, and the correction recovers each
+level’s prior density from the block density by reading off a precision
+matrix, which would silently return a gaussian approximation to a t
+density; measured, that alone moves the corrected log-likelihood by
+0.355. rr holds its parameters in a lower-dimensional factor space than
+its Z columns, so a group’s coefficients are not the contiguous
+per-level slice the proposal is built from. smooth, gp and hsgp are one
+field over all observations with no grouping factor, so there are no
+independent groups to give separate proposals to.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">equalto + importance; gr_cov + importance; gr_prec +
+importance; car + importance; spde + importance</td>
+<td align="left">Refused: these structures correlate the grouping LEVELS
+with each other through a supplied relationship or neighbor matrix, so
+the marginal likelihood is one integral over every level at once and
+does not split into the per-group integrals the correction
+resamples.</td>
 </tr>
 </tbody>
 </table>
@@ -2852,20 +2974,22 @@ this model’.</td>
 </table>
 <table class="table">
 <colgroup>
+<col width="8%">
+<col width="6%">
+<col width="13%">
+<col width="13%">
+<col width="9%">
+<col width="11%">
 <col width="10%">
 <col width="7%">
-<col width="15%">
-<col width="11%">
-<col width="13%">
-<col width="12%">
 <col width="8%">
-<col width="10%">
-<col width="11%">
+<col width="9%">
 </colgroup>
 <thead><tr class="header">
 <th align="left"></th>
 <th align="center">REML</th>
 <th align="center">quadrature</th>
+<th align="center">importance</th>
 <th align="center">profile</th>
 <th align="center">autoscale</th>
 <th align="center">sparse_x</th>
@@ -2878,6 +3002,7 @@ this model’.</td>
 <td align="left">ar()</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -2888,6 +3013,7 @@ this model’.</td>
 <tr class="even">
 <td align="left">ma()</td>
 <td align="center">+</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -2900,6 +3026,7 @@ this model’.</td>
 <td align="left">arma()</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -2911,6 +3038,7 @@ this model’.</td>
 <td align="left">cosy()</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -2921,6 +3049,7 @@ this model’.</td>
 <tr class="odd">
 <td align="left">unstr()</td>
 <td align="center">+</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -2934,22 +3063,32 @@ this model’.</td>
 <table class="table">
 <colgroup>
 <col width="2%">
-<col width="39%">
-<col width="57%">
+<col width="34%">
+<col width="62%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
 <th align="left">Pairs</th>
 <th align="left">Note</th>
 </tr></thead>
-<tbody><tr class="odd">
+<tbody>
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">ar() + quadrature; ma() + quadrature; arma() +
 quadrature; cosy() + quadrature; unstr() + quadrature</td>
 <td align="left">Refused: the Gauss-Kronrod rule integrates a random
 effect against per-observation densities, and this residual is a joint
 density over each group.</td>
-</tr></tbody>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">ar() + importance; ma() + importance; arma() +
+importance; cosy() + importance; unstr() + importance</td>
+<td align="left">Refused: the correction resamples a random effect
+against a PRODUCT of per-row densities, and an R-side residual is one
+joint density over each group, so no per-row integrand exists.</td>
+</tr>
+</tbody>
 </table>
 <table class="table">
 <thead><tr class="header">
@@ -3060,20 +3199,22 @@ mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
 </h2>
 <table style="width:100%;" class="table">
 <colgroup>
-<col width="12%">
-<col width="7%">
-<col width="14%">
 <col width="10%">
-<col width="13%">
+<col width="6%">
 <col width="12%">
+<col width="12%">
+<col width="9%">
+<col width="11%">
+<col width="10%">
+<col width="7%">
 <col width="8%">
 <col width="9%">
-<col width="10%">
 </colgroup>
 <thead><tr class="header">
 <th align="left"></th>
 <th align="center">REML</th>
 <th align="center">quadrature</th>
+<th align="center">importance</th>
 <th align="center">profile</th>
 <th align="center">autoscale</th>
 <th align="center">sparse_x</th>
@@ -3086,6 +3227,7 @@ mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
 <td align="left">s()</td>
 <td align="center">?</td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">+</td>
@@ -3096,6 +3238,7 @@ mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
 <tr class="even">
 <td align="left">t2()</td>
 <td align="center">?</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
@@ -3109,6 +3252,7 @@ mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
 <td align="center">+</td>
 <td align="center">?</td>
 <td align="center">+</td>
+<td align="center">+</td>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
@@ -3117,6 +3261,7 @@ mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
 </tr>
 <tr class="even">
 <td align="left">mi_pred()</td>
+<td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
@@ -3130,6 +3275,7 @@ mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
 <td align="left">gp_pred()</td>
 <td align="center">+</td>
 <td align="center">x</td>
+<td align="center">x</td>
 <td align="center">?</td>
 <td align="center">?</td>
 <td align="center">?</td>
@@ -3141,6 +3287,7 @@ mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
 <td align="left">cs_pred()</td>
 <td align="center">?</td>
 <td align="center">?</td>
+<td align="center">x</td>
 <td align="center">?</td>
 <td align="center">+</td>
 <td align="center">+</td>
@@ -3152,9 +3299,9 @@ mixture_mvn; cosy() + mixture_mvn; unstr() + mixture_mvn</td>
 </table>
 <table class="table">
 <colgroup>
-<col width="5%">
-<col width="17%">
-<col width="77%">
+<col width="4%">
+<col width="13%">
+<col width="82%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -3170,15 +3317,41 @@ block, so the scalar-intercept guard rejects it.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
+<td align="left">s() + importance</td>
+<td align="left">Refused: a smooth is one field over all observations,
+with no grouping factor, so there are no independent groups to give
+separate proposals to.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
 <td align="left">t2() + quadrature</td>
 <td align="left">Refused in practice: a smooth is a wide random-effect
 block.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">t2() + importance</td>
+<td align="left">Refused: a smooth basis carries no grouping
+factor.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
 <td align="left">gp_pred() + quadrature</td>
 <td align="left">Refused in practice: gp() builds a wide block, so the
 scalar-intercept guard rejects it.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">gp_pred() + importance</td>
+<td align="left">Refused: gp() builds a field over all observations, not
+a set of independent groups.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">cs_pred() + importance</td>
+<td align="left">Refused: cs() contributes threshold-specific offsets as
+a matrix per observation, which the first version does not stack over
+draws.</td>
 </tr>
 </tbody>
 </table>
@@ -3261,17 +3434,17 @@ column.</td>
 <tbody>
 <tr class="odd">
 <td align="left">works</td>
-<td align="right">1651</td>
-<td align="left">33%</td>
+<td align="right">1700</td>
+<td align="left">34%</td>
 </tr>
 <tr class="even">
 <td align="left">conditional</td>
-<td align="right">1724</td>
-<td align="left">35%</td>
+<td align="right">1737</td>
+<td align="left">34%</td>
 </tr>
 <tr class="odd">
 <td align="left">refused</td>
-<td align="right">696</td>
+<td align="right">727</td>
 <td align="left">14%</td>
 </tr>
 <tr class="even">
@@ -3281,8 +3454,8 @@ column.</td>
 </tr>
 <tr class="odd">
 <td align="left">untested</td>
-<td align="right">864</td>
-<td align="left">18%</td>
+<td align="right">877</td>
+<td align="left">17%</td>
 </tr>
 </tbody>
 </table>

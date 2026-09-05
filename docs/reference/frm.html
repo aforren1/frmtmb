@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,6 +76,7 @@ Laplace approximation for random effects through RTMB.</p>
 <span>  na.action <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span>,</span>
 <span>  prior <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  quadrature <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  importance <span class="op">=</span> <span class="fl">0L</span>,</span>
 <span>  data2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  dry_run <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
@@ -230,6 +231,46 @@ starting point decides whether the marginalized objective is
 finite at all. That fit also supplies the conditional modes, which
 the marginalized objective no longer carries, so <code><a href="ranef.html">ranef()</a></code>,
 <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> work as usual.</p></dd>
+
+
+<dt id="arg-importance">importance<a class="anchor" aria-label="anchor" href="#arg-importance"></a></dt>
+<dd><p>Number of importance draws per group, or <code>0</code>
+(default) for none. A positive count replaces the Laplace
+approximation with an importance-sampling correction of it
+(Skaug and Fournier 2006, the ADMB <code>-is</code> option): each group's
+marginal likelihood is re-estimated by reweighting draws from the
+Laplace Gaussian, which is unbiased for the exact integral rather
+than accurate to <code>O(n^-1)</code>. Like <code>quadrature = TRUE</code> it is worth
+it for binary responses in small clusters, and unlike it, the
+block may have any dimension: this is the correction for a
+correlated random slope, where quadrature cannot go.</p>
+<p>The cost is one tape of <code>N</code> stacked copies of the likelihood, so
+time and memory grow linearly in the draw count. An odd count is
+rounded up to the next even one, because the draws are taken in
+antithetic pairs (measured on this package's own probe design,
+the pairing is worth two to three times the draws it costs).</p>
+<p>Scope, with everything else refused by name: exactly one
+random-effect block over a grouping factor, of any dimension and
+any covariance structure that is Gaussian within a level and
+independent between levels; one response; a family with a rowwise
+density. Not with <code>quadrature</code>, <code>REML = TRUE</code>,
+<code>frmtmb_control(profile = TRUE)</code>, <code>mi()</code>, a residual correlation
+term, <code>rescor</code>, a nonlinear predictor, or <code>cs()</code>. <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> and
+<code>cens()</code> are supported: the draws sit near the conditional mode,
+which is why the truncation normalizer that underflows at the
+Gauss-Kronrod nodes does not underflow here.</p>
+<p>The fit records the draw count, the seed, the rounds taken, the
+per-group effective sample sizes and the Monte Carlo standard
+error of the corrected log-likelihood in <code>fit$importance</code>;
+<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> prints them. <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>, <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>, <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> and
+<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> all come from the corrected objective, with two
+caveats worth knowing. The reported estimate is the optimum of the
+previous round's proposal, so the covariance is a Hessian at a
+point that is stationary only to <code>fit$importance$grad</code>. And
+<code>confint(method = "profile")</code> walks the FROZEN proposal instead of
+refitting, so it warns when a bound lands where the weights no
+longer cover the integrand. The seed, the round cap and the
+effective-sample-size threshold are <code><a href="frmtmb_control.html">frmtmb_control()</a></code> settings.</p></dd>
 
 
 <dt id="arg-data-">data2<a class="anchor" aria-label="anchor" href="#arg-data-"></a></dt>

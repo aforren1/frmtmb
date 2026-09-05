@@ -23,7 +23,7 @@ arguments the way the user-facing surface does."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -151,8 +151,12 @@ spellings (including a brms <code>brmsprior</code>) to one,
 vectors over the outer parameters, and <code>spec_target()</code> names the slot
 one specification addresses.</p>
 <p><code>frmtmb_register_prior_defaults()</code> is the other direction: it lets a
-package tell <code><a href="get_prior.html">get_prior()</a></code> what defaults it would apply, so that the
-reported default is true of the routes the session actually has.</p>
+package tell <code><a href="get_prior.html">get_prior()</a></code> what defaults it would apply.
+<code><a href="get_prior.html">get_prior()</a></code> reads the registry under <code>route = "sample"</code> ONLY, and
+refuses that route when nothing is registered. Its default
+<code>route = "fit"</code> reports what <code><a href="frm.html">frm()</a></code> applies and reads nothing, so a
+registration cannot change the answer of a call that did not ask
+about the sampling route.</p>
     </div>
     <div class="section level2">
     <h2 id="the-covstruct-block-readers">The covstruct block readers<a class="anchor" aria-label="anchor" href="#the-covstruct-block-readers"></a></h2>

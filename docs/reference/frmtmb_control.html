@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.49.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -72,6 +72,9 @@
 <span>  autoscale <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  check_nlev_1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"warning"</span>, <span class="st">"ignore"</span>, <span class="st">"stop"</span><span class="op">)</span>,</span>
 <span>  check_olre <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"warning"</span>, <span class="st">"ignore"</span>, <span class="st">"stop"</span><span class="op">)</span>,</span>
+<span>  importance_seed <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  importance_rounds <span class="op">=</span> <span class="fl">5L</span>,</span>
+<span>  importance_ess <span class="op">=</span> <span class="fl">0.25</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -175,6 +178,34 @@ also skipped for the known-structure blocks <code>gr(cov = )</code>,
 proportional to the identity, so the block and the residual are
 separately identified. That is the animal model with one
 measurement per individual.</p></dd>
+
+
+<dt id="arg-importance-seed">importance_seed<a class="anchor" aria-label="anchor" href="#arg-importance-seed"></a></dt>
+<dd><p>Seed for the standard normal draws of
+<code>frm(importance =)</code>. The draws are taken from a private random
+stream, so the fit neither reads nor disturbs the session's random
+state: the same seed gives the same answer to the last bit,
+whatever else has drawn random numbers.</p></dd>
+
+
+<dt id="arg-importance-rounds">importance_rounds<a class="anchor" aria-label="anchor" href="#arg-importance-rounds"></a></dt>
+<dd><p>Cap on the number of times
+<code>frm(importance =)</code> refreezes its proposal. Each round rebuilds
+the proposal at the current estimate and optimizes again, and the
+loop stops as soon as either the estimates move less than <code>1e-3</code>
+or the freshly anchored objective is stationary at them to
+<code>grad_tol</code>. Measured on this package's own designs that takes two
+to four rounds, with the move falling about tenfold each time, so
+the default leaves one in hand; an unused round costs nothing, and
+each round actually taken costs one tape.</p></dd>
+
+
+<dt id="arg-importance-ess">importance_ess<a class="anchor" aria-label="anchor" href="#arg-importance-ess"></a></dt>
+<dd><p>Effective sample size, as a fraction of the
+draw count, below which <code>frm(importance =)</code> warns and names the
+groups. The default <code>0.25</code> is placed by measurement: the hardest
+design in the test suite holds <code>0.43</code> at its own optimum, and a
+proposal displaced far enough to matter falls below <code>0.01</code>.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>

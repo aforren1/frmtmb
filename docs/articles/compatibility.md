@@ -216,44 +216,49 @@ under `REML` and under `profile`.
 `autoscale`, `sparse_x`, and `verbose` are different in kind. They
 change the arithmetic or the output, not the model.
 
-|            | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
-|:-----------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
-| REML       |      |     x      |    x    |    \+     |    \+    |   ~   |   x    |   \+    |
-| quadrature |  x   |            |    x    |    \+     |    \+    |  \+   |   \+   |   \+    |
-| profile    |  x   |     x      |         |    \+     |    \+    |   ~   |   x    |   \+    |
-| autoscale  |  \+  |     \+     |   \+    |           |    \+    |  \+   |   \+   |   \+    |
-| sparse_x   |  \+  |     \+     |   \+    |    \+     |          |  \+   |   \+   |   \+    |
-| prior      |  ~   |     \+     |    ~    |    \+     |    \+    |       |   \+   |   \+    |
-| bounds     |  x   |     \+     |    x    |    \+     |    \+    |  \+   |        |   \+    |
-| verbose    |  \+  |     \+     |   \+    |    \+     |    \+    |  \+   |   \+   |         |
+|  | REML | quadrature | importance | profile | autoscale | sparse_x | prior | bounds | verbose |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| REML |  | x | x | x | \+ | \+ | ~ | x | \+ |
+| quadrature | x |  | x | x | \+ | \+ | \+ | \+ | \+ |
+| importance | x | x |  | x | \+ | \+ | \+ | \+ | \+ |
+| profile | x | x | x |  | \+ | \+ | ~ | x | \+ |
+| autoscale | \+ | \+ | \+ | \+ |  | \+ | \+ | \+ | \+ |
+| sparse_x | \+ | \+ | \+ | \+ | \+ |  | \+ | \+ | \+ |
+| prior | ~ | \+ | \+ | ~ | \+ | \+ |  | \+ | \+ |
+| bounds | x | \+ | \+ | x | \+ | \+ | \+ |  | \+ |
+| verbose | \+ | \+ | \+ | \+ | \+ | \+ | \+ | \+ |  |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | ~ | REML + prior | Priors on fixed effects are accepted under REML while bounds on the same parameters are refused. The two surfaces are inconsistent. Priors on variance parameters behave as expected. |
 | ~ | profile + prior | Priors on the profiled fixed effects are accepted, while bounds on the same parameters are refused. Treat priors under profile with care. |
 | x | REML + quadrature | Refused: quadrature already marginalizes the random effects, so there is no inner problem left for REML to integrate. |
+| x | REML + importance | Refused: the correction reweights the integral over the random effects, and REML puts the fixed effects into that same integral, where there is no per-group proposal for them. |
 | x | REML + profile | Refused: profile = TRUE and REML both remove the fixed effects from the outer problem. |
 | x | REML + bounds | Refused: under REML the fixed effects leave the outer parameter vector, so bounds naming them are rejected as unknown parameters. |
+| x | quadrature + importance | Refused: two different corrections of the same approximation. Gauss-Kronrod marginalizes one scalar random intercept at a time; the importance correction reweights the Laplace Gaussian and takes any block dimension. |
 | x | quadrature + profile | Refused: profile = TRUE cannot be combined with quadrature = TRUE. |
+| x | importance + profile | Refused: profiling moves the fixed effects into the inner Laplace problem, and the corrected objective has no inner problem left to move them into. |
 | x | profile + bounds | Refused: with the fixed effects profiled out they leave the outer parameter vector, so bounds naming them are rejected. This pair was once accepted and the bounds were then applied to the wrong parameters. |
 
 ### Modes and addition terms
 
-|           | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
-|:----------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
-| weights() |  ?   |     \+     |   \+    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| trials()  |  ?   |     ?      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| cens()    |  \+  |     \+     |   \+    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| trunc()   |  \+  |     x      |   \+    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| se()      |  \+  |     \+     |   \+    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| mi()      |  \+  |     x      |   \+    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| vint()    |  ?   |     ?      |    ?    |    \+     |    \+    |   ?   |   ?    |    ?    |
-| vreal()   |  ?   |     ?      |    ?    |    \+     |    \+    |   ?   |   ?    |    ?    |
+|  | REML | quadrature | importance | profile | autoscale | sparse_x | prior | bounds | verbose |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| weights() | ? | \+ | \+ | \+ | \+ | \+ | ? | ? | \+ |
+| trials() | ? | ? | ? | ? | \+ | \+ | ? | ? | \+ |
+| cens() | \+ | \+ | \+ | \+ | \+ | \+ | ? | ? | \+ |
+| trunc() | \+ | x | \+ | \+ | \+ | \+ | ? | ? | \+ |
+| se() | \+ | \+ | ? | \+ | \+ | \+ | ? | ? | \+ |
+| mi() | \+ | x | x | \+ | \+ | \+ | ? | ? | \+ |
+| vint() | ? | ? | ? | ? | \+ | \+ | ? | ? | ? |
+| vreal() | ? | ? | ? | ? | \+ | \+ | ? | ? | ? |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | x | trunc() + quadrature | Refused: the truncation normalizer is log(F(ub) - F(lb)) over plain CDFs, and the Gauss-Kronrod nodes reach random-effect values where that difference underflows to exactly zero while the density is still representable. The integrand is then +Inf and the marginalized objective is -Inf, at the Laplace optimum as well as at the starting values, so the fit used to report logLik = +Inf as converged. Laplace stays near the mode and is unaffected: use quadrature = FALSE, REML, or profile for truncated responses. |
 | x | mi() + quadrature | Refused: the imputed values are themselves random effects that quadrature cannot marginalize. |
+| x | mi() + importance | Refused: the imputed values are latent variables with no grouping factor, so they have no per-group proposal. |
 
 ### Modes and covariance structures
 
@@ -261,36 +266,37 @@ Only `quadrature` reads the covariance structures. It marginalizes one
 scalar random intercept at a time, so every block in the model must be a
 one-dimensional `us`, `diag`, or `homdiag` term.
 
-|         | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
-|:--------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
-| us      |  \+  |     ~      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| diag    |  \+  |     ~      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| homdiag |  \+  |     ~      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| cs      |  \+  |     x      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| ar1     |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| hetar1  |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| ou      |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| toep    |  \+  |     x      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| homtoep |  \+  |     x      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| homcs   |  \+  |     x      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| exp     |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| gau     |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| mat     |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| rr      |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| equalto |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| gr_cov  |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| gr_prec |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| smooth  |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| gp      |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| hsgp    |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| car     |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| spde    |  \+  |     x      |    ?    |    \+     |    \+    |   ~   |   ~    |    ~    |
-| us_t    |  \+  |     ~      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| diag_t  |  \+  |     ~      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+|  | REML | quadrature | importance | profile | autoscale | sparse_x | prior | bounds | verbose |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| us | \+ | ~ | ~ | ? | \+ | \+ | ? | ? | \+ |
+| diag | \+ | ~ | ~ | ? | \+ | \+ | ? | ? | \+ |
+| homdiag | \+ | ~ | ~ | ? | \+ | \+ | ? | ? | \+ |
+| cs | \+ | x | ~ | ? | \+ | \+ | ? | ? | \+ |
+| ar1 | \+ | x | ~ | ? | \+ | \+ | ~ | ~ | ~ |
+| hetar1 | \+ | x | ~ | ? | \+ | \+ | ~ | ~ | ~ |
+| ou | \+ | x | ~ | ? | \+ | \+ | ~ | ~ | ~ |
+| toep | \+ | x | ~ | ? | \+ | \+ | ? | ? | \+ |
+| homtoep | \+ | x | ~ | ? | \+ | \+ | ? | ? | \+ |
+| homcs | \+ | x | ~ | ? | \+ | \+ | ? | ? | \+ |
+| exp | \+ | x | ~ | ? | \+ | \+ | ~ | ~ | ~ |
+| gau | \+ | x | ~ | ? | \+ | \+ | ~ | ~ | ~ |
+| mat | \+ | x | ~ | ? | \+ | \+ | ~ | ~ | ~ |
+| rr | \+ | x | x | ? | \+ | \+ | ~ | ~ | ~ |
+| equalto | \+ | x | x | ? | \+ | \+ | ~ | ~ | ~ |
+| gr_cov | \+ | x | x | ? | \+ | \+ | ~ | ~ | ~ |
+| gr_prec | \+ | x | x | ? | \+ | \+ | ~ | ~ | ~ |
+| smooth | \+ | x | x | ? | \+ | \+ | ~ | ~ | ~ |
+| gp | \+ | x | x | ? | \+ | \+ | ~ | ~ | ~ |
+| hsgp | \+ | x | x | ? | \+ | \+ | ~ | ~ | ~ |
+| car | \+ | x | x | ? | \+ | \+ | ~ | ~ | ~ |
+| spde | \+ | x | x | ? | \+ | \+ | ~ | ~ | ~ |
+| us_t | \+ | ~ | x | ? | \+ | \+ | ? | ? | \+ |
+| diag_t | \+ | ~ | x | ? | \+ | \+ | ? | ? | \+ |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | ~ | us + quadrature; diag + quadrature; homdiag + quadrature | Allowed only when the block is one-dimensional, that is a scalar random intercept. Correlated slopes are refused. Several such blocks are fine, nested ones included: (1 \| ga/gb) becomes an iterated one-dimensional integral. |
+| ~ | us + importance; diag + importance; homdiag + importance; cs + importance; ar1 + importance; and 8 more | Allowed for exactly ONE such block, of any dimension. This is the correction for a correlated random slope, which quadrature cannot marginalize at all. Several blocks are refused: the integral becomes a nested one whose groups do not separate into independent proposals. |
 | ~ | ar1 + prior; ar1 + bounds; ar1 + verbose | ar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. Use ou() over num_factor() for irregular spacing. |
 | ~ | hetar1 + prior; hetar1 + bounds; hetar1 + verbose | hetar1() reads the level order. Over gapped integer levels it keeps positional semantics and warns. |
 | ~ | ou + prior; ou + bounds; ou + verbose | ou() is the irregular-spacing structure. Build the levels with num_factor() so the metric distance is recoverable. |
@@ -305,6 +311,8 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | ~ | spde + prior; spde + bounds; spde + verbose | spde(fem, gr = node) is a predictor special taking a mesh’s finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes BY ROW NUMBER (whole numbers in 1..nrow(M0), as integers or as a factor/character spelling of them), because the matrices carry no dimnames to match labels against. Unobserved nodes keep their column; a general projector matrix is not supported yet. The matrices belong in data2 = list(fem = fem). |
 | ~ | us_t + quadrature; diag_t + quadrature | Allowed for one-dimensional blocks, and RECOMMENDED there: the Gauss-Kronrod rule marginalizes a scalar t latent EXACTLY, where the Laplace default is approximate. Verified against adaptive Gauss-Hermite quadrature to 1e-6 in the log-likelihood and in every estimate. Correlated slopes are refused, as they are for a gaussian block. |
 | x | cs + quadrature; ar1 + quadrature; hetar1 + quadrature; ou + quadrature; toep + quadrature; and 14 more | Refused: quadrature marginalizes one scalar random intercept at a time. Every block must be a dimension-1 us, diag, or homdiag term. |
+| x | rr + importance; smooth + importance; gp + importance; hsgp + importance; us_t + importance; diag_t + importance | Refused by name at the scope check. The Student-t latents (us_t, diag_t) factorize over grouping levels but are not gaussian in a level’s coefficients, and the correction recovers each level’s prior density from the block density by reading off a precision matrix, which would silently return a gaussian approximation to a t density; measured, that alone moves the corrected log-likelihood by 0.355. rr holds its parameters in a lower-dimensional factor space than its Z columns, so a group’s coefficients are not the contiguous per-level slice the proposal is built from. smooth, gp and hsgp are one field over all observations with no grouping factor, so there are no independent groups to give separate proposals to. |
+| x | equalto + importance; gr_cov + importance; gr_prec + importance; car + importance; spde + importance | Refused: these structures correlate the grouping LEVELS with each other through a supplied relationship or neighbor matrix, so the marginal likelihood is one integral over every level at once and does not split into the per-group integrals the correction resamples. |
 
 ## Model structures
 
@@ -398,17 +406,18 @@ reshapes a per-row contribution has nothing left to reshape.
 |:---|:---|:---|
 | x | ar() + weights(); ma() + weights(); arma() + weights(); cosy() + weights(); unstr() + weights(); and 25 more | Refused: the group’s density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with ‘Invalid addition arguments for this model’. |
 
-|         | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
-|:--------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
-| ar()    |  \+  |     x      |   \+    |    \+     |    \+    |  \+   |   \+   |   \+    |
-| ma()    |  \+  |     x      |   \+    |    \+     |    \+    |  \+   |   \+   |   \+    |
-| arma()  |  \+  |     x      |   \+    |    \+     |    \+    |  \+   |   \+   |   \+    |
-| cosy()  |  \+  |     x      |   \+    |    \+     |    \+    |  \+   |   \+   |   \+    |
-| unstr() |  \+  |     x      |   \+    |    \+     |    \+    |  \+   |   \+   |   \+    |
+|  | REML | quadrature | importance | profile | autoscale | sparse_x | prior | bounds | verbose |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| ar() | \+ | x | x | \+ | \+ | \+ | \+ | \+ | \+ |
+| ma() | \+ | x | x | \+ | \+ | \+ | \+ | \+ | \+ |
+| arma() | \+ | x | x | \+ | \+ | \+ | \+ | \+ | \+ |
+| cosy() | \+ | x | x | \+ | \+ | \+ | \+ | \+ | \+ |
+| unstr() | \+ | x | x | \+ | \+ | \+ | \+ | \+ | \+ |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | x | ar() + quadrature; ma() + quadrature; arma() + quadrature; cosy() + quadrature; unstr() + quadrature | Refused: the Gauss-Kronrod rule integrates a random effect against per-observation densities, and this residual is a joint density over each group. |
+| x | ar() + importance; ma() + importance; arma() + importance; cosy() + importance; unstr() + importance | Refused: the correction resamples a random effect against a PRODUCT of per-row densities, and an R-side residual is one joint density over each group, so no per-row integrand exists. |
 
 |         | mvbf | rescor | \|ID\| | nl  | mixture | mixture_mvn |
 |:--------|:----:|:------:|:------:|:---:|:-------:|:-----------:|
@@ -427,20 +436,24 @@ reshapes a per-row contribution has nothing left to reshape.
 
 ## Predictor specials
 
-|           | REML | quadrature | profile | autoscale | sparse_x | prior | bounds | verbose |
-|:----------|:----:|:----------:|:-------:|:---------:|:--------:|:-----:|:------:|:-------:|
-| s()       |  ?   |     x      |    ?    |     ?     |    \+    |   ?   |   ?    |    ?    |
-| t2()      |  ?   |     x      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| mo()      |  \+  |     ?      |   \+    |     ?     |    ?     |   ?   |   ?    |    ?    |
-| mi_pred() |  ?   |     ?      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
-| gp_pred() |  \+  |     x      |    ?    |     ?     |    ?     |   ?   |   ?    |    ?    |
-| cs_pred() |  ?   |     ?      |    ?    |    \+     |    \+    |   ?   |   ?    |   \+    |
+|  | REML | quadrature | importance | profile | autoscale | sparse_x | prior | bounds | verbose |
+|:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| s() | ? | x | x | ? | ? | \+ | ? | ? | ? |
+| t2() | ? | x | x | ? | \+ | \+ | ? | ? | \+ |
+| mo() | \+ | ? | \+ | \+ | ? | ? | ? | ? | ? |
+| mi_pred() | ? | ? | ? | ? | \+ | \+ | ? | ? | \+ |
+| gp_pred() | \+ | x | x | ? | ? | ? | ? | ? | ? |
+| cs_pred() | ? | ? | x | ? | \+ | \+ | ? | ? | \+ |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
 | x | s() + quadrature | Refused in practice: a smooth is a wide random-effect block, so the scalar-intercept guard rejects it. |
+| x | s() + importance | Refused: a smooth is one field over all observations, with no grouping factor, so there are no independent groups to give separate proposals to. |
 | x | t2() + quadrature | Refused in practice: a smooth is a wide random-effect block. |
+| x | t2() + importance | Refused: a smooth basis carries no grouping factor. |
 | x | gp_pred() + quadrature | Refused in practice: gp() builds a wide block, so the scalar-intercept guard rejects it. |
+| x | gp_pred() + importance | Refused: gp() builds a field over all observations, not a set of independent groups. |
+| x | cs_pred() + importance | Refused: cs() contributes threshold-specific offsets as a matrix per observation, which the first version does not stack over draws. |
 
 The specials `mi()`, `gp()`, and `cs()` share a name with a covariance
 structure. The registry writes the predictor forms as `mi_pred()`,
@@ -466,11 +479,11 @@ row; see `?frmtmb-multimembership`.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1651 | 33%   |
-| conditional |  1724 | 35%   |
-| refused     |   696 | 14%   |
+| works       |  1700 | 34%   |
+| conditional |  1737 | 34%   |
+| refused     |   727 | 14%   |
 | broken      |     0 | 0%    |
-| untested    |   864 | 18%   |
+| untested    |   877 | 17%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To
