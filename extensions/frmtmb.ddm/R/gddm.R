@@ -38,27 +38,9 @@ gd_relu <- function(x) 0.5 * (x + abs(x))
 # density improve rather than degrade when `ny` is raised alone.
 gd_start_cells <- 2
 
-#' Hold a value above a floor, for a quantity about to be logged.
-#'
-#' The positive part PLUS the floor, which is the same idiom and the
-#' same reasoning as `ddm_floor()` in this package's Wiener density, and
-#' for the same reason it is not written as a smooth maximum. The
-#' obvious alternative `(x + lo + |x - lo|) / 2` is wrong at these
-#' magnitudes: when `lo` is far below the rounding of `x`, the `+ lo`
-#' and the `- lo` inside the absolute value both vanish, the expression
-#' collapses to `(x + |x|) / 2`, and a negative `x` returns exactly
-#' zero, which is the value the floor exists to prevent.
-#'
-#' `abs()` rather than a comparison because the argument descends from
-#' the parameters, and an RTMB tape records no comparisons. The
-#' derivative is 0 below the floor and 1 above it, so a row the grid
-#' cannot represent is FLAT rather than undefined: its log density is a
-#' large finite negative number, its contribution to a mixture's
-#' log-sum-exp exponentiates to exactly 0, and its gradient is exactly
-#' 0. `-Inf` would not do, because `-Inf` differentiates to `NaN`.
-#'
-#' @noRd
-gd_floor <- function(x, lo) 0.5 * (x + abs(x)) + lo
+# Floors go through ddm_floor() in wiener-density.R: one helper for every
+# family in the package, and the rounding trap it avoids is documented
+# there.
 
 # The floor the interpolated density is held at before it is logged.
 # 1e-300 rather than the smallest positive double: this value is passed
@@ -262,14 +244,14 @@ gd_solve <- function(p, cov, comp, ctl) {
   # optimizer gets a bad number instead of no number in a region it only
   # ever visits by overshooting.
   b0 <- bnd(0, p, ctl)
-  B0 <- gd_floor(b0$B, gd_bound_floor)
+  B0 <- ddm_floor(b0$B, gd_bound_floor)
   a0 <- drf(yg * B0, 0, p, cov) / B0 - yg * b0$dlogB
   d0 <- 0.5 / (B0 * B0)
 
   for (k in seq_len(nt)) {
     tk <- k * dt
     b1 <- bnd(tk, p, ctl)
-    B1 <- gd_floor(b1$B, gd_bound_floor)
+    B1 <- ddm_floor(b1$B, gd_bound_floor)
     a1 <- drf(yg * B1, tk, p, cov) / B1 - yg * b1$dlogB
     d1 <- 0.5 / (B1 * B1)
 
@@ -1245,7 +1227,7 @@ gd_finalize <- function(fam, y, aterms, comp, control, dpnames) {
     # NaN is not a value an optimizer can use, and inside mixture() it
     # takes every other component with it through the log-sum-exp. See
     # gddm_floored() for how many rows this caught at the optimum.
-    log(gd_floor((1 - d$w) * p[d$i1] + d$w * p[d$i2], gd_dens_floor))
+    log(ddm_floor((1 - d$w) * p[d$i1] + d$w * p[d$i2], gd_dens_floor))
   })
   fam[["post"]] <- list(mean_fn = function(dpars, aterms) {
     gd_mean_rt(dpars, aterms, comp, ctl)

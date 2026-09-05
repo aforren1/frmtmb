@@ -1,0 +1,286 @@
+# The linear ballistic accumulator
+
+A race between `n` accumulators, for choices with more than two
+alternatives. Each accumulator rises in a straight line, with no
+within-trial noise, from a start point drawn uniformly on `(0, A)`
+toward a common threshold `b`. Its rate is drawn once per trial from a
+normal distribution. The first accumulator to reach the threshold is the
+response, and the observed time is its arrival time plus a non-decision
+time.
+
+## Usage
+
+``` r
+lba(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL)
+```
+
+## Arguments
+
+- n:
+
+  Number of accumulators, so the number of response alternatives. At
+  least 2.
+
+- sd_v:
+
+  Fixed drift standard deviation, the quantity that identifies the
+  scale. One positive number, or one per accumulator.
+
+- posdrift:
+
+  Truncate the drift distribution at zero? `TRUE`, the default, matches
+  `rtdists` and makes the likelihood proper.
+
+- max_ndt:
+
+  Upper bound for the non-decision time, in the units of the response.
+  `NULL`, the default, takes it from the data.
+
+## Value
+
+A `frmtmb_family`.
+
+## Details
+
+Because a trial's outcome is decided by one draw per accumulator rather
+than by a path, the likelihood is closed form for any `n`. That is what
+the family is for:
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md)
+is a diffusion between two absorbing boundaries and so admits exactly
+two responses, while this one takes as many as the design has.
+
+## The model
+
+Write the decision time as \\t = rt - ndt\\. For one accumulator with
+drift mean \\v\\ and drift standard deviation \\s\\, put
+
+\$\$g = \frac{b - v t}{s t}, \qquad h = \frac{b - A - v t}{s t},\$\$
+
+so that \\g\\ and \\h\\ are the standardized drifts that place the
+accumulator exactly at the threshold and exactly at the top of the
+start-point range at time \\t\\. The defective density and distribution
+function of its arrival time are
+
+\$\$f(t) = \frac{v\\(\Phi(g) - \Phi(h)) + s\\(\phi(h) -
+\phi(g))}{A\\c},\$\$ \$\$S(t) = \frac{\Phi(g) - \Phi(-v/s) + \frac{s
+t}{A}\\(h\\(\Phi(g) - \Phi(h)) - (\phi(h) - \phi(g)))}{c},\$\$
+
+where \\S\\ is the probability of arriving after \\t\\ and \\c\\ is the
+drift normalizing constant of the next section. A trial on which
+accumulator \\j\\ responded at time \\rt\\ contributes
+
+\$\$\log f_j(t) + \sum\_{i \neq j} \log S_i(t),\$\$
+
+the density that the observed accumulator arrived then, times the
+probability that none of the others had arrived yet.
+
+## Identification
+
+The model is invariant to a common rescaling: multiplying `A`, `b`,
+every drift mean and the drift standard deviation by one constant leaves
+the distribution of `(choice, rt)` unchanged. One quantity must
+therefore be fixed, and this family fixes the drift standard deviation,
+which is the usual choice.
+
+`sd_v` is a family argument rather than a distributional parameter, so
+the fixed quantity is written where the model is written and is carried
+on the family object, not buried in a default. Change it and every other
+parameter moves in proportion; it is a choice of units.
+
+The other convention in the literature constrains the drift means to sum
+to one. This family does not offer it, because it would make each
+accumulator's drift a function of every other accumulator's linear
+predictor, and the whole point of the family is that each drift takes
+its own formula.
+
+## Drift rates below zero
+
+An accumulator whose drift is not positive never reaches the threshold.
+Implementations differ on what to do about that. This family follows
+`rtdists`, the canonical R implementation, and its default
+`posdrift = TRUE`: the drift distribution is a normal truncated to
+positive values, so \\c = \Phi(v/s)\\ divides both \\f\\ and \\S\\.
+Every accumulator then arrives eventually, the choice probabilities sum
+to one, and the likelihood is proper.
+
+`posdrift = FALSE` leaves the drift distribution untruncated, so \\c =
+1\\ and an accumulator has probability \\\Phi(-v/s)\\ of never arriving.
+The response distribution is then defective: the choice probabilities
+sum to less than one, the missing mass being trials on which no
+accumulator would ever respond.
+
+The two conventions differ by more than a constant, because the constant
+is a different one for each accumulator and depends on that
+accumulator's own drift. A fit under one convention is not a
+reparameterization of a fit under the other. If you are comparing
+against another package, check which it uses before comparing numbers:
+`rtdists` truncates by default, and so does this family.
+
+## Parameters
+
+- `v1`, ..., `vn`:
+
+  Drift means, one per accumulator. Identity link, because a drift mean
+  is signed: it is the mean of the normal distribution before
+  truncation, so a negative value is meaningful and describes an
+  accumulator that rarely wins. These are the primary parameters, so the
+  main formula goes to all of them and each gets its own coefficients.
+  Give one its own formula to move it alone.
+
+- `A`:
+
+  Upper end of the start-point range, so start points are uniform on
+  `(0, A)`. Log link.
+
+- `k`:
+
+  Distance from the top of the start-point range to the threshold, so
+  that `b = A + k`. Log link.
+
+- `ndt`:
+
+  Non-decision time. Bounded link; see below.
+
+The threshold is parameterized as `A + k` rather than directly, which is
+the spelling the LBA literature uses and which makes `b > A` structural:
+a log link keeps `k` positive at every value of its linear predictor, so
+a threshold inside the start-point range, where a fraction of trials
+would start already finished, is not a state the optimizer can reach.
+Pinning `k` to zero or a negative constant is refused when the constant
+is checked against the log link's range.
+
+## Non-decision time
+
+The density is zero at and below `ndt`, so the likelihood has a hard
+edge at `ndt = min(rt)`. As
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md)
+does, `ndt` gets a logit scaled onto `(0, max_ndt)` instead of a log
+link, which makes the constraint structural. `max_ndt` defaults to the
+smallest observed response time, taken when the model frame is
+assembled. Pass it explicitly to pin the bound, which matters if you
+will [`predict()`](https://rdrr.io/r/stats/predict.html) on new data
+whose minimum differs.
+
+## The response, and why not `dec()`
+
+A trial is a `(choice, time)` pair. The time is the response and the
+choice is per-row data, which reaches the family through `vint()`:
+
+    frm(bf(rt | vint(choice) ~ cond), family = lba(3), data = dat)
+
+`vint1` is the ACCUMULATOR INDEX for this family: a whole number in
+`1..n` naming which accumulator reached the threshold, counting from
+one. A factor is not accepted, so recode it with
+`as.integer(factor(choice))` and check that the level order matches the
+accumulator numbering. Omitting `vint()` is refused by name, because the
+density indexes it.
+
+`dec()` does not apply here. That addition term is the two-boundary
+families' spelling: it carries a 0/1 indicator saying which of two
+boundaries a trial ended at, and a race has no boundaries and no fixed
+count of two. Passing `dec()` to this family is refused, because a
+decision indicator has two levels and a race of `n` accumulators needs
+`n`. The two are not different spellings of one idea: `dec()` names a
+side, `vint1` here names a winner. Read a `dec()` example from
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md)
+as 0/1, and this one as `1..n`.
+
+## Accuracy
+
+The pieces the likelihood is built from are each written in the form
+that keeps its digits, which is not always the form the papers print.
+
+The single-accumulator density agrees with
+[`rtdists::dlba_norm()`](https://rdrr.io/pkg/rtdists/man/single-LBA.html)
+to better than 1e-11 relative wherever `rtdists` itself is accurate,
+which is decision times long enough to keep `h` below about 4.5. Past
+that the two DIVERGE BY DESIGN and this one is the better of them,
+adjudicated at 200 bits: already at `h` = 7.6, inside the band the
+literature would call safe, `rtdists` is 1.3e-4 wrong where this family
+is 4.6e-15 wrong. `rtdists` writes the normal difference
+`Phi(g) - Phi(h)` as a subtraction of two lower tails, which returns
+exactly zero once `Phi(h)` rounds to one; this family writes it in log
+space, where nothing saturates. Against a 200-bit reference on a grid of
+1144 points, the subtractive form is wrong by a factor of one on 68 of
+the 80 rows with `h` at or above 8, returning exactly zero, and is
+already 2.7e-3 wrong on 8 rows well inside the supposedly safe region.
+The log-space form holds 5.0e-14 in the bulk and 3.6e-4 in the tail,
+with no exact zeros.
+
+Four of those 1144 points still exceed 1e-6 relative, the worst at
+3.6e-4, so this is a large improvement rather than a proof.
+
+The survival function is likewise not `1 - rtdists::plba_norm()`: that
+difference loses all its digits once a fast competitor has almost
+certainly finished, returning exactly zero where the survival is around
+1e-19, which would send a loser's log-contribution to `-Inf` on ordinary
+data. It is written out directly instead, and agrees with a
+high-accuracy quadrature of the density to better than 1e-9 relative
+down to survivals of 1e-23.
+
+Why this was worth doing rather than documenting as a limit: the
+subtractive form's error is an error in the VALUE alone. A tape
+differentiates the function that was written, not the one that was
+computed, so where the value saturates the gradient stops describing the
+surface the value traces. That mismatch does not move the point
+estimate, which the likelihood keeps out of the affected region by
+collapsing the fastest row's density, but it does reach the Hessian, and
+standard errors were up to 16.5 percent off toward the non-decision-time
+bound before the change.
+
+Below all of this the density underflows to zero in double precision;
+the log-density is floored rather than returning `-Inf`, so the
+optimizer sees a finite wall instead of a hole. Decision times at or
+below zero, which [`predict()`](https://rdrr.io/r/stats/predict.html) on
+faster new data can reach, are floored the same way.
+
+## References
+
+Brown, S. D. and Heathcote, A. (2008). The simplest complete model of
+choice response time: Linear ballistic accumulation. *Cognitive
+Psychology*, 57(3), 153-178.
+
+Donkin, C., Brown, S. D. and Heathcote, A. (2009). The overconstraint of
+response time models: Rethinking the scaling problem. *Psychonomic
+Bulletin & Review*, 16(6), 1129-1135.
+
+## See also
+
+[`lba_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/lba_simulate.md)
+to generate from the model, and
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md)
+for the two-choice diffusion.
+
+## Examples
+
+``` r
+set.seed(1)
+dat <- lba_simulate(400, v = c(2.4, 1.6, 1.0), A = 0.5, k = 0.4,
+                    ndt = 0.2)
+fit <- frm(bf(rt | vint(choice) ~ 1), family = lba(3), data = dat)
+fixef(fit)
+#> $v1
+#> (Intercept) 
+#>    2.178808 
+#> 
+#> $v2
+#> (Intercept) 
+#>    1.193192 
+#> 
+#> $v3
+#> (Intercept) 
+#>   0.4728501 
+#> 
+#> $A
+#> (Intercept) 
+#>  -0.8953632 
+#> 
+#> $k
+#> (Intercept) 
+#>   -1.113032 
+#> 
+#> $ndt
+#> (Intercept) 
+#>   0.9826474 
+#> 
+```

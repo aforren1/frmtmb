@@ -1,4 +1,4 @@
-# Drift-diffusion models of two-choice response times
+# Response time models: two-choice and multi-alternative
 
 ## What the model says
 
@@ -70,9 +70,8 @@ prop.table(table(dat$lex, dat$upper), margin = 1)
 
 ## The decision indicator
 
-brms spells the boundary a trial ended at as `rt | dec(decision)`.
-frmtmb’s addition terms are a closed set and `dec()` is not one of them,
-so this family reads the indicator from `vint()` instead:
+The boundary a trial ended at is data, and it reaches the density as an
+addition term spelled the way brms spells it:
 
 ``` r
 
@@ -80,12 +79,26 @@ so this family reads the indicator from `vint()` instead:
 brm(rt | dec(decision) ~ lex, family = wiener(), data = dat)
 
 # here
+frm(bf(rt | dec(decision) ~ lex), family = wiener(), data = dat)
+```
+
+`dec()` takes what brms takes: a factor or a character vector, read on
+its levels with the second one as the upper boundary, or a 0/1 column.
+The package contributes the term to frmtmb’s addition-term registry when
+it loads, so nothing has to be enabled.
+
+`vint()` carries the same thing as a plain 0/1 integer and also works.
+It was the only route before frmtmb had a registry to contribute to, and
+models written that way keep running:
+
+``` r
+
 frm(bf(rt | vint(upper) ~ lex), family = wiener(), data = dat)
 ```
 
-`upper` must already be coded 0/1. Unlike `dec()`, `vint()` will not
-take a factor, and passing anything else is refused rather than silently
-coerced.
+Supplying neither is refused. An absent addition term reaches a density
+as `NULL`, `NULL` in arithmetic is a zero-length result, and the fit
+would otherwise return with a log likelihood summed over no rows.
 
 ## Fitting
 
@@ -233,14 +246,14 @@ quantile(sims,   c(0.1, 0.5, 0.9))
   the response time given the boundary. It does not jointly model which
   boundary was reached, so it is not a substitute for fitting choice and
   time together.
-- **There is no across-trial variability, and no contaminant mixture.**
-  Drift, start point and non-decision time are constant within a
-  condition, which makes this the pure Wiener model rather than the full
-  Ratcliff model. The Ratcliff likelihood integrates over a drift
-  distribution at every row, and fast guesses and slow lapses need a
-  mixture component that is not here. A random effect over subjects
-  models variation BETWEEN participants, which is a different claim from
-  variation between trials.
+- **The start-point range is not held inside the boundaries by
+  construction.** `wiener(variability = "sz")` gives `sz` a logit link,
+  so the width is below 1 and the uniform start point stays inside the
+  boundaries whenever `bias` is 0.5, which is the usual case. At a
+  strongly biased start a wide `sz` can push the range past a boundary.
+  Nor is `ndt - st / 2` held above zero. Both are joint constraints on
+  two distributional parameters, and a link is a property of one, so
+  neither can be made structural from outside frmtmb.
 
 `frm_compat("wiener")` states each of these, along with what was tested
 and what merely was not.
@@ -293,7 +306,7 @@ frm_compat("wiener")[, c("feature_b", "status")]
 #> 42             cosy()     refused
 #> 43            unstr()     refused
 #> 44               REML    untested
-#> 45         quadrature       works
+#> 45         quadrature     refused
 #> 46            profile       works
 #> 47          autoscale       works
 #> 48           sparse_x       works
@@ -304,7 +317,7 @@ frm_compat("wiener")[, c("feature_b", "status")]
 #> 53             rescor     refused
 #> 54               |ID|    untested
 #> 55                 nl     refused
-#> 56            mixture    untested
+#> 56            mixture       works
 #> 57        mixture_mvn    untested
 #> 58             fitted       works
 #> 59            predict       works
@@ -319,7 +332,132 @@ frm_compat("wiener")[, c("feature_b", "status")]
 #> 68         double_bar       works
 #> 69               mm()       works
 #> 70              mmc() conditional
+#> 71              dec()       works
 ```
+
+## The full model: across-trial variability
+
+Everything above holds the four parameters fixed within a condition.
+Ratcliff’s full diffusion model does not: it draws the drift rate, the
+start point and the non-decision time afresh on every trial, which is
+what lets one model account for both the fast errors a start-point range
+produces and the slow errors a drift range produces.
+
+`variability` turns those on. Each one it names becomes an ordinary
+distributional parameter and takes its own formula like any other:
+
+``` r
+
+set.seed(4)
+full <- ddm_simulate(600, mu = 1.2, bs = 1.5, ndt = 0.30,
+                     sv = 1.0, st = 0.10)
+ffit <- frm(bf(rt | dec(upper) ~ 1, bias = 0.5),
+            family = wiener(variability = c("sv", "st")), data = full)
+e <- unlist(fixef(ffit))
+ub <- min(full$rt)
+c(mu  = e[["mu.(Intercept)"]],
+  bs  = exp(e[["bs.(Intercept)"]]),
+  ndt = ub / (1 + exp(-e[["ndt.(Intercept)"]])),
+  sv  = exp(e[["sv.(Intercept)"]]),
+  st  = 2 * ub / (1 + exp(-e[["st.(Intercept)"]])))
+#>        mu        bs       ndt        sv        st 
+#> 1.3188861 1.5183809 0.3159405 1.2936135 0.1380081
+```
+
+### Three integrals, three answers
+
+The likelihood is the analytic Wiener density averaged over those
+distributions. They are not averaged the same way, because they are not
+the same integral.
+
+**The drift rate has a closed form.** The drift enters the log density
+only as `-v a w - v^2 t / 2`: the series that carries the shape of the
+distribution is the driftless one, and the drift multiplies it by an
+exponential-quadratic. Averaging an exponential-quadratic against a
+normal completes the square, so
+
+    mean of exp(-v a w - v^2 t / 2)
+      = (1 + t sv^2)^(-1/2)
+        exp( ((a w)^2 sv^2 - 2 v a w - v^2 t) / (2 (1 + t sv^2)) )
+
+That is exact. There is no node count for `sv` and no accuracy to trade,
+and estimating it is free relative to the plain density: over three
+seeds a fit with `sv` took 0.97 to 1.07 times a fit without it, and at
+the density level both cost 0.0002 s per call. The two quadratures below
+are the ones that cost.
+
+**The other two are uniform, and get fixed Gauss-Legendre nodes.** The
+node positions and counts are decided when the family object is built.
+Nothing may branch on a parameter on an automatic-differentiation tape,
+and a node count that moved with `st` would be exactly that; a parameter
+only rescales the interval the fixed nodes are mapped onto.
+
+The two defaults differ because the two integrands do. The start-point
+integrand is analytic across its whole range. The non-decision-time
+integrand is not free to use its whole range: the density is zero for a
+non-decision time at or past the response time, so on a fast trial the
+range is cut and the integrand turns on sharply at the cut. Measured
+against a far finer rule on such a trial:
+
+``` r
+
+lp <- function(nsz, nst) {
+  nd <- frmtmb.ddm:::ddm_nodes(c("sz", "st"), c(sz = nsz, st = nst))
+  frmtmb.ddm:::ddm_lpdf_var(0.36, 1.0, 1.5, 0.45, 0.30, 1.0, 0.2, 0.2,
+                            0, nd, TRUE, 1e-9)
+}
+best <- lp(31L, 81L)
+n <- c(3, 5, 7, 11, 15, 21, 31)
+data.frame(nodes = n,
+           sz_err = abs(vapply(n, function(k) lp(k, 81L), 0) - best),
+           st_err = abs(vapply(n, function(k) lp(31L, k), 0) - best))
+#>   nodes       sz_err       st_err
+#> 1     3 8.800603e-07 1.190146e-02
+#> 2     5 7.849277e-13 1.666151e-03
+#> 3     7 1.776357e-15 1.247713e-04
+#> 4    11 1.776357e-15 1.746504e-05
+#> 5    15 1.998401e-15 3.019358e-07
+#> 6    21 1.554312e-15 3.011576e-09
+#> 7    31 0.000000e+00 1.085518e-10
+```
+
+The start-point column is at machine precision by 7 nodes. The
+non-decision-time column takes 21 to reach 1e-9, which is where the
+default sits. Lower it with `wiener(nodes = c(st = 11))` if the fit is
+slow and the extra digits are not worth the time.
+
+### A contaminant mixture
+
+Fast guesses are not diffusion trials, and a model with no component for
+them pays by dragging the non-decision time down. The standard treatment
+is a mixture, which needs the Wiener component’s non-decision time to
+sit above the fastest response time. That is refused by default, for a
+bare model correctly, and `allow_unreachable = TRUE` says the other
+component covers those trials:
+
+``` r
+
+frm(bf(rt | dec(decision) ~ 1, bias1 = 0.5),
+    family = mixture(wiener(max_ndt = 0.4, allow_unreachable = TRUE),
+                     lognormal()),
+    data = dat)
+```
+
+A trial below the non-decision time then gets a log density that
+exponentiates to exactly zero, which is the right likelihood for that
+component, and differentiates to exactly zero, which a true `-Inf` would
+not: `-Inf` gives the correct value and a `NaN` gradient, and one `NaN`
+stops the fit.
+
+### Why this is not `quadrature = TRUE`
+
+frmtmb has a `quadrature` argument, and it is not this. It marginalizes
+RANDOM EFFECTS by adaptive Gauss-Kronrod, is wired to the random-effect
+coefficient vector by name, and refuses a model that has no
+random-effect block at all. Across-trial variability shares nothing
+between trials, has no level to estimate, and gives every row its own
+integral whether or not the model has a grouping factor. It belongs
+inside the density, and that is where it is.
 
 ## The density
 
@@ -378,8 +516,203 @@ data.frame(u,
 The last column is what a fixed truncation of the small-time series
 alone would give. It is fine until it is not.
 
-## Reference
+## More than two alternatives
+
+Everything above is one accumulator running between two absorbing
+boundaries. Two is not a simplification there, it is the whole geometry:
+the process is one-dimensional and there are two ends, so a
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md)
+fit can describe a yes/no decision and nothing wider. No choice of
+parameters reaches a third response.
+
+The linear ballistic accumulator gets there by changing what races. Each
+alternative gets its own accumulator, rising in a straight line from a
+start point drawn uniformly on `(0, A)` to a common threshold
+`b = A + k`. The rate is drawn once per trial from a normal distribution
+rather than varying within the trial, and it is that missing
+within-trial noise which buys the closed form: the outcome depends on
+one draw per accumulator, so the likelihood is the winner’s density
+times the others’ survival probabilities, for any number of
+accumulators.
+
+The chunks below run whether or not RWiener is installed, since the
+accumulator race needs neither it nor any other reference package.
+
+### An experiment with three responses
+
+A cue makes one of three alternatives more attractive, trial by trial,
+and leaves the other two alone. That is a design neither two-choice
+family can express, so it is worth building from scratch.
+[`lba_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/lba_simulate.md)
+takes a matrix of drift means with one row per trial, which is how a
+covariate enters the generative model.
+
+``` r
+
+set.seed(20)
+N <- 1500
+cue <- rnorm(N)
+# the cue raises the evidence for alternative 2 and nothing else
+V <- cbind(2.4, 1.5 + 1.1 * cue, 0.9)
+dat3 <- lba_simulate(N, v = V, A = 0.5, k = 0.4, ndt = 0.2)
+dat3$cue <- cue
+head(dat3)
+#>   choice        rt        cue
+#> 1      2 0.4528505  1.1626853
+#> 2      1 0.3538470 -0.5859245
+#> 3      2 0.3788586  1.7854650
+#> 4      1 0.6926590 -1.3325937
+#> 5      1 0.4368551 -0.4465668
+#> 6      2 0.3145631  0.5696061
+table(dat3$choice)
+#> 
+#>   1   2   3 
+#> 904 433 163
+```
+
+The choice is data, exactly as the boundary indicator was, and reaches
+the family through `vint()`. It names the accumulator that responded,
+counting from one.
+
+``` r
+
+fit3 <- frm(bf(rt | vint(choice) ~ cue), family = lba(3), data = dat3)
+fixef(fit3)
+#> $v1
+#> (Intercept)         cue 
+#>  2.33038268  0.01772203 
+#> 
+#> $v2
+#> (Intercept)         cue 
+#>    1.464786    1.039147 
+#> 
+#> $v3
+#> (Intercept)         cue 
+#>   0.7283536  -0.1080327 
+#> 
+#> $A
+#> (Intercept) 
+#>    -0.87533 
+#> 
+#> $k
+#> (Intercept) 
+#>  -0.8251791 
+#> 
+#> $ndt
+#> (Intercept) 
+#>   0.8213659
+```
+
+Every drift is a primary parameter, so the main formula went to all
+three and each got its own coefficients. That is what makes the answer
+readable: the cue slope is near its true 1.1 on `v2` and near zero on
+`v1` and `v3`, which is the model recovering that the cue moved one
+alternative and not the others.
+
+``` r
+
+vapply(c("v1", "v2", "v3"), function(p) fixef(fit3)[[p]][["cue"]],
+       numeric(1))
+#>          v1          v2          v3 
+#>  0.01772203  1.03914697 -0.10803273
+```
+
+Had we known which alternative the cue acts on, we would have said so
+and left the other two drifts an intercept each:
+
+``` r
+
+fit3b <- frm(bf(rt | vint(choice) ~ 1, v2 ~ cue), family = lba(3),
+             data = dat3)
+c(all_drifts = AIC(fit3), v2_only = AIC(fit3b))
+#> all_drifts    v2_only 
+#>  -742.0252  -743.2697
+```
+
+The remaining parameters came back near the values they were drawn from.
+`A` and `k` carry log links and `ndt` the bounded link the Wiener family
+also uses, so read them through the link:
+
+``` r
+
+e <- fixef(fit3b)
+lk <- family(fit3b)$links$ndt
+c(A = exp(e$A[[1]]), k = exp(e$k[[1]]), ndt = lk$linkinv(e$ndt[[1]]),
+  truth_A = 0.5, truth_k = 0.4, truth_ndt = 0.2)
+#>         A         k       ndt   truth_A   truth_k truth_ndt 
+#> 0.4095901 0.4447096 0.1906341 0.5000000 0.4000000 0.2000000
+```
+
+### Two conventions to know before comparing packages
+
+The model is identified only up to scale: multiply `A`, the threshold,
+every drift mean and the drift standard deviation by one constant and
+the distribution of `(choice, rt)` does not move. Something has to be
+held fixed, and this family fixes the drift standard deviation. It is
+the `sd_v` argument rather than a hidden constant, and it is carried on
+the family object, so a fit says what it held:
+
+``` r
+
+family(fit3b)[["lba_sd_v"]]
+#> [1] 1 1 1
+```
+
+The second convention is what happens to an accumulator whose drift
+comes out negative, since it would never reach the threshold. Following
+`rtdists`, drift rates are truncated at zero by default, which makes
+every accumulator arrive eventually and the choice probabilities sum to
+one. `lba(3, posdrift = FALSE)` leaves them untruncated, and the
+response distribution is then defective by design. The two are different
+models rather than a rescaling of each other, so a log-likelihood from
+one is not comparable with a log-likelihood from the other, nor with
+another package set the other way.
+
+### What it refuses
+
+A choice outside `1..n` is a data error, not a small likelihood, and is
+named as such rather than quietly fitted:
+
+``` r
+
+bad <- dat3
+bad$choice[7] <- 4L
+frm(bf(rt | vint(choice) ~ 1), family = lba(3), data = bad)
+#> Error:
+#> ! lba(3): the vint() choice indicator names which accumulator responded and must be a whole number from 1 to 3. Saw 4. A factor is not accepted; recode it with as.integer(factor(choice)) and check the level order matches the accumulator numbering.
+```
+
+So is omitting the choice altogether, which the family declares through
+`required_aterms` so that frmtmb refuses it by name instead of building
+a log likelihood over no rows:
+
+``` r
+
+frm(bf(rt ~ 1), family = lba(3), data = dat3)
+#> Error:
+#> ! lba: the density needs `vint1`, which nothing on this response supplies. Write the addition term: rt | vint(<column>) ~ ...
+```
+
+A threshold inside the start-point range needs no refusal at all. The
+threshold is `A + k` with a log link on `k`, so it stays above the
+start-point range at every value of the linear predictor, and a trial
+that begins already finished is not a state the optimizer can reach.
+
+## References
+
+Brown, S. D. and Heathcote, A. (2008). The simplest complete model of
+choice response time: Linear ballistic accumulation. *Cognitive
+Psychology*, 57(3), 153-178.
+
+Donkin, C., Brown, S. D. and Heathcote, A. (2009). The overconstraint of
+response time models: Rethinking the scaling problem. *Psychonomic
+Bulletin & Review*, 16(6), 1129-1135.
 
 Navarro, D. J. and Fuss, I. G. (2009). Fast and accurate calculations
 for first-passage times in Wiener diffusion models. *Journal of
 Mathematical Psychology*, 53(4), 222-230.
+
+Ratcliff, R. and Tuerlinckx, F. (2002). Estimating parameters of the
+diffusion model: approaches to dealing with contaminant reaction times
+and parameter variability. *Psychonomic Bulletin & Review*, 9(3),
+438-481.

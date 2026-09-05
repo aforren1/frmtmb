@@ -96,28 +96,32 @@ ddm_log_gl <- function(u, w, K = ddm_kl) {
 
 #' Hold a quantity above a floor, without a comparison.
 #'
-#' The positive part of `x` plus `lo`, which is the only spelling of
-#' this that works at the magnitudes the floors here use. The obvious
-#' alternative, the smooth maximum `(x + lo + |x - lo|) / 2`, is WRONG:
-#' when `lo` is far smaller than the rounding of `x`, the `+ lo` and the
-#' `- lo` inside the absolute value both vanish and the expression
-#' collapses to `(x + |x|) / 2`, which is exactly zero for a negative
-#' `x`. That is the value the floor exists to prevent, and it is
-#' reached: measured with `lo = 1e-300`, the maximum form returns 0 at
-#' `x = -1e-17` while this one returns `lo`.
+#' `max(x, lo)` written as `lo + ((x - lo) + |x - lo|) / 2`, which keeps
+#' `lo` OUTSIDE the cancelling sum. The other maximum spelling,
+#' `(x + lo + |x - lo|) / 2`, is wrong at the magnitudes the floors here
+#' use: when `lo` is far below the rounding of `x`, the `+ lo` and the
+#' `- lo` inside the absolute value both vanish, the expression collapses
+#' to `(x + |x|) / 2`, and a negative `x` returns exactly zero, the value
+#' the floor exists to prevent. Measured with `lo = 1e-300`, that form
+#' returns 0 at `x = -1e-17`; this one returns `lo`.
 #'
-#' Both call sites need a floor rather than a maximum anyway. `lo` is
-#' orders of magnitude below anything either quantity legitimately
-#' takes, so adding it is a no-op on every value in range and the form
-#' is bit-for-bit inert there.
+#' This one helper serves every family in the package. Where `lo` is a
+#' denormal or 1e-300, it is bit-for-bit inert on every value in range,
+#' so a density is unchanged wherever it was already right. Where `lo`
+#' is 1e-10 or 1e-12, as in the accumulator race's normalizers, it is an
+#' exact maximum: `x` passes through untouched above the floor, where a
+#' positive part plus the floor would have added `lo` to every value.
 #'
-#' `abs()` rather than a comparison because both arguments descend from
-#' the non-decision time, which is a parameter, and an RTMB tape records
-#' no comparisons. The derivative is 0 below the floor and 1 above it,
-#' which is what makes an unreachable row flat rather than undefined.
+#' `abs()` rather than a comparison because the argument descends from
+#' a parameter, and an RTMB tape records no comparisons. The derivative
+#' is 0 below the floor and 1 above it, which is what makes a row the
+#' model cannot reach flat rather than undefined: its log density is a
+#' large finite negative number, its contribution to a mixture's
+#' log-sum-exp exponentiates to exactly 0, and its gradient is exactly
+#' 0. `-Inf` would not do, because `-Inf` differentiates to `NaN`.
 #'
 #' @noRd
-ddm_floor <- function(x, lo) 0.5 * (x + abs(x)) + lo
+ddm_floor <- function(x, lo) lo + 0.5 * ((x - lo) + abs(x - lo))
 
 # The floor the normalized time is held at. It is the smallest positive
 # double there is, which is not a fudge factor but the whole mechanism:

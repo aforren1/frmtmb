@@ -303,7 +303,7 @@ lba_law <- list(
     # Floored rather than clamped at zero: the race multiplies this by a
     # 0/1 mask, and 0 * -Inf is NaN, which would take the whole tape with
     # it on the first row whose density underflowed.
-    log(lba_atleast(f, 1e-300))
+    log(ddm_floor(f, 1e-300))
   },
   lsurv = function(t, p) {
     Phi <- RTMB::pnorm
@@ -324,8 +324,8 @@ lba_law <- list(
     # the never-arriving mass Phi(-v/s) is added back.
     q <- Phi(p$v / p$s)
     sf <- lba_phidiff(g, -p$v / p$s) + (p$s * t / p$A) * (h * dPhi - dphi)
-    s <- if (p$posdrift) sf / lba_atleast(q, 1e-10) else sf + Phi(-p$v / p$s)
-    log(lba_atleast(s, 1e-300))
+    s <- if (p$posdrift) sf / ddm_floor(q, 1e-10) else sf + Phi(-p$v / p$s)
+    log(ddm_floor(s, 1e-300))
   })
 
 #' `Phi(hi) - Phi(lo)` for `hi >= lo`, in log space.
@@ -392,20 +392,8 @@ lba_phidiff <- function(hi, lo) {
 #' @noRd
 lba_denom <- function(p) {
   if (!p$posdrift) return(1)
-  lba_atleast(RTMB::pnorm(p$v / p$s), 1e-10)
+  ddm_floor(RTMB::pnorm(p$v / p$s), 1e-10)
 }
-
-#' `pmax(x, lo)` for a floor `lo` many orders of magnitude below `x`.
-#'
-#' The obvious spelling, `0.5 * (x + lo + abs(x - lo))`, is wrong here
-#' and silently so: with `lo` at 1e-300 and `x` of order one, both
-#' `x + lo` and `abs(x - lo)` round to `x` and the floor is annihilated,
-#' leaving `pmax(x, 0)`. A negative `x` then floors to zero and its log
-#' to `-Inf`, which is the failure the floor existed to prevent. Adding
-#' the floor last, outside the cancelling sum, keeps it.
-#'
-#' @noRd
-lba_atleast <- function(x, lo) lo + 0.5 * ((x - lo) + abs(x - lo))
 
 #' Split the distributional parameters into one list per accumulator.
 #'
@@ -435,7 +423,7 @@ lba_race_lpdf <- function(t, choice, law, accs) {
   # of that region, but predict() on new data holding the training
   # bound can still reach it, so the time is floored and those rows get
   # the same finite wall an underflowed density gets.
-  t <- lba_atleast(t, 1e-12)
+  t <- ddm_floor(t, 1e-12)
   ll <- 0 * t
   for (j in seq_along(accs)) {
     won <- as.numeric(choice == j)

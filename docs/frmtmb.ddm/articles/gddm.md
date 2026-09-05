@@ -1,0 +1,355 @@
+# Generalized drift-diffusion models
+
+[`vignette("ddm")`](https://aforren1.github.io/frmtmb/frmtmb.ddm/articles/ddm.md)
+fits the drift-diffusion model whose density is known in closed form.
+This one is about the models whose density is not.
+
+## What the generalized model adds
+
+The Wiener model of
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md)
+holds three things fixed. Evidence accumulates at a constant rate, the
+two decision boundaries stay where they are, and the accumulator has no
+memory of its own level. Drop any of them and the first-passage density
+stops having a closed form.
+
+[`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm.md)
+is the generalized drift-diffusion model of Shinn, Lam and Murray
+(2020). The accumulator follows
+
+    dx = a(x, t) dt + dW
+
+from a starting distribution, and is absorbed at moving boundaries at
+plus and minus `B(t)`. The response time is the absorption time plus a
+non-decision time. Three things are now yours to choose:
+
+- **the drift** `a(x, t)`, which may depend on a covariate and on the
+  accumulator’s own level. A drift that pulls the accumulator back
+  toward zero is leaky integration; one that pushes it away is unstable.
+- **the boundary** `B(t)`, which may collapse over the course of a
+  trial, so that a decision gets easier to reach the longer it takes.
+- **the starting distribution**, a point or an interval.
+
+Each choice brings its own free parameters, and each of those takes a
+formula like any other distributional parameter.
+
+Two responses is the whole of it. One accumulator in one dimension
+between two absorbing boundaries can end a trial at the upper wall or
+the lower wall and nowhere else, so multi-alternative choice is a
+different architecture rather than another parameter, and a third level
+in the decision indicator is refused rather than folded into one of the
+two.
+
+## An experiment
+
+The design is the one the paper fits: a motion discrimination task at
+several coherences, where the drift grows with coherence and the
+boundaries collapse as the trial runs on.
+
+[`gddm_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm_simulate.md)
+draws from the model’s own density rather than from a forward simulation
+of the diffusion, whose first passages arrive late by however much the
+step misses excursions between monitoring times.
+
+``` r
+
+coh <- c(0, 0.128, 0.512)
+ctl <- gddm_control(t_max = 2, dt = 0.02, ny = 101)
+dat <- do.call(rbind, lapply(coh, function(cc) {
+  gddm_simulate(300, mu = 6, alpha = 0.8, leak = 1, bs = 3, tau = 1.2,
+                ndt = 0.25, coh = cc,
+                drift = list(gddm_drift_coherence(cmax = 0.512),
+                             gddm_drift_leak()),
+                bound = gddm_bound_exponential(), control = ctl)
+}))
+dat$coh <- rep(coh, each = 300)
+str(dat)
+#> 'data.frame':    900 obs. of  4 variables:
+#>  $ rt   : num  1.281 1.045 1.486 0.566 0.944 ...
+#>  $ upper: int  0 0 1 0 0 0 1 1 1 1 ...
+#>  $ cond : int  1 1 1 1 1 1 1 1 1 1 ...
+#>  $ coh  : num  0 0 0 0 0 0 0 0 0 0 ...
+```
+
+Accuracy rises with coherence, and responses get faster:
+
+``` r
+
+data.frame(coh = coh,
+           accuracy = round(tapply(dat$upper, dat$coh, mean), 3),
+           mean_rt = round(tapply(dat$rt, dat$coh, mean), 3))
+#>         coh accuracy mean_rt
+#> 0     0.000     0.50   1.101
+#> 0.128 0.128     0.98   0.807
+#> 0.512 0.512     1.00   0.482
+```
+
+## What the data must carry
+
+Two things beyond the response time, and both are data.
+
+Which boundary a trial ended at reaches the family through `dec()`, as
+it does for
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md),
+or through `vint()`, which is the general-purpose route and the one used
+below. The **condition** a trial belongs to reaches it through `vint()`,
+and that one is particular to this family: one solve of the
+Fokker-Planck equation serves every trial that shares a parameter
+vector, and the family finds those trials through an index it is given
+rather than by comparing parameter values, which it cannot do on a tape.
+
+`vint()` numbers its values positionally, so the two spellings put the
+condition in different places, and the family reads whichever it is:
+
+    rt | dec(response) + vint(cond)   # boundary in dec(), condition first
+    rt | vint(upper, cond)            # boundary first, condition second
+
+[`gddm_conditions()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm_conditions.md)
+builds the index. Name every variable that appears on the right-hand
+side of any formula in the model, and every covariate a drift term
+reads.
+
+``` r
+
+dat$cond <- gddm_conditions(dat, coh)
+table(dat$cond)
+#> 
+#>   1   2   3 
+#> 300 300 300
+```
+
+Naming more variables than you need is safe and only costs solves.
+Naming fewer is wrong, and wrong in a way nothing downstream can detect:
+the family checks that the covariates a drift reads are constant within
+a condition, but it cannot check the rest.
+
+## Fitting
+
+``` r
+
+fit <- frm(bf(rt | vint(upper, cond) + vreal(coh) ~ 1, bias = 0.5),
+           family = gddm(drift = list(gddm_drift_coherence(cmax = 0.512),
+                                      gddm_drift_leak()),
+                         bound = gddm_bound_exponential(),
+                         control = ctl),
+           data = dat)
+summary(fit)
+#> Family: gddm 
+#> Formula: rt | vint(upper, cond) + vreal(coh) ~ 1 
+#> Method: ML   nobs: 900 
+#> logLik: 46.4345  AIC: -80.869  BIC: -52.0547 
+#> 
+#> Coefficients (mu):
+#>             Estimate Std. Error z value  Pr(>|z|)
+#> (Intercept)  5.68217    0.23468  24.213 < 2.2e-16
+#> 
+#> Coefficients (alpha):
+#>              Estimate Std. Error z value  Pr(>|z|)
+#> (Intercept) -0.241312   0.045766 -5.2727 1.344e-07
+#> 
+#> Coefficients (leak):
+#>             Estimate Std. Error z value Pr(>|z|)
+#> (Intercept)  0.73064    0.64611  1.1308   0.2581
+#> 
+#> Coefficients (bs):
+#>             Estimate Std. Error z value  Pr(>|z|)
+#> (Intercept)  1.12107    0.14576  7.6912 1.457e-14
+#> 
+#> Coefficients (tau):
+#>             Estimate Std. Error z value Pr(>|z|)
+#> (Intercept)  0.22077    0.09642  2.2897  0.02204
+#> 
+#> Coefficients (ndt):
+#>             Estimate Std. Error z value Pr(>|z|)
+#> (Intercept)  1.03885    0.35519  2.9248 0.003447
+#> 
+#> Fixed dpar: bias = 0.5
+```
+
+The estimates come back on the link scale, so put them back:
+
+``` r
+
+e <- unlist(fixef(fit))
+data.frame(
+  truth = c(mu = 6, alpha = 0.8, leak = 1, bs = 3, tau = 1.2, ndt = 0.25),
+  estimate = round(c(
+    mu = unname(e[["mu.(Intercept)"]]),
+    alpha = exp(unname(e[["alpha.(Intercept)"]])),
+    leak = unname(e[["leak.(Intercept)"]]),
+    bs = exp(unname(e[["bs.(Intercept)"]])),
+    tau = exp(unname(e[["tau.(Intercept)"]])),
+    ndt = min(dat$rt) / (1 + exp(-unname(e[["ndt.(Intercept)"]])))), 3))
+#>       truth estimate
+#> mu     6.00    5.682
+#> alpha  0.80    0.786
+#> leak   1.00    0.731
+#> bs     3.00    3.068
+#> tau    1.20    1.247
+#> ndt    0.25    0.241
+```
+
+`bs` is the separation between the boundaries, not the distance from the
+start to one of them, so it means what it means in
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md)
+and the two families’ estimates are directly comparable.
+
+`leak` is positive for leaky integration and negative for unstable
+integration. It is the paper’s `l`, which is the negative of PyDDM’s
+`leak`.
+
+## The numerical scheme, and why it is this one
+
+There is no density to evaluate, so every likelihood evaluation solves
+the Fokker-Planck equation forward in time and reads the probability
+flux through each boundary. Three things about how.
+
+**The boundaries are pinned, not chased.** Substituting `y = x / B(t)`
+puts the walls at plus and minus one for all `t`. The spatial grid is
+then fixed while the boundary collapses, and no grid index depends on a
+parameter. This is what makes the model differentiable at all: the usual
+treatment sandwiches a moving bound between two integer grid indices, so
+the objective depends on where the bound falls between nodes, which is
+why the reference implementation fits by differential evolution and
+takes no derivatives.
+
+**The scheme is Crank-Nicolson.** Once the walls are stationary it is
+available, and it is second order in the step and unconditionally
+stable. It is not available to a solver that chases the bound in the
+original coordinate: the discretized operator is stiff and its
+eigenvalues grow as the boundary collapses, so an explicit method would
+need a step orders of magnitude smaller.
+
+**The defective density is renormalized.** The discretized solve loses a
+little probability mass, and how much it loses depends on the
+parameters, because a configuration that absorbs faster loses less. A
+likelihood that does not divide the loss out therefore pays a hidden
+bonus for absorbing quickly, and the bonus lands squarely on the leak
+and the boundary height. This is not a small effect: turning it off
+moves the leak by more than a factor of two on data simulated from the
+model itself. `gddm_control(renormalize = FALSE)` exists so the size of
+that bias can be measured, not because it is ever the better model.
+
+Renormalizing also makes the density explicitly conditional on a
+response inside the modeled window, which is why `t_max` has to contain
+every response time and is worth setting to the experiment’s deadline
+when there is one.
+
+## How accurate, and how expensive
+
+With a constant drift and boundaries that do not move, the generalized
+model **is** the Wiener model, so the solver can be checked against the
+closed form. At the shipped grid, over decision times from 0.2 s on and
+across a range of drifts, separations and starting points, the two agree
+to better than 0.01 in the log density. A coarser grid is worse and a
+finer one is better; the package’s own test suite pins all three.
+
+Two honest limits. The density at very short decision times, a few steps
+above zero, is much larger than the truth: an implicit scheme spreads a
+little mass everywhere immediately, where the true first-passage density
+is exponentially small. It is small in absolute terms, and adding a
+lapse component floors it, but a fit should not be asked to read it. And
+refining `ny` alone helps only because the starting mass is deliberately
+spread over two grid cells rather than one; a sharper start would ring,
+because Crank-Nicolson does not damp the highest frequencies a grid
+carries.
+
+The cost scales with the number of **conditions**, not the number of
+trials, because one solve serves a whole condition. It also scales with
+`t_max / dt`. Both the tape build and the evaluation grow with them, and
+`gddm_control(tridiagonal =)` trades one against the other: the default
+records the solve into the tape, which is slow to build and fast to run,
+while `"atomic"` collapses it into a single node with a hand-written
+derivative, which is quick to build and slower to run. The default suits
+a fit, which evaluates the objective many times.
+
+## When a row falls off the grid
+
+The density is floored before it is logged. Where the solved density at
+a trial’s own response time underflows, the log density is a large
+finite negative number rather than `NaN`. That matters twice: `NaN` is
+not a value a line search can use, and inside `mixture()` one `NaN`
+takes every other component with it through the log-sum-exp. The floored
+row is flat, so its gradient is exactly zero, which is what makes it
+harmless rather than merely quiet.
+
+Being quiet is the cost, so the count is available to read:
+
+``` r
+
+gddm_floored(fit)
+#> [1] 0
+#> attr(,"rows")
+#> integer(0)
+#> attr(,"n_obs")
+#> [1] 900
+```
+
+Zero means the grid represented every observation. A few rows means a
+few trials sit within a few time steps of the fitted non-decision time,
+where a fixed grid cannot resolve a density that is climbing through
+orders of magnitude, and those rows contributed a constant rather than
+information. Many rows means the fit is not to be trusted: shrink `dt`,
+or give the model a lapse component, which floors the density in the
+model rather than in the arithmetic.
+
+## When not to use this
+
+Use
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md)
+whenever it applies. That is whenever the drift is constant in the state
+and in time and the boundaries do not move: there the first-passage
+density is a known pair of series and costs arithmetic, while here every
+evaluation solves a partial differential equation once per condition.
+The difference is orders of magnitude.
+
+What
+[`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm.md)
+buys is the class of models the closed form cannot express at all. If
+the scientific question is whether the boundaries collapse, or whether
+integration is leaky, there is no analytic alternative to compare
+against.
+
+## Writing your own component
+
+The catalogue is meant to be extended. A drift term is the value of
+[`gddm_drift_term()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm_drift_term.md),
+a boundary is
+[`gddm_bound_term()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm_bound_term.md)
+and a starting distribution is
+[`gddm_start_term()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm_start_term.md).
+Each carries its own free parameters, each of which then takes a formula
+like any other.
+
+A boundary that decays toward a floor rather than toward zero, say:
+
+``` r
+
+bound_floor <- function() {
+  gddm_bound_term(
+    "floored",
+    dpars = list(
+      bs = list(link = "log", init = function(y, aterms) 1.5),
+      tau = list(link = "log", init = function(y, aterms) max(y)),
+      floor = list(link = "logit", init = function(y, aterms) 0.3)),
+    fn = function(t, p, ctl) {
+      f <- p$floor + (1 - p$floor) * exp(-t / p$tau)
+      list(B = 0.5 * p$bs * f,
+           dlogB = -((1 - p$floor) / p$tau) * exp(-t / p$tau) / f)
+    })
+}
+gddm(bound = bound_floor())[["dpars"]]
+#> [1] "mu"    "bs"    "tau"   "floor" "bias"  "ndt"
+```
+
+Two rules. Nothing in a component may compare a parameter against
+anything, because a tape records no comparisons. And a boundary returns
+its logarithmic derivative alongside its value, because the change of
+variable that pins the walls needs it and differencing the boundary
+would cost the scheme its accuracy.
+
+## Reference
+
+Shinn, M., Lam, N. H. and Murray, J. D. (2020). A flexible framework for
+simulating and fitting generalized drift-diffusion models. *eLife*, 9,
+e56938.

@@ -10,7 +10,7 @@ than a posterior predictive draw.
 ## Usage
 
 ``` r
-ddm_simulate(n, mu, bs, ndt, bias = 0.5)
+ddm_simulate(n, mu, bs, ndt, bias = 0.5, sv = 0, sz = 0, st = 0)
 ```
 
 ## Arguments
@@ -25,11 +25,27 @@ ddm_simulate(n, mu, bs, ndt, bias = 0.5)
   point, on the response scale. Each may be a single value or a vector
   of length `n`, which is how a two-condition design is built.
 
+- sv, sz, st:
+
+  Across-trial variability: the standard deviation of a normal drift
+  rate, and the widths of a uniform relative start point and a uniform
+  non-decision time. Zero, the default for each, is the plain Wiener
+  process.
+
 ## Value
 
 A data frame with `rt`, the response time, and `upper`, 1 for a response
-at the upper boundary and 0 for the lower one, in the coding `vint()`
-expects.
+at the upper boundary and 0 for the lower one, in the coding `dec()` and
+`vint()` both expect.
+
+## Details
+
+Across-trial variability is drawn first and then handed to the same
+per-trial draw, because the variability parameters do not change the
+process: they say that each trial runs the ordinary diffusion with its
+own drift rate, start point and non-decision time. That makes the
+simulator an independent statement of the model from the density, which
+is what a recovery study needs it to be.
 
 ## Examples
 
@@ -44,4 +60,8 @@ str(dat)
 #>  $ rt   : num  0.52 1.397 0.448 0.575 0.681 ...
 #>  $ upper: int  1 0 1 1 0 0 0 1 0 0 ...
 #>  $ cond : Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 1 1 1 ...
+
+# Ratcliff's full model, at values the literature uses
+full <- ddm_simulate(200, mu = 1.2, bs = 1.5, ndt = 0.3,
+                     sv = 1.0, sz = 0.2, st = 0.1)
 ```

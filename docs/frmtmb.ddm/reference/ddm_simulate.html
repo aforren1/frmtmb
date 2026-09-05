@@ -17,7 +17,7 @@ whole data set rather than a posterior predictive draw."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.ddm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,7 +29,8 @@ whole data set rather than a posterior predictive draw."></head><body>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/ddm.html">Drift-diffusion models of two-choice response times</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/ddm.html">Response time models: two-choice and multi-alternative</a></li>
+    <li><a class="dropdown-item" href="../articles/gddm.html">Generalized drift-diffusion models</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -65,7 +66,7 @@ whole data set rather than a posterior predictive draw.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">ddm_simulate</span><span class="op">(</span><span class="va">n</span>, <span class="va">mu</span>, <span class="va">bs</span>, <span class="va">ndt</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">ddm_simulate</span><span class="op">(</span><span class="va">n</span>, <span class="va">mu</span>, <span class="va">bs</span>, <span class="va">ndt</span>, bias <span class="op">=</span> <span class="fl">0.5</span>, sv <span class="op">=</span> <span class="fl">0</span>, sz <span class="op">=</span> <span class="fl">0</span>, st <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -82,12 +83,28 @@ time and relative start point, on the response scale. Each may be a
 single value or a vector of length <code>n</code>, which is how a
 two-condition design is built.</p></dd>
 
+
+<dt id="arg-sv-sz-st">sv, sz, st<a class="anchor" aria-label="anchor" href="#arg-sv-sz-st"></a></dt>
+<dd><p>Across-trial variability: the standard deviation of a
+normal drift rate, and the widths of a uniform relative start point
+and a uniform non-decision time. Zero, the default for each, is the
+plain Wiener process.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame with <code>rt</code>, the response time, and <code>upper</code>, 1 for
 a response at the upper boundary and 0 for the lower one, in the
-coding <code>vint()</code> expects.</p>
+coding <code>dec()</code> and <code>vint()</code> both expect.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Across-trial variability is drawn first and then handed to the same
+per-trial draw, because the variability parameters do not change the
+process: they say that each trial runs the ordinary diffusion with
+its own drift rate, start point and non-decision time. That makes the
+simulator an independent statement of the model from the density,
+which is what a recovery study needs it to be.</p>
     </div>
 
     <div class="section level2">
@@ -102,6 +119,10 @@ coding <code>vint()</code> expects.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ rt   : num  0.52 1.397 0.448 0.575 0.681 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ upper: int  1 0 1 1 0 0 0 1 0 0 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ cond : Factor w/ 2 levels "0","1": 1 1 1 1 1 1 1 1 1 1 ...</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Ratcliff's full model, at values the literature uses</span></span></span>
+<span class="r-in"><span><span class="va">full</span> <span class="op">&lt;-</span> <span class="fu">ddm_simulate</span><span class="op">(</span><span class="fl">200</span>, mu <span class="op">=</span> <span class="fl">1.2</span>, bs <span class="op">=</span> <span class="fl">1.5</span>, ndt <span class="op">=</span> <span class="fl">0.3</span>,</span></span>
+<span class="r-in"><span>                     sv <span class="op">=</span> <span class="fl">1.0</span>, sz <span class="op">=</span> <span class="fl">0.2</span>, st <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

@@ -3,11 +3,11 @@
 accumulator starts between two boundaries and the response time is
 the first time it touches one of them. The family models the response
 time; which boundary was touched is data, supplied through the
-vint() addition term."><meta property="og:description" content="A drift-diffusion model for a two-choice decision: a noisy evidence
+dec() addition term."><meta property="og:description" content="A drift-diffusion model for a two-choice decision: a noisy evidence
 accumulator starts between two boundaries and the response time is
 the first time it touches one of them. The family models the response
 time; which boundary was touched is data, supplied through the
-vint() addition term."></head><body>
+dec() addition term."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -15,7 +15,7 @@ vint() addition term."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.ddm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,7 +27,8 @@ vint() addition term."></head><body>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/ddm.html">Drift-diffusion models of two-choice response times</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/ddm.html">Response time models: two-choice and multi-alternative</a></li>
+    <li><a class="dropdown-item" href="../articles/gddm.html">Generalized drift-diffusion models</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -57,12 +58,18 @@ vint() addition term."></head><body>
 accumulator starts between two boundaries and the response time is
 the first time it touches one of them. The family models the response
 time; which boundary was touched is data, supplied through the
-<code>vint()</code> addition term.</p>
+<code>dec()</code> addition term.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">wiener</span><span class="op">(</span>max_ndt <span class="op">=</span> <span class="cn">NULL</span>, link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">wiener</span><span class="op">(</span></span>
+<span>  max_ndt <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  variability <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
+<span>  nodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>sz <span class="op">=</span> <span class="fl">7L</span>, st <span class="op">=</span> <span class="fl">21L</span><span class="op">)</span>,</span>
+<span>  allow_unreachable <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  link <span class="op">=</span> <span class="st">"identity"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -72,6 +79,29 @@ time; which boundary was touched is data, supplied through the
 <dl><dt id="arg-max-ndt">max_ndt<a class="anchor" aria-label="anchor" href="#arg-max-ndt"></a></dt>
 <dd><p>Upper bound for the non-decision time, in the units of
 the response. <code>NULL</code>, the default, takes it from the data.</p></dd>
+
+
+<dt id="arg-variability">variability<a class="anchor" aria-label="anchor" href="#arg-variability"></a></dt>
+<dd><p>Which across-trial variability parameters to
+estimate: any of <code>"sv"</code> (drift rate), <code>"sz"</code> (start point) and
+<code>"st"</code> (non-decision time). The default estimates none, which is
+the plain Wiener model.</p></dd>
+
+
+<dt id="arg-nodes">nodes<a class="anchor" aria-label="anchor" href="#arg-nodes"></a></dt>
+<dd><p>Gauss-Legendre node counts for the two quadratures, as a
+named vector. Only the entries for the <code>variability</code> parameters in
+use are read. The defaults are measured rather than chosen: <code>sz</code>
+reaches 1e-10 in the log density by 7 nodes everywhere it was
+probed, and <code>st</code> needs more because a response time below
+<code>ndt + st / 2</code> cuts the range and the integrand turns on sharply at
+the cut. See <code><a href="../articles/ddm.html">vignette("ddm")</a></code> for the measurement.</p></dd>
+
+
+<dt id="arg-allow-unreachable">allow_unreachable<a class="anchor" aria-label="anchor" href="#arg-allow-unreachable"></a></dt>
+<dd><p>Permit a <code>max_ndt</code> above the smallest
+response time. Only correct inside a mixture, where another
+component carries the rows the Wiener density cannot reach.</p></dd>
 
 
 <dt id="arg-link">link<a class="anchor" aria-label="anchor" href="#arg-link"></a></dt>
@@ -106,20 +136,25 @@ boundary separation the accumulator starts at (<code>w</code>). Logit link.
 0.5 is unbiased.</p></dd>
 
 
-</dl></div>
+</dl><p><code>variability</code> adds Ratcliff's three across-trial variability
+parameters to that set; see Across-trial variability below.</p>
+    </div>
     <div class="section level2">
     <h2 id="the-decision-indicator">The decision indicator<a class="anchor" aria-label="anchor" href="#the-decision-indicator"></a></h2>
 
 
-<p>brms spells the boundary a trial ended at as <code>y | dec(decision)</code>.
-frmtmb's formula grammar has no <code>dec()</code>, and its list of addition
-terms is closed, so this family reads the indicator from <code>vint()</code>
-instead:</p>
+<p>The boundary a trial ended at is data, and it reaches the density as
+an addition term:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">dec</span>(response) <span class="sc">~</span> condition), <span class="at">family =</span> <span class="fu">wiener</span>(), <span class="at">data =</span> dat)</span></code></pre><p></p></div>
+<p><code>dec()</code> is spelled as brms spells it and takes what brms takes: a
+factor or character vector whose SECOND level is the upper boundary
+(so <code>"lower"</code>/<code>"upper"</code> and <code>c(FALSE, TRUE)</code> both work as they read),
+or a numeric 0/1 column. The package contributes the term to frmtmb's
+addition-term registry when it loads.</p>
+<p><code>vint()</code> also still works, and carries the indicator as a plain 0/1
+integer column:</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">vint</span>(upper) <span class="sc">~</span> condition), <span class="at">family =</span> <span class="fu">wiener</span>(), <span class="at">data =</span> dat)</span></code></pre><p></p></div>
-<p><code>upper</code> must be 1 for a response at the upper boundary and 0 for the
-lower one. Unlike brms's <code>dec()</code>, it will not accept a factor or the
-strings <code>"upper"</code> and <code>"lower"</code>; code it yourself. Omitting <code>vint()</code>
-altogether is refused with a message that says this, because the
+<p>Supplying neither is refused with a message that says so, because the
 failure is otherwise silent.</p>
     </div>
     <div class="section level2">
@@ -136,11 +171,92 @@ discover.</p>
 when the model frame is assembled. Give it explicitly to pin the
 bound, which is worth doing when you will <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> on new data
 whose minimum differs from the training minimum.</p>
+<p>A <code>max_ndt</code> above the smallest response time is refused, because for
+this family alone it admits parameter values at which some observed
+row has no likelihood. Inside a <code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code> that is exactly
+what the other component is for, so <code>allow_unreachable = TRUE</code> lifts
+the refusal; see Mixtures.</p>
 <p>Past a linear predictor of about 37 the logit saturates in double
 precision and <code>ndt</code> rounds to <code>max_ndt</code> exactly. Nothing guards that,
 and nothing needs to: the density falls off a cliff as the decision
 time goes to zero, so the log likelihood is already unreachable long
 before the link runs out of digits.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="across-trial-variability">Across-trial variability<a class="anchor" aria-label="anchor" href="#across-trial-variability"></a></h2>
+
+
+<p>Ratcliff's full diffusion model draws three of the four parameters
+afresh on every trial. <code>variability</code> names which of those to
+estimate, and each one it names becomes an ordinary distributional
+parameter that takes its own formula:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">dec</span>(response) <span class="sc">~</span> coherence, <span class="at">bias =</span> <span class="fl">0.5</span>),</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>    <span class="at">family =</span> <span class="fu">wiener</span>(<span class="at">variability =</span> <span class="fu">c</span>(<span class="st">"sv"</span>, <span class="st">"sz"</span>, <span class="st">"st"</span>)), <span class="at">data =</span> dat)</span></code></pre><p></p></div>
+<dl><dt><code>sv</code></dt>
+<dd><p>Standard deviation of a normal drift rate. Log link.</p></dd>
+
+<dt><code>sz</code></dt>
+<dd><p>Width of a uniform relative start point, centered on
+<code>bias</code>, on the same (0, 1) scale as <code>bias</code>. Logit link, so the
+width is below 1 and the start point stays inside the boundaries
+whenever <code>bias</code> is 0.5.</p></dd>
+
+<dt><code>st</code></dt>
+<dd><p>Width of a uniform non-decision time, centered on
+<code>ndt</code>, in the units of the response. Logit link scaled onto
+<code>(0, 2 * max_ndt)</code>.</p></dd>
+
+
+</dl><p>The likelihood is the analytic Wiener density averaged over those
+distributions, and the three are done three different ways because
+they are three different integrals. The drift integral is Gaussian
+against an exponential-quadratic and is evaluated in CLOSED FORM: it
+is exact, it takes no nodes, and there is nothing to tune. The other
+two are uniform and are evaluated by fixed-node Gauss-Legendre
+quadrature, whose node counts are the <code>nodes</code> argument.</p>
+<p>The node positions and counts are decided when the family object is
+built and are constants from then on, because a node count that moved
+with a parameter would be a branch on a parameter and an
+automatic-differentiation tape cannot record one. A parameter only
+rescales the interval the fixed nodes are mapped onto.</p>
+<p><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> follow the variability rather than
+ignoring it. Both condition on the boundary a row ended at, and
+conditioning reweights which per-trial parameters that row could have
+had: the trials that reached a boundary are not a fair sample of the
+drift rates that could have produced them. So the fitted mean is a
+ratio of two quadratures and the simulator accepts a drawn drift rate
+and start point with the boundary probability they imply. The plain
+closed-form mean is not a usable approximation here: at an unbiased
+start point it returns the same number for both boundaries, and the
+full model does not.</p>
+<p>Two limits of the parameterization are worth knowing. The uniform
+start point stays inside the boundaries by construction only when
+<code>bias</code> is 0.5, which is the usual case and the one the logit link on
+<code>sz</code> is scaled for; at a strongly biased start a wide <code>sz</code> can push
+the range past a boundary, where the density is near zero and the
+likelihood is a barrier rather than a cliff. And nothing holds
+<code>ndt - st / 2</code> above zero, so a fit is free to report a range that
+includes a negative non-decision time. Neither can be made structural
+from outside frmtmb: both are joint constraints on two distributional
+parameters, and a link is a property of one.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="mixtures">Mixtures<a class="anchor" aria-label="anchor" href="#mixtures"></a></h2>
+
+
+<p>A contaminant component covers the trials the diffusion process
+cannot produce, which is the standard treatment for fast guesses. The
+Wiener component then wants a non-decision time that some observed
+rows fall below, so pass the bound and lift the refusal:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">dec</span>(response) <span class="sc">~</span> <span class="dv">1</span>, <span class="at">bias1 =</span> <span class="fl">0.5</span>),</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>    <span class="at">family =</span> <span class="fu">mixture</span>(<span class="fu">wiener</span>(<span class="at">max_ndt =</span> <span class="fl">0.4</span>, <span class="at">allow_unreachable =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>                     <span class="fu">lognormal</span>()),</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>    <span class="at">data =</span> dat)</span></code></pre><p></p></div>
+<p>A row below the non-decision time gets a log density of about
+<code>-1 / delta</code> where <code>delta</code> is a billionth of the smallest response
+time: it exponentiates to exactly zero, which is the right likelihood
+for the component, and it differentiates to exactly zero, which a
+true <code>-Inf</code> would not.</p>
     </div>
     <div class="section level2">
     <h2 id="accuracy">Accuracy<a class="anchor" aria-label="anchor" href="#accuracy"></a></h2>
@@ -158,15 +274,19 @@ on a parameter. It agrees with <code><a href="https://rdrr.io/pkg/RWiener/man/wi
     <p>Navarro, D. J. and Fuss, I. G. (2009). Fast and accurate calculations
 for first-passage times in Wiener diffusion models. <em>Journal of
 Mathematical Psychology</em>, 53(4), 222-230.</p>
+<p>Ratcliff, R. and Tuerlinckx, F. (2002). Estimating parameters of the
+diffusion model: approaches to dealing with contaminant reaction
+times and parameter variability. <em>Psychonomic Bulletin &amp; Review</em>,
+9(3), 438-481.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="ddm_simulate.html">ddm_simulate</a></span><span class="op">(</span><span class="fl">300</span>, mu <span class="op">=</span> <span class="fl">0.8</span>, bs <span class="op">=</span> <span class="fl">1.4</span>, ndt <span class="op">=</span> <span class="fl">0.3</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>           family <span class="op">=</span> <span class="fu">wiener</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   0.6956708 </span>

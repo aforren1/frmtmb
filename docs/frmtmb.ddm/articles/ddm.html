@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Drift-diffusion models of two-choice response times • frmtmb.ddm</title>
+<title>Response time models: two-choice and multi-alternative • frmtmb.ddm</title>
 <script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Drift-diffusion models of two-choice response times">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Response time models: two-choice and multi-alternative">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.ddm</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,7 +34,8 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/ddm.html">Drift-diffusion models of two-choice response times</a></li>
+<li><a class="dropdown-item" href="../articles/ddm.html">Response time models: two-choice and multi-alternative</a></li>
+    <li><a class="dropdown-item" href="../articles/gddm.html">Generalized drift-diffusion models</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -65,7 +66,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Drift-diffusion models of two-choice response times</h1>
+      <h1>Response time models: two-choice and multi-alternative</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.ddm/vignettes/ddm.Rmd" class="external-link"><code>vignettes/ddm.Rmd</code></a></small>
@@ -145,19 +146,27 @@ boundary, 0 for the lower one.</p>
 <div class="section level2">
 <h2 id="the-decision-indicator">The decision indicator<a class="anchor" aria-label="anchor" href="#the-decision-indicator"></a>
 </h2>
-<p>brms spells the boundary a trial ended at as
-<code>rt | dec(decision)</code>. frmtmb’s addition terms are a closed
-set and <code>dec()</code> is not one of them, so this family reads the
-indicator from <code>vint()</code> instead:</p>
+<p>The boundary a trial ended at is data, and it reaches the density as
+an addition term spelled the way brms spells it:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># brms</span></span>
 <span><span class="fu">brm</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">decision</span><span class="op">)</span> <span class="op">~</span> <span class="va">lex</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># here</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="va">lex</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></code></pre></div>
-<p><code>upper</code> must already be coded 0/1. Unlike
-<code>dec()</code>, <code>vint()</code> will not take a factor, and
-passing anything else is refused rather than silently coerced.</p>
+<span><span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">decision</span><span class="op">)</span> <span class="op">~</span> <span class="va">lex</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></code></pre></div>
+<p><code>dec()</code> takes what brms takes: a factor or a character
+vector, read on its levels with the second one as the upper boundary, or
+a 0/1 column. The package contributes the term to frmtmb’s addition-term
+registry when it loads, so nothing has to be enabled.</p>
+<p><code>vint()</code> carries the same thing as a plain 0/1 integer and
+also works. It was the only route before frmtmb had a registry to
+contribute to, and models written that way keep running:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="va">lex</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></code></pre></div>
+<p>Supplying neither is refused. An absent addition term reaches a
+density as <code>NULL</code>, <code>NULL</code> in arithmetic is a
+zero-length result, and the fit would otherwise return with a log
+likelihood summed over no rows.</p>
 </div>
 <div class="section level2">
 <h2 id="fitting">Fitting<a class="anchor" aria-label="anchor" href="#fitting"></a>
@@ -166,8 +175,8 @@ passing anything else is refused rather than silently coerced.</p>
 trials. <code>bias = 0.5</code> fixes the start point on the response
 scale, which is the usual choice when nothing in the design would bias
 it.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="va">lex</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="va">lex</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
 <span>           family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Family: wiener </span></span>
@@ -194,8 +203,8 @@ scale, so the <code>lexword</code> coefficient is the change in drift
 rate directly. Boundary separation is on the log scale. The non-decision
 time is on a logit scaled onto <code>(0, min(rt))</code>, which is what
 keeps it inside the support:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>drift_nonword <span class="op">=</span> <span class="va">e</span><span class="op">[[</span><span class="st">"mu.(Intercept)"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>  drift_word_gain <span class="op">=</span> <span class="va">e</span><span class="op">[[</span><span class="st">"mu.lexword"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>  boundary <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"bs.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
@@ -218,7 +227,7 @@ by stepping there.</p>
 <code>(0, max_ndt)</code>, with <code>max_ndt</code> defaulting to the
 smallest response time in the data. The constraint becomes structural:
 no finite linear predictor can violate it.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">lk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span>max_ndt <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span><span class="op">$</span><span class="va">links</span><span class="op">[[</span><span class="st">"ndt"</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">lk</span><span class="op">$</span><span class="fu">linkinv</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span>, <span class="op">-</span><span class="fl">2</span>, <span class="fl">0</span>, <span class="fl">2</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>   <span class="co"># always strictly inside (0, 0.4)</span></span>
 <span><span class="co">#&gt; [1] 1.815915e-05 4.768117e-02 2.000000e-01 3.523188e-01 3.999818e-01</span></span></code></pre></div>
@@ -232,7 +241,7 @@ the training set’s.</p>
 <p><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code>
 give the mean response time, conditional on the boundary that row ended
 at, in closed form.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>lex <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nonword"</span>, <span class="st">"word"</span><span class="op">)</span><span class="op">)</span>, upper <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.8532160 0.7309745</span></span></code></pre></div>
@@ -245,10 +254,10 @@ fixed at 0.5, the conditional mean decision time is the
 theorem about the diffusion, not an oversight: an unbiased start gives
 fast and slow responses the same average time whichever way they go.
 Free the bias and the two separate:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span>
 <span><span class="va">d2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ddm_simulate.html">ddm_simulate</a></span><span class="op">(</span><span class="fl">900</span>, mu <span class="op">=</span> <span class="fl">0.7</span>, bs <span class="op">=</span> <span class="fl">1.4</span>, ndt <span class="op">=</span> <span class="fl">0.25</span>, bias <span class="op">=</span> <span class="fl">0.35</span><span class="op">)</span></span>
-<span><span class="va">f2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d2</span><span class="op">)</span></span>
+<span><span class="va">f2</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d2</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>pred_upper <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">f2</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>upper <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>                       type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span>,</span>
 <span>  pred_lower <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">f2</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>upper <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
@@ -265,7 +274,7 @@ Free the bias and the two separate:</p>
 boundary, by inverse transform through the first-passage quantile
 function. Comparing those draws with the observed times is the usual
 posterior-predictive sanity check.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">sims</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate</a></span><span class="op">(</span><span class="va">fit</span>, nsim <span class="op">=</span> <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>observed <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span>, simulated <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">sims</span><span class="op">)</span><span class="op">)</span></span>
@@ -297,19 +306,20 @@ family models the response time given the boundary. It does not jointly
 model which boundary was reached, so it is not a substitute for fitting
 choice and time together.</li>
 <li>
-<strong>There is no across-trial variability, and no contaminant
-mixture.</strong> Drift, start point and non-decision time are constant
-within a condition, which makes this the pure Wiener model rather than
-the full Ratcliff model. The Ratcliff likelihood integrates over a drift
-distribution at every row, and fast guesses and slow lapses need a
-mixture component that is not here. A random effect over subjects models
-variation BETWEEN participants, which is a different claim from
-variation between trials.</li>
+<strong>The start-point range is not held inside the boundaries by
+construction.</strong> <code>wiener(variability = "sz")</code> gives
+<code>sz</code> a logit link, so the width is below 1 and the uniform
+start point stays inside the boundaries whenever <code>bias</code> is
+0.5, which is the usual case. At a strongly biased start a wide
+<code>sz</code> can push the range past a boundary. Nor is
+<code>ndt - st / 2</code> held above zero. Both are joint constraints on
+two distributional parameters, and a link is a property of one, so
+neither can be made structural from outside frmtmb.</li>
 </ul>
 <p><code>frm_compat("wiener")</code> states each of these, along with
 what was tested and what merely was not.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm_compat.html" class="external-link">frm_compat</a></span><span class="op">(</span><span class="st">"wiener"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"feature_b"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span></span>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">frm_compat</span><span class="op">(</span><span class="st">"wiener"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"feature_b"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;             feature_b      status</span></span>
 <span><span class="co">#&gt; 1                  us       works</span></span>
 <span><span class="co">#&gt; 2                diag       works</span></span>
@@ -355,7 +365,7 @@ what was tested and what merely was not.</p>
 <span><span class="co">#&gt; 42             cosy()     refused</span></span>
 <span><span class="co">#&gt; 43            unstr()     refused</span></span>
 <span><span class="co">#&gt; 44               REML    untested</span></span>
-<span><span class="co">#&gt; 45         quadrature       works</span></span>
+<span><span class="co">#&gt; 45         quadrature     refused</span></span>
 <span><span class="co">#&gt; 46            profile       works</span></span>
 <span><span class="co">#&gt; 47          autoscale       works</span></span>
 <span><span class="co">#&gt; 48           sparse_x       works</span></span>
@@ -366,7 +376,7 @@ what was tested and what merely was not.</p>
 <span><span class="co">#&gt; 53             rescor     refused</span></span>
 <span><span class="co">#&gt; 54               |ID|    untested</span></span>
 <span><span class="co">#&gt; 55                 nl     refused</span></span>
-<span><span class="co">#&gt; 56            mixture    untested</span></span>
+<span><span class="co">#&gt; 56            mixture       works</span></span>
 <span><span class="co">#&gt; 57        mixture_mvn    untested</span></span>
 <span><span class="co">#&gt; 58             fitted       works</span></span>
 <span><span class="co">#&gt; 59            predict       works</span></span>
@@ -380,7 +390,122 @@ what was tested and what merely was not.</p>
 <span><span class="co">#&gt; 67         call_group       works</span></span>
 <span><span class="co">#&gt; 68         double_bar       works</span></span>
 <span><span class="co">#&gt; 69               mm()       works</span></span>
-<span><span class="co">#&gt; 70              mmc() conditional</span></span></code></pre></div>
+<span><span class="co">#&gt; 70              mmc() conditional</span></span>
+<span><span class="co">#&gt; 71              dec()       works</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="the-full-model-across-trial-variability">The full model: across-trial variability<a class="anchor" aria-label="anchor" href="#the-full-model-across-trial-variability"></a>
+</h2>
+<p>Everything above holds the four parameters fixed within a condition.
+Ratcliff’s full diffusion model does not: it draws the drift rate, the
+start point and the non-decision time afresh on every trial, which is
+what lets one model account for both the fast errors a start-point range
+produces and the slow errors a drift range produces.</p>
+<p><code>variability</code> turns those on. Each one it names becomes an
+ordinary distributional parameter and takes its own formula like any
+other:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">full</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ddm_simulate.html">ddm_simulate</a></span><span class="op">(</span><span class="fl">600</span>, mu <span class="op">=</span> <span class="fl">1.2</span>, bs <span class="op">=</span> <span class="fl">1.5</span>, ndt <span class="op">=</span> <span class="fl">0.30</span>,</span>
+<span>                     sv <span class="op">=</span> <span class="fl">1.0</span>, st <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span></span>
+<span><span class="va">ffit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
+<span>            family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span>variability <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sv"</span>, <span class="st">"st"</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">full</span><span class="op">)</span></span>
+<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">ffit</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">ub</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">full</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mu  <span class="op">=</span> <span class="va">e</span><span class="op">[[</span><span class="st">"mu.(Intercept)"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>  bs  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"bs.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  ndt <span class="op">=</span> <span class="va">ub</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">e</span><span class="op">[[</span><span class="st">"ndt.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  sv  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"sv.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  st  <span class="op">=</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">ub</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">e</span><span class="op">[[</span><span class="st">"st.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;        mu        bs       ndt        sv        st </span></span>
+<span><span class="co">#&gt; 1.3188861 1.5183809 0.3159405 1.2936135 0.1380081</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="three-integrals-three-answers">Three integrals, three answers<a class="anchor" aria-label="anchor" href="#three-integrals-three-answers"></a>
+</h3>
+<p>The likelihood is the analytic Wiener density averaged over those
+distributions. They are not averaged the same way, because they are not
+the same integral.</p>
+<p><strong>The drift rate has a closed form.</strong> The drift enters
+the log density only as <code>-v a w - v^2 t / 2</code>: the series that
+carries the shape of the distribution is the driftless one, and the
+drift multiplies it by an exponential-quadratic. Averaging an
+exponential-quadratic against a normal completes the square, so</p>
+<pre><code>mean of exp(-v a w - v^2 t / 2)
+  = (1 + t sv^2)^(-1/2)
+    exp( ((a w)^2 sv^2 - 2 v a w - v^2 t) / (2 (1 + t sv^2)) )</code></pre>
+<p>That is exact. There is no node count for <code>sv</code> and no
+accuracy to trade, and estimating it is free relative to the plain
+density: over three seeds a fit with <code>sv</code> took 0.97 to 1.07
+times a fit without it, and at the density level both cost 0.0002 s per
+call. The two quadratures below are the ones that cost.</p>
+<p><strong>The other two are uniform, and get fixed Gauss-Legendre
+nodes.</strong> The node positions and counts are decided when the
+family object is built. Nothing may branch on a parameter on an
+automatic-differentiation tape, and a node count that moved with
+<code>st</code> would be exactly that; a parameter only rescales the
+interval the fixed nodes are mapped onto.</p>
+<p>The two defaults differ because the two integrands do. The
+start-point integrand is analytic across its whole range. The
+non-decision-time integrand is not free to use its whole range: the
+density is zero for a non-decision time at or past the response time, so
+on a fast trial the range is cut and the integrand turns on sharply at
+the cut. Measured against a far finer rule on such a trial:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">lp</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">nsz</span>, <span class="va">nst</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">nd</span> <span class="op">&lt;-</span> <span class="fu">frmtmb.ddm</span><span class="fu">:::</span><span class="fu">ddm_nodes</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sz"</span>, <span class="st">"st"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>sz <span class="op">=</span> <span class="va">nsz</span>, st <span class="op">=</span> <span class="va">nst</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu">frmtmb.ddm</span><span class="fu">:::</span><span class="fu">ddm_lpdf_var</span><span class="op">(</span><span class="fl">0.36</span>, <span class="fl">1.0</span>, <span class="fl">1.5</span>, <span class="fl">0.45</span>, <span class="fl">0.30</span>, <span class="fl">1.0</span>, <span class="fl">0.2</span>, <span class="fl">0.2</span>,</span>
+<span>                            <span class="fl">0</span>, <span class="va">nd</span>, <span class="cn">TRUE</span>, <span class="fl">1e-9</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">best</span> <span class="op">&lt;-</span> <span class="fu">lp</span><span class="op">(</span><span class="fl">31L</span>, <span class="fl">81L</span><span class="op">)</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>, <span class="fl">5</span>, <span class="fl">7</span>, <span class="fl">11</span>, <span class="fl">15</span>, <span class="fl">21</span>, <span class="fl">31</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>nodes <span class="op">=</span> <span class="va">n</span>,</span>
+<span>           sz_err <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">n</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="fu">lp</span><span class="op">(</span><span class="va">k</span>, <span class="fl">81L</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span> <span class="op">-</span> <span class="va">best</span><span class="op">)</span>,</span>
+<span>           st_err <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">n</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="fu">lp</span><span class="op">(</span><span class="fl">31L</span>, <span class="va">k</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span> <span class="op">-</span> <span class="va">best</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   nodes       sz_err       st_err</span></span>
+<span><span class="co">#&gt; 1     3 8.800603e-07 1.190146e-02</span></span>
+<span><span class="co">#&gt; 2     5 7.849277e-13 1.666151e-03</span></span>
+<span><span class="co">#&gt; 3     7 1.776357e-15 1.247713e-04</span></span>
+<span><span class="co">#&gt; 4    11 1.776357e-15 1.746504e-05</span></span>
+<span><span class="co">#&gt; 5    15 1.998401e-15 3.019358e-07</span></span>
+<span><span class="co">#&gt; 6    21 1.554312e-15 3.011576e-09</span></span>
+<span><span class="co">#&gt; 7    31 0.000000e+00 1.085518e-10</span></span></code></pre></div>
+<p>The start-point column is at machine precision by 7 nodes. The
+non-decision-time column takes 21 to reach 1e-9, which is where the
+default sits. Lower it with <code>wiener(nodes = c(st = 11))</code> if
+the fit is slow and the extra digits are not worth the time.</p>
+</div>
+<div class="section level3">
+<h3 id="a-contaminant-mixture">A contaminant mixture<a class="anchor" aria-label="anchor" href="#a-contaminant-mixture"></a>
+</h3>
+<p>Fast guesses are not diffusion trials, and a model with no component
+for them pays by dragging the non-decision time down. The standard
+treatment is a mixture, which needs the Wiener component’s non-decision
+time to sit above the fastest response time. That is refused by default,
+for a bare model correctly, and <code>allow_unreachable = TRUE</code>
+says the other component covers those trials:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">decision</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, bias1 <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
+<span>    family <span class="op">=</span> <span class="fu">mixture</span><span class="op">(</span><span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span>max_ndt <span class="op">=</span> <span class="fl">0.4</span>, allow_unreachable <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>                     <span class="fu">lognormal</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></code></pre></div>
+<p>A trial below the non-decision time then gets a log density that
+exponentiates to exactly zero, which is the right likelihood for that
+component, and differentiates to exactly zero, which a true
+<code>-Inf</code> would not: <code>-Inf</code> gives the correct value
+and a <code>NaN</code> gradient, and one <code>NaN</code> stops the
+fit.</p>
+</div>
+<div class="section level3">
+<h3 id="why-this-is-not-quadrature-true">Why this is not <code>quadrature = TRUE</code><a class="anchor" aria-label="anchor" href="#why-this-is-not-quadrature-true"></a>
+</h3>
+<p>frmtmb has a <code>quadrature</code> argument, and it is not this. It
+marginalizes RANDOM EFFECTS by adaptive Gauss-Kronrod, is wired to the
+random-effect coefficient vector by name, and refuses a model that has
+no random-effect block at all. Across-trial variability shares nothing
+between trials, has no level to estimate, and gives every row its own
+integral whether or not the model has a grouping factor. It belongs
+inside the density, and that is where it is.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="the-density">The density<a class="anchor" aria-label="anchor" href="#the-density"></a>
@@ -412,7 +537,7 @@ convex combination of them is accurate too.</p>
 <p>The cost is that every evaluation pays for both series. What it buys
 is a density that holds over the whole range of normalized times rather
 than the part a single truncation happens to cover:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">u</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.005</span>, <span class="fl">0.05</span>, <span class="fl">0.4</span>, <span class="fl">2</span>, <span class="fl">8</span>, <span class="fl">30</span><span class="op">)</span></span>
 <span><span class="va">ref</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">u</span>, <span class="kw">function</span><span class="op">(</span><span class="va">uu</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu">RWiener</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/RWiener/man/wienerdist.html" class="external-link">dwiener</a></span><span class="op">(</span><span class="va">uu</span> <span class="op">+</span> <span class="fl">1e-12</span>, <span class="fl">1</span>, <span class="fl">1e-12</span>, <span class="fl">0.45</span>, <span class="fl">1</span>, resp <span class="op">=</span> <span class="st">"lower"</span><span class="op">)</span><span class="op">)</span></span>
@@ -437,11 +562,176 @@ than the part a single truncation happens to cover:</p>
 alone would give. It is fine until it is not.</p>
 </div>
 <div class="section level2">
-<h2 id="reference">Reference<a class="anchor" aria-label="anchor" href="#reference"></a>
+<h2 id="more-than-two-alternatives">More than two alternatives<a class="anchor" aria-label="anchor" href="#more-than-two-alternatives"></a>
 </h2>
+<p>Everything above is one accumulator running between two absorbing
+boundaries. Two is not a simplification there, it is the whole geometry:
+the process is one-dimensional and there are two ends, so a
+<code><a href="../reference/wiener.html">wiener()</a></code> fit can describe a yes/no decision and nothing
+wider. No choice of parameters reaches a third response.</p>
+<p>The linear ballistic accumulator gets there by changing what races.
+Each alternative gets its own accumulator, rising in a straight line
+from a start point drawn uniformly on <code>(0, A)</code> to a common
+threshold <code>b = A + k</code>. The rate is drawn once per trial from
+a normal distribution rather than varying within the trial, and it is
+that missing within-trial noise which buys the closed form: the outcome
+depends on one draw per accumulator, so the likelihood is the winner’s
+density times the others’ survival probabilities, for any number of
+accumulators.</p>
+<p>The chunks below run whether or not RWiener is installed, since the
+accumulator race needs neither it nor any other reference package.</p>
+<div class="section level3">
+<h3 id="an-experiment-with-three-responses">An experiment with three responses<a class="anchor" aria-label="anchor" href="#an-experiment-with-three-responses"></a>
+</h3>
+<p>A cue makes one of three alternatives more attractive, trial by
+trial, and leaves the other two alone. That is a design neither
+two-choice family can express, so it is worth building from scratch.
+<code><a href="../reference/lba_simulate.html">lba_simulate()</a></code> takes a matrix of drift means with one row
+per trial, which is how a covariate enters the generative model.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">20</span><span class="op">)</span></span>
+<span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fl">1500</span></span>
+<span><span class="va">cue</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span></span>
+<span><span class="co"># the cue raises the evidence for alternative 2 and nothing else</span></span>
+<span><span class="va">V</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fl">2.4</span>, <span class="fl">1.5</span> <span class="op">+</span> <span class="fl">1.1</span> <span class="op">*</span> <span class="va">cue</span>, <span class="fl">0.9</span><span class="op">)</span></span>
+<span><span class="va">dat3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/lba_simulate.html">lba_simulate</a></span><span class="op">(</span><span class="va">N</span>, v <span class="op">=</span> <span class="va">V</span>, A <span class="op">=</span> <span class="fl">0.5</span>, k <span class="op">=</span> <span class="fl">0.4</span>, ndt <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span>
+<span><span class="va">dat3</span><span class="op">$</span><span class="va">cue</span> <span class="op">&lt;-</span> <span class="va">cue</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">dat3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   choice        rt        cue</span></span>
+<span><span class="co">#&gt; 1      2 0.4528505  1.1626853</span></span>
+<span><span class="co">#&gt; 2      1 0.3538470 -0.5859245</span></span>
+<span><span class="co">#&gt; 3      2 0.3788586  1.7854650</span></span>
+<span><span class="co">#&gt; 4      1 0.6926590 -1.3325937</span></span>
+<span><span class="co">#&gt; 5      1 0.4368551 -0.4465668</span></span>
+<span><span class="co">#&gt; 6      2 0.3145631  0.5696061</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">dat3</span><span class="op">$</span><span class="va">choice</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;   1   2   3 </span></span>
+<span><span class="co">#&gt; 904 433 163</span></span></code></pre></div>
+<p>The choice is data, exactly as the boundary indicator was, and
+reaches the family through <code>vint()</code>. It names the accumulator
+that responded, counting from one.</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit3</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">choice</span><span class="op">)</span> <span class="op">~</span> <span class="va">cue</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/lba.html">lba</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat3</span><span class="op">)</span></span>
+<span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $v1</span></span>
+<span><span class="co">#&gt; (Intercept)         cue </span></span>
+<span><span class="co">#&gt;  2.33038268  0.01772203 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $v2</span></span>
+<span><span class="co">#&gt; (Intercept)         cue </span></span>
+<span><span class="co">#&gt;    1.464786    1.039147 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $v3</span></span>
+<span><span class="co">#&gt; (Intercept)         cue </span></span>
+<span><span class="co">#&gt;   0.7283536  -0.1080327 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $A</span></span>
+<span><span class="co">#&gt; (Intercept) </span></span>
+<span><span class="co">#&gt;    -0.87533 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $k</span></span>
+<span><span class="co">#&gt; (Intercept) </span></span>
+<span><span class="co">#&gt;  -0.8251791 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $ndt</span></span>
+<span><span class="co">#&gt; (Intercept) </span></span>
+<span><span class="co">#&gt;   0.8213659</span></span></code></pre></div>
+<p>Every drift is a primary parameter, so the main formula went to all
+three and each got its own coefficients. That is what makes the answer
+readable: the cue slope is near its true 1.1 on <code>v2</code> and near
+zero on <code>v1</code> and <code>v3</code>, which is the model
+recovering that the cue moved one alternative and not the others.</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"v1"</span>, <span class="st">"v2"</span>, <span class="st">"v3"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="fu">fixef</span><span class="op">(</span><span class="va">fit3</span><span class="op">)</span><span class="op">[[</span><span class="va">p</span><span class="op">]</span><span class="op">]</span><span class="op">[[</span><span class="st">"cue"</span><span class="op">]</span><span class="op">]</span>,</span>
+<span>       <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;          v1          v2          v3 </span></span>
+<span><span class="co">#&gt;  0.01772203  1.03914697 -0.10803273</span></span></code></pre></div>
+<p>Had we known which alternative the cue acts on, we would have said so
+and left the other two drifts an intercept each:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit3b</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">choice</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">v2</span> <span class="op">~</span> <span class="va">cue</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/lba.html">lba</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>,</span>
+<span>             data <span class="op">=</span> <span class="va">dat3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>all_drifts <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC</a></span><span class="op">(</span><span class="va">fit3</span><span class="op">)</span>, v2_only <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC</a></span><span class="op">(</span><span class="va">fit3b</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; all_drifts    v2_only </span></span>
+<span><span class="co">#&gt;  -742.0252  -743.2697</span></span></code></pre></div>
+<p>The remaining parameters came back near the values they were drawn
+from. <code>A</code> and <code>k</code> carry log links and
+<code>ndt</code> the bounded link the Wiener family also uses, so read
+them through the link:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu">fixef</span><span class="op">(</span><span class="va">fit3b</span><span class="op">)</span></span>
+<span><span class="va">lk</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">family</a></span><span class="op">(</span><span class="va">fit3b</span><span class="op">)</span><span class="op">$</span><span class="va">links</span><span class="op">$</span><span class="va">ndt</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>A <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">A</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">k</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, ndt <span class="op">=</span> <span class="va">lk</span><span class="op">$</span><span class="fu">linkinv</span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">ndt</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  truth_A <span class="op">=</span> <span class="fl">0.5</span>, truth_k <span class="op">=</span> <span class="fl">0.4</span>, truth_ndt <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span>
+<span><span class="co">#&gt;         A         k       ndt   truth_A   truth_k truth_ndt </span></span>
+<span><span class="co">#&gt; 0.4095901 0.4447096 0.1906341 0.5000000 0.4000000 0.2000000</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="two-conventions-to-know-before-comparing-packages">Two conventions to know before comparing packages<a class="anchor" aria-label="anchor" href="#two-conventions-to-know-before-comparing-packages"></a>
+</h3>
+<p>The model is identified only up to scale: multiply <code>A</code>,
+the threshold, every drift mean and the drift standard deviation by one
+constant and the distribution of <code>(choice, rt)</code> does not
+move. Something has to be held fixed, and this family fixes the drift
+standard deviation. It is the <code>sd_v</code> argument rather than a
+hidden constant, and it is carried on the family object, so a fit says
+what it held:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">family</a></span><span class="op">(</span><span class="va">fit3b</span><span class="op">)</span><span class="op">[[</span><span class="st">"lba_sd_v"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="co">#&gt; [1] 1 1 1</span></span></code></pre></div>
+<p>The second convention is what happens to an accumulator whose drift
+comes out negative, since it would never reach the threshold. Following
+<code>rtdists</code>, drift rates are truncated at zero by default,
+which makes every accumulator arrive eventually and the choice
+probabilities sum to one. <code>lba(3, posdrift = FALSE)</code> leaves
+them untruncated, and the response distribution is then defective by
+design. The two are different models rather than a rescaling of each
+other, so a log-likelihood from one is not comparable with a
+log-likelihood from the other, nor with another package set the other
+way.</p>
+</div>
+<div class="section level3">
+<h3 id="what-it-refuses">What it refuses<a class="anchor" aria-label="anchor" href="#what-it-refuses"></a>
+</h3>
+<p>A choice outside <code>1..n</code> is a data error, not a small
+likelihood, and is named as such rather than quietly fitted:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bad</span> <span class="op">&lt;-</span> <span class="va">dat3</span></span>
+<span><span class="va">bad</span><span class="op">$</span><span class="va">choice</span><span class="op">[</span><span class="fl">7</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">4L</span></span>
+<span><span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">choice</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/lba.html">lba</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">bad</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> lba(3): the vint() choice indicator names which accumulator responded and must be a whole number from 1 to 3. Saw 4. A factor is not accepted; recode it with as.integer(factor(choice)) and check the level order matches the accumulator numbering.</span></span></code></pre></div>
+<p>So is omitting the choice altogether, which the family declares
+through <code>required_aterms</code> so that frmtmb refuses it by name
+instead of building a log likelihood over no rows:</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/lba.html">lba</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> lba: the density needs `vint1`, which nothing on this response supplies. Write the addition term: rt | vint(&lt;column&gt;) ~ ...</span></span></code></pre></div>
+<p>A threshold inside the start-point range needs no refusal at all. The
+threshold is <code>A + k</code> with a log link on <code>k</code>, so it
+stays above the start-point range at every value of the linear
+predictor, and a trial that begins already finished is not a state the
+optimizer can reach.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<p>Brown, S. D. and Heathcote, A. (2008). The simplest complete model of
+choice response time: Linear ballistic accumulation. <em>Cognitive
+Psychology</em>, 57(3), 153-178.</p>
+<p>Donkin, C., Brown, S. D. and Heathcote, A. (2009). The overconstraint
+of response time models: Rethinking the scaling problem. <em>Psychonomic
+Bulletin &amp; Review</em>, 16(6), 1129-1135.</p>
 <p>Navarro, D. J. and Fuss, I. G. (2009). Fast and accurate calculations
 for first-passage times in Wiener diffusion models. <em>Journal of
 Mathematical Psychology</em>, 53(4), 222-230.</p>
+<p>Ratcliff, R. and Tuerlinckx, F. (2002). Estimating parameters of the
+diffusion model: approaches to dealing with contaminant reaction times
+and parameter variability. <em>Psychonomic Bulletin &amp; Review</em>,
+9(3), 438-481.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

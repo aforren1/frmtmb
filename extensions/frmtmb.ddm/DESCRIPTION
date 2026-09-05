@@ -43,6 +43,7 @@ Suggests:
     knitr,
     numDeriv,
     rmarkdown,
+    Rmpfr,
     rtdists,
     RWiener,
     testthat (>= 3.0.0)

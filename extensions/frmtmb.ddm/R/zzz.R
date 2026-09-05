@@ -97,8 +97,8 @@ ddm_compat_rules <- function() {
   # below is a statement about the merged package, and any of them that
   # the merged suite contradicts is a defect in this table, not in the
   # family.
-  r("gddm", "dec()", "refused",
-    "gddm never reads aterms[[\"dec\"]]. Its per-row data is positional and arrives through vint(), so a dec() model is refused for a missing vint2 rather than for the term it was given.")
+  r("gddm", "dec()", "works",
+    "The boundary is read from dec() when it is there and from vint() otherwise, as wiener() does. vint() numbers positionally: alongside dec() the condition index is the first vint() value, and inside vint(upper, cond) it is the second.")
   r("gddm", "vint()", "works",
     "Required, and twice over: vint1 is the boundary a trial ended at, coded 0/1, and vint2 is the condition index the solver groups on. Both are declared, so omitting either is refused by name rather than silently summed over no rows.")
   r("gddm", "vreal()", "works",

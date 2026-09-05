@@ -208,23 +208,23 @@ test_that("the floor is a floor, not a smooth maximum", {
   lo <- 1e-300
   smooth_max <- function(x, lo) 0.5 * (x + lo + abs(x - lo))
   expect_identical(smooth_max(-1e-17, lo), 0)
-  expect_identical(gd_floor(-1e-17, lo), lo)
+  expect_identical(ddm_floor(-1e-17, lo), lo)
 
   # inert on anything a density legitimately takes
   for (x in c(1e-8, 1e-3, 0.5, 2.5, 1e3)) {
-    expect_identical(gd_floor(x, lo), x)
+    expect_identical(ddm_floor(x, lo), x)
   }
   # and never returns something log() cannot take
-  expect_true(all(gd_floor(c(-1, -1e-320, 0, 1e-320), lo) > 0))
+  expect_true(all(ddm_floor(c(-1, -1e-320, 0, 1e-320), lo) > 0))
 })
 
 test_that("a row the grid cannot represent is flat, not undefined", {
   skip_if_not_installed("RTMB")
   skip_if_not_installed("numDeriv")
-  # log(gd_floor(x)) below the floor: finite, very negative, and with a
+  # log(ddm_floor(x)) below the floor: finite, very negative, and with a
   # derivative of exactly zero, which is what makes it flat rather than
   # undefined. -Inf would differentiate to NaN, the same failure again.
-  f <- function(v) log(gd_floor(v[1L], gd_dens_floor))
+  f <- function(v) log(ddm_floor(v[1L], gd_dens_floor))
   below <- -1e-20
   expect_true(is.finite(f(below)))
   expect_lt(f(below), -600)
@@ -241,7 +241,7 @@ test_that("a floored row is invisible to a mixture's log-sum-exp", {
   # floor is a positive number, so it is not -- but that the row cannot
   # move a component beside it. Adding it to any ordinary log density in
   # log space returns that density bit for bit.
-  lp <- log(gd_floor(-1e-20, gd_dens_floor))
+  lp <- log(ddm_floor(-1e-20, gd_dens_floor))
   expect_true(is.finite(lp))
   expect_lt(lp, -600)
   logspace_add <- function(a, b) {
@@ -283,7 +283,7 @@ test_that("extreme parameters give a bad number, never no number", {
     expect_false(anyNA(v))
     expect_true(all(is.finite(v)))
     # and once logged through the floor it is still a number
-    lp <- log(gd_floor(v, gd_dens_floor))
+    lp <- log(ddm_floor(v, gd_dens_floor))
     expect_false(anyNA(lp))
   }
 
