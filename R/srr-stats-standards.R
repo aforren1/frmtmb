@@ -22,27 +22,25 @@
 #' a `frm()` fit gives a penalized (MAP) point estimate, which is
 #' regularization and not posterior inference.
 #'
-#' `frm_sample()` is an opt-in bridge to NUTS through tmbstan, and its
-#' help page states what it samples. On either of its routes, a fitted
-#' model or a formula, it samples a posterior
-#' under weakly informative default priors that match brms, with an LKJ
-#' default on correlations and a non-centered parameterization, and it
-#' reports `n_eff` and `Rhat` for every parameter. `check_laplace()` is
-#' the exception, and asks for the unpenalized density explicitly: it
-#' measures the
-#' Laplace and Wald approximations against the shape of the objective
-#' that the fit maximized, and a default prior would change the thing
-#' being measured. Sampling has two
-#' documented purposes: a script ported from brms keeps the
-#' `posterior_epred()`, `pp_check()` and `loo()` calls it already
-#' contains, and a Laplace fit can be compared against the posterior of
-#' the same model. The package states the limits of the bridge instead
-#' of hiding them. The section "Priors, and what these numbers mean" in
-#' `?loo` says that an elpd from a `prior = "flat"` run is
-#' likelihood-shaped and unregularized, and sends model comparison to
-#' `AIC()` or to a run with priors. `bridge_sampler()` refuses a
-#' marginal likelihood rather than return one that a flat prior leaves
-#' undefined.
+#' Sampling is not in this package. The companion package
+#' frmtmb.sample provides `frm_sample()`, an opt-in bridge to NUTS
+#' through tmbstan, together with the posterior method surface it
+#' needs (`posterior_epred()`, `pp_check()`, `loo()`) and
+#' `check_laplace()`, which measures the Laplace and Wald
+#' approximations against a posterior of the objective the fit
+#' maximized. On either of its routes, a fitted model or a formula,
+#' `frm_sample()` samples under weakly informative default priors that
+#' match brms, with an LKJ default on correlations and a non-centered
+#' parameterization, and it reports `n_eff` and `Rhat` for every
+#' parameter. This package keeps only the generics and the registration
+#' seam those methods attach to (`?"frmtmb-sampling-api"`), so that a
+#' script ported from brms keeps the calls it already contains once the
+#' companion is attached. The companion states the limits of the bridge
+#' instead of hiding them: its `loo()` help page says that an elpd from
+#' a `prior = "flat"` run is likelihood-shaped and unregularized, and
+#' sends model comparison to `AIC()` or to a run with priors, and its
+#' `bridge_sampler()` refuses a marginal likelihood that a flat prior
+#' leaves undefined.
 #'
 #' The Bayesian standards describe a package whose front door is the
 #' sampler. They put prior specification and prior sensitivity in the
