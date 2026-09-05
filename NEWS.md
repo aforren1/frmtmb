@@ -1,3 +1,29 @@
+# frmtmb (development version)
+
+* `tests/testthat/test-brms-methods.R` is a new opt-in tier that
+  compares what the post-fit methods RETURN against brms, rather than
+  what the objective evaluates to. It builds a `brmsfit` whose draws
+  ARE frmtmb's estimates, by feeding the log-density tier's translated
+  parameter list to Stan's `Fixed_param` algorithm, so brms's posterior
+  mean is a point estimate and the comparison is exact rather than
+  toleranced. `posterior_epred()`, `posterior_linpred()`, `log_lik()`
+  per row, `fixef()`, `ranef()`, `VarCorr()`, `hypothesis()` point
+  estimates and the one-way `conditional_effects()` grid and estimate
+  all agree to the last bit across the shapes the translator handles.
+  Where they do not, the difference is recorded and asserted in
+  `dev/brms-methods-tests.md` rather than tolerated, each with a
+  verdict: 10 are frmtmb defects, 8 are paradigm differences that are
+  right for a maximum-likelihood fit, and 8 are open design choices.
+  The sharpest is `conditional_effects()` on a zero-inflated fit, which
+  plots the conditional mean `exp(eta)` instead of the expected
+  response `(1 - zi) * exp(eta)`. On the tier's own data the plotted
+  curve is 15% above the expected response at the first grid point and
+  268% above it at the last. The same defect is live on the hurdle
+  families, where the error changes sign along the curve and no
+  argument produces the expected response at all, and neither case
+  needs brms to see: `fitted()` and `predict(type = "response")` on the
+  same fit already disagree with the plot.
+
 # frmtmb 0.50.0
 
 The Laplace approximation, corrected by importance sampling; and

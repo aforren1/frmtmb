@@ -6,4 +6,5 @@ tests/testthat/_problems
 Rplots.pdf
 dev/srr-report.html
 dev/stan-cache/
+dev/stan-cache-methods/
 dev/brmslp/

@@ -1,4 +1,13 @@
-# The brms log-density identity tier: tests/testthat/test-brms-likelihood.R.
+# The two brms tiers that need Stan:
+#   tests/testthat/test-brms-likelihood.R  the log-density identity
+#   tests/testthat/test-brms-methods.R     what the post-fit methods return
+#
+# They share one job because they share one compiled-model cache. The
+# methods tier builds its brms fits from the SAME programs the identity
+# tier compiles, through the same brms_stan_model() in helper-brms.R,
+# so splitting them would compile every program twice and would let the
+# two gates drift apart. They share the gate too: both read
+# FRMTMB_BRMS_FIT_TESTS through skip_unless_brms_fit().
 #
 # This is the only job that compiles Stan programs, so it is a separate
 # workflow rather than a tier inside R-CMD-check: it runs in parallel
@@ -32,16 +41,21 @@ on:
     # Mondays, early UTC, off the hour to stay out of the scheduling peak
     - cron: '17 4 * * 1'
 
-name: brms-likelihood
+# Renamed when the methods tier joined: a branch protection rule that
+# names the old check has to be updated with it.
+name: brms-tiers
 
 jobs:
-  brms-likelihood:
+  brms-tiers:
     runs-on: ubuntu-latest
-    # Measured on the Windows development box: the file needs 24 Stan
-    # programs at 55 to 70 s each, and a run from an empty cache took
-    # 24.6 minutes end to end. Linux is faster, but the first run of
-    # this workflow, and any run whose restore-keys fallback misses,
-    # pays for all 24 at once.
+    # Measured on the Windows development box: the identity tier needs
+    # 24 Stan programs at 55 to 70 s each, and a run from an empty cache
+    # took 24.6 minutes end to end. The methods tier reuses 22 of those
+    # and adds exactly one program of its own, the y ~ x * f shape that
+    # no identity row carries; its non-Stan work is another 2 to 3
+    # minutes. Linux is faster, but the first run of this workflow, and
+    # any run whose restore-keys fallback misses, pays for all 25 at
+    # once.
     timeout-minutes: 90
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -68,18 +82,27 @@ jobs:
             any::testthat
             any::pkgload
             any::lme4
+            any::MASS
           needs: check
       # The cache is content addressed per Stan program, so the key only
       # has to change when the set of programs can change. That set is
-      # determined by the two test files and by the rstan version whose
+      # determined by the FOUR tier files and by the rstan version whose
       # DSOs are stored, and the restore-keys prefix means a changed key
       # still recovers every program that did not change.
+      #
+      # All four, not two. actions/cache saves at post-job only when the
+      # primary key was not an exact hit. Hash the identity tier's two
+      # files alone and the first run compiles the methods tier's extra
+      # program, restores an exact key hit, saves nothing, and recompiles
+      # that program on every run afterwards.
       - name: Write the compiled-model cache key
         id: stankey
         run: |
           v <- as.character(packageVersion("rstan"))
           h <- tools::md5sum(c("tests/testthat/test-brms-likelihood.R",
-                               "tests/testthat/helper-brms.R"))
+                               "tests/testthat/helper-brms.R",
+                               "tests/testthat/test-brms-methods.R",
+                               "tests/testthat/helper-brms-methods.R"))
           dir.create("dev", showWarnings = FALSE)
           writeLines(c(paste0("rstan ", v), paste0(names(h), " ", h)),
                      "dev/stan-cache-key.txt")
@@ -106,9 +129,18 @@ jobs:
           mkdir -p ~/.R
           echo 'CXX17FLAGS = -O2 -Wall -std=gnu++17' >> ~/.R/Makevars
         shell: bash
-      # Only this tier runs. The rest of the suite is R-CMD-check's job,
-      # and repeating it here would double the cost of every push for no
-      # extra coverage.
+      # Only these two tiers run. The rest of the suite is R-CMD-check's
+      # job, and repeating it here would double the cost of every push
+      # for no extra coverage.
+      #
+      # Two steps, so two PROCESSES, and that is a correctness
+      # requirement rather than tidiness. test_file() re-sources the
+      # helpers, which resets the session-level .brms_stan_models cache;
+      # a program compiled earlier in the same session would then be
+      # re-read from its own RDS and come back with a DSO that will not
+      # initialize ("NULL value passed for DllInfo"). The identity
+      # tier's own cache notes record that failure. Separate processes
+      # read every RDS from an earlier session, which works.
       - name: Run the brms log-density identity tier
         run: |
           # A skipped suite is green, so the gate is asserted before the
@@ -133,6 +165,37 @@ jobs:
           df <- as.data.frame(res)
           if (sum(df$failed) > 0 || any(df$error)) {
             stop("the brms log-density identity tier failed")
+          }
+          if (any(df$skipped)) {
+            stop("a test skipped with the gate set: ",
+                 paste(df$test[df$skipped], collapse = "; "))
+          }
+        shell: Rscript {0}
+      - name: Run the brms post-fit method tier
+        run: |
+          # Same gate, asserted the same way and for the same reason.
+          # MASS joins the list because the merged (1 | q | g) shape
+          # draws its group-level values from it.
+          stopifnot(
+            requireNamespace("rstan", quietly = TRUE),
+            requireNamespace("brms", quietly = TRUE),
+            requireNamespace("lme4", quietly = TRUE),
+            requireNamespace("MASS", quietly = TRUE),
+            identical(Sys.getenv("FRMTMB_BRMS_FIT_TESTS"), "true"),
+            identical(Sys.getenv("NOT_CRAN"), "true")
+          )
+          pkgload::load_all(".", quiet = TRUE)
+          res <- testthat::test_file(
+            "tests/testthat/test-brms-methods.R",
+            package = "frmtmb",
+            reporter = testthat::MultiReporter$new(list(
+              testthat::ProgressReporter$new(),
+              testthat::CheckReporter$new()
+            ))
+          )
+          df <- as.data.frame(res)
+          if (sum(df$failed) > 0 || any(df$error)) {
+            stop("the brms post-fit method tier failed")
           }
           if (any(df$skipped)) {
             stop("a test skipped with the gate set: ",
