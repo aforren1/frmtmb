@@ -7,3 +7,7 @@ Rplots.pdf
 dev/srr-report.html
 dev/stan-cache/
 dev/brmslp/
+
+# testthat writes these beside the tests when a run has failures
+_problems/
+testthat-problems.rds
