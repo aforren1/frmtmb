@@ -136,12 +136,67 @@ Extend with one `(1 | g)` variant of rows 3, 4, 8, 10, 12, 16 for C.
 
 ## Follow-on, priors
 
-Once the flat-prior matrix is green, repeat A and B with the priors
-brms's own `get_prior()` defaults supply, against `frm(prior =)`. This
-is where the link-scale versus natural-scale placement of `sd` priors
-will show as a value mismatch. That result decides whether the
-placement changes or the documentation does; either way it stops being
-a paragraph and becomes a measurement.
+**Done, 2026-09-05, on branch `wt-brms-priors`.** Checks A and B were
+repeated with brms's own `get_prior()` defaults on seven shapes
+(random intercept, distributional, correlated slope, ordinal,
+nonlinear, mixture, and a fixed-effect `sleepstudy` added to isolate
+one question), each with three Stan programs and three frmtmb fits.
+The measurement is in `dev/brms-priors-findings.md` and is pinned by
+`tests/testthat/test-brms-priors.R` with
+`tests/testthat/helper-brms-priors.R`. Nothing under `R/` changed; the
+maintainer decides what does.
+
+**The prediction this section made was wrong, and the reason is worth
+keeping.** It said the link-scale versus natural-scale placement of
+`sd` priors would show as a value mismatch. It does not: `R/priors.R`
+`prior_logdens()` already evaluates an `"sd"`-scaled entry at
+`exp(theta)` and adds `theta` as the log-Jacobian, which is brms's
+placement under `adjust_transform = TRUE`, and `man/set_prior.Rd`
+already documents it. Measured on `sleepstudy`, frmtmb's `sd` entry
+equals brms's half-t statement plus `log(sd)` minus `log(2)` to eight
+figures. The paragraph was out of date, and only running it found that
+out.
+
+What the measurement turned up instead, in descending order of size:
+
+1. **brms's `get_prior()` defaults reach `frm(prior = )` as nothing at
+   all.** Every row carries `source == "default"` and `as_priorlist()`
+   drops exactly those, so the fit is unpenalized and `fit$prior` is
+   `NULL`. True on all seven shapes.
+2. **`class = "Intercept"` is on the intercept at zero; brms's is on
+   the intercept at the mean of the predictors.** Same density, same
+   scale, different argument. On `Reaction ~ Days` this biases the
+   SLOPE by 0.069 standard errors, where brms's identical prior string
+   moves it by 3.5e-05. It is the only one of these that touches a
+   regression coefficient.
+3. **A distributional parameter without a linear predictor is the real
+   placement difference**, and frmtmb refuses the row rather than
+   mistranslating it. The nearest spelling its own error message
+   suggests sits on the link scale and captures between -0.5% and 35%
+   of what brms's prior intends, because brms's default scales are
+   derived from the spread of the response and are natural-scale
+   quantities. The natural placement exists internally
+   (`natural = TRUE`, set only by `frm_sample()`), is unreachable from
+   `frm(prior = )`, and reproduces brms's mode to nine figures.
+4. **Three prior kinds have no spelling at all**: the ordinal
+   threshold prior (accepted class, no target), brms's mixture
+   `theta`, and any density outside
+   normal/student_t/cauchy/exponential/lkj (`logistic`, `dirichlet`,
+   `gamma`).
+
+Check B answered its question cleanly on the nonlinear row, which has
+no confounder: with the prior on the natural scale,
+`log_prob(..., adjust_transform = TRUE)` minus frmtmb's penalized
+objective is `log(2)` to eight figures and that gradient is 3.5e-05,
+so frmtmb maximizes exactly the density brms samples. With the link
+spelling neither gradient vanishes.
+
+One methodological note for anyone extending this: the mode-distance
+question is not answerable on a random-effect shape. Stan's optimum
+over the joint density runs the standard deviations away (on
+`(Days | Subject)` it gives `sd_1 = (110.2, 66.1)` against frmtmb's
+marginal `(24.91, 5.99)`), which is the same reason this plan compares
+densities at a point rather than optimizers.
 
 ## Done when
 

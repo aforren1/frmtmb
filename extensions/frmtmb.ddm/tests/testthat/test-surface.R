@@ -131,8 +131,15 @@ test_that("par_template and set_prior reach the wiener dpars", {
   f2 <- frm(bf(rt | vint(upper) ~ cond, bias = 0.5), family = wiener(),
             data = o$dat,
             prior = set_prior("normal(0, 0.1)", class = "b", dpar = "mu"))
-  expect_lt(abs(unlist(fixef(f2))[["mu.cond"]]),
-            abs(unlist(fixef(o$fit))[["mu.cond"]]))
+  # toward zero, and not past it. Bounding only the magnitude admits a
+  # sign flip, which is what a natural-scale placement for a dpar prior
+  # produces here: the density on exp(coef) pushes the coefficient
+  # negative and |shrunk| < |unpenalized| stays true while the estimate
+  # changes sign. The ratio bounds both at once.
+  shrink <- unlist(fixef(f2))[["mu.cond"]] /
+    unlist(fixef(o$fit))[["mu.cond"]]
+  expect_gt(shrink, 0)
+  expect_lt(shrink, 1)
 })
 
 test_that("weights() and a random effect both work", {

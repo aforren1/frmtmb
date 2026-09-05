@@ -6,6 +6,8 @@ tests/testthat/_problems
 Rplots.pdf
 dev/srr-report.html
 dev/stan-cache/
+dev/stan-cache-priors/
+dev/bp-makevars
 dev/brmslp/
 
 # testthat writes these beside the tests when a run has failures
