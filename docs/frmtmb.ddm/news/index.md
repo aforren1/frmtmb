@@ -204,6 +204,16 @@ compatibility table.
   is slower than
   [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md)
   and why someone would pay that.
+- That vignette now carries four figures, under a `tinyplot` gate: the
+  three shipped boundaries over a trial, the fit against the data it was
+  fitted to as defective cumulative distributions, the solved density
+  against the analytic Wiener density with the log-density error on two
+  grids beside it, and the leading edge of the fitted density at three
+  time steps, which is what
+  [`gddm_floored()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm_floored.md)
+  counts. They are drawn from the vignette’s own simulated data and its
+  one fit, and together they cost about two seconds of a knit that the
+  fit dominates.
 
 ### The linear ballistic accumulator
 
