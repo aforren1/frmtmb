@@ -431,6 +431,12 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   }
   ci <- matrix(NA_real_, length(idx), 3,
                dimnames = list(nm[idx], c("lwr", "upr", "est")))
+  # An importance-corrected fit profiles its own FROZEN tape, whose
+  # proposal sits at the estimate; a bound far from there can come from
+  # a region the proposal no longer covers, and the effective sample
+  # sizes the fit reports describe the anchor only. Rebuilt once for
+  # the whole call, then read at each bound.
+  prop <- if (!is.null(object$importance)) imp_frozen_proposal(object)
   for (k in seq_along(idx)) {
     i <- idx[k]
     if (method == "profile") {
@@ -442,6 +448,9 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
       ci[k, 1:2] <- unname(r)
     }
     ci[k, 3] <- est[i]
+    if (!is.null(prop)) {
+      imp_profile_ess_warn(object, prop, nm[i], i, ci[k, 1:2])
+    }
   }
   ci
 }
@@ -1187,6 +1196,7 @@ anova_refit_ml <- function(fit) {
                 lower = fit$lower, upper = fit$upper,
                 prior = fit$prior,
                 quadrature = isTRUE(fit$quadrature),
+                importance = fit$importance$draws %||% 0L,
                 template = fit$estimates,
                 data2 = fit$data2 %||% list())
 }

@@ -56,6 +56,9 @@ print.frmtmb_fit <- function(x, ...) {
   cat("logLik:", format(as.numeric(ll), digits = 6),
       " AIC:", format(stats::AIC(x), digits = 6),
       " nobs:", stats::nobs(x), "\n")
+  if (!is.null(x$importance)) {
+    cat(imp_report_line(x$importance), "\n")
+  }
   cat("\nFixed effects:\n")
   for (nm in names(fixef(x))) {
     cat(" ", nm, ":\n", sep = "")
@@ -118,6 +121,7 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
          ngrps = ngrps(object),
          loglik = logLik(object), AIC = stats::AIC(object),
          BIC = stats::BIC(object), REML = object$REML,
+         importance = object$importance,
          coefficients = coefs, varcor = VarCorr(object),
          rescor = rescor_matrix(object),
          # R-side residual correlation, on the natural scale with the
@@ -173,6 +177,9 @@ print.summary.frmtmb_fit <- function(x, ...) {
   cat("logLik:", format(as.numeric(x$loglik), digits = 6),
       " AIC:", format(x$AIC, digits = 6),
       " BIC:", format(x$BIC, digits = 6), "\n")
+  if (!is.null(x$importance)) {
+    cat(imp_report_line(x$importance), "\n")
+  }
   if (length(x$varcor)) {
     cat("\nRandom effects:\n")
     print(x$varcor)

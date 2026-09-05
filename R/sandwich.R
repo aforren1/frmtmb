@@ -169,6 +169,14 @@ cluster_guard <- function(fit, cl) {
          "would not be exact. Refit with quadrature = FALSE (Laplace)",
          call. = FALSE)
   }
+  if (!is.null(fit$importance)) {
+    stop("vcov_cluster() cannot use a fit made with an importance ",
+         "correction: that objective is a sum over GROUPS of ",
+         "reweighted integrals, not the per-row sum the cluster ",
+         "scores are read off, so a cluster carrying no rows of its ",
+         "own still moves it. Refit with importance = 0 (Laplace)",
+         call. = FALSE)
+  }
   if (!is.null(fit$prior)) {
     stop("vcov_cluster() cannot use a fit made with priors: the ",
          "optimized objective is penalized, the penalty belongs to no ",

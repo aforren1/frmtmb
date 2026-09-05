@@ -138,6 +138,46 @@
 #'   finite at all. That fit also supplies the conditional modes, which
 #'   the marginalized objective no longer carries, so `ranef()`,
 #'   `fitted()` and `predict()` work as usual.
+#' @param importance Number of importance draws per group, or `0`
+#'   (default) for none. A positive count replaces the Laplace
+#'   approximation with an importance-sampling correction of it
+#'   (Skaug and Fournier 2006, the ADMB `-is` option): each group's
+#'   marginal likelihood is re-estimated by reweighting draws from the
+#'   Laplace Gaussian, which is unbiased for the exact integral rather
+#'   than accurate to `O(n^-1)`. Like `quadrature = TRUE` it is worth
+#'   it for binary responses in small clusters, and unlike it, the
+#'   block may have any dimension: this is the correction for a
+#'   correlated random slope, where quadrature cannot go.
+#'
+#'   The cost is one tape of `N` stacked copies of the likelihood, so
+#'   time and memory grow linearly in the draw count. An odd count is
+#'   rounded up to the next even one, because the draws are taken in
+#'   antithetic pairs (measured on this package's own probe design,
+#'   the pairing is worth two to three times the draws it costs).
+#'
+#'   Scope, with everything else refused by name: exactly one
+#'   random-effect block over a grouping factor, of any dimension and
+#'   any covariance structure that is Gaussian within a level and
+#'   independent between levels; one response; a family with a rowwise
+#'   density. Not with `quadrature`, `REML = TRUE`,
+#'   `frmtmb_control(profile = TRUE)`, `mi()`, a residual correlation
+#'   term, `rescor`, a nonlinear predictor, or `cs()`. `trunc()` and
+#'   `cens()` are supported: the draws sit near the conditional mode,
+#'   which is why the truncation normalizer that underflows at the
+#'   Gauss-Kronrod nodes does not underflow here.
+#'
+#'   The fit records the draw count, the seed, the rounds taken, the
+#'   per-group effective sample sizes and the Monte Carlo standard
+#'   error of the corrected log-likelihood in `fit$importance`;
+#'   `summary()` prints them. `logLik()`, `AIC()`, `vcov()` and
+#'   `confint()` all come from the corrected objective, with two
+#'   caveats worth knowing. The reported estimate is the optimum of the
+#'   previous round's proposal, so the covariance is a Hessian at a
+#'   point that is stationary only to `fit$importance$grad`. And
+#'   `confint(method = "profile")` walks the FROZEN proposal instead of
+#'   refitting, so it warns when a bound lands where the weights no
+#'   longer cover the integrand. The seed, the round cap and the
+#'   effective-sample-size threshold are [frmtmb_control()] settings.
 #' @param dry_run `"spec"` returns the parsed intermediate representation
 #'   without touching `data`; `"frame"` returns the assembled design
 #'   matrices and parameter template without fitting; `"objective"`
@@ -392,8 +432,8 @@
 frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
                 control = frmtmb_control(), se = FALSE,
                 na.action = stats::na.omit,
-                prior = NULL, quadrature = FALSE, data2 = list(),
-                dry_run = NULL, verbose = FALSE) {
+                prior = NULL, quadrature = FALSE, importance = 0L,
+                data2 = list(), dry_run = NULL, verbose = FALSE) {
   cl <- match.call()
   # a brms prior object is translated at the boundary, so nothing
   # downstream sees anything but a frmtmb_priorlist
@@ -408,6 +448,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   check_flag(REML, "REML")
   check_flag(se, "se")
   check_flag(quadrature, "quadrature")
+  check_count(importance, "importance", min = 0L)
   if (!is.null(dry_run)) {
     check_string_choice(dry_run, "dry_run", c("spec", "frame", "objective"))
   }
@@ -472,7 +513,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
                 control = control, se = se, lower = NULL, upper = NULL,
-                prior = prior, quadrature = quadrature, data2 = data2,
+                prior = prior, quadrature = quadrature,
+                importance = importance, data2 = data2,
                 objective_only = identical(dry_run, "objective"),
                 # the user's own call is the one place a placed start is
                 # news; refit(), influence and the pre-fit are not
@@ -539,13 +581,15 @@ vb_frame_detail <- function(frame) {
 #' optimizer is solving, so a slow log says which problem it is timing.
 #'
 #' @noRd
-vb_fit_detail <- function(spec, REML, control, quadrature, prior) {
+vb_fit_detail <- function(spec, REML, control, quadrature, prior,
+                          importance = 0L) {
   fams <- vapply(spec$responses, function(r) r$family[["family"]] %||% "?", "")
   opt <- control$optimizer %||% "nlminb"
   if (is.function(opt)) opt <- "custom"
   flags <- c(if (isTRUE(REML)) "REML" else "ML",
              if (isTRUE(control$profile)) "profile",
              if (isTRUE(quadrature)) "quadrature",
+             if (importance > 0L) paste0("importance ", importance),
              if (isTRUE(control$autoscale)) "autoscale",
              if (!is.null(prior)) "prior")
   paste0(paste(unique(fams), collapse = " + "), ", ",
@@ -596,16 +640,18 @@ vb_trace_ctrl <- function(optCtrl, optimizer) {
 #' @noRd
 fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                           se, lower, upper, prior, quadrature,
+                          importance = 0L,
                           template = NULL, data2 = list(),
                           objective_only = FALSE,
                           announce_start = FALSE) {
   lower_arg <- lower
   upper_arg <- upper
   vb <- verbose_level(control)
+  n_imp <- as.integer(importance %||% 0L)
   if (vb) {
     t_fit <- vb_now()
     vb_say("fit: ", vb_fit_detail(spec, REML, control, quadrature,
-                                  prior))
+                                  prior, n_imp))
   }
   ascale <- if (isTRUE(control$autoscale) && !objective_only) {
     autoscale_plan(frame)
@@ -675,6 +721,13 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # of. The structure also gets to look at where the fit STARTS, which
   # is where a multimodal likelihood's traps are.
   check_structure_fit(spec, frame, template, REML, quadrature, control)
+
+  # The importance correction reweights the SAME Laplace integral, so
+  # every guard the Laplace fit passes still applies and only the
+  # correction's own restrictions are added here, before any tape.
+  if (n_imp > 0L) {
+    check_importance_scope(spec, frame, template, REML, quadrature, control)
+  }
 
   integrate <- NULL
   if (isTRUE(quadrature)) {
@@ -755,11 +808,15 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # Laplace tape first, then the marginalized one calibrated at its
   # optimum. See quad_fit() for why. The Laplace objective is kept
   # afterwards because it is the only source of the conditional modes.
-  lap_obj <- if (is.null(integrate)) NULL else {
+  # The importance correction needs the same two-pass shape for the
+  # same reason: its proposal IS the Laplace Gaussian, so the Laplace
+  # tape has to exist to supply the conditional modes and their
+  # Hessian, both while fitting and afterwards for ranef().
+  lap_obj <- if (is.null(integrate) && n_imp == 0L) NULL else {
     RTMB::MakeADFun(nll, template, random = random, map = frame[["map"]],
                     silent = TRUE)
   }
-  obj <- if (is.null(integrate)) {
+  obj <- if (is.null(lap_obj)) {
     RTMB::MakeADFun(nll, template, random = random, map = frame[["map"]],
                     profile = profile_arg, silent = TRUE)
   } else lap_obj
@@ -774,6 +831,13 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
            "tape is calibrated at a Laplace OPTIMUM, and stopping ",
            "before the optimizer leaves nothing to calibrate it at. ",
            "Sample the Laplace objective instead (quadrature = FALSE)",
+           call. = FALSE)
+    }
+    if (n_imp > 0L) {
+      stop("`importance` has no unfitted form: the proposal is the ",
+           "Laplace Gaussian at a conditional mode, and stopping ",
+           "before the optimizer leaves no mode to centre it on. ",
+           "Sample the Laplace objective instead (importance = 0)",
            call. = FALSE)
     }
     return(unfitted_object(spec, frame, obj, template, bform, cl, REML,
@@ -795,7 +859,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   if (vb >= 2L) {
     ctl_opt$optCtrl <- vb_trace_ctrl(control$optCtrl, control$optimizer)
   }
-  if (is.null(integrate)) {
+  imp <- NULL
+  if (n_imp > 0L) {
+    imp <- importance_fit(nll, template, random, frame[["map"]], lap_obj,
+                          ctl_opt, bounds, par_units, frame,
+                          imp_n_draw(n_imp), vb)
+    obj <- imp$obj
+    opt <- imp$opt
+  } else if (is.null(integrate)) {
     opt <- fit_error_context(
       spec, start, REML, control, quadrature, prior,
       tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb),
@@ -827,7 +898,13 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   # Estimates come cheaply from the parameter list at the optimum;
   # sdreport (a quarter of typical fit time) is computed on demand
   # through sdr_of() unless se = TRUE asked for it now.
-  est <- obj$env$parList(opt$par)
+  # The corrected tape carries no random effects at all, so its
+  # parList() has no slot for them; the Laplace inner solve at the
+  # corrected optimum is both the source of the conditional modes and
+  # a complete parameter list to start from.
+  est <- if (is.null(imp)) obj$env$parList(opt$par) else {
+    solved_par_list(lap_obj, opt$par)
+  }
   for (nm in names(frame[["par_template"]])) {
     names(est[[nm]]) <- names(frame[["par_template"]][[nm]])
   }
@@ -856,10 +933,16 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
          REML = REML, estimates = est, prior = prior,
          bform = bform, call = cl, data2 = data2,
          control = control, quadrature = isTRUE(quadrature),
+         importance = imp_record(imp, frame),
          lower = lower_arg, upper = upper_arg, par_units = par_units,
          cache = new.env(parent = emptyenv())),
     class = "frmtmb_fit"
   )
+  if (!is.null(imp)) {
+    imp_ess_warning(imp$ess$ess, frame[["re_blocks"]][[1L]],
+                    imp$plan[["n_draw"]],
+                    control$importance_ess %||% imp_ess_floor)
+  }
   if (se) {
     if (vb) t0 <- vb_now()
     fit$cache$sdr <- autoscale_sdreport(fit)
@@ -898,7 +981,7 @@ unfitted_object <- function(spec, frame, obj, template, bform, cl, REML,
     list(spec = spec, frame = frame, obj = obj, opt = NULL, sdr = NULL,
          REML = REML, estimates = est, prior = prior,
          bform = bform, call = cl, data2 = data2,
-         control = control, quadrature = FALSE,
+         control = control, quadrature = FALSE, importance = NULL,
          lower = lower, upper = upper, par_units = NULL,
          cache = new.env(parent = emptyenv())),
     class = c("frmtmb_unfitted", "frmtmb_fit")
@@ -1207,6 +1290,25 @@ sdr_of <- function(fit) {
 #'   proportional to the identity, so the block and the residual are
 #'   separately identified. That is the animal model with one
 #'   measurement per individual.
+#' @param importance_seed Seed for the standard normal draws of
+#'   `frm(importance =)`. The draws are taken from a private random
+#'   stream, so the fit neither reads nor disturbs the session's random
+#'   state: the same seed gives the same answer to the last bit,
+#'   whatever else has drawn random numbers.
+#' @param importance_rounds Cap on the number of times
+#'   `frm(importance =)` refreezes its proposal. Each round rebuilds
+#'   the proposal at the current estimate and optimizes again, and the
+#'   loop stops as soon as either the estimates move less than `1e-3`
+#'   or the freshly anchored objective is stationary at them to
+#'   `grad_tol`. Measured on this package's own designs that takes two
+#'   to four rounds, with the move falling about tenfold each time, so
+#'   the default leaves one in hand; an unused round costs nothing, and
+#'   each round actually taken costs one tape.
+#' @param importance_ess Effective sample size, as a fraction of the
+#'   draw count, below which `frm(importance =)` warns and names the
+#'   groups. The default `0.25` is placed by measurement: the hardest
+#'   design in the test suite holds `0.43` at its own optimum, and a
+#'   proposal displaced far enough to matter falls below `0.01`.
 #' @param verbose Report fit progress through [message()], one terse
 #'   line per stage with its elapsed seconds, so a slow fit shows where
 #'   the time went. `FALSE` (default) is silent and costs nothing.
@@ -1289,6 +1391,8 @@ frmtmb_control <- function(optimizer = "nlminb",
                            autoscale = FALSE,
                            check_nlev_1 = c("warning", "ignore", "stop"),
                            check_olre = c("warning", "ignore", "stop"),
+                           importance_seed = 1L, importance_rounds = 5L,
+                           importance_ess = 0.25,
                            verbose = NULL) {
   # The three flags below reach isTRUE() one line down, which reads a
   # string or a length-2 vector as FALSE; checking here refuses the
@@ -1298,6 +1402,15 @@ frmtmb_control <- function(optimizer = "nlminb",
   check_flag(autoscale, "autoscale")
   check_count(restarts, "restarts", min = 0L)
   check_positive(grad_tol, "grad_tol")
+  check_count(importance_seed, "importance_seed", min = 0L)
+  check_count(importance_rounds, "importance_rounds", min = 1L)
+  check_positive(importance_ess, "importance_ess")
+  if (importance_ess > 1) {
+    stop("`importance_ess` is an effective sample size as a FRACTION ",
+         "of the draw count, so it lies in (0, 1]; ",
+         format(importance_ess), " asks for more effective draws than ",
+         "there are draws", call. = FALSE)
+  }
   # Only the SHAPE of `optimizer` is checked here. Which names are
   # known is settled at fit time, on purpose: that refusal carries the
   # family and mode of the fit it was raised from ("raised while
@@ -1323,6 +1436,9 @@ frmtmb_control <- function(optimizer = "nlminb",
        sparse_x = isTRUE(sparse_x), autoscale = isTRUE(autoscale),
        check_nlev_1 = match.arg(check_nlev_1),
        check_olre = match.arg(check_olre),
+       importance_seed = as.integer(importance_seed),
+       importance_rounds = as.integer(importance_rounds),
+       importance_ess = importance_ess,
        verbose = verbose)
 }
 
@@ -1793,7 +1909,27 @@ check_convergence <- function(fit, control) {
         silent = TRUE)
   }
   if (inherits(g, "try-error")) g <- NA_real_
-  if (is.finite(g) && g > control$grad_tol) {
+  if (!is.null(fit$importance)) {
+    # An importance-corrected objective is a Monte Carlo estimate, and
+    # its gradient carries an O(N^-1/2) error that is exactly zero only
+    # where the estimator itself is exact (a gaussian response at its
+    # own anchor). No optimizer drives that below `grad_tol`, so
+    # judging this fit by it would warn on every correct fit. The fit
+    # has its OWN convergence criterion, the round-to-round parameter
+    # move, and its own accuracy report, the effective sample sizes and
+    # the Monte Carlo standard error; the gradient stays visible in
+    # `fit$importance$grad`.
+    if (isTRUE(fit$importance$capped)) {
+      msgs <- c(msgs, paste0("The importance correction used all ",
+                             fit$importance$rounds, " of its rounds and ",
+                             "the estimates were still moving by ",
+                             format(fit$importance$moved, digits = 3),
+                             " at the last one. Raise ",
+                             "frmtmb_control(importance_rounds =), or ",
+                             "raise the draw count so each round lands ",
+                             "in the same place"))
+    }
+  } else if (is.finite(g) && g > control$grad_tol) {
     msgs <- c(msgs, paste0("Large maximum absolute gradient at the ",
                            "optimum (", format(g, digits = 3),
                            "); the fit may not have converged. ",

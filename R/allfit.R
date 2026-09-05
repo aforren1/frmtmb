@@ -91,6 +91,7 @@ frm_allfit <- function(fit, optimizers = NULL, ...) {
         REML = fit$REML, start = NULL, control = ctl, se = FALSE,
         lower = fit$lower, upper = fit$upper, prior = fit$prior,
         quadrature = isTRUE(fit$quadrature),
+        importance = fit$importance$draws %||% 0L,
         data2 = fit$data2 %||% list()
       )),
       error = function(e) NULL
