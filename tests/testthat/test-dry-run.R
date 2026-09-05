@@ -5,14 +5,21 @@
 # frm_sample() needs. The feature is frm()s, so the tests stayed when
 # the sampling surface left.
 
-# The fixture came from test-sample-direct.R with these blocks. It is
-# six lines of simulated data, so it is copied rather than shared.
+# The fixture came from test-sample-direct.R with these blocks. Nothing
+# here checks a likelihood, so the response comes from the model that is
+# about to be assembled: the fixture states that model once instead of
+# restating it in rnorm() calls that can drift from the formula below.
 sd_data <- function(seed = 9, n = 60L, ng = 6L) {
   set.seed(seed)
   dd <- data.frame(x = stats::rnorm(n),
-                   g = factor(rep(seq_len(ng), length.out = n)))
-  dd$y <- stats::rnorm(n, 1 + 0.5 * dd$x +
-                         stats::rnorm(ng, 0, 0.5)[dd$g], 1)
+                   g = factor(rep(seq_len(ng), length.out = n)), y = 0)
+  # The draw takes its own seed, away from the fixture's: reusing
+  # the fixture seed restarts the same random stream that made the
+  # covariates, and the residuals come out equal to x.
+  dd$y <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
+                       newparams = list(Intercept = 1, x = 0.5, sigma = 1,
+                                        sd_g__Intercept = 0.5),
+                       nsim = 1, seed = seed + 1000L)[[1]]
   dd
 }
 

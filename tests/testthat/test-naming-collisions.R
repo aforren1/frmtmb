@@ -2,11 +2,21 @@
 # of bounds and confint(parm =). Both are about one name meaning two
 # things; see the "Naming collisions" section of vignette("inputs").
 
+# The collision is in the NAMES, so the response only has to be a
+# plausible one: it is drawn from the model, under the covariate's
+# neutral name, and the name is put back afterwards.
 sim_shadow <- function(seed = 3, nm = "sigma") {
   set.seed(seed)
   n <- 200
-  dd <- data.frame(v = rnorm(n), g = factor(rep(1:10, length.out = n)))
-  dd$y <- rnorm(n, 1 + 0.7 * dd$v + rnorm(10, 0, 0.5)[dd$g], 1)
+  dd <- data.frame(v = rnorm(n), g = factor(rep(1:10, length.out = n)),
+                   y = 0)
+  # The draw takes its own seed, away from the fixture's: reusing
+  # the fixture seed restarts the same random stream that made the
+  # covariates, and the residuals come out equal to x.
+  dd$y <- frm_simulate(bf(y ~ v + (1 | g)) + gaussian(), dd,
+                       newparams = list(Intercept = 1, v = 0.7, sigma = 1,
+                                        sd_g__Intercept = 0.5),
+                       nsim = 1, seed = seed + 1000L)[[1]]
   names(dd)[1L] <- nm
   dd
 }

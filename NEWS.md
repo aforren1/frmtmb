@@ -149,6 +149,55 @@ addition terms.
   needs brms to see: `fitted()` and `predict(type = "response")` on the
   same fit already disagree with the plot.
 
+The simulators are now tested against the densities they are supposed
+to match.
+
+* New test tier, `tests/testthat/test-simulate-density.R`. For every
+  family that declares a simulator it draws through the family's `sim`
+  slot on a fixed two-cell design and tests the draws against that same
+  family's own `lpdf`, evaluated numerically: a chi-square goodness of
+  fit over cells whose probabilities are summed or integrated from the
+  density, and the first two moments taken from the same measure. This
+  is the one place in the suite that deliberately closes the loop.
+  Everywhere else a validation reference is written by hand precisely
+  so that it cannot share a convention error with the code under test;
+  the cost of that rule was that `frm_simulate()` had never been
+  checked as a generative process, and a shape/scale swap or a
+  zero-inflation gate read the wrong way round would have cancelled
+  between the simulator and the density without anything noticing. The
+  tier covers the addition terms that change a draw (`trials()`,
+  `trunc()`, `se()`) and the ones that must not (`weights()`,
+  `cens()`), the ordinal, categorical, multinomial and mixture
+  families, both entry points, and the refusal a family without a
+  simulator has to raise.
+* `tweedie()`, `compois()` and `hurdle_poisson()` have simulators, so
+  `simulate()` and `frm_simulate()` work for them, and so does
+  `posterior_predict()` through frmtmb.sample.
+  Each states a generative process rather than inverting the
+  density: the Tweedie is drawn as the compound Poisson sum of gamma
+  jumps it is on `1 < p < 2`, which is also where its point mass at
+  zero comes from; the hurdle Poisson clears its hurdle and then draws
+  a zero-truncated Poisson by inverse transform above the Poisson's own
+  zero, rather than by a rejection loop that would spin at the small
+  mean these models are used at; and the COM-Poisson solves for the
+  rate that puts the distribution's mean where it was asked for, then
+  inverts its own defining weights.
+* Only `cox()` now declares no simulator, and it says why: inverting a
+  cumulative baseline hazard identified only on the observed time
+  window has no answer beyond the last event. The tier reads the list
+  of families with no simulator off the registry rather than carrying
+  it, skipping the deferred entries whose simulator arrives with the
+  data, so a family that gains or loses one changes the test's answer
+  instead of drifting away from it.
+* Bug fix: `frm_simulate()` refused a family whose simulator is
+  installed by its `family_finalize()` slot, reporting that the family
+  had no simulator, while `simulate()` on a fit of the same model
+  worked. A family that derives itself from the response is not itself
+  until frame assembly has run, and `frm_simulate()` was reading the
+  family as written; it now carries the finalized responses over from
+  the frame, as `frm()` already did. This is what made
+  `frmtmb.ddm::gddm()` unreachable from `frm_simulate()`.
+
 # frmtmb 0.50.0
 
 The Laplace approximation, corrected by importance sampling; and

@@ -540,14 +540,8 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # A family with a `family_finalize` slot derives itself from the
   # response during assembly, and the fit stores the spec separately
   # from the frame, so family(fit) would otherwise report the family as
-  # written rather than the one that was taped. Carried over per
-  # response, and only for a family that declares the slot: the rest of
-  # the assembled spec stays the frame's, which is what every other
-  # stage has always read.
-  for (rn_ in names(spec$responses)) {
-    if (is.null(spec$responses[[rn_]]$family[["family_finalize"]])) next
-    spec$responses[[rn_]] <- frame[["spec"]]$responses[[rn_]]
-  }
+  # written rather than the one that was taped.
+  spec <- carry_finalized_responses(spec, frame)
   check_re_structure(spec, frame, control)
   if (identical(dry_run, "frame")) return(frame)
 

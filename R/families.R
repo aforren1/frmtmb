@@ -1160,8 +1160,81 @@ fam_tweedie <- function(link = "log") {
                y * mu^(1 - p) / (1 - p) +
                mu^(2 - p) / (2 - p))
       }
-    )
+    ),
+    # The generative process, not the density inverted. The power12
+    # link guarantees 1 < p < 2, and on that range the Tweedie IS a
+    # compound Poisson sum of gamma variables, so a draw is a Poisson
+    # count of gamma jumps. That is also where its point mass at zero
+    # comes from, and it comes out on its own: a row that draws no
+    # jumps has a gamma shape of exactly zero, which rgamma() returns
+    # as an exact zero rather than something merely small.
+    sim = function(dpars, aterms, n) {
+      mu <- rep(dpars[["mu"]], length.out = n)
+      phi <- rep(dpars[["phi"]], length.out = n)
+      p <- rep(dpars[["power"]], length.out = n)
+      # the reparameterization that makes the sum have mean mu and
+      # variance phi * mu^p
+      jumps <- stats::rpois(n, mu^(2 - p) / (phi * (2 - p)))
+      stats::rgamma(n, shape = jumps * (2 - p) / (p - 1),
+                    scale = phi * (p - 1) * mu^(p - 1))
+    }
   )
+}
+
+#' The COM-Poisson log rate that puts the distribution's MEAN at `mu`,
+#' at dispersion `nu`, on the support `0..ymax`.
+#'
+#' The mean parameterization is implicit: the rate is whatever makes
+#' `sum(y w_y) / sum(w_y)` equal `mu`, for the unnormalized weights
+#' `w_y = lambda^y / (y!)^nu`. The mean is strictly increasing in the
+#' rate, so bisection converges from any bracket that contains the
+#' answer, and the bracket is grown rather than guessed: `nu` well away
+#' from 1 moves the rate roughly to `nu * log(mu)`, which leaves a fixed
+#' bracket wrong for a large mean at a large dispersion.
+#'
+#' @noRd
+compois_loglambda <- function(mu, nu, ymax) {
+  y <- seq.int(0L, ymax)
+  lgy <- nu * lgamma(y + 1)
+  excess <- function(ll) {
+    lw <- y * ll - lgy
+    w <- exp(lw - max(lw))
+    sum(y * w) / sum(w) - mu
+  }
+  lo <- -8
+  while (excess(lo) > 0 && lo > -800) lo <- lo * 2
+  hi <- 8
+  while (excess(hi) < 0 && hi < 800) hi <- hi * 2
+  # the bracket stops halving once it is narrower than the double it is
+  # converging to, which matters because each step costs one pass over
+  # the whole support and an overdispersed nu makes that support long
+  for (i in seq_len(200L)) {
+    if (hi - lo < 1e-12) break
+    md <- (lo + hi) / 2
+    if (excess(md) > 0) hi <- md else lo <- md
+  }
+  (lo + hi) / 2
+}
+
+#' The COM-Poisson probability vector at `(mu, nu)`, built from the
+#' distribution's own weights and truncated where they have decayed to
+#' nothing. The support is unbounded, so `ymax` grows until the top
+#' weight is `e^-40` below the mode rather than being fixed at a size
+#' that a small `nu` (a long right tail) would overrun.
+#'
+#' @noRd
+compois_probs <- function(mu, nu) {
+  ymax <- max(64L, as.integer(ceiling(4 * mu / min(nu, 1) + 32)))
+  repeat {
+    ll <- compois_loglambda(mu, nu, ymax)
+    y <- seq.int(0L, ymax)
+    lw <- y * ll - nu * lgamma(y + 1)
+    lw <- lw - max(lw)
+    if (lw[ymax + 1L] < -40 || ymax >= 262144L) break
+    ymax <- ymax * 2L
+  }
+  w <- exp(lw)
+  list(y = y, p = w / sum(w))
 }
 
 #' Conway-Maxwell-Poisson family for counts that are under- or
@@ -1185,7 +1258,36 @@ fam_compois <- function(link = "log") {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) dpars[["mu"]]
-    )
+    ),
+    # The COM-Poisson has no constructive generative process the way a
+    # Poisson or a gamma does: every published sampler works from the
+    # unnormalized weights. This one does the same, building the
+    # distribution from its defining weights and its own solve for the
+    # rate that hits the requested MEAN, which is the convention the
+    # density's mean parameterization claims and therefore the thing
+    # worth checking independently.
+    #
+    # Rows sharing a parameter pair share one solve, because the solve
+    # is the expensive part. That pays on a factor design, where a
+    # handful of pairs cover every row. A continuous predictor gives
+    # every row its own pair and the cache never hits: n = 1000 costs
+    # about 1 s, linearly in n, against milliseconds for poisson() on
+    # the same design. Solving on a grid of log(mu) per distinct nu and
+    # interpolating would fix that, since the mean is smooth and
+    # strictly monotone in the rate at fixed nu.
+    sim = function(dpars, aterms, n) {
+      mu <- rep(dpars[["mu"]], length.out = n)
+      nu <- rep(dpars[["nu"]], length.out = n)
+      out <- integer(n)
+      key <- paste(mu, nu)
+      for (k in unique(key)) {
+        idx <- which(key == k)
+        g <- compois_probs(mu[idx[1L]], nu[idx[1L]])
+        out[idx] <- sample(g[["y"]], length(idx), replace = TRUE,
+                           prob = g[["p"]])
+      }
+      out
+    }
   )
 }
 
@@ -1307,7 +1409,32 @@ fam_hurdle_poisson <- function(link = "log") {
       mean_fn = function(dpars, aterms) {
         (1 - dpars[["hu"]]) * dpars[["mu"]] / (1 - exp(-dpars[["mu"]]))
       }
-    )
+    ),
+    # The generative process the family's name states: clear the hurdle
+    # with probability 1 - hu, and if you do, draw a count that cannot
+    # be zero.
+    #
+    # The positive part is drawn by inverse transform on the Poisson
+    # CDF ABOVE its own zero, not by drawing Poisson variates until one
+    # comes out positive. Both are correct; only this one has a bounded
+    # cost, and the rejection loop degenerates exactly where hurdle
+    # models are used, at a small mu, where almost every plain draw is
+    # the zero the hurdle already accounts for.
+    sim = function(dpars, aterms, n) {
+      mu <- rep(dpars[["mu"]], length.out = n)
+      hu <- rep(dpars[["hu"]], length.out = n)
+      p0 <- exp(-mu)
+      # The positive part's support starts at 1, so clamp it there.
+      # Two things push qpois() under that floor. The pmin() keeps the
+      # probability strictly below one, and at a tiny mu the double
+      # grid just under one is too coarse to resolve
+      # p0 + u (1 - p0), because 1 - p0 is about mu: below mu of about
+      # 1e-14 the smallest representable draws round down to zero,
+      # which is the hurdle's own atom rather than the positive part's.
+      u <- p0 + stats::runif(n) * (1 - p0)
+      (1 - stats::rbinom(n, 1L, hu)) *
+        pmax(stats::qpois(pmin(u, 1 - .Machine$double.eps), mu), 1L)
+    }
   )
 }
 
@@ -3659,6 +3786,26 @@ resolve_deferred_families <- function(bform, data) {
     bform <- one(bform)
   }
   bform
+}
+
+#' Carry a frame's finalized responses back into the spec beside it.
+#'
+#' A family with a `family_finalize` slot is not itself until the
+#' response has been seen: assembly is where it derives its links and
+#' any slot it computes from the data. Every stage that keeps the spec
+#' separately from the frame has to take the finalized copy, or it
+#' reads the family as written rather than the one the likelihood
+#' scores. Only responses whose family declares the slot are replaced;
+#' the rest of the spec stays as parsed, which is what every stage has
+#' always read.
+#'
+#' @noRd
+carry_finalized_responses <- function(spec, frame) {
+  for (rn_ in names(spec$responses)) {
+    if (is.null(spec$responses[[rn_]]$family[["family_finalize"]])) next
+    spec$responses[[rn_]] <- frame[["spec"]]$responses[[rn_]]
+  }
+  spec
 }
 
 # --- Cox proportional hazards ----------------------------------------

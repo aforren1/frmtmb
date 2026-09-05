@@ -21,8 +21,16 @@ NULL
 
 tab_dd <- local({
   set.seed(41)
-  dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
-  dd$y <- rnorm(60, 1 + 0.5 * dd$x, 1)
+  dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)), y = 0)
+  # the question here is whether a tibble, a data.table and a
+  # data.frame give the same fit, so the response comes from the model
+  # The draw takes its own seed, away from the fixture's: reusing
+  # the fixture seed restarts the same random stream that made the
+  # covariates, and the residuals come out equal to x.
+  dd$y <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
+                       newparams = list(Intercept = 1, x = 0.5, sigma = 1,
+                                        sd_g__Intercept = 0.5),
+                       nsim = 1, seed = 1041)[[1]]
   dd
 })
 tab_form <- bf(y ~ x + (1 | g)) + gaussian()
