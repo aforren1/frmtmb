@@ -130,6 +130,7 @@ articles:
   - inputs
   - brms-migration
   - case-studies
+  - reinforcement-learning
   - diagnostics
   - habit
   - compatibility
