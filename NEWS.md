@@ -1,3 +1,23 @@
+# frmtmb (development version)
+
+* New `vignette("reinforcement-learning")`: a worked example that
+  writes a Rescorla-Wagner delta-learning family for a two-armed
+  bandit with `frmtmb_family()` and the structured protocol's
+  whole-response `loglik` slot, then fits it hierarchically through
+  the ordinary grammar. The family is not exported. It lives in
+  `inst/rl/rw-delta.R`, which the vignette reads with
+  `knitr::read_chunk()` and `tests/testthat/test-rl-example.R` fits,
+  so the page and the test cannot drift apart. The example checks
+  itself three ways: against an independent scalar reference for the
+  recursion, against a Stan program's `log_prob` at frmtmb's own
+  estimates (gated on `FRMTMB_BRMS_FIT_TESTS`), and by parameter
+  recovery over 100 simulated datasets. It also measures what the
+  Laplace approximation costs at 20 trials per subject, and names the
+  one protocol seam it wanted and did not find: `loglik` returns one
+  scalar, so `frm(importance =)` and a pointwise log-likelihood are
+  out of reach even for a sequential family whose likelihood does
+  factorize. See `dev/rl-findings.md`.
+
 # frmtmb 0.51.0
 
 One simplex per monotonic term, matching brms; importance sampling over

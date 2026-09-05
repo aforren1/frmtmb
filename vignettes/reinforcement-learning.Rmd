@@ -1,0 +1,483 @@
+---
+title: "Reinforcement learning: a sequential family from scratch"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reinforcement learning: a sequential family from scratch}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(frmtmb)
+# Every code chunk below is read from one file, inst/rl/rw-delta.R, so
+# the family shown here is the family tests/testthat/test-rl-example.R
+# fits. Nothing on this page is a second copy.
+knitr::read_chunk(system.file("rl", "rw-delta.R", package = "frmtmb",
+                              mustWork = TRUE))
+```
+
+frmtmb has no reinforcement-learning family. This page writes one and
+fits it hierarchically through the ordinary formula grammar. The whole
+family is under 200 lines, the taped likelihood is 23 of them, and
+about a third of the rest is the text of the messages it owes a user
+when it refuses something.
+
+The point is not the model. The point is the seam. A likelihood that
+reads a whole sequence rather than one row at a time reaches the core
+through `frmtmb_structure()`, and everything else keeps working: random
+effects, links, standard errors, prediction.
+
+Read `vignette("frmtmb")` first for the grammar, and
+`?frmtmb_structure` for the reference description of the protocol used
+here.
+
+## The model
+
+The task is a two-armed bandit. On each trial a subject picks one of
+two arms and receives a payoff. The Rescorla-Wagner delta rule says the
+subject keeps a value estimate `Q` for each arm, starts both at zero,
+and after each choice moves the chosen arm's estimate toward what it
+just paid:
+
+```
+Q[chosen] <- Q[chosen] + alpha * (reward - Q[chosen])
+```
+
+The choice itself is a softmax over the two values, which for two arms
+is a logistic function of their difference:
+
+```
+P(arm 1) <- plogis(beta * (Q1 - Q2))
+```
+
+`alpha` is the learning rate, on `(0, 1)`. `beta` is the inverse
+temperature, on `(0, Inf)`: a large `beta` means the subject almost
+always takes the arm it currently values more. This is the model
+hBayesDM calls `bandit2arm_delta` (Ahn, Haines and Zhang 2017,
+*Computational Psychiatry* 1, 24). None of hBayesDM's code is used
+here; the equations above are the published model, and the family below
+is written from them.
+
+Each of the two parameters becomes a distributional parameter with its
+own linear predictor, so a learning rate can carry a condition effect
+and a subject-level random intercept exactly the way a mean would.
+
+## Why this needs the structured protocol
+
+The likelihood does factorize over trials: given the parameters, `Q` is
+a deterministic function of the subject's own earlier choices and
+payoffs, so each trial contributes one Bernoulli factor.
+
+What it is not is ROWWISE. A row's factor cannot be computed from that
+row's parameters and response alone, because `Q` carries the whole
+history. `frmtmb_family(lpdf =)` is handed one row's worth of
+everything, so it cannot express this. `frmtmb_structure(loglik =)` is
+handed the whole response and returns one number, so it can.
+
+## The family
+
+### The data a trial carries
+
+```{r rl-aterm}
+```
+
+### The block: from a long data frame to subject by trial
+
+The recursion is sequential in trials and independent across subjects,
+so it should walk trials once and update every subject at each step.
+That needs the rows arranged as a subject-by-trial matrix, which is
+what the `frame_block` slot is for. It runs once, at frame assembly,
+and everything it returns is plain data that gets saved inside the fit.
+
+```{r rl-block}
+```
+
+Two things to notice. `idx` holds row NUMBERS, not values, so the
+recursion can index any per-row quantity with it: the response, the
+payoffs, and the linear predictors of `alpha` and `beta`. And subjects
+with different trial counts are padded to the longest one, with `mask`
+marking the padding. The mask is what makes the padding free of
+branches on the tape: it multiplies the log-likelihood, so a padded
+cell contributes nothing, and it multiplies the learning rate, so a
+padded cell learns nothing.
+
+Padding is not the only way. `frmtmb.latent::hmm()` sorts its sequences
+by decreasing length instead, which makes the sequences still running
+at step `s` a prefix of the order and needs no padded cells at all.
+That is faster and harder to read. Measured on 40 subjects whose trial
+counts run from 30 to 100, the padded design carries 41 percent empty
+cells and builds its tape in 0.09 seconds against the balanced design's
+0.08, so for a tutorial the mask wins.
+
+### The likelihood
+
+```{r rl-loglik}
+```
+
+The loop body is the delta rule, written for every subject at once.
+`q1` and `q2` are vectors with one entry per subject, and one iteration
+of the loop advances all of them. There is no conditional anywhere: the
+chosen arm is selected by multiplying by the response, which is data,
+and the padding is selected by multiplying by the mask, which is also
+data.
+
+`weights` arrives and is ignored, which the family is allowed to do
+only because it refuses `weights()` outright further down. A row weight
+has no meaning here. A trial's factor depends on every earlier trial of
+the same subject, so there is nothing separable to reweight.
+
+### Fitted values and draws
+
+The same recursion in plain numbers answers two more questions.
+
+```{r rl-replay}
+```
+
+The per-trial choice probability is the natural fitted value for this
+family, and its binomial variance is what pearson residuals divide by.
+A forward draw is the same walk with `rbinom()` in place of the
+observed choice, which is why one function serves both.
+
+```{r rl-sim}
+```
+
+### The family object
+
+```{r rl-family}
+```
+
+```{r rl-structure}
+```
+
+The refusals are the interesting part. A structured family starts with
+every capability turned off, and each one it leaves off should say why
+in its own words. `conditional_effects()` is refused not because it is
+hard but because it is undefined: the expected response here is a
+choice probability that depends on a whole trial history, and the
+synthetic grid that function builds has no history.
+
+## Fitting it
+
+```{r rl-design}
+```
+
+```{r sim-data}
+set.seed(2024)
+design <- rl_bandit_design(n_subj = 30, n_trial = 80)
+dd <- rl_simulate(design, nsim = 1, seed = 2024)[[1]]
+str(dd[1:3, ])
+```
+
+`rl_simulate()` goes through `frm_simulate()`, which draws a fresh set
+of subject effects from `rl_truth` and then calls the family's own
+simulator. The choices in `dd` therefore come from the same code path
+the fit is about to score.
+
+Now the fit. This is an ordinary `frm()` call:
+
+```{r fit}
+fit <- frm(bf(choice | reward(pay1, pay2) ~ condition + (1 | p | id),
+              beta ~ 1 + (1 | p | id)),
+           family = rw_delta(subject = id, trial = trial),
+           data = dd)
+fixef(fit)
+```
+
+The main right-hand side is the LEARNING RATE's predictor, because the
+family declared `primary_dpars = "alpha"`. The `| p |` in both terms
+correlates each subject's learning rate with its own temperature, which
+is the usual hierarchical parameterization for these models.
+
+```{r varcorr}
+VarCorr(fit)
+```
+
+Compare with the simulated values:
+
+```{r truth}
+rbind(estimate = c(unlist(fixef(fit)),
+                   sd_alpha = sqrt(VarCorr(fit)[[1]][1, 1]),
+                   sd_beta = sqrt(VarCorr(fit)[[1]][2, 2])),
+      truth = c(rl_truth$alpha_Intercept, rl_truth$alpha_conditiontrt,
+                rl_truth$beta_Intercept,
+                rl_truth$sd_id__choice.alphaIntercept,
+                rl_truth$sd_id__choice.betaIntercept))
+```
+
+This is one dataset, so read the differences as sampling error and not
+as bias. The recovery study below is the systematic version.
+
+Everything downstream of the fit works because the structure said it
+does. The fitted values are per-trial choice probabilities:
+
+```{r fitted}
+p <- fitted(fit)
+summary(p)
+# the model's mean predicted choice rate against the observed one
+c(predicted = mean(p), observed = mean(dd$choice))
+```
+
+## Check 1: an independent reference for the recursion
+
+The taped recursion is vectorized and masked, which is exactly the kind
+of code that can be wrong in a way that still converges. So write the
+model out again, the way it is stated, one subject and one trial at a
+time, over quantities pulled back through the public accessors, and
+compare.
+
+```{r reference}
+u <- ranef(fit)[[1]]
+sid <- match(as.character(dd$id), rownames(u))
+xa <- model.matrix(~ condition, dd)
+alpha <- plogis(as.vector(xa %*% unname(fixef(fit)$alpha)) + u[sid, 1])
+beta <- exp(unname(fixef(fit)$beta)[[1]] + u[sid, 2])
+
+ll <- 0
+for (s in unique(sid)) {
+  rows <- which(sid == s)
+  rows <- rows[order(dd$trial[rows])]
+  q <- c(0, 0)
+  for (i in rows) {
+    ll <- ll + dbinom(dd$choice[i], 1, plogis(beta[i] * (q[1] - q[2])),
+                      log = TRUE)
+    k <- if (dd$choice[i] == 1) 1 else 2
+    pay <- if (k == 1) dd$pay1[i] else dd$pay2[i]
+    q[k] <- q[k] + alpha[i] * (pay - q[k])
+  }
+}
+c(reference = ll,
+  from_fitted = sum(dbinom(dd$choice, 1, p, log = TRUE)),
+  difference = ll - sum(dbinom(dd$choice, 1, p, log = TRUE)))
+```
+
+`tests/testthat/test-rl-example.R` runs this check on an unbalanced
+design as well, where the padding is live, and against the full joint
+density rather than the data part alone.
+
+## Check 2: an identity against Stan
+
+The reference above shares R with the thing it checks. A second
+implementation in another language and another autodiff system does
+not. `tests/testthat/helper-rl.R` holds a thirty-line Stan program for
+the same model, written from the equations at the top of this page, and
+compares Stan's `log_prob` with frmtmb's joint log density at frmtmb's
+own estimates. The Stan program declares exactly the parameters frmtmb
+estimates, on the scales frmtmb estimates them on, so the map between
+them is the identity and the comparison carries no Jacobian.
+
+Measured on 30 subjects and 100 trials:
+
+| quantity | at the estimates | at a displaced point |
+|---|---|---|
+| Stan `log_prob` | -1427.8453940 | -1460.3042080 |
+| frmtmb joint log density | -1427.8453940 | -1460.3042080 |
+| difference | -4.5e-13 | -2.5e-12 |
+| largest gradient on the subject effects | 1.2e-14 | not asserted |
+| largest gradient overall | 5.2 | not asserted |
+
+The difference is zero and is expected to be exactly zero, not merely
+small: core `frm()` carries no default prior, the Stan program uses
+`target +=` with `_lpmf` and `_lpdf` so it drops no normalizing
+constant, and every declared parameter is unbounded so
+`adjust_transform = FALSE` has no Jacobian to discard. The second
+column is a deliberately non-stationary point, so the agreement cannot
+be an artifact of both sides sitting at an optimum.
+
+The gradient row is the check that catches a wrong map. frmtmb puts
+the subject effects at their conditional modes, so Stan's gradient with
+respect to them must vanish there. The gradient with respect to the
+fixed effects is NOT zero at that point and is not asserted on: the
+maximum-likelihood estimate makes the MARGINAL likelihood stationary,
+not the joint one.
+
+The test is gated the same way the brms comparison tier is, on
+`FRMTMB_BRMS_FIT_TESTS` and `NOT_CRAN`, because it compiles a Stan
+program.
+
+## Check 3: parameter recovery
+
+Simulate 100 datasets at known parameter values through the family's
+own simulator, fit each one, and ask whether the estimates land on the
+truth and whether their intervals cover it. The design is 40 subjects
+with 100 trials each and a condition effect on the learning rate. The
+script is described in `dev/rl-findings.md`.
+
+| parameter | truth | bias | Monte Carlo se | sd of estimates | coverage |
+|---|---|---|---|---|---|
+| `alpha_(Intercept)` | -0.619 | +0.009 | 0.018 | 0.178 | 0.94 |
+| `alpha_conditiontrt` | 0.800 | -0.018 | 0.025 | 0.248 | 0.94 |
+| `beta_(Intercept)` | 1.099 | +0.002 | 0.007 | 0.070 | 0.96 |
+| `log sd(alpha)` | -0.693 | -0.211 | 0.057 | 0.573 | 0.93 |
+| `log sd(beta)` | -0.916 | -0.062 | 0.017 | 0.167 | 0.95 |
+
+The three fixed effects are unbiased to within their Monte Carlo error
+and their 95 percent Wald intervals cover at the nominal rate. The
+variance components are the weak point, and the learning-rate one
+especially: its estimate is biased downward and scattered widely, which
+is the usual behavior of a variance component estimated from binary
+data with a small number of levels. Coverage is over the replicates
+that produced a finite interval, which for `log sd(alpha)` was 98 of
+the 100.
+
+## The Laplace caveat, measured
+
+frmtmb integrates the subject effects out with a Laplace approximation.
+The approximation is a Gaussian fitted at the conditional mode, and it
+is exact only when the conditional log-density really is quadratic. For
+a binary response it is not, and the fewer trials a subject has, the
+less quadratic it is.
+
+The usual way to price that error in frmtmb is `frm(importance =)`,
+which reweights draws from the Laplace Gaussian. It is REFUSED here:
+
+```{r importance, error = TRUE}
+frm(bf(choice | reward(pay1, pay2) ~ condition + (1 | p | id),
+       beta ~ 1 + (1 | p | id)),
+    family = rw_delta(subject = id, trial = trial),
+    data = dd, importance = 200)
+```
+
+That refusal is honest but wider than it needs to be, and the closing
+section returns to it.
+
+What can still be measured is the consequence. Run the same recovery
+study at 20 trials per subject instead of 100, and read the bias and
+the coverage:
+
+| parameter | 100 trials, bias | coverage | 20 trials, bias | coverage |
+|---|---|---|---|---|
+| `alpha_(Intercept)` | +0.009 | 0.94 | +0.064 | 0.95 |
+| `alpha_conditiontrt` | -0.018 | 0.94 | -0.005 | 0.95 |
+| `beta_(Intercept)` | +0.002 | 0.96 | -0.000 | 0.92 |
+| `log sd(alpha)` | -0.211 | 0.93 | -0.628 | 0.73 |
+| `log sd(beta)` | -0.062 | 0.95 | -0.247 | 0.89 |
+
+100 replicates each, 40 subjects, the same true parameter values.
+Coverage is over the replicates that produced a finite interval: at 20
+trials that was 84 of 100 for `log sd(alpha)` and 96 or more for
+everything else.
+
+Two readings. The fixed effects survive. At 20 trials per subject their
+bias is still inside Monte Carlo error and their intervals still cover
+close to the nominal rate, so a study that wants the condition effect
+on the learning rate can work with short sessions.
+
+The variance components do not survive. The learning rate's log
+standard deviation comes out 0.63 too low, which is a standard
+deviation about half the true one, and its interval covers 73 times in
+100. Sixteen of the hundred short-session fits gave no usable interval
+for it at all.
+
+Do not read all of that as Laplace error. A variance component
+estimated by maximum likelihood from binary data with 40 levels is
+biased downward whether or not the integral is approximated, and this
+table does not separate the two causes. Separating them is what
+`frm(importance =)` exists for, and this family cannot ask it. What the
+table does establish is where the answers are safe: report fixed
+effects from short sessions, and treat a subject-level standard
+deviation estimated from 20 binary trials as a lower bound.
+
+## Shape and cost
+
+The family loops over TRIALS and vectorizes over subjects. It is worth
+seeing what the other spelling costs. Here is the same likelihood
+written the way the model is usually stated, one row at a time, with
+the value store updated by sub-assignment:
+
+```{r slow-shapes, eval = FALSE}
+for (t in seq_len(ncol(idx))) {
+  for (s in seq_len(nrow(idx))) {          # the extra loop
+    i <- idx[s, t]
+    eta <- beta[i] * (q1[s] - q2[s])
+    ll <- ll + y[i] * eta - RTMB::logspace_add(0 * eta, eta)
+    if (y[i] == 1) q1[s] <- q1[s] + alpha[i] * (pay1[i] - q1[s])
+    else q2[s] <- q2[s] + alpha[i] * (pay2[i] - q2[s])
+  }
+}
+```
+
+All three spellings give the same objective value to fourteen
+significant digits. On 40 subjects and 100 trials, 4000 rows, with the
+three builds interleaved and each gradient timed over a batch of 100
+calls:
+
+| `loglik` shape | tape build | one gradient |
+|---|---|---|
+| vectorized over subjects | 0.08 s | 7.3 ms |
+| row loop, scalar value store | 0.57 s | 7.2 ms |
+| row loop, length-n log-density vector | 0.65 s | 7.2 ms |
+
+The whole penalty is paid at TAPE CONSTRUCTION, and none of it per
+evaluation. That is what it has to be: once the tape exists it is a
+node list, and the R code that built it is gone. The gradient column is
+flat to within measurement noise, and an optimization runs hundreds of
+gradients against one build.
+
+Do not read the build column as a fixed multiplier either. RTMB's `[<-`
+copies the vector it writes into, so the sub-assigning form gets
+relatively worse as the response grows:
+
+| rows | vectorized | length-n sub-assignment | factor |
+|---|---|---|---|
+| 1000 | 0.03 s | 0.16 s | 5.3 |
+| 4000 | 0.08 s | 0.60 s | 7.5 |
+| 10000 | 0.14 s | 1.67 s | 11.9 |
+| 20000 | 0.34 s | 4.33 s | 12.7 |
+
+Values agree to 1e-11 across the whole sweep. The rule to take away is
+the shape, not a number: vectorize the tape-building loop, and expect
+the cost of not doing so to grow with the data.
+
+Scaling of the vectorized family, interleaved, `frm(dry_run =
+"objective")` with the frame-assembly time subtracted, median of 7
+builds and the best of 3 gradient batches:
+
+| subjects | trials | rows | tape build | one gradient |
+|---|---|---|---|---|
+| 10 | 100 | 1000 | 0.04 s | 10.0 ms |
+| 40 | 25 | 1000 | 0.03 s | 8.8 ms |
+| 40 | 100 | 4000 | 0.08 s | 39.6 ms |
+| 40 | 400 | 16000 | 0.28 s | 153.4 ms |
+| 160 | 100 | 16000 | 0.22 s | 160.6 ms |
+| 40 | 800 | 32000 | 0.61 s | 296.2 ms |
+
+Both costs track the ROW count, which is the node count. Read the two
+16000-row rows against each other for the part that does not: more
+trials at a fixed row count costs more to tape, because the R loop runs
+more iterations, and costs the same per gradient, because the tape is
+the same size either way. The size of that build gap is not stable
+enough to quote. Two interleaved runs of this table on one machine put
+it at 1.27x and 1.70x.
+
+## What a built-in family would add
+
+The example above is a complete family. Three things would still change
+if it moved into a package.
+
+**A per-unit log-likelihood.** This family's likelihood factorizes over
+trials, but `frmtmb_structure(loglik =)` returns one AD scalar, so the
+core never sees the individual factors. Two features follow from that
+and are unavailable here: a pointwise log-likelihood matrix, which
+`loo()` and `waic()` need, and `frm(importance =)`, whose refusal
+appears above. The importance correction needs one value per GROUP, not
+per row, and this family has that. The refusal is written in terms of
+rows because that is the only granularity the slot exposes. A future
+`pointwise_loglik` slot, or a `loglik` allowed to return a vector over
+the structure's own `unit`, would serve both.
+
+**Newdata.** `predict(type = "response")` on new data would need a
+block built without a response, and the protocol defers that case on
+purpose. For this family the meaning is clear enough (replay the new
+subject's payoff schedule against the fitted parameters), so a built-in
+version would be worth the work.
+
+**More of the literature.** A real package would carry the family of
+models this one is the simplest member of: separate learning rates for
+gains and losses, a decay term, more than two arms. All of them share
+this block and this loop shape, and differ only in the body.
+
+None of that is a limitation of the protocol as a place to put a
+sequential likelihood. The core knows nothing about reinforcement
+learning, and the model above fits, predicts, simulates and recovers
+its parameters through the ordinary grammar.
