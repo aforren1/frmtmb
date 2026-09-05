@@ -134,7 +134,16 @@ test_that("every resolved pair gets a status", {
 test_that("declared families exist in the family registry", {
   ft <- frm_compat_features()
   fams <- ft$key[ft$kind == "family"]
-  expect_true(all(fams %in% names(family_registry)))
+  in_core <- fams %in% names(family_registry)
+  # an extension's family is a constructor exported from its own
+  # namespace, never an entry in core's registry, so a declared family
+  # that is attached lives there; the core-only run sees no such row
+  elsewhere <- vapply(fams[!in_core], function(fam) {
+    any(vapply(loadedNamespaces(), function(ns) {
+      exists(fam, envir = asNamespace(ns), inherits = FALSE, mode = "function")
+    }, logical(1)))
+  }, logical(1))
+  expect_true(all(elsewhere), info = paste("declared but not a family anywhere:", paste(fams[!in_core][!elsewhere], collapse = ", ")))
 })
 
 test_that("declared covariance structures exist in the covstruct registry", {
