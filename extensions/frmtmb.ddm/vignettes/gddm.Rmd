@@ -9,13 +9,21 @@ vignette: >
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+# the package loads must sit in this unconditional chunk: the tangled
+# script skips eval-gated chunks, so a library() inside one leaves every
+# later unconditional chunk without frm()
 library(frmtmb)
 library(frmtmb.ddm)
+has_tinyplot <- requireNamespace("tinyplot", quietly = TRUE)
 set.seed(20)
 ```
 
 `vignette("ddm")` fits the drift-diffusion model whose density is known
 in closed form. This one is about the models whose density is not.
+
+Some sections carry a figure. The figures use
+[tinyplot](https://cran.r-project.org/package=tinyplot), which is a
+suggested package, and they are skipped when it is not installed.
 
 ## What the generalized model adds
 
@@ -45,6 +53,39 @@ non-decision time. Three things are now yours to choose:
 
 Each choice brings its own free parameters, and each of those takes a
 formula like any other distributional parameter.
+
+The three boundaries the package ships differ only in how they close,
+and at the separation and time constant this vignette simulates from
+they close very differently. The linear one takes a collapse fraction of
+its own, set to 0.6 here.
+
+```{r fig-bound, eval = has_tinyplot, fig.width = 7, fig.height = 4, fig.alt = "Plot of the boundary against time in the trial, from 0 to 2 seconds. Three mirrored pairs of lines all start at plus and minus 1.5. The gray constant pair stays flat. The blue exponential pair closes fastest and reaches about plus and minus 0.3 at 2 seconds. The red linear pair closes steadily to about plus and minus 0.6. A dotted line marks zero, where the accumulator starts."}
+tmax <- 2
+tg <- seq(0, tmax, length.out = 201)
+# fn(t, p, ctl) is the seam gddm_bound_term() defines, and the linear
+# boundary reads t_max from the control to scale its collapse
+bwall <- function(b, p) rep_len(b$fn(tg, p, list(t_max = tmax))$B, length(tg))
+bnds <- list(constant = bwall(gddm_bound_constant(), list(bs = 3)),
+             exponential = bwall(gddm_bound_exponential(),
+                                 list(bs = 3, tau = 1.2)),
+             linear = bwall(gddm_bound_linear(), list(bs = 3, kappa = 0.6)))
+bcol <- c("gray35", "steelblue4", "firebrick")
+tinyplot::tinyplot(x = tg, y = bnds[[1]], type = "n", theme = "clean2",
+                   ylim = c(-1.75, 2.15), xlab = "time in the trial (s)",
+                   ylab = "boundary")
+for (i in seq_along(bnds)) {
+  lines(tg, bnds[[i]], col = bcol[i], lwd = 2)
+  lines(tg, -bnds[[i]], col = bcol[i], lwd = 2)
+}
+abline(h = 0, lty = 3, col = "gray60")
+legend("top", names(bnds), col = bcol, lty = 1, lwd = 2, bty = "n",
+       horiz = TRUE, cex = 0.9)
+```
+
+All three open at the same width. By the end of the trial the
+exponential pair has closed to about a fifth of it, so a slow decision
+needs a fifth of the evidence a fast one did, and what the accumulator
+runs between is a moving corridor rather than a fixed one.
 
 Two responses is the whole of it. One accumulator in one dimension
 between two absorbing boundaries can end a trial at the upper wall or
@@ -155,6 +196,74 @@ two families' estimates are directly comparable.
 integration. It is the paper's `l`, which is the negative of PyDDM's
 `leak`.
 
+The table of estimates is one reading of the fit. The other is the
+fitted distribution against the data it was fitted to, as defective
+cumulative distributions: one curve per wall, each leveling off at the
+proportion of trials that ended there.
+
+```{r fig-fit, eval = has_tinyplot, fig.width = 7, fig.height = 3.8, fig.alt = "Three panels side by side, one per coherence, of cumulative proportion from 0 to 1 against response time from 0.2 to 1.6 seconds. Each panel holds four curves: dotted steps for the observed data and solid lines for the fit, blue for the upper wall and red for the lower. At coherence 0 the blue and red curves rise together and level off near 0.5 each. At coherence 0.128 the blue curve climbs to nearly 1 while the red stays flat near 0.02. At coherence 0.512 the blue curve rises earlier and more steeply and reaches 1 by about 0.7 seconds. Each solid curve lies on its own dotted steps."}
+# The solved density is not part of this package's API. These two are
+# the internals its own solver tests read, and a picture of the fit
+# needs the density on a grid, which nothing exported returns.
+gd_solve <- frmtmb.ddm:::gd_solve
+gd_shift <- frmtmb.ddm:::gd_shift
+comp <- gddm(drift = list(gddm_drift_coherence(cmax = 0.512),
+                          gddm_drift_leak()),
+             bound = gddm_bound_exponential())[["gddm"]]$comp
+est <- list(mu = unname(e[["mu.(Intercept)"]]),
+            alpha = exp(unname(e[["alpha.(Intercept)"]])),
+            leak = unname(e[["leak.(Intercept)"]]),
+            bs = exp(unname(e[["bs.(Intercept)"]])),
+            tau = exp(unname(e[["tau.(Intercept)"]])), bias = 0.5,
+            ndt = min(dat$rt) / (1 + exp(-unname(e[["ndt.(Intercept)"]]))))
+
+# one solve per condition, shifted by the non-decision time and
+# renormalized exactly as the likelihood does it
+gd_curve <- function(cov, dt = ctl$dt) {
+  g <- list(dt = dt, ny = ctl$ny, t_max = ctl$t_max,
+            nt = as.integer(round(ctl$t_max / dt)), tridiagonal = "recorded",
+            wmax = as.integer(ceiling(est$ndt / dt)) + 2L)
+  s <- gd_solve(est, cov, comp, g)
+  u <- gd_shift(s$up, est$ndt, dt, g$wmax)
+  l <- gd_shift(s$lo, est$ndt, dt, g$wmax)
+  m <- (sum(u) + sum(l)) * dt
+  data.frame(t = seq(0, ctl$t_max, by = dt), dt = dt,
+             up = as.numeric(u) / m, lo = as.numeric(l) / m)
+}
+cv <- lapply(coh, gd_curve)
+op <- par(mfrow = c(1, 3))
+for (i in seq_along(coh)) {
+  d <- dat[dat$coh == coh[i], ]
+  g <- cv[[i]]
+  # the panel is named with the variable rather than the word: the
+  # theme's title is too large for a third of the width to hold
+  # "coherence 0.512" without running off the last panel
+  tinyplot::tinyplot(x = g$t, y = cumsum(g$up) * g$dt, type = "n",
+                     theme = "clean2", xlim = c(0.2, 1.6), ylim = c(0, 1),
+                     main = paste("coh", coh[i]),
+                     xlab = "response time (s)",
+                     ylab = "cumulative proportion")
+  for (w in c(1, 0)) {
+    cl <- if (w == 1) "steelblue4" else "firebrick"
+    rt <- sort(d$rt[d$upper == w])
+    lines(c(0.2, rt), c(0, seq_along(rt)) / nrow(d), type = "s", lty = 3,
+          col = cl, lwd = 1.6)
+    lines(g$t, cumsum(if (w == 1) g$up else g$lo) * g$dt, col = cl, lwd = 2)
+  }
+  if (i == 1) {
+    legend("topleft", c("upper wall", "lower wall", "observed", "fitted"),
+           col = c("steelblue4", "firebrick", "gray40", "gray40"),
+           lty = c(1, 1, 3, 1), lwd = 2, bty = "n", cex = 0.95)
+  }
+}
+par(op)
+```
+
+The height a curve settles at is the choice proportion and its rise is
+the response times. The lower wall's plateau falls from about a half at
+zero coherence to near zero at 0.512, and every fitted curve lies on its
+own observed steps.
+
 ## The numerical scheme, and why it is this one
 
 There is no density to evaluate, so every likelihood evaluation solves
@@ -201,10 +310,67 @@ across a range of drifts, separations and starting points, the two agree
 to better than 0.01 in the log density. A coarser grid is worse and a
 finer one is better; the package's own test suite pins all three.
 
+```{r fig-accuracy, eval = has_tinyplot, fig.width = 7, fig.height = 4, fig.alt = "Two panels against decision time on a logarithmic axis from 0.01 to 1.5 seconds. The left panel plots density on a logarithmic axis from 1e-12 to 5. Thick gray curves are the closed-form Wiener density, solid for the upper wall and dashed for the lower, and thin blue and red curves are the solver at the same two walls. Above about 0.05 seconds each thin curve lies on its gray curve. Below that the gray curves plunge off the bottom of the panel while the thin curves carry on almost straight, so the solver is far too large there. The right panel plots the absolute log-density error for two grids, blue for dt 0.01 with ny 201 and orange for dt 0.02 with ny 101. Both fall from above 10 at the shortest times and cross the dashed line at 0.01 before the dashed vertical line at 0.2 seconds, and the orange curve stays above the blue one throughout."}
+ddm_lpdf_both <- frmtmb.ddm:::ddm_lpdf_both
+wcomp <- gddm()[["gddm"]]$comp
+wp <- list(mu = 2, bs = 2, bias = 0.5, ndt = 0)
+# no shift and no renormalization: the raw flux is what the closed form
+# is a statement about, and it is what the solver tests compare
+gd_raw <- function(dt, ny) {
+  g <- list(dt = dt, ny = as.integer(ny), t_max = 2,
+            nt = as.integer(round(2 / dt)), tridiagonal = "recorded")
+  s <- gd_solve(wp, 0, wcomp, g)
+  k <- 2:(round(1.5 / dt) + 1)
+  tt <- seq(0, 2, by = dt)[k]
+  data.frame(t = tt, up = pmax(as.numeric(s$up)[k], 1e-300),
+             lo = pmax(as.numeric(s$lo)[k], 1e-300),
+             eup = exp(ddm_lpdf_both(tt, 2, 2, 0.5, 1)),
+             elo = exp(ddm_lpdf_both(tt, 2, 2, 0.5, 0)))
+}
+fine <- gd_raw(0.01, 201L)
+crs <- gd_raw(0.02, 101L)
+gd_err <- function(d) pmax(abs(log(d$up) - log(pmax(d$eup, 1e-300))),
+                           abs(log(d$lo) - log(pmax(d$elo, 1e-300))))
+sname <- c("closed form, upper", "closed form, lower", "solver, upper",
+           "solver, lower")
+scol <- c("gray70", "gray70", "steelblue4", "firebrick")
+dens <- data.frame(t = rep(fine$t, 4),
+                   d = c(fine$eup, fine$elo, fine$up, fine$lo),
+                   s = factor(rep(sname, each = nrow(fine)), levels = sname))
+err <- data.frame(t = c(fine$t, crs$t), e = c(gd_err(fine), gd_err(crs)),
+                  g = factor(rep(c("dt 0.01, ny 201", "dt 0.02, ny 101"),
+                                 c(nrow(fine), nrow(crs)))))
+op <- par(mfrow = c(1, 2))
+tinyplot::tinyplot(d ~ t | s, data = dens, type = "l", log = "xy",
+                   theme = "clean2", col = scol, lwd = c(4, 4, 1.6, 1.6),
+                   lty = c(1, 3, 1, 1), legend = FALSE, ylim = c(1e-12, 5),
+                   main = "density, both walls",
+                   xlab = "decision time (s)", ylab = "density")
+legend("bottomright", sname, col = scol, lwd = c(4, 4, 1.6, 1.6),
+       lty = c(1, 3, 1, 1), bty = "n", cex = 0.7)
+tinyplot::tinyplot(e ~ t | g, data = err, type = "l", log = "xy",
+                   theme = "clean2", col = c("steelblue4", "darkorange3"),
+                   lwd = 2, legend = FALSE, main = "log-density error",
+                   xlab = "decision time (s)", ylab = "absolute error")
+abline(v = 0.2, lty = 2, col = "gray40")
+abline(h = 0.01, lty = 2, col = "gray40")
+legend("topright", levels(err$g), col = c("steelblue4", "darkorange3"),
+       lwd = 2, lty = 1, bty = "n", cex = 0.7)
+par(op)
+```
+
+Drawn at one drift and one separation, the solved density and the closed
+form are the same curve on both walls above about a twentieth of a
+second. Read as an error rather than as two curves, that same comparison
+is where the grid shows: past 0.2 s the coarser grid is about four times
+worse than the shipped one, and both stay well inside 0.01.
+
 Two honest limits. The density at very short decision times, a few steps
 above zero, is much larger than the truth: an implicit scheme spreads a
 little mass everywhere immediately, where the true first-passage density
-is exponentially small. It is small in absolute terms, and adding a
+is exponentially small. On a logarithmic density axis the closed form
+falls away to nothing at the left edge while the solver's own curves
+carry on almost straight. It is small in absolute terms, and adding a
 lapse component floors it, but a fit should not be asked to read it.
 And refining `ny` alone helps only because the starting mass is
 deliberately spread over two grid cells rather than one; a sharper start
@@ -243,6 +409,31 @@ orders of magnitude, and those rows contributed a constant rather than
 information. Many rows means the fit is not to be trusted: shrink `dt`,
 or give the model a lapse component, which floors the density in the
 model rather than in the arithmetic.
+
+The floor is reached where the solved density underflows, and that is
+the leading edge, just past the fitted non-decision time. The step
+decides what happens there, on the model fitted above.
+
+```{r fig-grid, eval = has_tinyplot, fig.width = 7, fig.height = 4, fig.alt = "Plot of the fitted upper-wall density on a logarithmic axis from 1e-13 to 20, against response time from 0.2 to 0.6 seconds, for three time steps. A dashed vertical line marks the fitted non-decision time near 0.24 seconds. The three curves lie on one another from about 0.4 seconds on, where the density is near 5. To the left of that they separate over many orders of magnitude: just past the dashed line the dt 0.04 curve is near 1e-3, the dt 0.02 curve near 1e-5 and the dt 0.01 curve near 1e-8."}
+gv <- do.call(rbind, lapply(c(0.04, 0.02, 0.01),
+                            function(d) gd_curve(0.512, dt = d)))
+gv <- gv[gv$t > 0.2 & gv$t < 0.62, ]
+gv$step <- factor(paste("dt", gv$dt))
+gcol <- c("steelblue4", "darkorange3", "firebrick")
+tinyplot::tinyplot(pmax(up, 1e-14) ~ t | step, data = gv, type = "l",
+                   log = "y", theme = "clean2", lwd = 2, legend = FALSE,
+                   col = gcol, ylim = c(1e-13, 20),
+                   xlab = "response time (s)", ylab = "density",
+                   main = "upper wall at coherence 0.512")
+abline(v = est$ndt, lty = 2, col = "gray40")
+legend("bottomright", levels(gv$step), col = gcol, lwd = 2, lty = 1,
+       bty = "n", cex = 0.85)
+```
+
+The three grids agree from about 0.4 s on. Below that they do not: at
+0.28 s the coarsest is two orders of magnitude above the finest. It is
+those few nodes at the leading edge, not the bulk, that a smaller `dt`
+buys.
 
 ## When not to use this
 
