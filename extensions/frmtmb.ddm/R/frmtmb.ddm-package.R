@@ -6,5 +6,5 @@
 # seam is imported by name as well, because a namespace that is loaded
 # and not attached reaches nothing through the search path.
 #' @importFrom frmtmb custom_family frmtmb_register_compat
-#'   compat_rule_builder
+#'   compat_rule_builder frmtmb_register_aterm
 NULL

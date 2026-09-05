@@ -167,12 +167,19 @@ test_that("cens() and trunc() are refused for want of a CDF", {
                "need a family with a CDF")
 })
 
-test_that("dec() is refused by frmtmb's parser, as documented", {
+test_that("dec() is the spelling now, and vint() is the same model", {
   skip_if_not_installed("RWiener")
+  # This assertion used to read the other way round: it pinned core's
+  # refusal of `dec()`, because frmtmb's addition terms were a closed
+  # set and the only route for the indicator was vint(). frmtmb 0.49.0
+  # added frmtmb_register_aterm(), this package registers `dec` when it
+  # loads, and the refusal it pinned no longer exists. The pin moves to
+  # the property that replaced it: the two spellings are one model.
   o <- ddm_fit()
-  # pinned because ?wiener tells the user this is what happens, and a
-  # change in core's message should force this package's docs to move
-  expect_error(frm(bf(rt | dec(upper) ~ cond, bias = 0.5),
-                   family = wiener(), data = o$dat),
-               "Addition term `dec\\(\\)` is not supported")
+  f_dec <- frm(bf(rt | dec(upper) ~ cond, bias = 0.5),
+               family = wiener(), data = o$dat)
+  expect_equal(as.numeric(logLik(f_dec)), as.numeric(logLik(o$fit)),
+               tolerance = 1e-10)
+  expect_equal(unlist(fixef(f_dec)), unlist(fixef(o$fit)),
+               tolerance = 1e-6)
 })
