@@ -532,7 +532,7 @@ frmtmb_compat_features_tbl <- function(extra = NULL) {
     lapply(c("weights()", "trials()", "cens()", "trunc()", "se()",
              "mi()", "vint()", "vreal()"), f, kind = "aterm"),
     lapply(c("s()", "t2()", "mo()", "mi_pred()", "gp_pred()",
-             "cs_pred()"), f, kind = "special"),
+             "cs_pred()", "ps()"), f, kind = "special"),
     # R-side (within-group residual) correlation terms. They carry no
     # random effect, so they are not a covariance structure, and they
     # contribute no design column, so they are not a predictor special:
@@ -545,7 +545,8 @@ frmtmb_compat_features_tbl <- function(extra = NULL) {
              "mixture_mvn"), f, kind = "structure"),
     lapply(c("fitted", "predict", "simulate", "residuals",
              "residuals_osa", "emmeans",
-             "confint_profile", "hypothesis_profile"), f,
+             "confint_profile", "hypothesis_profile",
+             "frm_lp_basis"), f,
            kind = "method"),
     # formula-grammar spellings, which have their own restrictions and
     # belong in the table even though they name no package object
@@ -697,6 +698,11 @@ frmtmb_compat_rules_tbl <- function() {
     "Covariance structures act on the linear predictor, so they are independent of the response distribution.")
   r("kind:family", "kind:special", "works",
     "Predictor specials build design columns before the family sees them.")
+  # ps() is the special that does NOT build design columns, so the
+  # kind-level sentence above would be false on all 68 of its family
+  # rows. The status is the same; the reason is not.
+  r("kind:family", "ps()", "works",
+    "ps() builds no design column: it evaluates a penalized spline on the tape and hands its VALUE to a nonlinear body, which then computes the linear predictor. The family sees that predictor and nothing about how it was made, so the pair is independent of the response distribution for the same reason every other special is, by a different route.")
   r("kind:family", "kind:mode", "works",
     "Estimation modes reparameterize the outer problem and do not read the family.")
   r("kind:family", "kind:method", "conditional",
@@ -1105,6 +1111,41 @@ frmtmb_compat_rules_tbl <- function() {
   r("nl", "predict", "conditional",
     "Point predictions work. se.fit is not supported for the nonlinear predictor; request a nonlinear parameter with dpar instead.")
   r("nl", "cens()", "works", "Verified by a tiny fit.")
+  r("nl", "ps()", "works",
+    "The reason ps() exists: a penalized block whose VALUE the body consumes, so that a population curve can be warped per subject rather than added to a predictor. Verified against a plain-R port of the likelihood of D'Alessandro, Thoresen and Sorensen (2026) on brokenstick::smocc_200: the joint negative log density agrees to 9.4e-11 absolute (2.6e-14 relative) at the optimum and to 6.0e-10 at a perturbed parameter vector.")
+  r("ps()", "predict", "works",
+    "The knots are frozen on the frame, so newdata is evaluated on the fitted basis; the body is re-evaluated at the new data exactly as any nonlinear body is. Verified: a grid over a sub-range gives the same curve as the full grid.")
+  r("ps()", "simulate", "works",
+    "The block's coefficients are drawn like any other random-effect block and the body is evaluated at the draw.")
+  r("ps()", "frm_lp_basis", "works",
+    "The route to a standard error on a warped curve. A is the Jacobian of the body with respect to the block's coefficients, taped rather than perturbed, and it agrees with a central difference of predict() to 1e-5 on the package's own test model.")
+  r("ps()", "REML", "refused",
+    "REML integrates the fixed coefficients out, and a ps() block puts its own null space among them inside a body that is nonlinear in it. Refused by name.")
+  r("ps()", "quadrature", "refused",
+    "Marginalizing the block by Gauss-Kronrod means integrating over a whole curve, and the rule takes one scalar random effect at a time. Refused by name.")
+  r("ps()", "profile", "refused",
+    "Profiling assumes the objective is quadratic in the fixed coefficients, which a nonlinear body makes it not. Refused by name.")
+  r("ps()", "importance", "refused",
+    "Inherited: the importance correction refuses EVERY nonlinear predictor, because a body mixes parameter values with raw data columns and the corrected objective evaluates it once per draw. Not a restriction of ps().")
+  r("ps()", "mvbf", "refused",
+    "The block reaches the body through the per-call evaluation frame, and which response's frame that is has not been measured. Refused by name rather than guessed at.")
+  r("ps()", "kind:aterm", "untested",
+    "Nothing about an addition term meets a ps() block: the block contributes to a linear predictor's VALUE and an addition term reshapes the response's density. Not exercised.")
+
+  ## frm_lp_basis(): the same rows frm_curve() has, because they are the
+  ## same rows. The two that are worth naming are rr and gp.
+  r("frm_lp_basis", "s()", "works",
+    "The case the seam exists for: a penalized smooth's wiggly part is a random-effect block, so A spans b and V is the joint covariance. Verified against predict(se.fit = TRUE) at 2.8e-17 relative on a s(x, k = 8) + (1 | g) fit at both re.form = NA and re.form = NULL.")
+  r("frm_lp_basis", "smooth", "works",
+    "The same thing named as a covariance structure rather than as a formula term.")
+  r("frm_lp_basis", "nl", "works",
+    "A is a JACOBIAN rather than a design, taped from the body against the coefficients it reaches through. predict(se.fit = TRUE) stays refused for a nonlinear predictor and this is the route. Verified against a central difference of predict() at 4.5e-10, which is the finite difference's own error.")
+  r("frm_lp_basis", "rr", "works",
+    "A reduced-rank block's loadings live in theta, so a design over (beta, b) alone is incomplete. A carries the loading columns through rr_jacobians() and coef_pos names their theta rows, so a caller gets the whole delta method rather than discovering a piece is absent.")
+  r("frm_lp_basis", "gp", "works",
+    "An exact gp() at an unseen position contributes a kriging variance that is not coefficient uncertainty at all. It is returned in extra_var, separately, rather than folded into A V A'.")
+  r("frm_lp_basis", "predict", "works",
+    "predict(se.fit = TRUE) is written as a consumer of it, which is the test that the shape is right: var(eta) is rowSums((A %*% V) * A) + extra_var.")
   r("nl", "kind:covstruct", "works",
     "A nonlinear parameter may carry its own random effects.")
 

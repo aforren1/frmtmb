@@ -1,42 +1,39 @@
-# The post-fit check that stands in for a core `lccdf` slot.
+# The post-fit report on the two floors this family used to have.
 #
-# frmtmb forms a right-censored contribution on the PROBABILITY scale,
-# `log(Fub - F(y))` (`R/objective.R:100`), which without truncation is
-# `log(1 - F)`. A survival family therefore cannot hand back an accurate
-# `log S` once `1 - F` stops being representable, and no amount of care
-# inside the family changes that: the number core asks for is `F`, and
-# the complement of a double near 1 carries absolute error about
-# `.Machine$double.eps`.
+# Up to frmtmb 0.51.0 core formed a right-censored contribution on the
+# PROBABILITY scale, `log(Fub - F(y))` (`R/objective.R:100`), which
+# without truncation is `log(1 - F)`. A survival family could not hand
+# back an accurate `log S` once `1 - F` stopped being representable: the
+# scored error was about `eps / S`, the term was FLAT past `-log S` of
+# 30 with a gradient of exactly zero, and a converged, warning-free fit
+# could report a log likelihood wrong by tens of thousands.
 #
-# So the error in the scored `log S` is about `eps / S`, and that single
-# expression governs all three scales. Measured, by forming `F` for a
-# given `-log S` on each scale and reading `log(1 - F)` back:
+# frmtmb 0.52.0 added the `lccdf` slot the proposal asked for, and
+# `royston_parmar()` supplies it (`R/royston-parmar.R`). A right-censored
+# row is now scored from `log S` directly, in closed form on all three
+# scales, so THE CENSORED FLOOR NO LONGER EXISTS. Measured on the
+# hazard scale, `-log S` at 40 was scored as -35.127363 before and is
+# scored as -40 exactly now, and its gradient in `eta` is right rather
+# than zero.
 #
-#   -log S    computed        abs error    eps / S
-#   10        -10             1.3e-13      4.9e-12
-#   15        -15             9.0e-11      7.3e-10
-#   19.2      -19.2           2.4e-10      4.8e-08
-#   25        -25             3.8e-06      1.6e-05
-#   30        -29.99983       1.7e-04      2.4e-03
-#   36        -34.94504       1.05         9.6e-01
-#   40        -35.12736       4.87         5.2e+01
+# So the censored count below is a DIAGNOSTIC rather than a refusal.
+# `-log S` past about 19.2 still says something worth hearing: a fit
+# with a censored row whose survival probability is `exp(-40)` is a fit
+# whose data barely constrain that row, whatever the arithmetic does.
+# It is reported, and it does not stop anything.
 #
-# The three scales agree to every printed digit at every row, because
-# they differ only in how `eta` maps to `S`. The reviewer's two
-# thresholds are the same threshold said twice: `eta = 6` on the normal
-# scale is `-log S = 20.74`, and `-log S = 19.2` is `eta = 5.745`.
+# The monotonicity floor is UNCHANGED and still refuses. The cumulative
+# hazard has to increase, nothing enforces it, and where the spline's
+# derivative in log time goes non-positive there is no hazard and the
+# true log density is `-Inf`. `sp_floor_pos()` replaces it with a large
+# finite number, which keeps the optimizer alive and makes `logLik()` a
+# pseudo-likelihood. No core seam addresses that; it is a property of
+# the model, not of the arithmetic.
 #
-# Past `-log S = 30` the value is not merely inaccurate, it is FLAT: the
-# gradient of the scored term with respect to the coefficients is exactly
-# zero, so the optimizer prices such a row at a constant and fits the
-# others as if it were free. That is what produces a converged,
-# warning-free fit whose reported log likelihood is wrong by thousands
-# and whose treatment coefficient is wrong by tens of percent.
-#
-# The fix belongs in core (`dev/spline-seam-proposal.md`, Part 1, the
-# `lccdf` slot). Until it lands, this package REFUSES rather than
-# floors: a fit in that region is not one this family may report numbers
-# for.
+# What this still cannot do: `logLik()` reads `object$opt$objective`
+# directly, so this is post-fit either way. frmtmb 0.52.0 does now run a
+# family's `post$fit_check` when a fit finishes, which is how the
+# monotonicity report reaches a user who never calls this function.
 
 #' The finalized `royston_parmar()` family of a fit, or `NULL`.
 #'
@@ -90,38 +87,31 @@ sp_rp_fitted <- function(object, fam) {
        scale = scale, n = length(y))
 }
 
-#' Rows this family answered with a floor rather than with a density
+#' Report the deep censored rows and the non-monotone rows of a fit
 #'
-#' Two things in `royston_parmar()` are floors rather than answers, and
-#' both are silent in the fitted object: `logLik()` and `AIC()` report
-#' the floored value with nothing to say it is floored. This function is
-#' where that goes to be read, and by default it REFUSES rather than
-#' reports, because a fit in either region is one whose numbers are not
-#' the model's.
+#' Two things in `royston_parmar()` used to be floors rather than
+#' answers. One of them is gone; the other refuses.
 #'
-#' @section The censored-row floor:
-#' frmtmb forms a right-censored contribution as `log(1 - F(y))` on the
-#' probability scale (`R/objective.R:100`), so the scored `log S` carries
-#' absolute error about `.Machine$double.eps / S`. Past `-log S` of about
-#' 19.2 that error passes 1e-8; past 30 the term is FLAT, its gradient
-#' exactly zero, and the optimizer prices the row at a constant.
+#' @section The censored rows: a report, no longer a floor:
+#' Up to frmtmb 0.51.0 core formed a right-censored contribution as
+#' `log(1 - F(y))` on the probability scale, so the scored `log S`
+#' carried absolute error about `.Machine$double.eps / S`: past `-log S`
+#' of about 19.2 that error passed 1e-8, and past 30 the term was FLAT
+#' with a gradient of exactly zero.
 #'
-#' The size of the error is a property of the data rather than of the
-#' family: a floored row contributes -35.127363 instead of its own
-#' `-log S`, so the reported log likelihood is short by about
-#' `-log S - 35` per floored row. Two runs of one 600-subject design
-#' differing only in seed give 2.4e+03 and 2.166e+04, both converged
-#' without a warning and both with the treatment coefficient out by tens
-#' of percent.
+#' frmtmb 0.52.0 added the `lccdf` slot and this family supplies it, in
+#' closed form on all three scales, so a right-censored row is scored
+#' from `log S` directly and no complement is formed. Measured on the
+#' hazard scale, `-log S = 40` was scored as -35.127363 and is now
+#' scored as -40 exactly.
 #'
-#' The quantity checked is `-log S` at the fitted parameters, on every
-#' censored row. It is one quantity for all three scales: `exp(eta)` on
-#' `"hazard"`, `log1p(exp(eta))` on `"odds"` and `-log(Phi(-eta))` on
-#' `"normal"`. On the hazard scale it is the cumulative hazard `H`.
-#'
-#' The real fix is a complementary log-CDF slot in core, so that a family
-#' can hand back `log S` instead of `F`. See `dev/spline-seam-proposal.md`
-#' in the package sources.
+#' The count is therefore a DIAGNOSTIC and never refuses. It still says
+#' something: a censored row whose fitted survival probability is
+#' `exp(-40)` is one the data barely constrain, whatever the arithmetic
+#' does. The quantity is `-log S` at the fitted parameters, and it is
+#' one quantity for all three scales: `exp(eta)` on `"hazard"`,
+#' `log1p(exp(eta))` on `"odds"` and `-log(Phi(-eta))` on `"normal"`.
+#' On the hazard scale it is the cumulative hazard `H`.
 #'
 #' @section The monotonicity floor:
 #' The cumulative hazard has to increase, so the spline's derivative in
@@ -135,20 +125,22 @@ sp_rp_fitted <- function(object, fam) {
 #' density's.
 #'
 #' @section What this cannot do:
-#' The refusal is POST-FIT. `logLik()` reads `object$opt$objective`
-#' directly (`R/methods-fit.R:233-240`) and the family protocol has no
-#' hook that runs when a fit finishes, so nothing in this package can
-#' make `logLik()` or `AIC()` refuse on their own. The optimizer may
-#' therefore have walked through, or stopped inside, the flat region
-#' before this function is ever called. Call it on every
-#' `royston_parmar()` fit whose data carry censoring; `frm_curve()` and
-#' its two companions call it for you.
+#' `logLik()` reads `object$opt$objective` directly, so a check that
+#' runs after the fit cannot make `logLik()` or `AIC()` refuse on their
+#' own. What frmtmb 0.52.0 does provide is a fit-end hook: this family
+#' declares `post$fit_check`, so a fit with a non-monotone row warns as
+#' it is returned rather than only when someone calls this function.
+#' `frm_curve()` and its two companions still call it for you.
 #'
 #' @param object A `frmtmb_fit` with a [royston_parmar()] family.
-#' @param action `"error"`, the default, refuses when either floor was
-#'   used. `"report"` returns the same numbers without refusing.
-#' @param max_nlogS The largest `-log S` on a censored row that is still
-#'   scored accurately. The default 19.2 is where `eps / S` passes 1e-8.
+#' @param action `"error"`, the default, refuses when the MONOTONICITY
+#'   floor was used. The censored count never refuses under either
+#'   value; since frmtmb 0.52.0 it is a diagnostic. `"report"` returns
+#'   the same numbers without refusing.
+#' @param max_nlogS The `-log S` on a censored row above which the row
+#'   is reported as barely constrained. The default 19.2 is where the
+#'   OLD probability-scale arithmetic passed 1e-8 of error; it is kept
+#'   as the threshold so that the two versions report the same rows.
 #'
 #' @return A list with `n_censored_floored`, `max_nlogS`, `threshold`,
 #'   `n_nonmonotone`, `scale` and `n_obs`, returned invisibly when
@@ -200,9 +192,10 @@ rp_floored <- function(object, action = c("error", "report"),
               n_obs = f$n)
   attr(out, "rows") <- list(censored = cens_rows, nonmonotone = mono_rows)
   if (identical(action, "report")) return(out)
-  if (length(cens_rows) || length(mono_rows)) {
-    stop(sp_rp_refusal(out, f), call. = FALSE)
-  }
+  # Only the monotonicity floor refuses now. The censored rows are
+  # scored exactly through the family's lccdf slot, so their count is a
+  # diagnostic and stopping on it would refuse a correct fit.
+  if (length(mono_rows)) stop(sp_rp_refusal(out, f), call. = FALSE)
   invisible(out)
 }
 
@@ -214,18 +207,6 @@ sp_rp_refusal <- function(out, f) {
   qty <- switch(out$scale, hazard = "the cumulative hazard H",
                 odds = "log(1 + exp(eta))", "-log(Phi(-eta))")
   parts <- character(0)
-  if (out$n_censored_floored) {
-    parts <- c(parts, paste0(
-      out$n_censored_floored, " of ", sum(f$cens != 0),
-      " censored rows are scored past the accurate region: -log S, which ",
-      "on the ", out$scale, " scale is ", qty, ", reaches ",
-      format(out$max_nlogS, digits = 6), " where this family stays ",
-      "accurate only to ", format(out$threshold),
-      ". frmtmb forms a right-censored term as log(1 - F) on the ",
-      "probability scale and core has no complementary log-CDF (lccdf) ",
-      "slot a family could use instead, so the scored log S is floored ",
-      "at -35.127363 and its gradient is exactly zero past -log S of 30"))
-  }
   if (out$n_nonmonotone) {
     parts <- c(parts, paste0(
       out$n_nonmonotone, " of ", out$n_obs,
@@ -238,14 +219,11 @@ sp_rp_refusal <- function(out, f) {
   paste0("rp_floored(): this fit's reported likelihood is not the ",
          "model's. ", paste(parts, collapse = ". Separately, "),
          ". The row indices are in the \"rows\" attribute of ",
-         "rp_floored(action = \"report\"). The remedy for the censored ",
-         "term is the lccdf slot proposed in ",
-         "dev/spline-seam-proposal.md; until it exists, shorten the ",
-         "censoring horizon or refit without the offending rows. The ",
-         "remedy for a non-monotone spline is fewer knots. Note that ",
-         "this check is POST-FIT: logLik() reads the optimizer's own ",
-         "value and no family hook runs when a fit finishes, so nothing ",
-         "here could have refused earlier")
+         "rp_floored(action = \"report\"). The remedy for a ",
+         "non-monotone spline is fewer knots. The censored term is no ",
+         "longer part of this refusal: since frmtmb 0.52.0 this family ",
+         "supplies lccdf and log S is scored exactly, so the censored ",
+         "count that rp_floored() also returns is a diagnostic")
 }
 
 #' Refuse before reporting a curve off a royston_parmar fit whose

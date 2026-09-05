@@ -28,38 +28,47 @@ test_that("the assembled covariance reproduces predict(se.fit) exactly", {
   expect_equal(sqrt(diag(attr(cv, "Sigma"))), cv$.se, tolerance = 1e-12)
 })
 
-test_that("the design is rebuilt in as many calls as there are live coefficients", {
+test_that("the design costs one predict() call whatever its width", {
+  # Up to frmtmb 0.51.0 this package rebuilt the design by unit
+  # perturbation and s(x, k = 10) cost 11 predict() calls: 10 live
+  # columns plus sigma's intercept, which cannot move the mu curve and
+  # whose column came back all zero. frm_lp_basis() returns the design
+  # core already had, so the only predict() call left is the covariance
+  # check, and the count no longer depends on the number of
+  # coefficients at all. The next test pins the same number on a model
+  # with 110 random coefficients.
   o <- sp_curve_fit(k = 10)
   g <- data.frame(x = seq(0, 1, length.out = 20))
   cv <- frm_curve(o$fit, newdata = g, simultaneous = FALSE)
-  # s(x, k = 10) splits into 8 penalized coefficients and one null-space
-  # column, plus the intercept: 10 live columns. The eleventh call is
-  # sigma's intercept in betad, which cannot move the mu curve; its
-  # column comes back all zero and is dropped, and the call is the price
-  # of not knowing that in advance.
-  expect_equal(attr(cv, "check")$n_predict, 11L)
+  expect_equal(attr(cv, "check")$n_predict, 1L)
   expect_equal(ncol(attr(cv, "Sigma")), nrow(g))
+  expect_equal(nrow(attr(cv, "Sigma")), nrow(g))
 })
 
-test_that("a grouping block costs one probe, not one call per level", {
+test_that("a grouping block costs nothing, because there is no probe", {
+  # This test used to pin a probe count: the design was rebuilt by unit
+  # perturbation and coefficients were screened in chunks of 24, so a
+  # 40-level grouping block cost one call per chunk rather than one per
+  # level. frm_lp_basis() returns the design core already had, so there
+  # is no perturbation, no chunk and no probe, and the only predict()
+  # call left is the covariance check. What is worth pinning now is that
+  # the count does not respond to the block at all.
   set.seed(3)
   n <- 400
   d <- data.frame(x = sort(stats::runif(n)),
                   g = factor(rep(1:40, length.out = n)))
   d$y <- 2 * sin(pi * d$x) + stats::rnorm(40, 0, 0.5)[d$g] +
     stats::rnorm(n, 0, 0.4)
-  fit <- frmtmb::frm(frmtmb::bf(y ~ s(x, k = 8) + (1 | g)),
+  fit <- frmtmb::frm(frmtmb::bf(y ~ s(x, k = 9) + (1 | g)),
                      family = stats::gaussian(), data = d)
-  gr <- data.frame(x = seq(0, 1, length.out = 15))
-  cv <- frm_curve(fit, newdata = gr, re.form = NA, simultaneous = FALSE)
-  # 40 group coefficients contribute nothing at re.form = NA. They are
-  # skipped in blocks of 24, and the measured count is 26 rather than
-  # the 9 the smooth alone would need: one chunk straddles the boundary
-  # between the group block and the smooth block, and a chunk with any
-  # live coefficient in it is expanded whole. The bound that matters is
-  # that the count does not grow with the number of LEVELS.
-  expect_lt(attr(cv, "check")$n_predict, 30L)
+  g <- data.frame(x = seq(0, 1, length.out = 20),
+                  g = factor(1, levels = levels(d$g)))
+  cv <- frm_curve(fit, newdata = g, re.form = NA, simultaneous = FALSE)
+  expect_equal(attr(cv, "check")$n_predict, 1L)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
+  # 40 levels in the fit and the same single call, which is the property
+  # the old chunking existed to approximate
+  expect_equal(length(fit$estimates$b), 47L)
 })
 
 test_that("the simultaneous band is wider than the pointwise one, and covers", {
@@ -116,7 +125,7 @@ test_that("transform returns the band through the link inverse", {
 test_that("the refusals name what is wrong", {
   o <- sp_curve_fit()
   g <- data.frame(x = seq(0, 1, length.out = 10))
-  expect_error(frm_curve(o$d, newdata = g), "must be a frmtmb_fit")
+  expect_error(frm_curve(o$d, newdata = g), "must be a frmtmb fit")
   expect_error(frm_curve(o$fit, newdata = data.frame()),
                "at least one row")
   expect_error(frm_curve(o$fit, newdata = g, level = 1.5),
@@ -203,9 +212,18 @@ test_that("a reduced-rank block is caught by the check, not by the probe", {
                   site = factor(1, levels = levels(d$site)))
   cv <- frm_curve(fit, newdata = g, re.form = NA, simultaneous = FALSE)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-8)
-  expect_error(frm_curve(fit, newdata = g, re.form = NULL,
-                         simultaneous = FALSE),
-               "disagrees with predict")
+  # re.form = NULL used to be REFUSED here, and not by the linearity
+  # probe: a reduced-rank block's loadings live in theta, so eta is
+  # linear in b at fixed theta and the probe passed, while the design
+  # the perturbation could build was missing the derivative with
+  # respect to the loadings and the standard errors came out 27 percent
+  # away from predict(se.fit = TRUE)'s. frm_lp_basis() carries the
+  # loading columns through rr_jacobians(), so it now works.
+  cvn <- frm_curve(fit, newdata = g, re.form = NULL, simultaneous = FALSE)
+  expect_lt(attr(cvn, "check")$cov_rel_error, 1e-8)
+  pn <- stats::predict(fit, newdata = g, type = "link", re.form = NULL,
+                       se.fit = TRUE)
+  expect_equal(cvn$.se, as.numeric(pn$se.fit), tolerance = 1e-10)
 })
 
 test_that("a curve on a dpar other than mu finds its coefficients", {
@@ -273,7 +291,9 @@ test_that("a factor-smooth model costs the documented number of calls", {
   expect_equal(length(fit$estimates$b), 110L)
   g <- data.frame(t = seq(0, 1, length.out = 80))
   cv <- frm_curve(fit, newdata = g, re.form = NA, simultaneous = FALSE)
-  expect_equal(attr(cv, "check")$n_predict, 32L)
+  # 32 predict() calls before the seam; one now, on a model with 110
+  # random coefficients, which is the point of the seam
+  expect_equal(attr(cv, "check")$n_predict, 1L)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
   # the population curve is a real bell, not a constant: the population
   # smooth is what those calls are for
@@ -285,7 +305,7 @@ test_that("a factor-smooth model costs the documented number of calls", {
     frmtmb::bf(v ~ s(t, subject, bs = "fs", k = 5)),
     family = stats::gaussian(), data = d)
   cv2 <- frm_curve(fit2, newdata = g, re.form = NA, simultaneous = FALSE)
-  expect_lt(attr(cv2, "check")$n_predict, attr(cv, "check")$n_predict)
+  expect_equal(attr(cv2, "check")$n_predict, attr(cv, "check")$n_predict)
   expect_lt(stats::sd(cv2$.estimate), 1e-8)
 })
 
@@ -312,25 +332,24 @@ test_that("an autoscaled fit works, because the covariance is core's", {
   expect_equal(cv$.se, as.numeric(p$se.fit), tolerance = 1e-13)
 })
 
-test_that("the covariance cannot be asked for before the check that warms it", {
-  # The ordering at sp_curve_parts() is load-bearing rather than
-  # cosmetic: without the cache the fallback is a fresh sdreport(),
-  # which goes round autoscale_sdreport() and would hand an autoscaled
-  # fit an unscaled covariance. The ordering is enforced by requiring
-  # the check call's own return value, so it cannot be undone by moving
-  # a comment.
+test_that("the covariance is core's, at the rows core says it is at", {
+  # The ordering this test used to guard is gone with the machinery it
+  # guarded: there is no cache read to warm and no fallback sdreport()
+  # to go round autoscale_sdreport(). What is left to check is that the
+  # covariance frm_lp_basis() hands over is the one it says it is: the
+  # joint covariance of everything the fit estimates, subset to exactly
+  # the rows the design's columns sit at.
   o <- sp_curve_fit()
-  eta0 <- sp_predict_eta(o$fit, data.frame(x = c(0.2, 0.8)), NULL, NULL, NA)
-  des <- sp_curve_design(o$fit, data.frame(x = c(0.2, 0.8)), NULL, NULL, NA,
-                         eta0)
-  expect_error(sp_joint_cov(o$fit, des),
-               "asked for before the predict")
-  expect_error(sp_joint_cov(o$fit, des, NULL),
-               "asked for before the predict")
-  expect_error(sp_joint_cov(o$fit, des, list(fit = 1)),
-               "asked for before the predict")
-  # and with the check's result in hand it works
-  ref <- stats::predict(o$fit, newdata = data.frame(x = c(0.2, 0.8)),
-                        type = "link", re.form = NA, se.fit = TRUE)
-  expect_true(is.matrix(sp_joint_cov(o$fit, des, ref)))
+  nd <- data.frame(x = c(0.2, 0.8))
+  lb <- frmtmb::frm_lp_basis(o$fit, newdata = nd, re.form = NA)
+  jc <- frmtmb::frm_joint_cov(o$fit)
+  expect_equal(lb$V, jc$V[lb$coef_pos, lb$coef_pos, drop = FALSE])
+  expect_identical(lb$coef_names, jc$labels[lb$coef_pos])
+  # and the b rows a smooth needs are in it, which is what vcov() cannot
+  # reach
+  expect_true(any(jc$names[lb$coef_pos] == "b"))
+
+  cv <- frm_curve(o$fit, newdata = nd, simultaneous = FALSE)
+  expect_equal(attr(cv, "Sigma"),
+               unname(lb$A %*% lb$V %*% t(lb$A)), tolerance = 1e-12)
 })

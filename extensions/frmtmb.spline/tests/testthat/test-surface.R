@@ -126,10 +126,14 @@ test_that("the compatibility rows this package registered resolve", {
   expect_true(all(c("royston_parmar", "frm_curve") %in% f$key))
   expect_identical(frmtmb::frm_compat("royston_parmar", "fitted")$status,
                    "refused")
-  # "conditional" and not "refused": re.form = NA works on an rr fit
-  # and re.form = NULL does not, which test-curve.R measures
-  expect_identical(frmtmb::frm_compat("frm_curve", "rr")$status,
-                   "conditional")
+  # "works" since this package reads frmtmb::frm_lp_basis(): the
+  # reduced-rank loadings live in theta and the design over (beta, b)
+  # alone was incomplete, which is why re.form = NULL used to be
+  # refused. test-curve.R measures both settings.
+  expect_identical(frmtmb::frm_compat("frm_curve", "rr")$status, "works")
+  expect_identical(frmtmb::frm_compat("royston_parmar", "cens()")$status,
+                   "works")
+  expect_identical(frmtmb::frm_compat("frm_curve", "nl")$status, "works")
 })
 
 test_that("print methods say what was checked", {
