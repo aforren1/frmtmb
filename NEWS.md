@@ -1,4 +1,10 @@
-# frmtmb (development version)
+# frmtmb 0.51.0
+
+One simplex per monotonic term, matching brms; importance sampling over
+several random-effect blocks; registration seams that refuse what they
+cannot describe; a simulator for every family but one, checked against
+its own density; and three brms comparison tiers that pin what still
+differs.
 
 * BEHAVIOR CHANGE, and the reason the 0.50.0 entry below withdrew its
   claim rather than its behavior: a `mo()` variable that appears in
