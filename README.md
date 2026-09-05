@@ -114,7 +114,7 @@ GitHub:
 remotes::install_github("aforren1/frmtmb")
 ```
 
-Four companion packages live in this repository, each installed the
+Five companion packages live in this repository, each installed the
 same way and each documented on its own part of the site.
 
 | package | adds |
@@ -123,12 +123,14 @@ same way and each documented on its own part of the site.
 | [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()` and `lca()` |
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
 | [frmtmb.ddm](https://aforren1.github.io/frmtmb/frmtmb.ddm/) | response-time models: `wiener()`, `gddm()`, and the racing `lba()` |
+| [frmtmb.spline](https://aforren1.github.io/frmtmb/frmtmb.spline/) | curve inference on any fitted smooth, and the flexible parametric survival family `royston_parmar()` |
 
 ```r
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.sample")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.latent")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ddm")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.spline")
 ```
 
 ## Example

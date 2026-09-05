@@ -1,0 +1,51 @@
+Package: frmtmb.spline
+Title: Spline Curves and Curve Inference for 'frmtmb' Models
+Version: 0.1.0
+Authors@R:
+    person("Alex", "Forrence", email = "alex.forrence@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9728-6337"))
+Description: Two things a fitted curve needs after it is fitted. First,
+    curve inference: a smooth evaluated on a grid with pointwise and
+    SIMULTANEOUS confidence bands, its first and second derivatives with
+    delta-method standard errors, and the features movement papers
+    report, the time of a peak and the time a curve crosses a level,
+    each with a standard error from the implicit-function delta method.
+    The simultaneous band is the max-deviation simulation of Ruppert,
+    Wand and Carroll (2003), the same construction 'gratia' uses on
+    'mgcv' fits, and it is checked against 'gratia' inside its Monte
+    Carlo error. Second, a Royston and Parmar (2002) flexible parametric
+    survival family, which writes the log cumulative hazard as a natural
+    cubic spline in log time. It is parameterized exactly as
+    'flexsurv::flexsurvspline' parameterizes it, so the two log
+    likelihoods are the same number rather than two numbers that ought
+    to agree, and covariates reach the spline coefficients as
+    proportional hazards on the first and as time-varying effects on
+    the rest.
+License: GPL (>= 2)
+URL: https://aforren1.github.io/frmtmb/frmtmb.spline,
+    https://github.com/aforren1/frmtmb
+BugReports: https://github.com/aforren1/frmtmb/issues
+Encoding: UTF-8
+Language: en-US
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1),
+    frmtmb (>= 0.50.0)
+Imports:
+    Matrix,
+    RTMB (>= 1.9),
+    stats
+Suggests:
+    flexsurv,
+    gratia,
+    knitr,
+    mgcv,
+    rmarkdown,
+    survival,
+    testthat (>= 3.0.0),
+    tinyplot
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0
+Config/Needs/website: pkgdown

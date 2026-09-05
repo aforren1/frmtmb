@@ -1,0 +1,95 @@
+# R CMD check for the spline extension, extensions/frmtmb.spline.
+#
+# The extension is not part of the core tarball (.Rbuildignore excludes
+# extensions/), so the core workflows never see it. This job installs the
+# core package from the checkout, then checks the extension against that
+# build. The path filter includes the core R sources as well as the
+# extension's own tree, because the extension consumes core's family and
+# compat seams and a change to either is what would break it.
+#
+# No extra-repositories here, unlike the ODE extension: every suggested
+# dependency of this package (flexsurv, gratia, mgcv, survival, RTMB) is
+# on CRAN, and the package itself compiles nothing. Its spline basis is
+# plain R arithmetic that runs on RTMB advectors and on doubles alike.
+#
+# gratia and flexsurv are heavy suggests and they are what the package's
+# claims are checked against, so they are installed rather than skipped:
+# a run that skipped them would pass while asserting nothing about the
+# two comparisons this package exists to make.
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'extensions/frmtmb.spline/**'
+      - 'R/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '.github/workflows/check-frmtmb-spline.yaml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'extensions/frmtmb.spline/**'
+      - 'R/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '.github/workflows/check-frmtmb-spline.yaml'
+  workflow_dispatch:
+
+name: check-frmtmb.spline
+
+jobs:
+  check-frmtmb-spline:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      NOT_CRAN: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+      # The core's own dependencies, resolved from the root DESCRIPTION,
+      # so that R CMD INSTALL below has everything it needs.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+      - name: Install the core package from this checkout
+        run: R CMD INSTALL --no-multiarch --with-keep.source .
+        shell: bash
+      # The extension's own dependencies, read from its DESCRIPTION and
+      # installed directly rather than through pak. pak resolves every
+      # dependency against a repository, and frmtmb is in no repository:
+      # the build wanted here is the one installed from the checkout in
+      # the step above, so frmtmb is skipped along with anything else
+      # already present.
+      - name: Install the extension's dependencies
+        run: |
+          d <- read.dcf("extensions/frmtmb.spline/DESCRIPTION")
+          f <- intersect(c("Imports", "Suggests"), colnames(d))
+          p <- unlist(strsplit(paste(d[, f], collapse = ","), ","))
+          p <- trimws(sub("[(].*", "", p))
+          p <- setdiff(p[nzchar(p)], rownames(installed.packages()))
+          if (length(p)) install.packages(p)
+        shell: Rscript {0}
+      # NOT_CRAN is set at the job level above and is repeated here on
+      # purpose. The two comparisons this package exists to make, the
+      # flexsurv log-likelihood identity and the gratia critical value,
+      # both carry skip_on_cran(): they fit nine models and simulate
+      # 100000 draws, which does not belong in a CRAN run. Without
+      # NOT_CRAN reaching the check subprocess this job would report a
+      # green check that asserts nothing about either comparison.
+      # Measured locally: the suite runs 254 expectations with NOT_CRAN
+      # and 207 with 4 skips without it; inside R CMD check, where
+      # test-message-uniqueness.R skips itself because an installed
+      # package has no sources to scan, that is 250 against 203.
+      - uses: r-lib/actions/check-r-package@v2
+        env:
+          NOT_CRAN: "true"
+        with:
+          working-directory: extensions/frmtmb.spline
+          args: 'c("--no-manual")'
+          upload-snapshots: true

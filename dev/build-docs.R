@@ -32,17 +32,18 @@
 #
 # COST. A full run takes about eleven minutes on the machine this was
 # written on, of which the core site is about eight: every vignette in
-# every package is rebuilt, and the core vignettes fit models. The five
+# every package is rebuilt, and the core vignettes fit models. The six
 # installs are about half a minute of that. Name one package on the
 # command line to rebuild only its site; the installs still run,
-# because the links in that one site point at the other four.
+# because the links in that one site point at the other five.
 
 PKGS <- c(
   frmtmb          = ".",
   frmtmb.sample   = "extensions/frmtmb.sample",
   frmtmb.latent   = "extensions/frmtmb.latent",
   frmtmb.ode      = "extensions/frmtmb.ode",
-  frmtmb.ddm      = "extensions/frmtmb.ddm"
+  frmtmb.ddm      = "extensions/frmtmb.ddm",
+  frmtmb.spline   = "extensions/frmtmb.spline"
 )
 
 if (!file.exists("DESCRIPTION") ||
