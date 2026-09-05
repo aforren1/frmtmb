@@ -56,6 +56,24 @@ Failing both, the refusal in `parse.R` should name `vint()` as the
 escape hatch for a custom family, since that is what the message is
 really telling an extension author.
 
+**CLOSED in frmtmb 0.49.0**, by the first of those and by the third as
+well. `frmtmb_register_aterm(name, arity, coerce)` is exported and
+documented on its own page; the refusal in `parse.R` now lists the
+registered terms alongside the core ones, names `vint()` and `vreal()`
+as the general route, and points at the registry.
+
+This package registers `dec` from `.onLoad()` with a `coerce` that
+follows brms's own rule -- a factor or character vector read on its
+levels, second level the upper boundary -- so `rt | dec(response) ~ x`
+now works and takes a factor, which was the part of the cost the user
+was paying. `vint()` is unchanged and still works; the two spellings
+are pinned as one model in `test-surface.R`.
+
+What the registry does NOT reach is the shape of the seam: an entry is
+keyed by its own name, so a registered term delivers its value under
+that name and cannot be an ALIAS that lands in `vint1`. That is what
+leaves finding 2 half open below.
+
 ---
 
 ## 2. A family cannot declare that it requires an addition term
@@ -83,6 +101,42 @@ the family name and the missing term. It is a few lines in core and it
 removes a class of silent failure from every custom family that uses
 `vint()`/`vreal()`, which is every custom family that needs per-row
 data.
+
+**PARTLY CLOSED in frmtmb 0.49.0.** `frmtmb_family(required_aterms =)`
+exists, is checked at `R/frame.R:1150` before every other guard is
+handed the addition-term values, and builds its refusal from the family
+name and the spelling that supplies the missing term. There is a second
+backstop in `R/objective.R:43-59` for a family that declares nothing:
+a zero-length log-likelihood over a non-empty response is refused by
+LENGTH, which resolves at tape-build time and leaves no branch on the
+tape. Both are exactly right, and the silent-fit failure this finding
+reported is gone from core.
+
+It is not usable *here*, and the reason is a real gap rather than an
+oversight. `required_aterms` is a conjunction: it names the terms a
+density needs ALL of. Since finding 1 closed, this family needs EITHER
+`dec()` or `vint1`, because `dec()` is the spelling to use and
+`vint()` is the spelling that already worked and must keep working.
+Declaring `"dec"` refuses every model written the old way; declaring
+`"vint1"` refuses the spelling the package now documents; declaring
+both refuses everything. So the check stays written out in `valid_y`,
+and it is now the only hand-rolled piece left in this package.
+
+`frmtmb_register_frame_check()` can express the disjunction and was
+considered. It was not used: it runs at `R/frame.R:2298`, after
+`family_finalize()` and after the aterm guards, so a model missing its
+indicator would take a different and worse error first. `valid_y` is
+earlier and its message is better.
+
+**API change that would close the rest.** Let `required_aterms` carry
+alternatives -- a list element naming several terms means "at least one
+of these" -- so `required_aterms = list("dec", c("dec", "vint1"))`
+reads the way it sounds. The refusal already names spellings through
+`aterm_spelling()`, so it would print "write one of: dec(<column>),
+vint(<column>)" with no new message machinery. This is not exotic: any
+family that gains a better-named term while keeping `vint()` for
+compatibility has it, which is every family that outlives one release
+of the aterm registry.
 
 ---
 
@@ -136,6 +190,32 @@ starting values were ignored.
    data-dependent-bound problem is not exotic -- every shifted family
    has it -- and an explicit hook beats an environment side effect.
 3. Warn rather than silently drop a non-finite `init_dpars` value.
+
+**CLOSED in frmtmb 0.49.0**, by both 1 and 2. `?frmtmb_family` now has
+a "Slot call order" section that states the sequence as measured on an
+instrumented family, and a "Deriving a family from the data" section
+whose worked example is this exact bounded-link problem.
+`family_finalize(fam, y, aterms)` runs at `R/frame.R:1356`, after the
+response is validated and before any link is used, and the frame layer
+refreshes the per-dpar link copies from whatever it returns, so a
+replaced link reaches the starting values, the tape and every post-fit
+method.
+
+The environment is gone from this package. `wiener()` now builds a
+family whose bounded links raise if used before the data arrives, and
+`family_finalize()` rebuilds the family with the bound, the
+non-decision-time range's own bound, and the unreachable-row margin,
+all derived from `min(y)`. The family object no longer lies about what
+it is, and nothing depends on an undocumented order.
+
+The variability work took a second, unplanned dependency on the same
+slot: the margin that holds an unreachable row's decision time off the
+singularity has to be scaled to the response's units, and there is no
+other place a family can learn them. A `family_finalize` that returns a
+family with a fresh `lpdf` closure gets that for free, which is a use
+the slot's documentation does not mention and is worth mentioning.
+
+Point 3 was not retested and is left open.
 
 ---
 
@@ -283,7 +363,48 @@ contract becomes checkable.
 
 ---
 
-## 9. What worked without friction
+## 9. A family cannot constrain two dpars jointly
+
+**Severity: friction, with a silent-wrong-answer failure mode**
+
+Added while building the across-trial variability family, which needs
+two constraints frmtmb has no way to express.
+
+The uniform start point runs over `bias +/- sz / 2` and the model is
+only defined while that range stays inside `(0, 1)`. The uniform
+non-decision time runs over `ndt +/- st / 2` and the usual
+parameterization asks for `ndt - st / 2` above zero. Both are
+constraints on a PAIR of distributional parameters. A link is a
+property of one parameter, and it is the only constraint mechanism a
+family has, so neither can be made structural the way `ndt < min(rt)`
+was.
+
+What this package does instead is pick links that make the common case
+safe and document the rest: `sz` gets a logit, so the width is below 1
+and the range is inside `(0, 1)` whenever `bias` is 0.5, which is what
+it is in almost every fit of this model; `st` gets a logit scaled onto
+`(0, 2 * max_ndt)`, which keeps the width in the units the data can
+support without pinning the lower edge.
+
+The failure mode outside those is not an error. Measured on the series
+directly: at a relative start point of exactly 0 the log density is
+about -45 where it is -0.34 at 0.5, so the boundary is a barrier -- but
+just PAST it, at -0.02, the series come back up to -3.06. The density
+is not monotone across the boundary, so a wide enough excursion has a
+spurious mode on the far side and an optimizer that reaches it gets a
+number rather than a refusal.
+
+**API change that would fix it.** A `constraints` slot on
+`frmtmb_family()` taking functions of the whole dpar vector, checked at
+the starting values and reported at the optimum, would catch it after
+the fact. Making it structural needs more: a way for a family to
+declare a transformed parameter -- `sz` estimated as a fraction of the
+room `bias` leaves -- which is a reparameterization hook rather than a
+link, and is a larger change than this one family justifies asking for.
+
+---
+
+## 10. What worked without friction
 
 Worth recording, because an acceptance test that only lists complaints
 is not a measurement.
@@ -336,19 +457,119 @@ is not a measurement.
 
 ## Summary
 
-| # | Severity | Finding |
-|---|----------|---------|
-| 1 | blocker / friction | `dec()` unreachable; aterm set is closed with no registration hook |
-| 2 | friction | No `required_aterms`; a missing `vint()` fails silently |
-| 3 | friction | No hook for a data-dependent link bound; relies on undocumented slot order. `init_dpars` silently dropped when non-finite |
-| 4 | cosmetic | `frmtmb_register_compat()` documented inside the sampling-api bundle, deferring to the source |
-| 5 | friction | Custom link objects accepted without validation |
-| 6 | cosmetic | `cens()`/`trunc()` refusal does not mention the `lcdf` slot |
-| 7 | friction | Core's own wiener example has a normalized-time range real data can exceed |
-| 8 | cosmetic | `?frmtmb_ad_overload` says "every function slot"; measured, it is the tape-side slots only |
+| # | Severity | Finding | Status |
+|---|----------|---------|--------|
+| 1 | blocker / friction | `dec()` unreachable; aterm set is closed with no registration hook | CLOSED in 0.49.0 |
+| 2 | friction | No `required_aterms`; a missing `vint()` fails silently | PARTLY: exists, but cannot express "either of two terms" |
+| 3 | friction | No hook for a data-dependent link bound; relies on undocumented slot order. `init_dpars` silently dropped when non-finite | CLOSED in 0.49.0 (the link hook and the documented order; the `init_dpars` half untested) |
+| 4 | cosmetic | `frmtmb_register_compat()` documented inside the sampling-api bundle, deferring to the source | not retested |
+| 5 | friction | Custom link objects accepted without validation | not retested |
+| 6 | cosmetic | `cens()`/`trunc()` refusal does not mention the `lcdf` slot | not retested |
+| 7 | friction | Core's own wiener example has a normalized-time range real data can exceed | this package's two-series blend still stands |
+| 8 | cosmetic | `?frmtmb_ad_overload` says "every function slot"; measured, it is the tape-side slots only | not retested |
+| 9 | friction | Nothing lets a family constrain two dpars jointly | open; see below |
 
 Nothing in this list stopped the family from being written. Finding 1 is
-the only one that changed what the user has to type, and findings 2 and
-3 are the only ones where the failure mode is silence rather than an
+the only one that changed what the user has to type, and findings 2, 3
+and 9 are the ones where the failure mode is silence rather than an
 error. No core file was edited and no frmtmb internal was reached with
 `:::` from package code.
+
+Findings 1 and 3 were acted on in frmtmb 0.49.0 and this package now
+uses both seams: `frmtmb_register_aterm()` for `dec()`, and
+`family_finalize()` for the data-derived bounds, which between them
+deleted a hand-rolled coercion, an environment side effect and a bet on
+an undocumented call order. Finding 2's seam exists and is the right
+one; it is only the conjunction-versus-disjunction gap that keeps this
+family from using it. That is a good ratio for one release, and it is
+the evidence that the extension API is being maintained as an API
+rather than as whatever the in-tree families happened to need.
+
+---
+
+## Corrections after independent review
+
+Three measurements in this package's own write-up did not survive an
+independent reviewer repeating them. They are corrected here rather
+than quietly edited away, because a ledger that only records other
+people's defects is not a measurement either.
+
+**The drift-variability timing claim was wrong.** This lane reported
+"0.8 s with `sv` against 3.5 s for plain", i.e. that switching on the
+drift closed form made a fit *faster* than the plain family. It does
+not reproduce. Measured at the fit level over three seeds, `sv`/plain
+is 1.04, 0.97 and 1.07; in fresh processes, plain-first gives 2.62
+then 2.86, and `sv`-first gives 2.42 then 2.41. At the density level
+both are 0.0002 s per call. There is no configuration in which `sv` is
+four times faster than plain.
+
+Two errors combined. The 3.5 s figure matches the `st` path, which the
+reviewer measured at 4.3 to 5.5 s, so the comparison mislabeled which
+family was being timed. And the timings were taken in one process, one
+after another, where an 8x warm-up swing (plain fell from 1.29 s to
+0.16 s between the first and second repetition) will manufacture any
+ratio asked of it.
+
+The defensible statement, which is the interesting one anyway, is that
+the drift closed form is FREE relative to the plain density: it adds a
+square root and a few flops and no nodes, so the full Ratcliff drift
+distribution costs nothing over a fixed drift. That is what the NEWS
+entry and the vignette now say.
+
+**How this package times things from now on.** A timing comparison
+runs each arm in a FRESH process, and warms both arms before the
+measured repetition. Numbers taken from consecutive runs in one warm
+session are not reported as a ratio between arms. A ratio is quoted
+only with the number of seeds behind it and the spread across them.
+
+**"A separate, literally unchanged route" was the wrong wording.**
+`ddm_lpdf_lower()` IS edited: `u <- t / (a * a)` became
+`ur <- t / (a * a); u <- ddm_floor(ur, ddm_u_floor)`. The substantive
+claim survives, and the reviewer's check is stronger than the one this
+lane made: over a grid of 11520 combinations of `t`, `v`, `a`, `w` and
+the boundary, the log density is byte-for-byte identical to the
+previous release on the whole positive-`t` segment (`identical()` TRUE,
+maximum absolute difference 0). The only difference anywhere is at
+`t <= 0`, where `NaN` became `-Inf`, which is the deliberate fix. The
+right wording is "byte-for-byte identical wherever the density is
+defined", not "unchanged".
+
+The one caveat the reviewer added and this lane had not stated: adding
+`ddm_u_floor` is a rounding no-op only down to about 1e-300, and at
+`u <= 1e-307` it perturbs. `u = t / a^2` is that small only where the
+density has already underflowed, so nothing depends on it, but the
+claim is "inert on the support", not "inert for every double".
+
+**The negative-span frequency was a point estimate, not a bound.**
+This lane measured 9 to 14 percent of fully-past rows rounding their
+span negative and wrote it as though it characterized the phenomenon.
+It characterizes one configuration. Across `ndt` and `st` the reviewer
+measured 0 to 40 percent: `ndt = 0.50, st = 0.02` gives 0.0 percent,
+`ndt = 0.40, st = 0.10` gives 5.0 to 11.0 percent over three seeds,
+`ndt = 0.35, st = 0.14` gives 14.6, `ndt = 0.45, st = 0.06` gives 17.0,
+and `ndt = 0.30, st = 0.20` gives 40.1. The defect is not rare and its
+rate is a function of where the optimizer is standing, which is why the
+regression test pins a specific point rather than relying on a
+frequency.
+
+**A contributed compat row naming an unknown feature is silently
+dropped.** Found while adding the `gddm` and `lba` rows, and it had
+already cost this package two rows without anyone noticing. A rule
+whose `feature_b` is not in the registry's vocabulary does not warn and
+does not error: `frm_compat()` simply returns without it. Two of the
+`wiener` rows written in the previous round were being discarded that
+way. `mixture()` is spelled `mixture` in the vocabulary, with no
+parentheses, because it is a `structure` rather than a callable
+addition term; and `dec()` was in no vocabulary at all, because
+registering an addition term with `frmtmb_register_aterm()` does not
+also make it a compat FEATURE. The fix on this side is one more entry
+in the `features` vector, `"dec()" = "aterm"`, which is easy once you
+know, and invisible until you check the output rather than the input.
+
+**API change that would fix it.** `frmtmb_register_compat()` should
+warn when a rule names a feature the vocabulary does not contain, at
+registration or at first `frm_compat()` call. The registry already
+knows the full vocabulary at that point, the check is a `setdiff()`,
+and the current behavior means the seam's failure mode is a table that
+looks complete and is not. A contributor's first sign of trouble
+should not be counting rows.

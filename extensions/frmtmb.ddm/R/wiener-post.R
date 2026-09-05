@@ -72,6 +72,37 @@ ddm_cond_mean_dt <- function(v, a, w, up) {
   out
 }
 
+#' The decision indicator for a mean, or the refusal.
+#'
+#' Two helpers rather than one with the noun as an argument, and two
+#' rather than four inline copies. Every post-fit quantity here is
+#' conditional on the boundary a row ended at, so each of them has
+#' something to say when the boundary is absent, but a mean and a draw
+#' do not have the SAME thing to say. One template per thing, each
+#' written once, so a reported message resolves to one line of source.
+#'
+#' @noRd
+ddm_indicator_mean <- function(aterms) {
+  up <- ddm_indicator(aterms)
+  if (is.null(up)) {
+    stop("wiener: the mean response time is conditional on the boundary ",
+         "a trial ended at, which is missing. See ?wiener.", call. = FALSE)
+  }
+  up
+}
+
+#' The decision indicator for a draw, or the refusal.
+#'
+#' @noRd
+ddm_indicator_sim <- function(aterms) {
+  up <- ddm_indicator(aterms)
+  if (is.null(up)) {
+    stop("wiener: simulating a response time needs the boundary each ",
+         "row ended at, which is missing. See ?wiener.", call. = FALSE)
+  }
+  up
+}
+
 #' The family's `post$mean_fn`: expected response time.
 #'
 #' The response is the response time and the boundary is data, so the
@@ -81,11 +112,7 @@ ddm_cond_mean_dt <- function(v, a, w, up) {
 #'
 #' @noRd
 ddm_mean_rt <- function(dpars, aterms) {
-  up <- aterms[["vint1"]]
-  if (is.null(up)) {
-    stop("wiener: the mean response time is conditional on the boundary ",
-         "a trial ended at, which is missing. See ?wiener.", call. = FALSE)
-  }
+  up <- ddm_indicator_mean(aterms)
   n <- max(lengths(list(dpars[["mu"]], dpars[["bs"]],
            dpars[["ndt"]], dpars[["bias"]], up)))
   v <- rep_len(dpars[["mu"]], n); a <- rep_len(dpars[["bs"]], n)
@@ -106,11 +133,7 @@ ddm_mean_rt <- function(dpars, aterms) {
 #'
 #' @noRd
 ddm_sim_rt <- function(dpars, aterms, n) {
-  up <- aterms[["vint1"]]
-  if (is.null(up)) {
-    stop("wiener: simulating a response time needs the boundary each ",
-         "row ended at, which is missing. See ?wiener.", call. = FALSE)
-  }
+  up <- ddm_indicator_sim(aterms)
   v <- rep_len(dpars[["mu"]], n); a <- rep_len(dpars[["bs"]], n)
   t0 <- rep_len(dpars[["ndt"]], n); w <- rep_len(dpars[["bias"]], n)
   u <- rep_len(up, n)
@@ -188,15 +211,26 @@ ddm_sim_euler <- function(v, a, w, t0, up, n, dt = 1e-4, tmax = 10,
 #' conditional on it, so this is the function to use when you want a
 #' whole data set rather than a posterior predictive draw.
 #'
+#' Across-trial variability is drawn first and then handed to the same
+#' per-trial draw, because the variability parameters do not change the
+#' process: they say that each trial runs the ordinary diffusion with
+#' its own drift rate, start point and non-decision time. That makes the
+#' simulator an independent statement of the model from the density,
+#' which is what a recovery study needs it to be.
+#'
 #' @param n Number of trials.
 #' @param mu,bs,ndt,bias Drift rate, boundary separation, non-decision
 #'   time and relative start point, on the response scale. Each may be a
 #'   single value or a vector of length `n`, which is how a
 #'   two-condition design is built.
+#' @param sv,sz,st Across-trial variability: the standard deviation of a
+#'   normal drift rate, and the widths of a uniform relative start point
+#'   and a uniform non-decision time. Zero, the default for each, is the
+#'   plain Wiener process.
 #'
 #' @return A data frame with `rt`, the response time, and `upper`, 1 for
 #'   a response at the upper boundary and 0 for the lower one, in the
-#'   coding `vint()` expects.
+#'   coding `dec()` and `vint()` both expect.
 #'
 #' @examples
 #' set.seed(1)
@@ -206,13 +240,36 @@ ddm_sim_euler <- function(v, a, w, t0, up, n, dt = 1e-4, tmax = 10,
 #' dat$cond <- factor(cond)
 #' str(dat)
 #'
+#' # Ratcliff's full model, at values the literature uses
+#' full <- ddm_simulate(200, mu = 1.2, bs = 1.5, ndt = 0.3,
+#'                      sv = 1.0, sz = 0.2, st = 0.1)
+#'
 #' @export
-ddm_simulate <- function(n, mu, bs, ndt, bias = 0.5) {
+ddm_simulate <- function(n, mu, bs, ndt, bias = 0.5,
+                         sv = 0, sz = 0, st = 0) {
   v <- rep_len(mu, n); a <- rep_len(bs, n)
   t0 <- rep_len(ndt, n); w <- rep_len(bias, n)
   if (any(a <= 0) || any(t0 < 0) || any(w <= 0) || any(w >= 1)) {
     stop("ddm_simulate(): need bs > 0, ndt >= 0 and bias strictly ",
          "inside (0, 1).", call. = FALSE)
+  }
+  sv <- rep_len(sv, n); sz <- rep_len(sz, n); st <- rep_len(st, n)
+  if (any(sv < 0) || any(sz < 0) || any(st < 0)) {
+    stop("ddm_simulate(): the across-trial variability widths sv, sz ",
+         "and st are not negative.", call. = FALSE)
+  }
+  if (any(sv > 0)) v <- stats::rnorm(n, v, sv)
+  if (any(sz > 0)) w <- stats::runif(n, w - sz / 2, w + sz / 2)
+  if (any(st > 0)) t0 <- stats::runif(n, t0 - st / 2, t0 + st / 2)
+  if (any(w <= 0) || any(w >= 1)) {
+    stop("ddm_simulate(): sz pushed the relative start point outside ",
+         "(0, 1); the uniform range must fit between the boundaries.",
+         call. = FALSE)
+  }
+  if (any(t0 < 0)) {
+    stop("ddm_simulate(): st pushed the non-decision time below zero; ",
+         "the uniform range needs st / 2 no larger than ndt.",
+         call. = FALSE)
   }
   if (requireNamespace("RWiener", quietly = TRUE)) {
     q <- numeric(n); r <- integer(n)
@@ -227,4 +284,107 @@ ddm_simulate <- function(n, mu, bs, ndt, bias = 0.5) {
   # boundary the path actually reached
   up <- stats::rbinom(n, 1, ddm_p_upper(v, a, w))
   data.frame(rt = ddm_sim_euler(v, a, w, t0, up, n), upper = up)
+}
+
+# ------------------------------------- post-fit under across-trial variability
+#
+# Everything below runs on doubles, off the tape, so it may branch and
+# it may use rules the density cannot. The point of writing it at all is
+# that the plain closed forms are the WRONG answers once the parameters
+# vary between trials, and a post-fit method that quietly returns a
+# number for the wrong model is the one failure this package works
+# hardest to avoid.
+
+#' Mean response time conditional on the boundary, with variability.
+#'
+#' Conditioning is what makes this more than an average. The trials that
+#' reached a given boundary are not a fair sample of the drift rates and
+#' start points: a drift toward that boundary reaches it more often. So
+#' the conditional mean is a RATIO,
+#'
+#'   sum w P(boundary | nu, zeta) (t0 + T(nu, zeta))
+#'   -------------------------------------------------
+#'   sum w P(boundary | nu, zeta)
+#'
+#' with the boundary probability and the conditional mean decision time
+#' both in closed form from `ddm_p_upper()` and `ddm_cond_mean_dt()`.
+#'
+#' The non-decision time drops out of the ratio: it is added to every
+#' trial regardless of which boundary was reached, so its distribution
+#' contributes its mean and nothing else. Only the drift and the start
+#' point need nodes, and the drift's are Gauss-Hermite because its
+#' distribution is normal.
+#'
+#' @noRd
+ddm_mean_rt_var <- function(dpars, aterms, nd, gh) {
+  up <- ddm_indicator_mean(aterms)
+  n <- max(lengths(list(dpars[["mu"]], dpars[["bs"]], dpars[["ndt"]],
+                        dpars[["bias"]], up)))
+  g <- function(nm, default) {
+    if (is.null(dpars[[nm]])) rep_len(default, n) else rep_len(dpars[[nm]], n)
+  }
+  v <- g("mu", 0); a <- g("bs", 1); t0 <- g("ndt", 0); w <- g("bias", 0.5)
+  sv <- g("sv", 0); sz <- g("sz", 0)
+  u <- rep_len(up, n)
+
+  num <- numeric(n)
+  den <- numeric(n)
+  for (k in seq_along(gh$x)) {
+    nu <- v + sv * gh$x[[k]]
+    for (i in seq_along(nd$sz$x)) {
+      om <- w + sz * (nd$sz$x[[i]] - 0.5)
+      pu <- ddm_p_upper(nu, a, om)
+      p <- ifelse(u == 1, pu, 1 - pu)
+      wt <- gh$w[[k]] * nd$sz$w[[i]]
+      num <- num + wt * p * ddm_cond_mean_dt(nu, a, om, u)
+      den <- den + wt * p
+    }
+  }
+  t0 + num / den
+}
+
+#' A conditional draw with the trial's own parameters.
+#'
+#' Drawing the per-trial parameters and then drawing a response time at
+#' the requested boundary would be wrong for the same reason the mean is
+#' a ratio: conditioning on the boundary reweights which drift rates and
+#' start points the trial could have had. The draw is therefore accepted
+#' with probability equal to the boundary probability it implies, which
+#' samples that reweighting exactly, and only then is the response time
+#' drawn from the plain conditional density.
+#'
+#' @noRd
+ddm_sim_rt_var <- function(dpars, aterms, n, nd) {
+  up <- ddm_indicator_sim(aterms)
+  g <- function(nm, default) {
+    if (is.null(dpars[[nm]])) rep_len(default, n) else rep_len(dpars[[nm]], n)
+  }
+  v <- g("mu", 0); a <- g("bs", 1); t0 <- g("ndt", 0); w <- g("bias", 0.5)
+  sv <- g("sv", 0); sz <- g("sz", 0); st <- g("st", 0)
+  u <- rep_len(up, n)
+
+  nu <- numeric(n); om <- numeric(n)
+  todo <- seq_len(n)
+  pass <- 0L
+  while (length(todo)) {
+    pass <- pass + 1L
+    if (pass > 1000L) {
+      stop("wiener: rejection sampling for the across-trial parameters ",
+           "did not converge for ", length(todo), " of ", n, " rows. ",
+           "The fitted boundary probability there is essentially zero.",
+           call. = FALSE)
+    }
+    k <- length(todo)
+    nk <- stats::rnorm(k, v[todo], sv[todo])
+    ok_w <- stats::runif(k, w[todo] - sz[todo] / 2, w[todo] + sz[todo] / 2)
+    pu <- ddm_p_upper(nk, a[todo], ok_w)
+    p <- ifelse(u[todo] == 1, pu, 1 - pu)
+    keep <- stats::runif(k) < p
+    nu[todo[keep]] <- nk[keep]
+    om[todo[keep]] <- ok_w[keep]
+    todo <- todo[!keep]
+  }
+  tau <- stats::runif(n, t0 - st / 2, t0 + st / 2)
+  ddm_sim_rt(list(mu = nu, bs = a, ndt = tau, bias = om),
+             aterms, n)
 }

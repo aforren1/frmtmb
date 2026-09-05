@@ -1,6 +1,6 @@
 Package: frmtmb.ddm
 Title: Drift-Diffusion Response Times for 'frmtmb' Models
-Version: 0.1.0
+Version: 0.2.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -9,7 +9,9 @@ Description: Adds the Wiener first-passage time family to 'frmtmb', for
     two-choice response time data. A noisy evidence accumulator runs
     between two boundaries and the response time is the first time it
     touches one; the drift rate, boundary separation, non-decision time
-    and start point each take their own regression formula. The
+    and start point each take their own regression formula, and
+    Ratcliff's across-trial variability in drift rate, start point and
+    non-decision time is available as three more. The
     parameterization follows 'brms'. The density is the Navarro and
     Fuss (2009) pair of series, written in plain R so that it
     differentiates exactly on an 'RTMB' tape, with a smooth weight
@@ -24,7 +26,7 @@ Language: en-US
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1),
-    frmtmb (>= 0.47.0)
+    frmtmb (>= 0.49.0)
 Imports:
     stats
 Suggests:

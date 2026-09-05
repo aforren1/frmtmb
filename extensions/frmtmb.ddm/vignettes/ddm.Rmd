@@ -74,21 +74,33 @@ prop.table(table(dat$lex, dat$upper), margin = 1)
 
 ## The decision indicator
 
-brms spells the boundary a trial ended at as `rt | dec(decision)`.
-frmtmb's addition terms are a closed set and `dec()` is not one of them,
-so this family reads the indicator from `vint()` instead:
+The boundary a trial ended at is data, and it reaches the density as an
+addition term spelled the way brms spells it:
 
 ```{r spelling, eval = FALSE}
 # brms
 brm(rt | dec(decision) ~ lex, family = wiener(), data = dat)
 
 # here
+frm(bf(rt | dec(decision) ~ lex), family = wiener(), data = dat)
+```
+
+`dec()` takes what brms takes: a factor or a character vector, read on
+its levels with the second one as the upper boundary, or a 0/1 column.
+The package contributes the term to frmtmb's addition-term registry when
+it loads, so nothing has to be enabled.
+
+`vint()` carries the same thing as a plain 0/1 integer and also works.
+It was the only route before frmtmb had a registry to contribute to, and
+models written that way keep running:
+
+```{r spelling2, eval = FALSE}
 frm(bf(rt | vint(upper) ~ lex), family = wiener(), data = dat)
 ```
 
-`upper` must already be coded 0/1. Unlike `dec()`, `vint()` will not
-take a factor, and passing anything else is refused rather than
-silently coerced.
+Supplying neither is refused. An absent addition term reaches a density
+as `NULL`, `NULL` in arithmetic is a zero-length result, and the fit
+would otherwise return with a log likelihood summed over no rows.
 
 ## Fitting
 
@@ -198,14 +210,14 @@ quantile(sims,   c(0.1, 0.5, 0.9))
   the response time given the boundary. It does not jointly model which
   boundary was reached, so it is not a substitute for fitting choice and
   time together.
-- **There is no across-trial variability, and no contaminant
-  mixture.** Drift, start point and non-decision time are constant
-  within a condition, which makes this the pure Wiener model rather
-  than the full Ratcliff model. The Ratcliff likelihood integrates over
-  a drift distribution at every row, and fast guesses and slow lapses
-  need a mixture component that is not here. A random effect over
-  subjects models variation BETWEEN participants, which is a different
-  claim from variation between trials.
+- **The start-point range is not held inside the boundaries by
+  construction.** `wiener(variability = "sz")` gives `sz` a logit link,
+  so the width is below 1 and the uniform start point stays inside the
+  boundaries whenever `bias` is 0.5, which is the usual case. At a
+  strongly biased start a wide `sz` can push the range past a boundary.
+  Nor is `ndt - st / 2` held above zero. Both are joint constraints on
+  two distributional parameters, and a link is a property of one, so
+  neither can be made structural from outside frmtmb.
 
 `frm_compat("wiener")` states each of these, along with what was tested
 and what merely was not.
@@ -213,6 +225,119 @@ and what merely was not.
 ```{r compat}
 frm_compat("wiener")[, c("feature_b", "status")]
 ```
+
+## The full model: across-trial variability
+
+Everything above holds the four parameters fixed within a condition.
+Ratcliff's full diffusion model does not: it draws the drift rate, the
+start point and the non-decision time afresh on every trial, which is
+what lets one model account for both the fast errors a start-point range
+produces and the slow errors a drift range produces.
+
+`variability` turns those on. Each one it names becomes an ordinary
+distributional parameter and takes its own formula like any other:
+
+```{r fullddm}
+set.seed(4)
+full <- ddm_simulate(600, mu = 1.2, bs = 1.5, ndt = 0.30,
+                     sv = 1.0, st = 0.10)
+ffit <- frm(bf(rt | dec(upper) ~ 1, bias = 0.5),
+            family = wiener(variability = c("sv", "st")), data = full)
+e <- unlist(fixef(ffit))
+ub <- min(full$rt)
+c(mu  = e[["mu.(Intercept)"]],
+  bs  = exp(e[["bs.(Intercept)"]]),
+  ndt = ub / (1 + exp(-e[["ndt.(Intercept)"]])),
+  sv  = exp(e[["sv.(Intercept)"]]),
+  st  = 2 * ub / (1 + exp(-e[["st.(Intercept)"]])))
+```
+
+### Three integrals, three answers
+
+The likelihood is the analytic Wiener density averaged over those
+distributions. They are not averaged the same way, because they are not
+the same integral.
+
+**The drift rate has a closed form.** The drift enters the log density
+only as `-v a w - v^2 t / 2`: the series that carries the shape of the
+distribution is the driftless one, and the drift multiplies it by an
+exponential-quadratic. Averaging an exponential-quadratic against a
+normal completes the square, so
+
+```
+mean of exp(-v a w - v^2 t / 2)
+  = (1 + t sv^2)^(-1/2)
+    exp( ((a w)^2 sv^2 - 2 v a w - v^2 t) / (2 (1 + t sv^2)) )
+```
+
+That is exact. There is no node count for `sv` and no accuracy to
+trade, and estimating it is free relative to the plain density: over
+three seeds a fit with `sv` took 0.97 to 1.07 times a fit without it,
+and at the density level both cost 0.0002 s per call. The two
+quadratures below are the ones that cost.
+
+**The other two are uniform, and get fixed Gauss-Legendre nodes.** The
+node positions and counts are decided when the family object is built.
+Nothing may branch on a parameter on an automatic-differentiation tape,
+and a node count that moved with `st` would be exactly that; a parameter
+only rescales the interval the fixed nodes are mapped onto.
+
+The two defaults differ because the two integrands do. The start-point
+integrand is analytic across its whole range. The non-decision-time
+integrand is not free to use its whole range: the density is zero for a
+non-decision time at or past the response time, so on a fast trial the
+range is cut and the integrand turns on sharply at the cut. Measured
+against a far finer rule on such a trial:
+
+```{r nodes}
+lp <- function(nsz, nst) {
+  nd <- frmtmb.ddm:::ddm_nodes(c("sz", "st"), c(sz = nsz, st = nst))
+  frmtmb.ddm:::ddm_lpdf_var(0.36, 1.0, 1.5, 0.45, 0.30, 1.0, 0.2, 0.2,
+                            0, nd, TRUE, 1e-9)
+}
+best <- lp(31L, 81L)
+n <- c(3, 5, 7, 11, 15, 21, 31)
+data.frame(nodes = n,
+           sz_err = abs(vapply(n, function(k) lp(k, 81L), 0) - best),
+           st_err = abs(vapply(n, function(k) lp(31L, k), 0) - best))
+```
+
+The start-point column is at machine precision by 7 nodes. The
+non-decision-time column takes 21 to reach 1e-9, which is where the
+default sits. Lower it with `wiener(nodes = c(st = 11))` if the fit is
+slow and the extra digits are not worth the time.
+
+### A contaminant mixture
+
+Fast guesses are not diffusion trials, and a model with no component for
+them pays by dragging the non-decision time down. The standard treatment
+is a mixture, which needs the Wiener component's non-decision time to
+sit above the fastest response time. That is refused by default, for a
+bare model correctly, and `allow_unreachable = TRUE` says the other
+component covers those trials:
+
+```{r mixture, eval = FALSE}
+frm(bf(rt | dec(decision) ~ 1, bias1 = 0.5),
+    family = mixture(wiener(max_ndt = 0.4, allow_unreachable = TRUE),
+                     lognormal()),
+    data = dat)
+```
+
+A trial below the non-decision time then gets a log density that
+exponentiates to exactly zero, which is the right likelihood for that
+component, and differentiates to exactly zero, which a true `-Inf` would
+not: `-Inf` gives the correct value and a `NaN` gradient, and one `NaN`
+stops the fit.
+
+### Why this is not `quadrature = TRUE`
+
+frmtmb has a `quadrature` argument, and it is not this. It marginalizes
+RANDOM EFFECTS by adaptive Gauss-Kronrod, is wired to the random-effect
+coefficient vector by name, and refuses a model that has no
+random-effect block at all. Across-trial variability shares nothing
+between trials, has no level to estimate, and gives every row its own
+integral whether or not the model has a grouping factor. It belongs
+inside the density, and that is where it is.
 
 ## The density
 
@@ -268,3 +393,8 @@ alone would give. It is fine until it is not.
 Navarro, D. J. and Fuss, I. G. (2009). Fast and accurate calculations
 for first-passage times in Wiener diffusion models. *Journal of
 Mathematical Psychology*, 53(4), 222-230.
+
+Ratcliff, R. and Tuerlinckx, F. (2002). Estimating parameters of the
+diffusion model: approaches to dealing with contaminant reaction times
+and parameter variability. *Psychonomic Bulletin & Review*, 9(3),
+438-481.
