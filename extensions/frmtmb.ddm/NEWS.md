@@ -164,6 +164,14 @@ compatibility table.
 * `vignette("gddm")` fits one of the paper's models end to end and says
   plainly where this is slower than `wiener()` and why someone would pay
   that.
+* That vignette now carries four figures, under a `tinyplot` gate: the
+  three shipped boundaries over a trial, the fit against the data it was
+  fitted to as defective cumulative distributions, the solved density
+  against the analytic Wiener density with the log-density error on two
+  grids beside it, and the leading edge of the fitted density at three
+  time steps, which is what `gddm_floored()` counts. They are drawn from
+  the vignette's own simulated data and its one fit, and together they
+  cost about two seconds of a knit that the fit dominates.
 
 ## The linear ballistic accumulator
 
