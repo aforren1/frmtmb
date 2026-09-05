@@ -194,6 +194,9 @@ build_objective <- function(frame) {
   # parameterization of the integrated variable irrelevant.
   ncp_idx <- frame[["ncp_blocks"]] %||% integer(0)
   is_ncp <- seq_along(blocks) %in% ncp_idx
+  # asked once, not per evaluation, and asked of the BLOCKS: a frame
+  # that predates `has_expand` must not be read as "nothing to expand"
+  needs_expand <- frame_needs_expand(frame)
   spec <- frame[["spec"]]
   resps <- spec$responses
   rescor <- isTRUE(spec$rescor)
@@ -249,8 +252,8 @@ build_objective <- function(frame) {
     }
 
     # coefficient-space vector for the Z products (rr blocks expand
-    # their factors through the loadings)
-    bvec <- if (isTRUE(frame[["has_rr"]])) {
+    # their factors through the loadings, esicar blocks center)
+    bvec <- if (needs_expand) {
       expand_b(frame, bfull, pars[["theta"]])
     } else {
       bfull

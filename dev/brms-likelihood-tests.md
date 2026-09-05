@@ -8,8 +8,12 @@ round added rows 4, 6, 8, 9, 10, 11, 18 and 19, which is every
 remaining row of the matrix. The first round's one exemption, row 3's
 `mo(inc) * z`, was closed on branch `wt-mo-terms`: frmtmb now builds
 one simplex per mo() TERM and row 3b asserts the identity with the flat
-Dirichlet admitted once per simplex. Four real divergences between the
-packages remain, over three rows, and each is asserted rather than
+Dirichlet admitted once per simplex. The second round's esicar
+divergence was closed the same way on branch `wt-esicar`: `esicar` is
+now the exactly constrained intrinsic CAR brms writes, not an alias for
+`icar`, and row 19c-esicar asserts the identity with the CAR normalizer
+admitted as a closed form in the data. Three real divergences between
+the packages remain, over three rows, and each is asserted rather than
 skipped. Results, deviations, findings and the remaining work are under
 "Implementation log" at the end of this document, and the second round
 has its own section there.
@@ -908,29 +912,44 @@ This is a feature gap with a loud error, which is the right shape for
 one, and it is the only one of the four exemptions that a user cannot
 walk into by accident.
 
-### Divergence: esicar and bym2 keep different latent variables
+### Divergence: bym2 keeps a different latent set (esicar no longer does)
 
-Two shapes where the joint densities are functions of different
-arguments.
+One shape where the joint densities are functions of different
+arguments, and one that used to be and is not any more.
 
-**esicar.** brms imposes the sum-to-zero constraint HARD: it declares
-`Nloc - 1` free values, sets `rcar[Nloc] = -sum(zcar)`, and normalizes
-by `(Nloc - 1) log(tau)`. frmtmb imposes it softly, folding
-`1 / (con_sd n_j)^2` into the precision as a rank-`c` update
-(`R/covstruct.R:1231-1245`), keeps all `Nloc` values, and normalizes by
-`Nloc log(tau)` plus the log determinant of that precision. The gap
-between the two log densities is
+**esicar, CLOSED.** brms imposes the sum-to-zero constraint
+HARD: it declares `Nloc - 1` free values, sets
+`rcar[Nloc] = -sum(zcar)`, and normalizes by `(Nloc - 1) log(tau)`.
+frmtmb imposed it softly and its `esicar` was its `icar` bit for bit,
+so the gap between the two log densities was
 `log(sdcar) - 0.5 ldet_K + 0.5 Nloc log(2 pi)`, which MOVES WITH
-`sdcar`: it is not a constant and no admitted constant can absorb it.
+`sdcar`: not a constant, and no admitted constant could absorb it.
 
-The soft constraint is a documented choice, not an omission.
-`R/covstruct.R:916-947` argues it, names brms's own non-centered `zcar`
-parameterization as the precedent, and tabulates the bias: at the 1e-3
-default the log-likelihood is 4.7e-4 off the hard-constrained reference
-and `sdcar` 3.6e-5 relative, while tightening `con_sd` costs optimizer
-robustness (nlminb false convergence once in 25 refits at 1e-4 and six
-times at 1e-5). The vignette says the same to users
-(`vignettes/frmtmb.Rmd:178-183`).
+`esicar` now has its own branch. It keeps `Nloc` coefficients, and
+`expand_b()` removes each connected component's mean on the way to the
+linear predictor, so the field the predictor sees sums to zero exactly.
+The component means are then inert, entering no predictor and no cross
+term, and their density is made tau-FREE, which turns the block
+precision into `Q = tau L + P0` with `P0` the same rank-`c` term `icar`
+folds in. `L` and `P0` live on complementary invariant subspaces, so
+`log|Q| = (Nloc - c) log tau + log|K|`: the pseudo-determinant brms
+normalizes by, with no new factorization, and the marginal likelihood
+is the hard-constrained one to machine precision rather than in a
+limit. `R/covstruct.R:896-996` argues the whole of it.
+
+Measured on the row's design against a hard-constrained marginal ML
+built outside frmtmb (`cov(field) = sdcar^2 pinv(L)`, profiled over
+beta): `esicar` is -90.315906933797 against the reference's
+-90.315906933523, a gap of 2.7e-10, which is the reference optimizer's
+own convergence noise. `icar` is -90.316306819585, 4.0e-4 below. The
+esicar field sums to -2.9e-16 where icar's sums to 3.2e-9, and
+`esicar`'s log-likelihood is invariant to `con_sd` to 12 digits over
+1e-2 to 1e-4 where `icar`'s moves by 3.8e-2. That invariance is the
+signature: an exact constraint cannot depend on the softness parameter.
+
+The map is a truncation of the CENTERED coefficient vector and carries
+NO Jacobian, because neither side standardizes the field for this type,
+unlike `icar`, where both do and the map carries `Nloc log(sdcar)`.
 
 **bym2.** brms keeps the spatial and the non-spatial parts as SEPARATE
 latent vectors, `2 Nloc` values plus `rhocar`, and frmtmb integrates the
@@ -942,26 +961,19 @@ Both are asserted structurally, from brms's generated parameter block
 against frmtmb's block dimension, and the translator refuses them by
 name rather than producing a map that cannot exist.
 
-**Alongside it: frmtmb's esicar IS its icar, bit for bit.** `car_aux()`
-(`R/covstruct.R:1204`) has no `esicar` branch at all: `escar` returns
-early (`R/covstruct.R:1209-1230`) and everything else falls into the
-shared intrinsic path (`R/covstruct.R:1231-1245`). On the row's design
-the two fits agree to the last digit, log-likelihood -90.316306819585
-and `sdcar` 1.413415 for both, and every field of `aux_car` is equal
-except the `type` string. The vignette calls `esicar` an alias for
-`icar` (`vignettes/frmtmb.Rmd:150-151`), so this is a documented choice
-rather than an accident, and frmtmb's field IS constrained, softly.
+**The labeling contradiction went with it.** The vignette called
+`esicar` an alias for `icar` in a section that opened by saying `car()`
+fits brms's spelling "with all four of its types", while the package
+had three distinct densities under four spellings. It now has four, and
+the vignette carries a table of which constraint each type imposes plus
+the note that under 0.51.0 and earlier a fit spelled `esicar` was the
+`icar` model.
 
-What is left is a labeling contradiction inside one vignette section.
-The same section opens by saying `car()` fits brms's spelling "with all
-four of its types" while the package has three distinct densities under
-four spellings, and in brms `esicar` is NOT an alias for `icar`: it is
-the hard-constrained one, which this row's test asserts directly from
-brms's generated program. A user porting a brms `esicar` model gets a
-different, softly constrained likelihood under the same call and is told
-nothing at the call site. That is one sentence of vignette text, not an
-arithmetic defect. The test asserts the equality of the two frmtmb fits,
-so it fails if the aliasing ever changes.
+One deliberate difference from brms remains, and it is a refinement
+rather than a divergence: brms constrains the GLOBAL sum, which leaves
+a field over a disconnected graph improper, and frmtmb constrains each
+connected component. The two agree whenever there is one component,
+which is the only case brms's own normalizer is right for.
 
 ### The CAR normalizers brms omits, and why they are admitted constants
 
@@ -985,6 +997,14 @@ a restatement of it.
   rank-one term frmtmb folds into its precision: frmtmb's `con_sd`
   defaults to 0.001 and its term is `1 / (con_sd n)^2`, the same number.
   Measured 5.253269634.
+- esicar: `0.5 Nloc log(2 pi) - 0.5 log det K`, with the SAME `K` the
+  icar constant is built from. brms's `sparse_icar_lpdf` keeps
+  `0.5 (Nloc - 1) log(tau)` and drops the pseudo-determinant and the
+  `2 pi`; frmtmb's `log|Q|` is that same `(Nloc - 1) log tau` plus
+  `log|K|`, and its `Nloc log(2 pi)` counts the inert component mean as
+  well as the field, which is why this is `Nloc` and not `Nloc - 1`.
+  Predicted 2.037041610157443, measured 2.037041610157743: a residual
+  of 3.0e-13.
 
 That the two quadratic forms agree at all is the real result: frmtmb's
 `K` is brms's `D - W` plus brms's own constraint precision, checked
@@ -1015,11 +1035,12 @@ otherwise. Times are warm, one test per process.
 | 18d ar(cov = FALSE) | EXEMPT | refused by frmtmb | | 0.7 |
 | 19a car(escar), joint | pass | 6.149684293 | 3.77e-15 | 6.1 |
 | 19b car(icar), joint | pass | 5.253269634 | 2.50e-12 | (same) |
-| 19c car(esicar), car(bym2) | EXEMPT | different latent set | | 3.1 |
+| 19c-esicar car(esicar), joint | pass | 2.037041610 | 8.16e-15 | 3.4 |
+| 19c car(bym2) | EXEMPT | different latent set | | 1.2 |
 
-Three EXEMPT rows carrying four divergences: row 19c holds two, esicar
-and bym2, which is why the count of divergences and the count of rows
-that stand aside are not the same number.
+Three EXEMPT rows carrying three divergences, one each, since `esicar`
+became an identity and row 19c kept only `bym2`. Before that the counts
+differed, because row 19c held two.
 
 The gradients that are not at machine zero are the A-and-B rows, where
 check B is over every parameter and what is left is frmtmb's own

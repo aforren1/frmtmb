@@ -169,6 +169,47 @@ and brms's numbers wherever the two packages mean the same thing.
   link's inverse of the mapped-out coefficient, 1, which reads as an
   estimate of a parameter the density does not have.
 
+## Behavior change
+
+- `car(type = "esicar")` is the exactly constrained intrinsic CAR brms
+  fits, and no longer an alias for `car(type = "icar")`. brms declares
+  `Nloc - 1` free values and sets the last to minus their sum; frmtmb
+  keeps `Nloc` coefficients and removes each connected component's mean
+  on the way to the linear predictor, which is the same model and keeps
+  one coefficient per location for `ranef()`, `predict()` and
+  `simulate()`. The normalizer is the pseudo-determinant,
+  `(Nloc - c) log tau + log|K|`. **A fit spelled `esicar` changes**:
+  refit it, or spell the term `icar` to keep the softly constrained
+  model it used to select. The new fit sits ABOVE the old one, and not
+  by much: on a 4 by 4 lattice the log-likelihood rises by 4.0e-4 and
+  `sd(car)` by 3.1e-5 relative, the bias the soft constraint was
+  always documented to carry. The constraint is what changes exactly,
+  not the numbers: the field now sums to zero to machine precision
+  instead of to about 1e-9.
+- `con_sd` does not change what an `esicar` term FITS. The constraint
+  is exact, so `logLik()`, the estimates and `VarCorr()` are invariant
+  to it. It is not inert everywhere, though: the coordinate it scales
+  reaches every delta-method standard error (`predict(se.fit = TRUE)`)
+  and every `ranef(condVar = TRUE)` conditional standard deviation, as
+  `con_sd^2` in the variance. At the 1e-3 default that is 1.3e-5
+  relative in a standard error, but it grows a hundredfold per decade,
+  so `con_sd = 0.1` inflates them by 7 to 13 percent. Leave `con_sd`
+  alone on an `esicar` term. On `icar` and `bym2` it means what it
+  always did.
+
+## Improvements
+
+- The brms log-density tier gains row 19c-esicar, an identity with
+  brms's own `sparse_icar_lpdf` program at the same parameter vector,
+  with the CAR normalizer admitted as a closed form in the data
+  (`0.5 Nloc log(2 pi) - 0.5 log det K`, residual 3.0e-13). The tier's
+  exemption list drops from four divergences over three rows to three,
+  one per row; `bym2` is what is left of row 19c.
+- `esicar` on a disconnected adjacency matrix constrains each connected
+  component rather than the global sum alone, so the field stays proper
+  where brms's own normalizer does not apply. The two agree whenever
+  the graph is connected.
+
 # frmtmb 0.51.0
 
 One simplex per monotonic term, matching brms; importance sampling over
