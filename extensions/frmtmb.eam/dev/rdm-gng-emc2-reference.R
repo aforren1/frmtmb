@@ -17,12 +17,12 @@
 # Usage:
 #   Rscript dev/rdm-gng-emc2-reference.R
 #
-# It needs EMC2 and frmtmb.ddm on the library path and prints a table.
+# It needs EMC2 and frmtmb.eam on the library path and prints a table.
 
 if (!requireNamespace("EMC2", quietly = TRUE)) {
   stop("EMC2 is not installed; this script has nothing to compare against.")
 }
-suppressMessages(library(frmtmb.ddm))
+suppressMessages(library(frmtmb.eam))
 
 rel <- function(a, b) {
   k <- is.finite(a) & is.finite(b) & b != 0
@@ -41,8 +41,8 @@ say <- function(...) cat(sprintf(...), "\n", sep = "")
 # so EMC2's B is the gap ABOVE the start-point range, not the
 # threshold. The threshold is B + A.
 
-law <- frmtmb.ddm:::rdm_law
-race <- frmtmb.ddm:::lba_race_lpdf
+law <- frmtmb.eam:::rdm_law
+race <- frmtmb.eam:::lba_race_lpdf
 acc <- function(v, A, k) list(v = v, A = A, k = k)
 
 say("== RDM: single-accumulator density vs EMC2:::dWald ==")
@@ -54,7 +54,7 @@ d_me <- exp(law$ldens(gr$t, acc(gr$v, gr$A, gr$k)))
 
 # The independent adjudicator, so that a disagreement can be attributed
 # rather than merely noted. statmod knows nothing about either package.
-gl <- frmtmb.ddm:::ddm_gauss_legendre(60L)
+gl <- frmtmb.eam:::ddm_gauss_legendre(60L)
 ref <- vapply(seq_len(nrow(gr)), function(i) {
   d <- gr$k[i] + gr$A[i] * gl$x
   sum(gl$w * statmod::dinvgauss(gr$t[i], mean = d / gr$v[i], shape = d^2))
@@ -170,7 +170,7 @@ pars <- cbind(v = gr2$v, a = gr2$a, t0 = 0, Z = gr2$w, sv = 0, SZ = 0,
               st0 = 0, s = 1)
 R <- factor(rep("upper", nrow(gr2)), levels = c("lower", "upper"))
 emc <- 1 - EMC2:::pDDM(gr2$t, R, pars, precision = 1e-12)
-mine <- exp(frmtmb.ddm:::ddm_nogo_lprob(gr2$t, gr2$v, gr2$a, gr2$w))
+mine <- exp(frmtmb.eam:::ddm_nogo_lprob(gr2$t, gr2$v, gr2$a, gr2$w))
 for (thr in c(1e-2, 1e-6, 1e-10, 0)) {
   k <- emc > thr
   say("  EMC2 nogo > %-7g n=%4d   max rel %s", thr, sum(k),
@@ -183,7 +183,7 @@ set.seed(11)
 d <- wiener_gng_simulate(400, mu = 1.0, bs = 1.4, ndt = 0.25, bias = 0.45,
                          deadline = 1.5)
 dp <- list(mu = 1.0, bs = 1.4, ndt = 0.25, bias = 0.45)
-mine_ll <- frmtmb.ddm:::gng_lpdf(
+mine_ll <- frmtmb.eam:::gng_lpdf(
   d$rt, lapply(dp, function(v) rep(v, nrow(d))),
   list(dec = d$responded), 1.5)
 

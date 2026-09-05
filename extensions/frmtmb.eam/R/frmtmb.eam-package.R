@@ -1,7 +1,7 @@
 #' @keywords internal
 "_PACKAGE"
 
-# frmtmb is a Depends, so that one library(frmtmb.ddm) call gives a user
+# frmtmb is a Depends, so that one library(frmtmb.eam) call gives a user
 # the formula grammar and the frm() the family is passed to. The compat
 # seam is imported by name as well, because a namespace that is loaded
 # and not attached reaches nothing through the search path.

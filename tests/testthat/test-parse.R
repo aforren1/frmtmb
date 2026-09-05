@@ -84,7 +84,7 @@ test_that("unsupported covariance structures error at parse time", {
   expect_identical(spec$responses[[1]]$dpars$mu$re[[1]]$rank, 2L)
 })
 
-# --- the addition-term registry (frmtmb.ddm finding 1) ----------------
+# --- the addition-term registry (frmtmb.eam finding 1) ----------------
 
 test_that("the refusal names vint()/vreal() and the registration seam", {
   # an extension author reading this message has to learn that the set

@@ -42,7 +42,7 @@ PKGS <- c(
   frmtmb.sample   = "extensions/frmtmb.sample",
   frmtmb.latent   = "extensions/frmtmb.latent",
   frmtmb.ode      = "extensions/frmtmb.ode",
-  frmtmb.ddm      = "extensions/frmtmb.ddm",
+  frmtmb.eam      = "extensions/frmtmb.eam",
   frmtmb.spline   = "extensions/frmtmb.spline"
 )
 

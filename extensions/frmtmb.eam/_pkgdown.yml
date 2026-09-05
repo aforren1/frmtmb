@@ -5,8 +5,8 @@
 # sites together. Build it with dev/build-docs.R, not on its own: the
 # links between packages resolve only when every package is installed
 # first.
-url: https://aforren1.github.io/frmtmb/frmtmb.ddm
-destination: ../../docs/frmtmb.ddm
+url: https://aforren1.github.io/frmtmb/frmtmb.eam
+destination: ../../docs/frmtmb.eam
 
 template:
   bootstrap: 5
@@ -20,7 +20,7 @@ template:
 repo:
   url:
     home: https://github.com/aforren1/frmtmb/
-    source: https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.ddm/
+    source: https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.eam/
 
 navbar:
   structure:

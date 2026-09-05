@@ -15,8 +15,8 @@ navbar:
     extensions:
       text: Extensions
       menu:
-      - text: frmtmb.ddm (drift-diffusion response times)
-        href: https://aforren1.github.io/frmtmb/frmtmb.ddm/
+      - text: frmtmb.eam (drift-diffusion response times)
+        href: https://aforren1.github.io/frmtmb/frmtmb.eam/
       - text: frmtmb.latent (hidden Markov and latent class)
         href: https://aforren1.github.io/frmtmb/frmtmb.latent/
       - text: frmtmb.ode (differential equation dynamics)

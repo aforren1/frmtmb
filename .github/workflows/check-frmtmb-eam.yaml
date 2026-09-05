@@ -1,4 +1,4 @@
-# R CMD check for the drift-diffusion extension, extensions/frmtmb.ddm.
+# R CMD check for the drift-diffusion extension, extensions/frmtmb.eam.
 #
 # The extension is not part of the core tarball (.Rbuildignore excludes
 # extensions/), so the core workflows never see it. This job installs the
@@ -15,7 +15,7 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'extensions/frmtmb.ddm/**'
+      - 'extensions/frmtmb.eam/**'
       - 'R/**'
       - 'DESCRIPTION'
       - 'NAMESPACE'
@@ -23,14 +23,14 @@ on:
   pull_request:
     branches: [main, master]
     paths:
-      - 'extensions/frmtmb.ddm/**'
+      - 'extensions/frmtmb.eam/**'
       - 'R/**'
       - 'DESCRIPTION'
       - 'NAMESPACE'
       - '.github/workflows/check-frmtmb-ddm.yaml'
   workflow_dispatch:
 
-name: check-frmtmb.ddm
+name: check-frmtmb.eam
 
 jobs:
   check-frmtmb-ddm:
@@ -63,7 +63,7 @@ jobs:
       # already present.
       - name: Install the extension's dependencies
         run: |
-          d <- read.dcf("extensions/frmtmb.ddm/DESCRIPTION")
+          d <- read.dcf("extensions/frmtmb.eam/DESCRIPTION")
           f <- intersect(c("Imports", "Suggests"), colnames(d))
           p <- unlist(strsplit(paste(d[, f], collapse = ","), ","))
           p <- trimws(sub("[(].*", "", p))
@@ -72,6 +72,6 @@ jobs:
         shell: Rscript {0}
       - uses: r-lib/actions/check-r-package@v2
         with:
-          working-directory: extensions/frmtmb.ddm
+          working-directory: extensions/frmtmb.eam
           args: 'c("--no-manual")'
           upload-snapshots: true

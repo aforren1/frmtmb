@@ -1,5 +1,8 @@
 # frmtmb (development version)
 
+* The drift-diffusion extension is renamed frmtmb.eam (evidence
+  accumulation models); see its NEWS.
+
 The ten defects the brms post-fit method tier recorded in
 `dev/brms-methods-tests.md`, repaired. Nine of them are in
 `conditional_effects()`, which now returns brms's frame, brms's grid
@@ -415,7 +418,7 @@ to match.
   until frame assembly has run, and `frm_simulate()` was reading the
   family as written; it now carries the finalized responses over from
   the frame, as `frm()` already did. This is what made
-  `frmtmb.ddm::gddm()` unreachable from `frm_simulate()`.
+  `frmtmb.eam::gddm()` unreachable from `frm_simulate()`.
 
 * `frm(importance = )` now corrects a model with SEVERAL random-effect
   blocks over one grouping factor, which is what distributional
@@ -672,7 +675,7 @@ along the package split, and a shipping case study.
   keeps the maximum-likelihood halves and points across. The
   case-studies wiener section is replaced by a shifted-lognormal
   custom family cross-checked against the built-in to machine
-  precision, with the drift-diffusion model deferred to frmtmb.ddm.
+  precision, with the drift-diffusion model deferred to frmtmb.eam.
 * New `habit_prep` data and `vignette("habit")`: a case study
   replicating the response-preparation model of Hardwick, Forrence,
   Krakauer and Haith (2019, Nature Human Behaviour) with `nlf()` on
@@ -703,7 +706,7 @@ AD-safe scope, and the extension API passes its first outsider test.
   `stats::splinefun()` for `monoH.FC` or `hyman`. Extension-author
   surfaces (family log-densities, structure log-likelihoods) keep
   explicit qualification.
-* New companion package `frmtmb.ddm`: the Wiener drift-diffusion
+* New companion package `frmtmb.eam`: the Wiener drift-diffusion
   family with brms's parameterization, agreeing with RWiener to
   better than 1e-12 through a tape-safe two-series blend. It was
   built against the exported extension API alone, with no core

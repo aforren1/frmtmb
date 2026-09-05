@@ -279,7 +279,7 @@ test_that("every message this family raises is its own", {
   ## Read from the namespace, not from R/gddm.R: an installed package has
   ## no source tree, and this has to run under R CMD check as well as from
   ## the working copy.
-  ns <- asNamespace("frmtmb.ddm")
+  ns <- asNamespace("frmtmb.eam")
   txt <- paste(vapply(ls(ns, all.names = TRUE), function(nm) {
     o <- get(nm, envir = ns)
     if (is.function(o)) paste(deparse(o), collapse = "\n") else ""

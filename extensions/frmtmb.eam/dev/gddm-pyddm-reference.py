@@ -11,7 +11,7 @@
 Run once, by hand, to regenerate the fixture that
 tests/testthat/test-gddm-reference.R reads:
 
-    uv run extensions/frmtmb.ddm/dev/gddm-pyddm-reference.py
+    uv run extensions/frmtmb.eam/dev/gddm-pyddm-reference.py
 
 ON WINDOWS, point UV_CACHE_DIR somewhere short first, for example
 C:\\uvcache. uv names the environment after this script, and under a

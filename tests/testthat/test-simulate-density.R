@@ -779,7 +779,7 @@ test_that("a family that installs its simulator in family_finalize can be simula
   # refused it for having none, while simulate() on a fit of the same
   # model worked, because a fit carries the finalized family. The
   # asymmetry was invisible until an extension put its simulator in
-  # that slot (frmtmb.ddm's gddm() does).
+  # that slot (frmtmb.eam's gddm() does).
   fam <- frmtmb::custom_family(
     "late_sim", dpars = c("mu", "sigma"),
     links = list(mu = "identity", sigma = "log"),

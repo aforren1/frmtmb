@@ -13,7 +13,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 # script skips eval-gated chunks, so a library() inside one leaves every
 # later unconditional chunk without frm()
 library(frmtmb)
-library(frmtmb.ddm)
+library(frmtmb.eam)
 has_tinyplot <- requireNamespace("tinyplot", quietly = TRUE)
 set.seed(20)
 ```
@@ -205,8 +205,8 @@ proportion of trials that ended there.
 # The solved density is not part of this package's API. These two are
 # the internals its own solver tests read, and a picture of the fit
 # needs the density on a grid, which nothing exported returns.
-gd_solve <- frmtmb.ddm:::gd_solve
-gd_shift <- frmtmb.ddm:::gd_shift
+gd_solve <- frmtmb.eam:::gd_solve
+gd_shift <- frmtmb.eam:::gd_shift
 comp <- gddm(drift = list(gddm_drift_coherence(cmax = 0.512),
                           gddm_drift_leak()),
              bound = gddm_bound_exponential())[["gddm"]]$comp
@@ -311,7 +311,7 @@ to better than 0.01 in the log density. A coarser grid is worse and a
 finer one is better; the package's own test suite pins all three.
 
 ```{r fig-accuracy, eval = has_tinyplot, fig.width = 7, fig.height = 4, fig.alt = "Two panels against decision time on a logarithmic axis from 0.01 to 1.5 seconds. The left panel plots density on a logarithmic axis from 1e-12 to 5. Thick gray curves are the closed-form Wiener density, solid for the upper wall and dashed for the lower, and thin blue and red curves are the solver at the same two walls. Above about 0.05 seconds each thin curve lies on its gray curve. Below that the gray curves plunge off the bottom of the panel while the thin curves carry on almost straight, so the solver is far too large there. The right panel plots the absolute log-density error for two grids, blue for dt 0.01 with ny 201 and orange for dt 0.02 with ny 101. Both fall from above 10 at the shortest times and cross the dashed line at 0.01 before the dashed vertical line at 0.2 seconds, and the orange curve stays above the blue one throughout."}
-ddm_lpdf_both <- frmtmb.ddm:::ddm_lpdf_both
+ddm_lpdf_both <- frmtmb.eam:::ddm_lpdf_both
 wcomp <- gddm()[["gddm"]]$comp
 wp <- list(mu = 2, bs = 2, bias = 0.5, ndt = 0)
 # no shift and no renormalization: the raw flux is what the closed form

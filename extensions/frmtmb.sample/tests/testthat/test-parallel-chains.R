@@ -51,7 +51,7 @@ test_that("parallel chains refuse a family from a development namespace", {
   expect_identical(dev, if (exists(".__DEVTOOLS__", asNamespace("frmtmb")))
     "frmtmb" else character(0))
   skip_on_os(c("mac", "linux", "solaris"))
-  local_mocked_bindings(dev_namespaces_of = function(fit) "frmtmb.ddm")
+  local_mocked_bindings(dev_namespaces_of = function(fit) "frmtmb.eam")
   expect_error(frm_sample(fit, chains = 2, cores = 2, iter = 20, refresh = 0),
                "as loaded by pkgload::load_all")
 })

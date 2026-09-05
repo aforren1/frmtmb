@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
   # reference density, so the whole vignette is gated on one flag
   eval = has_rw
 )
-library(frmtmb.ddm)
+library(frmtmb.eam)
 ```
 
 ```{r, echo = FALSE, eval = !has_rw, comment = NA}
@@ -291,8 +291,8 @@ against a far finer rule on such a trial:
 
 ```{r nodes}
 lp <- function(nsz, nst) {
-  nd <- frmtmb.ddm:::ddm_nodes(c("sz", "st"), c(sz = nsz, st = nst))
-  frmtmb.ddm:::ddm_lpdf_var(0.36, 1.0, 1.5, 0.45, 0.30, 1.0, 0.2, 0.2,
+  nd <- frmtmb.eam:::ddm_nodes(c("sz", "st"), c(sz = nsz, st = nst))
+  frmtmb.eam:::ddm_lpdf_var(0.36, 1.0, 1.5, 0.45, 0.30, 1.0, 0.2, 0.2,
                             0, nd, TRUE, 1e-9)
 }
 best <- lp(31L, 81L)
@@ -375,10 +375,10 @@ ref <- vapply(u, function(uu) {
   log(RWiener::dwiener(uu + 1e-12, 1, 1e-12, 0.45, 1, resp = "lower"))
 }, 0)
 mine <- vapply(u, function(uu) {
-  frmtmb.ddm:::ddm_lpdf_lower(uu, 1, 1, 0.45)
+  frmtmb.eam:::ddm_lpdf_lower(uu, 1, 1, 0.45)
 }, 0)
 small_only <- vapply(u, function(uu) {
-  frmtmb.ddm:::ddm_log_gs(uu, 0.45) - 1 * 1 * 0.45 - 1 * 1 * uu / 2
+  frmtmb.eam:::ddm_log_gs(uu, 0.45) - 1 * 1 * 0.45 - 1 * 1 * uu / 2
 }, 0)
 data.frame(u,
            blended_rel_err = abs(mine - ref) / abs(ref),
@@ -607,7 +607,7 @@ tt <- c(0.15, 0.3, 0.6, 1.2)
 data.frame(
   t = tt,
   reference = sapply(tt, ref_d, v = 2, A = 0.5, k = 0.5),
-  frmtmb.ddm = exp(frmtmb.ddm:::rdm_law$ldens(
+  frmtmb.eam = exp(frmtmb.eam:::rdm_law$ldens(
     tt, list(v = 2, A = 0.5, k = 0.5))))
 ```
 
@@ -759,8 +759,8 @@ EMC2 reaches the same quantity through `WienR`, so comparing against
 q <- c(0.2, 0.5, 1.0, 2.0)
 ref <- 1 - WienR::pWDM(q, rep("upper", 4), a = 1.4, v = 1, w = 0.45,
                        t0 = 0, precision = 1e-12)$value
-mine <- exp(frmtmb.ddm:::ddm_nogo_lprob(q, 1, 1.4, 0.45))
-data.frame(t = q, WienR = ref, frmtmb.ddm = mine,
+mine <- exp(frmtmb.eam:::ddm_nogo_lprob(q, 1, 1.4, 0.45))
+data.frame(t = q, WienR = ref, frmtmb.eam = mine,
            rel_diff = abs(mine - ref) / ref)
 ```
 

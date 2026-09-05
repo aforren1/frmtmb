@@ -8,8 +8,8 @@
 acc <- function(v, A = 0.6, k = 0.6, s = 1, posdrift = TRUE) {
   list(v = v, A = A, b = A + k, s = s, posdrift = posdrift)
 }
-law <- frmtmb.ddm:::lba_law
-race <- frmtmb.ddm:::lba_race_lpdf
+law <- frmtmb.eam:::lba_law
+race <- frmtmb.eam:::lba_race_lpdf
 
 # ------------------------------------------------------------------ (a)
 test_that("the defective density matches rtdists where rtdists is accurate", {
@@ -50,7 +50,7 @@ test_that("in the fast tail we beat rtdists, against a 200-bit reference", {
     a <- Rmpfr::mpfr(hi[i], 200); b <- Rmpfr::mpfr(lo[i], 200)
     as.numeric((Rmpfr::erfc(-a / rt2) - Rmpfr::erfc(-b / rt2)) / 2)
   }, numeric(1))
-  mine <- frmtmb.ddm:::lba_phidiff(hi, lo)
+  mine <- frmtmb.eam:::lba_phidiff(hi, lo)
   subtractive <- stats::pnorm(hi) - stats::pnorm(lo)
   pos <- truth > 0
   bulk <- pos & lo < 8

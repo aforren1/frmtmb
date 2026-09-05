@@ -481,7 +481,7 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
   bform <- resolve_deferred_families(as_bform(formula, family), data)
   spec <- parse_spec(bform)
   frame <- assemble_frame(spec, data, data2 = data2)
-  # An extension that installs its SIMULATOR at finalize (frmtmb.ddm's
+  # An extension that installs its SIMULATOR at finalize (frmtmb.eam's
   # gddm()) was refused here for having none, while frm() on the same
   # model simulated fine, because the draw was taken from the family as
   # written rather than the one the likelihood would score.

@@ -20,8 +20,8 @@
 ## dev/rdm-gng-findings.md; nothing here reaches into another package's
 ## namespace.
 
-law <- frmtmb.ddm:::rdm_law
-race <- frmtmb.ddm:::lba_race_lpdf
+law <- frmtmb.eam:::rdm_law
+race <- frmtmb.eam:::lba_race_lpdf
 acc <- function(v, A = 0.5, k = 0.5) list(v = v, A = A, k = k)
 
 # The reference average over the distance to travel. The rule is the
@@ -30,7 +30,7 @@ acc <- function(v, A = 0.5, k = 0.5) list(v = v, A = A, k = k)
 # model says, and this computes it without any of the log-space algebra
 # the family uses.
 rdm_ref <- function(t, v, A, k, fn, n = 60L) {
-  gl <- frmtmb.ddm:::ddm_gauss_legendre(n)
+  gl <- frmtmb.eam:::ddm_gauss_legendre(n)
   vapply(seq_along(t), function(i) {
     d <- k[i] + A[i] * gl$x
     sum(gl$w * fn(t[i], d, v[i]))
@@ -81,7 +81,7 @@ test_that("the survival keeps its digits where one minus the CDF loses them", {
   # orders of magnitude.
   p <- acc(v = 8, A = 0.1, k = 0.3)
   tt <- c(3, 5, 10, 20)
-  gl <- frmtmb.ddm:::ddm_gauss_legendre(60L)
+  gl <- frmtmb.eam:::ddm_gauss_legendre(60L)
   subtractive <- vapply(tt, function(q) {
     d <- 0.3 + 0.1 * gl$x
     1 - sum(gl$w * statmod::pinvgauss(q, mean = d / 8, shape = d^2))
@@ -213,7 +213,7 @@ test_that("fixing the diffusion coefficient at one identifies the scale", {
   # to a distance d under drift v and diffusion s is inverse Gaussian
   # with mean d/v and shape (d/s)^2, so scaling d, v and s by one
   # constant leaves both alone.
-  gl <- frmtmb.ddm:::ddm_gauss_legendre(60L)
+  gl <- frmtmb.eam:::ddm_gauss_legendre(60L)
   avg <- function(t, A, k, v, s) {
     d <- k + A * gl$x
     sum(gl$w * statmod::pinvgauss(t, mean = d / v, shape = (d / s)^2,
@@ -377,7 +377,7 @@ test_that("both race families refuse dec(), and used not to agree", {
 
 # ------------------------------------------------------- go/no-go (a)
 
-nogo <- function(t, v, a, w) exp(frmtmb.ddm:::ddm_nogo_lprob(t, v, a, w))
+nogo <- function(t, v, a, w) exp(frmtmb.eam:::ddm_nogo_lprob(t, v, a, w))
 
 test_that("the no-go probability matches an independent Wiener CDF", {
   skip_if_not_installed("WienR")
@@ -453,8 +453,8 @@ test_that("the blend holds up where the small-time route collapses", {
   # large-time route alone is right and the small-time route is not,
   # so the blend is only correct because the weight has saturated onto
   # the large one.
-  lrg <- frmtmb.ddm:::ddm_nogo_large(ref$t[1], ref$v[1], ref$a[1], ref$w[1])
-  sml <- frmtmb.ddm:::ddm_nogo_small(ref$t[1], ref$v[1], ref$a[1], ref$w[1])
+  lrg <- frmtmb.eam:::ddm_nogo_large(ref$t[1], ref$v[1], ref$a[1], ref$w[1])
+  sml <- frmtmb.eam:::ddm_nogo_small(ref$t[1], ref$v[1], ref$a[1], ref$w[1])
   expect_lt(abs(lrg - ref$truth[1]) / ref$truth[1], 1e-13)
   expect_gt(abs(sml - ref$truth[1]) / ref$truth[1], 1)
 })
@@ -464,17 +464,17 @@ test_that("the blend centre is on the correct side of the crossing", {
   # has to re-measure rather than nudge: below the crossing near
   # u = 0.025 the SMALL route is the accurate one, so an over-low
   # centre hands over too early and is as wrong as an over-high one.
-  expect_equal(frmtmb.ddm:::ddm_cdf_u0, 0.02)
-  expect_equal(frmtmb.ddm:::ddm_cdf_us, 0.12)
+  expect_equal(frmtmb.eam:::ddm_cdf_u0, 0.02)
+  expect_equal(frmtmb.eam:::ddm_cdf_us, 0.12)
   # the weight really has saturated at the pinned corner
   u <- 2.5 / 4^2
-  lam <- 0.5 * (1 + tanh((log(u) - log(frmtmb.ddm:::ddm_cdf_u0)) /
-                           frmtmb.ddm:::ddm_cdf_us))
+  lam <- 0.5 * (1 + tanh((log(u) - log(frmtmb.eam:::ddm_cdf_u0)) /
+                           frmtmb.eam:::ddm_cdf_us))
   expect_gt(lam, 1 - 1e-13)
   # and it has NOT saturated the other way at a genuinely small-time row
   u2 <- 0.05 / 4^2
-  lam2 <- 0.5 * (1 + tanh((log(u2) - log(frmtmb.ddm:::ddm_cdf_u0)) /
-                            frmtmb.ddm:::ddm_cdf_us))
+  lam2 <- 0.5 * (1 + tanh((log(u2) - log(frmtmb.eam:::ddm_cdf_u0)) /
+                            frmtmb.eam:::ddm_cdf_us))
   expect_lt(lam2, 1e-13)
 })
 
@@ -499,9 +499,9 @@ test_that("the two series agree with each other in the overlap band", {
   u <- gr$t / gr$a^2
   keep <- u > 0.05 & u < 5              # where both are meant to be good
   expect_gt(sum(keep), 30)
-  s <- frmtmb.ddm:::ddm_nogo_small(gr$t[keep], gr$v[keep], gr$a[keep],
+  s <- frmtmb.eam:::ddm_nogo_small(gr$t[keep], gr$v[keep], gr$a[keep],
                                    gr$w[keep])
-  l <- frmtmb.ddm:::ddm_nogo_large(gr$t[keep], gr$v[keep], gr$a[keep],
+  l <- frmtmb.eam:::ddm_nogo_large(gr$t[keep], gr$v[keep], gr$a[keep],
                                    gr$w[keep])
   # measured at 1.47e-08, on a row whose no-go probability is 8.5e-07;
   # the tolerance is set just above what two independent series of a
@@ -603,7 +603,7 @@ test_that("the taped gradient matches numDeriv, both branches", {
   # both branches really are exercised
   expect_gt(sum(d$responded == 1), 50)
   expect_gt(sum(d$responded == 0), 20)
-  lp <- frmtmb.ddm:::gng_lpdf
+  lp <- frmtmb.eam:::gng_lpdf
   nll <- function(par) {
     dp <- list(mu = par$mu, bs = exp(par$lbs), ndt = exp(par$lndt),
                bias = 1 / (1 + exp(-par$lbias)))
@@ -627,7 +627,7 @@ test_that("the gradient stays finite where a no-go trial is very surprising", {
   # boundary and a late deadline make a no-go trial almost impossible,
   # and 1 - F would be a subtraction with nothing left in it. The value
   # must stay finite and the gradient with it.
-  lp <- frmtmb.ddm:::gng_lpdf
+  lp <- frmtmb.eam:::gng_lpdf
   y <- c(0.5, 2.0)
   dec <- c(1, 0)
   f <- function(p) {

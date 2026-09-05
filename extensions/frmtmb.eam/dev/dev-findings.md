@@ -1,6 +1,6 @@
 # Findings: building a family from outside frmtmb
 
-This is the other half of the deliverable. `frmtmb.ddm` was written
+This is the other half of the deliverable. `frmtmb.eam` was written
 against frmtmb 0.47.0's exported API only, with no edits to core and no
 `:::` calls from package code, as an acceptance test of the extension
 API from an outsider's position. Every place the work was forced to

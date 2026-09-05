@@ -1,4 +1,12 @@
-# frmtmb.ddm (development version)
+# frmtmb.eam (development version)
+
+* RENAMED from frmtmb.ddm. The package holds the linear ballistic
+  accumulator, the racing diffusion model and the go/no-go diffusion
+  beside the Wiener and generalized drift-diffusion families, so its name
+  now says evidence accumulation models. Family constructors and the
+  `ddm_` helper names are unchanged; `library(frmtmb.eam)` replaces
+  `library(frmtmb.ddm)`, and the site is at frmtmb/frmtmb.eam/ with the
+  old address redirecting. EMC2 leaves Suggests: no shipped code uses it.
 
 * New `tests/testthat/test-gddm-reference.R`: `gddm()`'s generalized
   components are now checked against PyDDM, the reference
@@ -143,7 +151,7 @@
 * `vignette("ddm")` gains a section per family, each with a fitted
   example, a recovery check and the comparison against EMC2.
 
-# frmtmb.ddm 0.2.0
+# frmtmb.eam 0.2.0
 
 Three families where there was one: Ratcliff's full diffusion model
 as an extension of `wiener()`, the generalized drift-diffusion model
@@ -422,7 +430,7 @@ compatibility table.
   that argument names the terms a density needs ALL of, and this family
   needs EITHER `dec()` or `vint()`. See `dev-findings.md`.
 
-# frmtmb.ddm 0.1.0
+# frmtmb.eam 0.1.0
 
 First release. A Wiener first-passage time family for two-choice
 response times, written entirely against frmtmb's exported extension

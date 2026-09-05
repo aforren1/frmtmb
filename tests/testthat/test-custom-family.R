@@ -85,7 +85,7 @@ test_that("a custom lpdf needs no ADoverload boilerplate of its own", {
                unname(unlist(fixef(ref)$mu)), tolerance = 1e-4)
 })
 
-# --- the extension API's hardening (frmtmb.ddm findings 2, 3, 5) ------
+# --- the extension API's hardening (frmtmb.eam findings 2, 3, 5) ------
 #
 # Each of these closes a route by which an extension-written family
 # produced a wrong answer or a distant error rather than a refusal.

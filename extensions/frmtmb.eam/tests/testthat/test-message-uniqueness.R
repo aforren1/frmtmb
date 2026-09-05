@@ -24,7 +24,7 @@ test_that("every condition message template in this R/ is unique", {
   rdir <- testthat::test_path("..", "..", "R")
   desc <- testthat::test_path("..", "..", "DESCRIPTION")
   is_src <- file.exists(desc) &&
-    any(trimws(readLines(desc, n = 5L)) == "Package: frmtmb.ddm") &&
+    any(trimws(readLines(desc, n = 5L)) == "Package: frmtmb.eam") &&
     dir.exists(rdir) &&
     file.exists(file.path(rdir, "wiener-density.R"))
   skip_if_not(is_src,
