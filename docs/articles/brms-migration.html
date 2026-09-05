@@ -672,9 +672,9 @@ post-processing surface, with the real <code><a href="../reference/loo.html">loo
 halves split cleanly. What does change is everything around the draws:
 the argument names of the call, the parameter spellings, and which
 <code>brmsfit</code> methods have no counterpart.
-<code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/articles/brms-posterior.html">vignette("brms-posterior", package = "frmtmb.sample")</a></code> is
+<code>vignette("brms-posterior", package = "frmtmb.sample")</code> is
 that half, and
-<code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/articles/posterior-diagnostics.html">vignette("posterior-diagnostics", package = "frmtmb.sample")</a></code>
+<code>vignette("posterior-diagnostics", package = "frmtmb.sample")</code>
 covers the diagnostics of a sampled fit.</p>
 </div>
 <div class="section level2">
@@ -682,15 +682,15 @@ covers the diagnostics of a sampled fit.</p>
 </h2>
 <p>With <strong>frmtmb.sample</strong> installed, a posterior, brms’s
 default priors and <code><a href="../reference/loo.html">loo()</a></code>-based comparison are all available
-here, so the reasons to reach for brms itself are narrower than they
-look:</p>
+here, and <strong>frmtmb.latent</strong> adds hidden Markov and latent
+class families, so the reasons to reach for brms itself are narrower
+than they look:</p>
 <ul>
 <li>a marginal likelihood, and so a Bayes factor;</li>
 <li>
 <code>reloo()</code> or <code>kfold()</code> on a model whose LOO
 approximation fails, since both need refits that this package does not
 do;</li>
-<li>discrete latent structure beyond observation-level mixtures;</li>
 <li>a family or term neither package here implements, which
 <code><a href="../reference/frm_compat.html">frm_compat()</a></code> answers per feature;</li>
 <li>Stan code you intend to read, extend or hand to somebody else.</li>
