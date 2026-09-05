@@ -1,3 +1,106 @@
+# frmtmb.ddm (development version)
+
+* `gddm()` is the generalized drift-diffusion family of Shinn, Lam and
+  Murray (2020): a drift that may depend on the accumulator's own level
+  and on a covariate, boundaries that may collapse within a trial, and a
+  starting distribution that may be a point or an interval. There is no
+  closed-form first-passage density, so every likelihood evaluation
+  solves the Fokker-Planck equation forward in time and reads the
+  probability flux through each boundary. It needs no change to core
+  frmtmb.
+* The components are chosen by argument and are extensible.
+  `gddm_drift_constant()`, `gddm_drift_coherence()` and
+  `gddm_drift_leak()` are summed to make a drift; `gddm_bound_constant()`,
+  `gddm_bound_exponential()` and `gddm_bound_linear()` give the
+  boundary; `gddm_start_point()` and `gddm_start_uniform()` give the
+  start. `gddm_drift_term()`, `gddm_bound_term()` and
+  `gddm_start_term()` are the documented seams for writing more. Every
+  free quantity is a dpar that takes a formula, as in `wiener()`.
+* `bs` is the boundary SEPARATION and `bias` the relative start point,
+  both as in `wiener()`, so estimates are directly comparable between
+  the analytic family and the generalized one.
+* The substitution `y = x / B(t)` pins the moving boundaries at plus and
+  minus one, which keeps the grid fixed while the boundary collapses and
+  is what makes the likelihood differentiable: nothing on the taped path
+  branches on a parameter. With the walls stationary the scheme is
+  Crank-Nicolson, which a solver that chases a moving bound cannot use.
+* The likelihood is an ordinary rowwise family, not a
+  `frmtmb_structure()`. frmtmb calls `lpdf` once per objective
+  evaluation with full-length vectors, and the condition a trial belongs
+  to is data, so a rowwise density does one solve per condition, which
+  is all a structure would have bought, and it keeps `fitted()`,
+  `predict()`, `simulate()` and `residuals()` rather than defaulting
+  them to refused. Measured: 6 solves for 2400 trials over 6 conditions.
+* `gddm_control()` carries the grid and what is done with the answer:
+  `dt`, `ny`, `t_max`, `max_ndt`, `renormalize` and `tridiagonal`.
+  Renormalizing the defective density is on by default and should stay
+  on: the discretized solve loses mass in a parameter-dependent way, so
+  a likelihood that does not divide it out rewards fast absorption. On
+  data simulated from the model, turning it off more than doubles the
+  fitted leak and shrinks the boundary separation by a fifth.
+* `tridiagonal` picks how the solve inside each step reaches the tape.
+  `"recorded"`, the default, builds a large tape that runs in compiled
+  code; `"atomic"` collapses the solve into one node with a hand-written
+  adjoint, building about twelve times faster and evaluating about
+  twelve times slower. Both give the same derivative to machine
+  precision.
+* The published coherence nonlinearity has no derivative at zero
+  coherence, which a motion design normally contains. The coherence is
+  data, so the zero condition is resolved once when the tape is built
+  and never reaches it; the gradient in the exponent is finite, and is
+  exactly zero there, because the drift is zero whatever the exponent
+  is. Signed coherences are supported for stimulus coding.
+* The family admits exactly two responses, because one accumulator
+  between two absorbing boundaries has two walls. A decision indicator
+  with more than two levels is refused at frame assembly, naming how
+  many levels the data has and pointing at `lba()`, which fits the
+  racing accumulators that more than two alternatives need, rather than
+  being folded into one of the two.
+* The boundary is read from `dec()` when it is there and from `vint()`
+  otherwise, so the spelling brms uses works on this family as it does
+  on `wiener()`. `vint()` numbers its values positionally, so the
+  condition index is the first `vint()` value alongside `dec()` and the
+  second inside `vint(upper, cond)`; the family reads whichever it is.
+  Neither can be declared through `required_aterms`, which names the
+  terms a density needs ALL of, so both refusals are written out.
+* `gddm_conditions()` builds the condition index. `gddm_simulate()`
+  draws choices and response times from the model's own solved density.
+* Validated in the package's own suite: against this package's Wiener
+  density with a constant drift and fixed bounds, to better than 0.01 in
+  the log density at the shipped grid over decision times from 0.2 s on,
+  degrading on a coarser grid and improving on a finer one; automatic
+  gradients against numDeriv at parameter points including a collapsing
+  boundary; parameter recovery with Monte Carlo standard errors; the
+  size of the renormalization bias; and the zero-coherence gradient.
+* The density is floored before it is logged, as the Wiener density in
+  this package already was. Where the solved density at a trial's own
+  response time underflows, the log density is a large finite negative
+  number instead of `NaN`: the optimizer gets a value it can use, and a
+  mixture's log-sum-exp is not poisoned by one component. The floored
+  row is flat, so its gradient is exactly zero; `-Inf` would not do,
+  because `-Inf` differentiates to `NaN`.
+* `gddm_floored(fit)` is where that goes to be read. It returns the
+  number of rows answered by the floor rather than by the solver at the
+  fitted parameters, with the row indices in the `"rows"` attribute.
+  Zero is the ordinary case and means the grid represented every
+  observation. A few rows means a few trials sit within a few time steps
+  of the fitted non-decision time, where a fixed grid cannot resolve a
+  density climbing through orders of magnitude. Many rows means the fit
+  is not to be trusted: shrink `dt`, or add a lapse component. The count
+  replaces what used to surface as repeated optimizer warnings about
+  `NaN` function evaluations, which a user could not act on and which
+  masked real warnings in a test run.
+* Known limits, measured and stated rather than hidden: the density at
+  decision times of only a few time steps is far larger than the truth,
+  because an implicit scheme spreads a little mass everywhere at once
+  where the true density is exponentially small. A lapse component
+  (`gddm(lapse = "uniform")`) floors it in the model rather than in the
+  arithmetic. Cost scales with the number of conditions, so a design
+  with many distinct parameter settings is where this becomes painful.
+* `vignette("gddm")` fits one of the paper's models end to end and says
+  plainly where this is slower than `wiener()` and why someone would pay
+  that.
+
 # frmtmb.ddm 0.1.0
 
 First release. A Wiener first-passage time family for two-choice
