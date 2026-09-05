@@ -5,6 +5,18 @@ Every `@srrstats` and `@srrstatsNA` tag in `R/`, `tests/testthat/` and
 verdict. The package has been through 39 versions since most of the
 tags were written, so the audit looks for drift, not for absence.
 
+**Reading the locations.** Every file and line below was recorded at
+the audit run. The line numbers have since moved, most of them by
+tens or hundreds of lines, and one row changed file. The standard name
+is the durable pointer: find a row's tag with
+`grep -rn "@srrstats {STANDARD}" R/ tests/testthat/ vignettes/`. Every
+tag in this audit is still present in the tree. Note also that the
+sampling surface, the ODE seam and the two latent-state families left
+the core package at 0.47.0 and 0.48.0, so a note below that names
+`frm_sample()`, `check_laplace()`, `frm_ode()`, `hmm()` or `lca()` is
+describing something that now lives under `extensions/`. The rows
+where that changes the meaning are corrected in place.
+
 Verdicts:
 
 - **holds**: the claim is still literally accurate.
@@ -57,17 +69,17 @@ follow-up that is code, not prose; those are in "Logged" at the end.
 | G2.6 | `R/fit.R:108` | holds | Every one-dimensional response reaches the objective as `as.numeric(as.vector(y))`. |
 | G2.8 | `R/fit.R:112` | holds | `frmtmb_spec` and `frmtmb_frame` are the only two classes downstream; both reachable through `dry_run`. |
 | G2.9 | `R/frame.R:822` | holds | The lossy-conversion diagnostic still fires on every assembly. |
-| G2.13 | `R/fit.R:118` | weakened | "assembly errors if any missing value remains" is false for `mi()` and `hmm()` columns, which are exempt by design. The exemption is now stated. |
+| G2.13 | `R/fit.R:253` (was `:118`) | weakened | "assembly errors if any missing value remains" is false for `mi()` columns and for the response of a family that declares `keep_na`, which are exempt by design. The exemption is now stated. The tag is keyed on the generic `keep_na` flag, not on a family name; `hmm()` is one consumer of that flag and now lives in `frmtmb.latent`. |
 | G2.14, G2.14a | `R/fit.R:123` | weakened | Same carve-out, plus a real behavior gap: `na.action = stats::na.fail` is silently downgraded on those models. Doc corrected; the behavior is logged for the input-validation lane. |
 | G2.14b | `R/fit.R:129` | holds | One `message()` per fit; `na.action()` on the fit names the rows. |
-| G2.15 | `R/fit.R:135` | weakened | The "no defensive `na.rm`" claim is contradicted by the `mi()`/`hmm()` readers, which use `na.rm = TRUE` deliberately. The exception is now stated and justified. |
+| G2.15 | `R/fit.R:276` (was `:135`) | weakened | The "no defensive `na.rm`" claim is contradicted by the `mi()` and `keep_na` readers, which use `na.rm = TRUE` deliberately. The exception is now stated and justified. The reader is generic over the `keep_na` flag; there is no family-specific reader in core. |
 | G2.16 | `R/fit.R:141` | holds | The response check is literally `any(!is.finite(y) & !is.na(y))`. |
 | G5.0 | `R/frmtmb-package.R:147` | holds | All six named data sets are in live use. |
 | G5.2a | `R/srr-stats-standards.R:48` | weakened | Opened with "Every condition message", but the described AST walk covers `stop()` only. Narrowed to `stop()`. The count is untouched: an independent recount at the end of this lane gives **651 literal `stop()` texts, 651 distinct, 0 duplicates**. |
 | G5.10 | `R/frmtmb-package.R:153` | holds | All three environment variables present; 31 files use `skip_on_cran()`. |
 | G5.12 | `R/frmtmb-package.R:160` | holds | `CONTRIBUTING.md` documents the variables, the requirements, and that nothing is downloaded. |
-| RE1.4 | `R/interop.R:1478` | holds | `check_laplace()` returns `z_shift` and `sd_ratio`; the quadrature remedy is tested against `lme4::glmer(nAGQ = 25)` and GLMMadaptive. |
-| RE4.13 | `R/interop.R:1833` | holds | `getME()` Z dimnames come from the stored model frame's row names. |
+| RE1.4 | `R/fit.R:205` (was `R/interop.R:1478`) | holds | The tag names the two approximations, the regimes where each degrades, the three remedies inside this package, and the direct measurement in the companion sampling package. The measurement is `frmtmb.sample::check_laplace()`, which left core at 0.47.0; the tag points at the package rather than naming the function's return fields. The quadrature remedy is tested against `lme4::glmer(nAGQ = 25)` and GLMMadaptive. |
+| RE4.13 | `R/interop.R:324` (was `R/interop.R:1833`) | holds | `getME()` Z dimnames come from the stored model frame's row names. |
 
 ### `R/` regression standards
 
@@ -169,18 +181,21 @@ follow-up that is code, not prose; those are in "Logged" at the end.
 
 These are code, not prose, and each is larger than a tag edit.
 
-1. **Primary references for five surfaces.** `G1.0` is satisfied for the
-   package as a whole, but these implemented methods cite no primary
-   reference anywhere: the LKJ correlation prior (Lewandowski,
-   Kurowicka and Joe 2009), `mo()` (Buerkner and Charpentier 2020),
-   `hmm()` (the forward algorithm), `tweedie()`, and the NUTS path
-   behind `frm_sample()` (Hoffman and Gelman 2014; Monnahan and
-   Kristensen 2018 for tmbstan). Add them to the package-level
-   `@references` or to each function's own page.
+1. **Primary references for three surfaces.** `G1.0` is satisfied for
+   the package as a whole, but these implemented methods cite no
+   primary reference anywhere: the LKJ correlation prior (Lewandowski,
+   Kurowicka and Joe 2009), `mo()` (Buerkner and Charpentier 2020) and
+   `tweedie()`. Add them to the package-level `@references` or to each
+   function's own page. Two more surfaces were on this list and have
+   since left the core package: `hmm()` (the forward algorithm) is in
+   `frmtmb.latent`, and the NUTS path behind `frm_sample()` (Hoffman
+   and Gelman 2014; Monnahan and Kristensen 2018 for tmbstan) is in
+   `frmtmb.sample`. Each is now that package's gap to close, and
+   neither can be closed from core's `@references`.
 
 2. **`na.action = stats::na.fail` is silently downgraded.** In
-   `R/frame.R`, a model with an `mi()` addition term, an `hmm()` family
-   or `family$na_response` replaces the user's `na.action` with
+   `R/frame.R`, a model with an `mi()` addition term or a family whose
+   structure declares `keep_na` replaces the user's `na.action` with
    `stats::na.pass` for the whole model frame, re-implements row
    dropping over the non-`mi()` columns, and stamps the result
    `"omit"` unless the action was identically `na.exclude`. So
@@ -200,12 +215,17 @@ These are code, not prose, and each is larger than a tag edit.
    separation check. Consider raising it as a fit-time warning, which
    is what the standard reads most naturally as asking for.
 
-5. **`vignette("brms-migration")` is stale in one line.** Its "When you
-   still want brms" section lists "`loo`-based model comparison" among
-   the reasons to go back to brms. `loo()` and `waic()` now work on
-   `frm_sample()` draws. The sentence should say what is still true:
-   model comparison needs a posterior, so it needs the formula route
-   with priors, and `?loo` says so.
+5. ~~**`vignette("brms-migration")` is stale in one line.**~~
+   **RESOLVED.** The complaint was that the "When you still want brms"
+   section listed "`loo`-based model comparison" among the reasons to
+   go back to brms, after `loo()` and `waic()` began working on
+   `frm_sample()` draws. That section now opens by saying that with
+   `frmtmb.sample` installed a posterior, brms's default priors and
+   `loo()`-based comparison are all available, and it lists a narrower
+   set of reasons. One line in that narrower list has since gone stale
+   in turn: "discrete latent structure beyond observation-level
+   mixtures" is now in `frmtmb.latent`, so it is no longer a reason to
+   reach for brms.
 
 6. **The counts in these tags will drift again.** Four hand-maintained
    counts had gone stale, two by a factor of three, and the `G5.2a`
