@@ -631,10 +631,7 @@ print.frmtmb_priorlist <- function(x, ...) {
 #'
 #' The [set_prior()] counterpart of brms's `get_prior()`: one row per
 #' slot a prior can target, with the class/coef/dpar/group values to
-#' pass to `set_prior()`. The default in every slot is flat (this is
-#' maximum likelihood until priors are set; the formula route of
-#' `frmtmb.sample::frm_sample()` has its own brms defaults, which
-#' `prior_summary()` reports). Classes `"sd"` and `"cor"` are targeted
+#' pass to `set_prior()`. Classes `"sd"` and `"cor"` are targeted
 #' by `group` and `nlpar`; the residual-correlation classes (`"ar"`,
 #' `"ma"`, `"cosy"`, `"cortime"`, `"rescor"`) by `resp`; and class
 #' `"theta"` rows name the raw internal covariance parameters (escape
@@ -646,6 +643,37 @@ print.frmtmb_priorlist <- function(x, ...) {
 #' is how brms lists them and what [set_prior()] addresses (see its
 #' Nonlinear parameters section).
 #'
+#' @section Which route the defaults describe:
+#' Every column but `prior` is a property of the design, and the design
+#' does not change with what is attached. The `prior` column is a
+#' property of a ROUTE, and frmtmb has two of them with different
+#' defaults: [frm()] is maximum likelihood and is flat in every slot
+#' until a prior is set, while `frmtmb.sample::frm_sample()` applies
+#' brms's weakly-informative defaults on both of its routes. `route`
+#' makes the caller say which one is being asked about, so that the
+#' answer is a property of the question rather than of the search path.
+#'
+#' `route = "fit"`, the default, reads no registry at all. Its table is
+#' identical whatever extension packages are loaded.
+#'
+#' `route = "sample"` reads the defaults `frm_sample()` would apply,
+#' which only frmtmb.sample can state. Without that package loaded the
+#' call is refused rather than answered `(flat)`, because a flat table
+#' would be a wrong answer about the sampling route and not a missing
+#' one.
+#'
+#' brms's `get_prior()` describes what `brm()` would use, so the brms
+#' reading of this function is `route = "sample"`. `route = "fit"` has
+#' no brms counterpart: it describes `frm()`.
+#'
+#' With frmtmb.sample attached,
+#' `get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd, route = "sample")`
+#' returns the same rows as the example below with brms's densities in
+#' the `prior` column instead of `(flat)`: a Student-t on the intercept
+#' centered on the response, a half-Student-t on `sigma` and on each
+#' standard deviation, and `lkj(1)` on each correlation. Population-level
+#' slopes stay `(flat)`, as they are in brms.
+#'
 #' @param formula A `bf()` formula (with family), a plain formula, or
 #'   an already fitted `frmtmb_fit`.
 #' @param data A data frame of model data (ignored when `formula` is a
@@ -653,15 +681,29 @@ print.frmtmb_priorlist <- function(x, ...) {
 #' @param family Family, when `formula` does not carry one.
 #' @param data2 Structural objects, as in [frm()] (ignored when
 #'   `formula` is a fit, which carries its own).
-#' @return A data frame with columns `prior`, `class`, `coef`,
-#'   `group`, `dpar`, `nlpar`, `resp`, `lb`, `ub`.
+#' @param route Which route's defaults the `prior` column reports.
+#'   `"fit"` (the default) reports the defaults [frm()] applies, which
+#'   are flat in every slot; it consults no registry, so its answer
+#'   does not depend on which packages are attached. `"sample"` reports
+#'   the defaults `frmtmb.sample::frm_sample()` applies, and refuses
+#'   when no package has registered any. The returned object records
+#'   the route and `print()` names it on its first line.
+#' @return A data frame of class `frmtmb_prior_rows` with columns
+#'   `prior`, `class`, `coef`, `group`, `dpar`, `nlpar`, `resp`, `lb`,
+#'   `ub`, and a `route` attribute.
 #' @examples
 #' dd <- data.frame(y = rnorm(60), x = rnorm(60),
 #'                  g = factor(rep(1:6, 10)))
+#' # what frm() applies: flat, whatever else is loaded. For what
+#' # frm_sample() applies, see "Which route the defaults describe"
 #' get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 #' @export
 get_prior <- function(formula, data = NULL, family = NULL,
-                      data2 = list()) {
+                      data2 = list(), route = c("fit", "sample")) {
+  route <- match.arg(route)
+  # refused before the frame is assembled: a route nothing can answer is
+  # unanswerable for every model, so the work would be thrown away
+  if (identical(route, "sample")) require_prior_defaults()
   if (inherits(formula, "frmtmb_fit")) {
     spec <- formula$spec
     frame <- formula$frame
@@ -673,12 +715,16 @@ get_prior <- function(formula, data = NULL, family = NULL,
 
   multi <- length(spec$responses) > 1L
   rows <- list()
-  # What the default in a slot IS depends on which routes the session
-  # has. frm() is flat everywhere until a prior is set; a sampling
-  # package applies its own defaults and registers them, so that this
-  # column is true of the session rather than true of core alone. With
-  # nothing registered the lookup is empty and every row reads "(flat)".
-  defs <- registered_prior_defaults(spec, frame)
+  # The fit route reads no registry, deliberately. It once did, and a
+  # loaded sampling package then changed the answer of a call that had
+  # asked about frm(): same call, same fit, a different table depending
+  # on what was attached. Asking the caller which route they mean is
+  # what makes the answer theirs rather than the search path's.
+  defs <- if (identical(route, "sample")) {
+    registered_prior_defaults(spec, frame)
+  } else {
+    list()
+  }
   add <- function(class, coef = "", group = "", dpar = "", nlpar = "",
                   resp = "") {
     # a default speaks for a CLASS, not for one coefficient of it: brms
@@ -778,7 +824,41 @@ get_prior <- function(formula, data = NULL, family = NULL,
 
   out <- unique(do.call(rbind, rows))
   rownames(out) <- NULL
+  attr(out, "route") <- route
+  class(out) <- c("frmtmb_prior_rows", "data.frame")
   out
+}
+
+#' @export
+print.frmtmb_prior_rows <- function(x, ...) {
+  # a table of default priors that does not say which route it
+  # describes is the ambiguity `route` exists to remove, so the label
+  # travels with the object rather than with the call that made it. A
+  # ROW subset keeps it, correctly: fewer rows of a fit-route table are
+  # still a fit-route table. A COLUMN subset does not, because
+  # `[.data.frame` drops the attribute there, and a table missing the
+  # `prior` column has no route to claim anyway. The NULL branch prints
+  # such a table, and any assembled by other means, without a label.
+  route <- attr(x, "route")
+  if (identical(route, "fit")) {
+    cat("route = \"fit\": the prior defaults frm() applies\n")
+  } else if (identical(route, "sample")) {
+    cat("route = \"sample\": the prior defaults frm_sample() applies\n")
+  }
+  print(as.data.frame(x), ...)
+  invisible(x)
+}
+
+#' @export
+as.data.frame.frmtmb_prior_rows <- function(x, row.names = NULL,
+                                            optional = FALSE, ...) {
+  # the label belongs to the class, so coercion drops both together. A
+  # coerced table that kept a stray `route` attribute would not be
+  # identical() to the plain data frame a reader would write by hand,
+  # which is the one thing coercion is asked for.
+  attr(x, "route") <- NULL
+  class(x) <- "data.frame"
+  as.data.frame(x, row.names = row.names, optional = optional, ...)
 }
 
 #' The linear predictors a random-effect block draws its columns from.

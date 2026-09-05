@@ -63,8 +63,12 @@
 #' one specification addresses.
 #'
 #' `frmtmb_register_prior_defaults()` is the other direction: it lets a
-#' package tell [get_prior()] what defaults it would apply, so that the
-#' reported default is true of the routes the session actually has.
+#' package tell [get_prior()] what defaults it would apply.
+#' `get_prior()` reads the registry under `route = "sample"` ONLY, and
+#' refuses that route when nothing is registered. Its default
+#' `route = "fit"` reports what [frm()] applies and reads nothing, so a
+#' registration cannot change the answer of a call that did not ask
+#' about the sampling route.
 #'
 #' @section The covstruct block readers:
 #' Each takes ONE element of `frame$re_blocks` and answers one
@@ -233,18 +237,23 @@ NULL
 
 # ---- the prior-defaults registry -------------------------------------
 #
-# get_prior() reports the default in every targetable slot. Core's own
-# default is flat everywhere - frm() is maximum likelihood until a prior
-# is set - but frmtmb.sample's frm_sample() applies brms's
-# weakly-informative defaults on both of its routes. After the split
-# core cannot state those and must not pretend to, so the package that
-# owns them registers a provider and get_prior() consults it.
+# frm_sample() applies brms's weakly-informative defaults on both of its
+# routes, and after the split core cannot state them. The package that
+# owns them registers a provider here, and `get_prior(route = "sample")`
+# consults it.
+#
+# THE REGISTRY IS READ ON ONE ROUTE ONLY. get_prior(route = "fit"), the
+# default, never touches it: the defaults frm() applies are flat, and
+# nothing a contributor loads can change that. Reading the registry on
+# every call is what once made the same call answer differently
+# depending on attach order, which is a property no function may have.
+# With no provider registered, route = "sample" refuses rather than
+# reporting "(flat)": flat is a wrong answer about the sampling route,
+# not a missing one.
 #
 # The same shape as the compat registry, and for the same reason: an
 # environment filled from a contributor's .onLoad(), by which time every
 # namespace is sealed and the collation-order question does not arise.
-# With no provider registered, every row reads "(flat)", which is
-# exactly what frm() does.
 
 frmtmb_prior_defaults <- new.env(parent = emptyenv())
 frmtmb_prior_defaults$providers <- list()
@@ -253,9 +262,10 @@ frmtmb_prior_defaults$providers <- list()
 #'
 #' `provider(spec, frame)` is called with a parsed specification and an
 #' assembled frame and returns a `frmtmb_priorlist` of the defaults it
-#' would apply to that model, or `NULL`. [get_prior()] fills a row's
-#' `prior` column from the registered providers when one of them
-#' addresses that row's slot, and leaves it `(flat)` otherwise.
+#' would apply to that model, or `NULL`. `get_prior(route = "sample")`
+#' fills a row's `prior` column from the registered providers when one
+#' of them addresses that row's slot, and leaves it `(flat)` otherwise.
+#' `route = "fit"` does not read the registry at all.
 #'
 #' @noRd
 frmtmb_register_prior_defaults <- function(provider) {
@@ -263,6 +273,39 @@ frmtmb_register_prior_defaults <- function(provider) {
   frmtmb_prior_defaults$providers <-
     c(frmtmb_prior_defaults$providers, list(provider))
   invisible(NULL)
+}
+
+#' The refusal `get_prior(route = "sample")` owes a session that has no
+#' package able to state the sampling defaults. It names the package,
+#' because "no provider is registered" is an implementation fact and
+#' "install frmtmb.sample" is the action.
+#'
+#' @noRd
+require_prior_defaults <- function() {
+  if (length(frmtmb_prior_defaults$providers)) return(invisible(TRUE))
+  stop("route = \"sample\" reports the prior defaults frm_sample() ",
+       "applies, and no loaded package states them. They live in ",
+       "frmtmb.sample: run library(frmtmb.sample) and call again ",
+       "(install it from extensions/frmtmb.sample in the frmtmb ",
+       "repository). For the defaults frm() applies, use ",
+       "route = \"fit\".", call. = FALSE)
+}
+
+#' Replace the registered providers, returning the previous list.
+#'
+#' TEST SEAM. The registry is otherwise append-only, which is right for
+#' its real users: a contributor registers once from `.onLoad()` and has
+#' nothing to undo. The attach-independence test has the opposite need,
+#' to run the empty and the populated registry inside ONE process, and
+#' cannot do it by loading and unloading a package. Not exported, and
+#' not for contributors: one package emptying another's registration
+#' would be exactly the coupling this registry is meant to avoid.
+#'
+#' @noRd
+swap_prior_defaults <- function(providers = list()) {
+  old <- frmtmb_prior_defaults$providers
+  frmtmb_prior_defaults$providers <- providers
+  invisible(old)
 }
 
 #' The slot key a default and a `get_prior()` row are matched on: the

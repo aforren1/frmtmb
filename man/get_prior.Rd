@@ -4,7 +4,13 @@
 \alias{get_prior}
 \title{Enumerate the targetable prior slots}
 \usage{
-get_prior(formula, data = NULL, family = NULL, data2 = list())
+get_prior(
+  formula,
+  data = NULL,
+  family = NULL,
+  data2 = list(),
+  route = c("fit", "sample")
+)
 }
 \arguments{
 \item{formula}{A \code{bf()} formula (with family), a plain formula, or
@@ -17,18 +23,24 @@ fit).}
 
 \item{data2}{Structural objects, as in \code{\link[=frm]{frm()}} (ignored when
 \code{formula} is a fit, which carries its own).}
+
+\item{route}{Which route's defaults the \code{prior} column reports.
+\code{"fit"} (the default) reports the defaults \code{\link[=frm]{frm()}} applies, which
+are flat in every slot; it consults no registry, so its answer
+does not depend on which packages are attached. \code{"sample"} reports
+the defaults \code{frmtmb.sample::frm_sample()} applies, and refuses
+when no package has registered any. The returned object records
+the route and \code{print()} names it on its first line.}
 }
 \value{
-A data frame with columns \code{prior}, \code{class}, \code{coef},
-\code{group}, \code{dpar}, \code{nlpar}, \code{resp}, \code{lb}, \code{ub}.
+A data frame of class \code{frmtmb_prior_rows} with columns
+\code{prior}, \code{class}, \code{coef}, \code{group}, \code{dpar}, \code{nlpar}, \code{resp}, \code{lb},
+\code{ub}, and a \code{route} attribute.
 }
 \description{
 The \code{\link[=set_prior]{set_prior()}} counterpart of brms's \code{get_prior()}: one row per
 slot a prior can target, with the class/coef/dpar/group values to
-pass to \code{set_prior()}. The default in every slot is flat (this is
-maximum likelihood until priors are set; the formula route of
-\code{frmtmb.sample::frm_sample()} has its own brms defaults, which
-\code{prior_summary()} reports). Classes \code{"sd"} and \code{"cor"} are targeted
+pass to \code{set_prior()}. Classes \code{"sd"} and \code{"cor"} are targeted
 by \code{group} and \code{nlpar}; the residual-correlation classes (\code{"ar"},
 \code{"ma"}, \code{"cosy"}, \code{"cortime"}, \code{"rescor"}) by \code{resp}; and class
 \code{"theta"} rows name the raw internal covariance parameters (escape
@@ -41,8 +53,43 @@ with its name in the \code{nlpar} column, the intercept among them, which
 is how brms lists them and what \code{\link[=set_prior]{set_prior()}} addresses (see its
 Nonlinear parameters section).
 }
+\section{Which route the defaults describe}{
+
+Every column but \code{prior} is a property of the design, and the design
+does not change with what is attached. The \code{prior} column is a
+property of a ROUTE, and frmtmb has two of them with different
+defaults: \code{\link[=frm]{frm()}} is maximum likelihood and is flat in every slot
+until a prior is set, while \code{frmtmb.sample::frm_sample()} applies
+brms's weakly-informative defaults on both of its routes. \code{route}
+makes the caller say which one is being asked about, so that the
+answer is a property of the question rather than of the search path.
+
+\code{route = "fit"}, the default, reads no registry at all. Its table is
+identical whatever extension packages are loaded.
+
+\code{route = "sample"} reads the defaults \code{frm_sample()} would apply,
+which only frmtmb.sample can state. Without that package loaded the
+call is refused rather than answered \code{(flat)}, because a flat table
+would be a wrong answer about the sampling route and not a missing
+one.
+
+brms's \code{get_prior()} describes what \code{brm()} would use, so the brms
+reading of this function is \code{route = "sample"}. \code{route = "fit"} has
+no brms counterpart: it describes \code{frm()}.
+
+With frmtmb.sample attached,
+\code{get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd, route = "sample")}
+returns the same rows as the example below with brms's densities in
+the \code{prior} column instead of \code{(flat)}: a Student-t on the intercept
+centered on the response, a half-Student-t on \code{sigma} and on each
+standard deviation, and \code{lkj(1)} on each correlation. Population-level
+slopes stay \code{(flat)}, as they are in brms.
+}
+
 \examples{
 dd <- data.frame(y = rnorm(60), x = rnorm(60),
                  g = factor(rep(1:6, 10)))
+# what frm() applies: flat, whatever else is loaded. For what
+# frm_sample() applies, see "Which route the defaults describe"
 get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 }

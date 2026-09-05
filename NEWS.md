@@ -1,3 +1,22 @@
+# frmtmb (development version)
+
+* **Behavior change.** `get_prior()` gains `route`, and its `prior`
+  column no longer depends on which packages are attached. Until now
+  the column was filled from the prior-defaults registry on every
+  call, so the same call on the same fit reported `(flat)` in every
+  slot with frmtmb alone and brms's weakly-informative defaults once
+  `frmtmb.sample` was loaded. `route = "fit"`, the default, reports
+  the defaults `frm()` applies, which are flat, and reads no registry:
+  its table is identical whatever else is loaded. `route = "sample"`
+  reports the defaults `frm_sample()` applies, and refuses, naming
+  `frmtmb.sample`, when no loaded package states them. Readers who
+  want the sampling defaults, which is what brms's `get_prior()`
+  describes, must now ask for that route. `frm_sample()`'s own
+  precedence of call over fit over defaults is unchanged; only where
+  `get_prior()` reads from has moved. The returned table gains class
+  `frmtmb_prior_rows` and a `route` attribute, and `print()` names the
+  route on its first line so that a copied table stays unambiguous.
+
 # frmtmb 0.49.1
 
 Internal hygiene and the documentation site. No user-facing behavior
