@@ -472,10 +472,11 @@ a fit, which evaluates the objective many times.
 The density is floored before it is logged. Where the solved density at
 a trial’s own response time underflows, the log density is a large
 finite negative number rather than `NaN`. That matters twice: `NaN` is
-not a value a line search can use, and inside `mixture()` one `NaN`
-takes every other component with it through the log-sum-exp. The floored
-row is flat, so its gradient is exactly zero, which is what makes it
-harmless rather than merely quiet.
+not a value a line search can use, and inside
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
+one `NaN` takes every other component with it through the log-sum-exp.
+The floored row is flat, so its gradient is exactly zero, which is what
+makes it harmless rather than merely quiet.
 
 Being quiet is the cost, so the count is available to read:
 

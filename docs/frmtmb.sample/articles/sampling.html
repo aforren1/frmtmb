@@ -117,14 +117,24 @@ the fit adds is a starting point, not a different density.</p>
 what it chose, one line per class, and one line per slot it deliberately
 left flat, so a model that gets few defaults says so rather than looking
 flat by accident.</p>
-<p><code><a href="https://aforren1.github.io/frmtmb/reference/get_prior.html" class="external-link">frmtmb::get_prior()</a></code> reports them too, once this package
-is loaded:</p>
+<p><code><a href="https://aforren1.github.io/frmtmb/reference/get_prior.html" class="external-link">frmtmb::get_prior()</a></code> reports them too, when you ask for
+this route. It has two routes, because frmtmb has two:
+<code>route = "fit"</code> is the default and reports what
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> applies, which is flat in every slot.
+<code>route = "sample"</code> reports what <code><a href="../reference/frm_sample.html">frm_sample()</a></code>
+applies, and this package is what lets it answer.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># with frmtmb alone the default column reads "(flat)", which is what</span></span>
-<span><span class="co"># frm() does. With frmtmb.sample loaded it reads what frm_sample()</span></span>
-<span><span class="co"># would apply, because this package registers its defaults with</span></span>
-<span><span class="co"># get_prior()</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/get_prior.html" class="external-link">get_prior</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># what frm() applies. Loading this package does not change it</span></span>
+<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/get_prior.html" class="external-link">get_prior</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># what frm_sample() applies, which is the brms reading of get_prior().</span></span>
+<span><span class="co"># Without this package loaded, the call is refused rather than</span></span>
+<span><span class="co"># answered "(flat)"</span></span>
+<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/get_prior.html" class="external-link">get_prior</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>,</span>
+<span>          route <span class="op">=</span> <span class="st">"sample"</span><span class="op">)</span></span></code></pre></div>
+<p>The printed table names its route on the first line, so a table
+copied out of a session still says which set of defaults it
+describes.</p>
 <p><code>prior = "flat"</code> opts out and samples the bare likelihood.
 That is a fine diagnostic and fragile inference: under a flat prior on a
 log standard deviation the posterior need not be proper, and neither the

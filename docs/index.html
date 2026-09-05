@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -107,7 +107,7 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span><span class="op">)</span></span></code></pre></div>
-<p>Four companion packages live in this repository, each installed the same way and each documented on its own part of the site.</p>
+<p>Five companion packages live in this repository, each installed the same way and each documented on its own part of the site.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -137,13 +137,19 @@
 <td>response-time models: <code>wiener()</code>, <code>gddm()</code>, and the racing <code>lba()</code>
 </td>
 </tr>
+<tr>
+<td><a href="https://aforren1.github.io/frmtmb/frmtmb.spline/">frmtmb.spline</a></td>
+<td>curve inference on any fitted smooth, and the flexible parametric survival family <code>royston_parmar()</code>
+</td>
+</tr>
 </tbody>
 </table>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.sample"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.latent"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.ode"</span><span class="op">)</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.ddm"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.ddm"</span><span class="op">)</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.spline"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>

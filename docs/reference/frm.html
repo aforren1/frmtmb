@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -242,23 +242,29 @@ marginal likelihood is re-estimated by reweighting draws from the
 Laplace Gaussian, which is unbiased for the exact integral rather
 than accurate to <code>O(n^-1)</code>. Like <code>quadrature = TRUE</code> it is worth
 it for binary responses in small clusters, and unlike it, the
-block may have any dimension: this is the correction for a
+blocks may have any dimension: this is the correction for a
 correlated random slope, where quadrature cannot go.</p>
 <p>The cost is one tape of <code>N</code> stacked copies of the likelihood, so
 time and memory grow linearly in the draw count. An odd count is
 rounded up to the next even one, because the draws are taken in
 antithetic pairs (measured on this package's own probe design,
 the pairing is worth two to three times the draws it costs).</p>
-<p>Scope, with everything else refused by name: exactly one
-random-effect block over a grouping factor, of any dimension and
-any covariance structure that is Gaussian within a level and
-independent between levels; one response; a family with a rowwise
-density. Not with <code>quadrature</code>, <code>REML = TRUE</code>,
+<p>Scope, with everything else refused by name: any number of
+random-effect blocks, of any dimension, provided they share ONE
+grouping factor and one set of levels, in any covariance
+structure that is Gaussian within a level and independent
+between levels; one response; a family with a rowwise density.
+Not with <code>quadrature</code>, <code>REML = TRUE</code>,
 <code>frmtmb_control(profile = TRUE)</code>, <code>mi()</code>, a residual correlation
 term, <code>rescor</code>, a nonlinear predictor, or <code>cs()</code>. <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> and
 <code>cens()</code> are supported: the draws sit near the conditional mode,
 which is why the truncation normalizer that underflows at the
 Gauss-Kronrod nodes does not underflow here.</p>
+<p>Distributional regression writes several blocks by construction:
+<code>(1 | g)</code> in <code>mu</code> and <code>(1 | g)</code> in <code>sigma</code> are two blocks over
+<code>g</code>, and a level's coefficients from both are drawn together
+from one joint proposal. Blocks over DIFFERENT grouping factors,
+crossed or nested, are refused.</p>
 <p>The fit records the draw count, the seed, the rounds taken, the
 per-group effective sample sizes and the Monte Carlo standard
 error of the corrected log-likelihood in <code>fit$importance</code>;
@@ -337,6 +343,45 @@ log-density and a <code><a href="frmtmb_structure.html">frmtmb_structure()</a></
 functions written by an extension author, and they keep resolving
 lexically: qualify with <code>RTMB::</code> there, and see <code><a href="frmtmb_ad_overload.html">frmtmb_ad_overload()</a></code>
 for the rest of that contract.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="monotonic-effects">Monotonic effects<a class="anchor" aria-label="anchor" href="#monotonic-effects"></a></h2>
+
+
+<p><code>mo(x)</code> fits an ordinal predictor without assuming its categories are
+equally spaced. <code>x</code> is an ordered factor or a non-negative integer
+vector with at least three categories, coded <code>0..D</code>. The term
+contributes <code>b * D * sum(zeta[1:k])</code> at category <code>k</code>, where <code>zeta</code> is
+a simplex of <code>D</code> non-negative steps summing to one. <code>b</code> is therefore
+the AVERAGE step, on the coefficient scale of any other predictor,
+and <code>zeta</code> says how that total is distributed over the categories.
+<code>b</code> appears in <code><a href="fixef.html">fixef()</a></code> under the term's label (<code>mox</code>, or <code>mox:z</code>
+for an interaction); the simplex is held as its <code>D - 1</code> free softmax
+coordinates in a <code>zeta&lt;j&gt;</code> component of <code><a href="par_template.html">par_template()</a></code>, and
+<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> prints those coordinates rather than the simplex.</p>
+<p>Every monotonic TERM gets its own simplex. <code>y ~ mo(x) * z</code> fits two:
+one shape for the main effect and one for the interaction, because
+the two terms describe different shapes and there is no reason for
+the interaction to bend the way the main effect does. The simplexes
+are numbered in the order <code><a href="https://paulbuerkner.com/brms/reference/brm.html" class="external-link">brms::brm()</a></code> enumerates its special terms,
+which is <code><a href="https://rdrr.io/r/stats/terms.html" class="external-link">stats::terms()</a></code> order and so lists every main effect before
+any interaction. The j-th monotonic term of a linear predictor is
+therefore the one brms calls <code>simo_&lt;j&gt;</code> and names <code>&lt;label&gt;&lt;1&gt;</code> in the
+<code>simo</code> rows of its <code><a href="get_prior.html">get_prior()</a></code>.</p>
+<p>The <code>zeta&lt;j&gt;</code> NUMBER is not that j in general. Simplexes continue the
+numbering of whatever parameters the family contributed first, so
+<code>zeta&lt;j&gt;</code> is brms's <code>simo_&lt;j&gt;</code> only for a family that declares none:
+an ordinal fit spends slot 1 on its thresholds and a <code><a href="frmtmb-families.html">cox()</a></code> fit on
+its baseline hazard, and in both the first monotonic simplex is
+<code>zeta2</code>. Read the terms in order rather than parsing the number.</p>
+<p>frmtmb has no prior class for a simplex; brms's flat <code>dirichlet(1)</code>
+is the one prior it cannot be told to drop, and it contributes only a
+constant, so the two log-densities agree up to <code>lgamma(D)</code> per
+simplex.</p>
+<p><code>mo()</code> may be crossed with a single numeric multiplier and no more:
+<code>mo(x) * z</code> and <code>mo(x):z</code> are fitted, <code>mo(x) * f</code> for a factor <code>f</code> is
+refused (the simplex carries one coefficient and a contrast expansion
+has no column to go in), and <code>mo(x):mo(w)</code> is refused outright.</p>
     </div>
     <div class="section level2">
     <h2 id="the-laplace-approximation-and-how-to-check-it">The Laplace approximation, and how to check it<a class="anchor" aria-label="anchor" href="#the-laplace-approximation-and-how-to-check-it"></a></h2>

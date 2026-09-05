@@ -144,14 +144,24 @@ custom_family(
 
 - required_aterms:
 
-  Character vector of addition-term values the density cannot do
-  without, named as they reach `aterms`: `"vint1"`, `"vreal2"`,
-  `"trials"`. Frame assembly refuses a model that omits one, naming the
-  family, the term and the spelling that supplies it. Without the
-  declaration an absent term reaches the density as `NULL`, arithmetic
-  on it gives `numeric(0)`, and the log-likelihood becomes a sum over
-  nothing: a fit that returns, with a log-likelihood of zero. Declare
-  every per-row datum the density indexes.
+  The addition-term values the density cannot do without, named as they
+  reach `aterms`: `"vint1"`, `"vreal2"`, `"trials"`. A character vector
+  names the terms it needs ALL of. A LIST adds the alternative: an
+  element of length one is a term that must be there, and an element of
+  length more than one is a set of spellings, ANY one of which will do,
+  so `required_aterms = list(c("dec", "vint1"), "vreal1")` reads as one
+  of `dec` or `vint1`, and `vreal1`. A family that reads the same datum
+  from either of two terms declares it that way instead of hand-rolling
+  the refusal.
+
+  Frame assembly refuses a model that leaves a requirement unmet, naming
+  the family, the terms and the spelling that supplies them; for a set
+  of alternatives it names all of them and writes the first into the
+  example formula. Without the declaration an absent term reaches the
+  density as `NULL`, arithmetic on it gives `numeric(0)`, and the
+  log-likelihood becomes a sum over nothing: a fit that returns, with a
+  log-likelihood of zero. Declare every per-row datum the density
+  indexes.
 
 - family_finalize:
 

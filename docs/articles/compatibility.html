@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -2063,11 +2063,16 @@ one-dimensional integral.</td>
 <td align="left">~</td>
 <td align="left">us + importance; diag + importance; homdiag +
 importance; cs + importance; ar1 + importance; and 8 more</td>
-<td align="left">Allowed for exactly ONE such block, of any dimension.
-This is the correction for a correlated random slope, which quadrature
-cannot marginalize at all. Several blocks are refused: the integral
-becomes a nested one whose groups do not separate into independent
-proposals.</td>
+<td align="left">Allowed for any number of such blocks, of any
+dimension, provided they all sit over ONE grouping factor and carry the
+same levels. This is the correction for a correlated random slope, which
+quadrature cannot marginalize at all, and for the several blocks
+distributional regression writes: (1 | g) in mu together with (1 | g) in
+sigma is two blocks over g, and a level’s coefficients from both are
+drawn together from one joint proposal. Blocks over DIFFERENT grouping
+factors, crossed or nested, are refused by name: the marginal likelihood
+is then one integral over every factor at once and does not split into
+the per-group integrals the correction resamples.</td>
 </tr>
 <tr class="odd">
 <td align="left">~</td>
@@ -2194,10 +2199,10 @@ level’s prior density from the block density by reading off a precision
 matrix, which would silently return a gaussian approximation to a t
 density; measured, that alone moves the corrected log-likelihood by
 0.355. rr holds its parameters in a lower-dimensional factor space than
-its Z columns, so a group’s coefficients are not the contiguous
-per-level slice the proposal is built from. smooth, gp and hsgp are one
-field over all observations with no grouping factor, so there are no
-independent groups to give separate proposals to.</td>
+its Z columns, so the positions the proposal draws into are not the
+positions the objective reads. smooth, gp and hsgp are one field over
+all observations with no grouping factor, so there are no independent
+groups to give separate proposals to.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>

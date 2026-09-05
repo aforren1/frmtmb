@@ -10,7 +10,7 @@ and reads as if it reported on all of it.
 ## Usage
 
 ``` r
-frmtmb_register_compat(features = NULL, rules = NULL)
+frmtmb_register_compat(features = NULL, rules = NULL, expects = character(0))
 
 compat_rule_builder()
 ```
@@ -23,8 +23,13 @@ compat_rule_builder()
   `c("hmm" = "structure")`, `c("dec()" = "aterm")`. The display name is
   how the feature is written in a formula or a call, parentheses
   included for a callable one; the kind groups it in the printed matrix
-  (`"family"`, `"covstruct"`, `"aterm"`, `"special"`, `"autocor"`,
-  `"mode"`, `"structure"`).
+  and decides which kind-level rules reach it, and is one of `"family"`,
+  `"covstruct"`, `"aterm"`, `"special"`, `"autocor"`, `"mode"`,
+  `"structure"`, `"method"`, `"grammar"`. A name the registry already
+  carries under the same kind is a no-op, so a reload is not an error
+  and neither is declaring an addition term that
+  [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
+  has already declared for you.
 
 - rules:
 
@@ -36,6 +41,31 @@ compat_rule_builder()
   `rules()` to return the accumulated frame. `a` and `b` are display
   names, `"*"` matches every feature, and `override = TRUE` says the
   rule beats a more specific one rather than losing to it.
+
+- expects:
+
+  Character vector of feature names the rules refer to but this package
+  does not supply, because another package does. They are exempt from
+  the check below and are NOT added to the vocabulary: a rule naming one
+  of them lies dormant until the package that owns the feature is
+  loaded, which is what makes the rule true. Use it for that and nothing
+  else. A feature in the table that nothing implements is the failure
+  the registry exists to prevent.
+
+  A name the vocabulary already holds is refused, because the
+  declaration then exempts nothing: give it a kind in `features =`, or
+  drop it. A name still unresolved when
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  is called is reported there, in the `unresolved` attribute the print
+  method shows, so a rule waiting for a package that never arrives is
+  visible rather than silent. That is what makes a misspelling inside
+  `expects` findable: the check here cannot catch one, since the whole
+  point is that the owner is absent.
+
+  The near-miss guess in a refusal is searched over the vocabulary only,
+  never over `expects`, so a misspelling of an expected name is refused
+  without a suggestion. Pointing at a feature that is not in the session
+  would be its own confusion.
 
 ## Value
 
@@ -55,6 +85,29 @@ Contributions are APPENDED, which is the only safe direction. Rules of
 equal specificity resolve later-wins, so a contributed rule may override
 a core default and a core default can never silently override a
 contributed one.
+
+## What registration refuses
+
+A rule side names a feature, a whole kind (`"kind:family"`), a named
+group (`"group:cdf"`), or everything (`"*"`). A side that names none of
+those matches no pair, and a rule that matches no pair is dropped
+without a word: the contributing package's table then reads as complete
+while covering less than it claims, which is the worst thing a
+compatibility surface can do. So registration refuses it, naming the
+rule, the spelling, and the nearest entry in the vocabulary when one is
+close.
+
+The check runs against the vocabulary AFTER `features` is added, so a
+package names its own new features freely in its own rules. It runs at
+registration, which means `rules` is called once there: keep it a pure
+builder that reads nothing but its own arguments.
+
+An addition term registered with
+[`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
+is added to the vocabulary for you, as `"<name>()"` of kind `"aterm"`. A
+registered term the table cannot describe would be a gap by
+construction, so the registrant is not asked to say it twice; saying it
+anyway is a no-op. Register the term BEFORE the rules that name it.
 
 ## Status vocabulary
 
@@ -96,8 +149,10 @@ contribute <- function() {
       "The family supplies no lcdf, so there is no CDF to censor with.")
   b$r("wiener", "*", "untested",
       "Not exercised outside this package's own suite.")
+  b$r("wiener", "hmm", "untested",
+      "Another package's feature, so the rule waits for it.")
   frmtmb_register_compat(features = c("wiener" = "family"),
-                         rules = b$rules)
+                         rules = b$rules, expects = "hmm")
 }
 # the accumulator on its own, which is all a rule set is
 b <- compat_rule_builder()

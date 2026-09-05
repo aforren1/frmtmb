@@ -54,6 +54,25 @@ Registering a name twice replaces the earlier entry, so that reloading
 the contributing package is not an error. The eight core terms cannot be
 replaced.
 
+The term joins the compatibility vocabulary at the same time, as the
+feature `"<name>()"` of kind `"aterm"`, so that
+[`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+can be asked about it and
+[`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+rules may name it. A term
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) accepts
+and the table cannot describe would be a gap by construction, so the
+registrant is not asked to declare it twice; declaring it in
+`frmtmb_register_compat(features =)` anyway is a no-op rather than a
+duplicate. Register the term BEFORE the rules that name it.
+
+A name the vocabulary already holds under another kind is refused, and
+nothing is registered on either side: `s()` is a smooth, so
+`frmtmb_register_aterm("s")` would give one spelling two meanings in one
+formula. Thirteen names are taken this way: `s`, `t2`, `mo`, `mi_pred`,
+`gp_pred`, `cs_pred`, `ar`, `ma`, `arma`, `cosy`, `unstr`, `mm` and
+`mmc`.
+
 ## See also
 
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)

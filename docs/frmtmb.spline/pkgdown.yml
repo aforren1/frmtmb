@@ -1,0 +1,10 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  curve-inference: curve-inference.html
+  royston-parmar: royston-parmar.html
+last_built: 2026-09-05T16:35Z
+urls:
+  reference: https://aforren1.github.io/frmtmb/frmtmb.spline/reference
+  article: https://aforren1.github.io/frmtmb/frmtmb.spline/articles

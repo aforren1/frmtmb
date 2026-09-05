@@ -9,7 +9,7 @@ is one of:"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,7 +88,10 @@ sides; an empty vector is an error rather than an empty answer.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame with columns <code>feature_a</code>, <code>kind_a</code>,
 <code>feature_b</code>, <code>kind_b</code>, <code>status</code>, and <code>note</code>. Family pairs are
-omitted, because a model carries one family.</p>
+omitted, because a model carries one family. When the session
+holds an unresolved rule side, the frame also carries an
+<code>unresolved</code> attribute and the class <code>frmtmb_compat</code>, whose print
+method names them; see the section below.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -119,6 +122,22 @@ exist looks exactly like a guard that passed, so the absence of an
 error was never evidence of support.</p>
     </div>
     <div class="section level2">
+    <h2 id="rule-sides-this-session-cannot-resolve">Rule sides this session cannot resolve<a class="anchor" aria-label="anchor" href="#rule-sides-this-session-cannot-resolve"></a></h2>
+
+
+<p>A rule may name a feature another package owns, declared through
+<code>frmtmb_register_compat(expects =)</code>. Until that package is loaded
+there is no such feature and so no pair, and the rule matches
+nothing. Such a side cannot honestly be a row here, because a row
+would put a feature in the table that nothing in this session
+implements; it is reported instead. The returned table carries the
+names in an <code>unresolved</code> attribute and the print method names them
+under the rows. Both appear only when the session holds one, so a
+session with no forward reference gets the plain data frame it
+always got. Load the package that owns the feature, or read the
+names as the list of rules that are waiting for one.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="frm_compat_rules.html">frm_compat_rules()</a></code>, <code><a href="frm_compat_features.html">frm_compat_features()</a></code></p></div>
     </div>
@@ -131,6 +150,11 @@ error was never evidence of support.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1    rescor structure    cens()  aterm refused</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                                        note</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 Refused. This pair was once accepted with the censoring silently dropped.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Unresolved rule sides in this session: 'hmm', 'lca'. A registered rule</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> names each, declared through frmtmb_register_compat(expects =) as a</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> feature another package supplies. No feature here answers to them, so</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> those rules match no pair until the owning package is loaded.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># everything known about truncation</span></span></span>
 <span class="r-in"><span><span class="fu">frm_compat</span><span class="op">(</span><span class="st">"trunc()"</span>, status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"refused"</span>, <span class="st">"broken"</span><span class="op">)</span><span class="op">)</span></span></span>
@@ -216,6 +240,11 @@ error was never evidence of support.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 38                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  Refused: mixture() has no CDF.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 39                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: mixture_mvn() has no CDF.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 40                                                                                                                                                                                                                                                                                                    Refused: a bar term crossed with * or : (as in x * (1 | g)) is not a random-effect specification (lme4#196). Write the crossing inside the bar: (x | g). This spelling was once accepted with the crossing silently dropped.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Unresolved rule sides in this session: 'hmm', 'lca'. A registered rule</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> names each, declared through frmtmb_register_compat(expects =) as a</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> feature another package supplies. No feature here answers to them, so</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> those rules match no pair until the owning package is loaded.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the pairs to avoid</span></span></span>
 <span class="r-in"><span><span class="fu">frm_compat</span><span class="op">(</span>status <span class="op">=</span> <span class="st">"broken"</span><span class="op">)</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></span>

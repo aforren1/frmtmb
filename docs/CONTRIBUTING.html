@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -105,6 +105,13 @@
 <li>
 <strong>Edge conditions.</strong> Check the error or warning for bad input.</li>
 </ul><p>Set a seed with <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> in any test that uses random numbers.</p>
+<div class="section level3">
+<h3 id="where-test-data-comes-from">Where test data comes from<a class="anchor" aria-label="anchor" href="#where-test-data-comes-from"></a></h3>
+<p>A validation test must generate its reference independently of frmtmb. Write the generative process by hand with <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm()</a></code>, <code><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois()</a></code> and the other base samplers, or take the data from another package. Do not use <code><a href="reference/frm_simulate.html">frm_simulate()</a></code> there. A simulator and a density that share a convention error still agree with each other, so a validation test that draws its data from the package under test cannot see that error.</p>
+<p>Every other test uses <code><a href="reference/frm_simulate.html">frm_simulate()</a></code>. Tests of frame assembly, refusals, method surfaces, printing and ergonomics only need data of the correct shape, and so do the examples and the vignettes. A <code><a href="reference/frm_simulate.html">frm_simulate()</a></code> call states the model once, in the same vocabulary as the <code><a href="reference/frm.html">frm()</a></code> call below it. Hand-written <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm()</a></code> lines state the model a second time, and the second statement can drift away from the formula beside it.</p>
+<p>Give the draw a seed of its own, distinct from the one that made the covariates. <code>frm_simulate(seed = )</code> restarts the stream from that seed, so reusing the covariates’ seed hands the covariate draws back as the residuals and the test fits a noiseless line. The convention in this repository is the covariate seed plus 1000.</p>
+<p><code>tests/testthat/test-simulate-density.R</code> is what makes the second rule safe. It is the one file that closes the loop on purpose. For every family with a simulator it draws through the family’s <code>sim</code> slot and tests the draws against that same family’s <code>lpdf</code>, evaluated numerically: a goodness-of-fit test on cells whose probabilities are summed or integrated from the density, and the first two moments taken from the same measure. A family that declares no simulator must be refused by name at both entry points. So a convention error shared by a simulator and a density fails in that one file, instead of passing quietly in every test that used the simulator to make its data.</p>
+<p>Add a family, and add it to that file.</p>
 <p>Tests that need a suggested package must call <code>skip_if_not_installed()</code>. Slow tests must call <code>skip_on_cran()</code>.</p>
 <p>Run the suite:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -130,6 +137,7 @@
 <li>No special hardware, and no large memory. Nothing is downloaded: every test simulates its own data from a seed or uses a data set from an installed package.</li>
 <li>No artifact needs manual inspection. A failure prints the reproduction case; the fuzzer also writes a runnable reproduction for any new finding.</li>
 </ul></div>
+</div>
 <div class="section level2">
 <h2 id="checks">Checks<a class="anchor" aria-label="anchor" href="#checks"></a></h2>
 <p>Before you open a pull request, run:</p>

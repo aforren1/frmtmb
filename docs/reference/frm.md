@@ -204,8 +204,9 @@ frm(
   by reweighting draws from the Laplace Gaussian, which is unbiased for
   the exact integral rather than accurate to `O(n^-1)`. Like
   `quadrature = TRUE` it is worth it for binary responses in small
-  clusters, and unlike it, the block may have any dimension: this is the
-  correction for a correlated random slope, where quadrature cannot go.
+  clusters, and unlike it, the blocks may have any dimension: this is
+  the correction for a correlated random slope, where quadrature cannot
+  go.
 
   The cost is one tape of `N` stacked copies of the likelihood, so time
   and memory grow linearly in the draw count. An odd count is rounded up
@@ -213,16 +214,23 @@ frm(
   (measured on this package's own probe design, the pairing is worth two
   to three times the draws it costs).
 
-  Scope, with everything else refused by name: exactly one random-effect
-  block over a grouping factor, of any dimension and any covariance
-  structure that is Gaussian within a level and independent between
-  levels; one response; a family with a rowwise density. Not with
-  `quadrature`, `REML = TRUE`, `frmtmb_control(profile = TRUE)`, `mi()`,
-  a residual correlation term, `rescor`, a nonlinear predictor, or
-  `cs()`. [`trunc()`](https://rdrr.io/r/base/Round.html) and `cens()`
-  are supported: the draws sit near the conditional mode, which is why
-  the truncation normalizer that underflows at the Gauss-Kronrod nodes
-  does not underflow here.
+  Scope, with everything else refused by name: any number of
+  random-effect blocks, of any dimension, provided they share ONE
+  grouping factor and one set of levels, in any covariance structure
+  that is Gaussian within a level and independent between levels; one
+  response; a family with a rowwise density. Not with `quadrature`,
+  `REML = TRUE`, `frmtmb_control(profile = TRUE)`, `mi()`, a residual
+  correlation term, `rescor`, a nonlinear predictor, or `cs()`.
+  [`trunc()`](https://rdrr.io/r/base/Round.html) and `cens()` are
+  supported: the draws sit near the conditional mode, which is why the
+  truncation normalizer that underflows at the Gauss-Kronrod nodes does
+  not underflow here.
+
+  Distributional regression writes several blocks by construction:
+  `(1 | g)` in `mu` and `(1 | g)` in `sigma` are two blocks over `g`,
+  and a level's coefficients from both are drawn together from one joint
+  proposal. Blocks over DIFFERENT grouping factors, crossed or nested,
+  are refused.
 
   The fit records the draw count, the seed, the rounds taken, the
   per-group effective sample sizes and the Monte Carlo standard error of
@@ -321,6 +329,53 @@ log-likelihood are ordinary R functions written by an extension author,
 and they keep resolving lexically: qualify with `RTMB::` there, and see
 [`frmtmb_ad_overload()`](https://aforren1.github.io/frmtmb/reference/frmtmb_ad_overload.md)
 for the rest of that contract.
+
+## Monotonic effects
+
+`mo(x)` fits an ordinal predictor without assuming its categories are
+equally spaced. `x` is an ordered factor or a non-negative integer
+vector with at least three categories, coded `0..D`. The term
+contributes `b * D * sum(zeta[1:k])` at category `k`, where `zeta` is a
+simplex of `D` non-negative steps summing to one. `b` is therefore the
+AVERAGE step, on the coefficient scale of any other predictor, and
+`zeta` says how that total is distributed over the categories. `b`
+appears in
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) under
+the term's label (`mox`, or `mox:z` for an interaction); the simplex is
+held as its `D - 1` free softmax coordinates in a `zeta<j>` component of
+[`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md),
+and [`summary()`](https://rdrr.io/r/base/summary.html) prints those
+coordinates rather than the simplex.
+
+Every monotonic TERM gets its own simplex. `y ~ mo(x) * z` fits two: one
+shape for the main effect and one for the interaction, because the two
+terms describe different shapes and there is no reason for the
+interaction to bend the way the main effect does. The simplexes are
+numbered in the order
+[`brms::brm()`](https://paulbuerkner.com/brms/reference/brm.html)
+enumerates its special terms, which is
+[`stats::terms()`](https://rdrr.io/r/stats/terms.html) order and so
+lists every main effect before any interaction. The j-th monotonic term
+of a linear predictor is therefore the one brms calls `simo_<j>` and
+names `<label><1>` in the `simo` rows of its
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md).
+
+The `zeta<j>` NUMBER is not that j in general. Simplexes continue the
+numbering of whatever parameters the family contributed first, so
+`zeta<j>` is brms's `simo_<j>` only for a family that declares none: an
+ordinal fit spends slot 1 on its thresholds and a
+[`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+fit on its baseline hazard, and in both the first monotonic simplex is
+`zeta2`. Read the terms in order rather than parsing the number.
+
+frmtmb has no prior class for a simplex; brms's flat `dirichlet(1)` is
+the one prior it cannot be told to drop, and it contributes only a
+constant, so the two log-densities agree up to `lgamma(D)` per simplex.
+
+`mo()` may be crossed with a single numeric multiplier and no more:
+`mo(x) * z` and `mo(x):z` are fitted, `mo(x) * f` for a factor `f` is
+refused (the simplex carries one coefficient and a contrast expansion
+has no column to go in), and `mo(x):mo(w)` is refused outright.
 
 ## The Laplace approximation, and how to check it
 

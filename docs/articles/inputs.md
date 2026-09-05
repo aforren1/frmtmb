@@ -150,8 +150,15 @@ You can look at the first two stages without fitting:
 ``` r
 
 set.seed(1)
-d <- data.frame(y = rnorm(30), x = rnorm(30), g = factor(rep(1:6, 5)))
+d <- data.frame(y = 0, x = rnorm(30), g = factor(rep(1:6, 5)))
 rownames(d) <- paste0("obs", seq_len(30))
+# The draw takes its own seed, away from the chunk's: reusing
+# set.seed(1) restarts the same random stream that made x, and the
+# residuals come out equal to the covariate.
+d$y <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), d,
+                    newparams = list(Intercept = 0, x = 0.4, sigma = 1,
+                                     sd_g__Intercept = 0.5),
+                    nsim = 1, seed = 1001)[[1]]
 
 spec <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = d, dry_run = "spec")
 names(spec$responses$y$dpars)

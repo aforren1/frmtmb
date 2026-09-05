@@ -17,7 +17,7 @@ all of it."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -77,7 +77,7 @@ all of it.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">frmtmb_register_compat</span><span class="op">(</span>features <span class="op">=</span> <span class="cn">NULL</span>, rules <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">frmtmb_register_compat</span><span class="op">(</span>features <span class="op">=</span> <span class="cn">NULL</span>, rules <span class="op">=</span> <span class="cn">NULL</span>, expects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">compat_rule_builder</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -91,8 +91,12 @@ all of it.</p>
 name to its kind: <code>c("hmm" = "structure")</code>, <code>c("dec()" = "aterm")</code>.
 The display name is how the feature is written in a formula or a
 call, parentheses included for a callable one; the kind groups it
-in the printed matrix (<code>"family"</code>, <code>"covstruct"</code>, <code>"aterm"</code>,
-<code>"special"</code>, <code>"autocor"</code>, <code>"mode"</code>, <code>"structure"</code>).</p></dd>
+in the printed matrix and decides which kind-level rules reach it,
+and is one of <code>"family"</code>, <code>"covstruct"</code>, <code>"aterm"</code>, <code>"special"</code>,
+<code>"autocor"</code>, <code>"mode"</code>, <code>"structure"</code>, <code>"method"</code>, <code>"grammar"</code>.
+A name the registry already carries under the same kind is a no-op,
+so a reload is not an error and neither is declaring an addition
+term that <code><a href="frmtmb_register_aterm.html">frmtmb_register_aterm()</a></code> has already declared for you.</p></dd>
 
 
 <dt id="arg-rules">rules<a class="anchor" aria-label="anchor" href="#arg-rules"></a></dt>
@@ -103,6 +107,29 @@ demand exactly as the core ones are. Build the frame with
 <code>rules()</code> to return the accumulated frame. <code>a</code> and <code>b</code> are display
 names, <code>"*"</code> matches every feature, and <code>override = TRUE</code> says the
 rule beats a more specific one rather than losing to it.</p></dd>
+
+
+<dt id="arg-expects">expects<a class="anchor" aria-label="anchor" href="#arg-expects"></a></dt>
+<dd><p>Character vector of feature names the rules refer to
+but this package does not supply, because another package does.
+They are exempt from the check below and are NOT added to the
+vocabulary: a rule naming one of them lies dormant until the
+package that owns the feature is loaded, which is what makes the
+rule true. Use it for that and nothing else. A feature in the table
+that nothing implements is the failure the registry exists to
+prevent.</p>
+<p>A name the vocabulary already holds is refused, because the
+declaration then exempts nothing: give it a kind in <code>features =</code>,
+or drop it. A name still unresolved when <code><a href="frm_compat.html">frm_compat()</a></code> is called
+is reported there, in the <code>unresolved</code> attribute the print method
+shows, so a rule waiting for a package that never arrives is
+visible rather than silent. That is what makes a misspelling
+inside <code>expects</code> findable: the check here cannot catch one, since
+the whole point is that the owner is absent.</p>
+<p>The near-miss guess in a refusal is searched over the vocabulary
+only, never over <code>expects</code>, so a misspelling of an expected name
+is refused without a suggestion. Pointing at a feature that is not
+in the session would be its own confusion.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -123,6 +150,29 @@ the same as a core one.</p>
 of equal specificity resolve later-wins, so a contributed rule may
 override a core default and a core default can never silently
 override a contributed one.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-registration-refuses">What registration refuses<a class="anchor" aria-label="anchor" href="#what-registration-refuses"></a></h2>
+
+
+<p>A rule side names a feature, a whole kind (<code>"kind:family"</code>), a named
+group (<code>"group:cdf"</code>), or everything (<code>"*"</code>). A side that names none
+of those matches no pair, and a rule that matches no pair is dropped
+without a word: the contributing package's table then reads as
+complete while covering less than it claims, which is the worst thing
+a compatibility surface can do. So registration refuses it, naming
+the rule, the spelling, and the nearest entry in the vocabulary when
+one is close.</p>
+<p>The check runs against the vocabulary AFTER <code>features</code> is added, so a
+package names its own new features freely in its own rules. It runs
+at registration, which means <code>rules</code> is called once there: keep it a
+pure builder that reads nothing but its own arguments.</p>
+<p>An addition term registered with <code><a href="frmtmb_register_aterm.html">frmtmb_register_aterm()</a></code> is added
+to the vocabulary for you, as <code>"&lt;name&gt;()"</code> of kind <code>"aterm"</code>. A
+registered term the table cannot describe would be a gap by
+construction, so the registrant is not asked to say it twice; saying
+it anyway is a no-op. Register the term BEFORE the rules that name
+it.</p>
     </div>
     <div class="section level2">
     <h2 id="status-vocabulary">Status vocabulary<a class="anchor" aria-label="anchor" href="#status-vocabulary"></a></h2>
@@ -160,8 +210,10 @@ seams a contributor usually registers alongside these, and
 <span class="r-in"><span>      <span class="st">"The family supplies no lcdf, so there is no CDF to censor with."</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">b</span><span class="op">$</span><span class="fu">r</span><span class="op">(</span><span class="st">"wiener"</span>, <span class="st">"*"</span>, <span class="st">"untested"</span>,</span></span>
 <span class="r-in"><span>      <span class="st">"Not exercised outside this package's own suite."</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">b</span><span class="op">$</span><span class="fu">r</span><span class="op">(</span><span class="st">"wiener"</span>, <span class="st">"hmm"</span>, <span class="st">"untested"</span>,</span></span>
+<span class="r-in"><span>      <span class="st">"Another package's feature, so the rule waits for it."</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu">frmtmb_register_compat</span><span class="op">(</span>features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"wiener"</span> <span class="op">=</span> <span class="st">"family"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>                         rules <span class="op">=</span> <span class="va">b</span><span class="op">$</span><span class="va">rules</span><span class="op">)</span></span></span>
+<span class="r-in"><span>                         rules <span class="op">=</span> <span class="va">b</span><span class="op">$</span><span class="va">rules</span>, expects <span class="op">=</span> <span class="st">"hmm"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-in"><span><span class="co"># the accumulator on its own, which is all a rule set is</span></span></span>
 <span class="r-in"><span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fu">compat_rule_builder</span><span class="op">(</span><span class="op">)</span></span></span>

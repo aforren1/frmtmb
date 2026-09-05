@@ -50,16 +50,27 @@ and one line per slot it deliberately left flat, so a model that gets
 few defaults says so rather than looking flat by accident.
 
 [`frmtmb::get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.html)
-reports them too, once this package is loaded:
+reports them too, when you ask for this route. It has two routes,
+because frmtmb has two: `route = "fit"` is the default and reports what
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) applies,
+which is flat in every slot. `route = "sample"` reports what
+[`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md)
+applies, and this package is what lets it answer.
 
 ``` r
 
-# with frmtmb alone the default column reads "(flat)", which is what
-# frm() does. With frmtmb.sample loaded it reads what frm_sample()
-# would apply, because this package registers its defaults with
-# get_prior()
+# what frm() applies. Loading this package does not change it
 get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+
+# what frm_sample() applies, which is the brms reading of get_prior().
+# Without this package loaded, the call is refused rather than
+# answered "(flat)"
+get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
+          route = "sample")
 ```
+
+The printed table names its route on the first line, so a table copied
+out of a session still says which set of defaults it describes.
 
 `prior = "flat"` opts out and samples the bare likelihood. That is a
 fine diagnostic and fragile inference: under a flat prior on a log

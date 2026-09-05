@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -206,15 +206,24 @@ terms.</p></dd>
 
 
 <dt id="arg-required-aterms">required_aterms<a class="anchor" aria-label="anchor" href="#arg-required-aterms"></a></dt>
-<dd><p>Character vector of addition-term values the
-density cannot do without, named as they reach <code>aterms</code>:
-<code>"vint1"</code>, <code>"vreal2"</code>, <code>"trials"</code>. Frame assembly refuses a model
-that omits one, naming the family, the term and the spelling that
-supplies it. Without the declaration an absent term reaches the
-density as <code>NULL</code>, arithmetic on it gives <code>numeric(0)</code>, and the
-log-likelihood becomes a sum over nothing: a fit that returns, with
-a log-likelihood of zero. Declare every per-row datum the density
-indexes.</p></dd>
+<dd><p>The addition-term values the density cannot do
+without, named as they reach <code>aterms</code>: <code>"vint1"</code>, <code>"vreal2"</code>,
+<code>"trials"</code>. A character vector names the terms it needs ALL of. A
+LIST adds the alternative: an element of length one is a term that
+must be there, and an element of length more than one is a set of
+spellings, ANY one of which will do, so
+<code>required_aterms = list(c("dec", "vint1"), "vreal1")</code> reads as one
+of <code>dec</code> or <code>vint1</code>, and <code>vreal1</code>. A family that reads the same
+datum from either of two terms declares it that way instead of
+hand-rolling the refusal.</p>
+<p>Frame assembly refuses a model that leaves a requirement unmet,
+naming the family, the terms and the spelling that supplies them;
+for a set of alternatives it names all of them and writes the first
+into the example formula. Without the declaration an absent term
+reaches the density as <code>NULL</code>, arithmetic on it gives <code>numeric(0)</code>,
+and the log-likelihood becomes a sum over nothing: a fit that
+returns, with a log-likelihood of zero. Declare every per-row datum
+the density indexes.</p></dd>
 
 
 <dt id="arg-family-finalize">family_finalize<a class="anchor" aria-label="anchor" href="#arg-family-finalize"></a></dt>

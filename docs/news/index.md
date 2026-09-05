@@ -1,5 +1,275 @@
 # Changelog
 
+## frmtmb 0.51.0
+
+One simplex per monotonic term, matching brms; importance sampling over
+several random-effect blocks; registration seams that refuse what they
+cannot describe; a simulator for every family but one, checked against
+its own density; and three brms comparison tiers that pin what still
+differs.
+
+- BEHAVIOR CHANGE, and the reason the 0.50.0 entry below withdrew its
+  claim rather than its behavior: a `mo()` variable that appears in more
+  than one term now gets one simplex per TERM instead of one per
+  variable. `y ~ mo(x) * z` fits a shape for the main effect and a
+  second for the interaction, so it gains the simplex’s free
+  coordinates, `D - 1` of them, for every term beyond the first. Such
+  models change: the shared simplex was a constraint on the fitted
+  surface, so removing it can only raise the log-likelihood, and the
+  coefficients, standard errors, information criteria and predictions
+  all move with it. A formula in which every `mo()` variable appears
+  once is unaffected.
+- Where the interaction in such a model is near zero its simplex is
+  barely identified, and maximum likelihood runs it to the boundary. The
+  shape estimates stay finite, but their standard errors and intervals
+  can come back enormous and carry no information: on the brms tier’s
+  own `y ~ mo(inc) * z` data the second simplex reports standard errors
+  in the thousands. Read that as the data not supporting a second shape,
+  and write the additive model. There is no option to restore the
+  sharing.
+- The v0.18 entry justified the sharing as the “brms convention”. It is
+  not, the claim was withdrawn in 0.50.0 below, and the behavior now
+  follows brms too. brms builds one simplex per special TERM and
+  enumerates those terms in
+  [`stats::terms()`](https://rdrr.io/r/stats/terms.html) order, which
+  lists every main effect before any interaction whatever the formula
+  wrote. The frame re-sorts into that order before it numbers the
+  simplexes, so the j-th monotonic term of a predictor is the one brms
+  calls `simo_<j>` and names in the `simo` rows of its
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md).
+  The monotonic design columns follow the same order, so `y ~ mo(x) * z`
+  now reports `mox` ahead of `mox:z`. What lines up with brms is the
+  ORDER, not the `zeta<j>` number: simplexes continue the numbering of
+  any parameters the family declared first, so an ordinal or
+  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fit spends slot 1 on its thresholds or baseline hazard and its first
+  simplex is `zeta2`. That numbering is unchanged from earlier versions.
+- The brms log-density tier pinned the divergence by asserting the
+  structural difference at `y ~ mo(inc) * z`. That row now asserts the
+  identity, with the flat Dirichlet admitted once per simplex, and the
+  tier’s exemption list no longer holds a `mo()` entry.
+
+Two seams an extension had to work around: a compatibility rule that
+named a feature nobody had, and a family that needs either of two
+addition terms.
+
+- [`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+  now REFUSES a rule whose sides the registry cannot resolve, rather
+  than accepting it and matching no pair. A rule that matches no pair is
+  dropped without a word, so the contributing package’s table reads as
+  complete while covering less than it claims, which is the worst thing
+  a compatibility surface can do. It happened: a drift-diffusion
+  extension wrote
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  where the vocabulary says `mixture`, and named `dec()` before that
+  term was a feature at all, and lost two `wiener` rows for a release.
+  The refusal names the rule, the spelling, and the nearest entry in the
+  vocabulary when one is close. Unknown kinds (`"kind:fmaily"`), unknown
+  groups and statuses outside the declared five are refused the same
+  way, as is a rule naming one feature on BOTH sides, which cannot match
+  either: the resolved table holds unordered pairs of distinct features.
+  Nothing is committed until every rule resolves, so a refused
+  registration leaves the vocabulary as it found it.
+
+- `frmtmb_register_compat(expects = )` is the one legitimate exception:
+  feature names the rules refer to but the registering package does not
+  supply, because another package does. They are exempt from the check
+  and are NOT added to the vocabulary, so such a rule lies dormant until
+  the package that owns the feature is loaded, which is what makes the
+  rule true. `frmtmb.sample` needs it for its `hmm x frm_sample` and
+  `lca x frm_sample` rules, which it only suggests the owner of; before
+  this, those two rows were silently dropped in every session that did
+  not also load `frmtmb.latent`.
+
+  The argument declares an expectation, so it is held to one at both
+  ends. A name the vocabulary already holds is refused, because it
+  exempts nothing. A name still unresolved when
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  is called is REPORTED there, in an `unresolved` attribute the print
+  method names under the rows, rather than leaving the rule to match no
+  pair in silence. It cannot honestly become a row: there is no such
+  feature in the session, so there is no pair, and inventing one would
+  put a feature in the table that nothing implements. The report is also
+  what makes a misspelling inside `expects` findable, which registration
+  cannot do, since the whole point of the argument is that the owner is
+  absent.
+
+- [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
+  now contributes the term to the compatibility vocabulary as well, as
+  the feature `"<name>()"` of kind `"aterm"`. A registered term that
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  cannot describe is a gap by construction:
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) would
+  accept a term the table refuses to answer about. A package that also
+  declares the feature in `frmtmb_register_compat(features = )` meets a
+  no-op rather than a duplicate, and one display name registered under
+  two kinds is an error. A name the vocabulary already holds under
+  another kind is refused, and neither registry keeps anything: `s()` is
+  a smooth, so `frmtmb_register_aterm("s")` would give one spelling two
+  meanings in one formula, and thirteen names (`s`, `t2`, `mo`, `ar`,
+  `ma`, `mm`, `mmc` and the rest) are taken this way.
+
+- `frmtmb_family(required_aterms = )` now takes ALTERNATIVES as well as
+  a conjunction. A character vector still names the terms a density
+  needs all of. A list adds the choice: an element of length one is
+  required, and an element of length more than one is a set of
+  spellings, any one of which will do, so
+  `required_aterms = list(c("dec", "vint1"), "vreal1")` reads as one of
+  `dec` or `vint1`, and `vreal1`. The refusal names every alternative in
+  an unmet group and writes the first into its example formula. A family
+  whose per-row datum arrives under either of two terms had to hand-roll
+  that refusal inside `valid_y()`, where it fires after the frame is
+  built and where nothing about the framework can check it.
+
+  Two smaller changes to the same argument. `required_aterms` now
+  refuses a missing or empty entry, `c("vint1", NA)`, which used to be
+  accepted and could then name no term; and
+  [`list()`](https://rdrr.io/r/base/list.html) is now accepted as no
+  requirements at all, which the character-vector-only check used to
+  refuse. Neither should reach a family that declares its requirements
+  correctly today.
+
+- The brms log-density identity tier covers eight more shapes of the
+  plan’s matrix: multivariate responses with `set_rescor(TRUE)` and with
+  `(1 | ID | g)` merged across responses (rows 8 and 9), `mi()`
+  imputation together with `mi(sd)` measurement error (row 4), a
+  nonlinear model with a random effect on an nlpar (row 6), `s()` and
+  `t2()` (row 11), the Hilbert-space `gp(k =)` (row 10),
+  `ar(cov = TRUE)`, `cosy()` and `unstr()` residual correlation (row
+  18), and `car()` in its escar and icar forms (row 19). Four
+  divergences over three rows are recorded and asserted rather than
+  skipped: the exact `gp()` nugget, brms’s `ar(cov = FALSE)` likelihood,
+  and the esicar and bym2 CAR parameterizations. See
+  `dev/brms-likelihood-tests.md`.
+
+- `tests/testthat/test-brms-methods.R` is a new opt-in tier that
+  compares what the post-fit methods RETURN against brms, rather than
+  what the objective evaluates to. It builds a `brmsfit` whose draws ARE
+  frmtmb’s estimates, by feeding the log-density tier’s translated
+  parameter list to Stan’s `Fixed_param` algorithm, so brms’s posterior
+  mean is a point estimate and the comparison is exact rather than
+  toleranced. `posterior_epred()`, `posterior_linpred()`, `log_lik()`
+  per row,
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md),
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  point estimates and the one-way
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  grid and estimate all agree to the last bit across the shapes the
+  translator handles. Where they do not, the difference is recorded and
+  asserted in `dev/brms-methods-tests.md` rather than tolerated, each
+  with a verdict: 10 are frmtmb defects, 8 are paradigm differences that
+  are right for a maximum-likelihood fit, and 8 are open design choices.
+  The sharpest is
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  on a zero-inflated fit, which plots the conditional mean `exp(eta)`
+  instead of the expected response `(1 - zi) * exp(eta)`. On the tier’s
+  own data the plotted curve is 15% above the expected response at the
+  first grid point and 268% above it at the last. The same defect is
+  live on the hurdle families, where the error changes sign along the
+  curve and only `method = "predict"`, which draws responses, reaches
+  the expected response, and neither case needs brms to see:
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  `predict(type = "response")` on the same fit already disagree with the
+  plot.
+
+The simulators are now tested against the densities they are supposed to
+match.
+
+- New test tier, `tests/testthat/test-simulate-density.R`. For every
+  family that declares a simulator it draws through the family’s `sim`
+  slot on a fixed two-cell design and tests the draws against that same
+  family’s own `lpdf`, evaluated numerically: a chi-square goodness of
+  fit over cells whose probabilities are summed or integrated from the
+  density, and the first two moments taken from the same measure. This
+  is the one place in the suite that deliberately closes the loop.
+  Everywhere else a validation reference is written by hand precisely so
+  that it cannot share a convention error with the code under test; the
+  cost of that rule was that
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+  had never been checked as a generative process, and a shape/scale swap
+  or a zero-inflation gate read the wrong way round would have cancelled
+  between the simulator and the density without anything noticing. The
+  tier covers the addition terms that change a draw (`trials()`,
+  [`trunc()`](https://rdrr.io/r/base/Round.html), `se()`) and the ones
+  that must not ([`weights()`](https://rdrr.io/r/stats/weights.html),
+  `cens()`), the ordinal, categorical, multinomial and mixture families,
+  both entry points, and the refusal a family without a simulator has to
+  raise.
+
+- [`tweedie()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`compois()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`hurdle_poisson()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  have simulators, so
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) and
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+  work for them, and so does `posterior_predict()` through
+  frmtmb.sample. Each states a generative process rather than inverting
+  the density: the Tweedie is drawn as the compound Poisson sum of gamma
+  jumps it is on `1 < p < 2`, which is also where its point mass at zero
+  comes from; the hurdle Poisson clears its hurdle and then draws a
+  zero-truncated Poisson by inverse transform above the Poisson’s own
+  zero, rather than by a rejection loop that would spin at the small
+  mean these models are used at; and the COM-Poisson solves for the rate
+  that puts the distribution’s mean where it was asked for, then inverts
+  its own defining weights.
+
+- Only
+  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  now declares no simulator, and it says why: inverting a cumulative
+  baseline hazard identified only on the observed time window has no
+  answer beyond the last event. The tier reads the list of families with
+  no simulator off the registry rather than carrying it, skipping the
+  deferred entries whose simulator arrives with the data, so a family
+  that gains or loses one changes the test’s answer instead of drifting
+  away from it.
+
+- Bug fix:
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+  refused a family whose simulator is installed by its
+  `family_finalize()` slot, reporting that the family had no simulator,
+  while [`simulate()`](https://rdrr.io/r/stats/simulate.html) on a fit
+  of the same model worked. A family that derives itself from the
+  response is not itself until frame assembly has run, and
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
+  was reading the family as written; it now carries the finalized
+  responses over from the frame, as
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) already
+  did. This is what made
+  [`frmtmb.ddm::gddm()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm.html)
+  unreachable from
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md).
+
+- `frm(importance = )` now corrects a model with SEVERAL random-effect
+  blocks over one grouping factor, which is what distributional
+  regression produces: `(1 | g)` in `mu` and `(1 | g)` in `sigma`,
+  `(1 | g) + (0 + x | g)`, or a block in `mu` and one in a
+  distributional parameter. A grouping level’s coefficients from every
+  block are drawn together from one joint proposal, so the blocks stay
+  coupled through the group’s rows the way the likelihood couples them.
+  Blocks over *different* grouping factors are still refused, and the
+  message names the blocks and the factors: crossed or nested factors
+  make the marginal likelihood one integral over every factor at once,
+  which does not split into the per-group integrals the correction
+  resamples.
+
+- Validated against a brute-force reference that shares no code with the
+  package. On 12 groups of 10 rows with `(1 | g)` in `mu` and `(1 | g)`
+  in `sigma`, each group’s marginal likelihood was integrated by
+  two-dimensional Gauss-Hermite quadrature over `(b_mu, b_sigma)`
+  against [`dnorm()`](https://rdrr.io/r/stats/Normal.html) directly. The
+  reference is 193.161829; the correction at 2000 draws gives
+  193.137101, which is 0.61 of its own Monte Carlo standard error of
+  0.0404, while the Laplace approximation gives 193.396458, or 5.8 of
+  that error. The same comparison under a likelihood no identity fixes,
+  30 groups of 8 Bernoulli rows over `(1 | g) + (0 + x | g)` against a
+  two-dimensional quadrature on
+  [`dbinom()`](https://rdrr.io/r/stats/Binomial.html) directly, puts the
+  correction 0.26 of its Monte Carlo standard error from the reference
+  at 8000 draws, where the Laplace approximation is 56 of them away.
+
 ## frmtmb 0.50.0
 
 The Laplace approximation, corrected by importance sampling; and
@@ -130,6 +400,28 @@ get_prior() answers for one route, whatever is attached.
   `frmtmb_prior_rows` and a `route` attribute, and
   [`print()`](https://rdrr.io/r/base/print.html) names the route on its
   first line so that a copied table stays unambiguous.
+
+- A new opt-in test tier checks that frmtmb’s objective is the same
+  function of the parameters as the Stan program brms generates from the
+  same formula with flat priors. At frmtmb’s estimates the two log
+  densities agree to 1e-6 of the log-likelihood, and brms’s gradient
+  there is zero, which is what catches a parameter-map error rather than
+  an arithmetic one. Random-effect models are compared on the joint
+  density at the conditional modes, since brms has no marginal
+  likelihood. The comparison against brms posterior means is gone: the
+  two estimands differ, so its tolerance was wide enough to hide a real
+  divergence. `tests/testthat/test-brms-likelihood.R`, gated by
+  `FRMTMB_BRMS_FIT_TESTS=true` and run weekly in its own workflow.
+
+- That tier found one shape the two packages do not spell the same way,
+  and the reason recorded for it in the v0.18 entry below is wrong.
+  `mo()` interactions share their variable’s simplex, which that entry
+  justifies as the “brms convention”. It is not the brms convention:
+  brms builds one simplex per special term, so under `y ~ mo(inc) * z`
+  brms gives the interaction its own monotonic shape while frmtmb reuses
+  the main effect’s, and frmtmb’s model has two fewer free parameters.
+  Only that claim is withdrawn here. The behavior itself is unchanged
+  and stays the maintainer’s call.
 
 ## frmtmb 0.49.1
 

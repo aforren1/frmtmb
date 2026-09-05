@@ -577,8 +577,8 @@ two-way interactions with numeric terms.
 ``` r
 
 fixef(frm(bf(ls ~ mo(income) * z) + gaussian(), data = dmo))$mu
-#> (Intercept)           z  moincome:z    moincome 
-#>  5.18598429  0.38236229  0.01534946  0.36108793
+#> (Intercept)           z    moincome  moincome:z 
+#>  5.19029114  0.29103143  0.36016797  0.03601447
 ```
 
 The interaction is near zero here, which is right: the simulation has no

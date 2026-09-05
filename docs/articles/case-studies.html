@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -556,8 +556,8 @@ the data are noisy, and that interactions stay readable.
 <code>mo()</code> takes two-way interactions with numeric terms.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">ls</span> <span class="op">~</span> <span class="fu">mo</span><span class="op">(</span><span class="va">income</span><span class="op">)</span> <span class="op">*</span> <span class="va">z</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dmo</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span>
-<span><span class="co">#&gt; (Intercept)           z  moincome:z    moincome </span></span>
-<span><span class="co">#&gt;  5.18598429  0.38236229  0.01534946  0.36108793</span></span></code></pre></div>
+<span><span class="co">#&gt; (Intercept)           z    moincome  moincome:z </span></span>
+<span><span class="co">#&gt;  5.19029114  0.29103143  0.36016797  0.03601447</span></span></code></pre></div>
 <p>The interaction is near zero here, which is right: the simulation has
 no interaction. A factor multiplier is refused, so expand a factor into
 numeric indicator columns first.</p>

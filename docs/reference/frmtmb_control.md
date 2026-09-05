@@ -143,10 +143,18 @@ frmtmb_control(
 - importance_ess:
 
   Effective sample size, as a fraction of the draw count, below which
-  `frm(importance =)` warns and names the groups. The default `0.25` is
-  placed by measurement: the hardest design in the test suite holds
-  `0.43` at its own optimum, and a proposal displaced far enough to
-  matter falls below `0.01`.
+  `frm(importance =)` warns and names the groups. The default `0.25`
+  separates two measured regimes rather than clearing every design. A
+  proposal that is working sits near the top of the range: the probe
+  design behind this correction (60 groups of 8 Bernoulli rows,
+  correlated slope) holds a worst group of `0.95` at 1000 draws, and a
+  gaussian response, where the correction has nothing to correct, holds
+  exactly `1` at any draw count. Displacing that probe's two log
+  standard deviations by half a unit takes its worst group to `0.03`.
+  The designs the warning is FOR sit between the two, and draws are what
+  move them: a correlated slope in `mu` plus a `sigma` block over 12
+  groups of 10 rows holds a worst group of `0.17` at 500 draws and
+  `0.40` at 2000.
 
 - verbose:
 

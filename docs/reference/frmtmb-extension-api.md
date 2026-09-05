@@ -219,6 +219,43 @@ object is internal and may be renamed without notice.
   `"an lca() family"`. The fact refused is the same one in every such
   family, so the sentence is issued from one place rather than copied.
 
+## What the registries hold you to
+
+The three registries an extension fills from its own `.onLoad()` check
+what they are given, because a registration that is accepted and then
+does nothing is indistinguishable from one that worked.
+
+- [`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+  refuses a rule whose sides it cannot resolve. A side names a feature,
+  a kind, a group or `"*"`; anything else matches no pair, so the rule
+  is dropped in silence and the table reads as complete while covering
+  less. Name a feature your package supplies in `features =`, and one
+  another package supplies in `expects =`. A name `expects =` gives that
+  the vocabulary already holds is refused too, because it exempts
+  nothing; one still unresolved when
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  is called is reported there rather than dropped.
+
+- [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
+  adds the term to that vocabulary itself, as `"<name>()"` of kind
+  `"aterm"`. A term
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) accepts
+  and
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  cannot describe is a gap by construction, and the seam that creates
+  the term is the only place that can close it without asking the
+  registrant to remember. Register the term BEFORE the rules that name
+  it; declaring it in `features =` anyway is a no-op. A name the
+  vocabulary already holds under another kind is refused, and nothing is
+  registered on either side.
+
+- [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  takes `required_aterms` as a conjunction (a character vector) or as
+  one with choices in it (a list, whose elements of length more than one
+  are alternatives). Declare the choice rather than refusing it by hand
+  in `valid_y`: the framework refuses before the frame is built and
+  names every alternative.
+
 ## See also
 
 [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)

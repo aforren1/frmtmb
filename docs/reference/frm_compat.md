@@ -28,7 +28,9 @@ frm_compat(feature_a = NULL, feature_b = NULL, status = NULL)
 
 A data frame with columns `feature_a`, `kind_a`, `feature_b`, `kind_b`,
 `status`, and `note`. Family pairs are omitted, because a model carries
-one family.
+one family. When the session holds an unresolved rule side, the frame
+also carries an `unresolved` attribute and the class `frmtmb_compat`,
+whose print method names them; see the section below.
 
 ## Details
 
@@ -61,6 +63,20 @@ The last status is the point of the registry. A guard that does not
 exist looks exactly like a guard that passed, so the absence of an error
 was never evidence of support.
 
+## Rule sides this session cannot resolve
+
+A rule may name a feature another package owns, declared through
+`frmtmb_register_compat(expects =)`. Until that package is loaded there
+is no such feature and so no pair, and the rule matches nothing. Such a
+side cannot honestly be a row here, because a row would put a feature in
+the table that nothing in this session implements; it is reported
+instead. The returned table carries the names in an `unresolved`
+attribute and the print method names them under the rows. Both appear
+only when the session holds one, so a session with no forward reference
+gets the plain data frame it always got. Load the package that owns the
+feature, or read the names as the list of rules that are waiting for
+one.
+
 ## See also
 
 [`frm_compat_rules()`](https://aforren1.github.io/frmtmb/reference/frm_compat_rules.md),
@@ -75,6 +91,11 @@ frm_compat("rescor", "cens()")
 #> 1    rescor structure    cens()  aterm refused
 #>                                                                        note
 #> 1 Refused. This pair was once accepted with the censoring silently dropped.
+#> 
+#> Unresolved rule sides in this session: 'hmm', 'lca'. A registered rule
+#> names each, declared through frmtmb_register_compat(expects =) as a
+#> feature another package supplies. No feature here answers to them, so
+#> those rules match no pair until the owning package is loaded.
 
 # everything known about truncation
 frm_compat("trunc()", status = c("refused", "broken"))
@@ -160,6 +181,11 @@ frm_compat("trunc()", status = c("refused", "broken"))
 #> 38                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  Refused: mixture() has no CDF.
 #> 39                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: mixture_mvn() has no CDF.
 #> 40                                                                                                                                                                                                                                                                                                    Refused: a bar term crossed with * or : (as in x * (1 | g)) is not a random-effect specification (lme4#196). Write the crossing inside the bar: (x | g). This spelling was once accepted with the crossing silently dropped.
+#> 
+#> Unresolved rule sides in this session: 'hmm', 'lca'. A registered rule
+#> names each, declared through frmtmb_register_compat(expects =) as a
+#> feature another package supplies. No feature here answers to them, so
+#> those rules match no pair until the owning package is loaded.
 
 # the pairs to avoid
 frm_compat(status = "broken")[, 1:5]

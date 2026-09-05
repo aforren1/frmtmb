@@ -1,5 +1,39 @@
 # Changelog
 
+## frmtmb.ddm (development version)
+
+- [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.html)
+  now works for
+  [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm.md).
+  The family installs its density and its simulator in
+  `family_finalize()`, so before frame assembly the family object
+  carries neither, and frmtmb’s
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.html)
+  read the family as written and refused the model for having no
+  simulator. [`simulate()`](https://rdrr.io/r/stats/simulate.html) on a
+  fitted
+  [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm.md)
+  was unaffected, because a fit carries the finalized family. The fix is
+  in frmtmb rather than here: nothing in this package’s wiring was
+  wrong, and
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md)
+  and
+  [`lba()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/lba.md),
+  which pass `sim` in the constructor, were never affected.
+- New `tests/testthat/test-simulate-density.R`: the agreement tier for
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/wiener.md),
+  [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/gddm.md)
+  and
+  [`lba()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/lba.md),
+  matching the one frmtmb holds its built-in families to. The other
+  tests here check the density against RWiener and the exported
+  [`ddm_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.ddm/reference/ddm_simulate.md)
+  against its generative process; neither of those is the seam frmtmb
+  uses, which is the family’s `sim` slot. The check is shaped for a
+  choice-RT model: the density is defective, so the reference is that
+  density renormalized on the row’s own boundary, and the two
+  boundaries’ masses are asserted to sum to one.
+
 ## frmtmb.ddm 0.2.0
 
 Three families where there was one: Ratcliff’s full diffusion model as
@@ -117,10 +151,11 @@ compatibility table.
   branches on a parameter. With the walls stationary the scheme is
   Crank-Nicolson, which a solver that chases a moving bound cannot use.
 - The likelihood is an ordinary rowwise family, not a
-  `frmtmb_structure()`. frmtmb calls `lpdf` once per objective
-  evaluation with full-length vectors, and the condition a trial belongs
-  to is data, so a rowwise density does one solve per condition, which
-  is all a structure would have bought, and it keeps
+  [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.html).
+  frmtmb calls `lpdf` once per objective evaluation with full-length
+  vectors, and the condition a trial belongs to is data, so a rowwise
+  density does one solve per condition, which is all a structure would
+  have bought, and it keeps
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
   [`predict()`](https://rdrr.io/r/stats/predict.html),
   [`simulate()`](https://rdrr.io/r/stats/simulate.html) and
@@ -315,16 +350,19 @@ compatibility table.
 ### What frmtmb 0.49.0 let this package delete
 
 - **`dec()` is the spelling now.** frmtmb gained
-  `frmtmb_register_aterm()`, this package registers `dec` when it loads,
-  and `rt | dec(response) ~ x` works and takes a factor, a character
-  vector or a logical the way brms does. `vint()` carries the same thing
-  as a 0/1 integer and is unchanged.
+  [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.html),
+  this package registers `dec` when it loads, and
+  `rt | dec(response) ~ x` works and takes a factor, a character vector
+  or a logical the way brms does. `vint()` carries the same thing as a
+  0/1 integer and is unchanged.
 - **The environment the link closures read is gone.** The bound on the
   non-decision time is a property of the response, and the family object
-  is built before `frm()` has any; this package used to have `valid_y()`
-  write the bound into an environment, which worked only for as long as
-  an undocumented slot order held. `family_finalize()` is the documented
-  slot for it and the family now derives itself from the data there.
+  is built before
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) has
+  any; this package used to have `valid_y()` write the bound into an
+  environment, which worked only for as long as an undocumented slot
+  order held. `family_finalize()` is the documented slot for it and the
+  family now derives itself from the data there.
 - One hand-rolled check remains, and is not `required_aterms`’s fault:
   that argument names the terms a density needs ALL of, and this family
   needs EITHER `dec()` or `vint()`. See `dev-findings.md`.

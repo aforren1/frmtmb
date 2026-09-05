@@ -17,7 +17,7 @@ users for vint(). Register from the contributing package's
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -121,6 +121,20 @@ contributed term is not a route to that.</p>
 <p>Registering a name twice replaces the earlier entry, so that
 reloading the contributing package is not an error. The eight core
 terms cannot be replaced.</p>
+<p>The term joins the compatibility vocabulary at the same time, as the
+feature <code>"&lt;name&gt;()"</code> of kind <code>"aterm"</code>, so that <code><a href="frm_compat.html">frm_compat()</a></code> can be
+asked about it and <code><a href="frmtmb_register_compat.html">frmtmb_register_compat()</a></code> rules may name it. A
+term <code><a href="frm.html">frm()</a></code> accepts and the table cannot describe would be a gap by
+construction, so the registrant is not asked to declare it twice;
+declaring it in <code>frmtmb_register_compat(features =)</code> anyway is a
+no-op rather than a duplicate. Register the term BEFORE the rules
+that name it.</p>
+<p>A name the vocabulary already holds under another kind is refused,
+and nothing is registered on either side: <code>s()</code> is a smooth, so
+<code>frmtmb_register_aterm("s")</code> would give one spelling two meanings in
+one formula. Thirteen names are taken this way: <code>s</code>, <code>t2</code>, <code>mo</code>,
+<code>mi_pred</code>, <code>gp_pred</code>, <code>cs_pred</code>, <code>ar</code>, <code>ma</code>, <code>arma</code>, <code>cosy</code>,
+<code>unstr</code>, <code>mm</code> and <code>mmc</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

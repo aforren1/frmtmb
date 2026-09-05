@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -372,17 +372,24 @@ state.</p>
 <div class="section level3">
 <h3 id="scope">Scope<a class="anchor" aria-label="anchor" href="#scope"></a>
 </h3>
-<p>The first version corrects exactly one random-effect block over a
-grouping factor, of any dimension, for a single response whose family
-has a rowwise density. <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> and <code>cens()</code> are
-supported, which is a real difference from
-<code>quadrature = TRUE</code>: that method has to refuse truncation
-because its far quadrature nodes underflow the truncation normalizer,
-while importance draws stay near the conditional mode. Truncation does
-not degrade the correction either. Walking a bound up past the response
-median, discarding 64 percent of the rows, still leaves the worst group
-holding 0.60 of its draws. Everything outside the scope is refused by
-name, with the remedy in the message.
+<p>The correction takes any number of random-effect blocks, of any
+dimension, if they share one grouping factor with one set of levels.
+That is what distributional regression writes: <code>(1 | g)</code> in
+<code>mu</code> and <code>(1 | g)</code> in <code>sigma</code> are two
+blocks over <code>g</code>, and a level’s coefficients from both are
+drawn together from one proposal. Blocks over <em>different</em>
+factors, crossed or nested, are refused by name, because the marginal
+likelihood is then one integral over every factor at once and does not
+split into the per-group integrals the correction resamples. The
+response must be a single one whose family has a rowwise density.
+<code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> and <code>cens()</code> are supported, which is a
+real difference from <code>quadrature = TRUE</code>: that method has to
+refuse truncation because its far quadrature nodes underflow the
+truncation normalizer, while importance draws stay near the conditional
+mode. Truncation does not degrade the correction either. Walking a bound
+up past the response median, discarding 64 percent of the rows, still
+leaves the worst group holding 0.60 of its draws. Everything outside the
+scope is refused by name, with the remedy in the message.
 <code>frm_compat("importance")</code> lists the rules.</p>
 </div>
 </div>

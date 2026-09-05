@@ -281,18 +281,23 @@ mixing weights; `groups = ~g` moves the class draw to the group level
 
 ``` r
 
-set.seed(4)
-g <- rep(1:40, each = 5)
-cl <- rbinom(40, 1, 0.4)
-dmix <- data.frame(y = rnorm(200, c(-1, 2)[cl + 1][g], 0.8),
-                   g = factor(g))
-fmix <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian(), groups = ~g),
-            data = dmix)
+mix <- mixture(gaussian(), gaussian(), groups = ~g)
+dmix <- data.frame(y = 0, g = factor(rep(1:40, each = 5)))
+# frm_simulate() draws one class per GROUP here, which is what
+# groups = ~g means; theta1 is the mixing predictor for the first
+# component against an implicit zero for the second
+dmix$y <- frm_simulate(bf(y ~ 1) + mix, dmix,
+                       newparams = list(mu1_Intercept = -1,
+                                        mu2_Intercept = 2,
+                                        sigma1 = 0.8, sigma2 = 0.8,
+                                        theta1 = log(0.6 / 0.4)),
+                       nsim = 1, seed = 4)[[1]]
+fmix <- frm(bf(y ~ 1) + mix, data = dmix)
 head(mixture_probs(fmix), 3)
-#>   class1       class2
-#> 1      1 3.936344e-08
-#> 2      1 1.174035e-12
-#> 3      1 1.276275e-16
+#>      class1       class2
+#> 1 0.9999996 3.511889e-07
+#> 2 1.0000000 3.214083e-11
+#> 3 1.0000000 1.006305e-14
 ```
 
 ## Inference beyond Wald
@@ -332,7 +337,10 @@ a residual SD, `sd_<group>__<term>` as a standard deviation):
 set.seed(1)
 dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, 10)), y = 0)
 form <- bf(y ~ x + (1 | g)) + gaussian()
-sims <- frm_simulate(form, dd, nsim = 3, seed = 1,
+# The draw takes its own seed, away from the chunk's: reusing
+# set.seed(1) restarts the same random stream that made x, and the
+# residuals come out equal to the covariate.
+sims <- frm_simulate(form, dd, nsim = 3, seed = 1001,
                      newparams = list(Intercept = 1, x = 0.5,
                                       sigma = 0.6,
                                       sd_g__Intercept = 0.7))

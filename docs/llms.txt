@@ -120,7 +120,7 @@ frmtmb is not on CRAN yet. Install the development version from GitHub:
 remotes::install_github("aforren1/frmtmb")
 ```
 
-Four companion packages live in this repository, each installed the same
+Five companion packages live in this repository, each installed the same
 way and each documented on its own part of the site.
 
 | package | adds |
@@ -129,6 +129,7 @@ way and each documented on its own part of the site.
 | [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()` and `lca()` |
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
 | [frmtmb.ddm](https://aforren1.github.io/frmtmb/frmtmb.ddm/) | response-time models: `wiener()`, `gddm()`, and the racing `lba()` |
+| [frmtmb.spline](https://aforren1.github.io/frmtmb/frmtmb.spline/) | curve inference on any fitted smooth, and the flexible parametric survival family `royston_parmar()` |
 
 ``` r
 
@@ -136,6 +137,7 @@ remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.sample")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.latent")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ddm")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.spline")
 ```
 
 ## Example
@@ -177,8 +179,8 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
 - The model-building layer is compared with brms itself. Design
   matrices, random-effect structures, and special-term data agree with
   [`brms::make_standata()`](https://paulbuerkner.com/brms/reference/standata.html)
-  to near machine precision. An opt-in tier verifies that our estimates
-  equal the mode of the Stan programs that brms generates.
+  to near machine precision. An opt-in tier verifies that our
+  log-likelihood equals the Stan program’s log density at the estimate.
 - A pairwise grammar fuzzer sweeps feature combinations against
   metamorphic invariants. The resulting compatibility map is queryable
   with

@@ -51,7 +51,7 @@ hypothesis() among them."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.50.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.51.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -306,6 +306,38 @@ sentence is issued from one place rather than copied.</p></dd>
 
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="what-the-registries-hold-you-to">What the registries hold you to<a class="anchor" aria-label="anchor" href="#what-the-registries-hold-you-to"></a></h2>
+
+
+<p>The three registries an extension fills from its own <code>.onLoad()</code>
+check what they are given, because a registration that is accepted
+and then does nothing is indistinguishable from one that worked.</p>
+<ul><li><p><code><a href="frmtmb_register_compat.html">frmtmb_register_compat()</a></code> refuses a rule whose sides it
+cannot resolve. A side names a feature, a kind, a group or <code>"*"</code>;
+anything else matches no pair, so the rule is dropped in silence
+and the table reads as complete while covering less. Name a
+feature your package supplies in <code>features =</code>, and one another
+package supplies in <code>expects =</code>. A name <code>expects =</code> gives that
+the vocabulary already holds is refused too, because it exempts
+nothing; one still unresolved when <code><a href="frm_compat.html">frm_compat()</a></code> is called is
+reported there rather than dropped.</p></li>
+<li><p><code><a href="frmtmb_register_aterm.html">frmtmb_register_aterm()</a></code> adds the term to that vocabulary
+itself, as <code>"&lt;name&gt;()"</code> of kind <code>"aterm"</code>. A term <code><a href="frm.html">frm()</a></code> accepts
+and <code><a href="frm_compat.html">frm_compat()</a></code> cannot describe is a gap by construction, and
+the seam that creates the term is the only place that can close
+it without asking the registrant to remember. Register the term
+BEFORE the rules that name it; declaring it in <code>features =</code>
+anyway is a no-op. A name the vocabulary already holds under
+another kind is refused, and nothing is registered on either
+side.</p></li>
+<li><p><code><a href="frmtmb_family.html">frmtmb_family()</a></code> takes <code>required_aterms</code> as a conjunction
+(a character vector) or as one with choices in it (a list, whose
+elements of length more than one are alternatives). Declare the
+choice rather than refusing it by hand in <code>valid_y</code>: the
+framework refuses before the frame is built and names every
+alternative.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> for the protocol these serve,

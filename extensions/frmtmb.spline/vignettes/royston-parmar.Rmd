@@ -139,7 +139,7 @@ head(data.frame(t = round(tg, 3), logH = round(logH, 3),
                 survival = round(S, 3)), 4)
 ```
 
-```{r fig-surv, eval = has_tinyplot, fig.alt = "Fitted survival curves for the three prognostic groups against time in years, each falling from 1. The good-prognosis curve stays above 0.8 at eight years, the medium curve reaches about 0.6 and the poor curve about 0.3. Step functions of the same three colors, the Kaplan-Meier estimates, track each fitted curve closely."}
+```{r fig-surv, eval = has_tinyplot && has_flexsurv, fig.alt = "Fitted survival curves for the three prognostic groups against time in years, each falling from 1. The good-prognosis curve stays above 0.8 at eight years, the medium curve reaches about 0.6 and the poor curve about 0.3. Step functions of the same three colors, the Kaplan-Meier estimates, track each fitted curve closely."}
 cols <- c("steelblue4", "goldenrod3", "firebrick")
 surv_of <- function(g) {
   ndg <- data.frame(recyrs = tg,

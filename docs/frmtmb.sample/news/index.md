@@ -2,13 +2,48 @@
 
 ## frmtmb.sample (development version)
 
+- [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md)
+  refuses parallel chains on Windows when the model’s family comes from
+  a namespace built by
+  [`pkgload::load_all()`](https://pkgload.r-lib.org/reference/load_all.html),
+  naming the package and the two remedies. A worker process cannot load
+  such a namespace, and R silently substitutes the global environment
+  for it, so the family failed at its first internal call and rstan
+  reported only that the chains returned no draws.
+
+- The defaults this package registers with
+  [`frmtmb::get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.html)
+  now answer `route = "sample"` only. Loading this package used to
+  change the table
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.html)
+  returned for every caller, an author asking about
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html)
+  included; it no longer does. Ask for
+  `get_prior(..., route = "sample")` to see what
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md)
+  applies, and with this package unloaded that route is refused rather
+  than reported as flat.
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md)
+  itself is unchanged: the same defaults under the same
+  call-over-fit-over-defaults precedence.
+
+- The frmtmb floor rises to 0.51.0. The registration in `.onLoad()` now
+  passes `frmtmb_register_compat(expects = )`, which frmtmb gained in
+  0.51.0, and an older frmtmb stops the load outright with
+  `unused argument (expects = c("hmm", "lca"))`. The old floor of 0.46.0
+  permitted an installation that could not load, so this is a hard
+  requirement rather than a preference.
+
 - `frmtmb.latent` joins `Suggests`. `hmm()` and `lca()` left frmtmb for
   that package, so the tests here that sample one of them qualify the
-  call and skip when it is absent. The compatibility rules this package
-  registers for those two pairs are unchanged and need no guard: a rule
-  naming a feature the matrix does not have contributes nothing, so
+  call and skip when it is absent. The two compatibility rules this
+  package registers for those pairs are declared in
+  `frmtmb_register_compat(expects = )`, which says they name a feature
+  another package owns. Before frmtmb checked, those rules were dropped
+  without a word in every session that did not also load
+  `frmtmb.latent`; now
   [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.html)
-  is correct whether or not the other package is loaded.
+  reports them as unresolved until it is loaded.
 
 ## frmtmb.sample 0.1.0
 
