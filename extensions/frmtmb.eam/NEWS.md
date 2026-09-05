@@ -1,4 +1,4 @@
-# frmtmb.eam (development version)
+# frmtmb.eam 0.3.0
 
 * RENAMED from frmtmb.ddm. The package holds the linear ballistic
   accumulator, the racing diffusion model and the go/no-go diffusion

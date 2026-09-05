@@ -1,4 +1,4 @@
-# frmtmb.spline (development version)
+# frmtmb.spline 0.2.0
 
 The three things this package had to work around are seams in frmtmb
 0.52.0 now, so it stops working around them. Requires frmtmb

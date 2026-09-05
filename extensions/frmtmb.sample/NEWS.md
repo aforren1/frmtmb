@@ -1,4 +1,4 @@
-# frmtmb.sample (development version)
+# frmtmb.sample 0.2.0
 
 * BEHAVIOR CHANGE, following core. `ranef()` on a `frmtmb_draws`
   object is keyed by the GROUPING FACTOR rather than by the block, so

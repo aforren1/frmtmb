@@ -687,7 +687,9 @@ single_response <- function(fit, what) {
 #'
 #' @noRd
 mean_is_mu <- function(fam) {
-  is.null(fam[["post"]]$mean_fn) ||
+  # a family that declares no mean has no mean: reading its absence as
+  # "the mean is mu" reported a race model's drift as its fitted value
+  !is.null(fam[["post"]]$mean_fn) &&
     identical(body(fam[["post"]]$mean_fn), quote(dpars[["mu"]]))
 }
 

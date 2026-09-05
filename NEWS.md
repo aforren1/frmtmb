@@ -1,4 +1,11 @@
-# frmtmb (development version)
+# frmtmb 0.52.0
+
+A brms prior means what it means in brms; conditional_effects() plots
+the expected response and conditions on a new level; car(type =
+"esicar") is the exactly constrained model; the spline seams a curve
+needs, and ps(), a penalized curve a nonlinear body can consume; and
+the drift-diffusion extension becomes frmtmb.eam with two more
+accumulator families.
 
 * The drift-diffusion extension is renamed frmtmb.eam (evidence
   accumulation models); see its NEWS.
