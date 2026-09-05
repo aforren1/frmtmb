@@ -91,7 +91,7 @@ framework as the regular tests:
 | --- | --- |
 | `NOT_CRAN=true` | The heavy reference-validation files, which compare every model class against glmmTMB, lme4, mgcv, MASS, survival, and the rest. |
 | `FRMTMB_FUZZ=true` | The pairwise grammar fuzzer. Set `FRMTMB_FUZZ_N` to cap the plan size for a quick smoke run. |
-| `FRMTMB_BRMS_FIT_TESTS=true` | The tier that compiles brms Stan programs and compares our estimates against their posterior mode. |
+| `FRMTMB_BRMS_FIT_TESTS=true` | The tier that compiles brms Stan programs and checks that our log-likelihood equals the Stan program's log density at the estimate. |
 
 To run everything:
 
