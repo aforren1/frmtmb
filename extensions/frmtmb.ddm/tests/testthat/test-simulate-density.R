@@ -240,7 +240,8 @@ test_that("lba: the sim slot draws from the density's own conditional", {
 test_that("every family this package defines declares a simulator", {
   # the extension's families all draw through the family seam, so none
   # of them should be refused by frm_simulate() or simulate()
-  fams <- list(wiener = wiener(), lba = lba(2L), gddm = gddm())
+  fams <- list(wiener = wiener(), lba = lba(2L), gddm = gddm(),
+               rdm = rdm(2L), wiener_gng = wiener_gng(deadline = 1.5))
   for (nm in names(fams)) {
     f <- fams[[nm]]
     # gddm derives its simulator from the data, so ask the family it
@@ -256,4 +257,117 @@ test_that("every family this package defines declares a simulator", {
     expect_null(f[["sim_refusal"]],
                 label = paste0(nm, " has no refusal to state"))
   }
+})
+
+# ------------------------------------------------------------------- rdm
+
+test_that("rdm: the sim slot draws from the density's own conditional", {
+  n_acc <- 2L
+  fam <- rdm(n_acc)
+  dp <- list(v1 = 3.0, v2 = 1.8, A = 0.5, k = 0.5, ndt = 0.2)
+  fin <- fam[["family_finalize"]](fam, c(0.5, 0.9), list(vint1 = c(1, 2)))
+  lo <- dp[["ndt"]] + 1e-6
+  hi <- dp[["ndt"]] + 12
+  mass <- 0
+  for (w in seq_len(n_acc)) {
+    at <- list(vint1 = w)
+    cells <- ddm_cells(fin, dp, at, lo, hi)
+    mass <- mass + cells[["mass"]]
+    set.seed(DDM_SEED + w)
+    draws <- fin[["sim"]](lapply(dp, function(v) rep(v, DDM_N)),
+                          list(vint1 = rep(w, DDM_N)), DDM_N)
+    lab <- paste0("rdm[winner ", w, "]")
+    expect_true(all(draws > dp[["ndt"]]),
+                label = paste0(lab, " above the non-decision time"))
+    expect_ddm_gof(draws, cells, lab)
+  }
+  # every drift is positive, so every accumulator arrives eventually and
+  # the winning probabilities are a distribution
+  expect_equal(mass, 1, tolerance = 1e-3)
+})
+
+test_that("rdm: frm_simulate() reaches the family seam", {
+  set.seed(24)
+  n <- 2L * DDM_N
+  d0 <- rdm_simulate(n, v = c(3.0, 1.8), A = 0.5, k = 0.5, ndt = 0.2)
+  dd <- data.frame(rt = d0$rt, w = as.integer(d0$choice))
+  dp <- list(v1 = 3.0, v2 = 1.8, A = 0.5, k = 0.5, ndt = 0.2)
+  s <- frmtmb::frm_simulate(rt | vint(w) ~ 1, dd, family = rdm(2),
+                            # every drift is a primary dpar, so there is
+                            # no bare `Intercept`: each one is named, and
+                            # named on its LINK scale, while A, k and ndt
+                            # take their natural-scale shorthands
+                            newparams = list(v1_Intercept = log(dp[["v1"]]),
+                                             v2_Intercept = log(dp[["v2"]]),
+                                             A = dp[["A"]],
+                                             k = dp[["k"]],
+                                             ndt = dp[["ndt"]]),
+                            nsim = 1L, seed = DDM_SEED)
+  v <- s[["sim_1"]]
+  expect_equal(length(v), n)
+  expect_true(all(v > dp[["ndt"]]))
+  fam <- rdm(2)
+  fin <- fam[["family_finalize"]](fam, dd$rt, list(vint1 = dd$w))
+  for (w in c(1L, 2L)) {
+    idx <- which(dd$w == w)
+    cells <- ddm_cells(fin, dp, list(vint1 = w), dp[["ndt"]] + 1e-6,
+                       dp[["ndt"]] + 12)
+    expect_ddm_gof(v[idx], cells, paste0("rdm/frm_simulate[", w, "]"))
+  }
+})
+
+# ------------------------------------------------------------ wiener_gng
+
+test_that("wiener_gng: the sim slot draws from the go branch's conditional", {
+  td <- 1.5
+  fam <- wiener_gng(deadline = td)
+  dp <- list(mu = 1.0, bs = 1.4, ndt = 0.25, bias = 0.45)
+  fin <- fam[["family_finalize"]](fam, c(0.4, 1.2), list(dec = c(1, 1)))
+  # The go branch's support ENDS at the deadline: past it the trial has
+  # already been recorded as a no-go, so the bracket is not open-ended
+  # the way the other families' are.
+  cells <- ddm_cells(fin, dp, list(dec = 1), dp[["ndt"]] + 1e-9, td)
+  set.seed(DDM_SEED)
+  draws <- fin[["sim"]](lapply(dp, function(v) rep(v, DDM_N)),
+                        list(dec = rep(1, DDM_N)), DDM_N)
+  expect_true(all(draws > dp[["ndt"]] & draws <= td))
+  expect_ddm_gof(draws, cells, "wiener_gng[go]")
+
+  # a no-go row has no response time, so the slot returns the deadline,
+  # which is the placeholder the family documents
+  set.seed(DDM_SEED + 1L)
+  none <- fin[["sim"]](lapply(dp, function(v) rep(v, 100L)),
+                       list(dec = rep(0, 100L)), 100L)
+  expect_true(all(none == td))
+
+  # and the two branches are one distribution: the go density's mass on
+  # its own support plus the no-go probability is exactly one
+  nogo <- exp(fin[["lpdf"]](td, dp, list(dec = 0)))
+  expect_equal(cells[["mass"]] + nogo, 1, tolerance = 1e-3)
+})
+
+test_that("wiener_gng: frm_simulate() reaches the family seam", {
+  set.seed(25)
+  td <- 1.5
+  n <- 2L * DDM_N
+  d0 <- wiener_gng_simulate(n, mu = 1.0, bs = 1.4, ndt = 0.25,
+                            bias = 0.45, deadline = td)
+  dp <- list(mu = 1.0, bs = 1.4, ndt = 0.25, bias = 0.45)
+  s <- frmtmb::frm_simulate(rt | dec(responded) ~ 1, d0,
+                            family = wiener_gng(deadline = td),
+                            newparams = list(Intercept = dp[["mu"]],
+                                             bs = dp[["bs"]],
+                                             ndt = dp[["ndt"]],
+                                             bias = dp[["bias"]]),
+                            nsim = 1L, seed = DDM_SEED)
+  v <- s[["sim_1"]]
+  expect_equal(length(v), n)
+  expect_false(anyNA(v))
+  expect_true(all(v > 0 & v <= td))
+  fam <- wiener_gng(deadline = td)
+  fin <- fam[["family_finalize"]](fam, d0$rt, list(dec = d0$responded))
+  idx <- which(d0$responded == 1)
+  cells <- ddm_cells(fin, dp, list(dec = 1), dp[["ndt"]] + 1e-9, td)
+  expect_ddm_gof(v[idx], cells, "wiener_gng/frm_simulate[go]")
+  expect_true(all(v[d0$responded == 0] == td))
 })

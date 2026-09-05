@@ -437,6 +437,14 @@ lba_race_lpdf <- function(t, choice, law, accs) {
 #'
 #' @noRd
 lba_check_response <- function(y, aterms, n) {
+  # Added at the RDM lane's punch round. Before it, this family FITTED
+  # a model written `rt | dec(two) + vint(choice)`, dropping the dec()
+  # term with no warning and estimates bit-identical to the model
+  # without it, while rdm() -- the sibling race family with the same
+  # dpars and the same formula interface -- refused. Two families that
+  # take the same arguments should not disagree about whether a term
+  # means anything.
+  ddm_refuse_dec("lba", n, aterms)
   if (any(!is.finite(y)) || any(y <= 0)) {
     stop("lba: the response must be a strictly positive, finite ",
          "response time. A time of zero or less has no decision in it ",

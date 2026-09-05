@@ -21,7 +21,11 @@ export(gddm_start_term)
 export(gddm_start_uniform)
 export(lba)
 export(lba_simulate)
+export(rdm)
+export(rdm_simulate)
 export(wiener)
+export(wiener_gng)
+export(wiener_gng_simulate)
 importFrom(frmtmb,
   compat_rule_builder,
   custom_family,
