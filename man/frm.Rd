@@ -162,7 +162,7 @@ marginal likelihood is re-estimated by reweighting draws from the
 Laplace Gaussian, which is unbiased for the exact integral rather
 than accurate to \code{O(n^-1)}. Like \code{quadrature = TRUE} it is worth
 it for binary responses in small clusters, and unlike it, the
-block may have any dimension: this is the correction for a
+blocks may have any dimension: this is the correction for a
 correlated random slope, where quadrature cannot go.
 
 The cost is one tape of \code{N} stacked copies of the likelihood, so
@@ -171,16 +171,23 @@ rounded up to the next even one, because the draws are taken in
 antithetic pairs (measured on this package's own probe design,
 the pairing is worth two to three times the draws it costs).
 
-Scope, with everything else refused by name: exactly one
-random-effect block over a grouping factor, of any dimension and
-any covariance structure that is Gaussian within a level and
-independent between levels; one response; a family with a rowwise
-density. Not with \code{quadrature}, \code{REML = TRUE},
+Scope, with everything else refused by name: any number of
+random-effect blocks, of any dimension, provided they share ONE
+grouping factor and one set of levels, in any covariance
+structure that is Gaussian within a level and independent
+between levels; one response; a family with a rowwise density.
+Not with \code{quadrature}, \code{REML = TRUE},
 \code{frmtmb_control(profile = TRUE)}, \code{mi()}, a residual correlation
 term, \code{rescor}, a nonlinear predictor, or \code{cs()}. \code{trunc()} and
 \code{cens()} are supported: the draws sit near the conditional mode,
 which is why the truncation normalizer that underflows at the
 Gauss-Kronrod nodes does not underflow here.
+
+Distributional regression writes several blocks by construction:
+\code{(1 | g)} in \code{mu} and \code{(1 | g)} in \code{sigma} are two blocks over
+\code{g}, and a level's coefficients from both are drawn together
+from one joint proposal. Blocks over DIFFERENT grouping factors,
+crossed or nested, are refused.
 
 The fit records the draw count, the seed, the rounds taken, the
 per-group effective sample sizes and the Monte Carlo standard

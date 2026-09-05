@@ -242,9 +242,9 @@ frmtmb_compat_groups_lst <- list(
                       "zero_inflated_binomial", "multinomial"),
   # quadrature marginalizes one scalar random effect at a time
   quadrature_blocks = c("us", "diag", "homdiag"),
-  # the importance correction reweights ONE block of any dimension, so
-  # it needs the block density to be gaussian within a level and
-  # independent between levels
+  # the importance correction reweights any number of blocks over ONE
+  # grouping factor, of any dimension, so it needs each block's density
+  # to be gaussian within a level and independent between levels
   importance_blocks = c("us", "diag", "homdiag", "cs", "homcs", "toep",
                         "homtoep", "ar1", "hetar1", "ou", "exp", "gau",
                         "mat"),
@@ -437,9 +437,9 @@ frmtmb_compat_rules_tbl <- function() {
 
   ## importance ------------------------------------------------------
   r("importance", "group:importance_blocks", "conditional",
-    "Allowed for exactly ONE such block, of any dimension. This is the correction for a correlated random slope, which quadrature cannot marginalize at all. Several blocks are refused: the integral becomes a nested one whose groups do not separate into independent proposals.")
+    "Allowed for any number of such blocks, of any dimension, provided they all sit over ONE grouping factor and carry the same levels. This is the correction for a correlated random slope, which quadrature cannot marginalize at all, and for the several blocks distributional regression writes: (1 | g) in mu together with (1 | g) in sigma is two blocks over g, and a level's coefficients from both are drawn together from one joint proposal. Blocks over DIFFERENT grouping factors, crossed or nested, are refused by name: the marginal likelihood is then one integral over every factor at once and does not split into the per-group integrals the correction resamples.")
   r("importance", "group:importance_refused_blocks", "refused",
-    "Refused by name at the scope check. The Student-t latents (us_t, diag_t) factorize over grouping levels but are not gaussian in a level's coefficients, and the correction recovers each level's prior density from the block density by reading off a precision matrix, which would silently return a gaussian approximation to a t density; measured, that alone moves the corrected log-likelihood by 0.355. rr holds its parameters in a lower-dimensional factor space than its Z columns, so a group's coefficients are not the contiguous per-level slice the proposal is built from. smooth, gp and hsgp are one field over all observations with no grouping factor, so there are no independent groups to give separate proposals to.")
+    "Refused by name at the scope check. The Student-t latents (us_t, diag_t) factorize over grouping levels but are not gaussian in a level's coefficients, and the correction recovers each level's prior density from the block density by reading off a precision matrix, which would silently return a gaussian approximation to a t density; measured, that alone moves the corrected log-likelihood by 0.355. rr holds its parameters in a lower-dimensional factor space than its Z columns, so the positions the proposal draws into are not the positions the objective reads. smooth, gp and hsgp are one field over all observations with no grouping factor, so there are no independent groups to give separate proposals to.")
   r("importance", "group:crosslevel_blocks", "refused",
     "Refused: these structures correlate the grouping LEVELS with each other through a supplied relationship or neighbor matrix, so the marginal likelihood is one integral over every level at once and does not split into the per-group integrals the correction resamples.")
   r("importance", "group:post_fit", "works",
@@ -457,6 +457,8 @@ frmtmb_compat_rules_tbl <- function() {
   r("importance", "cens()", "works",
     "Verified on a right-censored lognormal in 40 groups of 6, 52 of 240 censored: the Laplace negative log-likelihood of 311.1358 becomes 311.0847, the minimum effective sample size is 0.98 and the median 1.00, and the estimates agree with the Laplace fit to three decimals where the correction is small.")
   r("importance", "weights()", "works", "Verified by a tiny fit.")
+  r("importance", "double_bar", "works",
+    "(1 + x || g) builds two diag blocks over one grouping factor, which the correction takes: a level's coefficients from both blocks are drawn together from one joint proposal. Verified at 1000 draws on 20 groups of 6 gaussian rows, where the Laplace approximation is exact: the correction reproduces it to 6e-05 in two rounds, with every importance weight equal (minimum effective sample size 1.000). The weights are equal at every draw count, but the round loop is not free of the draw count: at 200 draws this design exhausts its five rounds and warns.")
   r("importance", "nl", "refused",
     "Refused: a nonlinear body mixes parameter values with raw data columns, and the corrected objective evaluates the predictor once per draw, where a data column would recycle silently against the longer vector.")
   r("importance", "cs_pred()", "refused",

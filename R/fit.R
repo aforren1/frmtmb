@@ -146,7 +146,7 @@
 #'   Laplace Gaussian, which is unbiased for the exact integral rather
 #'   than accurate to `O(n^-1)`. Like `quadrature = TRUE` it is worth
 #'   it for binary responses in small clusters, and unlike it, the
-#'   block may have any dimension: this is the correction for a
+#'   blocks may have any dimension: this is the correction for a
 #'   correlated random slope, where quadrature cannot go.
 #'
 #'   The cost is one tape of `N` stacked copies of the likelihood, so
@@ -155,16 +155,23 @@
 #'   antithetic pairs (measured on this package's own probe design,
 #'   the pairing is worth two to three times the draws it costs).
 #'
-#'   Scope, with everything else refused by name: exactly one
-#'   random-effect block over a grouping factor, of any dimension and
-#'   any covariance structure that is Gaussian within a level and
-#'   independent between levels; one response; a family with a rowwise
-#'   density. Not with `quadrature`, `REML = TRUE`,
+#'   Scope, with everything else refused by name: any number of
+#'   random-effect blocks, of any dimension, provided they share ONE
+#'   grouping factor and one set of levels, in any covariance
+#'   structure that is Gaussian within a level and independent
+#'   between levels; one response; a family with a rowwise density.
+#'   Not with `quadrature`, `REML = TRUE`,
 #'   `frmtmb_control(profile = TRUE)`, `mi()`, a residual correlation
 #'   term, `rescor`, a nonlinear predictor, or `cs()`. `trunc()` and
 #'   `cens()` are supported: the draws sit near the conditional mode,
 #'   which is why the truncation normalizer that underflows at the
 #'   Gauss-Kronrod nodes does not underflow here.
+#'
+#'   Distributional regression writes several blocks by construction:
+#'   `(1 | g)` in `mu` and `(1 | g)` in `sigma` are two blocks over
+#'   `g`, and a level's coefficients from both are drawn together
+#'   from one joint proposal. Blocks over DIFFERENT grouping factors,
+#'   crossed or nested, are refused.
 #'
 #'   The fit records the draw count, the seed, the rounds taken, the
 #'   per-group effective sample sizes and the Monte Carlo standard
@@ -933,14 +940,13 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
          REML = REML, estimates = est, prior = prior,
          bform = bform, call = cl, data2 = data2,
          control = control, quadrature = isTRUE(quadrature),
-         importance = imp_record(imp, frame),
+         importance = imp_record(imp),
          lower = lower_arg, upper = upper_arg, par_units = par_units,
          cache = new.env(parent = emptyenv())),
     class = "frmtmb_fit"
   )
   if (!is.null(imp)) {
-    imp_ess_warning(imp$ess$ess, frame[["re_blocks"]][[1L]],
-                    imp$plan[["n_draw"]],
+    imp_ess_warning(imp$ess$ess, imp$lay, imp$plan[["n_draw"]],
                     control$importance_ess %||% imp_ess_floor)
   }
   if (se) {
@@ -1306,9 +1312,17 @@ sdr_of <- function(fit) {
 #'   each round actually taken costs one tape.
 #' @param importance_ess Effective sample size, as a fraction of the
 #'   draw count, below which `frm(importance =)` warns and names the
-#'   groups. The default `0.25` is placed by measurement: the hardest
-#'   design in the test suite holds `0.43` at its own optimum, and a
-#'   proposal displaced far enough to matter falls below `0.01`.
+#'   groups. The default `0.25` separates two measured regimes rather
+#'   than clearing every design. A proposal that is working sits near
+#'   the top of the range: the probe design behind this correction (60
+#'   groups of 8 Bernoulli rows, correlated slope) holds a worst group
+#'   of `0.95` at 1000 draws, and a gaussian response, where the
+#'   correction has nothing to correct, holds exactly `1` at any draw
+#'   count. Displacing that probe's two log standard deviations by half
+#'   a unit takes its worst group to `0.03`. The designs the warning is
+#'   FOR sit between the two, and draws are what move them: a correlated
+#'   slope in `mu` plus a `sigma` block over 12 groups of 10 rows holds
+#'   a worst group of `0.17` at 500 draws and `0.40` at 2000.
 #' @param verbose Report fit progress through [message()], one terse
 #'   line per stage with its elapsed seconds, so a slow fit shows where
 #'   the time went. `FALSE` (default) is silent and costs nothing.

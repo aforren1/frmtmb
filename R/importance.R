@@ -155,52 +155,141 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
          "fixes coefficients across levels. Use importance = 0",
          call. = FALSE)
   }
-  blocks <- frame[["re_blocks"]]
-  if (length(blocks) != 1L) {
-    stop("`importance` supports exactly one random-effect block, and ",
-         "this model has ", length(blocks),
-         if (length(blocks)) {
-           paste0(" (", paste(vapply(blocks, function(bk) {
-             bk[["term_label"]]
-           }, ""), collapse = ", "), ")")
-         },
-         ". Several blocks make the integral a nested one, whose ",
-         "groups do not separate into independent proposals. Fit with ",
-         "importance = 0", call. = FALSE)
+  blocks <- frame[["re_blocks"]] %||% list()
+  if (!length(blocks)) {
+    stop("`importance` needs a random-effect block to correct, and this ",
+         "model has none. The correction reweights an integral over ",
+         "random effects, and a model without any has no such integral ",
+         "and no approximation to improve on. Use importance = 0",
+         call. = FALSE)
   }
-  bk <- blocks[[1L]]
-  if (is.null(bk[["levels"]])) {
-    stop("`importance` needs a grouping factor, and `",
-         bk[["term_label"]], "` has none: a smooth, a Gaussian ",
-         "process or an HSGP basis is one field over all ",
-         "observations, so there are no independent groups to give ",
-         "separate proposals to. Use importance = 0", call. = FALSE)
+  labs <- vapply(blocks, function(bk) bk[["term_label"]], "")
+  for (bk in blocks) {
+    if (is.null(bk[["levels"]])) {
+      stop("`importance` needs a grouping factor, and `",
+           bk[["term_label"]], "` has none: a smooth, a Gaussian ",
+           "process or an HSGP basis is one field over all ",
+           "observations, so there are no independent groups to give ",
+           "separate proposals to. Use importance = 0", call. = FALSE)
+    }
   }
-  if (bk[["covstruct"]] %in% imp_crosslevel) {
-    stop("`importance` cannot correct the '", bk[["covstruct"]],
-         "' structure in `", bk[["term_label"]], "`: it correlates the ",
-         "grouping LEVELS with each other through a supplied ",
-         "relationship or neighbor matrix, so the marginal likelihood ",
-         "is one integral over every level at once and does not split ",
-         "into per-group ones. Use importance = 0", call. = FALSE)
+  # SEVERAL BLOCKS, ONE FACTOR. Distributional regression writes them
+  # by construction: `(1 | g)` in mu and `(1 | g)` in sigma are two
+  # blocks, never one, because only an |ID| key merges terms. They
+  # still factorize over the levels of g, so a level's coefficients
+  # from every block are drawn together from one joint proposal and
+  # the integral stays a product over groups. Blocks over DIFFERENT
+  # factors do not: the integral is nested, and no per-group proposal
+  # exists for it.
+  grps <- vapply(blocks, function(bk) bk[["group_name"]] %||% NA_character_, "")
+  if (length(unique(grps)) != 1L) {
+    stop("`importance` takes several random-effect blocks only when ",
+         "they share ONE grouping factor, and this model spreads ",
+         length(blocks), " blocks over ", length(unique(grps)),
+         " factors (",
+         paste0("`", labs, "` over ", grps, collapse = ", "),
+         "). Crossed or nested factors make the marginal likelihood ",
+         "one integral over every factor at once, which does not ",
+         "split into the per-group integrals the correction resamples. ",
+         "Fit with importance = 0", call. = FALSE)
   }
-  if (!bk[["covstruct"]] %in% imp_covstructs) {
-    stop("`importance` cannot correct the '", bk[["covstruct"]],
-         "' structure in `", bk[["term_label"]], "`. The correction ",
-         "recovers each level's prior density from the block density, ",
-         "which needs that density to be Gaussian in the level's ",
-         "coefficients and independent between levels; the supported ",
-         "structures are ",
-         paste(imp_covstructs, collapse = ", "),
-         ". Use importance = 0", call. = FALSE)
+  lv <- blocks[[1L]][["levels"]]
+  for (i in seq_along(blocks)[-1L]) {
+    if (identical(blocks[[i]][["levels"]], lv)) next
+    odd <- setdiff(union(lv, blocks[[i]][["levels"]]),
+                   intersect(lv, blocks[[i]][["levels"]]))
+    stop("`importance` needs every block over `", grps[[1L]],
+         "` to carry the same grouping levels, and `", labs[[1L]],
+         "` has ", length(lv), " where `", labs[[i]], "` has ",
+         length(blocks[[i]][["levels"]]),
+         if (length(odd)) paste0(" (first difference: '", odd[[1L]], "')"),
+         ". The proposal draws one level's coefficients from every ",
+         "block at once, so a level carried by only some of them has ",
+         "no joint Gaussian to be drawn from. Fit with importance = 0",
+         call. = FALSE)
+  }
+  for (bk in blocks) {
+    if (bk[["covstruct"]] %in% imp_crosslevel) {
+      stop("`importance` cannot correct the '", bk[["covstruct"]],
+           "' structure in `", bk[["term_label"]], "`: it correlates the ",
+           "grouping LEVELS with each other through a supplied ",
+           "relationship or neighbor matrix, so the marginal likelihood ",
+           "is one integral over every level at once and does not split ",
+           "into per-group ones. Use importance = 0", call. = FALSE)
+    }
+    if (!bk[["covstruct"]] %in% imp_covstructs) {
+      stop("`importance` cannot correct the '", bk[["covstruct"]],
+           "' structure in `", bk[["term_label"]], "`. The correction ",
+           "recovers each level's prior density from the block density, ",
+           "which needs that density to be Gaussian in the level's ",
+           "coefficients and independent between levels; the supported ",
+           "structures are ",
+           paste(imp_covstructs, collapse = ", "),
+           ". Use importance = 0", call. = FALSE)
+    }
   }
   invisible(NULL)
+}
+
+#' WHERE A GROUP'S COEFFICIENTS LIVE. The one object the whole
+#' several-blocks generalization turns on.
+#'
+#' `b` is level-major WITHIN a block, so a level's `dim` coefficients
+#' are consecutive there; but the blocks are CONCATENATED, so with more
+#' than one block over the factor a group owns one such run per block
+#' and the runs sit `n_levels * dim` apart. A group's coefficients are
+#' then scattered, and the contiguous spelling `(k - 1) * q +
+#' seq_len(q)` is wrong in every place it appeared.
+#'
+#' `idx` is that index: `q` rows by `n_group` columns, column k holding
+#' the positions group k owns, blocks in order. Every consumer reads a
+#' column of it (the Hessian slice, the draw placement, the
+#' verification swap) or a row of it (the half-norms, the
+#' per-coefficient draw slices), so the sites cannot drift apart the
+#' way five separate spellings could. `pos_group` is its transpose as a
+#' lookup, one group label per position, which is what the Hessian
+#' block-diagonality gate needs.
+#'
+#' Positions are `c_idx`, the Z column space. It coincides with the `b`
+#' parameter space for every structure in `imp_covstructs`; `rr`, the
+#' one structure where the two differ, is refused by the whitelist, and
+#' `imp_plan()`'s count check would catch it anyway because its two
+#' spaces have different lengths.
+#'
+#' @noRd
+imp_layout <- function(blocks) {
+  q <- vapply(blocks, function(bk) as.integer(bk[["dim"]]), 1L)
+  ng <- blocks[[1L]][["n_levels"]]
+  offset <- cumsum(c(0L, q))[seq_along(q)]
+  qt <- sum(q)
+  idx <- matrix(0L, qt, ng)
+  for (m in seq_along(blocks)) {
+    # level-major within the block is exactly what makes a block's
+    # contribution one reshape: column k of the reshape is level k's
+    # run, and it lands on the block's own rows of the group's vector
+    idx[offset[[m]] + seq_len(q[[m]]), ] <-
+      matrix(blocks[[m]][["c_idx"]], q[[m]], ng)
+  }
+  pos_group <- integer(qt * ng)
+  pos_group[as.vector(idx)] <- rep(seq_len(ng), each = qt)
+  list(blocks = blocks, q = q, offset = offset, qt = qt, n_group = ng,
+       nb = qt * ng, idx = idx, pos_group = pos_group,
+       levels = blocks[[1L]][["levels"]],
+       group_name = blocks[[1L]][["group_name"]],
+       label = paste(vapply(blocks, function(bk) bk[["term_label"]], ""),
+                     collapse = " + "))
 }
 
 #' Which grouping level each observation's random-effect contribution
 #' belongs to, read off the sparsity of `Z` rather than off the model
 #' frame: `Z` is what the objective actually multiplies, so a row that
 #' reaches two levels is visible here and nowhere else.
+#'
+#' Gathered across EVERY block, not one, so the same pass that catches
+#' a multi-membership term also catches two blocks that disagree about
+#' which level a row belongs to. That second reading is what makes
+#' "one factor with one level set" a measured property of `Z` rather
+#' than an inference from two matching `group_name` strings.
 #'
 #' A row reaching NO level (an all-zero `Z` row) is assigned to the
 #' first group on purpose. Its density does not depend on `u` at all,
@@ -210,40 +299,55 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
 #' so its effective sample size is unchanged too.
 #'
 #' @noRd
-imp_group_map <- function(frame, bk) {
+imp_group_map <- function(frame, lay) {
   n <- frame[["n_obs"]]
-  ci <- bk[["c_idx"]]
-  # level-major: a level's `dim` coefficients are consecutive in c_idx
-  col_level <- rep(seq_len(bk[["n_levels"]]), each = bk[["dim"]])
-  row_level <- integer(n)
-  for (lp in frame[["linpreds"]]) {
-    if (is.null(lp[["Z"]])) next
-    tz <- methods::as(lp[["Z"]][, ci, drop = FALSE], "TsparseMatrix")
-    if (!length(tz@i)) next
-    rr <- tz@i + 1L
-    ll <- col_level[tz@j + 1L]
-    # one entry per (row, level) pair; a row that keeps two of them
-    # touches two groups and the integral does not factorize
-    keep <- !duplicated(rr * (bk[["n_levels"]] + 1L) + ll)
-    rr <- rr[keep]
-    ll <- ll[keep]
-    clash <- unique(rr[duplicated(rr)])
-    if (length(clash)) {
-      stop("`importance` needs every observation to belong to one ",
-           "grouping level, and ", length(clash), " of them reach ",
-           "several through `", bk[["term_label"]], "` (first at row ",
-           min(clash), "). A multi-membership term shares a row ",
-           "between groups, so the marginal likelihood does not split ",
-           "into per-group integrals. Use importance = 0",
-           call. = FALSE)
+  ng <- lay[["n_group"]]
+  rows <- list()
+  levs <- list()
+  labs <- list()
+  for (bk in lay[["blocks"]]) {
+    ci <- bk[["c_idx"]]
+    # level-major: a level's `dim` coefficients are consecutive in c_idx
+    col_level <- rep(seq_len(bk[["n_levels"]]), each = bk[["dim"]])
+    for (lp in frame[["linpreds"]]) {
+      if (is.null(lp[["Z"]])) next
+      tz <- methods::as(lp[["Z"]][, ci, drop = FALSE], "TsparseMatrix")
+      if (!length(tz@i)) next
+      rows[[length(rows) + 1L]] <- tz@i + 1L
+      levs[[length(levs) + 1L]] <- col_level[tz@j + 1L]
+      labs[[length(labs) + 1L]] <- rep(bk[["term_label"]], length(tz@i))
     }
-    row_level[rr] <- ll
   }
+  rr <- unlist(rows, use.names = FALSE) %||% integer(0)
+  ll <- unlist(levs, use.names = FALSE) %||% integer(0)
+  tl <- unlist(labs, use.names = FALSE) %||% character(0)
+  # one entry per (row, level) pair; a row that keeps two of them
+  # touches two groups and the integral does not factorize. The key is
+  # formed in DOUBLE arithmetic: n * (ng + 1) overflows an integer on a
+  # design of a few million rows, and an NA key would silently drop the
+  # very clash this is looking for.
+  keep <- !duplicated(as.numeric(rr) * (ng + 1) + ll)
+  rr <- rr[keep]
+  ll <- ll[keep]
+  tl <- tl[keep]
+  clash <- unique(rr[duplicated(rr)])
+  if (length(clash)) {
+    stop("`importance` needs every observation to belong to one ",
+         "grouping level, and ", length(clash), " of them reach ",
+         "several through `",
+         paste(unique(tl[rr %in% clash]), collapse = "`, `"),
+         "` (first at row ", min(clash), "). A multi-membership term ",
+         "shares a row between groups, so the marginal likelihood does ",
+         "not split into per-group integrals. Use importance = 0",
+         call. = FALSE)
+  }
+  row_level <- integer(n)
+  row_level[rr] <- ll
   row_level[row_level == 0L] <- 1L
   list(row_level = row_level,
        S = Matrix::sparseMatrix(i = row_level, j = seq_len(n),
                                 x = rep(1, n),
-                                dims = c(bk[["n_levels"]], n)))
+                                dims = c(ng, n)))
 }
 
 #' Antithetic standard normal draws: `n_draw / 2` columns and their
@@ -290,29 +394,36 @@ imp_n_draw <- function(n) 2L * ((as.integer(n) + 1L) %/% 2L)
 #' that makes the whole per-group construction valid.
 #'
 #' @noRd
-imp_plan <- function(lap_obj, frame, bk, par, n_draw, seed) {
+imp_plan <- function(lap_obj, frame, lay, par, n_draw, seed) {
   lap_obj$fn(par)                       # inner solve leaves the modes
   full <- lap_obj$env$last.par
   uhat <- as.numeric(full[lap_obj$env$random])
   hess <- lap_obj$env$spHess(full, random = TRUE)
-  q <- bk[["dim"]]
-  ng <- bk[["n_levels"]]
-  nb <- q * ng
+  # q is the group's TOTAL dimension, summed over the blocks: one
+  # proposal per group, over every coefficient that group owns. The
+  # blocks are independent given theta, but the LIKELIHOOD couples them
+  # within a group (a group's rows read its mu block and its sigma
+  # block at once), so the joint Hessian is the right proposal and its
+  # cross-block entries are load-bearing, not noise.
+  q <- lay[["qt"]]
+  ng <- lay[["n_group"]]
+  nb <- lay[["nb"]]
+  idx <- lay[["idx"]]
   if (length(uhat) != nb) {
     stop("`importance` expected ", nb, " conditional modes for `",
-         bk[["term_label"]], "` and the Laplace fit reports ",
+         lay[["label"]], "` and the Laplace fit reports ",
          length(uhat), ". The proposal is built per grouping level, so ",
          "the two counts have to agree", call. = FALSE)
   }
   th <- methods::as(hess, "TsparseMatrix")
-  lev <- rep(seq_len(ng), each = q)
+  lev <- lay[["pos_group"]]
   cross <- lev[th@i + 1L] != lev[th@j + 1L]
   if (any(cross)) {
     worst <- max(abs(th@x[cross]))
     scale <- max(abs(Matrix::diag(hess)))
     if (worst > 1e-8 * scale) {
       stop("`importance` needs the conditional Hessian of `",
-           bk[["term_label"]], "` to be block diagonal by grouping ",
+           lay[["label"]], "` to be block diagonal by grouping ",
            "level, and it is not: the largest entry linking two levels ",
            "is ", format(worst, digits = 3), " against a diagonal of ",
            format(scale, digits = 3), ". The groups are then not ",
@@ -326,28 +437,31 @@ imp_plan <- function(lap_obj, frame, bk, par, n_draw, seed) {
   u <- matrix(0, nb, nd)
   logdet_l <- numeric(ng)
   if (q == 1L) {
-    # the scalar case is the common one and needs no factorization at
-    # all: H is a diagonal, so L is one reciprocal square root per level
-    hd <- Matrix::diag(hess)
+    # one scalar block and nothing else: H is a diagonal, so L is one
+    # reciprocal square root per level and no factorization is needed.
+    # Still addressed through `idx`, so the fast path reads the same
+    # index as the general one rather than re-deriving the layout.
+    p1 <- idx[1L, ]
+    hd <- Matrix::diag(hess)[p1]
     if (any(!is.finite(hd)) || any(hd <= 0)) {
       stop("`importance` found a non-positive conditional variance for ",
            sum(!is.finite(hd) | hd <= 0), " level(s) of `",
-           bk[["term_label"]], "`, so no Gaussian proposal exists ",
+           lay[["label"]], "`, so no Gaussian proposal exists ",
            "there. The Laplace fit is at a singular variance ",
            "component; refit it first", call. = FALSE)
     }
     sdv <- 1 / sqrt(hd)
-    u <- uhat + sdv * z
+    u[p1, ] <- uhat[p1] + sdv * z[p1, , drop = FALSE]
     logdet_l <- log(sdv)
   } else {
     for (k in seq_len(ng)) {
-      ii <- (k - 1L) * q + seq_len(q)
+      ii <- idx[, k]
       hk <- as.matrix(hess[ii, ii, drop = FALSE])
       pk <- tryCatch(chol(hk), error = function(e) NULL)
       if (is.null(pk)) {
         stop("`importance` could not factor the conditional Hessian of ",
-             "level '", bk[["levels"]][k], "' in `", bk[["term_label"]],
-             "': it is not positive definite, so that group has no ",
+             "level '", lay[["levels"]][k], "' in `", lay[["label"]],
+             "`: it is not positive definite, so that group has no ",
              "Gaussian proposal. The Laplace fit sits on a singular ",
              "variance component; refit it first", call. = FALSE)
       }
@@ -358,14 +472,17 @@ imp_plan <- function(lap_obj, frame, bk, par, n_draw, seed) {
       logdet_l[k] <- -sum(log(diag(pk)))
     }
   }
-  # 0.5 |z_{g,i}|^2, one value per group and draw
+  # 0.5 |z_{g,i}|^2, one value per group and draw. Row j of `idx` is
+  # the j-th coefficient of every group at once, which is what makes
+  # this a q-term loop over G x N matrices and not a loop over groups.
   zsq <- matrix(0, ng, nd)
   for (j in seq_len(q)) {
-    zsq <- zsq + z[(seq_len(ng) - 1L) * q + j, , drop = FALSE]^2
+    zsq <- zsq + z[idx[j, ], , drop = FALSE]^2
   }
   zsq <- 0.5 * zsq
   list(u = u, zsq = zsq, logdet_l = logdet_l, n_draw = nd, par = par,
-       uhat = uhat, q = q, n_group = ng, levels = bk[["levels"]])
+       uhat = uhat, q = q, n_group = ng, levels = lay[["levels"]],
+       idx = idx)
 }
 
 #' Repeat an observation-length quantity once per draw. Anything that
@@ -398,8 +515,42 @@ imp_expand <- function(v, ridx, n) {
 #' the precision matrix. q + q(q+1)/2 + 1 small evaluations, taped
 #' once, and the gaussian identity test pins the result exactly.
 #'
+#' With several blocks over the factor the group's log prior is their
+#' SUM: the blocks are independent given theta, so the group's
+#' precision is block diagonal and no cross terms appear, and each
+#' block reads only its own slice of the group's coefficients. Each
+#' term is extracted from its own block's registry density at its own
+#' theta.
+#'
 #' @noRd
-imp_prior_terms <- function(bk, u_slices) {
+imp_prior_terms <- function(lay, u_slices) {
+  per <- lapply(seq_along(lay[["blocks"]]), function(m) {
+    imp_block_prior(lay[["blocks"]][[m]],
+                    u_slices[lay[["offset"]][[m]] +
+                               seq_len(lay[["q"]][[m]])])
+  })
+  tix <- lapply(lay[["blocks"]], function(bk) bk[["theta_idx"]])
+  function(theta) {
+    out <- per[[1L]](theta[tix[[1L]]])
+    for (m in seq_along(per)[-1L]) {
+      out <- out + per[[m]](theta[tix[[m]]])
+    }
+    out
+  }
+}
+
+#' One block's contribution to that sum, on the coefficient slices it
+#' owns. Factored out of `imp_prior_terms()` so the extraction is
+#' written once whatever the block count.
+#'
+#' It needs no `ADoverload()` of its own: the arithmetic here is `*`
+#' and `+` on advectors, and `covstruct_registry[[k]]$nll` installs the
+#' overloads it needs itself (R/covstruct.R). That is worth stating
+#' rather than assuming, because an overload lost in a factoring-out
+#' fails far from its cause.
+#'
+#' @noRd
+imp_block_prior <- function(bk, u_slices) {
   bfn <- covstruct_registry[[bk[["covstruct"]]]]$nll
   q <- bk[["dim"]]
   bk1 <- bk
@@ -447,7 +598,7 @@ imp_prior_terms <- function(bk, u_slices) {
 #' optimized and not a second computation of it.
 #'
 #' @noRd
-build_importance_objective <- function(frame, bk, gmap, plan) {
+build_importance_objective <- function(frame, lay, gmap, plan) {
   lps <- frame[["linpreds"]]
   spec <- frame[["spec"]]
   rn <- names(spec$responses)[[1L]]
@@ -470,13 +621,15 @@ build_importance_objective <- function(frame, bk, gmap, plan) {
     if (is.null(lp[["Z"]])) return(NULL)
     as.vector(as.matrix(lp[["Z"]] %*% plan[["u"]]))
   })
-  # one G x N slice per within-level coefficient; the quadratic form
-  # multiplies pairs of them, and the products are formed inside the
-  # closure so only q slices are held on the R side
+  # one G x N slice per within-GROUP coefficient, gathered by row j of
+  # the scattered index rather than by a stride, because a group's
+  # coefficients are only contiguous when there is one block. The
+  # quadratic form multiplies pairs of them, and the products are
+  # formed inside the closure so only q slices are held on the R side
   u_slices <- lapply(seq_len(q), function(j) {
-    plan[["u"]][(seq_len(ng) - 1L) * q + j, , drop = FALSE]
+    plan[["u"]][plan[["idx"]][j, ], , drop = FALSE]
   })
-  prior_fn <- imp_prior_terms(bk, u_slices)
+  prior_fn <- imp_prior_terms(lay, u_slices)
   zsq <- plan[["zsq"]]
   # A per-group constant subtracted before the exponential, so that the
   # weights sit near 1 at the anchor. It cancels exactly from the
@@ -510,7 +663,7 @@ build_importance_objective <- function(frame, bk, gmap, plan) {
     # dimensions through exp(). The test is on CLASS, so it resolves
     # while the tape is being built and leaves no branch on it.
     if (!inherits(agg, "advector")) agg <- as.matrix(agg)
-    agg + prior_fn(pars[["theta"]][bk[["theta_idx"]]]) + zsq
+    agg + prior_fn(pars[["theta"]]) + zsq
   }
 
   list(amat = amat,
@@ -583,7 +736,6 @@ imp_verify <- function(io, nll, plan, template, par) {
   a <- as.matrix(io$amat(pars))
   nd <- plan[["n_draw"]]
   ng <- plan[["n_group"]]
-  q <- plan[["q"]]
   refuse <- function(what, ours, theirs) {
     stop("`importance` could not reproduce this model's joint ",
          "log-density from its per-group pieces (", what, ": ",
@@ -620,7 +772,10 @@ imp_verify <- function(io, nll, plan, template, par) {
   }
   for (g in gs) {
     swapped <- base
-    idx <- (g - 1L) * q + seq_len(q)
+    # the group's positions in `b`, scattered across the blocks: swap
+    # the WHOLE group and nothing else, or the difference below stops
+    # isolating one group's term
+    idx <- plan[["idx"]][, g]
     swapped[["b"]][idx] <- plan[["u"]][idx, 1L]
     theirs <- nll_base - nll(swapped)
     if (!agrees(mine[g], theirs)) {
@@ -675,8 +830,8 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
   if (vb) t0 <- vb_now()
   lap_opt <- optimize_obj(lap_obj, control, bounds, par_units)
   if (vb) vb_stage("importance warm start", t0, vb_opt_detail(lap_opt))
-  bk <- frame[["re_blocks"]][[1L]]
-  gmap <- imp_group_map(frame, bk)
+  lay <- imp_layout(frame[["re_blocks"]])
+  gmap <- imp_group_map(frame, lay)
   otpl <- imp_template(template, random)
   omap <- map[intersect(names(map), names(otpl))]
   if (!length(omap)) omap <- NULL
@@ -690,8 +845,8 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
   # branch on parameter values the way a running maximum would.
   freeze <- function(at, verify) {
     if (vb) tf <- vb_now()
-    plan <- imp_plan(lap_obj, frame, bk, at, n_draw, seed)
-    io <- build_importance_objective(frame, bk, gmap, plan)
+    plan <- imp_plan(lap_obj, frame, lay, at, n_draw, seed)
+    io <- build_importance_objective(frame, lay, gmap, plan)
     amat <- as.matrix(io$amat(imp_par_list(template, at)))
     io$set_offset(apply(amat, 1L, max))
     if (verify) imp_verify(io, nll, plan, template, at)
@@ -789,7 +944,7 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
          length(moves), " rounds, so the iteration moved away from the ",
          "answer instead of toward it. That is what an unidentified ",
          "covariance does to it: check whether the Laplace fit itself ",
-         "converged and whether `", bk[["term_label"]], "` has enough ",
+         "converged and whether `", lay[["label"]], "` has enough ",
          "rows per group to identify every variance component",
          call. = FALSE)
   }
@@ -799,7 +954,11 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
                     format(min(ess$ess), digits = 3), ", MCSE ",
                     format(ess$mcse, digits = 3)))
   }
+  # the layout goes out with the fit because the reporting sites name a
+  # level and a grouping factor, and it is the object that owns the one
+  # level set every block over the factor shares
   list(obj = fz$obj, opt = opt, plan = fz$plan, ess = ess, io = fz$io,
+       lay = lay,
        rounds = length(moves), moved = moves[length(moves)], moves = moves,
        seed = seed, grad = grad, grads = grads,
        start_value = start_value, start_ess_min = min(start_ess$ess),
@@ -856,15 +1015,14 @@ imp_ess_floor <- 0.25
 #' whether the rounds settled.
 #'
 #' @noRd
-imp_record <- function(imp, frame) {
+imp_record <- function(imp) {
   if (is.null(imp)) return(NULL)
   list(draws = imp$plan[["n_draw"]], seed = imp$seed, rounds = imp$rounds,
        moved = imp$moved, moves = imp$moves, capped = imp$capped,
        grad = imp$grad, grads = imp$grads,
        start_value = imp$start_value,
        ess_min = min(imp$ess$ess), ess_median = stats::median(imp$ess$ess),
-       ess = stats::setNames(imp$ess$ess,
-                             frame[["re_blocks"]][[1L]][["levels"]]),
+       ess = stats::setNames(imp$ess$ess, imp$lay[["levels"]]),
        mcse = imp$ess$mcse)
 }
 
@@ -872,14 +1030,19 @@ imp_record <- function(imp, frame) {
 #' an error: the estimate is still unbiased, it is only noisy, and the
 #' remedy (more draws) is the user's to weigh.
 #'
+#' Named by the GROUPING FACTOR and not by a term label, because one
+#' proposal covers a level's coefficients from every block over that
+#' factor at once: there is one effective sample size per level, not
+#' one per block.
+#'
 #' @noRd
-imp_ess_warning <- function(ess, bk, n_draw, floor_at) {
+imp_ess_warning <- function(ess, lay, n_draw, floor_at) {
   bad <- which(ess < floor_at)
   if (!length(bad)) return(invisible(NULL))
   shown <- utils::head(bad, 5L)
   warning("The importance proposal covers ", length(bad), " of ",
-          length(ess), " groups of `", bk[["term_label"]],
-          "` poorly: ", paste0("'", bk[["levels"]][shown], "' (",
+          length(ess), " groups of `", lay[["group_name"]],
+          "` poorly: ", paste0("'", lay[["levels"]][shown], "' (",
                                format(ess[shown], digits = 2), ")",
                                collapse = ", "),
           if (length(bad) > length(shown)) ", ...",
@@ -942,14 +1105,14 @@ imp_worse_tol <- function(mcse_final, mcse_start) {
 #' @noRd
 imp_frozen_proposal <- function(fit) {
   fr <- fit[["frame"]]
-  bk <- fr[["re_blocks"]][[1L]]
+  lay <- imp_layout(fr[["re_blocks"]])
   tpl <- fit[["estimates"]]
   lap <- RTMB::MakeADFun(build_objective(fr), tpl, random = "b",
                          map = fr[["map"]], silent = TRUE)
-  plan <- imp_plan(lap, fr, bk, fit$opt$par, fit$importance$draws,
+  plan <- imp_plan(lap, fr, lay, fit$opt$par, fit$importance$draws,
                    fit$importance$seed)
-  list(io = build_importance_objective(fr, bk, imp_group_map(fr, bk), plan),
-       plan = plan, template = tpl, block = bk)
+  list(io = build_importance_objective(fr, lay, imp_group_map(fr, lay), plan),
+       plan = plan, template = tpl)
 }
 
 #' The effective sample sizes of that frozen proposal, read at an
