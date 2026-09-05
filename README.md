@@ -122,7 +122,7 @@ same way and each documented on its own part of the site.
 | [frmtmb.sample](https://aforren1.github.io/frmtmb/frmtmb.sample/) | NUTS sampling through tmbstan, and the posterior method surface |
 | [frmtmb.latent](https://aforren1.github.io/frmtmb/frmtmb.latent/) | discrete latent states: `hmm()` and `lca()` |
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
-| [frmtmb.ddm](https://aforren1.github.io/frmtmb/frmtmb.ddm/) | drift-diffusion response times: `wiener()` |
+| [frmtmb.ddm](https://aforren1.github.io/frmtmb/frmtmb.ddm/) | response-time models: `wiener()`, `gddm()`, and the racing `lba()` |
 
 ```r
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.sample")
@@ -252,7 +252,12 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
   infusions, and estimated bioavailability. `frmtmb.ddm` adds
   `wiener()`, the drift-diffusion first-passage density, with a
   formula for each of the drift rate, boundary separation,
-  non-decision time and starting bias.
+  non-decision time and starting bias, and Ratcliff's across-trial
+  variability as three more; `gddm()`, the generalized
+  drift-diffusion model with time-varying drift and collapsing
+  bounds, solved on a fixed grid; and `lba()`, the linear ballistic
+  accumulator, which races any number of accumulators and so
+  reaches choices with more than two alternatives.
 
 ## Estimation and inference
 
