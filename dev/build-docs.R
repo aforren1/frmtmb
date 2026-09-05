@@ -121,6 +121,11 @@ check_metadata <- function(pkg, dir) {
 repair_case_collisions <- function(pkg, dir) {
   dest <- yaml::read_yaml(file.path(dir, "_pkgdown.yml"))$destination %||% "docs"
   ref <- file.path(dir, dest, "reference")
+  # a redirect to a page of the same name on ANOTHER site is not a
+  # collision: core keeps such stubs for pages that moved to an
+  # extension, so only a target at this site's own reference URL is
+  own <- paste0(sub("/$", "", yaml::read_yaml(file.path(dir, "_pkgdown.yml"))$url),
+                "/reference/")
   if (!dir.exists(ref)) return(invisible())
   hit <- character(0)
   for (f in list.files(ref, pattern = "[.]html$", full.names = TRUE)) {
@@ -129,7 +134,7 @@ repair_case_collisions <- function(pkg, dir) {
     if (!grepl("http-equiv=\"refresh\"", txt, fixed = TRUE)) next
     # a stub whose target is its own file name is the collision: the
     # alias it was written for differs from this page only in case
-    if (grepl(paste0("/", basename(f), "\""), txt, fixed = TRUE)) {
+    if (grepl(paste0(own, basename(f), "\""), txt, fixed = TRUE)) {
       hit <- c(hit, sub("[.]html$", "", basename(f)))
     }
   }

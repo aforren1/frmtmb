@@ -32,6 +32,7 @@ reference:
   - bf
   - lf
   - nlf
+  - ps
   - mvbf
   - set_rescor
   - num_factor
@@ -111,6 +112,8 @@ reference:
   - VarCorr
   - rescor_matrix
   - vcov.frmtmb_fit
+  - frm_lp_basis
+  - frm_joint_cov
   - sigma.frmtmb_fit
 - title: Feature compatibility
   contents:

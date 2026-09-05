@@ -220,7 +220,8 @@ test_that("the taped joint density equals a Stan program's log_prob", {
   # the reshape the map relies on: `b` is level-major, so a subject's
   # two coefficients are contiguous
   pars <- rl_stan_pars(fx$fit$obj$env$last.par.best)
-  expect_equal(unname(pars$u), unname(ranef(fx$fit)[[1L]]),
+  # ranef() carries a term attribute since 0.52.0, so compare the values
+  expect_equal(as.vector(pars$u), as.vector(ranef(fx$fit)[[1L]]),
                tolerance = 1e-10)
   out <- rl_lp_check(fx$fit, fx$data)
   expect_lt(abs(out$const), 1e-6)
