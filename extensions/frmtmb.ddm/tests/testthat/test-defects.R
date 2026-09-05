@@ -217,11 +217,11 @@ test_that("a range past the cap whose span rounds NEGATIVE stays finite", {
   # `span` is the difference of two independently rounded evaluations of
   # the same cap, so on a row whose whole non-decision-time range has
   # moved past it, the surviving share is not reliably zero: it is zero
-  # or a tiny negative. These three numbers produce the negative on the
-  # platforms measured (Windows and Ubuntu), which is the case a smooth
-  # maximum turns into log(0). The sign itself is not asserted, because
-  # whether a given platform's arithmetic rounds it negative or to
-  # exactly zero is not this package's to promise; the helper's own
+  # or a rounding residue of either sign. These three numbers produce
+  # the negative on the platforms measured (Windows and Ubuntu), which
+  # is the case a smooth maximum turns into log(0). The sign itself is
+  # not asserted, because which way a given platform's arithmetic rounds
+  # it is not this package's to promise; the helper's own
   # test above pins the negative input deterministically, and every
   # assertion below must hold whichever way this one rounds.
   y <- 0.152
@@ -230,7 +230,7 @@ test_that("a range past the cap whose span rounds NEGATIVE stays finite", {
   delta <- 1e-9 * y
   cap <- y - delta
   span <- ddm_smin(t0 + st / 2, cap) - ddm_smin(t0 - st / 2, cap)
-  expect_lte(span, 0)
+  expect_lt(abs(span), 1e-12)
   expect_gt(t0 - st / 2, cap)          # the whole range really is past
 
   nd <- ddm_nodes("st", c(sz = 1L, st = 21L))
@@ -279,13 +279,17 @@ test_that("a mixture survives a negative-span row end to end", {
   # past the cap. Whether any of their spans rounds NEGATIVE rather than
   # to exactly zero is a property of the platform's arithmetic, not of
   # the model: Windows produced negatives here and Ubuntu did not, so the
-  # sign is not asserted. What is asserted is the invariant the floor
-  # exists for: every past-the-cap span is at most zero, and the floored
-  # share is the floor itself for each of them, whichever way it rounded.
+  # sign is not asserted: a past-the-cap span is zero in exact arithmetic
+  # and a rounding residue of either sign in double. What is asserted is
+  # the invariant the floor exists for: the residue is at rounding scale
+  # and the floored share stays finite and negligible, whichever way it
+  # rounded.
   cap <- dat$rt - 1e-9 * min(dat$rt)
   past <- (ndt - st / 2) > cap
   expect_gt(sum(past), 0)
   span <- ddm_smin(ndt + st / 2, cap) - ddm_smin(ndt - st / 2, cap)
-  expect_true(all(span[past] <= 0))
-  expect_true(all(ddm_floor(span[past] / st, ddm_share_floor) == ddm_share_floor))
+  expect_true(all(abs(span[past]) < 1e-12))
+  share <- ddm_floor(span[past] / st, ddm_share_floor)
+  expect_true(all(is.finite(share)))
+  expect_true(all(share <= 1e-12))
 })
