@@ -105,11 +105,12 @@ test_that("the numeric layer is untouched by the display change", {
   ce <- conditional_effects(cs$fit, effects = "x", resolution = 8,
                             conditions = cnd)
   df <- ce[["x"]]
-  # the effect data frame gains no column for the display: the panels
-  # come from cond__, which was already there
+  # brms's column set: the varied predictor, every other model variable
+  # at its held value, cond__ (which the panels come from) and the
+  # effect1__ copy plot() reads
   expect_identical(names(df),
-                   c("x", "estimate__", "se__", "lower__", "upper__",
-                     "cond__"))
+                   c("x", "y", "f", "g", "cond__", "effect1__",
+                     "estimate__", "se__", "lower__", "upper__"))
   expect_identical(nrow(df), 8L * nrow(cnd))
   # the curves are the per-condition curves, unchanged by faceting
   for (i in seq_len(nrow(cnd))) {
@@ -178,6 +179,8 @@ test_that("a two-predictor effect and an ordinal display both facet", {
     ofit, effects = "x", resolution = 6,
     conditions = data.frame(f = factor(c("a", "b"), levels = c("a", "b")),
                             row.names = c("f = a", "f = b")))
-  expect_true("cats__" %in% names(oce[["x"]]))
+  # the per-category layout is keyed "x:cats__", as brms keys it
+  expect_identical(names(oce), "x:cats__")
+  expect_true("cats__" %in% names(oce[["x:cats__"]]))
   expect_no_error(plot(oce, ncol = 2, ask = FALSE))
 })

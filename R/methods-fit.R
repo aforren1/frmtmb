@@ -569,8 +569,14 @@ fixef.frmtmb_fit <- function(object, ...) {
 #'   matrix, in matching layout.
 #' @param ... Unused.
 #' @return A named list of levels-by-coefficients matrices, one per
-#'   random-effect term. `as.data.frame()` gives the long form (with a
-#'   `condsd` column when `condVar = TRUE` was used).
+#'   random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
+#'   key it (so `ranef(fit)$g` and `coef(fit)$g` name the same group).
+#'   Two terms on one factor give two entries under one name, so index
+#'   by position when a model has them; each matrix carries the block
+#'   label that tells them apart in its `"term"` attribute, which is
+#'   also the key [VarCorr()] uses and the `grp` column of
+#'   `as.data.frame()`. That long form (with a `condsd` column when
+#'   `condVar = TRUE` was used) is what broom.mixed-style code reads.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
@@ -579,6 +585,8 @@ fixef.frmtmb_fit <- function(object, ...) {
 #'
 #' # one matrix per random-effect term, levels by coefficients
 #' ranef(fit)
+#' ranef(fit)$g[1:3, ]                 # keyed by the grouping factor
+#' attr(ranef(fit)$g, "term")          # the block it came from
 #'
 #' # condVar adds the conditional SDs a caterpillar plot needs
 #' re <- as.data.frame(ranef(fit, condVar = TRUE))
@@ -620,20 +628,30 @@ ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
       dimnames(S) <- dimnames(M)
       attr(M, "condSD") <- S
     }
+    # the block's own label stays reachable: it is what VarCorr() keys
+    # by and the only thing that tells two blocks on one factor apart
+    attr(M, "term") <- bk[["term_label"]]
     # appended, then named: `out[[label]] <- M` would DROP a block whose
     # label repeats (an animal model's (1 | gr(id, cov = A)) and its
     # permanent-environment (1 | id) both deparse to "1 | id")
     out[[length(out) + 1L]] <- M
   }
-  names(out) <- vapply(object$frame[["re_blocks"]], `[[`, "", "term_label")
+  # keyed by the GROUPING FACTOR, as brms and lme4 key it, and as this
+  # package's own coef() already did: ranef(fit)$Subject used to be NULL
+  # in a model where coef(fit)$Subject was a data frame
+  names(out) <- vapply(object$frame[["re_blocks"]], function(bk) {
+    bk[["group_name"]] %||% bk[["term_label"]]
+  }, "")
   structure(out, class = "ranef_frmtmb")
 }
 
 #' @export
 print.ranef_frmtmb <- function(x, ...) {
-  for (i in seq_along(x)) {           # by position: labels can repeat
-    cat("$", names(x)[i], "\n", sep = "")
-    print(`attr<-`(x[[i]], "condSD", NULL))
+  for (i in seq_along(x)) {           # by position: names can repeat
+    tl <- attr(x[[i]], "term")
+    cat("$", names(x)[i], if (!is.null(tl)) paste0("   (", tl, ")"),
+        "\n", sep = "")
+    print(`attr<-`(`attr<-`(x[[i]], "condSD", NULL), "term", NULL))
     cat("\n")
   }
   invisible(x)
@@ -642,8 +660,11 @@ print.ranef_frmtmb <- function(x, ...) {
 #' @export
 as.data.frame.ranef_frmtmb <- function(x, ...) {
   rows <- lapply(seq_along(x), function(i) {   # by position: see print()
-    nm <- names(x)[i]
     M <- x[[i]]
+    # `grp` names the BLOCK, which is what tells two terms on one factor
+    # apart; the list itself is keyed by the factor, brms's and lme4's
+    # key, so the two are not the same string any more
+    nm <- attr(M, "term") %||% names(x)[i]
     S <- attr(M, "condSD")
     lv <- rownames(M) %||% as.character(seq_len(nrow(M)))
     df <- data.frame(

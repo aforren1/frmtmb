@@ -360,7 +360,10 @@ the stats/lme4 spelling for standard generics:
   predictor is `predict(type = "link")`.
 - `conditional_effects()` on an ordinal fit draws one probability
   curve per response category, which is what brms draws under
-  `categorical = TRUE`.
+  `categorical = TRUE`, and keys the effect `"x:cats__"` as brms does
+  there. It is the default here because brms's own default warns that
+  it is treating an ordered factor as continuous; `categorical = FALSE`
+  asks for that summary, the expected category number.
 - `coef()` is the per-group convention shared by all three packages:
   fixed effects plus conditional modes per grouping level.
 - `plot(fit)` draws residual diagnostics, not MCMC traces; for

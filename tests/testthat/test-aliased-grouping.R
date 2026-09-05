@@ -113,8 +113,11 @@ test_that("grouping factors written as calls fit (lme4#464, #156)", {
                tolerance = 1e-10)
   expect_equal(unname(predict(f_call)), unname(predict(f_col)),
                tolerance = 1e-10)
-  # the expression, not a synthetic column name, labels the term
-  expect_identical(names(ranef(f_call)), "1 | factor(xn)")
+  # the list is keyed by the grouping factor (brms's and lme4's key),
+  # and the block label - the expression, not a synthetic column name -
+  # rides along on the matrix
+  expect_identical(names(ranef(f_call)), "factor(xn)")
+  expect_identical(attr(ranef(f_call)[[1]], "term"), "1 | factor(xn)")
   # prediction re-evaluates the expression against newdata
   expect_equal(unname(predict(f_call, newdata = ss)),
                unname(predict(f_col, newdata = ss)), tolerance = 1e-10)

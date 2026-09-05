@@ -557,18 +557,21 @@ test_that("the draws surface runs the model machinery per draw", {
   # ranef over draws: brms-shaped arrays whose Estimate tracks the
   # fitted conditional modes
   re_d <- ranef(ds)
-  expect_named(re_d, "1 | g")
-  expect_identical(dim(re_d[["1 | g"]]), c(8L, 4L, 1L))
-  expect_identical(colnames(re_d[["1 | g"]]),
+  # keyed by the GROUPING FACTOR since frmtmb 0.52.0 (brms's and lme4's
+  # key), with the block label on the "term" attribute
+  expect_named(re_d, "g")
+  expect_identical(attr(re_d[["g"]], "term"), "1 | g")
+  expect_identical(dim(re_d[["g"]]), c(8L, 4L, 1L))
+  expect_identical(colnames(re_d[["g"]]),
                    c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
   # same yardstick as above: the chain's own spread, not a fixed number
   if (sampler_gates_on()) {
-    expect_lt(max(abs(re_d[["1 | g"]][, "Estimate", 1] -
-                        ranef(fit)[["1 | g"]][, 1])),
-              5 * max(re_d[["1 | g"]][, "Est.Error", 1]) + 1e-8)
+    expect_lt(max(abs(re_d[["g"]][, "Estimate", 1] -
+                        ranef(fit)[["g"]][, 1])),
+              5 * max(re_d[["g"]][, "Est.Error", 1]) + 1e-8)
   }
-  expect_true(all(re_d[["1 | g"]][, "Q2.5", 1] <
-                    re_d[["1 | g"]][, "Q97.5", 1]))
+  expect_true(all(re_d[["g"]][, "Q2.5", 1] <
+                    re_d[["g"]][, "Q97.5", 1]))
 
   h <- hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
   expect_s3_class(h, "frmtmb_hypothesis")

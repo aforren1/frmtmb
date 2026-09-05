@@ -302,7 +302,7 @@ case sensitive and accepts unambiguous prefixes. `"response"` and
 | `confint()` | `method` | `"wald"`, `"Wald"`, `"profile"`, `"uniroot"`, `"boot"` |
 | `drop1()` | `test` | `"none"`, `"Chisq"` |
 | `hypothesis()` | `method` | `"wald"`, `"profile"`, `"boot"` |
-| `conditional_effects()` | `method` | `"epred"`, `"predict"` |
+| `conditional_effects()` | `method` | `"epred"`, `"predict"` (brms's `"posterior_epred"` and `"posterior_predict"` are accepted as aliases) |
 | `anova()` on `frm_multiple()` | `method`, `use` | `"D3"`, `"D1"`, `"D2"`; `"likelihood"`, `"wald"` |
 | `frmtmb_control()` | `check_nlev_1`, `check_olre` | `"warning"`, `"ignore"`, `"stop"` |
 | `set_prior()` | `class` | `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"` |

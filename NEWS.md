@@ -1,3 +1,174 @@
+# frmtmb (development version)
+
+The ten defects the brms post-fit method tier recorded in
+`dev/brms-methods-tests.md`, repaired. Nine of them are in
+`conditional_effects()`, which now returns brms's frame, brms's grid
+and brms's numbers wherever the two packages mean the same thing.
+
+* BEHAVIOR CHANGE. `conditional_effects()` draws the EXPECTED RESPONSE
+  on every family. Its default `method = "epred"` took the point
+  estimate as the inverse link of the `mu` predictor, which is the
+  expected response only when the family's mean is that. On a
+  zero-inflated fit it plotted `exp(eta)` where the mean is
+  `(1 - zi) * exp(eta)`: 15% high at the first grid point and 268% high
+  at the last, with no warning and a smooth curve of the right shape.
+  On a hurdle fit the error changed sign along the curve, 14% below the
+  mean at one end and 237% above at the other. `fitted()`,
+  `predict(type = "response")` and `conditional_effects(method =
+  "predict")` were right all along, so the package disagreed with
+  itself on the plotting path alone.
+* Which fits move, in full. The gate is `mean_is_mu()`, so the default
+  curve changes for **fourteen** families: `asym_laplace`,
+  `beta_binomial`, `binomial`, `cox`, `hurdle_gamma`,
+  `hurdle_lognormal`, `hurdle_poisson`, `lognormal`,
+  `shifted_lognormal`, `zero_inflated_asym_laplace`,
+  `zero_inflated_beta`, `zero_inflated_binomial`,
+  `zero_inflated_negbinomial` and `zero_inflated_poisson`, plus any
+  response carrying `trunc()` and any `mixture()`. Every other family
+  is unchanged, bit for bit, which was checked family by family.
+* `lognormal` was a defect of its own and nobody had reported it: its
+  `mu` link is the identity, so the old path plotted the LOG-SCALE
+  LOCATION as if it were the response. On a fit whose smallest
+  observation is 0.077 the drawn curve ran from **-1.489 to 1.454**,
+  negative for a strictly positive response, where the mean
+  `exp(mu + sigma^2/2)` runs 0.286 to 5.423. `shifted_lognormal`,
+  `asym_laplace` and `cox` move for the same reason.
+* The band on that curve is the delta method over EVERY distributional
+  parameter's coefficients jointly, so the cross-parameter covariances
+  are in it rather than dropped. It is symmetric on the `mu` link's
+  scale when the mean lives there, on the log scale when the mean is
+  positive, and on the response scale otherwise, which reduces exactly
+  to the old link-scale band wherever the mean is the inverse link of
+  `mu`. On a zero-inflated fit its width is within 13% of a 200-refit
+  bootstrap band's.
+* BEHAVIOR CHANGE. `conditional_effects()` returns brms's columns: the
+  varied predictor, then every other model variable at the value it is
+  held at, then `cond__` (always, not only under `conditions =`),
+  `effect1__` and, for a two-variable effect, `effect2__`. brms's own
+  `plot()` facets on `cond__`, so ported faceting code has something to
+  facet on, and the held values are no longer invisible.
+* BEHAVIOR CHANGE. A two-variable effect holds its moderator at the
+  EXACT `mean +/- sd`, not at `signif(mean +/- sd, 3)`. Display
+  rounding moved to the `effect2__` label, where brms puts it. The
+  curve was the model evaluated at a covariate value nobody chose, and
+  how wrong it was depended on the coefficient rather than on anything
+  visible in the plot.
+* BEHAVIOR CHANGE. The two-variable grid varies the FIRST effect
+  slowest, as brms's does, so the two frames now agree elementwise and
+  a script that indexes rows positionally ports.
+* `int_conditions =` is implemented, with brms's meaning: a named list
+  of the values (or a function of the observed column) that one or both
+  variables of an effect are evaluated at. It was accepted, ignored,
+  and reported as an unknown argument to `predict()`, a function the
+  user had not called.
+* BEHAVIOR CHANGE. `re_formula = NULL` conditions on a NEW group, as
+  brms does, and the grouping column of the returned frame says `NA`.
+  It used to take the first observed level silently: on `sleepstudy`
+  that was Subject 308, a curve 86.5 away from the population one at
+  its furthest point, with nothing in the frame to say whose it was and
+  the choice depending on factor level order. A new group's conditional
+  modes are zero, so the curve is the population curve and the
+  random-effect variance goes into the band instead; brms draws that
+  group's effects afresh per posterior draw, which is the paradigm
+  difference. To condition on an observed group, name it:
+  `conditions = list(g = "3")`.
+* BEHAVIOR CHANGE. `categorical =` is honored on an ordinal or
+  categorical fit, and the per-category layout is keyed `"x:cats__"` as
+  brms keys it. The argument was accepted and did nothing, so the other
+  layout could not be asked for at all, and `ce[["x:cats__"]]` was
+  `NULL` on a frmtmb result. The default is unchanged (one curve per
+  category, which is what brms's own message asks the user to switch
+  to); `categorical = FALSE` gives brms's default summary, the expected
+  category number `sum(k * p_k)`, with a delta-method band of its own.
+* BEHAVIOR CHANGE. A `mo()` predictor gets one grid point per LEVEL,
+  as brms does, instead of the 100-point continuous grid it shared with
+  every other numeric predictor. A monotonic effect is defined at the
+  ordered levels of its variable and nowhere between them, so 96 of
+  those 100 points were the model evaluated where it has no meaning.
+* BEHAVIOR CHANGE. A `trials()` variable is held at 1 on the effect
+  grid unless `conditions =` pins it, which is brms's rule, and the
+  call says so once. A grid row is one artificial observation, so the
+  mean number of trials was not a whole number and the expected count
+  over it was not a quantity anyone asked for. `method = "predict"`
+  used to refuse the same model outright.
+* `conditional_effects()` finds a covariate that sits on a
+  distributional parameter rather than on `mu`. On
+  `bf(y ~ 1, theta1 ~ x) + mixture(...)` it refused with "No plottable
+  predictors found for dpar 'mu1'", naming the one linear predictor it
+  had looked at rather than the model the user fitted. It falls back to
+  every parameter of the response only when the selected one has
+  nothing to plot, so a model whose `dpar` does have terms enumerates
+  that parameter's terms exactly as before.
+* An unknown argument to `conditional_effects()` is reported against
+  `conditional_effects()`, once per call. It used to be forwarded to
+  `predict()` and reported there, and only from the branches that
+  forward: on an ordinal or categorical fit an unknown argument was
+  discarded in complete silence.
+* `conditional_effects(band = "boot", re_formula = NULL)` draws the new
+  group's effects once per bootstrap replicate, so the interval carries
+  the group variance the way the wald band does. It did not: every
+  replicate predicted the new level's zero modes, so the band was the
+  POPULATION band under another name: on sleepstudy 1.00x the
+  population band and 0.24x the wald band for the same stated
+  quantity, and on an ordinal fit bit-identical to the population frame
+  in estimate AND width, while the `NA` grouping column claimed
+  otherwise. It matters most there: the ordinal per-category delta
+  method is refused with `re_formula` and the message sends the user to
+  `band = "boot"`, so that was the only band available and it was the
+  broken one. The bootstrap band is now 3.6 to 4.2 times the population
+  band on sleepstudy and lands within 10% of the wald band at 100
+  refits. Blocks whose levels ARE the structure (`gr_cov`, `gr_prec`,
+  `car`, `spde`) get zeroed rather than drawn, which is the same
+  assumption the wald band makes for them.
+* `effect2__` keeps one level per distinct moderator value. It took its
+  levels from `round(v, 2)`, so two values that rounded together became
+  ONE level. `plot()` groups on that column, so it drew two curves as
+  one series, and the names on an `int_conditions` entry were dropped
+  with them. The rounding is the label only; labels widen past two decimals
+  just far enough to stay distinct.
+* `conditional_effects()` accepts brms's `method =` spellings
+  (`"posterior_epred"`, `"posterior_predict"`) as aliases;
+  `"posterior_linpred"` is refused by name, pointing at `dpar =`.
+* The expected-response display refuses an addition term whose value on
+  a grid row would be a reference value rather than a real one
+  (`trunc(lb = v)` with a variable bound), with the message
+  `method = "predict"` has always used. It used to average the bound
+  silently.
+* BEHAVIOR CHANGE. A mixture's mixing weights have a response scale
+  that is the softmax over the component predictors, so
+  `predict(type = "response", dpar = "theta1")` returns brms's
+  `posterior_epred(dpar = "theta1")` exactly. It returned the linear
+  predictor: not a probability, and on the tier's own fit outside
+  `[0, 1]` on 1.25% of the rows, reaching 1.112. The likelihood is
+  untouched, the softmax having always been applied inside the
+  density, and `predict(type = "link", dpar = )` still returns the
+  predictor. Its
+  standard error under `se.fit = TRUE` is the delta method through that
+  weight's OWN predictor, `p (1 - p)`, which is exact for two
+  components and conservative for three or more, where the softmax also
+  moves with the other components' predictors: measured 5.5% to 26.1%
+  wider than the joint delta method on a three-component fit, never
+  narrower. `?mixture` says so and a test pins it.
+* BEHAVIOR CHANGE, and **what breaks is
+  `ranef(fit)[["Days | Subject"]]`, which now returns `NULL`**: a
+  `NULL` flows on into arithmetic as `numeric(0)` rather than
+  erroring. Code that indexed a random-effect list by the BLOCK label
+  needs the grouping factor instead (or `[[1]]`, or the `"term"`
+  attribute). `ranef()` keys its list by the GROUPING FACTOR now, as
+  brms and lme4 do and as this package's own `coef()` already did:
+  `ranef(fit)$Subject` used to be `NULL` in a model where
+  `coef(fit)$Subject` was a data frame. The block label rides along in
+  each matrix's `"term"` attribute, is what `as.data.frame()` puts in
+  its `grp` column, and is still `VarCorr()`'s key, so two terms on one
+  factor stay distinguishable. `frmtmb.sample`'s `ranef()` on a draws
+  object follows core and is re-keyed with it; that package's own NEWS
+  says so.
+* BEHAVIOR CHANGE. `predict(type = "response", dpar = "sigma")` on a
+  `y | se(s)` model with no `sigma = TRUE` reports 0, as brms does and
+  as this package's own `sigma()` already did. It reported the log
+  link's inverse of the mapped-out coefficient, 1, which reads as an
+  estimate of a parameter the density does not have.
+
 # frmtmb 0.51.0
 
 One simplex per monotonic term, matching brms; importance sampling over

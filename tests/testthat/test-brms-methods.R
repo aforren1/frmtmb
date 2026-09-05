@@ -115,7 +115,7 @@ test_that("summing log_lik is not logLik once there are random effects", {
 # The guard on the exclusion table
 # ---------------------------------------------------------------------
 
-test_that("every deferred exclusion still has a live defect", {
+test_that("no deferred exclusion is a repaired defect", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
   skip_if_not_installed("MASS")
@@ -128,7 +128,9 @@ test_that("every deferred exclusion still has a live defect", {
   #
   # So each exclusion whose class is "D" carries a probe, and this block
   # fails the moment one starts agreeing, naming the list to edit. The
-  # "P" and "C" rows are permanent and carry none.
+  # "P" and "C" rows are permanent and carry none. Every D row has now
+  # been repaired and dropped, so what this block asserts today is that
+  # none has come back unprobed.
   ex <- brms_exclusions()
 
   # the table is the single source of truth for the lists, so a typo in
@@ -140,12 +142,15 @@ test_that("every deferred exclusion still has a live defect", {
                 label = paste("exclusion key names a registered shape:",
                               ex$key[[i]]))
   }
-  expect_setequal(unique(ex$class), c("D", "P", "C"))
+  expect_true(all(ex$class %in% c("D", "P", "C")))
 
   live <- ex[ex$class == "D", , drop = FALSE]
-  # if this ever reaches zero, every deferred defect is fixed and the
-  # lists themselves should be gone, not merely empty
-  expect_gt(nrow(live), 0)
+  # Every deferred DEFECT is repaired, so this is empty and the loop
+  # below runs zero times. The lists themselves stay: their remaining
+  # rows are paradigm differences and design choices, which do not
+  # flip. Adding a D row back arms the probe again.
+  expect_identical(nrow(live), 0L)
+  expect_setequal(unique(ex$class), c("P", "C"))
 
   for (i in seq_len(nrow(live))) {
     agrees <- brms_exclusion_agrees(live$list[[i]], live$key[[i]])
@@ -296,47 +301,57 @@ test_that("a dpar's linpred agrees where the dpar has a predictor", {
   }
 })
 
-test_that("se() leaves a residual sigma each package reports differently", {
+test_that("se() leaves a residual sigma both packages report as absent", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE in a number neither density uses. With y | se(s) and no
-  # sigma = TRUE, the residual standard deviation beyond the known s is
-  # zero, and both packages fit that model: the log-density tier's row
-  # 14c is exact. What each REPORTS for the unused parameter differs.
-  # brms declares sigma and holds it at 0, so it enters in quadrature
-  # and switches off. frmtmb leaves its sigma dpar at the link-scale
-  # zero, which the log link turns into 1 on the response scale.
+  # WAS finding 15. With y | se(s) and no sigma = TRUE the residual
+  # standard deviation beyond the known s is zero, and both packages
+  # fit that model: the log-density tier's row 14c is exact. brms
+  # declares sigma and holds it at 0. frmtmb used to report the log
+  # link's inverse of its mapped-out coefficient, 1, which reads as an
+  # estimate of a parameter the density does not have - and disagreed
+  # with frmtmb's own sigma(), which has always answered 0.
   s <- brms_shape("r14c")
   expect_true(all(brms::posterior_epred(s$brmsfit, dpar = "sigma") == 0))
+  # the coefficient is still the mapped-out link-scale zero: the repair
+  # is at the reporting layer, not in the fit
   expect_identical(unname(fixef(s$fit)$sigma[["(Intercept)"]]), 0)
   expect_exact_num(predict(s$fit, type = "response", dpar = "sigma"),
-                   rep(1, nrow(s$data)),
-                   label = "frmtmb reports the unused sigma as 1")
+                   rep(0, nrow(s$data)),
+                   label = "frmtmb reports the unused sigma as 0")
+  expect_identical(unname(sigma(s$fit)), 0)
   # and the density is the same one, which is what makes this a
   # reporting difference rather than a modeling one
   expect_exact_num(brms::log_lik(s$brmsfit)[1, ], frm_row_loglik(s$fit),
                    label = "se() density agrees per row")
 })
 
-test_that("a mixture's theta is not a probability on frmtmb's scale", {
+test_that("a mixture's theta is the softmax on the response scale", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE, and the same class as the zero-inflated one: a response
-  # scale that is not the quantity it names. frmtmb declares theta1's
-  # link as IDENTITY, so predict(type = "response", dpar = "theta1")
-  # hands back the linear predictor. brms applies the softmax over the
-  # component predictors, which for two components is plogis(). The
-  # likelihood is unaffected, because the log-density tier proves the
-  # objective is identical: the softmax IS applied inside the density.
+  # WAS finding 1c. theta1's LINK is identity, because that is the
+  # scale the multinomial logit inside the density works on; the
+  # RESPONSE scale is now the softmax over the component predictors,
+  # which for two components is plogis(). The likelihood is untouched,
+  # which the per-row density comparison below asserts.
   s <- brms_shape("r17")
   expect_identical(family(s$fit)$links$theta1$name, "identity")
 
   eta <- as.numeric(predict(s$fit, type = "link", dpar = "theta1"))
-  expect_exact_num(predict(s$fit, type = "response", dpar = "theta1"), eta,
-                   label = "frmtmb theta1 response scale is the predictor")
+  rv <- as.numeric(predict(s$fit, type = "response", dpar = "theta1"))
   be <- brms::posterior_epred(s$brmsfit, dpar = "theta1")[1, ]
-  expect_exact_num(be, plogis(eta), label = "brms theta1 is softmax(eta)")
+  expect_exact_num(rv, be, label = "frmtmb theta1 IS brms's theta1")
+  expect_exact_num(be, plogis(eta), label = "both are softmax(eta)")
+  # it is a probability now: the old response scale reached 1.112 and
+  # was outside [0, 1] on 1.25% of the rows
+  expect_true(all(rv > 0 & rv < 1))
+  # the link scale is still the predictor, and the two still differ,
+  # which is what makes the reporting scale a choice and not a no-op
   expect_gt(max(abs(be - eta)), 0.1)
+  # the density is the same one: the softmax is applied inside it, and
+  # the reporting scale never reaches lpdf()
+  expect_exact_num(brms::log_lik(s$brmsfit)[1, ], frm_row_loglik(s$fit),
+                   label = "mixture density agrees per row")
 
   # and mixture_probs() is a different quantity again, the posterior
   # class responsibilities given y, so it is not the missing accessor
@@ -351,25 +366,30 @@ test_that("a mixture's theta is not a probability on frmtmb's scale", {
   expect_true(all(brms::posterior_epred(s$brmsfit, dpar = "theta2") == 0))
 })
 
-test_that("conditional_effects refuses a mixture with theta ~ x", {
+test_that("conditional_effects finds a mixture's covariate on theta", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE. brms finds the covariate wherever it sits and returns a
-  # panel for it; frmtmb looks only at mu1, finds y ~ 1, and stops.
+  # WAS finding 1d: frmtmb enumerated mu1's predictors, found y ~ 1 and
+  # refused, naming the one linear predictor it had looked at. It now
+  # falls back to every dpar of the response when the selected one has
+  # nothing to plot, which is the only case that changes.
   s <- brms_shape("r17")
   cb <- suppressWarnings(brms::conditional_effects(s$brmsfit))
-  expect_identical(names(cb), "x")
-  expect_identical(nrow(cb$x), 100L)
-  expect_error(conditional_effects(s$fit), "No plottable predictors")
+  cf <- suppressWarnings(conditional_effects(s$fit))
+  expect_identical(names(cf), names(cb))
+  expect_identical(nrow(cf$x), nrow(cb$x))
+  expect_exact_num(cb$x$estimate__, cf$x$estimate__,
+                   label = "mixture ce default")
 
-  # named explicitly, both produce the panel and then disagree by the
-  # identity-versus-softmax difference of the block above
+  # and dpar = "theta1" now agrees too, the softmax being the response
+  # scale on both sides
   zb <- suppressWarnings(brms::conditional_effects(s$brmsfit,
                                                    dpar = "theta1"))
   zf <- suppressWarnings(conditional_effects(s$fit, dpar = "theta1"))
   expect_identical(names(zb), "x")
   expect_identical(names(zf), "x")
-  expect_gt(max(abs(zb$x$estimate__ - zf$x$estimate__)), 0.01)
+  expect_exact_num(zb$x$estimate__, zf$x$estimate__,
+                   label = "mixture ce dpar = theta1")
 })
 
 test_that("a dpar with no predictor puts linpred on different scales", {
@@ -456,21 +476,26 @@ test_that("ranef and coef agree at the mapped conditional modes", {
   }
 })
 
-test_that("ranef and coef key their lists differently", {
+test_that("ranef and coef key their lists the same way, as brms does", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
 
-  # DIVERGENCE, structural, and frmtmb is inconsistent with itself.
-  # brms keys both lists by the GROUPING FACTOR. frmtmb keys ranef() by
-  # the BLOCK and coef() by the grouping factor, so in one model
-  # ranef(fit)$Subject is NULL while coef(fit)$Subject is not.
+  # WAS finding 11b: frmtmb keyed ranef() by the BLOCK and coef() by the
+  # grouping factor, so ranef(fit)$Subject was NULL in a model where
+  # coef(fit)$Subject was a data frame. Both are keyed by the factor
+  # now, which is brms's and lme4's key; the block label rides along on
+  # the matrix so two terms on one factor stay distinguishable.
   s <- brms_shape("rC0")
   expect_identical(names(brms::ranef(s$brmsfit)), "Subject")
   expect_identical(names(coef(s$brmsfit)), "Subject")
-  expect_identical(names(ranef(s$fit)), "Days | Subject")
+  expect_identical(names(ranef(s$fit)), "Subject")
   expect_identical(names(coef(s$fit)), "Subject")
-  expect_null(ranef(s$fit)$Subject)
+  expect_false(is.null(ranef(s$fit)$Subject))
   expect_false(is.null(coef(s$fit)$Subject))
+  expect_identical(attr(ranef(s$fit)$Subject, "term"), "Days | Subject")
+  # VarCorr() still keys by the block, which is what tells two terms on
+  # one factor apart
+  expect_identical(names(VarCorr(s$fit)), "Days | Subject")
 
   # and brms broadcasts EVERY dpar's fixed effects over every grouping
   # factor, so its coef() carries two columns that do not vary across
@@ -657,8 +682,15 @@ test_that("one-way conditional_effects agree on grid and estimate", {
 
   for (nm in brms_ce_shapes()) {
     s <- brms_shape(nm)
-    cb <- suppressWarnings(brms::conditional_effects(s$brmsfit))
-    cf <- suppressWarnings(conditional_effects(s$fit))
+    # the SAME call to both packages: brms_ce_args() adds
+    # categorical = TRUE for a polytomous family, where brms refuses
+    # its own default outright (nominal) or advises against it
+    # (ordinal), and frmtmb's default is the layout it advises
+    args <- brms_ce_args(s)
+    cb <- suppressWarnings(suppressMessages(do.call(
+      brms::conditional_effects, c(list(s$brmsfit), args))))
+    cf <- suppressWarnings(suppressMessages(do.call(
+      conditional_effects, c(list(s$fit), args))))
     expect_identical(names(cf), names(cb))
     for (e in names(cb)) {
       if (grepl(":", e, fixed = TRUE)) next
@@ -671,19 +703,16 @@ test_that("one-way conditional_effects agree on grid and estimate", {
   }
 })
 
-test_that("conditional_effects plots the wrong mean when zero-inflated", {
+test_that("conditional_effects draws the expected response, zero-inflated", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE, and the one this tier was built to catch. frmtmb's
-  # DEFAULT conditional_effects() curve on a zero-inflated fit is the
-  # CONDITIONAL mean exp(eta_mu), not the expected response
-  # (1 - zi) * exp(eta_mu). The cause is in R/conditional-effects.R,
-  # where the method = "epred", band = "wald" branch takes its point
-  # estimate as lp$link$linkinv(predict(type = "link")$fit), the same
-  # call that supplies the delta-method standard error. For a family
-  # whose mean IS the inverse link of its mu predictor that is the
-  # expected response; for one whose mean is not, it is a different
-  # quantity. See dev/brms-methods-tests.md.
+  # WAS finding 1b, the defect this tier was built to catch. The
+  # method = "epred", band = "wald" branch took its point estimate as
+  # lp$link$linkinv(predict(type = "link")$fit), the inverse link of the
+  # MU predictor, which is the expected response only for a family
+  # whose mean is that. On a zero-inflated fit it plotted exp(eta)
+  # where the mean is (1 - zi) * exp(eta): 15.2% high at the first grid
+  # point and 268% at the last.
   for (nm in c("r16", "rC16")) {
     s <- brms_shape(nm)
     cb <- suppressWarnings(brms::conditional_effects(s$brmsfit))$x
@@ -693,29 +722,26 @@ test_that("conditional_effects plots the wrong mean when zero-inflated", {
       nd$g <- s$data$g[1]
     }
 
-    # brms's curve IS its posterior_epred, the expected response
+    # brms's curve IS its posterior_epred, the expected response, and
+    # frmtmb's is now the same number
     ep <- brms::posterior_epred(s$brmsfit, newdata = nd,
                                 re_formula = NA)[1, ]
     expect_exact_num(cb$estimate__, ep,
                      label = paste("brms ce is epred,", nm))
+    expect_exact_num(cf$estimate__, ep,
+                     label = paste("frmtmb ce is epred,", nm))
 
-    # frmtmb's is the conditional mean, exp(eta), which is brms's
-    # transformed linear predictor and frmtmb's own type = "conditional"
+    # and it is NOT the conditional mean of the count component, which
+    # is what it used to be: the two differ by a factor of 3.7 at the
+    # far end of the grid, so the fix is not a rounding
     mu <- brms::posterior_linpred(s$brmsfit, newdata = nd,
                                   transform = TRUE, re_formula = NA)[1, ]
-    expect_exact_num(cf$estimate__, mu,
-                     label = paste("frmtmb ce is exp(eta),", nm))
-    expect_exact_num(cf$estimate__,
-                     predict(s$fit, newdata = nd, type = "conditional",
-                             re.form = ~ 0),
-                     label = paste("frmtmb ce is type=conditional,", nm))
+    expect_exact_num(mu, predict(s$fit, newdata = nd,
+                                 type = "conditional", re.form = ~ 0),
+                     label = paste("exp(eta) is type=conditional,", nm))
+    expect_gt(max(mu / cf$estimate__ - 1), 0.15)
 
-    # so the default curve sits materially above the mean of Y
-    expect_gt(max(cf$estimate__ / cb$estimate__ - 1), 0.15)
-
-    # while frmtmb's OWN fitted(), predict(response) and the
-    # non-default method = "predict" all give brms's answer: the
-    # package disagrees with itself on one path only
+    # the routes that always agreed still do
     expect_exact_num(predict(s$fit, newdata = nd, type = "response",
                              re.form = ~ 0), ep,
                      label = paste("predict(response) is epred,", nm))
@@ -726,21 +752,25 @@ test_that("conditional_effects plots the wrong mean when zero-inflated", {
     expect_exact_num(fitted(s$fit),
                      brms::posterior_epred(s$brmsfit)[1, ],
                      label = paste("frmtmb fitted() is epred,", nm))
+
+    # the band is the delta method over EVERY dpar's coefficients
+    # jointly, so it exists and is strictly positive on a log-scale
+    # mean rather than being NA or crossing zero
+    expect_true(all(is.finite(cf$se__)))
+    expect_true(all(cf$lower__ > 0))
+    expect_true(all(cf$lower__ < cf$estimate__ & cf$estimate__ < cf$upper__))
   }
 })
 
-test_that("a mo() predictor gets a continuous grid, not its levels", {
+test_that("a mo() predictor gets its levels, not a continuous grid", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE. A monotonic effect is defined at the ordered LEVELS of
-  # its variable and nowhere between them: the simplex assigns one
-  # increment per step. brms plots the four levels. frmtmb builds the
-  # same 100-point numeric grid it builds for any other numeric
-  # predictor and evaluates the monotonic effect at 0.0303, 0.0606 and
-  # so on, which the model does not define.
-  #
-  # The other effect in the same model, the plain numeric z, agrees
-  # exactly, so this is about mo() and not about the grid machinery.
+  # WAS finding 17. A monotonic effect is defined at the ordered LEVELS
+  # of its variable and nowhere between them: the simplex assigns one
+  # increment per step. frmtmb built the same 100-point numeric grid it
+  # builds for any other numeric predictor and evaluated the monotonic
+  # effect at 0.0303, 0.0606 and so on, where the model has no meaning.
+  # Both packages now step by one over the observed range.
   s <- brms_shape("r2")
   cb <- suppressWarnings(brms::conditional_effects(s$brmsfit))
   cf <- suppressWarnings(conditional_effects(s$fit))
@@ -750,15 +780,14 @@ test_that("a mo() predictor gets a continuous grid, not its levels", {
                    label = "the plain numeric effect agrees")
 
   expect_identical(nrow(cb$inc), 4L)
+  expect_identical(nrow(cf$inc), 4L)
   expect_identical(cb$inc$inc, as.numeric(0:3))
-  expect_identical(nrow(cf$inc), 100L)
-  expect_gt(length(setdiff(cf$inc$inc, 0:3)), 90)
-  # the four points both packages define agree, so the extra 96 are the
-  # whole of the difference
-  m <- match(cb$inc$inc, cf$inc$inc)
-  expect_false(anyNA(m))
-  expect_exact_num(cb$inc$estimate__, cf$inc$estimate__[m],
-                   label = "mo() agrees at the levels it is defined on")
+  expect_exact_num(cf$inc$inc, as.numeric(0:3), label = "mo() grid")
+  expect_exact_num(cb$inc$estimate__, cf$inc$estimate__,
+                   label = "mo() estimate, elementwise")
+  # the plain numeric predictor in the same model still gets the
+  # 100-point grid, so the rule is about mo() and not about resolution
+  expect_identical(nrow(cf$z), 100L)
 })
 
 test_that("a nonlinear predictor is refused a wald band", {
@@ -785,18 +814,13 @@ test_that("a nonlinear predictor is refused a wald band", {
                    label = "nonlinear ce under method = predict")
 })
 
-test_that("the conditional_effects defect is live on hurdle too", {
-  # NO Stan, no brms fit. The defect is a disagreement between two of
-  # frmtmb's OWN methods, so it needs neither, and it is the reason this
-  # block is gated on nothing but CRAN.
-  #
-  # conditional_effects() takes its point estimate as the inverse link
-  # of the mu predictor; a hurdle family's mean is not that, so the
-  # curve is the conditional mean of the truncated count component
-  # rather than the expected response. Unlike the zero-inflated case the
-  # error changes SIGN along the curve, and unlike the zero-inflated
-  # case method = "predict" is a way out only because hurdle_poisson
-  # gained a simulator in 0.51.0. See dev/brms-methods-tests.md finding 1b.
+test_that("the hurdle families get the expected response too", {
+  # NO Stan, no brms fit: the defect was a disagreement between two of
+  # frmtmb's OWN methods, so the repair needs neither. Unlike the
+  # zero-inflated case the error changed SIGN along the curve (14%
+  # below the expected response at one end, 237% above at the other),
+  # so no eyeball check of the plot would have read as "too high".
+  # See dev/brms-methods-tests.md finding 1b.
   skip_on_cran()
 
   set.seed(13)
@@ -810,41 +834,33 @@ test_that("the conditional_effects defect is live on hurdle too", {
   ce <- suppressWarnings(conditional_effects(fh))$x
   nd <- data.frame(x = ce$x)
   epred <- as.numeric(predict(fh, newdata = nd, type = "response"))
+  cond <- as.numeric(predict(fh, newdata = nd, type = "conditional"))
 
-  # the curve IS the conditional mean, exactly, which is what says the
-  # cause is the same one
-  expect_exact_num(ce$estimate__,
-                   predict(fh, newdata = nd, type = "conditional"),
-                   label = "hurdle ce is type=conditional")
-
-  # and it is not the expected response, on either side of the grid
-  ratio <- ce$estimate__ / epred
+  # the curve IS the expected response, exactly
+  expect_exact_num(ce$estimate__, epred, label = "hurdle ce is epred")
+  # and it is not the conditional mean it used to be, on either side of
+  # the grid: that ratio ran 0.862 at one end and 3.371 at the other
+  ratio <- cond / epred
   expect_lt(min(ratio), 0.9)
   expect_gt(max(ratio), 3)
 
-  # frmtmb's own fitted() and predict(response) agree with each other,
-  # so the package disagrees with itself on the plotting path alone
   expect_exact_num(fitted(fh), predict(fh, type = "response"),
                    label = "hurdle fitted() is predict(response)")
 
-  # the zero-inflated workaround is available here since 0.51.0, when
-  # hurdle_poisson gained a simulator: its estimate is a simulation mean
-  # of the response, which is the expected response up to Monte Carlo
-  # error and nowhere near the conditional mean the default path plots
+  # method = "predict" reaches the same mean up to Monte Carlo error,
+  # which is the independent check on the analytic one
   set.seed(7)
   pm <- suppressWarnings(conditional_effects(fh, method = "predict"))$x
-  cond <- as.numeric(predict(fh, newdata = nd, type = "conditional"))
   expect_lt(max(abs(pm$estimate__ / epred - 1)), 0.15)
-  expect_true(all(abs(pm$estimate__ - epred) < abs(pm$estimate__ - cond)))
 })
 
-test_that("the ordinal branch forwards no dots, so nothing warns", {
-  # Also frmtmb alone. Finding 3 says int_conditions is ignored but at
-  # least warns; that is true of the gaussian path only. The warning
-  # comes from the method = "epred", band = "wald" branch forwarding its
-  # dots to predict(). The ordinal and categorical branches do not
-  # forward, so an unknown argument there is discarded in silence, which
-  # makes finding 6b's ignored `categorical =` genuinely silent.
+test_that("an unknown argument is named against conditional_effects()", {
+  # Also frmtmb alone. The warning used to come from the
+  # method = "epred", band = "wald" branch forwarding its dots to
+  # predict(), so it named a function the user had not called - and the
+  # ordinal and categorical branches, which do not forward, discarded
+  # unknown arguments in complete silence. conditional_effects() now
+  # checks its own dots, before any branch.
   skip_on_cran()
 
   set.seed(5)
@@ -857,34 +873,46 @@ test_that("the ordinal branch forwards no dots, so nothing warns", {
   dd$y <- 1 + 0.8 * dd$x - 0.4 * dd$z + rnorm(n)
   fg <- frm(frmtmb::bf(y ~ x + z) + gaussian(), data = dd)
 
-  # The gaussian path warns and names predict(). It warns ONCE PER
-  # predict() call, and a wald band makes two, so the warnings are
-  # captured rather than matched with expect_warning(), which would
-  # consume the first and let the second escape the test.
+  # one warning per call now, not one per internal predict() call
   w <- capture_warnings(conditional_effects(fg, nosucharg = 1))
-  expect_gte(length(w), 1L)
-  expect_true(all(grepl("unknown arguments to predict\\(\\): nosucharg",
-                        w)))
+  expect_length(w, 1L)
+  expect_match(w, "conditional_effects\\(\\) is ignoring unknown")
+  expect_match(w, "nosucharg")
 
-  # the ordinal path does not warn at all, for any of the three
-  expect_silent(conditional_effects(fo, nosucharg = 1))
+  # the ordinal path warns for the same argument, where it used to be
+  # silent for every one of these three
+  wo <- capture_warnings(conditional_effects(fo, nosucharg = 1))
+  expect_length(wo, 1L)
+  expect_match(wo, "nosucharg")
+
+  # and the two arguments that USED to be swallowed are arguments now,
+  # so neither warns
   expect_silent(conditional_effects(fo, categorical = TRUE))
-  expect_silent(conditional_effects(fo,
-                                    int_conditions = list(x = c(-1, 1))))
+  expect_silent(conditional_effects(fo, int_conditions = list(x = c(-1, 1))))
 
-  # and categorical = TRUE really is a no-op, not merely a quiet one
-  expect_identical(conditional_effects(fo, categorical = TRUE)$x,
-                   conditional_effects(fo)$x)
+  # categorical = is not a no-op any more: FALSE is brms's default
+  # layout, one curve of expected category numbers
+  expect_identical(names(conditional_effects(fo, categorical = TRUE)),
+                   "x:cats__")
+  expect_identical(names(conditional_effects(fo, categorical = FALSE)),
+                   "x")
+  expect_identical(nrow(conditional_effects(fo, categorical = FALSE)$x),
+                   100L)
+
+  # allow_new_levels is a real argument of the predict() underneath and
+  # is passed through rather than reported
+  expect_silent(conditional_effects(fg, allow_new_levels = TRUE))
 })
 
-test_that("conditional_effects returns different columns", {
+test_that("conditional_effects returns brms's columns", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE, structural, and it is the data-level root of the
-  # faceting defect in dev/brms-vignette-audit.md. brms's data frame
-  # carries the held-constant covariates, cond__ and effect1__;
-  # frmtmb's carries the varying predictor and the band only. Any brms
-  # code that facets on cond__ or reads effect1__ has nothing to read.
+  # WAS finding 4, and it was the data-level root of the faceting
+  # defect in dev/brms-vignette-audit.md: brms's plot() facets on
+  # cond__, and frmtmb's frame had no such column unless conditions =
+  # was passed. The frame now carries what brms's carries, in brms's
+  # order: the varied predictor, the other model variables at their
+  # held values, cond__, effect1__, then the band.
   s <- brms_shape("r1")
   cb <- suppressWarnings(brms::conditional_effects(s$brmsfit))$x
   cf <- suppressWarnings(conditional_effects(s$fit))$x
@@ -892,30 +920,36 @@ test_that("conditional_effects returns different columns", {
   expect_identical(names(cb),
                    c("x", "y", "z", "cond__", "effect1__",
                      "estimate__", "se__", "lower__", "upper__"))
-  expect_identical(names(cf),
-                   c("x", "estimate__", "se__", "lower__", "upper__"))
-  expect_false("cond__" %in% names(cf))
-  expect_false("effect1__" %in% names(cf))
-  # the held value brms records IS the mean of the other covariate, and
-  # frmtmb agrees on the estimate, so it holds it there too without
-  # saying so
+  expect_identical(names(cf), names(cb))
+
+  # the held covariate is at the same value on both sides, and it is
+  # the mean, which is what the agreeing estimates already implied
   expect_exact_num(unique(cb$z), mean(s$data$z),
                    label = "brms holds a numeric covariate at its mean")
+  expect_exact_num(unique(cf$z), mean(s$data$z),
+                   label = "frmtmb holds it there too, and says so")
+  expect_exact_num(cf$effect1__, cf$x, label = "effect1__ is the effect")
+  # cond__ is a one-level factor when there is one condition set, as
+  # brms's is
+  expect_s3_class(cf$cond__, "factor")
+  expect_identical(levels(cf$cond__), levels(cb$cond__))
 })
 
-test_that("the two-way grid differs in order and in held value", {
+test_that("the two-way grid agrees elementwise, order included", {
   skip_unless_brms_fit()
 
-  # TWO DIVERGENCES on one call.
+  # TWO findings, both repaired, and the strength of this block is that
+  # it needs no alignment key at all now.
   #
-  # 1. Row order. brms varies the SECOND effect fastest; frmtmb varies
-  #    the first. The two frames hold the same 300 points and no
-  #    elementwise comparison of them is meaningful.
-  # 2. The held values themselves. brms evaluates at mean +- sd exactly
-  #    and rounds only the LABEL it puts in effect2__. frmtmb rounds the
-  #    VALUE, signif(mean +- sd, 3) at R/conditional-effects.R
-  #    ce_second_values(), and evaluates there, so its curve is the
-  #    model at a slightly different covariate value.
+  # 1. Row order (finding 5). brms varies the SECOND effect fastest;
+  #    frmtmb varied the first, so no elementwise comparison of the two
+  #    frames was meaningful and a script that indexed rows positionally
+  #    read a different point.
+  # 2. The held values (finding 2). brms evaluates at mean +- sd
+  #    exactly and rounds only the LABEL in effect2__. frmtmb rounded
+  #    the VALUE, signif(mean +- sd, 3), and evaluated there, so its
+  #    curve was the model at a covariate value nobody chose and the
+  #    error was set by the coefficient rather than by anything visible.
   s <- brms_shape("r1")
   cb <- suppressWarnings(
     brms::conditional_effects(s$brmsfit, effects = "x:z"))[["x:z"]]
@@ -923,100 +957,98 @@ test_that("the two-way grid differs in order and in held value", {
                                              effects = "x:z"))[["x:z"]]
   expect_identical(nrow(cb), nrow(cf))
 
-  # order: brms repeats x while z moves, frmtmb repeats z while x moves
+  # order: the first effect is the slowest on both sides
   expect_identical(cb$x[1], cb$x[2])
-  expect_false(isTRUE(all.equal(cf$x[1], cf$x[2])))
-  expect_identical(cf$z[1], cf$z[2])
+  expect_identical(cf$x[1], cf$x[2])
+  expect_false(isTRUE(all.equal(cf$z[1], cf$z[2])))
 
-  # held values: exact on one side, signif(, 3) on the other
-  zb <- sort(unique(cb$z))
+  # held values: exact on both sides
   zf <- sort(unique(cf$z))
-  expect_exact_num(zb, sort(mean(s$data$z) +
+  expect_exact_num(zf, sort(mean(s$data$z) +
                               c(-1, 0, 1) * sd(s$data$z)),
-                   label = "brms holds the second effect at mean +- sd")
-  expect_identical(zf, sort(signif(mean(s$data$z) +
-                                     c(-1, 0, 1) * sd(s$data$z), 3)))
-  expect_false(isTRUE(all.equal(zb, zf)))
+                   label = "frmtmb holds the second effect at mean +- sd")
+  expect_exact_num(sort(unique(cb$z)), zf,
+                   label = "and at the same values brms uses")
 
-  # and the estimates then differ, at the size of the rounding, once
-  # the rows are aligned so that order is not what is being measured
-  # WHEN THE ROUNDING IS FIXED, expect_false(anyNA(m)) below fails too,
-  # and for the right reason: the key rounds brms's z to match frmtmb's
-  # rounded one, so an unrounded cf$z stops matching. That failure reads
-  # like an unrelated alignment bug, so it is named here. Four
-  # expectations flip together on this fix, not three.
-  kb <- paste(format(cb$x, digits = 12), format(signif(cb$z, 3),
-                                                digits = 12))
-  kf <- paste(format(cf$x, digits = 12), format(cf$z, digits = 12))
-  m <- match(kf, kb)
-  expect_false(anyNA(m))
-  gap <- max(abs(cb$estimate__[m] - cf$estimate__))
-  expect_gt(gap, 1e-6)
-  expect_lt(gap, 1e-2)
+  # so the whole grid compares elementwise, with no key
+  expect_exact_num(cb$x, cf$x, label = "two-way x column")
+  expect_exact_num(cb$z, cf$z, label = "two-way z column")
+  expect_exact_num(cb$estimate__, cf$estimate__,
+                   label = "two-way estimate, elementwise")
 
-  # brms's effect2__ is the ROUNDED LABEL of an unrounded value, which
-  # is the distinction frmtmb collapses
-  expect_true(is.factor(cb$effect2__))
-  # brms orders the levels DESCENDING, so that a legend reads from
-  # the top of the plot downward
-  expect_identical(levels(cb$effect2__),
-                   as.character(rev(sort(round(zb, 2)))))
+  # the rounding lives in the LABEL, which is the distinction frmtmb
+  # used to collapse: brms orders the levels DESCENDING so a legend
+  # reads from the top of the plot downward
+  expect_true(is.factor(cf$effect2__))
+  expect_identical(levels(cf$effect2__), levels(cb$effect2__))
+  expect_identical(levels(cf$effect2__),
+                   as.character(rev(sort(round(zf, 2)))))
 })
 
-test_that("the two-way order differs for a factor moderator too", {
+test_that("the two-way factor moderator agrees elementwise too", {
   skip_unless_brms_fit()
 
-  # The order divergence and the rounding one are independent, and a
-  # FACTOR moderator separates them: there is nothing to round, both
-  # packages take sort(unique(f)), and the row order still differs.
+  # A FACTOR moderator separates the two findings of the block above:
+  # there is nothing to round, both packages take the observed levels,
+  # and the row order alone used to put the frames 1.99 apart on the x
+  # column. It agrees elementwise now.
   s <- brms_shape("rfac")
   cb <- suppressWarnings(
     brms::conditional_effects(s$brmsfit, effects = "x:f"))[["x:f"]]
   cf <- suppressWarnings(conditional_effects(s$fit,
                                              effects = "x:f"))[["x:f"]]
   expect_identical(nrow(cb), nrow(cf))
-  expect_setequal(as.character(cb$f), as.character(cf$f))
+  expect_identical(as.character(cb$f), as.character(cf$f))
   expect_identical(cb$x[1], cb$x[2])
-  expect_false(isTRUE(all.equal(cf$x[1], cf$x[2])))
+  expect_identical(cf$x[1], cf$x[2])
 
-  # aligned on (x, f) the estimates are exact, which is what says the
-  # only difference here is order
-  kb <- paste(format(cb$x, digits = 12), as.character(cb$f))
-  kf <- paste(format(cf$x, digits = 12), as.character(cf$f))
-  m <- match(kf, kb)
-  expect_false(anyNA(m))
-  expect_exact_num(cb$estimate__[m], cf$estimate__,
-                   label = "ce x:f estimate once aligned")
+  expect_exact_num(cb$x, cf$x, label = "ce x:f grid, elementwise")
+  expect_exact_num(cb$estimate__, cf$estimate__,
+                   label = "ce x:f estimate, elementwise")
+  # a factor moderator's effect2__ is the factor itself on both sides,
+  # not a rounded label
+  expect_identical(as.character(cf$effect2__), as.character(cb$effect2__))
 })
 
-test_that("conditional_effects(int_conditions =) is accepted and ignored", {
+test_that("conditional_effects(int_conditions =) conditions the effect", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE. int_conditions is not an argument of
-  # conditional_effects.frmtmb_fit and the string does not occur
-  # anywhere under R/, so it lands in ... and has no effect on the grid.
-  # It is not swallowed in silence: conditional_effects() forwards its
-  # dots to predict(), and predict() warns. What the warning says is
-  # "ignoring unknown arguments to predict(): int_conditions", naming a
-  # function the user did not call, so the message does not connect the
-  # ignored argument to the plot that came back wrong.
+  # WAS finding 3. int_conditions was not an argument at all: it landed
+  # in ... , reached predict() through the dots, and was reported there
+  # as an unknown argument to a function the user had not called, while
+  # the grid it was supposed to set came back unchanged. It is how
+  # brms's own vignettes pick the levels of a moderator.
   s <- brms_shape("r1")
   ic <- list(z = c(-1, 0, 1))
   cb <- suppressWarnings(brms::conditional_effects(
     s$brmsfit, effects = "x:z", int_conditions = ic))[["x:z"]]
+  cf <- suppressWarnings(conditional_effects(
+    s$fit, effects = "x:z", int_conditions = ic))[["x:z"]]
+
   expect_identical(sort(unique(cb$z)), c(-1, 0, 1))
+  expect_identical(sort(unique(cf$z)), c(-1, 0, 1))
+  expect_identical(nrow(cf), nrow(cb))
+  expect_exact_num(cb$estimate__, cf$estimate__,
+                   label = "ce int_conditions estimate, elementwise")
 
-  expect_warning(conditional_effects(s$fit, effects = "x:z",
-                                     int_conditions = ic),
-                 "unknown arguments to predict\\(\\): int_conditions")
-
+  # it really moved the grid: the default holds z at mean +- sd
   base <- suppressWarnings(conditional_effects(s$fit,
                                                effects = "x:z"))[["x:z"]]
-  cf <- suppressWarnings(conditional_effects(s$fit, effects = "x:z",
-                                             int_conditions = ic))[["x:z"]]
-  expect_identical(cf$z, base$z)
-  expect_identical(cf$estimate__, base$estimate__)
-  expect_false(any(unique(cf$z) %in% c(-1, 1)))
+  expect_false(isTRUE(all.equal(cf$z, base$z)))
+  expect_false(isTRUE(all.equal(cf$estimate__, base$estimate__)))
+
+  # a function of the observed column works too, as in brms
+  qf <- suppressWarnings(conditional_effects(
+    s$fit, effects = "x:z",
+    int_conditions = list(z = function(v) quantile(v, c(0.1, 0.9)))))[["x:z"]]
+  expect_exact_num(sort(unique(qf$z)),
+                   unname(quantile(s$data$z, c(0.1, 0.9))),
+                   label = "int_conditions as a function")
+
+  # and the VARIED variable takes one as well
+  vf <- suppressWarnings(conditional_effects(
+    s$fit, effects = "x", int_conditions = list(x = c(-2, 0, 2))))$x
+  expect_exact_num(vf$x, c(-2, 0, 2), label = "int_conditions on effect 1")
 })
 
 test_that("conditional_effects(conditions =) agrees on values", {
@@ -1032,14 +1064,14 @@ test_that("conditional_effects(conditions =) agrees on values", {
   expect_identical(nrow(cf), nrow(cb))
   expect_exact_num(cb$estimate__, cf$estimate__,
                    label = "ce conditions estimate")
-  # frmtmb DOES emit cond__ here, and only here: the column exists when
-  # conditions are given and not otherwise, while brms always has it
   expect_true("cond__" %in% names(cf))
   expect_identical(as.character(unique(cf$cond__)),
                    as.character(unique(cb$cond__)))
-  # but the conditioning variable itself is still not carried
-  expect_false("z" %in% names(cf))
+  # and the conditioning variable is carried, at the value it was
+  # conditioned on, so the frame says what the panel is
+  expect_true("z" %in% names(cf))
   expect_true("z" %in% names(cb))
+  expect_identical(cf$z, cb$z)
 })
 
 test_that("conditional_effects(dpar =) enumerates different effects", {
@@ -1067,69 +1099,121 @@ test_that("conditional_effects(dpar =) enumerates different effects", {
   expect_identical(attr(cf$x, "dpar"), "sigma")
 })
 
-test_that("an ordinal fit's conditional_effects differ three ways", {
+test_that("an ordinal fit's conditional_effects reach both layouts", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE, and it is three at once. frmtmb's DEFAULT for an
-  # ordinal fit is brms's categorical = TRUE layout; frmtmb accepts and
-  # ignores categorical =, so the other layout cannot be asked for; and
-  # the effect is keyed "x" by frmtmb and "x:cats__" by brms, so
-  # neither result can be indexed with the other's name. See
-  # dev/brms-methods-tests.md.
+  # WAS finding 6b, three differences at once. frmtmb's DEFAULT is
+  # brms's categorical = TRUE layout; frmtmb accepted and IGNORED
+  # categorical = , so the other layout could not be asked for at all;
+  # and the effect was keyed "x" where brms keys the categorical layout
+  # "x:cats__", so neither result could be indexed with the other's
+  # name. The argument is honored now and the keys match; what stays is
+  # the DEFAULT, and it is deliberate - brms's own default warns that
+  # it is treating an ordered factor as continuous and asks the user to
+  # set categorical = TRUE, which is what frmtmb does without being
+  # asked.
   s <- brms_shape("r12a")
   bdef <- suppressWarnings(brms::conditional_effects(s$brmsfit))
   bcat <- suppressWarnings(brms::conditional_effects(s$brmsfit,
                                                      categorical = TRUE))
   fdef <- suppressWarnings(conditional_effects(s$fit))
   fcat <- suppressWarnings(conditional_effects(s$fit, categorical = TRUE))
+  fnum <- suppressWarnings(conditional_effects(s$fit, categorical = FALSE))
 
   expect_identical(names(bdef), "x")
   expect_identical(names(bcat), "x:cats__")
-  expect_identical(names(fdef), "x")
-  expect_identical(names(fcat), "x")
+  expect_identical(names(fdef), "x:cats__")
+  expect_identical(names(fcat), "x:cats__")
+  expect_identical(names(fnum), "x")
 
-  # categorical = is accepted and does nothing
-  expect_identical(fcat$x, fdef$x)
+  # the default IS the categorical layout, and it is now brms's frame
+  # elementwise: same key, same rows, same order, same probabilities
+  expect_identical(fcat[["x:cats__"]], fdef[["x:cats__"]])
+  expect_identical(nrow(fdef[["x:cats__"]]), nrow(bcat[["x:cats__"]]))
+  expect_identical(as.character(fdef[["x:cats__"]]$cats__),
+                   as.character(bcat[["x:cats__"]]$cats__))
+  expect_exact_num(bcat[["x:cats__"]]$estimate__,
+                   fdef[["x:cats__"]]$estimate__,
+                   label = "ordinal ce probabilities, elementwise")
 
-  # frmtmb's default IS brms's categorical layout: per-category
-  # probabilities on a three-times-longer grid, with a cats__ column
-  expect_identical(nrow(fdef$x), nrow(bcat[["x:cats__"]]))
-  expect_true("cats__" %in% names(fdef$x))
-  expect_false("cats__" %in% names(bdef$x))
-  expect_setequal(as.character(fdef$x$cats__),
-                  as.character(bcat[["x:cats__"]]$cats__))
-
-  # and the probabilities agree once the rows are aligned, which is
-  # what makes the difference a layout and not an arithmetic one
-  kb <- paste(format(bcat[["x:cats__"]]$x, digits = 12),
-              as.character(bcat[["x:cats__"]]$cats__))
-  kf <- paste(format(fdef$x$x, digits = 12), as.character(fdef$x$cats__))
-  m <- match(kf, kb)
-  expect_false(anyNA(m))
-  expect_exact_num(bcat[["x:cats__"]]$estimate__[m], fdef$x$estimate__,
-                   label = "ordinal ce probabilities once aligned")
-
-  # brms's default summary, the expected category number, has no
-  # frmtmb spelling: its estimates are on the category scale
-  expect_gt(min(bdef$x$estimate__), 1)
-  expect_lt(max(bdef$x$estimate__), 3)
+  # categorical = FALSE is brms's default summary, the expected
+  # CATEGORY NUMBER, and it agrees with brms's default exactly
+  expect_identical(nrow(fnum$x), nrow(bdef$x))
+  expect_exact_num(bdef$x$estimate__, fnum$x$estimate__,
+                   label = "ordinal ce expected category")
+  expect_gt(min(fnum$x$estimate__), 1)
+  expect_lt(max(fnum$x$estimate__), 3)
+  # and it is the probability-weighted category, which is the identity
+  # that says what the number means
+  P <- fdef[["x:cats__"]]
+  k <- as.integer(P$cats__)
+  expect_exact_num(as.numeric(tapply(k * P$estimate__, P$x, sum)),
+                   fnum$x$estimate__,
+                   label = "expected category is sum(k * p_k)")
+  # its band is a delta-method band of its own, not a copy of anything
+  expect_true(all(fnum$x$se__ > 0))
+  expect_true(all(fnum$x$lower__ < fnum$x$estimate__))
 })
 
-test_that("conditional_effects(method =) uses a different vocabulary", {
+test_that("a nominal per-category display needs a bootstrap band", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE in the argument, not in the answer. Where both
-  # spellings resolve the values are identical.
+  # PARADIGM DIFFERENCE, and the reason r13 stays out of the one-way
+  # loop. The per-category display of a NOMINAL family has no
+  # thresholds, so the ordinal delta method (ord_prob_se) does not
+  # apply and there is no analytic standard error to draw a wald band
+  # from; frmtmb refuses by name and points at band = "boot". brms
+  # summarizes posterior draws and needs no Jacobian.
+  s <- brms_shape("r13")
+  expect_error(conditional_effects(s$fit, categorical = TRUE),
+               "no analytic standard error for the category")
+
+  # under that band the ESTIMATE is still the fit's own, not a draw
+  # mean, so it is brms's curve exactly - two refits are enough to
+  # show it, because only lower__/upper__/se__ come from them
+  cb <- suppressWarnings(brms::conditional_effects(s$brmsfit,
+                                                   categorical = TRUE))
+  cf <- suppressWarnings(conditional_effects(s$fit, categorical = TRUE,
+                                             band = "boot", boot = 2,
+                                             seed = 1))
+  expect_identical(names(cf), names(cb))
+  e <- names(cb)[[1]]
+  expect_identical(nrow(cf[[e]]), nrow(cb[[e]]))
+  expect_identical(as.character(cf[[e]]$cats__),
+                   as.character(cb[[e]]$cats__))
+  expect_exact_num(cb[[e]]$estimate__, cf[[e]]$estimate__,
+                   label = "nominal ce probabilities, elementwise")
+})
+
+test_that("conditional_effects(method =) takes brms's vocabulary too", {
+  skip_unless_brms_fit()
+
+  # WAS a design choice with a one-line cost: a ported call spelling
+  # brms's method = "posterior_epred" failed at match.arg(), which
+  # named the choices but not the rename. Both spellings resolve now,
+  # and to the same numbers.
   s <- brms_shape("rfac")
-  expect_error(conditional_effects(s$fit, effects = "x",
-                                   method = "posterior_epred"),
-               "should be one of")
   b <- suppressWarnings(brms::conditional_effects(
     s$brmsfit, effects = "x", method = "posterior_epred"))$x
   f <- suppressWarnings(conditional_effects(s$fit, effects = "x",
                                             method = "epred"))$x
+  fa <- suppressWarnings(conditional_effects(s$fit, effects = "x",
+                                             method = "posterior_epred"))$x
   expect_exact_num(b$estimate__, f$estimate__,
                    label = "ce epred under both spellings")
+  expect_identical(fa, f)
+  # posterior_predict too, and the one brms name with no frmtmb display
+  # is refused by name rather than by a list of two choices
+  expect_identical(
+    suppressWarnings(conditional_effects(s$fit, effects = "x",
+                                         method = "posterior_predict"))$x$x,
+    suppressWarnings(conditional_effects(s$fit, effects = "x",
+                                         method = "predict"))$x$x)
+  expect_error(conditional_effects(s$fit, effects = "x",
+                                   method = "posterior_linpred"),
+               "no frmtmb spelling")
+  expect_error(conditional_effects(s$fit, effects = "x", method = "nope"),
+               "should be one of")
 })
 
 # ---------------------------------------------------------------------
@@ -1180,7 +1264,7 @@ test_that("hypothesis reaches sd and cor by brms's names", {
   }
 })
 
-test_that("re_formula: prediction agrees, conditional_effects does not", {
+test_that("re_formula: prediction agrees, and so does the population curve", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
 
@@ -1195,8 +1279,7 @@ test_that("re_formula: prediction agrees, conditional_effects does not", {
                    predict(s$fit, type = "response", re.form = NULL),
                    label = "epred re_formula = NULL")
 
-  # DIVERGENCE in conditional_effects, and only there. At the default
-  # re_formula = NA the two are identical.
+  # and so does conditional_effects at the default re_formula = NA
   cbn <- suppressWarnings(brms::conditional_effects(s$brmsfit,
                                                     re_formula = NA))$Days
   cfn <- suppressWarnings(conditional_effects(s$fit,
@@ -1204,47 +1287,72 @@ test_that("re_formula: prediction agrees, conditional_effects does not", {
   expect_exact_num(cbn$estimate__, cfn$estimate__,
                    label = "ce re_formula = NA")
 
-  # At re_formula = NULL brms conditions on a NEW group, which is why
-  # its grouping column is NA and its curve moves from call to call.
-  # frmtmb conditions on the FIRST observed level and does not say so.
+  # WAS finding 6d. At re_formula = NULL frmtmb conditioned on the
+  # FIRST OBSERVED level, Subject 308, and the frame carried no
+  # grouping column to say so; the curve was 86.5 away from the
+  # population one at its furthest point, and which subject it belonged
+  # to depended on factor level order. It now conditions on a NEW
+  # group, as brms does, and the frame says NA.
   cb <- suppressWarnings(brms::conditional_effects(s$brmsfit,
                                                    re_formula = NULL))$Days
   cf <- suppressWarnings(conditional_effects(s$fit,
                                              re_formula = NULL))$Days
   expect_true("Subject" %in% names(cb))
+  expect_true("Subject" %in% names(cf))
   expect_true(all(is.na(cb$Subject)))
-  expect_false("Subject" %in% names(cf))
+  expect_true(all(is.na(cf$Subject)))
 
-  # frmtmb's curve IS level one's, exactly
+  # PARADIGM DIFFERENCE in what a new group's curve IS. brms draws that
+  # group's random effects from the fitted covariance in every
+  # posterior draw, so its curve is stochastic around the population
+  # one (253.28 at Days = 0 with a slope of 7.40 on one run, against
+  # the population 252.86 and 10.09). A maximum-likelihood fit has the
+  # MODE, which is zero, so the curve is the population curve exactly
+  # and the random-effect variance goes into the band instead.
+  expect_exact_num(cf$estimate__, cfn$estimate__,
+                   label = "a new group's curve is the population curve")
+  expect_true(all(cf$se__ > cfn$se__))
+  # brms's stochastic curve lands near it but not on it
+  expect_lt(max(abs(cb$estimate__ / cf$estimate__ - 1)), 0.25)
+  expect_gt(max(abs(cb$estimate__ - cf$estimate__)), 1e-6)
+
+  # an OBSERVED group is conditions = , which says which one in the
+  # frame and reproduces that level exactly
   fe <- fixef(s$fit)$mu
-  re <- ranef(s$fit)[[1]]
+  re <- ranef(s$fit)[["Subject"]]
   lvl1 <- rownames(re)[1]
-  expect_exact_num(cf$estimate__,
+  cg <- suppressWarnings(conditional_effects(
+    s$fit, re_formula = NULL,
+    conditions = list(Subject = lvl1)))$Days
+  expect_identical(unique(as.character(cg$Subject)), lvl1)
+  expect_exact_num(cg$estimate__,
                    fe[["(Intercept)"]] + re[lvl1, "(Intercept)"] +
-                     (fe[["Days"]] + re[lvl1, "Days"]) * cf$Days,
-                   label = "frmtmb ce re_formula = NULL is level one")
-  # and it is not the population curve, so the choice is visible
-  expect_gt(max(abs(cf$estimate__ - cfn$estimate__)), 1)
+                     (fe[["Days"]] + re[lvl1, "Days"]) * cg$Days,
+                   label = "ce conditions = names the group exactly")
+  expect_gt(max(abs(cg$estimate__ - cfn$estimate__)), 1)
 })
 
-test_that("an unknown argument is reported against predict()", {
+test_that("an unknown argument is reported against the function called", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
 
   # frmtmb spells brms's re_formula as re.form on predict(), and brms's
   # spelling reaches ... and is dropped with a warning that names it.
-  # That is the right behavior for a direct call.
+  # That is the right behavior for a DIRECT call.
   s <- brms_shape("rC0")
   expect_warning(predict(s$fit, type = "response", re_formula = NULL),
                  "ignoring unknown arguments to predict\\(\\): re_formula")
 
-  # conditional_effects() forwards its dots to the same predict(), so an
-  # argument it does not know is reported the same way, against
-  # predict(), a function the user did not call. The warning is there;
-  # what it does not say is that the plot ignored what was asked for.
+  # conditional_effects() used to forward its dots to that same
+  # predict(), so an argument IT did not know was reported against a
+  # function the user had not called - and only on the branches that
+  # forward. It checks its own dots now, and int_conditions is one of
+  # its arguments rather than an unknown one.
+  expect_silent(conditional_effects(s$fit, effects = "Days",
+                                    int_conditions = list(Days = c(1, 2))))
   expect_warning(conditional_effects(s$fit, effects = "Days",
-                                     int_conditions = list(Days = c(1, 2))),
-                 "ignoring unknown arguments to predict\\(\\)")
+                                     nosucharg = 1),
+                 "conditional_effects\\(\\) is ignoring unknown")
 })
 
 test_that("hypothesis returns a different object in each package", {

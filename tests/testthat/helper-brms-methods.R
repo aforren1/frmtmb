@@ -551,20 +551,18 @@ brms_dpar_is_scalar <- function(shape, dpar) {
 brms_exclusions <- function() {
   rows <- rbind(
     # conditional_effects, one-way panels
-    c("brms_ce_shapes", "r2", "17", "D"),
     c("brms_ce_shapes", "r5", "18", "P"),
-    c("brms_ce_shapes", "r12a", "6b", "D"),
-    c("brms_ce_shapes", "r12b", "6b", "D"),
-    c("brms_ce_shapes", "r12c", "6b", "D"),
-    c("brms_ce_shapes", "r12d", "6b", "D"),
-    c("brms_ce_shapes", "r12e", "6b", "D"),
-    c("brms_ce_shapes", "r13", "6b", "D"),
-    c("brms_ce_shapes", "r16", "1b", "D"),
-    c("brms_ce_shapes", "rC16", "1b", "D"),
-    c("brms_ce_shapes", "r17", "1d", "C"),
-    # posterior_epred(dpar = ), keyed shape:dpar
-    c("brms_dpars_of", "r17:theta1", "1c", "D"),
-    c("brms_dpars_of", "r14c:sigma", "15", "D"),
+    # r12e is finding 13's tail, not finding 6b's: a cs() term stores
+    # its evaluated column and a label ("csz"), not the variable, so
+    # conditional_effects() cannot enumerate a cs() predictor and brms's
+    # effect list carries a "z:cats__" panel frmtmb's does not.
+    c("brms_ce_shapes", "r12e", "13", "C"),
+    # r13 is the BAND, not the display: a nominal family's category
+    # probabilities have no thresholds, so the ordinal delta method
+    # does not apply and a wald band is refused by name. The block "a
+    # nominal per-category display needs a bootstrap band" covers the
+    # shape under band = "boot", where the estimate is the fit's own.
+    c("brms_ce_shapes", "r13", "9", "P"),
     # posterior_linpred() against predict(type = "link")
     c("brms_linpred_shapes", "r12e", "13", "C"),
     c("brms_linpred_shapes", "r13", "13", "C"),
@@ -617,10 +615,12 @@ brms_exclusion_agrees <- function(list_nm, key) {
 # predicate rather than as assertions, so an exclusion can be asked
 # whether it is still earning its place.
 brms_ce_agrees <- function(shape, tol = 1e-8) {
-  cb <- try(suppressWarnings(brms::conditional_effects(shape$brmsfit)),
-            silent = TRUE)
-  cf <- try(suppressWarnings(conditional_effects(shape$fit)),
-            silent = TRUE)
+  args <- brms_ce_args(shape)
+  cb <- try(suppressWarnings(suppressMessages(do.call(
+    brms::conditional_effects, c(list(shape$brmsfit), args)))),
+    silent = TRUE)
+  cf <- try(suppressWarnings(suppressMessages(do.call(
+    conditional_effects, c(list(shape$fit), args)))), silent = TRUE)
   if (inherits(cb, "try-error") || inherits(cf, "try-error")) {
     return(FALSE)
   }
@@ -655,6 +655,22 @@ brms_dpar_epred_agrees <- function(shape, dpar, tol = 1e-8) {
     return(FALSE)
   }
   max(abs(a - b) / pmax(1, pmax(abs(a), abs(b)))) <= tol
+}
+
+# The arguments the conditional_effects comparison passes to BOTH
+# packages. A polytomous family needs categorical = TRUE on both sides:
+# brms REFUSES its own default for a nominal family ("Please set
+# 'categorical' to TRUE") and warns for an ordinal one that it is
+# treating an ordered factor as continuous, so comparing default
+# against default would compare a refusal, or a summary brms itself
+# advises against, with a curve. frmtmb's default IS this layout;
+# naming it on both sides is what makes the call the same call.
+brms_ce_args <- function(shape) {
+  if (isTRUE(family(shape$fit)$type %in% c("ordinal", "categorical"))) {
+    list(categorical = TRUE)
+  } else {
+    list()
+  }
 }
 
 # The shapes each comparison is defined on, derived from the table

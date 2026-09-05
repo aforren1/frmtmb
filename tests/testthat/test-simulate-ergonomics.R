@@ -191,12 +191,23 @@ test_that("CE prediction intervals respect trials() and trunc()", {
   dn$y <- rbinom(150, dn$nt, stats::plogis(0.3 + 0.5 * dn$x))
   fb <- frm(bf(y | trials(nt) ~ x) + binomial(), data = dn)
 
-  # a reference number of trials is meaningless: ask for a real one
-  expect_error(
-    conditional_effects(fb, effects = "x", method = "predict",
-                        resolution = 4, ndraws = 20),
-    "trials\\(nt\\)"
+  # a reference number of trials is meaningless, so the grid holds it
+  # at 1 - one artificial observation, brms's rule - and says so. It
+  # used to be an error here and a silent probability on the default
+  # path, which disagreed with itself.
+  expect_message(
+    ce1 <- conditional_effects(fb, effects = "x", method = "predict",
+                               resolution = 4, ndraws = 200),
+    "holding the trials variable\\(s\\) nt at 1"
   )
+  expect_true(all(ce1$x$upper__ <= 1))
+  expect_true(all(ce1$x$estimate__ > 0 & ce1$x$estimate__ < 1))
+  # the default path holds it at the same 1, so the two methods draw
+  # the same quantity
+  ce0 <- suppressMessages(conditional_effects(fb, effects = "x",
+                                              resolution = 4))
+  expect_lt(max(abs(ce0$x$estimate__ / ce1$x$estimate__ - 1)), 0.15)
+
   ce <- conditional_effects(fb, effects = "x", method = "predict",
                             resolution = 4, ndraws = 400,
                             conditions = list(nt = 10))
