@@ -875,7 +875,9 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                any(c("mo", "mi") %in% all.names(tm))) {
       # mo(x):z / mo(x)*z (and mi versions): the special call on one
       # side, a plain multiplier term on the other. `*` also emits the
-      # main effects; mo() interactions share their variable's simplex.
+      # main effect, appended AFTER the interaction it implies; the
+      # frame re-sorts into brms's terms() order before it numbers the
+      # simplexes, so nothing here depends on the written order.
       op_star <- identical(tm[[1]], as.name("*"))
       sides <- list(tm[[2]], tm[[3]])
       is_sp <- vapply(sides, function(s) {

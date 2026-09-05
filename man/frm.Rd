@@ -259,6 +259,48 @@ lexically: qualify with \verb{RTMB::} there, and see \code{\link[=frmtmb_ad_over
 for the rest of that contract.
 }
 
+\section{Monotonic effects}{
+
+\code{mo(x)} fits an ordinal predictor without assuming its categories are
+equally spaced. \code{x} is an ordered factor or a non-negative integer
+vector with at least three categories, coded \verb{0..D}. The term
+contributes \code{b * D * sum(zeta[1:k])} at category \code{k}, where \code{zeta} is
+a simplex of \code{D} non-negative steps summing to one. \code{b} is therefore
+the AVERAGE step, on the coefficient scale of any other predictor,
+and \code{zeta} says how that total is distributed over the categories.
+\code{b} appears in \code{fixef()} under the term's label (\code{mox}, or \code{mox:z}
+for an interaction); the simplex is held as its \code{D - 1} free softmax
+coordinates in a \verb{zeta<j>} component of \code{\link[=par_template]{par_template()}}, and
+\code{summary()} prints those coordinates rather than the simplex.
+
+Every monotonic TERM gets its own simplex. \code{y ~ mo(x) * z} fits two:
+one shape for the main effect and one for the interaction, because
+the two terms describe different shapes and there is no reason for
+the interaction to bend the way the main effect does. The simplexes
+are numbered in the order \code{\link[brms:brm]{brms::brm()}} enumerates its special terms,
+which is \code{stats::terms()} order and so lists every main effect before
+any interaction. The j-th monotonic term of a linear predictor is
+therefore the one brms calls \verb{simo_<j>} and names \verb{<label><1>} in the
+\code{simo} rows of its \code{get_prior()}.
+
+The \verb{zeta<j>} NUMBER is not that j in general. Simplexes continue the
+numbering of whatever parameters the family contributed first, so
+\verb{zeta<j>} is brms's \verb{simo_<j>} only for a family that declares none:
+an ordinal fit spends slot 1 on its thresholds and a \code{cox()} fit on
+its baseline hazard, and in both the first monotonic simplex is
+\code{zeta2}. Read the terms in order rather than parsing the number.
+
+frmtmb has no prior class for a simplex; brms's flat \code{dirichlet(1)}
+is the one prior it cannot be told to drop, and it contributes only a
+constant, so the two log-densities agree up to \code{lgamma(D)} per
+simplex.
+
+\code{mo()} may be crossed with a single numeric multiplier and no more:
+\code{mo(x) * z} and \code{mo(x):z} are fitted, \code{mo(x) * f} for a factor \code{f} is
+refused (the simplex carries one coefficient and a contrast expansion
+has no column to go in), and \code{mo(x):mo(w)} is refused outright.
+}
+
 \section{The Laplace approximation, and how to check it}{
 
 Random effects are integrated out by the Laplace approximation,

@@ -22,11 +22,11 @@
 #      its conditional modes, against minus RTMB's inner objective plus
 #      the map's log-Jacobian, and B is asserted on the z block only.
 #
-# There is no known-divergence list for numeric mismatches. The only
-# admissible exemption is a design choice frmtmb states in its own
-# source, recorded here with its reason. That list has one entry, row
-# 3's `mo(inc) * z`, and it is recorded by asserting the structural
-# difference rather than by skipping the row.
+# There is no known-divergence list for numeric mismatches, and the
+# only admissible exemption would be a design choice frmtmb states in
+# its own source, recorded here with its reason. That list is now
+# empty. It held one entry, row 3's `mo(inc) * z`, until every mo()
+# TERM was given its own simplex; every row below is an identity.
 #
 # Stan compiles here. The whole file is opt-in:
 #   Sys.setenv(FRMTMB_BRMS_FIT_TESTS = "true")
@@ -171,18 +171,15 @@ test_that("row 3: monotonic interaction, y ~ mo(inc):z", {
                 const = lgamma(3))
 })
 
-test_that("row 3: mo(inc) * z is a different model in the two packages", {
-  skip_unless_brms()
+test_that("row 3: mo(inc) * z is the same model in both packages", {
+  skip_unless_brms_fit()
 
-  # EXEMPTION, and the only one. brms builds one simplex per special
-  # term, frmtmb one per mo() VARIABLE: R/frame.R keys `mo_zetas` on
-  # deparse1(mexpr) and says "simplexes are shared per mo() variable".
-  # So mo(inc) and mo(inc):z share a simplex here and have their own in
-  # brms, frmtmb's model has two fewer free parameters, and no parameter
-  # map can turn one into the other. Nothing is skipped and no tolerance
-  # is widened: the structural difference is asserted, so this fails
-  # loudly if either package changes its mind. See
-  # dev/brms-likelihood-tests.md for which side is right.
+  # This row used to hold the file's only exemption. frmtmb keyed the
+  # simplex on the mo() VARIABLE, so mo(inc) and mo(inc):z shared one
+  # shape, its model had two fewer free parameters than brms's, and no
+  # parameter map could join them; the difference was asserted rather
+  # than skipped. Every mo() TERM now has its own simplex, so the row
+  # is an identity like every other and the exemption list is empty.
   set.seed(3)
   dm <- data.frame(inc = sample(0:3, 300, TRUE), z = rnorm(300))
   dm$y <- 1 + c(0, 1, 1.6, 2)[dm$inc + 1] + 0.3 * dm$z + rnorm(300)
@@ -193,10 +190,13 @@ test_that("row 3: mo(inc) * z is a different model in the two packages", {
   expect_identical(as.integer(sdat$Jmo), c(3L, 3L))
 
   fit <- frm(bf(y ~ mo(inc) * z) + gaussian(), data = dm)
-  zetas <- grep("^zeta", names(fit$estimates), value = TRUE)
-  expect_identical(zetas, "zeta1")
-  # both monotonic coefficients are present; only the shape is shared
+  # zeta<j> is simo_<j>: two simplexes, in brms's special-term order
+  expect_identical(grep("^zeta", names(fit$estimates), value = TRUE),
+                   c("zeta1", "zeta2"))
   expect_true(all(c("moinc", "moinc:z") %in% names(fixef(fit)$mu)))
+  # the admitted constant is the flat Dirichlet on EACH simplex
+  brms_lp_check(brms::bf(y ~ mo(inc) * z), gaussian(), dm, fit,
+                const = 2 * lgamma(3))
 })
 
 test_that("row 5: nonlinear, y ~ a * exp(-b * x) with a + b ~ 1", {
