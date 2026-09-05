@@ -105,11 +105,6 @@ get_prior() answers for one route, whatever is attached.
   `frmtmb_prior_rows` and a `route` attribute, and `print()` names the
   route on its first line so that a copied table stays unambiguous.
 
-# frmtmb 0.49.1
-
-Internal hygiene and the documentation site. No user-facing behavior
-changes.
-
 * A new opt-in test tier checks that frmtmb's objective is the same
   function of the parameters as the Stan program brms generates from
   the same formula with flat priors. At frmtmb's estimates the two log
@@ -131,6 +126,11 @@ changes.
   reuses the main effect's, and frmtmb's model has two fewer free
   parameters. Only that claim is withdrawn here. The behavior itself is
   unchanged and stays the maintainer's call.
+
+# frmtmb 0.49.1
+
+Internal hygiene and the documentation site. No user-facing behavior
+changes.
 
 * Every `$` read of a parameter template, an estimate list, an aterm
   container, a random-effect, linear-predictor, autocor or eta-design
