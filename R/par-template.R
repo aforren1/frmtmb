@@ -148,6 +148,11 @@ par_template.default <- function(object, data, family = NULL,
   spec <- parse_spec(bform)
   frame <- assemble_frame(spec, data, na.action = na.action,
                           data2 = validate_data2(data2))
+  # resolve_prior_input() reads the spec's families, so it needs the
+  # finalized ones: a family that derived its dpars from the response
+  # would otherwise be priced against the vocabulary it was written
+  # with. No in-repo family does that today.
+  spec <- carry_finalized_responses(spec, frame)
   entries <- if (!is.null(prior)) {
     resolve_prior_input(list(frame = frame, spec = spec), prior)$entries
   }

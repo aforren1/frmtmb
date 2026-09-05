@@ -3,8 +3,15 @@
 
 port_data <- function(seed = 1, n = 60) {
   set.seed(seed)
-  d <- data.frame(x = rnorm(n), z = rnorm(n), g = gl(n / 10, 10))
-  d$y <- 1 + 2 * d$x + rnorm(n)
+  d <- data.frame(x = rnorm(n), z = rnorm(n), g = gl(n / 10, 10), y = 0)
+  # portability is about argument spellings reaching the same model, so
+  # the response is drawn from the model itself
+  # The draw takes its own seed, away from the fixture's: reusing
+  # the fixture seed restarts the same random stream that made the
+  # covariates, and the residuals come out equal to x.
+  d$y <- frm_simulate(bf(y ~ x) + gaussian(), d,
+                      newparams = list(Intercept = 1, x = 2, sigma = 1),
+                      nsim = 1, seed = seed + 1000L)[[1]]
   d$k <- as.integer(cut(d$y, 3))
   d
 }

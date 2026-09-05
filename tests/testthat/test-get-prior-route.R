@@ -28,8 +28,17 @@ local_providers <- function(providers, env = parent.frame()) {
 
 route_test_data <- function() {
   set.seed(11)
-  data.frame(y = stats::rnorm(60), x = stats::rnorm(60),
-             g = factor(rep(1:6, 10)))
+  dd <- data.frame(y = 0, x = stats::rnorm(60), g = factor(rep(1:6, 10)))
+  # the prior table is a property of the call, not of the numbers, so
+  # the response is drawn from the model the tests then fit
+  # The draw takes its own seed, away from the fixture's: reusing
+  # the fixture seed restarts the same random stream that made the
+  # covariates, and the residuals come out equal to x.
+  dd$y <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
+                       newparams = list(Intercept = 0, x = 0.5, sigma = 1,
+                                        sd_g__Intercept = 0.5),
+                       nsim = 1, seed = 1011)[[1]]
+  dd
 }
 
 test_that("route = 'fit' answers the same with and without a provider", {

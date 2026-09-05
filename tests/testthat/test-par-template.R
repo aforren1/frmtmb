@@ -5,10 +5,17 @@
 # test-methods.R ("start values are validated") and test-nl.R already
 # depend on it, and both still pass.
 
+# This file tests the parameter VOCABULARY, not a likelihood, so the
+# response is drawn from the model rather than written out beside it.
 pt_data <- function() {
   set.seed(11)
-  dd <- data.frame(x = stats::rnorm(60), g = factor(rep(1:6, 10)))
-  dd$y <- 1 + 2 * dd$x + stats::rnorm(60)
+  dd <- data.frame(x = stats::rnorm(60), g = factor(rep(1:6, 10)), y = 0)
+  # The draw takes its own seed, away from the fixture's: reusing
+  # the fixture seed restarts the same random stream that made the
+  # covariates, and the residuals come out equal to x.
+  dd$y <- frm_simulate(bf(y ~ x) + gaussian(), dd,
+                       newparams = list(Intercept = 1, x = 2, sigma = 1),
+                       nsim = 1, seed = 1011)[[1]]
   dd
 }
 

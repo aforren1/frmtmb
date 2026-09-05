@@ -1189,8 +1189,17 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       }
       if (method == "predict") {
         fam <- rspec$family
-        if (is.null(fam[["sim"]])) {
+        if (!sim_can(fam)) {
           stop("method = 'predict' needs a family with a simulator",
+               sim_note(fam), call. = FALSE)
+        }
+        # the band is built from rowwise draws, so a family that only
+        # draws WHOLE is refused here even though simulate() accepts
+        # it: mixture_mvn()'s sim_ctx returns an n by D matrix, which
+        # the per-row quantiles below cannot consume
+        if (is.null(fam[["sim"]])) {
+          stop("method = 'predict' needs a family that draws row by ",
+               "row; '", fam[["family"]], "' draws the response whole",
                call. = FALSE)
         }
         dpv <- list()

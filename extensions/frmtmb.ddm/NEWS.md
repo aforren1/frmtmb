@@ -1,3 +1,24 @@
+# frmtmb.ddm (development version)
+
+* `frm_simulate()` now works for `gddm()`. The family installs its
+  density and its simulator in `family_finalize()`, so before frame
+  assembly the family object carries neither, and frmtmb's
+  `frm_simulate()` read the family as written and refused the model
+  for having no simulator. `simulate()` on a fitted `gddm()` was
+  unaffected, because a fit carries the finalized family. The fix is
+  in frmtmb rather than here: nothing in this package's wiring was
+  wrong, and `wiener()` and `lba()`, which pass `sim` in the
+  constructor, were never affected.
+* New `tests/testthat/test-simulate-density.R`: the agreement tier for
+  `wiener()`, `gddm()` and `lba()`, matching the one frmtmb holds its
+  built-in families to. The other tests here check the density against
+  RWiener and the exported `ddm_simulate()` against its generative
+  process; neither of those is the seam frmtmb uses, which is the
+  family's `sim` slot. The check is shaped for a choice-RT model: the
+  density is defective, so the reference is that density renormalized
+  on the row's own boundary, and the two boundaries' masses are
+  asserted to sum to one.
+
 # frmtmb.ddm 0.2.0
 
 Three families where there was one: Ratcliff's full diffusion model

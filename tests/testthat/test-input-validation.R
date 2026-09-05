@@ -9,8 +9,16 @@ iv_fit <- local({
     if (is.null(cache)) {
       set.seed(3)
       dd <- data.frame(x = stats::rnorm(60),
-                       g = factor(rep(1:6, 10)))
-      dd$y <- stats::rnorm(60, 1 + 0.5 * dd$x, 1)
+                       g = factor(rep(1:6, 10)), y = 0)
+      # every test here is about an argument being refused by name, so
+      # the response only has to come from the model that is fitted
+      # The draw takes its own seed, away from the fixture's: reusing
+      # the fixture seed restarts the same random stream that made the
+      # covariates, and the residuals come out equal to x.
+      dd$y <- frm_simulate(bf(y ~ x) + gaussian(), dd,
+                           newparams = list(Intercept = 1, x = 0.5,
+                                            sigma = 1),
+                           nsim = 1, seed = 1003)[[1]]
       cache <<- list(dd = dd,
                      fit = frm(bf(y ~ x + (1 | g)), family = gaussian(),
                                data = dd))

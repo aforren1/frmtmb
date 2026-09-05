@@ -711,6 +711,12 @@ get_prior <- function(formula, data = NULL, family = NULL,
     bform <- resolve_deferred_families(as_bform(formula, family), data)
     spec <- parse_spec(bform)
     frame <- assemble_frame(spec, data, data2 = data2)
+    # the table is built from the spec's primary_dpars and nlpars, so
+    # it needs the finalized families: a family that derived its dpars
+    # from the response would otherwise be tabled under the vocabulary
+    # it was written with, and the fit route would disagree with the
+    # formula route. No in-repo family does that today.
+    spec <- carry_finalized_responses(spec, frame)
   }
 
   multi <- length(spec$responses) > 1L

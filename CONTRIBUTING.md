@@ -74,6 +74,43 @@ Validation is layered. Put your test in the layer that fits:
 
 Set a seed with `set.seed()` in any test that uses random numbers.
 
+### Where test data comes from
+
+A validation test must generate its reference independently of
+frmtmb. Write the generative process by hand with `rnorm()`,
+`rpois()` and the other base samplers, or take the data from another
+package. Do not use `frm_simulate()` there. A simulator and a density
+that share a convention error still agree with each other, so a
+validation test that draws its data from the package under test cannot
+see that error.
+
+Every other test uses `frm_simulate()`. Tests of frame assembly,
+refusals, method surfaces, printing and ergonomics only need data of
+the correct shape, and so do the examples and the vignettes. A
+`frm_simulate()` call states the model once, in the same vocabulary as
+the `frm()` call below it. Hand-written `rnorm()` lines state the
+model a second time, and the second statement can drift away from the
+formula beside it.
+
+Give the draw a seed of its own, distinct from the one that made the
+covariates. `frm_simulate(seed = )` restarts the stream from that
+seed, so reusing the covariates' seed hands the covariate draws back
+as the residuals and the test fits a noiseless line. The convention in
+this repository is the covariate seed plus 1000.
+
+`tests/testthat/test-simulate-density.R` is what makes the second rule
+safe. It is the one file that closes the loop on purpose. For every
+family with a simulator it draws through the family's `sim` slot and
+tests the draws against that same family's `lpdf`, evaluated
+numerically: a goodness-of-fit test on cells whose probabilities are
+summed or integrated from the density, and the first two moments taken
+from the same measure. A family that declares no simulator must be
+refused by name at both entry points. So a convention error shared by
+a simulator and a density fails in that one file, instead of passing
+quietly in every test that used the simulator to make its data.
+
+Add a family, and add it to that file.
+
 Tests that need a suggested package must call
 `skip_if_not_installed()`. Slow tests must call `skip_on_cran()`.
 

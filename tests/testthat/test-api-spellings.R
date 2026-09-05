@@ -18,9 +18,17 @@ sp_case <- local({
     if (is.null(cache)) {
       set.seed(11)
       dd <- data.frame(x = stats::rnorm(60),
-                       g = factor(rep(1:6, 10)))
-      dd$y <- stats::rnorm(60, 1 + 0.5 * dd$x +
-                             stats::rnorm(6, 0, 0.5)[dd$g], 1)
+                       g = factor(rep(1:6, 10)), y = 0)
+      # this file compares argument SPELLINGS, so the response is drawn
+      # from the model rather than restated in rnorm() calls
+      # The draw takes its own seed, away from the fixture's: reusing
+      # the fixture seed restarts the same random stream that made the
+      # covariates, and the residuals come out equal to x.
+      dd$y <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
+                           newparams = list(Intercept = 1, x = 0.5,
+                                            sigma = 1,
+                                            sd_g__Intercept = 0.5),
+                           nsim = 1, seed = 1011)[[1]]
       fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
       cache <<- list(dd = dd, fit = fit)
     }
