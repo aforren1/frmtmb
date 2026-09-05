@@ -213,6 +213,106 @@ and brms's numbers wherever the two packages mean the same thing.
   where brms's own normalizer does not apply. The two agree whenever
   the graph is connected.
 
+A brms prior specification now means in frmtmb what it means in brms.
+Four behavior changes, each measured against the Stan program brms
+generates: on every shape whose optimum is a real mode, frmtmb's
+penalized objective is now brms's posterior density up to one `log(2)`
+per lower-bounded parameter, which is a constant and moves no mode.
+
+* BEHAVIOR CHANGE: `frm(prior = )` applies what a brms prior row SAYS,
+  keyed on the `prior` string rather than on the table's `source`
+  column. `frm(prior = brms::get_prior(...))` used to apply NOTHING and
+  say so in a message; it now fits a penalized model. The sharpest form
+  of the old behavior was that a row the USER had edited into a
+  `get_prior()` table in place, the ordinary
+  `gp$prior[i] <- "normal(0, 20)"` workflow, was dropped too, because
+  brms does not update `source` after such an edit, and the message
+  said brms had filled the row in. **What to change:** a script that
+  passed a `get_prior()` table for its slot listing and expected an
+  unpenalized fit must now blank the `prior` column, or not pass the
+  table. A table containing a class frmtmb keeps elsewhere (`sds`,
+  `sdgp`, `lscale`, `simo`, brms's mixture `theta`) now stops the call
+  with a named refusal where the row used to be dropped in silence;
+  blank that row, or write the frmtmb class the message names.
+* BEHAVIOR CHANGE: a brms prior on a distributional parameter's own
+  class (`sigma`, `shape`, `phi`, `nu`, `kappa`, `sigma1`, ...) is
+  translated instead of refused, and it lands on that parameter ITSELF
+  through the dpar's inverse link with that map's log-Jacobian, which
+  is where brms puts it. On a nonlinear fit this reproduces brms's mode
+  to nine figures where the row previously stopped the call. A bound on
+  such a row travels with it, so brms's `lb = 0` on a log-linked
+  dispersion becomes no constraint rather than a floor of 1. The brms
+  classes `ar`, `ma`, `cosy`, `cortime` and `rescor` are carried over
+  too; `set_prior()` already spelled them the same way. **What to
+  change:** nothing in a frmtmb script. `set_prior("...", class =
+  "Intercept", dpar = "sigma")` still means a density on LOG sigma and
+  is deliberately left alone, so the two spellings now mean different
+  things: write `brms::prior(..., class = "sigma")` for brms's meaning.
+  `?set_prior` records the divergence and its measured size.
+* BEHAVIOR CHANGE: a `class = "Intercept"` prior is evaluated at the
+  intercept at the MEAN of the predictors, which is the intercept brms
+  constrains, rather than at the intercept at zero. On
+  `Reaction ~ Days`, where `mean(Days)` is 4.5, brms's own default
+  moved the slope by 0.068 standard errors under the old placement and
+  moves it by 0.00003 under this one. Every sub-formula with an
+  intercept is centered separately, as in brms; nonlinear sub-formulas,
+  a smooth's unpenalized columns and `mo()` terms are not centered on
+  either side. **What to change:** an existing `class = "Intercept"`
+  prior on a model with uncentered predictors now constrains a
+  different quantity and its fit moves. To keep the old meaning, name
+  the intercept as a coefficient instead: `class = "b", coef =
+  "Intercept"`.
+* BEHAVIOR CHANGE: an ordinal family's `class = "Intercept"` prior
+  addresses its THRESHOLDS, as the same row does in brms, instead of
+  failing with "Prior target not found". The density sits on the
+  threshold vector at the predictor means, with the log-Jacobian of the
+  map from frmtmb's internal `tau_raw`, and it reproduces brms's
+  density exactly. `get_prior()` lists the slot. **What to change:**
+  a script relying on that error will now fit; `prior = list(tau_raw =
+  )` still reaches the same parameters on the internal scale.
+* `frm_simulate(prior = )` follows the same placements. A draw from a
+  distributional parameter's own class is a draw of that parameter, and
+  a draw from `class = "Intercept"` is a draw of the intercept at the
+  predictor means; the `pars` attribute reports the value that was
+  WRITTEN, so it still round-trips through `newparams =`, whose
+  `Intercept` is the intercept at zero. On a model with uncentered
+  predictors that column now holds a different number.
+* BEHAVIOR CHANGE: a translated `class = "sd"` or `class = "cor"` row
+  carrying a `coef` is refused rather than applied to the whole block.
+  brms narrows such a row to one coefficient and writes
+  `exponential_lpdf(sd_1[2] | 1)`, keeping its default on the rest;
+  frmtmb resolves those classes per BLOCK and never read `coef`, so
+  every one of `coef = "Intercept"`, `coef = "x"` and no `coef` gave a
+  bit-identical objective. Applying a narrowed row is a WIDER prior
+  than the one asked for. **What to change:** drop the `coef` to prior
+  the whole block (`group` still selects which one), or address the one
+  parameter with `class = "theta"`. `coef` on class `"b"`, and `group`
+  on `"sd"`/`"cor"`, are unaffected: those do narrow, and are now pinned.
+* `logistic(mu, s)`, `gamma(shape, rate)`, `inv_gamma(shape, scale)` and
+  `beta(shape1, shape2)` parse, with `prior_logistic()`,
+  `prior_gamma()`, `prior_inv_gamma()` and `prior_beta()` exported
+  beside the other prior constructors. Those are brms's defaults on a
+  mixture proportion, on `shape`/`phi`/`nu`/`kappa`, and on a
+  zero-inflation `zi` or hurdle `hu`. Adding them takes every
+  negbinomial, zero-inflated and hurdle model out of the set of tables
+  that stop: of 20 shapes a brms user would actually write, 6 stopped
+  and 3 do now, all three for a CLASS frmtmb keeps elsewhere (`s()`,
+  `gp()`, `mo()`) rather than for want of a density.
+* Every refused row of a brms table is named in one message instead of
+  only the first. A `y ~ gp(x)` table carries both an `lscale` row and
+  an `sdgp` row and used to cost two edit rounds; it costs one now.
+* The refusal for brms's mixture `theta` no longer names
+  `class = "Intercept", dpar = "theta2"`, a spelling that then failed
+  with "Prior target not found". `sds`, `sdgp`, `lscale`, `sdcar` and
+  `car` are refused by name as well, each saying which frmtmb class
+  reaches the same parameters, instead of being offered the generic
+  dpar advice. brms's shrinkage priors `horseshoe()`, `R2D2()` and
+  `lasso()` now reach that same "unsupported distribution" message;
+  `R2D2()` used to fall to a generic parse failure because its name is
+  upper-case and its argument list empty.
+* `tests/testthat/test-brms-priors.R` grew from 61 assertions to 83 and
+  every divergence it used to pin is now an identity.
+
 # frmtmb 0.51.0
 
 One simplex per monotonic term, matching brms; importance sampling over

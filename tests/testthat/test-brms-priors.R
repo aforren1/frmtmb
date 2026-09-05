@@ -18,104 +18,109 @@
 #      vanishes names the density frmtmb actually maximized, and that
 #      is the answer this file exists to pin.
 #
-# What it found, and what each test below pins:
+# What it now pins, after the PRIORS lane (see dev/priors-findings.md):
 #
-#   * brms's get_prior() defaults reach frm(prior =) as NOTHING. Every
-#     row carries source == "default" and as_priorlist() drops exactly
-#     those, so the fit is unpenalized and fit$prior is NULL.
-#   * class "sd" is ALREADY brms's placement: the density at the
-#     natural sd plus the log-Jacobian. It differs from brms by
-#     log(2) per parameter, the half-t renormalizer, which is a
-#     constant and moves no mode.
-#   * a distributional parameter WITHOUT a linear predictor is the one
-#     real placement difference, and frmtmb refuses the row rather than
-#     mistranslating it. Its nearest spelling is on the link scale;
-#     the natural placement exists internally and reproduces brms
-#     exactly.
-#   * class "Intercept" is a third thing entirely: same density, same
-#     scale, different ARGUMENT, because brms centers its design
-#     matrix and frmtmb does not.
+#   * a brms get_prior() table applies what its rows SAY. Rows used to
+#     be dropped by the `source` column, which cost a user their own
+#     edited prior; the column is not read any more.
+#   * a distributional parameter's own class (`sigma`, `phi`, ...) is
+#     ROUTED to the slot holding that parameter's intercept and marked
+#     `natural`, so the density is about the parameter, which is where
+#     brms puts it. frmtmb's own class = "Intercept" + dpar = spelling
+#     still means the LINK scale, and that divergence is measured here
+#     too rather than left to a document.
+#   * class "Intercept" is evaluated at the intercept brms constrains,
+#     the one at the predictor MEANS. The residual that used to be
+#     "centering" is zero everywhere in this file.
+#   * class "sd" was already brms's placement and still is: the density
+#     at the natural sd plus the log-Jacobian, differing from brms by
+#     log(2) per lower-bounded element, which is a constant.
+#   * an ordinal family's thresholds ARE its class "Intercept", on both
+#     sides, with the same map and the same centering.
+#
+# The consequence, and the reason the checks below are identities: on
+# every shape here whose optimum is a real mode, frmtmb's penalized
+# objective is brms's posterior density up to one log(2) per
+# lower-bounded parameter, so the AT=TRUE gradient vanishes.
 #
 # Stan compiles here, so the whole file is opt-in:
 #   Sys.setenv(FRMTMB_BRMS_FIT_TESTS = "true")
 # Each shape needs three programs (flat, the honored rows, all the
 # defaults), cached under FRMTMB_STAN_CACHE by the same key
-# helper-brms.R uses. Four of the six flat programs are byte-identical
-# to ones the flat-prior tier already compiles, so a shared cache pays
-# for them once.
-#
-# See dev/brms-priors-findings.md for the tables and the
-# recommendation these numbers support.
+# helper-brms.R uses.
 
 # ---------------------------------------------------------------------
 # The translation surface. No Stan.
 # ---------------------------------------------------------------------
 
-test_that("a brms get_prior() table applies no prior at all", {
+test_that("a brms get_prior() table applies what its rows say", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
   data(sleepstudy, package = "lme4")
 
-  # This is the first thing a user porting a brms script meets, and it
-  # is silent apart from one message: the fit succeeds and is
-  # unpenalized. Every row get_prior() writes is brms's own default,
-  # and as_priorlist() (R/priors.R) drops rows whose source is
-  # "default" on purpose, so that frmtmb's defaults and brms's cannot
-  # both apply to one parameter. On the frm() path frmtmb has no
-  # defaults, so what is left is nothing.
+  # This is the first thing a user porting a brms script meets. Every
+  # row get_prior() writes carries source == "default", and
+  # as_priorlist() used to drop exactly those, so the fit was
+  # unpenalized and fit$prior was NULL. It now reads the `prior` string
+  # and nothing else, which is brms's own rule.
   gp <- brms::get_prior(brms::bf(Reaction ~ Days + (Days | Subject)),
                         data = sleepstudy, family = gaussian())
   expect_true(all(gp$source[nzchar(gp$prior)] == "default"))
 
-  expect_message(
-    fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
-               data = sleepstudy, prior = gp),
-    "brms had filled in as its own defaults")
-  expect_null(fit$prior)
-  expect_equal(as.numeric(logLik(fit)),
-               as.numeric(logLik(frm(bf(Reaction ~ Days +
-                                          (Days | Subject)) + gaussian(),
-                                     data = sleepstudy))),
-               tolerance = 1e-8)
+  m <- bf(Reaction ~ Days + (Days | Subject)) + gaussian()
+  expect_silent(fit <- frm(m, data = sleepstudy, prior = gp))
+  expect_s3_class(fit$prior, "frmtmb_priorlist")
+  # one spec per live row, and every one of them resolves
+  expect_identical(length(unclass(fit$prior)), sum(nzchar(gp$prior)))
+  # and the fit is penalized: the whole table is worth several nats
+  expect_gt(abs(as.numeric(logLik(fit)) -
+                  as.numeric(logLik(frm(m, data = sleepstudy)))), 1)
 })
 
-test_that("a row the USER edited in a get_prior() table is dropped too", {
+test_that("a row the USER edited in a get_prior() table is honored", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
   data(sleepstudy, package = "lme4")
 
-  # The sharpest form of the same defect, and the reason it is a
+  # The sharpest form of the same defect, and the reason it was a
   # correctness bug rather than an ergonomics gap. `source` records who
   # BUILT the row, not who wrote the density in it, and brms does not
   # update it when a user edits the `prior` cell of a get_prior() table
   # in place, which is the ordinary brms workflow. brms honors such an
-  # edit; frmtmb drops it by `source` and then reports it as a row brms
-  # filled in itself.
-  #
-  # Every assertion here pins TODAY's behavior, which is the wrong
-  # behavior, so that D1a flips a named expectation rather than
-  # arriving unannounced.
+  # edit; frmtmb used to drop it by `source` and then report it as a row
+  # brms had filled in itself.
   gp <- brms::get_prior(brms::bf(Reaction ~ Days + (1 | Subject)),
                         data = sleepstudy, family = gaussian())
   i <- which(gp$class == "sd" & !nzchar(gp$coef) & !nzchar(gp$group))
   gp$prior[i] <- "normal(0, 20)"
-  # brms leaves the row marked as its own default after the edit
+  # brms still leaves the row marked as its own default after the edit,
+  # which is exactly why the column cannot be the key
   expect_identical(gp$source[[i]], "default")
 
   m <- bf(Reaction ~ Days + (1 | Subject)) + gaussian()
-  # and the message counts the user's own row among brms's defaults
-  expect_message(fit <- frm(m, data = sleepstudy, prior = gp),
-                 "dropped 3 row")
-  expect_null(fit$prior)
-  expect_equal(as.numeric(logLik(fit)),
-               as.numeric(logLik(frm(m, data = sleepstudy))),
-               tolerance = 1e-8)
-  # the prior was not vacuous: the same density respelled through
-  # set_prior() moves the objective by 1.9 nats, so what the drop costs
-  # is the whole of it
-  fs <- frm(m, data = sleepstudy,
-            prior = set_prior("normal(0, 20)", class = "sd"))
-  expect_gt(abs(as.numeric(logLik(fs)) - as.numeric(logLik(fit))), 1)
+  expect_silent(fit <- frm(m, data = sleepstudy, prior = gp))
+  # the edited row is in the applied prior, spelled as the user wrote it
+  sds <- Filter(function(s) identical(s$class, "sd"), unclass(fit$prior))
+  expect_length(sds, 1L)
+  expect_equal(sds[[1L]]$dist, prior_normal(0, 20))
+
+  # and it is worth what the user asked for: the entry is the edited
+  # density at the natural sd, plus the log-Jacobian class "sd" carries
+  e_tab <- bp_prior_entries(fit, fit$prior)
+  sd1 <- exp(as.numeric(fit$estimates[["theta"]])[[1L]])
+  expect_equal(e_tab$value[e_tab$comp == "theta"],
+               stats::dnorm(sd1, 0, 20, log = TRUE) + log(sd1),
+               tolerance = 1e-10)
+  # and it is the user's density rather than the one brms had written
+  # into that cell. normal(0, 20) is tighter than the student_t(3, 0,
+  # 59.3) brms puts there, so the standard deviation it shrinks to is
+  # smaller: the edit is doing work, in the direction it asks for.
+  gd <- brms::get_prior(brms::bf(Reaction ~ Days + (1 | Subject)),
+                        data = sleepstudy, family = gaussian())
+  fit_def <- frm(m, data = sleepstudy, prior = gd)
+  sd_def <- exp(as.numeric(fit_def$estimates[["theta"]])[[1L]])
+  expect_lt(sd1, sd_def)
+  expect_gt(sd_def - sd1, 0.1)
 })
 
 test_that("every default row's fate is one of five, by shape", {
@@ -124,8 +129,9 @@ test_that("every default row's fate is one of five, by shape", {
   data(sleepstudy, package = "lme4")
 
   # Four distinct refusals, and they are not the same kind of thing.
-  # "refused: class"        the class is not one of b/Intercept/sd/cor
-  # "refused: distribution" the density is not one of the five parsed
+  # "refused: class"        the class names a structure frmtmb holds
+  #                         somewhere else, or not at all
+  # "refused: distribution" the density is not one of the seven parsed
   # "refused: no target"    the class is accepted and addresses nothing
   # "flat slot"             the row is not a prior at all
   #
@@ -138,49 +144,60 @@ test_that("every default row's fate is one of five, by shape", {
     g$status[nzchar(g$prior)]
   }
 
+  # cor, Intercept, sd, sigma: every one of them lands
   expect_identical(
     st(brms::bf(Reaction ~ Days + (Days | Subject)), gaussian(),
        sleepstudy, bf(Reaction ~ Days + (Days | Subject)) + gaussian()),
-    c("honored", "honored", "honored", "refused: class"))
+    c("honored", "honored", "honored", "honored"))
 
   set.seed(5)
   do <- data.frame(x = rnorm(300))
   do$y <- ordered(cut(0.9 * do$x + rlogis(300),
                       breaks = c(-Inf, -1, 0.5, Inf), labels = 1:3))
-  # the ordinal threshold prior passes the class gate and then finds
-  # nothing: frmtmb's get_prior() offers no slot for a threshold either
+  # an ordinal family's thresholds ARE its class "Intercept", here as in
+  # brms, so the row that used to find no target now lands on them
   expect_identical(st(brms::bf(y ~ x), brms::cumulative(), do,
                       bf(y ~ x) + cumulative()),
-                   "refused: no target")
+                   "honored")
 
   set.seed(37)
   dx <- data.frame(x = rnorm(400))
   k <- rbinom(400, 1, 0.35)
   dx$y <- ifelse(k == 1, rnorm(400, 3, 1), rnorm(400, -1, 1))
-  # sigma1, sigma2 and brms's mixture theta2 are refused by class; the
-  # logistic on Intercept_theta1 is refused because parse_prior_dist()
-  # knows five densities and logistic is not one of them
+  # sigma1 and sigma2 are routed to their own parameters, and the
+  # logistic on Intercept_theta1 parses now. What is left refused is
+  # brms's theta2: the word names frmtmb's raw covariance vector, and
+  # the component brms holds as its reference is a parameter on neither
+  # side. brms writes no Stan statement for it either.
   expect_identical(
     st(brms::bf(y ~ 1, theta1 ~ x),
        brms::mixture(gaussian(), gaussian()), dx,
        bf(y ~ 1, theta1 ~ x) + mixture(gaussian(), gaussian())),
-    c("refused: class", "refused: class", "refused: class",
-      "honored", "honored", "refused: distribution"))
+    c("honored", "honored", "refused: class",
+      "honored", "honored", "honored"))
 
-  # The status is right and the ADVICE is not. The special-cased hint
-  # tests identical(cls, "theta"), brms spells a mixture proportion
-  # theta2, so the generic branch fires and names a spelling that then
-  # fails with "Prior target not found". Pinning the text means the
-  # one-line fix to that condition has to come past this expectation.
-  expect_error(frmtmb:::check_brms_prior_class("theta2", "logistic(0, 1)"),
-               'dpar = "theta2"', fixed = TRUE)
+  # The refusal is right and its ADVICE now is too. It used to name
+  # class = "Intercept", dpar = "theta2", which then failed with "Prior
+  # target not found", because that component has no linear predictor.
+  msg <- tryCatch(frmtmb:::check_brms_prior_class("theta2",
+                                                  "logistic(0, 1)"),
+                  error = conditionMessage)
+  expect_match(msg, "mixture proportion", fixed = TRUE)
+  expect_match(msg, "reference component", fixed = TRUE)
+  expect_false(grepl('dpar = "theta2"', msg, fixed = TRUE))
+
+  # and the classes that name a structure frmtmb keeps elsewhere say
+  # where it is rather than offering a spelling that does not fit
+  expect_error(frmtmb:::check_brms_prior_class("sds",
+                                               "student_t(3, 0, 1)"),
+               "class = \"sd\" with group", fixed = TRUE)
 })
 
 # ---------------------------------------------------------------------
 # The placement identity, on the shape that isolates it.
 # ---------------------------------------------------------------------
 
-test_that("row 5: a dpar prior is the whole placement question", {
+test_that("row 5: a dpar prior lands on the parameter brms means", {
   skip_unless_brms_fit()
 
   # The nonlinear shape is where the question has no confounder. Its
@@ -196,55 +213,53 @@ test_that("row 5: a dpar prior is the whole placement question", {
                 bf(y ~ a * exp(-b * x), a + b ~ 1, nl = TRUE) +
                   gaussian())
 
-  # frm(prior =) honors nothing here, so the "honored" program is the
-  # flat one and this row restates the flat tier: frmtmb maximizes the
-  # density Stan reports with adjust_transform = FALSE.
-  expect_identical(r$rows$status[nzchar(r$rows$prior)], "refused: class")
-  expect_lt(abs(r$hon$dF), 1e-8)
-  expect_lt(r$hon$gF, 1e-3)
-  # and the OTHER setting is off by exactly the derivative of the one
-  # log transform in the program, which is 1
-  expect_equal(r$hon$gT, 1, tolerance = 1e-3)
+  # the row is honored, and honored on the NATURAL scale: the entry
+  # carries the same change of variables class "sd" uses, because
+  # sigma's link is the log
+  expect_identical(r$rows$status[nzchar(r$rows$prior)], "honored")
+  ent <- bp_prior_entries(r$fit$hon, r$prior$hon)
+  expect_identical(ent$scale, "sd")
+  expect_identical(ent$comp, "betad")
 
   # the hyperparameters come off the row rather than being written in,
   # because brms scales its default by the spread of the response and a
   # hard-coded 2.5 would pin this data set instead of the rule
   h <- bp_hyper(r$rows$prior[[which(nzchar(r$rows$prior))]])
 
-  # (a) the nearest spelling frmtmb's own refusal message suggests,
-  #     class = "Intercept" with dpar = "sigma", puts the density on
-  #     LOG sigma with no Jacobian
-  sl <- as.numeric(r$link$pars[["sigma"]])
-  expect_equal(r$link$frm_prior, bp_st(log(sl), h[[1]], h[[2]], h[[3]]),
-               tolerance = 1e-10)
-  # neither Stan density is the one frmtmb maximized. The two gradients
-  # differ by the log transform's derivative, which is 1, so the link
-  # fit sits strictly between the two Stan optima rather than at either.
-  expect_gt(r$link$gF, 1e-2)
-  expect_gt(r$link$gT, 1e-2)
-
-  # (b) the natural placement is brms's, exactly, up to the half-t
-  #     renormalizer brms writes and frmtmb does not
-  sn <- as.numeric(r$nat$pars[["sigma"]])
-  expect_equal(r$nat$frm_prior,
+  # (a) frmtmb's density IS brms's, up to the half-t renormalizer brms
+  #     writes and frmtmb does not
+  sn <- as.numeric(r$hon$pars[["sigma"]])
+  expect_equal(r$hon$frm_prior,
                bp_half_st(sn, h[[1]], h[[2]], h[[3]]) - log(2) + log(sn),
                tolerance = 1e-10)
   # CHECK A: the whole residual is that constant, and the count comes
   # off the program's own lccdf lines rather than being assumed
-  expect_identical(bp_half_t_count(r$code$full, r$sdat), 1L)
-  expect_equal(r$nat$dT, bp_half_t_const(1), tolerance = 1e-8)
-  # CHECK B: and so the AT=TRUE gradient, and only that one, vanishes
-  expect_lt(r$nat$gT, 1e-3)
-  expect_equal(r$nat$gF, 1, tolerance = 1e-3)
+  expect_identical(bp_half_t_count(r$code$hon, r$sdat), 1L)
+  expect_equal(r$hon$dT, bp_half_t_const(1), tolerance = 1e-8)
+  # CHECK B: and so the AT=TRUE gradient, and only that one, vanishes.
+  # frmtmb maximizes exactly the density brms samples.
+  expect_lt(r$hon$gT, 1e-3)
+  expect_equal(r$hon$gF, 1, tolerance = 1e-3)
+
+  # (b) frmtmb's OWN spelling for the same parameter still means LOG
+  #     sigma. It is left alone deliberately: flipping it would change
+  #     what an existing frmtmb script means (?set_prior records the
+  #     divergence). Measured here so its size cannot rot.
+  sl <- as.numeric(r$link$pars[["sigma"]])
+  expect_equal(r$link$frm_prior, bp_st(log(sl), h[[1]], h[[2]], h[[3]]),
+               tolerance = 1e-10)
+  # neither Stan density is the one that spelling maximized: the two
+  # gradients differ by the log transform's derivative, which is 1, so
+  # the link fit sits strictly between the two Stan optima
+  expect_gt(r$link$gF, 1e-2)
+  expect_gt(r$link$gT, 1e-2)
 })
 
-test_that("row 5: the natural placement reproduces brms's mode", {
+test_that("row 5: the translated table reproduces brms's mode", {
   skip_unless_brms_fit()
 
   # What a user porting a brms script experiences. Stan's mode under
-  # adjust_transform = TRUE is what brms's posterior is a mode of; the
-  # two frmtmb spellings are the two things frm(prior =) can be made to
-  # say.
+  # adjust_transform = TRUE is what brms's posterior is a mode of.
   set.seed(7)
   n <- 120
   dn <- data.frame(x = runif(n, 0, 3))
@@ -253,7 +268,7 @@ test_that("row 5: the natural placement reproduces brms's mode", {
   frm_model <- bf(y ~ a * exp(-b * x), a + b ~ 1, nl = TRUE) + gaussian()
   r <- bp_shape(bform, gaussian(), dn, frm_model)
 
-  u <- rstan::unconstrain_pars(r$sf$full, r$nat$pars)
+  u <- rstan::unconstrain_pars(r$sf$full, r$hon$pars)
   mode_T <- stats::optim(
     u, function(z) -rstan::log_prob(r$sf$full, z, adjust_transform = TRUE),
     function(z) -rstan::grad_log_prob(r$sf$full, z,
@@ -262,19 +277,19 @@ test_that("row 5: the natural placement reproduces brms's mode", {
   brms_sigma <- as.numeric(
     rstan::constrain_pars(r$sf$full, mode_T$par)[["sigma"]])
 
-  # the natural spelling IS brms's mode
-  expect_equal(as.numeric(r$nat$pars[["sigma"]]), brms_sigma,
+  # the translated table IS brms's mode
+  expect_equal(as.numeric(r$hon$pars[["sigma"]]), brms_sigma,
                tolerance = 1e-6)
-  # the link spelling is not, and it lands between the unpenalized
-  # estimate and brms's mode rather than to one side of them
+  # frmtmb's own link spelling is not, and it lands between the
+  # unpenalized estimate and brms's mode rather than to one side
   link_sigma <- as.numeric(r$link$pars[["sigma"]])
-  mle_sigma <- as.numeric(r$hon$pars[["sigma"]])
+  mle_sigma <- as.numeric(exp(r$fit0$estimates$betad))
   expect_gt(abs(link_sigma - brms_sigma), 1e-5)
   expect_true(link_sigma > mle_sigma && link_sigma < brms_sigma)
 })
 
 # ---------------------------------------------------------------------
-# The classes that do translate.
+# The classes that translate.
 # ---------------------------------------------------------------------
 
 test_that("row C: class sd is brms's placement, up to log(2)", {
@@ -287,8 +302,7 @@ test_that("row C: class sd is brms's placement, up to log(2)", {
   # Jacobian. The two therefore differ by log(sd) - log(2) per
   # parameter, and only the second half of that is a constant: the
   # first half is exactly the Jacobian Stan adds under
-  # adjust_transform = TRUE. Placing them side by side is what shows
-  # that frmtmb is already on brms's side of this question.
+  # adjust_transform = TRUE.
   bform <- brms::bf(Reaction ~ Days + (1 | Subject))
   r <- bp_shape(bform, gaussian(), sleepstudy,
                 bf(Reaction ~ Days + (1 | Subject)) + gaussian(),
@@ -296,34 +310,39 @@ test_that("row C: class sd is brms's placement, up to log(2)", {
 
   ent <- bp_prior_entries(r$fit$hon, r$prior$hon)
   expect_identical(ent$scale[ent$comp == "theta"], "sd")
+  # sigma's own row rides on the same change of variables
+  expect_identical(ent$scale[ent$comp == "betad"], "sd")
 
   sd1 <- as.numeric(r$hon$pars[["sd_1"]])
+  sig <- as.numeric(r$hon$pars[["sigma"]])
   i_sd <- which(r$rows$class == "sd" & nzchar(r$rows$prior))
   h <- bp_hyper(r$rows$prior[[i_sd]])
   expect_equal(ent$value[ent$comp == "theta"],
                bp_half_st(sd1, h[[1]], h[[2]], h[[3]]) - log(2) + log(sd1),
                tolerance = 1e-9)
 
-  # the Intercept row is a DIFFERENT kind of difference: same density,
-  # same scale, different argument. brms centers X inside the Stan
-  # program, so its Intercept is the intercept at the mean of the
-  # predictors and frmtmb's is the intercept at zero.
+  # the Intercept row is on the intercept brms constrains: the one at
+  # the MEAN of the predictors, not the one at zero. The entry says so,
+  # and the two arguments really are different numbers here, because
+  # mean(Days) is 4.5.
   i_ic <- which(r$rows$class == "Intercept" & nzchar(r$rows$prior))
   hi <- bp_hyper(r$rows$prior[[i_ic]])
   raw <- fixef(r$fit$hon)$mu[["(Intercept)"]]
   centered <- as.numeric(r$hon$pars[["Intercept"]])
   expect_gt(abs(raw - centered), 1)
+  expect_true(ent$centered[ent$comp == "beta"])
   expect_equal(ent$value[ent$comp == "beta"],
-               bp_st(raw, hi[[1]], hi[[2]], hi[[3]]), tolerance = 1e-10)
+               bp_st(centered, hi[[1]], hi[[2]], hi[[3]]),
+               tolerance = 1e-8)
 
-  # CHECK A, decomposed: the residual is the sd Jacobian, minus the
-  # half-t renormalizer, plus the centering
+  # CHECK A, decomposed: the residual is the two Jacobians minus one
+  # half-t renormalizer each, and NOTHING from the intercept
+  expect_identical(bp_half_t_count(r$code$hon, r$sdat), 2L)
   expect_equal(
     r$hon$frm_prior - r$hon$stan_prior_F,
-    (log(sd1) - log(2)) +
-      (bp_st(raw, hi[[1]], hi[[2]], hi[[3]]) -
-         bp_st(centered, hi[[1]], hi[[2]], hi[[3]])),
-    tolerance = 1e-8)
+    log(sd1) + log(sig) - bp_half_t_const(2),
+    tolerance = 1e-6)
+  expect_equal(r$hon$dT, bp_half_t_const(2), tolerance = 1e-6)
 
   # CHECK B on the z block, which is the only block the joint gradient
   # says anything about (see check C of the flat-prior tier). A prior
@@ -331,7 +350,6 @@ test_that("row C: class sd is brms's placement, up to log(2)", {
   # conditional modes are still exactly Stan's.
   expect_lt(r$hon$gFz, 1e-8)
   expect_lt(r$hon$gTz, 1e-8)
-  expect_lt(r$nat$gFz, 1e-8)
 })
 
 test_that("row C: class cor is the same LKJ in another coordinate", {
@@ -345,7 +363,7 @@ test_that("row C: class cor is the same LKJ in another coordinate", {
   # that map's exact Jacobian. Both are proper densities on the
   # correlation; they differ by the Jacobian between the two
   # unconstrained coordinates, which is a function of rho and not a
-  # constant.
+  # constant. That is the one residual this shape keeps.
   bform <- brms::bf(Reaction ~ Days + (Days | Subject))
   r <- bp_shape(bform, gaussian(), sleepstudy,
                 bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
@@ -367,42 +385,37 @@ test_that("row C: class cor is the same LKJ in another coordinate", {
                -log(2) + (eta + (d - 1) / 2) * log(1 - rho^2),
                tolerance = 1e-9)
 
-  # and the whole residual of check A is still the sum of the named
-  # pieces, with the correlation contributing its coordinate change
+  # and the whole residual of check A is the sum of the named pieces,
+  # with no centering term left in it
   sd1 <- as.numeric(r$hon$pars[["sd_1"]])
-  i_sd <- which(r$rows$class == "sd" & nzchar(r$rows$prior))
-  hs <- bp_hyper(r$rows$prior[[i_sd]])
-  i_ic <- which(r$rows$class == "Intercept" & nzchar(r$rows$prior))
-  hi <- bp_hyper(r$rows$prior[[i_ic]])
-  raw <- fixef(r$fit$hon)$mu[["(Intercept)"]]
-  centered <- as.numeric(r$hon$pars[["Intercept"]])
+  sig <- as.numeric(r$hon$pars[["sigma"]])
   expect_equal(
     r$hon$frm_prior - r$hon$stan_prior_F,
-    sum(log(sd1)) - bp_half_t_const(length(sd1)) +
-      (bp_st(raw, hi[[1]], hi[[2]], hi[[3]]) -
-         bp_st(centered, hi[[1]], hi[[2]], hi[[3]])) +
+    sum(log(sd1)) + log(sig) - bp_half_t_const(length(sd1) + 1L) +
       (eta + (d - 1) / 2) * log(1 - rho^2),
-    tolerance = 1e-8)
-  # the honored program's only lower-bounded prior is the sd vector, so
-  # the renormalizer brms writes is one log(2) per standard deviation.
-  # Reading the count off the program is what would catch brms changing
-  # how it writes a truncated prior.
+    tolerance = 1e-6)
+  # every lower-bounded prior in the honored program is one of those
+  # standard deviations or sigma, so the renormalizer count is theirs.
+  # Reading it off the program is what would catch brms changing how it
+  # writes a truncated prior.
   expect_identical(bp_half_t_count(r$code$hon, r$sdat),
-                   as.integer(length(sd1)))
+                   as.integer(length(sd1) + 1L))
+  hs <- bp_hyper(r$rows$prior[[which(r$rows$class == "sd" &
+                                       nzchar(r$rows$prior))]])
   expect_equal(sum(bp_half_st(sd1, hs[[1]], hs[[2]], hs[[3]])),
                bp_st(sd1, hs[[1]], hs[[2]], hs[[3]]) +
                  bp_half_t_const(length(sd1)), tolerance = 1e-12)
   expect_lt(r$hon$gFz, 1e-8)
 })
 
-test_that("row 1: a dpar WITH a linear predictor already agrees", {
+test_that("row 1: a dpar WITH a linear predictor agrees exactly", {
   skip_unless_brms_fit()
 
   # When sigma has a linear predictor both packages put the prior on
-  # the intercept of LOG sigma, so there is no placement question at
-  # all and the Jacobian sum over the whole program is zero. What is
-  # left is the centering, and with mean-zero predictors that is
-  # numerically nothing.
+  # the intercept of LOG sigma, so there is no placement question and
+  # the Jacobian sum over the whole program is zero. What used to be
+  # left was the centering, and both intercepts are centered now, so
+  # the residual is zero rather than merely small.
   set.seed(11)
   n <- 150
   dd <- data.frame(x = rnorm(n), z = rnorm(n))
@@ -418,7 +431,14 @@ test_that("row 1: a dpar WITH a linear predictor already agrees", {
 
   ent <- bp_prior_entries(r$fit$hon, r$prior$hon)
   expect_identical(sort(unique(ent$scale)), "internal")
-  fe <- fixef(r$fit$hon)
+  # both intercepts carry the centering offset, one per sub-formula,
+  # which is how brms writes them (means_X and means_X_sigma)
+  expect_true(all(ent$centered))
+
+  # nothing at all is left over: frmtmb's log prior IS the Stan
+  # program's, to machine precision
+  expect_equal(r$hon$frm_prior - r$hon$stan_prior_F, 0,
+               tolerance = 1e-10)
   hm <- bp_hyper(r$rows$prior[[which(r$rows$class == "Intercept" &
                                        !nzchar(r$rows$dpar) &
                                        nzchar(r$rows$prior))]])
@@ -426,36 +446,30 @@ test_that("row 1: a dpar WITH a linear predictor already agrees", {
                                        r$rows$dpar == "sigma" &
                                        nzchar(r$rows$prior))]])
   expect_equal(
-    r$hon$frm_prior - r$hon$stan_prior_F,
-    (bp_st(fe$mu[["(Intercept)"]], hm[[1]], hm[[2]], hm[[3]]) -
-       bp_st(as.numeric(r$hon$pars[["Intercept"]]),
-             hm[[1]], hm[[2]], hm[[3]])) +
-      (bp_st(fe$sigma[["(Intercept)"]], hs[[1]], hs[[2]], hs[[3]]) -
-         bp_st(as.numeric(r$hon$pars[["Intercept_sigma"]]),
-               hs[[1]], hs[[2]], hs[[3]])),
+    r$hon$frm_prior,
+    bp_st(as.numeric(r$hon$pars[["Intercept"]]),
+          hm[[1]], hm[[2]], hm[[3]]) +
+      bp_st(as.numeric(r$hon$pars[["Intercept_sigma"]]),
+            hs[[1]], hs[[2]], hs[[3]]),
     tolerance = 1e-10)
 })
 
-test_that("S7: the centering is what biases a regression slope", {
+test_that("S7: the centering no longer biases a regression slope", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
   data(sleepstudy, package = "lme4")
 
-  # The largest effect this tier measures and the only one that moves a
-  # regression coefficient rather than a dispersion parameter.
+  # The largest effect this tier ever measured, and the only one that
+  # moved a regression coefficient rather than a dispersion parameter.
   # Reaction ~ Days with the random effect dropped is the one shape
   # where the centering is structural (mean(Days) = 4.5) AND Stan's
-  # optimum is a real mode, so the consequence can be measured instead
-  # of argued.
+  # optimum is a real mode, so the consequence is measured rather than
+  # argued. It used to be 0.0684 standard errors of slope bias.
   r <- bp_shape(brms::bf(Reaction ~ Days), gaussian(), sleepstudy,
                 bf(Reaction ~ Days) + gaussian())
   expect_identical(r$rows$status[nzchar(r$rows$prior)],
-                   c("honored", "refused: class"))
+                   c("honored", "honored"))
 
-  # The honored program carries brms's Intercept row and nothing else,
-  # which is exactly the row frm(prior = ) accepted, so both sides hold
-  # the same prior and the only difference left is the argument the
-  # density reads.
   mode_T <- function(sf, start) {
     o <- stats::optim(
       start, function(z) -rstan::log_prob(sf, z, adjust_transform = TRUE),
@@ -464,47 +478,47 @@ test_that("S7: the centering is what biases a regression slope", {
     rstan::constrain_pars(sf, o$par)
   }
   u <- rstan::unconstrain_pars(r$sf$hon, r$hon$pars)
-  brms_days <- mode_T(r$sf$hon, u)[["b"]]
-  flat_days <- mode_T(r$sf$flat, u)[["b"]]
+  brms_mode <- mode_T(r$sf$hon, u)
   mle_days <- fixef(r$fit0)$mu[["Days"]]
   frm_days <- fixef(r$fit$hon)$mu[["Days"]]
   se_days <- summary(r$fit0)$coefficients$mu["Days", 2]
 
   # brms's prior does not move the slope: the intercept it constrains
   # is the one at the mean of Days, orthogonal to the slope by
-  # construction
-  expect_lt(abs(brms_days - flat_days), 1e-3)
-  # frmtmb's does, because the intercept IT constrains is the one at
-  # Days = 0, which in this design is strongly correlated with the
-  # slope. 0.068 standard errors, on 180 rows, from a prior the user
-  # believes they carried over unchanged.
-  expect_lt(frm_days, mle_days - 0.05)
-  expect_equal(abs(frm_days - mle_days) / se_days, 0.0684,
-               tolerance = 0.02)
+  # construction. frmtmb's prior is now on the same intercept, so it
+  # does not move the slope either.
+  expect_lt(abs(frm_days - mle_days) / se_days, 0.005)
+  # and frmtmb lands on brms's mode, in every parameter at once
+  expect_equal(frm_days, as.numeric(brms_mode[["b"]]), tolerance = 1e-5)
+  expect_equal(as.numeric(r$hon$pars[["Intercept"]]),
+               as.numeric(brms_mode[["Intercept"]]), tolerance = 1e-5)
+  expect_equal(as.numeric(r$hon$pars[["sigma"]]),
+               as.numeric(brms_mode[["sigma"]]), tolerance = 1e-5)
 
-  # and the density difference behind it is the centering term with
-  # nothing else on this shape: the two intercepts differ by exactly
-  # mean(Days) times the slope
-  i_ic <- which(r$rows$class == "Intercept" & nzchar(r$rows$prior))
-  hi <- bp_hyper(r$rows$prior[[i_ic]])
+  # the identity behind it: the argument the density reads is the raw
+  # intercept plus mean(Days) times the slope
   raw <- fixef(r$fit$hon)$mu[["(Intercept)"]]
   centered <- as.numeric(r$hon$pars[["Intercept"]])
   expect_equal(raw + mean(sleepstudy$Days) * frm_days, centered,
                tolerance = 1e-6)
+  # so the whole check-A residual is sigma's Jacobian and its
+  # renormalizer, with nothing from the intercept
+  sig <- as.numeric(r$hon$pars[["sigma"]])
   expect_equal(r$hon$frm_prior - r$hon$stan_prior_F,
-               bp_st(raw, hi[[1]], hi[[2]], hi[[3]]) -
-                 bp_st(centered, hi[[1]], hi[[2]], hi[[3]]),
-               tolerance = 1e-10)
+               log(sig) - bp_half_t_const(1), tolerance = 1e-8)
+  expect_equal(r$hon$dT, bp_half_t_const(1), tolerance = 1e-8)
+  expect_lt(r$hon$gT, 1e-3)
 })
 
-test_that("row 12: brms's ordinal threshold prior has no spelling", {
+test_that("row 12: brms's ordinal threshold prior lands on tau_raw", {
   skip_unless_brms_fit()
 
   # The one default an ordinal model gets is a student_t on the
-  # thresholds. Its class is "Intercept", which the translator
-  # accepts, and then resolve_priorlist() finds nothing to attach it
-  # to. frmtmb's own get_prior() offers no threshold slot either, so
-  # this is a gap in the class vocabulary and not a placement choice.
+  # thresholds, and its class is "Intercept" because in brms the
+  # thresholds ARE the intercept. frmtmb holds them in `tau_raw` as
+  # (tau_1, log increments), which is the same map Stan's `ordered`
+  # type applies, and the design is centered on both sides. So the two
+  # densities agree exactly, with no renormalizer to separate them.
   set.seed(5)
   n <- 300
   do <- data.frame(x = rnorm(n))
@@ -513,31 +527,49 @@ test_that("row 12: brms's ordinal threshold prior has no spelling", {
   r <- bp_shape(brms::bf(y ~ x), brms::cumulative(), do,
                 bf(y ~ x) + cumulative())
 
-  expect_identical(r$rows$status[nzchar(r$rows$prior)],
-                   "refused: no target")
-  expect_error(
-    frm(bf(y ~ x) + cumulative(), data = do,
-        prior = bp_frm_prior(r$rows, which(nzchar(r$rows$prior)))),
-    "Prior target not found")
+  expect_identical(r$rows$status[nzchar(r$rows$prior)], "honored")
+  ent <- bp_prior_entries(r$fit$hon, r$prior$hon)
+  expect_identical(ent$comp, "tau_raw")
+  expect_identical(ent$scale, "ordthres")
+  expect_true(ent$centered)
 
-  # frmtmb therefore carries no prior at all, and its objective is
-  # the flat-prior one: the whole of brms's default is unrepresentable
-  expect_equal(r$hon$frm_prior, 0)
-  expect_lt(abs(r$hon$dF), 1e-8)
-  expect_lt(r$hon$gF, 1e-3)
-  # the Jacobian Stan adds for the ordered threshold vector is what
-  # separates the two settings, and it is not zero
-  expect_gt(abs(r$hon$jac), 1e-3)
+  # the thresholds the density reads are Stan's `Intercept` vector,
+  # which is the frmtmb threshold vector minus mean(X) times the slope
+  raw <- r$fit$hon$estimates[["tau_raw"]]
+  tau <- c(raw[1], raw[1] + cumsum(exp(raw[-1])))
+  slope <- fixef(r$fit$hon)$mu[["x"]]
+  expect_equal(tau - mean(do$x) * slope,
+               as.numeric(r$hon$pars[["Intercept"]]), tolerance = 1e-6)
+
+  # and the density itself is brms's, with the ordered map's Jacobian
+  h <- bp_hyper(r$rows$prior[[which(nzchar(r$rows$prior))]])
+  expect_equal(r$hon$frm_prior,
+               bp_st(as.numeric(r$hon$pars[["Intercept"]]),
+                     h[[1]], h[[2]], h[[3]]) + sum(raw[-1]),
+               tolerance = 1e-9)
+  # CHECK A and B: no lower-bounded parameter anywhere, so there is no
+  # renormalizer and the residual is zero, not a constant
+  expect_identical(bp_half_t_count(r$code$hon, r$sdat), 0L)
+  expect_equal(r$hon$dT, 0, tolerance = 1e-8)
+  expect_lt(r$hon$gT, 1e-2)
+  expect_equal(r$hon$gF, 1, tolerance = 1e-2)
+
+  # the internal route still works and still means the internal scale,
+  # which is the escape hatch ?set_prior documents
+  # one entry per threshold, and no map applied to any of them
+  ri <- resolve_prior_input(r$fit0, list(tau_raw = prior_normal(0, 5)))
+  expect_length(ri$entries, length(raw))
+  expect_identical(unique(vapply(ri$entries, function(e) e$scale, "")),
+                   "internal")
 })
 
-test_that("row 17: a mixture keeps its intercepts and loses the rest", {
+test_that("row 17: a mixture keeps everything but its reference theta", {
   skip_unless_brms_fit()
 
-  # Four of the mixture's six live defaults are refused. sigma1 and
-  # sigma2 are the placement question again, once per component. The
-  # logistic on brms's theta is refused for its DENSITY, which no
-  # placement decision would fix, and it is refused twice: once on the
-  # theta2 class and once on Intercept/theta1.
+  # Five of the mixture's six live defaults land. sigma1 and sigma2 are
+  # the placement question again, once per component, and the logistic
+  # on brms's modeled theta parses now. What is left refused is the
+  # class "theta2" row, which brms writes no Stan statement for either.
   set.seed(37)
   n <- 400
   dx <- data.frame(x = rnorm(n))
@@ -547,21 +579,31 @@ test_that("row 17: a mixture keeps its intercepts and loses the rest", {
                 brms::mixture(gaussian(), gaussian()), dx,
                 bf(y ~ 1, theta1 ~ x) + mixture(gaussian(), gaussian()))
 
-  # the two component intercepts translate; brms declares them as one
-  # ordered vector, so the prior lands on its entries
   ent <- bp_prior_entries(r$fit$hon, r$prior$hon)
-  expect_identical(ent$comp, c("beta", "beta"))
-  expect_identical(sort(unique(ent$scale)), "internal")
+  # two component sigmas on their own scale, two component intercepts
+  # on theirs, and the modeled proportion's intercept
+  expect_identical(sort(ent$scale),
+                   c("internal", "internal", "internal", "sd", "sd"))
+  expect_true("logistic" %in% ent$kind)
+  # y ~ 1 gives the component intercepts no predictor to be centered
+  # against; theta1 ~ x gives its intercept one
+  expect_identical(ent$centered, c(FALSE, FALSE, FALSE, FALSE, TRUE))
 
-  # sigma1 and sigma2 behave exactly as row 5's single sigma does: the
-  # natural spelling is brms's up to log(2) PER COMPONENT
-  s1 <- as.numeric(r$nat$pars[["sigma1"]])
-  s2 <- as.numeric(r$nat$pars[["sigma2"]])
+  # the two sigmas behave exactly as row 5's single sigma does: brms's
+  # density plus the Jacobian, minus one renormalizer per component
+  s1 <- as.numeric(r$hon$pars[["sigma1"]])
+  s2 <- as.numeric(r$hon$pars[["sigma2"]])
   h <- bp_hyper(r$rows$prior[[which(r$rows$class == "sigma1")]])
-  entn <- bp_prior_entries(r$fit$nat, r$prior$nat)
   expect_equal(
-    sum(entn$value[entn$comp == "betad"]),
+    sum(ent$value[ent$scale == "sd"]),
     bp_half_st(c(s1, s2), h[[1]], h[[2]], h[[3]]) -
       bp_half_t_const(2) + log(s1) + log(s2),
     tolerance = 1e-9)
+
+  # and the whole check-A residual is those two Jacobians and nothing
+  # else: the intercepts and the logistic agree exactly
+  expect_identical(bp_half_t_count(r$code$hon, r$sdat), 2L)
+  expect_equal(r$hon$frm_prior - r$hon$stan_prior_F,
+               log(s1) + log(s2) - bp_half_t_const(2),
+               tolerance = 1e-6)
 })

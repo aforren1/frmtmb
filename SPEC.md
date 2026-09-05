@@ -425,11 +425,18 @@ fail at parse time with a clear message naming the term. brms code ports
 mechanically, priors included: `frm()`, `frm_sample()` and
 `frm_simulate()` spell the argument `prior`, as brms does; `prior()`,
 `prior_()` and `prior_string()` build the specification `set_prior()`
-does, and a prior object brms itself built is translated row by row. A
-prior is a PENALTY here, so the fit is MAP, not a posterior. A brms
-prior class
+does, and a prior object brms itself built is translated row by row,
+whether brms built it with `prior()` or with `get_prior()`: a row
+applies whatever its `prior` string says, which is brms's own rule. A
+prior is a PENALTY here, so the fit is MAP, not a posterior. Each row
+lands where brms puts it: a distributional parameter's own class
+(`sigma`, `shape`, `phi`, ...) is a density on that PARAMETER, carried
+through its inverse link with that map's log-Jacobian, and a
+`class = "Intercept"` density is evaluated at the intercept at the mean
+of the predictors, which is the one brms constrains. A brms prior class
 with no faithful frmtmb spelling is refused by name rather than turned
-into a different density. Attaching brms alongside frmtmb masks `bf()`
+into a different density, and every refused row of a table is named in
+one message. Attaching brms alongside frmtmb masks `bf()`
 and `prior()`; ordinary R masking rules apply, and the translation is
 what makes the masked case work anyway.
 

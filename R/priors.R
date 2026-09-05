@@ -10,14 +10,19 @@
 #' Builds prior specifications with brms spelling:
 #' `set_prior("normal(0, 5)", class = "b")`. Combine several with `+` or
 #' `c()`. Distributions: `normal(mu, sd)`, `student_t(df, mu, sd)`,
-#' `cauchy(mu, sd)`, `exponential(rate)`, `lkj(eta)`; an empty string
-#' sets bounds only.
+#' `cauchy(mu, sd)`, `exponential(rate)`, `logistic(mu, s)`,
+#' `gamma(shape, rate)`, `lkj(eta)`; an empty string sets bounds only.
 #'
 #' Classes and their scales:
 #' - `"b"`: population-level coefficients of `dpar` (default: the
 #'   location parameters), excluding the intercept; narrow to one
 #'   coefficient with `coef`. Link scale.
-#' - `"Intercept"`: the intercept of `dpar`. Link scale.
+#' - `"Intercept"`: the intercept of `dpar`, at the MEAN of that
+#'   sub-formula's predictors, which is the intercept brms's own
+#'   `Intercept` prior constrains. Link scale. See Where an intercept
+#'   prior lands. On an ordinal family the thresholds are the intercept,
+#'   here as in brms, so this class addresses the whole threshold
+#'   vector; see Ordinal thresholds.
 #' - `"sd"`: random-effect standard deviations (and smoothing SDs), on
 #'   the NATURAL sd scale with the log-Jacobian applied, so
 #'   `set_prior("exponential(1)", class = "sd")` means what it says;
@@ -51,6 +56,49 @@
 #' replaces that whole LKJ term, and the other way round, so "later
 #' wins" holds between the two spellings as well.
 #' `lb`/`ub` become hard bounds. See Hard bounds.
+#'
+#' @section Where an intercept prior lands:
+#' brms centers its design matrix and constrains the intercept at the
+#' MEAN of the predictors, recovering the reported one as
+#' `b_Intercept = Intercept - dot_product(means_X, b)`. frmtmb
+#' parameterizes by the intercept at zero and evaluates a class
+#' `"Intercept"` density at `b0 + means_X'b`, so the two packages
+#' constrain the same quantity. The map between the two
+#' parameterizations is unit triangular and carries no Jacobian.
+#'
+#' This matters whenever a predictor is not centered. On
+#' `Reaction ~ Days`, where `mean(Days)` is 4.5, the intercept at zero
+#' is strongly correlated with the slope and the intercept at the mean
+#' is orthogonal to it, so a prior on the first biases the slope and a
+#' prior on the second does not. Earlier releases used the intercept
+#' at zero, and `brms::get_prior()`'s own default there moved the slope
+#' by 0.068 standard errors; it now moves it by 0.00003.
+#'
+#' Every sub-formula with an intercept is centered separately, as brms
+#' does (`means_X`, `means_X_sigma`, ...). A NONLINEAR parameter's
+#' sub-formula is not centered on either side, and neither are a
+#' smooth's unpenalized columns or a `mo()` term, which sit outside
+#' brms's `Xc` as well. To put a density on the intercept at zero, name
+#' it as a coefficient instead: `class = "b", coef = "Intercept"`,
+#' which is also how a `brms::bf(center = FALSE)` model's prior arrives.
+#'
+#' @section Ordinal thresholds:
+#' `cumulative()`, `sratio()`, `cratio()` and `acat()` have no intercept
+#' column: the thresholds replace it. brms priors them as its
+#' `Intercept` class and so does frmtmb, so
+#' `set_prior("student_t(3, 0, 2.5)", class = "Intercept")` on an
+#' ordinal model addresses the whole threshold vector. It addresses the
+#' THRESHOLDS, at the mean of the predictors, with the log-Jacobian of
+#' the map from frmtmb's internal storage; `cumulative()` and
+#' `sratio()` hold `(tau_1, log increments)`, which is the same map
+#' Stan's `ordered` type applies, and `cratio()` and `acat()` hold the
+#' thresholds themselves. `lb`/`ub` are refused there, because one
+#' number cannot box a whole vector of ordered thresholds.
+#'
+#' `prior = list(tau_raw = prior_normal(0, 5))` reaches the same
+#' parameters on the INTERNAL scale, one entry per threshold, which is
+#' the escape hatch to use when the increments rather than the
+#' thresholds are what a prior is about.
 #'
 #' @section Hard bounds:
 #' `lb`/`ub` are how a box constraint is written. A specification may
@@ -167,6 +215,55 @@
 #' ones
 #' written by hand.
 #'
+#' @section Translating a brms prior:
+#' `frm(prior = )` takes a `brmsprior` object directly, whether it came
+#' from `brms::set_prior()`, `brms::prior()` or `brms::get_prior()`. A
+#' row applies whatever its `prior` string says, which is brms's own
+#' rule; an empty string is brms's flat default and applies nothing.
+#' The `source` column is not read. Earlier releases dropped rows marked
+#' `source == "default"` were dropped, which lost a prior the user had
+#' edited into a `get_prior()` table in place, because brms does not
+#' update `source` after that edit.
+#'
+#' brms's class vocabulary is wider than the one above, and it is
+#' carried over rather than refused wherever the two packages mean the
+#' same parameter:
+#' - `b`, `Intercept`, `sd`, `cor`, `ar`, `ma`, `cosy`, `cortime` and
+#'   `rescor` are frmtmb's own class names and keep their meaning.
+#' - a DISTRIBUTIONAL parameter's own class (`sigma`, `shape`, `phi`,
+#'   `nu`, `kappa`, `sigma1`, ...) is a density on that parameter
+#'   ITSELF in brms. It lands on the parameter itself here too, through
+#'   the dpar's inverse link with that map's log-Jacobian, which is the
+#'   change of variables class `"sd"` performs. A bound on such a row
+#'   travels with it, so brms's `lb = 0` on a log-linked dispersion
+#'   becomes no constraint rather than a floor of 1.
+#' - `theta`/`theta1`/`theta2`, `simo`, `sds`, `sdgp`, `lscale`,
+#'   `sdcar` and `car` are refused by name, each saying where frmtmb
+#'   keeps that quantity instead. A refusal is deliberate: translating
+#'   one of them would produce a different model rather than no model.
+#' - a `coef` on a `sd` or `cor` row is refused for the same reason.
+#'   brms narrows such a row to one coefficient of a block; frmtmb
+#'   resolves those classes per BLOCK, so applying the row without its
+#'   `coef` would put the density on every standard deviation of the
+#'   block, which is a wider prior than the one written. `coef` on
+#'   class `"b"` narrows as it does in brms and is unaffected.
+#'
+#' Every refused row of a table is named in ONE message, because a table
+#' is edited as a whole and stopping at the first bad row costs a round
+#' trip per bad row.
+#'
+#' **frmtmb's own spelling for a distributional parameter is the one
+#' place the two packages still differ.**
+#' `set_prior("student_t(3, 0, 2.5)", class = "Intercept", dpar =
+#' "sigma")` is a density on LOG sigma, the parameter frmtmb stores,
+#' and it keeps that meaning; the same row spelled brms's way,
+#' `brms::prior(student_t(3, 0, 2.5), class = "sigma")`, is a density on
+#' sigma. The two are not the same prior: on a nonlinear fit with
+#' `sigma` near 0.135 the link spelling captures about 35 percent of the
+#' shift the natural one produces, and on `sleepstudy`, where brms's
+#' default scale is calibrated to a sigma near 31, it captures none of
+#' it. Write the brms spelling when brms's meaning is wanted.
+#'
 #' brms's `tag` and `check` have no counterpart: `tag` names a prior
 #' for reuse inside a Stan program, and `check` passes an unchecked
 #' string through to one. frmtmb compiles no Stan program, so both are
@@ -175,7 +272,9 @@
 #' @param prior Distribution string, e.g. `"normal(0, 5)"`, or a
 #'   [prior_normal()]/[prior_t()]/[prior_lkj()] object, or `""` for
 #'   bounds only.
-#' @param class `"b"`, `"Intercept"`, `"sd"`, `"cor"`, or `"theta"`.
+#' @param class `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, or one
+#'   of the residual-structure classes `"ar"`, `"ma"`, `"cosy"`,
+#'   `"cortime"` and `"rescor"`.
 #' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`).
 #' @param group Restrict class `"sd"` or `"cor"` to one grouping factor.
 #' @param resp Response of a multivariate model.
@@ -193,11 +292,10 @@
 #'   `normal`, three for `student_t`, one for `exponential`). A call that
 #'   supplies neither a distribution nor bounds errors instead of
 #'   producing an empty prior.
-#' @srrstats {G2.3a} `class` is restricted with `match.arg()` to
-#'   `"b"`, `"Intercept"`, `"sd"`, `"cor"` and `"theta"`, so an
-#'   unexpected class errors and names the permitted values. The one
-#'   distribution that belongs to a single class, `lkj()`, is checked
-#'   against it in both directions.
+#' @srrstats {G2.3a} `class` is restricted with `match.arg()` to the
+#'   documented set, so an unexpected class errors and names the
+#'   permitted values. The one distribution that belongs to a single
+#'   class, `lkj()`, is checked against it in both directions.
 #'
 #' @examples
 #' set.seed(1)
@@ -429,6 +527,14 @@ deparse_prior_value <- function(x) {
 #' through no fault of the caller. The legacy named list and the
 #' `"flat"` string pass through untouched.
 #'
+#' A row applies whatever its `prior` string says, which is brms's own
+#' rule, and an empty string is brms's flat default and applies nothing.
+#' The `source` column is NOT read: it records who BUILT the row, not
+#' who wrote the density in it, and brms does not update it when a user
+#' edits the `prior` cell of a `get_prior()` table in place. Keying the
+#' drop on it lost the user's own prior and reported it as one brms had
+#' filled in.
+#'
 #' @noRd
 as_priorlist <- function(x) {
   if (!inherits(x, "brmsprior")) return(x)
@@ -445,90 +551,223 @@ as_priorlist <- function(x) {
     if (is.na(v) || (is.character(v) && !nzchar(v))) NA else v
   }
   out <- list()
-  dropped <- 0L
+  # Every refusal in the table is collected and reported together. A
+  # table is edited as a whole, so stopping at the first bad row costs
+  # one round trip per bad row: y ~ gp(x) carries both an `lscale` row
+  # and an `sdgp` row, and naming only the first made it two edits.
+  bad <- character(0)
+  refuse <- function(i, dist, cls, why) {
+    bad[[length(bad) + 1L]] <<-
+      paste0("row ", i, " (",
+             if (nzchar(dist)) dist else "bounds only",
+             ", class = \"", cls, "\"): ", why)
+  }
   for (i in seq_len(nrow(rows))) {
     dist <- chr("prior", i)
     lb <- bnd("lb", i)
     ub <- bnd("ub", i)
     cls <- chr("class", i)
     # get_prior()/default_prior() rows with an empty `prior` are
-    # "this slot exists and is flat", not a prior to apply
-    if (!nzchar(dist) && is.na(lb) && is.na(ub)) next
-    # a row brms filled in itself is brms's default, and frmtmb chooses
-    # its own (see the Default priors section of frm_sample()); keeping
-    # both would apply two densities to one parameter
-    if (identical(chr("source", i), "default")) {
-      dropped <- dropped + 1L
-      next
+    # "this slot exists and is flat", not a prior to apply. brms echoes
+    # the parameter's DECLARED bounds onto those rows as well, so a
+    # bound on a flat row is brms restating the model rather than the
+    # caller asking for a box; it is carried only where frmtmb can name
+    # the class at all, which keeps a flat sds/sdgp/simo row out of a
+    # refusal it did not ask for
+    if (!nzchar(dist)) {
+      if (is.na(lb) && is.na(ub)) next
+      if (!is.null(brms_prior_class_refusal(cls))) next
     }
     if (nzchar(chr("tag", i))) {
-      stop("A brms prior with tag = \"", chr("tag", i), "\" names a ",
-           "prior for reuse inside a Stan program, which frmtmb does ",
-           "not build. Drop the tag", call. = FALSE)
+      refuse(i, dist, cls,
+             paste0("tag = \"", chr("tag", i), "\" names a prior for ",
+                    "reuse inside a Stan program, which frmtmb does ",
+                    "not build. Drop the tag. "))
+      next
     }
-    check_brms_prior_class(cls, dist)
+    hint <- brms_prior_class_refusal(cls)
+    if (!is.null(hint)) {
+      refuse(i, dist, cls, hint)
+      next
+    }
+    rt <- brms_prior_route(cls, dist)
+    ch <- unhonored_coef_refusal(rt$class, chr("coef", i))
+    if (!is.null(ch)) {
+      refuse(i, dist, cls, ch)
+      next
+    }
     one <- tryCatch(
-      set_prior(dist, class = cls, coef = chr("coef", i),
+      set_prior(dist, class = rt$class, coef = chr("coef", i),
                 group = chr("group", i), resp = chr("resp", i),
-                dpar = chr("dpar", i), nlpar = chr("nlpar", i),
+                dpar = rt$dpar %||% chr("dpar", i),
+                nlpar = chr("nlpar", i),
                 lb = lb, ub = ub),
       error = function(e) {
-        stop("brms prior row ", i, " (", dist, ", class = \"", cls,
-             "\") does not translate: ", conditionMessage(e),
-             call. = FALSE)
+        refuse(i, dist, cls, paste0(conditionMessage(e), ". "))
+        NULL
       })
-    out[[length(out) + 1L]] <- unclass(one)[[1L]]
+    if (is.null(one)) next
+    spec <- unclass(one)[[1L]]
+    # written only when TRUE. A set_prior() spec carries no such field
+    # at all, and frmtmb.sample's test-sample-direct.R reads its
+    # absence, so a default of FALSE would be a visible change to a
+    # spelling this decision leaves alone
+    if (isTRUE(rt$natural)) spec$natural <- TRUE
+    out[[length(out) + 1L]] <- spec
   }
-  if (dropped) {
-    message("Translating a brms prior: dropped ", dropped,
-            " row(s) brms had filled in as its own defaults. frmtmb ",
-            "chooses defaults itself on the frm_sample() formula path ",
-            "and applies none on the frm() path; write the ones you ",
-            "want as prior() rows")
+  if (length(bad)) {
+    stop("A brms prior table has ", length(bad),
+         if (length(bad) == 1L) " row" else " rows",
+         " with no faithful frmtmb spelling:\n",
+         paste0("  ", bad, collapse = "\n"),
+         "\nWrite the prior you mean with set_prior() directly",
+         call. = FALSE)
   }
   if (!length(out)) return(NULL)
   structure(out, class = "frmtmb_priorlist")
 }
 
-#' The brms classes a translation can honor.
+#' Why a `coef` on a translated row cannot be honored, or `NULL`.
 #'
-#' brms's class vocabulary is wider than frmtmb's, and the extra names
-#' would translate into something DIFFERENT rather than into nothing,
-#' which is why each is refused by name rather than passed to
-#' `match.arg()`. `theta` is the trap: brms's is a mixture proportion
-#' and frmtmb's is the raw internal covariance vector, two unrelated
-#' sets of parameters that share the word. A distributional parameter's
-#' own class (`sigma`, `shape`, ...) is the near miss: frmtmb's nearest
-#' spelling puts that density on the LINK scale, where brms puts it on
-#' the parameter itself, so it is a different prior rather than the
-#' same one written differently.
+#' brms narrows a `sd` row to one coefficient of a block and writes
+#' `exponential_lpdf(sd_1[2] | 1)`, keeping its default on the rest.
+#' frmtmb's class `"sd"` addresses a BLOCK: `resolve_priorlist()` reads
+#' `group`, `nlpar` and `resp` and never reads `coef`, so a narrowed row
+#' would silently apply to every standard deviation of the block. That
+#' is a wider prior than the one asked for, which is exactly the failure
+#' D1 exists to remove, so it is refused instead. Class `"cor"` reads no
+#' `coef` either, and a correlation is not per-coefficient at all.
 #'
 #' @noRd
-check_brms_prior_class <- function(cls, dist) {
-  if (cls %in% c("b", "Intercept", "sd", "cor")) return(invisible(cls))
-  hint <- if (identical(cls, "theta")) {
-    paste0("brms's \"theta\" is a mixture proportion, and frmtmb's is ",
-           "the raw internal covariance vector: the word names two ",
-           "unrelated sets of parameters, so the row cannot be carried ",
-           "over. ")
-  } else if (identical(cls, "simo")) {
-    paste0("brms's \"simo\" is the Dirichlet on a mo() simplex. ",
-           "frmtmb holds that simplex as its free softmax coordinates ",
-           "and puts no density on it at all, so there is no slot to ",
-           "carry the row into and no class that would rename it: drop ",
-           "the row. A flat simo row from get_prior() is dropped for ",
-           "you, and only an explicit one reaches here. ")
-  } else {
-    paste0("frmtmb's classes are b, Intercept, sd, cor, theta, ar, ma, ",
-           "cosy, cortime and rescor. If this names a distributional ",
-           "parameter, its frmtmb spelling is class = \"Intercept\", ",
-           "dpar = \"", cls, "\", and that density sits on the LINK ",
-           "scale where brms puts it on ", cls, " itself. ")
+unhonored_coef_refusal <- function(cls, coef) {
+  if (!nzchar(coef) || !cls %in% c("sd", "cor")) return(NULL)
+  if (identical(cls, "cor")) {
+    return(paste0("class = \"cor\" addresses a whole correlation ",
+                  "matrix, so coef = \"", coef, "\" names nothing it ",
+                  "can narrow to. Drop the coef; `group` selects the ",
+                  "block. "))
+  }
+  paste0("frmtmb's class = \"sd\" addresses a whole random-effect ",
+         "BLOCK, not one coefficient of it, so coef = \"", coef,
+         "\" cannot be honored and applying the row without it would ",
+         "put the density on every standard deviation of the block. ",
+         "Drop the coef to prior the whole block (`group` selects ",
+         "which one), or address the one parameter with ",
+         "class = \"theta\" and the coef get_prior() lists for it. ")
+}
+
+#' brms class names frmtmb spells with the same word and the same
+#' meaning, so a translated row keeps its class untouched.
+#'
+#' @noRd
+brms_direct_prior_classes <- c("b", "Intercept", "sd", "cor", "ar",
+                               "ma", "cosy", "cortime", "rescor")
+
+#' Why a brms class cannot be carried over, or `NULL` when it can.
+#'
+#' Each of these names a structure frmtmb holds differently, or does not
+#' hold at all. Translating one would produce a DIFFERENT model rather
+#' than no model, which is why the refusal is by name and says where the
+#' quantity actually lives.
+#'
+#' @noRd
+brms_prior_class_refusal <- function(cls) {
+  # brms spells a mixture proportion theta1, theta2, ...; frmtmb's
+  # "theta" is the raw internal covariance vector. The whole prefix is
+  # refused, because the bare word is the only spelling that used to be
+  # caught and "theta2" then fell through to advice that does not work
+  if (startsWith(cls, "theta")) {
+    return(paste0("brms's \"", cls, "\" is a mixture proportion, and ",
+                  "frmtmb's \"theta\" is the raw internal covariance ",
+                  "vector: the word names two unrelated sets of ",
+                  "parameters, so the row cannot be carried over. A ",
+                  "mixture proportion that has its OWN predictor is ",
+                  "addressed as class = \"Intercept\" with dpar = that ",
+                  "proportion's name, on the link scale where brms puts ",
+                  "it too, and get_prior() lists the ones this model ",
+                  "has. The proportion brms holds as the reference ",
+                  "component is a parameter on neither side, and its ",
+                  "row applies nothing in brms either. "))
+  }
+  switch(cls,
+    simo = paste0(
+      "brms's \"simo\" is the Dirichlet on a mo() simplex. frmtmb holds ",
+      "that simplex as its free softmax coordinates and puts no density ",
+      "on it at all, so there is no slot to carry the row into and no ",
+      "class that would rename it: drop the row. A flat simo row from ",
+      "get_prior() is dropped for you, and only an explicit one reaches ",
+      "here. "),
+    sds = paste0(
+      "brms's \"sds\" is the wiggliness standard deviation of a smooth. ",
+      "frmtmb holds a smooth as a random-effect block, so its frmtmb ",
+      "spelling is class = \"sd\" with group = the smooth's label, e.g. ",
+      "group = \"s(x)\"; get_prior() lists the label this model has. "),
+    sdgp = paste0(
+      "brms's \"sdgp\" is the marginal standard deviation of a gp(). ",
+      "frmtmb holds a gp() as a random-effect block, so its frmtmb ",
+      "spelling is class = \"sd\" with group = the term's label, e.g. ",
+      "group = \"gp(x)\"; get_prior() lists the label this model has. "),
+    lscale = paste0(
+      "brms's \"lscale\" is a gp() length-scale, which frmtmb keeps in ",
+      "the raw internal covariance vector rather than in a class of its ",
+      "own. Address it as class = \"theta\" with the coef get_prior() ",
+      "lists for the block (\"theta_1\", \"theta_2\", ...), remembering ",
+      "that a theta prior is on the INTERNAL scale. "),
+    sdcar = paste0(
+      "brms's \"sdcar\" is the standard deviation of a car() term. ",
+      "frmtmb holds a car() as a random-effect block, so its frmtmb ",
+      "spelling is class = \"sd\" with group = the term's grouping ",
+      "variable; get_prior() lists the label this model has. "),
+    car = paste0(
+      "brms's \"car\" is the spatial dependence parameter of a car() ",
+      "term, which frmtmb keeps in the raw internal covariance vector ",
+      "rather than in a class of its own. Address it as ",
+      "class = \"theta\" with the coef get_prior() lists for the block ",
+      "(\"theta_1\", \"theta_2\", ...), remembering that a theta prior ",
+      "is on the INTERNAL scale. "),
+    NULL)
+}
+
+#' Where one brms prior row lands: the frmtmb class, the dpar it needs,
+#' and whether the density is about the parameter ITSELF.
+#'
+#' brms's class vocabulary is wider than frmtmb's in two directions and
+#' only one of them risks a mistranslation. The nine names in
+#' `brms_direct_prior_classes` are frmtmb's own and pass through with
+#' the meaning `set_prior()` documents. A DISTRIBUTIONAL parameter's own
+#' class (`sigma`, `shape`, `nu`, ...) is a name frmtmb has no class
+#' for: brms's density is about the parameter itself, and the frmtmb
+#' slot that answers it is that parameter's link-scale intercept, so the
+#' row is routed to `class = "Intercept"`, `dpar = <class>` and marked
+#' `natural`, which puts the density back on the parameter through the
+#' dpar's own inverse link and that map's log-Jacobian. Everything
+#' `brms_prior_class_refusal()` names is refused instead.
+#'
+#' The `natural` flag is written on a translated spec only. frmtmb's own
+#' `set_prior("...", class = "Intercept", dpar = "sigma")` keeps meaning
+#' a density on LOG sigma, so no existing spelling changes meaning here;
+#' the divergence is documented in `?set_prior`.
+#'
+#' @noRd
+brms_prior_route <- function(cls, dist) {
+  if (cls %in% brms_direct_prior_classes) {
+    return(list(class = cls, dpar = NULL, natural = FALSE))
+  }
+  hint <- brms_prior_class_refusal(cls)
+  if (is.null(hint)) {
+    return(list(class = "Intercept", dpar = cls, natural = TRUE))
   }
   stop("A brms prior with class = \"", cls, "\" (", dist, ") has no ",
        "faithful frmtmb spelling. ", hint,
        "Write the prior you mean with set_prior() directly",
        call. = FALSE)
+}
+
+#' The gate on its own, for callers that only want the verdict.
+#'
+#' @noRd
+check_brms_prior_class <- function(cls, dist) {
+  invisible(brms_prior_route(cls, dist)$class)
 }
 
 #' Turn a brms-style prior string such as `"normal(0, 5)"` into a
@@ -541,8 +780,14 @@ parse_prior_dist <- function(prior) {
   if (inherits(prior, "frmtmb_prior")) return(prior)
   stopifnot(is.character(prior), length(prior) == 1)
   if (prior == "") return(NULL)
-  m <- regmatches(prior,
-                  regexec("^\\s*([a-z_]+)\\s*\\(([^)]*)\\)\\s*$", prior))[[1]]
+  # the NAME is matched case-insensitively and may carry digits, so that
+  # brms's shrinkage priors reach the unsupported-density message below
+  # rather than the generic parse failure. R2D2() is the one that needs
+  # both: an upper-case name and an empty argument list
+  m <- regmatches(
+    prior,
+    regexec("^\\s*([A-Za-z_][A-Za-z_0-9]*)\\s*\\(([^)]*)\\)\\s*$",
+            prior))[[1]]
   if (length(m) != 3) {
     stop("Cannot parse prior '", prior,
          "'; expected e.g. \"normal(0, 5)\"", call. = FALSE)
@@ -574,9 +819,25 @@ parse_prior_dist <- function(prior) {
       stopifnot(length(pars) == 1)
       prior_lkj(pars[1])
     },
+    logistic = {
+      stopifnot(length(pars) == 2)
+      prior_logistic(pars[1], pars[2])
+    },
+    gamma = {
+      stopifnot(length(pars) == 2)
+      prior_gamma(pars[1], pars[2])
+    },
+    inv_gamma = {
+      stopifnot(length(pars) == 2)
+      prior_inv_gamma(pars[1], pars[2])
+    },
+    beta = {
+      stopifnot(length(pars) == 2)
+      prior_beta(pars[1], pars[2])
+    },
     stop("Unsupported prior distribution '", kind,
-         "' (supported: normal, student_t, cauchy, exponential, lkj)",
-         call. = FALSE)
+         "' (supported: normal, student_t, cauchy, exponential, ",
+         "logistic, gamma, inv_gamma, beta, lkj)", call. = FALSE)
   )
 }
 
@@ -587,7 +848,8 @@ parse_prior_dist <- function(prior) {
 #'
 #' @noRd
 prior_dist_location <- function(dist) {
-  loc <- switch(dist$kind %||% "", normal = , t = dist$location, NULL)
+  loc <- switch(dist$kind %||% "", normal = , t = , logistic = dist$location,
+                NULL)
   if (is.null(loc) || length(loc) != 1L || !is.finite(loc)) {
     return(NA_real_)
   }
@@ -649,6 +911,10 @@ print.frmtmb_priorlist <- function(x, ...) {
 #' with its name in the `nlpar` column, the intercept among them, which
 #' is how brms lists them and what [set_prior()] addresses (see its
 #' Nonlinear parameters section).
+#'
+#' An ordinal family has no intercept column, so its class `"Intercept"`
+#' row names the THRESHOLD vector, which is what the same row means in
+#' brms. See the Ordinal thresholds section of [set_prior()].
 #'
 #' @section Which route the defaults describe:
 #' Every column but `prior` is a property of the design, and the design
@@ -780,6 +1046,14 @@ get_prior <- function(formula, data = NULL, family = NULL,
     }
     if ("(Intercept)" %in% cn) {
       add("Intercept", dpar = dpar_lab, resp = resp_lab)
+    } else if (!nzchar(dpar_lab) &&
+                 identical(rspec$family[["type"]], "ordinal") &&
+                 length(frame[["par_template"]][["tau_raw"]] %||%
+                          numeric(0))) {
+      # an ordinal family has no intercept column: the thresholds
+      # replace it, and class "Intercept" is what addresses them here as
+      # it does in brms
+      add("Intercept", resp = resp_lab)
     }
     others <- setdiff(cn, "(Intercept)")
     if (length(others)) {
@@ -1092,16 +1366,38 @@ resolve_priorlist <- function(fit, pl) {
       # position rather than off the column
       pnm <- par_template_names(frame[["par_template"]][[lp[["par"]]]],
         lp[["par"]])
+      # `link` answers where a `natural` density belongs, and `center`
+      # is brms's centering offset for THIS sub-formula's intercept; both
+      # are properties of the linear predictor rather than of the
+      # specification, so they are read here and carried on the target
+      ctr <- if (length(pick) && s$class == "Intercept" && !want_np) {
+        lp_center_offset(frame, lp)
+      }
       for (k in pick) {
         out[[length(out) + 1L]] <- list(comp = lp[["par"]],
                                         idx = lp[["idx"]][k],
-                                        name = pnm[lp[["idx"]][k]])
+                                        name = pnm[lp[["idx"]][k]],
+                                        link = lp[["link"]],
+                                        center = ctr)
       }
     }
     if (!length(out) &&
           (nzchar(s$coef) || s$class == "Intercept" || want_np ||
              nzchar(s$resp %||% ""))) {
-      stop("Prior target not found (", spec_target(s), ")",
+      # an ordinal model has no intercept column at all: the thresholds
+      # replace it, and a bare class = "Intercept" reaches them. Saying
+      # so here is the difference between "this model has no such slot"
+      # and "you narrowed the row past the slot it has"
+      hint <- if (s$class == "Intercept" && has_ordinal_thresholds(fit)) {
+        paste0(". On an ordinal family the thresholds ARE the ",
+               "intercept, and a bare class = \"Intercept\" with no ",
+               "coef, dpar or nlpar addresses the whole threshold ",
+               "vector; prior = list(tau_raw = ) reaches the same ",
+               "parameters on the internal scale")
+      } else {
+        ""
+      }
+      stop("Prior target not found (", spec_target(s), ")", hint,
            call. = FALSE)
     }
     out
@@ -1193,26 +1489,69 @@ resolve_priorlist <- function(fit, pl) {
            scale = "internal", lb = NA, ub = NA)
   }
 
+  # brms's class "Intercept" on an ordinal family names the THRESHOLDS:
+  # its ordinal program declares them as the `Intercept` vector and puts
+  # the default student_t there. frmtmb holds them in `tau_raw`, which
+  # had no class spelling at all, so the row used to reach the resolver
+  # and stop with a bare "Prior target not found".
+  ordinal_threshold_entry <- function(s) {
+    raw <- frame[["par_template"]][["tau_raw"]] %||% numeric(0)
+    if (!length(raw) || length(fit$spec$responses) != 1L) return(NULL)
+    rspec <- fit$spec$responses[[1L]]
+    if (!identical(rspec$family[["type"]], "ordinal")) return(NULL)
+    if (nzchar(s$coef) || nzchar(s$dpar) || nzchar(s$nlpar %||% "")) {
+      return(NULL)
+    }
+    if (nzchar(s$resp %||% "") &&
+          !identical(s$resp, rspec$resp_name)) {
+      return(NULL)
+    }
+    # cumulative() and sratio() hold (tau_1, log increments), which is
+    # the same map Stan's `ordered` type applies, so the density on the
+    # thresholds carries that map's log-Jacobian. cratio() and acat()
+    # hold the thresholds themselves and brms declares them unordered,
+    # so neither side has a Jacobian there
+    ordered <- rspec$family[["family"]] %in% c("cumulative", "sratio")
+    list(comp = "tau_raw", idx = seq_along(raw), dist = s$dist,
+         scale = if (ordered) "ordthres" else "internal",
+         link = NULL, offset = ordinal_center_offset(frame, rspec),
+         lb = s$lb, ub = s$ub)
+  }
+
   for (s in unclass(pl)) {
-    if (s$class %in% c("b", "Intercept")) {
-      # `natural` puts the prior on exp(coefficient) with the same
-      # log-Jacobian class "sd" uses, which is what a log-linked
-      # dispersion intercept needs to carry brms's half-t on sigma
-      # itself rather than on log sigma. Only the default-prior builder
-      # of frm_sample() sets it; a set_prior() spec never has the field
-      # and reads as internal, exactly as before.
-      sc <- if (isTRUE(s$natural)) "sd" else "internal"
+    ord_th <- if (s$class == "Intercept") ordinal_threshold_entry(s)
+    if (!is.null(ord_th)) {
+      if (!is.null(s$dist)) {
+        claim("tau_raw", ord_th$idx)
+        assigned[[nm_of("tau_raw", ord_th$idx)]] <- ord_th
+      }
+      if (!is.na(s$lb) || !is.na(s$ub)) {
+        stop("class = \"Intercept\" on an ordinal family addresses the ",
+             "whole threshold vector, so lb/ub would box every ",
+             "threshold with one number. Bound one at a time with ",
+             "class = \"theta\", or write the prior through ",
+             "prior = list(tau_raw = ) on the internal scale",
+             call. = FALSE)
+      }
+    } else if (s$class %in% c("b", "Intercept")) {
       for (tg in target_coefs(s)) {
         key <- nm_of(tg$comp, tg$idx)
+        pm <- coef_placement(s, tg)
         if (!is.null(s$dist)) {
           assigned[[key]] <- list(comp = tg$comp, idx = tg$idx,
-                                  dist = s$dist, scale = sc,
+                                  dist = s$dist, scale = pm$scale,
+                                  link = pm$link, offset = pm$offset,
                                   lb = s$lb, ub = s$ub)
         } else if (!is.null(assigned[[key]])) {
           assigned[[key]] <- entry_bounds(assigned[[key]], s)
         }
-        if (!is.na(s$lb)) lower[tg$name] <- s$lb
-        if (!is.na(s$ub)) upper[tg$name] <- s$ub
+        # a bound belongs to the quantity the DENSITY is about, so a
+        # `natural` placement has to carry it back through the link
+        # before it can box an internal parameter. brms writes lb = 0 on
+        # every dispersion default, and on a log-linked sigma that is
+        # log(0) = -Inf, not a floor of 1 (see R3 of the punch re-check)
+        if (!is.na(s$lb)) lower[tg$name] <- internal_bound(s$lb, pm, "lb")
+        if (!is.na(s$ub)) upper[tg$name] <- internal_bound(s$ub, pm, "ub")
       }
     } else if (s$class == "sd") {
       hit <- FALSE
@@ -1313,15 +1652,162 @@ resolve_priorlist <- function(fit, pl) {
   list(entries = unname(assigned), lower = lower, upper = upper)
 }
 
-#' Log density of one prior entry value (AD-safe), with the sd-scale
-#' change of variables where requested.
+#' brms's centering offset for one linear predictor's intercept, or
+#' `NULL` where brms would not center.
+#'
+#' brms constrains the intercept at the MEAN of the predictors: its Stan
+#' program declares `Intercept` against a centered design and recovers
+#' the reported one as `b_Intercept = Intercept - dot_product(means_X,
+#' b)`. frmtmb parameterizes by the raw intercept, so the quantity
+#' brms's prior is about is `b0 + means_X'b`, and that is what this
+#' offset supplies. The map between the two parameterizations is unit
+#' triangular, so it carries no Jacobian, which is why the measured S7
+#' residual is a pure density difference.
+#'
+#' Only the PARAMETRIC columns are centered. That is brms's own rule,
+#' read off its generated code rather than assumed: `Xs` (a smooth's
+#' unpenalized part) and `Xmo` (a mo() term) sit outside `Xc` and
+#' outside `means_X`, and frmtmb appends those columns after
+#' `n_param_cols`. A sub-formula with no intercept column (an ordinal
+#' one, where thresholds replace it) or with no other parametric column
+#' has nothing to center.
 #'
 #' @noRd
-prior_logdens <- function(x, dist, scale) {
+lp_center_offset <- function(frame, lp) {
+  X <- lp[["X"]]
+  np <- lp[["n_param_cols"]] %||% 0L
+  if (is.null(X) || !nrow(X) || np < 2L) return(NULL)
+  cn <- colnames(X)[seq_len(np)]
+  if (!"(Intercept)" %in% cn) return(NULL)
+  k <- which(cn != "(Intercept)")
+  if (!length(k)) return(NULL)
+  m <- as.numeric(Matrix::colMeans(X[, k, drop = FALSE]))
+  keep <- which(m != 0)
+  # a mean-zero design is brms's own arithmetic with nothing in it, and
+  # dropping those columns keeps them off the tape
+  if (!length(keep)) return(NULL)
+  list(comp = lp[["par"]], idx = lp[["idx"]][k[keep]], w = m[keep])
+}
+
+#' Does this model hold ordinal thresholds a prior can address?
+#'
+#' @noRd
+has_ordinal_thresholds <- function(fit) {
+  raw <- fit$frame[["par_template"]][["tau_raw"]] %||% numeric(0)
+  length(raw) > 0L && length(fit$spec$responses) == 1L &&
+    identical(fit$spec$responses[[1L]]$family[["type"]], "ordinal")
+}
+
+#' brms's centering offset for an ordinal threshold vector, or `NULL`.
+#'
+#' The ordinal program centers every column of its design (there is no
+#' intercept column to leave out) and recovers the reported thresholds
+#' as `b_Intercept = Intercept + dot_product(means_X, b)`, so the
+#' quantity its prior is about is `tau - means_X'b`. The sign is the
+#' opposite of the ordinary intercept's, because an ordinal linear
+#' predictor enters the density as `tau - eta`.
+#'
+#' @noRd
+ordinal_center_offset <- function(frame, rspec) {
+  for (lp in frame[["linpreds"]]) {
+    if (!identical(lp[["resp"]], rspec$resp_name)) next
+    if (!lp[["dpar"]] %in% rspec$primary_dpars) next
+    X <- lp[["X"]]
+    np <- lp[["n_param_cols"]] %||% 0L
+    if (is.null(X) || !nrow(X) || np < 1L) return(NULL)
+    k <- seq_len(np)
+    m <- as.numeric(Matrix::colMeans(X[, k, drop = FALSE]))
+    keep <- which(m != 0)
+    if (!length(keep)) return(NULL)
+    return(list(comp = lp[["par"]], idx = lp[["idx"]][k[keep]],
+                w = -m[keep]))
+  }
+  NULL
+}
+
+#' Where the density of one class b / Intercept specification sits:
+#' `scale`, the `link` a natural placement needs, and the centering
+#' `offset`.
+#'
+#' The log link is the case class `"sd"` already implements exactly
+#' (`exp()` with the coefficient as its log-Jacobian), so it reuses that
+#' path rather than a parallel one; the identity link makes natural and
+#' link scale the same quantity; every other link goes through the link
+#' object's own `linkinv` and `mu_eta`.
+#'
+#' @noRd
+coef_placement <- function(s, tg) {
+  ctr <- tg$center
+  if (!isTRUE(s$natural)) {
+    return(list(scale = "internal", link = NULL, offset = ctr))
+  }
+  nm <- tg$link$name %||% "identity"
+  if (identical(nm, "log")) {
+    return(list(scale = "sd", link = NULL, offset = ctr))
+  }
+  if (identical(nm, "identity")) {
+    return(list(scale = "internal", link = NULL, offset = ctr))
+  }
+  list(scale = "natural", link = tg$link, offset = ctr)
+}
+
+#' A user-facing bound carried onto the internal parameter the box
+#' actually constrains.
+#'
+#' @noRd
+internal_bound <- function(v, pm, which) {
+  if (identical(pm$scale, "internal")) return(v)
+  lf <- if (identical(pm$scale, "sd")) log else pm$link$linkfun
+  b <- suppressWarnings(as.numeric(lf(v)))
+  if (is.finite(b)) return(b)
+  # the bound lies outside the parameter's own support. Below it a lower
+  # bound constrains nothing, which is exactly brms's lb = 0 on a
+  # log-linked dispersion parameter; an upper bound there would be an
+  # empty box and is a question about intent rather than a number to
+  # invent
+  if (identical(which, "lb") && (is.nan(b) || b == -Inf)) return(-Inf)
+  # isTRUE(), because a bound outside the support maps to NaN and
+  # `NaN == Inf` is NA, which would make the `if` itself the error
+  # instead of the sentence below
+  if (identical(which, "ub") && isTRUE(b == Inf)) return(Inf)
+  stop(which, " = ", v, " is outside the support of the parameter this ",
+       "prior is about, so it describes an empty box", call. = FALSE)
+}
+
+#' Log density of one prior entry value (AD-safe), with the change of
+#' variables and the centering offset the entry asks for.
+#'
+#' @noRd
+prior_logdens <- function(x, dist, scale, link = NULL, offset = 0) {
   jac <- 0
+  if (identical(scale, "ordthres")) {
+    # (tau_1, log increments) -> the thresholds, which is the map Stan's
+    # `ordered` type applies, so its log-Jacobian is the sum of the
+    # increments. The centering shift comes after the map, because the
+    # quantity brms priors is the CENTERED threshold vector
+    "[<-" <- RTMB::ADoverload("[<-")
+    K1 <- length(x)
+    tau <- rep(x[1], K1)
+    if (K1 > 1L) {
+      for (k in 2:K1) tau[k] <- tau[k - 1] + exp(x[k])
+      jac <- sum(x[-1])
+    }
+    return(sum(prior_base_logdens(tau + offset, dist)) + jac)
+  }
+  # brms's Intercept prior is about the intercept at the predictor
+  # MEANS; the tape carries the intercept at zero. The map between them
+  # is unit triangular, so the shift enters the density and nothing
+  # enters the Jacobian
+  if (length(offset) && !identical(offset, 0)) x <- x + offset
   if (identical(scale, "sd")) {
     jac <- x          # theta = log sd; add the Jacobian
     x <- exp(x)
+  } else if (identical(scale, "natural")) {
+    # the same change of variables for a link that is not the log: the
+    # density belongs to the dpar, and the tape carries its link-scale
+    # coefficient
+    jac <- log(abs(link$mu_eta(x)))
+    x <- link$linkinv(x)
   }
   # a density written about a TRANSFORMED parameter (an AR coefficient,
   # a cosy correlation): evaluate it at the natural value and add the
@@ -1345,6 +1831,28 @@ prior_base_logdens <- function(x, dist) {
     t = RTMB::dt((x - dist$location) / dist$scale, df = dist$df,
                  log = TRUE) - log(dist$scale),
     exponential = log(dist$rate) - dist$rate * x,
+    # written through logspace_add rather than log1p(exp(-z)), which
+    # overflows in the lower tail exactly where brms's logistic(0, 1) on
+    # a mixture proportion is doing its work
+    logistic = {
+      z <- (x - dist$location) / dist$scale
+      -z - log(dist$scale) - 2 * RTMB::logspace_add(0 * z, -z)
+    },
+    gamma = dist$shape * log(dist$rate) - lgamma(dist$shape) +
+      (dist$shape - 1) * log(x) - dist$rate * x,
+    # brms's inv_gamma(shape, scale) is Stan's, so the second argument
+    # is the SCALE of the inverse gamma, which is the rate of the gamma
+    # on 1/x. Written out rather than through dgamma(1/x) so the tape
+    # carries one expression instead of a reciprocal and a correction
+    inv_gamma = dist$shape * log(dist$scale) - lgamma(dist$shape) -
+      (dist$shape + 1) * log(x) - dist$scale / x,
+    # log1p rather than log(1 - x): a zi or hu near one is exactly where
+    # brms's beta(1, 1) is doing its work, and that is where log(1 - x)
+    # loses its last digits
+    beta = (dist$shape1 - 1) * log(x) +
+      (dist$shape2 - 1) * log1p(-x) -
+      (lgamma(dist$shape1) + lgamma(dist$shape2) -
+         lgamma(dist$shape1 + dist$shape2)),
     # a JOINT density over a whole correlation, so `x` is the block's
     # correlation segment and the value is one number, not one per
     # element (see lkj_logdens)
@@ -1366,7 +1874,9 @@ prior_base_logdens <- function(x, dist) {
 #' parameters they name and leave the rest of the prior stack in place.
 #' [par_template()] and [get_prior()] name the addressable slots.
 #'
-#' @param location,scale,df Prior parameters.
+#' @param location,scale,df Prior parameters. `scale` is also the
+#'   second argument of `prior_inv_gamma()`, brms's
+#'   `inv_gamma(shape, scale)`.
 #' @return A `frmtmb_prior` object.
 #' @seealso [set_prior()] for the class-based spelling, which is the one
 #'   most models want.
@@ -1408,6 +1918,58 @@ prior_t <- function(df = 3, location = 0, scale = 1) {
   check_number(location, "location")
   check_positive(scale, "scale")
   structure(list(kind = "t", df = df, location = location, scale = scale),
+            class = "frmtmb_prior")
+}
+
+#' @rdname frmtmb-priors
+#' @export
+prior_logistic <- function(location = 0, scale = 1) {
+  check_number(location, "location")
+  check_positive(scale, "scale")
+  structure(list(kind = "logistic", location = location, scale = scale),
+            class = "frmtmb_prior")
+}
+
+#' @param shape,rate Gamma prior parameters, brms's spelling
+#'   (`gamma(shape, rate)`), both positive. The density has support on
+#'   the positive line, so it belongs to a quantity that lives there: a
+#'   brms `shape`, `phi`, `nu` or `kappa` row, which arrives on the
+#'   parameter's own scale.
+#' @rdname frmtmb-priors
+#' @export
+prior_gamma <- function(shape = 1, rate = 1) {
+  check_positive(shape, "shape")
+  check_positive(rate, "rate")
+  structure(list(kind = "gamma", shape = shape, rate = rate),
+            class = "frmtmb_prior")
+}
+
+#' The inverse gamma has support on the positive line, so it belongs to
+#' a quantity that lives there: brms's default on a `shape` parameter
+#' and on a `gp()` length-scale. Its `scale` is brms's second
+#' `inv_gamma(shape, scale)` argument, documented with the other scale
+#' parameters above rather than a second time here, which R CMD check
+#' reads as a duplicated argument.
+#'
+#' @rdname frmtmb-priors
+#' @export
+prior_inv_gamma <- function(shape = 1, scale = 1) {
+  check_positive(shape, "shape")
+  check_positive(scale, "scale")
+  structure(list(kind = "inv_gamma", shape = shape, scale = scale),
+            class = "frmtmb_prior")
+}
+
+#' @param shape1,shape2 Beta prior parameters, both positive. The
+#'   density has support on `(0, 1)`, so it belongs to a quantity that
+#'   lives there: brms's default on a zero-inflation `zi` or a hurdle
+#'   `hu`, which reach it through their logit link.
+#' @rdname frmtmb-priors
+#' @export
+prior_beta <- function(shape1 = 1, shape2 = 1) {
+  check_positive(shape1, "shape1")
+  check_positive(shape2, "shape2")
+  structure(list(kind = "beta", shape1 = shape1, shape2 = shape2),
             class = "frmtmb_prior")
 }
 
@@ -1783,8 +2345,19 @@ resolve_priors <- function(fit, prior) {
   entries
 }
 
+#' The centering offset of one entry, evaluated on the tape: a single
+#' number, `means_X'b` over the coefficients the offset names.
+#'
+#' @noRd
+entry_offset <- function(e, pars) {
+  o <- e$offset
+  if (is.null(o)) return(0)
+  sum(pars[[o$comp]][o$idx] * o$w)
+}
+
 #' AD-safe negative log prior over resolved per-parameter entries
-#' (each: comp, idx, dist, scale; see prior_logdens).
+#' (each: comp, idx, dist, scale, and optionally link/offset; see
+#' prior_logdens).
 #'
 #' @noRd
 neg_log_prior_fn <- function(entries) {
@@ -1792,7 +2365,8 @@ neg_log_prior_fn <- function(entries) {
     nlp <- 0
     for (e in entries) {
       nlp <- nlp - sum(prior_logdens(pars[[e$comp]][e$idx], e$dist,
-                                     e$scale))
+                                     e$scale, e$link,
+                                     entry_offset(e, pars)))
     }
     nlp
   }

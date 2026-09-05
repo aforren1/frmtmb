@@ -21,7 +21,9 @@ set_prior(
 \code{\link[=prior_normal]{prior_normal()}}/\code{\link[=prior_t]{prior_t()}}/\code{\link[=prior_lkj]{prior_lkj()}} object, or \code{""} for
 bounds only.}
 
-\item{class}{\code{"b"}, \code{"Intercept"}, \code{"sd"}, \code{"cor"}, or \code{"theta"}.}
+\item{class}{\code{"b"}, \code{"Intercept"}, \code{"sd"}, \code{"cor"}, \code{"theta"}, or one
+of the residual-structure classes \code{"ar"}, \code{"ma"}, \code{"cosy"},
+\code{"cortime"} and \code{"rescor"}.}
 
 \item{coef}{Restrict to one coefficient (classes \code{"b"}/\code{"Intercept"}).}
 
@@ -45,8 +47,8 @@ A \code{frmtmb_priorlist}.
 Builds prior specifications with brms spelling:
 \code{set_prior("normal(0, 5)", class = "b")}. Combine several with \code{+} or
 \code{c()}. Distributions: \code{normal(mu, sd)}, \code{student_t(df, mu, sd)},
-\code{cauchy(mu, sd)}, \code{exponential(rate)}, \code{lkj(eta)}; an empty string
-sets bounds only.
+\code{cauchy(mu, sd)}, \code{exponential(rate)}, \code{logistic(mu, s)},
+\code{gamma(shape, rate)}, \code{lkj(eta)}; an empty string sets bounds only.
 }
 \details{
 Classes and their scales:
@@ -54,7 +56,12 @@ Classes and their scales:
 \item \code{"b"}: population-level coefficients of \code{dpar} (default: the
 location parameters), excluding the intercept; narrow to one
 coefficient with \code{coef}. Link scale.
-\item \code{"Intercept"}: the intercept of \code{dpar}. Link scale.
+\item \code{"Intercept"}: the intercept of \code{dpar}, at the MEAN of that
+sub-formula's predictors, which is the intercept brms's own
+\code{Intercept} prior constrains. Link scale. See Where an intercept
+prior lands. On an ordinal family the thresholds are the intercept,
+here as in brms, so this class addresses the whole threshold
+vector; see Ordinal thresholds.
 \item \code{"sd"}: random-effect standard deviations (and smoothing SDs), on
 the NATURAL sd scale with the log-Jacobian applied, so
 \code{set_prior("exponential(1)", class = "sd")} means what it says;
@@ -90,6 +97,53 @@ replaces that whole LKJ term, and the other way round, so "later
 wins" holds between the two spellings as well.
 \code{lb}/\code{ub} become hard bounds. See Hard bounds.
 }
+\section{Where an intercept prior lands}{
+
+brms centers its design matrix and constrains the intercept at the
+MEAN of the predictors, recovering the reported one as
+\code{b_Intercept = Intercept - dot_product(means_X, b)}. frmtmb
+parameterizes by the intercept at zero and evaluates a class
+\code{"Intercept"} density at \verb{b0 + means_X'b}, so the two packages
+constrain the same quantity. The map between the two
+parameterizations is unit triangular and carries no Jacobian.
+
+This matters whenever a predictor is not centered. On
+\code{Reaction ~ Days}, where \code{mean(Days)} is 4.5, the intercept at zero
+is strongly correlated with the slope and the intercept at the mean
+is orthogonal to it, so a prior on the first biases the slope and a
+prior on the second does not. Earlier releases used the intercept
+at zero, and \code{brms::get_prior()}'s own default there moved the slope
+by 0.068 standard errors; it now moves it by 0.00003.
+
+Every sub-formula with an intercept is centered separately, as brms
+does (\code{means_X}, \code{means_X_sigma}, ...). A NONLINEAR parameter's
+sub-formula is not centered on either side, and neither are a
+smooth's unpenalized columns or a \code{mo()} term, which sit outside
+brms's \code{Xc} as well. To put a density on the intercept at zero, name
+it as a coefficient instead: \verb{class = "b", coef = "Intercept"},
+which is also how a \code{brms::bf(center = FALSE)} model's prior arrives.
+}
+
+\section{Ordinal thresholds}{
+
+\code{cumulative()}, \code{sratio()}, \code{cratio()} and \code{acat()} have no intercept
+column: the thresholds replace it. brms priors them as its
+\code{Intercept} class and so does frmtmb, so
+\code{set_prior("student_t(3, 0, 2.5)", class = "Intercept")} on an
+ordinal model addresses the whole threshold vector. It addresses the
+THRESHOLDS, at the mean of the predictors, with the log-Jacobian of
+the map from frmtmb's internal storage; \code{cumulative()} and
+\code{sratio()} hold \verb{(tau_1, log increments)}, which is the same map
+Stan's \code{ordered} type applies, and \code{cratio()} and \code{acat()} hold the
+thresholds themselves. \code{lb}/\code{ub} are refused there, because one
+number cannot box a whole vector of ordered thresholds.
+
+\code{prior = list(tau_raw = prior_normal(0, 5))} reaches the same
+parameters on the INTERNAL scale, one entry per threshold, which is
+the escape hatch to use when the increments rather than the
+thresholds are what a prior is about.
+}
+
 \section{Hard bounds}{
 
 \code{lb}/\code{ub} are how a box constraint is written. A specification may
@@ -211,6 +265,58 @@ priors of \code{frmtmb.sample::frm_sample()} still stay off there (see
 its Default priors section), so a multivariate model's priors are the
 ones
 written by hand.
+}
+
+\section{Translating a brms prior}{
+
+\code{frm(prior = )} takes a \code{brmsprior} object directly, whether it came
+from \code{brms::set_prior()}, \code{brms::prior()} or \code{brms::get_prior()}. A
+row applies whatever its \code{prior} string says, which is brms's own
+rule; an empty string is brms's flat default and applies nothing.
+The \code{source} column is not read. Earlier releases dropped rows marked
+\code{source == "default"} were dropped, which lost a prior the user had
+edited into a \code{get_prior()} table in place, because brms does not
+update \code{source} after that edit.
+
+brms's class vocabulary is wider than the one above, and it is
+carried over rather than refused wherever the two packages mean the
+same parameter:
+\itemize{
+\item \code{b}, \code{Intercept}, \code{sd}, \code{cor}, \code{ar}, \code{ma}, \code{cosy}, \code{cortime} and
+\code{rescor} are frmtmb's own class names and keep their meaning.
+\item a DISTRIBUTIONAL parameter's own class (\code{sigma}, \code{shape}, \code{phi},
+\code{nu}, \code{kappa}, \code{sigma1}, ...) is a density on that parameter
+ITSELF in brms. It lands on the parameter itself here too, through
+the dpar's inverse link with that map's log-Jacobian, which is the
+change of variables class \code{"sd"} performs. A bound on such a row
+travels with it, so brms's \code{lb = 0} on a log-linked dispersion
+becomes no constraint rather than a floor of 1.
+\item \code{theta}/\code{theta1}/\code{theta2}, \code{simo}, \code{sds}, \code{sdgp}, \code{lscale},
+\code{sdcar} and \code{car} are refused by name, each saying where frmtmb
+keeps that quantity instead. A refusal is deliberate: translating
+one of them would produce a different model rather than no model.
+\item a \code{coef} on a \code{sd} or \code{cor} row is refused for the same reason.
+brms narrows such a row to one coefficient of a block; frmtmb
+resolves those classes per BLOCK, so applying the row without its
+\code{coef} would put the density on every standard deviation of the
+block, which is a wider prior than the one written. \code{coef} on
+class \code{"b"} narrows as it does in brms and is unaffected.
+}
+
+Every refused row of a table is named in ONE message, because a table
+is edited as a whole and stopping at the first bad row costs a round
+trip per bad row.
+
+\strong{frmtmb's own spelling for a distributional parameter is the one
+place the two packages still differ.}
+\code{set_prior("student_t(3, 0, 2.5)", class = "Intercept", dpar = "sigma")} is a density on LOG sigma, the parameter frmtmb stores,
+and it keeps that meaning; the same row spelled brms's way,
+\code{brms::prior(student_t(3, 0, 2.5), class = "sigma")}, is a density on
+sigma. The two are not the same prior: on a nonlinear fit with
+\code{sigma} near 0.135 the link spelling captures about 35 percent of the
+shift the natural one produces, and on \code{sleepstudy}, where brms's
+default scale is calibrated to a sigma near 31, it captures none of
+it. Write the brms spelling when brms's meaning is wanted.
 
 brms's \code{tag} and \code{check} have no counterpart: \code{tag} names a prior
 for reuse inside a Stan program, and \code{check} passes an unchecked

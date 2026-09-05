@@ -212,6 +212,13 @@ rprior_one <- function(dist) {
     normal = stats::rnorm(1L, dist$location, dist$scale),
     t = dist$location + dist$scale * stats::rt(1L, dist$df),
     exponential = stats::rexp(1L, dist$rate),
+    logistic = stats::rlogis(1L, dist$location, dist$scale),
+    gamma = stats::rgamma(1L, shape = dist$shape, rate = dist$rate),
+    # the inverse gamma is the reciprocal of a gamma whose RATE is the
+    # inverse gamma's scale, which is the same reading its density uses
+    inv_gamma = 1 / stats::rgamma(1L, shape = dist$shape,
+                                  rate = dist$scale),
+    beta = stats::rbeta(1L, dist$shape1, dist$shape2),
     stop("No sampler for prior kind '", dist$kind, "'", call. = FALSE)
   )
 }
@@ -224,14 +231,64 @@ draw_prior_entry <- function(e, label, max_try = 1000L) {
   lb <- if (is.null(e$lb) || is.na(e$lb)) -Inf else e$lb
   ub <- if (is.null(e$ub) || is.na(e$ub)) Inf else e$ub
   if (identical(e$scale, "sd")) lb <- max(lb, 0)
+  if (identical(e$scale, "ordthres")) {
+    # the entry is a density on a whole ORDERED vector, and one draw
+    # from the marginal would not be ordered. Pinning the thresholds is
+    # what a prior-predictive ordinal simulation needs anyway
+    stop("A prior on ", label, " is a density on the whole threshold ",
+         "vector, and drawing from it one threshold at a time would ",
+         "not produce an ordered one. Pin the thresholds with ",
+         "newparams = list(tau_raw = ) instead", call. = FALSE)
+  }
+  # a "natural" entry's density is about the dpar itself, so a draw
+  # outside the link's own support has no internal value to write and is
+  # rejected the same way a non-positive sd is
+  ok_support <- function(v) {
+    if (identical(e$scale, "sd")) return(v > 0)
+    if (!identical(e$scale, "natural")) return(TRUE)
+    is.finite(suppressWarnings(as.numeric(e$link$linkfun(v))))
+  }
   for (it in seq_len(max_try)) {
     v <- rprior_one(e$dist)
-    if (v >= lb && v <= ub && !(identical(e$scale, "sd") && v <= 0)) {
+    if (v >= lb && v <= ub && ok_support(v)) {
       return(v)
     }
   }
   stop("The prior on ", label, " did not produce a draw inside [",
        lb, ", ", ub, "] in ", max_try, " tries", call. = FALSE)
+}
+
+#' The internal value one drawn prior value stands for, undoing the
+#' entry's change of variables and its centering offset.
+#'
+#' @noRd
+prior_draw_to_internal <- function(e, v, est) {
+  x <- if (identical(e$scale, "sd")) {
+    log(v)
+  } else if (identical(e$scale, "natural")) {
+    as.numeric(e$link$linkfun(v))
+  } else {
+    v
+  }
+  o <- e$offset
+  if (is.null(o)) return(x)
+  x - sum(est[[o$comp]][o$idx] * o$w)
+}
+
+#' What the `pars` table reports for one drawn entry.
+#'
+#' The draw is on the scale the prior was WRITTEN on, and for a centered
+#' intercept that is the intercept at the predictor means. The table has
+#' to round-trip through `newparams =`, whose `Intercept` is the
+#' intercept at zero, so an offset entry reports the value that was
+#' actually written rather than the value that was drawn.
+#'
+#' @noRd
+prior_draw_report <- function(e, v, x) {
+  if (is.null(e$offset)) return(v)
+  if (identical(e$scale, "sd")) return(exp(x))
+  if (identical(e$scale, "natural")) return(as.numeric(e$link$linkinv(x)))
+  x
 }
 
 #' Label for a prior entry: the natural name where one exists, else the
@@ -258,11 +315,18 @@ prior_entry_label <- function(frame, slots, e) {
 #' @noRd
 draw_prior_pars <- function(est, entries, labels) {
   vals <- numeric(length(entries))
-  for (i in seq_along(entries)) {
+  # a centered intercept's internal value is its draw minus `means_X'b`,
+  # so the coefficients that offset it have to be in `est` first. Their
+  # own entries carry no offset, which is what puts them in the first
+  # pass; slopes with no prior at all are already in `est`
+  ord <- c(which(vapply(entries, function(e) is.null(e$offset), TRUE)),
+           which(vapply(entries, function(e) !is.null(e$offset), TRUE)))
+  for (i in ord) {
     e <- entries[[i]]
     v <- draw_prior_entry(e, labels[i])
-    vals[i] <- v
-    est[[e$comp]][e$idx] <- if (identical(e$scale, "sd")) log(v) else v
+    x <- prior_draw_to_internal(e, v, est)
+    est[[e$comp]][e$idx] <- x
+    vals[i] <- prior_draw_report(e, v, x)
   }
   list(est = est, vals = vals)
 }
@@ -419,6 +483,17 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' The drawn values come back as `attr(result, "pars")`, one row per
 #' simulation, so a prior-predictive check can relate parameters to
 #' outcomes.
+#'
+#' That table reports each parameter on the scale `newparams` names it
+#' on, which for `Intercept` is the intercept at ZERO. A
+#' `class = "Intercept"` prior is a density on the intercept at the MEAN
+#' of the predictors (see the Where an intercept prior lands section of
+#' [set_prior()]), so on a design with uncentered predictors the number
+#' drawn and the number reported differ by `colMeans(X)` times the
+#' slopes. Reporting the written value is what lets a `pars` row be
+#' handed straight back as `newparams`. A prior on a distributional
+#' parameter's own brms class is likewise drawn on that parameter and
+#' reported there, not on its link scale.
 #'
 #' Parameters without a prior keep their `newparams` value. Whenever
 #' `prior` are used, or `newparams` uses the natural spelling, every

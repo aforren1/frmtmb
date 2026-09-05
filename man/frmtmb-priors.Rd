@@ -4,6 +4,10 @@
 \alias{frmtmb-priors}
 \alias{prior_normal}
 \alias{prior_t}
+\alias{prior_logistic}
+\alias{prior_gamma}
+\alias{prior_inv_gamma}
+\alias{prior_beta}
 \alias{prior_lkj}
 \title{Prior objects, addressed by internal parameter name}
 \usage{
@@ -11,10 +15,31 @@ prior_normal(location = 0, scale = 1)
 
 prior_t(df = 3, location = 0, scale = 1)
 
+prior_logistic(location = 0, scale = 1)
+
+prior_gamma(shape = 1, rate = 1)
+
+prior_inv_gamma(shape = 1, scale = 1)
+
+prior_beta(shape1 = 1, shape2 = 1)
+
 prior_lkj(eta = 1)
 }
 \arguments{
-\item{location, scale, df}{Prior parameters.}
+\item{location, scale, df}{Prior parameters. \code{scale} is also the
+second argument of \code{prior_inv_gamma()}, brms's
+\code{inv_gamma(shape, scale)}.}
+
+\item{shape, rate}{Gamma prior parameters, brms's spelling
+(\code{gamma(shape, rate)}), both positive. The density has support on
+the positive line, so it belongs to a quantity that lives there: a
+brms \code{shape}, \code{phi}, \code{nu} or \code{kappa} row, which arrives on the
+parameter's own scale.}
+
+\item{shape1, shape2}{Beta prior parameters, both positive. The
+density has support on \verb{(0, 1)}, so it belongs to a quantity that
+lives there: brms's default on a zero-inflation \code{zi} or a hurdle
+\code{hu}, which reach it through their logit link.}
 
 \item{eta}{LKJ shape. \code{1} is uniform over correlation matrices,
 larger values concentrate toward the identity, and \verb{0 < eta < 1}
