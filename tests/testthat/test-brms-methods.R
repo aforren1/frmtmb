@@ -149,7 +149,12 @@ test_that("every deferred exclusion still has a live defect", {
 
   for (i in seq_len(nrow(live))) {
     agrees <- brms_exclusion_agrees(live$list[[i]], live$key[[i]])
-    if (isTRUE(agrees)) {
+    # a defect row in a list no probe covers would pass here unprobed,
+    # so an undispatched list is a failure, not a pass
+    if (is.na(agrees)) {
+      fail(sprintf("finding %s: no live probe dispatches for list %s()",
+                   live$finding[[i]], live$list[[i]]))
+    } else if (isTRUE(agrees)) {
       fail(sprintf(paste0("finding %s looks fixed: %s now agrees with ",
                           "brms, so drop its row from brms_exclusions() ",
                           "and let %s() cover it again"),

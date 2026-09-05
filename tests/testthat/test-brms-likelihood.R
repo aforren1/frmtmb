@@ -1108,3 +1108,18 @@ test_that("row 19: esicar and bym2 have different latent variables", {
   expect_lt(abs(as.numeric(logLik(f_ic)) - as.numeric(logLik(f_es))),
             1e-10)
 })
+
+test_that("row 12b: an ordinal fit with mo() is the same model in both packages", {
+  skip_unless_brms_fit()
+  # The thresholds take the first extras slot, so the two monotonic
+  # simplexes are zeta2 and zeta3 while brms calls them simo_1 and
+  # simo_2; this row guards the composition of ordinal centering with
+  # the by-position translation, which test-mo-terms.R checks only
+  # structurally. The flat Dirichlet is admitted once per simplex.
+  dd <- mo_terms_data()
+  dd$yo <- as.integer(cut(dd$y, quantile(dd$y, 0:3 / 3),
+                          include.lowest = TRUE))
+  fit <- frm(bf(yo ~ mo(inc) * z) + cumulative(), data = dd)
+  brms_lp_check(brms::bf(yo ~ mo(inc) * z), brms::cumulative(), dd, fit,
+                const = 2 * lgamma(3))
+})

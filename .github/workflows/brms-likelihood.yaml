@@ -101,12 +101,17 @@ jobs:
         id: stankey
         run: |
           v <- as.character(packageVersion("rstan"))
+          # brms generates the Stan code, so a brms release changes every
+          # content-addressed program; without it in the key the primary
+          # key never misses and the cache never saves a recompile
+          vb <- as.character(packageVersion("brms"))
           h <- tools::md5sum(c("tests/testthat/test-brms-likelihood.R",
                                "tests/testthat/helper-brms.R",
                                "tests/testthat/test-brms-methods.R",
                                "tests/testthat/helper-brms-methods.R"))
           dir.create("dev", showWarnings = FALSE)
-          writeLines(c(paste0("rstan ", v), paste0(names(h), " ", h)),
+          writeLines(c(paste0("rstan ", v), paste0("brms ", vb),
+                       paste0(names(h), " ", h)),
                      "dev/stan-cache-key.txt")
           cat("prefix=brms-stan-", v, "-\n", sep = "",
               file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
@@ -174,6 +179,9 @@ jobs:
           }
         shell: Rscript {0}
       - name: Run the brms post-fit method tier
+        # reported even when the log-density tier fails, so a red run
+        # says which tier broke
+        if: always()
         run: |
           # Same gate, asserted the same way and for the same reason.
           # MASS joins the list because the merged (1 | q | g) shape

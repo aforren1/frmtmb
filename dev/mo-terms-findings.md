@@ -156,7 +156,7 @@ fails to reload with a null DSO pointer, which the helper documents at
 Re-run unchanged after the translator was rewritten to map by position
 (2, 2, 6, 3, 11, 30), from a cold cache, one row per process.
 
-The last row is the flip. It used to assert the structural difference
+The fifth row, 3b, is the flip. It used to assert the structural difference
 (`Imo == 2` against a single `zeta1`); it now asserts `zeta1`, `zeta2`
 and then runs `brms_lp_check()`, so checks A and B both pass with the
 flat Dirichlet admitted once per simplex. The tier's exemption list is
@@ -175,6 +175,9 @@ still refuses `mo():mo()` and `mo():mi()`. `mo() x prior` is still
 "untested", which is honest: there is no simplex prior to test.
 
 ## as-cran
+
+Measured before the punch round; the consolidation re-ran the check on
+the merged tree (see NEWS for 0.51.0).
 
 `R CMD build` then `R CMD check --as-cran --no-manual` with
 `_R_CHECK_CRAN_INCOMING_=false` and the quarto tools on PATH:
@@ -210,10 +213,12 @@ monotonic model.
 * `mo(x):mo(w)` gets two simplexes in brms. frmtmb refuses mo():mo()
   outright (`R/parse.R`), so the within-term rule has nothing to apply
   to and none was written.
-* `dev/brms-likelihood-tests.md`, `dev/brms-vignette-audit.md` and
+* `dev/brms-vignette-audit.md` and
   `dev/reviews/2026-09-05-brms-likelihood-identity.md` still describe
   the divergence as live. They are dated records of the investigation
-  and were not in the change list; NEWS carries the correction.
+  and were not in the change list; NEWS carries the correction, and
+  `dev/brms-likelihood-tests.md` records the resolution in its Status
+  paragraph and at its Divergence head (punch round).
 
 ## Scope
 
@@ -240,11 +245,12 @@ extracted with `git archive`, once against the working tree.
 |  | files | pass | fail | error | skip |
 |---|---|---|---|---|---|
 | 564e185 | 104 | 5423 | 0 | 0 | 21 |
-| this branch | 105 | 5473 | 0 | 0 | 22 |
+| this branch | 105 | 5494 | 0 | 0 | 22 |
 
 Three files moved, and only three:
 
-* `test-mo-terms.R`, new, 53 passes. The simplex-count contract, the
+* `test-mo-terms.R`, new, 74 passes (53 before the punch round, which
+  added the ordinal translation test and the dpar-suffixed refusal). The simplex-count contract, the
   enumeration order against `Imo`/`Jmo`/`Xmo_j`, brms's simo coef
   names, the likelihood ordering against the shared-simplex submodel,
   and a `mo()`-with-`mi()` two-way interaction model.
