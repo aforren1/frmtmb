@@ -387,7 +387,10 @@ test_that("every band plots, prints and keeps cond__ working", {
     cc <- conditional_effects(fit, effects = "x", resolution = 4,
                               band = bnd, boot = 8, profile_points = 3,
                               seed = 5, conditions = cnd)
-    expect_equal(sort(unique(cc$x$cond__)), c("f = a", "f = b"))
+    # cond__ is a factor of the condition labels, as brms's is
+    expect_equal(levels(cc$x$cond__), c("f = a", "f = b"))
+    expect_equal(sort(unique(as.character(cc$x$cond__))),
+                 c("f = a", "f = b"))
     expect_equal(nrow(cc$x), 8L)
     expect_no_error(plot(cc, ask = FALSE))
   }
@@ -545,4 +548,164 @@ test_that("dharma_residuals() refuses a nominal response", {
   # no CDF: the 1..K codes are an arbitrary labeling
   expect_error(dharma_residuals(fc, nsim = 5),
                "no meaning for a nominal response")
+})
+
+test_that("band = 'boot' carries a new group's variance, ordinal included", {
+  skip_on_cran()
+  skip_if_not_installed("lme4")
+
+  # re_formula = NULL conditions on a NEW group: its modes are zero, so
+  # the CURVE is the population curve and the group variance belongs in
+  # the BAND. The wald band gets it from lp_extra_var(); the bootstrap
+  # has no variance to add, so each replicate DRAWS that group's
+  # effects. Without the draw every refit predicted the new level's
+  # zero modes and the interval was the population interval under
+  # another name, while the frame's NA grouping column claimed
+  # otherwise.
+  ss <- lme4::sleepstudy
+  fs <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(), data = ss)
+  wid <- function(d) d$upper__ - d$lower__
+
+  wp <- conditional_effects(fs, effects = "Days", resolution = 4)$Days
+  wn <- conditional_effects(fs, effects = "Days", resolution = 4,
+                            re_formula = NULL)$Days
+  bp <- conditional_effects(fs, effects = "Days", resolution = 4,
+                            band = "boot", boot = 100, seed = 11)$Days
+  bn <- conditional_effects(fs, effects = "Days", resolution = 4,
+                            re_formula = NULL, band = "boot", boot = 100,
+                            seed = 11)$Days
+
+  # the estimate is the population curve on every one of the four
+  expect_equal(bn$estimate__, bp$estimate__, tolerance = 1e-12)
+  expect_true(all(is.na(bn$Subject)))
+  # and the band is NOT the population band any more: it was
+  # bit-identical to it, ratio 1.00
+  expect_true(all(wid(bn) > 2 * wid(bp)))
+  # and it lands on the WALD band for the same quantity. The bounds
+  # are wide because a percentile band at 100 refits is noisy: measured
+  # 0.91-1.03 at this seed, 0.70-1.03 across seeds at 60 refits. What
+  # is not noisy is the ratio to the population band above.
+  expect_true(all(wid(bn) / wid(wn) > 0.6))
+  expect_true(all(wid(bn) / wid(wn) < 1.5))
+  # the population bootstrap band is untouched by the change
+  expect_true(all(wid(bp) / wid(wp) > 0.8))
+  expect_true(all(wid(bp) / wid(wp) < 1.2))
+
+  # THE ORDINAL CASE, which is why this is not cosmetic: the
+  # per-category delta method is refused with re_formula, by name, and
+  # sends the user to band = "boot" - so boot is the ONLY band
+  # available there and it was the one that dropped the variance.
+  set.seed(8)
+  n <- 300
+  g <- factor(rep(seq_len(20), length.out = n))
+  u <- stats::rnorm(20, 0, 1.2)
+  x <- stats::rnorm(n)
+  do <- data.frame(x = x, g = g)
+  do$y <- ordered(cut(0.9 * x + u[g] + stats::rlogis(n),
+                      c(-Inf, -1, 0.6, Inf), labels = 1:3))
+  fo <- frm(bf(y ~ x + (1 | g)) + cumulative(), data = do)
+
+  expect_error(conditional_effects(fo, re_formula = NULL),
+               "written for the population-level curve")
+  op <- conditional_effects(fo, effects = "x", resolution = 4,
+                            band = "boot", boot = 50,
+                            seed = 3)[["x:cats__"]]
+  on <- conditional_effects(fo, effects = "x", resolution = 4,
+                            re_formula = NULL, band = "boot", boot = 50,
+                            seed = 3)[["x:cats__"]]
+  expect_equal(on$estimate__, op$estimate__, tolerance = 1e-12)
+  expect_true(all(is.na(on$g)))
+  expect_true(all(wid(on) > wid(op)))
+  expect_gt(median(wid(on) / wid(op)), 1.5)
+})
+
+test_that("effect2__ keeps distinct moderator values distinct", {
+  skip_on_cran()
+
+  # plot() groups on effect2__, so a level per CURVE is the contract.
+  # Building the levels from round(v, 2) gave two curves one level
+  # whenever two values rounded together, and dropped the user's own
+  # names with them (the name-count guard stopped matching). Newly
+  # reachable because int_conditions is newly implemented.
+  set.seed(1)
+  n <- 200
+  d <- data.frame(x = stats::rnorm(n), z = stats::rnorm(n))
+  d$y <- 1 + 0.8 * d$x - 0.4 * d$z + stats::rnorm(n)
+  f <- frm(bf(y ~ x + z) + gaussian(), data = d)
+
+  ce <- conditional_effects(
+    f, effects = "x:z", resolution = 4,
+    int_conditions = list(z = c(lo = 0.001, hi = 0.002)))[["x:z"]]
+  expect_identical(sort(unique(ce$z)), c(0.001, 0.002))
+  expect_identical(nlevels(ce$effect2__), 2L)
+  expect_identical(levels(ce$effect2__), c("hi", "lo"))
+  expect_identical(nrow(ce), 8L)
+
+  # unnamed, the labels widen only as far as they must to stay distinct
+  cu <- conditional_effects(
+    f, effects = "x:z", resolution = 4,
+    int_conditions = list(z = c(0.001, 0.002)))[["x:z"]]
+  expect_identical(nlevels(cu$effect2__), 2L)
+  expect_identical(levels(cu$effect2__), c("0.002", "0.001"))
+
+  # and the ordinary case still rounds to two decimals, descending,
+  # which is what brms puts there
+  cd <- conditional_effects(f, effects = "x:z", resolution = 4)[["x:z"]]
+  zz <- sort(unique(cd$z), decreasing = TRUE)
+  expect_identical(levels(cd$effect2__), as.character(round(zz, 2)))
+  expect_identical(nlevels(cd$effect2__), 3L)
+})
+
+test_that("a bootstrap cannot be reused across the new-group boundary", {
+  skip_on_cran()
+  skip_if_not_installed("lme4")
+
+  # The grid alone cannot tell a population call from a
+  # re_formula = NULL one: ce_ref_value() holds an unvaried factor at
+  # levels(col)[1] and the new-level placeholder is bk$levels[1], so on
+  # sleepstudy both are "308" and the two grids are BYTE IDENTICAL.
+  # Before the key carried the new-level spec, `boot =` reuse accepted a
+  # population bootstrap for a new-group call and handed back the
+  # population band - the very defect the per-replicate draw exists to
+  # fix, through the reuse path the help page recommends - and the
+  # converse gave a population call a band four times too wide.
+  ss <- lme4::sleepstudy
+  fs <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(), data = ss)
+  wid <- function(d) d$upper__ - d$lower__
+  base <- list(fs, effects = "Days", resolution = 4, band = "boot")
+
+  cp <- do.call(conditional_effects, c(base, list(boot = 40, seed = 5)))
+  cn <- do.call(conditional_effects,
+                c(base, list(re_formula = NULL, boot = 40, seed = 5)))
+  op <- attr(cp, "boot")
+  on <- attr(cn, "boot")
+  # the two bands are worth telling apart: about 4x
+  expect_true(all(wid(cn$Days) > 2 * wid(cp$Days)))
+
+  # BOTH directions are refused, by name and with the reason
+  expect_error(
+    do.call(conditional_effects,
+            c(base, list(re_formula = NULL, boot = op))),
+    "different group")
+  expect_error(
+    do.call(conditional_effects,
+            c(base, list(re_formula = NULL, boot = op))),
+    "conditions on a NEW group")
+  expect_error(do.call(conditional_effects, c(base, list(boot = on))),
+               "different group")
+  expect_error(do.call(conditional_effects, c(base, list(boot = on))),
+               "too wide")
+
+  # and the MATCHING reuse still works, reproducing its own band exactly
+  m1 <- do.call(conditional_effects, c(base, list(boot = op)))$Days
+  m2 <- do.call(conditional_effects,
+                c(base, list(re_formula = NULL, boot = on)))$Days
+  expect_equal(wid(m1), wid(cp$Days), tolerance = 1e-12)
+  expect_equal(wid(m2), wid(cn$Days), tolerance = 1e-12)
+  # the grid-mismatch reason is still reachable, and is a different one
+  expect_error(
+    do.call(conditional_effects,
+            c(list(fs, effects = "Days", resolution = 6, band = "boot"),
+              list(boot = op))),
+    "different grid")
 })

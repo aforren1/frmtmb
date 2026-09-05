@@ -24,13 +24,17 @@ conditional_effects(x, ...)
   conditions = list(),
   surface = FALSE,
   data = NULL,
+  int_conditions = list(),
+  categorical = NULL,
   ...
 )
 }
 \arguments{
 \item{x}{A \code{frmtmb_fit}.}
 
-\item{...}{Passed to \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}.}
+\item{...}{\code{allow_new_levels}, passed to \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}.
+Anything else is reported as unknown, by name, against
+\code{conditional_effects()}.}
 
 \item{effects}{Character vector of variable names, or \code{"x:z"} pairs;
 for a pair, the first variable is varied over its range while the
@@ -49,7 +53,11 @@ predictor.}
 \item{prob}{Coverage of the confidence bands (brms spelling).}
 
 \item{method}{\code{"epred"} (default): Wald bands for the expected
-response. \code{"predict"}: prediction intervals - quantile bands from
+response, which for a family whose mean is not the inverse link of
+its \code{mu} predictor (zero-inflated, hurdle, \code{trials()}, truncated)
+is the MEAN and not that predictor. brms's own spellings
+\code{"posterior_epred"} and \code{"posterior_predict"} are accepted as
+aliases. \code{"predict"}: prediction intervals - quantile bands from
 \code{ndraws} responses simulated from the family at each grid point
 (observation noise; random effects stay excluded, as in brms with
 \code{re_formula = NA}), around the expected response on the same
@@ -62,15 +70,27 @@ observation, so a reference value for those is meaningless and is
 an error rather than a silent default).}
 
 \item{band}{How the confidence band is built: \code{"wald"} (default,
-the delta method on the link scale), \code{"profile"} (likelihood-root
+the delta method on the scale the band is symmetric on),
+\code{"profile"} (likelihood-root
 inversion per grid point) or \code{"boot"} (parametric-bootstrap
 percentiles). See the band section. Only for \code{method = "epred"}.}
 
 \item{re_formula}{The population switch, in brms's spelling: \code{NA}
 (the default) draws the population-level curve, \code{NULL} conditions
-on the random effects of the grid's reference group levels (set
-them with \verb{conditions =}), and a one-sided formula keeps the named
-terms. The fit surface's \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} spells the same
+on a NEW, unobserved group, and a one-sided formula keeps the named
+terms for one. A new group's conditional modes are zero, so its
+curve IS the population curve and what the group costs is spread:
+the band carries the random-effect variance on top of the
+coefficient uncertainty, and the grouping column of the returned
+frame is \code{NA} to say which group it is. \code{band = "boot"} carries it
+too, by drawing that group's effects once per bootstrap replicate
+rather than by adding a variance. To condition on an OBSERVED
+group, name it in \code{conditions} (\code{conditions = list(g = "3")}).
+brms draws a new group's random effects afresh from the fitted
+covariance in every posterior draw, so its curve is stochastic
+around this one; a maximum-likelihood fit has the mode and the
+variance instead of draws. The fit surface's
+\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} spells the same
 setting \code{re.form} after lme4; \code{conditional_effects()} takes brms's
 name because it is brms's function, and says so if handed the
 other spelling. \code{band = "profile"} exists only for the
@@ -104,12 +124,36 @@ values of the second.}
 \item{data}{The original model data. Only needed when the model frame
 does not store a raw variable (e.g. a variable used only inside
 \code{poly()}).}
+
+\item{int_conditions}{Named list giving the values one or both
+variables of an effect are evaluated at, in place of the defaults
+(the range of a numeric grid, \verb{mean +/- sd} for a numeric
+moderator). An element is either the values themselves or a
+function of the observed column, e.g.
+\code{int_conditions = list(z = c(-1, 0, 1))} or
+\code{list(z = function(v) quantile(v, c(0.1, 0.9)))}. Names on a
+numeric vector become the moderator's \code{effect2__} labels. brms's
+argument, with brms's meaning.}
+
+\item{categorical}{Per-category display for a polytomous family:
+\code{TRUE} (the default there) draws one curve per response category
+and keys the effect \code{"x:cats__"}, as brms's \code{categorical = TRUE}
+does; \code{FALSE} draws the expected CATEGORY NUMBER,
+\code{sum(k * p_k)}, which is brms's default. Only for an ordinal or
+categorical family with no \code{dpar}; a nominal family has no ordered
+categories to average and refuses \code{FALSE}.}
 }
 \value{
-A named list of data frames (one per effect) with the varied
-variable(s) plus \code{estimate__}, \code{se__} (link scale), \code{lower__}, and
-\code{upper__}; printing it draws the plots. An ordinal fit adds a
-\code{cats__} column and one block of rows per response category.
+A named list of data frames (one per effect), in brms's
+column layout: the varied variable(s), then every other model
+variable at the value it is held at, then \code{cond__} (the condition
+label, always present), \code{effect1__} and, for a two-variable effect,
+\code{effect2__} (the moderator as a display label: rounded to two
+decimals, levels descending), then \code{estimate__}, \code{se__} (on the
+scale the band is symmetric on), \code{lower__} and \code{upper__}. Printing
+it draws the plots. A polytomous fit adds a \code{cats__} column, one
+block of rows per response category, and keys the effect
+\code{"x:cats__"}.
 \code{plot(ce, points = TRUE)} overlays the raw observations (the brms
 argument), each panel showing only the observations that belong to
 its own condition; see the faceting section. No points are drawn
@@ -170,7 +214,17 @@ the display is per CATEGORY, as brms's \code{categorical = TRUE} is: each
 effect data frame gains a \code{cats__} factor of the response's own
 levels and carries the fitted category probability in \code{estimate__},
 with one curve per category in the plot (a second predictor gets a
-panel of its own).
+panel of its own). A one-variable effect is keyed \code{"x:cats__"} there,
+brms's key for that layout.
+
+That is the DEFAULT here and it is brms's non-default: brms's own
+default summarizes the categories into an expected category number
+and warns that it is treating an ordered factor as continuous.
+\code{categorical = FALSE} asks for that summary anyway, \code{sum(k * p_k)}
+with its own delta-method band (the category weights go on the
+gradient, so the covariances between the category probabilities are
+kept), keyed \code{"x"} and directly comparable with brms's default
+curve.
 
 \code{se__} is then on the probability scale, and the band is a Wald
 interval on the logit of the probability so it cannot leave \verb{[0, 1]}.
@@ -190,9 +244,17 @@ latent linear predictor.
 \code{band} picks how \code{lower__} and \code{upper__} are found. The estimate is
 the same curve in all three cases; only the band changes.
 \itemize{
-\item \code{"wald"} (default, and free): the delta-method standard error on
-the link scale, back-transformed. Symmetric on the link scale by
-construction.
+\item \code{"wald"} (default, and free): the delta-method standard error,
+back-transformed from the scale the band is symmetric on. For the
+ordinary display that scale is the link scale. For the expected
+response of a family whose mean runs through several distributional
+parameters (zero inflation, a hurdle, \code{trials()}, truncation) the
+standard error is the delta method over EVERY predictor's
+coefficients jointly, so the cross-parameter covariances are in the
+band; the band's scale is then the \code{mu} link's if the mean lives on
+it, the log scale if the mean is positive (so the band cannot cross
+zero), and the response scale otherwise. The two rules agree
+exactly wherever the mean IS the inverse link of \code{mu}.
 \item \code{"profile"}: one likelihood-root search (\code{\link[TMB:tmbroot]{TMB::tmbroot()}}) per grid
 point. A grid point's linear predictor is a linear combination of
 the coefficients, so the search inverts the likelihood ratio along
@@ -201,17 +263,36 @@ through it. The band is not symmetric and does not assume a
 quadratic log-likelihood, which is what makes it worth its cost
 near a boundary or at a small sample size.
 \item \code{"boot"}: percentiles of the grid predictions across the refits of
-ONE \code{\link[=frm_bootstrap]{frm_bootstrap()}} (\code{re.form = NA}, the same population-level
-grid). One bootstrap serves every effect, condition set and ordinal
-category of the call; \code{attr(ce, "boot")} returns it, and passing it
-back as \verb{boot =} costs no refits at all.
+ONE \code{\link[=frm_bootstrap]{frm_bootstrap()}}. One bootstrap serves every effect, condition
+set and ordinal category of the call; \code{attr(ce, "boot")} returns
+it, and passing it back as \verb{boot =} costs no refits at all. Draws
+taken under \code{re_formula = NULL} carry a new group's effects and
+draws taken without it do not, so the two are not
+interchangeable and \verb{boot =} refuses the swap by name rather than
+returning the wrong band.
 }
+
+A Student-t random-effect block enters either band as a GAUSSIAN
+with the t variance, \code{nu / (nu - 2)} times the scale matrix: the
+delta method has no other shape to offer, and the bootstrap draws
+the same way so that the two bands stay comparable. It is the right
+variance around a heavier-tailed truth, not the right quantile.
 
 What \code{se__} means follows the band: the Wald standard error (link
 scale, or the probability scale on the ordinal display) for \code{"wald"}
 and \code{"profile"} - the profile changes the endpoints, not the standard
 error - and the standard deviation of the bootstrap draws, on the
 displayed scale, for \code{"boot"}.
+
+The three bands answer the same question and need not give the same
+interval. Wald and bootstrap agree in the middle of a grid, and the
+remaining difference there is the bootstrap's own Monte Carlo error:
+on a zero-inflated fit the widths differ by 13\% at 200 refits and 4\%
+at 800. At the ENDS of a grid where the estimate is poorly
+determined they need not converge at all: on a steep zero-inflated
+shape the Wald band stays about 28\% wider at 3000 refits, because it
+is symmetric on its own scale and the percentile band is not. The
+point estimate is the same curve either way.
 
 Cost, and how it is capped. A root search is two constrained
 optimizations, so \code{band = "profile"} profiles at most

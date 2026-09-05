@@ -20,8 +20,14 @@ matrix, in matching layout.}
 }
 \value{
 A named list of levels-by-coefficients matrices, one per
-random-effect term. \code{as.data.frame()} gives the long form (with a
-\code{condsd} column when \code{condVar = TRUE} was used).
+random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
+key it (so \code{ranef(fit)$g} and \code{coef(fit)$g} name the same group).
+Two terms on one factor give two entries under one name, so index
+by position when a model has them; each matrix carries the block
+label that tells them apart in its \code{"term"} attribute, which is
+also the key \code{\link[=VarCorr]{VarCorr()}} uses and the \code{grp} column of
+\code{as.data.frame()}. That long form (with a \code{condsd} column when
+\code{condVar = TRUE} was used) is what broom.mixed-style code reads.
 }
 \description{
 Extract random-effect modes
@@ -34,6 +40,8 @@ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
 # one matrix per random-effect term, levels by coefficients
 ranef(fit)
+ranef(fit)$g[1:3, ]                 # keyed by the grouping factor
+attr(ranef(fit)$g, "term")          # the block it came from
 
 # condVar adds the conditional SDs a caterpillar plot needs
 re <- as.data.frame(ranef(fit, condVar = TRUE))

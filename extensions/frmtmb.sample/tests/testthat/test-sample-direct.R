@@ -64,7 +64,10 @@ test_that("the formula route samples the same posterior as the fit route", {
   expect_true(all(c("mean", "sd", "Rhat") %in% colnames(summary(ds_form))))
   expect_equal(nrow(fixef(ds_form)), 3L)
   expect_true(all(c("estimate", "lwr", "upr") %in% names(VarCorr(ds_form))))
-  expect_named(ranef(ds_form), "1 | g")
+  # keyed by the GROUPING FACTOR since frmtmb 0.52.0, as brms and lme4
+  # key it; the block label rides along in the "term" attribute
+  expect_named(ranef(ds_form), "g")
+  expect_identical(attr(ranef(ds_form)[[1]], "term"), "1 | g")
   h <- hypothesis(ds_form, "x > 0")
   expect_s3_class(h, "frmtmb_hypothesis")
   expect_equal(dim(posterior_epred(ds_form, ndraws = 5)),

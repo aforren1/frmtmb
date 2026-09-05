@@ -1,5 +1,31 @@
 # frmtmb.sample (development version)
 
+* BEHAVIOR CHANGE, following core. `ranef()` on a `frmtmb_draws`
+  object is keyed by the GROUPING FACTOR rather than by the block, so
+  `ranef(draws)[["1 | g"]]` returns `NULL` where it used to return an
+  array and `ranef(draws)$g` returns it instead. The method delegates
+  to core's `ranef()` once per draw, so it follows core's re-key
+  exactly; the block label rides along in each array's `"term"`
+  attribute, as it does in core. A model with two blocks on ONE factor
+  gives two entries under one name, and the method now assembles them
+  BY POSITION: keyed by name, `out[[tn]] <- st` wrote the same name
+  twice, so the SECOND block was dropped entirely and the list came
+  back with one entry instead of two.
+
+* `conditional_effects()` on a draws object inherits four grid changes
+  from core, because it builds its grids with core's
+  `ce_grids_build()`: the two-variable grid now varies the FIRST effect
+  slowest (brms's row order), a numeric moderator is held at the exact
+  `mean +/- sd` rather than at `signif(mean +/- sd, 3)`, a `mo()`
+  predictor gets one grid point per level instead of a 100-point
+  continuous grid, and a `trials()` variable is held at 1 with a
+  message that is new here. What it does NOT yet inherit is core's
+  frame shape: the returned columns, the always-present `cond__`, the
+  `"x:cats__"` key for a per-category display, `int_conditions =`,
+  `categorical =` and the new-group meaning of `re_formula = NULL` are
+  core-only for now, so the two surfaces disagree in both directions
+  until the draws method is migrated.
+
 * `frm_sample()` refuses parallel chains on Windows when the model's
   family comes from a namespace built by `pkgload::load_all()`, naming the
   package and the two remedies. A worker process cannot load such a

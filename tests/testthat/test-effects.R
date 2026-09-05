@@ -190,18 +190,25 @@ test_that("conditional_effects() takes re_formula, brms's spelling", {
   ce_pop <- conditional_effects(fit, effects = "x", resolution = 8)
   ce_ref <- conditional_effects(fit, effects = "x", resolution = 8,
                                 re_formula = NULL)
-  # NULL conditions on the reference group's random intercept, so the
-  # curve shifts by that group's b; NA is the population curve
-  b1 <- ranef(fit)[["1 | g"]]["1", 1]
-  expect_equal(ce_ref$x$estimate__ - ce_pop$x$estimate__,
-               rep(unname(b1), 8), tolerance = 1e-6)
-  # a chosen group via conditions =
+  # NULL keeps the random effects and conditions on a NEW group: its
+  # modes are zero, so the CURVE is the population one and the grouping
+  # column says NA rather than naming an arbitrary observed level (it
+  # used to be the first one, silently, and the frame did not say so)
+  expect_true("g" %in% names(ce_ref$x))
+  expect_true(all(is.na(ce_ref$x$g)))
+  expect_equal(ce_ref$x$estimate__, ce_pop$x$estimate__,
+               tolerance = 1e-8)
+  # what the new level costs is spread, not location: the band carries
+  # the random-effect variance on top of the coefficient uncertainty
+  expect_true(all(ce_ref$x$se__ > ce_pop$x$se__))
+  # a chosen group is conditions =, which is exact and says which one
   ce_g3 <- conditional_effects(fit, effects = "x", resolution = 8,
                                re_formula = NULL,
                                conditions = list(g = "3"))
-  b3 <- ranef(fit)[["1 | g"]]["3", 1]
+  b3 <- ranef(fit)[["g"]]["3", 1]
   expect_equal(ce_g3$x$estimate__ - ce_pop$x$estimate__,
                rep(unname(b3), 8), tolerance = 1e-6)
+  expect_identical(unique(as.character(ce_g3$x$g)), "3")
 
   # the lme4 spelling is redirected, not double-matched or swallowed
   expect_error(conditional_effects(fit, effects = "x", re.form = NULL),

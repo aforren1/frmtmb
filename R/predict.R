@@ -740,6 +740,60 @@ aterms_for_newdata <- function(rspec, newdata) {
   av
 }
 
+#' Every dpar of one response on the scale the DENSITY consumes, which
+#' is the link inverse of its linear predictor.
+#'
+#' Not the same thing as `predict(type = "response", dpar = )` any more:
+#' a family may declare a REPORTING scale for a dpar (a mixture's
+#' mixing weights are a softmax over the component predictors, and the
+#' predictor itself is not a probability), and feeding a reported value
+#' back to `lpdf`, `sim` or `mean_fn` would apply the transform twice.
+#' Every consumer that hands dpar values to the family goes through
+#' here; only the user-facing `predict()` surface reports.
+#'
+#' @noRd
+dpars_natural <- function(fit, rspec, newdata, re.form,
+                          allow_new_levels = FALSE) {
+  rn <- rspec$resp_name
+  dp <- list()
+  for (dnm in names(rspec$dpars)) {
+    lp <- fit$frame[["linpreds"]][[linpred_key(rn, dnm)]]
+    eta <- predict(fit, newdata = newdata, dpar = dnm, resp = rn,
+                   re.form = re.form, type = "link",
+                   allow_new_levels = allow_new_levels)
+    dp[[dnm]] <- as.vector(lp[["link"]]$linkinv(eta))
+  }
+  dp
+}
+
+#' `y | se(s)` without `sigma = TRUE`: the residual standard deviation
+#' beyond the known `s` is not in the density at all - `resid_sd()`
+#' returns `s` alone and the dpar is mapped out at the link-scale zero.
+#' `sigma()` has always reported that as 0; `predict(dpar = "sigma")`
+#' reported the log link's inverse of the mapped-out coefficient, 1,
+#' which reads as an estimate of a parameter the model does not have.
+#'
+#' @noRd
+se_unused_sigma <- function(rspec, dpar) {
+  identical(dpar, "sigma") && !is.null(rspec$aterms[["se"]]) &&
+    !isTRUE(rspec$aterms[["se_sigma"]])
+}
+
+#' A family's reporting transform for one dpar, or NULL when the dpar
+#' reports on its own natural scale (which is every dpar of every
+#' built-in family except a mixture's `theta`).
+#'
+#' @noRd
+dpar_report_hook <- function(fam, dpar, rspec = NULL) {
+  if (!is.null(rspec) && se_unused_sigma(rspec, dpar)) {
+    zero <- function(dpars, dnm) 0 * dpars[[dnm]]
+    return(list(dpars = dpar, value = zero, deriv = zero))
+  }
+  h <- fam[["post"]][["dpar_response"]]
+  if (is.null(h) || !dpar %in% h[["dpars"]]) return(NULL)
+  h
+}
+
 #' Expected response over all dpars: the family mean at predicted dpar
 #' values (`fitted()`'s convention, extended to newdata and `re.form`).
 #'
@@ -754,13 +808,7 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
     out <- response_mean(fam, dp, fit$frame[["aterm_values"]][[rn]])
     return(napred(fit, out))
   }
-  dp <- list()
-  for (dnm in names(rspec$dpars)) {
-    dp[[dnm]] <- as.vector(predict(fit, newdata = newdata, dpar = dnm,
-                                   resp = rn, re.form = re.form,
-                                   type = "response",
-                                   allow_new_levels = allow_new_levels))
-  }
+  dp <- dpars_natural(fit, rspec, newdata, re.form, allow_new_levels)
   av <- if (is.null(newdata)) {
     # in-sample dpar predictions come back napredict-ed; pad the
     # per-observation aterm values the same way (a no-op under na.omit)
@@ -897,6 +945,11 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #'   with the GP conditional variance added to the standard errors.
 #' @section Standard errors of the expected response:
 #' For a family whose mean is the `mu` dpar, `se.fit` on
+#' A dpar whose response scale is not its own link inverse, such as a
+#' `mixture()` mixing weight reporting the softmax, takes the delta
+#' method through that transform with respect to its OWN predictor. That is exact for a two-component mixture and
+#' conservative for three or more; see `?mixture`.
+#'
 #' `type = "response"` is the usual one-predictor delta method:
 #' `|dmu/deta| * se(eta)`.
 #'
@@ -1190,13 +1243,15 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
                             resp = resp, re.form = re.form,
                             allow_new_levels = allow_new_levels)
     }
-    # a reference to another dpar reads its VALUE, so it comes back on
-    # the response scale (through that parameter's link inverse)
+    # a reference to another dpar reads its VALUE, so it comes back
+    # through that parameter's link inverse - the NATURAL scale, which
+    # is what the body computes with, not a reporting scale
     for (dr in lp[["nl_dpar_refs"]] %||% character(0)) {
-      vals[[dr]] <- predict(object, newdata = newdata, dpar = dr,
-                            type = "response", resp = resp,
-                            re.form = re.form,
-                            allow_new_levels = allow_new_levels)
+      lpr <- object$frame[["linpreds"]][[linpred_key(resp, dr)]]
+      vals[[dr]] <- lpr[["link"]]$linkinv(
+        predict(object, newdata = newdata, dpar = dr,
+                type = "link", resp = resp, re.form = re.form,
+                allow_new_levels = allow_new_levels))
     }
     dl <- if (is.null(newdata)) {
       lp[["data_list"]]
@@ -1220,9 +1275,36 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
   eta <- ed[["eta"]]
   n <- ed[["n"]]
+  # a dpar whose RESPONSE scale is not its own link inverse: a mixture's
+  # mixing weight is the softmax over the component predictors, so the
+  # identity-link predictor it used to report was not a probability and
+  # was not even bounded by one. The transform is the family's, and the
+  # density never sees it (dpars_natural()).
+  hook <- if (type == "response") {
+    dpar_report_hook(rspec$family, dpar, rspec)
+  }
+  # dpars_natural() reads through predict(), so an in-sample value comes
+  # back ALREADY padded for the rows na.action dropped, while eta and
+  # its standard error are on the kept rows. The padding comes off here
+  # and goes back on once at the end, rather than twice.
+  hook_val <- function(what) {
+    nat <- dpars_natural(object, rspec, newdata, re.form,
+                         allow_new_levels)
+    v <- hook[[what]](nat, dpar)
+    if (is.null(newdata) && length(v) != n) {
+      v <- v[!is.na(napred(object, rep(1, n)))]
+    }
+    v
+  }
 
   if (!se.fit) {
-    out <- if (type == "response") lp[["link"]]$linkinv(eta) else eta
+    out <- if (!is.null(hook)) {
+      hook_val("value")
+    } else if (type == "response") {
+      lp[["link"]]$linkinv(eta)
+    } else {
+      eta
+    }
     return(if (is.null(newdata)) napred(object, out) else out)
   }
 
@@ -1244,7 +1326,13 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   # standard error of anything the fit estimates
   if (any(ed[["nonest"]])) se_eta[ed[["nonest"]]] <- NA_real_
 
-  out <- if (type == "response") {
+  out <- if (!is.null(hook)) {
+    # the delta method through the reporting transform, with respect to
+    # this dpar's own predictor: the same one-predictor rule the link
+    # inverse gets below
+    list(fit = hook_val("value"),
+         se.fit = abs(hook_val("deriv")) * se_eta)
+  } else if (type == "response") {
     list(fit = lp[["link"]]$linkinv(eta),
          se.fit = abs(lp[["link"]]$mu_eta(eta)) * se_eta)
   } else {
@@ -1924,7 +2012,8 @@ predict_categorical <- function(object, rspec, newdata, use_re,
 #' reason (a custom ordinal family gets it for free).
 #'
 #' @noRd
-ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re) {
+ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
+                        weights = NULL) {
   fam <- rspec$family
   K <- ordinal_ncat(object)
   eta <- unname(ed[["eta"]])
@@ -1981,9 +2070,23 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re) {
   }
   n_beta <- ncol(A)
   V <- jc$V[c(pos, extra_pos), c(pos, extra_pos), drop = FALSE]
-  SE <- matrix(NA_real_, n, K)
+  # `weights` collapses the K columns into ONE displayed quantity,
+  # sum_k w_k p_k - the expected category number for w = 1..K. The
+  # weights go on the GRADIENT before the quadratic form, so the
+  # covariances between the category probabilities are kept, which
+  # summing K separate standard errors would throw away.
+  if (!is.null(weights)) {
+    stopifnot(length(weights) == K)
+    P0 <- matrix(as.vector(P0 %*% weights), n, 1L)
+    dPde <- matrix(as.vector(dPde %*% weights), n, 1L)
+    extra_d <- lapply(extra_d, function(d) {
+      matrix(as.vector(d %*% weights), n, 1L)
+    })
+  }
+  nq <- ncol(P0)
+  SE <- matrix(NA_real_, n, nq)
   G <- matrix(0, n, n_beta + length(extra_d))
-  for (k in seq_len(K)) {
+  for (k in seq_len(nq)) {
     G[, seq_len(n_beta)] <- dPde[, k] * A
     for (i in seq_along(extra_d)) G[, n_beta + i] <- extra_d[[i]][, k]
     SE[, k] <- sqrt(pmax(rowSums((G %*% V) * G), 0))
@@ -1992,8 +2095,11 @@ ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re) {
     P0[ed[["nonest"]], ] <- NA_real_
     SE[ed[["nonest"]], ] <- NA_real_
   }
-  colnames(P0) <- colnames(SE) <-
-    object$frame[["y_levels"]][[rspec$resp_name]] %||% as.character(seq_len(K))
+  if (is.null(weights)) {
+    colnames(P0) <- colnames(SE) <-
+      object$frame[["y_levels"]][[rspec$resp_name]] %||%
+        as.character(seq_len(K))
+  }
   list(P = P0, se = SE)
 }
 

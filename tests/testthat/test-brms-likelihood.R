@@ -620,10 +620,14 @@ test_that("check C: row 6, nonlinear with a ~ 1 + (1 | g)", {
   expect_setequal(names(pars), brms_stan_par_names(code))
   expect_par_roundtrip(sf, pars)
 
-  # the block belongs to nlpar a, and frmtmb labels it "a: 1 | g"
+  # the block belongs to nlpar a; ranef() is keyed by the grouping
+  # FACTOR (brms's and lme4's key) and the block label "a: 1 | g",
+  # which is what says which nonlinear parameter it belongs to, rides
+  # along on the matrix
   info <- brms_group_info(rtab, 1)
   expect_identical(info$nlpars, "a")
-  expect_identical(names(ranef(fit)), "a: 1 | g")
+  expect_identical(names(ranef(fit)), "g")
+  expect_identical(attr(ranef(fit)[[1]], "term"), "a: 1 | g")
   # nlpar predictors are not centered, so b_a carries the intercept
   # itself rather than a centered one
   expect_lt(abs(pars[["b_a"]][[1]] - fixef(fit)$a[["(Intercept)"]]),

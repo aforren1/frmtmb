@@ -191,7 +191,8 @@ test_that("CE prediction intervals and condition sets", {
 
   cond <- data.frame(f = c("a", "b"), row.names = c("A", "B"))
   ce_c <- conditional_effects(fit, effects = "x", conditions = cond)
-  expect_equal(sort(unique(ce_c$x$cond__)), c("A", "B"))
+  # cond__ is a factor of the condition labels, as brms's is
+  expect_equal(levels(ce_c$x$cond__), c("A", "B"))
   expect_equal(nrow(ce_c$x), 200L)
   tmp <- file.path(tempdir(), "frmtmb-ce-cond.pdf")
   grDevices::pdf(tmp)

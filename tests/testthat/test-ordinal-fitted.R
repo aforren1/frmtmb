@@ -137,7 +137,10 @@ test_that("conditional_effects() draws one curve per ordinal category", {
   dd <- ordfit_data(106)
   fit <- frm(bf(y ~ x) + cumulative(), data = dd)
   ce <- conditional_effects(fit, resolution = 20L)
-  df <- ce[["x"]]
+  # brms's key for the per-category layout, the category being the
+  # second display dimension
+  expect_identical(names(ce), "x:cats__")
+  df <- ce[["x:cats__"]]
   expect_true("cats__" %in% names(df))
   expect_equal(levels(df$cats__), levels(dd$y))
   expect_equal(nrow(df), 20L * 3L)
@@ -220,6 +223,8 @@ test_that("an ordinal effect with a second predictor gets a panel each", {
   dd <- ordfit_data(109)
   dd$f <- factor(rep(c("a", "b"), length.out = nrow(dd)))
   fit <- frm(bf(y ~ x + f) + cumulative(), data = dd)
+  # a two-variable effect keeps its own key: the category dimension
+  # cannot be the second one when a predictor already is
   ce <- conditional_effects(fit, effects = "x:f", resolution = 12L)
   df <- ce[["x:f"]]
   expect_equal(nrow(df), 12L * 2L * 3L)
@@ -230,7 +235,7 @@ test_that("an ordinal effect with a second predictor gets a panel each", {
 
   # a discrete varied predictor draws points and error bars instead
   ce2 <- conditional_effects(fit, effects = "f")
-  expect_equal(nrow(ce2[["f"]]), 2L * 3L)
+  expect_equal(nrow(ce2[["f:cats__"]]), 2L * 3L)
   expect_silent(plot(ce2, ask = FALSE))
 })
 

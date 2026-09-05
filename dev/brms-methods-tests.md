@@ -1,8 +1,10 @@
 # brms post-fit method tests: plan, measurements and findings
 
-Status: implemented on branch `wt-brms-methods`. This document is both
-the specification of the tier and its ledger: what was measured, on
-which side, and what it means for a user porting a brms script.
+Status: the tier is implemented; the ten DEFECT findings it recorded
+are repaired on branch `wt-ce` (see NEWS and `dev/ce-findings.md`), and
+every finding below carries a Status line saying so. This document is
+both the specification of the tier and its ledger: what was measured,
+on which side, and what it means for a user porting a brms script.
 
 ## Claim under test
 
@@ -218,9 +220,14 @@ with `FRMTMB_BRMS_FIT_TESTS=true` and `NOT_CRAN=true`:
 | run | tests | assertions | failed | warning | skipped | errors | wall | programs |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | cold, empty cache | 43 | 814 | 0 | 0 | 0 | 0 | 2573.2 s | 23 compiled |
-| warm | 46 | 872 | 0 | 0 | 0 | 0 | 97.8 s | 23 restored |
+| warm, before the repairs | 46 | 872 | 0 | 0 | 0 | 0 | 97.8 s | 23 restored |
+| warm, after the repairs | 47 | 950 | 0 | 0 | 0 | 0 | 154.6 s | 23 restored |
 
-The cold row is from before the review round, which added three blocks
+The last row is this document's repaired state: the divergence pins
+became agreement assertions, the exclusion table lost its eleven defect
+rows, and the shapes they had routed around came back into the
+agreement loops, which is where the extra 78 assertions are. The cold
+row is from before the review round, which added three blocks
 and 58 assertions: the exclusion guard below, the hurdle reproduction
 (finding 1b) and the ordinal silence (finding 3). None of the three
 compiles anything, so the cold program count is unchanged and the cold
@@ -245,7 +252,7 @@ identical draws.
 | brms `fitted()` Estimate vs `fitted()` | exact | all 23 |
 | `posterior_linpred()` vs `predict(type = "link")` | exact | 20 shapes; the 3 with a multi-column mu predictor are a shape divergence, finding 13 |
 | `posterior_linpred(transform = TRUE)` vs `predict(type = "response")` | exact | 13 shapes; the rest differ by the family's own definition of the mean, finding 14 |
-| `posterior_epred(dpar = )` vs `predict(type = "response", dpar = )` | exact | every dpar except a mixture's `theta` (finding 1c) and `se()`'s unused `sigma` (finding 15) |
+| `posterior_epred(dpar = )` vs `predict(type = "response", dpar = )` | exact | every dpar, a mixture's `theta` (finding 1c) and `se()`'s unused `sigma` (finding 15) included since both were repaired |
 | `posterior_linpred(dpar = )` vs `predict(type = "link", dpar = )` | exact | every dpar that HAS a linear predictor; a scalar dpar is finding 11 |
 | `log_lik()` per row | exact | all 23. The per-row vector, not the sum |
 | `sum(log_lik())` vs `logLik()` | divergence | exact without random effects; 75.72 nats apart with them, finding 16 |
@@ -257,18 +264,18 @@ identical draws.
 | `VarCorr()` standard deviations | exact | 3 shapes |
 | `hypothesis()` point estimates | exact | 7 expressions on row 1, plus `sd` and `cor` by both spellings, finding 7 for the container |
 | `predict()` point column | divergence | different estimand, finding 1 |
-| `conditional_effects()`, one-way | exact | 12 shapes, grid and estimate |
-| `conditional_effects()`, `conditions = ` | exact | values agree; the conditioning column is absent, finding 4 |
+| `conditional_effects()`, one-way | exact | 20 shapes, grid and estimate |
+| `conditional_effects()`, `conditions = ` | exact | values and the conditioning column both, finding 4 repaired |
 | `conditional_effects()`, `re_formula = NA` | exact | |
-| `conditional_effects()`, two-way | divergence | order and held value, findings 2 and 5 |
-| `conditional_effects()`, `int_conditions = ` | divergence | ignored, finding 3 |
+| `conditional_effects()`, two-way | exact | elementwise, order included, findings 2 and 5 repaired |
+| `conditional_effects()`, `int_conditions = ` | exact | implemented, finding 3 |
 | `conditional_effects()`, `dpar = ` | divergence | different effect list, finding 6 |
-| `conditional_effects()`, `re_formula = NULL` | divergence | different group, finding 6d |
-| `conditional_effects()`, ordinal and categorical | divergence | different layout and key, finding 6b |
-| `conditional_effects()`, zero-inflated | divergence | the conditional mean, finding 1b |
-| `conditional_effects()`, `mo()` | divergence | a continuous grid, finding 17 |
+| `conditional_effects()`, `re_formula = NULL` | divergence | a new group on both sides; brms's draw is stochastic, finding 6d |
+| `conditional_effects()`, ordinal and categorical | exact | same layout and key under the same argument, finding 6b |
+| `conditional_effects()`, zero-inflated | exact | the expected response, finding 1b |
+| `conditional_effects()`, `mo()` | exact | one point per level, finding 17 |
 | `conditional_effects()`, nonlinear | divergence | refused, finding 18 |
-| `conditional_effects()`, mixture | divergence | refused, finding 1d |
+| `conditional_effects()`, mixture | exact | the covariate is found, finding 1d |
 | `pp_check()` | structural | both return a ggplot |
 | `loo()`, `bayes_R2()` | structural | frmtmb refuses by design, finding 10 |
 | interval and SE columns | structural | different in kind, finding 9 |
@@ -307,11 +314,30 @@ guard also checks that every key names a registered shape, so a typo
 excludes nothing silently, and that the defect list is not empty: if it
 ever empties, the lists themselves should go, not merely their contents.
 
-The table holds 32 rows: 11 defect, 17 paradigm, 4 design choice. The
-probes discriminate, which is the property that matters and is worth
-stating as a measurement rather than an intention: all 11 defect rows
-return FALSE today, while `brms_ce_agrees()` on `r1`, `r14a` and `rC0`
-and `brms_dpar_epred_agrees(r1, "sigma")` all return TRUE.
+The table held 32 rows: 11 defect, 17 paradigm, 4 design choice. It now
+holds **22: 0 defect, 18 paradigm, 4 design choice**. Every defect row
+is gone because every defect is repaired, and the shapes those rows
+routed around are back in the agreement loops, where they agree to
+1e-8. Two rows are new, and neither is a defect:
+
+- `r12e` (`sratio(y ~ x + cs(z))`) is excluded under finding **13**
+  rather than 6b: a `cs()` term stores its evaluated column and a label
+  (`"csz"`), not the variable, so `conditional_effects()` does not
+  enumerate a `cs()` predictor and brms's effect list carries a
+  `"z:cats__"` panel frmtmb's does not. The per-category values agree
+  wherever both draw a panel.
+- `r13` (categorical) is excluded under finding **9**: the per-category
+  display of a NOMINAL family has no thresholds, so the ordinal delta
+  method does not apply and a wald band is refused by name. Its own
+  block covers the shape under `band = "boot"`, where the estimate is
+  the fit's own and agrees with brms elementwise.
+
+The loops now pass `categorical = TRUE` to BOTH packages for a
+polytomous family (`brms_ce_args()`), because brms refuses its own
+default for a nominal family and warns against it for an ordinal one:
+comparing default with default would have compared a refusal with a
+curve. The guard block asserts that no defect row remains, so adding
+one back arms its probe again.
 
 ## Findings
 
@@ -326,7 +352,11 @@ so is not a verdict.
   to change in either package.
 - **design choice** neither is wrong; someone has to decide.
 
-26 findings: 10 defect, 8 paradigm, 8 design choice. Twenty-two of them
+26 findings: 10 defect, 8 paradigm, 8 design choice. **All ten defects
+are repaired**, and four of the design choices were adopted from brms
+as well (findings 1d, 5, 6c and the `trials()` grid rule), each because
+the cost was a few lines and the divergence was a porting stumble with
+nothing to recommend it. Twenty-two of them
 are the divergences the review classified, and its calls are adopted
 unchanged: I found nothing to refute and the mixture evidence
 (`theta1` reaching 1.111956599700, above 1 on 1.25% of rows) settles
@@ -366,6 +396,8 @@ mean and are correct as a mean, and the spread it wanted is simply not
 there.
 
 **Class: paradigm difference.** Neither package is wrong. `predict()` means the predictive distribution in a Bayesian package and the conditional mean in the `stats` and `lme4` lineage frmtmb follows, where the draw is `simulate()`'s job. Nothing to change.
+
+**Status: unchanged.** Nothing to repair.
 
 ### 1b. `conditional_effects()` plots the wrong mean on a zero-inflated fit
 
@@ -473,6 +505,8 @@ Stan compile.
 
 **Class: defect.** frmtmb's own `fitted()`, `predict(type = "response")` and `conditional_effects(method = "predict")` all give brms's answer; only the default plotting path does not, and the argument documentation calls that path the expected response.
 
+**Status: FIXED.** `conditional_effects()` draws the expected response on every family, with a delta-method band over every dpar's coefficients jointly. `r16` and `rC16` are back in `brms_ce_shapes()` and agree with brms to 1e-8; the hurdle block asserts the same identity without brms. The band's width is within 13% of a 200-refit bootstrap's on the zero-inflated shape.
+
 ### 1c. A mixture's `theta` is not a probability on frmtmb's response scale
 
 Same class as finding 1b, on a different surface.
@@ -507,6 +541,8 @@ the name and lists the dpars it has, which is the better refusal.
 
 **Class: defect.** A scale convention could excuse a different number; it cannot excuse this one. On the fitted data `range(predict(type = "response", dpar = "theta1"))` is [0.606969187849, 1.111956599700] and 1.25% of rows exceed 1. A mixing weight above one is not a value any convention makes right.
 
+**Status: FIXED.** A mixture's mixing weights have a softmax response scale, so `predict(type = "response", dpar = "theta1")` IS `posterior_epred(dpar = "theta1")`, exactly. `r17:theta1` is back in `brms_dpars_of()`. The likelihood is untouched: every consumer that hands dpar values to the density reads them through `dpars_natural()`, and the per-row log density still agrees with brms.
+
 ### 1d. `conditional_effects()` refuses a mixture whose predictor is on theta
 
 Same model. brms returns one effect, `"x"`, with 100 rows: `x` is in
@@ -525,6 +561,8 @@ something to plot, and the default should find it rather than name the
 one linear predictor it looked at.
 
 **Class: design choice.** frmtmb chose to enumerate one linear predictor's plottable terms and to say which one it looked at. Widening that search to every dpar is a decision about what `conditional_effects()` means on a model whose mu is an intercept, not a repair of arithmetic.
+
+**Status: FIXED, brms's choice adopted.** The search falls back to every dpar of the response only when the SELECTED one has nothing to plot, so a model whose `dpar` does have terms enumerates that parameter's terms exactly as before, which is finding 6's deliberate difference. `r17` is back in `brms_ce_shapes()`.
 
 ### 2. `conditional_effects()` rounds the value it conditions on
 
@@ -555,6 +593,8 @@ right and the numbers are close. It is only wrong to the precision
 someone eventually needs.
 
 **Class: defect.** Display rounding belongs in the label, which is exactly where brms puts it. `signif(, 3)` in `ce_second_values()` changes the point the model is evaluated at, and the size of the resulting error is set by the coefficient rather than by anything the user can see.
+
+**Status: FIXED.** The moderator is held at the exact `mean +/- sd` and the rounding moved to the `effect2__` label, where brms puts it. The two-way frames now agree elementwise, with no alignment key.
 
 ### 3. `conditional_effects(int_conditions = )` is accepted and ignored
 
@@ -598,6 +638,8 @@ discarded in complete silence, which makes finding 6b's ignored
 **Which is right: brms's**, and the argument is not exotic; it is how
 brms's own vignettes pick the levels of a moderator. **Class: defect.**
 
+**Status: FIXED.** `int_conditions` is an argument of `conditional_effects.frmtmb_fit()` with brms's meaning: the values (or a function of the observed column) that one or both variables of an effect are evaluated at, with names becoming the `effect2__` labels. The misattributed warning is gone too, on every branch: the function checks its own dots before any branch runs, so an unknown argument is reported once, against `conditional_effects()`, on an ordinal fit as well as a gaussian one.
+
 **What a porting user experiences:** a plot conditioned on the wrong
 values. On a gaussian fit, a warning that names `predict()`, a function
 they did not call, rather than the plot they did: enough to notice, not
@@ -624,6 +666,8 @@ frame, gets an error or a missing column.
 
 **Class: defect.** `cond__` is not decoration: brms's own `plot()` method facets on it, so its absence is what makes a ported faceting call impossible rather than merely different. The held covariate values are the other half of the frame's contract.
 
+**Status: FIXED.** The frame carries brms's columns in brms's order: the varied predictor, the other model variables at their held values, `cond__` (always), `effect1__` and `effect2__`.
+
 **Which is right: brms's.**
 
 ### 5. The two-way grid is in the opposite row order
@@ -641,6 +685,8 @@ row order still differs, so an elementwise comparison of the `x` column
 alone is out by 1.99.
 
 **Class: design choice.** Both frames hold the same 300 points and neither order is wrong. What it costs is that positional indexing does not port, and a package that wanted to match brms would match the order.
+
+**Status: FIXED, brms's order adopted.** It cost one line in `ce_build_nd()` and three in the profile band's row indexing.
 
 **Which is right: neither, but matching brms costs nothing.**
 
@@ -665,6 +711,8 @@ returned list runs a different number of times.
 
 **Class: design choice.**
 
+
+**Status: unchanged.** frmtmb still enumerates the requested dpar's own predictors. The fallback added for finding 1d fires only when that set is EMPTY, so this difference is deliberate and still live.
 ### 6b. `conditional_effects()` on an ordinal fit: three differences
 
 On `cumulative(y ~ x)` with three categories:
@@ -694,6 +742,8 @@ brms's documented key for the categorical layout.
 
 **Class: defect**, for the ignored argument specifically. The default layout is a defensible choice and the effect key is a compatibility decision, but `categorical =` being accepted and doing nothing leaves the user no way to ask for the other layout at all.
 
+**Status: FIXED.** `categorical =` is honored, and the per-category layout is keyed `"x:cats__"` as brms keys it. The DEFAULT is unchanged and deliberate: brms's own default warns that it is treating an ordered factor as continuous and asks the user to set `categorical = TRUE`, which is what frmtmb does unasked. `categorical = FALSE` gives brms's default summary, `sum(k * p_k)`, with a delta-method band of its own, and agrees with brms's default curve to 1e-8. The tier's loop names the argument on both sides.
+
 ### 6c. `conditional_effects(method = )` uses a different vocabulary
 
 brms takes the `posterior_*` generic names
@@ -705,6 +755,8 @@ choices but does not say the argument was renamed. Where both spellings
 resolve the values agree exactly.
 
 **Class: design choice.** frmtmb's names are shorter and its `match.arg()` failure lists the choices. Accepting brms's spellings as aliases would cost one line and remove a porting stumble.
+
+**Status: FIXED, aliases added.** `"posterior_epred"` and `"posterior_predict"` resolve; `"posterior_linpred"` is refused by name, pointing at `dpar =`.
 
 **Which is right: frmtmb's names, but they should accept brms's.**
 
@@ -744,6 +796,8 @@ The prediction methods do NOT share this problem:
 
 **Class: defect.** Not for choosing a level, but for choosing one silently: the frame carries no grouping column, so the plot presents one subject's curve with nothing to say whose it is, and which subject depends on factor level order.
 
+**Status: FIXED, and a paradigm difference recorded in its place.** `re_formula = NULL` conditions on a NEW group and the grouping column says `NA`, as brms's does. What a new group's curve IS differs by paradigm: a maximum-likelihood fit has the conditional MODE, which is zero, so the curve is the population curve and the random-effect variance widens the band; brms draws that group's effects afresh in every posterior draw, so its curve is stochastic around the same place. An observed group is `conditions = list(g = "3")`, which says which one in the frame.
+
 ### 6e. `re_formula` is spelled `re.form` on `predict()`
 
 `predict.frmtmb_fit` takes `re.form`, the lme4 spelling;
@@ -758,6 +812,8 @@ same `predict()`. So an argument dropped by the plotting function is
 reported against a function the user never called.
 
 **Class: design choice.** `re.form` is the lme4 spelling and frmtmb is an lme4-lineage package, so the name is defensible; accepting `re_formula` as an alias is the cheap repair.
+
+**Status: unchanged for `predict()`, moot for `conditional_effects()`.** The warning that used to surface from `conditional_effects()` was the misattribution half of this finding; it now checks its own dots and names itself. `predict(re_formula =)` still warns, which is right for a direct call.
 
 ### 7. `hypothesis()` returns a different object
 
@@ -785,6 +841,8 @@ case, but the error names nothing about hypothesis tables.
 
 **Class: design choice.** frmtmb's flat table is the better return for a frequentist fit, and it fails loudly rather than quietly on the brms idiom. A `$hypothesis` alias would remove the stumble.
 
+**Status: unchanged.** No alias added; out of this round's scope.
+
 **Which is right: frmtmb's shape, but the brms idiom deserves an alias.**
 
 ### 8. `residuals(type = "pearson")` divides by different quantities
@@ -803,6 +861,8 @@ the type.
 
 **Class: paradigm difference.** frmtmb's denominator is exact and brms's is a Monte Carlo estimate of the same number, on a type brms itself deprecates. frmtmb is the more accurate of the two and there is nothing to change.
 
+**Status: unchanged.** Nothing to repair.
+
 ### 9. The interval and standard error columns differ in KIND
 
 Recorded rather than forced into agreement, per the plan.
@@ -818,6 +878,8 @@ difference so it stays visible.
 
 **Class: paradigm difference.** Not one of the 22: it is what a frequentist fit has instead of draws, and forcing agreement would mean inventing a posterior.
 
+**Status: unchanged, and now the reason `r13` is excluded.** The per-category display of a NOMINAL family has no thresholds, so there is no analytic standard error for it and the wald band is refused by name. Under `band = "boot"` the estimate is the fit's own and agrees with brms elementwise, which is what the r13 block asserts.
+
 ### 10. `loo()` and `bayes_R2()` refuse, by design
 
 `loo(fit)` and `bayes_R2(fit)` signal errors naming the reason and the
@@ -828,6 +890,8 @@ number, and that brms's answers carry the `SE` column and the
 fill.
 
 **Class: paradigm difference.** Not one of the 22. The refusal is correct and names the route; what this tier pins is that it stays a refusal rather than becoming a wrong number.
+
+**Status: unchanged.** Nothing to repair.
 
 ### 11. `posterior_linpred(dpar = )` for a dpar with no predictor
 
@@ -851,6 +915,8 @@ makes `type = "link"` mean the same thing for every dpar. The
 only the link-scale spelling is affected.
 
 **Class: paradigm difference.** Both are self-consistent, `posterior_epred(dpar = )` agrees exactly on both kinds of dpar, and `type = "link"` meaning the same thing for every dpar is the more defensible rule of the two.
+
+**Status: unchanged.** Nothing to repair.
 
 ### 11b. `ranef()` and `coef()` key their lists differently
 
@@ -879,6 +945,8 @@ own `ranef()` and `coef()` is the part with nothing to recommend it.
 
 **Class: defect**, for the inconsistency inside frmtmb rather than for the difference from brms. Its own `ranef()` and `coef()` key the same model two different ways, so `ranef(fit)$Subject` is NULL while `coef(fit)$Subject` is not. The coefficient set and the `(Intercept)` spelling are frmtmb's to keep.
 
+**Status: FIXED.** `ranef()` is keyed by the grouping factor, as `coef()` already was and as brms and lme4 key it. The block label rides along in each matrix's `"term"` attribute, is what `as.data.frame()` puts in `grp`, and is still `VarCorr()`'s key, so two terms on one factor stay distinguishable. The coefficient set and the `(Intercept)` spelling are unchanged.
+
 ### 12. `coef()` means different things
 
 brms's `coef()` is group-level: fixed effects broadcast over the levels
@@ -901,6 +969,8 @@ the generic alone.
 
 **Class: design choice.** The `stats::coef()` fallback is right for a maximum-likelihood package; the cost is that the return type is a function of the model rather than of the generic, which is worth documenting on the help page.
 
+**Status: unchanged.** Out of this round's scope.
+
 **Which is right: frmtmb's, with the return type documented.**
 
 ### 13. A multi-column linear predictor is one vector to frmtmb
@@ -921,6 +991,8 @@ alone:
   components, frmtmb 400. Reachable as `dpar = "mu1"` and `"mu2"`.
 
 **Class: design choice.** The categorical and mixture columns are reachable under `dpar = `; only `cs()` has no spelling, and giving it one is a decision about API surface.
+
+**Status: unchanged, and now also the reason `r12e` is excluded from the `conditional_effects()` loop.** A `cs()` term stores its evaluated column and a label, not the variable, so the display cannot enumerate a `cs()` predictor either and brms's effect list has a panel frmtmb's does not.
 
 **Which is right: frmtmb's, except that `cs()` needs a spelling.**
 
@@ -943,6 +1015,8 @@ the wrong magnitude.
 
 **Class: paradigm difference.** The two return different named quantities and both are correct; `p * n` converts exactly between them.
 
+**Status: unchanged.** `posterior_linpred(transform = TRUE)` is still the inverse link and `predict(type = "response")` still the mean. What changed is that `conditional_effects()` now draws the MEAN rather than the inverse link, so the display no longer sits on the wrong side of this distinction.
+
 ### 15. `se()` leaves a residual sigma each package reports differently
 
 With `y | se(s) ~ x` and no `sigma = TRUE`, the residual standard
@@ -961,6 +1035,8 @@ Neither number enters a density. A user reading
 whose residual spread is entirely `s`.
 
 **Class: defect**, mildly. Neither number enters a density, but reporting 1 for a residual standard deviation that is not there reads as an estimate, where brms's 0 reads as absent.
+
+**Status: FIXED.** `predict(type = "response", dpar = "sigma")` reports 0, which is what brms reports and what this package's own `sigma()` already said. The link-scale coefficient is untouched, so the repair is at the reporting layer. `r14c:sigma` is back in `brms_dpars_of()`.
 
 ### 16. `sum(log_lik())` is not `logLik()` once there are random effects
 
@@ -991,6 +1067,8 @@ wrong by 75 nats.
 
 **Class: paradigm difference.** The Laplace correction is the frequentist quantity and `logLik()` is right to carry it. Nothing to change in either package; what is wrong is the port.
 
+**Status: unchanged.** Nothing to repair.
+
 ### 17. `conditional_effects()` gives a `mo()` predictor a continuous grid
 
 A monotonic effect is defined at the ordered LEVELS of its variable and
@@ -1009,6 +1087,8 @@ in the same model, the plain numeric `z`, agrees exactly too.
 arithmetic, they are the model evaluated where it has no meaning.
 
 **Class: defect.** The interpolated points are not wrong arithmetic, they are the model evaluated where a monotonic effect has no definition.
+
+**Status: FIXED.** A `mo()` predictor gets one grid point per level over the observed range, brms's `seq(min, max, by = 1)` rule for an integer-valued variable. `r2` is back in `brms_ce_shapes()`. The plain numeric predictor in the same model still gets 100 points.
 
 ### 18. `conditional_effects()` refuses a nonlinear predictor
 
@@ -1034,6 +1114,8 @@ that draws a plot there signals an error here. This is the
 against a reading of the source.
 
 **Class: paradigm difference.** No analytic delta-method standard error exists for a nonlinear predictor, the message names three ways out, and one of them reproduces brms to 1e-16. The refusal is right.
+
+**Status: unchanged.** Nothing to repair; `r5` keeps its exclusion row, now one of only two paradigm rows in the `conditional_effects()` list.
 
 **Which is right: frmtmb's refusal, though the brms call does not port.**
 

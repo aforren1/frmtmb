@@ -160,11 +160,17 @@ ranef.frmtmb_draws <- function(object, ...) {
   for (i in seq_len(n)) {
     per[[i]] <- ranef(draws_fit_at(object, i, idx))
   }
-  # brms shape: per term, a levels x statistics x coefficients array
-  out <- list()
-  for (tn in names(per[[1]])) {
-    M0 <- per[[1]][[tn]]
-    A <- vapply(per, function(r) r[[tn]], M0)
+  # brms shape: per term, a levels x statistics x coefficients array.
+  # BY POSITION, not by name: core's ranef() keys its list by the
+  # GROUPING FACTOR now (brms's and lme4's key), so two blocks on one
+  # factor share a name and assigning by name wrote one entry twice,
+  # silently dropping the second block. core's own print() and
+  # as.data.frame() index by position for the same reason.
+  out <- vector("list", length(per[[1]]))
+  names(out) <- names(per[[1]])
+  for (bi in seq_along(per[[1]])) {
+    M0 <- per[[1]][[bi]]
+    A <- vapply(per, function(r) r[[bi]], M0)
     st <- array(NA_real_, c(nrow(M0), 4L, ncol(M0)),
                 dimnames = list(rownames(M0),
                                 c("Estimate", "Est.Error",
@@ -174,7 +180,9 @@ ranef.frmtmb_draws <- function(object, ...) {
     st[, "Est.Error", ] <- apply(A, c(1, 2), stats::sd)
     st[, "Q2.5", ] <- apply(A, c(1, 2), stats::quantile, 0.025)
     st[, "Q97.5", ] <- apply(A, c(1, 2), stats::quantile, 0.975)
-    out[[tn]] <- st
+    # the block label rides along exactly as core's ranef() carries it
+    attr(st, "term") <- attr(M0, "term")
+    out[[bi]] <- st
   }
   out
 }

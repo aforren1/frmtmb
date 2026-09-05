@@ -183,6 +183,11 @@ not offered as an effect to plot.
 \section{Standard errors of the expected response}{
 
 For a family whose mean is the \code{mu} dpar, \code{se.fit} on
+A dpar whose response scale is not its own link inverse, such as a
+\code{mixture()} mixing weight reporting the softmax, takes the delta
+method through that transform with respect to its OWN predictor. That is exact for a two-component mixture and
+conservative for three or more; see \code{?mixture}.
+
 \code{type = "response"} is the usual one-predictor delta method:
 \verb{|dmu/deta| * se(eta)}.
 
