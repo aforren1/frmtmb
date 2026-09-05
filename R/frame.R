@@ -116,6 +116,39 @@ check_special_mult <- function(mult, expr, fn) {
   as.numeric(mult)
 }
 
+#' brms enumerates its special terms in terms() order, so every mo()
+#' main effect is numbered before any mo() interaction and simo_1 is not
+#' always the first mo() written. Our parser keeps the written order and
+#' emits mo(x):z ahead of the mo(x) that `mo(x) * z` implies, so the mo
+#' list is re-sorted before the frame hands out simplexes; otherwise
+#' zeta<j> and brms's simo_<j> would name different terms.
+#'
+#' Sorting by interaction order alone reproduces terms(): order() is
+#' stable, so terms of equal order keep the order they were written in,
+#' which is what terms() does with keep.order = FALSE.
+#'
+#' @noRd
+mo_terms_in_brms_order <- function(mo_terms) {
+  if (length(mo_terms) < 2L) return(mo_terms)
+  ord <- vapply(mo_terms, function(e) mo_interaction_order(e[["mult"]]),
+                integer(1))
+  mo_terms[order(ord)]
+}
+
+#' How many `:`-separated components a term has, counting the special
+#' itself. A NULL multiplier is a main effect, order 1.
+#'
+#' @noRd
+mo_interaction_order <- function(mult) {
+  if (is.null(mult)) return(1L)
+  count <- function(e) {
+    if (is.call(e) && identical(e[[1L]], as.name(":"))) {
+      count(e[[2L]]) + count(e[[3L]])
+    } else 1L
+  }
+  1L + count(mult)
+}
+
 #' ar1()/hetar1() correlate two levels by their POSITION in the ordering
 #' factor, never by the distance between the labels: with times 1..6 and
 #' 10 present, cor(t6, t10) is fitted as rho, not rho^4, and rho itself
@@ -1881,8 +1914,15 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # the objective and the numeric prediction paths supply the
       # simplex-weighted values); the simplex parameters join `extras`.
       mo_info <- list()
-      mo_zetas <- list()   # simplexes are shared per mo() variable
-      for (ent in dp[["mo"]] %||% list()) {
+      # brms gives every special TERM its own simplex and enumerates the
+      # terms in terms() order, which puts every main effect ahead of
+      # every interaction. The parser emits them in written order and
+      # puts mo(x):z ahead of the mo(x) that mo(x) * z implies, so the
+      # list is sorted here: the j-th entry below has to be brms's j-th
+      # special term, or no prior or parameter map could line the two
+      # up. It is the POSITION that carries that, not the zeta number,
+      # which starts past whatever the family already put in `extras`.
+      for (ent in mo_terms_in_brms_order(dp[["mo"]] %||% list())) {
         mexpr <- ent$expr
         v <- eval(mexpr, mf, resp$formula_env)
         if (is.factor(v)) {
@@ -1906,12 +1946,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           stop("mo() needs at least 3 ordered categories", call. = FALSE)
         }
         vkey <- deparse1(mexpr)
-        zname <- mo_zetas[[vkey]]
-        if (is.null(zname)) {
-          zname <- paste0("zeta", length(extras) + 1L)
-          extras[[zname]] <- numeric(D_mo - 1L)
-          mo_zetas[[vkey]] <- zname
-        }
+        # one simplex per term occurrence, never shared between a main
+        # effect and an interaction on the same variable: the two terms
+        # describe different shapes and brms fits them separately
+        zname <- paste0("zeta", length(extras) + 1L)
+        extras[[zname]] <- numeric(D_mo - 1L)
         mult <- NULL
         if (!is.null(ent$mult)) {
           mult <- check_special_mult(eval(ent$mult, mf, resp$formula_env),

@@ -1,5 +1,44 @@
 # frmtmb (development version)
 
+* BEHAVIOR CHANGE, and the reason the 0.50.0 entry below withdrew its
+  claim rather than its behavior: a `mo()` variable that appears in
+  more than one term now gets one simplex per TERM instead of one per
+  variable. `y ~ mo(x) * z` fits a shape for the main effect and a
+  second for the interaction, so it gains the simplex's free
+  coordinates, `D - 1` of them, for every term beyond the first. Such
+  models change: the shared simplex was a constraint on the fitted
+  surface, so removing it can only raise the log-likelihood, and the
+  coefficients, standard errors, information criteria and predictions
+  all move with it. A formula in which every `mo()` variable appears
+  once is unaffected.
+* Where the interaction in such a model is near zero its simplex is
+  barely identified, and maximum likelihood runs it to the boundary.
+  The shape estimates stay finite, but their standard errors and
+  intervals can come back enormous and carry no information: on the
+  brms tier's own `y ~ mo(inc) * z` data the second simplex reports
+  standard errors in the thousands. Read that as the data not
+  supporting a second shape, and write the additive model. There is no
+  option to restore the sharing.
+* The v0.18 entry justified the sharing as the "brms convention". It is
+  not, the claim was withdrawn in 0.50.0 below, and the behavior now
+  follows brms too. brms builds one simplex per special TERM and
+  enumerates those terms in `stats::terms()` order, which lists every
+  main effect before any interaction whatever the formula wrote. The
+  frame re-sorts into that order before it numbers the simplexes, so
+  the j-th monotonic term of a predictor is the one brms calls
+  `simo_<j>` and names in the `simo` rows of its `get_prior()`. The
+  monotonic design columns follow the same order, so `y ~ mo(x) * z`
+  now reports `mox` ahead of `mox:z`. What lines up with brms is the
+  ORDER, not the `zeta<j>` number: simplexes continue the numbering of
+  any parameters the family declared first, so an ordinal or `cox()`
+  fit spends slot 1 on its thresholds or baseline hazard and its first
+  simplex is `zeta2`. That numbering is unchanged from earlier
+  versions.
+* The brms log-density tier pinned the divergence by asserting the
+  structural difference at `y ~ mo(inc) * z`. That row now asserts the
+  identity, with the flat Dirichlet admitted once per simplex, and the
+  tier's exemption list no longer holds a `mo()` entry.
+
 Two seams an extension had to work around: a compatibility rule that
 named a feature nobody had, and a family that needs either of two
 addition terms.

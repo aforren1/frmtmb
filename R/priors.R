@@ -511,12 +511,19 @@ check_brms_prior_class <- function(cls, dist) {
            "the raw internal covariance vector: the word names two ",
            "unrelated sets of parameters, so the row cannot be carried ",
            "over. ")
+  } else if (identical(cls, "simo")) {
+    paste0("brms's \"simo\" is the Dirichlet on a mo() simplex. ",
+           "frmtmb holds that simplex as its free softmax coordinates ",
+           "and puts no density on it at all, so there is no slot to ",
+           "carry the row into and no class that would rename it: drop ",
+           "the row. A flat simo row from get_prior() is dropped for ",
+           "you, and only an explicit one reaches here. ")
   } else {
-    paste0("frmtmb's classes are b, Intercept, sd, cor and theta. If ",
-           "this names a distributional parameter, its frmtmb spelling ",
-           "is class = \"Intercept\", dpar = \"", cls, "\", and that ",
-           "density sits on the LINK scale where brms puts it on ", cls,
-           " itself. ")
+    paste0("frmtmb's classes are b, Intercept, sd, cor, theta, ar, ma, ",
+           "cosy, cortime and rescor. If this names a distributional ",
+           "parameter, its frmtmb spelling is class = \"Intercept\", ",
+           "dpar = \"", cls, "\", and that density sits on the LINK ",
+           "scale where brms puts it on ", cls, " itself. ")
   }
   stop("A brms prior with class = \"", cls, "\" (", dist, ") has no ",
        "faithful frmtmb spelling. ", hint,

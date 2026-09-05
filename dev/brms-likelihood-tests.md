@@ -6,9 +6,14 @@ workflow and 19 tests covering plan rows 1, 2, 3, 5, 7, 12, 13, 14,
 15, 16, 17, 20 and 21 plus three check C rows are in place and green.
 Rows 4, 6, 8, 9, 10, 11, 18 and 19 are not written. One real
 divergence between the packages was found and is recorded below, and
-the exemption list it creates has exactly that one entry. Results,
-deviations, findings and the remaining work are under
-"Implementation log" at the end of this document.
+the exemption list it creates had exactly that one entry. UPDATE,
+branch `wt-mo-terms`: that entry is closed. frmtmb now builds one
+simplex per mo() TERM, row 3b asserts the identity with the Dirichlet
+admitted once per simplex, and the exemption list is empty. The
+`### Divergence` section below is kept as the record of what was found;
+read it with that resolution in mind. Results, deviations, findings and
+the remaining work are under "Implementation log" at the end of this
+document.
 
 ## Claim under test
 
@@ -251,6 +256,12 @@ random-effect row. The order now comes from brms's ranef table, and the
 test asserts it explicitly.
 
 ### Divergence: mo() simplexes are shared per variable, not per term
+
+RESOLVED on branch `wt-mo-terms`: frmtmb builds one simplex per mo()
+term, in brms's `stats::terms()` order, and row 3b now asserts the
+identity at a constant of `2 * lgamma(3)`. What follows describes the
+state before that change and is kept because it is the argument for
+which side was right.
 
 Row 3, `y ~ mo(inc) * z`, is not the same model in the two packages,
 and no parameter map can make it one.

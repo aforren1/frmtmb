@@ -197,6 +197,23 @@ brms_fe_of <- function(fit, sfx) {
   fe[[sfx]]
 }
 
+# The mo() terms of one linear predictor, in the order the frame built
+# them, which is brms's special-term order. brms numbers its simplexes
+# 1..Imo over THESE, so the position here is the only safe key:
+# frmtmb's zeta<j> counts on from the family's own extra parameters, so
+# an ordinal or cox fit's first simplex is zeta2 and the number in the
+# name is not the number in brms's.
+brms_mo_terms_of <- function(fit, sfx) {
+  lps <- fit$frame[["linpreds"]]
+  hit <- Filter(function(lp) identical(lp[["dpar"]], sfx), lps)
+  if (length(hit) != 1L) {
+    stop("expected exactly one linear predictor for dpar ", sfx,
+         " in the fit, found ", length(hit))
+  }
+  mo <- hit[[1L]][["mo"]]
+  if (is.null(mo)) list() else mo
+}
+
 # brms's own group-level table, from a brmsfit skeleton. brm(empty =
 # TRUE) builds every design object and stops before Stan, so it costs
 # about a third of a second and is the only public source of two things
@@ -431,9 +448,27 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       }
       out[[nm]] <- matrix(v, nrow = kcs, ncol = nth, byrow = TRUE)
     } else if (grepl("^simo_", nm)) {
-      j <- as.integer(sub(".*_(\\d+)$", "\\1", nm))
-      zeta <- fit$estimates[[paste0("zeta", j)]]
-      s <- exp(c(0, zeta))
+      # brms spells a simplex outside mu as simo_<dpar>_<j>. Reading
+      # only the trailing integer would alias it onto mu's sequence and
+      # hand over mu's simplex silently, at mu's length; refuse it by
+      # name instead. No row here fits mo() outside mu, and matching
+      # brms's per-dpar numbering is a separate decision.
+      if (!grepl("^simo_[0-9]+$", nm)) {
+        stop("Stan parameter ", nm, " is a monotonic simplex outside ",
+             "mu, which has no translation rule")
+      }
+      # brms numbers 1..Imo over mu's special terms. frmtmb's zeta<j>
+      # continues the family's extra parameters, so an ordinal or cox
+      # fit puts its first simplex in zeta2 and the index is NOT the
+      # zeta number. Map by POSITION in the frame's mo list, which the
+      # frame built in brms's own special-term order.
+      j <- as.integer(sub("^simo_", "", nm))
+      mo <- brms_mo_terms_of(fit, "mu")
+      if (j > length(mo)) {
+        stop("brms declares ", nm, " but frmtmb's mu has ",
+             length(mo), " monotonic term(s)")
+      }
+      s <- exp(c(0, fit$estimates[[mo[[j]][["zeta"]]]]))
       out[[nm]] <- s / sum(s)
     } else if (grepl("^(sd|z|L)_\\d+$", nm)) {
       i <- as.integer(sub("^[a-zA-Z]+_", "", nm))

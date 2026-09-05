@@ -154,7 +154,7 @@ test_that("mo() matches direct ML and predicts monotonically", {
   dd$incf <- factor(inc, levels = 0:3, ordered = TRUE)
   ff <- frm(bf(y ~ x + mo(incf)) + gaussian(), data = dd)
   expect_loglik_equal(ff, fit, tol = 1e-6)
-  # interactions work since v0.18 (shared simplex, extra scale coef)
+  # interactions work since v0.18, each with its own simplex
   fint <- frm(bf(y ~ mo(inc) * x) + gaussian(), data = dd)
   expect_true(all(c("moinc", "moinc:x") %in% names(fixef(fint)$mu)))
   expect_gte(as.numeric(logLik(fint)), as.numeric(logLik(fit)) - 1e-6)

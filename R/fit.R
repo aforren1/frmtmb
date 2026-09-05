@@ -219,6 +219,46 @@
 #' lexically: qualify with `RTMB::` there, and see [frmtmb_ad_overload()]
 #' for the rest of that contract.
 #'
+#' @section Monotonic effects:
+#' `mo(x)` fits an ordinal predictor without assuming its categories are
+#' equally spaced. `x` is an ordered factor or a non-negative integer
+#' vector with at least three categories, coded `0..D`. The term
+#' contributes `b * D * sum(zeta[1:k])` at category `k`, where `zeta` is
+#' a simplex of `D` non-negative steps summing to one. `b` is therefore
+#' the AVERAGE step, on the coefficient scale of any other predictor,
+#' and `zeta` says how that total is distributed over the categories.
+#' `b` appears in `fixef()` under the term's label (`mox`, or `mox:z`
+#' for an interaction); the simplex is held as its `D - 1` free softmax
+#' coordinates in a `zeta<j>` component of [par_template()], and
+#' `summary()` prints those coordinates rather than the simplex.
+#'
+#' Every monotonic TERM gets its own simplex. `y ~ mo(x) * z` fits two:
+#' one shape for the main effect and one for the interaction, because
+#' the two terms describe different shapes and there is no reason for
+#' the interaction to bend the way the main effect does. The simplexes
+#' are numbered in the order [brms::brm()] enumerates its special terms,
+#' which is `stats::terms()` order and so lists every main effect before
+#' any interaction. The j-th monotonic term of a linear predictor is
+#' therefore the one brms calls `simo_<j>` and names `<label><1>` in the
+#' `simo` rows of its `get_prior()`.
+#'
+#' The `zeta<j>` NUMBER is not that j in general. Simplexes continue the
+#' numbering of whatever parameters the family contributed first, so
+#' `zeta<j>` is brms's `simo_<j>` only for a family that declares none:
+#' an ordinal fit spends slot 1 on its thresholds and a `cox()` fit on
+#' its baseline hazard, and in both the first monotonic simplex is
+#' `zeta2`. Read the terms in order rather than parsing the number.
+#'
+#' frmtmb has no prior class for a simplex; brms's flat `dirichlet(1)`
+#' is the one prior it cannot be told to drop, and it contributes only a
+#' constant, so the two log-densities agree up to `lgamma(D)` per
+#' simplex.
+#'
+#' `mo()` may be crossed with a single numeric multiplier and no more:
+#' `mo(x) * z` and `mo(x):z` are fitted, `mo(x) * f` for a factor `f` is
+#' refused (the simplex carries one coefficient and a contrast expansion
+#' has no column to go in), and `mo(x):mo(w)` is refused outright.
+#'
 #' @section The Laplace approximation, and how to check it:
 #' Random effects are integrated out by the Laplace approximation,
 #' which assumes the integrand is close to Gaussian around the

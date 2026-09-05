@@ -1,7 +1,7 @@
 # v0.18: mo()/mi() interactions, gp() terms (exact + Hilbert-space),
 # group-level latent-class mixtures.
 
-test_that("mo() interactions share the simplex and match direct ML", {
+test_that("mo() interactions get their own simplex and match direct ML", {
   set.seed(11)
   n <- 500
   inc <- sample(0:3, n, replace = TRUE)
@@ -11,21 +11,43 @@ test_that("mo() interactions share the simplex and match direct ML", {
   dd <- data.frame(y = y, inc = inc, z = z)
   fit <- frm(bf(y ~ mo(inc) * z) + gaussian(), data = dd)
 
-  nll <- function(p) {
-    zr <- exp(c(0, p[5:7]))
-    cz0 <- c(0, cumsum(zr / sum(zr)))
-    m <- cz0[inc + 1] * 3
-    -sum(stats::dnorm(y, p[1] + p[2] * z + p[3] * m + p[4] * m * z,
-                      exp(p[8]), log = TRUE))
+  step <- function(zr) {
+    s <- exp(c(0, zr))
+    c(0, cumsum(s / sum(s))) * 3
   }
-  op <- stats::optim(c(1, 0.3, 0.5, 0.3, 0, 0, 0, log(0.7)), nll,
-                     method = "BFGS",
+  # two simplexes: the main effect's shape and the interaction's, which
+  # is what brms fits and what this package fits since the sharing was
+  # withdrawn
+  nll <- function(p) {
+    m1 <- step(p[5:7])[inc + 1]
+    m2 <- step(p[8:10])[inc + 1]
+    -sum(stats::dnorm(y, p[1] + p[2] * z + p[3] * m1 + p[4] * m2 * z,
+                      exp(p[11]), log = TRUE))
+  }
+  op <- stats::optim(c(1, 0.3, 0.5, 0.3, 0, 0, 0, 0, 0, 0, log(0.7)),
+                     nll, method = "BFGS",
                      control = list(reltol = 1e-13, maxit = 5000))
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-6)
   expect_setequal(names(fixef(fit)$mu),
                   c("(Intercept)", "z", "moinc", "moinc:z"))
-  # one shared simplex for both mo terms
-  expect_length(grep("^zeta", names(fit$frame$par_template)), 1L)
+  # one simplex per term, never shared between the two
+  expect_length(grep("^zeta", names(fit$frame$par_template)), 2L)
+
+  # the shared simplex this test used to assert is a constrained
+  # submodel (zeta2 == zeta1), so its optimum can only be lower. The
+  # data above gives both terms the SAME shape, cz_t, so what is gained
+  # here is the generic slack of two more free parameters, not a shape
+  # difference; test-mo-terms.R is where the two shapes really differ
+  nll_shared <- function(p) {
+    m <- step(p[5:7])[inc + 1]
+    -sum(stats::dnorm(y, p[1] + p[2] * z + p[3] * m + p[4] * m * z,
+                      exp(p[8]), log = TRUE))
+  }
+  op_shared <- stats::optim(c(1, 0.3, 0.5, 0.3, 0, 0, 0, log(0.7)),
+                            nll_shared, method = "BFGS",
+                            control = list(reltol = 1e-13, maxit = 5000))
+  expect_gt(as.numeric(logLik(fit)), -op_shared$value)
+
   expect_true(is.finite(predict(fit, newdata = data.frame(inc = 2,
                                                           z = 1))))
 })
