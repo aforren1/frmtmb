@@ -516,7 +516,309 @@ threshold is `A + k` with a log link on `k`, so it stays above the
 start-point range at every value of the linear predictor, and a trial
 that begins already finished is not a state the optimizer can reach.
 
+## Racing diffusions
+
+`lba()` races accumulators that are noiseless once they start. `rdm()`
+races accumulators that are not: each one is a Wiener process with its
+own positive drift and unit diffusion, starting uniformly on `(0, A)`
+and running to the same threshold `A + k`. The geometry is identical,
+so the two families share a spelling and a model moves between them by
+changing one word.
+
+The difference is where the trial-to-trial spread comes from. An LBA
+draws a rate once per trial and then runs straight; a racing diffusion
+has the same rate every trial and gets its spread from within-trial
+noise. Tillman, Van Zandt and Logan (2020) argue for the second, on
+the grounds that a model does not need between-trial variability to
+produce the response time distributions and error patterns these data
+show.
+
+One accumulator's finishing time is therefore a first passage of a
+Wiener process to a distance drawn uniformly on `(k, k + A)`: an
+inverse Gaussian, averaged over the start point. The average has a
+closed form, so the whole race does.
+
+### Fitting one
+
+```{r rdm-sim, eval = TRUE}
+set.seed(1)
+dat_r <- rdm_simulate(1500, v = c(3.0, 2.0, 1.2), A = 0.5, k = 0.5,
+                      ndt = 0.2)
+table(dat_r$choice)
+round(tapply(dat_r$rt, dat_r$choice, mean), 3)
+```
+
+The accumulator with the largest drift wins most often and, when it
+wins, wins fastest. The choice reaches the family through `vint()` as a
+whole number from 1, exactly as it does for `lba()`:
+
+```{r rdm-fit, eval = TRUE}
+fit_r <- frm(bf(rt | vint(choice) ~ 1), family = rdm(3), data = dat_r)
+fixef(fit_r)
+```
+
+Every parameter of this family has a log link, including the drifts,
+which is the one place it parts company with `lba()`. An LBA drift is
+the MEAN of a normal drawn per trial and may be negative; a racing
+diffusion drift is the rate itself, and an accumulator with a rate of
+zero never reaches the threshold at all. So the estimates come back on
+the log scale:
+
+```{r rdm-back, eval = TRUE}
+e <- fixef(fit_r)
+round(c(v1 = exp(e$v1[[1]]), v2 = exp(e$v2[[1]]), v3 = exp(e$v3[[1]]),
+        A = exp(e$A[[1]]), k = exp(e$k[[1]]),
+        ndt = family(fit_r)$links$ndt$linkinv(e$ndt[[1]])), 3)
+```
+
+against the `v = c(3, 2, 1.2)`, `A = 0.5`, `k = 0.5`, `ndt = 0.2` the
+data were drawn from.
+
+A covariate on one drift moves that drift and leaves the others alone,
+which is the capability a race buys over a two-boundary diffusion:
+
+```{r rdm-cov, eval = TRUE}
+set.seed(31)
+x <- rnorm(2000)
+V <- cbind(3.0, 2.0 * exp(0.5 * x), 1.2)
+dat_x <- rdm_simulate(2000, v = V, A = 0.5, k = 0.5, ndt = 0.2)
+dat_x$x <- x
+fit_x <- frm(bf(rt | vint(choice) ~ x), family = rdm(3), data = dat_x)
+round(sapply(fixef(fit_x)[c("v1", "v2", "v3")], function(z) z[["x"]]), 3)
+```
+
+Only the second slope is near the 0.5 that was simulated.
+
+### Checking the density against something else
+
+The likelihood is worth checking against an implementation that shares
+none of its algebra. `statmod` has the inverse Gaussian, and the
+model says one accumulator's finishing time is that distribution
+averaged over the start point, so the average of `statmod`'s density
+over the distance range is an independent statement of the same thing:
+
+```{r rdm-check, eval = requireNamespace("statmod", quietly = TRUE)}
+gl <- list(x = (seq_len(60) - 0.5) / 60, w = rep(1 / 60, 60))
+ref_d <- function(t, v, A, k) {
+  d <- k + A * gl$x
+  sum(gl$w * statmod::dinvgauss(t, mean = d / v, shape = d^2))
+}
+tt <- c(0.15, 0.3, 0.6, 1.2)
+data.frame(
+  t = tt,
+  reference = sapply(tt, ref_d, v = 2, A = 0.5, k = 0.5),
+  frmtmb.ddm = exp(frmtmb.ddm:::rdm_law$ldens(
+    tt, list(v = 2, A = 0.5, k = 0.5))))
+```
+
+### How this compares to EMC2
+
+`EMC2` (Stevenson and others) fits the same model, and getting the
+parameter map right matters more than it looks:
+
+| `rdm()` | EMC2 | meaning |
+|---|---|---|
+| `v1`..`vn` | `v` | drift rate |
+| `A` | `A` | start-point range |
+| `k` | `B` | threshold LESS the range |
+| `A + k` | `B + A` | threshold |
+| `ndt` | `t0` | non-decision time |
+| fixed at 1 | `s` | diffusion coefficient |
+
+EMC2's `B` is this family's `k`, not the threshold: its own sampler
+draws the distance to travel as `B + runif(1, 0, A)`. Reading `B` as a
+threshold moves every one of them by `A`.
+
+The two agree. `dev/rdm-gng-emc2-reference.R` in this package composes
+EMC2's own race likelihood, `log d(winner) + sum log(1 - p(losers))`,
+and compares it row by row: over 200 rows the largest absolute
+difference in log likelihood is 6.4e-13 with two accumulators, 1.0e-12
+with three and 1.1e-12 with four.
+
+They stop agreeing in the far tail, and there the disagreement is not
+mutual. EMC2 writes a loser's survival as `1 - pWald(...)`, a
+subtraction from one, which holds nothing below about 1e-16; this
+family writes the survival out directly. On one grid of 315 points,
+`1 - EMC2:::pWald()` returns EXACTLY ZERO on 35 of them, the first
+where the true survival is near 1e-13, and a survival of zero sends a
+loser's log contribution to `-Inf`. Adjudicated against `statmod`,
+which is party to neither, the density agreement is 4.6e-13 for this
+family and 2.1e-04 for EMC2 on the rows where they differ.
+
+That is not a claim that EMC2 is fitting the wrong model. It is a
+claim about where each implementation runs out of digits, and the
+losing rows are ordinary ones: a competitor that has almost certainly
+finished is what every trial with a clear winner has two or three of.
+
+## Go/no-go: one boundary you can see
+
+Some designs record a response for only one of the two decisions.
+Press a key for a word and say nothing for a non-word; go on a go
+trial and withhold on a no-go one. The accumulator still runs between
+two boundaries, but reaching the lower one and never reaching either
+produce the same observation: nothing.
+
+`wiener()` cannot fit that, because it needs to know which boundary
+each trial ended at and half the trials do not say. `wiener_gng()` is
+the model Gomez, Ratcliff and Perea (2007) wrote for it, and the one
+EMC2 calls `DDMGNG`.
+
+The likelihood has two branches and which one a trial takes is data. A
+GO trial contributes the ordinary upper-boundary first-passage density
+at its response time. A NO-GO trial contributes the probability that
+the upper boundary was not reached before the deadline, which is the
+lower-boundary mass accumulated by then plus the mass still diffusing.
+
+### Fitting one
+
+```{r gng-sim, eval = TRUE}
+set.seed(2)
+dat_g <- wiener_gng_simulate(2000, mu = 1.0, bs = 1.4, ndt = 0.25,
+                             bias = 0.5, deadline = 1.5)
+mean(dat_g$responded)
+summary(dat_g$rt[dat_g$responded == 1])
+```
+
+Which trials produced a response travels through `dec()`, and the
+deadline goes on the family when every trial shares it:
+
+```{r gng-fit, eval = TRUE}
+fit_g <- frm(bf(rt | dec(responded) ~ 1, bias = 0.5),
+             family = wiener_gng(deadline = 1.5), data = dat_g)
+e <- fixef(fit_g)
+round(c(mu = e$mu[[1]], bs = exp(e$bs[[1]]),
+        ndt = family(fit_g)$links$ndt$linkinv(e$ndt[[1]])), 3)
+```
+
+against `mu = 1.0`, `bs = 1.4`, `ndt = 0.25`.
+
+A no-go trial has no response time, but the response column still needs
+a number: frmtmb will not carry an `NA` through a rowwise family. The
+likelihood does not read it, and the deadline is the natural thing to
+put there, which is what `wiener_gng_simulate()` does. The bound on the
+non-decision time is taken from the GO trials only, so a placeholder
+cannot decide a parameter's range.
+
+When the deadline varies between trials it goes through `vreal()`
+instead:
+
+```{r gng-vreal, eval = TRUE}
+set.seed(15)
+td <- rep(c(0.9, 2.0), length.out = 1500)
+dat_v <- wiener_gng_simulate(1500, mu = 1.0, bs = 1.4, ndt = 0.25,
+                             deadline = td)
+tapply(dat_v$responded, td, mean)
+fit_v <- frm(bf(rt | dec(responded) + vreal(deadline) ~ 1, bias = 0.5),
+             family = wiener_gng(), data = dat_v)
+round(fixef(fit_v)$mu[[1]], 3)
+```
+
+The longer deadline collects more responses, as it must, and the drift
+is recovered from both together.
+
+### The two branches are one distribution
+
+This is the check worth running on a family with two branches: the go
+density integrated over its own support, plus the no-go probability,
+must be exactly one. Nothing else would catch a distribution function
+taken at the wrong boundary.
+
+```{r gng-mass, eval = TRUE}
+fam <- wiener_gng(deadline = 1.5)
+dp <- list(mu = 1.0, bs = 1.4, ndt = 0.25, bias = 0.45)
+fin <- fam$family_finalize(fam, c(0.4, 1.2), list(dec = c(1, 1)))
+go_mass <- integrate(function(q) {
+  exp(fin$lpdf(q, lapply(dp, function(v) rep(v, length(q))),
+               list(dec = rep(1, length(q)))))
+}, 0.25 + 1e-10, 1.5, rel.tol = 1e-11)$value
+no_mass <- exp(fin$lpdf(1.5, dp, list(dec = 0)))
+c(go = go_mass, no_go = no_mass, total = go_mass + no_mass)
+```
+
+### The distribution function, and how it compares to EMC2
+
+The no-go branch needs the Wiener defective distribution function,
+which `wiener()` does not have: that family declares no `lcdf` and its
+compatibility table says so. It is written for this family as two
+series blended in `log(u)`, the way the density's two series are, but
+centred far lower: at `u = 0.02` rather than the density's 0.35.
+
+That centre is measured rather than chosen. The small-time route
+reaches the no-go probability as `1 - F_upper`, and where a no-go
+trial is very surprising there is nothing left to subtract from: at
+`t = 2.5`, drift 5, separation 4 and start point 0.90, where the true
+probability is 8.2e-16, that route is 12 times wrong while the
+large-time route is right to 7e-15. Over 1200 points against a
+260-bit reference the blend holds 2.2e-12; centred at 0.06, as it was
+at version 0.3.0, it left 7.8e-05 on that corner.
+
+EMC2 reaches the same quantity through `WienR`, so comparing against
+`WienR` is comparing against EMC2's own engine:
+
+```{r gng-wienr, eval = requireNamespace("WienR", quietly = TRUE)}
+q <- c(0.2, 0.5, 1.0, 2.0)
+ref <- 1 - WienR::pWDM(q, rep("upper", 4), a = 1.4, v = 1, w = 0.45,
+                       t0 = 0, precision = 1e-12)$value
+mine <- exp(frmtmb.ddm:::ddm_nogo_lprob(q, 1, 1.4, 0.45))
+data.frame(t = q, WienR = ref, frmtmb.ddm = mine,
+           rel_diff = abs(mine - ref) / ref)
+```
+
+End to end, `dev/rdm-gng-emc2-reference.R` composes EMC2's own go/no-go
+likelihood and finds the largest absolute per-row difference to be
+6.1e-16 on go rows and 1.3e-15 on no-go rows, with the total log
+likelihoods agreeing to 1.7e-13.
+
+The one place they part company is where a no-go trial is very
+surprising. `WienR` computes the no-go probability as `1 - F`, and
+this family computes it directly, as a gambler's-ruin probability plus
+a correction, whenever the normalized time is large enough for that
+route to be accurate. At `t = 2.5, a = 4, v = 5, w = 0.75` the true
+no-go probability is 1.18832830582993e-13 at 260 bits of precision.
+`1 - WienR::pWDM()` is 4.4 percent away from it at WienR's default
+precision and at every setting down to `1e-12`, improving to 0.13
+percent at `1e-14` and 0.033 percent at `1e-16`. The first of those is
+the one that matters here, because EMC2's `pDDM` calls `pWDM` with
+`precision = 0.005`, looser than any setting in that list. This
+family's large-time route is 3.0e-15 there.
+
+That matters for a fit rather than merely for a table, because a
+surprising no-go trial is the row pulling hardest on the likelihood.
+
+### What it does not do
+
+`wiener()` offers Ratcliff's three across-trial variability parameters
+through `variability =`. This family offers none of them, and the
+reason is the no-go branch. The go branch would inherit all three for
+free. The drift enters the DENSITY as an exponential-quadratic, which
+is what makes averaging over a normal drift exact and free; it enters
+the DISTRIBUTION FUNCTION through the eigenvalues of both series, where
+it is not. `sz` and `st0` could be reached with the quadrature nodes
+this package already has, but shipping two of three would make
+`variability =` mean something different here than it does on
+`wiener()`. EMC2's `DDMGNG` does carry all three, by integrating them
+numerically in compiled code.
+
+Neither family reports a fitted mean:
+
+```{r gng-refuse, eval = TRUE, error = TRUE}
+fitted(fit_g)
+```
+
+For `rdm()` that is a missing integral: the mean of the winning
+accumulator's arrival is an expectation over the minimum of several
+inverse-Gaussian first passages. For `wiener_gng()` it is a statement
+about the model. A go/no-go trial produces a PAIR, whether a response
+happened and when, and the no-go rows have no response time to average
+at all. `predict(type = "link")` gives the parameters the fit actually
+estimated, which is what to read instead.
+
 ## References
+
+Blurton, S. P., Kesselmeier, M. and Vollrath, M. (2012). Fast and
+accurate calculations for cumulative first-passage time distributions
+in Wiener diffusion models. *Journal of Mathematical Psychology*,
+56(6), 470-475.
 
 Brown, S. D. and Heathcote, A. (2008). The simplest complete model of
 choice response time: Linear ballistic accumulation. *Cognitive
@@ -526,6 +828,9 @@ Donkin, C., Brown, S. D. and Heathcote, A. (2009). The overconstraint
 of response time models: Rethinking the scaling problem. *Psychonomic
 Bulletin & Review*, 16(6), 1129-1135.
 
+Gomez, P., Ratcliff, R. and Perea, M. (2007). A model of the go/no-go
+task. *Journal of Experimental Psychology: General*, 136(3), 389-413.
+
 Navarro, D. J. and Fuss, I. G. (2009). Fast and accurate calculations
 for first-passage times in Wiener diffusion models. *Journal of
 Mathematical Psychology*, 53(4), 222-230.
@@ -534,3 +839,8 @@ Ratcliff, R. and Tuerlinckx, F. (2002). Estimating parameters of the
 diffusion model: approaches to dealing with contaminant reaction times
 and parameter variability. *Psychonomic Bulletin & Review*, 9(3),
 438-481.
+
+Tillman, G., Van Zandt, T. and Logan, G. D. (2020). Sequential
+sampling models without random between-trial variability: The racing
+diffusion model of speeded decision making. *Psychonomic Bulletin and
+Review*, 27(5), 911-936.

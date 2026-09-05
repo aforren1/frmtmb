@@ -19,6 +19,14 @@
   # a factor to 0/1 for a family that could have done it. This is that
   # coercion, contributed once.
   frmtmb_register_aterm("dec", arity = 1L, coerce = ddm_coerce_dec)
+  # The two families added after the first three, registered in their own
+  # call rather than folded into the one above. Two reasons: the rows
+  # below were measured on this worktree and the ones above were not, and
+  # a separate call keeps the two sets of rows from having to be merged
+  # by hand when the lanes meet.
+  frmtmb_register_compat(
+    features = c(rdm = "family", wiener_gng = "family"),
+    rules = rdm_gng_compat_rules)
   invisible()
 }
 
@@ -127,7 +135,7 @@ ddm_compat_rules <- function() {
     "By frmtmb, for the same reason it refuses wiener: quadrature = TRUE integrates random effects, and this family has no random effect to integrate.")
 
   r("lba", "dec()", "refused",
-    "dec() coerces to a two-level 0/1 boundary and an lba response is a 1..n accumulator index, so a three-alternative model is refused by the coercion. The indicator arrives through vint() instead.")
+    "Refused by the family, through the same shared check rdm() uses, so that the two race families cannot disagree about it. Until the RDM lane's punch round this row was wrong in a way worth recording: it said a dec() term was refused by the two-level coercion, and measured, a model written rt | dec(two) + vint(choice) FITTED, dropping the term with no warning and with fixed effects bit-identical to the model without it. dec() IS the spelling under wiener(), so a ported model quietly ignored half of what its author wrote.")
   r("lba", "vint()", "works",
     "Required: vint1 is which accumulator won, counted from 1. Note that this is 1-based where wiener's boundary indicator is 0-based, which is a difference between the two families and not a typo.")
   r("lba", "cens()", "refused",
@@ -152,5 +160,78 @@ ddm_compat_rules <- function() {
     "Not exercised.")
   r("lba", "quadrature", "refused",
     "By frmtmb. No random effect, nothing to marginalize.")
+  b$rules()
+}
+
+#' The compatibility rules for the two families added at 0.3.0.
+#'
+#' Unlike the `gddm` and `lba` rows above, every row here was RUN on the
+#' worktree that wrote it, by a probe that calls the feature and records
+#' what came back. `untested` below therefore means the pair was
+#' deliberately not exercised, and says why, rather than meaning nobody
+#' looked.
+#'
+#' @noRd
+rdm_gng_compat_rules <- function() {
+  b <- compat_rule_builder()
+  r <- b$r
+
+  r("rdm", "vint()", "works",
+    "Required: vint1 is which accumulator reached the threshold, counted from 1, exactly as it is for lba(). Omitting it is refused by name, because the density indexes it.")
+  r("rdm", "dec()", "refused",
+    "Refused by this family rather than by the coercion. dec() carries a two-level boundary indicator and a race of n accumulators needs a winner in 1..n, so the term cannot mean anything here. lba() now refuses it through the same shared check; it used to fit such a model with the term silently dropped, which is the defect this row and lba()'s were written against.")
+  r("rdm", "vreal()", "works",
+    "Carried without effect. Nothing in the density reads a real-valued addition term, and a model that supplies one fits and gives the same answer as one that does not.")
+  r("rdm", "cens()", "refused",
+    "By frmtmb, for want of an lcdf on the family. The race distribution function is one minus a product of survivals; the survival itself is written here because the likelihood needs it, but the product is not.")
+  r("rdm", "trunc()", "refused",
+    "The same refusal from frmtmb and the same reason: no lcdf, so there is no normalizing constant to divide the window by.")
+  r("rdm", "weights()", "works",
+    "Verified: the weighted log likelihood equals the unweighted one at unit weights.")
+  r("rdm", "simulate", "works",
+    "The family supplies a sim slot that races the accumulators from inverse-Gaussian draws and returns the winner's time, conditioned on each row's observed vint() winner by rejection. rdm_simulate() is the unconditional joint draw of choice and time.")
+  r("rdm", "fitted", "refused",
+    "The family declares a post$mean_fn that stops, because the mean of the winning accumulator's arrival is an expectation over the minimum of several inverse-Gaussian first passages and has no closed form. The refusal is deliberate and replaced a silent wrong answer: with that slot empty frmtmb returns the first primary dpar on the response scale, which here is a DRIFT RATE, and predict(type = \"response\") gave 3.51 for data whose response times average 0.36.")
+  r("rdm", "predict", "conditional",
+    "type = \"link\" works, on the training data and on newdata. type = \"response\" is refused with the same message fitted() gives. Note what is NOT true: vint() is not mandatory on newdata for a link-scale prediction, because no linear predictor reads it.")
+  r("rdm", "residuals", "refused",
+    "All three types. \"response\" needs the mean the family refuses; \"pearson\" reports that same refusal, because it asks for the mean before it asks for a variance function; \"deviance\" is refused by frmtmb for want of a unit deviance. Before the refusing mean was added, \"response\" returned a length-zero vector rather than an error.")
+  r("rdm", "residuals_osa", "refused",
+    "Reached and refused, but not gracefully: it fails inside RTMB with a type error about S4 and double rather than with a sentence naming the family. One-step-ahead residuals re-tape the objective with the response promoted to a parameter, which this density does not survive.")
+  r("rdm", "REML", "works",
+    "Verified: REML = TRUE fits. The drifts are the primary dpars and are integrated out.")
+  r("rdm", "quadrature", "works",
+    "Verified on a model with a random effect. This differs from the wiener row above, which records a refusal: frmtmb refuses quadrature only when there is no random-effect block to marginalize, and a racing-diffusion model with a grouping factor has one.")
+  r("rdm", "mixture", "refused",
+    "By frmtmb: mixture() components need a dpar called mu, and this family's primary dpars are v1..vn. A contaminant on a race would need drifts named the way mixture() expects, which is a change to mixture() rather than to this family.")
+
+  r("wiener_gng", "dec()", "works",
+    "Required, and the only spelling: dec() says whether a trial produced a response, coded 1, or did not, coded 0. With one observable boundary that is the same 0/1 wiener() reads and it means the same thing. A logical column gives the same fit as a 0/1 one, verified.")
+  r("wiener_gng", "vint()", "refused",
+    "Refused by name, so that a model written against wiener()'s vint(upper) spelling fails loudly rather than fitting with the indicator ignored. The response indicator travels through dec() here.")
+  r("wiener_gng", "vreal()", "works",
+    "Carries the per-row deadline when it varies between trials, and is then required. A constant deadline goes on the family as wiener_gng(deadline =) instead; supplying neither is refused by name, and the two spellings give the same log likelihood to 1e-10, verified.")
+  r("wiener_gng", "cens()", "refused",
+    "By frmtmb, for want of an lcdf on the family. The distribution function this family does write is the probability of NO response by the deadline, which is not the response-scale CDF cens() needs.")
+  r("wiener_gng", "trunc()", "refused",
+    "The same refusal from frmtmb and the same reason: no lcdf declared, so there is no normalizer.")
+  r("wiener_gng", "weights()", "works",
+    "Verified: the weighted log likelihood equals the unweighted one at unit weights.")
+  r("wiener_gng", "simulate", "works",
+    "The sim slot redraws a go trial's time by rejection from the unconditional process and gives a no-go trial its deadline, which is the placeholder the family documents. wiener_gng_simulate() is the unconditional draw of outcome and time together.")
+  r("wiener_gng", "fitted", "refused",
+    "The family declares a post$mean_fn that stops, and here the refusal is a statement about the model rather than a missing integral: a go/no-go trial produces a PAIR, whether a response happened and when, and the no-go rows have no response time to average at all. It also replaced a silent wrong answer, and a worse one than rdm's because this family's primary dpar is literally called mu: fitted() returned a constant drift of 1.05 for data whose go response times average 0.6.")
+  r("wiener_gng", "predict", "conditional",
+    "type = \"link\" works, on the training data and on newdata. type = \"response\" is refused with the same message fitted() gives. dec() is not mandatory on newdata for a link-scale prediction, because no linear predictor reads it.")
+  r("wiener_gng", "residuals", "refused",
+    "All three types, and for the reasons fitted() gives: \"response\" and \"pearson\" both report the mean's refusal, and \"deviance\" is refused by frmtmb for want of a unit deviance.")
+  r("wiener_gng", "residuals_osa", "refused",
+    "Reached and refused inside RTMB rather than by a sentence naming the family, exactly as for rdm.")
+  r("wiener_gng", "REML", "works",
+    "Verified: REML = TRUE fits.")
+  r("wiener_gng", "quadrature", "works",
+    "Verified on a model with a random effect, as for rdm and unlike wiener().")
+  r("wiener_gng", "mixture", "conditional",
+    "It assembles and runs, where mixture(rdm(3), ...) is refused outright, because this family has a dpar called mu. But the one case tried did not converge, reporting false convergence and a maximum absolute gradient of 7.7e13, so nothing here supports relying on it. What a contaminant should do with the no-go rows is a modelling question this package has not answered.")
   b$rules()
 }

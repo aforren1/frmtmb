@@ -19,6 +19,106 @@
   on the row's own boundary, and the two boundaries' masses are
   asserted to sum to one.
 
+## Two more families
+
+* New `rdm()`, the racing diffusion model of Tillman, Van Zandt and
+  Logan (2020): `n` independent Wiener accumulators with their own
+  positive drifts, a start point uniform on `(0, A)` and a common
+  threshold `A + k`, so each finishing time is an inverse Gaussian
+  averaged over the start point. It is `lba()`'s geometry with the
+  ballistic assumption removed, and it takes `lba()`'s spelling for
+  that reason: a model moves between the two by changing one word. The
+  drifts have a LOG link rather than an identity one, which is the one
+  place the two part company, because a racing-diffusion drift is the
+  rate itself and an accumulator with a rate of zero never finishes.
+  `rdm_simulate()` draws from the generative process.
+* New `wiener_gng()`, the go/no-go diffusion of Gomez, Ratcliff and
+  Perea (2007), which EMC2 calls `DDMGNG`: a two-boundary diffusion
+  where only the upper boundary produces an observable response. A go
+  trial contributes the ordinary upper-boundary density; a no-go trial
+  contributes the probability of no upper crossing before a deadline.
+  The deadline goes on the family when every trial shares it and
+  through `vreal()` when it does not, and `dec()` says which trials
+  produced a response. `wiener_gng_simulate()` draws from the
+  generative process. Across-trial variability is deliberately not
+  offered; `?wiener_gng` says why.
+* The Wiener defective distribution function, which this package did
+  not have. `wiener()` declares no `lcdf` and its compatibility table
+  says so, but the go/no-go family's no-go branch needs one, so it is
+  written in `R/wiener-cdf.R` as two series blended in `log(u)` the way
+  the density's two are. The blend is centred at `u = 0.02` rather than
+  the density's 0.35, and that is the substantive choice: the
+  small-time route reaches the no-go probability as `1 - F_upper`,
+  which cancels exactly where a no-go trial is surprising, and the
+  large-time route computes it directly and never subtracts. Handing
+  over as early as the large-time route is accurate holds 2.2e-12
+  relative against a 260-bit reference over 1200 points, with one row
+  worse than 1e-12 and none worse than 1e-9.
+
+## Measured against EMC2
+
+* Both families agree with EMC2 where EMC2 has digits, and the
+  comparison lives in `dev/rdm-gng-emc2-reference.R` rather than in the
+  suite, because every EMC2 function that computes either likelihood is
+  internal. Composed exactly as `EMC2:::log_likelihood_ddmgng` does,
+  the go/no-go log likelihood agrees to 6.1e-16 per go row and 1.3e-15
+  per no-go row. Composed as `EMC2:::log_likelihood_race` does, the
+  racing-diffusion log likelihood agrees to 1.1e-12 over 200 rows at
+  two, three and four accumulators.
+* Where they disagree, the disagreement is adjudicated rather than
+  asserted. EMC2 writes a race loser's survival as `1 - pWald(...)`,
+  which returns EXACTLY ZERO on 35 of 315 grid rows, the first where
+  the true survival is near 1e-13; `rdm()` writes it out directly and
+  returns no zeros anywhere. Against `statmod`, which is party to
+  neither, the single-accumulator density is 4.6e-13 from the truth for
+  this package and 2.1e-04 for EMC2 on the rows where they differ.
+  Similarly `WienR`, which is EMC2's own distribution function, is 4.4
+  percent wrong at a no-go probability of 1.19e-13 at its default
+  precision and at every setting down to 1e-12, and 0.033 percent
+  wrong at its tightest; EMC2 calls it with `precision = 0.005`,
+  looser than any of those, so EMC2 sits at the 4.4 percent end. This
+  family's large-time route is 3.0e-15 there.
+* The suite itself uses only EXPORTED references: `statmod`'s inverse
+  Gaussian averaged over the start point for `rdm()`, and `WienR` and
+  `RWiener` for the go/no-go distribution function. New in `Suggests`:
+  `EMC2`, `statmod` and `WienR`.
+
+## Fixed
+
+* `fitted()`, `predict(type = "response")` and
+  `residuals(type = "response")` now refuse on both new families
+  instead of returning a drift rate. A family that declares no
+  `post$mean_fn` gets frmtmb's fallback, "the first primary dpar on the
+  response scale is the mean", and for these two that number is a
+  drift: `rdm(3)` returned 3.51 for data whose response times average
+  0.36, and `wiener_gng()` returned a constant 1.05 for data whose go
+  response times average 0.6, with nothing to signal it. Both now
+  declare a mean that stops with a reason. For `wiener_gng()` the
+  refusal is also the right answer on the merits: a go/no-go trial
+  produces a pair, and the no-go rows have no response time to average.
+* `rdm()` refuses `dec()` by name rather than ignoring it. Measured on
+  `lba()`, the sibling race family, a `dec()` term supplied alongside
+  `vint()` is silently dropped and the model fits; a model ported over
+  from `wiener()` would otherwise fit while quietly meaning something
+  else.
+
+## Also
+
+* `tests/testthat/test-simulate-density.R` covers the two new families
+  on the same terms as the other three: each family's `sim` slot
+  against that family's own log density, and the defective masses
+  asserted to sum to one. For `wiener_gng()` the go branch's support
+  ends at the deadline rather than running to infinity, and a no-go
+  row's draw is its deadline.
+* The compatibility rows for both families were RUN rather than
+  reasoned about, and several first guesses were wrong: `REML` and
+  `quadrature` both work where they had been written down as refused or
+  untested, `mixture()` refuses `rdm()` outright because its components
+  need a dpar called `mu`, and neither family makes its addition terms
+  mandatory on newdata for a link-scale prediction.
+* `vignette("ddm")` gains a section per family, each with a fitted
+  example, a recovery check and the comparison against EMC2.
+
 # frmtmb.ddm 0.2.0
 
 Three families where there was one: Ratcliff's full diffusion model
