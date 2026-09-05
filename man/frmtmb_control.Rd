@@ -14,6 +14,9 @@ frmtmb_control(
   autoscale = FALSE,
   check_nlev_1 = c("warning", "ignore", "stop"),
   check_olre = c("warning", "ignore", "stop"),
+  importance_seed = 1L,
+  importance_rounds = 5L,
+  importance_ess = 0.25,
   verbose = NULL
 )
 }
@@ -98,6 +101,28 @@ also skipped for the known-structure blocks \code{gr(cov = )},
 proportional to the identity, so the block and the residual are
 separately identified. That is the animal model with one
 measurement per individual.}
+
+\item{importance_seed}{Seed for the standard normal draws of
+\code{frm(importance =)}. The draws are taken from a private random
+stream, so the fit neither reads nor disturbs the session's random
+state: the same seed gives the same answer to the last bit,
+whatever else has drawn random numbers.}
+
+\item{importance_rounds}{Cap on the number of times
+\code{frm(importance =)} refreezes its proposal. Each round rebuilds
+the proposal at the current estimate and optimizes again, and the
+loop stops as soon as either the estimates move less than \code{1e-3}
+or the freshly anchored objective is stationary at them to
+\code{grad_tol}. Measured on this package's own designs that takes two
+to four rounds, with the move falling about tenfold each time, so
+the default leaves one in hand; an unused round costs nothing, and
+each round actually taken costs one tape.}
+
+\item{importance_ess}{Effective sample size, as a fraction of the
+draw count, below which \code{frm(importance =)} warns and names the
+groups. The default \code{0.25} is placed by measurement: the hardest
+design in the test suite holds \code{0.43} at its own optimum, and a
+proposal displaced far enough to matter falls below \code{0.01}.}
 
 \item{verbose}{Report fit progress through \code{\link[=message]{message()}}, one terse
 line per stage with its elapsed seconds, so a slow fit shows where

@@ -86,6 +86,7 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                     se = FALSE, lower = model$lower, upper = model$upper,
                     prior = model$prior,
                     quadrature = isTRUE(model$quadrature),
+                    importance = model$importance$draws %||% 0L,
                     template = tpl, data2 = data2)
     }), error = function(e) NULL)
     if (is.null(fit_i)) next

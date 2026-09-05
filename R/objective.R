@@ -114,6 +114,64 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
   ll
 }
 
+#' The part of one linear predictor that the random-effect coefficients
+#' do not enter: `X beta`, the offset, and the `mo()` and `mi()` terms.
+#' `zterm` is the block contribution `Z b`, added in the position it has
+#' always occupied so that the fitted Laplace tape is unchanged to the
+#' last bit.
+#'
+#' Split out of the loop below because the importance correction
+#' (R/importance.R) needs exactly this piece and nothing else: it is the
+#' same for every importance draw, so it is formed once at length `n`
+#' and expanded, while only the `Z u` contribution varies from draw to
+#' draw. One copy of the arithmetic means the corrected objective cannot
+#' drift away from the objective it corrects.
+#'
+#' @noRd
+lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL) {
+  # The overloads have to be re-established here, and this is the same
+  # trio frmtmb_ad_overload() installs (R/ad-env.R). This code used to
+  # sit inside the objective closure, which sets them once at the top;
+  # a plain base `c(0, advector)` silently drops the advector class,
+  # the mo() simplex is built exactly that way, and the tape then ends
+  # in a bare complex vector instead of a value. Spelled out rather
+  # than wrapped because a wrapper rewrites the body at load time,
+  # which is worth it for an extension author's function and not for
+  # one line of package-internal arithmetic.
+  "c" <- RTMB::ADoverload("c")
+  "[<-" <- RTMB::ADoverload("[<-")
+  "diag<-" <- RTMB::ADoverload("diag<-")
+  # as.vector, not drop: it collapses both Matrix and advector results
+  eta <- if (ncol(lp[["X"]])) {
+    as.vector(lp[["X"]] %*% pars[[lp[["par"]]]][lp[["idx"]]])
+  } else {
+    rep(0, n)   # threshold-only ordinal model
+  }
+  if (!is.null(zterm)) {
+    eta <- eta + zterm
+  }
+  if (!is.null(lp[["offset"]])) {
+    eta <- eta + lp[["offset"]]
+  }
+  # monotonic terms: scale coefficient (in beta, zero X column)
+  # times D * cumulative simplex at the observed category
+  for (mi in lp[["mo"]] %||% list()) {
+    zeta <- exp(c(0, pars[[mi$zeta]]))
+    zeta <- zeta / sum(zeta)
+    cz0 <- c(0, cumsum(zeta))
+    term <- mi$D * cz0[mi$codes + 1L]
+    if (!is.null(mi$mult)) term <- term * mi$mult
+    eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mi$col]] * term
+  }
+  # mi(x) terms: coefficient times the observed-or-latent values
+  for (mt in lp[["mi"]] %||% list()) {
+    xv <- mivals[[mt$var]] %||% yfall[[mt$var]]
+    if (!is.null(mt$mult)) xv <- xv * mt$mult
+    eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mt$col]] * xv
+  }
+  eta
+}
+
 #' Turns an assembled `frmtmb_frame` into the negative log-likelihood
 #' closure that `RTMB::MakeADFun()` tapes. The returned function takes the
 #' parameter list and gives back one value, with the design matrices, the
@@ -238,34 +296,9 @@ build_objective <- function(frame) {
         dparv[[lp[["resp"]]]][[paste0(".eta_", lp[["dpar"]])]] <- eta
         next
       }
-      # as.vector, not drop: it collapses both Matrix and advector results
-      eta <- if (ncol(lp[["X"]])) {
-        as.vector(lp[["X"]] %*% pars[[lp[["par"]]]][lp[["idx"]]])
-      } else {
-        rep(0, n)   # threshold-only ordinal model
-      }
-      if (!is.null(lp[["Z"]])) {
-        eta <- eta + as.vector(lp[["Z"]] %*% bvec)
-      }
-      if (!is.null(lp[["offset"]])) {
-        eta <- eta + lp[["offset"]]
-      }
-      # monotonic terms: scale coefficient (in beta, zero X column)
-      # times D * cumulative simplex at the observed category
-      for (mi in lp[["mo"]] %||% list()) {
-        zeta <- exp(c(0, pars[[mi$zeta]]))
-        zeta <- zeta / sum(zeta)
-        cz0 <- c(0, cumsum(zeta))
-        term <- mi$D * cz0[mi$codes + 1L]
-        if (!is.null(mi$mult)) term <- term * mi$mult
-        eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mi$col]] * term
-      }
-      # mi(x) terms: coefficient times the observed-or-latent values
-      for (mt in lp[["mi"]] %||% list()) {
-        xv <- mivals[[mt$var]] %||% y[[mt$var]]
-        if (!is.null(mt$mult)) xv <- xv * mt$mult
-        eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mt$col]] * xv
-      }
+      eta <- lp_eta_fixed(
+        lp, pars, n, mivals, y,
+        zterm = if (!is.null(lp[["Z"]])) as.vector(lp[["Z"]] %*% bvec))
       # cs(x) terms: n x (K-1) threshold-specific offsets, consumed by
       # the sequential ordinal lpdfs through dpars$.cs
       if (length(lp[["cs"]] %||% list())) {

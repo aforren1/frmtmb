@@ -185,8 +185,8 @@ frmtmb_compat_features_tbl <- function() {
     # they replace the response's density. Hence a kind of their own.
     lapply(c("ar()", "ma()", "arma()", "cosy()", "unstr()"), f,
            kind = "autocor"),
-    lapply(c("REML", "quadrature", "profile", "autoscale", "sparse_x",
-             "prior", "bounds", "verbose"), f, kind = "mode"),
+    lapply(c("REML", "quadrature", "importance", "profile", "autoscale",
+             "sparse_x", "prior", "bounds", "verbose"), f, kind = "mode"),
     lapply(c("mvbf", "rescor", "|ID|", "nl", "mixture",
              "mixture_mvn"), f, kind = "structure"),
     lapply(c("fitted", "predict", "simulate", "residuals",
@@ -242,6 +242,25 @@ frmtmb_compat_groups_lst <- list(
                       "zero_inflated_binomial", "multinomial"),
   # quadrature marginalizes one scalar random effect at a time
   quadrature_blocks = c("us", "diag", "homdiag"),
+  # the importance correction reweights ONE block of any dimension, so
+  # it needs the block density to be gaussian within a level and
+  # independent between levels
+  importance_blocks = c("us", "diag", "homdiag", "cs", "homcs", "toep",
+                        "homtoep", "ar1", "hetar1", "ou", "exp", "gau",
+                        "mat"),
+  # structures that correlate the LEVELS with each other, so the
+  # marginal likelihood does not split into per-group integrals at all
+  crosslevel_blocks = c("gr_cov", "gr_prec", "equalto", "car", "spde"),
+  # every remaining covariance structure, refused outright. The
+  # Student-t latents factorize over levels but are not gaussian in a
+  # level's coefficients, so imp_prior_terms() cannot recover the
+  # per-level density from the block one; rr keeps its parameters in a
+  # different space from its Z columns; and the smooth, gp and hsgp
+  # bases carry no grouping factor at all. Kept exhaustive against
+  # covstruct_registry by a test, so a structure added later cannot
+  # quietly report "untested" here.
+  importance_refused_blocks = c("us_t", "diag_t", "rr", "gp", "hsgp",
+                                "smooth"),
   # every covariance structure quadrature cannot marginalize
   wide_blocks = c("cs", "ar1", "hetar1", "ou", "toep", "homtoep",
                   "homcs", "exp", "gau", "mat", "rr", "equalto",
@@ -415,6 +434,61 @@ frmtmb_compat_rules_tbl <- function() {
   r("REML", "gp_pred()", "works", "Verified by a tiny fit.")
   r("REML", "kind:covstruct", "works",
     "REML integrates the fixed effects and leaves the covariance blocks alone.")
+
+  ## importance ------------------------------------------------------
+  r("importance", "group:importance_blocks", "conditional",
+    "Allowed for exactly ONE such block, of any dimension. This is the correction for a correlated random slope, which quadrature cannot marginalize at all. Several blocks are refused: the integral becomes a nested one whose groups do not separate into independent proposals.")
+  r("importance", "group:importance_refused_blocks", "refused",
+    "Refused by name at the scope check. The Student-t latents (us_t, diag_t) factorize over grouping levels but are not gaussian in a level's coefficients, and the correction recovers each level's prior density from the block density by reading off a precision matrix, which would silently return a gaussian approximation to a t density; measured, that alone moves the corrected log-likelihood by 0.355. rr holds its parameters in a lower-dimensional factor space than its Z columns, so a group's coefficients are not the contiguous per-level slice the proposal is built from. smooth, gp and hsgp are one field over all observations with no grouping factor, so there are no independent groups to give separate proposals to.")
+  r("importance", "group:crosslevel_blocks", "refused",
+    "Refused: these structures correlate the grouping LEVELS with each other through a supplied relationship or neighbor matrix, so the marginal likelihood is one integral over every level at once and does not split into the per-group integrals the correction resamples.")
+  r("importance", "group:post_fit", "works",
+    "The corrected objective carries no conditional modes, so they are recovered from the inner solve of the Laplace objective at the corrected optimum, exactly as under quadrature. ranef(), fitted(), predict() and residuals() are NA-free.")
+  r("importance", "REML", "refused",
+    "Refused: the correction reweights the integral over the random effects, and REML puts the fixed effects into that same integral, where there is no per-group proposal for them.")
+  r("importance", "quadrature", "refused",
+    "Refused: two different corrections of the same approximation. Gauss-Kronrod marginalizes one scalar random intercept at a time; the importance correction reweights the Laplace Gaussian and takes any block dimension.")
+  r("importance", "profile", "refused",
+    "Refused: profiling moves the fixed effects into the inner Laplace problem, and the corrected objective has no inner problem left to move them into.")
+  r("importance", "mi()", "refused",
+    "Refused: the imputed values are latent variables with no grouping factor, so they have no per-group proposal.")
+  r("importance", "trunc()", "works",
+    "Verified, and it does not merely survive truncation, it is unbothered by it. A left-truncated Poisson in 40 groups of 6 gives a finite objective and a minimum effective sample size of 0.94. Walking the bound up past the response median, so that 64 percent of the rows are discarded and a fifth of what is left sits at the bound, still leaves the worst group holding 0.60 of its draws, more than twice the warning threshold, and every fit converged in two or three rounds without being capped. A gaussian right truncation at the median keeps 61 percent of the rows and reports 0.97. This is where the correction differs from quadrature, which must refuse trunc(): the Gauss-Kronrod nodes map the whole real line, so the normalizer log(F(ub) - F(lb)) underflows out there, while importance draws sit within about four conditional standard deviations of the mode, the region the Laplace approximation itself lives in.")
+  r("importance", "cens()", "works",
+    "Verified on a right-censored lognormal in 40 groups of 6, 52 of 240 censored: the Laplace negative log-likelihood of 311.1358 becomes 311.0847, the minimum effective sample size is 0.98 and the median 1.00, and the estimates agree with the Laplace fit to three decimals where the correction is small.")
+  r("importance", "weights()", "works", "Verified by a tiny fit.")
+  r("importance", "nl", "refused",
+    "Refused: a nonlinear body mixes parameter values with raw data columns, and the corrected objective evaluates the predictor once per draw, where a data column would recycle silently against the longer vector.")
+  r("importance", "cs_pred()", "refused",
+    "Refused: cs() contributes threshold-specific offsets as a matrix per observation, which the first version does not stack over draws.")
+  r("importance", "s()", "refused",
+    "Refused: a smooth is one field over all observations, with no grouping factor, so there are no independent groups to give separate proposals to.")
+  r("importance", "t2()", "refused",
+    "Refused: a smooth basis carries no grouping factor.")
+  r("importance", "gp_pred()", "refused",
+    "Refused: gp() builds a field over all observations, not a set of independent groups.")
+  r("importance", "mm()", "refused",
+    "Refused: a multi-membership row belongs to several grouping levels at once, so the marginal likelihood does not factorize over groups. The refusal is measured off the sparsity of Z rather than off the formula, so any term whose rows span levels is caught.")
+  r("importance", "mmc()", "refused",
+    "Refused: mmc() weights are part of a multi-membership term, whose rows span grouping levels.")
+  r("importance", "rescor", "refused",
+    "Refused: the responses share one multivariate normal density per row, which is not the rowwise density the correction resamples.")
+  r("importance", "mvbf", "refused",
+    "Refused in this version: a multivariate model spreads its groups over several likelihood terms, which the first version does not gather.")
+  r("importance", "group:autocor", "refused",
+    "Refused: the correction resamples a random effect against a PRODUCT of per-row densities, and an R-side residual is one joint density over each group, so no per-row integrand exists.")
+  r("importance", "mixture", "refused",
+    "Refused: a mixture supplies its own log-likelihood, which does not factorize over rows, so a group's rows have no separable integrand to resample.")
+  r("importance", "bounds", "works", "Verified by a tiny fit.")
+  r("importance", "prior", "works",
+    "Works, with the usual caveat: the objective then includes the prior terms, so the corrected log-likelihood is a penalized quantity.")
+  r("importance", "autoscale", "works",
+    "Verified: the corrected log-likelihood is identical with and without autoscale, including with a predictor scaled by 1e6 so the pre-fit actually engages, and the correction survives it. The autoscale pre-fit itself deliberately runs as a plain Laplace fit: it only derives a scaling, and a corrected pre-fit would pay the whole cost twice for the same answer.")
+  r("importance", "sparse_x", "works",
+    "Verified: identical corrected log-likelihood and identical effective sample sizes with a sparse fixed-effect design.")
+  r("importance", "mo()", "works",
+    "Verified by a fit with a monotonic term on the corrected linear predictor; the correction is recorded and the effective sample sizes are unaffected.")
+  r("importance", "group:ordinal", "untested", "")
 
   ## quadrature --------------------------------------------------------
   r("quadrature", "group:wide_blocks", "refused",

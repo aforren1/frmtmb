@@ -237,6 +237,7 @@ refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
                 se = FALSE, lower = object$lower, upper = object$upper,
                 prior = object$prior,
                 quadrature = isTRUE(object$quadrature),
+                importance = object$importance$draws %||% 0L,
                 template = if (is.null(start)) object$estimates,
                 data2 = object$data2 %||% list())
 }

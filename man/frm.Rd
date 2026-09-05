@@ -15,6 +15,7 @@ frm(
   na.action = stats::na.omit,
   prior = NULL,
   quadrature = FALSE,
+  importance = 0L,
   data2 = list(),
   dry_run = NULL,
   verbose = FALSE
@@ -152,6 +153,47 @@ starting point decides whether the marginalized objective is
 finite at all. That fit also supplies the conditional modes, which
 the marginalized objective no longer carries, so \code{ranef()},
 \code{fitted()} and \code{predict()} work as usual.}
+
+\item{importance}{Number of importance draws per group, or \code{0}
+(default) for none. A positive count replaces the Laplace
+approximation with an importance-sampling correction of it
+(Skaug and Fournier 2006, the ADMB \code{-is} option): each group's
+marginal likelihood is re-estimated by reweighting draws from the
+Laplace Gaussian, which is unbiased for the exact integral rather
+than accurate to \code{O(n^-1)}. Like \code{quadrature = TRUE} it is worth
+it for binary responses in small clusters, and unlike it, the
+block may have any dimension: this is the correction for a
+correlated random slope, where quadrature cannot go.
+
+The cost is one tape of \code{N} stacked copies of the likelihood, so
+time and memory grow linearly in the draw count. An odd count is
+rounded up to the next even one, because the draws are taken in
+antithetic pairs (measured on this package's own probe design,
+the pairing is worth two to three times the draws it costs).
+
+Scope, with everything else refused by name: exactly one
+random-effect block over a grouping factor, of any dimension and
+any covariance structure that is Gaussian within a level and
+independent between levels; one response; a family with a rowwise
+density. Not with \code{quadrature}, \code{REML = TRUE},
+\code{frmtmb_control(profile = TRUE)}, \code{mi()}, a residual correlation
+term, \code{rescor}, a nonlinear predictor, or \code{cs()}. \code{trunc()} and
+\code{cens()} are supported: the draws sit near the conditional mode,
+which is why the truncation normalizer that underflows at the
+Gauss-Kronrod nodes does not underflow here.
+
+The fit records the draw count, the seed, the rounds taken, the
+per-group effective sample sizes and the Monte Carlo standard
+error of the corrected log-likelihood in \code{fit$importance};
+\code{summary()} prints them. \code{logLik()}, \code{AIC()}, \code{vcov()} and
+\code{confint()} all come from the corrected objective, with two
+caveats worth knowing. The reported estimate is the optimum of the
+previous round's proposal, so the covariance is a Hessian at a
+point that is stationary only to \code{fit$importance$grad}. And
+\code{confint(method = "profile")} walks the FROZEN proposal instead of
+refitting, so it warns when a bound lands where the weights no
+longer cover the integrand. The seed, the round cap and the
+effective-sample-size threshold are \code{\link[=frmtmb_control]{frmtmb_control()}} settings.}
 
 \item{data2}{A named list of objects that are not columns of \code{data}:
 the adjacency matrix of \code{car()}, the mesh triple of \code{spde()}, and
