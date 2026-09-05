@@ -229,3 +229,39 @@ test_that("CE prediction intervals respect trials() and trunc()", {
                              conditions = list(lo = 0.5))
   expect_true(all(ce2$x$lower__ >= 0.5))
 })
+
+test_that("a prior draw undoes the placement it was written on", {
+  skip_if_not_installed("brms")
+  set.seed(21)
+  dd <- data.frame(x = rnorm(200) + 4, g = factor(rep(1:20, 10)), y = 0)
+  form <- bf(y ~ x + (1 | g)) + gaussian()
+
+  # a brms row on sigma's own class is a density on SIGMA, so the draw
+  # is a standard deviation and the internal value written back is its
+  # logarithm. Tight enough that the draw is effectively pinned.
+  pl <- set_prior("normal(1, 1e-6)", class = "Intercept") +
+    set_prior("normal(0.5, 1e-6)", class = "b") +
+    set_prior("normal(0.7, 1e-9)", class = "sd") +
+    frmtmb:::as_priorlist(brms::prior(normal(0.6, 1e-9), class = "sigma"))
+  a <- frm_simulate(form, dd, prior = pl, nsim = 6, seed = 3)
+  pars <- attr(a, "pars")
+  expect_true(all(abs(pars$sigma_Intercept - 0.6) < 1e-5))
+
+  # the class "Intercept" draw is the intercept at the MEAN of x, and
+  # the table reports what was WRITTEN, because `newparams` spells
+  # `Intercept` as the intercept at zero and the two tables have to
+  # round-trip. mean(x) is near 4 here, so the two are far apart.
+  expect_true(all(abs(pars$Intercept +
+                        mean(dd$x) * pars$x - 1) < 1e-4))
+  expect_gt(abs(mean(pars$Intercept) - 1), 1)
+
+  # an ordinal threshold prior is a density on a whole ordered vector,
+  # and one draw per threshold would not be ordered, so it is refused
+  # rather than approximated. frm_simulate() stops earlier than this on
+  # an ordinal model, at the natural-scale newparams check, so the
+  # guard is pinned where it lives.
+  e <- list(comp = "tau_raw", idx = 1:2, scale = "ordthres",
+            dist = prior_t(3, 0, 2.5))
+  expect_error(frmtmb:::draw_prior_entry(e, "tau_raw"),
+               "whole threshold vector")
+})

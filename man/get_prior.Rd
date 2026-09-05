@@ -52,6 +52,10 @@ A nonlinear parameter's coefficients are listed under class \code{"b"}
 with its name in the \code{nlpar} column, the intercept among them, which
 is how brms lists them and what \code{\link[=set_prior]{set_prior()}} addresses (see its
 Nonlinear parameters section).
+
+An ordinal family has no intercept column, so its class \code{"Intercept"}
+row names the THRESHOLD vector, which is what the same row means in
+brms. See the Ordinal thresholds section of \code{\link[=set_prior]{set_prior()}}.
 }
 \section{Which route the defaults describe}{
 

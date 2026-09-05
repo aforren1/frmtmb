@@ -419,26 +419,275 @@ test_that("brms prior rows frmtmb cannot mean are refused by name", {
   expect_error(frmtmb:::as_priorlist(brms::prior(normal(0, 1),
                                                  class = "theta")),
                "mixture proportion")
-  # a distributional parameter's own class, whose density brms puts on
-  # a different scale from frmtmb's nearest spelling
-  expect_error(frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 10),
-                                                 class = "sigma")),
-               "LINK scale")
+  # and the structures frmtmb holds somewhere else entirely, each named
+  # with the class that reaches the same parameters
+  expect_error(frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 1),
+                                                 class = "sds")),
+               "class = \"sd\" with group", fixed = TRUE)
+  expect_error(frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 1),
+                                                 class = "sdgp")),
+               "class = \"sd\" with group", fixed = TRUE)
+  expect_error(frmtmb:::as_priorlist(brms::prior(normal(0, 1),
+                                                 class = "lscale")),
+               "class = \"theta\"", fixed = TRUE)
+  expect_error(frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 1),
+                                                 class = "sdcar")),
+               "class = \"sd\" with group", fixed = TRUE)
+  expect_error(frmtmb:::as_priorlist(brms::prior(beta(1, 1),
+                                                 class = "car")),
+               "class = \"theta\"", fixed = TRUE)
+  expect_error(frmtmb:::as_priorlist(brms::prior(dirichlet(1),
+                                                 class = "simo")),
+               "simo")
   # a tag names a prior inside a Stan program
   expect_error(frmtmb:::as_priorlist(brms::prior(normal(0, 1),
                                                  class = "b",
                                                  tag = "mytag")),
                "Drop the tag")
   # a density frmtmb does not carry says which one it was
-  expect_error(frmtmb:::as_priorlist(brms::prior(gamma(0.01, 0.01),
+  expect_error(frmtmb:::as_priorlist(brms::prior(uniform(0, 10),
                                                  class = "sd")),
                "Unsupported prior distribution")
+  # brms's shrinkage priors reach that same message rather than the
+  # generic parse failure. R2D2() needs both halves of the fix: an
+  # upper-case name and an empty argument list
+  for (p in c("R2D2()", "horseshoe(1)", "lasso(1)")) {
+    expect_error(frmtmb:::parse_prior_dist(p),
+                 "Unsupported prior distribution")
+  }
+})
 
-  # slot-listing rows carry no density and are dropped, not refused
+test_that("a coef frmtmb cannot honor is refused, not applied wider", {
+  skip_if_not_installed("brms")
+  # brms narrows an sd row to one coefficient of a block and writes
+  # exponential_lpdf(sd_1[2] | 1), keeping its default on sd_1[1].
+  # frmtmb's class "sd" addresses a BLOCK and never reads `coef`, so
+  # honoring the row without it would put the density on every standard
+  # deviation of the block. Measured before this refusal: coef =
+  # "Intercept", coef = "x" and no coef gave one bit-identical
+  # objective. Silently widening a prior is the failure D1 exists to
+  # remove, so the row is refused and the whole-block spelling named.
+  expect_error(
+    frmtmb:::as_priorlist(brms::prior(exponential(1), class = "sd",
+                                      group = "g", coef = "x")),
+    "addresses a whole random-effect BLOCK", fixed = TRUE)
+  expect_error(
+    frmtmb:::as_priorlist(brms::prior(lkj(2), class = "cor",
+                                      group = "g", coef = "x")),
+    "addresses a whole correlation matrix", fixed = TRUE)
+  # the whole-block row, which is the spelling the message names, still
+  # translates
+  expect_s3_class(
+    frmtmb:::as_priorlist(brms::prior(exponential(1), class = "sd",
+                                      group = "g")),
+    "frmtmb_priorlist")
+  # and a coef frmtmb DOES honor is untouched
+  expect_identical(
+    unclass(frmtmb:::as_priorlist(brms::prior(normal(0, 1), class = "b",
+                                              coef = "x")))[[1L]]$coef,
+    "x")
+})
+
+test_that("coef and group narrow the classes that read them", {
+  # the other half of the same question, and the reason the refusal
+  # above is narrow: `coef` on class "b" and `group` on "sd"/"cor" DO
+  # bite. A design with two slopes and two correlated blocks is what
+  # makes that visible; with one of each every spelling picks the same
+  # parameters and the test would pass while proving nothing.
+  set.seed(77)
+  n <- 300
+  d <- data.frame(x = stats::rnorm(n), z = stats::rnorm(n),
+                  g = factor(rep(1:20, 15)), h = factor(rep(1:15, 20)))
+  d$y <- stats::rnorm(n, 1 + 0.5 * d$x - 0.3 * d$z +
+                        stats::rnorm(20, 0, 0.7)[d$g], 1)
+  fit <- frm(bf(y ~ x + z + (x | g) + (z | h)) + gaussian(), data = d)
+  idx <- function(pl) {
+    e <- frmtmb:::resolve_prior_input(fit, pl)$entries
+    sort(unlist(lapply(e, function(z) paste0(z$comp, z$idx))))
+  }
+  b_all <- idx(set_prior("normal(0, 0.1)", class = "b"))
+  expect_length(b_all, 2L)
+  expect_identical(idx(set_prior("normal(0, 0.1)", class = "b",
+                                 coef = "x")), b_all[1])
+  expect_identical(idx(set_prior("normal(0, 0.1)", class = "b",
+                                 coef = "z")), b_all[2])
+
+  cor_all <- idx(set_prior("lkj(6)", class = "cor"))
+  expect_length(cor_all, 2L)
+  expect_length(idx(set_prior("lkj(6)", class = "cor", group = "g")), 1L)
+  expect_length(idx(set_prior("lkj(6)", class = "cor", group = "h")), 1L)
+  expect_false(identical(idx(set_prior("lkj(6)", class = "cor",
+                                       group = "g")),
+                         idx(set_prior("lkj(6)", class = "cor",
+                                       group = "h"))))
+
+  expect_length(idx(set_prior("exponential(1)", class = "sd")), 4L)
+  expect_length(idx(set_prior("exponential(1)", class = "sd",
+                              group = "g")), 2L)
+})
+
+test_that("every refused row of a table is named in one message", {
+  skip_if_not_installed("brms")
+  # A table is edited as a whole, so stopping at the first bad row costs
+  # one round trip per bad row. y ~ gp(x) carries an `lscale` row AND an
+  # `sdgp` row: naming only the first made it two edit rounds.
+  set.seed(3)
+  dd <- data.frame(x = stats::rnorm(60))
+  dd$y <- stats::rnorm(60, dd$x)
+  gp <- brms::get_prior(brms::bf(y ~ gp(x)), data = dd,
+                        family = stats::gaussian())
+  msg <- tryCatch(frmtmb:::as_priorlist(gp), error = conditionMessage)
+  expect_match(msg, "2 rows", fixed = TRUE)
+  expect_match(msg, "lscale", fixed = TRUE)
+  expect_match(msg, "sdgp", fixed = TRUE)
+  # and one bad row still reads as one row
+  one <- tryCatch(frmtmb:::as_priorlist(
+    brms::prior(student_t(3, 0, 1), class = "sds")),
+    error = conditionMessage)
+  expect_match(one, "1 row with", fixed = TRUE)
+})
+
+test_that("inv_gamma and beta are the densities brms's defaults need", {
+  skip_if_not_installed("brms")
+  # brms's default on a shape parameter is inv_gamma and on a zi/hu is
+  # beta, so before these two arms every negbinomial, zero-inflated and
+  # hurdle table stopped for want of a density rather than for want of
+  # a parameter frmtmb holds.
+  expect_identical(frmtmb:::parse_prior_dist("inv_gamma(0.4, 0.3)"),
+                   prior_inv_gamma(0.4, 0.3))
+  expect_identical(frmtmb:::parse_prior_dist("beta(1, 1)"),
+                   prior_beta(1, 1))
+
+  # the densities and their AD gradients, against R's own
+  ad_grad <- function(dist, x) {
+    tp <- RTMB::MakeTape(function(p) frmtmb:::prior_base_logdens(p[1],
+                                                                 dist), x)
+    c(as.numeric(tp(x)), as.numeric(tp$jacobian(x)))
+  }
+  for (x in c(0.15, 0.8, 3.2)) {
+    d <- prior_inv_gamma(0.4, 0.3)
+    got <- ad_grad(d, x)
+    # dinvgamma equivalent: the gamma density of 1/x, times the
+    # Jacobian of that reciprocal
+    expect_equal(got[1],
+                 stats::dgamma(1 / x, shape = 0.4, rate = 0.3,
+                               log = TRUE) - 2 * log(x),
+                 tolerance = 1e-15)
+    expect_equal(got[2], -(0.4 + 1) / x + 0.3 / x^2, tolerance = 1e-15)
+  }
+  for (x in c(0.02, 0.5, 0.97)) {
+    got <- ad_grad(prior_beta(2, 3), x)
+    expect_equal(got[1], stats::dbeta(x, 2, 3, log = TRUE),
+                 tolerance = 1e-15)
+    expect_equal(got[2], 1 / x - 2 / (1 - x), tolerance = 1e-15)
+  }
+})
+
+test_that("a zero-inflated table translates onto zi itself", {
+  skip_if_not_installed("brms")
+  # The row this removes from the stop set, end to end. brms declares
+  # real<lower=0,upper=1> zi and puts beta(1, 1) on it; frmtmb holds zi
+  # as a logit-scale intercept, so the density lands on zi through the
+  # logit inverse link with that map's log-Jacobian, and brms's
+  # lb = 0/ub = 1 become no constraint on the logit scale. That is the
+  # non-log branch of the bound transform, exercised in both directions.
+  set.seed(12)
+  n <- 300
+  d <- data.frame(x = stats::rnorm(n))
+  d$zi <- stats::rpois(n, exp(1 + 0.4 * d$x)) *
+    stats::rbinom(n, 1, 0.75)
+  gp <- brms::get_prior(brms::bf(zi ~ x), data = d,
+                        family = brms::zero_inflated_poisson())
+  pl <- frmtmb:::as_priorlist(gp)
+  fit <- frm(bf(zi ~ x) + zero_inflated_poisson(), data = d, prior = pl)
+  ri <- frmtmb:::resolve_prior_input(fit, pl)
+  zi_e <- Filter(function(e) identical(e$comp, "betad"), ri$entries)
+  expect_length(zi_e, 1L)
+  expect_identical(zi_e[[1L]]$scale, "natural")
+  expect_identical(zi_e[[1L]]$link$name, "logit")
+  expect_identical(zi_e[[1L]]$dist$kind, "beta")
+  expect_identical(unname(ri$lower[["zi_(Intercept)"]]), -Inf)
+  expect_identical(unname(ri$upper[["zi_(Intercept)"]]), Inf)
+})
+
+test_that("a brms distributional class is routed, not refused", {
+  skip_if_not_installed("brms")
+  # BEHAVIOR CHANGE. brms spells a prior on sigma itself class =
+  # "sigma", and that row used to be refused because frmtmb's nearest
+  # spelling sits on LOG sigma. It is now routed to the slot that holds
+  # sigma's intercept and marked `natural`, so the density is about
+  # sigma, which is what the row said.
+  pl <- frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 10),
+                                          class = "sigma"))
+  s <- unclass(pl)[[1L]]
+  expect_identical(s$class, "Intercept")
+  expect_identical(s$dpar, "sigma")
+  expect_true(isTRUE(s$natural))
+
+  # frmtmb's OWN spelling is untouched: it still means log sigma, and it
+  # still carries no `natural` field at all. A field written as FALSE
+  # would itself be a change, and frmtmb.sample reads its absence
+  own <- unclass(set_prior("student_t(3, 0, 10)", class = "Intercept",
+                           dpar = "sigma"))[[1L]]
+  expect_null(own$natural)
+
+  # gamma is one of brms's dispersion defaults and now parses, so a
+  # shape/phi/nu/kappa row translates rather than stopping at the parser
+  gp <- frmtmb:::as_priorlist(brms::prior(gamma(0.01, 0.01),
+                                          class = "phi"))
+  expect_identical(unclass(gp)[[1L]]$dist$kind, "gamma")
+  expect_identical(unclass(gp)[[1L]]$dpar, "phi")
+})
+
+test_that("a brms table applies what its prior strings say", {
+  skip_if_not_installed("brms")
+  # BEHAVIOR CHANGE. Rows used to be dropped by the `source` column with
+  # a message. `source` records who BUILT a row, not who wrote the
+  # density in it, so the drop lost a prior the user had edited in place
+  # and reported it as one brms had filled in. A row now applies
+  # whatever its `prior` string says, which is brms's own rule.
   dd <- data.frame(y = stats::rnorm(40), x = stats::rnorm(40))
   gp <- brms::get_prior(y ~ x, data = dd, family = stats::gaussian())
-  expect_message(pl2 <- frmtmb:::as_priorlist(gp), "as its own defaults")
-  expect_true(is.null(pl2) || inherits(pl2, "frmtmb_priorlist"))
+  expect_silent(pl2 <- frmtmb:::as_priorlist(gp))
+  expect_s3_class(pl2, "frmtmb_priorlist")
+  # exactly the live rows, and nothing for a slot brms left flat
+  live <- sum(nzchar(as.data.frame(gp)$prior))
+  expect_identical(length(unclass(pl2)), as.integer(live))
+
+  # a slot-listing row with an empty prior is not a prior to apply, so a
+  # table with nothing live in it carries no density at all. What can
+  # survive is brms echoing a parameter's own declared bound onto the
+  # row, which frmtmb turns into the internal box that bound implies
+  gp$prior <- ""
+  blank <- frmtmb:::as_priorlist(gp)
+  expect_true(is.null(blank) ||
+                all(vapply(unclass(blank), function(s) is.null(s$dist),
+                           TRUE)))
+})
+
+test_that("a flat row of a class frmtmb cannot name is not a refusal", {
+  skip_if_not_installed("brms")
+  # A smooth's wiggliness SD is class "sds" in brms and class "sd" with
+  # a group here, so the LIVE row is refused by name with the spelling
+  # that reaches the same parameters. Honoring the table exposes that
+  # refusal where the row used to be dropped in silence, which is the
+  # cost of reading the prior string instead of the `source` column.
+  dd <- data.frame(y = stats::rnorm(60), x = stats::rnorm(60))
+  gp <- brms::get_prior(y ~ s(x), data = dd, family = stats::gaussian())
+  expect_error(frmtmb:::as_priorlist(gp), "class = \"sd\" with group",
+               fixed = TRUE)
+
+  g <- as.data.frame(gp)
+  # brms puts a bound only on the row that carries the density, so its
+  # own flat rows never reach the gate. A hand-written flat row with a
+  # bound does, and it is a slot listing rather than a refusal: the
+  # bound restates a declaration frmtmb's parameterization already makes
+  g$prior[g$class == "sds"] <- ""
+  g$lb[g$class == "sds"] <- "0"
+  expect_silent(pl <- frmtmb:::as_priorlist(
+    structure(g, class = c("brmsprior", "data.frame"))))
+  expect_false(any(vapply(unclass(pl),
+                          function(s) identical(s$class, "sds"), TRUE)))
 })
 
 # ---- nothing that already worked changed ------------------------------

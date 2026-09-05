@@ -118,6 +118,17 @@ The drawn values come back as \code{attr(result, "pars")}, one row per
 simulation, so a prior-predictive check can relate parameters to
 outcomes.
 
+That table reports each parameter on the scale \code{newparams} names it
+on, which for \code{Intercept} is the intercept at ZERO. A
+\code{class = "Intercept"} prior is a density on the intercept at the MEAN
+of the predictors (see the Where an intercept prior lands section of
+\code{\link[=set_prior]{set_prior()}}), so on a design with uncentered predictors the number
+drawn and the number reported differ by \code{colMeans(X)} times the
+slopes. Reporting the written value is what lets a \code{pars} row be
+handed straight back as \code{newparams}. A prior on a distributional
+parameter's own brms class is likewise drawn on that parameter and
+reported there, not on its link scale.
+
 Parameters without a prior keep their \code{newparams} value. Whenever
 \code{prior} are used, or \code{newparams} uses the natural spelling, every
 fixed coefficient and every random-effect SD must be pinned by one

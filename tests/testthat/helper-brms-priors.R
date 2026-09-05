@@ -60,9 +60,10 @@ bp_row_priorlist <- function(g, i) {
 # The order is as_priorlist()'s own: it runs the class gate before it
 # spells the row, so a row that fails both reports the class.
 #
-# Every live row is ALSO dropped before any of this, because
-# as_priorlist() skips rows whose `source` is "default", and every row
-# get_prior() writes is a default. `dropped_as_default` records that.
+# The `source` column is not consulted, here or in the package. It
+# records who BUILT a row rather than who wrote the density in it, and
+# reading it used to drop every one of these rows before its own fate
+# could be asked about.
 bp_classify_rows <- function(gp, fit = NULL) {
   g <- as.data.frame(gp)
   g$kind <- ifelse(nzchar(g$prior), bp_dist_kind(g$prior), "")
@@ -81,7 +82,6 @@ bp_classify_rows <- function(gp, fit = NULL) {
       "honored"
     }
   }
-  g$dropped_as_default <- live & g$source == "default"
   if (!is.null(fit)) {
     for (i in which(g$status == "honored")) {
       bad <- inherits(try(resolve_prior_input(fit, bp_row_priorlist(g, i)),
@@ -93,15 +93,14 @@ bp_classify_rows <- function(gp, fit = NULL) {
 }
 
 # One frmtmb set_prior() call per named row. The rows are re-spelled
-# rather than handed over as a frame because as_priorlist() drops
-# anything brms marked as its own default, which is every row of a
-# get_prior() table.
+# rather than handed over as a frame so that each row's own fate is
+# separable from the table's.
 #
 # A brms class that the gate accepts but set_prior() has no name for
 # cannot be guessed at here: the translator is asked for the spelling
-# frm(prior = ) would use instead. No such row exists today, and one
-# exists under any decision that routes a distributional class rather
-# than refusing it, which is the point.
+# frm(prior = ) would use instead. That is how a distributional class
+# reaches its routed spelling, which is the one thing about this file
+# that must not be restated locally.
 bp_frm_prior <- function(g, idx) {
   out <- NULL
   for (i in idx) {
@@ -115,24 +114,26 @@ bp_frm_prior <- function(g, idx) {
   out
 }
 
-# The nearest spelling frmtmb offers for a brms dpar class. Its own
-# refusal message names it: class = "Intercept" with dpar = the class,
-# and says the density then sits on the LINK scale. `natural = TRUE` is
-# the internal flag that puts it back on the natural scale with the log
-# Jacobian, the placement class "sd" already uses; only the
-# default-prior builder of frm_sample() sets it, so a measurement of
-# that placement has to write it by hand.
-bp_dpar_prior <- function(g, idx, natural = FALSE) {
+# Is this row one the translator routes to the NATURAL placement, that
+# is, a distributional parameter's own class? Asked of the package, so
+# that a change to the routing set moves the row sets below with it.
+bp_is_natural_row <- function(g, i) {
+  pl <- try(bp_row_priorlist(g, i), silent = TRUE)
+  if (inherits(pl, "try-error") || is.null(pl)) return(FALSE)
+  any(vapply(unclass(pl), function(s) isTRUE(s$natural), TRUE))
+}
+
+# frmtmb's OWN spelling for the same parameter: class = "Intercept" with
+# dpar = the brms class, which sits on the LINK scale. This is the
+# spelling ?set_prior documents as diverging from brms, and the reason
+# it still exists is that flipping it would change what an existing
+# frmtmb script means (see dev/priors-findings.md). Measuring it beside
+# the routed one is what shows the size of that divergence.
+bp_dpar_link_prior <- function(g, idx) {
   out <- NULL
   for (i in idx) {
     one <- set_prior(g$prior[[i]], class = "Intercept",
                      dpar = g$class[[i]], resp = g$resp[[i]])
-    if (natural) {
-      one <- structure(lapply(unclass(one), function(e) {
-        e$natural <- TRUE
-        e
-      }), class = "frmtmb_priorlist")
-    }
     out <- if (is.null(out)) one else out + one
   }
   out
@@ -232,9 +233,14 @@ bp_prior_entries <- function(fit, prior) {
     idx = vapply(ents, function(e) paste(e$idx, collapse = ","), ""),
     scale = vapply(ents, function(e) e$scale, ""),
     kind = vapply(ents, function(e) e$dist$kind, ""),
+    # the entry may carry a centering offset over OTHER parameters, so
+    # the value is read the way neg_log_prior_fn() reads it rather than
+    # from the entry's own slot alone
+    centered = vapply(ents, function(e) !is.null(e$offset), TRUE),
     value = vapply(ents, function(e) {
       as.numeric(sum(prior_logdens(plist[[e$comp]][e$idx], e$dist,
-                                   e$scale)))
+                                   e$scale, e$link,
+                                   frmtmb:::entry_offset(e, plist))))
     }, numeric(1)),
     stringsAsFactors = FALSE)
 }
@@ -288,9 +294,15 @@ bp_check <- function(fit, fit0, sf, sf_flat, sdat, code, rtab = NULL,
 }
 
 # Everything one shape needs, built once: the row classification, the
-# three Stan programs, and the three frmtmb fits (honored rows only;
-# honored plus the dpar rows in frmtmb's LINK-scale spelling; honored
-# plus the same rows on the NATURAL scale).
+# three Stan programs, and two frmtmb fits.
+#
+#   hon   every row frm(prior = ) accepts, in the meaning the
+#         translator gives it. This is what a ported brms script gets.
+#   link  the same set with each distributional-class row respelled in
+#         frmtmb's OWN class = "Intercept" + dpar = spelling, which sits
+#         on the LINK scale. Built only where such a row exists, and
+#         only to measure the documented divergence between the two
+#         spellings; it is not what a translated table does.
 #
 # Nothing is asserted here. The assertions belong in the test file,
 # where the number being pinned is next to the reason it holds.
@@ -300,15 +312,11 @@ bp_shape <- function(bform, family, data, frm_model, joint = FALSE,
   fit0 <- frm(frm_model, data = data)
   g <- bp_classify_rows(gp, fit0)
   hon <- which(g$status == "honored")
-  # the refused dpar rows worth probing. The density has to be one the
-  # package parses, read off the same gate the status came from; brms's
-  # theta* names a different parameter rather than a placement question.
-  dpi <- which(g$status == "refused: class" & g$dist_ok &
-                 !startsWith(g$class, "theta"))
-  dpi <- dpi[vapply(dpi, function(i) {
-    !inherits(try(resolve_prior_input(fit0, bp_dpar_prior(g, i)),
-                  silent = TRUE), "try-error")
-  }, logical(1))]
+  # the honored rows the translator puts on the parameter ITSELF. Read
+  # off the translator rather than from a list of class names here, so
+  # that the row set follows the routing decision instead of restating
+  # it.
+  dpi <- hon[vapply(hon, function(i) bp_is_natural_row(g, i), TRUE)]
   mk <- function(pr) {
     brms::make_stancode(bform, data = data, family = family,
                         prior = pr, ...)
@@ -320,10 +328,8 @@ bp_shape <- function(bform, family, data, frm_model, joint = FALSE,
                flat = mk(bp_stan_prior(gp)))
   sf <- lapply(code, bp_stanfit, sdat = sdat)
   pl <- list(hon = bp_frm_prior(g, hon),
-             link = bp_prior_c(bp_frm_prior(g, hon),
-                               bp_dpar_prior(g, dpi, natural = FALSE)),
-             nat = bp_prior_c(bp_frm_prior(g, hon),
-                              bp_dpar_prior(g, dpi, natural = TRUE)))
+             link = bp_prior_c(bp_frm_prior(g, setdiff(hon, dpi)),
+                               bp_dpar_link_prior(g, dpi)))
   fitof <- function(p) {
     if (is.null(p)) fit0 else frm(frm_model, data = data, prior = p)
   }
@@ -334,10 +340,8 @@ bp_shape <- function(bform, family, data, frm_model, joint = FALSE,
               hon = bp_check(fit$hon, fit0, sf$hon, sf$flat, sdat,
                              code$hon, rtab, joint))
   if (length(dpi)) {
-    out$link <- bp_check(fit$link, fit0, sf$full, sf$flat, sdat,
-                         code$full, rtab, joint)
-    out$nat <- bp_check(fit$nat, fit0, sf$full, sf$flat, sdat,
-                        code$full, rtab, joint)
+    out$link <- bp_check(fit$link, fit0, sf$hon, sf$flat, sdat,
+                         code$hon, rtab, joint)
   }
   out
 }

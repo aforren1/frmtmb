@@ -136,6 +136,37 @@ Extend with one `(1 | g)` variant of rows 3, 4, 8, 10, 12, 16 for C.
 
 ## Follow-on, priors
 
+**Status: MEASURED, then FIXED.** The measurement round below found
+four divergences and changed no code. The PRIORS lane
+(`dev/priors-findings.md`, branch `wt-priors`) then took all four, and
+`tests/testthat/test-brms-priors.R` records the result as identities
+instead of pins: 83 assertions, 11 blocks, warm in about 14 s.
+
+What the fix leaves standing, shape by shape, with `dT` the AT=TRUE
+`log_prob` minus frmtmb's penalized objective and `gT` that gradient:
+
+| shape | `dT` after | `gT` after | what remains |
+| --- | --- | --- | --- |
+| S2 `y ~ x + z, sigma ~ x` | -5.7e-14 | 5.7e-04 | nothing |
+| S4 `cumulative(y ~ x)` | -5.7e-14 | 5.6e-04 | nothing |
+| S5 `y ~ a exp(-b x)` | `log 2` | 3.5e-05 | the half-t renormalizer |
+| S7 `Reaction ~ Days` | `log 2` | 6.8e-06 | the half-t renormalizer |
+| S1 `(1 \| Subject)` | `2 log 2` | joint | the renormalizers |
+| S3 `(Days \| Subject)` | 2.08016961 | joint | the renormalizers, the LKJ coordinate, Stan's Cholesky Jacobian |
+| S6 `mixture` | 2.74798120 | 1.00 | the renormalizers, brms's ordered mixture intercepts |
+
+So frmtmb maximizes exactly the density brms samples wherever the
+optimum is a real mode. The two residuals left are a constant per
+lower-bounded parameter and the LKJ coordinate change, both of which
+this plan already documents as admitted constants.
+
+Three divergences are reported rather than fixed, and
+`dev/priors-findings.md` carries their measured consequence: frmtmb's
+OWN `class = "Intercept", dpar = "sigma"` spelling still means log
+sigma; brms's `sds`, `sdgp`, `lscale` and `simo` have no frmtmb
+density; and brms's mixture declares its component intercepts as an
+`ordered` vector, whose transform frmtmb has no counterpart for.
+
 **Done, 2026-09-05, on branch `wt-brms-priors`.** Checks A and B were
 repeated with brms's own `get_prior()` defaults on seven shapes
 (random intercept, distributional, correlated slope, ordinal,
