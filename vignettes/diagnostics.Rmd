@@ -261,8 +261,15 @@ fit neither reads nor disturbs the session's random state.
 
 ### Scope
 
-The first version corrects exactly one random-effect block over a
-grouping factor, of any dimension, for a single response whose family
+The correction takes any number of random-effect blocks, of any
+dimension, if they share one grouping factor with one set of levels.
+That is what distributional regression writes: `(1 | g)` in `mu` and
+`(1 | g)` in `sigma` are two blocks over `g`, and a level's
+coefficients from both are drawn together from one proposal. Blocks
+over *different* factors, crossed or nested, are refused by name,
+because the marginal likelihood is then one integral over every factor
+at once and does not split into the per-group integrals the correction
+resamples. The response must be a single one whose family
 has a rowwise density. `trunc()` and `cens()` are supported, which is a
 real difference from `quadrature = TRUE`: that method has to refuse
 truncation because its far quadrature nodes underflow the truncation

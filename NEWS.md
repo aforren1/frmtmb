@@ -198,6 +198,32 @@ to match.
   the frame, as `frm()` already did. This is what made
   `frmtmb.ddm::gddm()` unreachable from `frm_simulate()`.
 
+* `frm(importance = )` now corrects a model with SEVERAL random-effect
+  blocks over one grouping factor, which is what distributional
+  regression produces: `(1 | g)` in `mu` and `(1 | g)` in `sigma`,
+  `(1 | g) + (0 + x | g)`, or a block in `mu` and one in a
+  distributional parameter. A grouping level's coefficients from every
+  block are drawn together from one joint proposal, so the blocks stay
+  coupled through the group's rows the way the likelihood couples them.
+  Blocks over *different* grouping factors are still refused, and the
+  message names the blocks and the factors: crossed or nested factors
+  make the marginal likelihood one integral over every factor at once,
+  which does not split into the per-group integrals the correction
+  resamples.
+* Validated against a brute-force reference that shares no code with
+  the package. On 12 groups of 10 rows with `(1 | g)` in `mu` and
+  `(1 | g)` in `sigma`, each group's marginal likelihood was integrated
+  by two-dimensional Gauss-Hermite quadrature over `(b_mu, b_sigma)`
+  against `dnorm()` directly. The reference is 193.161829; the
+  correction at 2000 draws gives 193.137101, which is 0.61 of its own
+  Monte Carlo standard error of 0.0404, while the Laplace
+  approximation gives 193.396458, or 5.8 of that error. The same
+  comparison under a likelihood no identity fixes, 30 groups of 8
+  Bernoulli rows over `(1 | g) + (0 + x | g)` against a
+  two-dimensional quadrature on `dbinom()` directly, puts the
+  correction 0.26 of its Monte Carlo standard error from the reference
+  at 8000 draws, where the Laplace approximation is 56 of them away.
+
 # frmtmb 0.50.0
 
 The Laplace approximation, corrected by importance sampling; and

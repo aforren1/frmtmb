@@ -55,9 +55,9 @@ imp_parts <- function(bform, data) {
                          silent = TRUE)
   opt <- nlminb(lap$par, lap$fn, lap$gr,
                 control = list(iter.max = 1000, eval.max = 1000))
-  bk <- fr[["re_blocks"]][[1L]]
-  list(frame = fr, nll = nll, tpl = tpl, lap = lap, opt = opt, bk = bk,
-       gmap = frmtmb:::imp_group_map(fr, bk))
+  lay <- frmtmb:::imp_layout(fr[["re_blocks"]])
+  list(frame = fr, nll = nll, tpl = tpl, lap = lap, opt = opt, lay = lay,
+       gmap = frmtmb:::imp_group_map(fr, lay))
 }
 
 # ---------------------------------------------------------------------
@@ -72,8 +72,8 @@ imp_parts <- function(bform, data) {
 test_that("gaussian: the corrected objective at its anchor IS Laplace's", {
   p <- imp_parts(bf(y ~ x + (1 | g)) + gaussian(), imp_gauss_data())
   for (nd in c(2L, 10L, 1000L)) {
-    plan <- frmtmb:::imp_plan(p$lap, p$frame, p$bk, p$opt$par, nd, 1L)
-    io <- frmtmb:::build_importance_objective(p$frame, p$bk, p$gmap, plan)
+    plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, nd, 1L)
+    io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
     pl <- frmtmb:::imp_par_list(p$tpl, p$opt$par)
     expect_equal(io$fn(pl), p$opt$objective, tolerance = 1e-10)
     # every weight equal, so the effective sample size is the whole
@@ -197,8 +197,8 @@ test_that("the correction recovers a variance component Laplace shrinks", {
 test_that("the corrected objective's gradient matches numDeriv", {
   skip_if_not_installed("numDeriv")
   p <- imp_parts(bf(y ~ x + (1 | g)) + binomial(), imp_scalar_data())
-  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$bk, p$opt$par, 200L, 1L)
-  io <- frmtmb:::build_importance_objective(p$frame, p$bk, p$gmap, plan)
+  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 200L, 1L)
+  io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
   otpl <- frmtmb:::imp_template(p$tpl, "b")
   obj <- RTMB::MakeADFun(io$fn, otpl, silent = TRUE)
   for (shift in c(0, 0.3)) {
@@ -216,8 +216,8 @@ test_that("the effective sample size diagnostic separates the two regimes", {
   skip_if_not_installed("MASS")
   p <- imp_parts(bf(y ~ x + (x | g)) + binomial(), imp_probe_data())
   ess_at <- function(anchor, at) {
-    plan <- frmtmb:::imp_plan(p$lap, p$frame, p$bk, anchor, 1000L, 1L)
-    io <- frmtmb:::build_importance_objective(p$frame, p$bk, p$gmap, plan)
+    plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, anchor, 1000L, 1L)
+    io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
     frmtmb:::imp_ess(as.matrix(io$amat(frmtmb:::imp_par_list(p$tpl, at))),
                      plan[["n_draw"]])
   }
@@ -233,12 +233,23 @@ test_that("the effective sample size diagnostic separates the two regimes", {
   expect_gt(at_far$mcse, 5 * at_opt$mcse)
   # and the warning names the groups
   expect_warning(
-    frmtmb:::imp_ess_warning(at_far$ess, p$bk, 1000L,
+    frmtmb:::imp_ess_warning(at_far$ess, p$lay, 1000L,
                              frmtmb:::imp_ess_floor),
     "covers"
   )
+  # by the GROUPING FACTOR and not by a term label: one proposal covers
+  # a level's coefficients from every block over that factor, so there
+  # is one effective sample size per level. This design has ONE block,
+  # which is the case the rename also changed, so the pin belongs here.
+  msg <- tryCatch(frmtmb:::imp_ess_warning(at_far$ess, p$lay, 1000L,
+                                           frmtmb:::imp_ess_floor),
+                  warning = conditionMessage)
+  expect_match(msg, "groups of `g` poorly", fixed = TRUE)
+  expect_false(grepl("x | g", msg, fixed = TRUE))
+  # and the levels it lists are the factor's own labels
+  expect_match(msg, "'[0-9]+' [(]")
   expect_silent(
-    frmtmb:::imp_ess_warning(at_opt$ess, p$bk, 1000L,
+    frmtmb:::imp_ess_warning(at_opt$ess, p$lay, 1000L,
                              frmtmb:::imp_ess_floor)
   )
 })
@@ -266,15 +277,15 @@ test_that("importance refuses the arguments it cannot honor", {
 
 test_that("importance refuses the model structures it cannot correct", {
   dd <- imp_gauss_data()
-  # no random-effect block at all
+  # no random-effect block at all: nothing to correct
   expect_error(frm(bf(y ~ x) + gaussian(), dd, importance = 100L),
-               "exactly one random-effect block")
-  # two blocks make the integral a nested one
+               "needs a random-effect block to correct")
+  # two blocks over DIFFERENT factors make the integral a nested one
   dd2 <- dd
   dd2$h <- factor(rep(seq_len(10), length.out = nrow(dd2)))
   expect_error(frm(bf(y ~ x + (1 | g) + (1 | h)) + gaussian(), dd2,
                    importance = 100L),
-               "exactly one random-effect block")
+               "share ONE grouping factor")
   # a smooth is one field over all rows, not a set of groups
   expect_error(frm(bf(y ~ s(x)) + gaussian(), dd, importance = 100L),
                "grouping factor")
@@ -408,8 +419,8 @@ test_that("the per-group pieces reproduce the joint density they sum", {
   # imp_verify() is the pin that keeps the stacked reimplementation from
   # drifting away from the objective it corrects.
   p <- imp_parts(bf(y ~ x + (1 | g)) + binomial(), imp_scalar_data())
-  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$bk, p$opt$par, 50L, 1L)
-  io <- frmtmb:::build_importance_objective(p$frame, p$bk, p$gmap, plan)
+  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 50L, 1L)
+  io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
   expect_silent(frmtmb:::imp_verify(io, p$nll, plan, p$tpl, p$opt$par))
   # every row is counted exactly once, in exactly one group
   expect_length(p$gmap[["row_level"]], 400L)
@@ -449,8 +460,8 @@ test_that("a diverging iteration refuses instead of reporting nonsense", {
   ga <- suppressWarnings(
     GLMMadaptive::mixed_model(y ~ x, ~ x | g, dd, binomial(), nAGQ = 25))
   p <- imp_parts(bf(y ~ x + (x | g)) + binomial(), dd)
-  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$bk, p$opt$par, 500L, 1L)
-  io <- frmtmb:::build_importance_objective(p$frame, p$bk, p$gmap, plan)
+  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 500L, 1L)
+  io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
   pl <- frmtmb:::imp_par_list(p$tpl, p$opt$par)
   at_lap <- io$fn(pl)
   expect_lt(abs(at_lap - -as.numeric(logLik(ga))), 0.1)
@@ -576,8 +587,8 @@ test_that("a profile bound in the degenerate regime warns", {
 # sizes rest on.
 test_that("the pin catches a per-group error that cancels in the total", {
   p <- imp_parts(bf(y ~ x + (1 | g)) + binomial(), imp_scalar_data())
-  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$bk, p$opt$par, 50L, 1L)
-  io <- frmtmb:::build_importance_objective(p$frame, p$bk, p$gmap, plan)
+  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 50L, 1L)
+  io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
   # the honest objective passes
   expect_silent(frmtmb:::imp_verify(io, p$nll, plan, p$tpl, p$opt$par))
   # move one group up and another down by the same amount: the TOTAL is
@@ -598,4 +609,439 @@ test_that("the pin catches a per-group error that cancels in the total", {
                tolerance = 1e-8)
   expect_error(frmtmb:::imp_verify(bent, p$nll, plan, p$tpl, p$opt$par),
                "group")
+})
+
+# =====================================================================
+# SEVERAL BLOCKS OVER ONE GROUPING FACTOR.
+#
+# Distributional regression writes them by construction: `(1 | g)` in
+# mu and `(1 | g)` in sigma are two blocks, never one, because only an
+# |ID| key merges terms. The integral still factorizes over the levels
+# of g, so a level's coefficients from EVERY block are drawn together
+# from one joint proposal.
+#
+# What that breaks is contiguity. `b` is level-major within a block but
+# the blocks are concatenated, so a group owns one run per block and
+# the runs sit `n_levels * dim` apart. Every test below is built to
+# fail if any consumer of that layout reverts to a stride: the identity
+# in (a) is algebraic and would break outright, and the reference in
+# (b) shares nothing with the package at all.
+# =====================================================================
+
+# Two scalar blocks over one factor, both in mu: an uncorrelated
+# intercept and slope written as two terms rather than one `(x | g)`.
+imp_split_data <- function() {
+  set.seed(23)
+  ng <- 20L
+  per <- 6L
+  g <- factor(rep(seq_len(ng), each = per))
+  x <- rnorm(ng * per)
+  u1 <- rnorm(ng, 0, 0.9)
+  u2 <- rnorm(ng, 0, 0.6)
+  data.frame(y = rnorm(ng * per, 1 + 0.5 * x + u1[g] + u2[g] * x, 1),
+             x = x, g = g)
+}
+
+# `(1 | g)` in mu and `(1 | g)` in sigma: the design the brute-force
+# reference below integrates by hand. G is small so a 2-D quadrature
+# over every group is affordable in a test.
+imp_dpar_data <- function() {
+  set.seed(19)
+  ng <- 12L
+  per <- 10L
+  g <- factor(rep(seq_len(ng), each = per))
+  x <- rnorm(ng * per)
+  b1 <- rnorm(ng, 0, 0.8)
+  b2 <- rnorm(ng, 0, 0.4)
+  data.frame(y = rnorm(ng * per, 0.4 + 0.6 * x + b1[g],
+                       exp(-0.2 + b2[g])), x = x, g = g)
+}
+
+# ---------------------------------------------------------------------
+# (a) THE GAUSSIAN IDENTITY, now with the coefficients scattered.
+#
+# Both blocks enter mu linearly, so for a gaussian response the joint
+# negative log-density is still exactly quadratic in the whole vector
+# of random effects and the Laplace Gaussian IS the conditional. Every
+# weight is equal and the corrected objective returns the Laplace value
+# algebraically, at any draw count.
+#
+# This is the sharpest test of the scattered index there is: it is an
+# algebraic cancellation, so a draw placed on the wrong row, or a
+# half-norm read off the wrong row, destroys it outright rather than
+# degrading it.
+# ---------------------------------------------------------------------
+test_that("two blocks in mu: the gaussian identity survives scattering", {
+  dd <- imp_split_data()
+  p <- imp_parts(bf(y ~ x + (1 | g) + (0 + x | g)) + gaussian(), dd)
+  ng <- nlevels(dd$g)
+  # the layout really is scattered, so the identity below is testing
+  # what it claims to test and not a contiguous special case
+  expect_length(p$lay$blocks, 2L)
+  expect_identical(p$lay$qt, 2L)
+  expect_identical(p$lay$idx[, 1L], c(1L, ng + 1L))
+  expect_identical(p$lay$idx[, ng], c(ng, 2L * ng))
+  expect_identical(p$lay$pos_group[c(1L, ng + 1L)], c(1L, 1L))
+
+  for (nd in c(2L, 10L, 1000L)) {
+    plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, nd, 1L)
+    io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
+    pl <- frmtmb:::imp_par_list(p$tpl, p$opt$par)
+    expect_equal(io$fn(pl), p$opt$objective, tolerance = 1e-10)
+    ess <- frmtmb:::imp_ess(as.matrix(io$amat(pl)), plan[["n_draw"]])
+    expect_equal(min(ess$ess), 1, tolerance = 1e-8)
+    expect_equal(ess$mcse, 0, tolerance = 1e-8)
+  }
+})
+
+# ---------------------------------------------------------------------
+# (b) A BRUTE-FORCE REFERENCE that shares nothing with the package.
+#
+# `(1 | g)` in mu and `(1 | g)` in sigma. Each group's marginal
+# likelihood is a two-dimensional integral over (b_mu, b_sigma) of the
+# gaussian density times two independent normal priors, and it is done
+# here by tensor Gauss-Hermite quadrature on nodes built from scratch,
+# against `dnorm()` directly. No frmtmb code is involved in the
+# reference beyond reading the parameter values off the fit.
+#
+# Unlike the gaussian designs above, the Laplace approximation is
+# genuinely WRONG here: sigma depends on its random effect through a
+# log link, so the joint density is not quadratic in the random
+# effects and there is a real error for the correction to remove.
+# ---------------------------------------------------------------------
+
+# Gauss-Hermite nodes and weights by Golub-Welsch: the eigenvalues of
+# the Jacobi matrix of the Hermite recurrence. The squared first
+# components of its eigenvectors are the weights normalized to sum to
+# 1, which is exactly the normal expectation weight.
+imp_gh <- function(n) {
+  i <- seq_len(n - 1L)
+  J <- matrix(0, n, n)
+  J[cbind(i, i + 1L)] <- sqrt(i / 2)
+  J[cbind(i + 1L, i)] <- sqrt(i / 2)
+  e <- eigen(J, symmetric = TRUE)
+  list(x = rev(e$values), lw = log(rev(e$vectors[1L, ]^2)))
+}
+
+imp_lse <- function(v) {
+  m <- max(v)
+  m + log(sum(exp(v - m)))
+}
+
+# -sum_g log integral over (b1, b2) of prod_i dnorm(y_i, Xb + b1,
+# exp(Xs bd + b2)) with b1 ~ N(0, s1^2) and b2 ~ N(0, s2^2).
+#
+# nq = 150 is converged: against nq = 300 it moves by 1.1e-06, and
+# against nq = 100 by 1.7e-05, both far below the 0.04 Monte Carlo
+# standard error the comparison is made at.
+imp_ghq_ref <- function(y, X, Xs, g, beta, betad, s1, s2, nq = 150L) {
+  q <- imp_gh(nq)
+  b1 <- sqrt(2) * s1 * q$x
+  b2 <- sqrt(2) * s2 * q$x
+  lwo <- outer(q$lw, q$lw, "+")
+  eta <- as.numeric(X %*% beta)
+  etas <- as.numeric(Xs %*% betad)
+  tot <- 0
+  for (k in levels(g)) {
+    ii <- which(g == k)
+    m <- length(ii)
+    # sigma varies with the b_sigma node only, so one m x nq matrix
+    # serves every b_mu node
+    sig <- exp(outer(etas[ii], b2, "+"))
+    lg <- matrix(0, nq, nq)
+    for (a in seq_len(nq)) {
+      lg[a, ] <- colSums(matrix(stats::dnorm(y[ii], eta[ii] + b1[a], sig,
+                                             log = TRUE), m, nq))
+    }
+    tot <- tot + imp_lse(as.numeric(lg + lwo))
+  }
+  -tot
+}
+
+test_that("mu and sigma blocks: brute force agrees, Laplace does not", {
+  dd <- imp_dpar_data()
+  p <- imp_parts(bf(y ~ x + (1 | g), sigma ~ 1 + (1 | g)) + gaussian(), dd)
+  expect_length(p$lay$blocks, 2L)
+  # group 1 owns one position in each block, and they are not adjacent
+  expect_identical(p$lay$idx[, 1L], c(1L, nlevels(dd$g) + 1L))
+
+  pl <- frmtmb:::imp_par_list(p$tpl, p$opt$par)
+  ref <- imp_ghq_ref(dd$y, model.matrix(~ x, dd), model.matrix(~ 1, dd),
+                     dd$g, pl$beta, pl$betad, exp(pl$theta[1L]),
+                     exp(pl$theta[2L]))
+
+  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 2000L, 1L)
+  io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
+  ess <- frmtmb:::imp_ess(as.matrix(io$amat(pl)), plan[["n_draw"]])
+  got <- io$fn(pl)
+
+  # measured: reference 193.161829, importance 193.137101 (0.61 MCSE
+  # away, MCSE 0.0404), Laplace 193.396458 (5.8 MCSE away). Over ten
+  # seeds the worst importance miss was 1.30 MCSE, so 3 has a 2.3x
+  # margin over what was actually observed.
+  expect_lt(abs(got - ref), 3 * ess$mcse)
+  # and the Laplace error is real, not a rounding difference: this is
+  # the whole reason the correction exists
+  expect_gt(abs(p$opt$objective - ref), 4 * ess$mcse)
+  # the proposal covers this design comfortably at every level
+  expect_gt(min(ess$ess), frmtmb:::imp_ess_floor)
+  # the per-group pieces still reproduce the joint density
+  expect_silent(frmtmb:::imp_verify(io, p$nll, plan, p$tpl, p$opt$par))
+})
+
+test_that("a fit over mu and sigma blocks records its correction", {
+  dd <- imp_dpar_data()
+  bfm <- bf(y ~ x + (1 | g), sigma ~ 1 + (1 | g)) + gaussian()
+  fl <- frm(bfm, data = dd)
+  fi <- frm(bfm, data = dd, importance = 500L)
+  im <- fi$importance
+  expect_identical(im$draws, 500L)
+  expect_false(im$capped)
+  # one effective sample size per LEVEL, not per block
+  expect_length(im$ess, nlevels(dd$g))
+  expect_identical(names(im$ess), levels(dd$g))
+  expect_gt(im$ess_min, frmtmb:::imp_ess_floor)
+  # the correction moved the answer, and in the direction it must:
+  # the Laplace objective here is biased upward
+  expect_lt(-as.numeric(logLik(fi)), -as.numeric(logLik(fl)))
+  out <- paste(utils::capture.output(print(fi)), collapse = " ")
+  expect_match(out, "importance-corrected")
+})
+
+# ---------------------------------------------------------------------
+# (b2) THE SAME ARBITER, WITHOUT THE GAUSSIAN.
+#
+# Every other multi-block check here is gaussian somewhere: (a) is an
+# algebraic identity that holds because the joint is quadratic, and (b)
+# integrates a gaussian response. The one non-gaussian multi-block test
+# is a numDeriv gradient comparison, which pins the DERIVATIVE of the
+# objective and not its value.
+#
+# So this is the value check with nothing gaussian left in it: 30
+# groups of 8 Bernoulli rows over two blocks, integrated by the same
+# tensor Gauss-Hermite construction against `dbinom()` directly. The
+# quantity is fixed by no identity, and the Laplace approximation has a
+# real error to remove, so a draw placed on the wrong group's rows
+# cannot cancel out of it.
+#
+# Runs in about 6 seconds, under the file-level skip_on_cran().
+# ---------------------------------------------------------------------
+
+# Two scalar blocks, `(1 | g)` and `(0 + x | g)`, so group 1 owns
+# positions 1 and ng + 1. Binary rows in small clusters are where the
+# Laplace approximation is worst, which is what makes the comparison
+# below worth making.
+imp_bern_data <- function() {
+  set.seed(5)
+  ng <- 30L
+  per <- 8L
+  g <- factor(rep(seq_len(ng), each = per))
+  x <- rnorm(ng * per)
+  u1 <- rnorm(ng, 0, 1.2)
+  u2 <- rnorm(ng, 0, 0.9)
+  data.frame(y = rbinom(ng * per, 1,
+                        plogis(-0.4 + 0.8 * x + u1[g] + u2[g] * x)),
+             x = x, g = g)
+}
+
+# -sum_g log integral over (u1, u2) of prod_i dbinom(y_i, 1,
+# plogis(X beta + u1 + u2 x_i)) with u1 ~ N(0, s1^2), u2 ~ N(0, s2^2).
+# Nodes from `imp_gh()` above; no frmtmb code beyond reading the
+# parameter values off the fit.
+#
+# nq = 70 is converged: against nq = 100 it moves by 1e-11 and against
+# nq = 50 by 8e-09, both far below the Monte Carlo standard error the
+# comparison is made at.
+imp_ghq_bern_ref <- function(y, X, x, g, beta, s1, s2, nq = 70L) {
+  q <- imp_gh(nq)
+  u1 <- sqrt(2) * s1 * q$x
+  u2 <- sqrt(2) * s2 * q$x
+  lwo <- outer(q$lw, q$lw, "+")
+  eta <- as.numeric(X %*% beta)
+  tot <- 0
+  for (k in levels(g)) {
+    ii <- which(g == k)
+    m <- length(ii)
+    # the slope node enters through x, so one m x nq matrix of slope
+    # contributions serves every intercept node
+    sl <- outer(x[ii], u2)
+    lg <- matrix(0, nq, nq)
+    for (a in seq_len(nq)) {
+      pr <- stats::plogis(eta[ii] + u1[a] + sl)
+      lg[a, ] <- colSums(matrix(stats::dbinom(y[ii], 1, pr, log = TRUE),
+                                m, nq))
+    }
+    tot <- tot + imp_lse(as.numeric(lg + lwo))
+  }
+  -tot
+}
+
+test_that("two blocks, Bernoulli: brute force agrees, Laplace does not", {
+  dd <- imp_bern_data()
+  p <- imp_parts(bf(y ~ x + (1 | g) + (0 + x | g)) + binomial(), dd)
+  ng <- nlevels(dd$g)
+  expect_length(p$lay$blocks, 2L)
+  # the coefficients really are scattered on this design too
+  expect_identical(p$lay$idx[, 1L], c(1L, ng + 1L))
+
+  pl <- frmtmb:::imp_par_list(p$tpl, p$opt$par)
+  X <- model.matrix(~ x, dd)
+  ref <- imp_ghq_bern_ref(dd$y, X, dd$x, dd$g, pl$beta,
+                          exp(pl$theta[1L]), exp(pl$theta[2L]))
+  # the reference is pinned before it is trusted: a coarser rule gives
+  # the same number
+  expect_equal(imp_ghq_bern_ref(dd$y, X, dd$x, dd$g, pl$beta,
+                                exp(pl$theta[1L]), exp(pl$theta[2L]),
+                                nq = 50L),
+               ref, tolerance = 1e-7)
+
+  # measured: reference 140.180284, Laplace 141.040486 (off by 0.860),
+  # importance 140.175338 at 2000 draws (0.17 MCSE away, MCSE 0.0296)
+  # and 140.184317 at 8000 (0.26 MCSE, MCSE 0.0154, so the Laplace
+  # error is 56 MCSE there). The correction removes 99.5 percent of an
+  # error that no identity fixes.
+  for (nd in c(2000L, 8000L)) {
+    plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, nd, 1L)
+    io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
+    ess <- frmtmb:::imp_ess(as.matrix(io$amat(pl)), plan[["n_draw"]])
+    expect_lt(abs(io$fn(pl) - ref), 3 * ess$mcse)
+    expect_gt(abs(p$opt$objective - ref), 10 * ess$mcse)
+    # and the proposal covers this design, so the agreement is not a
+    # lucky cancellation in a degenerate one
+    expect_gt(min(ess$ess), frmtmb:::imp_ess_floor)
+  }
+})
+
+# ---------------------------------------------------------------------
+# (c) A DIM-2 BLOCK PLUS A SCALAR ONE, the case where a group's
+# coefficients are scattered AND its Hessian slice is a genuine 3 x 3
+# with cross-block entries. The gradient of the corrected objective is
+# checked against numDeriv, and the proposal's coverage at the optimum
+# is reported.
+# ---------------------------------------------------------------------
+test_that("(1 + x | g) plus a sigma block: gradient and coverage hold", {
+  skip_if_not_installed("numDeriv")
+  dd <- imp_dpar_data()
+  p <- imp_parts(bf(y ~ x + (1 + x | g), sigma ~ 1 + (1 | g)) + gaussian(),
+                 dd)
+  ng <- nlevels(dd$g)
+  expect_identical(p$lay$qt, 3L)
+  # the mu block's two coefficients are adjacent; the sigma block's
+  # sits 2 * ng away, which is the whole point
+  expect_identical(p$lay$idx[, 1L], c(1L, 2L, 2L * ng + 1L))
+  expect_identical(p$lay$idx[, 2L], c(3L, 4L, 2L * ng + 2L))
+
+  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 500L, 1L)
+  io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
+  expect_silent(frmtmb:::imp_verify(io, p$nll, plan, p$tpl, p$opt$par))
+
+  otpl <- frmtmb:::imp_template(p$tpl, "b")
+  obj <- RTMB::MakeADFun(io$fn, otpl, silent = TRUE)
+  # The tolerance is set by numDeriv, not by the AD gradient: two
+  # numDeriv settings disagree with each other by 3.0e-04 at the
+  # optimum and 1.0e-02 away from it, which is larger than the gap
+  # being measured (relative 1.6e-06 and 6.9e-06).
+  for (shift in c(0, 0.3)) {
+    at <- p$opt$par + shift
+    nd <- numDeriv::grad(obj$fn, at)
+    expect_equal(as.numeric(obj$gr(at)), nd, tolerance = 1e-4)
+  }
+  ess <- frmtmb:::imp_ess(
+    as.matrix(io$amat(frmtmb:::imp_par_list(p$tpl, p$opt$par))),
+    plan[["n_draw"]])
+  # measured: min 0.172, median 0.881 at 500 draws
+  expect_gt(min(ess$ess), 0.05)
+  expect_gt(stats::median(ess$ess), frmtmb:::imp_ess_floor)
+})
+
+# ---------------------------------------------------------------------
+# (d) THE REFUSALS several blocks add.
+# ---------------------------------------------------------------------
+test_that("blocks over different factors are refused by name", {
+  dd <- imp_gauss_data()
+  dd$h <- factor(rep(seq_len(10), length.out = nrow(dd)))
+  err <- tryCatch(frm(bf(y ~ x + (1 | g) + (1 | h)) + gaussian(), dd,
+                      importance = 100L),
+                  error = conditionMessage)
+  expect_match(err, "share ONE grouping factor")
+  # the message names the blocks AND the factors, so the user can see
+  # which term is the problem
+  expect_match(err, "`1 \\| g` over g")
+  expect_match(err, "`1 \\| h` over h")
+  # nesting is the same refusal: still two factors
+  dd$n <- factor(paste0(dd$g, ".", rep(1:2, length.out = nrow(dd))))
+  expect_error(frm(bf(y ~ x + (1 | g) + (1 | n)) + gaussian(), dd,
+                   importance = 100L),
+               "share ONE grouping factor")
+})
+
+test_that("blocks over one factor with different level sets are refused", {
+  # No user-facing route builds this: two blocks over the same column
+  # take their levels from that column and so always agree. The guard
+  # is checked directly on a doctored frame, because a level set that
+  # silently disagreed would put a group's draws on another group's
+  # rows rather than raise anything.
+  dd <- imp_dpar_data()
+  fr <- frm(bf(y ~ x + (1 | g), sigma ~ 1 + (1 | g)) + gaussian(),
+            data = dd, dry_run = "frame")
+  tpl <- frmtmb:::make_start(fr, NULL, NULL)
+  expect_silent(frmtmb:::check_importance_scope(fr$spec, fr, tpl, FALSE,
+                                                FALSE, frmtmb_control()))
+  bad <- fr
+  bad$re_blocks[[2L]]$levels <- bad$re_blocks[[2L]]$levels[-3L]
+  err <- tryCatch(frmtmb:::check_importance_scope(bad$spec, bad, tpl, FALSE,
+                                                  FALSE, frmtmb_control()),
+                  error = conditionMessage)
+  expect_match(err, "same grouping levels")
+  expect_match(err, "first difference: '3'")
+})
+
+# ---------------------------------------------------------------------
+# (e) THE PER-GROUP PIN still fires when a group is scattered. A bug
+# that put one block's draw on the wrong group's rows would show up
+# here, and this is the check that says so.
+# ---------------------------------------------------------------------
+test_that("the per-group pin fires with several blocks", {
+  dd <- imp_dpar_data()
+  p <- imp_parts(bf(y ~ x + (1 | g), sigma ~ 1 + (1 | g)) + gaussian(), dd)
+  plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 50L, 1L)
+  io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
+  expect_silent(frmtmb:::imp_verify(io, p$nll, plan, p$tpl, p$opt$par))
+  # every row belongs to exactly one group, read across BOTH blocks
+  expect_identical(sort(unique(p$gmap[["row_level"]])),
+                   seq_len(nlevels(dd$g)))
+  expect_equal(as.numeric(Matrix::rowSums(p$gmap[["S"]])),
+               rep(10, nlevels(dd$g)), tolerance = 1e-12)
+  # and an error that cancels in the total is still caught per group
+  bent <- io
+  bent$amat <- function(pars) {
+    a <- as.matrix(io$amat(pars))
+    a[1L, 1L] <- a[1L, 1L] + 5
+    a[2L, 1L] <- a[2L, 1L] - 5
+    a
+  }
+  expect_error(frmtmb:::imp_verify(bent, p$nll, plan, p$tpl, p$opt$par),
+               "group")
+})
+
+# ---------------------------------------------------------------------
+# (f) DETERMINISM, with the draws spread over two blocks.
+# ---------------------------------------------------------------------
+test_that("several blocks stay deterministic at one seed", {
+  dd <- imp_dpar_data()
+  bfm <- bf(y ~ x + (1 | g), sigma ~ 1 + (1 | g)) + gaussian()
+  # 200 draws hits the round cap on this design and warns about it.
+  # That is convergence, not determinism: what is under test is that
+  # the draw stream is a function of the seed alone.
+  f1 <- suppressWarnings(frm(bfm, data = dd, importance = 200L))
+  f2 <- suppressWarnings(frm(bfm, data = dd, importance = 200L))
+  expect_identical(f1$opt$par, f2$opt$par)
+  expect_identical(f1$opt$objective, f2$opt$objective)
+  expect_identical(f1$importance$ess, f2$importance$ess)
+  # and the session's own stream is untouched by a fit that draws
+  set.seed(99)
+  before <- rnorm(3)
+  set.seed(99)
+  invisible(suppressWarnings(frm(bfm, data = dd, importance = 200L)))
+  expect_identical(rnorm(3), before)
 })
