@@ -1,5 +1,14 @@
 # frmtmb.sample (development version)
 
+* The defaults this package registers with `frmtmb::get_prior()` now
+  answer `route = "sample"` only. Loading this package used to change
+  the table `get_prior()` returned for every caller, an author asking
+  about `frm()` included; it no longer does. Ask for
+  `get_prior(..., route = "sample")` to see what `frm_sample()`
+  applies, and with this package unloaded that route is refused rather
+  than reported as flat. `frm_sample()` itself is unchanged: the same
+  defaults under the same call-over-fit-over-defaults precedence.
+
 * `frmtmb.latent` joins `Suggests`. `hmm()` and `lca()` left frmtmb
   for that package, so the tests here that sample one of them qualify
   the call and skip when it is absent. The compatibility rules this

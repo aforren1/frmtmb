@@ -113,8 +113,12 @@ vectors over the outer parameters, and \code{spec_target()} names the slot
 one specification addresses.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
-package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply, so that the
-reported default is true of the routes the session actually has.
+package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.
+\code{get_prior()} reads the registry under \code{route = "sample"} ONLY, and
+refuses that route when nothing is registered. Its default
+\code{route = "fit"} reports what \code{\link[=frm]{frm()}} applies and reads nothing, so a
+registration cannot change the answer of a call that did not ask
+about the sampling route.
 }
 
 \section{The covstruct block readers}{

@@ -10,9 +10,12 @@
 .onLoad <- function(libname, pkgname) {
   frmtmb_register_compat(features = c(frm_sample = "method"),
                          rules = sample_compat_rules)
-  # get_prior()'s default column is otherwise true of frm() alone. With
-  # this registered it reports what frm_sample() would apply, on the
-  # models frm_sample() would apply it to.
+  # This answers get_prior(route = "sample"), and nothing else: the
+  # default route reports what frm() applies and reads no registry, so
+  # loading this package cannot change the table a user was already
+  # getting. Without a registration that route refuses rather than
+  # reporting flat, which is why this is a load-time job and not a
+  # first-call one.
   frmtmb_register_prior_defaults(function(spec, frame) {
     # default_priors_for() reads only $spec and $frame of the object it
     # is given, so the two the registry hands over are the whole of it
