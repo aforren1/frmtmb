@@ -508,8 +508,17 @@ trunc_bounds <- function(aterms, n) {
 response_mean <- function(fam, dpars, aterms) {
   mu <- if (!is.null(fam[["post"]]$mean_fn)) {
     fam[["post"]]$mean_fn(dpars, aterms)
-  } else {
+  } else if ("mu" %in% names(dpars)) {
+    # the convention custom_family() writes down: no mean function, the
+    # mean is mu
     dpars[["mu"]]
+  } else {
+    # a family with neither has no mean, and reporting its first
+    # parameter as one reported a race model's drift rate
+    stop("family '", fam[["family"]], "' declares no mean: it has no dpar ",
+         "named mu and no post$mean_fn, so fitted() and ",
+         "predict(type = \"response\") have nothing to return. ",
+         "Ask for type = \"link\" or a dpar by name.", call. = FALSE)
   }
   tb <- trunc_bounds(aterms, length(mu))
   if (is.null(tb)) return(mu)

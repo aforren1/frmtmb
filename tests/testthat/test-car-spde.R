@@ -414,7 +414,9 @@ test_that("esicar centers its own block and leaves the others alone", {
                      c(0, log(0.6), log(0.5)))
   expect_lt(abs(as.numeric(logLik(fit)) - ref$logLik), 1e-7)
   re <- ranef(fit)
-  car_re <- re[[grep("car", names(re))]]
+  # ranef() is keyed by the grouping factor since 0.52.0, so the CAR
+  # block answers to its location factor and the iid block to g2
+  car_re <- re[[grep("loc", names(re), fixed = TRUE)]]
   iid_re <- re[[grep("g2", names(re), fixed = TRUE)]]
   expect_equal(nrow(car_re), n)
   expect_equal(nrow(iid_re), 8L)
@@ -479,7 +481,7 @@ test_that("the objective expands esicar whatever the frame's flag says", {
   W <- s$W
   fit <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
              data = s$d)
-  pl <- fit$obj$env$parList(fit$obj$env$last.par.best)
+  pl <- fit$obj$env$parList(par = fit$obj$env$last.par.best)
   ref <- frmtmb:::build_objective(fit$frame)
   # a 0.51.0 frame: the field is absent, not FALSE
   fr_old <- fit$frame
