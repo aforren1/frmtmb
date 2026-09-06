@@ -3223,6 +3223,26 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
   chat <- vapply(pos, function(k) est[[pm$comp[k]]][pm$idx[k]], 0)
 
   dl <- lp_basis_nl_data(object, newdata)
+  # the same statement predict(newdata = ) makes: this door evaluates
+  # the curve somewhere the fit never saw, and past a ps() knot span the
+  # basis stops being a partition of unity. Collected rather than warned
+  # from inside the closure because this function enters that closure
+  # TWICE per term: once for the off-tape pass below and once for the
+  # tape build. Warning in place would double-fire on every call. (RTMB
+  # enters once; the second entry is ours.)
+  #
+  # NULL newdata is the in-sample case, where the fit-end coverage
+  # report has already spoken, and a body with no ps() term has nothing
+  # to say, so neither pays for the collector or for the extra pass.
+  has_ps <- FALSE
+  for (lpk in c(list(lp), lapply(parts, `[[`, "lp"))) {
+    if (length(lpk[["ps_terms"]] %||% list())) has_ps <- TRUE
+  }
+  span <- if (is.null(newdata) || !has_ps) {
+    FALSE
+  } else {
+    new.env(parent = emptyenv())
+  }
   eta_fun <- function(cc) {
     "[<-" <- RTMB::ADoverload("[<-")
     pars <- est
@@ -3236,7 +3256,7 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
       if (isTRUE(p$nl)) {
         e <- eval(lpk[["nl_body"]],
                   c(vals[c(lpk[["nl_pars"]], lpk[["nl_dpar_refs"]])],
-                    dl[[nm]], ps_env(lpk, pars, bvec)),
+                    dl[[nm]], ps_env(lpk, pars, bvec, check = span)),
                   ad_overload_env(lpk[["nl_env"]], lpk[["nl_body"]]))
       } else {
         e <- p$eta
@@ -3256,12 +3276,22 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
     }
     eval(lp[["nl_body"]],
          c(vals[c(lp[["nl_pars"]], lp[["nl_dpar_refs"]])],
-           dl[[lp[["dpar"]]]], ps_env(lp, pars, bvec)),
+           dl[[lp[["dpar"]]]], ps_env(lp, pars, bvec, check = span)),
          ad_overload_env(lp[["nl_env"]], lp[["nl_body"]]))
+  }
+  # One evaluation off the tape before the tape is built. A ps() term
+  # whose argument names a nonlinear parameter arrives at the span check
+  # as an advector during taping, where a comparison raises rather than
+  # answers, so the taped pass alone would leave exactly the models
+  # predict() warns about unchecked. Errors and incidental warnings are
+  # swallowed: a diagnostic that fails must not take the basis with it.
+  if (is.environment(span)) {
+    tryCatch(suppressWarnings(eta_fun(chat)), error = function(e) NULL)
   }
   tp <- RTMB::MakeTape(eta_fun, chat)
   eta <- as.numeric(tp(chat))
   A <- tp$jacobian(chat)
+  ps_span_flush(span)
   nonest <- rep(FALSE, length(eta))
   for (p in parts) {
     if (!isTRUE(p$nl) && !is.null(p$nonest)) nonest <- nonest | p$nonest

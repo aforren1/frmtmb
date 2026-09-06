@@ -24,6 +24,73 @@
 # now verifies is that this package reads the seam correctly, rather
 # than that a reconstruction reproduced it.
 
+#' Run `expr`, holding back any `ps()` knot-span warning frmtmb raises
+#' inside it.
+#'
+#' The seam is a CLASS, `frmtmb_ps_span_warning`, not the text: the
+#' three exported functions here evaluate the curve at three, five or
+#' one grid position per point the user asked about, so core's warning
+#' would arrive once per internal evaluation and count stencil rows
+#' rather than grid rows. Held back and returned, it can be surfaced
+#' once under the name of the function the user actually called, or
+#' turned into a refusal where a warning is the wrong answer.
+#'
+#' @noRd
+sp_catch_span <- function(expr) {
+  msgs <- character(0)
+  val <- withCallingHandlers(
+    expr,
+    frmtmb_ps_span_warning = function(w) {
+      msgs <<- c(msgs, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+  list(value = val, span = unique(msgs))
+}
+
+#' Refuse a feature search whose bracket leaves a `ps()` knot span.
+#'
+#' A warning is the right answer for a band, which the reader can see
+#' bending to the intercept, and the wrong one for a feature: a peak or
+#' a crossing located past the span is a peak or a crossing OF THE
+#' DECAYING PARTIAL SUM, the search reports it as a number with a
+#' standard error, and nothing in the output says which curve it belongs
+#' to. One template, called from both places the bracket is checked.
+#'
+#' @noRd
+sp_span_stop <- function(span) {
+  if (!length(span)) return(invisible(NULL))
+  stop("frm_curve_feature(): the search bracket leaves a ps() term's ",
+       "knot span, so a root located in it would be a root of the ",
+       "decaying partial sum rather than of the fitted curve, and the ",
+       "implicit-function standard error beside it would describe ",
+       "neither. Narrow newdata to the span. ",
+       paste(span, collapse = " "), call. = FALSE)
+}
+
+#' The `ps()` span messages for the grid the USER passed, rather than
+#' for the stencil the caller widened it into.
+#'
+#' [frm_curve_deriv()] evaluates the design at `c(x - e, x, x + e)` and
+#' [frm_curve_feature()]'s stationary-point scan at `c(x - e1, x + e1)`,
+#' with `e` a millionth of the grid's range. Core is handed those points
+#' and counts those rows, so a grid whose endpoint sits exactly on a
+#' knot is outside the span by `e` and gets a warning, or in the feature
+#' case a refusal, for a bracket the user chose entirely inside it.
+#' Following the refusal's own advice ("Narrow newdata to the span")
+#' reproduced the refusal.
+#'
+#' One `predict()` on the grid itself settles it. Callers only reach
+#' here when the widened call already reported something, which for the
+#' derivative stencil is exact (its point set CONTAINS the grid, so a
+#' clean stencil implies a clean grid) and for the feature scan holds
+#' whenever the spline argument is monotone in `var`, which is every
+#' shape this package documents.
+#'
+#' @noRd
+sp_span_on_grid <- function(fit, nd, dpar, resp, re.form) {
+  sp_catch_span(sp_predict_eta(fit, nd, dpar, resp, re.form))$span
+}
+
 #' One prediction on the link scale, as a plain numeric vector.
 #'
 #' @noRd
@@ -54,8 +121,10 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re.form, tol) {
     stop("`newdata` must be a data frame with at least one row: it is ",
          "the grid the curve is evaluated on", call. = FALSE)
   }
-  lb <- frmtmb::frm_lp_basis(fit, newdata = newdata, dpar = dpar,
-                             resp = resp, re.form = re.form)
+  lbc <- sp_catch_span(frmtmb::frm_lp_basis(fit, newdata = newdata,
+                                            dpar = dpar, resp = resp,
+                                            re.form = re.form))
+  lb <- lbc$value
   C <- as.matrix(lb$A)
   Sigma <- unname(C %*% lb$V %*% t(C))
   se <- unname(sqrt(pmax(diag(Sigma) + lb$extra_var, 0)))
@@ -66,7 +135,8 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re.form, tol) {
     return(list(eta = lb$eta, C = C, V = lb$V, Sigma = Sigma, se = se,
                 se_ref = rep(NA_real_, length(se)), rel = NA_real_,
                 n_predict = 0L, newdata = newdata, dpar = dpar,
-                resp = resp, re.form = re.form, fit = fit))
+                resp = resp, re.form = re.form, fit = fit,
+                span = lbc$span))
   }
   ref <- stats::predict(fit, newdata = newdata, type = "link", dpar = dpar,
                         resp = resp, re.form = re.form, se.fit = TRUE)
@@ -83,7 +153,7 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re.form, tol) {
   list(eta = lb$eta, C = C, V = lb$V, Sigma = Sigma, se = se,
        se_ref = se_ref, rel = rel, n_predict = 1L,
        newdata = newdata, dpar = dpar, resp = resp, re.form = re.form,
-       fit = fit)
+       fit = fit, span = lbc$span)
 }
 
 #' Is this linear predictor computed by a nonlinear body?
@@ -111,14 +181,43 @@ sp_is_nl <- function(fit, dpar, resp) {
 #' same fit. The BAND is right either way, because the same divisor
 #' calibrates it and scales it.
 #'
+#' @section A divisor of exactly zero:
+#' A grid point whose standard error is exactly zero has a
+#' DETERMINISTIC deviation, not a small one. `S` is positive
+#' semi-definite, so a zero diagonal entry forces that whole row to zero,
+#' and `(L z)` is exactly 0 there: the standardized deviation is `0 / 0`.
+#' Such a point is covered with probability one, so it cannot be the
+#' argmax and it leaves the maximization rather than turning it into
+#' `NaN` and killing `quantile()` one line later.
+#'
+#' This is not a corner case. Past a [frmtmb::ps()] term's knot span the
+#' basis is exactly zero, so its DERIVATIVE design is exactly zero and
+#' every such row of a [frm_curve_deriv()] grid has a standard error of
+#' exactly zero. Before this guard, `frm_curve_deriv()` on its own
+#' defaults raised the span warning and then died in `quantile.default`
+#' with a message naming neither the span nor the function.
+#'
+#' Dropping nothing is bit-identical to not having the guard, so a grid
+#' with no zero divisor is unaffected.
+#'
 #' @noRd
 sp_sim_crit <- function(S, div, nsim, level, seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
   m <- nrow(S)
+  keep <- is.finite(div) & div > 0
+  if (!any(keep)) {
+    stop("simultaneous = TRUE: every point on this grid has a standard ",
+         "error of exactly zero, so the deviation process is degenerate ",
+         "and there is no maximum to take a quantile of. Past a ps() ",
+         "term's knot span the basis is exactly zero and so is the ",
+         "derivative design, which is the usual way to arrive here. Use ",
+         "simultaneous = FALSE, or move the grid inside the span",
+         call. = FALSE)
+  }
   ev <- eigen((S + t(S)) / 2, symmetric = TRUE)
   L <- ev$vectors %*% diag(sqrt(pmax(ev$values, 0)), nrow = m)
   z <- matrix(stats::rnorm(m * nsim), m, nsim)
-  mx <- apply(abs((L %*% z) / div), 2L, max)
+  mx <- apply(abs((L[keep, , drop = FALSE] %*% z) / div[keep]), 2L, max)
   crit <- unname(stats::quantile(mx, level, type = 8))
   # The standard error of a sample quantile, sqrt(p(1-p)/n) / f(q). A
   # critical value reported without it invites a comparison across

@@ -1,3 +1,30 @@
+# frmtmb (development version)
+
+* `frm_lp_basis(newdata = )` now makes the same statement about a
+  `ps()` knot span that `predict(newdata = )` makes. The two doors
+  evaluate the same closures at the same points, and only one of them
+  said that the basis stops being a partition of unity past its frozen
+  outer knots; a curve drawn through the basis seam was silent about a
+  cliff the fit-end report exists to warn about. The warning fires
+  ONCE per `ps()` term per call, whatever the grid width or the
+  coefficient count, and its text is byte-identical to `predict()`'s on
+  the same fit and grid. In sample (`newdata = NULL`), `fitted()` and
+  `simulate()` stay quiet, as before.
+
+* FIX: the span check could not run on a taped body at all. Its guard
+  was `is.numeric()`, which is TRUE for an RTMB advector, so a `ps()`
+  term whose argument names a nonlinear parameter would have raised
+  "Comparison is generally unsafe for AD types" as soon as any taped
+  caller armed it. The guard is `inherits(x, "advector")` now, and the
+  basis seam additionally evaluates the body once OFF the tape, so that
+  case is checked on numbers rather than skipped.
+
+* The `ps()` span warning carries the condition class
+  `frmtmb_ps_span_warning`, so a consumer can catch, muffle or escalate
+  this one warning without matching on its text. `frmtmb.spline` uses
+  it to surface the warning once under its own function names and to
+  refuse a feature search whose bracket leaves the span.
+
 # frmtmb 0.52.0
 
 A brms prior means what it means in brms; conditional_effects() plots

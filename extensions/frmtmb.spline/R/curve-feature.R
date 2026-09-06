@@ -61,6 +61,21 @@
 #'   `.value` (the curve there) and `.value_se`. The `"check"` attribute
 #'   carries the covariance agreement, as [frm_curve()]'s does.
 #'
+#' @section Past a `ps()` knot span:
+#' This function REFUSES rather than warns. A [frmtmb::ps()] basis
+#' decays to zero past its frozen knot span, so a curve drawn there
+#' still has peaks and still crosses levels, and a root found among
+#' them is a root of the decaying partial sum. Unlike a band, which
+#' shows the reader what it is doing, that root leaves the function as
+#' a number with a standard error beside it and nothing to say which
+#' curve it came off. The bracket is checked at the grid scan, before
+#' any root is refined, and again at the located roots.
+#'
+#' What is checked is the grid you passed, not the difference stencil
+#' the scan widens it into: a grid whose endpoint sits exactly on a knot
+#' is inside the span, and was refused for being a millionth of its
+#' range outside the stencil's.
+#'
 #' @seealso [frm_curve()], [frm_curve_deriv()]
 #' @examples
 #' set.seed(1)
@@ -135,7 +150,21 @@ frm_curve_feature <- function(object, var,
     }
   }
 
-  gv <- gfun(x)
+  scan <- sp_catch_span(gfun(x))
+  gv <- scan$value
+  # BEFORE the refinement, not after it. The scan is the first thing
+  # that touches the curve, so this is the earliest point at which the
+  # bracket is known to leave the span, and refusing here means no root
+  # is ever refined against the decaying partial sum.
+  #
+  # On the GRID, though, not on the scan's own points: a stationary-point
+  # scan evaluates at c(x - e1, x + e1), so a grid ending exactly on a
+  # knot is outside by e1 and was refused for a bracket the user had put
+  # entirely inside the span. The refusal told them to narrow the grid
+  # to the span, and doing that reproduced the refusal.
+  if (length(scan$span)) {
+    sp_span_stop(sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form))
+  }
   cross <- which(gv[-length(gv)] * gv[-1L] < 0)
   if (type %in% c("maximum", "minimum")) {
     want <- if (type == "maximum") 1 else -1
@@ -143,7 +172,14 @@ frm_curve_feature <- function(object, var,
     cross <- cross[sign(gv[cross] - gv[cross + 1L]) == want]
   }
   roots <- numeric(0)
-  for (i in cross) {
+  # Newton is clamped inside a bracket the scan above already cleared,
+  # and it reaches at most eps past the grid's ends; that fringe is
+  # exactly what the stencil below is checked on, so a span warning
+  # raised in here would be a duplicate of one of the two checks that
+  # do refuse. The loop is an unforced argument, so it still runs in
+  # THIS frame and the `roots` it grows is this function's; the wrapper
+  # only installs a handler around it.
+  invisible(sp_catch_span(for (i in cross) {
     lo <- x[i]
     hi <- x[i + 1L]
     # linear interpolation starts Newton inside the bracket; Newton is
@@ -166,7 +202,7 @@ frm_curve_feature <- function(object, var,
       t <- tn
     }
     roots <- c(roots, t)
-  }
+  }))
   out <- data.frame(.feature = character(0), .var = character(0),
                     .estimate = numeric(0), .se = numeric(0),
                     .lower_ci = numeric(0), .upper_ci = numeric(0),
@@ -186,6 +222,12 @@ frm_curve_feature <- function(object, var,
   stk <- row1[rep(1L, 5L * length(roots)), , drop = FALSE]
   stk[[var]] <- c(roots - e2, roots - e1, roots, roots + e1, roots + e2)
   parts <- sp_curve_parts(sp$fit, stk, sp$dpar, sp$resp, sp$re.form, tol)
+  # the same reading as above: the five-point stencil at the located
+  # roots reaches e2 past them, and the roots themselves are inside the
+  # grid
+  if (length(parts$span)) {
+    sp_span_stop(sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form))
+  }
   nr <- length(roots)
   blk <- function(k) parts$C[(k - 1L) * nr + seq_len(nr), , drop = FALSE]
   eta <- function(k) parts$eta[(k - 1L) * nr + seq_len(nr)]

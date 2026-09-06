@@ -142,7 +142,7 @@ sp_rp_fitted <- function(object, fam) {
 #'   OLD probability-scale arithmetic passed 1e-8 of error; it is kept
 #'   as the threshold so that the two versions report the same rows.
 #'
-#' @return A list with `n_censored_floored`, `max_nlogS`, `threshold`,
+#' @return A list with `n_censored_deep`, `max_nlogS`, `threshold`,
 #'   `n_nonmonotone`, `scale` and `n_obs`, returned invisibly when
 #'   nothing was floored. The offending row indices are the `"rows"`
 #'   attribute, a list with elements `censored` and `nonmonotone`.
@@ -184,7 +184,12 @@ rp_floored <- function(object, action = c("error", "report"),
   cens_rows <- which(f$cens != 0 & f$nlogS > max_nlogS)
   mono_rows <- which(f$cens == 0 & f$detadx <= 0)
   mx <- if (any(f$cens != 0)) max(f$nlogS[f$cens != 0]) else 0
-  out <- list(n_censored_floored = length(cens_rows),
+  # named for what it counts. It was `n_censored_floored` while the
+  # censored term WAS floored; with lccdf exact, a row past the
+  # threshold is deep rather than floored, and a field that says
+  # otherwise is the same defect as a help page that contradicts the
+  # code.
+  out <- list(n_censored_deep = length(cens_rows),
               max_nlogS = mx,
               threshold = max_nlogS,
               n_nonmonotone = length(mono_rows),

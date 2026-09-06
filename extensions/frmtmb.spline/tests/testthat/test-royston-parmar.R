@@ -56,7 +56,7 @@ test_that("the objective at flexsurv's coefficients IS flexsurv's log likelihood
                                family = fam, data = bc)
       reach <- rp_floored(fit_reach, action = "report")
       expect_lt(reach$max_nlogS, 5)
-      expect_equal(reach$n_censored_floored, 0L)
+      expect_equal(reach$n_censored_deep, 0L)
     }
   }
 })

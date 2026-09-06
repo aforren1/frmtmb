@@ -79,6 +79,23 @@ there, so the standard error of the PEAK HEIGHT is just the pointwise
 standard error of the curve at \verb{t*}. It is reported as \code{.value_se},
 and it is not inflated by the uncertainty in the peak's location.
 }
+\section{Past a \code{ps()} knot span}{
+
+This function REFUSES rather than warns. A \code{\link[frmtmb:ps]{frmtmb::ps()}} basis
+decays to zero past its frozen knot span, so a curve drawn there
+still has peaks and still crosses levels, and a root found among
+them is a root of the decaying partial sum. Unlike a band, which
+shows the reader what it is doing, that root leaves the function as
+a number with a standard error beside it and nothing to say which
+curve it came off. The bracket is checked at the grid scan, before
+any root is refined, and again at the located roots.
+
+What is checked is the grid you passed, not the difference stencil
+the scan widens it into: a grid whose endpoint sits exactly on a knot
+is inside the span, and was refused for being a millionth of its
+range outside the stencil's.
+}
+
 \examples{
 set.seed(1)
 dd <- data.frame(x = sort(runif(300)))

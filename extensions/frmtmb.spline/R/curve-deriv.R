@@ -58,6 +58,20 @@
 #' @return A `frmtmb_curve` data frame, as [frm_curve()] returns, whose
 #'   `.estimate` is the derivative.
 #'
+#' @section Past a `ps()` knot span:
+#' Warned once per [frmtmb::ps()] term per call, as [frm_curve()]'s
+#' section describes, and counted over the grid you passed rather than
+#' over the three-point stencil the design is built on.
+#'
+#' Past the outer knot the basis is exactly zero, so the DERIVATIVE
+#' design is exactly zero and those rows carry a standard error of
+#' exactly zero. They are covered with probability one, so they leave
+#' the max-deviation simulation instead of standardizing a zero
+#' deviation by a zero divisor; `simultaneous = TRUE` therefore still
+#' returns a band, computed over the rows that carry uncertainty. A grid
+#' on which EVERY row is past the outer knot has no such row, and the
+#' call refuses rather than returning a band with no content.
+#'
 #' @seealso [frm_curve()], [frm_curve_feature()]
 #' @examples
 #' set.seed(1)
@@ -114,6 +128,25 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
   Sigma <- D %*% parts$V %*% t(D)
   se <- sqrt(pmax(diag(Sigma), 0))
   parts$newdata <- nd
+  # core counted the STENCIL it was handed, `c(x - e, x, x + e)`, which
+  # reaches e past both ends of the grid; a grid ending exactly on a
+  # knot is outside that and inside itself. Re-ask on the grid, and only
+  # when the stencil saw something, because the stencil's point set
+  # contains the grid's.
+  span <- if (length(parts$span)) {
+    sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form)
+  } else {
+    character(0)
+  }
+  for (msg in span) {
+    warning(warningCondition(paste0(
+      "frm_curve_deriv(): this grid leaves a ps() term's knot span, so ",
+      "the derivative below is of a decaying partial sum rather than of ",
+      "the fitted curve. Past the outer knot the derivative design is ",
+      "exactly zero, so those rows carry a standard error of exactly ",
+      "zero and drop out of the simultaneous band. ", msg),
+      class = "frmtmb_ps_span_warning"))
+  }
   out <- sp_assemble(parts, est, se, Sigma, level, simultaneous, nsim,
                      FALSE, seed, nd,
                      what = paste0("derivative of order ", order,
