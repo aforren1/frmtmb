@@ -37,3 +37,108 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+----------------------------------------------------------------------------
+
+The Stan programs in tests/testthat/test-bcm-*.R are not original to frmtmb.
+Each one is adapted from the corresponding model in the Bayesian_Cognitive_
+Modeling directory of:
+
+  stan-dev/example-models. https://github.com/stan-dev/example-models
+
+  Stan translation of these models was done by Martin Smira; see
+  https://github.com/stan-dev/example-models/tree/master/Bayesian_Cognitive_Modeling
+
+That repository ships no LICENSE file. Its README states the terms:
+
+  "All of the example models are copyrighted by their author(s) or assignees
+  under the new BSD license unless another open-source license is explicitly
+  stipulated in the directory containing the model."
+
+The Bayesian_Cognitive_Modeling directory stipulates no other license, so the
+new (three-clause) BSD License applies, reproduced below. BSD-3 is compatible
+with GPL (>= 2) and the combination is distributed under the GPL, as the first
+line of this file says.
+
+Every test file that carries an adapted program names the upstream directory,
+the license, and the adaptations made, at the head of the file; the two
+adaptations applied throughout are recorded in tests/testthat/helper-stan.R.
+No program is copied verbatim: every sampling statement is rewritten as
+`target += ..._lpdf(...)` so that Stan drops no normalizing constant, and the
+generated-quantities blocks are dropped. No JAGS, WinBUGS or hBayesDM source
+was read or copied; the models themselves are the book's published equations.
+
+The models and the data are from:
+
+  Lee MD, Wagenmakers EJ (2013). Bayesian Cognitive Modeling: A Practical
+  Course. Cambridge University Press.
+
+The data sets transcribed into the test files are the book's own, and are
+originally from:
+
+  Riefer DM, Knapp BR, Batchelder WH, Bamber D, Manifold V (2002). Cognitive
+  psychometrics: Assessing storage and retrieval deficits in special
+  populations with multinomial processing tree models. Psychological
+  Assessment, 14, 184-201.  (the MPT category counts)
+
+  Heit E, Rotello CM (2005). Are there two kinds of reasoning? Proceedings of
+  the 27th Annual Conference of the Cognitive Science Society.  (the
+  hierarchical signal detection counts)
+
+  Kruschke JK (1993). Human category learning: Implications for backpropagation
+  models. Connection Science, 5, 3-36.  (the generalized context model data)
+
+  Murdock BB (1962). The serial position effect of free recall. Journal of
+  Experimental Psychology, 64, 482-488.  (the SIMPLE serial position data)
+
+  Rubin DC, Hinton S, Wenzel A (1999). The precise time course of retention.
+  Journal of Experimental Psychology: Learning, Memory, and Cognition, 25,
+  1161-1176.  (the memory retention counts)
+
+  Geurts HM, Verte S, Oosterlaan J, Roeyers H, Sergeant JA (2004). How specific
+  are executive functioning deficits in attention deficit hyperactivity
+  disorder and autism? Journal of Child Psychology and Psychiatry, 45,
+  836-854.  (the model selection rate data)
+
+  Zeelenberg R, Wagenmakers EJ, Shiffrin RM (2004). Nonword repetition priming
+  in lexical decision reverses as a function of study task and speed stress.
+  Journal of Experimental Psychology: Learning, Memory, and Cognition, 30,
+  270-277.  (the within-subject rate data)
+
+  Bem DJ (2011). Feeling the future. Journal of Personality and Social
+  Psychology, 100, 407-425.  (the extrasensory perception data)
+
+The psychophysical function data are the book's case study data, credited
+there to Kuijpers and colleagues; the balloon task data are the book's
+"George" records. Two data sets are NOT transcribed and are generated in the
+test file instead, which the file says: the change detection series and the
+two-country quiz. Three more are used in part, also stated at their use.
+
+----------------------------------------------------------------------------
+
+The 3-Clause BSD License
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

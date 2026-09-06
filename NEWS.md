@@ -1,3 +1,16 @@
+# frmtmb (development version)
+
+* New `vignette("bayesian-cognitive-modeling")`: a reference list of
+  the models in Lee and Wagenmakers, *Bayesian Cognitive Modeling*,
+  each with its frmtmb spelling and how it was checked against the
+  Stan port of the same model. `tests/testthat/helper-stan.R` is the
+  harness the checks run through: give it a Stan program, its data and
+  a map from an frmtmb estimate to its parameters, and it asserts that
+  `log_prob` equals frmtmb's log density there plus a stated constant.
+  The families the book needs and the core does not ship are in
+  `inst/bcm/`, alongside `inst/rl/`, and `inst/COPYRIGHTS` carries the
+  BSD-3 notice of the Stan programs the tier adapts.
+
 # frmtmb 0.52.0
 
 A brms prior means what it means in brms; conditional_effects() plots
