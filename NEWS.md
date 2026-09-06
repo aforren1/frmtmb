@@ -23,6 +23,29 @@
   standard errors for a reduced-rank (`rr`) block are unaffected: they
   already went through this Jacobian.
 
+* `conditional_effects()` on a fit reads its display quantity from a
+  new `ce_pred_dpar()` rather than deriving it inline. Same answer, same
+  models: the expression moved, and `mean_display` is now
+  `is.null(pred_dpar)`, which it always was. The point of moving it is
+  that a sampling extension drawing the same curves per posterior draw
+  has to make the same choice, and could not: `mean_is_mu()` is a
+  structural test of a family's `mean_fn` and stays private.
+
+* The conditional-effects seam of `?"frmtmb-sampling-api"` gains eight
+  exports, so that a sampling extension can return the frame this
+  package returns instead of assembling a second one: `ce_frame()` (the
+  column set and its order), `ce_display_kind()` (which of the three
+  displays a call asks for, and the refusals `categorical =` owes),
+  `ce_group_vars()` (the grouping variables a `re_formula = NULL` call
+  blanks), and `ce_new_level_spec()`, `ce_boot_grids()` and
+  `ce_draw_new_levels()` (the placeholder level and the draw that makes
+  an unobserved group carry its own effects), `ce_pred_dpar()` (what
+  gets predicted, which is not always the dpar the display is labeled
+  with) and `ce_dots()` (the `allow_new_levels` spellings a
+  `conditional_effects()` call accepts). All eight were already what
+  the fit method used; `frmtmb.sample` was reimplementing five of them,
+  four badly. See that package's NEWS for what the exports bought.
+
 # frmtmb 0.52.0
 
 A brms prior means what it means in brms; conditional_effects() plots
