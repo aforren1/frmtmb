@@ -112,6 +112,10 @@ reference. One row each, small data, fixed seed.
 19. `car(M, gr = g)` each type
 20. `weights` and `subset` addition terms
 21. every remaining family in the shared roster, as `y ~ x` (A, B only)
+22. every link name in the shared roster, as `y ~ x` (A, B only): the
+    plainest model through each link, so a divergence can only be the
+    inverse link or its log-odds. Added by `wt-links`; see
+    `dev/links-findings.md`.
 
 Extend with one `(1 | g)` variant of rows 3, 4, 8, 10, 12, 16 for C.
 
@@ -554,6 +558,39 @@ stays visible, and it is not in the test file.
 | C16 zero-inflated poisson + (1 \| g) joint | pass | 0 (to 1e-9) | 1.63e-19 | 108 |
 | C3 mo(inc) * z + (1 \| g) joint | FAIL | Exception: mismatch in number dimensions declared and found in context | | 155 |
 | C3b mo(inc):z + (1 \| g) joint | pass | 0.693147181 | 8.88e-16 | 161 |
+| 22a bernoulli(probit) | pass | 0 (to 1e-11) | 5.89e-06 | 4 |
+| 22b bernoulli(probit_approx) | pass | 0 (to 1e-11) | 0.000117 | 137 |
+| 22c bernoulli(softit) | BLOCKED | brms 2.23.0 emits softit with a vector / vector division that Stan rejects | | 1 |
+| 22d binomial(cauchit), trials(nt) | pass | 0 (to 1e-11) | 6.83e-05 | 145 |
+| 22e Beta(probit) | pass | 0 (to 1e-11) | 0.000155 | 190 |
+| 22f poisson(sqrt) | pass | 0 (to 1e-11) | 2.3e-06 | 168 |
+| 22g negbinomial(softplus) | pass | 0 (to 1e-11) | 0.000658 | 174 |
+| 22h negbinomial(squareplus) | pass | 0 (to 1e-11) | 0.000131 | 161 |
+| 22i inverse.gaussian(1/mu^2) | pass | 0 (to 1e-11) | 2.06e-05 | 158 |
+
+Row 22 was added by `wt-links`. Eight of its nine sub-rows are
+identities. The largest constant measured over the eight is 9.71e-12
+(row 22e), so the column reads "0 (to 1e-11)" rather than the 1e-9 the
+older rows in this table were recorded at; the largest gradient is
+6.58e-04 against the 1e-3 tolerance.
+
+`22c` is blocked upstream, not divergent. brms 2.23.0 emits both softit
+helpers with a vector-by-vector `/`, which Stan rejects (it needs `./`
+for element-wise division), so no brms model with that link compiles at
+all and there is no program to compare against:
+
+    vector softit(vector p) { return log(expm1(-p / (p - 1))); }
+    vector inv_softit(vector y) {
+      return log1p_exp(y) / (1 + log1p_exp(y));
+    }
+
+Following this file's rule, the row asserts the defect textually rather
+than skipping, so it fails the day brms fixes the emitted code. frmtmb's
+softit agrees with brms's R-side `inv_link()` to 1.1e-16, checked in
+`test-numerical-robustness.R`.
+
+`log1p` has no row at all: brms offers it only on `gen_extreme_value`'s
+`xi`, and core has no such family. See `dev/links-findings.md`.
 
 ### Coverage against the plan's matrix
 

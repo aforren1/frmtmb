@@ -28,6 +28,59 @@ accumulator families.
 * The drift-diffusion extension is renamed frmtmb.eam (evidence
   accumulation models); see its NEWS.
 
+* The AD-safe link registry completes the brms 2.23.0 roster. New
+  `probit`, `probit_approx`, `cauchit`, `softit`, `softplus`,
+  `squareplus`, `sqrt`, `log1p` and `1/mu^2` links, each reproducing
+  brms's own definition, so `bernoulli(link = "probit")` is now the
+  everyday spelling of a probit regression rather than a custom link
+  list passed through `get_link()`. `1/mu^2` is the inverse Gaussian
+  canonical link and is unrelated to `power12`, the tweedie power link.
+  Every link name brms accepts is now accepted here.
+
+  Six of them carry a robust field. Four of the six move a saturation
+  boundary, and each boundary is measured rather than assumed.
+  `probit`'s log-odds is a difference of
+  two `pnorm` logs, which holds to `|eta| = 38` where the plain round
+  trip gave out at `6.4`; `probit_approx`'s is the cubic itself and
+  never saturates, where the plain path gave out at `5.9`;
+  `squareplus`'s log mean is `asinh(eta / 2)`, exact where the sum
+  `(eta + sqrt(eta^2 + 4)) / 2` has cancelled to zero; `softit`'s
+  log-odds is the softplus's log. `softplus` and `sqrt` carry a
+  `log_eta` for a different reason: it selects the family's robust
+  log-density, and without it `negbinomial()` forms `mu + mu^2 / shape`,
+  whose excess over `mu` is lost to rounding at a mean near zero.
+  `cauchit` has no robust field and needs none: its tails are
+  polynomial, so the plain round trip is still accurate at `eta = 3e9`.
+
+  `stats::binomial()`, `stats::poisson()` and `stats::Gamma()` validate
+  their link string through `stats::make.link()` before `frm()` sees it,
+  so the four names `stats` does not know (`probit_approx`, `softit`,
+  `softplus`, `squareplus`) have to come in through one of frmtmb's own
+  family constructors. See `vignette("brms-migration")` and
+  `dev/links-findings.md`.
+
+* BUG FIX. `conditional_effects()` returned an INVERTED band on every
+  decreasing link. `inverse` and `1/mu^2` send the lower linear
+  predictor to the upper response value, and one of the three places
+  the band's endpoints are transformed did not order them afterwards,
+  so `Gamma(link = "inverse")` came back with `lower__` above `upper__`
+  on every row. The endpoints are now ordered by the link's direction
+  rather than sorted, which also keeps a missing bound on the side it
+  belongs to.
+
+  A bound the link's domain does not reach is now `NA` instead of
+  `NaN`, with one warning naming the link and the count. Two cases:
+  `1/mu^2` is `1 / sqrt(eta)` and has no value once the band reaches
+  `eta = 0`, so such a band has no upper bound at all; and `inverse`
+  with the band straddling zero has a pole between two finite ends,
+  where neither end bounds the response. The second was previously
+  reported as an ordinary interval.
+
+  This surfaced through the new `1/mu^2` link, which makes
+  `frm(family = stats::inverse.gaussian())` fit for the first time, but
+  the inversion was not new: it reproduces on `Gamma(link = "inverse")`
+  with the link registry untouched.
+
 The ten defects the brms post-fit method tier recorded in
 `dev/brms-methods-tests.md`, repaired. Nine of them are in
 `conditional_effects()`, which now returns brms's frame, brms's grid
