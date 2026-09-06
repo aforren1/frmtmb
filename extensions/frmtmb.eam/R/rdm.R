@@ -242,6 +242,7 @@ rdm <- function(n, max_ndt = NULL) {
 
   fam <- frmtmb::custom_family(
     "rdm",
+    accepts_aterms = c("vint", "weights", "cens", "trunc"),
     dpars = dpn,
     links = lk,
     lpdf = function(y, dpars, aterms) {
@@ -384,7 +385,6 @@ rdm_lccdf <- function(q, dpars, vp) {
 #'
 #' @noRd
 rdm_check_response <- function(y, aterms, n) {
-  ddm_refuse_dec("rdm", n, aterms)
   if (any(!is.finite(y)) || any(y <= 0)) {
     stop("rdm: the response must be a strictly positive, finite ",
          "response time. A time of zero or less leaves no decision ",

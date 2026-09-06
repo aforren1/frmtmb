@@ -322,3 +322,76 @@ test_that("a kind beginning with a vowel takes the right article", {
     "as an 'aterm' feature", fixed = TRUE)
 })
 
+
+# ---------------------------------------------------------------------
+# The vocabulary cache.
+#
+# Building the feature table costs about 16 ms, and it used to be built
+# once per registration: an extension registering four addition terms
+# from its .onLoad() paid four builds. The cache has to be invisible -
+# the same table, the same refusals - so every test here compares it
+# against a build from scratch rather than against a stored expectation.
+
+# count builds without a counter in the shipped code
+local_build_counter <- function(env = parent.frame()) {
+  n <- new.env(parent = emptyenv())
+  n$count <- 0L
+  build <- compat_features_build
+  testthat::local_mocked_bindings(
+    compat_features_build = function(extra = NULL) {
+      n$count <- n$count + 1L
+      build(extra)
+    }, .env = env)
+  n
+}
+
+test_that("four registrations cost one vocabulary build", {
+  local_registries()
+  frmtmb_compat_contrib$features <- list()
+  frmtmb_compat_cache$features <- NULL
+  frmtmb_compat_cache$tbl <- NULL
+  n <- local_build_counter()
+  for (nm in c("aa1", "bb1", "cc1", "dd1")) frmtmb_register_aterm(nm)
+  expect_equal(n$count, 1L)
+  # and the reads after them are free
+  invisible(frmtmb_compat_features_tbl())
+  expect_equal(n$count, 1L)
+})
+
+test_that("the cached vocabulary is the vocabulary", {
+  local_registries()
+  before <- frmtmb_compat_features_tbl()
+  expect_equal(before, compat_features_build(NULL))
+  frmtmb_register_aterm("ee1")
+  after <- frmtmb_compat_features_tbl()
+  expect_equal(after, compat_features_build(NULL))
+  expect_equal(nrow(after), nrow(before) + 1L)
+  expect_identical(after$kind[match("ee1()", after$name)], "aterm")
+})
+
+test_that("the cache is validated against the registry, not a flag", {
+  local_registries()
+  frmtmb_register_aterm("ff1")
+  expect_true("ff1()" %in% frmtmb_compat_features_tbl()$name)
+  # a caller that restores the contributed features directly, as this
+  # file's own teardown does, must not leave a stale table behind
+  frmtmb_compat_contrib$features <- list()
+  expect_false("ff1()" %in% frmtmb_compat_features_tbl()$name)
+})
+
+test_that("a refused registration leaves the cache as it found it", {
+  local_registries()
+  before <- frmtmb_compat_features_tbl()
+  expect_error(frmtmb_register_aterm("s"))
+  expect_equal(frmtmb_compat_features_tbl(), before)
+  expect_equal(frmtmb_compat_features_tbl(), compat_features_build(NULL))
+})
+
+test_that("an `extra` vocabulary is never cached", {
+  local_registries()
+  base <- frmtmb_compat_features_tbl()
+  hypo <- frmtmb_compat_features_tbl(extra = c(zzq1 = "family"))
+  expect_true("zzq1" %in% hypo$name)
+  expect_false("zzq1" %in% frmtmb_compat_features_tbl()$name)
+  expect_equal(frmtmb_compat_features_tbl(), base)
+})

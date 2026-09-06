@@ -70,6 +70,20 @@ not refused. In-model imputation (\code{mi()}, \code{me()}) is refused for the
 same kind of reason: a latent value is a parameter, not an
 observation. Use \code{AIC()} on the maximum-likelihood fits or
 \code{\link[frmtmb:frm_bootstrap]{frmtmb::frm_bootstrap()}} for those.
+
+A family that declares how its likelihood factorizes
+(\code{frmtmb::frmtmb_structure(loglik_group = )} or \verb{(loglik_row = )}) is
+not in that position and is not refused. Its columns are the pieces
+it declares, at the COARSEST granularity it gives: a family that
+groups its likelihood is saying that its rows are not independently
+droppable, which is exactly the question a leave-one-out column asks.
+The matrix then carries \code{attr(x, "unit")} naming what a column is.
+\code{loo::loo.matrix()} never sees that attribute and its printout says
+only "Computed from N by K log-likelihood matrix", which reads
+exactly like a per-observation one, so \code{\link[=loo]{loo()}}, \code{\link[=waic]{waic()}} and
+\code{psis()} emit a message naming the unit and the column count when
+they are handed such a matrix. The elpd is then leave-one-UNIT-out,
+and the number itself carries no mark of that.
 }
 
 \examples{

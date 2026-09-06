@@ -88,6 +88,21 @@
 #'   and the log-likelihood becomes a sum over nothing: a fit that
 #'   returns, with a log-likelihood of zero. Declare every per-row datum
 #'   the density indexes.
+#' @param accepts_aterms The addition terms this family reads or lets the
+#'   core act on, named as a formula writes them and without
+#'   parentheses: `c("weights", "trials", "cens")`. Frame assembly
+#'   refuses any other term on the response, by name, and lists the ones
+#'   the family takes. `character(0)` declares a family that takes none.
+#'   `NULL`, the default, accepts every registered term, which is what a
+#'   family written before this argument existed keeps.
+#'
+#'   `required_aterms` is a conjunction of what the density cannot do
+#'   without; this is the complementary allow-list, and the two are read
+#'   together, so a required term need not be repeated here. Without a
+#'   declaration an unread term is parsed, stored on the fit and
+#'   silently ignored: `wiener()` accepted a `vint()` it cannot use, and
+#'   `lba()` accepted a `dec()`, both giving a fit bit-identical to the
+#'   one without the term.
 #' @param family_finalize Optional function `(fam, y, aterms)` returning
 #'   a family. It runs once at frame assembly, after the response is
 #'   coerced and validated and before any link is used, and whatever it
@@ -300,6 +315,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           primary_dpars = "mu", lcdf = NULL,
                           lccdf = NULL,
                           required_aterms = character(0),
+                          accepts_aterms = NULL,
                           family_finalize = NULL,
                           extra_pars = NULL, drop_intercept = FALSE,
                           structure = NULL) {
@@ -307,6 +323,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
             is.character(dpars), length(dpars) >= 1,
             is.function(lpdf))
   check_required_aterms(required_aterms)
+  accepts_aterms <- check_accepts_aterms(accepts_aterms)
   if (!is.null(family_finalize) && !is.function(family_finalize)) {
     stop("frmtmb_family(family_finalize =) must be a function ",
          "(fam, y, aterms) returning the family", call. = FALSE)
@@ -348,6 +365,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
          post = post, sim = sim, sim_ctx = sim_ctx,
          sim_refusal = sim_refusal, primary_dpars = primary_dpars,
          lcdf = lcdf, lccdf = lccdf, required_aterms = required_aterms,
+         accepts_aterms = accepts_aterms,
          family_finalize = family_finalize, extra_pars = extra_pars,
          drop_intercept = isTRUE(drop_intercept),
          structure = structure),
@@ -798,6 +816,7 @@ sim_autocor_rows <- function(ctx, ac) {
 fam_gaussian <- function(link = "identity") {
   frmtmb_family(
     "gaussian",
+    accepts_aterms = c("weights", "cens", "trunc", "se", "mi"),
     dpars = c("mu", "sigma"),
     links = list(mu = link, sigma = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -851,6 +870,8 @@ fam_gaussian <- function(link = "identity") {
 fam_poisson <- function(link = "log") {
   frmtmb_family(
     "poisson",
+    # cens() is refused for a DISCRETE response one guard earlier
+    accepts_aterms = c("weights", "trunc"),
     dpars = "mu",
     links = list(mu = link),
     lpdf = function(y, dpars, aterms) {
@@ -896,6 +917,7 @@ fam_binomial <- function(link = "logit") {
   lk <- get_link(link)
   frmtmb_family(
     "binomial",
+    accepts_aterms = c("weights", "trials"),
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
@@ -944,6 +966,7 @@ fam_binomial <- function(link = "logit") {
 fam_Gamma <- function(link = "log") {
   frmtmb_family(
     "Gamma",
+    accepts_aterms = "weights",
     dpars = c("mu", "shape"),
     links = list(mu = link, shape = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -980,6 +1003,7 @@ fam_Gamma <- function(link = "log") {
 fam_lognormal <- function(link = "identity") {
   frmtmb_family(
     "lognormal",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "sigma"),
     links = list(mu = link, sigma = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -1029,6 +1053,7 @@ fam_lognormal <- function(link = "identity") {
 fam_student <- function(link = "identity") {
   frmtmb_family(
     "student",
+    accepts_aterms = c("weights", "se", "mi"),
     dpars = c("mu", "sigma", "nu"),
     links = list(mu = link, sigma = "log", nu = "logm1"),
     lpdf = function(y, dpars, aterms) {
@@ -1066,6 +1091,7 @@ fam_negbinomial <- function(link = "log") {
   lk <- get_link(link)
   frmtmb_family(
     "negbinomial",
+    accepts_aterms = "weights",
     dpars = c("mu", "shape"),
     links = list(mu = lk, shape = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -1115,6 +1141,7 @@ fam_nbinom1 <- function(link = "log") {
   lk <- get_link(link)
   frmtmb_family(
     "nbinom1",
+    accepts_aterms = "weights",
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -1166,6 +1193,7 @@ fam_beta <- function(link = "logit") {
   lk <- get_link(link)
   frmtmb_family(
     "beta",
+    accepts_aterms = "weights",
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -1219,6 +1247,7 @@ fam_beta <- function(link = "logit") {
 fam_tweedie <- function(link = "log") {
   frmtmb_family(
     "tweedie",
+    accepts_aterms = "weights",
     dpars = c("mu", "phi", "power"),
     links = list(mu = link, phi = "log", power = "power12"),
     lpdf = function(y, dpars, aterms) {
@@ -1334,6 +1363,7 @@ compois_probs <- function(mu, nu) {
 fam_compois <- function(link = "log") {
   frmtmb_family(
     "compois",
+    accepts_aterms = "weights",
     dpars = c("mu", "nu"),
     links = list(mu = link, nu = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -1387,6 +1417,7 @@ fam_compois <- function(link = "log") {
 fam_zi_poisson <- function(link = "log") {
   frmtmb_family(
     "zero_inflated_poisson",
+    accepts_aterms = "weights",
     dpars = c("mu", "zi"),
     links = list(mu = link, zi = "logit"),
     lpdf = function(y, dpars, aterms) {
@@ -1426,6 +1457,7 @@ fam_zi_negbinomial <- function(link = "log") {
   lk <- get_link(link)
   frmtmb_family(
     "zero_inflated_negbinomial",
+    accepts_aterms = "weights",
     dpars = c("mu", "shape", "zi"),
     links = list(mu = lk, shape = "log", zi = "logit"),
     lpdf = function(y, dpars, aterms) {
@@ -1474,6 +1506,7 @@ fam_zi_negbinomial <- function(link = "log") {
 fam_hurdle_poisson <- function(link = "log") {
   frmtmb_family(
     "hurdle_poisson",
+    accepts_aterms = "weights",
     dpars = c("mu", "hu"),
     links = list(mu = link, hu = "logit"),
     lpdf = function(y, dpars, aterms) {
@@ -1537,6 +1570,7 @@ fam_bernoulli <- function(link = "logit") {
   lk <- get_link(link)
   frmtmb_family(
     "bernoulli",
+    accepts_aterms = "weights",
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
@@ -1572,6 +1606,7 @@ fam_geometric <- function(link = "log") {
   lk <- get_link(link)
   frmtmb_family(
     "geometric",
+    accepts_aterms = "weights",
     dpars = "mu",
     links = list(mu = lk),
     lpdf = function(y, dpars, aterms) {
@@ -1609,6 +1644,7 @@ fam_geometric <- function(link = "log") {
 fam_exponential <- function(link = "log") {
   frmtmb_family(
     "exponential",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = "mu",
     links = list(mu = link),
     lpdf = function(y, dpars, aterms) {
@@ -1652,6 +1688,7 @@ fam_exponential <- function(link = "log") {
 fam_weibull <- function(link = "log") {
   frmtmb_family(
     "weibull",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "shape"),
     links = list(mu = link, shape = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -1707,6 +1744,7 @@ fam_weibull <- function(link = "log") {
 fam_shifted_lognormal <- function(link = "identity") {
   frmtmb_family(
     "shifted_lognormal",
+    accepts_aterms = "weights",
     dpars = c("mu", "sigma", "ndt"),
     links = list(mu = link, sigma = "log", ndt = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -1742,6 +1780,7 @@ fam_shifted_lognormal <- function(link = "identity") {
 fam_hurdle_gamma <- function(link = "log") {
   frmtmb_family(
     "hurdle_gamma",
+    accepts_aterms = "weights",
     dpars = c("mu", "shape", "hu"),
     links = list(mu = link, shape = "log", hu = "logit"),
     lpdf = function(y, dpars, aterms) {
@@ -1783,6 +1822,7 @@ fam_hurdle_gamma <- function(link = "log") {
 fam_hurdle_lognormal <- function(link = "identity") {
   frmtmb_family(
     "hurdle_lognormal",
+    accepts_aterms = "weights",
     dpars = c("mu", "sigma", "hu"),
     links = list(mu = link, sigma = "log", hu = "logit"),
     lpdf = function(y, dpars, aterms) {
@@ -1831,6 +1871,7 @@ fam_zi_binomial <- function(link = "logit") {
   lk <- get_link(link)
   frmtmb_family(
     "zero_inflated_binomial",
+    accepts_aterms = c("weights", "trials"),
     dpars = c("mu", "zi"),
     links = list(mu = lk, zi = "logit"),
     lpdf = function(y, dpars, aterms) {
@@ -1883,6 +1924,7 @@ fam_zi_beta <- function(link = "logit") {
   lk <- get_link(link)
   frmtmb_family(
     "zero_inflated_beta",
+    accepts_aterms = "weights",
     dpars = c("mu", "phi", "zi"),
     links = list(mu = lk, phi = "log", zi = "logit"),
     lpdf = function(y, dpars, aterms) {
@@ -1928,6 +1970,7 @@ fam_zi_beta <- function(link = "logit") {
 fam_asym_laplace <- function(link = "identity") {
   frmtmb_family(
     "asym_laplace",
+    accepts_aterms = "weights",
     dpars = c("mu", "sigma", "quantile"),
     links = list(mu = link, sigma = "log", quantile = "logit"),
     lpdf = function(y, dpars, aterms) {
@@ -1969,6 +2012,7 @@ fam_asym_laplace <- function(link = "identity") {
 fam_zi_asym_laplace <- function(link = "identity") {
   frmtmb_family(
     "zero_inflated_asym_laplace",
+    accepts_aterms = "weights",
     dpars = c("mu", "sigma", "quantile", "zi"),
     links = list(mu = link, sigma = "log", quantile = "logit",
                  zi = "logit"),
@@ -2085,6 +2129,7 @@ fam_huber <- function(link = "identity", k = 1.345) {
   varu <- huber_var_u(k)
   frmtmb_family(
     "huber",
+    accepts_aterms = "weights",
     dpars = c("mu", "sigma"),
     links = list(mu = link, sigma = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -2128,6 +2173,7 @@ fam_beta_binomial <- function(link = "logit") {
   lk <- get_link(link)
   frmtmb_family(
     "beta_binomial",
+    accepts_aterms = c("weights", "trials"),
     dpars = c("mu", "phi"),
     links = list(mu = lk, phi = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -2174,6 +2220,7 @@ fam_beta_binomial <- function(link = "logit") {
 fam_skew_normal <- function(link = "identity") {
   frmtmb_family(
     "skew_normal",
+    accepts_aterms = "weights",
     dpars = c("mu", "sigma", "alpha"),
     links = list(mu = link, sigma = "log", alpha = "identity"),
     lpdf = function(y, dpars, aterms) {
@@ -2205,6 +2252,7 @@ fam_skew_normal <- function(link = "identity") {
 fam_inverse_gaussian <- function(link = "log") {
   frmtmb_family(
     "inverse.gaussian",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "shape"),
     links = list(mu = link, shape = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -2269,6 +2317,7 @@ fam_inverse_gaussian <- function(link = "log") {
 fam_exgaussian <- function(link = "identity") {
   frmtmb_family(
     "exgaussian",
+    accepts_aterms = "weights",
     dpars = c("mu", "sigma", "beta"),
     links = list(mu = link, sigma = "log", beta = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -2359,6 +2408,7 @@ fam_cumulative <- function(link = "logit") {
   robust <- identical(link, "logit")
   frmtmb_family(
     "cumulative",
+    accepts_aterms = "weights",
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms, extra) {
@@ -2631,6 +2681,7 @@ fam_sratio <- function(link = "logit") {
   robust <- identical(link, "logit")
   frmtmb_family(
     "sratio",
+    accepts_aterms = "weights",
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms, extra) {
@@ -2678,6 +2729,7 @@ fam_cratio <- function(link = "logit") {
   robust <- identical(link, "logit")
   frmtmb_family(
     "cratio",
+    accepts_aterms = "weights",
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms, extra) {
@@ -2723,6 +2775,7 @@ fam_acat <- function(link = "logit") {
   }
   frmtmb_family(
     "acat",
+    accepts_aterms = "weights",
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms, extra) {
@@ -2923,9 +2976,18 @@ mixture <- function(..., groups = NULL) {
   }
 
   types <- unique(vapply(comps, `[[`, "", "type"))
+  # A mixture reads a per-row datum only through its components, and a
+  # term reaches the density if ANY of them reads it, so the allow-list
+  # is their union. One component that declares nothing (a custom
+  # family) leaves the mixture undeclared too: a union with "every
+  # term" is every term.
+  comp_acc <- lapply(comps, accepted_aterm_names)
   fam <- frmtmb_family(
     paste0("mixture(", paste(vapply(comps, `[[`, "", "family"),
                              collapse = ", "), ")"),
+    accepts_aterms = if (!any(vapply(comp_acc, is.null, NA))) {
+      unique(unlist(comp_acc, use.names = FALSE))
+    },
     dpars = dpars,
     links = links,
     lpdf = function(y, dpars, aterms) {
@@ -3515,6 +3577,7 @@ mixture_mvn <- function(K, D, model = "VVV") {
   fam <- frmtmb_family(
     paste0("mixture_mvn(K = ", K, ", D = ", D, ", model = \"",
            model, "\")"),
+    accepts_aterms = "weights",
     dpars = dpars,
     links = links,
     lpdf = function(y, dpars, aterms, extra) {
@@ -3652,6 +3715,7 @@ mvn_sim_rows <- function(ctx) {
 fam_von_mises <- function(link = "tan_half") {
   frmtmb_family(
     "von_mises",
+    accepts_aterms = "weights",
     dpars = c("mu", "kappa"),
     links = list(mu = link, kappa = "log"),
     lpdf = function(y, dpars, aterms) {
@@ -3791,6 +3855,7 @@ fam_categorical_impl <- function(dpar_names, levels = NULL,
   K <- length(dpar_names) + 1L
   fam <- frmtmb_family(
     "categorical",
+    accepts_aterms = "weights",
     dpars = dpar_names,
     links = stats::setNames(rep(list("identity"), K - 1L), dpar_names),
     lpdf = function(y, dpars, aterms) {
@@ -3843,6 +3908,7 @@ fam_categorical_impl <- function(dpar_names, levels = NULL,
 fam_categorical_deferred <- function(link = "logit") {
   fam <- frmtmb_family(
     "categorical",
+    accepts_aterms = "weights",
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms) {
@@ -4073,6 +4139,7 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
   }
   fam <- frmtmb_family(
     "cox",
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = "mu",
     links = list(mu = link),
     lpdf = function(y, dpars, aterms, extra) {
@@ -4253,6 +4320,7 @@ fam_multinomial <- function(K) {
   dpn <- paste0("mu", seq_len(K)[-1])
   frmtmb_family(
     "multinomial",
+    accepts_aterms = c("weights", "trials"),
     dpars = dpn,
     links = stats::setNames(rep(list("identity"), K - 1L), dpn),
     lpdf = function(y, dpars, aterms) {
@@ -4821,6 +4889,80 @@ check_required_aterms <- function(x) {
        "needs ALL of, or a list whose length-one elements are required ",
        "and whose longer elements are alternatives, one of which must ",
        "be supplied. Got ", arg_desc(x), call. = FALSE)
+}
+
+#' Validate `frmtmb_family(accepts_aterms =)`.
+#'
+#' Membership is NOT checked against the addition-term registry: a
+#' family may name a term its own package registers, and a package
+#' registers from `.onLoad()` while a family object can be built in any
+#' order. A name that no term ever carries costs nothing, while a name
+#' checked too early would refuse a legitimate declaration.
+#'
+#' @noRd
+check_accepts_aterms <- function(x) {
+  if (is.null(x)) return(NULL)
+  if (!is.character(x) || anyNA(x) || (length(x) && !all(nzchar(x)))) {
+    stop("frmtmb_family(accepts_aterms =) names the addition terms the ",
+         "family takes, as a formula writes them and without ",
+         "parentheses: c(\"weights\", \"trials\"). character(0) declares ",
+         "a family that takes none, and NULL accepts every registered ",
+         "term. Got ", arg_desc(x), call. = FALSE)
+  }
+  paren <- grepl("\\(", x, fixed = FALSE)
+  if (any(paren)) {
+    stop("frmtmb_family(accepts_aterms =) names a term WITHOUT its ",
+         "parentheses, because the name has to match the term however ",
+         "many arguments it takes: write \"", sub("\\(.*$", "", x[paren][[1L]]),
+         "\", not \"", x[paren][[1L]], "\"", call. = FALSE)
+  }
+  unique(x)
+}
+
+#' The addition terms a family takes, as a formula writes them: its
+#' declared allow-list widened by what it requires, because a term the
+#' density cannot do without is one it accepts.
+#'
+#' `NULL` means every term, which is what a family that declares no
+#' allow-list keeps.
+#'
+#' @noRd
+accepted_aterm_names <- function(fam) {
+  acc <- fam[["accepts_aterms"]]
+  if (is.null(acc)) return(NULL)
+  req <- unlist(required_aterm_groups(fam[["required_aterms"]]),
+                use.names = FALSE)
+  sort(unique(c(acc, vapply(req %||% character(0), aterm_base, ""))))
+}
+
+#' Refuse an addition term the family does not declare.
+#'
+#' Runs at frame assembly, after every guard that can say something
+#' specific about the pair, so a message here is the one nothing else
+#' would have given.
+#'
+#' @noRd
+check_accepted_aterms <- function(resp, av) {
+  fam <- resp$family
+  ok <- accepted_aterm_names(fam)
+  if (is.null(ok)) return(invisible(NULL))
+  have <- unique(c(names(resp$aterms), names(av)))
+  bad <- setdiff(unique(vapply(have, aterm_base, "")), ok)
+  if (!length(bad)) return(invisible(NULL))
+  stop(fam[["family"]], ": the addition term",
+       if (length(bad) > 1L) "s " else " ",
+       paste0("`", bad, "()`", collapse = ", "),
+       if (length(bad) > 1L) " are not ones" else " is not one",
+       " this family reads, so writing ",
+       if (length(bad) > 1L) "them" else "it",
+       " would change nothing about the fit. ",
+       if (length(ok)) {
+         paste0("This family takes ",
+                paste0("`", ok, "()`", collapse = ", "), ".")
+       } else {
+         "This family takes no addition terms."
+       },
+       call. = FALSE)
 }
 
 #' `required_aterms` as the groups frame assembly checks: each element

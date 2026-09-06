@@ -135,6 +135,24 @@
   OUTCOME, so it reweights all three at once where `wiener()` has to
   reweight the drift by the boundary probability it implies.
 
+* Every family declares `frmtmb_family(accepts_aterms = )`, the core's
+  new addition-term allow-list, and the hand-written `dec()` refusal
+  the two race families shared is deleted. `lba()` and `rdm()` take
+  `vint()` and `weights()`, `wiener()` adds `dec()`, `wiener_gng()`
+  takes `dec()` and `vreal()`, and `gddm()` takes all four. A term
+  outside a family's list is refused by name at frame assembly.
+
+* BEHAVIOR CHANGE: `rdm()` refuses `vreal()`. The compatibility table
+  recorded that pair as working on the ground that a model supplying
+  one fitted and gave the same answer as one that did not, which is
+  the defect rather than the feature: the column travelled into the
+  fit and changed nothing. The row now reads refused.
+
+* The `dec()` refusal for `lba()` and `rdm()` is now the core's
+  generic sentence, which names the term and lists what the family
+  does take, in place of the family-specific one. Same refusal, same
+  families, one seam instead of a check per package.
+
 # frmtmb.eam 0.3.0
 
 * RENAMED from frmtmb.ddm. The package holds the linear ballistic

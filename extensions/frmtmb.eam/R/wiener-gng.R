@@ -559,6 +559,7 @@ gng_family <- function(cfg, ub, delta) {
 
   fam <- frmtmb::custom_family(
     "wiener_gng",
+    accepts_aterms = c("dec", "vreal", "weights", "cens"),
     dpars = dpars,
     links = links,
     lpdf = lpdf,

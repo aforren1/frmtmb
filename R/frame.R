@@ -1392,6 +1392,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (!is.null(blk[["y"]])) y[[resp$resp_name]] <- blk[["y"]]
       blocks[[resp$resp_name]] <- blk
     }
+    # The reserved names a factorization slot rests on, checked where a
+    # refusal can still name the family and the response rather than
+    # surfacing as a length mismatch inside the correction.
+    check_structure_block(st_, blocks[[resp$resp_name]], resp$family,
+                          resp$resp_name, n)
     if (!is.null(resp$autocor)) {
       ac <- check_autocor_response(resp, spec, av, y[[resp$resp_name]])
       ac <- autocor_block(ac, resp$resp_name, mf, resp$formula_env, n)
@@ -1406,6 +1411,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (!is.null(resp$family[["valid_y"]])) {
       resp$family[["valid_y"]](y[[resp$resp_name]], av)
     }
+    # The allow-list, LAST of the addition-term guards and after
+    # valid_y, so that a family refusing a term in its own words still
+    # gets to say them: this one has only the declaration to go on.
+    # What it catches is what nothing else does - a term the density
+    # never reads and the core never acts on, parsed, stored on the
+    # fit, and silently ignored.
+    check_accepted_aterms(resp, av)
     # A family that is not fully determined until the response is in
     # hand - a link bounded above by min(y), a default only the data can
     # supply - gets its one chance here, after the response is coerced

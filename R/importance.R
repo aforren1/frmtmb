@@ -123,13 +123,22 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
          call. = FALSE)
   }
   for (rn in names(spec$responses)) {
-    if (!is.null(fam_structure(spec$responses[[rn]]$family)[["loglik"]])) {
+    st <- fam_structure(spec$responses[[rn]]$family)
+    if (is.null(st[["loglik"]])) next
+    # The correction needs the PIECES of the likelihood, one per
+    # grouping level; a whole-response loglik is their sum with the
+    # pieces thrown away. A family that HAS them declares one of the
+    # factorization slots, and this refusal is for one that does not.
+    if (is.null(st[["loglik_row"]]) && is.null(st[["loglik_group"]])) {
       stop("`importance` cannot correct the '",
            spec$responses[[rn]]$family[["family"]], "' family: it ",
-           "supplies its own log-likelihood, which does not factorize ",
-           "over rows, so a group's rows have no separable integrand ",
-           "to resample. This is the same restriction quadrature has. ",
-           "Use importance = 0", call. = FALSE)
+           "supplies its own log-likelihood, which returns one number ",
+           "for the whole response, so a group's rows have no ",
+           "separable integrand to resample. A family whose likelihood ",
+           "does factorize over its groups says so with ",
+           "frmtmb_structure(loglik_group = ) or (loglik_row = ), and ",
+           "this one declares neither. Use importance = 0",
+           call. = FALSE)
     }
   }
   for (lp in frame[["linpreds"]]) {
@@ -228,7 +237,66 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
            ". Use importance = 0", call. = FALSE)
     }
   }
+  # LAST, because it is the only check that needs the group map, and
+  # building the map has refusals of its own that belong after every
+  # cheaper one. A structured family reaching here declares a
+  # factorization slot; what is left to check is that the units it
+  # factorizes into are the ones the correction integrates over.
+  for (rn in names(spec$responses)) {
+    fam <- spec$responses[[rn]]$family
+    st <- fam_structure(fam)
+    if (is.null(st[["loglik"]])) next
+    imp_check_family_grouping(frame, fam, rn)
+  }
   invisible(NULL)
+}
+
+#' The family's independent units and the correction's groups must be
+#' the SAME partition of the rows.
+#'
+#' They are different objects that coincide in the case the seam was
+#' built for: `rw_delta(subject = id)` under `(1 | id)` gives one family
+#' unit per grouping level. The same family under `(1 | item)` gives a
+#' per-SUBJECT likelihood against a per-ITEM proposal, and summing the
+#' first into the second is not defined. Getting it wrong is silent -
+#' the arithmetic goes through and the numbers are meaningless - so the
+#' check is required rather than advisory.
+#'
+#' Equality, not refinement, in either direction. A family unit spanning
+#' two groups has no separable integrand; a group holding two family
+#' units would have the family run one recursion over both, which
+#' concatenates two sequences that never met.
+#'
+#' @noRd
+imp_check_family_grouping <- function(frame, fam, rn) {
+  blk <- frame_block_of(frame, rn)
+  codes <- structure_group_codes(blk)
+  lay <- imp_layout(frame[["re_blocks"]])
+  labs <- vapply(lay[["blocks"]], function(bk) bk[["term_label"]], "")
+  if (is.null(codes)) {
+    stop("`importance` cannot correct the '", fam[["family"]],
+         "' family here: it declares a factorization of its likelihood ",
+         "but its frame block carries no `group`, so there is nothing ",
+         "to check the grouping of `", labs[[1L]], "` against. The ",
+         "correction would be summing the family's pieces into groups ",
+         "it has no reason to belong to. Use importance = 0",
+         call. = FALSE)
+  }
+  rl <- imp_group_map(frame, lay)[["row_level"]]
+  pairs <- length(unique(paste(codes, rl, sep = ":")))
+  if (pairs == length(unique(codes)) && pairs == length(unique(rl))) {
+    return(invisible(NULL))
+  }
+  stop("`importance` needs the '", fam[["family"]], "' family's own ",
+       "units and the grouping of `", labs[[1L]],
+       "` to be the same partition of the rows, and they are not: the ",
+       "family has ", length(unique(codes)), " unit(s) against ",
+       length(unique(rl)), " grouping level(s), covering ", pairs,
+       " combination(s). The correction resamples one grouping level ",
+       "at a time and adds up the family's pieces inside it, which ",
+       "means something only when a piece belongs to exactly one ",
+       "level. Group the model on what the family groups on, or use ",
+       "importance = 0", call. = FALSE)
 }
 
 #' WHERE A GROUP'S COEFFICIENTS LIVE. The one object the whole
@@ -613,6 +681,28 @@ build_importance_objective <- function(frame, lay, gmap, plan) {
   wts <- av[["weights"]] %||% 1
   extra_names <- frame[["extra_names"]] %||% character(0)
   smat <- gmap[["S"]]
+  # A structured family's own factorization, resolved HERE, off the
+  # tape and once: the branch is on the family object and the frame
+  # block, both of them data, so nothing below puts a condition on a
+  # parameter value.
+  st <- fam_structure(fam)
+  blk <- frame_block_of(frame, rn)
+  st_row <- st[["loglik_row"]]
+  st_grp <- st[["loglik_group"]]
+  # Group values come back in the family's own level order and the
+  # correction counts groups in its own. The two orders describe the
+  # same partition (check_importance_scope() refuses otherwise) and
+  # need not agree, so the permutation between them is a sparse product
+  # like the aggregation it replaces, formed once here.
+  pmat <- NULL
+  if (!is.null(st_grp)) {
+    codes <- structure_group_codes(blk)
+    rl <- gmap[["row_level"]]
+    to <- rl[match(seq_len(max(codes)), codes)]
+    pmat <- Matrix::sparseMatrix(i = to, j = seq_along(to),
+                                 x = rep(1, length(to)),
+                                 dims = c(ng, length(to)))
+  }
 
   # The draws are constants, so Z U is a constant too: the whole
   # n x N random-effect contribution to each linear predictor is one
@@ -656,8 +746,19 @@ build_importance_objective <- function(frame, lay, gmap, plan) {
       dpv[[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
       dpv[[paste0(".eta_", lp[["dpar"]])]] <- eta
     }
-    ll <- wts * row_lpdf(fam, yraw, yraw, dpv, av, extra)
-    agg <- smat %*% RTMB::matrix(ll, n, nd)
+    agg <- if (!is.null(st_grp)) {
+      # one value per family unit per draw, already the group sums the
+      # rowwise path has to form; the family decides what a weight
+      # means to a likelihood that is not rowwise, so it is passed and
+      # not applied here
+      pmat %*% RTMB::matrix(st_grp(yraw, dpv, av, wts, blk, extra),
+                            ncol(pmat), nd)
+    } else if (!is.null(st_row)) {
+      smat %*% RTMB::matrix(st_row(yraw, dpv, av, wts, blk, extra), n, nd)
+    } else {
+      smat %*% RTMB::matrix(wts * row_lpdf(fam, yraw, yraw, dpv, av, extra),
+                            n, nd)
+    }
     # The sparse product gives an advector matrix on the tape and a
     # Matrix object in the numeric path, and a Matrix loses its
     # dimensions through exp(). The test is on CLASS, so it resolves

@@ -500,6 +500,20 @@ hmm_structure <- function(fam) {
       # row-wise factor to weight
       hmm_loglik_ad(fam, dpars, block, aterms, extra)
     },
+    # A SEQUENCE is the finest factorization an HMM has. The forward
+    # recursion produces exactly these values on its way to the total,
+    # so declaring them costs nothing and is what lets the core resample
+    # a sequence (frm(importance = )) or leave one out (loo()).
+    #
+    # There is no loglik_row, and its absence is the honest answer
+    # rather than an omission: a row's emission density is not its
+    # contribution to the likelihood, because the state that emitted it
+    # was reached through every earlier row and constrains every later
+    # one. Nothing here can be divided by time point, which is why
+    # `deviance` stays refused below.
+    loglik_group = function(y, dpars, aterms, weights, block, extra) {
+      hmm_group_loglik_ad(fam, y, dpars, block, aterms, extra)
+    },
     fitted_mean = function(fit, block) hmm_mean_response(fit),
     # the protocol's fitted_var() either produces a variance or explains
     # itself; an emission family with no var_fn is the one case
@@ -768,11 +782,16 @@ hmm_frame_block <- function(resp, spec, av, mf, y, n) {
     mask <- as.numeric(!miss)
   }
 
+  # `group` is a reserved block name: the sequence each row belongs to,
+  # in the grouping factor's own level order, which is what
+  # frmtmb_structure(loglik_group = ) reports one value per. The layout
+  # above sorts sequences by decreasing length instead, and that order
+  # is the recursion's business rather than the core's.
   list(K = hs$K, init = hs$init, m = st$m, slice = st$slice,
        rslice = st$rslice, rows = st$rows, len = st$len,
        n_seq = st$n_seq, order = st$order,
        levels = levels(gv)[st$order], gindex = gidx, time = tv,
-       const_trans = const_trans, miss = miss, mask = mask,
+       group = gv, const_trans = const_trans, miss = miss, mask = mask,
        n = n, y = yv)
 }
 
@@ -844,17 +863,31 @@ hmm_log_delta <- function(hs, lg, K, extra) {
   )
 }
 
-#' The total log-likelihood of every sequence, on the tape.
+#' The log-likelihood of every sequence, on the tape: their total, or
+#' the sequences one at a time when `pieces` is `TRUE`.
 #'
 #' One step of the recursion is `K^2` vectorized `logspace_add` calls
 #' over the sequences still running, not `K^2` scalar operations per row.
 #'
+#' The pieces cost nothing but a concatenation. The recursion already
+#' produces one value per sequence, at the step where that sequence
+#' ends, and the total is their sum; `pieces` only keeps them instead of
+#' adding them up. It is DATA, so the branch resolves while the tape is
+#' built and never reaches it. The blocks of ending sequences come out
+#' in decreasing position order, which is why they are reversed.
+#'
+#' The pieces are in the layout's own order, which sorts the sequences
+#' by decreasing length. `hmm_group_loglik_ad()` puts them back in the
+#' block's grouping order.
+#'
 #' @noRd
-hmm_forward_ad <- function(lp, lg, ld, hg, K) {
+hmm_forward_ad <- function(lp, lg, ld, hg, K, pieces = FALSE) {
+  "c" <- RTMB::ADoverload("c")
   m <- hg[["m"]]
   S <- length(m)
   la <- lapply(seq_len(K), function(k) ld[[k]] + lp[[k]][hg$slice[[1L]]])
   total <- 0
+  parts <- list()
   mprev <- m[1L]
   for (s in seq_len(S)) {
     if (s > 1L) {
@@ -879,27 +912,71 @@ hmm_forward_ad <- function(lp, lg, ld, hg, K) {
       idx <- (mnext + 1L):m[s]
       tv <- la[[1L]][idx]
       for (k in seq_len(K)[-1L]) tv <- RTMB::logspace_add(tv, la[[k]][idx])
-      total <- total + sum(tv)
+      if (pieces) parts[[length(parts) + 1L]] <- tv else total <- total + sum(tv)
     }
   }
-  total
+  if (pieces) do.call(c, rev(parts)) else total
 }
 
 #' The HMM contribution to the objective: the marginal log-likelihood of
-#' every sequence, with the discrete states summed out exactly.
+#' every sequence, with the discrete states summed out exactly. One
+#' value per sequence, in the block's grouping order.
+#'
+#' A sequence IS this family's independent unit, so these are its
+#' natural pieces and the objective's total is their sum. What the core
+#' does with them is its own business: `frm(importance = )` resamples
+#' one of them at a time, and `loo()` leaves one out.
 #'
 #' @noRd
-hmm_loglik_ad <- function(fam, dp, hg, av, extra) {
+hmm_group_loglik_ad <- function(fam, y, dp, hg, av, extra) {
   hs <- fam[["hmm"]]
   K <- hs$K
+  hg <- hmm_stacked_block(hg, NROW(y) %/% hg[["n"]])
   lp <- lapply(seq_len(K), function(k) {
-    v <- hs$state_lpdf(hg[["y"]], dp, av, k)
+    v <- hs$state_lpdf(y, dp, av, k)
     if (!is.null(hg[["mask"]])) v <- v * hg[["mask"]]
     v
   })
   lg <- hmm_log_tpm(dp, K)
   ld <- hmm_log_delta(hs, lg, K, extra)
-  hmm_forward_ad(lp, lg, ld, hg, K)
+  # the layout sorts sequences by decreasing length; the block's
+  # grouping is in level order, and the two have to agree before the
+  # core can line these values up with a grouping factor of its own
+  hmm_forward_ad(lp, lg, ld, hg, K, pieces = TRUE)[order(hg[["order"]])]
+}
+
+#' The sequence layout for a design stacked `nrep` times.
+#'
+#' `frm(importance = )` evaluates the whole design once per draw, so the
+#' recursion has to run over sequence-crossed-with-draw. The layout is
+#' DATA and is rebuilt here rather than on the tape; `nrep` is 1 for
+#' every other caller, which is a cheap early return.
+#'
+#' @noRd
+hmm_stacked_block <- function(hg, nrep) {
+  if (nrep <= 1L) return(hg)
+  n <- hg[["n"]]
+  ng <- max(hg[["gindex"]])
+  gidx <- rep(hg[["gindex"]], nrep) +
+    rep((seq_len(nrep) - 1L) * ng, each = n)
+  st <- hmm_seq_structure(gidx, rep(hg[["time"]], nrep), n * nrep)
+  hg[["m"]] <- st$m
+  hg[["slice"]] <- st$slice
+  hg[["rslice"]] <- st$rslice
+  hg[["rows"]] <- st$rows
+  hg[["len"]] <- st$len
+  hg[["n_seq"]] <- st$n_seq
+  hg[["order"]] <- st$order
+  hg[["gindex"]] <- gidx
+  if (!is.null(hg[["mask"]])) hg[["mask"]] <- rep(hg[["mask"]], nrep)
+  hg
+}
+
+#' The HMM contribution to the objective: the total.
+#'
+#' @noRd
+hmm_loglik_ad <- function(fam, dp, hg, av, extra) {
+  sum(hmm_group_loglik_ad(fam, hg[["y"]], dp, hg, av, extra))
 }
 
 ## ---- numeric post-processing ----------------------------------------

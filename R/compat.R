@@ -36,6 +36,59 @@ frmtmb_compat_contrib <- new.env(parent = emptyenv())
 frmtmb_compat_contrib$features <- list()
 frmtmb_compat_contrib$rules <- list()
 
+# The vocabulary is a hundred-odd data.frame rows glued together, and
+# building it costs about 16 ms. It is read once per frm_compat() call
+# and once per registration, and an extension that registers four
+# addition terms used to pay four builds inside one .onLoad().
+#
+# The cache is validated against the contributed features it was built
+# from rather than against a dirty flag, because a caller that restores
+# `frmtmb_compat_contrib$features` directly - which the register tests
+# do, to undo themselves - would leave a flag saying clean over a table
+# that is not. A registration EXTENDS the cache with the rows it adds
+# instead of dropping it: a registration reads the vocabulary before it
+# writes to it, so dropping would give back the build it just saved.
+frmtmb_compat_cache <- new.env(parent = emptyenv())
+frmtmb_compat_cache$features <- NULL
+frmtmb_compat_cache$tbl <- NULL
+
+#' Keep a freshly built vocabulary, and return it.
+#'
+#' @noRd
+compat_cache_store <- function(tbl) {
+  frmtmb_compat_cache$features <- frmtmb_compat_contrib$features
+  frmtmb_compat_cache$tbl <- tbl
+  tbl
+}
+
+#' Carry the cache across a registration that has just added `add` to
+#' `frmtmb_compat_contrib$features`, which stood at `before`.
+#'
+#' Contributed rows go last and duplicate display names are dropped
+#' keeping the first, which is exactly what a rebuild would do with the
+#' same rows, so the extended table is the table a rebuild returns.
+#'
+#' @noRd
+compat_cache_extend <- function(add, before) {
+  if (is.null(frmtmb_compat_cache$tbl) ||
+        !identical(frmtmb_compat_cache$features, before)) {
+    # the cache did not describe the vocabulary this registration read,
+    # so there is nothing to carry forward and it is dropped rather
+    # than extended with rows from another state
+    frmtmb_compat_cache$features <- NULL
+    frmtmb_compat_cache$tbl <- NULL
+    return(invisible(NULL))
+  }
+  rows <- do.call(rbind, lapply(seq_along(add), function(i) {
+    compat_feature_row(names(add)[[i]], unname(add[[i]]))
+  }))
+  out <- rbind(frmtmb_compat_cache$tbl, rows)
+  out <- out[!duplicated(out$name), , drop = FALSE]
+  rownames(out) <- NULL
+  compat_cache_store(out)
+  invisible(NULL)
+}
+
 #' Contribute to the compatibility matrix from another package
 #'
 #' [frm_compat()] answers what one feature does in the presence of
@@ -210,8 +263,9 @@ frmtmb_register_compat <- function(features = NULL, rules = NULL,
   # registration leaves the vocabulary as it found it rather than half
   # filled with the features of a rule set that never took.
   if (length(add)) {
-    frmtmb_compat_contrib$features <-
-      c(frmtmb_compat_contrib$features, list(add))
+    before <- frmtmb_compat_contrib$features
+    frmtmb_compat_contrib$features <- c(before, list(add))
+    compat_cache_extend(add, before)
   }
   if (!is.null(rules)) {
     frmtmb_compat_contrib$rules <-
@@ -354,8 +408,9 @@ compat_new_aterm_feature <- function(name) {
   add <- compat_new_features(stats::setNames("aterm", display),
                              "frmtmb_register_aterm()", known)
   if (length(add)) {
-    frmtmb_compat_contrib$features <-
-      c(frmtmb_compat_contrib$features, list(add))
+    before <- frmtmb_compat_contrib$features
+    frmtmb_compat_contrib$features <- c(before, list(add))
+    compat_cache_extend(add, before)
   }
   invisible(NULL)
 }
@@ -503,15 +558,36 @@ compat_rule_builder <- function() {
 #'
 #' @noRd
 frmtmb_compat_features_tbl <- function(extra = NULL) {
-  contrib <- c(unlist(frmtmb_compat_contrib$features), extra)
-  f <- function(name, kind) {
-    key <- sub("\\(\\)$", "", name)
-    if (key %in% names(frmtmb_compat_special_keys)) {
-      key <- unname(frmtmb_compat_special_keys[[key]])
-    }
-    data.frame(name = name, key = key, kind = kind,
-               stringsAsFactors = FALSE)
+  # `extra` asks what the vocabulary WOULD hold with rows the registry
+  # does not have, so only the registry's own answer is worth keeping.
+  if (!is.null(extra)) return(compat_features_build(extra))
+  if (!is.null(frmtmb_compat_cache$tbl) &&
+        identical(frmtmb_compat_cache$features,
+                  frmtmb_compat_contrib$features)) {
+    return(frmtmb_compat_cache$tbl)
   }
+  compat_cache_store(compat_features_build(NULL))
+}
+
+#' One vocabulary row: the display name, the key the package itself
+#' uses, and the kind.
+#'
+#' @noRd
+compat_feature_row <- function(name, kind) {
+  key <- sub("\\(\\)$", "", name)
+  if (key %in% names(frmtmb_compat_special_keys)) {
+    key <- unname(frmtmb_compat_special_keys[[key]])
+  }
+  data.frame(name = name, key = key, kind = kind,
+             stringsAsFactors = FALSE)
+}
+
+#' The vocabulary as the registry stands, built from scratch.
+#'
+#' @noRd
+compat_features_build <- function(extra = NULL) {
+  contrib <- c(unlist(frmtmb_compat_contrib$features), extra)
+  f <- compat_feature_row
   fams <- c("gaussian", "student", "lognormal", "shifted_lognormal",
             "skew_normal", "exgaussian", "asym_laplace", "Gamma",
             "weibull", "exponential", "inverse.gaussian", "beta",
@@ -1228,7 +1304,7 @@ frmtmb_compat_rules_tbl <- function() {
     "gr(prec = Q) takes correlated slopes; the block precision is the Kronecker product of Q and the inverse term covariance, so it stays as sparse as Q. Q needs dimnames covering every grouping level, and belongs in data2 = list(Q = Q). Terms sharing an |ID| key over the same factor and the same Q merge into one such block.",
     override = TRUE)
   r("car", "*", "conditional",
-    "car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = \"escar\" is the proper CAR, \"esicar\" the intrinsic one under an EXACT sum-to-zero constraint, \"icar\" the same field under brms's soft constraint (con_sd), \"bym2\" the scaled mixture; escar needs every location to have a neighbor. con_sd changes no esicar estimate, but it does scale that type's prediction standard errors and ranef() conditional SDs as con_sd^2 in the variance, so leave it at the default there. Every constrained type constrains each connected component, where brms constrains the global sum; the two agree on a connected graph. M belongs in data2 = list(M = M).",
+    "car(M, gr = g, type = ) is a predictor special, not a bar term. M is a symmetric adjacency matrix with dimnames (rownames, colnames, or both, which then have to agree) covering every location; entries must be present and non-negative, and non-zero weights are binarized. type = \"escar\" is the proper CAR, \"esicar\" the intrinsic one under an EXACT sum-to-zero constraint, \"icar\" the same field under brms's soft constraint (con_sd), \"bym2\" the scaled mixture; escar needs every location to have a neighbor. con_sd changes nothing an esicar term reports: the constraint is exact and the delta method uses the centering projection, so the estimates, the prediction standard errors and the ranef() conditional SDs are all invariant to it. Every constrained type constrains each connected component, where brms constrains the global sum; the two agree on a connected graph. M belongs in data2 = list(M = M).",
     override = TRUE)
   r("spde", "*", "conditional",
     "spde(fem, gr = node) is a predictor special taking a mesh's finite-element matrices (M0/M1/M2 or c0/g1/g2) as fixed data; gr maps observations onto mesh nodes BY ROW NUMBER (whole numbers in 1..nrow(M0), as integers or as a factor/character spelling of them), because the matrices carry no dimnames to match labels against. Unobserved nodes keep their column; a general projector matrix is not supported yet. The matrices belong in data2 = list(fem = fem).",

@@ -66,6 +66,23 @@ draws_loglik_factors <- function(fit, what) {
     # frmtmb_structure() protocol, so they are read directly rather
     # than through core's one-line accessors
     st <- fit$spec$responses[[r]]$family[["structure"]]
+    # A structure that FACTORIZES its likelihood has columns after all,
+    # at the granularity it declares, and the matrix is built from that
+    # slot instead. What is still refused is a structure supplying one
+    # number for the whole response and nothing finer.
+    if (!is.null(st[["loglik"]]) &&
+          (!is.null(st[["loglik_row"]]) ||
+             !is.null(st[["loglik_group"]]))) {
+      if (length(fit$spec$responses) > 1L) {
+        stop(what, " cannot put the '",
+             fit$spec$responses[[r]]$family[["family"]],
+             "' family's own pieces in the same column as another ",
+             "response's rows: they are not quantities of the same ",
+             "thing, so they do not add up. Fit the responses one at a ",
+             "time", call. = FALSE)
+      }
+      next
+    }
     unit <- if (!is.null((frame[["autocor"]] %||% list())[[r]])) {
       "an R-side residual correlation (ar/ma/arma/cosy/unstr) block"
     } else if (!is.null(st[["loglik"]])) {
@@ -128,6 +145,23 @@ draws_row_loglik <- function(fit, resp) {
     av <- frame[["aterm_values"]][[r]]
     fam <- rspecs[[r]]$family
     yv <- frame[["y"]][[r]]
+    st <- rspecs[[r]]$family[["structure"]]
+    if (!is.null(st[["loglik"]])) {
+      # The family's own factorization, at the COARSEST granularity it
+      # declares. A leave-one-out column has to be something the model
+      # could have been fitted without, and a family that groups its
+      # likelihood is telling us its rows are not that: `rw_delta` has
+      # a per-trial conditional density and still cannot lose a trial,
+      # because every later trial's value depends on it. Where only
+      # rows are declared, the rows are the units.
+      f <- st[["loglik_group"]] %||% st[["loglik_row"]]
+      v <- f(yv, dpv[[r]], av, av[["weights"]] %||% 1,
+             frame_block_of(frame, r), extra)
+      return(structure(as.numeric(v), names = NULL,
+                       unit = if (!is.null(st[["loglik_group"]])) {
+                         st[["unit"]] %||% "a group"
+                       } else "an observation"))
+    }
     ll <- row_lpdf(fam, yv, yv, dpv[[r]], av, extra)
     out <- out + (av[["weights"]] %||% 1) * as.numeric(ll)
   }
@@ -176,6 +210,20 @@ draws_row_loglik <- function(fit, resp) {
 #' same kind of reason: a latent value is a parameter, not an
 #' observation. Use `AIC()` on the maximum-likelihood fits or
 #' [frmtmb::frm_bootstrap()] for those.
+#'
+#' A family that declares how its likelihood factorizes
+#' (`frmtmb::frmtmb_structure(loglik_group = )` or `(loglik_row = )`) is
+#' not in that position and is not refused. Its columns are the pieces
+#' it declares, at the COARSEST granularity it gives: a family that
+#' groups its likelihood is saying that its rows are not independently
+#' droppable, which is exactly the question a leave-one-out column asks.
+#' The matrix then carries `attr(x, "unit")` naming what a column is.
+#' `loo::loo.matrix()` never sees that attribute and its printout says
+#' only "Computed from N by K log-likelihood matrix", which reads
+#' exactly like a per-observation one, so [loo()], [waic()] and
+#' `psis()` emit a message naming the unit and the column count when
+#' they are handed such a matrix. The elpd is then leave-one-UNIT-out,
+#' and the number itself carries no mark of that.
 #'
 #' @param object A `frmtmb_draws` from [frm_sample()].
 #' @param ndraws Number of draws to use, evenly spaced through the
@@ -227,13 +275,23 @@ log_lik.frmtmb_draws <- function(object, ndraws = NULL, resp = NULL,
   idx <- draws_par_index(fit)
   rows <- draws_subsample(object, ndraws)
   out <- NULL
+  unit <- NULL
   for (k in seq_along(rows)) {
     v <- draws_row_loglik(draws_fit_at(object, rows[k], idx), resp)
-    if (is.null(out)) out <- matrix(NA_real_, length(rows), length(v))
+    if (is.null(out)) {
+      out <- matrix(NA_real_, length(rows), length(v))
+      unit <- attr(v, "unit")
+    }
     out[k, ] <- v
   }
   attr(out, "chain_id") <- if (length(rows) == nrow(object$draws)) {
     draws_chain_id(object)
+  }
+  # what a column IS, when it is not an observation. Carried on the
+  # matrix rather than left to the reader to infer from its width,
+  # because loo() will happily leave out a column of any meaning.
+  if (!is.null(unit) && !identical(unit, "an observation")) {
+    attr(out, "unit") <- unit
   }
   out
 }
@@ -349,7 +407,20 @@ loo_matrix <- function(x, ndraws, resp, what) {
          "log_lik() and pass the matrix to your own estimator",
          call. = FALSE)
   }
-  log_lik(x, ndraws = ndraws, resp = resp)
+  ll <- log_lik(x, ndraws = ndraws, resp = resp)
+  # loo::loo.matrix() prints "Computed from N by K log-likelihood
+  # matrix" and nothing else, so a matrix whose columns are GROUPS
+  # reads exactly like a per-observation one. The attribute log_lik()
+  # carries never reaches the printed object; say it here, where the
+  # caller can still see which quantity they asked for.
+  unit <- attr(ll, "unit")
+  if (!is.null(unit)) {
+    message(what, " is leave-one-out over the ", ncol(ll),
+            " units this family factorizes into (", unit,
+            "), not over observations: the family declares that its ",
+            "rows are not independently droppable.")
+  }
+  ll
 }
 
 #' Relative efficiency of the likelihood ratios, or NULL when the draws

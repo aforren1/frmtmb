@@ -7,6 +7,11 @@ Written 2026-09-03 against v0.43.0; revised same date with the
 packaging decision (monorepo), the boundary-test ratchet, and the
 interop split notes.
 
+Revised 2026-09-05 with the two factorization slots (`loglik_row`,
+`loglik_group`), the block's reserved `group`, and the
+addition-term allow-list. Those are additions to a protocol that was
+otherwise complete, not a redesign of it.
+
 ## Problem
 
 Three families have a likelihood that does not factorize over rows:
@@ -63,6 +68,8 @@ frmtmb_structure(
   frame_block   = NULL,   # function(resp, spec, av, mf, y, n) -> block
   check_frame   = NULL,   # function(spec, frame)
   loglik        = ,       # function(y, dpars, aterms, weights, block, extra) -> AD scalar
+  loglik_row    = NULL,   # same signature -> one value per ROW
+  loglik_group  = NULL,   # same signature -> one per block$group LEVEL
   fitted_mean   = NULL,   # function(fit, block) -> numeric(n) or NULL
   fitted_var    = NULL,   # function(fit, block) -> numeric(n) or NULL
   latent_probs  = NULL,   # function(fit, block) -> matrix
@@ -75,6 +82,11 @@ frmtmb_structure(
 `loglik` is the only required slot. Everything else defaults to "the
 rowwise behavior", which is what a structured family that only changes
 the likelihood needs.
+
+Two more slots landed on 2026-09-05, `loglik_row` and
+`loglik_group`, which say how finely the whole-response likelihood
+factorizes; see their section below and the addition-term allow-list
+note at the end of this document.
 
 The constructor validates types and the `supports` names, stamps class
 `frmtmb_structure`, and is the object `frmtmb_family(structure =)`
@@ -122,6 +134,10 @@ effects are built. Returns a plain list, the **block**, stored at
     stage (placeholder-filled, as hmm does). Otherwise `y` is unchanged.
   - `miss`: logical `n`-vector. Core sets residuals to `NA` at these
     rows and excludes them from `napred()` padding. Optional.
+  - `group`: factor or integer `n`-vector, the family's own
+    independent unit per row. What `loglik_group` returns one value
+    per, and what core checks the importance grouping against.
+    Optional, and required with `loglik_group`.
   - `mask`: numeric 0/1 `n`-vector the family multiplies into its
     emission density. Core does not read it; it is reserved so every
     structured family spells it the same way.
@@ -155,6 +171,94 @@ Called from the objective's response loop in place of the rowwise
 Must return `sum(log-likelihood)`, not a negative. Must not touch
 `RTMB::OBS()`: one-step-ahead residuals are refused generically for any
 structured family (see `supports`).
+
+### `loglik_row(...)` and `loglik_group(...)`
+
+ADDED 2026-09-05, after the reinforcement-learning lane found the gap
+and the review corrected the fix. `loglik` returns one number for the
+whole response, which is everything the objective needs and less than
+everything else needs. Three consumers want the pieces:
+`frm(importance =)` resamples one grouping level at a time, `loo()` and
+`waic()` leave one unit out at a time, and a deviance residual compares
+one row against its saturated fit.
+
+Both slots take `loglik`'s arguments and return the same quantity
+factorized instead of summed. A family declares whichever factorization
+it HAS, and the finest one it has:
+
+- `loglik_row`, one value per row: the conditional log-density of that
+  row given whatever the family's factorization conditions on. It must
+  sum to `loglik`, and each value must depend only on its own group's
+  random effects. The core sums it into groups with the sparse
+  indicator `imp_group_map()` already builds.
+- `loglik_group`, one value per level of the block's `group`: for a
+  family whose finest factorization IS the group, which a forward
+  recursion over a sequence is.
+
+Neither is a substitute for `unit`, and this is the correction the
+review made to the first proposal. `unit` declares what may honestly be
+LEFT OUT; these declare how finely the likelihood factorizes. They are
+different questions and the reference consumer is the counterexample
+that proves it: `rw_delta`'s finest factorization is the TRIAL, and its
+`unit` is one subject's whole sequence, because dropping a trial
+changes every later trial's value store. A slot keyed on `unit` would
+have the protocol promising a per-row quantity out of per-group data.
+
+Declaring either without `loglik` is refused. A family whose likelihood
+is already rowwise has these quantities through its own `lpdf`, and a
+slot there would be a second definition of the same numbers with
+nothing keeping the two equal. `lca()` is that family and declares
+neither; `hmm()` declares `loglik_group` and no `loglik_row`, because a
+row's emission density is not its contribution to the likelihood.
+
+STACKING is part of the contract, not an accident of the caller. The
+importance correction evaluates the whole design once per draw, stacked
+at `ridx <- rep.int(seq_len(n), nd)`, so it calls these slots with `y`,
+the dpars and the addition terms each repeated `nrep` times: entry `j`
+is original row `((j - 1) %% n) + 1` of replicate `((j - 1) %/% n) + 1`,
+with `n = length(block[["group"]])` and `nrep = NROW(y) / n`.
+`loglik_row` returns `n * nrep` values in that order and `loglik_group`
+returns `ng * nrep`, replicate-major. A sequential family runs its
+recursion over unit-crossed-with-replicate rather than over unit; where
+its loop is already vectorized across units, that is the same loop over
+a longer vector.
+
+A family that gets the stacking wrong is caught rather than believed.
+`imp_verify()` already compares the correction's per-group values with
+the plain objective, per group and in total, at the first freeze, and
+it is what turns "the family says it factorizes" into a checked claim.
+
+SATURATED VALUES. A deviance residual needs `2 * (saturated - fitted)`,
+and no conditional log-density supplies the first half: the saturated
+fit has one parameter per observation and only the family knows what
+its density reaches there. Rather than a third slot, `loglik_row` may
+attach `attr(x, "saturated")`, a numeric vector of the same length,
+which the core reads outside the tape. Without it, deviance stays
+refused with a sentence naming what is missing. The alternative
+considered and rejected was to assume a saturated log-density of zero:
+it is right for a Bernoulli trial, wrong for a Poisson count, and
+nothing visible from the core tells the two apart, so the assumption
+would have produced a plausible wrong number in silence.
+
+### The block's `group`
+
+A fourth reserved block name, beside `y`, `miss` and `mask`. A factor
+or integer `n`-vector giving the family's own independent unit for each
+row. It is what `loglik_group` returns one value per, in level order
+for a factor and `sort(unique())` order otherwise; the order is fixed
+by the core rather than by each family, because the core aligns two
+groupings by these codes.
+
+The GROUPING-ALIGNMENT check is required, because getting it wrong is
+silent. The family's units and the correction's grouping levels must be
+the same partition of the rows: `rw_delta(subject = id)` under
+`(1 | id)` is the aligned case, and the same family under `(1 | item)`
+gives a per-subject likelihood against a per-item proposal, which does
+not add up in either direction. Equality, not refinement: a family unit
+spanning two groups has no separable integrand, and a group holding two
+family units would have the family concatenate two sequences that never
+met. `check_importance_scope()` refuses by name, in groups and levels
+rather than in rows.
 
 ### `fitted_mean(fit, block)` and `fitted_var(fit, block)`
 
@@ -402,3 +506,62 @@ can land green on its own.
   the same `loglik` signature. It would remove the third
   response-loop branch and the `acs` frame slot. Worth a separate
   note once the family protocol is in.
+
+## The addition-term allow-list (added 2026-09-05)
+
+Not a `frmtmb_structure()` slot, and it belongs here because it answers
+the same question one file over: what a family declares about itself
+instead of hand-writing a check.
+
+`frmtmb_family(required_aterms =)` is a CONJUNCTION of what the density
+cannot do without. There was no complementary allow-list, so a term the
+density never reads was parsed, coerced, stored on the fitted object,
+and then ignored. Measured, before the fix: `lba(3)` on
+`rt | dec(two) + vint(choice) ~ 1` fitted with fixed effects
+bit-identical to the model without `dec()` and no warning at any
+point. Each family that wanted to refuse such a term had to write the
+check itself, and the two sibling race families disagreed about it
+for a release.
+
+`wiener()` has the same defect and the allow-list does NOT close it,
+which is worth stating here rather than leaving the doc claiming a
+win it did not get. The earlier draft of this paragraph said
+`wiener()` took a `vint()` it cannot use; that is wrong, and the
+review measured it: `wiener()` reads `vint1` as the boundary when
+`dec` is absent, so `rt | vint(upper)` and `rt | dec(upper)` give a
+bit-identical logLik of -130.566406836. `vint()` is a working second
+spelling. The real defect is the two supplied TOGETHER:
+`rt | dec(upper) + vint(upper)` fits, `dec` wins, the `vint()` column
+travels into the fit and changes nothing, silently. An allow-list
+cannot catch that, because both terms are legitimately on the list;
+it needs exclusivity among the alternatives of `required_aterms`,
+which is the follow-up recorded under "left out" in
+`dev/protocol-findings.md` and in the note at the end of this
+section.
+
+`accepts_aterms` is that allow-list. It names the terms a family reads
+or lets the core act on, as a formula writes them and without
+parentheses, and is read together with `required_aterms` (a required
+term need not be repeated). `NULL`, the default, accepts every
+registered term, so a custom family written before this argument
+existed keeps its behavior. `character(0)` declares a family that takes
+none.
+
+Two decisions worth keeping:
+
+- The check runs LAST of the addition-term guards, after `valid_y()`.
+  Every earlier refusal says something specific about the pair it
+  refuses (`se()` for a non-gaussian family, `cens()` without a CDF,
+  `wiener_gng`'s "the indicator travels through dec(), not vint()"),
+  and those messages are better than a generic one. What the allow-list
+  catches is what nothing else did.
+- It is spelled in TERMS, not in term values: `vint`, not `vint1` and
+  `vint2`. So it closes "this family never reads that term" and does
+  not close "this family reads one `vint()` value and you supplied
+  two". The `wiener()` case the rdm/gng review found is the second
+  kind - `dec()` and `vint()` are alternative spellings of one datum
+  there, and supplying both leaves the second unread - and it needs an
+  exclusivity rule on `required_aterms` alternative groups instead.
+  `gddm()` is why that rule is not written here: it reads `dec()` and
+  `vint()` together, with the condition index in `vint1` when `dec()`
+  is present and in `vint2` when it is not.

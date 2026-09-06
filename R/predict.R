@@ -2439,6 +2439,20 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
         }
         r <- r / sqrt(fv(object, blk))
       }
+      if (type == "deviance") {
+        # sign from the conditional mean, magnitude from the family's
+        # own per-row log-density. Reached only for a family that
+        # declares supports$deviance, which the gate above has already
+        # checked; what is checked here is that it can produce the two
+        # halves of a unit deviance.
+        # The FAMILY applies the row weights: the core passes them into
+        # the slot and does not reapply them, which is the convention
+        # the importance correction already uses on the same slot
+        # (R/importance.R). Multiplying here as well made a family that
+        # follows the documented instruction report deviance residuals
+        # exactly sqrt(w) too large.
+        r <- sign(r) * sqrt(structure_unit_deviance(object, rspec, st, blk))
+      }
       # a masked (NA) response has no residual, and the placeholder
       # value standing in for it on the tape must never look like one
       if (!is.null(blk[["miss"]])) r[blk[["miss"]]] <- NA_real_

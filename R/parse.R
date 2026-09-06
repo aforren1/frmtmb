@@ -134,6 +134,26 @@ registered_aterm_of <- function(nm) {
   if (!is.null(e) && e$arity > 1L) e else NULL
 }
 
+#' The TERM one addition-term value came from, as a formula writes it
+#' without parentheses: `trunc` for `trunc_ub`, `vint` for `vint2`,
+#' `dec` for `dec`. This is the vocabulary
+#' `frmtmb_family(accepts_aterms =)` is written in, so that a family
+#' declares one name however many arguments the term takes and however
+#' many keys the parser splits it into.
+#'
+#' @noRd
+aterm_base <- function(nm) {
+  if (nm %in% c("trunc_lb", "trunc_ub")) return("trunc")
+  if (nm == "cens_y2") return("cens")
+  if (nm == "se_sigma") return("se")
+  if (nm == "mi_sd") return("mi")
+  base <- sub("[0-9]+$", "", nm)
+  if (base %in% c("vint", "vreal")) return(base)
+  e <- registered_aterm_of(nm)
+  if (!is.null(e)) return(e$name)
+  nm
+}
+
 #' The spelling that supplies one addition-term VALUE, for a refusal
 #' that has to tell the user what to write. `vint2` is the second
 #' argument of one `vint()` call, not a term of its own, and a

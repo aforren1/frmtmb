@@ -157,6 +157,55 @@
   `inst/bcm/`, alongside `inst/rl/`, and `inst/COPYRIGHTS` carries the
   BSD-3 notice of the Stan programs the tier adapts.
 
+Three seams in the structured-family protocol: a family can say how
+finely its likelihood factorizes, a family can say which addition
+terms it takes, and the compatibility vocabulary is built once instead
+of once per registration.
+
+* `frmtmb_structure()` gains `loglik_row` and `loglik_group`. `loglik`
+  returns one number for the whole response, which is what the
+  objective needs and less than every other consumer needs, so a
+  structured family was refused `frm(importance = )`, `loo()`,
+  `waic()` and deviance residuals whether or not its likelihood
+  factorized. The two slots carry the pieces a family HAS, at the
+  finest granularity it has them: one value per row, or one per level
+  of the block's new reserved `group` entry. `unit` is unchanged and
+  still declares what may honestly be left OUT, which is a different
+  question: the worked `rw_delta()` family factorizes per trial and
+  leaves out a whole subject.
+
+* `frm(importance = )` corrects a structured family that declares
+  either slot, instead of refusing every one of them. The refusal that
+  remains names the missing declaration. The family's own units and
+  the model's grouping levels must be the same partition of the rows
+  and are checked: summing a per-subject likelihood into a per-item
+  proposal is silently meaningless, so it is refused by name. A
+  family's handling of the stacked design the correction evaluates is
+  verified against the plain objective, per group, by the check that
+  was already there.
+
+* `residuals(type = "deviance")` works for a structured family that
+  declares `loglik_row` and attaches its saturated log-density to what
+  that slot returns. Without the saturated half the refusal names it,
+  rather than assuming a value that is right for a Bernoulli trial and
+  wrong for a Poisson count.
+
+* `frmtmb_family()` gains `accepts_aterms`, the allow-list that
+  complements `required_aterms`. An addition term a family never reads
+  used to be parsed, stored on the fit and ignored in silence: `lba(3)`
+  fitted `rt | dec(two) + vint(choice) ~ 1` with fixed effects
+  bit-identical to the model without `dec()`. Frame assembly now
+  refuses such a term by name and lists the ones the family takes. The
+  built-in families declare theirs. `NULL`, the default, accepts every
+  registered term, so a custom family written before this keeps its
+  behavior, and the check runs after every guard that can say
+  something more specific, so no existing message changes.
+
+* The `frm_compat()` feature vocabulary is cached and the cache is
+  extended by each registration rather than rebuilt. An extension
+  registering four addition terms from its `.onLoad()` paid four
+  16 ms builds and now pays one.
+
 # frmtmb 0.52.0
 
 A brms prior means what it means in brms; conditional_effects() plots

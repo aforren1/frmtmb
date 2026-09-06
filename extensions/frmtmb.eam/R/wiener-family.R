@@ -372,6 +372,7 @@ ddm_family <- function(cfg, ub, delta) {
 
   frmtmb::custom_family(
     "wiener",
+    accepts_aterms = c("dec", "vint", "weights"),
     dpars = dpars,
     links = links,
     lpdf = lpdf,

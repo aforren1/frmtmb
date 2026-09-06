@@ -12,6 +12,8 @@ frmtmb_structure(
   check_frame = NULL,
   check_fit = NULL,
   loglik = NULL,
+  loglik_row = NULL,
+  loglik_group = NULL,
   unit = NULL,
   fitted_mean = NULL,
   fitted_var = NULL,
@@ -68,12 +70,25 @@ them. The family decides what a row weight means for a likelihood
 that is not rowwise, and may have refused weights in \code{check_spec}.
 It must not call \code{RTMB::OBS()}.}
 
+\item{loglik_row, loglik_group}{The same signature as \code{loglik}, and
+the same quantity factorized instead of summed: \code{loglik_row}
+returns one value per ROW, \code{loglik_group} one value per level of
+the block's \code{group}. Both are optional, and a family declares
+whichever factorization it HAS; see the Factorization section for
+what each one buys and for the stacking the correction imposes.
+Declaring either without \code{loglik} is refused: a family whose
+likelihood is already rowwise has these quantities through its
+\code{lpdf} and needs no slot to say so.}
+
 \item{unit}{One noun phrase naming the smallest independent unit of
 \code{loglik}, as it should read in the middle of a sentence: "a
-hidden-Markov sequence", "a group-level mixture". The core quotes
-it where it must explain that a per-OBSERVATION quantity does not
-exist, which today is \code{\link[=loo]{loo()}} and \code{\link[=waic]{waic()}} refusing a pointwise
-log-likelihood matrix. Ignored when \code{loglik} is \code{NULL}.}
+hidden-Markov sequence", "a group-level mixture". It declares what
+may honestly be LEFT OUT, which is a different question from how
+finely the likelihood factorizes: \code{rw_delta} has a per-trial
+conditional density and a leave-one-out unit of one subject's whole
+sequence. The core quotes it where it must explain that a
+per-OBSERVATION quantity does not exist. Ignored when \code{loglik} is
+\code{NULL}.}
 
 \item{fitted_mean, fitted_var}{\verb{function(fit, block)} giving the
 conditional mean and variance of each row GIVEN the whole observed
@@ -151,13 +166,21 @@ AD values and no closure that captures the model frame. Read and
 write it with \verb{[[ ]]} only: \code{$} partial matching is how a \code{mix} read
 once returned \code{mix_g}.
 
-Three names in it are reserved, because the core reads them:
+Four names in it are reserved, because the core reads them:
 \describe{
 \item{\code{y}}{If present, replaces the response vector for every later
 stage, which is how a family fills a placeholder in for an \code{NA}
 it keeps. Otherwise the response is unchanged.}
 \item{\code{miss}}{A logical \code{n}-vector. Residuals are \code{NA} at these
 rows. Optional.}
+\item{\code{group}}{A factor or integer \code{n}-vector naming the family's
+own independent unit for each row: the subject whose trials a
+recursion walks, the sequence a forward algorithm sums over. It
+is what \code{loglik_group} returns one value per, in the order of
+\code{levels()} for a factor and of \code{sort(unique())} otherwise, and it
+is what the core checks the importance correction's grouping
+against. Required with \code{loglik_group}, and needed by either slot
+for \code{frm(importance =)}.}
 \item{\code{mask}}{A numeric 0/1 \code{n}-vector the family multiplies into
 its own density. The core does not read it; the name is reserved
 so that every structured family spells it the same way.}
@@ -165,6 +188,67 @@ so that every structured family spells it the same way.}
 Everything else in the block belongs to the family.
 
 [ ]: R:\%20
+}
+
+\section{Factorization}{
+
+\code{loglik} returns one number for the whole response, which is all the
+objective needs and less than everything else needs. Three consumers
+want the pieces: \code{frm(importance =)} resamples one grouping level at
+a time, \code{loo()} and \code{waic()} leave one unit out at a time, and a
+deviance residual compares one row against its saturated fit. A
+family declares the FINEST factorization it has, and the core takes
+what each consumer can use:
+
+\describe{
+\item{\code{loglik_row}}{One value per row, the conditional log-density
+of that row given whatever the family's factorization conditions
+on. It must sum to \code{loglik}, and each value must depend only on
+its own group's random effects, or the correction sums the wrong
+things. The core sums it into groups itself with the same sparse
+indicator it already builds.}
+\item{\code{loglik_group}}{One value per level of \code{block[["group"]]},
+for a family whose finest factorization IS the group: a forward
+recursion over a sequence has no row-level factor to give.}
+}
+
+With neither, everything above stays refused, which is where the
+protocol started.
+
+STACKING. The importance correction evaluates the whole design once
+per draw, stacked: it calls these slots with \code{y}, the dpars and the
+addition terms each repeated \code{nrep} times, so entry \code{j} is the
+original row \code{((j - 1) \%\% n) + 1} of replicate \code{((j - 1) \%/\% n) + 1},
+with \code{n = length(block[["group"]])} and \code{nrep} whatever
+\code{length(y) / n} is. \code{loglik_row} returns \code{n * nrep} values in that
+same order and \code{loglik_group} returns \code{ng * nrep}, replicate-major.
+A sequential family therefore runs its recursion over
+unit-crossed-with-replicate rather than over unit. For a family whose
+loop is already vectorized across units that is the same loop over a
+longer vector; for one that is not, this is where the cost lands. A
+family that gets it wrong is caught rather than believed: the
+correction verifies its per-group pieces against the plain objective
+at the first freeze, per group and in total.
+
+SATURATED VALUES. \code{residuals(type = "deviance")} compares a row's
+log-density against its saturated fit, and no conditional density
+supplies that on its own. A family that has it attaches it to what
+\code{loglik_row} returns, as \code{attr(x, "saturated")}, a numeric vector of
+the same length, carrying the SAME row weight the log-densities
+carry so that the unit deviance comes out weighted once. The core
+reads it only outside the tape, and
+deviance stays refused, by name, without it.
+
+WEIGHTS. The FAMILY applies them, in every slot and for every
+consumer. The core passes the effective row weights in and never
+multiplies the result again, so \code{loglik_row} returns weighted
+log-densities and \code{loglik_group} weighted group totals, exactly as
+\code{loglik} returns a weighted total. This is what the warning at
+construction is about: a slot that takes no \code{weights} argument
+silently drops them, and a \code{weights()} term on that family would be
+accepted and then ignored. A family that cannot say what a row
+weight means for a likelihood that is not rowwise should refuse
+\code{weights()} in \code{check_spec} instead, which is what \code{rw_delta} does.
 }
 
 \section{Capability flags}{

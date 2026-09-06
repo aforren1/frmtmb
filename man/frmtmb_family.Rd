@@ -21,6 +21,7 @@ frmtmb_family(
   lcdf = NULL,
   lccdf = NULL,
   required_aterms = character(0),
+  accepts_aterms = NULL,
   family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
@@ -43,6 +44,7 @@ custom_family(
   lcdf = NULL,
   lccdf = NULL,
   required_aterms = character(0),
+  accepts_aterms = NULL,
   family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
@@ -145,6 +147,22 @@ reaches the density as \code{NULL}, arithmetic on it gives \code{numeric(0)},
 and the log-likelihood becomes a sum over nothing: a fit that
 returns, with a log-likelihood of zero. Declare every per-row datum
 the density indexes.}
+
+\item{accepts_aterms}{The addition terms this family reads or lets the
+core act on, named as a formula writes them and without
+parentheses: \code{c("weights", "trials", "cens")}. Frame assembly
+refuses any other term on the response, by name, and lists the ones
+the family takes. \code{character(0)} declares a family that takes none.
+\code{NULL}, the default, accepts every registered term, which is what a
+family written before this argument existed keeps.
+
+\code{required_aterms} is a conjunction of what the density cannot do
+without; this is the complementary allow-list, and the two are read
+together, so a required term need not be repeated here. Without a
+declaration an unread term is parsed, stored on the fit and
+silently ignored: \code{wiener()} accepted a \code{vint()} it cannot use, and
+\code{lba()} accepted a \code{dec()}, both giving a fit bit-identical to the
+one without the term.}
 
 \item{family_finalize}{Optional function \verb{(fam, y, aterms)} returning
 a family. It runs once at frame assembly, after the response is

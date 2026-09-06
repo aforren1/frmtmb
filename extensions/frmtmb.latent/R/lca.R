@@ -517,6 +517,18 @@ lca <- function(K, ncat = NULL, na.rm = TRUE) {
 #' @noRd
 lca_structure <- function(na_rm) {
   frmtmb_structure(
+    # NO loglik here, and so no loglik_row or loglik_group either. This
+    # structure is a capability declaration: an LCA's likelihood IS
+    # rowwise, because one row is one subject's whole item response
+    # pattern and the class is drawn per subject. Its finest
+    # factorization is the row the core already evaluates one at a
+    # time, so loo(), frm(importance = ) and the residuals reach it
+    # through the ordinary path, and a factorization slot would be a
+    # second definition of the same numbers with nothing keeping the
+    # two equal. hmm() is the contrast: its rows are coupled by the
+    # state process, its pieces are sequences, and it declares
+    # loglik_group for them.
+    #
     # with na.rm = FALSE a missing item is masked out of that subject's
     # likelihood rather than costing the subject its row, so the NA is
     # data the family reads
