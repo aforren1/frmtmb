@@ -1,0 +1,48 @@
+Package: frmtmb.learn
+Title: Reinforcement-Learning Families for 'frmtmb' Models
+Version: 0.1.0
+Authors@R:
+    person("Alex", "Forrence", email = "alex.forrence@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9728-6337"))
+Description: The value-learning models of the reinforcement-learning
+    and computational-psychiatry literature, written as 'frmtmb'
+    families so that each of their parameters is an ordinary
+    distributional parameter with its own linear predictor. A learning
+    rate then takes a condition effect, a smooth term or a correlated
+    per-subject random effect the way a mean does, and it comes back
+    with a standard error, which is what a separate model per group
+    does not give. Six families share one recursion that walks trials
+    once and updates every subject at each step: the two-armed delta
+    learner and its dual-rate and counterfactual variants, a Kalman
+    filter over the restless four-armed bandit of Daw and others
+    (2006), the two-stage model-based and model-free hybrid of Daw and
+    others (2011), and a prospect-theory learner for the Iowa gambling
+    task. Families are named as 'hBayesDM' names them where a name
+    exists. Each one is checked by an identity against an independent
+    'Stan' program of the same model at the same estimates, and by
+    parameter recovery at a realistic scale.
+License: GPL (>= 2)
+URL: https://aforren1.github.io/frmtmb/frmtmb.learn,
+    https://github.com/aforren1/frmtmb
+BugReports: https://github.com/aforren1/frmtmb/issues
+Encoding: UTF-8
+Language: en-US
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1),
+    frmtmb (>= 0.52.0)
+Imports:
+    RTMB (>= 1.9),
+    stats,
+    utils
+Suggests:
+    knitr,
+    rmarkdown,
+    rstan,
+    testthat (>= 3.0.0),
+    tinyplot
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0
+Config/Needs/website: pkgdown

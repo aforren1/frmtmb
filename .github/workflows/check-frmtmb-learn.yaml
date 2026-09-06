@@ -1,0 +1,105 @@
+# R CMD check for the learning extension, extensions/frmtmb.learn.
+#
+# The extension is not part of the core tarball (.Rbuildignore excludes
+# extensions/), so the core workflows never see it. This job installs the
+# core package from the checkout, then checks the extension against that
+# build. The path filter includes the core R sources as well as the
+# extension's own tree, because the extension consumes core's family,
+# addition-term and compat seams and a change to any of them is what
+# would break it.
+#
+# No extra-repositories here: every dependency of this package that this
+# job installs is on CRAN, and the package itself compiles nothing. Its
+# recursion is plain R arithmetic that runs on RTMB advectors and on
+# doubles alike, which is the property that lets one loop serve the
+# likelihood, the fitted trajectory and the simulator.
+#
+# ONE SUGGEST IS DELIBERATELY NOT INSTALLED, unlike the spline job,
+# which installs every one of its. rstan is skipped because the identity
+# tier it powers compiles seven Stan programs, which is tens of minutes
+# and a C++ toolchain, and because that tier is gated on
+# FRMTMB_BRMS_FIT_TESTS in any case; it is run locally and its residuals
+# are recorded in dev/learn-findings.md. The skip is enforced rather
+# than hoped for: the step below filters it out by name.
+#
+# hBayesDM is not in Suggests at all. It is used only by
+# dev/hbayesdm-crosscheck.R, which .Rbuildignore keeps out of the
+# tarball, so by this repository's Suggests-follow-use rule it does not
+# belong there and there is nothing here to skip.
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'extensions/frmtmb.learn/**'
+      - 'R/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '.github/workflows/check-frmtmb-learn.yaml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'extensions/frmtmb.learn/**'
+      - 'R/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '.github/workflows/check-frmtmb-learn.yaml'
+  workflow_dispatch:
+
+name: check-frmtmb.learn
+
+jobs:
+  check-frmtmb-learn:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      NOT_CRAN: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+      # The core's own dependencies, resolved from the root DESCRIPTION,
+      # so that R CMD INSTALL below has everything it needs.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+      - name: Install the core package from this checkout
+        run: R CMD INSTALL --no-multiarch --with-keep.source .
+        shell: bash
+      # The extension's own dependencies, read from its DESCRIPTION and
+      # installed directly rather than through pak. pak resolves every
+      # dependency against a repository, and frmtmb is in no repository:
+      # the build wanted here is the one installed from the checkout in
+      # the step above, so frmtmb is skipped along with anything else
+      # already present. rstan is dropped for the reason in the header;
+      # the tests that need it skip themselves.
+      - name: Install the extension's dependencies
+        run: |
+          d <- read.dcf("extensions/frmtmb.learn/DESCRIPTION")
+          f <- intersect(c("Imports", "Suggests"), colnames(d))
+          p <- unlist(strsplit(paste(d[, f], collapse = ","), ","))
+          p <- trimws(sub("[(].*", "", p))
+          p <- setdiff(p[nzchar(p)], "rstan")
+          p <- setdiff(p, rownames(installed.packages()))
+          if (length(p)) install.packages(p)
+        shell: Rscript {0}
+      # NOT_CRAN is set at the job level above and is repeated here on
+      # purpose, as in the spline job. Nothing in this suite is gated on
+      # NOT_CRAN alone today: the Stan identity tier needs
+      # FRMTMB_BRMS_FIT_TESTS as well and stays skipped here, and
+      # test-message-uniqueness.R skips itself inside R CMD check because
+      # an installed package has no sources to scan. It is set so that a
+      # test added later with skip_on_cran() runs rather than silently
+      # not running. Measured locally outside R CMD check: 184 passing,
+      # 0 failing, 6 skipped, the six being the Stan tier.
+      - uses: r-lib/actions/check-r-package@v2
+        env:
+          NOT_CRAN: "true"
+        with:
+          working-directory: extensions/frmtmb.learn
+          args: 'c("--no-manual")'
+          upload-snapshots: true

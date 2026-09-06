@@ -43,7 +43,8 @@ PKGS <- c(
   frmtmb.latent   = "extensions/frmtmb.latent",
   frmtmb.ode      = "extensions/frmtmb.ode",
   frmtmb.eam      = "extensions/frmtmb.eam",
-  frmtmb.spline   = "extensions/frmtmb.spline"
+  frmtmb.spline   = "extensions/frmtmb.spline",
+  frmtmb.learn    = "extensions/frmtmb.learn"
 )
 
 if (!file.exists("DESCRIPTION") ||

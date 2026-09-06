@@ -114,7 +114,7 @@ GitHub:
 remotes::install_github("aforren1/frmtmb")
 ```
 
-Five companion packages live in this repository, each installed the
+Six companion packages live in this repository, each installed the
 same way and each documented on its own part of the site.
 
 | package | adds |
@@ -124,6 +124,7 @@ same way and each documented on its own part of the site.
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
 | [frmtmb.eam](https://aforren1.github.io/frmtmb/frmtmb.eam/) | evidence accumulation models: `wiener()`, `gddm()`, `lba()`, `rdm()` and `wiener_gng()` |
 | [frmtmb.spline](https://aforren1.github.io/frmtmb/frmtmb.spline/) | curve inference on any fitted smooth, and the flexible parametric survival family `royston_parmar()` |
+| [frmtmb.learn](https://aforren1.github.io/frmtmb/frmtmb.learn/) | reinforcement-learning families: `bandit2arm_delta()`, `bandit2arm_dual()`, `prl_fictitious()`, `bandit4arm2_kalman_filter()`, `ts_par7()` and `igt_pvl_delta()`, each parameter an ordinary distributional parameter with its own linear predictor |
 
 ```r
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.sample")
@@ -131,6 +132,7 @@ remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.latent")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.eam")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.spline")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.learn")
 ```
 
 ## Example
