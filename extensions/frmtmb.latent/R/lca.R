@@ -337,7 +337,7 @@ lca_comp_lpdf <- function(y, K, extra, k) {
 #' @references Linzer, D. A. and Lewis, J. B. (2011). poLCA: An R
 #'   Package for Polytomous Variable Latent Class Analysis. *Journal of
 #'   Statistical Software*, 42(10), 1-29.
-#' @seealso [lca_probs()], [lca_profiles()], [mixture()] for a mixture
+#' @seealso [lca_probs()], [lca_profiles()], [frmtmb::mixture()] for a mixture
 #'   of continuous responses, [mixture_mvn()] for model-based
 #'   clustering of a numeric matrix.
 #' @examples

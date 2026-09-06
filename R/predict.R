@@ -2425,6 +2425,22 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
                      structure_generic(fam,
                                        "residuals(type = \"deviance\")"))
     }
+    if (type == "deviance" && !is.null(st[["loglik_row"]]) &&
+        is.null(st[["fitted_mean"]])) {
+      # only a structure that supplies the magnitude through loglik_row
+      # is told the sign is missing; a rowwise family with neither falls
+      # through to the rowwise path and its own refusal
+      # the structured deviance path runs inside the fitted_mean branch
+      # below, so without one the family fell through to the rowwise
+      # path and was told it had no unit deviance, which is false: the
+      # magnitude is in loglik_row(); only the sign is missing
+      stop("residuals(type = \"deviance\") needs the sign of each row's ",
+           "departure from its conditional mean, and the '",
+           fam[["family"]], "' family declares no fitted_mean(). The ",
+           "magnitude is available from loglik_row(); the sign is not. ",
+           "Declare fitted_mean() in frmtmb_structure() to enable it.",
+           call. = FALSE)
+    }
     fm <- st[["fitted_mean"]]
     if (!is.null(fm)) {
       blk <- frame_block_of(object$frame, rspec$resp_name)

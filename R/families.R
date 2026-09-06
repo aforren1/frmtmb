@@ -2833,6 +2833,33 @@ fam_acat <- function(link = "logit") {
   )
 }
 
+#' Where a mixture component's mean starts. A component whose mean
+#' lives on (0, 1) takes its start from the proportion y / trials, not
+#' from y: the quantile of a count lies outside the logit's range, so
+#' every component fell back to the link origin and
+#' mixture(beta_binomial, beta_binomial) sat at two identical
+#' components with no warning (the Bayesian Cognitive Modeling port
+#' found it on the malingering data, logLik -64.26 against -58.71 from
+#' a separated start). The quantile is clamped the way the component
+#' families clamp their own start, because eight of twenty-two
+#' respondents scoring 45 of 45 put the two-thirds quantile at exactly
+#' 1, where the logit is infinite.
+#'
+#' @noRd
+mixture_mu_bounded <- function(comp) {
+  lk <- comp$links[["mu"]]
+  nm <- if (is.list(lk)) lk[["name"]] else lk
+  isTRUE(nm %in% c("logit", "probit", "probit_approx", "cauchit",
+                   "cloglog", "softit"))
+}
+
+mixture_mu_start <- function(y, aterms, p, bounded) {
+  if (!bounded) return(stats::quantile(y, p, names = FALSE))
+  size <- aterms[["trials"]] %||% 1
+  q <- stats::quantile(y / size, p, names = FALSE)
+  min(max(q, 0.02), 0.98)
+}
+
 #' Finite mixture families
 #'
 #' `mixture(fam1, fam2, ...)` builds a K-component mixture: each
@@ -2967,7 +2994,10 @@ mixture <- function(..., groups = NULL) {
     kk <- k
     init[[paste0("mu", k)]] <- local({
       k_ <- kk
-      function(y, aterms) stats::quantile(y, k_ / (K + 1), names = FALSE)
+      bounded <- mixture_mu_bounded(comps[[k_]])
+      function(y, aterms) {
+        mixture_mu_start(y, aterms, k_ / (K + 1), bounded)
+      }
     })
     for (dp in setdiff(comps[[k]]$dpars, "mu")) {
       fn <- comps[[k]]$init_dpars[[dp]]

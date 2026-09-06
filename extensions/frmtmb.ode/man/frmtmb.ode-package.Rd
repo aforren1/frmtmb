@@ -11,7 +11,7 @@ Adds 'frm_ode()' to the nonlinear formula grammar of 'frmtmb'. A model writes it
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://aforren1.github.io/frmtmb/}
+  \item \url{https://aforren1.github.io/frmtmb/frmtmb.ode}
   \item \url{https://github.com/aforren1/frmtmb}
   \item Report bugs at \url{https://github.com/aforren1/frmtmb/issues}
 }

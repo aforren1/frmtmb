@@ -1,4 +1,39 @@
-# frmtmb (development version)
+# frmtmb 0.53.0
+
+`set_prior()`'s own class names mean what they mean in brms; the
+structured-family protocol factorizes a whole-response log-likelihood
+per row and per group, so the importance correction, `loo()` and
+deviance residuals reach `hmm()` and the learning families; every brms
+link name is in the registry; `car(type = "esicar")` prediction
+errors are exact; a Bayesian Cognitive Modeling tier fits fifty-two of
+the book's models against their Stan programs; and frmtmb.learn, the
+sixth extension, brings reinforcement-learning families.
+
+* `frmtmb_register_compat(expects = )` accepts a name another package
+  already supplies. It used to refuse one, so frmtmb.sample, which
+  expects `hmm`, failed to load in every session that had loaded
+  frmtmb.latent first. An expectation the session has already met is
+  met; only a name the same call supplies in `features = ` is refused,
+  since that declaration contradicts itself.
+
+* BUG FIX. `mixture()` started every component at a quantile of the
+  raw response. For a bounded mean that is a count outside the logit's
+  range, so every component fell back to the link origin, where they
+  are the same distribution, and `mixture(beta_binomial,
+  beta_binomial)` on the malingering data of Lee and Wagenmakers sat
+  at two identical components (logLik -64.26) with no warning where a
+  separated start reaches -58.71. A component whose mean link is on
+  (0, 1) now starts from the quantile of `y / trials`, clamped to
+  (0.02, 0.98) the way the component families clamp their own start,
+  because eight of those twenty-two respondents score 45 of 45 and put
+  the two-thirds quantile at exactly 1. Found by the Bayesian
+  Cognitive Modeling port.
+
+* `residuals(type = "deviance")` on a structured family that declares
+  `loglik_row` but no `fitted_mean` now says which half is missing (the
+  sign of each row's departure from its conditional mean) instead of
+  claiming the family has no unit deviance and listing thirty built-in
+  families that do.
 
 * `car(type = "esicar")` standard errors no longer carry `con_sd`.
   `expand_b()` centers the field each connected component contributes,

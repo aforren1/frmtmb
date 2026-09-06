@@ -447,3 +447,36 @@ test_that("an unused level in the block's grouping is refused by name", {
   expect_identical(structure_group_codes(list(group = g)),
                    c(1L, 1L, 2L, 2L))
 })
+
+test_that("a per-row deviance without a fitted mean names the missing half", {
+  # the magnitude is in loglik_row(); the sign needs fitted_mean(). The
+  # rowwise path used to answer that the family has no unit deviance
+  ld <- function(y, dpars) {
+    stats::dnorm(y, dpars[["mu"]], dpars[["sigma"]], log = TRUE)
+  }
+  fam <- frmtmb_family(
+    "nomeangauss", dpars = c("mu", "sigma"),
+    links = list(mu = "identity", sigma = "log"),
+    lpdf = function(y, dpars, aterms) {
+      RTMB::dnorm(y, dpars[["mu"]], dpars[["sigma"]], log = TRUE)
+    },
+    init_dpars = list(mu = function(y, aterms) mean(y),
+                      sigma = function(y, aterms) stats::sd(y)),
+    structure = frmtmb_structure(
+      loglik = function(y, dpars, aterms, weights, block, extra) {
+        sum(weights * RTMB::dnorm(y, dpars[["mu"]], dpars[["sigma"]],
+                                  log = TRUE))
+      },
+      loglik_row = function(y, dpars, aterms, weights, block, extra) {
+        out <- weights * ld(y, dpars)
+        attr(out, "saturated") <- weights *
+          ld(y, list(mu = y, sigma = dpars[["sigma"]]))
+        out
+      },
+      supports = list(deviance = TRUE)))
+  set.seed(3)
+  d <- data.frame(y = rnorm(40, 2, 1.5))
+  fit <- frm(bf(y ~ 1), family = fam, data = d)
+  expect_error(residuals(fit, type = "deviance"),
+               "declares no fitted_mean")
+})

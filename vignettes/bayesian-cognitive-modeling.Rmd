@@ -7,7 +7,10 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r, include = FALSE, purl = FALSE}
+# purl = FALSE: knitr's tangle step extracts a read_chunk() call with a
+# regex that stops at the first closing parenthesis, so the nested
+# bcm_file() call fails to parse and pkgdown refuses the whole article
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 library(frmtmb)
 bcm_file <- function(f) system.file("bcm", f, package = "frmtmb",

@@ -14,7 +14,7 @@ latent_probs(fit, ...)
 \value{
 A numeric matrix with one named column per latent state. Its
 rows are observations for a family whose class belongs to the row
-(\code{lca()}, a rowwise \code{\link[=mixture]{mixture()}}) and groups for one whose class
+(\code{lca()}, a rowwise \code{\link[brms:mixture]{mixture()}}) and groups for one whose class
 belongs to a group (\code{mixture(groups = )}).
 }
 \description{

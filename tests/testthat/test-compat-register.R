@@ -239,22 +239,29 @@ test_that("the failure clause names the package whose load it was", {
   expect_identical(compat_registrant(asNamespace("frmtmb")), "")
 })
 
-test_that("expects = refuses a name the vocabulary already holds", {
+test_that("expects = accepts a name another package already supplies", {
   local_registries()
-  # expects = exempts a name from the resolvability check, so a name the
-  # session already has exempts nothing
-  expect_error(
+  # frmtmb.sample expects hmm and loads after frmtmb.latent in half of
+  # the load orders: an expectation the session has already met is
+  # met, not a forward reference that exempts nothing
+  frmtmb_register_compat(features = c(hmmx = "family"),
+                         rules = one_rule("hmmx", "cens()"))
+  expect_silent(
     frmtmb_register_compat(features = c(wiener = "family"),
-                           rules = one_rule("wiener", "cens()"),
-                           expects = "cens()"),
-    "exempts nothing")
-  expect_false("wiener" %in% frm_compat_features()$name)
-  # including one this very call supplies
+                           rules = one_rule("hmmx", "vint()"),
+                           expects = "hmmx"))
+  expect_true(all(c("hmmx", "wiener") %in% frm_compat_features()$name))
+  expect_null(attr(frm_compat(), "unresolved"))
+})
+
+test_that("expects = refuses a name this very call supplies", {
+  local_registries()
   expect_error(
     frmtmb_register_compat(features = c(wiener = "family"),
                            rules = one_rule("wiener", "cens()"),
                            expects = "wiener"),
-    "exempts nothing")
+    "this very call supplies")
+  expect_false("wiener" %in% frm_compat_features()$name)
 })
 
 test_that("a declared but unresolved rule side is reported, not dropped", {

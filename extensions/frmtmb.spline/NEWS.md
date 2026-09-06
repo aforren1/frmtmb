@@ -1,4 +1,9 @@
-# frmtmb.spline (development version)
+# frmtmb.spline 0.3.0
+
+A curve past the fitted knot span warns once under the function that
+drew it, the feature search refuses, and `frm_curve_deriv()` no longer
+dies on its default simultaneous band. Requires frmtmb 0.53.0 for the
+classed span warning.
 
 * The three curve functions say when the grid leaves a `ps()` knot
   span. They are the doors a user actually draws a curve through, and

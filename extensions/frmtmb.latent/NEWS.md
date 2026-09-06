@@ -1,4 +1,8 @@
-# frmtmb.latent (development version)
+# frmtmb.latent 0.2.0
+
+`hmm()` declares the per-sequence log-likelihood, so `frm(importance
+= )` and `loo()` on draws reach it. Requires frmtmb 0.53.0 for the
+factorization slot.
 
 * `hmm()` declares `frmtmb_structure(loglik_group = )`: the
   log-likelihood of every sequence, which the forward recursion

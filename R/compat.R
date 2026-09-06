@@ -223,16 +223,16 @@ frmtmb_register_compat <- function(features = NULL, rules = NULL,
          "refers to but this package does not supply, as a character ",
          "vector, and got ", arg_desc(expects), call. = FALSE)
   }
-  # expects = exempts a name from the resolvability check, so a name
-  # the session already has is an exemption from nothing. Accepting it
-  # would let a package declare an expectation that was met before it
-  # spoke, which reads as a forward reference and is not one.
-  here <- intersect(expects, c(known$name, names(features)))
+  # expects = exempts a name from the resolvability check. A name this
+  # same call supplies is a contradiction and is refused. A name the
+  # session already holds from ANOTHER package is an expectation that
+  # was met before this package spoke, which is exactly what happens
+  here <- intersect(expects, names(features))
   if (length(here)) {
     stop("frmtmb_register_compat(expects =) names '", here[[1L]],
-         "', and the registry already has that feature, so the ",
+         "', and this very call supplies that feature, so the ",
          "declaration exempts nothing. expects = is for a feature ",
-         "another package supplies and this session may not have. ",
+         "another package supplies, whether or not this session has it. ",
          "Drop it, or give it a kind in features = if this package ",
          "supplies it.", call. = FALSE)
   }

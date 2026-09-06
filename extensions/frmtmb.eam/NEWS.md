@@ -1,4 +1,9 @@
-# frmtmb.eam (development version)
+# frmtmb.eam 0.4.0
+
+`wiener_gng()` gains across-trial variability with the go branch
+identical to `wiener()`'s; `rdm()` and `wiener_gng()` take `cens()`;
+every family declares the addition terms it reads. Requires frmtmb
+0.53.0 for the allow-list.
 
 * `wiener_gng()` gains `variability =`, and takes Ratcliff's `sv`, `sz`
   and `st` under the same names, links and argument [wiener()] takes

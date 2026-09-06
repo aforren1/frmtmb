@@ -78,7 +78,9 @@ test_that("par_template and set_prior reach the gamma dpars", {
   gp <- frmtmb::get_prior(frmtmb::bf(recyrs | cens(censored) ~ group),
                           family = royston_parmar(df = 2), data = o$dat)
   expect_true(is.data.frame(gp))
-  expect_true(all(c("gamma1", "gamma2") %in% gp$dpar))
+  # since frmtmb 0.53.0 a predictor-free dpar is listed under its own
+  # class, as brms lists it; either column may carry the name
+  expect_true(all(c("gamma1", "gamma2") %in% c(gp$class, gp$dpar)))
   # a prior on mu's slopes shrinks them
   f2 <- frmtmb::frm(frmtmb::bf(recyrs | cens(censored) ~ group),
                     family = royston_parmar(df = 2), data = o$dat,

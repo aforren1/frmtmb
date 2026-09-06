@@ -158,7 +158,7 @@ hmm_tr_init <- function(i, j) {
 #'
 #' @section Parameters:
 #' Each of the wrapped family's distributional parameters is copied once
-#' per state and suffixed with the state index, exactly as [mixture()]
+#' per state and suffixed with the state index, exactly as [frmtmb::mixture()]
 #' does: `hmm(2, gaussian())` has `mu1`, `mu2`, `sigma1`, `sigma2`. The
 #' main model formula applies to every state's location parameter;
 #' override one state with `bf(y ~ x, mu2 ~ x + (1 | id))`. Every dpar
@@ -200,7 +200,7 @@ hmm_tr_init <- function(i, j) {
 #'
 #' @section Label switching and local optima:
 #' The likelihood is invariant to permuting the states, so the state
-#' means start at spread response quantiles (see [mixture()]); a start
+#' means start at spread response quantiles (see [frmtmb::mixture()]); a start
 #' with every state mean equal sits on the symmetry axis and the
 #' optimizer never leaves it. Relabeling between runs is expected and is
 #' not fought. Multimodality is real and is not signalled by any
@@ -260,7 +260,7 @@ hmm_tr_init <- function(i, j) {
 #' `rescor`, `residuals(type = "osa")`, `predict(se.fit = TRUE)` on the
 #' response scale, and `conditional_effects()`. A grouping in which every
 #' sequence has length 1 is refused too: the chain is then unidentified
-#' and the model is a [mixture()].
+#' and the model is a [frmtmb::mixture()].
 #'
 #' @param K Number of hidden states (at least 2, at most 9 - beyond that
 #'   the `tr{i}{j}` dpar names stop being unambiguous).
@@ -278,7 +278,7 @@ hmm_tr_init <- function(i, j) {
 #'   `"estimated"`, or `"uniform"`.
 #' @param trans Default one-sided formula for every transition cell.
 #' @return A `frmtmb_family`.
-#' @seealso [hmm_probs()], [hmm_viterbi()], [mixture()]
+#' @seealso [hmm_probs()], [hmm_viterbi()], [frmtmb::mixture()]
 #' @examples
 #' set.seed(11)
 #' n_seq <- 20; len <- 25
@@ -1132,7 +1132,7 @@ hmm_fb <- function(p) {
 #' Posterior state probabilities of an hmm fit
 #'
 #' The smoothed occupancy `P(S_t = k | y)` for every row of the data,
-#' from a forward-backward pass at the estimates. This is the [mixture()]
+#' from a forward-backward pass at the estimates. This is the [frmtmb::mixture()]
 #' analog [mixture_probs()], one rung up: an HMM's per-row state
 #' probability conditions on the WHOLE sequence, not on that row alone,
 #' which is why it needs a backward pass and cannot come out of the

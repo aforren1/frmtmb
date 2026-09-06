@@ -154,7 +154,7 @@ Package for Polytomous Variable Latent Class Analysis. \emph{Journal of
 Statistical Software}, 42(10), 1-29.
 }
 \seealso{
-\code{\link[=lca_probs]{lca_probs()}}, \code{\link[=lca_profiles]{lca_profiles()}}, \code{\link[frmtmb:mixture]{mixture()}} for a mixture
+\code{\link[=lca_probs]{lca_probs()}}, \code{\link[=lca_profiles]{lca_profiles()}}, \code{\link[frmtmb:mixture]{frmtmb::mixture()}} for a mixture
 of continuous responses, \code{\link[frmtmb:mixture_mvn]{mixture_mvn()}} for model-based
 clustering of a numeric matrix.
 }

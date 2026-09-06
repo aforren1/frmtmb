@@ -1,4 +1,9 @@
-# frmtmb.sample (development version)
+# frmtmb.sample 0.3.0
+
+`conditional_effects()` on draws returns core's frame, grid and
+display quantity; `hypothesis()` reports Savage-Dickey evidence ratios
+validated against brms; `loo()` says which unit it leaves out. Requires
+frmtmb 0.53.0 for the seam exports.
 
 * `conditional_effects()` on a draws object now returns the frame
   core's fit method returns, which closes the divergence 0.2.0

@@ -50,7 +50,7 @@ predictors compose with it unchanged.
 \section{Parameters}{
 
 Each of the wrapped family's distributional parameters is copied once
-per state and suffixed with the state index, exactly as \code{\link[frmtmb:mixture]{mixture()}}
+per state and suffixed with the state index, exactly as \code{\link[frmtmb:mixture]{frmtmb::mixture()}}
 does: \code{hmm(2, gaussian())} has \code{mu1}, \code{mu2}, \code{sigma1}, \code{sigma2}. The
 main model formula applies to every state's location parameter;
 override one state with \code{bf(y ~ x, mu2 ~ x + (1 | id))}. Every dpar
@@ -98,7 +98,7 @@ any single state's.
 \section{Label switching and local optima}{
 
 The likelihood is invariant to permuting the states, so the state
-means start at spread response quantiles (see \code{\link[frmtmb:mixture]{mixture()}}); a start
+means start at spread response quantiles (see \code{\link[frmtmb:mixture]{frmtmb::mixture()}}); a start
 with every state mean equal sits on the symmetry axis and the
 optimizer never leaves it. Relabeling between runs is expected and is
 not fought. Multimodality is real and is not signalled by any
@@ -167,7 +167,7 @@ location coefficients, which matches no standard definition),
 \code{rescor}, \code{residuals(type = "osa")}, \code{predict(se.fit = TRUE)} on the
 response scale, and \code{conditional_effects()}. A grouping in which every
 sequence has length 1 is refused too: the chain is then unidentified
-and the model is a \code{\link[frmtmb:mixture]{mixture()}}.
+and the model is a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}.
 }
 
 \examples{
@@ -208,5 +208,5 @@ frm(bf(y ~ 1),
 }
 }
 \seealso{
-\code{\link[=hmm_probs]{hmm_probs()}}, \code{\link[=hmm_viterbi]{hmm_viterbi()}}, \code{\link[frmtmb:mixture]{mixture()}}
+\code{\link[=hmm_probs]{hmm_probs()}}, \code{\link[=hmm_viterbi]{hmm_viterbi()}}, \code{\link[frmtmb:mixture]{frmtmb::mixture()}}
 }

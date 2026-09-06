@@ -183,7 +183,7 @@ the main formula's design matrix (ordinal families: thresholds take
 its place).}
 
 \item{structure}{Optional \code{\link[=frmtmb_structure]{frmtmb_structure()}} for a family whose
-likelihood does not factorize over rows (a group-level \code{\link[=mixture]{mixture()}},
+likelihood does not factorize over rows (a group-level \code{\link[brms:mixture]{mixture()}},
 a hidden Markov chain). It carries the non-rowwise log-likelihood,
 the frame block that likelihood reads, and the capability flags
 that say which post-fit methods the family can answer. \code{lpdf} stays
@@ -203,7 +203,7 @@ not branch on parameter values.
 \section{Structured simulators}{
 
 Some families cannot draw a response one row at a time: a group-level
-\code{\link[=mixture]{mixture()}} draws one class per group, a \code{\link[=mixture_mvn]{mixture_mvn()}} draw needs
+\code{\link[brms:mixture]{mixture()}} draws one class per group, a \code{\link[=mixture_mvn]{mixture_mvn()}} draw needs
 the class covariances, which are family-level extras rather than
 dpars, and a hidden Markov family walks a chain per sequence. Those
 families supply \code{sim_ctx(ctx)} instead of \code{sim(dpars, aterms, n)}.
