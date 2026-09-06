@@ -1,0 +1,506 @@
+---
+title: "Bayesian Cognitive Modeling: the model list"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Bayesian Cognitive Modeling: the model list}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(frmtmb)
+bcm_file <- function(f) system.file("bcm", f, package = "frmtmb",
+                                    mustWork = TRUE)
+for (f in c("binomial-extras.R", "process-trees.R", "similarity.R",
+            "marginal.R")) {
+  source(bcm_file(f))
+}
+knitr::read_chunk(bcm_file("marginal.R"))
+```
+
+This page is a reference. It lists every model in Lee and Wagenmakers,
+*Bayesian Cognitive Modeling: A Practical Course* (2013), gives the
+frmtmb spelling of each, says how that spelling was checked, and names
+what the check does not cover. It is not a tutorial: read
+`vignette("frmtmb")` for the grammar and
+`vignette("reinforcement-learning")` for a worked example of writing a
+family from scratch.
+
+The reference implementations are the Stan ports at
+[stan-dev/example-models](https://github.com/stan-dev/example-models/tree/master/Bayesian_Cognitive_Modeling),
+which are BSD-3 licensed. The models themselves are the book's
+published equations. Every Stan program in the test suite is adapted
+from those ports, with the adaptations stated at the head of the file
+that uses it.
+
+The families the book needs and frmtmb does not ship are in
+`inst/bcm/`, the way `vignette("reinforcement-learning")`'s family is
+in `inst/rl/`. Load them with
+
+```r
+source(system.file("bcm", "binomial-extras.R", package = "frmtmb"))
+source(system.file("bcm", "process-trees.R", package = "frmtmb"))
+source(system.file("bcm", "similarity.R", package = "frmtmb"))
+source(system.file("bcm", "marginal.R", package = "frmtmb"))
+```
+
+## How a row of the table was checked
+
+Three kinds of evidence appear in the Validation column.
+
+**identity.** Stan's `log_prob` at frmtmb's estimate equals frmtmb's
+own log density there, plus a stated constant, and the gradient
+vanishes where it should. `tests/testthat/helper-stan.R` is the
+harness; `tests/testthat/test-bcm-*.R` are the callers. The constant is
+a property of the pair of programs and never a number read off a
+failing run:
+
+* the Stan program carries a prior frmtmb does not, and the constant is
+  that prior's log density at the estimate;
+* frmtmb carries the same prior through `set_prior()`, and the constant
+  is zero;
+* neither carries a prior, and the constant is zero.
+
+Every reference program is adapted in one way throughout: a sampling
+statement `y ~ dist(...)` becomes `target += dist_lpdf(y | ...)`,
+because Stan drops the normalizing constant of a `~` statement and
+frmtmb's families do not.
+
+**recovery.** The model is fitted to data generated from it and the
+estimates are compared with the values that generated them. Used where
+an identity at the estimate is not meaningful, and always with a stated
+reason.
+
+**structure.** The fit reproduces a quantity the chapter reports
+directly: Cohen's kappa, a sample correlation, a classification.
+
+## Chapter 3, inferring a rate
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| Rate_1 | `frm(k \| trials(n) ~ 1, family = binomial())` | identity | |
+| Rate_2 | `k \| trials(n) ~ 0 + g` | identity | |
+| Rate_3 | `k \| trials(n) ~ 1`, two rows | identity | |
+| Rate_4 | Rate_1's spelling; the predictive is `simulate()` | identity | the program's `thetaprior` is a prior draw with no data, dropped |
+| Rate_5 | Rate_3's spelling | identity | |
+| Survey | `frm(k ~ 1, family = bcm_survey(nmax = 500))` | identity | the number sent is summed out; `latent_probs()` reports it |
+
+`Survey` is the first model whose likelihood is not a product over
+rows. The number of surveys sent is a whole number, a maximum over a
+whole number is not an estimate, and so it is summed out of the whole
+response at once through the structured protocol's `loglik` slot:
+
+```{r bcm-survey, eval = FALSE}
+```
+
+## Chapter 4, means and standard deviations
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| Gaussian | `frm(x ~ 1)` with the book's prior through `set_prior()` | identity, constant `-log(10)` | |
+| SevenScientists | `bf(x ~ 1, sigma ~ 0 + obs)` with a prior on the log scales | identity | **the likelihood is unbounded**; see below |
+| IQ | `frm(y ~ 0 + person)` | identity, constant `-3 log(300) - log(100)` | |
+
+Seven Scientists is the first model that maximum likelihood cannot fit.
+Profiling out the seven standard deviations leaves
+`-sum(log|x_i - mu|) - 7/2`, which grows without bound as `mu`
+approaches any observation, so there is no interior maximum and no
+local one either. The book's `gamma(.001, .001)` prior on the
+precisions is what makes the Bayesian model proper; the fit here
+carries a `normal(0, 1)` prior on the log standard deviations instead,
+which is a MAP fit and is stated as such, and the Stan program carries
+the same penalty so the constant is zero.
+
+## Chapter 5, data analysis
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| Correlation_1 | `mvbf(bf(x1 ~ 1), bf(x2 ~ 1)) + set_rescor(TRUE)` | identity | |
+| Correlation_2 | `se(sd, sigma = FALSE)` on each response plus `(1 \| p \| id)` | identity, inner gradient | `mi(sd)` cannot reach it; see below |
+| Kappa | `cbind(y1, y2, y3, y4) ~ 1` with `bcm_kappa()` | identity, structure | the tree is saturated, so the estimate IS Cohen's kappa |
+| ChangeDetection | `frm(c ~ 1, family = bcm_changepoint(t))` | identity, recovery | the changepoint is summed out; the port's continuous `tau` is a different model |
+| Planes | **refused**: the model has no free parameter | identity of the arithmetic | `bcm_planes_posterior()` computes it |
+| ChaSaSoon | `z \| trials(n) + vint(hi) + weights(w) ~ 1` with `bcm_binomial_band()` | identity | a band of counts, not a marginalization |
+
+`mi(sd)` is frmtmb's measurement-error spelling and it does not reach
+Correlation_2: `mi()` refuses `rescor = TRUE`, and with a correlated
+random intercept instead there would be two variances per response, the
+latent one and the response's own sigma, which one observation per
+subject cannot separate. That is a property of the design and not a gap
+in the grammar. `se(sd, sigma = FALSE)` replaces the residual scale
+rather than adding to it, which is exactly the book's model.
+
+`Planes` is refused by name. Ten planes were marked, a later sample of
+five held four marked ones, and the fleet size has a discrete uniform
+prior; there is no parameter to estimate, which is also why its own
+Stan port runs with `algorithm = "Fixed_param"`. `frm()` estimates
+parameters, so there is no formula to write. The arithmetic is checked
+against the reference program directly, and the posterior mode falls
+where Lincoln and Petersen put it, at `floor(x n / k)`.
+
+`ChaSaSoon` is interval censoring, and `cens("interval")` does not
+reach it. Two gates stand in the way and only the first is a seam:
+`cens()` needs a family with a CDF, which `frmtmb_family(lcdf = )`
+supplies, and then `cens()` refuses every family whose `type` is
+`"discrete"` whatever it supplies. So the band is written into the
+family: the response is the smallest count consistent with the row and
+`vint(hi)` the largest, `log(F(hi) - F(y - 1))` is the exact density
+when the two agree and the band probability otherwise, and `weights()`
+carries the 949 repeats. The test asserts both refusal messages, so the
+day either gate moves it says so.
+
+## Chapter 6, latent mixtures
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| Exams_1 | `mixture(binomial, binomial)` with `mu2` and `theta1` pinned by an offset | identity | |
+| Exams_2 | Exams_1 plus `(1 \| id)` on `mu1` | identity, inner gradient | **Laplace**; see below |
+| Malingering_1 | `mixture(binomial, binomial)`, both rates free | identity | label switching: the order restriction is a prior |
+| Malingering_2 | `mixture(beta_binomial, beta_binomial)` | identity | the per-person rate integrates out exactly, and **the second precision's estimate is infinity**; see below |
+| Cheating | `mixture(beta_binomial, beta_binomial)` | structure | classifies better than chance |
+| TwentyQuestions | `bf(k ~ plogis(lp) * plogis(lq), ..., nl = TRUE)` with `bernoulli("identity")` | identity, value only | one rate is driven to a boundary, so the gradient is not asserted |
+| TwoCountryQuiz | `frm(k ~ 1, family = bcm_two_country(person, question))` | recovery | the Stan port does not exist |
+
+Two of these are worth reading twice.
+
+**Malingering_2 and Cheating.** The book gives every person a rate of
+its own with a beta prior whose mean and precision belong to their
+group. That rate appears nowhere else, and a binomial rate with a beta
+prior integrates in closed form to a beta-binomial, so the model with
+the per-person rates summed out is exactly
+`mixture(beta_binomial, beta_binomial)` in frmtmb's own mean-precision
+parameterization. Doing the integral is not a convenience: left free,
+one rate per person with one observation each is a saturated fit.
+
+On Malingering_2's data the integral makes the model estimable and
+still leaves one direction unbounded. The second component's precision
+has a profile that rises monotonically to the binomial limit, so its
+maximum likelihood estimate is infinity and the fit stops at
+`phi2 = 7.19e8` only because the surface is flat to machine precision
+there. What that says is that the bona fide group has no person-level
+overdispersion: it is a plain binomial. The same mixture written with
+component 2 at the limit, `mixture(beta_binomial, binomial)`, reaches
+the same optimum with one parameter fewer, and the 2.2e-5 between the
+two log-likelihoods is the identity residual in this chapter's table.
+It is precision loss in the `lgamma` differences at divergent shapes,
+not a difference of convention: at `phi2 = 7.19e8` the beta-binomial's
+density sums to 1.0000022 rather than to one (the longhand formula gives 0.999999998), while at component 1's
+ordinary `phi1 = 7.5` it sums to one and agrees with a longhand
+`lbeta` calculation to 1e-14. Cheating, the same model on different
+data, has both precisions moderate (8.9 and 5.8) and is not affected.
+
+**TwoCountryQuiz.** Its Stan port is a file that says "this model is
+not implemented". The obstacle is real: a cell's rate depends on the
+person's country AND the question's, so the two sets of indicators do
+not factorize and there is no per-row `log_mix` to write. They do
+factorize CONDITIONALLY, which is the whole trick, and the cost is
+`2^questions` passes over the data rather than
+`2^(people + questions)`. The family refuses by name above sixteen
+questions rather than enumerating a set it cannot hold.
+
+Which country is called 1 is not identified: every question pattern has
+a complement under which every person's country flips, and the two
+carry the same likelihood. So `latent_probs()` reports exactly one half
+for every person, and that is the answer rather than a failure. The
+quantity that survives the flip is whether two people came from the
+same country, and `bcm_two_country_agreement()` computes it from the
+same sum.
+
+**Every mixture whose components are both free needs a start.**
+`mixture()` initializes each component's `mu` from a quantile of the
+response, which for a binomial or a beta-binomial is a COUNT and falls
+outside the logit link's range; both components then start at the
+link's origin, where they are the same distribution.
+`mixture(beta_binomial, beta_binomial)` stays there and returns a fit
+with identical components and every latent probability at one half. The
+tests start every free mixture from two separated rates.
+
+## Chapters 8 and 9, model selection
+
+Every model in these two chapters fits. Their **Bayes factors are not
+here**: each one is a Savage-Dickey density ratio read off the
+posterior of one parameter at one point, and a maximum likelihood fit
+has no posterior to read. `frmtmb.sample` is gaining the ratio; the
+tests fit the models and pin the quantity the ratio is taken over, so
+the evidence test can be written the moment it lands.
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| Pledgers_1 | `s \| trials(n) ~ 0 + g` | identity | |
+| Pledgers_2 | the same fit | structure | the order restriction does not bind at the estimate |
+| Geurts | `k \| trials(n) ~ group + (1 \| id)` with `bcm_binomial_probit()` | identity, inner gradient | |
+| GeurtsOrderRestricted | the same fit | structure | whether the restriction binds is decided by the sign of the unrestricted delta |
+| Zeelenberg | `s \| trials(n) ~ both + (1 + both \|\| id)`, probit | structure | |
+| OneSample | `frm(x ~ 1)`; delta is `mu / sigma` | structure | the book's parameterization is a reparameterization |
+| OneSampleOrderRestricted | the same fit | structure | the restriction does not bind |
+| TwoSample | `frm(v ~ g)`; delta is the standardized difference | identity | |
+
+## Chapter 10, memory retention
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| Retention_1 | `bf(k \| trials(n) ~ bcm_cap1(exp(-plogis(la) * t) + plogis(lb)), la ~ 1, lb ~ 1, nl = TRUE)` | identity | |
+| Retention_2 | the same with `la ~ 0 + id, lb ~ 0 + id` | identity | |
+| Retention_3 | the same with `la ~ 1 + (1 \| id)` and `lb ~ 1 + (1 \| id)` | identity, inner gradient | the group distribution is logit-normal, not the book's truncated normal |
+
+The `min(1, .)` in the retention curve is carried, through
+`bcm_cap1()`, and it is not decoration: one subject recalled every item
+at the shortest lag, so an uncapped `exp(-alpha t) + beta` runs past
+one and that cell's likelihood grows without bound. RTMB has no `pmin`
+over advectors and a branch on a parameter cannot be taped, but
+`min(1, u) = u - (|u - 1| + (u - 1)) / 2` is exact and `abs()` is
+taped.
+
+The group distribution is the one adaptation of substance in the
+chapter. frmtmb's random effects are normal on the LINEAR PREDICTOR,
+which here is a logit, so a truncated-normal random effect on `(0, 1)`
+is not in this grammar and the Stan program says logit-normal too.
+
+## Chapter 11, signal detection theory
+
+Equal-variance Gaussian SDT says the hit rate is `Phi(d/2 - c)` and the
+false-alarm rate is `Phi(-d/2 - c)`, so with one row per
+(case, trial type) and
+
+* `half` = +1/2 on signal trials and -1/2 on noise trials,
+* `bias` = -1 everywhere,
+
+the linear predictor is `d * half + c * bias` and the two regression
+coefficients ARE discriminability and criterion. The alternative
+coding, an intercept plus a signal indicator, is the more familiar GLM
+one and puts the random effects on the wrong pair: it makes the
+criterion and `d'` correlated by construction, and the book's
+hierarchical model gives them independent group distributions.
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| SDT_1 | `y \| trials(N) ~ 0 + case:half + case:bias`, `bcm_binomial_probit()` | identity | the demo data separate one case, so the book's own first data set has no finite estimate |
+| SDT_2 | `y \| trials(N) ~ 0 + half + bias + (0 + half + bias \|\| id)` | identity, inner gradient | **Laplace** |
+| SDT_3 | the SDT_2 fit | identity against SDT_3's program at `xi = 1` | parameter expansion is a ridge, not a model |
+
+frmtmb's link registry has no probit. A link is a plain list of four
+functions, so `bcm_probit()` in `inst/bcm/binomial-extras.R` supplies
+one and no change to the core is needed; the gap itself is recorded in
+`dev/bcm-findings.md` for whoever owns `R/links.R`.
+
+## Chapter 12, psychophysical functions
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| PsychophysicalFunction1 | `frm(r \| trials(n) ~ xc + (xc \|\| subj))` | identity, inner gradient | **Laplace** |
+| PsychophysicalFunction2 | the same plus `phi ~ 1 + (1 \| subj)` with `bcm_contaminant()` | identity, inner gradient | **Laplace**; the contaminant rate is integrated out |
+| PsychometricFunction1_Answers | PsychophysicalFunction1's fit | structure | the exercise answers derive JND and PSE from the same fit |
+
+The book's contaminant process has a rate of its own per cell with a
+`beta(1, 1)` prior. That rate is integrated out rather than estimated,
+because a binomial rate with a `beta(1, 1)` prior integrates to the
+discrete uniform on `0..n`:
+
+$$\int_0^1 \binom{n}{r} p^r (1-p)^{n-r}\,dp = \frac{1}{n+1}.$$
+
+The integral has to be done. Left as a free parameter per cell, the
+contaminant fits every cell exactly, the mixture likelihood is
+maximized by a contamination rate of one, and there is no maximum
+likelihood estimate of the psychometric function at all. The book's
+sampler never meets this, because averaging over the same parameter is
+the same integral.
+
+## Chapter 14, multinomial processing trees
+
+**Four of the five programs are one model.** MPT_2 through MPT_5 differ
+only in how the multivariate normal over the individual differences is
+written: parameter expansion with a Wishart prior, an LKJ prior on a
+correlation matrix, its Cholesky factor, and a non-centered
+reparameterization. The README that ships with them says as much. Their
+likelihood is identical, so frmtmb fits them once.
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| MPT_1 | `cbind(k1, k2, k3, k4) ~ 1` with `bcm_mpt_pairs()` | identity, structure | |
+| MPT_2 to MPT_5 | `1 + (1 \| p \| id)` on each of the three probits | identity, inner gradient | **Laplace**; the correlations are the latent-trait ones and their standard errors do not exist; see below |
+
+The hierarchical fit is the one in the port whose `diagnose()` is not
+clean, and the reason is the model rather than the search. Four
+categories with a fixed total is three free counts per subject, the
+model gives each subject three latent traits, and an unstructured three
+by three covariance over those traits is six more parameters for
+21 subjects to carry.
+
+The estimates are stable: five optimizer settings return the same
+log-likelihood (-102.478) and the same standard deviations (0.517,
+0.464, 0.296) and correlations (-0.529, 0.539, -0.450), which are the
+case study's own numbers, and the identity holds with an inner gradient
+of 2.1e-10. The curvature is not: the Hessian is not positive definite
+and `theta_4` and `theta_6` have no finite standard error. The fit is
+not saturated either, which was the first thing to rule out; the
+largest gap between a fitted and an observed cell proportion is 0.177,
+so the random effects really are pooled.
+
+The case study meets the same wall from the other side. Its README
+records divergent transitions and correlation matrices that are not
+positive definite during estimation, and MPT_2's Wishart prior and
+MPT_3's LKJ prior are what hold this block down. Maximum likelihood has
+no such prior, so it reports the degeneracy instead, and the test
+asserts every line of what `diagnose()` says.
+
+## Chapter 15, SIMPLE
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| SIMPLE_1 | `bf(k \| trials(n) ~ 0 + set, s ~ 0 + set, t ~ 0 + set)` with `bcm_simple(set, pos, m)` | identity | needs a start above the cap; see below |
+| SIMPLE_2 | `bf(k \| trials(n) ~ 1, s ~ 1, t ~ ll)` with `link_t = "identity"` | structure | the threshold is a linear function of list length, so its link is the identity |
+
+An item's discriminability is its similarity relative to every other
+item in the SAME list, so one row's contribution reads the whole list:
+another `loglik` slot, and a second use of the padded block that
+`inst/rl/rw-delta.R` introduced.
+
+`min(1, sum(resp))` is carried here too, and it has the same edge that
+retention's does: at a recall probability of one, a serial position
+where somebody failed has a log density of minus infinity and a
+gradient of NaN, so an infeasible START is fatal rather than merely
+slow. The family's own default threshold is 0.6 for that reason, and
+every start at or above it reaches the same optimum.
+
+## Chapter 16, extrasensory perception
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| Ability | Correlation_1's spelling | identity, at Correlation_1 | the hundred pairs of proportions are not re-embedded |
+| OptionalStopping | Correlation_1's spelling | identity | |
+| Extraversion | `mvbf()` of a probit binomial and a probit gaussian sharing `(1 \| p \| id)` | identity, inner gradient | **Laplace** |
+| OptionalStopping_Answer_1 | not ported | | the chapter's exercise answers, on the model OptionalStopping already ports |
+
+Extraversion is the reason `bcm_gaussian_probit()` exists. The book
+writes the extraversion score as normal around `100 * Phi(theta_2)`;
+dividing the response by 100 makes the mean `Phi(theta_2)` exactly, so
+the whole nonlinearity is a link and the latent pair is an ordinary
+correlated random intercept shared by two responses.
+
+The known measurement standard deviation rides on `vreal(sd)` rather
+than on `se(sd, sigma = FALSE)`, because the core gates `se()` on the
+family NAME: a custom family cannot opt in however faithfully it reads
+the term. `vreal()` is the channel a custom family IS given.
+
+## Chapter 17, the generalized context model
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| GCM_1 | `y \| trials(t) ~ 1` with `bcm_gcm(stim, d1, d2, a)` | identity | |
+| GCM_2 | `bf(y \| trials(t) ~ 0 + subj, w ~ 0 + subj)` | identity | ten of the forty subjects |
+| GCM_3, GCM_3_optimized | not ported | | the case study's own contaminant extension; the same family with a mixture on top |
+
+## Chapter 19, the Balloon Analogue Risk Task
+
+The model looks like a cognitive process model and IS a Bernoulli
+logistic regression. The probability of stopping at pump `k` is
+`inv_logit(beta * k - beta * omega)`, so `stop ~ k` recovers both
+coefficients and the book's parameters come back by arithmetic:
+`omega = -intercept / slope` and `gamma+ = -omega log(1 - p)`.
+
+| model | frmtmb spelling | validated by | caveat |
+|---|---|---|---|
+| BART_1 | `frm(stop ~ k, family = bernoulli())` | identity | |
+| BART_2 | `stop ~ 0 + cond + cond:k` | structure | the group distribution over three conditions is a prior, so the fit is unpooled |
+
+## Refused, by name
+
+One model, and the reason is the model rather than the grammar.
+
+| model | why |
+|---|---|
+| Planes | The model has NO free parameter: its own Stan port runs with `algorithm = "Fixed_param"`. `frm()` estimates parameters, so there is no formula to write. `bcm_planes_posterior()` computes the posterior over the fleet size directly and its arithmetic is checked against the reference program. |
+
+## Not ported
+
+These are unfinished work, not obstacles, and none is blocked by a
+missing seam: each is a `loglik` slot of the shape
+`inst/bcm/marginal.R` already uses, or a fit of a shape already in the
+port. They are listed separately from the refusal above because a
+reader should be able to tell the two apart.
+
+| model | count | note |
+|---|---|---|
+| NumberConcept_1 to _3 | 3 | the knower-level models are a finite sum, but over a per-child level that indexes a different response distribution in each of two tasks |
+| Search, Stop, SearchStop, TTB | 4 | heuristic decision making |
+| GCM_3, GCM_3_optimized | 2 | the case study's contaminant extension of GCM_2: the same family with a mixture over it |
+| OptionalStopping_Answer_1 | 1 | the chapter's exercise answers, on the model OptionalStopping already ports |
+
+Ten models, against the 52 ported and the one refused: 63 in all, which
+is what the reference repository holds once the `GettingStarted` copy of
+`Rate_1` and the `! other` scratch directory are excluded.
+
+## The Laplace caveat
+
+Every row marked **Laplace** has a CONTINUOUS random effect underneath
+something that is not Gaussian in it: a marginalized discrete latent
+class, a probit binomial with four trials, a contaminant mixture. The
+identity is still exact, because it compares the JOINT density at the
+conditional modes and both programs hold the same joint. What is
+approximate is the MARGINAL that frmtmb maximizes, and the identity
+cannot see that at all.
+
+`frm(importance = )` measures it. A positive draw count replaces the
+Laplace approximation with an importance-sampling correction of it,
+which is unbiased for the exact integral, and `fit$importance` records
+the Monte Carlo standard error of the corrected log-likelihood. Where
+it is admitted the correction is worth running:
+
+```{r importance, eval = FALSE}
+d <- data.frame(k = c(21, 17, 21, 18, 22, 31, 31, 34, 34, 35, 35, 36,
+                      39, 36, 35),
+                n = 40L, zero = 0, id = factor(1:15))
+fo <- bf(k | trials(n) ~ 1 + (1 | id), mu2 ~ 0 + offset(zero),
+         theta1 ~ 0 + offset(zero))
+lap <- frm(fo, family = mixture(binomial, binomial), data = d)
+imp <- frm(fo, family = mixture(binomial, binomial), data = d,
+           importance = 512)
+c(laplace = logLik(lap), importance = logLik(imp), imp$importance$mcse)
+```
+
+On Exams_2 the Laplace log-likelihood is -44.095 and the corrected one
+is -44.109, with a Monte Carlo standard error of 0.0018. So the
+approximation is off by about 0.013 nats over fifteen subjects: small,
+but larger than the noise in the number that measures it, which is what
+makes it worth measuring rather than assuming.
+
+Its scope is narrower than the caveat, and the refusals are by name:
+one response, one grouping factor, a family with a ROWWISE density, and
+no nonlinear predictor. So
+
+* Exams_2, SDT_2, PsychophysicalFunction1 and 2, MPT_2 to _5, and
+  Geurts are **admitted**: rowwise density, one grouping factor;
+* Extraversion and Correlation_2 are **refused**, because they have two
+  responses;
+* Retention_3 is **refused**, because its predictor is nonlinear;
+* GCM, SIMPLE, Survey, ChangeDetection and TwoCountryQuiz are
+  **refused**, because a structured family has no rowwise density to
+  stack, which is the same fact that put them on the `loglik` slot.
+
+For the last group the honest statement is that the Laplace
+approximation is not involved at all: they have no random effects, and
+their marginalization over a discrete latent is an exact finite sum.
+The caveat is about the models that mix the two, and those are exactly
+the rows marked **Laplace** above.
+
+`check_laplace()` in `frmtmb.sample` is the other route: it samples the
+joint with tmbstan and compares.
+
+## Where the code is
+
+| what | where |
+|---|---|
+| the identity harness | `tests/testthat/helper-stan.R` |
+| the chapter tests | `tests/testthat/test-bcm-*.R` |
+| the extra links and binomials | `inst/bcm/binomial-extras.R` |
+| the processing trees | `inst/bcm/process-trees.R` |
+| the similarity models | `inst/bcm/similarity.R` |
+| the finite-sum families | `inst/bcm/marginal.R` |
+| the port's own notes | `dev/bcm-findings.md` |
+
+The Stan tier is opt-in, exactly like the brms one:
+
+```r
+Sys.setenv(FRMTMB_BRMS_FIT_TESTS = "true", NOT_CRAN = "true")
+```
