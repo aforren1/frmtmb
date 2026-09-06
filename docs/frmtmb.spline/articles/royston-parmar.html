@@ -82,7 +82,7 @@ spline in log time. You get proportional hazards when you want them, a
 smooth estimated baseline you can plot, and time-varying effects when
 the proportional-hazards assumption fails.</p>
 <p><code><a href="../reference/royston_parmar.html">royston_parmar()</a></code> is that family, parameterized exactly
-as <code>flexsurv::flexsurvspline()</code> parameterizes it.</p>
+as <code><a href="http://chjackson.github.io/flexsurv-dev/reference/flexsurvspline.html" class="external-link">flexsurv::flexsurvspline()</a></code> parameterizes it.</p>
 <div class="section level2">
 <h2 id="the-data">The data<a class="anchor" aria-label="anchor" href="#the-data"></a>
 </h2>
@@ -91,7 +91,12 @@ patients in three prognostic groups, recurrence-free survival in years,
 299 events and 387 right-censored rows.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">bc</span>, package <span class="op">=</span> <span class="st">"flexsurv"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">bc</span><span class="op">$</span><span class="va">group</span>, event <span class="op">=</span> <span class="va">bc</span><span class="op">$</span><span class="va">censrec</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">bc</span><span class="op">$</span><span class="va">group</span>, event <span class="op">=</span> <span class="va">bc</span><span class="op">$</span><span class="va">censrec</span><span class="op">)</span></span>
+<span><span class="co">#&gt;         event</span></span>
+<span><span class="co">#&gt;            0   1</span></span>
+<span><span class="co">#&gt;   Good   178  51</span></span>
+<span><span class="co">#&gt;   Medium 126 103</span></span>
+<span><span class="co">#&gt;   Poor    83 145</span></span></code></pre></div>
 <p>One thing to get right before anything else. frmtmb’s
 <code>cens()</code> reads <code>0</code> as an observed event and
 <code>1</code> as right censored. A <code>Surv()</code> status column is
@@ -112,13 +117,30 @@ times, which needs the response, so they are chosen when
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">recyrs</span> <span class="op">|</span> <span class="fu">cens</span><span class="op">(</span><span class="va">censored</span><span class="op">)</span> <span class="op">~</span> <span class="va">group</span><span class="op">)</span>,</span>
 <span>           family <span class="op">=</span> <span class="fu"><a href="../reference/royston_parmar.html">royston_parmar</a></span><span class="op">(</span>df <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">bc</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $mu</span></span>
+<span><span class="co">#&gt; (Intercept) groupMedium   groupPoor </span></span>
+<span><span class="co">#&gt;  -2.7467993   0.8342391   1.6117459 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $gamma1</span></span>
+<span><span class="co">#&gt; (Intercept) </span></span>
+<span><span class="co">#&gt;    3.468767 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $gamma2</span></span>
+<span><span class="co">#&gt; (Intercept) </span></span>
+<span><span class="co">#&gt;   0.5679955 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $gamma3</span></span>
+<span><span class="co">#&gt; (Intercept) </span></span>
+<span><span class="co">#&gt;  -0.3577181</span></span></code></pre></div>
 <p><code>mu</code> is <code>gamma0</code>, the spline intercept, and the
 <code>group</code> coefficients sit on it. Because <code>gamma0</code>
 shifts the whole log cumulative hazard, those are LOG HAZARD RATIOS: the
 model is proportional hazards.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span><span class="op">)</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span><span class="op">)</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="co">#&gt; groupMedium   groupPoor </span></span>
+<span><span class="co">#&gt;    2.303061    5.011553</span></span></code></pre></div>
 <p><code>gamma1</code> and upward are the other spline coefficients, and
 together with <code>gamma0</code> they are the baseline.</p>
 </div>
@@ -129,7 +151,7 @@ together with <code>gamma0</code> they are the baseline.</p>
 the proof is to hand flexsurv’s fitted coefficients to frmtmb’s
 objective:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fs</span> <span class="op">&lt;-</span> <span class="fu">flexsurv</span><span class="fu">::</span><span class="fu">flexsurvspline</span><span class="op">(</span><span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">recyrs</span>, <span class="va">censrec</span><span class="op">)</span> <span class="op">~</span> <span class="va">group</span>,</span>
+<code class="sourceCode R"><span><span class="va">fs</span> <span class="op">&lt;-</span> <span class="fu">flexsurv</span><span class="fu">::</span><span class="fu"><a href="http://chjackson.github.io/flexsurv-dev/reference/flexsurvspline.html" class="external-link">flexsurvspline</a></span><span class="op">(</span><span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">recyrs</span>, <span class="va">censrec</span><span class="op">)</span> <span class="op">~</span> <span class="va">group</span>,</span>
 <span>                               data <span class="op">=</span> <span class="va">bc</span>, k <span class="op">=</span> <span class="fl">2</span>, scale <span class="op">=</span> <span class="st">"hazard"</span><span class="op">)</span></span>
 <span><span class="va">kn</span> <span class="op">&lt;-</span> <span class="va">fs</span><span class="op">$</span><span class="va">knots</span></span>
 <span><span class="va">o</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">recyrs</span> <span class="op">|</span> <span class="fu">cens</span><span class="op">(</span><span class="va">censored</span><span class="op">)</span> <span class="op">~</span> <span class="va">group</span><span class="op">)</span>,</span>
@@ -139,14 +161,18 @@ objective:</p>
 <span><span class="va">cf</span> <span class="op">&lt;-</span> <span class="va">fs</span><span class="op">$</span><span class="va">res</span><span class="op">[</span>, <span class="st">"est"</span><span class="op">]</span></span>
 <span><span class="va">gam</span> <span class="op">&lt;-</span> <span class="va">cf</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^gamma"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">cf</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">par</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">gam</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, <span class="va">cf</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"^gamma"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">cf</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>, <span class="va">gam</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>flexsurv <span class="op">=</span> <span class="va">fs</span><span class="op">$</span><span class="va">loglik</span>, frmtmb_at_flexsurv_par <span class="op">=</span> <span class="op">-</span><span class="va">o</span><span class="op">$</span><span class="va">obj</span><span class="op">$</span><span class="fu">fn</span><span class="op">(</span><span class="va">par</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>flexsurv <span class="op">=</span> <span class="va">fs</span><span class="op">$</span><span class="va">loglik</span>, frmtmb_at_flexsurv_par <span class="op">=</span> <span class="op">-</span><span class="va">o</span><span class="op">$</span><span class="va">obj</span><span class="op">$</span><span class="fu">fn</span><span class="op">(</span><span class="va">par</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;               flexsurv frmtmb_at_flexsurv_par </span></span>
+<span><span class="co">#&gt;              -791.4957              -791.4957</span></span></code></pre></div>
 <p>Those two numbers agree to about ten units in the last place of a
 number near 800. Note <code>flexsurv</code>’s <code>k</code> is this
 package’s <code>df - 1</code>: <code>k</code> counts the interior knots
 and <code>df</code> counts them plus one.</p>
 <p>The two optima then agree as well:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>flexsurv <span class="op">=</span> <span class="va">fs</span><span class="op">$</span><span class="va">loglik</span>, frmtmb <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>flexsurv <span class="op">=</span> <span class="va">fs</span><span class="op">$</span><span class="va">loglik</span>, frmtmb <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  flexsurv    frmtmb </span></span>
+<span><span class="co">#&gt; -791.4957 -791.4957</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="read-the-baseline-off">Read the baseline off<a class="anchor" aria-label="anchor" href="#read-the-baseline-off"></a>
@@ -183,7 +209,12 @@ and it applies here as it does anywhere else.</p>
 <span><span class="va">logH</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">b</span>, <span class="va">g</span><span class="op">)</span> <span class="va">b</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span>, <span class="va">bas</span>, <span class="va">lp</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">S</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">logH</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">tg</span>, <span class="fl">3</span><span class="op">)</span>, logH <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">logH</span>, <span class="fl">3</span><span class="op">)</span>,</span>
-<span>                survival <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">S</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
+<span>                survival <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">S</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       t   logH survival</span></span>
+<span><span class="co">#&gt; 1 0.300 -6.934    0.999</span></span>
+<span><span class="co">#&gt; 2 0.317 -6.752    0.999</span></span>
+<span><span class="co">#&gt; 3 0.334 -6.570    0.999</span></span>
+<span><span class="co">#&gt; 4 0.353 -6.390    0.998</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"steelblue4"</span>, <span class="st">"goldenrod3"</span>, <span class="st">"firebrick"</span><span class="op">)</span></span>
 <span><span class="va">surv_of</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="op">{</span></span>
@@ -209,6 +240,7 @@ and it applies here as it does anywhere else.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">km_s</span><span class="op">$</span><span class="va">time</span><span class="op">[</span><span class="va">k</span><span class="op">]</span>, <span class="va">km_s</span><span class="op">$</span><span class="va">surv</span><span class="op">[</span><span class="va">k</span><span class="op">]</span>, type <span class="op">=</span> <span class="st">"s"</span>, col <span class="op">=</span> <span class="va">cols</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, lty <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"bottomleft"</span>, <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">bc</span><span class="op">$</span><span class="va">group</span><span class="op">)</span>, col <span class="op">=</span> <span class="va">cols</span>, lwd <span class="op">=</span> <span class="fl">2</span>, bty <span class="op">=</span> <span class="st">"n"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="royston-parmar_files/figure-html/fig-surv-1.png" class="r-plt" alt="Fitted survival curves for the three prognostic groups against time in years, each falling from 1. The good-prognosis curve stays above 0.8 at eight years, the medium curve reaches about 0.6 and the poor curve about 0.3. Step functions of the same three colors, the Kaplan-Meier estimates, track each fitted curve closely." width="672"></p>
 <p>The fitted curves track the Kaplan-Meier estimates, which the model
 was never shown.</p>
 </div>
@@ -225,7 +257,9 @@ ordinary second formula.</p>
 <span>           family <span class="op">=</span> <span class="fu"><a href="../reference/royston_parmar.html">royston_parmar</a></span><span class="op">(</span>df <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">bc</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>proportional <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  time_varying <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">ftv</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  AIC_proportional <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, AIC_time_varying <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC</a></span><span class="op">(</span><span class="va">ftv</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span>  AIC_proportional <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, AIC_time_varying <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC</a></span><span class="op">(</span><span class="va">ftv</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     proportional     time_varying AIC_proportional AIC_time_varying </span></span>
+<span><span class="co">#&gt;        -791.4957        -785.8381        1594.9913        1587.6762</span></span></code></pre></div>
 <p><code>gamma1</code> multiplies <code>log(t)</code>, so letting it
 vary by group lets each group’s hazard ratio drift with time rather than
 holding still.</p>
@@ -240,7 +274,9 @@ censored rows do not identify its upper tail. <code>mu</code> is a
 spline coefficient, not a fitted value, and the identity link would let
 it pass for one:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> royston_parmar: a survival time has no mean on the response scale here. mu is gamma0, the intercept of a spline in log time, not a fitted value, and the mean survival time is an integral over a tail the censored rows do not identify. predict(type = "link", dpar = ) gives any spline coefficient, and frm_curve() reads the fitted log cumulative hazard off with a band</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-check-you-must-run">The check you must run<a class="anchor" aria-label="anchor" href="#the-check-you-must-run"></a>
@@ -249,7 +285,31 @@ it pass for one:</p>
 are silent in the fitted object. <code><a href="../reference/rp_floored.html">rp_floored()</a></code> is where they
 go to be read, and it REFUSES rather than reports:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/rp_floored.html">rp_floored</a></span><span class="op">(</span><span class="va">fit</span>, action <span class="op">=</span> <span class="st">"report"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/rp_floored.html">rp_floored</a></span><span class="op">(</span><span class="va">fit</span>, action <span class="op">=</span> <span class="st">"report"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $n_censored_floored</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $max_nlogS</span></span>
+<span><span class="co">#&gt; [1] 2.088002</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $threshold</span></span>
+<span><span class="co">#&gt; [1] 19.2</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_nonmonotone</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $scale</span></span>
+<span><span class="co">#&gt; [1] "hazard"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_obs</span></span>
+<span><span class="co">#&gt; [1] 686</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; attr(,"rows")</span></span>
+<span><span class="co">#&gt; attr(,"rows")$censored</span></span>
+<span><span class="co">#&gt; integer(0)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; attr(,"rows")$nonmonotone</span></span>
+<span><span class="co">#&gt; integer(0)</span></span></code></pre></div>
 <p>Zero on both counts here. Run it on every fit whose data carry
 censoring, because neither <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> nor <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>
 can tell you.</p>
@@ -278,7 +338,10 @@ it:</p>
 <span><span class="va">bad</span><span class="op">$</span><span class="va">censored</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1L</span></span>
 <span><span class="va">bad_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">t</span> <span class="op">|</span> <span class="fu">cens</span><span class="op">(</span><span class="va">censored</span><span class="op">)</span> <span class="op">~</span> <span class="va">grp</span><span class="op">)</span>,</span>
 <span>               family <span class="op">=</span> <span class="fu"><a href="../reference/royston_parmar.html">royston_parmar</a></span><span class="op">(</span>df <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">bad</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Optimizer did not report convergence: false convergence (8)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>converged <span class="op">=</span> <span class="va">bad_fit</span><span class="op">$</span><span class="va">opt</span><span class="op">$</span><span class="va">convergence</span>, logLik <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">bad_fit</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; converged    logLik </span></span>
+<span><span class="co">#&gt;    1.0000 -575.5379</span></span>
 <span><span class="fu"><a href="../reference/rp_floored.html">rp_floored</a></span><span class="op">(</span><span class="va">bad_fit</span><span class="op">)</span></span></code></pre></div>
 <p>The refusal is POST-FIT and cannot be otherwise:
 <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> reads the optimizer’s own value and the family
@@ -298,7 +361,9 @@ thing directly in the slope of the fitted log cumulative hazard, which
 must stay positive:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dlogH</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="va">logH</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>min_slope <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dlogH</span><span class="op">)</span>, all_increasing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">dlogH</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>min_slope <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dlogH</span><span class="op">)</span>, all_increasing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">dlogH</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;      min_slope all_increasing </span></span>
+<span><span class="co">#&gt;      0.9852775      1.0000000</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="how-many-knots">How many knots<a class="anchor" aria-label="anchor" href="#how-many-knots"></a>
@@ -309,7 +374,8 @@ Compare on AIC, as Royston and Parmar do:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="kw">function</span><span class="op">(</span><span class="va">k</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">recyrs</span> <span class="op">|</span> <span class="fu">cens</span><span class="op">(</span><span class="va">censored</span><span class="op">)</span> <span class="op">~</span> <span class="va">group</span><span class="op">)</span>,</span>
 <span>          family <span class="op">=</span> <span class="fu"><a href="../reference/royston_parmar.html">royston_parmar</a></span><span class="op">(</span>df <span class="op">=</span> <span class="va">k</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">bc</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1631.884 1595.728 1594.991 1594.012 1596.053</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

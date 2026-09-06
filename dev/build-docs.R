@@ -1,11 +1,11 @@
-# Build the frmtmb documentation site and the four extension subsites.
+# Build the frmtmb documentation site and the five extension subsites.
 #
-#   Rscript dev/build-docs.R                 # all five, core first
+#   Rscript dev/build-docs.R                 # all six, core first
 #   Rscript dev/build-docs.R frmtmb.sample   # one package
 #
 # Run it from the repository root. The core site lands in docs/ and
 # each extension lands in docs/<package>/, so one GitHub Pages
-# deployment serves all five. There is no site workflow in
+# deployment serves all six. There is no site workflow in
 # .github/workflows: docs/ is checked in, and the site is built here
 # and committed, which is the practice this repository already
 # follows.
@@ -18,7 +18,7 @@
 # the topic up in the help index and learn which .Rd file holds it;
 # and the address of that package's site. So every package is
 # installed before any site is built, and a stale install of one
-# package silently degrades the links in the other four.
+# package silently degrades the links in the other five.
 #
 # WHY THE SITE METADATA IS WRITTEN BY HAND. downlit reads the site
 # address from `system.file("pkgdown.yml", package = )` and, failing
@@ -51,7 +51,7 @@ if (!file.exists("DESCRIPTION") ||
   stop("run this from the repository root")
 }
 
-# A throwaway library by default, because this script installs all five
+# A throwaway library by default, because this script installs all six
 # packages and the working library is where the versions being developed
 # live. Point FRMTMB_DOCS_LIB at a persistent directory to skip
 # reinstalling on every run; the installs take well under a minute
@@ -152,6 +152,28 @@ if (!all(wanted %in% names(PKGS))) {
   stop("unknown package: ", paste(setdiff(wanted, names(PKGS)), collapse = ", "))
 }
 
+# Every vignette gates its chunks on requireNamespace() of a Suggests
+# package, so a build library that lacks one produces a page of code
+# with no output and no figure, and nothing reports it: the site's
+# Royston-Parmar article shipped that way once (flexsurv absent).
+# Refuse instead. Install the missing packages into the library on
+# .libPaths() or point FRMTMB_DOCS_LIB at one that has them.
+suggests_of <- function(dir) {
+  d <- read.dcf(file.path(dir, "DESCRIPTION"))
+  if (!"Suggests" %in% colnames(d)) return(character())
+  s <- trimws(gsub("[(][^)]*[)]", "", strsplit(d[, "Suggests"], ",")[[1]]))
+  s[nzchar(s)]
+}
+missing_suggests <- unlist(lapply(wanted, function(pkg) {
+  s <- setdiff(suggests_of(PKGS[[pkg]]), names(PKGS))
+  s[!vapply(s, requireNamespace, logical(1), quietly = TRUE)]
+}))
+if (length(missing_suggests)) {
+  stop("Suggests missing from the build library, so gated vignette ",
+       "chunks would render as code without output: ",
+       paste(unique(missing_suggests), collapse = ", "))
+}
+
 started <- Sys.time()
 
 # Help pages are what downlit reads, so --no-docs would break the
@@ -168,7 +190,7 @@ for (pkg in names(PKGS)) {
 }
 
 installed <- Sys.time()
-message(sprintf("--- installed five packages in %.1f min",
+message(sprintf("--- installed six packages in %.1f min",
                 as.numeric(difftime(installed, started, units = "mins"))))
 
 for (pkg in wanted) {

@@ -2,7 +2,8 @@
 
 Models the log cumulative hazard as a natural cubic spline in log time.
 It is the flexible parametric survival model of Royston and Parmar
-(2002), and it is parameterized exactly as `flexsurv::flexsurvspline()`
+(2002), and it is parameterized exactly as
+[`flexsurv::flexsurvspline()`](http://chjackson.github.io/flexsurv-dev/reference/flexsurvspline.md)
 parameterizes it, so a `gamma` vector means the same curve in both
 packages and the two log likelihoods are the same number.
 

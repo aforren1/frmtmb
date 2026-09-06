@@ -1763,14 +1763,14 @@ same mixed-model split <code>s()</code> does: the null space of the
 second-difference penalty joins the fixed coefficients and the range
 space becomes one random-effect block whose single variance is the
 inverse smoothing parameter.</p>
-<p>The data are <code>brokenstick::smocc_200</code>: 1942 height
+<p>The data are <code><a href="https://growthcharts.org/brokenstick/reference/smocc_200.html" class="external-link">brokenstick::smocc_200</a></code>: 1942 height
 measurements on 200 Dutch children, 6 to 12 each. Age goes in as weeks
 so that
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>β</mi><mn>3</mn></msub><annotation encoding="application/x-tex">\beta_3</annotation></semantics></math>
 is a shift in weeks per week of gestation, and gestational age is
 centered at 40.</p>
 <div class="sourceCode" id="cb84"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu">brokenstick</span><span class="fu">::</span><span class="va">smocc_200</span></span>
+<code class="sourceCode R"><span><span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu">brokenstick</span><span class="fu">::</span><span class="va"><a href="https://growthcharts.org/brokenstick/reference/smocc_200.html" class="external-link">smocc_200</a></span></span>
 <span><span class="va">smocc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  id  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">raw</span><span class="op">$</span><span class="va">id</span><span class="op">)</span>,</span>
 <span>  age <span class="op">=</span> <span class="fl">52.1775</span> <span class="op">*</span> <span class="va">raw</span><span class="op">$</span><span class="va">age</span>,          <span class="co"># years to weeks</span></span>
@@ -1779,7 +1779,9 @@ centered at 40.</p>
 <span>  hgt <span class="op">=</span> <span class="va">raw</span><span class="op">$</span><span class="va">hgt</span><span class="op">)</span></span>
 <span><span class="va">smocc</span> <span class="op">&lt;-</span> <span class="va">smocc</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">hgt</span><span class="op">)</span>, <span class="op">]</span></span>
 <span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/droplevels.html" class="external-link">droplevels</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">)</span>, children <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nlevels.html" class="external-link">nlevels</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">)</span>, children <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nlevels.html" class="external-link">nlevels</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     rows children </span></span>
+<span><span class="co">#&gt;     1906      200</span></span></code></pre></div>
 <div class="sourceCode" id="cb85"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_smocc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">hgt</span> <span class="op">~</span> <span class="va">int</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">amp</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="../reference/ps.html">ps</a></span><span class="op">(</span><span class="va">age</span> <span class="op">+</span> <span class="va">shift</span>, k <span class="op">=</span> <span class="fl">15</span>, pad <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span>,</span>
@@ -1790,7 +1792,27 @@ centered at 40.</p>
 <span>  data <span class="op">=</span> <span class="va">smocc</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">68</span>, <span class="fl">2</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"int"</span>, <span class="st">"amp"</span>, <span class="st">"shift"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">#&gt; $int</span></span>
+<span><span class="co">#&gt; (Intercept)         sex </span></span>
+<span><span class="co">#&gt;   68.754333    1.805782 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $amp</span></span>
+<span><span class="co">#&gt;          sex </span></span>
+<span><span class="co">#&gt; 0.0002123577 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $shift</span></span>
+<span><span class="co">#&gt;       ga </span></span>
+<span><span class="co">#&gt; 1.050019</span></span>
+<span><span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   int: 1 | id </span></span>
+<span><span class="co">#&gt;         Name Std.Dev.</span></span>
+<span><span class="co">#&gt;  (Intercept)   2.8685</span></span>
+<span><span class="co">#&gt;   shift: 1 | id </span></span>
+<span><span class="co">#&gt;         Name Std.Dev.</span></span>
+<span><span class="co">#&gt;  (Intercept)   3.3241</span></span>
+<span><span class="co">#&gt;   ps(age + shift, k = 15, pad = 0.25) </span></span>
+<span><span class="co">#&gt;        Name Std.Dev.</span></span>
+<span><span class="co">#&gt;  sd(wiggle)   2.7546</span></span></code></pre></div>
 <p><code>k = 15</code> is the paper’s cubic basis with 11 interior
 knots. <code>pad = 0.25</code> widens the range the knots are placed on
 before they are frozen: the spline is evaluated at
@@ -1819,7 +1841,15 @@ agree on this application. See <code><a href="../reference/ps.html">?ps</a></cod
 <span>         sigma <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">fx</span><span class="op">$</span><span class="va">sigma</span><span class="op">[[</span><span class="st">"(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">paper</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>beta0 <span class="op">=</span> <span class="fl">68.2</span>, beta1 <span class="op">=</span> <span class="fl">1.80</span>, beta2 <span class="op">=</span> <span class="fl">0.00</span>, beta3 <span class="op">=</span> <span class="fl">1.00</span>,</span>
 <span>           sd_b1 <span class="op">=</span> <span class="fl">2.86</span>, sd_b2 <span class="op">=</span> <span class="fl">3.28</span>, sigma <span class="op">=</span> <span class="fl">1.05</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>frmtmb <span class="op">=</span> <span class="va">got</span>, paper <span class="op">=</span> <span class="va">paper</span>, difference <span class="op">=</span> <span class="va">got</span> <span class="op">-</span> <span class="va">paper</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>frmtmb <span class="op">=</span> <span class="va">got</span>, paper <span class="op">=</span> <span class="va">paper</span>, difference <span class="op">=</span> <span class="va">got</span> <span class="op">-</span> <span class="va">paper</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;       frmtmb paper difference</span></span>
+<span><span class="co">#&gt; beta0 68.754 68.20      0.554</span></span>
+<span><span class="co">#&gt; beta1  1.806  1.80      0.006</span></span>
+<span><span class="co">#&gt; beta2  0.000  0.00      0.000</span></span>
+<span><span class="co">#&gt; beta3  1.050  1.00      0.050</span></span>
+<span><span class="co">#&gt; sd_b1  2.868  2.86      0.008</span></span>
+<span><span class="co">#&gt; sd_b2  3.324  3.28      0.044</span></span>
+<span><span class="co">#&gt; sigma  1.057  1.05      0.007</span></span></code></pre></div>
 <p>Six of the seven agree to the published precision. The intercept is
 0.55 cm higher, and that is an identifiability convention rather than a
 disagreement. <code><a href="../reference/ps.html">ps()</a></code> constrains the spline’s COEFFICIENTS to
@@ -1841,7 +1871,9 @@ the published one.</p>
 <span>                        outer.ok <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">gam</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>beta0 <span class="op">=</span> <span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"int_(Intercept)"</span>, <span class="va">bn</span><span class="op">)</span><span class="op">]</span>,</span>
 <span>  recentred <span class="op">=</span> <span class="va">p</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"int_(Intercept)"</span>, <span class="va">bn</span><span class="op">)</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">curve_at_data</span><span class="op">)</span>,</span>
-<span>  paper <span class="op">=</span> <span class="fl">68.2</span><span class="op">)</span></span></code></pre></div>
+<span>  paper <span class="op">=</span> <span class="fl">68.2</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     beta0.int_(Intercept) recentred.int_(Intercept)                     paper </span></span>
+<span><span class="co">#&gt;                  68.75433                  68.19824                  68.20000</span></span></code></pre></div>
 <p>Whatever the paper’s constraint was, the two intercepts describe the
 same fitted surface to 0.002 cm once the curve is centered the same way.
 Nothing that depends on the curve’s SHAPE moves with the convention at
@@ -1876,6 +1908,8 @@ construction the objective tapes:</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">dnorm</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">b</span><span class="op">[</span><span class="va">bk</span><span class="op">$</span><span class="va">b_idx</span><span class="op">]</span>, <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">bk</span><span class="op">$</span><span class="va">theta_idx</span><span class="op">]</span><span class="op">)</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">joint</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="fu">frmtmb</span><span class="fu">:::</span><span class="fu"><a href="../reference/frmtmb-sampling-api.html">build_objective</a></span><span class="op">(</span><span class="va">fit_smocc</span><span class="op">$</span><span class="va">frame</span><span class="op">)</span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>frmtmb <span class="op">=</span> <span class="va">joint</span>, reference <span class="op">=</span> <span class="va">ref</span>, difference <span class="op">=</span> <span class="va">joint</span> <span class="op">-</span> <span class="va">ref</span><span class="op">)</span></span>
+<span><span class="co">#&gt;        frmtmb     reference    difference </span></span>
+<span><span class="co">#&gt; -3.653385e+03 -3.653385e+03  9.413270e-11</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">joint</span> <span class="op">-</span> <span class="va">ref</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1e-8</span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="the-curve-with-a-band">The curve, with a band<a class="anchor" aria-label="anchor" href="#the-curve-with-a-band"></a>
@@ -1894,16 +1928,17 @@ at.</p>
 <span><span class="va">se</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="op">(</span><span class="va">lb</span><span class="op">$</span><span class="va">A</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">lb</span><span class="op">$</span><span class="va">V</span><span class="op">)</span> <span class="op">*</span> <span class="va">lb</span><span class="op">$</span><span class="va">A</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">band</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>age <span class="op">=</span> <span class="va">grid</span><span class="op">$</span><span class="va">age</span>, fit <span class="op">=</span> <span class="va">lb</span><span class="op">$</span><span class="va">eta</span>,</span>
 <span>                   lo <span class="op">=</span> <span class="va">lb</span><span class="op">$</span><span class="va">eta</span> <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">se</span>, hi <span class="op">=</span> <span class="va">lb</span><span class="op">$</span><span class="va">eta</span> <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">se</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">band</span>, <span class="fl">3</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">band</span>, <span class="fl">3</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     age    fit     lo     hi</span></span>
+<span><span class="co">#&gt; 1 0.000 49.992 49.221 50.762</span></span>
+<span><span class="co">#&gt; 2 1.092 50.928 50.167 51.690</span></span>
+<span><span class="co">#&gt; 3 2.185 51.850 51.097 52.603</span></span></code></pre></div>
 <p>The whole grid’s covariance, <code>A V A'</code>, is what a
-SIMULTANEOUS band needs, and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.html">frmtmb.spline::frm_curve()</a></code>
-builds one from the same two objects. It refused a nonlinear body until
-this seam existed.</p>
+SIMULTANEOUS band needs. The frmtmb.spline package builds one from the
+same two objects through its <code>frm_curve()</code>, which refused a
+nonlinear body until this seam existed; that package is not a dependency
+of this one, so the band here is pointwise.</p>
 <div class="sourceCode" id="cb90"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu">frmtmb.spline</span><span class="fu">::</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.html">frm_curve</a></span><span class="op">(</span><span class="va">fit_smocc</span>, newdata <span class="op">=</span> <span class="va">grid</span>, re.form <span class="op">=</span> <span class="cn">NA</span>,</span>
-<span>                               nsim <span class="op">=</span> <span class="fl">5000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cv</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb91"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span><span class="va">hgt</span> <span class="op">~</span> <span class="va">age</span>, data <span class="op">=</span> <span class="va">smocc</span><span class="op">[</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span></span>
 <span>                     <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">smocc</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">40</span><span class="op">]</span>, <span class="op">]</span>,</span>
 <span>                   type <span class="op">=</span> <span class="st">"p"</span>, col <span class="op">=</span> <span class="st">"grey70"</span>, cex <span class="op">=</span> <span class="fl">0.4</span>,</span>
@@ -1912,6 +1947,7 @@ this seam existed.</p>
 <span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot_add.html" class="external-link">tinyplot_add</a></span><span class="op">(</span><span class="va">hi</span> <span class="op">~</span> <span class="va">age</span>, data <span class="op">=</span> <span class="va">band</span>, type <span class="op">=</span> <span class="st">"l"</span>, lty <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot_add.html" class="external-link">tinyplot_add</a></span><span class="op">(</span><span class="va">lo</span> <span class="op">~</span> <span class="va">age</span>, data <span class="op">=</span> <span class="va">band</span>, type <span class="op">=</span> <span class="st">"l"</span>, lty <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot_add.html" class="external-link">tinyplot_add</a></span><span class="op">(</span><span class="va">fit</span> <span class="op">~</span> <span class="va">age</span>, data <span class="op">=</span> <span class="va">band</span>, type <span class="op">=</span> <span class="st">"l"</span>, lwd <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
+<p><img src="case-studies_files/figure-html/smocc-plot-1.png" class="r-plt" alt="" width="576"></p>
 </div>
 <div class="section level3">
 <h3 id="what-a-ps-block-refuses">What a <code>ps()</code> block refuses<a class="anchor" aria-label="anchor" href="#what-a-ps-block-refuses"></a>
@@ -1924,9 +1960,10 @@ rather than known to be wrong, and is refused for that reason. The
 importance correction refuses every nonlinear predictor already, so a
 <code><a href="../reference/ps.html">ps()</a></code> block inside one is refused by that guard rather than
 by a new one.</p>
-<div class="sourceCode" id="cb92"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb91"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">hgt</span> <span class="op">~</span> <span class="va">int</span> <span class="op">+</span> <span class="fu"><a href="../reference/ps.html">ps</a></span><span class="op">(</span><span class="va">age</span>, k <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>, <span class="va">int</span> <span class="op">~</span> <span class="fl">1</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>        data <span class="op">=</span> <span class="va">smocc</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">200</span>, <span class="op">]</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, REML <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span>        data <span class="op">=</span> <span class="va">smocc</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">200</span>, <span class="op">]</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, REML <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Error : REML = TRUE cannot be combined with ps(age, k = 8): REML integrates the fixed coefficients out, and this term puts its own null space among them inside a body that is nonlinear in it</span></span></code></pre></div>
 <p>The basis itself is a divided difference of truncated powers written
 branch free, because RTMB refuses <code><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax()</a></code> on an AD type and
 exports no <code>CondExp</code>, so the recursive Cox-de Boor form is

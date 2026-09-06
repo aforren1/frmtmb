@@ -194,12 +194,13 @@ does not, so the weight has to saturate before that branch collapses.
 
 The two series are independent derivations and agree with each other to
 4.8e-78 at 260 bits, which is the check that the derivation is right
-rather than merely stable. Against `WienR::pWDM()`, which is what EMC2
-calls, agreement is 3.3e-13 wherever the no-go probability is above
-0.01. Below that the reference is the weaker of the two, though by how
-much depends on what it is asked for. At one grid point with a no-go
-probability of 1.19e-13, `1 - WienR::pWDM()` is 4.4 percent wrong at
-WienR's DEFAULT precision and at every setting down to
+rather than merely stable. Against
+[`WienR::pWDM()`](https://rdrr.io/pkg/WienR/man/WienerCDF.html), which
+is what EMC2 calls, agreement is 3.3e-13 wherever the no-go probability
+is above 0.01. Below that the reference is the weaker of the two, though
+by how much depends on what it is asked for. At one grid point with a
+no-go probability of 1.19e-13, `1 - WienR::pWDM()` is 4.4 percent wrong
+at WienR's DEFAULT precision and at every setting down to
 `precision = 1e-12`, 0.13 percent at 1e-14 and 0.033 percent at 1e-16.
 What matters for the comparison with EMC2 is the first row of that list:
 `EMC2:::pDDM` calls `pWDM` with `precision = 0.005`, looser than any of

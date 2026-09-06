@@ -200,7 +200,8 @@ survival family whose parameter is a spline.
   `"odds"` the proportional odds version and `"normal"` the probit one;
   all three are here, because the second and third are one `switch` arm
   each once the first is written.
-- It is parameterized exactly as `flexsurv::flexsurvspline()`
+- It is parameterized exactly as
+  [`flexsurv::flexsurvspline()`](http://chjackson.github.io/flexsurv-dev/reference/flexsurvspline.md)
   parameterizes it, and that is testable rather than claimed. Taking
   flexsurv’s fitted coefficients on its own `bc` data (686 rows, 299
   events) and evaluating frmtmb’s objective at them reproduces

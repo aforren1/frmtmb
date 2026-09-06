@@ -1998,10 +1998,11 @@ second-difference penalty joins the fixed coefficients and the range
 space becomes one random-effect block whose single variance is the
 inverse smoothing parameter.
 
-The data are `brokenstick::smocc_200`: 1942 height measurements on 200
-Dutch children, 6 to 12 each. Age goes in as weeks so that $`\beta_3`$
-is a shift in weeks per week of gestation, and gestational age is
-centered at 40.
+The data are
+[`brokenstick::smocc_200`](https://growthcharts.org/brokenstick/reference/smocc_200.html):
+1942 height measurements on 200 Dutch children, 6 to 12 each. Age goes
+in as weeks so that $`\beta_3`$ is a shift in weeks per week of
+gestation, and gestational age is centered at 40.
 
 ``` r
 
@@ -2015,6 +2016,8 @@ smocc <- data.frame(
 smocc <- smocc[!is.na(smocc$hgt), ]
 smocc$id <- droplevels(smocc$id)
 c(rows = nrow(smocc), children = nlevels(smocc$id))
+#>     rows children 
+#>     1906      200
 ```
 
 ``` r
@@ -2028,7 +2031,27 @@ fit_smocc <- frm(
   data = smocc, family = gaussian(),
   start = list(beta = c(68, 2, 0, 1, 0)))
 fixef(fit_smocc)[c("int", "amp", "shift")]
+#> $int
+#> (Intercept)         sex 
+#>   68.754333    1.805782 
+#> 
+#> $amp
+#>          sex 
+#> 0.0002123577 
+#> 
+#> $shift
+#>       ga 
+#> 1.050019
 VarCorr(fit_smocc)
+#>   int: 1 | id 
+#>         Name Std.Dev.
+#>  (Intercept)   2.8685
+#>   shift: 1 | id 
+#>         Name Std.Dev.
+#>  (Intercept)   3.3241
+#>   ps(age + shift, k = 15, pad = 0.25) 
+#>        Name Std.Dev.
+#>  sd(wiggle)   2.7546
 ```
 
 `k = 15` is the paper’s cubic basis with 11 interior knots. `pad = 0.25`
@@ -2066,6 +2089,14 @@ got <- c(beta0 = fx$int[["(Intercept)"]], beta1 = fx$int[["sex"]],
 paper <- c(beta0 = 68.2, beta1 = 1.80, beta2 = 0.00, beta3 = 1.00,
            sd_b1 = 2.86, sd_b2 = 3.28, sigma = 1.05)
 round(cbind(frmtmb = got, paper = paper, difference = got - paper), 3)
+#>       frmtmb paper difference
+#> beta0 68.754 68.20      0.554
+#> beta1  1.806  1.80      0.006
+#> beta2  0.000  0.00      0.000
+#> beta3  1.050  1.00      0.050
+#> sd_b1  2.868  2.86      0.008
+#> sd_b2  3.324  3.28      0.044
+#> sigma  1.057  1.05      0.007
 ```
 
 Six of the seven agree to the published precision. The intercept is 0.55
@@ -2093,6 +2124,8 @@ curve_at_data <- as.vector(
 c(beta0 = p$beta[match("int_(Intercept)", bn)],
   recentred = p$beta[match("int_(Intercept)", bn)] + mean(curve_at_data),
   paper = 68.2)
+#>     beta0.int_(Intercept) recentred.int_(Intercept)                     paper 
+#>                  68.75433                  68.19824                  68.20000
 ```
 
 Whatever the paper’s constraint was, the two intercepts describe the
@@ -2132,6 +2165,8 @@ ref <- sum(dnorm(smocc$hgt, mu, exp(p$betad[1]), log = TRUE)) +
   sum(dnorm(p$b[bk$b_idx], 0, exp(p$theta[bk$theta_idx]), log = TRUE))
 joint <- -frmtmb:::build_objective(fit_smocc$frame)(p)
 c(frmtmb = joint, reference = ref, difference = joint - ref)
+#>        frmtmb     reference    difference 
+#> -3.653385e+03 -3.653385e+03  9.413270e-11
 stopifnot(abs(joint - ref) < 1e-8)
 ```
 
@@ -2156,20 +2191,17 @@ se <- sqrt(pmax(rowSums((lb$A %*% lb$V) * lb$A), 0))
 band <- data.frame(age = grid$age, fit = lb$eta,
                    lo = lb$eta - 1.96 * se, hi = lb$eta + 1.96 * se)
 head(round(band, 3), 3)
+#>     age    fit     lo     hi
+#> 1 0.000 49.992 49.221 50.762
+#> 2 1.092 50.928 50.167 51.690
+#> 3 2.185 51.850 51.097 52.603
 ```
 
 The whole grid’s covariance, `A V A'`, is what a SIMULTANEOUS band
-needs, and
-[`frmtmb.spline::frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.html)
-builds one from the same two objects. It refused a nonlinear body until
-this seam existed.
-
-``` r
-
-cv <- frmtmb.spline::frm_curve(fit_smocc, newdata = grid, re.form = NA,
-                               nsim = 5000, seed = 1)
-print(cv)
-```
+needs. The frmtmb.spline package builds one from the same two objects
+through its `frm_curve()`, which refused a nonlinear body until this
+seam existed; that package is not a dependency of this one, so the band
+here is pointwise.
 
 ``` r
 
@@ -2182,6 +2214,8 @@ tinyplot::tinyplot_add(hi ~ age, data = band, type = "l", lty = 2)
 tinyplot::tinyplot_add(lo ~ age, data = band, type = "l", lty = 2)
 tinyplot::tinyplot_add(fit ~ age, data = band, type = "l", lwd = 2)
 ```
+
+![](case-studies_files/figure-html/smocc-plot-1.png)
 
 ### What a `ps()` block refuses
 
@@ -2198,6 +2232,7 @@ one is refused by that guard rather than by a new one.
 
 try(frm(bf(hgt ~ int + ps(age, k = 8), int ~ 1, nl = TRUE),
         data = smocc[1:200, ], family = gaussian(), REML = TRUE))
+#> Error : REML = TRUE cannot be combined with ps(age, k = 8): REML integrates the fixed coefficients out, and this term puts its own null space among them inside a body that is nonlinear in it
 ```
 
 The basis itself is a divided difference of truncated powers written

@@ -1011,6 +1011,11 @@ ref <- 1 - WienR::pWDM(q, rep("upper", 4), a = 1.4, v = 1, w = 0.45,
 mine <- exp(frmtmb.eam:::ddm_nogo_lprob(q, 1, 1.4, 0.45))
 data.frame(t = q, WienR = ref, frmtmb.eam = mine,
            rel_diff = abs(mine - ref) / ref)
+#>     t     WienR frmtmb.eam     rel_diff
+#> 1 0.2 0.8286142  0.8286142 9.512972e-15
+#> 2 0.5 0.4868194  0.4868194 1.368339e-14
+#> 3 1.0 0.2926841  0.2926841 4.362233e-15
+#> 4 2.0 0.2399830  0.2399830 1.156564e-16
 ```
 
 End to end, `dev/rdm-gng-emc2-reference.R` composes EMC2’s own go/no-go

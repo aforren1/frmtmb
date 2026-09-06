@@ -8,7 +8,8 @@ smooth estimated baseline you can plot, and time-varying effects when
 the proportional-hazards assumption fails.
 
 [`royston_parmar()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
-is that family, parameterized exactly as `flexsurv::flexsurvspline()`
+is that family, parameterized exactly as
+[`flexsurv::flexsurvspline()`](http://chjackson.github.io/flexsurv-dev/reference/flexsurvspline.md)
 parameterizes it.
 
 ## The data
@@ -21,6 +22,11 @@ right-censored rows.
 
 data(bc, package = "flexsurv")
 table(bc$group, event = bc$censrec)
+#>         event
+#>            0   1
+#>   Good   178  51
+#>   Medium 126 103
+#>   Poor    83 145
 ```
 
 One thing to get right before anything else. frmtmb’s `cens()` reads `0`
@@ -48,6 +54,21 @@ assembles the model frame.
 fit <- frm(bf(recyrs | cens(censored) ~ group),
            family = royston_parmar(df = 3), data = bc)
 fixef(fit)
+#> $mu
+#> (Intercept) groupMedium   groupPoor 
+#>  -2.7467993   0.8342391   1.6117459 
+#> 
+#> $gamma1
+#> (Intercept) 
+#>    3.468767 
+#> 
+#> $gamma2
+#> (Intercept) 
+#>   0.5679955 
+#> 
+#> $gamma3
+#> (Intercept) 
+#>  -0.3577181
 ```
 
 `mu` is `gamma0`, the spline intercept, and the `group` coefficients sit
@@ -57,6 +78,8 @@ are LOG HAZARD RATIOS: the model is proportional hazards.
 ``` r
 
 exp(unlist(fixef(fit)$mu)[-1])
+#> groupMedium   groupPoor 
+#>    2.303061    5.011553
 ```
 
 `gamma1` and upward are the other spline coefficients, and together with
@@ -80,6 +103,8 @@ cf <- fs$res[, "est"]
 gam <- cf[grep("^gamma", names(cf))]
 par <- c(gam[1], cf[!grepl("^gamma", names(cf))], gam[-1])
 c(flexsurv = fs$loglik, frmtmb_at_flexsurv_par = -o$obj$fn(par))
+#>               flexsurv frmtmb_at_flexsurv_par 
+#>              -791.4957              -791.4957
 ```
 
 Those two numbers agree to about ten units in the last place of a number
@@ -91,6 +116,8 @@ The two optima then agree as well:
 ``` r
 
 c(flexsurv = fs$loglik, frmtmb = as.numeric(logLik(fit)))
+#>  flexsurv    frmtmb 
+#> -791.4957 -791.4957
 ```
 
 ## Read the baseline off
@@ -131,6 +158,11 @@ logH <- Reduce(`+`, Map(function(b, g) b * as.numeric(g), bas, lp))
 S <- exp(-exp(logH))
 head(data.frame(t = round(tg, 3), logH = round(logH, 3),
                 survival = round(S, 3)), 4)
+#>       t   logH survival
+#> 1 0.300 -6.934    0.999
+#> 2 0.317 -6.752    0.999
+#> 3 0.334 -6.570    0.999
+#> 4 0.353 -6.390    0.998
 ```
 
 ``` r
@@ -161,6 +193,13 @@ for (i in seq_along(levels(bc$group))) {
 legend("bottomleft", levels(bc$group), col = cols, lwd = 2, bty = "n")
 ```
 
+![Fitted survival curves for the three prognostic groups against time in
+years, each falling from 1. The good-prognosis curve stays above 0.8 at
+eight years, the medium curve reaches about 0.6 and the poor curve about
+0.3. Step functions of the same three colors, the Kaplan-Meier
+estimates, track each fitted curve
+closely.](royston-parmar_files/figure-html/fig-surv-1.png)
+
 The fitted curves track the Kaplan-Meier estimates, which the model was
 never shown.
 
@@ -178,6 +217,8 @@ ftv <- frm(bf(recyrs | cens(censored) ~ group, gamma1 ~ group),
 c(proportional = as.numeric(logLik(fit)),
   time_varying = as.numeric(logLik(ftv)),
   AIC_proportional = AIC(fit), AIC_time_varying = AIC(ftv))
+#>     proportional     time_varying AIC_proportional AIC_time_varying 
+#>        -791.4957        -785.8381        1594.9913        1587.6762
 ```
 
 `gamma1` multiplies `log(t)`, so letting it vary by group lets each
@@ -195,6 +236,8 @@ link would let it pass for one:
 ``` r
 
 fitted(fit)
+#> Error:
+#> ! royston_parmar: a survival time has no mean on the response scale here. mu is gamma0, the intercept of a spline in log time, not a fitted value, and the mean survival time is an integral over a tail the censored rows do not identify. predict(type = "link", dpar = ) gives any spline coefficient, and frm_curve() reads the fitted log cumulative hazard off with a band
 ```
 
 ## The check you must run
@@ -207,6 +250,30 @@ is where they go to be read, and it REFUSES rather than reports:
 ``` r
 
 rp_floored(fit, action = "report")
+#> $n_censored_floored
+#> [1] 0
+#> 
+#> $max_nlogS
+#> [1] 2.088002
+#> 
+#> $threshold
+#> [1] 19.2
+#> 
+#> $n_nonmonotone
+#> [1] 0
+#> 
+#> $scale
+#> [1] "hazard"
+#> 
+#> $n_obs
+#> [1] 686
+#> 
+#> attr(,"rows")
+#> attr(,"rows")$censored
+#> integer(0)
+#> 
+#> attr(,"rows")$nonmonotone
+#> integer(0)
 ```
 
 Zero on both counts here. Run it on every fit whose data carry
@@ -242,7 +309,10 @@ bad$t[1] <- 50
 bad$censored[1] <- 1L
 bad_fit <- frm(bf(t | cens(censored) ~ grp),
                family = royston_parmar(df = 3), data = bad)
+#> Warning: Optimizer did not report convergence: false convergence (8)
 c(converged = bad_fit$opt$convergence, logLik = as.numeric(logLik(bad_fit)))
+#> converged    logLik 
+#>    1.0000 -575.5379
 rp_floored(bad_fit)
 ```
 
@@ -271,6 +341,8 @@ of the fitted log cumulative hazard, which must stay positive:
 
 dlogH <- diff(logH) / diff(x)
 c(min_slope = min(dlogH), all_increasing = all(dlogH > 0))
+#>      min_slope all_increasing 
+#>      0.9852775      1.0000000
 ```
 
 ## How many knots
@@ -284,4 +356,5 @@ sapply(1:5, function(k) {
   AIC(frm(bf(recyrs | cens(censored) ~ group),
           family = royston_parmar(df = k), data = bc))
 })
+#> [1] 1631.884 1595.728 1594.991 1594.012 1596.053
 ```
