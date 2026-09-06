@@ -115,13 +115,13 @@ tests, AIC).</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><code>bf(y ~ x + (x \| g))</code></td>
+<td><code>bf(y ~ x + (x | g))</code></td>
 <td>same</td>
 <td>plus <code>us()</code>, <code><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag()</a></code>, <code>homdiag()</code>,
 <code>cs()</code>, <code>ar1()</code> wrappers</td>
 </tr>
 <tr class="even">
-<td><code>bf(y ~ x, sigma ~ z + (1 \| g))</code></td>
+<td><code>bf(y ~ x, sigma ~ z + (1 | g))</code></td>
 <td>same</td>
 <td>any dpar, full grammar</td>
 </tr>
@@ -140,7 +140,7 @@ tests, AIC).</p>
 unsupported</td>
 </tr>
 <tr class="odd">
-<td><code>(1 \| p \| g)</code></td>
+<td><code>(1 | p | g)</code></td>
 <td>same</td>
 <td>cross-formula RE correlation</td>
 </tr>
@@ -154,7 +154,7 @@ unsupported</td>
 </tr>
 <tr class="odd">
 <td>
-<code>y \| trials(n)</code>, <code>weights(w)</code>,
+<code>y | trials(n)</code>, <code>weights(w)</code>,
 <code>cens(c)</code>, <code>trunc(lb=, ub=)</code>
 </td>
 <td>same</td>
@@ -196,7 +196,7 @@ yet</td>
 </tr>
 <tr class="odd">
 <td>
-<code>(1 \| mm(g1, g2))</code>, <code>mmc(x1, x2)</code>
+<code>(1 | mm(g1, g2))</code>, <code>mmc(x1, x2)</code>
 </td>
 <td>same</td>
 <td>multi-membership, <code>weights =</code> and <code>scale =</code>
@@ -561,14 +561,14 @@ replacement when it refuses one:</p>
 <tr class="odd">
 <td><code>mm(g1, g2, cor = FALSE)</code></td>
 <td>
-<code>diag(x \| mm(g1, g2))</code>, or
-<code>(x \|\| mm(g1, g2))</code>
+<code>diag(x | mm(g1, g2))</code>, or
+<code>(x || mm(g1, g2))</code>
 </td>
 </tr>
 <tr class="even">
 <td><code>mm(g1, g2, id = "q")</code></td>
-<td>the <code>\|ID\|</code> key, <code>(x \| q \| g)</code> - not yet
-over <code>mm()</code>
+<td>the <code>|ID|</code> key, <code>(x | q | g)</code> - not yet over
+<code>mm()</code>
 </td>
 </tr>
 <tr class="odd">
@@ -669,7 +669,7 @@ agreement 1e-10 or better).</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><code>varIdent(form = ~ 1 \| g)</code></td>
+<td><code>varIdent(form = ~ 1 | g)</code></td>
 <td><code>sigma ~ 0 + g</code></td>
 </tr>
 <tr class="even">

@@ -163,20 +163,20 @@ classification.</p>
 <tbody>
 <tr class="odd">
 <td>Rate_1</td>
-<td><code>frm(k \| trials(n) ~ 1, family = binomial())</code></td>
+<td><code>frm(k | trials(n) ~ 1, family = binomial())</code></td>
 <td>identity</td>
 <td></td>
 </tr>
 <tr class="even">
 <td>Rate_2</td>
-<td><code>k \| trials(n) ~ 0 + g</code></td>
+<td><code>k | trials(n) ~ 0 + g</code></td>
 <td>identity</td>
 <td></td>
 </tr>
 <tr class="odd">
 <td>Rate_3</td>
 <td>
-<code>k \| trials(n) ~ 1</code>, two rows</td>
+<code>k | trials(n) ~ 1</code>, two rows</td>
 <td>identity</td>
 <td></td>
 </tr>
@@ -402,7 +402,7 @@ constant is zero.</p>
 <td>Correlation_2</td>
 <td>
 <code>se(sd, sigma = FALSE)</code> on each response plus
-<code>(1 \| p \| id)</code>
+<code>(1 | p | id)</code>
 </td>
 <td>identity, inner gradient</td>
 <td>
@@ -435,7 +435,7 @@ constant is zero.</p>
 <tr class="even">
 <td>ChaSaSoon</td>
 <td>
-<code>z \| trials(n) + vint(hi) + weights(w) ~ 1</code> with
+<code>z | trials(n) + vint(hi) + weights(w) ~ 1</code> with
 <code>bcm_binomial_band()</code>
 </td>
 <td>identity</td>
@@ -499,7 +499,7 @@ day either gate moves it says so.</p>
 </tr>
 <tr class="even">
 <td>Exams_2</td>
-<td>Exams_1 plus <code>(1 \| id)</code> on <code>mu1</code>
+<td>Exams_1 plus <code>(1 | id)</code> on <code>mu1</code>
 </td>
 <td>identity, inner gradient</td>
 <td>
@@ -623,7 +623,7 @@ lands.</p>
 <tbody>
 <tr class="odd">
 <td>Pledgers_1</td>
-<td><code>s \| trials(n) ~ 0 + g</code></td>
+<td><code>s | trials(n) ~ 0 + g</code></td>
 <td>identity</td>
 <td></td>
 </tr>
@@ -636,7 +636,7 @@ lands.</p>
 <tr class="odd">
 <td>Geurts</td>
 <td>
-<code>k \| trials(n) ~ group + (1 \| id)</code> with
+<code>k | trials(n) ~ group + (1 | id)</code> with
 <code>bcm_binomial_probit()</code>
 </td>
 <td>identity, inner gradient</td>
@@ -652,7 +652,7 @@ unrestricted delta</td>
 <tr class="odd">
 <td>Zeelenberg</td>
 <td>
-<code>s \| trials(n) ~ both + (1 + both \|\| id)</code>, probit</td>
+<code>s | trials(n) ~ both + (1 + both || id)</code>, probit</td>
 <td>structure</td>
 <td></td>
 </tr>
@@ -699,7 +699,7 @@ unrestricted delta</td>
 <tbody>
 <tr class="odd">
 <td>Retention_1</td>
-<td><code>bf(k \| trials(n) ~ bcm_cap1(exp(-plogis(la) * t) + plogis(lb)), la ~ 1, lb ~ 1, nl = TRUE)</code></td>
+<td><code>bf(k | trials(n) ~ bcm_cap1(exp(-plogis(la) * t) + plogis(lb)), la ~ 1, lb ~ 1, nl = TRUE)</code></td>
 <td>identity</td>
 <td></td>
 </tr>
@@ -712,8 +712,8 @@ unrestricted delta</td>
 </tr>
 <tr class="odd">
 <td>Retention_3</td>
-<td>the same with <code>la ~ 1 + (1 \| id)</code> and
-<code>lb ~ 1 + (1 \| id)</code>
+<td>the same with <code>la ~ 1 + (1 | id)</code> and
+<code>lb ~ 1 + (1 | id)</code>
 </td>
 <td>identity, inner gradient</td>
 <td>the group distribution is logit-normal, not the book’s truncated
@@ -773,7 +773,7 @@ distributions.</p>
 <tr class="odd">
 <td>SDT_1</td>
 <td>
-<code>y \| trials(N) ~ 0 + case:half + case:bias</code>,
+<code>y | trials(N) ~ 0 + case:half + case:bias</code>,
 <code>bcm_binomial_probit()</code>
 </td>
 <td>identity</td>
@@ -782,7 +782,7 @@ has no finite estimate</td>
 </tr>
 <tr class="even">
 <td>SDT_2</td>
-<td><code>y \| trials(N) ~ 0 + half + bias + (0 + half + bias \|\| id)</code></td>
+<td><code>y | trials(N) ~ 0 + half + bias + (0 + half + bias || id)</code></td>
 <td>identity, inner gradient</td>
 <td><strong>Laplace</strong></td>
 </tr>
@@ -821,13 +821,13 @@ the core is needed; the gap itself is recorded in
 <tbody>
 <tr class="odd">
 <td>PsychophysicalFunction1</td>
-<td><code>frm(r \| trials(n) ~ xc + (xc \|\| subj))</code></td>
+<td><code>frm(r | trials(n) ~ xc + (xc || subj))</code></td>
 <td>identity, inner gradient</td>
 <td><strong>Laplace</strong></td>
 </tr>
 <tr class="even">
 <td>PsychophysicalFunction2</td>
-<td>the same plus <code>phi ~ 1 + (1 \| subj)</code> with
+<td>the same plus <code>phi ~ 1 + (1 | subj)</code> with
 <code>bcm_contaminant()</code>
 </td>
 <td>identity, inner gradient</td>
@@ -890,7 +890,7 @@ much. Their likelihood is identical, so frmtmb fits them once.</p>
 <tr class="even">
 <td>MPT_2 to MPT_5</td>
 <td>
-<code>1 + (1 \| p \| id)</code> on each of the three probits</td>
+<code>1 + (1 | p | id)</code> on each of the three probits</td>
 <td>identity, inner gradient</td>
 <td>
 <strong>Laplace</strong>; the correlations are the latent-trait ones
@@ -940,7 +940,7 @@ asserts every line of what <code><a href="../reference/diagnose.html">diagnose()
 <tr class="odd">
 <td>SIMPLE_1</td>
 <td>
-<code>bf(k \| trials(n) ~ 0 + set, s ~ 0 + set, t ~ 0 + set)</code>
+<code>bf(k | trials(n) ~ 0 + set, s ~ 0 + set, t ~ 0 + set)</code>
 with <code>bcm_simple(set, pos, m)</code>
 </td>
 <td>identity</td>
@@ -949,7 +949,7 @@ with <code>bcm_simple(set, pos, m)</code>
 <tr class="even">
 <td>SIMPLE_2</td>
 <td>
-<code>bf(k \| trials(n) ~ 1, s ~ 1, t ~ ll)</code> with
+<code>bf(k | trials(n) ~ 1, s ~ 1, t ~ ll)</code> with
 <code>link_t = "identity"</code>
 </td>
 <td>structure</td>
@@ -1002,7 +1002,7 @@ reason, and every start at or above it reaches the same optimum.</p>
 <td>Extraversion</td>
 <td>
 <code><a href="../reference/mvbf.html">mvbf()</a></code> of a probit binomial and a probit gaussian
-sharing <code>(1 \| p \| id)</code>
+sharing <code>(1 | p | id)</code>
 </td>
 <td>identity, inner gradient</td>
 <td><strong>Laplace</strong></td>
@@ -1049,7 +1049,7 @@ channel a custom family IS given.</p>
 <tr class="odd">
 <td>GCM_1</td>
 <td>
-<code>y \| trials(t) ~ 1</code> with
+<code>y | trials(t) ~ 1</code> with
 <code>bcm_gcm(stim, d1, d2, a)</code>
 </td>
 <td>identity</td>
@@ -1057,7 +1057,7 @@ channel a custom family IS given.</p>
 </tr>
 <tr class="even">
 <td>GCM_2</td>
-<td><code>bf(y \| trials(t) ~ 0 + subj, w ~ 0 + subj)</code></td>
+<td><code>bf(y | trials(t) ~ 0 + subj, w ~ 0 + subj)</code></td>
 <td>identity</td>
 <td>ten of the forty subjects</td>
 </tr>

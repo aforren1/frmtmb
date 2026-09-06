@@ -296,7 +296,7 @@ its place).</p></dd>
 
 <dt id="arg-structure">structure<a class="anchor" aria-label="anchor" href="#arg-structure"></a></dt>
 <dd><p>Optional <code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> for a family whose
-likelihood does not factorize over rows (a group-level <code><a href="https://paulbuerkner.com/brms/reference/mixture.html" class="external-link">mixture()</a></code>,
+likelihood does not factorize over rows (a group-level <code><a href="mixture.html">mixture()</a></code>,
 a hidden Markov chain). It carries the non-rowwise log-likelihood,
 the frame block that likelihood reads, and the capability flags
 that say which post-fit methods the family can answer. <code>lpdf</code> stays
@@ -313,7 +313,7 @@ that refuses.</p></dd>
 
 
 <p>Some families cannot draw a response one row at a time: a group-level
-<code><a href="https://paulbuerkner.com/brms/reference/mixture.html" class="external-link">mixture()</a></code> draws one class per group, a <code><a href="mixture_mvn.html">mixture_mvn()</a></code> draw needs
+<code><a href="mixture.html">mixture()</a></code> draws one class per group, a <code><a href="mixture_mvn.html">mixture_mvn()</a></code> draw needs
 the class covariances, which are family-level extras rather than
 dpars, and a hidden Markov family walks a chain per sequence. Those
 families supply <code>sim_ctx(ctx)</code> instead of <code>sim(dpars, aterms, n)</code>.</p>
@@ -471,8 +471,8 @@ may use</p></div>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">size</span><span class="op">)</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="va">fam</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> -0.58378094 -0.02406052 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept)            x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -0.480495115 -0.004402594 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 </code></pre></div>
     </div>
