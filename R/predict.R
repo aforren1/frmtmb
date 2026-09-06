@@ -629,9 +629,20 @@ re_design_matrix <- function(re_parts, n, q) {
   Matrix::sparseMatrix(i = ii, j = jj, x = xx, dims = c(n, q))
 }
 
-#' Jacobians of the coefficient-space expansion for rr fits: `d cvec/d b`
-#' (sparse; identity except the rr blocks' loadings) and `d cvec/d theta`
-#' for the rr loading parameters (finite differences on `expand_b`).
+#' Jacobians of the coefficient-space expansion: `d cvec/d b` (sparse)
+#' and `d cvec/d theta` for the rr loading parameters (finite
+#' differences on `expand_b`).
+#'
+#' `d cvec/d b` is the identity for most blocks, but NOT for the two
+#' whose coefficients are a function of the parameters rather than the
+#' parameters themselves. An `rr` block expands through its loadings.
+#' An `esicar` block is centered per connected component, so its entry
+#' is the projection `P` that `car_center_jacobian()` builds; pairing
+#' `Z` with `b` through the identity there put the inert component
+#' means into every standard error, exactly `con_sd^2` of variance that
+#' the field the predictor sees does not have.
+#'
+#' The name is historical: rr was the first block that needed this.
 #'
 #' @noRd
 rr_jacobians <- function(fit) {
@@ -658,6 +669,14 @@ rr_jacobians <- function(fit) {
                    expand_b(frame, est[["b"]], tn)) / (2 * h)
         th_cols[[length(th_cols) + 1L]] <- list(j = j, dvec = dvec)
       }
+    } else if (block_is_esicar(bk)) {
+      # d(P b)/d b = P, per connected component. The same predicate
+      # expand_b() branches on, so the Jacobian cannot describe a
+      # different expansion than the one it differentiates.
+      pj <- car_center_jacobian(bk[["aux_car"]])
+      ii <- c(ii, bk[["c_idx"]][pj$i])
+      jj <- c(jj, bk[["b_idx"]][pj$j])
+      xx <- c(xx, pj$x)
     } else {
       ii <- c(ii, bk[["c_idx"]])
       jj <- c(jj, bk[["b_idx"]])
@@ -1475,19 +1494,31 @@ warn_modes_conditional_se <- function() {
 }
 
 #' Delta method: `var(eta) = A V A'` over the estimated coefficients (and b
-#' when random effects are included). For rr fits the Z matrices span the
-#' coefficient space, so the b columns go through the Jacobian of the
-#' loadings expansion, and the rr loading parameters (theta) contribute
-#' their own columns. Returns A and the positions of its columns in the
-#' joint covariance, so several linear predictors can be combined.
+#' when random effects are included). Returns A and the positions of its
+#' columns in the joint covariance, so several linear predictors can be
+#' combined.
+#'
+#' The Z matrices span COEFFICIENT space, so their b columns are only
+#' `Z` itself while `b` IS the coefficient vector. Two block types make
+#' it something else: an `rr` block expands through its loadings (whose
+#' `theta` parameters then contribute columns of their own), and an
+#' `esicar` block is centered per connected component. Both go through
+#' `d cvec/d b` from `rr_jacobians()`, and the need for one is derived
+#' from the frame the way `expand_b()` derives it, with the caller's
+#' `has_rr` only as a fast path: a cached flag can go stale, and pairing
+#' `Z` with `b` through the identity is silent when it is wrong.
 #'
 #' @noRd
 lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
   est <- object$estimates
   rn <- jc$names
   X <- ed[["X"]]
+  if (is.null(rrj) && (has_rr || frame_needs_expand(object$frame))) {
+    rrj <- rr_jacobians(object)
+  }
+  use_jac <- !is.null(rrj)
   add_b_cols <- function(A, coef_pos, Zc, b_pos, th_pos) {
-    if (has_rr) {
+    if (use_jac) {
       A <- Matrix::cbind2(A, Zc %*% rrj$Jb)
       coef_pos <- c(coef_pos, b_pos)
       for (tc in rrj$th_cols) {
