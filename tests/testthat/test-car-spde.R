@@ -463,6 +463,19 @@ test_that("esicar constrains a disconnected graph PER COMPONENT", {
   re <- ranef(fit)[[1]][, 1]
   expect_lt(max(abs(c(sum(re[seq_len(n1)]),
                       sum(re[n1 + seq_len(n1)])))), 1e-12)
+  # the delta method centers PER COMPONENT too: dc/db is block diagonal
+  # over the components, so the standard errors match a rebuild whose
+  # projection is built one component at a time
+  Pd <- diag(1, n)
+  Pd[seq_len(n1), seq_len(n1)] <- diag(1, n1) - 1 / n1
+  Pd[n1 + seq_len(n1), n1 + seq_len(n1)] <- diag(1, n1) - 1 / n1
+  jc <- frm_joint_cov(fit)
+  pos <- c(which(rownames(jc$V) == "beta"), which(rownames(jc$V) == "b"))
+  A <- cbind(stats::model.matrix(~x, d),
+             stats::model.matrix(~ loc - 1, d) %*% Pd)
+  expect_vector_equal(predict(fit, se.fit = TRUE)$se.fit,
+                      sqrt(rowSums((A %*% jc$V[pos, pos]) * A)),
+                      tol = 1e-12)
 })
 
 test_that("the objective expands esicar whatever the frame's flag says", {
@@ -502,43 +515,89 @@ test_that("the objective expands esicar whatever the frame's flag says", {
   }
 })
 
-test_that("con_sd leaves the esicar fit alone but not its standard errors", {
+test_that("con_sd leaves the esicar fit AND its standard errors alone", {
   # con_sd cannot move the likelihood: the coordinate it scales enters
-  # no linear predictor. It DOES reach the delta method, because
-  # lp_delta_A() pairs the Z columns with b through dc/db = I rather
-  # than the centering projection, so the coordinate's variance lands
-  # in every standard error as exactly con_sd^2.
+  # no linear predictor. It no longer moves a standard error either:
+  # lp_delta_A() pairs the Z columns with b through the
+  # centering projection P = dc/db, and P annihilates that coordinate
+  # whatever its scale.
   #
-  # Pinned here with the number, not the direction, so that the exact
-  # Jacobian (R/predict.R) has something to flip when it lands.
+  # Through 0.52.0 the Jacobian was the identity and the variance
+  # excess was EXACTLY con_sd^2: 1.348e-5 relative in the standard
+  # error at the default, 7.5 to 12.7 percent at con_sd = 0.1. The
+  # below are that number flipped to zero, stated in the variance
+  # where the old leak was 1e-3^2 - 1e-4^2 = 9.9e-7 and
+  # 1e-2^2 - 1e-3^2 = 9.9e-5.
+  #
+  # The residual is 3.8e-13, and it is not con_sd: the esicar
+  # objective is itself con_sd-invariant only to about 1e-11, so the
+  # optimum moves theta by 1.3e-12 between these fits and the standard
+  # errors follow it. A failure at 1e-6 is the Jacobian; a failure at
+  # 1e-11 is the optimizer.
   s <- car_lattice_data(42)
   W <- s$W
   fit <- function(cs) {
     frm(bf(y ~ x + car(W, gr = loc, type = "esicar", con_sd = cs)) +
           gaussian(), data = s$d)
   }
+  f2 <- fit(1e-2)
   f3 <- fit(1e-3)
   f4 <- fit(1e-4)
-  # what con_sd does NOT touch
+  # what con_sd does not touch, and never did
   expect_lt(abs(as.numeric(logLik(f3)) - as.numeric(logLik(f4))), 1e-8)
   expect_vector_equal(f3$estimates$theta, f4$estimates$theta, tol = 1e-8)
   expect_equal(unname(VarCorr(f3)[[1]][1, 1]),
                exp(2 * f3$estimates$theta[1]))
-  # what it does: the variance excess is EXACTLY the difference of the
-  # two con_sd squared, which identifies the leak rather than merely
-  # bounding it
+  # what it no longer touches
+  se2 <- predict(f2, se.fit = TRUE)$se.fit
   se3 <- predict(f3, se.fit = TRUE)$se.fit
   se4 <- predict(f4, se.fit = TRUE)$se.fit
-  expect_lt(max(abs((se3^2 - se4^2) - (1e-3^2 - 1e-4^2))), 1e-10)
-  # 1.3e-5 relative in the standard error at the default
-  rel <- max(se3 / sqrt(se3^2 - 1e-3^2) - 1)
-  expect_gt(rel, 1e-5)
-  expect_lt(rel, 2e-5)
-  # ranef's conditional SDs leak the same way, and move with con_sd
+  expect_lt(max(abs(se3^2 - se4^2)), 1e-10)
+  expect_lt(max(abs(se2^2 - se3^2)), 1e-10)
+  expect_lt(max(abs(se3 / se4 - 1)), 1e-9)
+  # ranef()'s conditional SDs no longer move either
+  sd2 <- attr(ranef(f2, condVar = TRUE)[[1]], "condSD")
   sd3 <- attr(ranef(f3, condVar = TRUE)[[1]], "condSD")
   sd4 <- attr(ranef(f4, condVar = TRUE)[[1]], "condSD")
-  expect_gt(max(sd3 - sd4), 0)
-  expect_lt(max(sd3 / sd4 - 1), 1e-4)
+  expect_lt(max(abs(sd3^2 - sd4^2)), 1e-10)
+  expect_lt(max(abs(sd2^2 - sd3^2)), 1e-10)
+  expect_lt(max(abs(sd3 / sd4 - 1)), 1e-9)
+})
+
+test_that("the esicar delta method is Z P V P' Z', not Z V Z'", {
+  # The exact Jacobian, checked against a rebuild that shares no code
+  # with it: P is built here from W, and V comes from the EXPORTED
+  # frm_joint_cov() rather than from anything predict() computed.
+  #
+  # The second half is what makes this a test of the Jacobian rather
+  # than of arithmetic: the same rebuild with dc/db = I, which is what
+  # the package did through 0.52.0, is off by exactly con_sd^2 in the
+  # variance of every row.
+  s <- car_lattice_data(42)
+  W <- s$W
+  n <- nrow(W)
+  fit <- frm(bf(y ~ x + car(W, gr = loc, type = "esicar")) + gaussian(),
+             data = s$d)
+  P <- diag(1, n) - 1 / n            # one connected component
+  jc <- frm_joint_cov(fit)
+  pos <- c(which(rownames(jc$V) == "beta"), which(rownames(jc$V) == "b"))
+  V <- jc$V[pos, pos]
+  A <- cbind(s$X, s$Z %*% P)
+  se_ref <- sqrt(rowSums((A %*% V) * A))
+  se <- predict(fit, se.fit = TRUE)$se.fit
+  expect_vector_equal(se, se_ref, tol = 1e-12)
+  A0 <- cbind(s$X, s$Z)
+  se_id <- sqrt(rowSums((A0 %*% V) * A0))
+  expect_lt(max(abs((se_id^2 - se_ref^2) - 1e-3^2)), 1e-12)
+  # ranef() displays P b, so its condSD is the projected diagonal
+  Vb <- jc$V[which(rownames(jc$V) == "b"), which(rownames(jc$V) == "b")]
+  expect_vector_equal(
+    as.numeric(attr(ranef(fit, condVar = TRUE)[[1]], "condSD")),
+    sqrt(diag(P %*% Vb %*% t(P))), tol = 1e-12)
+  # the block's Jacobian entry IS the projection, not a fit of it
+  Jb <- frmtmb:::rr_jacobians(fit)$Jb
+  bk <- fit$frame$re_blocks[[1]]
+  expect_lt(max(abs(as.matrix(Jb)[bk$c_idx, bk$b_idx] - P)), 1e-15)
 })
 
 test_that("esicar handles a SINGLETON component", {
@@ -575,6 +634,13 @@ test_that("esicar handles a SINGLETON component", {
   # the singleton is not merely small, it is the number zero
   expect_identical(re[[9]], 0)
   expect_lt(max(abs(c(sum(re[1:4]), sum(re[5:8])))), 1e-12)
+  # and so is its uncertainty. A constant has no variance, and the
+  # centering projection is structurally empty on a component of one,
+  # so the singleton column of P contributes nothing. Until 0.52.0 the
+  # identity Jacobian reported con_sd there instead, on the nose.
+  csd <- attr(ranef(fit, condVar = TRUE)[[1]], "condSD")[, 1]
+  expect_lt(abs(csd[[9]]), 1e-12)
+  expect_gt(min(csd[-9]), 1e-3)
   ref <- marginal_ml(d$y, stats::model.matrix(~x, d),
                      stats::model.matrix(~ loc - 1, d),
                      function(p) exp(2 * p[1]) * Lp, c(0, log(0.4)))

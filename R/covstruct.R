@@ -1311,6 +1311,60 @@ car_center <- function(b, a) {
   b - m[a[["comp"]]]
 }
 
+#' The derivative of `car_center()`. `d(field)/d(b)` is the
+#' per-component centering projection
+#' `P = I - sum_j (1 / n_j) s_j s_j'`, returned as triplets in
+#' WITHIN-BLOCK positions for the caller to map through `c_idx` and
+#' `b_idx`.
+#'
+#' It lives beside `car_center()` because the two have to agree. While
+#' the delta method paired the `Z` columns with `b` through the
+#' identity, every prediction standard error and every `ranef()`
+#' conditional SD carried the component means - a coordinate the
+#' predictor never sees and the data never speak to - as exactly
+#' `con_sd^2` in the variance.
+#'
+#' A singleton component contributes NO entries: `b_i - b_i` is
+#' identically zero, so its row and column of `P` are structurally
+#' empty and its field is a constant, not a random variable.
+#'
+#' @noRd
+car_center_jacobian <- function(a) {
+  ii <- integer(0); jj <- integer(0); xx <- numeric(0)
+  for (mem in split(seq_len(a[["n"]]), a[["comp"]])) {
+    k <- length(mem)
+    if (k == 1L) next
+    ii <- c(ii, rep(mem, times = k))
+    jj <- c(jj, rep(mem, each = k))
+    xx <- c(xx, as.vector(diag(1, k) - 1 / k))
+  }
+  list(i = ii, j = jj, x = xx)
+}
+
+#' Conditional SDs of the esicar FIELD, from the variances of `b` that
+#' `sdreport()` returns. `ranef()` displays `P b`, so it has to report
+#' `diag(P V P')` rather than `diag(V)`.
+#'
+#' In closed form rather than by materializing `V`. The block precision
+#' `tau L + P0` is block diagonal on the orthogonal split
+#' `b = f + sum_j m_j s_j`, and `m` enters neither the data term nor any
+#' cross term, so `V = cov(f) + sum_j con_sd^2 s_j s_j'` with the two
+#' terms orthogonal, `P` annihilates the second exactly, and
+#'
+#'     diag(P V P') = diag(V) - con_sd^2
+#'
+#' at every level of every component. `n_j` does not enter, because
+#' `var(m_j)` is `con_sd^2` whatever the component's size, so a
+#' singleton lands on exactly zero, which is the variance its
+#' identically-zero field must have. `pmax()` is there for that case
+#' only: the subtraction is exact to rounding, and the singleton's
+#' difference can land a few ulp below zero.
+#'
+#' @noRd
+car_center_condsd <- function(v, a) {
+  sqrt(pmax(v - a[["con_sd"]]^2, 0))
+}
+
 #' The esicar block precision at a theta, `tau L + P0`. Unlike icar's
 #' `tau K` the rank-c term does NOT ride on tau: that is what makes the
 #' inert component means tau-free and the marginal likelihood the

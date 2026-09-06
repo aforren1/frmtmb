@@ -203,15 +203,18 @@ and `3e-5` relative in `sd(car)`, four orders below that parameter's
 own standard error. Each decade of `con_sd` buys two more digits, at
 some cost in optimizer robustness.
 
-Because `esicar` constrains exactly, `con_sd` does not change what it
-fits: the likelihood, the estimates and `sd(car)` are all invariant to
-it. It is not inert everywhere, though. The coordinate it scales is
-carried into the standard errors from `predict(se.fit = TRUE)` and the
-conditional standard deviations from `ranef(condVar = TRUE)`, as
-`con_sd^2` in the variance. At the default that is `1.3e-5` relative,
-far below any digit worth reporting, but it grows a hundredfold per
-decade, so `con_sd = 0.1` would inflate those standard errors by about
-a tenth. Leave `con_sd` at its default on an `esicar` term.
+Because `esicar` constrains exactly, `con_sd` changes nothing it
+reports. The likelihood, the estimates, `sd(car)`, the standard errors
+from `predict(se.fit = TRUE)` and the conditional standard deviations
+from `ranef(condVar = TRUE)` are all invariant to it.
+
+The standard errors were not, through 0.52.0. The delta method paired
+the design columns with the parameters through an identity Jacobian,
+while the linear predictor sees the CENTERED field, so the coordinate
+`con_sd` scales was carried into every one of them as `con_sd^2` in
+the variance: `1.3e-5` relative at the default, and 7 to 13 percent at
+`con_sd = 0.1`. The Jacobian is now the centering projection itself,
+which annihilates that coordinate whatever its scale.
 
 All three constrained types differ from brms in one way that only shows
 on a disconnected adjacency matrix: frmtmb constrains each connected

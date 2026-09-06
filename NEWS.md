@@ -1,3 +1,28 @@
+# frmtmb (development version)
+
+* `car(type = "esicar")` standard errors no longer carry `con_sd`.
+  `expand_b()` centers the field each connected component contributes,
+  so the linear predictor sees `P b` with `P` the centering
+  projection, but the delta method paired the design columns with `b`
+  through `dc/db = I`. Every `predict(se.fit = TRUE)` standard error
+  and every `ranef(condVar = TRUE)` conditional SD therefore carried
+  the inert component means, exactly `con_sd^2` in the variance:
+  measured 1.348e-5 relative in a standard error at the 1e-3 default,
+  1.347e-3 at `con_sd = 0.01`, and 7.5 to 12.7 percent at
+  `con_sd = 0.1`, growing a hundredfold per decade. The Jacobian is
+  now the projection itself, so an esicar block's contribution is
+  `Z P V P' Z'` and `P` annihilates that coordinate whatever its
+  scale. On a 4 by 4 lattice the standard errors drop by 1.348e-5
+  relative and the variance by exactly `con_sd^2`; a singleton
+  component's conditional SD was exactly `con_sd` and is now exactly
+  zero, which is the uncertainty of a field value that is exactly
+  zero. `logLik()`, the estimates, `ranef()`'s values and `VarCorr()`
+  are bit-identical, and so is every reported number for `escar`,
+  `icar` and `bym2`. This closes the residual the 0.52.0 entry below
+  documented and the `esicar` review recorded as R2. Prediction
+  standard errors for a reduced-rank (`rr`) block are unaffected: they
+  already went through this Jacobian.
+
 # frmtmb 0.52.0
 
 A brms prior means what it means in brms; conditional_effects() plots
@@ -223,7 +248,8 @@ and brms's numbers wherever the two packages mean the same thing.
   relative in a standard error, but it grows a hundredfold per decade,
   so `con_sd = 0.1` inflates them by 7 to 13 percent. Leave `con_sd`
   alone on an `esicar` term. On `icar` and `bym2` it means what it
-  always did.
+  always did. (The standard-error half of this is no longer true; see
+  the development version's entry.)
 
 ## Improvements
 

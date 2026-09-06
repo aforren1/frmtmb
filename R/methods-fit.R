@@ -605,25 +605,34 @@ ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
   require_fitted(object, "ranef()")
   check_flag(condVar, "condVar")
   cvec <- coef_b(object)
-  csd <- NULL
+  # variances, not SDs: an esicar block's field is the CENTERED b, so
+  # what it reports is the PROJECTED variance, and the projection
+  # subtracts a variance
+  cvr <- NULL
   if (condVar) {
     sdr <- sdr_of(object)
     dcr <- sdr$diag.cov.random
     if (!is.null(dcr)) {
-      csd <- sqrt(pmax(dcr[names(sdr$par.random) == "b"], 0))
+      cvr <- pmax(dcr[names(sdr$par.random) == "b"], 0)
     }
   }
   out <- list()
   for (bk in object$frame[["re_blocks"]]) {
     M <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))
     dimnames(M) <- list(bk[["levels"]], bk[["cnms"]])
-    if (!is.null(csd)) {
+    if (!is.null(cvr)) {
       # rr factors live in a different space than the displayed
-      # coefficients; no conditional SDs for those blocks
+      # coefficients; no conditional SDs for those blocks. An esicar
+      # block's coefficients are a different space too, but a knowable
+      # one: ranef() shows the centered field, whose variance is var(b)
+      # with the inert component mean projected out.
       S <- if (bk[["covstruct"]] == "rr") {
         matrix(NA_real_, nrow(M), ncol(M))
+      } else if (block_is_esicar(bk)) {
+        t(matrix(car_center_condsd(cvr[bk[["b_idx"]]], bk[["aux_car"]]),
+                 nrow = bk[["dim"]]))
       } else {
-        t(matrix(csd[bk[["b_idx"]]], nrow = bk[["dim"]]))
+        t(matrix(sqrt(cvr[bk[["b_idx"]]]), nrow = bk[["dim"]]))
       }
       dimnames(S) <- dimnames(M)
       attr(M, "condSD") <- S
