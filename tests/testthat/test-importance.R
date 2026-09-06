@@ -1045,3 +1045,129 @@ test_that("several blocks stay deterministic at one seed", {
   invisible(suppressWarnings(frm(bfm, data = dd, importance = 200L)))
   expect_identical(rnorm(3), before)
 })
+
+# ---------------------------------------------------------------------
+# (l) A STRUCTURED FAMILY THAT DECLARES HOW ITS LIKELIHOOD FACTORIZES.
+#
+# `loglik` returns one number for the whole response, which is why the
+# correction used to refuse every structured family outright. A family
+# whose likelihood does factorize over the grouping says so with
+# loglik_group or loglik_row, and the correction then resamples its
+# pieces like any other.
+#
+# The family below is the strongest available control: its likelihood
+# IS the gaussian one, written out. Anything the correction computes
+# for it has a right answer that gaussian() gives independently.
+# ---------------------------------------------------------------------
+
+# gaussian, spelled as a structure. `pieces` chooses which factorization
+# it declares, so one family covers all three cases.
+imp_struct_gauss <- function(pieces = c("row", "group", "none")) {
+  pieces <- match.arg(pieces)
+  terms <- function(y, dpars, aterms, block) {
+    RTMB::dnorm(y, dpars[["mu"]], dpars[["sigma"]], log = TRUE)
+  }
+  st <- frmtmb_structure(
+    # the grouping column belongs to no linear predictor, so the
+    # family has to ask for it or the frame will not carry it
+    frame_vars = function(fam) list(fam[["g_expr"]]),
+    frame_block = function(resp, spec, av, mf, y, n) {
+      list(group = mf[[deparse(resp$family[["g_expr"]])]], n = n)
+    },
+    loglik = function(y, dpars, aterms, weights, block, extra) {
+      sum(weights * terms(y, dpars, aterms, block))
+    },
+    loglik_row = if (pieces == "row") {
+      function(y, dpars, aterms, weights, block, extra) {
+        weights * terms(y, dpars, aterms, block)
+      }
+    },
+    loglik_group = if (pieces == "group") {
+      function(y, dpars, aterms, weights, block, extra) {
+        ll <- weights * terms(y, dpars, aterms, block)
+        # replicate-major: the design is stacked once per draw, so the
+        # grouping repeats with it
+        g <- rep(as.integer(factor(block[["group"]])),
+                 NROW(y) %/% block[["n"]])
+        g <- g + rep((seq_len(NROW(y) %/% block[["n"]]) - 1L) *
+                       nlevels(factor(block[["group"]])),
+                     each = block[["n"]])
+        as.vector(Matrix::sparseMatrix(i = g, j = seq_along(g),
+                                       x = rep(1, length(g))) %*% ll)
+      }
+    },
+    unit = "one group's rows",
+    supports = list(conditional_effects = TRUE)
+  )
+  fam <- frmtmb_family(
+    "struct_gauss", dpars = c("mu", "sigma"),
+    links = list(mu = "identity", sigma = "log"),
+    accepts_aterms = "weights",
+    lpdf = function(y, dpars, aterms) {
+      RTMB::dnorm(y, dpars[["mu"]], dpars[["sigma"]], log = TRUE)
+    },
+    init_dpars = list(mu = function(y, aterms) mean(y),
+                      sigma = function(y, aterms) sd(y)),
+    structure = st)
+  fam[["g_expr"]] <- quote(g)
+  fam
+}
+
+test_that("a family with no factorization is refused in groups, not rows", {
+  dd <- imp_gauss_data()
+  fam <- imp_struct_gauss("none")
+  err <- expect_error(frm(bf(y ~ x + (1 | g)), data = dd, family = fam,
+                          importance = 100L))
+  msg <- conditionMessage(err)
+  expect_match(msg, "one number for the whole response", fixed = TRUE)
+  expect_match(msg, "loglik_group", fixed = TRUE)
+  expect_match(msg, "loglik_row", fixed = TRUE)
+  expect_match(msg, "importance = 0", fixed = TRUE)
+  # and the same model fits without the correction, so what is refused
+  # is the correction and not the family
+  expect_s3_class(frm(bf(y ~ x + (1 | g)), data = dd, family = fam),
+                  "frmtmb_fit")
+})
+
+test_that("a declared factorization is corrected, and gaussian() agrees", {
+  dd <- imp_gauss_data()
+  bfm <- bf(y ~ x + (1 | g))
+  ref <- frm(bfm + gaussian(), data = dd, importance = 200L)
+  for (kind in c("row", "group")) {
+    fit <- frm(bfm, data = dd, family = imp_struct_gauss(kind),
+               importance = 200L)
+    # the same corrected objective, reached through the family's own
+    # pieces instead of through row_lpdf()
+    expect_equal(as.numeric(logLik(fit)), as.numeric(logLik(ref)),
+                 tolerance = 1e-6)
+    expect_equal(unlist(fixef(fit)), unlist(fixef(ref)), tolerance = 1e-5)
+    expect_equal(fit$importance$mcse, ref$importance$mcse, tolerance = 1e-6)
+  }
+})
+
+test_that("the family's units must be the model's grouping levels", {
+  dd <- imp_gauss_data()
+  # the family groups on `g` and the model on `h`, which cuts across it:
+  # a piece then belongs to two groups and summing is not defined
+  dd$h <- factor(rep(seq_len(5), length.out = nrow(dd)))
+  err <- expect_error(
+    frm(bf(y ~ x + (1 | h)), data = dd, family = imp_struct_gauss("group"),
+        importance = 100L))
+  expect_match(conditionMessage(err), "same partition of the rows",
+               fixed = TRUE)
+  expect_match(conditionMessage(err), "50 unit(s) against 5 grouping",
+               fixed = TRUE)
+})
+
+test_that("a factorization with no grouping in the block is refused", {
+  dd <- imp_gauss_data()
+  fam <- imp_struct_gauss("row")
+  # the block builder is what carries `group`; without it the core has
+  # nothing to check the model's grouping against
+  fam[["structure"]][["frame_block"]] <- function(resp, spec, av, mf, y, n) {
+    list(n = n)
+  }
+  expect_error(frm(bf(y ~ x + (1 | g)), data = dd, family = fam,
+                   importance = 100L),
+               "carries no `group`")
+})

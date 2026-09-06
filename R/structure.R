@@ -98,18 +98,85 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #' write it with `[[ ]]` only: `$` partial matching is how a `mix` read
 #' once returned `mix_g`.
 #'
-#' Three names in it are reserved, because the core reads them:
+#' Four names in it are reserved, because the core reads them:
 #' \describe{
 #'   \item{`y`}{If present, replaces the response vector for every later
 #'     stage, which is how a family fills a placeholder in for an `NA`
 #'     it keeps. Otherwise the response is unchanged.}
 #'   \item{`miss`}{A logical `n`-vector. Residuals are `NA` at these
 #'     rows. Optional.}
+#'   \item{`group`}{A factor or integer `n`-vector naming the family's
+#'     own independent unit for each row: the subject whose trials a
+#'     recursion walks, the sequence a forward algorithm sums over. It
+#'     is what `loglik_group` returns one value per, in the order of
+#'     `levels()` for a factor and of `sort(unique())` otherwise, and it
+#'     is what the core checks the importance correction's grouping
+#'     against. Required with `loglik_group`, and needed by either slot
+#'     for `frm(importance =)`.}
 #'   \item{`mask`}{A numeric 0/1 `n`-vector the family multiplies into
 #'     its own density. The core does not read it; the name is reserved
 #'     so that every structured family spells it the same way.}
 #' }
 #' Everything else in the block belongs to the family.
+#'
+#' @section Factorization:
+#' `loglik` returns one number for the whole response, which is all the
+#' objective needs and less than everything else needs. Three consumers
+#' want the pieces: `frm(importance =)` resamples one grouping level at
+#' a time, `loo()` and `waic()` leave one unit out at a time, and a
+#' deviance residual compares one row against its saturated fit. A
+#' family declares the FINEST factorization it has, and the core takes
+#' what each consumer can use:
+#'
+#' \describe{
+#'   \item{`loglik_row`}{One value per row, the conditional log-density
+#'     of that row given whatever the family's factorization conditions
+#'     on. It must sum to `loglik`, and each value must depend only on
+#'     its own group's random effects, or the correction sums the wrong
+#'     things. The core sums it into groups itself with the same sparse
+#'     indicator it already builds.}
+#'   \item{`loglik_group`}{One value per level of `block[["group"]]`,
+#'     for a family whose finest factorization IS the group: a forward
+#'     recursion over a sequence has no row-level factor to give.}
+#' }
+#'
+#' With neither, everything above stays refused, which is where the
+#' protocol started.
+#'
+#' STACKING. The importance correction evaluates the whole design once
+#' per draw, stacked: it calls these slots with `y`, the dpars and the
+#' addition terms each repeated `nrep` times, so entry `j` is the
+#' original row `((j - 1) %% n) + 1` of replicate `((j - 1) %/% n) + 1`,
+#' with `n = length(block[["group"]])` and `nrep` whatever
+#' `length(y) / n` is. `loglik_row` returns `n * nrep` values in that
+#' same order and `loglik_group` returns `ng * nrep`, replicate-major.
+#' A sequential family therefore runs its recursion over
+#' unit-crossed-with-replicate rather than over unit. For a family whose
+#' loop is already vectorized across units that is the same loop over a
+#' longer vector; for one that is not, this is where the cost lands. A
+#' family that gets it wrong is caught rather than believed: the
+#' correction verifies its per-group pieces against the plain objective
+#' at the first freeze, per group and in total.
+#'
+#' SATURATED VALUES. `residuals(type = "deviance")` compares a row's
+#' log-density against its saturated fit, and no conditional density
+#' supplies that on its own. A family that has it attaches it to what
+#' `loglik_row` returns, as `attr(x, "saturated")`, a numeric vector of
+#' the same length, carrying the SAME row weight the log-densities
+#' carry so that the unit deviance comes out weighted once. The core
+#' reads it only outside the tape, and
+#' deviance stays refused, by name, without it.
+#'
+#' WEIGHTS. The FAMILY applies them, in every slot and for every
+#' consumer. The core passes the effective row weights in and never
+#' multiplies the result again, so `loglik_row` returns weighted
+#' log-densities and `loglik_group` weighted group totals, exactly as
+#' `loglik` returns a weighted total. This is what the warning at
+#' construction is about: a slot that takes no `weights` argument
+#' silently drops them, and a `weights()` term on that family would be
+#' accepted and then ignored. A family that cannot say what a row
+#' weight means for a likelihood that is not rowwise should refuse
+#' `weights()` in `check_spec` instead, which is what `rw_delta` does.
 #'
 #' @section Capability flags:
 #' `supports` is a named logical vector or list. With a `loglik`, every
@@ -195,12 +262,24 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #'   them. The family decides what a row weight means for a likelihood
 #'   that is not rowwise, and may have refused weights in `check_spec`.
 #'   It must not call `RTMB::OBS()`.
+#' @param loglik_row,loglik_group The same signature as `loglik`, and
+#'   the same quantity factorized instead of summed: `loglik_row`
+#'   returns one value per ROW, `loglik_group` one value per level of
+#'   the block's `group`. Both are optional, and a family declares
+#'   whichever factorization it HAS; see the Factorization section for
+#'   what each one buys and for the stacking the correction imposes.
+#'   Declaring either without `loglik` is refused: a family whose
+#'   likelihood is already rowwise has these quantities through its
+#'   `lpdf` and needs no slot to say so.
 #' @param unit One noun phrase naming the smallest independent unit of
 #'   `loglik`, as it should read in the middle of a sentence: "a
-#'   hidden-Markov sequence", "a group-level mixture". The core quotes
-#'   it where it must explain that a per-OBSERVATION quantity does not
-#'   exist, which today is [loo()] and [waic()] refusing a pointwise
-#'   log-likelihood matrix. Ignored when `loglik` is `NULL`.
+#'   hidden-Markov sequence", "a group-level mixture". It declares what
+#'   may honestly be LEFT OUT, which is a different question from how
+#'   finely the likelihood factorizes: `rw_delta` has a per-trial
+#'   conditional density and a leave-one-out unit of one subject's whole
+#'   sequence. The core quotes it where it must explain that a
+#'   per-OBSERVATION quantity does not exist. Ignored when `loglik` is
+#'   `NULL`.
 #' @param fitted_mean,fitted_var `function(fit, block)` giving the
 #'   conditional mean and variance of each row GIVEN the whole observed
 #'   response, for [fitted()], `predict(type = "response")` on the
@@ -247,11 +326,14 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
                              check_spec = NULL, frame_block = NULL,
                              check_frame = NULL, check_fit = NULL,
-                             loglik = NULL, unit = NULL,
+                             loglik = NULL, loglik_row = NULL,
+                             loglik_group = NULL, unit = NULL,
                              fitted_mean = NULL, fitted_var = NULL,
                              latent_probs = NULL, sim_ctx = NULL,
                              supports = list(), refusals = list()) {
   check_structure_fn(loglik, "loglik")
+  check_structure_fn(loglik_row, "loglik_row")
+  check_structure_fn(loglik_group, "loglik_group")
   check_structure_fn(frame_vars, "frame_vars")
   check_structure_fn(check_spec, "check_spec")
   check_structure_fn(frame_block, "frame_block")
@@ -266,13 +348,31 @@ frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
   # means for a likelihood that is not rowwise. A family that ignores
   # them silently is the trap that costs a user their weighted fit, so
   # the omission is named at construction rather than discovered later.
-  fm <- if (is.null(loglik)) "..." else names(formals(loglik))
-  if (!"..." %in% fm && !"weights" %in% fm) {
-    warning("frmtmb_structure(loglik =) has no `weights` argument, so the ",
-            "row weights the core passes are dropped: a weights() term on ",
-            "this family would be accepted and then ignored. Take ",
-            "`weights` and use it, or refuse weights() in check_spec",
-            call. = FALSE)
+  for (nm in c("loglik", "loglik_row", "loglik_group")) {
+    f <- get(nm)
+    if (is.null(f)) next
+    fm <- names(formals(f))
+    if (!"..." %in% fm && !"weights" %in% fm) {
+      warning("frmtmb_structure(", nm, " =) has no `weights` argument, so ",
+              "the row weights the core passes are dropped: a weights() ",
+              "term on this family would be accepted and then ignored. ",
+              "Take `weights` and use it, or refuse weights() in ",
+              "check_spec", call. = FALSE)
+    }
+  }
+  # A factorization slot is the answer to "your likelihood is one
+  # number and this consumer needs the pieces". A family whose
+  # likelihood is already rowwise has no such problem: its pieces are
+  # its own lpdf, which the core calls per row already, so a slot here
+  # would be a second definition of the same quantity with nothing
+  # keeping the two equal.
+  if (is.null(loglik) && (!is.null(loglik_row) || !is.null(loglik_group))) {
+    stop("frmtmb_structure(",
+         if (!is.null(loglik_row)) "loglik_row" else "loglik_group",
+         " =) factorizes a likelihood this structure does not supply: ",
+         "with loglik = NULL the family keeps its own rowwise lpdf, ",
+         "which the core already evaluates one row at a time. Give ",
+         "loglik = too, or drop the slot", call. = FALSE)
   }
   if (!is.null(unit) &&
         (!is.character(unit) || length(unit) != 1L || is.na(unit) ||
@@ -298,6 +398,12 @@ frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
          check_spec = check_spec, frame_block = frame_block,
          check_frame = check_frame, check_fit = check_fit,
          loglik = if (!is.null(loglik)) frmtmb_ad_overload(loglik),
+         loglik_row = if (!is.null(loglik_row)) {
+           frmtmb_ad_overload(loglik_row)
+         },
+         loglik_group = if (!is.null(loglik_group)) {
+           frmtmb_ad_overload(loglik_group)
+         },
          unit = unit,
          fitted_mean = fitted_mean, fitted_var = fitted_var,
          latent_probs = latent_probs, sim_ctx = sim_ctx,
@@ -409,6 +515,7 @@ print.frmtmb_structure <- function(x, ...) {
       paste(names(Filter(Negate(is.null),
                          x[c("frame_vars", "check_spec", "frame_block",
                              "check_frame", "check_fit", "loglik",
+                             "loglik_row", "loglik_group",
                              "fitted_mean", "fitted_var", "latent_probs",
                              "sim_ctx")])),
             collapse = ", "),
@@ -640,6 +747,151 @@ fam_structure <- function(fam) {
 #' @export
 frame_block_of <- function(frame, resp) {
   (frame[["blocks"]] %||% list())[[resp]]
+}
+
+#' The family's own grouping for one response, as integer codes
+#' `1..ng` in the order `loglik_group` reports, or `NULL` when the block
+#' declares none.
+#'
+#' The order is the factor's levels, and `sort(unique())` otherwise, so
+#' that an integer grouping does not depend on how a family happened to
+#' number its units. It is fixed HERE rather than left to each family,
+#' because the core aligns two groupings by these codes and a silent
+#' disagreement about their order would misattribute every group's
+#' likelihood to another group.
+#'
+#' @noRd
+structure_group_codes <- function(blk) {
+  g <- blk[["group"]]
+  if (is.null(g)) return(NULL)
+  # droplevels() first: an unused level leaves a GAP in the codes, and
+  # the correction's permutation then carries an NA that surfaces as
+  # Matrix::sparseMatrix()'s "'i' and 'j' must not contain NA", naming
+  # neither the family nor the response. Neither shipped family can
+  # reach it (both call factor(), which drops unused levels); a family
+  # passing its own grouping through unchanged can.
+  if (is.factor(g)) as.integer(droplevels(g)) else match(g, sort(unique(g)))
+}
+
+#' Check the reserved block names a factorization slot depends on.
+#'
+#' Runs once at frame assembly, where a refusal still names the family
+#' and the response. Everything it checks is data the family wrote, so
+#' none of it can be checked at construction.
+#'
+#' @noRd
+check_structure_block <- function(st, blk, fam, resp_name, n) {
+  if (is.null(st)) return(invisible(NULL))
+  needs_group <- !is.null(st[["loglik_group"]])
+  g <- (blk %||% list())[["group"]]
+  if (is.null(g)) {
+    if (needs_group) {
+      stop("The '", fam[["family"]], "' family declares ",
+           "frmtmb_structure(loglik_group = ), which returns one value ",
+           "per grouping level, and its frame block for '", resp_name,
+           "' carries no `group`. The block's reserved `group` entry is ",
+           "what says which rows each of those values covers",
+           call. = FALSE)
+    }
+    return(invisible(NULL))
+  }
+  if (!(is.factor(g) || (is.atomic(g) && !is.object(g))) || is.matrix(g)) {
+    stop("The '", fam[["family"]], "' family's frame block for '",
+         resp_name, "' gives `group` as ", arg_desc(g),
+         ". It must be a factor or an atomic vector, one entry per row",
+         call. = FALSE)
+  }
+  if (length(g) != n) {
+    stop("The '", fam[["family"]], "' family's frame block for '",
+         resp_name, "' gives `group` for ", length(g), " rows, and the ",
+         "frame has ", n, ". Every row belongs to exactly one of the ",
+         "family's independent units", call. = FALSE)
+  }
+  if (anyNA(g)) {
+    stop("The '", fam[["family"]], "' family's frame block for '",
+         resp_name, "' leaves `group` missing on ", sum(is.na(g)),
+         " row(s). A row whose independent unit is unknown cannot be ",
+         "put in any of them", call. = FALSE)
+  }
+  # An unused level is a gap in the codes. droplevels() in
+  # structure_group_codes() keeps the core's own arithmetic sound
+  # whatever arrives, but a family that returns one value per DECLARED
+  # level would then be one long and aligned to the wrong groups, so
+  # the disagreement is settled here, where the message can name the
+  # family, rather than left to a length check further down.
+  if (is.factor(g) && nlevels(g) != nlevels(droplevels(g))) {
+    unused <- setdiff(levels(g), levels(droplevels(g)))
+    stop("The '", fam[["family"]], "' family's frame block for '",
+         resp_name, "' gives `group` as a factor with ", length(unused),
+         " unused level(s) (", paste0("'", utils::head(unused, 3L), "'",
+                                    collapse = ", "),
+         "). A level with no rows is not one of the family's units, and ",
+         "a per-group log-likelihood has nothing to report for it: pass ",
+         "the grouping through factor() or droplevels() first",
+         call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' The unit deviance of a structured family, `2 * (saturated - fitted)`
+#' per row, off the tape and at the estimates.
+#'
+#' The fitted half is the per-row slot. The saturated half is not
+#' derivable from it: the saturated fit has one parameter per
+#' observation and only the family knows what its density reaches
+#' there. So the family attaches it, and a family that supplies neither
+#' gets a refusal that names which half is missing rather than a
+#' plausible number built on a guess (the saturated log-density is zero
+#' for a Bernoulli trial and is not for a Poisson count, and nothing
+#' visible from here tells the two apart).
+#'
+#' @noRd
+structure_unit_deviance <- function(fit, rspec, st, blk) {
+  lr <- st[["loglik_row"]]
+  fam <- rspec$family
+  if (is.null(lr)) {
+    stop("residuals(type = \"deviance\") needs each row's own ",
+         "log-density, and the '", fam[["family"]], "' family supplies ",
+         "its likelihood one response at a time. A family that has the ",
+         "per-row factors declares them with ",
+         "frmtmb_structure(loglik_row = ). Use type = \"pearson\"",
+         call. = FALSE)
+  }
+  rn <- rspec$resp_name
+  av <- fit$frame[["aterm_values"]][[rn]]
+  ll <- lr(fit$frame[["y"]][[rn]], eval_dpars(fit)[[rn]], av,
+           av[["weights"]] %||% 1, blk, fit_extras(fit))
+  sat <- attr(ll, "saturated")
+  if (is.null(sat)) {
+    stop("residuals(type = \"deviance\") compares each row's ",
+         "log-density with its SATURATED value, and the '",
+         fam[["family"]], "' family's loglik_row() returns the first ",
+         "without the second. A family that knows its saturated ",
+         "log-density attaches it as attr(x, \"saturated\"). Use ",
+         "type = \"pearson\"", call. = FALSE)
+  }
+  if (length(sat) != length(ll)) {
+    stop("The '", fam[["family"]], "' family's loglik_row() attaches ",
+         length(sat), " saturated value(s) to ", length(ll),
+         " log-densities. There is one of each per row", call. = FALSE)
+  }
+  d <- 2 * (as.numeric(sat) - as.numeric(ll))
+  # A saturated log-density BELOW the fitted one is not rounding, it is
+  # a family that has mislabelled one of the two. Clamping it to zero
+  # would turn that into a residual of zero, which reads as a perfect
+  # fit at exactly the rows where the family is wrong.
+  bad <- which(d < -1e-8 * pmax(1, abs(as.numeric(ll))))
+  if (length(bad)) {
+    stop("The '", fam[["family"]], "' family reports a saturated ",
+         "log-density BELOW the fitted one at ", length(bad),
+         " row(s) (first at row ", bad[[1L]], ": ",
+         format(as.numeric(sat)[bad[[1L]]], digits = 8), " against ",
+         format(as.numeric(ll)[bad[[1L]]], digits = 8),
+         "). The saturated value is the largest the row's density can ",
+         "reach, so no fit can beat it and a unit deviance cannot be ",
+         "negative", call. = FALSE)
+  }
+  pmax(d, 0)
 }
 
 #' Whether a family declares a capability. A family with no structure is

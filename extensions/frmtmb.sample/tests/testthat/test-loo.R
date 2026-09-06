@@ -482,3 +482,25 @@ test_that("loo() and log_lik() agree with brms on the same model", {
   expect_lt(abs(bayes_R2(ds)[1, "Estimate"] -
                   brms::bayes_R2(bfit)[1, "Estimate"]), 0.05)
 })
+
+test_that("a group-unit matrix says so, because loo() cannot", {
+  # loo::loo.matrix() prints "Computed from N by K log-likelihood
+  # matrix" whatever the columns are, and never sees the attribute
+  # log_lik() attaches, so 8 subjects read exactly like 8 observations.
+  # The message is the only place a caller learns which they asked for.
+  ll <- matrix(rnorm(30), 5, 6)
+  attr(ll, "unit") <- "one subject's trial sequence"
+  local_mocked_bindings(log_lik = function(x, ndraws = NULL, resp = NULL,
+                                           ...) ll)
+  expect_message(loo_matrix(NULL, NULL, NULL, "loo()"),
+                 "leave-one-out over the 6 units")
+  expect_message(loo_matrix(NULL, NULL, NULL, "loo()"),
+                 "one subject's trial sequence", fixed = TRUE)
+  expect_message(loo_matrix(NULL, NULL, NULL, "waic()"),
+                 "waic() is leave-one-out", fixed = TRUE)
+  # a per-observation matrix carries no unit and says nothing
+  plain <- matrix(rnorm(30), 5, 6)
+  local_mocked_bindings(log_lik = function(x, ndraws = NULL, resp = NULL,
+                                           ...) plain)
+  expect_no_message(loo_matrix(NULL, NULL, NULL, "loo()"))
+})

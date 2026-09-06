@@ -346,7 +346,7 @@ test_that("rdm refuses what it cannot read", {
   # dec() is refused rather than silently dropped.
   d$two <- (d$choice > 1) + 0L
   expect_error(frm(bf(rt | dec(two) + vint(choice) ~ 1), family = rdm(3),
-                   data = d), "cannot mean anything here")
+                   data = d), "not one this family reads")
 })
 
 test_that("both race families refuse dec(), and used not to agree", {
@@ -362,7 +362,7 @@ test_that("both race families refuse dec(), and used not to agree", {
   d <- lba_simulate(120, v = c(2.4, 1.6, 1.0), A = 0.5, k = 0.4, ndt = 0.2)
   d$two <- (d$choice > 1) + 0L
   expect_error(frm(bf(rt | dec(two) + vint(choice) ~ 1), family = lba(3),
-                   data = d), "cannot mean anything here")
+                   data = d), "not one this family reads")
   # one shared template, so both refusals name their own family
   expect_error(frm(bf(rt | dec(two) + vint(choice) ~ 1), family = lba(3),
                    data = d), "^lba:")

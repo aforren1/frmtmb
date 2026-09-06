@@ -214,6 +214,7 @@ wiener_gng <- function(deadline = NULL, max_ndt = NULL) {
 
   fam <- frmtmb::custom_family(
     "wiener_gng",
+    accepts_aterms = c("dec", "vreal", "weights"),
     dpars = c("mu", "bs", "ndt", "bias"),
     links = list(mu = "identity", bs = "log", ndt = "log",
                  bias = "logit"),

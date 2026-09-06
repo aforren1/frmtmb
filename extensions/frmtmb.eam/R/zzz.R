@@ -135,7 +135,7 @@ ddm_compat_rules <- function() {
     "By frmtmb, for the same reason it refuses wiener: quadrature = TRUE integrates random effects, and this family has no random effect to integrate.")
 
   r("lba", "dec()", "refused",
-    "Refused by the family, through the same shared check rdm() uses, so that the two race families cannot disagree about it. Until the RDM lane's punch round this row was wrong in a way worth recording: it said a dec() term was refused by the two-level coercion, and measured, a model written rt | dec(two) + vint(choice) FITTED, dropping the term with no warning and with fixed effects bit-identical to the model without it. dec() IS the spelling under wiener(), so a ported model quietly ignored half of what its author wrote.")
+    "Refused by the family, and by declaration rather than by a check of its own: lba() names the addition terms it takes in frmtmb_family(accepts_aterms =), dec() is not among them, and frame assembly refuses it by name. Until frmtmb 0.53.0 there was no such declaration and the refusal was a hand-written check shared with rdm(); before that check this row was wrong in a way worth recording, because a model written rt | dec(two) + vint(choice) FITTED, dropping the term with no warning and with fixed effects bit-identical to the model without it. dec() IS the spelling under wiener(), so a ported model quietly ignored half of what its author wrote.")
   r("lba", "vint()", "works",
     "Required: vint1 is which accumulator won, counted from 1. Note that this is 1-based where wiener's boundary indicator is 0-based, which is a difference between the two families and not a typo.")
   r("lba", "cens()", "refused",
@@ -179,9 +179,9 @@ rdm_gng_compat_rules <- function() {
   r("rdm", "vint()", "works",
     "Required: vint1 is which accumulator reached the threshold, counted from 1, exactly as it is for lba(). Omitting it is refused by name, because the density indexes it.")
   r("rdm", "dec()", "refused",
-    "Refused by this family rather than by the coercion. dec() carries a two-level boundary indicator and a race of n accumulators needs a winner in 1..n, so the term cannot mean anything here. lba() now refuses it through the same shared check; it used to fit such a model with the term silently dropped, which is the defect this row and lba()'s were written against.")
-  r("rdm", "vreal()", "works",
-    "Carried without effect. Nothing in the density reads a real-valued addition term, and a model that supplies one fits and gives the same answer as one that does not.")
+    "Refused by declaration: rdm() names the terms it takes in frmtmb_family(accepts_aterms =) and dec() is not one of them, because dec() carries a two-level boundary indicator and a race of n accumulators needs a winner in 1..n. The winner travels through vint(). lba() refuses it through the same seam, so the two race families cannot drift apart on it.")
+  r("rdm", "vreal()", "refused",
+    "Refused by name since frmtmb 0.53.0. Nothing in the density reads a real-valued addition term, and this row used to read works, on the ground that a model supplying one fitted and gave the same answer as one that did not. That IS the defect: the column travelled into the fit and changed nothing, silently. rdm() now declares the terms it takes and frame assembly refuses the rest.")
   r("rdm", "cens()", "refused",
     "By frmtmb, for want of an lcdf on the family. The race distribution function is one minus a product of survivals; the survival itself is written here because the likelihood needs it, but the product is not.")
   r("rdm", "trunc()", "refused",

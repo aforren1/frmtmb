@@ -1023,6 +1023,7 @@ gddm <- function(drift = gddm_drift_constant(),
 
   fam <- frmtmb::custom_family(
     "gddm",
+    accepts_aterms = c("dec", "vint", "vreal", "weights"),
     dpars = dpnames,
     links = lapply(dp, function(z) z$link),
     lpdf = function(y, dpars, aterms) {

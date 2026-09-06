@@ -40,44 +40,6 @@ ddm_expdiff <- function(la, lb) {
 #' @noRd
 ddm_lphi <- function(x) -0.5 * log(2 * pi) - 0.5 * x * x
 
-#' Refuse a `dec()` term on a race family.
-#'
-#' `dec()` carries a two-level boundary indicator. A race of `n`
-#' accumulators needs a winner in `1..n`, so the term cannot mean
-#' anything to one, and frmtmb has no seam for "this family does not
-#' accept that addition term": `required_aterms` is a conjunction of
-#' what the density NEEDS, with no complementary allow-list, so an extra
-#' term is never refused by declaration and each family that wants to
-#' refuse one writes the check itself.
-#'
-#' Left unrefused the term is not merely ignored, it is invisible.
-#' Measured on `lba(3)` over 300 rows, `rt | dec(two) + vint(choice)`
-#' and `rt | vint(choice)` give fixed effects whose largest absolute
-#' difference is EXACTLY ZERO and an identical log likelihood, with no
-#' warning at any point, while the fitted object carries both `dec` and
-#' `vint1` in its aterm values. The user's column travels all the way
-#' into the fit and changes nothing.
-#'
-#' Shared by [lba()] and [rdm()] so that the two sibling race families
-#' cannot drift apart on it, and so that this is ONE condition-message
-#' template with the family name filled in at run time rather than two
-#' near-identical ones.
-#'
-#' @noRd
-ddm_refuse_dec <- function(what, n, aterms) {
-  if (!is.null(aterms[["dec"]])) {
-    stop(what, ": dec() carries a two-level boundary indicator, and ",
-         "this family needs to know which of ", n, " accumulators ",
-         "reached the threshold first. The term cannot mean anything ",
-         "here, so it is refused rather than silently dropped: a model ",
-         "ported over from wiener(), where dec() IS the spelling, ",
-         "would otherwise fit while quietly ignoring it. The winner ",
-         "travels through vint() as a whole number from 1 to ", n, ".",
-         call. = FALSE)
-  }
-  invisible(NULL)
-}
-
 #' Fit a bounded non-decision-time link to the observed response.
 #'
 #' The density of every family here is zero at and below `ndt`, so the

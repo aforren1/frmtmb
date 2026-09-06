@@ -1,3 +1,16 @@
+# frmtmb.sample (development version)
+
+* `log_lik()`, `loo()` and `waic()` accept a structured family that
+  declares how its likelihood factorizes
+  (`frmtmb::frmtmb_structure(loglik_group = )` or `(loglik_row = )`),
+  instead of refusing every family whose likelihood is not rowwise.
+  The columns are the pieces the family declares, at the coarsest
+  granularity it gives, because a family that groups its likelihood is
+  saying its rows are not independently droppable. The matrix carries
+  `attr(x, "unit")` naming what a column is when it is not an
+  observation. A family that supplies one number for the whole
+  response is still refused, in the words it already used.
+
 # frmtmb.sample 0.2.0
 
 * BEHAVIOR CHANGE, following core. `ranef()` on a `frmtmb_draws`

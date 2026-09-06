@@ -1,3 +1,23 @@
+# frmtmb.latent (development version)
+
+* `hmm()` declares `frmtmb_structure(loglik_group = )`: the
+  log-likelihood of every sequence, which the forward recursion
+  already produces on its way to the total. `frm(importance = )` can
+  correct an hmm() fit whose grouping factor is its own sequence
+  variable, and `loo()` on sampled draws has one column per sequence
+  instead of a refusal. There is no `loglik_row`, and its absence is
+  the answer rather than an omission: a row's emission density is not
+  its contribution to the likelihood, because the state that emitted
+  it was reached through every earlier row. `residuals(type =
+  "deviance")` stays refused for exactly that reason, in the words it
+  already used.
+
+* `lca()` declares neither slot, and says why in the source: its
+  likelihood IS rowwise, because one row is one subject's whole item
+  response pattern, so `loo()` and `frm(importance = )` reach it
+  through the ordinary path and a slot would be a second definition of
+  the same numbers.
+
 # frmtmb.latent 0.1.0
 
 First release. `hmm()` and `lca()` were part of frmtmb through

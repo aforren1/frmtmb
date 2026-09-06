@@ -72,8 +72,13 @@ rw_block <- function(resp, spec, av, mf, y, n) {
                          integer(nt)), nrow = nt))
   mask <- t(matrix(vapply(len, function(l) as.numeric(seq_len(nt) <= l),
                           numeric(nt)), nrow = nt))
+  # `group` is a reserved name: it is what the per-subject
+  # log-likelihood returns one value per, in level order, and what the
+  # core checks a model's own grouping factor against before it lets
+  # frm(importance =) sum this family's pieces into its groups.
   list(idx = idx, mask = mask, len = len, n_subj = length(rows),
-       n_trial = nt, subject = gv, trial = tv, levels = levels(gv), n = n)
+       n_trial = nt, group = gv, subject = gv, trial = tv,
+       levels = levels(gv), n = n)
 }
 
 ## ---- rl-loglik ----
@@ -82,27 +87,47 @@ rw_block <- function(resp, spec, av, mf, y, n) {
 # a vector of ones does not.
 rw_bcast <- function(v, n) if (length(v) == 1L) v * rep(1, n) else v
 
-# The taped log-likelihood of the whole response, as one AD scalar.
+# The subject-by-trial layout, repeated once per replicate of the
+# design. The importance correction evaluates the whole design once per
+# draw, stacked, so the recursion has to run over subject-crossed-with-
+# draw rather than over subject. Because the loop below is already
+# vectorized across subjects, that is the same loop over a longer
+# vector: `nrep` blocks of subjects, each block's row numbers shifted by
+# a whole design.
+rw_stack <- function(block, nrep) {
+  idx <- block[["idx"]]
+  msk <- block[["mask"]]
+  if (nrep == 1L) return(list(idx = idx, mask = msk))
+  take <- rep(seq_len(nrow(idx)), nrep)
+  list(idx = idx[take, , drop = FALSE] +
+         rep((seq_len(nrep) - 1L) * block[["n"]], each = nrow(idx)),
+       mask = msk[take, , drop = FALSE])
+}
+
+# The trial-by-trial factors of the likelihood, as one vector per trial
+# over all (subject, replicate) pairs. Every quantity the family reports
+# is built from these, so there is one recursion and no second
+# definition of the same arithmetic to drift from it.
 #
 # One iteration per TRIAL, each one a handful of vector operations over
 # all subjects at once. Writing it the other way round, one iteration
 # per row with Q[s] <- ... inside, is the shape RTMB punishes: an
 # element-wise assignment into a taped vector costs about three orders
 # of magnitude more than the vector operation it replaces.
-rw_loglik <- function(y, dpars, aterms, weights, block, extra) {
-  # weights() is refused in check_spec, so `weights` is 1 here. A trial's
-  # factor cannot be reweighted on its own: its value depends on every
-  # earlier trial of the same subject.
-  idx <- block[["idx"]]
-  msk <- block[["mask"]]
+rw_terms <- function(y, dpars, aterms, block) {
   n <- block[["n"]]
-  alpha <- rw_bcast(dpars[["alpha"]], n)
-  beta <- rw_bcast(dpars[["beta"]], n)
+  nrep <- NROW(y) %/% n
+  sk <- rw_stack(block, nrep)
+  idx <- sk[["idx"]]
+  msk <- sk[["mask"]]
+  nn <- n * nrep
+  alpha <- rw_bcast(dpars[["alpha"]], nn)
+  beta <- rw_bcast(dpars[["beta"]], nn)
   pay1 <- aterms[["reward1"]]
   pay2 <- aterms[["reward2"]]
   q1 <- rep(0, nrow(idx))
   q2 <- q1
-  ll <- 0
+  out <- vector("list", ncol(idx))
   for (t in seq_len(ncol(idx))) {
     i <- idx[, t]
     m <- msk[, t]
@@ -110,14 +135,57 @@ rw_loglik <- function(y, dpars, aterms, weights, block, extra) {
     eta <- beta[i] * (q1 - q2)
     # log P(choice) = c1 * eta - log(1 + exp(eta)), folded with
     # logspace_add so a decisive subject does not overflow
-    ll <- ll + sum(m * (c1 * eta - RTMB::logspace_add(0 * eta, eta)))
+    out[[t]] <- m * (c1 * eta - RTMB::logspace_add(0 * eta, eta))
     # the mask enters through the learning rate, so a padded cell learns
     # nothing and no branch reaches the tape
     a <- alpha[i] * m
     q1 <- q1 + (a * c1) * (pay1[i] - q1)
     q2 <- q2 + (a * (1 - c1)) * (pay2[i] - q2)
   }
-  ll
+  list(terms = out, idx = idx, mask = msk)
+}
+
+# One value per subject, which is this family's coarsest honest piece
+# and the one frm(importance =) resamples. A subject's trials are a
+# product, so its log-likelihood is the elementwise sum of the per-trial
+# vectors: the piece is free, given the recursion.
+#
+# weights() is refused in check_spec, so `weights` is 1 in all three
+# slots. A trial's factor cannot be reweighted on its own: its value
+# depends on every earlier trial of the same subject.
+rw_loglik_group <- function(y, dpars, aterms, weights, block, extra) {
+  Reduce(`+`, rw_terms(y, dpars, aterms, block)[["terms"]])
+}
+
+# One value per trial: the choice probability CONDITIONAL on everything
+# the subject saw before it. These are the factors themselves, scattered
+# back to the rows they came from, and a Bernoulli factor's saturated
+# value is zero, which is what makes a deviance residual definable here.
+rw_loglik_row <- function(y, dpars, aterms, weights, block, extra) {
+  "c" <- RTMB::ADoverload("c")
+  "[<-" <- RTMB::ADoverload("[<-")
+  tm <- rw_terms(y, dpars, aterms, block)
+  # ONE sub-assignment, not one per trial: `[<-` copies the whole vector
+  # each time it is called on a taped one. The padded cells are dropped
+  # rather than written, because a pad repeats its subject's FIRST row
+  # number and would otherwise overwrite that trial's own factor with a
+  # masked zero.
+  keep <- as.vector(tm[["mask"]]) == 1
+  out <- rep(0, length(y))
+  out[as.vector(tm[["idx"]])[keep]] <-
+    do.call(c, tm[["terms"]])[keep]
+  # off the tape only: the numeric path is the one residuals() reads,
+  # and an advector carries no attributes
+  if (!inherits(out, "advector")) {
+    attr(out, "saturated") <- rep(0, length(out))
+  }
+  out
+}
+
+# The whole response's log-likelihood, defined as the sum of the pieces
+# rather than accumulated separately, so the three slots cannot disagree.
+rw_loglik <- function(y, dpars, aterms, weights, block, extra) {
+  sum(rw_loglik_group(y, dpars, aterms, weights, block, extra))
 }
 
 ## ---- rl-replay ----
@@ -253,6 +321,12 @@ rw_structure <- function() {
     },
     frame_block = rw_block,
     loglik = rw_loglik,
+    # The two factorizations. `unit` is a different question and keeps
+    # its own answer: the finest factorization here is the TRIAL, while
+    # the smallest thing that can honestly be left out is a whole
+    # subject, because dropping one trial changes every later trial's Q.
+    loglik_row = rw_loglik_row,
+    loglik_group = rw_loglik_group,
     unit = "one subject's trial sequence",
     fitted_mean = rw_fitted,
     fitted_var = function(fit, block) {
@@ -260,6 +334,12 @@ rw_structure <- function() {
       p * (1 - p)
     },
     sim_ctx = rw_sim,
+    # The one capability a factorized likelihood buys back here. Every
+    # other flag stays FALSE: a per-trial factor is not a per-trial
+    # MODEL, so newdata, conditional effects and one-step-ahead
+    # residuals are refused for the reasons below and not for want of
+    # the factors.
+    supports = list(deviance = TRUE),
     refusals = list(
       newdata_response = paste0(
         "predict(type = 'response') on a rw_delta() fit is not ",
@@ -278,12 +358,7 @@ rw_structure <- function() {
         "residuals(type = 'osa') is not available for a rw_delta() fit: ",
         "the tape holds the recursion over each whole sequence with no ",
         "registered observation vector. Use type = 'pearson', which ",
-        "divides by the binomial variance of the choice probability"),
-      deviance = paste0(
-        "residuals(type = 'deviance') is not available for a rw_delta() ",
-        "fit: the per-trial factors exist, but the structured ",
-        "protocol's loglik slot returns one total, so the core never ",
-        "sees them. Use type = 'pearson'")
+        "divides by the binomial variance of the choice probability")
     )
   )
 }

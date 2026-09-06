@@ -11,7 +11,7 @@ Adds two families whose latent variable is a discrete state to the model grammar
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://aforren1.github.io/frmtmb/}
+  \item \url{https://aforren1.github.io/frmtmb/frmtmb.latent}
   \item \url{https://github.com/aforren1/frmtmb}
   \item Report bugs at \url{https://github.com/aforren1/frmtmb/issues}
 }

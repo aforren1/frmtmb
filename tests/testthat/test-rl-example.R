@@ -157,7 +157,9 @@ test_that("a rw_delta() fit refuses what its structure declares", {
   fx <- rl_fixture()
   expect_error(conditional_effects(fx$fit), "whole trial history")
   expect_error(residuals(fx$fit, type = "osa"), "registered observation")
-  expect_error(residuals(fx$fit, type = "deviance"), "returns one total")
+  # deviance residuals are NOT refused any more: the family declares
+  # its per-trial factors, and a Bernoulli factor saturates at zero,
+  # so the unit deviance is defined. Their own test is below.
   expect_error(predict(fx$fit, newdata = fx$data, type = "response"),
                "carries no block to replay")
   expect_error(
@@ -237,4 +239,102 @@ test_that("the Stan identity holds away from the optimum too", {
   move <- names(par) %in% c("beta", "betad", "b")
   par[move] <- par[move] + 0.25 * cos(seq_len(sum(move)))
   rl_lp_check(fx$fit, fx$data, par = par, check_grad = FALSE)
+})
+
+# ---------------------------------------------------------------------
+# The two factorization slots, and what they buy.
+#
+# The family's likelihood does not factorize over ROWS in the protocol's
+# sense - a trial's factor reads its subject's whole history - but it
+# does factorize, into one factor per trial and one product per subject.
+# `loglik` used to be the only way to say so and threw the factors away.
+# ---------------------------------------------------------------------
+
+test_that("the pieces add up to the total, at three granularities", {
+  skip_unless_rl()
+  fx <- rl_fixture()
+  fit <- fx$fit
+  st <- fit$spec$responses[[1L]]$family[["structure"]]
+  blk <- frame_block_of(fit$frame, "choice")
+  dp <- eval_dpars(fit)[["choice"]]
+  av <- fit$frame[["aterm_values"]][["choice"]]
+  y <- fit$frame[["y"]][["choice"]]
+  tot <- st[["loglik"]](y, dp, av, 1, blk, NULL)
+  rw <- st[["loglik_row"]](y, dp, av, 1, blk, NULL)
+  gp <- st[["loglik_group"]](y, dp, av, 1, blk, NULL)
+  expect_length(rw, nrow(fx$data))
+  expect_length(gp, nlevels(factor(fx$data$id)))
+  expect_equal(sum(rw), as.numeric(tot), tolerance = 1e-12)
+  expect_equal(sum(gp), as.numeric(tot), tolerance = 1e-12)
+  # a group's value is its own rows' values and no others, which is the
+  # property the importance correction sums on
+  expect_equal(as.numeric(tapply(as.numeric(rw), blk[["group"]], sum)),
+               as.numeric(gp), tolerance = 1e-12)
+  # and the per-row values are the log-densities fitted() implies
+  expect_equal(sum(stats::dbinom(fx$data$choice, 1L, fitted(fit),
+                                 log = TRUE)),
+               sum(rw), tolerance = 1e-8)
+})
+
+test_that("the slots honor the stacking the correction imposes", {
+  skip_unless_rl()
+  fx <- rl_fixture()
+  fit <- fx$fit
+  st <- fit$spec$responses[[1L]]$family[["structure"]]
+  blk <- frame_block_of(fit$frame, "choice")
+  dp <- eval_dpars(fit)[["choice"]]
+  av <- fit$frame[["aterm_values"]][["choice"]]
+  y <- fit$frame[["y"]][["choice"]]
+  gp <- as.numeric(st[["loglik_group"]](y, dp, av, 1, blk, NULL))
+  rw <- as.numeric(st[["loglik_row"]](y, dp, av, 1, blk, NULL))
+  # the design stacked twice is two independent copies of it, so every
+  # value has to repeat rather than run one recursion over both
+  rep2 <- function(v) if (length(v) == 1L) v else rep(v, 2L)
+  y2 <- rep(y, 2L)
+  g2 <- as.numeric(st[["loglik_group"]](y2, lapply(dp, rep2),
+                                        lapply(av, rep2), 1, blk, NULL))
+  r2 <- as.numeric(st[["loglik_row"]](y2, lapply(dp, rep2),
+                                      lapply(av, rep2), 1, blk, NULL))
+  expect_length(g2, 2L * length(gp))
+  expect_equal(g2, c(gp, gp), tolerance = 1e-12)
+  expect_length(r2, 2L * length(rw))
+  expect_equal(r2, c(rw, rw), tolerance = 1e-12)
+})
+
+test_that("deviance residuals are the per-trial factors", {
+  skip_unless_rl()
+  fx <- rl_fixture()
+  d <- residuals(fx$fit, type = "deviance")
+  p <- fitted(fx$fit)
+  expect_length(d, nrow(fx$data))
+  # a Bernoulli trial's saturated log-density is zero, so the unit
+  # deviance is -2 log p and the residuals square to the total
+  expect_equal(sum(d^2), -2 * rl_reference(fx$fit, fx$data)$data,
+               tolerance = 1e-8)
+  expect_equal(unname(d),
+               sign(fx$data$choice - p) *
+                 sqrt(-2 * stats::dbinom(fx$data$choice, 1L, p, log = TRUE)),
+               tolerance = 1e-8)
+})
+
+test_that("frm(importance =) corrects this family now", {
+  skip_unless_rl()
+  skip_on_cran()
+  fx <- rl_fixture()
+  # The correction verifies its own per-group pieces against the plain
+  # objective at the first freeze, per group and in total, so a fit
+  # that RETURNS is a fit whose stacked recursion reproduced the
+  # likelihood group by group.
+  fit <- suppressWarnings(
+    frm(rl_bform, family = rl_family(), data = fx$data, importance = 32L))
+  expect_s3_class(fit, "frmtmb_fit")
+  expect_equal(fit$importance$draws, 32L)
+  expect_true(is.finite(as.numeric(logLik(fit))))
+  expect_true(all(fit$importance$ess > 0))
+  # the grouping the family factorizes on has to be the model's own
+  bad <- bf(choice | reward(pay1, pay2) ~ condition + (1 | trial),
+            beta ~ 1)
+  expect_error(
+    frm(bad, family = rl_family(), data = fx$data, importance = 32L),
+    "same partition of the rows")
 })
