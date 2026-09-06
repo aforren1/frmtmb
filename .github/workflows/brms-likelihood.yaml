@@ -75,6 +75,7 @@ jobs:
       # tmbstan is deliberately absent: this tier never samples, it only
       # calls log_prob and grad_log_prob on a chains = 0 fit.
       - uses: r-lib/actions/setup-r-dependencies@v2
+        id: deps
         with:
           extra-packages: |
             any::BH
@@ -180,8 +181,9 @@ jobs:
         shell: Rscript {0}
       - name: Run the brms post-fit method tier
         # reported even when the log-density tier fails, so a red run
-        # says which tier broke
-        if: always()
+        # says which tier broke, but not when the toolchain never
+        # installed, where its own guard would only restate that
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         run: |
           # Same gate, asserted the same way and for the same reason.
           # MASS joins the list because the merged (1 | q | g) shape

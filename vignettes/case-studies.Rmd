@@ -20,7 +20,6 @@ has_metafor <- requireNamespace("metafor", quietly = TRUE)
 has_tinyplot <- requireNamespace("tinyplot", quietly = TRUE)
 has_circular <- requireNamespace("circular", quietly = TRUE)
 has_brokenstick <- requireNamespace("brokenstick", quietly = TRUE)
-has_spline <- requireNamespace("frmtmb.spline", quietly = TRUE)
 ```
 
 Each section below takes a model that another package uses to show what
@@ -1786,14 +1785,10 @@ head(round(band, 3), 3)
 ```
 
 The whole grid's covariance, `A V A'`, is what a SIMULTANEOUS band
-needs, and `frmtmb.spline::frm_curve()` builds one from the same two
-objects. It refused a nonlinear body until this seam existed.
-
-```{r smocc-simultaneous, eval = has_brokenstick && has_spline}
-cv <- frmtmb.spline::frm_curve(fit_smocc, newdata = grid, re.form = NA,
-                               nsim = 5000, seed = 1)
-print(cv)
-```
+needs. The frmtmb.spline package builds one from the same two objects
+through its `frm_curve()`, which refused a nonlinear body until this
+seam existed; that package is not a dependency of this one, so the
+band here is pointwise.
 
 ```{r smocc-plot, eval = has_brokenstick && has_tinyplot, fig.width = 6, fig.height = 4}
 tinyplot::tinyplot(hgt ~ age, data = smocc[smocc$id %in%

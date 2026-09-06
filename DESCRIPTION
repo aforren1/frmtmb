@@ -46,7 +46,6 @@ Suggests:
     DHARMa,
     emmeans,
     fmesher,
-    frmtmb.spline,
     GLMMadaptive,
     glmmTMB,
     insight,
