@@ -156,6 +156,38 @@ indicator naming one of two boundaries, and a race of \code{n}
 accumulators needs \verb{1..n}.
 }
 
+\section{Censoring and truncation}{
+
+A race has a survivor function in closed form, so \code{cens()} and
+\code{trunc()} both work.
+
+The reason is that the race is over as soon as ANY accumulator
+finishes, so the probability that the response time is past \code{t} is
+the probability that none of them has:
+
+\deqn{S(t) = \prod_i S_i(t),}
+
+one factor per accumulator, each the start-point integral the
+likelihood already forms for the losers of an observed trial. The
+family declares that product as its log survivor function and its
+complement as its distribution function, so nothing new is derived
+for censoring: it is the same \code{lsurv} the density's loser terms use,
+multiplied over all \code{n} accumulators instead of over \code{n - 1} of them.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{frm(bf(rt | vint(choice) + cens(censored) ~ cond), family = rdm(3),
+    data = dat)
+}\if{html}{\out{</div>}}
+
+A censored trial has no winner to report, because the race had not
+finished when the clock ran out. \code{vint()} is still required, since a
+declaration cannot be conditional on a censoring code, so give such a
+row any accumulator index: the likelihood does not read it. The
+distribution function is written as \verb{-expm1(log S)}, which keeps its
+digits where \code{1 - S} would lose them, and the log survivor goes to
+\code{frmtmb} on the LOG scale, so a right-censored row stays exact past
+the point where \code{log(1 - F)} is a constant with a zero gradient.
+}
+
 \section{Accuracy}{
 
 Every piece is written in the form that keeps its digits rather than

@@ -1,3 +1,140 @@
+# frmtmb.eam (development version)
+
+* `wiener_gng()` gains `variability =`, and takes Ratcliff's `sv`, `sz`
+  and `st` under the same names, links and argument [wiener()] takes
+  them. The go branch is [wiener()]'s averaged density and is not merely
+  equivalent to it: evaluated at the same parameters, the two families'
+  log densities are BIT-IDENTICAL on every row, for every combination of
+  the three. Making that true is why the family now has a builder that
+  is handed the non-decision-time bound and the unreachable-row margin,
+  as `wiener()` has; at 0.3.0 it floored the decision time at a flat
+  1e-12 where `wiener()` used `1e-9 * min(y)`, and no identity survives
+  two different margins.
+
+  The no-go branch is the part that had to be written, because it
+  averages a DISTRIBUTION FUNCTION rather than a density. `sz` goes
+  through Gauss-Legendre nodes, `st` shifts the deadline rather than
+  cutting a range, and `sv` needs a Gauss-Hermite quadrature of its own:
+  the drift enters the density only as an exponential-quadratic, which a
+  normal average integrates in closed form, and it enters the
+  distribution function through the eigenvalues as well, where nothing
+  does.
+
+  Verified against a 200-bit `Rmpfr` integration of the distribution
+  function, against 40000-trial simulation from the process (the
+  observed no-go rate is within 1.7 standard errors at every setting,
+  and a ten-cell chi-square on the go response times reaches 16.0
+  against a 0.999 critical value of 27.9), and against EMC2, whose
+  `DDMGNG` carries the same three: the no-go probability matches
+  `1 - EMC2:::pDDM()` to 3.9e-13 or better and the go density matches
+  `EMC2:::dDDM()` to 1.6e-15. EMC2's `st0` is a uniform on
+  `[t0, t0 + st0]` where this family's `st` is centred on `ndt`,
+  following brms; the comparison applies that shift and `?wiener_gng`
+  records it.
+
+* `wiener_gng(nogo_nodes =)` is a second node-count argument, because
+  the two branches are two integrands. The density's `st` count is 21
+  because its range is cut at the response time and its integrand turns
+  on sharply at the cut; the probability has no cut and saturates at 7.
+  That would be a curiosity if the two cost the same, and they do not:
+  the probability's rule is a three-dimensional product, so a count
+  carried over from the density is multiplied by every other count in
+  the grid. With the density's own counts a 500-row three-variability
+  model exhausted memory outright.
+
+* **`sv` is weakly identified in a go/no-go design, and `?wiener_gng`
+  now says so.** On 3000 simulated trials with a true `sv` of 0.6 this
+  family returns 0.001 while `wiener()`, on the same generative
+  parameters and seeing both boundaries, returns 0.612. It is not an
+  optimizer failure: the fit reaches a HIGHER log likelihood at `sv`
+  near zero by trading it against the drift and the boundary
+  separation. Read a small fitted `sv` here as "the data did not pin
+  it".
+
+* A start point that `sz` pushes past a boundary is now the boundary
+  case it is, rather than a `NaN`. `wiener()` documents that a wide `sz`
+  at a biased start can leave the boundaries and calls the density there
+  a barrier; that is true of the density, which stays finite, and it was
+  NOT true of the no-go probability, which took `log1p(-w)` of a
+  negative above one and returned a probability ABOVE one below zero. A
+  `NaN` is not a barrier, it is the end of the tape, and one node of one
+  row took the whole fit with it.
+
+  The clamped value is the correct limit for THE BRANCH IT IS APPLIED
+  TO. It does not repair the pair, and the documentation no longer says
+  it does: the go branch is left unclamped so that the bit-identity with
+  `wiener()` survives, so past a boundary the two branches average
+  different start-point distributions and the go mass plus the no-go
+  probability falls short of one - measured, 0.970639 at `sz` = 0.5 with
+  `bias` = 0.85, and 0.843370 at `sz` = 0.9 with `bias` = 0.90, so up to
+  16 percent of the mass. It is tolerable because the region is strictly
+  downhill: profiled at `bias` = 0.85, the best point inside the
+  boundaries beats the best point outside by 189 log units and the
+  surface is monotone across the crossing, so the clamp is a barrier an
+  optimizer walks away from rather than a corner it can be pulled into.
+
+  Inside the boundaries, where the model is defined, the two branches
+  still sum to one - to 8.9e-16 in the plain family, and otherwise to
+  whatever the quadrature gives, which is 3.9e-14 at `sv` = 0.6 and
+  8.1e-05 at `sv` = 2.0 with default nodes. `?wiener_gng` carries both
+  tables.
+
+* `rdm()` declares an `lccdf` and an `lcdf`, so `cens()` and `trunc()`
+  both work through core 0.52.0's slot. Neither needed new algebra: a
+  race is unfinished exactly when every accumulator is, so the log
+  survivor is the sum of the same per-accumulator survivals the density
+  already forms for the losers of an observed trial, over all `n`
+  instead of `n - 1`. Checked against the likelihood written out by
+  hand at the fitted parameters: 2.2e-15 relative on a right-censored
+  data set, 5.0e-16 with all four censoring codes, and 9.4e-16 on a
+  left-truncated fit. A censored row still needs a `vint()` winner,
+  which the likelihood does not read, and does not read EXACTLY:
+  moving every censored row's winner changes the log likelihood by
+  zero.
+
+* `wiener_gng()` declares an `lccdf` and, deliberately, no `lcdf`. Right
+  censoring is the same statement the family already makes, so it is
+  exact rather than close: the same rows scored as no-go trials at the
+  deadline and as trials right-censored at the deadline give log
+  likelihoods that differ by no bits at all. Left censoring, interval
+  censoring and `trunc()` are refused by name, because this likelihood
+  is a defective density plus a point mass and a window normalizer on
+  the response scale would renormalize the density while saying nothing
+  about the mass.
+
+* `wiener()` and `gddm()` declare the decision indicator through core's
+  any-of `required_aterms` instead of checking for it by hand. Both read
+  the boundary from `dec()` or from `vint1`, which core 0.51.0 spells
+  `list(c("dec", "vint1"))`, so frame assembly refuses a model that
+  supplies neither BEFORE the frame is built rather than after. The
+  refusal a user sees changes: it names the term values `dec` and
+  `vint1` rather than the spellings `dec(decision)` and `vint(upper)`,
+  and writes `rt | dec(<column>) ~ ...` as the example. Four pinned
+  expectations changed with it. **This retires the 0.2.0 note below
+  that "one hand-rolled check remains, and is not `required_aterms`'s
+  fault"** - core grew the seam, and the check is gone. `gddm()`'s
+  CONDITION index is still checked by hand, and still cannot be
+  declared: which slot carries it moves with the boundary's spelling,
+  so the requirement is a disjunction of conjunctions and no
+  declaration says that.
+
+* `ddm_cdf_ks`, the half-width of the no-go distribution function's
+  image sum, is 4 rather than 12. The blend gives the small-time route a
+  non-zero weight only below `u = 0.197`, where `tanh` has not yet
+  saturated, and at that `u` the `|j| = 2` term is already 9e-23.
+  Measured over 840 rows spanning `t` in 0.05 to 15, every truncation
+  from 2 to 12 gives bit-identical values AND bit-identical gradients.
+  It is a pure cost change and it is worth 2.3x on a go/no-go
+  variability fit, which evaluates that function on a three-dimensional
+  node grid. `ddm_cdf_kl` is not reducible the same way and is
+  unchanged.
+
+* `wiener_gng_simulate()` gains `sv`, `sz` and `st`, and `simulate()` on
+  a fitted go/no-go model follows the variability, by drawing each
+  trial's parameters before it runs the process. The rejection is on the
+  OUTCOME, so it reweights all three at once where `wiener()` has to
+  reweight the drift by the boundary probability it implies.
+
 # frmtmb.eam 0.3.0
 
 * RENAMED from frmtmb.ddm. The package holds the linear ballistic

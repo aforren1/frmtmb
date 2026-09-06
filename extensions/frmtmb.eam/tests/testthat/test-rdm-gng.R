@@ -497,16 +497,35 @@ test_that("the two series agree with each other in the overlap band", {
   gr <- expand.grid(t = c(0.3, 0.8, 2), a = c(0.8, 1.4, 2.5),
                     v = c(-2, 0, 1.5, 4), w = c(0.3, 0.5, 0.7))
   u <- gr$t / gr$a^2
-  keep <- u > 0.05 & u < 5              # where both are meant to be good
+  keep <- u > 0.05 & u < 5              # where both CONVERGE
   expect_gt(sum(keep), 30)
+  # At the CONVERGED truncation. The image sum's terms carry
+  # exp(-2 j (w + j) / u), which decays in j only for a small u: at
+  # u = 5 the j = 5 term is still 1.7e-05, so a wide band is a statement
+  # about the derivation and needs enough terms to be one. The shipped
+  # truncation is 4, and the next assertion is what covers it.
   s <- frmtmb.eam:::ddm_nogo_small(gr$t[keep], gr$v[keep], gr$a[keep],
-                                   gr$w[keep])
+                                   gr$w[keep], K = 12L)
   l <- frmtmb.eam:::ddm_nogo_large(gr$t[keep], gr$v[keep], gr$a[keep],
                                    gr$w[keep])
   # measured at 1.47e-08, on a row whose no-go probability is 8.5e-07;
   # the tolerance is set just above what two independent series of a
   # transcendental function actually reach, not at a round number
   expect_lt(max(abs(s - l) / l), 1e-7)
+
+  # The shipped truncation is 4, and the band it has to be right on is
+  # not this one. The blend gives the small route a non-zero weight only
+  # below u = 0.197, where tanh has not yet saturated; above that the
+  # weight is exactly one and the small route's value is multiplied by
+  # exactly zero. Inside its own band four terms and twelve agree to
+  # every bit, which is the assertion that matters for the likelihood.
+  band <- u > 0.001 & u < 0.197
+  expect_gt(sum(band), 5)
+  s4 <- frmtmb.eam:::ddm_nogo_small(gr$t[band], gr$v[band], gr$a[band],
+                                    gr$w[band], K = 4L)
+  s12 <- frmtmb.eam:::ddm_nogo_small(gr$t[band], gr$v[band], gr$a[band],
+                                     gr$w[band], K = 12L)
+  expect_identical(s4, s12)
 })
 
 test_that("the no-go probability is finite at every edge a fit can reach", {
@@ -910,4 +929,276 @@ test_that("both families refuse the post-fit methods they have no mean for", {
   # rdm has no dpar called mu and wiener_gng does; both refuse anyway
   expect_false("mu" %in% names(stats::family(f)$links))
   expect_true("mu" %in% names(stats::family(h)$links))
+})
+
+# =================================== across-trial variability, go/no-go
+
+test_that("the go branch IS wiener()'s density at the same variability", {
+  skip_if_not_installed("RWiener")
+  # Not a tolerance, an identity. gng_lpdf_var() calls the same
+  # ddm_lpdf_var() with up = 1, the same node sets built from the same
+  # `nodes` argument, and the same `delta`. Getting the two `delta`s to
+  # agree is why wiener_gng() has a gng_family(cfg, ub, delta) builder:
+  # at 0.3.0 it floored the decision time at a flat 1e-12 while wiener()
+  # used 1e-9 * min(y), and no identity survives two margins.
+  set.seed(21)
+  td <- 3.0
+  d <- ddm_simulate(300L, mu = 1.0, bs = 1.4, ndt = 0.30, bias = 0.5,
+                    sv = 0.5, sz = 0.2, st = 0.1)
+  d <- d[d$upper == 1 & d$rt < td, ]
+  d$go <- 1L
+  at <- list(dec = rep(1, nrow(d)))
+  # family_finalize() rather than frm(): it is the seam that resolves the
+  # bound and the margin, it is what a fit would call, and it does not
+  # build a tape. Two full-variability tapes in one process is what the
+  # optimizer cannot afford here.
+  fin <- function(fam) fam[["family_finalize"]](fam, d$rt, at)
+  for (vv in list("sv", "sz", "st", c("sv", "sz"), c("sv", "sz", "st"))) {
+    fw <- fin(wiener(variability = vv))
+    fg <- fin(wiener_gng(deadline = td, variability = vv))
+    dp <- list(mu = 1.1, bs = 1.35, ndt = 0.22, bias = 0.47,
+               sv = 0.6, sz = 0.18, st = 0.09)[c("mu", "bs", "ndt",
+                                                 "bias", vv)]
+    expect_identical(fg[["lpdf"]](d$rt, dp, at),
+                     fw[["lpdf"]](d$rt, dp, at))
+  }
+})
+
+test_that("the go mass and the no-go probability still add to one", {
+  td <- 1.5
+  dp <- list(mu = 1.0, bs = 1.4, ndt = 0.25, bias = 0.5)
+  for (vv in list(character(0), "sv", "sz", "st", c("sv", "sz", "st"))) {
+    nd <- ddm_nodes(vv, c(sz = 7L, st = 21L))
+    ndc <- gng_nodes(vv, c(sv = 31L, sz = 9L, st = 9L))
+    sv <- if ("sv" %in% vv) 0.5 else 0
+    sz <- if ("sz" %in% vv) 0.2 else 0
+    st <- if ("st" %in% vv) 0.1 else 0
+    # the support starts at ndt - st / 2, not at ndt: an integral begun
+    # at ndt misses mass the model has and reports a defect of 8e-04
+    # that belongs to the integration limit
+    lo <- dp$ndt - st / 2
+    f <- function(y) {
+      exp(ddm_lpdf_var(y, dp$mu, dp$bs, dp$bias, dp$ndt, sv, sz, st, 1,
+                       nd, "st" %in% vv, 1e-9 * lo))
+    }
+    brk <- sort(unique(c(lo, lo + 1e-6, 0.4, 0.7, 1.0, td)))
+    mass <- 0
+    for (i in seq_len(length(brk) - 1L)) {
+      mass <- mass + stats::integrate(f, brk[i], brk[i + 1L],
+                                      rel.tol = 1e-13,
+                                      subdivisions = 4000L)$value
+    }
+    ng <- exp(ddm_nogo_lprob_var(td, dp$mu, dp$bs, dp$bias, dp$ndt,
+                                 sv, sz, st, ndc))
+    expect_lt(abs(1 - (mass + ng)), 1e-10)
+  }
+})
+
+test_that("the variability average is tape-safe and differentiates", {
+  ndc <- gng_nodes(c("sv", "sz", "st"), c(sv = 11L, sz = 7L, st = 7L))
+  lp <- function(p) {
+    ddm_nogo_lprob_var(1.5, p[1], p[2], p[3], p[4], p[5], p[6], p[7], ndc)
+  }
+  for (p in list(c(1.0, 1.4, 0.50, 0.25, 0.5, 0.20, 0.10),
+                 c(-0.5, 2.0, 0.35, 0.30, 0.3, 0.10, 0.05),
+                 c(3.0, 2.5, 0.80, 0.20, 1.5, 0.25, 0.08))) {
+    tp <- RTMB::MakeTape(lp, p)
+    g <- tp$jacobian(p)
+    expect_true(all(is.finite(g)))
+    skip_if_not_installed("numDeriv")
+    fd <- numDeriv::grad(lp, p)
+    expect_lt(max(abs(g - fd)) / max(1, max(abs(fd))), 1e-7)
+  }
+})
+
+test_that("a start point pushed past a boundary is a limit, not a NaN", {
+  # wiener() says a wide sz at a biased start can push the uniform range
+  # past a boundary, and that the density there is a barrier. True of the
+  # density. NOT true of the no-go probability, which takes log1p(-w) and
+  # returns NaN above one and a probability ABOVE ONE below zero. A NaN
+  # is not a barrier, it is the end of the tape.
+  # the NaN arrives with log1p(-w)'s own warning, which is the point
+  expect_warning(bad <- ddm_nogo_lprob(1.25, 1.0, 1.4, 1.05), "NaN")
+  expect_true(is.nan(bad))
+  expect_gt(ddm_nogo_lprob(1.25, 1.0, 1.4, -0.05), 0)
+  expect_true(is.finite(ddm_lpdf_lower_sv(1.25, 1.0, 1.4, 1.05, 0.5)))
+
+  # the clamp turns both into the boundary case they are
+  ndc <- gng_nodes("sz", c(sv = 11L, sz = 7L, st = 7L))
+  v <- ddm_nogo_lprob_var(1.5, 1.0, 1.4, 0.80, 0.25, 0, 0.50, 0, ndc)
+  expect_true(is.finite(v))
+  expect_lt(v, 0)
+  # It clamps the DEVIATION, so it is EXACTLY inert at a deviation of
+  # zero: the expression collapses to lo + (-lo). Clamping the value
+  # instead cost an ulp on every row and with it two exact identities
+  # this family is entitled to.
+  for (w in c(0.5, 0.45, 0.8, 0.999)) {
+    expect_identical(w + ddm_wclamp_dev(0, w), w)
+  }
+  # and it bites only where the range leaves the boundaries
+  expect_identical(0.5 + ddm_wclamp_dev(0.2, 0.5), 0.7)
+  expect_lt(0.8 + ddm_wclamp_dev(0.25, 0.8), 1)
+})
+
+test_that("the plain go/no-go family is untouched by any of this", {
+  skip_if_not_installed("RWiener")
+  # The no-variability path must still be the 0.3.0 path, bit for bit:
+  # the node sets are the one-node rules, the widths are zero, and a
+  # single node at the middle of a zero-width interval is an evaluation
+  # at the middle, exactly.
+  set.seed(1)
+  d <- wiener_gng_simulate(200L, mu = 1.0, bs = 1.4, ndt = 0.25,
+                           deadline = 1.5)
+  dp <- lapply(list(mu = 1.0, bs = 1.4, ndt = 0.25, bias = 0.45),
+               function(v) rep(v, nrow(d)))
+  at <- list(dec = d$responded)
+  plain <- gng_lpdf(d$rt, dp, at, 1.5)
+  ndc <- gng_nodes(character(0), c(sv = 15L, sz = 7L, st = 7L))
+  viaq <- ddm_nogo_lprob_var(1.5, dp$mu, dp$bs, dp$bias, dp$ndt,
+                             0, 0, 0, ndc)
+  nogo <- d$responded == 0
+  expect_identical(plain[nogo], viaq[nogo])
+})
+
+test_that("wiener_gng refuses variability it cannot read", {
+  expect_error(wiener_gng(variability = "sw"), "names the across-trial")
+  expect_error(wiener_gng(variability = "sw"), "^wiener_gng\\(\\)")
+  expect_error(wiener_gng(nogo_nodes = c(sv = 0)), "node counts")
+  expect_error(wiener_gng(nogo_nodes = c(bogus = 7)), "node counts")
+  expect_error(wiener_gng(nodes = c(sv = 7)), "node counts")
+})
+
+# ============================================== cens() and trunc() seams
+
+test_that("rdm scores a right-censored race as the product of survivals", {
+  set.seed(7)
+  N <- 400L
+  d <- rdm_simulate(N, v = c(3.0, 2.0, 1.2), A = 0.5, k = 0.5, ndt = 0.2)
+  cut <- stats::quantile(d$rt, 0.75)
+  d$cens <- as.integer(d$rt > cut)
+  d$obs <- pmin(d$rt, cut)
+  d$choice[d$cens == 1] <- 1L
+  fit <- frm(bf(obs | vint(choice) + cens(cens) ~ 1), family = rdm(3),
+             data = d)
+
+  # the same likelihood written out by hand at the fitted parameters
+  fe <- fixef(fit)
+  lk <- stats::family(fit)$links
+  dp <- list(v1 = exp(fe$v1[[1]]), v2 = exp(fe$v2[[1]]),
+             v3 = exp(fe$v3[[1]]), A = exp(fe$A[[1]]), k = exp(fe$k[[1]]),
+             ndt = lk$ndt$linkinv(fe$ndt[[1]]))
+  vp <- paste0("v", 1:3)
+  accs <- rdm_pars(dp, vp)
+  hand <- vapply(seq_len(N), function(i) {
+    if (d$cens[i] == 1) rdm_lccdf(d$obs[i], dp, vp)
+    else lba_race_lpdf(d$obs[i] - dp$ndt, d$choice[i], rdm_law, accs)
+  }, numeric(1))
+  expect_lt(abs(as.numeric(logLik(fit)) - sum(hand)) /
+              abs(as.numeric(logLik(fit))), 1e-12)
+
+  # the winner on a censored row is not read, and is EXACTLY not read
+  d2 <- d
+  d2$choice[d2$cens == 1] <- 3L
+  f2 <- frm(bf(obs | vint(choice) + cens(cens) ~ 1), family = rdm(3),
+            data = d2)
+  expect_identical(as.numeric(logLik(f2)), as.numeric(logLik(fit)))
+})
+
+test_that("rdm takes all four censoring codes and a truncation bound", {
+  set.seed(11)
+  N <- 300L
+  d <- rdm_simulate(N, v = c(3.0, 2.0), A = 0.5, k = 0.5, ndt = 0.2)
+  d$y2 <- d$rt + 0.05
+  d$code <- 0L
+  d$code[1:100] <- 2L
+  d$code[101:150] <- 1L
+  d$code[151:200] <- -1L
+  d$yy <- ifelse(d$code == 2L, pmax(d$rt - 0.05, 0.21), d$rt)
+  fit <- frm(bf(yy | vint(choice) + cens(code, y2) ~ 1), family = rdm(2),
+             data = d)
+  fe <- fixef(fit)
+  lk <- stats::family(fit)$links
+  dp <- list(v1 = exp(fe$v1[[1]]), v2 = exp(fe$v2[[1]]),
+             A = exp(fe$A[[1]]), k = exp(fe$k[[1]]),
+             ndt = lk$ndt$linkinv(fe$ndt[[1]]))
+  vp <- c("v1", "v2")
+  accs <- rdm_pars(dp, vp)
+  Fq <- function(q) 1 - exp(rdm_lccdf(q, dp, vp))
+  hand <- vapply(seq_len(N), function(i) {
+    if (d$code[i] == 0L) {
+      lba_race_lpdf(d$yy[i] - dp$ndt, d$choice[i], rdm_law, accs)
+    } else if (d$code[i] == 1L) {
+      rdm_lccdf(d$yy[i], dp, vp)
+    } else if (d$code[i] == -1L) {
+      log(Fq(d$yy[i]))
+    } else {
+      log(Fq(d$y2[i]) - Fq(d$yy[i]))
+    }
+  }, numeric(1))
+  expect_lt(abs(as.numeric(logLik(fit)) - sum(hand)) /
+              abs(as.numeric(logLik(fit))), 1e-12)
+})
+
+test_that("a right-censored go/no-go trial IS a no-go trial", {
+  skip_if_not_installed("RWiener")
+  # Not a tolerance either. A trial whose clock stopped before it
+  # responded and a no-go trial are the same statement about the same
+  # process, so the two spellings are the same arithmetic.
+  set.seed(9)
+  td <- 1.5
+  g <- wiener_gng_simulate(400L, mu = 1.0, bs = 1.4, ndt = 0.25,
+                           deadline = td)
+  fa <- frm(bf(rt | dec(responded) ~ 1, bias = 0.5),
+            family = wiener_gng(deadline = td), data = g)
+  g$cens <- as.integer(g$responded == 0)
+  g$allgo <- 1L
+  fb <- frm(bf(rt | dec(allgo) + cens(cens) ~ 1, bias = 0.5),
+            family = wiener_gng(deadline = td), data = g)
+  expect_identical(as.numeric(logLik(fb)), as.numeric(logLik(fa)))
+})
+
+test_that("go/no-go refuses the censoring it cannot mean", {
+  skip_if_not_installed("RWiener")
+  # The likelihood is a defective density plus a point mass. A window
+  # normalizer on the response scale renormalizes the density and says
+  # nothing about the mass, so lcdf is deliberately absent and frmtmb
+  # refuses the rest by name.
+  set.seed(9)
+  td <- 1.5
+  g <- wiener_gng_simulate(200L, mu = 1.0, bs = 1.4, ndt = 0.25,
+                           deadline = td)
+  g$allgo <- 1L
+  g$cl <- ifelse(g$responded == 0, -1L, 0L)
+  expect_error(frm(bf(rt | dec(allgo) + cens(cl) ~ 1, bias = 0.5),
+                   family = wiener_gng(deadline = td), data = g),
+               "need a family with a CDF")
+  expect_error(frm(bf(rt | dec(allgo) + trunc(lb = 0.2) ~ 1, bias = 0.5),
+                   family = wiener_gng(deadline = td), data = g),
+               "need a family with a CDF")
+  expect_null(wiener_gng(deadline = td)[["lcdf"]])
+  expect_true(is.function(wiener_gng(deadline = td)[["lccdf"]]))
+  expect_true(is.function(rdm(2)[["lcdf"]]))
+  expect_true(is.function(rdm(2)[["lccdf"]]))
+})
+
+test_that("the image sum's shortened truncation changed nothing", {
+  # ddm_cdf_ks went from 12 to 4. The blend gives the small-time route a
+  # non-zero weight only below u = 0.197, and at that u the |j| = 2 term
+  # is already exp(-2 * 2 * 2.5 / 0.197), which is 9e-23. Measured over
+  # this grid every truncation from 2 to 12 is bit-identical.
+  gr <- expand.grid(t = c(0.05, 0.2, 0.6, 1.5, 4, 8, 15),
+                    v = c(-2, -0.5, 0.5, 1, 2, 5),
+                    a = c(0.8, 1.4, 2.5, 4),
+                    w = c(0.25, 0.45, 0.5, 0.75, 0.9))
+  blend <- function(K) {
+    small <- 1 - ddm_lower_cdf_small(gr$t, -gr$v, gr$a, 1 - gr$w, K = K)
+    large <- ddm_nogo_large(gr$t, gr$v, gr$a, gr$w)
+    u <- ddm_floor(gr$t / (gr$a * gr$a), ddm_u_floor)
+    lam <- 0.5 * (1 + tanh((log(u) - log(ddm_cdf_u0)) / ddm_cdf_us))
+    (1 - lam) * log(ddm_floor(small, ddm_share_floor)) +
+      lam * log(ddm_floor(large, ddm_share_floor))
+  }
+  base <- blend(12L)
+  for (K in c(8L, 6L, 4L, 3L, 2L)) expect_identical(blend(K), base)
+  expect_identical(ddm_cdf_ks, 4L)
 })

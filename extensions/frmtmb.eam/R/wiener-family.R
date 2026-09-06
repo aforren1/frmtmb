@@ -225,13 +225,17 @@ wiener <- function(max_ndt = NULL, variability = character(0),
 #' Canonical order rather than the user's, so that two spellings of the
 #' same model give the same parameter vector and the same summary.
 #'
+#' `what` carries the family name into the refusal, because [wiener()]
+#' and [wiener_gng()] offer the same three parameters under the same
+#' argument and a user should be told which of the two refused.
+#'
 #' @noRd
-ddm_check_variability <- function(variability) {
+ddm_check_variability <- function(variability, what = "wiener") {
   known <- c("sv", "sz", "st")
   if (is.null(variability)) variability <- character(0)
   if (!is.character(variability) || anyNA(variability) ||
       !all(variability %in% known) || anyDuplicated(variability)) {
-    stop("wiener(): `variability` names the across-trial variability ",
+    stop(what, "(): `variability` names the across-trial variability ",
          "parameters to estimate, as a character vector with no ",
          "repeats, drawn from \"sv\" (drift rate), \"sz\" (start ",
          "point) and \"st\" (non-decision time).", call. = FALSE)
@@ -372,6 +376,10 @@ ddm_family <- function(cfg, ub, delta) {
     links = links,
     lpdf = lpdf,
     valid_y = function(y, aterms) ddm_check_response(y, aterms),
+    # The boundary a trial ended at reaches the density as dec() or as
+    # vint1, and either will do, so the requirement is declared as the
+    # choice it is rather than checked by hand after the frame is built.
+    required_aterms = list(c("dec", "vint1")),
     family_finalize = function(fam, y, aterms) {
       ddm_finalize(cfg, y)
     },
@@ -441,12 +449,12 @@ ddm_indicator <- function(aterms) {
 
 #' Response and decision-indicator validation.
 #'
-#' The missing-indicator refusal is still written out here rather than
-#' declared through `frmtmb_family(required_aterms =)`, and that is the
-#' one hand-rolled check left in this package. `required_aterms` names
-#' the terms a density needs ALL of; this family needs EITHER of two,
-#' because `dec()` is the spelling to use and `vint()` is the spelling
-#' that already works. A declaration cannot say "either".
+#' The missing-indicator refusal is NOT here. It is declared, as
+#' `required_aterms = list(c("dec", "vint1"))`, which frmtmb reads as
+#' "either of these two spellings will do" and enforces during frame
+#' assembly, before the frame is built rather than after. What is left
+#' here is the part a declaration cannot express: whether the values in
+#' the term are the two a boundary indicator may take.
 #'
 #' @noRd
 ddm_check_response <- function(y, aterms) {
@@ -455,19 +463,6 @@ ddm_check_response <- function(y, aterms) {
          "response time.", call. = FALSE)
   }
   up <- ddm_indicator(aterms)
-  if (is.null(up)) {
-    # An absent addition term reaches the density as NULL, where the
-    # arithmetic silently collapses to a zero-length log-likelihood and
-    # the fit "succeeds".
-    stop("wiener: the decision indicator is missing. Which boundary a ",
-         "trial ended at is data, and it reaches the family through ",
-         "dec(), as it does in brms:\n",
-         "    frm(bf(rt | dec(decision) ~ x), family = wiener(), ...)\n",
-         "where `decision` is a factor whose second level is the upper ",
-         "boundary, or a 0/1 column. vint(upper) carries the same ",
-         "thing as a plain 0/1 integer and also works.",
-         call. = FALSE)
-  }
   if (any(!is.finite(up)) || any(up != 0 & up != 1)) {
     stop("wiener: the decision indicator must be 0 (lower boundary) ",
          "or 1 (upper boundary). dec() coerces a factor or a character ",

@@ -1014,12 +1014,15 @@ gddm <- function(drift = gddm_drift_constant(),
          "the model formula.", call. = FALSE)
   }
   dpnames <- names(dp)
-  # Only the covariates can be declared. Neither the boundary nor the
-  # condition can: the boundary arrives as dec() OR vint1, and the
-  # condition's own slot moves with that choice, and a declaration
-  # cannot say "either". Both are refused by hand in gd_check_response().
-  req <- unique(unlist(lapply(terms, function(z) z$aterms)))
-  if (is.null(req)) req <- character(0)
+  # The boundary CAN be declared, as the choice it is: it arrives as
+  # dec() or as vint1, and frmtmb reads a length-two element as "either
+  # of these". The condition still cannot, because which slot carries it
+  # moves with that choice - alongside dec() it is vint1, and inside
+  # vint(upper, cond) it is vint2 - so the requirement is a disjunction
+  # of conjunctions and no declaration says that. It stays hand-rolled
+  # in gd_check_response(), and it says why there.
+  req <- c(list(c("dec", "vint1")),
+           as.list(unique(unlist(lapply(terms, function(z) z$aterms)))))
 
   fam <- frmtmb::custom_family(
     "gddm",
@@ -1082,23 +1085,6 @@ gd_check_response <- function(y, aterms, comp) {
   }
   ix <- gd_indicator(aterms)
   up <- ix[["up"]]
-  if (is.null(up)) {
-    # `required_aterms` names the terms a density needs ALL of, and this
-    # family needs EITHER of two spellings for the boundary, so the
-    # refusal is written out here instead. wiener() carries the same
-    # hand-rolled check for the same reason.
-    stop("gddm: the decision indicator is missing. Which boundary a ",
-         "trial ended at is data, and it reaches the family through ",
-         "dec(), as it does in brms:
-",
-         "    frm(bf(rt | dec(response) + vint(cond) ~ x), ",
-         "family = gddm(), ...)
-",
-         "where `response` is a factor whose second level is the upper ",
-         "boundary, or a 0/1 column. vint(upper, cond) carries the ",
-         "same pair as plain integers and also works, boundary first ",
-         "and condition second.", call. = FALSE)
-  }
   if (any(!is.finite(up))) {
     stop("gddm: the decision indicator holds a missing or infinite ",
          "value. Which boundary a trial ended at is data and has to be ",

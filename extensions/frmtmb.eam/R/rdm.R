@@ -129,6 +129,37 @@
 #' indicator naming one of two boundaries, and a race of `n`
 #' accumulators needs `1..n`.
 #'
+#' @section Censoring and truncation:
+#' A race has a survivor function in closed form, so `cens()` and
+#' `trunc()` both work.
+#'
+#' The reason is that the race is over as soon as ANY accumulator
+#' finishes, so the probability that the response time is past `t` is
+#' the probability that none of them has:
+#'
+#' \deqn{S(t) = \prod_i S_i(t),}
+#'
+#' one factor per accumulator, each the start-point integral the
+#' likelihood already forms for the losers of an observed trial. The
+#' family declares that product as its log survivor function and its
+#' complement as its distribution function, so nothing new is derived
+#' for censoring: it is the same `lsurv` the density's loser terms use,
+#' multiplied over all `n` accumulators instead of over `n - 1` of them.
+#'
+#' ```
+#' frm(bf(rt | vint(choice) + cens(censored) ~ cond), family = rdm(3),
+#'     data = dat)
+#' ```
+#'
+#' A censored trial has no winner to report, because the race had not
+#' finished when the clock ran out. `vint()` is still required, since a
+#' declaration cannot be conditional on a censoring code, so give such a
+#' row any accumulator index: the likelihood does not read it. The
+#' distribution function is written as `-expm1(log S)`, which keeps its
+#' digits where `1 - S` would lose them, and the log survivor goes to
+#' `frmtmb` on the LOG scale, so a right-censored row stays exact past
+#' the point where `log(1 - F)` is a constant with a zero gradient.
+#'
 #' @section Accuracy:
 #' Every piece is written in the form that keeps its digits rather than
 #' the form the paper prints, and the reasons are [lba()]'s reasons.
@@ -218,6 +249,13 @@ rdm <- function(n, max_ndt = NULL) {
                     rdm_law, rdm_pars(dpars, vp))
     },
     valid_y = function(y, aterms) rdm_check_response(y, aterms, n),
+    lccdf = function(q, dpars, aterms) rdm_lccdf(q, dpars, vp),
+    # -expm1 rather than 1 - exp: the survivor of a race is within a
+    # rounding of one for any `q` a fit spends time near, and the
+    # subtractive form returns exactly zero there.
+    lcdf = function(q, dpars, aterms) {
+      ddm_floor(-expm1(rdm_lccdf(q, dpars, vp)), 1e-300)
+    },
     family_finalize = function(fam, y, aterms) {
       ddm_ndt_finalize(fam, y, max_ndt, "rdm")
     },
@@ -314,6 +352,32 @@ rdm_pars <- function(dpars, vp) {
                      k = dpars[["k"]])
   }
   out
+}
+
+#' Log probability that the race is still running at time `q`.
+#'
+#' The whole censoring seam, and it is three lines because the race
+#' already computes what it needs: the trial is unfinished exactly when
+#' every accumulator is, the accumulators are independent, and one
+#' accumulator's survival is the start-point integral `rdm_law$lsurv()`
+#' forms for every loser of every observed trial. So the log survivor of
+#' the race is the sum of the same logs over ALL `n` accumulators rather
+#' than over the `n - 1` that lost.
+#'
+#' `q` is a response time and the decision time is floored the way
+#' `lba_race_lpdf()` floors it, for the same reason: at or below the
+#' non-decision time the standardized positions change sign and the law
+#' is meaningless rather than small. The floored value returns a log
+#' survivor of zero, which is the right answer there - nothing can have
+#' finished before the non-decision time.
+#'
+#' @noRd
+rdm_lccdf <- function(q, dpars, vp) {
+  t <- ddm_floor(q - dpars[["ndt"]], 1e-12)
+  accs <- rdm_pars(dpars, vp)
+  ls <- 0 * t
+  for (j in seq_along(accs)) ls <- ls + rdm_law$lsurv(t, accs[[j]])
+  ls
 }
 
 #' Response and choice validation.
