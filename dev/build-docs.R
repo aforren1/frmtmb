@@ -1,11 +1,11 @@
-# Build the frmtmb documentation site and the five extension subsites.
+# Build the frmtmb documentation site and the six extension subsites.
 #
-#   Rscript dev/build-docs.R                 # all six, core first
+#   Rscript dev/build-docs.R                 # all seven, core first
 #   Rscript dev/build-docs.R frmtmb.sample   # one package
 #
 # Run it from the repository root. The core site lands in docs/ and
 # each extension lands in docs/<package>/, so one GitHub Pages
-# deployment serves all six. There is no site workflow in
+# deployment serves all seven. There is no site workflow in
 # .github/workflows: docs/ is checked in, and the site is built here
 # and committed, which is the practice this repository already
 # follows.
@@ -18,7 +18,7 @@
 # the topic up in the help index and learn which .Rd file holds it;
 # and the address of that package's site. So every package is
 # installed before any site is built, and a stale install of one
-# package silently degrades the links in the other five.
+# package silently degrades the links in the other six.
 #
 # WHY THE SITE METADATA IS WRITTEN BY HAND. downlit reads the site
 # address from `system.file("pkgdown.yml", package = )` and, failing
@@ -32,10 +32,10 @@
 #
 # COST. A full run takes about eleven minutes on the machine this was
 # written on, of which the core site is about eight: every vignette in
-# every package is rebuilt, and the core vignettes fit models. The six
+# every package is rebuilt, and the core vignettes fit models. The seven
 # installs are about half a minute of that. Name one package on the
 # command line to rebuild only its site; the installs still run,
-# because the links in that one site point at the other five.
+# because the links in that one site point at the other six.
 
 PKGS <- c(
   frmtmb          = ".",
@@ -52,7 +52,7 @@ if (!file.exists("DESCRIPTION") ||
   stop("run this from the repository root")
 }
 
-# A throwaway library by default, because this script installs all six
+# A throwaway library by default, because this script installs all seven
 # packages and the working library is where the versions being developed
 # live. Point FRMTMB_DOCS_LIB at a persistent directory to skip
 # reinstalling on every run; the installs take well under a minute
@@ -191,7 +191,7 @@ for (pkg in names(PKGS)) {
 }
 
 installed <- Sys.time()
-message(sprintf("--- installed six packages in %.1f min",
+message(sprintf("--- installed seven packages in %.1f min",
                 as.numeric(difftime(installed, started, units = "mins"))))
 
 for (pkg in wanted) {

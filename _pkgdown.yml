@@ -17,10 +17,10 @@ navbar:
       menu:
       - text: frmtmb.eam (evidence accumulation models)
         href: https://aforren1.github.io/frmtmb/frmtmb.eam/
-      - text: frmtmb.learn (reinforcement-learning families)
-        href: https://aforren1.github.io/frmtmb/frmtmb.learn/
       - text: frmtmb.latent (hidden Markov and latent class)
         href: https://aforren1.github.io/frmtmb/frmtmb.latent/
+      - text: frmtmb.learn (reinforcement-learning families)
+        href: https://aforren1.github.io/frmtmb/frmtmb.learn/
       - text: frmtmb.ode (differential equation dynamics)
         href: https://aforren1.github.io/frmtmb/frmtmb.ode/
       - text: frmtmb.sample (NUTS sampling and posteriors)
