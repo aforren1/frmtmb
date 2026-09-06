@@ -229,6 +229,117 @@ test_that("predict() at newdata past the knot span says so", {
   expect_no_warning(fitted(fit))
 })
 
+test_that("frm_lp_basis() at newdata past the knot span says so, once", {
+  skip_on_cran()
+  set.seed(7077)
+  n_id <- 30
+  d <- expand.grid(t = seq(0, 1, length.out = 8), id = factor(1:n_id))
+  sh <- rnorm(n_id, 0, 0.05)[d$id]
+  d$y <- 2 + sin(2 * pi * (d$t + sh)) + rnorm(nrow(d), 0, 0.15)
+  fit <- suppressWarnings(
+    frm(bf(y ~ lev + ps(t + shift, k = 8, pad = 0.3),
+           lev ~ 1, shift ~ 0 + (1 | id), nl = TRUE), d, gaussian()))
+  span <- fit$frame$linpreds[["y.mu"]]$ps_terms[[1]]$knot_range
+
+  nd_in <- data.frame(t = seq(0.1, 0.9, length.out = 9),
+                      id = factor(1, levels = levels(d$id)))
+  nd_out <- data.frame(t = c(0.5, span[2] + 0.5, span[2] + 2),
+                       id = factor(1, levels = levels(d$id)))
+
+  # in sample and inside the span, the two silent cases predict() has
+  expect_no_warning(frm_lp_basis(fit))
+  expect_no_warning(frm_lp_basis(fit, newdata = nd_in, re.form = NA))
+
+  # the defect the spline-core review left: the seam the curve functions
+  # read was silent where predict() warned
+  expect_warning(frm_lp_basis(fit, newdata = nd_out, re.form = NA),
+                 "outside the frozen knot span")
+
+  # ONCE, not once per row and not once per coefficient. A is 3 x 10
+  # here, and a tape build is free to re-enter the closure.
+  ws <- character(0)
+  lb <- withCallingHandlers(
+    frm_lp_basis(fit, newdata = nd_out, re.form = NA),
+    warning = function(w) {
+      ws <<- c(ws, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+  expect_length(ws, 1L)
+  expect_gt(ncol(lb$A), 1L)
+
+  # and it is the SAME sentence predict() raises, not a paraphrase
+  wp <- tryCatch(predict(fit, newdata = nd_out, re.form = NA),
+                 warning = function(e) conditionMessage(e))
+  expect_identical(ws[[1]], wp)
+
+  # the values did not move
+  expect_equal(lb$eta,
+               unname(suppressWarnings(predict(fit, newdata = nd_out,
+                                               re.form = NA))),
+               tolerance = 0)
+
+  # this model is the case naive arming could not do at all: `shift` is
+  # a random effect, so `t + shift` reaches the check as an advector
+  # while the body is taped, and a comparison raises there
+  expect_no_error(frm_lp_basis(fit, newdata = nd_in, re.form = NULL))
+})
+
+test_that("each ps() term in one body gets its own span warning", {
+  skip_on_cran()
+  set.seed(7078)
+  n <- 200
+  d <- data.frame(t = sort(runif(n)), u = runif(n))
+  d$y <- 2 + sin(2 * pi * d$t) + 0.5 * d$u + rnorm(n, 0, 0.2)
+  fit <- frm(bf(y ~ lev + ps(t, k = 8, pad = 0.2) + ps(u, k = 8, pad = 0.2),
+                lev ~ 1, nl = TRUE), d, gaussian())
+  nd <- data.frame(t = c(3, 4, 5), u = c(3, 4, 5))
+
+  grab <- function(e) {
+    ws <- character(0)
+    withCallingHandlers(e, warning = function(w) {
+      ws <<- c(ws, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+    ws
+  }
+  ws <- grab(frm_lp_basis(fit, newdata = nd))
+  expect_length(ws, 2L)
+  # one per TERM, each naming its own: two terms sharing one message
+  # would tell the reader which span to widen only by luck
+  expect_true(any(grepl("ps(t, k = 8, pad = 0.2)", ws, fixed = TRUE)))
+  expect_true(any(grepl("ps(u, k = 8, pad = 0.2)", ws, fixed = TRUE)))
+  expect_identical(sort(ws), sort(grab(predict(fit, newdata = nd))))
+})
+
+test_that("the span check stays off the tape and fires once per term", {
+  # `is.numeric()` is TRUE for an RTMB advector, so it never was the
+  # guard the comment beside it claimed; `inherits(x, \"advector\")` is.
+  # Before the fix this raised "Comparison is generally unsafe for AD
+  # types" from inside frm_lp_basis() on any ps() argument that names a
+  # nonlinear parameter.
+  pt <- list(knot_range = c(0, 1), expr = quote(t), label = "ps(t)")
+  expect_no_error(RTMB::MakeTape(function(x) {
+    frmtmb:::ps_span_warning(x, pt)
+    sum(x)
+  }, c(5, 6)))
+
+  # off the tape the same values do warn, and the warning is CLASSED, so
+  # a consumer catches this one condition without matching on its text
+  w <- tryCatch(frmtmb:::ps_span_warning(c(5, 6), pt),
+                warning = function(e) e)
+  expect_s3_class(w, "frmtmb_ps_span_warning")
+  expect_match(conditionMessage(w), "2 of 2 predicted values of t")
+
+  # a collector is keyed on the term, so however many times a tape build
+  # re-enters the closure there is one entry and one warning
+  e <- new.env(parent = emptyenv())
+  expect_no_warning(frmtmb:::ps_span_warning(c(5, 6), pt, e))
+  expect_no_warning(frmtmb:::ps_span_warning(c(7, 8, 9), pt, e))
+  expect_length(ls(e), 1L)
+  expect_warning(frmtmb:::ps_span_flush(e), "3 of 3 predicted values of t")
+  expect_no_warning(frmtmb:::ps_span_flush(FALSE))
+})
+
 test_that("a ps() fit reports the knot span it left", {
   skip_on_cran()
   set.seed(7075)

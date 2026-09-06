@@ -257,6 +257,19 @@ ps_coefs <- function(pt, b0, u) {
 #' there receives its argument already evaluated as an advector and
 #' returns one.
 #'
+#' `check` is `FALSE`, `TRUE`, or a collector environment. `predict()`
+#' passes `TRUE` and the closure warns where it stands, which is right
+#' there because it evaluates the body exactly once. `frm_lp_basis()`
+#' passes an environment, and the reason is measured rather than
+#' defensive: that route enters this closure TWICE per term, once for
+#' its own off-tape span pass (`R/predict.R`, before `MakeTape()`) and
+#' once for the tape build. Warning in place would double-fire on every
+#' call. The collector keys on the term, so the second pass overwrites
+#' rather than repeats; see `ps_span_flush()`.
+#'
+#' RTMB itself enters once, so a reader chasing a double-fire should
+#' look at the off-tape pass and not at the tape.
+#'
 #' @noRd
 ps_env <- function(lp, pars, bvec, check = FALSE) {
   out <- list()
@@ -274,7 +287,7 @@ ps_env <- function(lp, pars, bvec, check = FALSE) {
       term <- pt
       chk <- check
       function(x) {
-        if (chk) ps_span_warning(x, term)
+        if (!isFALSE(chk)) ps_span_warning(x, term, chk)
         ps_value(x, knots, ord, W, cff)
       }
     })
@@ -541,30 +554,82 @@ check_ps_fit <- function(frame, REML, quadrature, control) {
 #' intercept is exactly the shape a user will not question.
 #'
 #' `ps_coverage_warning()` covers the FITTED rows at fit end. This is
-#' the same statement at `predict(newdata = )`, which is the other door.
-#' It is placed inside the closure rather than beside it because the
-#' closure is the only place the evaluated argument exists: the
-#' expression may name nonlinear parameters, so the value is not known
-#' until the body has been walked. It runs on the numeric post-fit path
-#' only; `is.numeric()` keeps it off the tape, where a comparison is
-#' unsafe and a warning is meaningless.
+#' the same statement at `predict(newdata = )` and at
+#' `frm_lp_basis(newdata = )`, the two doors that evaluate the curve
+#' somewhere the fit never saw. It is placed inside the closure rather
+#' than beside it because the closure is the only place the evaluated
+#' argument exists: the expression may name nonlinear parameters, so the
+#' value is not known until the body has been walked.
+#'
+#' `inherits(x, "advector")`, not `is.numeric()`, is what keeps it off
+#' the tape. `is.numeric()` is TRUE for an advector, so it guards
+#' nothing; it went unnoticed while `predict()`'s nonlinear branch was
+#' the only armed caller, because that branch evaluates the body off the
+#' tape. `frm_lp_basis()` tapes the body, and a `ps()` term whose
+#' argument names a nonlinear parameter reaches this function as an
+#' advector there, where `<` raises rather than answers.
+#'
+#' `sink` is `TRUE` to warn now, or an environment to collect into. See
+#' `ps_span_flush()` for why a taped caller collects.
 #'
 #' @noRd
-ps_span_warning <- function(x, pt) {
-  if (!is.numeric(x) || !length(x)) return(invisible(NULL))
+ps_span_warning <- function(x, pt, sink = TRUE) {
+  if (inherits(x, "advector") || !is.numeric(x) || !length(x)) {
+    return(invisible(NULL))
+  }
   lo <- pt[["knot_range"]][1L]
   hi <- pt[["knot_range"]][2L]
   out <- sum(x < lo | x > hi, na.rm = TRUE)
   if (!out) return(invisible(NULL))
-  warning(out, " of ", length(x), " predicted values of ",
-          deparse1(pt[["expr"]]), " lie outside the frozen knot span of ",
-          pt[["label"]], " [", format(lo, digits = 4), ", ",
-          format(hi, digits = 4), "]. The basis is a partial sum there ",
-          "and exactly zero past the outer knot, so these are not ",
-          "extrapolations of the fitted curve: the curve decays and the ",
-          "prediction bends to whatever the rest of the body gives. ",
-          "Refit with a larger pad = to cover the range you predict on",
-          call. = FALSE)
+  if (is.environment(sink)) {
+    # keyed on the term, so a tape build that re-enters the closure
+    # leaves one entry rather than one per pass
+    assign(pt[["label"]], list(out, length(x), pt), envir = sink)
+    return(invisible(NULL))
+  }
+  ps_span_signal(out, length(x), pt)
+}
+
+#' One warning per collected `ps()` term, raised by the caller that
+#' armed the collector rather than by the closure.
+#'
+#' A caller that tapes the body cannot warn from inside it: the number
+#' of R-level passes a tape build makes is RTMB's business, and today it
+#' is one, so warning in place would be right by accident. Collecting
+#' and flushing makes the count one per term per call by construction.
+#'
+#' @noRd
+ps_span_flush <- function(sink) {
+  if (!is.environment(sink)) return(invisible(NULL))
+  for (nm in ls(sink, all.names = TRUE, sorted = TRUE)) {
+    do.call(ps_span_signal, get(nm, envir = sink))
+  }
+  invisible(NULL)
+}
+
+#' The one place the span message is written. It is assembled here
+#' rather than by the caller so that the template stays a literal
+#' argument of the condition constructor, which is where
+#' `test-message-uniqueness.R` reads templates from.
+#'
+#' The warning carries a class, so a consumer can catch this one warning
+#' without matching on its text. `frmtmb.spline`'s curve functions do
+#' exactly that: they surface it once under their own name, and refuse a
+#' feature search whose bracket leaves the span.
+#'
+#' @noRd
+ps_span_signal <- function(out, n, pt) {
+  warning(warningCondition(paste0(
+    out, " of ", n, " predicted values of ",
+    deparse1(pt[["expr"]]), " lie outside the frozen knot span of ",
+    pt[["label"]], " [", format(pt[["knot_range"]][1L], digits = 4), ", ",
+    format(pt[["knot_range"]][2L], digits = 4),
+    "]. The basis is a partial sum there ",
+    "and exactly zero past the outer knot, so these are not ",
+    "extrapolations of the fitted curve: the curve decays and the ",
+    "prediction bends to whatever the rest of the body gives. ",
+    "Refit with a larger pad = to cover the range you predict on"),
+    class = "frmtmb_ps_span_warning"))
   invisible(NULL)
 }
 

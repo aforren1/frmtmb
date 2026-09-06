@@ -79,6 +79,22 @@ and its covariance is \verb{D V D'}, which is exact for the differenced
 basis; the only approximation is the difference itself, and \code{eps}
 controls that.
 }
+\section{Past a \code{ps()} knot span}{
+
+Warned once per \code{\link[frmtmb:ps]{frmtmb::ps()}} term per call, as \code{\link[=frm_curve]{frm_curve()}}'s
+section describes, and counted over the grid you passed rather than
+over the three-point stencil the design is built on.
+
+Past the outer knot the basis is exactly zero, so the DERIVATIVE
+design is exactly zero and those rows carry a standard error of
+exactly zero. They are covered with probability one, so they leave
+the max-deviation simulation instead of standardizing a zero
+deviation by a zero divisor; \code{simultaneous = TRUE} therefore still
+returns a band, computed over the rows that carry uncertainty. A grid
+on which EVERY row is past the outer knot has no such row, and the
+call refuses rather than returning a band with no content.
+}
+
 \examples{
 set.seed(1)
 dd <- data.frame(x = sort(runif(200)))

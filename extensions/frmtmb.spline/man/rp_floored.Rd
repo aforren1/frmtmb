@@ -20,7 +20,7 @@ OLD probability-scale arithmetic passed 1e-8 of error; it is kept
 as the threshold so that the two versions report the same rows.}
 }
 \value{
-A list with \code{n_censored_floored}, \code{max_nlogS}, \code{threshold},
+A list with \code{n_censored_deep}, \code{max_nlogS}, \code{threshold},
 \code{n_nonmonotone}, \code{scale} and \code{n_obs}, returned invisibly when
 nothing was floored. The offending row indices are the \code{"rows"}
 attribute, a list with elements \code{censored} and \code{nonmonotone}.

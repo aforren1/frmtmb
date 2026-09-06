@@ -49,7 +49,7 @@ test_that("a censored row far past the old floor is now scored exactly", {
                 family = royston_parmar(df = 3), data = d))
 
   r <- rp_floored(fit, action = "report")
-  expect_equal(r$n_censored_floored, 1L)
+  expect_equal(r$n_censored_deep, 1L)
   expect_identical(r$scale, "hazard")
   expect_equal(r$threshold, 19.2)
   expect_equal(attr(r, "rows")$censored, which(d$censored == 1L))
@@ -74,6 +74,31 @@ test_that("the censored count reports and no longer refuses", {
   # monotonicity floor still refuses.
   expect_no_error(rp_floored(fit))
   expect_equal(rp_floored(fit, action = "report")$n_nonmonotone, 0L)
+})
+
+test_that("fitted() still refuses, and the count is named for what it is", {
+  d <- sp_far_censored()
+  fit <- suppressWarnings(
+    frmtmb::frm(frmtmb::bf(t | cens(censored) ~ grp),
+                family = royston_parmar(df = 3), data = d))
+
+  # the refusal is by DESIGN and is unrelated to the floors: a survival
+  # time has no mean on the response scale here, and mu is a spline
+  # coefficient rather than a fitted value. An exact likelihood does not
+  # give the model a mean it never had.
+  expect_error(stats::fitted(fit), "no mean on the response scale")
+  expect_error(stats::predict(fit, type = "response"),
+               "no mean on the response scale")
+
+  r <- rp_floored(fit, action = "report")
+  # the field counts DEEP censored rows, not floored ones. There is one
+  # here, at -log S = 55.73, and it is scored exactly: naming it
+  # "floored" would say the opposite of what the lccdf slot bought.
+  expect_named(r, c("n_censored_deep", "max_nlogS", "threshold",
+                    "n_nonmonotone", "scale", "n_obs"))
+  expect_equal(r$n_censored_deep, 1L)
+  expect_equal(r$n_nonmonotone, 0L)
+  expect_no_error(rp_floored(fit))
 })
 
 test_that("the family scores log S exactly on all three scales", {
@@ -153,7 +178,7 @@ test_that("an ordinary censored fit passes and reports its own reach", {
   fit <- frmtmb::frm(frmtmb::bf(recyrs | cens(censored) ~ group),
                      family = royston_parmar(df = 2), data = bc)
   r <- rp_floored(fit)                      # errors if non-monotone
-  expect_equal(r$n_censored_floored, 0L)
+  expect_equal(r$n_censored_deep, 0L)
   expect_equal(r$n_nonmonotone, 0L)
   # the reach: the largest -log S on any of the 387 censored rows, an
   # order of magnitude below the 19.2 where accuracy starts to go

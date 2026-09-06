@@ -1,3 +1,76 @@
+# frmtmb.spline (development version)
+
+* The three curve functions say when the grid leaves a `ps()` knot
+  span. They are the doors a user actually draws a curve through, and
+  they were the ones that said nothing useful: `frm_curve()` and
+  `frm_curve_deriv()` read the curve through `frm_lp_basis()`, which
+  did not raise it at all, while `frm_curve_feature()` reached it
+  through `predict()`, which did, ELEVEN times on one call. The first
+  two now warn once, with the span in the message and under the name of
+  the function that was called. The third refuses instead, below.
+
+* The span surfacing needs the frmtmb this round ships, not the 0.52.0
+  the `Depends:` floor names today. It is driven by the
+  `frmtmb_ps_span_warning` condition class, which is new in core this
+  round; against a released frmtmb 0.52.0 the class is never raised, so
+  `frm_curve()` and `frm_curve_deriv()` fall silent again and
+  `frm_curve_feature()` stops refusing, with nothing to say so. The
+  floor rises with core's version at consolidation.
+
+* FIX: `frm_curve_deriv()` past a `ps()` knot span works on its own
+  DEFAULT arguments. It warned and then died in `quantile.default()`
+  with "missing values and NaN's not allowed", naming neither the span
+  nor the function. Past the outer knot the derivative design is exactly
+  zero, so those rows carry a standard error of exactly zero, and the
+  max-deviation simulation standardized their (exactly zero) deviation
+  by it. Such a point is covered with probability one and cannot be the
+  argmax, so it now leaves the maximization; the band is computed over
+  the rows that carry uncertainty and the zero rows get a zero-width
+  one. A grid on which EVERY row is past the outer knot refuses by name
+  instead. Dropping nothing is bit-identical to the old arithmetic, so
+  an ordinary grid is unaffected.
+
+* FIX: a grid laid exactly on the knot span is inside it. The span was
+  checked on the widened difference stencil, which reaches a millionth
+  of the grid's range past both ends, so a grid ending on a knot drew a
+  warning from `frm_curve_deriv()` and a REFUSAL from
+  `frm_curve_feature()`, and narrowing the grid to the span, which is
+  what the refusal tells the user to do, reproduced the refusal. Both
+  now re-ask on the grid that was passed, and only when the widened call
+  reported something, so an ordinary call pays nothing. The
+  `frm_curve_deriv()` warning counts grid rows rather than stencil rows
+  as a result.
+
+* BEHAVIOR CHANGE: `frm_curve_feature()` REFUSES a search whose bracket
+  leaves the span, where it used to warn after the fact. A band drawn
+  past the span is visible on the page; a peak or a crossing located
+  past it leaves the function as a number with a standard error beside
+  it and nothing to say which curve it came off, because the decaying
+  partial sum has peaks and crossings of its own. The bracket is
+  checked at the grid scan, before any root is refined, and again on
+  the difference stencil at the located roots. Narrow `newdata` to the
+  span, or refit with a larger `pad =`.
+
+* BEHAVIOR CHANGE: `rp_floored()` returns `n_censored_deep` where it
+  returned `n_censored_floored`. Nothing about the count changed; the
+  name did. Since 0.2.0 the censored term is scored exactly through
+  `lccdf` and no row past the threshold is floored, so a field that
+  says "floored" reports the opposite of what the slot bought. On the
+  review's 600-subject design the count is 1, at `-log S` of 55.73, and
+  that row's contribution is -55.7302136 exactly where the old
+  probability-scale form gave `-Inf` and the floor gave -35.127363.
+
+* The package documentation no longer describes seams core has since
+  supplied. `?frmtmb.spline-package` said `fit$cache$Vjoint` was an
+  internal this package reaches into, which has not been true since
+  0.2.0, and named "an `lccdf` slot, or a post-fit family hook" as
+  fixes core owed, both of which landed and both of which this package
+  uses. What is still missing is named for what it is: a per-row
+  log-likelihood slot, which `loo()` and `waic()` need, and a per-group
+  one, which `frm(importance =)` corrects with. The
+  `vignette("royston-parmar")` paragraphs that predated the same seams
+  are corrected with them.
+
 # frmtmb.spline 0.2.0
 
 The three things this package had to work around are seams in frmtmb

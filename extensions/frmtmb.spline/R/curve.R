@@ -115,6 +115,23 @@
 #' @param tol Largest relative disagreement with `predict(se.fit = TRUE)`
 #'   the assembled covariance may show before the call refuses.
 #'
+#' @section Past a `ps()` knot span:
+#' A [frmtmb::ps()] basis is a partition of unity only between its
+#' frozen outer knots. Past them it is a partial sum that decays to
+#' zero, so a curve drawn there bends smoothly to whatever the rest of
+#' the body gives, which is exactly the shape a reader does not
+#' question. `predict(newdata = )` says so, and so does
+#' [frmtmb::frm_lp_basis()], the seam this function reads. It is
+#' surfaced again here, ONCE per `ps()` term per call and carrying the
+#' span, so that the sentence names the function you called: this one
+#' reads the seam on the grid, but [frm_curve_deriv()] reads it on a
+#' three-point difference stencil and [frm_curve_feature()] on a
+#' five-point one, and core counts the rows it was handed.
+#'
+#' [frm_curve_feature()] REFUSES instead of warning. A band past the
+#' span is visibly wrong on the page; a peak located past it is a
+#' number with a standard error beside it and nothing to give it away.
+#'
 #' @return A data frame of class `frmtmb_curve`: the columns of
 #'   `newdata`, then `.estimate`, `.se`, `.crit`, `.lower_ci`,
 #'   `.upper_ci`, and when `simultaneous = TRUE` also `.crit_sim`,
@@ -147,6 +164,17 @@ frm_curve <- function(object, newdata, dpar = NULL, resp = NULL,
   sp_check_flag(transform, "transform")
   sp_rp_gate(object)
   parts <- sp_curve_parts(object, newdata, dpar, resp, re.form, tol)
+  # re-raised under this function's own name rather than let out of the
+  # seam as it stands: the user called frm_curve(), not frm_lp_basis(),
+  # and the sibling functions hand the seam a stencil rather than the
+  # grid, so core's row count needs a caller to explain it
+  for (msg in parts$span) {
+    warning(warningCondition(paste0(
+      "frm_curve(): this grid leaves a ps() term's knot span, so the ",
+      "band below is drawn around a decaying partial sum rather than ",
+      "around the fitted curve. ", msg),
+      class = "frmtmb_ps_span_warning"))
+  }
   sp_assemble(parts, parts$eta, parts$se, parts$Sigma, level, simultaneous,
               nsim, transform, seed, newdata, what = "value")
 }

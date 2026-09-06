@@ -158,6 +158,25 @@ it, and it grows with the total number of coefficients in the fit
 rather than with the grid.
 }
 
+\section{Past a \code{ps()} knot span}{
+
+A \code{\link[frmtmb:ps]{frmtmb::ps()}} basis is a partition of unity only between its
+frozen outer knots. Past them it is a partial sum that decays to
+zero, so a curve drawn there bends smoothly to whatever the rest of
+the body gives, which is exactly the shape a reader does not
+question. \code{predict(newdata = )} says so, and so does
+\code{\link[frmtmb:frm_lp_basis]{frmtmb::frm_lp_basis()}}, the seam this function reads. It is
+surfaced again here, ONCE per \code{ps()} term per call and carrying the
+span, so that the sentence names the function you called: this one
+reads the seam on the grid, but \code{\link[=frm_curve_deriv]{frm_curve_deriv()}} reads it on a
+three-point difference stencil and \code{\link[=frm_curve_feature]{frm_curve_feature()}} on a
+five-point one, and core counts the rows it was handed.
+
+\code{\link[=frm_curve_feature]{frm_curve_feature()}} REFUSES instead of warning. A band past the
+span is visibly wrong on the page; a peak located past it is a
+number with a standard error beside it and nothing to give it away.
+}
+
 \examples{
 set.seed(1)
 dd <- data.frame(x = sort(runif(200)))
