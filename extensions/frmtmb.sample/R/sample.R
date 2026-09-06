@@ -725,8 +725,14 @@ announce_default_priors <- function(pl, notes) {
     kind <- if (identical(s$dist$kind, "t")) "student_t" else s$dist$kind
     d <- paste0(kind, "(", paste(unlist(s$dist[-1L]), collapse = ", "),
                 ")")
-    lab <- if (nzchar(s$dpar)) paste0(s$class, " (", s$dpar, ")") else
-      s$class
+    # the spelling the default is WRITTEN with, which for a density on
+    # a distributional parameter itself is that parameter's own class.
+    # get_prior(route = "sample") lists that word and set_prior() takes
+    # it; announcing the storage pair instead named a spelling the same
+    # model refuses
+    sp <- spec_spelling(s)
+    lab <- if (nzchar(sp$dpar)) paste0(sp$class, " (", sp$dpar, ")") else
+      sp$class
     msg <- c(msg, sprintf("  %-18s %s%s", lab, d,
                           if (isTRUE(s$natural)) "  [natural scale]"
                           else if (identical(s$class, "sd"))

@@ -277,7 +277,9 @@ test_that("prior = takes the same specification at every entry point", {
   spl <- prior(normal(0, 1), class = "b") +
     prior(normal(0, 2), class = "Intercept") +
     prior(exponential(1), class = "sd") +
-    prior(exponential(1), class = "Intercept", dpar = "sigma")
+    # this model gives sigma no predictor, so sigma's own class is the
+    # spelling that applies to it, here as in brms
+    prior(exponential(1), class = "sigma")
   sims <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), sdd,
                        prior = spl, nsim = 2, seed = 1)
   expect_equal(dim(sims), c(60L, 2L))
@@ -610,26 +612,35 @@ test_that("a zero-inflated table translates onto zi itself", {
   expect_identical(unname(ri$upper[["zi_(Intercept)"]]), Inf)
 })
 
-test_that("a brms distributional class is routed, not refused", {
+test_that("a distributional class means the same in both spellings", {
   skip_if_not_installed("brms")
   # BEHAVIOR CHANGE. brms spells a prior on sigma itself class =
-  # "sigma", and that row used to be refused because frmtmb's nearest
-  # spelling sits on LOG sigma. It is now routed to the slot that holds
-  # sigma's intercept and marked `natural`, so the density is about
-  # sigma, which is what the row said.
-  pl <- frmtmb:::as_priorlist(brms::prior(student_t(3, 0, 10),
-                                          class = "sigma"))
-  s <- unclass(pl)[[1L]]
-  expect_identical(s$class, "Intercept")
-  expect_identical(s$dpar, "sigma")
-  expect_true(isTRUE(s$natural))
+  # "sigma", and frmtmb's own set_prior() now takes that word with that
+  # meaning: a density on the parameter, through its inverse link with
+  # that map's log-Jacobian. The two routes are one code path, so this
+  # compares them SPEC to SPEC rather than restating either.
+  from_brms <- unclass(frmtmb:::as_priorlist(
+    brms::prior(student_t(3, 0, 10), class = "sigma")))[[1L]]
+  own <- unclass(set_prior("student_t(3, 0, 10)",
+                           class = "sigma"))[[1L]]
+  expect_identical(own, from_brms)
+  # stored as the slot the resolver assigns to, and marked `natural`
+  expect_identical(own$class, "Intercept")
+  expect_identical(own$dpar, "sigma")
+  expect_true(isTRUE(own$natural))
+  # and printed as the word it was WRITTEN with, so what comes out can
+  # be pasted back in
+  expect_match(paste(utils::capture.output(print(set_prior(
+    "student_t(3, 0, 10)", class = "sigma"))), collapse = ""),
+    "class=sigma scale=natural", fixed = TRUE)
 
-  # frmtmb's OWN spelling is untouched: it still means log sigma, and it
-  # still carries no `natural` field at all. A field written as FALSE
-  # would itself be a change, and frmtmb.sample reads its absence
-  own <- unclass(set_prior("student_t(3, 0, 10)", class = "Intercept",
+  # the LINK-scale spelling is still available and still means the log
+  # scale; it carries no `natural` field at all, because a field
+  # written as FALSE would itself be a change and frmtmb.sample reads
+  # its absence
+  lnk <- unclass(set_prior("student_t(3, 0, 10)", class = "Intercept",
                            dpar = "sigma"))[[1L]]
-  expect_null(own$natural)
+  expect_null(lnk$natural)
 
   # gamma is one of brms's dispersion defaults and now parses, so a
   # shape/phi/nu/kappa row translates rather than stopping at the parser
@@ -637,6 +648,153 @@ test_that("a brms distributional class is routed, not refused", {
                                           class = "phi"))
   expect_identical(unclass(gp)[[1L]]$dist$kind, "gamma")
   expect_identical(unclass(gp)[[1L]]$dpar, "phi")
+  expect_identical(unclass(gp)[[1L]],
+                   unclass(set_prior("gamma(0.01, 0.01)",
+                                     class = "phi"))[[1L]])
+})
+
+test_that("each dpar spelling is refused on the model brms refuses it on", {
+  # BEHAVIOR CHANGE, and the whole point of the flip. The two brms
+  # spellings for a distributional parameter are mutually exclusive BY
+  # MODEL SHAPE: measured off brms::make_stancode(), `class = "sigma"`
+  # is accepted on `y ~ x` and refused on `bf(y ~ x, sigma ~ 1)`, and
+  # `class = "Intercept", dpar = "sigma"` the other way round. frmtmb
+  # now says the same, by name, in both directions.
+  set.seed(91)
+  dd <- data.frame(x = stats::rnorm(120))
+  dd$y <- stats::rnorm(120, 1 + 0.5 * dd$x, exp(0.2 + 0.1 * dd$x))
+  plain <- frm(bf(y ~ x) + gaussian(), data = dd)
+  one <- frm(bf(y ~ x, sigma ~ 1) + gaussian(), data = dd)
+  pred <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
+  nat <- set_prior("normal(0, 0.5)", class = "sigma")
+  lnk <- set_prior("normal(0, 0.5)", class = "Intercept", dpar = "sigma")
+
+  expect_length(frmtmb:::resolve_prior_input(plain, nat)$entries, 1L)
+  expect_error(frmtmb:::resolve_prior_input(plain, lnk),
+               "brms accepts only where sigma has one", fixed = TRUE)
+  # `sigma ~ 1` is a PREDICTOR, which is brms's own reading of it: the
+  # design is one intercept column either way, so the difference is who
+  # wrote the formula, not what it contains
+  expect_length(frmtmb:::resolve_prior_input(one, lnk)$entries, 1L)
+  expect_error(frmtmb:::resolve_prior_input(one, nat),
+               "brms accepts only where sigma has no predictor",
+               fixed = TRUE)
+  expect_length(frmtmb:::resolve_prior_input(pred, lnk)$entries, 1L)
+  expect_error(frmtmb:::resolve_prior_input(pred, nat),
+               "class = \"Intercept\", dpar = \"sigma\"", fixed = TRUE)
+
+  # class "b" on a dpar with no slopes says which spelling has one
+  expect_error(frmtmb:::resolve_prior_input(plain,
+    set_prior("normal(0, 1)", class = "b", dpar = "sigma")),
+    "addresses sigma's slopes", fixed = TRUE)
+  # a class that names no dpar of this model lists the ones it has
+  expect_error(frmtmb:::resolve_prior_input(plain,
+    set_prior("normal(0, 1)", class = "shape")),
+    "It has mu, sigma", fixed = TRUE)
+
+  # and the bound travels with the placement it was written on: brms's
+  # lb = 0 on a log-linked sigma is log(0) = -Inf, not a floor of 1
+  ri <- frmtmb:::resolve_prior_input(plain,
+    set_prior("", class = "sigma", lb = 0, ub = 3))
+  expect_identical(unname(ri$lower[["sigma_(Intercept)"]]), -Inf)
+  expect_equal(unname(ri$upper[["sigma_(Intercept)"]]), log(3))
+
+  # the third spelling brms decides by shape, and the one the first
+  # round left open. `sigma ~ 1` HAS a predictor, so it takes the
+  # Intercept spelling, but it has no population-level slopes, so
+  # class "b" there addressed an empty set: the penalty was
+  # bit-identical to no prior at all, silently
+  b_dp <- set_prior("normal(0, 1e-6)", class = "b", dpar = "sigma")
+  expect_error(frmtmb:::resolve_prior_input(one, b_dp),
+               "predictor is an intercept only, so it has none",
+               fixed = TRUE)
+  expect_error(frmtmb:::resolve_prior_input(one, b_dp),
+               "class = \"Intercept\", dpar = \"sigma\"", fixed = TRUE)
+  # and it is still honored where the predictor really has slopes
+  expect_length(frmtmb:::resolve_prior_input(pred, b_dp)$entries, 1L)
+})
+
+test_that("brms refuses the same b/dpar row on an intercept-only dpar", {
+  skip_if_not_installed("brms")
+  # the refusal above is brms's rule, not a rule of frmtmb's own: brms
+  # answers "do not correspond to any model parameter: b_sigma"
+  set.seed(91)
+  dd <- data.frame(x = stats::rnorm(60))
+  dd$y <- stats::rnorm(60, 1 + 0.5 * dd$x, 1)
+  msg <- tryCatch(brms::validate_prior(
+    brms::prior(normal(0, 1), class = "b", dpar = "sigma"),
+    brms::bf(y ~ x, sigma ~ 1), data = dd, family = gaussian()),
+    error = conditionMessage)
+  expect_true(is.character(msg))
+  expect_match(msg, "do not correspond to any model parameter",
+               fixed = TRUE)
+  # and brms accepts it once sigma has slopes, as frmtmb does
+  ok <- brms::validate_prior(
+    brms::prior(normal(0, 1), class = "b", dpar = "sigma"),
+    brms::bf(y ~ x, sigma ~ x), data = dd, family = gaussian())
+  expect_s3_class(ok, "brmsprior")
+})
+
+test_that("a distributional class is refused by the same name on both routes", {
+  # A class frmtmb keeps somewhere else used to be refused only when it
+  # arrived on a brms frame; written by hand it fell through to a dpar
+  # target that does not exist. Both paths now give the same sentence.
+  expect_error(set_prior("student_t(3, 0, 1)", class = "sds"),
+               "class = \"sd\" with group", fixed = TRUE)
+  # the density gate runs first here, so the class is asked about with
+  # a density set_prior() knows; brms's own dirichlet row is refused on
+  # the translated route by the density instead, and either way the
+  # call stops
+  expect_error(set_prior("normal(0, 1)", class = "simo"),
+               "Dirichlet on a mo() simplex", fixed = TRUE)
+  expect_error(set_prior("normal(0, 1)", class = "theta2"),
+               "mixture proportion", fixed = TRUE)
+  expect_error(set_prior("normal(0, 1)", class = "car"),
+               "spatial dependence parameter", fixed = TRUE)
+  # a name that is not a class and cannot be a parameter says so at the
+  # boundary, where there is still no model to check it against
+  expect_error(set_prior("normal(0, 1)", class = "9x"),
+               "nor the name of a distributional parameter",
+               fixed = TRUE)
+  # the two arguments that would name the parameter twice
+  expect_error(set_prior("normal(0, 1)", class = "sigma",
+                         dpar = "shape"), "names a second one",
+               fixed = TRUE)
+  expect_error(set_prior("normal(0, 1)", class = "sigma", nlpar = "a"),
+               "nonlinear parameter's coefficients are class = \"b\"",
+               fixed = TRUE)
+})
+
+test_that("set_prior() refuses an unhonored coef, as the brms route does", {
+  # The review's residual R1. The translated route refused a `coef` on
+  # class "sd" (frmtmb resolves that class per BLOCK, so the row would
+  # have applied to every standard deviation of the block); the native
+  # spelling accepted it silently and widened. Both refuse now.
+  expect_error(set_prior("exponential(2)", class = "sd", group = "g",
+                         coef = "x"),
+               "addresses a whole random-effect BLOCK", fixed = TRUE)
+  expect_error(set_prior("lkj(2)", class = "cor", coef = "x"),
+               "names nothing it can narrow to", fixed = TRUE)
+  # and `coef` on the classes that read it is untouched
+  expect_silent(set_prior("normal(0, 1)", class = "b", coef = "x"))
+  expect_silent(set_prior("normal(0, 1)", class = "Intercept",
+                          coef = "Intercept"))
+
+  # F7 of the punch round: the same rule, for the class family this
+  # lane introduced. A distributional class is ONE parameter, so it
+  # reads neither `coef` nor `group`; both used to reach the spec and
+  # vanish while the prior applied anyway. brms refuses the same rows,
+  # naming a parameter that does not exist (`sigma_x`)
+  expect_error(set_prior("normal(0, 0.3)", class = "sigma", coef = "x"),
+               "names nothing it can narrow to", fixed = TRUE)
+  expect_error(set_prior("normal(0, 0.3)", class = "sigma",
+                         group = "g"),
+               "names nothing it can narrow to", fixed = TRUE)
+  expect_error(set_prior("normal(0, 0.3)", class = "shape",
+                         coef = "x"), "class = \"shape\"", fixed = TRUE)
+  # `resp` is the one narrowing a distributional class does take
+  expect_silent(set_prior("normal(0, 0.3)", class = "sigma",
+                          resp = "y1"))
 })
 
 test_that("a brms table applies what its prior strings say", {

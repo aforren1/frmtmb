@@ -433,10 +433,15 @@ lands where brms puts it: a distributional parameter's own class
 (`sigma`, `shape`, `phi`, ...) is a density on that PARAMETER, carried
 through its inverse link with that map's log-Jacobian, and a
 `class = "Intercept"` density is evaluated at the intercept at the mean
-of the predictors, which is the one brms constrains. A brms prior class
-with no faithful frmtmb spelling is refused by name rather than turned
-into a different density, and every refused row of a table is named in
-one message. Attaching brms alongside frmtmb masks `bf()`
+of the predictors, which is the one brms constrains. `set_prior()`
+takes those class names with those meanings, so the two routes are one
+code path: a distributional parameter is addressed by its OWN class
+where the model gives it no predictor and by
+`class = "Intercept", dpar =` where the model gives it a formula, and
+each spelling is refused by name on the other's model, exactly as brms
+refuses it. A brms prior class with no faithful frmtmb spelling is
+refused by name rather than turned into a different density, and every
+refused row of a table is named in one message. Attaching brms alongside frmtmb masks `bf()`
 and `prior()`; ordinary R masking rules apply, and the translation is
 what makes the masked case work anyway.
 

@@ -123,20 +123,17 @@ bp_is_natural_row <- function(g, i) {
   any(vapply(unclass(pl), function(s) isTRUE(s$natural), TRUE))
 }
 
-# frmtmb's OWN spelling for the same parameter: class = "Intercept" with
-# dpar = the brms class, which sits on the LINK scale. This is the
-# spelling ?set_prior documents as diverging from brms, and the reason
-# it still exists is that flipping it would change what an existing
-# frmtmb script means (see dev/priors-findings.md). Measuring it beside
-# the routed one is what shows the size of that divergence.
-bp_dpar_link_prior <- function(g, idx) {
-  out <- NULL
-  for (i in idx) {
-    one <- set_prior(g$prior[[i]], class = "Intercept",
-                     dpar = g$class[[i]], resp = g$resp[[i]])
-    out <- if (is.null(out)) one else out + one
-  }
-  out
+# The spelling that used to diverge: class = "Intercept" with dpar =
+# the brms class, on the LINK scale. It is now what brms means by those
+# words, so it is accepted only where the dpar HAS a predictor and
+# refused by name where it does not, which is what this returns for the
+# tier to assert on.
+bp_dpar_link_refusal <- function(fit, dpar, dist = "normal(0, 1)") {
+  pl <- set_prior(dist, class = "Intercept", dpar = dpar)
+  tryCatch({
+    resolve_prior_input(fit, pl)
+    NA_character_
+  }, error = conditionMessage)
 }
 
 bp_prior_c <- function(a, b) {
@@ -298,11 +295,12 @@ bp_check <- function(fit, fit0, sf, sf_flat, sdat, code, rtab = NULL,
 #
 #   hon   every row frm(prior = ) accepts, in the meaning the
 #         translator gives it. This is what a ported brms script gets.
-#   link  the same set with each distributional-class row respelled in
-#         frmtmb's OWN class = "Intercept" + dpar = spelling, which sits
-#         on the LINK scale. Built only where such a row exists, and
-#         only to measure the documented divergence between the two
-#         spellings; it is not what a translated table does.
+#   tab   the SAME rows handed over as the brms table itself, which is
+#         the other route into the same machinery. Built only where
+#         every live row is honored, because a table with a refused row
+#         stops the call by design. `hon` re-spells each row through
+#         frmtmb's own set_prior(); `tab` translates the frame. The two
+#         must be the same density, and the tier asserts it.
 #
 # Nothing is asserted here. The assertions belong in the test file,
 # where the number being pinned is next to the reason it holds.
@@ -327,21 +325,30 @@ bp_shape <- function(bform, family, data, frm_model, joint = FALSE,
   code <- list(full = mk(gp), hon = mk(bp_stan_prior(gp, hon)),
                flat = mk(bp_stan_prior(gp)))
   sf <- lapply(code, bp_stanfit, sdat = sdat)
+  live <- which(nzchar(g$prior))
   pl <- list(hon = bp_frm_prior(g, hon),
-             link = bp_prior_c(bp_frm_prior(g, setdiff(hon, dpi)),
-                               bp_dpar_link_prior(g, dpi)))
+             tab = if (setequal(hon, live)) gp)
   fitof <- function(p) {
     if (is.null(p)) fit0 else frm(frm_model, data = data, prior = p)
   }
   fit <- lapply(pl, fitof)
-  out <- list(rows = g, honored = hon, dpar = dpi, prior = pl,
-              fit = fit, fit0 = fit0, code = code, sdat = sdat,
-              rtab = rtab, sf = sf,
-              hon = bp_check(fit$hon, fit0, sf$hon, sf$flat, sdat,
-                             code$hon, rtab, joint))
-  if (length(dpi)) {
-    out$link <- bp_check(fit$link, fit0, sf$hon, sf$flat, sdat,
-                         code$hon, rtab, joint)
-  }
-  out
+  list(rows = g, honored = hon, dpar = dpi, prior = pl,
+       fit = fit, fit0 = fit0, code = code, sdat = sdat,
+       rtab = rtab, sf = sf,
+       hon = bp_check(fit$hon, fit0, sf$hon, sf$flat, sdat,
+                      code$hon, rtab, joint))
+}
+
+# The two routes' objectives at ONE parameter vector, which is the
+# comparison that cannot drift with an optimizer path: same tape, same
+# point. `NULL` where the shape has no translatable table.
+bp_route_objectives <- function(r) {
+  if (is.null(r$prior$tab)) return(NULL)
+  par <- r$fit$hon$obj$env$last.par.best
+  list(hon = -r$fit$hon$obj$env$f(par),
+       tab = -r$fit$tab$obj$env$f(par),
+       hon_fitted = -r$fit$hon$obj$env$f(
+         r$fit$hon$obj$env$last.par.best),
+       tab_fitted = -r$fit$tab$obj$env$f(
+         r$fit$tab$obj$env$last.par.best))
 }

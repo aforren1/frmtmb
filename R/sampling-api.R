@@ -59,8 +59,11 @@
 #' `list(entries, lower, upper)` on the internal parameter scale,
 #' `neg_log_prior_fn()` turns resolved entries into a tapeable closure,
 #' `resolve_bounds()` turns user-spelled bounds into internal-scale
-#' vectors over the outer parameters, and `spec_target()` names the slot
-#' one specification addresses.
+#' vectors over the outer parameters, `spec_target()` names the slot
+#' one specification addresses, and `spec_spelling()` gives back the
+#' class and dpar it was WRITTEN with, which for a density on a
+#' distributional parameter itself is that parameter's own class rather
+#' than the intercept slot the resolver assigns to.
 #'
 #' `frmtmb_register_prior_defaults()` is the other direction: it lets a
 #' package tell [get_prior()] what defaults it would apply.
@@ -187,6 +190,7 @@
 #' @aliases neg_log_prior_fn
 #' @aliases resolve_bounds
 #' @aliases spec_target
+#' @aliases spec_spelling
 #' @aliases frmtmb_register_prior_defaults
 #' @aliases ncp_eligible
 #' @aliases ncp_scale_b
@@ -224,6 +228,7 @@
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   us_chol_cor, aterms_for_newdata, has_trunc, as_priorlist,
 #'   resolve_prior_input, neg_log_prior_fn, resolve_bounds, spec_target,
+#'   spec_spelling,
 #'   frmtmb_register_prior_defaults, ncp_eligible, ncp_scale_b,
 #'   ncp_unscale_b, covstruct_has_chol, block_sd_idx, block_cor_prior,
 #'   block_n_cor, is_student_block, sim_can, sim_note, sim_context,
@@ -327,7 +332,10 @@ registered_prior_defaults <- function(spec, frame) {
   for (p in frmtmb_prior_defaults$providers) {
     pl <- tryCatch(p(spec, frame), error = function(e) NULL)
     for (s in unclass(pl %||% list())) {
-      k <- prior_slot_key(s$class, s$dpar %||% "", s$nlpar %||% "",
+      # keyed by the spelling the TABLE lists, which for a density on a
+      # distributional parameter itself is that parameter's own class
+      sp <- spec_spelling(s)
+      k <- prior_slot_key(sp$class, sp$dpar, s$nlpar %||% "",
                           s$resp %||% "")
       out[[k]] <- format_prior_dist(s$dist)
     }

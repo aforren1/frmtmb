@@ -193,6 +193,75 @@ test_that("every default row's fate is one of five, by shape", {
                "class = \"sd\" with group", fixed = TRUE)
 })
 
+test_that("both routes are one code path, class by class", {
+  skip_unless_brms_fit()
+  skip_if_not_installed("lme4")
+  data(sleepstudy, package = "lme4")
+
+  # BEHAVIOR CHANGE, and the reason for it. Every class brms writes
+  # that frmtmb can honor is now a class set_prior() takes under the
+  # SAME NAME and with the same meaning, so a ported table and a
+  # hand-written specification are not two implementations that have to
+  # be kept in step: they are one. This asserts that as an identity of
+  # the objective rather than of the spec, because the spec is a
+  # representation and the objective is the model.
+  same_density <- function(bform, family, data, frm_model) {
+    gp <- brms::get_prior(bform, data = data, family = family)
+    fit0 <- frm(frm_model, data = data)
+    g <- bp_classify_rows(gp, fit0)
+    live <- which(nzchar(g$prior))
+    expect_identical(unique(g$status[live]), "honored")
+    # a: every live row re-spelled through frmtmb's own set_prior(),
+    # class by class. b: the brms frame handed over whole
+    a <- frm(frm_model, data = data, prior = bp_frm_prior(g, live))
+    b <- frm(frm_model, data = data, prior = gp)
+    par <- a$obj$env$last.par.best
+    expect_equal(-b$obj$env$f(par), -a$obj$env$f(par),
+                 tolerance = 1e-12)
+    expect_equal(-b$obj$env$f(b$obj$env$last.par.best),
+                 -a$obj$env$f(par), tolerance = 1e-12)
+    sort(unique(g$class[live]))
+  }
+
+  set.seed(23)
+  n <- 200
+  dd <- data.frame(x = stats::rnorm(n))
+  dd$y <- stats::rnorm(n, 1 + 0.5 * dd$x, exp(0.2 + 0.3 * dd$x))
+  dd$cnt <- stats::rnbinom(n, mu = exp(0.5 + 0.2 * dd$x), size = 2)
+  dd$p <- stats::rbeta(n, 2, 3)
+  dd$o <- ordered(cut(0.9 * dd$x + stats::rlogis(n),
+                      breaks = c(-Inf, -1, 0.5, Inf), labels = 1:3))
+
+  seen <- c(
+    # Intercept, sd, cor and a dpar with no predictor of its own
+    same_density(brms::bf(Reaction ~ Days + (Days | Subject)),
+                 gaussian(), sleepstudy,
+                 bf(Reaction ~ Days + (Days | Subject)) + gaussian()),
+    # the same dpar WITH a predictor, which is the other spelling
+    same_density(brms::bf(y ~ x, sigma ~ x), gaussian(), dd,
+                 bf(y ~ x, sigma ~ x) + gaussian()),
+    # inv_gamma on a shape
+    same_density(brms::bf(cnt ~ x), brms::negbinomial(), dd,
+                 bf(cnt ~ x) + negbinomial()),
+    # beta on a zi
+    same_density(brms::bf(cnt ~ x), brms::zero_inflated_poisson(), dd,
+                 bf(cnt ~ x) + zero_inflated_poisson()),
+    # gamma on a phi
+    same_density(brms::bf(p ~ x), brms::Beta(), dd,
+                 bf(p ~ x) + Beta()),
+    # and the ordinal thresholds, which are class Intercept on both
+    # sides
+    same_density(brms::bf(o ~ x), brms::cumulative(), dd,
+                 bf(o ~ x) + cumulative()))
+
+  # the classes the table in dev/priors-findings.md lists as translated
+  # are the ones that were actually exercised above, named rather than
+  # counted so that a shape which stops covering one fails here
+  expect_setequal(unique(seen),
+                  c("Intercept", "sd", "cor", "sigma", "shape", "zi",
+                    "phi"))
+})
+
 # ---------------------------------------------------------------------
 # The placement identity, on the shape that isolates it.
 # ---------------------------------------------------------------------
@@ -241,18 +310,23 @@ test_that("row 5: a dpar prior lands on the parameter brms means", {
   expect_lt(r$hon$gT, 1e-3)
   expect_equal(r$hon$gF, 1, tolerance = 1e-3)
 
-  # (b) frmtmb's OWN spelling for the same parameter still means LOG
-  #     sigma. It is left alone deliberately: flipping it would change
-  #     what an existing frmtmb script means (?set_prior records the
-  #     divergence). Measured here so its size cannot rot.
-  sl <- as.numeric(r$link$pars[["sigma"]])
-  expect_equal(r$link$frm_prior, bp_st(log(sl), h[[1]], h[[2]], h[[3]]),
-               tolerance = 1e-10)
-  # neither Stan density is the one that spelling maximized: the two
-  # gradients differ by the log transform's derivative, which is 1, so
-  # the link fit sits strictly between the two Stan optima
-  expect_gt(r$link$gF, 1e-2)
-  expect_gt(r$link$gT, 1e-2)
+  # (b) BEHAVIOR CHANGE. frmtmb's own spelling for this parameter is
+  #     now the same word brms uses, and the spelling that used to mean
+  #     LOG sigma is refused here by name: this model gives sigma no
+  #     predictor, and that is the model brms refuses it on. The
+  #     refusal names the spelling that applies instead.
+  msg <- bp_dpar_link_refusal(r$fit0, "sigma")
+  expect_match(msg, "brms accepts only where sigma has one",
+               fixed = TRUE)
+  expect_match(msg, "class = \"sigma\"", fixed = TRUE)
+
+  # (c) and the two ROUTES are one density: the same rows re-spelled
+  #     through set_prior() and the same rows handed over as a brms
+  #     table give the same objective at the same point, and the same
+  #     fitted optimum
+  ob <- bp_route_objectives(r)
+  expect_equal(ob$hon, ob$tab, tolerance = 1e-12)
+  expect_equal(ob$hon_fitted, ob$tab_fitted, tolerance = 1e-12)
 })
 
 test_that("row 5: the translated table reproduces brms's mode", {
@@ -280,12 +354,22 @@ test_that("row 5: the translated table reproduces brms's mode", {
   # the translated table IS brms's mode
   expect_equal(as.numeric(r$hon$pars[["sigma"]]), brms_sigma,
                tolerance = 1e-6)
-  # frmtmb's own link spelling is not, and it lands between the
-  # unpenalized estimate and brms's mode rather than to one side
-  link_sigma <- as.numeric(r$link$pars[["sigma"]])
-  mle_sigma <- as.numeric(exp(r$fit0$estimates$betad))
-  expect_gt(abs(link_sigma - brms_sigma), 1e-5)
-  expect_true(link_sigma > mle_sigma && link_sigma < brms_sigma)
+  # and so is the same prior written by hand, because after the flip
+  # `set_prior("student_t(3, 0, s)", class = "sigma")` and brms's own
+  # `prior(student_t(3, 0, s), class = "sigma")` are one code path.
+  # Written out here rather than read off the table, so the spelling a
+  # user types is what reaches the comparison
+  h <- bp_hyper(r$rows$prior[[which(nzchar(r$rows$prior))]])
+  by_hand <- frm(bf(y ~ a * exp(-b * x), a + b ~ 1, nl = TRUE) +
+                   gaussian(), data = dn,
+                 prior = set_prior(sprintf("student_t(%s, %s, %s)",
+                                           h[[1]], h[[2]], h[[3]]),
+                                   class = "sigma"))
+  expect_equal(as.numeric(exp(by_hand$estimates$betad)), brms_sigma,
+               tolerance = 1e-6)
+  expect_equal(-by_hand$obj$env$f(by_hand$obj$env$last.par.best),
+               -r$fit$hon$obj$env$f(r$fit$hon$obj$env$last.par.best),
+               tolerance = 1e-12)
 })
 
 # ---------------------------------------------------------------------
