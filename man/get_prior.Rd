@@ -53,6 +53,13 @@ with its name in the \code{nlpar} column, the intercept among them, which
 is how brms lists them and what \code{\link[=set_prior]{set_prior()}} addresses (see its
 Nonlinear parameters section).
 
+A distributional parameter is listed under whichever of its two
+spellings the model offers: its OWN class where the model gives it
+no predictor, and class \code{"Intercept"} with its name in the \code{dpar}
+column where the model gives it a formula. brms lists the same two,
+the same way round. See A distributional parameter's own class in
+\code{\link[=set_prior]{set_prior()}}.
+
 An ordinal family has no intercept column, so its class \code{"Intercept"}
 row names the THRESHOLD vector, which is what the same row means in
 brms. See the Ordinal thresholds section of \code{\link[=set_prior]{set_prior()}}.

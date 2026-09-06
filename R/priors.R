@@ -49,6 +49,12 @@
 #'   residual correlation. This is the one spelling that reaches a
 #'   single parameter of a structure whose natural coefficients are not
 #'   free of one another.
+#' - a DISTRIBUTIONAL parameter's own name (`"sigma"`, `"shape"`,
+#'   `"phi"`, `"zi"`, `"nu"`, ...): a density on that parameter ITSELF,
+#'   on its NATURAL scale, with the inverse link's log-Jacobian
+#'   applied, so `set_prior("student_t(3, 0, 2.5)", class = "sigma")`
+#'   means what it says. Available where the parameter has no predictor
+#'   of its own; see A distributional parameter's own class.
 #'
 #' When priors overlap, later specifications override earlier ones, so
 #' put class-wide priors first and coefficient-specific ones after. A
@@ -225,18 +231,18 @@
 #' edited into a `get_prior()` table in place, because brms does not
 #' update `source` after that edit.
 #'
-#' brms's class vocabulary is wider than the one above, and it is
-#' carried over rather than refused wherever the two packages mean the
-#' same parameter:
+#' **A specification means here what the same words mean in brms.**
+#' Every class brms writes that frmtmb can honor is a class
+#' `set_prior()` takes under the same name and with the same meaning,
+#' so a table and a hand-written specification reach one code path:
 #' - `b`, `Intercept`, `sd`, `cor`, `ar`, `ma`, `cosy`, `cortime` and
 #'   `rescor` are frmtmb's own class names and keep their meaning.
 #' - a DISTRIBUTIONAL parameter's own class (`sigma`, `shape`, `phi`,
 #'   `nu`, `kappa`, `sigma1`, ...) is a density on that parameter
-#'   ITSELF in brms. It lands on the parameter itself here too, through
-#'   the dpar's inverse link with that map's log-Jacobian, which is the
-#'   change of variables class `"sd"` performs. A bound on such a row
-#'   travels with it, so brms's `lb = 0` on a log-linked dispersion
-#'   becomes no constraint rather than a floor of 1.
+#'   ITSELF, through the dpar's inverse link with that map's
+#'   log-Jacobian, which is the change of variables class `"sd"`
+#'   performs. A bound travels with it, so `lb = 0` on a log-linked
+#'   dispersion becomes no constraint rather than a floor of 1.
 #' - `theta`/`theta1`/`theta2`, `simo`, `sds`, `sdgp`, `lscale`,
 #'   `sdcar` and `car` are refused by name, each saying where frmtmb
 #'   keeps that quantity instead. A refusal is deliberate: translating
@@ -252,29 +258,59 @@
 #' is edited as a whole and stopping at the first bad row costs a round
 #' trip per bad row.
 #'
-#' **frmtmb's own spelling for a distributional parameter is the one
-#' place the two packages still differ.**
-#' `set_prior("student_t(3, 0, 2.5)", class = "Intercept", dpar =
-#' "sigma")` is a density on LOG sigma, the parameter frmtmb stores,
-#' and it keeps that meaning; the same row spelled brms's way,
-#' `brms::prior(student_t(3, 0, 2.5), class = "sigma")`, is a density on
-#' sigma. The two are not the same prior: on a nonlinear fit with
-#' `sigma` near 0.135 the link spelling captures about 35 percent of the
-#' shift the natural one produces, and on `sleepstudy`, where brms's
-#' default scale is calibrated to a sigma near 31, it captures none of
-#' it. Write the brms spelling when brms's meaning is wanted.
-#'
 #' brms's `tag` and `check` have no counterpart: `tag` names a prior
 #' for reuse inside a Stan program, and `check` passes an unchecked
 #' string through to one. frmtmb compiles no Stan program, so both are
 #' omitted rather than accepted and ignored.
 #'
+#' @section A distributional parameter's own class:
+#' A distributional parameter has TWO spellings, and which one applies
+#' is decided by the model rather than by taste. They are brms's own
+#' two, and brms accepts each only on the model the other does not:
+#'
+#' \describe{
+#'   \item{`class = "sigma"`}{a density on sigma ITSELF, on its natural
+#'     scale. Available when sigma has no predictor of its own, which
+#'     is the model where sigma is a single number.}
+#'   \item{`class = "Intercept", dpar = "sigma"`}{a density on the
+#'     LINK-scale intercept of sigma's linear predictor. Available when
+#'     the model gives sigma a formula, `sigma ~ 1` included.}
+#' }
+#'
+#' Writing a formula for a parameter is what replaces the parameter
+#' with a linear predictor, so `bf(y ~ x, sigma ~ 1)` has no `sigma` to
+#' put a density on, and `bf(y ~ x)` has no `Intercept_sigma`. Each
+#' spelling is refused by name on the other's model, naming the one
+#' that applies, because a silently retargeted prior is a different
+#' model rather than no model.
+#'
+#' `class = "b", dpar = "sigma"` addresses that predictor's SLOPES and
+#' is on the link scale, in both packages. It needs slopes to exist: on
+#' `sigma ~ 1` the predictor is an intercept only, so the row addresses
+#' nothing, and it is refused rather than accepted as a silent no-op.
+#' brms refuses it there too.
+#'
+#' A distributional class names ONE parameter, so it takes `resp` and
+#' neither `coef` nor `group`; both are refused rather than dropped.
+#' Written without `resp` on a multivariate model it applies to every
+#' response, which is frmtmb's convention for a class-wide prior and
+#' one of the few rows brms refuses where frmtmb accepts (brms asks for
+#' `resp`).
+#'
+#' [get_prior()] lists whichever of the two spellings a model offers.
+#' Where a parameter has NEITHER, because frmtmb refuses its class by
+#' name, the table leaves it out rather than advertising a slot nothing
+#' can fill: a mixture proportion with no predictor of its own is one,
+#' and `?set_prior`'s refusal says where that quantity lives.
+#'
 #' @param prior Distribution string, e.g. `"normal(0, 5)"`, or a
 #'   [prior_normal()]/[prior_t()]/[prior_lkj()] object, or `""` for
 #'   bounds only.
-#' @param class `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, or one
+#' @param class `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, one
 #'   of the residual-structure classes `"ar"`, `"ma"`, `"cosy"`,
-#'   `"cortime"` and `"rescor"`.
+#'   `"cortime"` and `"rescor"`, or a distributional parameter's own
+#'   name (`"sigma"`, `"shape"`, ...). See A distributional parameter's
+#'   own class.
 #' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`).
 #' @param group Restrict class `"sd"` or `"cor"` to one grouping factor.
 #' @param resp Response of a multivariate model.
@@ -292,9 +328,15 @@
 #'   `normal`, three for `student_t`, one for `exponential`). A call that
 #'   supplies neither a distribution nor bounds errors instead of
 #'   producing an empty prior.
-#' @srrstats {G2.3a} `class` is restricted with `match.arg()` to the
-#'   documented set, so an unexpected class errors and names the
-#'   permitted values. The one distribution that belongs to a single
+#' @srrstats {G2.3a} `class` is checked in two stages, because half of
+#'   the vocabulary is a property of the model rather than of the
+#'   package: a name that is neither one of frmtmb's own classes nor a
+#'   usable parameter name errors here and lists the permitted values,
+#'   a name frmtmb refuses on principle (`sds`, `simo`, `car`, ...)
+#'   errors here saying where that quantity lives, and any other name
+#'   is read as a distributional parameter's and checked against the
+#'   model's own parameters when the prior is resolved, which is where
+#'   they can be listed. The one distribution that belongs to a single
 #'   class, `lkj()`, is checked against it in both directions.
 #'
 #' @examples
@@ -318,6 +360,19 @@
 #'
 #' # an empty distribution string sets a hard bound only
 #' set_prior("", class = "b", coef = "x", lb = 0)
+#'
+#' # a distributional parameter's own class is a density on the
+#' # parameter itself, on its own scale, where the model gives that
+#' # parameter no predictor. This model does not, so this is the
+#' # spelling it offers, and get_prior() lists it
+#' fit_s <- frm(bf(y ~ x + z) + gaussian(), data = dd,
+#'              prior = set_prior("student_t(3, 0, 2.5)",
+#'                                class = "sigma"))
+#' sigma(fit_s)
+#' # with sigma ~ 1 the model has a log-scale intercept instead, and
+#' # that is the slot the prior addresses. brms draws the same line
+#' set_prior("student_t(3, 0, 2.5)", class = "Intercept",
+#'           dpar = "sigma")
 #'
 #' # bounds address a nonlinear parameter the way a distribution does,
 #' # so a guessing rate is held in [0, 1]
@@ -359,8 +414,11 @@ set_prior <- function(prior = "", class = "b", coef = "", group = "",
     stop("set_prior() needs a distribution, bounds, or both",
          call. = FALSE)
   }
-  class <- match.arg(class, c("b", "Intercept", "sd", "cor", "theta",
-                              "ar", "ma", "cosy", "cortime", "rescor"))
+  if (!is.character(class) || length(class) != 1L || !nzchar(class)) {
+    stop("`class` must be a single non-empty string", call. = FALSE)
+  }
+  natural <- !class %in% frmtmb_prior_classes
+  if (natural) check_dpar_prior_class(class)
   # lkj is a density over a whole correlation matrix, so it has no
   # meaning on a single coefficient or standard deviation, and the
   # matrix-valued classes have no meaning without it: neither mistake
@@ -399,10 +457,67 @@ set_prior <- function(prior = "", class = "b", coef = "", group = "",
          "nonlinear parameter has its own linear predictor here, so ",
          "nlpar = \"", nlpar, "\" already names one slot", call. = FALSE)
   }
+  ch <- unhonored_coef_refusal(class, coef, group)
+  if (!is.null(ch)) stop(ch, call. = FALSE)
+  if (natural) {
+    # the class IS the parameter, so `dpar` would name it twice and
+    # `nlpar` would name something else entirely
+    if (nzchar(dpar) && !identical(dpar, class)) {
+      stop("class = \"", class, "\" already names the distributional ",
+           "parameter this prior is about, so dpar = \"", dpar,
+           "\" names a second one. Write one or the other",
+           call. = FALSE)
+    }
+    if (nzchar(nlpar)) {
+      stop("class = \"", class, "\" names a distributional parameter ",
+           "and nlpar = \"", nlpar, "\" names a nonlinear one. A ",
+           "nonlinear parameter's coefficients are class = \"b\" with ",
+           "nlpar =, as they are in brms", call. = FALSE)
+    }
+    dpar <- class
+    class <- "Intercept"
+  }
   spec <- list(dist = dist, class = class, coef = coef, dpar = dpar,
                group = group, resp = resp, nlpar = nlpar, lb = lb,
                ub = ub)
+  # written only when TRUE. The link-scale spelling carries no such
+  # field at all, and frmtmb.sample's test-sample-direct.R reads its
+  # absence, so a default of FALSE would itself be a visible change
+  if (natural) spec$natural <- TRUE
   structure(list(spec), class = "frmtmb_priorlist")
+}
+
+#' The class names that are frmtmb's own, in the order `?set_prior`
+#' documents them. Everything else `set_prior()` accepts is the name of
+#' a distributional parameter, which is a class in brms too.
+#'
+#' @noRd
+frmtmb_prior_classes <- c("b", "Intercept", "sd", "cor", "theta",
+                          "ar", "ma", "cosy", "cortime", "rescor")
+
+#' Refuse a class name that is neither frmtmb's own nor usable as a
+#' distributional parameter's name.
+#'
+#' There is no model here, so the name cannot be checked against the
+#' dpars the model actually has: `resolve_priorlist()` does that, where
+#' it can list them. What CAN be checked is the vocabulary brms and
+#' frmtmb disagree about, and it is checked with the same messages the
+#' translated route uses, so `set_prior(class = "sds")` and a brms
+#' `sds` row now say the same thing.
+#'
+#' @noRd
+check_dpar_prior_class <- function(cls) {
+  hint <- brms_prior_class_refusal(cls)
+  if (!is.null(hint)) {
+    stop("class = \"", cls, "\" has no faithful frmtmb spelling. ",
+         hint, call. = FALSE)
+  }
+  if (!grepl("^[A-Za-z][A-Za-z0-9_.]*$", cls)) {
+    stop("class = \"", cls, "\" is neither one of frmtmb's classes (",
+         paste(frmtmb_prior_classes, collapse = ", "),
+         ") nor the name of a distributional parameter", call. = FALSE)
+  }
+  invisible(cls)
 }
 
 #' A hard bound as one number or `NA`, from the number, the string
@@ -591,7 +706,8 @@ as_priorlist <- function(x) {
       next
     }
     rt <- brms_prior_route(cls, dist)
-    ch <- unhonored_coef_refusal(rt$class, chr("coef", i))
+    ch <- unhonored_coef_refusal(rt$class, chr("coef", i),
+                                 chr("group", i))
     if (!is.null(ch)) {
       refuse(i, dist, cls, ch)
       next
@@ -607,13 +723,10 @@ as_priorlist <- function(x) {
         NULL
       })
     if (is.null(one)) next
-    spec <- unclass(one)[[1L]]
-    # written only when TRUE. A set_prior() spec carries no such field
-    # at all, and frmtmb.sample's test-sample-direct.R reads its
-    # absence, so a default of FALSE would be a visible change to a
-    # spelling this decision leaves alone
-    if (isTRUE(rt$natural)) spec$natural <- TRUE
-    out[[length(out) + 1L]] <- spec
+    # `natural` is set by set_prior(), which read the same class this
+    # row carries: the translation is now a pass-through rather than a
+    # second rule that could drift from the first
+    out[[length(out) + 1L]] <- unclass(one)[[1L]]
   }
   if (length(bad)) {
     stop("A brms prior table has ", length(bad),
@@ -627,7 +740,7 @@ as_priorlist <- function(x) {
   structure(out, class = "frmtmb_priorlist")
 }
 
-#' Why a `coef` on a translated row cannot be honored, or `NULL`.
+#' Why a `coef` or `group` on a row cannot be honored, or `NULL`.
 #'
 #' brms narrows a `sd` row to one coefficient of a block and writes
 #' `exponential_lpdf(sd_1[2] | 1)`, keeping its default on the rest.
@@ -638,8 +751,30 @@ as_priorlist <- function(x) {
 #' D1 exists to remove, so it is refused instead. Class `"cor"` reads no
 #' `coef` either, and a correlation is not per-coefficient at all.
 #'
+#' A distributional parameter's own class is one parameter, so it reads
+#' neither: it has no coefficients to narrow to and belongs to no
+#' random-effect block. brms refuses the same rows, naming a parameter
+#' that does not exist (`sigma_x`). This is called with the class the
+#' user WROTE, before a natural class is rewritten to its storage pair,
+#' which is the only point where that word is still visible.
+#'
 #' @noRd
-unhonored_coef_refusal <- function(cls, coef) {
+unhonored_coef_refusal <- function(cls, coef, group = "") {
+  nat <- !cls %in% frmtmb_prior_classes
+  if (nat && (nzchar(coef) || nzchar(group))) {
+    arg <- if (nzchar(coef)) {
+      paste0("coef = \"", coef, "\"")
+    } else {
+      paste0("group = \"", group, "\"")
+    }
+    return(paste0("class = \"", cls, "\" is a density on ", cls,
+                  " itself, which is one parameter, so ", arg,
+                  " names nothing it can narrow to and would be ",
+                  "dropped. Drop it; `resp` is the only narrowing a ",
+                  "distributional class takes, and `dpar` predictors ",
+                  "are addressed with class = \"b\" or ",
+                  "class = \"Intercept\". "))
+  }
   if (!nzchar(coef) || !cls %in% c("sd", "cor")) return(NULL)
   if (identical(cls, "cor")) {
     return(paste0("class = \"cor\" addresses a whole correlation ",
@@ -728,25 +863,15 @@ brms_prior_class_refusal <- function(cls) {
     NULL)
 }
 
-#' Where one brms prior row lands: the frmtmb class, the dpar it needs,
-#' and whether the density is about the parameter ITSELF.
+#' Where one brms prior row lands: the frmtmb class and the dpar it
+#' needs.
 #'
-#' brms's class vocabulary is wider than frmtmb's in two directions and
-#' only one of them risks a mistranslation. The nine names in
-#' `brms_direct_prior_classes` are frmtmb's own and pass through with
-#' the meaning `set_prior()` documents. A DISTRIBUTIONAL parameter's own
-#' class (`sigma`, `shape`, `nu`, ...) is a name frmtmb has no class
-#' for: brms's density is about the parameter itself, and the frmtmb
-#' slot that answers it is that parameter's link-scale intercept, so the
-#' row is routed to `class = "Intercept"`, `dpar = <class>` and marked
-#' `natural`, which puts the density back on the parameter through the
-#' dpar's own inverse link and that map's log-Jacobian. Everything
-#' `brms_prior_class_refusal()` names is refused instead.
-#'
-#' The `natural` flag is written on a translated spec only. frmtmb's own
-#' `set_prior("...", class = "Intercept", dpar = "sigma")` keeps meaning
-#' a density on LOG sigma, so no existing spelling changes meaning here;
-#' the divergence is documented in `?set_prior`.
+#' Every class brms writes that frmtmb can honor is now a class
+#' `set_prior()` takes under the same name, so a translated row keeps
+#' its class and `set_prior()` decides the placement. That is the whole
+#' point of the flip: there is one rule, written once, and the two
+#' routes cannot drift apart. Everything `brms_prior_class_refusal()`
+#' names is refused instead.
 #'
 #' @noRd
 brms_prior_route <- function(cls, dist) {
@@ -755,7 +880,7 @@ brms_prior_route <- function(cls, dist) {
   }
   hint <- brms_prior_class_refusal(cls)
   if (is.null(hint)) {
-    return(list(class = "Intercept", dpar = cls, natural = TRUE))
+    return(list(class = cls, dpar = NULL, natural = TRUE))
   }
   stop("A brms prior with class = \"", cls, "\" (", dist, ") has no ",
        "faithful frmtmb spelling. ", hint,
@@ -878,9 +1003,10 @@ print.frmtmb_priorlist <- function(x, ...) {
       kind <- if (identical(s$dist$kind, "t")) "student_t" else s$dist$kind
       paste0(kind, "(", paste(unlist(s$dist[-1]), collapse = ", "), ")")
     }
-    cat(d, " class=", s$class,
+    sp <- spec_spelling(s)
+    cat(d, " class=", sp$class,
         if (nzchar(s$coef)) paste0(" coef=", s$coef),
-        if (nzchar(s$dpar)) paste0(" dpar=", s$dpar),
+        if (nzchar(sp$dpar)) paste0(" dpar=", sp$dpar),
         if (nzchar(s$nlpar %||% "")) paste0(" nlpar=", s$nlpar),
         if (nzchar(s$resp %||% "")) paste0(" resp=", s$resp),
         if (nzchar(s$group)) paste0(" group=", s$group),
@@ -911,6 +1037,13 @@ print.frmtmb_priorlist <- function(x, ...) {
 #' with its name in the `nlpar` column, the intercept among them, which
 #' is how brms lists them and what [set_prior()] addresses (see its
 #' Nonlinear parameters section).
+#'
+#' A distributional parameter is listed under whichever of its two
+#' spellings the model offers: its OWN class where the model gives it
+#' no predictor, and class `"Intercept"` with its name in the `dpar`
+#' column where the model gives it a formula. brms lists the same two,
+#' the same way round. See A distributional parameter's own class in
+#' [set_prior()].
 #'
 #' An ordinal family has no intercept column, so its class `"Intercept"`
 #' row names the THRESHOLD vector, which is what the same row means in
@@ -1042,6 +1175,20 @@ get_prior <- function(formula, data = NULL, family = NULL,
               resp = resp_lab)
         }
       }
+      next
+    }
+    # a distributional parameter with no predictor of its own is
+    # addressed by its own class, on its own scale: brms lists the same
+    # row, and set_prior() refuses the link-scale spelling there
+    if (nzchar(dpar_lab) && !dpar_has_predictor(spec, lp)) {
+      # unless the class is one this package refuses BY NAME. A mixture
+      # proportion is a predictor-free dpar whose word collides with
+      # frmtmb's own "theta", so `set_prior()` refuses it and points at
+      # a spelling the shape gate then refuses back. Advertising a slot
+      # nothing can fill is worse than leaving it out, and a flat row
+      # for an unnameable class is already left out one branch above
+      if (!is.null(brms_prior_class_refusal(lp[["dpar"]]))) next
+      if (length(cn)) add(lp[["dpar"]], resp = resp_lab)
       next
     }
     if ("(Intercept)" %in% cn) {
@@ -1212,12 +1359,35 @@ block_addressed <- function(spec, frame, bk, s) {
 #'
 #' @noRd
 spec_target <- function(s) {
-  paste0("class=", s$class,
+  sp <- spec_spelling(s)
+  paste0("class=", sp$class,
          if (nzchar(s$coef)) paste0(", coef=", s$coef),
          if (nzchar(s$group)) paste0(", group=", s$group),
          if (nzchar(s$resp %||% "")) paste0(", resp=", s$resp),
-         if (nzchar(s$dpar)) paste0(", dpar=", s$dpar),
+         if (nzchar(sp$dpar)) paste0(", dpar=", sp$dpar),
          if (nzchar(s$nlpar %||% "")) paste0(", nlpar=", s$nlpar))
+}
+
+#' The class and dpar a specification is WRITTEN with, which is not
+#' always the pair it is stored as.
+#'
+#' A density on a distributional parameter itself is stored as that
+#' parameter's intercept slot plus the `natural` flag, because that is
+#' the slot the resolver assigns to. It is written, in frmtmb and in
+#' brms alike, as the parameter's own class. Printing it back as
+#' `class = "Intercept", dpar = "sigma"` would print a spelling this
+#' model refuses, which is the opposite of what
+#' `print.frmtmb_priorlist()` promises: that what it prints can be
+#' pasted back into `set_prior()`.
+#'
+#' @noRd
+spec_spelling <- function(s) {
+  dp <- s$dpar %||% ""
+  if (isTRUE(s$natural) && identical(s$class, "Intercept") &&
+        nzchar(dp)) {
+    return(list(class = dp, dpar = ""))
+  }
+  list(class = s$class, dpar = dp)
 }
 
 #' The nonlinear parameters a model declares, for the refusal that has
@@ -1519,6 +1689,8 @@ resolve_priorlist <- function(fit, pl) {
   }
 
   for (s in unclass(pl)) {
+    bad_shape <- dpar_shape_refusal(fit, s)
+    if (!is.null(bad_shape)) stop(bad_shape, call. = FALSE)
     ord_th <- if (s$class == "Intercept") ordinal_threshold_entry(s)
     if (!is.null(ord_th)) {
       if (!is.null(s$dist)) {
@@ -1749,6 +1921,143 @@ coef_placement <- function(s, tg) {
     return(list(scale = "internal", link = NULL, offset = ctr))
   }
   list(scale = "natural", link = tg$link, offset = ctr)
+}
+
+#' Does this distributional parameter have a PREDICTOR, in the sense
+#' that decides which of the two brms spellings applies to it?
+#'
+#' brms's rule is "did the model write a formula for it", not "does the
+#' design have more than an intercept": `bf(y ~ x, sigma ~ 1)` declares
+#' `Intercept_sigma` and retires `sigma`, exactly as `sigma ~ x` does.
+#' Its design is a single intercept column, identical to the one an
+#' unwritten `sigma` gets, so the frame cannot tell them apart. The
+#' spec can: `plain_dpar()` (R/parse.R) builds an unwritten dpar out of
+#' four slots, where a written formula goes through `parse_linpred()`
+#' and carries its special-term slots as well.
+#'
+#' The structural tests come first so that a dpar which is predicted on
+#' any reading stays predicted even if that record ever changes shape.
+#'
+#' @noRd
+dpar_has_predictor <- function(spec, lp) {
+  X <- lp[["X"]]
+  if (!is.null(X) && ncol(X) > 1L) return(TRUE)
+  if (!is.null(lp[["Z"]])) return(TRUE)
+  if (length(lp[["smooths"]] %||% list())) return(TRUE)
+  if (length(lp[["gps"]] %||% list())) return(TRUE)
+  if (length(lp[["mo"]] %||% list())) return(TRUE)
+  dp <- spec$responses[[lp[["resp"]]]]$dpars[[lp[["dpar"]]]]
+  "acterms" %in% names(dp %||% list())
+}
+
+#' Why a dpar-addressed specification does not fit this model's shape,
+#' or `NULL`.
+#'
+#' The two brms spellings for a distributional parameter are mutually
+#' exclusive BY MODEL SHAPE, and frmtmb now says the same:
+#' `class = "sigma"` is a density on sigma itself and needs a sigma
+#' with no predictor; `class = "Intercept", dpar = "sigma"` is a
+#' density on the link-scale intercept of sigma's linear predictor and
+#' needs a sigma that has one. brms refuses each on the other's model
+#' ("The following priors do not correspond to any model parameter"),
+#' and refusing by name is what keeps a ported script from silently
+#' meaning something else.
+#'
+#' @noRd
+dpar_shape_refusal <- function(fit, s) {
+  dp <- s$dpar %||% ""
+  if (!nzchar(dp) || !s$class %in% c("b", "Intercept")) return(NULL)
+  if (nzchar(s$nlpar %||% "")) return(NULL)
+  frame <- fit$frame
+  lps <- Filter(function(lp) {
+    identical(lp[["dpar"]], dp) &&
+      (!nzchar(s$resp %||% "") || identical(lp[["resp"]], s$resp))
+  }, frame[["linpreds"]])
+  nat <- isTRUE(s$natural)
+  # a nonlinear parameter has a linear predictor like a dpar, and would
+  # otherwise be told it "has a predictor of its own", which is true and
+  # not the sentence a user who wrote class = "ult" needs
+  if (nat && dp %in% model_nlpars(fit$spec)) {
+    return(paste0("class = \"", dp, "\" names a NONLINEAR parameter of ",
+                  "this model, whose coefficients are class = \"b\" ",
+                  "with nlpar = \"", dp, "\", the intercept among them, ",
+                  "as brms lists them. A class of its own belongs to a ",
+                  "distributional parameter"))
+  }
+  spelling <- if (nat) {
+    paste0("class = \"", dp, "\"")
+  } else {
+    paste0("class = \"", s$class, "\", dpar = \"", dp, "\"")
+  }
+  if (!length(lps)) {
+    have <- unique(vapply(frame[["linpreds"]], function(lp) {
+      lp[["dpar"]]
+    }, ""))
+    return(paste0(spelling, " names no distributional parameter of ",
+                  "this model. It has ", paste(have, collapse = ", "),
+                  ". frmtmb's own classes are ",
+                  paste(frmtmb_prior_classes, collapse = ", ")))
+  }
+  for (lp in lps) {
+    if (!is.null(lp[["constant"]])) {
+      return(paste0(spelling, ": ", dp, " is fixed at ",
+                    format(lp[["constant"]]), " in this model, so it ",
+                    "holds no parameter a prior can reach. Drop the ",
+                    "constant from bf() to estimate it"))
+    }
+    if (!is.null(lp[["nl_body"]])) {
+      return(paste0(spelling, ": ", dp, " is computed by an nlf() body ",
+                    "here, so it has no coefficient of its own. Prior ",
+                    "the parameters the body is written from instead"))
+    }
+    pred <- dpar_has_predictor(fit$spec, lp)
+    link <- lp[["link"]]$name %||% "identity"
+    # the third spelling brms decides by model shape. `dpar ~ 1` gives
+    # the parameter a predictor, so it takes the Intercept spelling,
+    # but it gives it no population-level SLOPES, so class "b" there
+    # addresses an empty set. An empty match is silent: the penalty was
+    # bit-identical to no prior at all, which is the one failure this
+    # gate exists to prevent
+    if (identical(s$class, "b") && pred &&
+          !length(setdiff(colnames(lp[["X"]]) %||% character(0),
+                          "(Intercept)"))) {
+      return(paste0("class = \"b\", dpar = \"", dp, "\" addresses the ",
+                    "population-level slopes of ", dp,
+                    "'s linear predictor, and this model's ", dp,
+                    " predictor is an intercept only, so it has none. ",
+                    "The prior brms takes there is ",
+                    "class = \"Intercept\", dpar = \"", dp,
+                    "\", a density on the ", link, "-scale intercept; ",
+                    "give ", dp, " a predictor to have slopes to prior"))
+    }
+    if (nat && pred) {
+      return(paste0("class = \"", dp, "\" is a density on ", dp,
+                    " itself, which brms accepts only where ", dp,
+                    " has no predictor of its own. This model gives ",
+                    dp, " one, so the prior brms takes there is ",
+                    "class = \"Intercept\", dpar = \"", dp,
+                    "\", a density on the ", link, "-scale intercept ",
+                    "of that predictor"))
+    }
+    if (!nat && !pred) {
+      if (identical(s$class, "Intercept")) {
+        return(paste0("class = \"Intercept\", dpar = \"", dp, "\" is a ",
+                      "density on the ", link, "-scale intercept of ",
+                      dp, "'s linear predictor, which brms accepts ",
+                      "only where ", dp, " has one. This model writes ",
+                      "no ", dp, " formula, so the prior brms takes ",
+                      "there is class = \"", dp, "\", a density on ",
+                      dp, " itself. Write ", dp, " ~ 1 in bf() to have ",
+                      "a link-scale intercept to prior"))
+      }
+      return(paste0("class = \"b\", dpar = \"", dp, "\" addresses ", dp,
+                    "'s slopes, and this model gives ", dp,
+                    " no predictor, so it has none. Write class = \"",
+                    dp, "\" for a density on ", dp,
+                    " itself, or give ", dp, " a formula in bf()"))
+    }
+  }
+  NULL
 }
 
 #' A user-facing bound carried onto the internal parameter the box

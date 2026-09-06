@@ -23,7 +23,10 @@ test_that("get_prior(route = 'sample') reports this package's defaults", {
   icpt <- gp$prior[gp$class == "Intercept" & gp$dpar == "" &
                      gp$coef == ""]
   expect_match(icpt, "^student_t\\(3, ")
-  sigma <- gp$prior[gp$class == "Intercept" & gp$dpar == "sigma"]
+  # this model gives sigma no predictor, so the table lists it under
+  # its OWN class, which is where brms lists it too and the spelling
+  # set_prior() takes for a density on sigma itself
+  sigma <- gp$prior[gp$class == "sigma"]
   expect_match(sigma, "^student_t\\(3, 0, ")
   expect_true(all(grepl("^student_t\\(3, 0, ",
                         gp$prior[gp$class == "sd" & gp$coef == ""])))

@@ -84,14 +84,15 @@ test_that("route = 'sample' reports the registered defaults", {
   local_providers(list(route_test_provider))
 
   gp <- get_prior(form, data = dd, route = "sample")
-  # dpar narrows to mu's intercept. sigma has an Intercept row of its
-  # own, keyed by dpar, which this provider does not address and which
-  # therefore stays flat: a slot key is a class plus its qualifiers
+  # dpar narrows to mu's intercept. This model gives sigma no
+  # predictor, so sigma has a row under its OWN class, which this
+  # provider does not address and which therefore stays flat: a slot
+  # key is a class plus its qualifiers
   expect_identical(gp$prior[gp$class == "Intercept" & gp$coef == "" &
                               gp$dpar == ""],
                    "normal(0, 3)")
-  expect_identical(gp$prior[gp$class == "Intercept" & gp$dpar == "sigma"],
-                   "(flat)")
+  expect_identical(gp$prior[gp$class == "sigma"], "(flat)")
+  expect_false(any(gp$class == "Intercept" & gp$dpar == "sigma"))
   expect_true(all(gp$prior[gp$class == "sd" & gp$coef == ""] ==
                     "exponential(2)"))
   # a default speaks for a class, not for one coefficient of it
@@ -171,4 +172,83 @@ test_that("coercion drops the class and the label together", {
   expect_null(attr(plain, "route"))
   expect_identical(plain, hand)
   expect_identical(plain[["prior"]], gp[["prior"]])
+})
+
+test_that("every row get_prior() lists is one set_prior() accepts", {
+  # F1 of the punch round, and the test that stops it recurring. The
+  # table is a promise: each row names a slot the caller can address.
+  # A predictor-free dpar was routed to its own class without asking
+  # whether that class is one the package REFUSES, so a mixture listed
+  # class = "theta1", set_prior() refused it and named the Intercept
+  # spelling, and the shape gate refused that and named the class back.
+  # Advertised by the table, reachable by nothing.
+  usable <- function(fit, gp) {
+    for (i in seq_len(nrow(gp))) {
+      r <- gp[i, ]
+      lbl <- paste0("row ", i, ": ", r$class,
+                    if (nzchar(r$coef)) paste0("/", r$coef),
+                    if (nzchar(r$dpar)) paste0(" dpar=", r$dpar),
+                    if (nzchar(r$nlpar)) paste0(" nlpar=", r$nlpar),
+                    if (nzchar(r$group)) paste0(" group=", r$group))
+      # class "cor" and its relatives take lkj() and nothing else, so
+      # the density follows the class rather than the other way round
+      dist <- if (r$class %in% c("cor", "cortime", "rescor")) {
+        "lkj(2)"
+      } else {
+        "normal(0, 1)"
+      }
+      pl <- tryCatch(
+        set_prior(dist, class = r$class, coef = r$coef, group = r$group,
+                  dpar = r$dpar, nlpar = r$nlpar, resp = r$resp),
+        error = function(e) {
+          fail(paste0(lbl, " is refused by set_prior(): ",
+                      conditionMessage(e)))
+          NULL
+        })
+      if (is.null(pl)) next
+      # and it must reach a parameter of the model it was listed for,
+      # which is where the shape gate lives
+      ok <- tryCatch({
+        frmtmb:::resolve_prior_input(fit, pl)
+        TRUE
+      }, error = function(e) {
+        fail(paste0(lbl, " does not resolve: ", conditionMessage(e)))
+        FALSE
+      })
+      expect_true(ok)
+    }
+  }
+
+  set.seed(19)
+  dd <- data.frame(x = stats::rnorm(200), g = factor(rep(1:20, 10)))
+  dd$y <- stats::rnorm(200, 1 + 0.5 * dd$x, 1.4)
+  dd$cnt <- stats::rpois(200, 3)
+  dd$p <- stats::rbeta(200, 2, 3)
+
+  shapes <- list(
+    ordinary = bf(y ~ x + (1 | g)) + gaussian(),
+    distributional = bf(y ~ x, sigma ~ x) + gaussian(),
+    intercept_only_dpar = bf(y ~ x, sigma ~ 1) + gaussian(),
+    negbinomial = bf(cnt ~ x) + negbinomial(),
+    zero_inflated = bf(cnt ~ x) + zero_inflated_poisson(),
+    beta = bf(p ~ x) + Beta(),
+    # the shape that produced the defect: a mixture proportion is a
+    # predictor-free dpar whose class frmtmb refuses by name
+    mixture = bf(y ~ x) + mixture(gaussian(), gaussian()))
+
+  for (nm in names(shapes)) {
+    form <- shapes[[nm]]
+    gp <- get_prior(form, data = dd)
+    fit <- suppressWarnings(frm(form, data = dd, dry_run = "objective"))
+    usable(fit, gp)
+  }
+
+  # and the mixture's unreachable proportion is left OUT rather than
+  # advertised: brms honors class = "theta" there and frmtmb has no
+  # spelling at all, which the refusal says
+  gpm <- get_prior(bf(y ~ x) + mixture(gaussian(), gaussian()), data = dd)
+  expect_false(any(startsWith(gpm$class, "theta")))
+  expect_false(any(startsWith(gpm$dpar, "theta")))
+  # the component dispersions ARE listed, under their own classes
+  expect_true(all(c("sigma1", "sigma2") %in% gpm$class))
 })

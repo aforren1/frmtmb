@@ -121,10 +121,14 @@ test_that("par_template and set_prior reach the wiener dpars", {
   gp <- get_prior(bf(rt | vint(upper) ~ cond, bias = 0.5),
                   family = wiener(), data = o$dat)
   expect_true(is.data.frame(gp))
-  # mu is the main formula, so its rows carry an empty dpar; the other
-  # dpars are named. bias is fixed at 0.5, so it has no targetable slot.
-  expect_true(all(c("bs", "ndt") %in% gp$dpar))
-  expect_false("bias" %in% gp$dpar)
+  # BEHAVIOR CHANGE. mu is the main formula, so its rows carry an empty
+  # dpar. bs and ndt get no predictor in this model, so each is now
+  # listed under its OWN class, which is the word brms lists there and
+  # the word set_prior() takes: the density is on the parameter itself.
+  # bias is fixed at 0.5, so it has no targetable slot at all.
+  expect_true(all(c("bs", "ndt") %in% gp$class))
+  expect_false(any(nzchar(gp$dpar)))
+  expect_false("bias" %in% gp$class)
   expect_true(any(gp$class == "b" & gp$coef == "cond"))
 
   # a prior on a dpar changes the answer it is set on
@@ -132,14 +136,32 @@ test_that("par_template and set_prior reach the wiener dpars", {
             data = o$dat,
             prior = set_prior("normal(0, 0.1)", class = "b", dpar = "mu"))
   # toward zero, and not past it. Bounding only the magnitude admits a
-  # sign flip, which is what a natural-scale placement for a dpar prior
-  # produces here: the density on exp(coef) pushes the coefficient
-  # negative and |shrunk| < |unpenalized| stays true while the estimate
-  # changes sign. The ratio bounds both at once.
+  # sign flip, which a natural-scale placement for a dpar prior can
+  # produce: a density on exp(coef) pushes the coefficient negative,
+  # and |shrunk| < |unpenalized| stays true while the estimate changes
+  # sign. The ratio bounds both at once. class "b" is link-scale on the
+  # slopes in brms and here, so this one shrinks without flipping.
   shrink <- unlist(fixef(f2))[["mu.cond"]] /
     unlist(fixef(o$fit))[["mu.cond"]]
   expect_gt(shrink, 0)
   expect_lt(shrink, 1)
+
+  # and the wiener dpars take their own class, on their own scale: bs
+  # is bounded below, so a density on bs itself is not a density on
+  # log bs, and the estimate moves accordingly
+  f3 <- frm(bf(rt | vint(upper) ~ cond, bias = 0.5), family = wiener(),
+            data = o$dat,
+            prior = set_prior("normal(1, 0.05)", class = "bs"))
+  bs0 <- unlist(fixef(o$fit))[["bs.(Intercept)"]]
+  bs3 <- unlist(fixef(f3))[["bs.(Intercept)"]]
+  expect_lt(abs(exp(bs3) - 1), abs(exp(bs0) - 1))
+  # the link-scale spelling for the same parameter is refused here by
+  # name, because this model gives bs no predictor
+  expect_error(frm(bf(rt | vint(upper) ~ cond, bias = 0.5),
+                   family = wiener(), data = o$dat,
+                   prior = set_prior("normal(1, 0.05)",
+                                     class = "Intercept", dpar = "bs")),
+               "brms accepts only where bs has one", fixed = TRUE)
 })
 
 test_that("weights() and a random effect both work", {

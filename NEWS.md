@@ -71,6 +71,81 @@
   it to surface the warning once under its own function names and to
   refuse a feature search whose bracket leaves the span.
 
+* **BEHAVIOR CHANGE. `set_prior()`'s own class names now mean what the
+  same names mean in brms.** A distributional parameter's own name is
+  a class here as it is there: `set_prior("student_t(3, 0, 2.5)",
+  class = "sigma")` is a density on sigma ITSELF, on its natural
+  scale, with the inverse link's log-Jacobian applied. The two brms
+  spellings are mutually exclusive by model shape, measured off
+  `brms::make_stancode()`, and frmtmb now refuses each on the other's
+  model, by name, saying which one applies:
+
+  | the model | the spelling it takes |
+  | --- | --- |
+  | `bf(y ~ x)` | `class = "sigma"`, a density on sigma |
+  | `bf(y ~ x, sigma ~ 1)` or `sigma ~ x` | `class = "Intercept", dpar = "sigma"`, a density on the log-scale intercept |
+
+  **What changes in your numbers.** Before this release,
+  `set_prior(..., class = "Intercept", dpar = "sigma")` was accepted on
+  a model with no `sigma` formula and meant a density on LOG sigma. On
+  a gaussian `y ~ x` with 200 rows whose maximum-likelihood sigma is
+  2.0103, `normal(0, 0.5)` gave 1.9965 that way; the same script now
+  stops, and `class = "sigma"` gives 1.9429, which is what
+  `brms::prior(normal(0, 0.5), class = "sigma")` gave all along. To
+  reproduce the OLD placement, write `sigma ~ 1` in `bf()` (that model
+  has a log-scale intercept, and the same spelling addresses it), or
+  reach the raw parameter with `prior = list(betad = )`. A `class =
+  "b"` prior on a dpar's slopes is unaffected: it was link-scale before
+  and is link-scale in brms.
+
+* `get_prior()` lists a distributional parameter under whichever of the
+  two spellings its model offers, which is the row brms lists: class
+  `"sigma"` where sigma has no predictor, `class = "Intercept"` with
+  `dpar = "sigma"` where it has one. A parameter with NEITHER spelling,
+  because its class is one frmtmb refuses by name, is left out rather
+  than advertised: a mixture proportion with no predictor of its own
+  was briefly listed as class `"theta1"`, which `set_prior()` refuses.
+
+* `set_prior()` refuses `class = "b", dpar = <name>` where that
+  parameter's predictor is an intercept only. There are no slopes for
+  the row to address there, so it used to be accepted and applied
+  nothing at all, silently; brms refuses the same row.
+
+* `set_prior()` refuses a `coef` or a `group` on a distributional
+  parameter's own class. The class names one parameter, so neither
+  argument had anything to narrow to, and both used to be accepted,
+  printed, and then dropped while the prior applied anyway.
+
+* `print()` on a prior list, and the slot names inside prior error
+  messages, spell a density on a distributional parameter with that
+  parameter's own class: `student_t(3, 0, 2.5) class=sigma
+  scale=natural` where a translated row used to print
+  `class=Intercept dpar=sigma scale=natural`. What is printed is what
+  `set_prior()` accepts on that model, which is the promise the
+  printer makes. `frm_sample()`'s default-prior announcement uses the
+  same spelling.
+
+* The brms translation is now a pass-through rather than a second set
+  of rules: a translated row keeps its class and `set_prior()` decides
+  the placement, so `frm(prior = brms::prior(...))` and
+  `frm(prior = set_prior(...))` are one code path and cannot drift.
+  The priors tier fits the same model both ways and asserts the
+  objectives are identical to 1e-12, class by class.
+
+* `set_prior()` refuses a `coef` on class `"sd"` or `"cor"`, which it
+  used to accept, print, and then apply to the whole block. The
+  translated route already refused it; both do now.
+
+* A prior class frmtmb keeps somewhere else (`sds`, `sdgp`, `lscale`,
+  `simo`, `sdcar`, `car`, brms's mixture `theta1`) is refused by name
+  from `set_prior()` too, with the same sentence the translated route
+  gives, rather than being read as a distributional parameter that the
+  model does not have.
+
+* No `natural =` or `scale =` argument was added: after this change the
+  placement follows from the class, which is brms's own rule, so there
+  is nothing left for such an argument to override.
+
 # frmtmb 0.52.0
 
 A brms prior means what it means in brms; conditional_effects() plots

@@ -97,7 +97,13 @@ test_that("prior draws simulate a prior-predictive sample", {
   pl <- set_prior("normal(0, 1)", class = "b") +
     set_prior("normal(0, 2)", class = "Intercept") +
     set_prior("exponential(1)", class = "sd") +
-    set_prior("normal(0, 1)", class = "Intercept", dpar = "sigma")
+    # BEHAVIOR CHANGE. This model gives sigma no predictor, so the
+    # prior brms takes on it is class = "sigma", a density on sigma
+    # itself, and frmtmb now refuses the link-scale spelling here by
+    # name. The draws move with it: they used to be log sigma
+    # (mean -0.118, range -2.26 to 2.23 on this seed) and are now
+    # sigma, rejection-drawn inside (0, Inf) as a class "sd" draw is
+    set_prior("normal(0, 1)", class = "sigma")
 
   pp <- frm_simulate(form, dd, prior = pl, nsim = 20, seed = 11)
   pars <- attr(pp, "pars")
@@ -110,18 +116,24 @@ test_that("prior draws simulate a prior-predictive sample", {
   expect_gt(stats::sd(pars$sd_g__Intercept), 0.2)
   # class "sd" draws live on the natural sd scale
   expect_true(all(pars$sd_g__Intercept > 0))
+  # and so do the draws for a dpar priored on its own scale
+  expect_true(all(pars$sigma_Intercept > 0))
 
   # tight priors reproduce the fixed-parameter simulation statistically
   tight <- set_prior("normal(1, 1e-6)", class = "Intercept") +
     set_prior("normal(0.5, 1e-6)", class = "b") +
     set_prior("normal(0.7, 1e-9)", class = "sd") +
-    set_prior(paste0("normal(", log(0.6), ", 1e-9)"), class = "Intercept",
-              dpar = "sigma")
+    # BEHAVIOR CHANGE. The same draw, written the way brms writes it:
+    # 0.6 on sigma rather than log(0.6) on its intercept. The reported
+    # value follows, from -0.5108256234 to 0.6
+    set_prior("normal(0.6, 1e-9)", class = "sigma")
   a <- frm_simulate(form, dd, prior = tight, nsim = 8, seed = 42)
   b <- frm_simulate(form, dd, nsim = 8, seed = 42,
                     newparams = list(Intercept = 1, x = 0.5, sigma = 0.6,
                                      sd_g__Intercept = 0.7))
   expect_equal(attr(a, "pars")$sd_g__Intercept, rep(0.7, 8),
+               tolerance = 1e-6)
+  expect_equal(attr(a, "pars")$sigma_Intercept, rep(0.6, 8),
                tolerance = 1e-6)
   expect_lt(abs(mean(as.matrix(a)) - mean(as.matrix(b))), 0.25)
   expect_lt(abs(stats::sd(as.matrix(a)) - stats::sd(as.matrix(b))), 0.15)

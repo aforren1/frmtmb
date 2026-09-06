@@ -13,6 +13,7 @@
 \alias{neg_log_prior_fn}
 \alias{resolve_bounds}
 \alias{spec_target}
+\alias{spec_spelling}
 \alias{frmtmb_register_prior_defaults}
 \alias{ncp_eligible}
 \alias{ncp_scale_b}
@@ -117,8 +118,11 @@ spellings (including a brms \code{brmsprior}) to one,
 \code{list(entries, lower, upper)} on the internal parameter scale,
 \code{neg_log_prior_fn()} turns resolved entries into a tapeable closure,
 \code{resolve_bounds()} turns user-spelled bounds into internal-scale
-vectors over the outer parameters, and \code{spec_target()} names the slot
-one specification addresses.
+vectors over the outer parameters, \code{spec_target()} names the slot
+one specification addresses, and \code{spec_spelling()} gives back the
+class and dpar it was WRITTEN with, which for a density on a
+distributional parameter itself is that parameter's own class rather
+than the intercept slot the resolver assigns to.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
 package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.
