@@ -157,9 +157,11 @@ export(build_objective, row_lpdf, with_cs_offsets,
   sim_draw, sim_is_structured, par_name_bare, outer_par_names,
   estimated_coef_names, log_sd_theta_index, sdr_of, require_fitted,
   hyp_parse_all, hyp_vals_only, hyp_env_vals, hyp_eval, hyp_tail_p,
-  ce_grids_build, ce_boot_one, ce_finalize, ce_cats_display,
-  ce_structure_check, ce_re_formula, find_linpred, arg_unset,
-  re_form_arg)
+  ce_grids_build, ce_boot_one, ce_frame, ce_finalize,
+  ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
+  ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,
+  ce_structure_check, ce_re_formula, ce_dots, find_linpred,
+  arg_unset, re_form_arg)
 export(categorical)
 export(check_custom_family)
 export(cluster_scores)

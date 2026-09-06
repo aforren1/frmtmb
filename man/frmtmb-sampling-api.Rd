@@ -40,10 +40,18 @@
 \alias{hyp_tail_p}
 \alias{ce_grids_build}
 \alias{ce_boot_one}
+\alias{ce_frame}
 \alias{ce_finalize}
 \alias{ce_cats_display}
+\alias{ce_display_kind}
+\alias{ce_pred_dpar}
+\alias{ce_group_vars}
+\alias{ce_new_level_spec}
+\alias{ce_boot_grids}
+\alias{ce_draw_new_levels}
 \alias{ce_structure_check}
 \alias{ce_re_formula}
+\alias{ce_dots}
 \alias{find_linpred}
 \alias{arg_unset}
 \alias{re_form_arg}
@@ -186,12 +194,47 @@ once, then per vector swaps the estimates in and calls
 
 \code{ce_grids_build()} builds the prediction grids, effect list,
 condition sets and base values; \code{ce_boot_one()} evaluates one grid
-at one parameter vector and flattens it; \code{ce_finalize()} assembles
-the per-effect data frames into the returned object with the
-attributes \code{plot()} reads. \code{ce_cats_display()} says whether the
-display is per-category, \code{ce_structure_check()} is the refusal a
+at one parameter vector and flattens it; \code{ce_frame()} lays out one
+grid's rows in the column order brms's frame carries (the varied
+predictor(s), every other model variable at its held value,
+\code{cond__}, \code{cats__}, \code{effect1__}, \code{effect2__}), and \code{ce_finalize()}
+assembles the per-effect data frames into the returned object with
+the attributes \code{plot()} reads. \code{ce_cats_display()} says whether the
+display is per-category and \code{ce_display_kind()} which of the three
+displays a call asks for, \code{ce_structure_check()} is the refusal a
 structured likelihood owes a grid, and \code{ce_re_formula()} resolves
 the random-effect argument of such a call.
+
+\code{ce_pred_dpar()} says what to PREDICT, which is not always the dpar
+the display is labeled with. It returns \code{NULL} - the expected
+response - whenever no dpar was named and the family's mean is not
+the inverse link of \code{mu}, or the response carries \code{trunc()} bounds.
+Call it rather than passing a resolved \code{dpar} straight to
+\code{ce_boot_one()}: on a zero-inflated fit the mu predictor alone is
+\code{1 / (1 - zi)} times the mean, on a mixture it is one component's
+mean, and on a response truncated below at zero it can be negative.
+The predicate underneath stays private, because what an extension
+needs is the decision and not the test that makes it.
+
+\code{ce_dots()} is the argument surface itself: it pulls
+\code{allow_new_levels} (and lme4's \code{allow.new.levels}) out of a call's
+dots, returns whether either was set, and reports whatever is left
+as unknown. An extension that hand-rolls the same check accepts a
+different set of arguments from the fit method, which is how
+\code{allow_new_levels} came to work on a fit and warn on draws.
+
+Four more serve one purpose between them: making an unobserved
+group a DRAWN group rather than letting the first observed one
+stand in for it silently. \code{ce_group_vars()} names
+the grouping variables a \code{re_formula = NULL} call blanks in its
+grid; \code{ce_new_level_spec()} reads the blocks that blanking reaches;
+\code{ce_boot_grids()} puts a placeholder level back in the grid the
+design has to map; and \code{ce_draw_new_levels()} overwrites that
+level's coefficients with one draw from the covariance the passed
+object's own \code{theta} implies. A sampler calls the last one per
+POSTERIOR DRAW where the fit method calls it per bootstrap
+replicate; the construction is the same and the frames stay
+comparable.
 }
 
 \section{The two-dialect argument seam}{

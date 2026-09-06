@@ -208,6 +208,18 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
       hyp_eval(sh, ex, w$vals, w$comp)
     }, numeric(1))
   }
+  # brms's Evid.Ratio and Post.Prob, in this frame's own lower-case
+  # spelling. Only the draws surface carries them: they are posterior
+  # quantities, and a Wald or profile hypothesis has no posterior
+  # density to put over a prior one.
+  #
+  # A POINT null is the spelling that carries "=". The bare-quantity
+  # spelling this package also accepts parses `two.sided` as well, and
+  # it is a summary request rather than a test, so it must not be
+  # weighed or complained about.
+  is_point <- hp$dir == "two.sided" &
+    grepl("=", hypothesis, fixed = TRUE)
+  ev <- er_evidence(x, exs, hp$dir, draws, hypothesis, is_point)
   rows <- lapply(seq_along(exs), function(k) {
     t_k <- draws[, k]
     dir <- hp$dir[k]
@@ -219,7 +231,9 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
                upr = if (dir == "greater") Inf else
                  unname(stats::quantile(t_k, 1 - lo)),
                z = mean(t_k) / stats::sd(t_k),
-               p = hyp_tail_p(t_k, dir))
+               p = hyp_tail_p(t_k, dir),
+               evid_ratio = ev$evid_ratio[k],
+               post_prob = ev$post_prob[k])
   })
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
@@ -229,6 +243,10 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
   attr(out, "draws") <- draws
   attr(out, "nsim") <- n
   attr(out, "converged") <- rep(TRUE, n)
+  # an attribute rather than a column: the frame stays the shape a
+  # ported brms script indexes, and the Monte Carlo error of a kernel
+  # density ratio is exactly what a reader needs before believing one
+  attr(out, "evid_ratio_mcse") <- ev$mcse
   class(out) <- c("frmtmb_hypothesis", "data.frame")
   out
 }

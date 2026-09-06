@@ -501,6 +501,39 @@ ce_cats_display <- function(rspec, dpar) {
     isTRUE(rspec$family[["type"]] %in% c("ordinal", "categorical"))
 }
 
+#' The dpar `conditional_effects()` actually PREDICTS, which is not
+#' always the dpar it labels the display with.
+#'
+#' `NULL` means the expected response, which is what
+#' `predict(type = "response")` returns with no `dpar =` and what
+#' `method = "epred"` has always been documented to draw. It is the
+#' answer whenever no dpar was named and the family's mean is not the
+#' inverse link of `mu` - a zero-inflated or hurdle family, a mixture -
+#' or the response carries `trunc()` bounds, because in all of those the
+#' mu predictor alone is a different quantity from the mean. Taking the
+#' estimate from mu regardless plotted `(1 - zi)` times too little on a
+#' zero-inflated fit, one component's mean on a mixture, and a NEGATIVE
+#' mean on a response truncated below at zero.
+#'
+#' Exported rather than left to each caller to re-derive: `mean_is_mu()`
+#' is a structural test of a family's `mean_fn` body and has no business
+#' crossing a package boundary, but the DECISION it feeds does. A
+#' sampling extension that draws the same curves per posterior draw has
+#' to make the same choice, and there is exactly one right answer per
+#' model.
+#'
+#' `dpar` is the resolved (defaulted) label, `dpar_given` whether the
+#' user named one; the two category displays never take this path
+#' because their quantity is a probability, not a dpar.
+#'
+#' @noRd
+ce_pred_dpar <- function(rspec, dpar, dpar_given = FALSE,
+                         categorical = FALSE, cats_mean = FALSE) {
+  mean_display <- !categorical && !cats_mean && !dpar_given &&
+    (!mean_is_mu(rspec$family) || has_trunc(rspec))
+  if (mean_display) NULL else dpar
+}
+
 #' One conditional-effects grid: every predictor at its reference value
 #' or at its `conditions` override, with the varied predictor(s) replaced
 #' by their grid values. Split out because `band = "boot"` needs every
@@ -1698,9 +1731,11 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # fitted() and predict(type = "response") return. Taking the estimate
   # from the mu predictor alone plotted (1 - zi) times too little on a
   # zero-inflated fit and a sign-changing error on a hurdle one.
-  mean_display <- !categorical && !cats_mean && !dpar_given &&
-    (!mean_is_mu(rspec$family) || has_trunc(rspec))
-  pred_dpar <- if (mean_display) NULL else dpar
+  pred_dpar <- ce_pred_dpar(rspec, dpar, dpar_given, categorical,
+                            cats_mean)
+  # `dpar` is resolved by now, so NULL here means, and only means, that
+  # the display quantity is the expected response
+  mean_display <- is.null(pred_dpar)
   # a dpar whose RESPONSE scale is not its own link inverse (a
   # mixture's mixing weight, which is a softmax over the component
   # predictors) is displayed on that scale, not on the predictor the

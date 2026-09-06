@@ -11,7 +11,7 @@ Samples the posterior of a model assembled by 'frmtmb', by handing its 'RTMB' ob
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://aforren1.github.io/frmtmb/}
+  \item \url{https://aforren1.github.io/frmtmb/frmtmb.sample/}
   \item \url{https://github.com/aforren1/frmtmb}
   \item Report bugs at \url{https://github.com/aforren1/frmtmb/issues}
 }

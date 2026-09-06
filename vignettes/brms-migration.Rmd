@@ -465,7 +465,17 @@ and `loo()`-based comparison are all available here, and
 **frmtmb.latent** adds hidden Markov and latent class families, so the
 reasons to reach for brms itself are narrower than they look:
 
-- a marginal likelihood, and so a Bayes factor;
+- a marginal likelihood, and so a Bayes factor between models
+  that are not nested. A point null INSIDE one model is now
+  answered here: `hypothesis()` on a draws object reports the
+  Savage-Dickey evidence ratio and posterior probability that
+  brms reports, for a population-level coefficient whose prior is
+  written about the coefficient itself (in practice a `class = "b"`
+  prior you wrote). It refuses, by name, on a variance component, a
+  correlation, a dispersion and the intercept, because each of those
+  is reported on a scale its prior is not written on. What still
+  needs brms is bridge sampling, which estimates the marginal
+  likelihood itself;
 - `reloo()` or `kfold()` on a model whose LOO approximation fails,
   since both need refits that this package does not do;
 - a family or term neither package here implements, which

@@ -126,12 +126,47 @@
 #' @section The conditional-effects engine:
 #' `ce_grids_build()` builds the prediction grids, effect list,
 #' condition sets and base values; `ce_boot_one()` evaluates one grid
-#' at one parameter vector and flattens it; `ce_finalize()` assembles
-#' the per-effect data frames into the returned object with the
-#' attributes `plot()` reads. `ce_cats_display()` says whether the
-#' display is per-category, `ce_structure_check()` is the refusal a
+#' at one parameter vector and flattens it; `ce_frame()` lays out one
+#' grid's rows in the column order brms's frame carries (the varied
+#' predictor(s), every other model variable at its held value,
+#' `cond__`, `cats__`, `effect1__`, `effect2__`), and `ce_finalize()`
+#' assembles the per-effect data frames into the returned object with
+#' the attributes `plot()` reads. `ce_cats_display()` says whether the
+#' display is per-category and `ce_display_kind()` which of the three
+#' displays a call asks for, `ce_structure_check()` is the refusal a
 #' structured likelihood owes a grid, and `ce_re_formula()` resolves
 #' the random-effect argument of such a call.
+#'
+#' `ce_pred_dpar()` says what to PREDICT, which is not always the dpar
+#' the display is labeled with. It returns `NULL` - the expected
+#' response - whenever no dpar was named and the family's mean is not
+#' the inverse link of `mu`, or the response carries `trunc()` bounds.
+#' Call it rather than passing a resolved `dpar` straight to
+#' `ce_boot_one()`: on a zero-inflated fit the mu predictor alone is
+#' `1 / (1 - zi)` times the mean, on a mixture it is one component's
+#' mean, and on a response truncated below at zero it can be negative.
+#' The predicate underneath stays private, because what an extension
+#' needs is the decision and not the test that makes it.
+#'
+#' `ce_dots()` is the argument surface itself: it pulls
+#' `allow_new_levels` (and lme4's `allow.new.levels`) out of a call's
+#' dots, returns whether either was set, and reports whatever is left
+#' as unknown. An extension that hand-rolls the same check accepts a
+#' different set of arguments from the fit method, which is how
+#' `allow_new_levels` came to work on a fit and warn on draws.
+#'
+#' Four more serve one purpose between them: making an unobserved
+#' group a DRAWN group rather than letting the first observed one
+#' stand in for it silently. `ce_group_vars()` names
+#' the grouping variables a `re_formula = NULL` call blanks in its
+#' grid; `ce_new_level_spec()` reads the blocks that blanking reaches;
+#' `ce_boot_grids()` puts a placeholder level back in the grid the
+#' design has to map; and `ce_draw_new_levels()` overwrites that
+#' level's coefficients with one draw from the covariance the passed
+#' object's own `theta` implies. A sampler calls the last one per
+#' POSTERIOR DRAW where the fit method calls it per bootstrap
+#' replicate; the construction is the same and the frames stay
+#' comparable.
 #'
 #' @section The two-dialect argument seam:
 #' frmtmb answers to two argument dialects: a brms-named function takes
@@ -214,10 +249,18 @@
 #' @aliases hyp_tail_p
 #' @aliases ce_grids_build
 #' @aliases ce_boot_one
+#' @aliases ce_frame
 #' @aliases ce_finalize
 #' @aliases ce_cats_display
+#' @aliases ce_display_kind
+#' @aliases ce_pred_dpar
+#' @aliases ce_group_vars
+#' @aliases ce_new_level_spec
+#' @aliases ce_boot_grids
+#' @aliases ce_draw_new_levels
 #' @aliases ce_structure_check
 #' @aliases ce_re_formula
+#' @aliases ce_dots
 #' @aliases find_linpred
 #' @aliases arg_unset
 #' @aliases re_form_arg
@@ -230,9 +273,11 @@
 #'   sim_draw, sim_is_structured, par_name_bare, outer_par_names,
 #'   estimated_coef_names, log_sd_theta_index, sdr_of, require_fitted,
 #'   hyp_parse_all, hyp_vals_only, hyp_env_vals, hyp_eval, hyp_tail_p,
-#'   ce_grids_build, ce_boot_one, ce_finalize, ce_cats_display,
-#'   ce_structure_check, ce_re_formula, find_linpred, arg_unset,
-#'   re_form_arg)
+#'   ce_grids_build, ce_boot_one, ce_frame, ce_finalize,
+#'   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
+#'   ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,
+#'   ce_structure_check, ce_re_formula, ce_dots, find_linpred,
+#'   arg_unset, re_form_arg)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------
