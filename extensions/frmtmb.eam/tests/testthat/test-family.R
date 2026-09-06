@@ -106,14 +106,21 @@ test_that("the missing decision indicator is refused, not ignored", {
   skip_if_not_installed("RWiener")
   set.seed(5)
   dat <- ddm_simulate(80, mu = 0.6, bs = 1.3, ndt = 0.2)
-  # frmtmb has no way for a family to declare a required addition term,
-  # so this refusal is the package's own. Without it the density reads
-  # a NULL and the log likelihood collapses to a sum over no rows.
+  # The refusal is now frmtmb's, by declaration:
+  # required_aterms = list(c("dec", "vint1")) reads as "either of these
+  # two spellings will do", and frame assembly enforces it BEFORE the
+  # frame is built rather than after. Without it the density reads a
+  # NULL and the log likelihood collapses to a sum over no rows.
   expect_error(frm(bf(rt ~ 1, bias = 0.5), family = wiener(), data = dat),
-               "decision indicator is missing")
-  # the message points at the brms spelling the user probably tried
+               "the density needs one of `dec` or `vint1`")
+  # The message still points at a spelling the user can write, and it
+  # is the brms one. What it no longer does is name the vint() form in
+  # the example: a formula has to pick one spelling to be a formula,
+  # and the alternative is named in the "one of" clause instead.
   expect_error(frm(bf(rt ~ 1, bias = 0.5), family = wiener(), data = dat),
-               "dec\\(decision\\)")
+               "rt | dec(<column>) ~", fixed = TRUE)
+  expect_identical(wiener()[["required_aterms"]],
+                   list(c("dec", "vint1")))
 })
 
 test_that("a decision indicator that is not 0/1 is refused", {

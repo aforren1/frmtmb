@@ -4,7 +4,13 @@
 \alias{wiener_gng}
 \title{The go/no-go diffusion model}
 \usage{
-wiener_gng(deadline = NULL, max_ndt = NULL)
+wiener_gng(
+  deadline = NULL,
+  max_ndt = NULL,
+  variability = character(0),
+  nodes = c(sz = 7L, st = 21L),
+  nogo_nodes = c(sv = 15L, sz = 7L, st = 7L)
+)
 }
 \arguments{
 \item{deadline}{The response deadline, in the units of the response.
@@ -13,6 +19,25 @@ default, takes it per row from \code{vreal()}.}
 
 \item{max_ndt}{Upper bound for the non-decision time. \code{NULL}, the
 default, takes it from the fastest go response.}
+
+\item{variability}{Which across-trial variability parameters to
+estimate: any of \code{"sv"} (drift rate), \code{"sz"} (start point) and
+\code{"st"} (non-decision time), exactly as \code{\link[=wiener]{wiener()}} takes them. The
+default estimates none.}
+
+\item{nodes}{Gauss-Legendre node counts for the GO branch, which is
+\code{\link[=wiener]{wiener()}}'s density: the same names, the same meaning and the same
+defaults, so a go trial is scored identically by the two families.}
+
+\item{nogo_nodes}{Quadrature node counts for the NO-GO probability,
+which is a different integral over the same three distributions.
+\code{sz} and \code{st} are Gauss-Legendre counts, and \code{st} defaults lower
+than the density's because the probability's range is not cut by
+the response time; \code{sv} is a Gauss-Hermite count with no
+counterpart in \code{\link[=wiener]{wiener()}}, because there the drift integral is
+closed form. Only the entries for the \code{variability} parameters in
+use are read. Raise \code{sv} for a wide drift variability; see
+Across-trial variability for the measured table.}
 }
 \value{
 A \code{frmtmb_family}.
@@ -122,26 +147,219 @@ go trials at all is refused: nothing in it identifies the
 non-decision time.
 }
 
-\section{Across-trial variability, and why there is none here}{
+\section{Across-trial variability}{
 
-\code{\link[=wiener]{wiener()}} offers Ratcliff's \code{sv}, \code{sz} and \code{st0}. This family offers
-none of the three, and the reason is the no-go branch rather than an
-oversight.
+Ratcliff's \code{sv}, \code{sz} and \code{st} are here, named and linked exactly as
+\code{\link[=wiener]{wiener()}} names and links them, so a model moves between the two
+families by changing the family and nothing else:
 
-The go branch would inherit all three for free, because it is
-\code{\link[=wiener]{wiener()}}'s density. The no-go branch would not. The drift enters
-the DENSITY as an exponential-quadratic, which is what makes
-averaging over a normal drift exact and free; it enters the
-DISTRIBUTION FUNCTION through the eigenvalues of both series, where
-it is not, so \code{sv} would need a quadrature of its own rather than a
-completed square. \code{sz} and \code{st0} could be reached with the existing
-Gauss-Legendre nodes, but shipping two of three would make
-\verb{variability =} mean something different here than it does on
-\code{\link[=wiener]{wiener()}}, which is worse than not having it.
+\if{html}{\out{<div class="sourceCode">}}\preformatted{frm(bf(rt | dec(responded) ~ cond, bias = 0.5),
+    family = wiener_gng(deadline = 1.5,
+                        variability = c("sv", "sz", "st")),
+    data = dat)
+}\if{html}{\out{</div>}}
 
-EMC2's \code{DDMGNG} does carry all three, by calling a compiled
-distribution function that integrates them numerically. If you need
-them, that is where they are.
+The GO branch is \code{\link[=wiener]{wiener()}}'s density and inherits all three
+unchanged: it calls the same averaged density at the same nodes, so
+the two families agree to the last bit on a go trial. The NO-GO
+branch is the part that had to be written, and it is a different
+integral, because it averages the DISTRIBUTION FUNCTION rather than
+the density.
+
+Each of the three enters it its own way.
+
+\describe{
+\item{\code{sv}}{Quadrature, and the only one of the three that costs
+more here than in \code{\link[=wiener]{wiener()}}. The drift enters the density only
+as \verb{exp(-v a w - v^2 t / 2)}, an exponential-quadratic that a
+normal average integrates in closed form. It enters the
+distribution function through the eigenvalues as well, as
+\verb{1 / (v^2 a^2 + k^2 pi^2)} in every term of the large-time
+series and as the gambler's-ruin probability that series
+corrects, and neither is an exponential-quadratic. So the no-go
+branch integrates the drift by Gauss-Hermite, and \code{nogo_nodes}
+carries an \code{sv} entry that \code{\link[=wiener]{wiener()}} has no use for.}
+\item{\code{sz}}{The same Gauss-Legendre nodes the density uses, over
+the same uniform start point.}
+\item{\code{st}}{Shifts the DEADLINE. The density's non-decision-time
+range is cut at the response time, because past that the decision
+time is negative and the density is zero; the no-go probability
+has no such cut, because a non-decision time past the deadline
+leaves the accumulator no time at all and the probability of no
+response is then exactly one. The whole range is averaged.}
+}
+
+The identity that ties the two branches together holds WHILE THE
+START-POINT RANGE STAYS INSIDE THE BOUNDARIES, which is where the
+model is defined: the go density integrated to the deadline plus the
+no-go probability is one, to 8.9e-16 in the plain family and to
+whatever the quadrature gives once a variability parameter is on.
+With the default \code{nogo_nodes} that is 3.9e-14 at \code{sv} = 0.6 and
+2.0e-10 at \code{st} = 0.20, but only 8.1e-05 at \code{sv} = 2.0 and 9.9e-08
+at \code{st} = 0.45. It is not "exactly" one, and the size of the gap is
+the \code{sv} row of the node table below.
+
+Outside the boundaries the two branches are no longer the same
+average of the same pair, and the mass is not conserved. Only the
+NO-GO branch clamps the start point; the go branch is left unclamped
+deliberately, because clamping it would break the bit-identity with
+\code{\link[=wiener]{wiener()}}. Measured, at a deadline of 1.5:\tabular{llll}{
+    \tab go \tab no-go \tab total \cr
+   \code{sz} = 0.5, \code{bias} = 0.85 \tab 0.919017 \tab 0.051622 \tab 0.970639 \cr
+   \code{sz} = 0.9, \code{bias} = 0.90 \tab 0.780184 \tab 0.063186 \tab 0.843370 \cr
+}
+
+
+so up to 16 percent of the pair's mass is missing there. What saves
+it is that the region is strictly downhill. Profiling \code{sz} on 2000
+trials generated at \code{bias} = 0.85 and a true \code{sz} of 0.20, where the
+range leaves the boundary at \code{sz} = 0.30, the best point inside is
+1867.975 at \code{sz} = 0.190 and the best point outside is 1678.640 at
+\code{sz} = 0.305: the interior peak wins by 189 log units and the surface
+is monotone across the crossing. The clamp is a barrier an optimizer
+walks away from, not an attractor, so a fit does not end up there.
+Read a fitted \code{sz} whose range crosses a boundary as a fit that has
+run out of model, not as an estimate.
+}
+
+\section{How many nodes, and what they cost}{
+
+Measured against a 200-bit reference, over six parameter settings
+spanning deadlines 0.8 to 2.5, drifts 0.5 to 3, boundary separations
+0.8 to 2.5 and start points 0.4 to 0.8. Worst relative error, one
+parameter live at a time:\tabular{llllll}{
+   nodes \tab \code{sz} = 0.1 \tab \code{sz} = 0.3 \tab  \tab \code{st} = 0.05 \tab \code{st} = 0.3 \cr
+   3 \tab 4.5e-06 \tab 2.1e-03 \tab  \tab 3.4e-11 \tab 1.6e-06 \cr
+   5 \tab 1.8e-11 \tab 6.4e-07 \tab  \tab 8.6e-15 \tab 4.0e-10 \cr
+   7 \tab 5.1e-15 \tab 4.2e-11 \tab  \tab 6.3e-15 \tab 6.1e-14 \cr
+   9 \tab 4.0e-15 \tab 2.1e-15 \tab  \tab 4.2e-15 \tab 2.7e-15 \cr
+}
+
+
+Both saturate by seven nodes, and \code{st} saturates there where the
+DENSITY's own \code{st} integral needs 21. That is not a discrepancy: the
+density's range is cut at the response time and its integrand turns
+on sharply at the cut, and the probability has no cut at all.
+
+\code{sv} is the one that does not saturate:\tabular{llll}{
+   nodes \tab \code{sv} = 0.3 \tab \code{sv} = 0.8 \tab \code{sv} = 1.5 \cr
+   7 \tab 9.0e-07 \tab 8.9e-04 \tab 1.8e-02 \cr
+   11 \tab 9.5e-12 \tab 3.8e-06 \tab 1.0e-02 \cr
+   15 \tab 8.4e-15 \tab 1.3e-06 \tab 1.4e-03 \cr
+   21 \tab 9.5e-15 \tab 3.3e-09 \tab 3.5e-05 \cr
+   31 \tab 1.2e-14 \tab 1.2e-12 \tab 6.6e-07 \cr
+   41 \tab 1.4e-14 \tab 2.8e-14 \tab 9.1e-08 \cr
+}
+
+
+The node count a given accuracy needs rises with the product of the
+boundary separation and \code{sv}, because that product sets how sharp the
+transition in the drift is. The default of 15 holds 1e-14 at a narrow
+drift variability and 1e-6 at a moderate one; \strong{raise
+\code{nogo_nodes = c(sv = 31)} or higher for a wide one}, and read the
+table rather than assuming the default is enough.
+
+The three do not compound. Measured jointly, the error of the full
+three-dimensional rule tracks the \code{sv} error alone to within a factor
+of three at every setting, so \code{sz} and \code{st} at seven nodes are there
+to not be the binding term, and \code{sv} is the only knob worth turning.
+
+The cost is a product, and it is the reason \code{nogo_nodes} exists as an
+argument separate from \code{nodes}. On 500 rows with all three live:\tabular{lll}{
+   \code{nogo_nodes} \tab grid \tab wall \cr
+   7, 5, 5 \tab 175 \tab 124 s \cr
+   11, 5, 5 \tab 275 \tab 185 s \cr
+   11, 7, 7 \tab 539 \tab 610 s \cr
+}
+
+
+A model with one variability parameter pays one dimension of that and
+is cheap; the three-at-once model is the expensive one, and it is
+expensive because a distribution function with no closed form in any
+of the three has to be evaluated on a product grid.
+
+EMC2's \code{DDMGNG} carries the same three parameters, by calling a
+compiled distribution function that integrates them numerically. The
+two agree: over 108 grid points the no-go probability matches
+\code{1 - EMC2:::pDDM()} to 9.4e-14 with no variability, 2.4e-13 under
+\code{sv} and 3.9e-13 under \code{sz}, and the go density matches
+\code{EMC2:::dDDM()} to 1.2e-15.
+
+\code{st} needs a shift before the two are comparable, and the difference
+is a CONVENTION rather than a defect on either side. EMC2 takes
+\code{st0} as a uniform on \verb{[t0, t0 + st0]}; this family takes \code{st}
+centred on \code{ndt}, following brms. Compare EMC2 at \code{t0} with this
+family at \code{ndt = t0 + st0 / 2} and the agreement is 1.5e-13 for the
+probability and 1.6e-15 for the density. Compare them without the
+shift and they differ by 14 to 45 percent, in the density as much as
+in the probability.
+}
+
+\section{What a go/no-go design can and cannot identify}{
+
+\code{sv} is weakly identified here, and it is the design rather than the
+likelihood. With only one boundary observed, drift variability trades
+against the drift and the boundary separation along a ridge.
+
+Measured on 3000 simulated trials with a true \code{sv} of 0.6, this
+family returns 0.001 while \code{\link[=wiener]{wiener()}} on the same generative
+parameters, seeing BOTH boundaries, returns 0.612. Profiled at the
+true values of everything else the likelihood does peak at the truth,
+but the fit reaches a HIGHER log likelihood at \code{sv} near zero by
+moving the drift from 1.20 to 1.09 and the separation from 1.40 to
+1.33. Nothing is wrong with the surface; the sample simply prefers
+that corner of the ridge.
+
+How much of that is the ONE observable boundary is less settled than
+the contrast suggests, and the honest statement is narrower. A grid
+search on two-boundary data from the same generative parameters, with
+\code{ndt} and \code{bias} held at the truth, finds the same corner there too:
+\code{sv} near zero beats the truth by 2.4 log units, against 1.8 on the
+go/no-go data. So the ridge is a property of the drift-diffusion
+likelihood and not only of this design; what the go/no-go design does
+is remove the boundary-proportion information that would otherwise
+help pin \code{sv}, and the evidence for that is the pair of fits above
+rather than a study. Either way the practical advice is the same.
+
+So read a small fitted \code{sv} here as "the data did not pin it" rather
+than as "there is no drift variability", and prefer to fix it, or to
+estimate it from a two-choice condition of the same experiment, over
+reading it off a go/no-go block. \code{sz} and \code{st} are better behaved,
+because both change the SHAPE of the go response time distribution
+rather than trading against its location.
+}
+
+\section{Censoring}{
+
+A trial whose clock was stopped before it responded is a
+RIGHT-CENSORED observation, and the probability of it is the no-go
+probability at the time the clock stopped. This family declares that
+as its log survivor function, so \code{cens()} works:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{frm(bf(rt | dec(responded) + cens(stopped) ~ cond),
+    family = wiener_gng(deadline = 1.5), data = dat)
+}\if{html}{\out{</div>}}
+
+Left censoring, interval censoring and \code{trunc()} are refused, and not
+for want of an integral. The likelihood here is a defective density
+plus a point mass at "no response", and a truncation window on the
+response scale renormalizes the density while saying nothing about
+the mass, so the two halves of every row would be divided by
+different things. Right censoring has no such problem, because it
+replaces a whole row rather than reweighting it. So this family
+declares an \code{lccdf} and, deliberately, no \code{lcdf}.
+
+The refusal you will see is frmtmb's own and does not name this
+family:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{cens()/trunc() need a family with a CDF (currently: gaussian,
+lognormal, poisson, exponential, weibull, inverse.gaussian, cox) ...
+}\if{html}{\out{</div>}}
+
+Read it as a decision rather than as an omission. It arrives from
+frame assembly, which runs before any family-supplied check, so this
+family has no seam that does not require claiming a CDF it does not
+have.
 }
 
 \section{Accuracy}{

@@ -151,13 +151,19 @@ test_that("the missing decision indicator is refused, naming both spellings", {
   skip_if_not_installed("RWiener")
   set.seed(5)
   dat <- ddm_simulate(80, mu = 0.6, bs = 1.3, ndt = 0.2)
-  # frmtmb_family(required_aterms =) declares the terms a density needs
-  # ALL of. This family needs EITHER of two, so the refusal stays
-  # written out; see ?wiener and dev-findings.md.
+  # frmtmb_family(required_aterms =) took a character vector, which
+  # names the terms a density needs ALL of, and this family needs
+  # EITHER of two. Core 0.51.0 added the list spelling, where an element
+  # of length more than one is a set of alternatives, so the refusal is
+  # declared rather than written out.
+  #
+  # Both spellings are named, but the term VALUES are what the sentence
+  # carries: `dec` and `vint1`, not dec(decision) and vint(upper). That
+  # is the cost of the adoption, and it is paid once here.
   expect_error(frm(bf(rt ~ 1, bias = 0.5), family = wiener(), data = dat),
-               "decision indicator is missing")
+               "the density needs one of `dec` or `vint1`")
   expect_error(frm(bf(rt ~ 1, bias = 0.5), family = wiener(), data = dat),
-               "vint\\(upper\\)")
+               "vint1")
 })
 
 test_that("the family derives its link from the data through family_finalize", {

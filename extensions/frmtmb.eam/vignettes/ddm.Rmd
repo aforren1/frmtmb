@@ -785,19 +785,82 @@ family's large-time route is 3.0e-15 there.
 That matters for a fit rather than merely for a table, because a
 surprising no-go trial is the row pulling hardest on the likelihood.
 
-### What it does not do
+### Across-trial variability
 
-`wiener()` offers Ratcliff's three across-trial variability parameters
-through `variability =`. This family offers none of them, and the
-reason is the no-go branch. The go branch would inherit all three for
-free. The drift enters the DENSITY as an exponential-quadratic, which
-is what makes averaging over a normal drift exact and free; it enters
-the DISTRIBUTION FUNCTION through the eigenvalues of both series, where
-it is not. `sz` and `st0` could be reached with the quadrature nodes
-this package already has, but shipping two of three would make
-`variability =` mean something different here than it does on
-`wiener()`. EMC2's `DDMGNG` does carry all three, by integrating them
-numerically in compiled code.
+`wiener_gng()` takes Ratcliff's three across-trial variability
+parameters through the same `variability =` argument `wiener()` takes
+them, under the same names and the same links:
+
+```{r gng-var, eval = FALSE}
+frm(bf(rt | dec(responded) ~ cond, bias = 0.5),
+    family = wiener_gng(deadline = 1.5,
+                        variability = c("sv", "sz", "st")),
+    data = dat)
+```
+
+The go branch inherits them from `wiener()`, and not merely in the
+sense of agreeing: evaluated at the same parameters the two families'
+log densities are bit-identical on every row, for every combination of
+the three. The no-go branch is the part that had to be written, because
+it averages the DISTRIBUTION FUNCTION rather than the density. The
+drift enters the density as an exponential-quadratic, which is what
+makes averaging over a normal drift exact and free; it enters the
+distribution function through the eigenvalues of both series as well,
+where nothing does, so `sv` needs a quadrature there that it does not
+need in `wiener()`.
+
+That is why there are two node arguments. `nodes =` governs the go
+branch and is `wiener()`'s, name for name and default for default.
+`nogo_nodes =` governs the no-go probability, defaults to
+`c(sv = 15, sz = 7, st = 7)`, and carries an `sv` entry `wiener()` has
+no use for. Its `st` default is lower than the density's 21 because the
+probability's range is not cut at the response time and saturates by 7,
+which matters because the probability's rule is a three-dimensional
+product: with the density's own counts a 500-row three-variability
+model exhausts memory outright.
+
+Of the three, `sv` is the one whose accuracy is worth checking against
+the table in `?wiener_gng`. It does not saturate: at a drift standard
+deviation of 0.3 the default reaches 1e-14, at 0.8 it reaches 1e-6, and
+at 1.5 it reaches only 1e-3. Raise it, `nogo_nodes = c(sv = 31)`, if
+the fit puts `sv` out that far.
+
+### What a go/no-go design cannot tell you
+
+`sv` is weakly identified here, and it is the design rather than the
+likelihood. With only one boundary observed, drift variability trades
+against the drift and the boundary separation along a ridge, so a fit
+can reach a HIGHER log likelihood at `sv` near zero by moving the other
+two. On 3000 simulated trials with a true `sv` of 0.6 this family
+returns 0.001 while `wiener()`, on the same generative parameters and
+seeing both boundaries, returns 0.612.
+
+Read a small fitted `sv` here as "the data did not pin it" rather than
+as "there is no drift variability". If you need it, fix it, or estimate
+it from a two-choice condition of the same experiment. `sz` and `st`
+are better behaved, because both change the SHAPE of the go response
+time distribution rather than trading against its location.
+
+One limit of the parameterization is worth knowing, and it is
+`wiener()`'s limit too: a wide `sz` at a strongly biased start point
+pushes the uniform range past a boundary, where the model is not
+defined. The no-go branch clamps the start point back inside, which
+turns what would be an `NaN` into a finite penalized value; the go
+branch does not, so that the bit-identity with `wiener()` survives.
+The two branches then average different distributions and their masses
+no longer sum to one - by 3 percent at `sz = 0.5, bias = 0.85` and by
+16 percent at `sz = 0.9, bias = 0.90`. Nothing is fitted there in
+practice, because the region is strictly downhill: the best point
+inside the boundaries beats the best point outside by 189 log units on
+a profiled example. Treat a fitted `sz` whose range crosses a boundary
+as a fit that has run out of model.
+
+EMC2's `DDMGNG` carries the same three parameters, and the two agree.
+Note one convention difference before porting numbers: EMC2 takes `st0`
+as a uniform on `[t0, t0 + st0]`, where this family centres `st` on
+`ndt`, following brms.
+
+### What it does not do
 
 Neither family reports a fitted mean:
 

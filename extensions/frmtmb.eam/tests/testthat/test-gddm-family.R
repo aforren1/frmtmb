@@ -26,12 +26,15 @@ test_that("the component catalogue declares the parameters it says it does", {
 })
 
 test_that("the family declares the addition terms it cannot do without", {
-  ## Only the covariates can be declared. The boundary arrives as dec()
-  ## OR vint1, and the condition's slot moves with that choice, so
-  ## neither can be named in a declaration that means "all of these".
-  expect_identical(gddm()[["required_aterms"]], character(0))
-  expect_setequal(gddm(drift = gddm_drift_coherence())[["required_aterms"]],
-                  "vreal1")
+  ## The boundary IS declared, as the choice it is: core reads a
+  ## length-two element as "either of these will do". The condition is
+  ## still not, and cannot be, because which slot carries it moves with
+  ## that choice - alongside dec() it is vint1, inside vint(upper, cond)
+  ## it is vint2 - so the requirement is a disjunction of conjunctions
+  ## and no declaration says that.
+  expect_identical(gddm()[["required_aterms"]], list(c("dec", "vint1")))
+  expect_identical(gddm(drift = gddm_drift_coherence())[["required_aterms"]],
+                   list(c("dec", "vint1"), "vreal1"))
 })
 
 test_that("the boundary and the condition are read under either spelling", {
@@ -155,14 +158,17 @@ test_that("a missing addition term is refused, not silently defaulted", {
   d <- gd_toy()
   expect_error(frm(bf(rt ~ 1, bias = 0.5),
                    family = gddm(control = gd_small()), data = d),
-               "decision indicator is missing")
-  ## and it names both spellings, because either one supplies it
+               "the density needs one of `dec` or `vint1`")
+  ## and it names both spellings, because either one supplies it. They
+  ## are the term VALUES now rather than the formula spellings: the
+  ## example writes the first alternative and the "one of" clause
+  ## carries the second.
   expect_error(frm(bf(rt ~ 1, bias = 0.5),
                    family = gddm(control = gd_small()), data = d),
                "dec(", fixed = TRUE)
   expect_error(frm(bf(rt ~ 1, bias = 0.5),
                    family = gddm(control = gd_small()), data = d),
-               "vint(upper, cond)", fixed = TRUE)
+               "rt | dec(<column>) ~", fixed = TRUE)
   ## a boundary with no condition beside it is refused on its own terms
   expect_error(frm(bf(rt | vint(upper) ~ 1, bias = 0.5),
                    family = gddm(control = gd_small()), data = d),

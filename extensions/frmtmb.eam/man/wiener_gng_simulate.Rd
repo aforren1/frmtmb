@@ -10,7 +10,10 @@ wiener_gng_simulate(
   bs = 1.4,
   ndt = 0.25,
   bias = 0.5,
-  deadline = 1.5
+  deadline = 1.5,
+  sv = 0,
+  sz = 0,
+  st = 0
 )
 }
 \arguments{
@@ -25,6 +28,10 @@ wiener_gng_simulate(
 \item{bias}{Relative start point in \verb{(0, 1)}.}
 
 \item{deadline}{The response deadline. One number, or one per trial.}
+
+\item{sv, sz, st}{Across-trial variability in the drift rate, the
+relative start point and the non-decision time, as \code{\link[=ddm_simulate]{ddm_simulate()}}
+takes them. Zero, the default, is the plain model.}
 }
 \value{
 A data frame with \code{responded} (1 for a go trial), \code{rt} (the
