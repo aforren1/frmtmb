@@ -388,6 +388,56 @@ ce_band_scale <- function(link, m) {
   list(t = m, inv = identity, dm = rep(1, length(m)))
 }
 
+#' The two ends of a Wald band, moved off the scale it is symmetric on
+#' and onto the response scale.
+#'
+#' An inverse link is monotone but not necessarily INCREASING: `inverse`
+#' and `1/mu^2` both decrease, so the end built from the lower linear
+#' predictor is the upper response bound. The ends are therefore SWAPPED
+#' where the link decreases, rather than sorted, because a sort that
+#' dropped NA would fill a missing bound from the other end and report a
+#' band the data does not support.
+#'
+#' The swap is decided per row, off that row's own derivative, not once
+#' for the whole vector. `sqrt`'s `mu_eta` is `2 * eta` and changes sign
+#' at zero, so a single global decision would leave every row left of
+#' zero inverted. No fitted model reaches that today - a `sqrt` fit's
+#' likelihood sees only `eta^2` and settles on the positive branch - but
+#' the helper should not hold a latent inversion for the next caller.
+#'
+#' Two things a link's domain can refuse, both of which give a bound of
+#' NA rather than the NaN the transform hands back:
+#'
+#'   - an end the link cannot map at all. `1/mu^2` is `1 / sqrt(eta)`,
+#'     which has no value at `eta <= 0`, so a band wide enough to reach
+#'     zero has no upper bound.
+#'   - an interval the link is not monotone ACROSS, which is `inverse`
+#'     with a pole between the ends. Both ends are finite there and
+#'     neither bounds the response, so both are refused. The midpoint
+#'     detects it without naming any link: on a monotone stretch the
+#'     middle value lies between the ends.
+#'
+#' @noRd
+ce_band_ends <- function(inv, lo, hi, dm) {
+  a <- suppressWarnings(as.numeric(inv(lo)))
+  b <- suppressWarnings(as.numeric(inv(hi)))
+  mid <- suppressWarnings(as.numeric(inv((lo + hi) / 2)))
+  gone <- (is.finite(lo) & !is.finite(a)) | (is.finite(hi) & !is.finite(b))
+  pole <- is.finite(a) & is.finite(b) &
+    (!is.finite(mid) | mid < pmin(a, b) | mid > pmax(a, b))
+  a[!is.finite(a) | pole] <- NA_real_
+  b[!is.finite(b) | pole] <- NA_real_
+  # rep_len: a length-1 derivative against a longer band would otherwise
+  # index only the first row and leave the rest unswapped
+  dec <- rep_len(is.finite(dm) & dm < 0, length(a))
+  if (any(dec)) {
+    ends <- a[dec]
+    a[dec] <- b[dec]
+    b[dec] <- ends
+  }
+  list(lower = a, upper = b, outside = sum(gone | pole))
+}
+
 #' brms's `method =` vocabulary, accepted alongside frmtmb's own.
 #'
 #' The values agree wherever both spellings resolve, so a ported call
@@ -1804,6 +1854,11 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                   re_formula, anl, nspec)
   }
   pfail <- c(0L, 0L)
+  # grid points whose band the link's domain does not reach, counted
+  # across every effect so that the report is one warning and not one
+  # per panel
+  bfail <- c(0L, 0L)
+  blink <- NULL
 
   dfs_by_eff <- list()
   for (gi in seq_along(grids)) {
@@ -1908,19 +1963,25 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         # abs(): a decreasing link (1/mu) has a negative derivative,
         # and a standard error is not negative
         df$se__ <- p$se.fit / abs(bs$dm)
-        df$lower__ <- bs$inv(bs$t - z * df$se__)
-        df$upper__ <- bs$inv(bs$t + z * df$se__)
-        lo <- pmin(df$lower__, df$upper__)
-        df$upper__ <- pmax(df$lower__, df$upper__)
-        df$lower__ <- lo
+        be <- ce_band_ends(bs$inv, bs$t - z * df$se__,
+                           bs$t + z * df$se__, bs$dm)
+        df$lower__ <- be$lower
+        df$upper__ <- be$upper
+        bfail <- bfail + c(be$outside, length(be$lower))
+        blink <- blink %||% bl[["name"]]
       } else {
         p <- predict(x, newdata = nd, type = "link", dpar = dpar,
                      resp = resp, re.form = re_formula, se.fit = TRUE,
                      allow_new_levels = anl)
         df$estimate__ <- lp[["link"]]$linkinv(p$fit)
         df$se__ <- p$se.fit
-        df$lower__ <- lp[["link"]]$linkinv(p$fit - z * p$se.fit)
-        df$upper__ <- lp[["link"]]$linkinv(p$fit + z * p$se.fit)
+        be <- ce_band_ends(lp[["link"]]$linkinv, p$fit - z * p$se.fit,
+                           p$fit + z * p$se.fit,
+                           lp[["link"]]$mu_eta(p$fit))
+        df$lower__ <- be$lower
+        df$upper__ <- be$upper
+        bfail <- bfail + c(be$outside, length(be$lower))
+        blink <- blink %||% lp[["link"]][["name"]]
       }
       if (method == "predict") {
         fam <- rspec$family
@@ -1954,11 +2015,13 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       pci <- ce_profile_eta_ci(x, lp, nd, g$v1, g$n1, g$n2, prob,
                                profile_points)
       # the link is monotone but not necessarily increasing (inverse,
-      # 1/mu), so the endpoints are sorted after the transform
-      lo <- lp[["link"]]$linkinv(pci$lower)
-      up <- lp[["link"]]$linkinv(pci$upper)
-      df$lower__ <- pmin(lo, up)
-      df$upper__ <- pmax(lo, up)
+      # 1/mu^2), so the endpoints are ordered after the transform
+      be <- ce_band_ends(lp[["link"]]$linkinv, pci$lower, pci$upper,
+                         lp[["link"]]$mu_eta(pci$lower))
+      df$lower__ <- be$lower
+      df$upper__ <- be$upper
+      bfail <- bfail + c(be$outside, length(be$lower))
+      blink <- blink %||% lp[["link"]][["name"]]
       pfail <- pfail + c(pci$fails, pci$tried)
     }
     dfs_by_eff[[g$eff]] <- c(dfs_by_eff[[g$eff]], list(df))
@@ -1968,6 +2031,12 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
             "converge at ", pfail[1L], " of ", pfail[2L],
             " profiled grid point(s); their bounds are NA",
             call. = FALSE)
+  }
+  if (bfail[1L] > 0L) {
+    warning("The '", blink %||% "?", "' link does not reach the band at ",
+            bfail[1L], " of ", bfail[2L], " grid point(s): the interval ",
+            "runs past the link's domain, so that bound is NA rather ",
+            "than a number", call. = FALSE)
   }
 
   out <- ce_finalize(dfs_by_eff, effects, rspec, resp, dpar, band, base,

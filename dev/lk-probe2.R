@@ -1,0 +1,16 @@
+d <- data.frame(y = rbinom(20,1,.5), x = rnorm(20))
+for (lk in c("probit","cauchit")) {
+  cat("=====", lk, "=====\n")
+  sc <- as.character(brms::stancode(brms::bf(y ~ x), data = d, family = brms::bernoulli(link = lk)))
+  cat(grep("mu =|target +=|functions|inv_", strsplit(sc,"\n")[[1]], value = TRUE), sep = "\n")
+}
+db <- data.frame(y = rbinom(20, 5, .5), n = rep(5,20), x = rnorm(20))
+cat("===== binomial cauchit =====\n")
+sc <- as.character(brms::stancode(brms::bf(y | trials(n) ~ x), data = db, family = brms::binomial(link = "cauchit")))
+cat(grep("mu =|target +=", strsplit(sc,"\n")[[1]], value = TRUE), sep = "\n")
+cat("===== beta probit =====\n")
+dbe <- data.frame(y = runif(20, .1, .9), x = rnorm(20))
+sc <- as.character(brms::stancode(brms::bf(y ~ x), data = dbe, family = brms::Beta(link = "probit")))
+cat(grep("mu =|target +=|phi", strsplit(sc,"\n")[[1]], value = TRUE), sep = "\n")
+cat("===== RTMB qnorm? =====\n")
+cat(exists("qnorm", envir = asNamespace("RTMB")), exists("pnorm", envir = asNamespace("RTMB")), "\n")

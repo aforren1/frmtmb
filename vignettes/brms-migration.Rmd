@@ -37,6 +37,35 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `(1 \| mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
 | `ar(t, g, cov = TRUE)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; `cov = TRUE` required (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
+| `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
+
+### Links
+
+Every link name brms 2.23.0 accepts is accepted here under the same
+spelling, and computes the same function: `logit`, `probit`,
+`probit_approx`, `cauchit`, `cloglog`, `softit`, `identity`, `log`,
+`log1p`, `logm1`, `inverse`, `1/mu^2`, `sqrt`, `softplus`, `squareplus`
+and `tan_half`. `power12` is frmtmb's own, for the tweedie power
+parameter.
+
+Two cautions when porting a link:
+
+- `stats::binomial()`, `stats::poisson()` and `stats::Gamma()` validate
+  their link string through `stats::make.link()` before `frm()` sees it,
+  so a name `stats` has never heard of (`probit_approx`, `softit`,
+  `softplus`, `squareplus`) is refused by the constructor rather than by
+  frmtmb. Use frmtmb's own family constructor instead:
+  `bernoulli(link = "softit")`, `Beta(link = "probit")`,
+  `negbinomial(link = "softplus")`.
+- brms's `probit_approx` is two different functions inside brms itself.
+  Its Stan program uses `Phi_approx()`, the logistic of
+  `0.07056 x^3 + 1.5976 x`, while its R-side `inv_link()` answers
+  `pnorm()`. frmtmb reproduces the Stan form, because that is the
+  likelihood a brms fit was actually computed with.
+
+The ordinal families are the one place the roster is narrower:
+`cumulative()`, `sratio()` and `cratio()` take `logit` and `probit`
+only, and `acat()` takes `logit` only.
 
 ## What changes
 
