@@ -26,6 +26,7 @@ frmtmb_family(
   lcdf = NULL,
   lccdf = NULL,
   required_aterms = character(0),
+  accepts_aterms = NULL,
   family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
@@ -48,6 +49,7 @@ custom_family(
   lcdf = NULL,
   lccdf = NULL,
   required_aterms = character(0),
+  accepts_aterms = NULL,
   family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
@@ -185,6 +187,24 @@ custom_family(
   log-likelihood of zero. Declare every per-row datum the density
   indexes.
 
+- accepts_aterms:
+
+  The addition terms this family reads or lets the core act on, named as
+  a formula writes them and without parentheses:
+  `c("weights", "trials", "cens")`. Frame assembly refuses any other
+  term on the response, by name, and lists the ones the family takes.
+  `character(0)` declares a family that takes none. `NULL`, the default,
+  accepts every registered term, which is what a family written before
+  this argument existed keeps.
+
+  `required_aterms` is a conjunction of what the density cannot do
+  without; this is the complementary allow-list, and the two are read
+  together, so a required term need not be repeated here. Without a
+  declaration an unread term is parsed, stored on the fit and silently
+  ignored: `wiener()` accepted a `vint()` it cannot use, and `lba()`
+  accepted a `dec()`, both giving a fit bit-identical to the one without
+  the term.
+
 - family_finalize:
 
   Optional function `(fam, y, aterms)` returning a family. It runs once
@@ -213,8 +233,8 @@ custom_family(
   [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
   for a family whose likelihood does not factorize over rows (a
   group-level
-  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md),
-  a hidden Markov chain). It carries the non-rowwise log-likelihood, the
+  [`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html), a
+  hidden Markov chain). It carries the non-rowwise log-likelihood, the
   frame block that likelihood reads, and the capability flags that say
   which post-fit methods the family can answer. `lpdf` stays required
   even then, for the rowwise contract, and may be a stub that refuses.
@@ -226,7 +246,7 @@ An object of class `frmtmb_family`.
 ## Structured simulators
 
 Some families cannot draw a response one row at a time: a group-level
-[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+[`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html)
 draws one class per group, a
 [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
 draw needs the class covariances, which are family-level extras rather

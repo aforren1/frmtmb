@@ -242,15 +242,16 @@ fitted(fit)
 
 ## The check you must run
 
-Two things in this family are floors rather than answers, and both are
+One thing in this family is a floor rather than an answer, and it is
 silent in the fitted object.
 [`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md)
-is where they go to be read, and it REFUSES rather than reports:
+is where it goes to be read. It refuses on that one and reports on a
+second quantity that used to be a floor and is not one any more:
 
 ``` r
 
 rp_floored(fit, action = "report")
-#> $n_censored_floored
+#> $n_censored_deep
 #> [1] 0
 #> 
 #> $max_nlogS
@@ -281,21 +282,26 @@ censoring, because neither
 [`logLik()`](https://rdrr.io/r/stats/logLik.html) nor
 [`AIC()`](https://rdrr.io/r/stats/AIC.html) can tell you.
 
-**Why it matters.** frmtmb forms a right-censored contribution as
-`log(1 - F(y))` on the probability scale, and core gives a family no
-complementary log-CDF slot to hand back `log S` directly. So the scored
-`log S` carries absolute error about `eps / S`: exact at `-log S` of 10,
-wrong by 1.7e-04 at 30, and floored at -35.127363 past 36. Past 30 its
-GRADIENT is exactly zero, so the optimizer prices such a row at a
-constant and fits the others as if it were free.
+**What the censored count used to mean.** Up to frmtmb 0.51.0 core
+formed a right-censored contribution as `log(1 - F(y))` on the
+probability scale and offered a family no complementary log-CDF slot to
+hand back `log S` directly. The scored `log S` carried absolute error
+about `eps / S`: exact at `-log S` of 10, wrong by 1.7e-04 at 30, and
+floored at -35.127363 past 36. Past 30 its GRADIENT was exactly zero, so
+the optimizer priced such a row at a constant and fitted the others as
+if it were free.
 
-That is not hypothetical. A 600-subject dataset with one subject
-censored far beyond every event time converges without a warning and
-reports a log likelihood thousands of units away from the model’s, with
-a treatment coefficient wrong by tens of percent; `flexsurv` declines to
-fit the same data at all.
-[`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md)
-refuses it:
+frmtmb 0.52.0 added the `lccdf` slot and this family supplies it, in
+closed form on all three scales, so no complement is formed and the
+floor is gone. `n_censored_deep` still counts the rows that used to fall
+in it, because a censored row whose fitted survival probability is
+`exp(-40)` is one the data barely constrain whatever the arithmetic
+does. It is a diagnostic now, and it does not refuse.
+
+Here is the design that made the old floor bite. One subject of 600 is
+censored far beyond every event time, `flexsurv` declines to fit it at
+all, and on 0.51.0 it converged without a warning and reported a log
+likelihood thousands of units away from the model’s:
 
 ``` r
 
@@ -313,29 +319,49 @@ bad_fit <- frm(bf(t | cens(censored) ~ grp),
 c(converged = bad_fit$opt$convergence, logLik = as.numeric(logLik(bad_fit)))
 #> converged    logLik 
 #>    1.0000 -575.5379
-rp_floored(bad_fit)
+str(rp_floored(bad_fit, action = "report"))
+#> List of 6
+#>  $ n_censored_deep: int 1
+#>  $ max_nlogS      : num 55.7
+#>  $ threshold      : num 19.2
+#>  $ n_nonmonotone  : int 0
+#>  $ scale          : chr "hazard"
+#>  $ n_obs          : int 600
+#>  - attr(*, "rows")=List of 2
+#>   ..$ censored   : int 1
+#>   ..$ nonmonotone: int(0)
 ```
 
-The refusal is POST-FIT and cannot be otherwise:
-[`logLik()`](https://rdrr.io/r/stats/logLik.html) reads the optimizer’s
-own value and the family protocol has no hook that runs when a fit
-finishes.
-[`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
-and its two companions call
+That fit is now SCORED CORRECTLY and
 [`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md)
-for you, so the documented way to inspect this family will not draw a
-curve off a fit like that one.
+does not refuse it. The one deep row is counted, at `-log S` of 55.73,
+and its contribution is `-55.7302136` exactly where the old form gave
+`-Inf` and the floor gave -35.127363. The reported log likelihood
+reproduces an independent one written from the hazard-scale definition
+to 4.2e-12.
 
-Monotonicity of the cumulative hazard is the second floor, and it is not
-enforced; `flexsurv` does not enforce it either, and a spline that turns
-over inside the data range is an over-parameterized fit rather than
-something the software should have prevented. Where it turns over there
-is no hazard and the true log density is `-Inf`, so this family floors
-it to keep the optimizer alive, which makes
+What has NOT changed is that
+[`logLik()`](https://rdrr.io/r/stats/logLik.html) and
+[`AIC()`](https://rdrr.io/r/stats/AIC.html) cannot be gated from an
+extension. [`logLik()`](https://rdrr.io/r/stats/logLik.html) reads
+`object$opt$objective`, one number, and the protocol has no per-row or
+per-group log-likelihood slot through which a family could say which
+rows carried it. `post$fit_check`, frmtmb’s fit-end hook, is what this
+family uses instead: it warns as the fit is returned. That covers the
+monotonicity floor, which is a property of the fitted parameters. It
+cannot cover a row-level accounting that the protocol does not expose.
+
+Monotonicity of the cumulative hazard is the floor that remains, and it
+is not enforced; `flexsurv` does not enforce it either, and a spline
+that turns over inside the data range is an over-parameterized fit
+rather than something the software should have prevented. Where it turns
+over there is no hazard and the true log density is `-Inf`, so this
+family floors it to keep the optimizer alive, which makes
 [`logLik()`](https://rdrr.io/r/stats/logLik.html) a pseudo-likelihood.
 [`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md)
-counts those rows too. You can see the same thing directly in the slope
-of the fitted log cumulative hazard, which must stay positive:
+counts those rows and refuses on them, and `post$fit_check` warns about
+them as the fit is returned. You can see the same thing directly in the
+slope of the fitted log cumulative hazard, which must stay positive:
 
 ``` r
 

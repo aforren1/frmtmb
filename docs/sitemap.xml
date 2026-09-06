@@ -1,5 +1,6 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://aforren1.github.io/frmtmb/404.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/articles/bayesian-cognitive-modeling.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/brms-migration.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/case-studies.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/compatibility.html</loc></url>
@@ -65,6 +66,25 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca_probs.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca_profiles.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/404.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/articles/index.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/articles/learning.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/authors.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/index.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/news/index.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/bandit2arm_delta.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/bandit2arm_dual.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/bandit4arm2_kalman_filter.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frmtmb.learn-package.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frmtmb.learn.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_learn_families.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_design.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_simulate.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_value_trace.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/igt_pvl_delta.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/index.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/prl_fictitious.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/ts_par7.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.ode/404.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.ode/articles/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.ode/articles/ode.html</loc></url>

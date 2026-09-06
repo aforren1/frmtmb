@@ -2,7 +2,7 @@
 
 A `frmtmb_structure()` is what a family carries when its likelihood does
 not factorize over the rows of the data: a group-level
-[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md), a
+[`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html), a
 hidden Markov chain, a latent class measurement model. It is one object
 with one contract, so the core needs no branch per family and a
 structured family can live in another package. Attach it with
@@ -19,6 +19,8 @@ frmtmb_structure(
   check_frame = NULL,
   check_fit = NULL,
   loglik = NULL,
+  loglik_row = NULL,
+  loglik_group = NULL,
   unit = NULL,
   fitted_mean = NULL,
   fitted_var = NULL,
@@ -90,16 +92,27 @@ frmtmb_structure(
   refused weights in `check_spec`. It must not call
   [`RTMB::OBS()`](https://rdrr.io/pkg/RTMB/man/TMB-interface.html).
 
+- loglik_row, loglik_group:
+
+  The same signature as `loglik`, and the same quantity factorized
+  instead of summed: `loglik_row` returns one value per ROW,
+  `loglik_group` one value per level of the block's `group`. Both are
+  optional, and a family declares whichever factorization it HAS; see
+  the Factorization section for what each one buys and for the stacking
+  the correction imposes. Declaring either without `loglik` is refused:
+  a family whose likelihood is already rowwise has these quantities
+  through its `lpdf` and needs no slot to say so.
+
 - unit:
 
   One noun phrase naming the smallest independent unit of `loglik`, as
   it should read in the middle of a sentence: "a hidden-Markov
-  sequence", "a group-level mixture". The core quotes it where it must
-  explain that a per-OBSERVATION quantity does not exist, which today is
-  [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) and
-  [`waic()`](https://aforren1.github.io/frmtmb/reference/loo.md)
-  refusing a pointwise log-likelihood matrix. Ignored when `loglik` is
-  `NULL`.
+  sequence", "a group-level mixture". It declares what may honestly be
+  LEFT OUT, which is a different question from how finely the likelihood
+  factorizes: `rw_delta` has a per-trial conditional density and a
+  leave-one-out unit of one subject's whole sequence. The core quotes it
+  where it must explain that a per-OBSERVATION quantity does not exist.
+  Ignored when `loglik` is `NULL`.
 
 - fitted_mean, fitted_var:
 
@@ -188,7 +201,7 @@ must hold no AD values and no closure that captures the model frame.
 Read and write it with `[[ ]]` only: `$` partial matching is how a `mix`
 read once returned `mix_g`.
 
-Three names in it are reserved, because the core reads them:
+Four names in it are reserved, because the core reads them:
 
 - `y`:
 
@@ -200,6 +213,17 @@ Three names in it are reserved, because the core reads them:
 
   A logical `n`-vector. Residuals are `NA` at these rows. Optional.
 
+- `group`:
+
+  A factor or integer `n`-vector naming the family's own independent
+  unit for each row: the subject whose trials a recursion walks, the
+  sequence a forward algorithm sums over. It is what `loglik_group`
+  returns one value per, in the order of
+  [`levels()`](https://rdrr.io/r/base/levels.html) for a factor and of
+  `sort(unique())` otherwise, and it is what the core checks the
+  importance correction's grouping against. Required with
+  `loglik_group`, and needed by either slot for `frm(importance =)`.
+
 - `mask`:
 
   A numeric 0/1 `n`-vector the family multiplies into its own density.
@@ -209,6 +233,68 @@ Three names in it are reserved, because the core reads them:
 Everything else in the block belongs to the family.
 
 \[ \]: R:%20
+
+## Factorization
+
+`loglik` returns one number for the whole response, which is all the
+objective needs and less than everything else needs. Three consumers
+want the pieces: `frm(importance =)` resamples one grouping level at a
+time, [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) and
+[`waic()`](https://aforren1.github.io/frmtmb/reference/loo.md) leave one
+unit out at a time, and a deviance residual compares one row against its
+saturated fit. A family declares the FINEST factorization it has, and
+the core takes what each consumer can use:
+
+- `loglik_row`:
+
+  One value per row, the conditional log-density of that row given
+  whatever the family's factorization conditions on. It must sum to
+  `loglik`, and each value must depend only on its own group's random
+  effects, or the correction sums the wrong things. The core sums it
+  into groups itself with the same sparse indicator it already builds.
+
+- `loglik_group`:
+
+  One value per level of `block[["group"]]`, for a family whose finest
+  factorization IS the group: a forward recursion over a sequence has no
+  row-level factor to give.
+
+With neither, everything above stays refused, which is where the
+protocol started.
+
+STACKING. The importance correction evaluates the whole design once per
+draw, stacked: it calls these slots with `y`, the dpars and the addition
+terms each repeated `nrep` times, so entry `j` is the original row
+`((j - 1) %% n) + 1` of replicate `((j - 1) %/% n) + 1`, with
+`n = length(block[["group"]])` and `nrep` whatever `length(y) / n` is.
+`loglik_row` returns `n * nrep` values in that same order and
+`loglik_group` returns `ng * nrep`, replicate-major. A sequential family
+therefore runs its recursion over unit-crossed-with-replicate rather
+than over unit. For a family whose loop is already vectorized across
+units that is the same loop over a longer vector; for one that is not,
+this is where the cost lands. A family that gets it wrong is caught
+rather than believed: the correction verifies its per-group pieces
+against the plain objective at the first freeze, per group and in total.
+
+SATURATED VALUES. `residuals(type = "deviance")` compares a row's
+log-density against its saturated fit, and no conditional density
+supplies that on its own. A family that has it attaches it to what
+`loglik_row` returns, as `attr(x, "saturated")`, a numeric vector of the
+same length, carrying the SAME row weight the log-densities carry so
+that the unit deviance comes out weighted once. The core reads it only
+outside the tape, and deviance stays refused, by name, without it.
+
+WEIGHTS. The FAMILY applies them, in every slot and for every consumer.
+The core passes the effective row weights in and never multiplies the
+result again, so `loglik_row` returns weighted log-densities and
+`loglik_group` weighted group totals, exactly as `loglik` returns a
+weighted total. This is what the warning at construction is about: a
+slot that takes no `weights` argument silently drops them, and a
+[`weights()`](https://rdrr.io/r/stats/weights.html) term on that family
+would be accepted and then ignored. A family that cannot say what a row
+weight means for a likelihood that is not rowwise should refuse
+[`weights()`](https://rdrr.io/r/stats/weights.html) in `check_spec`
+instead, which is what `rw_delta` does.
 
 ## Capability flags
 
@@ -300,7 +386,7 @@ for the accessors a slot may use to read a fit,
 [`latent_probs()`](https://aforren1.github.io/frmtmb/reference/latent_probs.md)
 for the generic `latent_probs` answers,
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md),
-[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+[`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html)
 
 ## Examples
 

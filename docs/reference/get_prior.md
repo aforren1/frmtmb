@@ -72,6 +72,13 @@ brms lists them and what
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
 addresses (see its Nonlinear parameters section).
 
+A distributional parameter is listed under whichever of its two
+spellings the model offers: its OWN class where the model gives it no
+predictor, and class `"Intercept"` with its name in the `dpar` column
+where the model gives it a formula. brms lists the same two, the same
+way round. See A distributional parameter's own class in
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md).
+
 An ordinal family has no intercept column, so its class `"Intercept"`
 row names the THRESHOLD vector, which is what the same row means in
 brms. See the Ordinal thresholds section of
@@ -119,13 +126,13 @@ dd <- data.frame(y = rnorm(60), x = rnorm(60),
 # frm_sample() applies, see "Which route the defaults describe"
 get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 #> route = "fit": the prior defaults frm() applies
-#>    prior     class    coef group  dpar nlpar resp lb ub
-#> 1 (flat) Intercept                                NA NA
-#> 2 (flat)         b                                NA NA
-#> 3 (flat)         b       x                        NA NA
-#> 4 (flat) Intercept               sigma            NA NA
-#> 5 (flat)        sd                                NA NA
-#> 6 (flat)        sd             g                  NA NA
-#> 7 (flat)     theta                                NA NA
-#> 8 (flat)     theta theta_1                        NA NA
+#>    prior     class    coef group dpar nlpar resp lb ub
+#> 1 (flat) Intercept                               NA NA
+#> 2 (flat)         b                               NA NA
+#> 3 (flat)         b       x                       NA NA
+#> 4 (flat)     sigma                               NA NA
+#> 5 (flat)        sd                               NA NA
+#> 6 (flat)        sd             g                 NA NA
+#> 7 (flat)     theta                               NA NA
+#> 8 (flat)     theta theta_1                       NA NA
 ```

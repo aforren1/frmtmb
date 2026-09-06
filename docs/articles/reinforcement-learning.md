@@ -134,8 +134,13 @@ rw_block <- function(resp, spec, av, mf, y, n) {
                          integer(nt)), nrow = nt))
   mask <- t(matrix(vapply(len, function(l) as.numeric(seq_len(nt) <= l),
                           numeric(nt)), nrow = nt))
+  # `group` is a reserved name: it is what the per-subject
+  # log-likelihood returns one value per, in level order, and what the
+  # core checks a model's own grouping factor against before it lets
+  # frm(importance =) sum this family's pieces into its groups.
   list(idx = idx, mask = mask, len = len, n_subj = length(rows),
-       n_trial = nt, subject = gv, trial = tv, levels = levels(gv), n = n)
+       n_trial = nt, group = gv, subject = gv, trial = tv,
+       levels = levels(gv), n = n)
 }
 ```
 
@@ -166,27 +171,47 @@ against the balanced design’s 0.08, so for a tutorial the mask wins.
 # a vector of ones does not.
 rw_bcast <- function(v, n) if (length(v) == 1L) v * rep(1, n) else v
 
-# The taped log-likelihood of the whole response, as one AD scalar.
+# The subject-by-trial layout, repeated once per replicate of the
+# design. The importance correction evaluates the whole design once per
+# draw, stacked, so the recursion has to run over subject-crossed-with-
+# draw rather than over subject. Because the loop below is already
+# vectorized across subjects, that is the same loop over a longer
+# vector: `nrep` blocks of subjects, each block's row numbers shifted by
+# a whole design.
+rw_stack <- function(block, nrep) {
+  idx <- block[["idx"]]
+  msk <- block[["mask"]]
+  if (nrep == 1L) return(list(idx = idx, mask = msk))
+  take <- rep(seq_len(nrow(idx)), nrep)
+  list(idx = idx[take, , drop = FALSE] +
+         rep((seq_len(nrep) - 1L) * block[["n"]], each = nrow(idx)),
+       mask = msk[take, , drop = FALSE])
+}
+
+# The trial-by-trial factors of the likelihood, as one vector per trial
+# over all (subject, replicate) pairs. Every quantity the family reports
+# is built from these, so there is one recursion and no second
+# definition of the same arithmetic to drift from it.
 #
 # One iteration per TRIAL, each one a handful of vector operations over
 # all subjects at once. Writing it the other way round, one iteration
 # per row with Q[s] <- ... inside, is the shape RTMB punishes: an
 # element-wise assignment into a taped vector costs about three orders
 # of magnitude more than the vector operation it replaces.
-rw_loglik <- function(y, dpars, aterms, weights, block, extra) {
-  # weights() is refused in check_spec, so `weights` is 1 here. A trial's
-  # factor cannot be reweighted on its own: its value depends on every
-  # earlier trial of the same subject.
-  idx <- block[["idx"]]
-  msk <- block[["mask"]]
+rw_terms <- function(y, dpars, aterms, block) {
   n <- block[["n"]]
-  alpha <- rw_bcast(dpars[["alpha"]], n)
-  beta <- rw_bcast(dpars[["beta"]], n)
+  nrep <- NROW(y) %/% n
+  sk <- rw_stack(block, nrep)
+  idx <- sk[["idx"]]
+  msk <- sk[["mask"]]
+  nn <- n * nrep
+  alpha <- rw_bcast(dpars[["alpha"]], nn)
+  beta <- rw_bcast(dpars[["beta"]], nn)
   pay1 <- aterms[["reward1"]]
   pay2 <- aterms[["reward2"]]
   q1 <- rep(0, nrow(idx))
   q2 <- q1
-  ll <- 0
+  out <- vector("list", ncol(idx))
   for (t in seq_len(ncol(idx))) {
     i <- idx[, t]
     m <- msk[, t]
@@ -194,14 +219,57 @@ rw_loglik <- function(y, dpars, aterms, weights, block, extra) {
     eta <- beta[i] * (q1 - q2)
     # log P(choice) = c1 * eta - log(1 + exp(eta)), folded with
     # logspace_add so a decisive subject does not overflow
-    ll <- ll + sum(m * (c1 * eta - RTMB::logspace_add(0 * eta, eta)))
+    out[[t]] <- m * (c1 * eta - RTMB::logspace_add(0 * eta, eta))
     # the mask enters through the learning rate, so a padded cell learns
     # nothing and no branch reaches the tape
     a <- alpha[i] * m
     q1 <- q1 + (a * c1) * (pay1[i] - q1)
     q2 <- q2 + (a * (1 - c1)) * (pay2[i] - q2)
   }
-  ll
+  list(terms = out, idx = idx, mask = msk)
+}
+
+# One value per subject, which is this family's coarsest honest piece
+# and the one frm(importance =) resamples. A subject's trials are a
+# product, so its log-likelihood is the elementwise sum of the per-trial
+# vectors: the piece is free, given the recursion.
+#
+# weights() is refused in check_spec, so `weights` is 1 in all three
+# slots. A trial's factor cannot be reweighted on its own: its value
+# depends on every earlier trial of the same subject.
+rw_loglik_group <- function(y, dpars, aterms, weights, block, extra) {
+  Reduce(`+`, rw_terms(y, dpars, aterms, block)[["terms"]])
+}
+
+# One value per trial: the choice probability CONDITIONAL on everything
+# the subject saw before it. These are the factors themselves, scattered
+# back to the rows they came from, and a Bernoulli factor's saturated
+# value is zero, which is what makes a deviance residual definable here.
+rw_loglik_row <- function(y, dpars, aterms, weights, block, extra) {
+  "c" <- RTMB::ADoverload("c")
+  "[<-" <- RTMB::ADoverload("[<-")
+  tm <- rw_terms(y, dpars, aterms, block)
+  # ONE sub-assignment, not one per trial: `[<-` copies the whole vector
+  # each time it is called on a taped one. The padded cells are dropped
+  # rather than written, because a pad repeats its subject's FIRST row
+  # number and would otherwise overwrite that trial's own factor with a
+  # masked zero.
+  keep <- as.vector(tm[["mask"]]) == 1
+  out <- rep(0, length(y))
+  out[as.vector(tm[["idx"]])[keep]] <-
+    do.call(c, tm[["terms"]])[keep]
+  # off the tape only: the numeric path is the one residuals() reads,
+  # and an advector carries no attributes
+  if (!inherits(out, "advector")) {
+    attr(out, "saturated") <- rep(0, length(out))
+  }
+  out
+}
+
+# The whole response's log-likelihood, defined as the sum of the pieces
+# rather than accumulated separately, so the three slots cannot disagree.
+rw_loglik <- function(y, dpars, aterms, weights, block, extra) {
+  sum(rw_loglik_group(y, dpars, aterms, weights, block, extra))
 }
 ```
 
@@ -211,6 +279,26 @@ the loop advances all of them. There is no conditional anywhere: the
 chosen arm is selected by multiplying by the response, which is data,
 and the padding is selected by multiplying by the mask, which is also
 data.
+
+`rw_terms()` stops one step short of a log-likelihood: it returns the
+per-trial factors themselves, and the three slots below are three ways
+of adding them up. A subject’s log-likelihood is the elementwise sum
+across trials, a trial’s is the factor scattered back to its own row,
+and the total is the sum of either. Writing them as one recursion with
+three tails is not tidiness, it is the only way to be sure the three
+numbers agree; the suite asserts that they do.
+
+Why three at all. `loglik` is what the objective needs. `loglik_group`
+is what `frm(importance = )` resamples, one value per subject.
+`loglik_row` is what a deviance residual compares against its saturated
+fit, which for a Bernoulli factor is zero, and that zero is attached to
+the row values so the core does not have to guess it.
+
+The `nrep` line is the stacking contract. The importance correction
+evaluates the whole design once per draw, stacked end to end, so the
+recursion has to run over subject-crossed-with-draw. Because the loop is
+already vectorized across subjects, that is the same loop over a longer
+vector rather than a new algorithm.
 
 `weights` arrives and is ignored, which the family is allowed to do only
 because it refuses [`weights()`](https://rdrr.io/r/stats/weights.html)
@@ -370,6 +458,12 @@ rw_structure <- function() {
     },
     frame_block = rw_block,
     loglik = rw_loglik,
+    # The two factorizations. `unit` is a different question and keeps
+    # its own answer: the finest factorization here is the TRIAL, while
+    # the smallest thing that can honestly be left out is a whole
+    # subject, because dropping one trial changes every later trial's Q.
+    loglik_row = rw_loglik_row,
+    loglik_group = rw_loglik_group,
     unit = "one subject's trial sequence",
     fitted_mean = rw_fitted,
     fitted_var = function(fit, block) {
@@ -377,6 +471,12 @@ rw_structure <- function() {
       p * (1 - p)
     },
     sim_ctx = rw_sim,
+    # The one capability a factorized likelihood buys back here. Every
+    # other flag stays FALSE: a per-trial factor is not a per-trial
+    # MODEL, so newdata, conditional effects and one-step-ahead
+    # residuals are refused for the reasons below and not for want of
+    # the factors.
+    supports = list(deviance = TRUE),
     refusals = list(
       newdata_response = paste0(
         "predict(type = 'response') on a rw_delta() fit is not ",
@@ -395,12 +495,7 @@ rw_structure <- function() {
         "residuals(type = 'osa') is not available for a rw_delta() fit: ",
         "the tape holds the recursion over each whole sequence with no ",
         "registered observation vector. Use type = 'pearson', which ",
-        "divides by the binomial variance of the choice probability"),
-      deviance = paste0(
-        "residuals(type = 'deviance') is not available for a rw_delta() ",
-        "fit: the per-trial factors exist, but the structured ",
-        "protocol's loglik slot returns one total, so the core never ",
-        "sees them. Use type = 'pearson'")
+        "divides by the binomial variance of the choice probability")
     )
   )
 }
@@ -414,6 +509,14 @@ is refused not because it is hard but because it is undefined: the
 expected response here is a choice probability that depends on a whole
 trial history, and the synthetic grid that function builds has no
 history.
+
+`deviance` is the one flag turned back on, and it is on because of a
+slot rather than in spite of one: with `loglik_row` declared the core
+has each trial’s log-density and its saturated value, which is what a
+unit deviance is made of. `unit` is a separate declaration and keeps its
+own answer. The finest factorization here is the TRIAL; the smallest
+thing that can honestly be left out is a whole SUBJECT, because dropping
+one trial changes every later trial’s value store.
 
 ## Fitting it
 
@@ -593,7 +696,7 @@ c(reference = ll,
   from_fitted = sum(dbinom(dd$choice, 1, p, log = TRUE)),
   difference = ll - sum(dbinom(dd$choice, 1, p, log = TRUE)))
 #>     reference   from_fitted    difference 
-#> -1.149687e+03 -1.149687e+03  2.728484e-12
+#> -1.149687e+03 -1.149687e+03  2.955858e-12
 ```
 
 `tests/testthat/test-rl-example.R` runs this check on an unbalanced
@@ -673,25 +776,40 @@ is exact only when the conditional log-density really is quadratic. For
 a binary response it is not, and the fewer trials a subject has, the
 less quadratic it is.
 
-The usual way to price that error in frmtmb is `frm(importance =)`,
-which reweights draws from the Laplace Gaussian. It is REFUSED here:
+The way to price that error in frmtmb is `frm(importance = )`, which
+reweights draws from the Laplace Gaussian against the exact integrand.
+It works here, and it works because the family declares how its
+likelihood factorizes: `loglik_group` hands the correction one value per
+subject, which is exactly the piece it resamples. Until that slot
+existed the correction refused every family with a `loglik`, whether or
+not the likelihood factorized.
 
 ``` r
 
-frm(bf(choice | reward(pay1, pay2) ~ condition + (1 | p | id),
-       beta ~ 1 + (1 | p | id)),
-    family = rw_delta(subject = id, trial = trial),
-    data = dd, importance = 200)
-#> Error:
-#> ! `importance` cannot correct the 'rw_delta' family: it supplies its own log-likelihood, which does not factorize over rows, so a group's rows have no separable integrand to resample. This is the same restriction quadrature has. Use importance = 0
+fit_i <- frm(bf(choice | reward(pay1, pay2) ~ condition + (1 | p | id),
+                beta ~ 1 + (1 | p | id)),
+             family = rw_delta(subject = id, trial = trial),
+             data = dd, importance = 200)
+c(laplace = sqrt(VarCorr(fit)[[1]][1, 1]),
+  corrected = sqrt(VarCorr(fit_i)[[1]][1, 1]))
+#>   laplace corrected 
+#> 0.4628031 0.5827301
+fit_i$importance[c("draws", "mcse")]
+#> $draws
+#> [1] 200
+#> 
+#> $mcse
+#> [1] 0.1142937
 ```
 
-That refusal is honest but wider than it needs to be, and the closing
-section returns to it.
+The chunk is left with `error = TRUE` on purpose. The correction can
+decline, and on this model it sometimes does; the next section is about
+when.
 
-What can still be measured is the consequence. Run the same recovery
-study at 20 trials per subject instead of 100, and read the bias and the
-coverage:
+## Short sessions, and what the correction says about them
+
+Run the same recovery study at 20 trials per subject instead of 100, and
+read the bias and the coverage:
 
 | parameter            | 100 trials, bias | coverage | 20 trials, bias | coverage |
 |----------------------|------------------|----------|-----------------|----------|
@@ -716,14 +834,65 @@ deviation comes out 0.63 too low, which is a standard deviation about
 half the true one, and its interval covers 73 times in 100. Sixteen of
 the hundred short-session fits gave no usable interval for it at all.
 
-Do not read all of that as Laplace error. A variance component estimated
-by maximum likelihood from binary data with 40 levels is biased downward
-whether or not the integral is approximated, and this table does not
-separate the two causes. Separating them is what `frm(importance =)`
-exists for, and this family cannot ask it. What the table does establish
-is where the answers are safe: report fixed effects from short sessions,
-and treat a subject-level standard deviation estimated from 20 binary
-trials as a lower bound.
+Two causes could produce that, and they are not the same thing. A
+variance component estimated by maximum likelihood from binary data with
+40 levels is biased downward whether or not the integral is
+approximated; and the Laplace approximation is itself worse the fewer
+trials a subject has. The recovery table cannot separate them.
+`frm(importance = )` can, and now that this family declares its pieces,
+it can be asked. Six seeds per design, the same 40 subjects and the same
+truth, 100 draws:
+
+|                                         | 40 x 100 trials | 40 x 20 trials |
+|-----------------------------------------|-----------------|----------------|
+| replicates the correction completed     | 4 of 6          | 5 of 6         |
+| mean shift, `alpha_(Intercept)`         | -0.004          | +0.034         |
+| mean shift, `alpha_conditiontrt`        | +0.010          | +0.014         |
+| mean shift, `beta_(Intercept)`          | -0.002          | +0.048         |
+| mean shift, `log sd(alpha)`             | +0.357          | +0.480         |
+| largest single shift, `log sd(alpha)`   | 0.545           | 1.386          |
+| Monte Carlo standard error              | 0.13 to 0.18    | 0.02 to 0.70   |
+| smallest effective sample size per draw | 0.53            | 0.03           |
+
+The fixed effects do not move. That is the recovery table’s first
+reading confirmed by an independent route: their bias is not Laplace
+error, because removing the Laplace error leaves them where they were.
+
+The variance component moves up, a long way, and the diagnostics say how
+far to trust it. At 20 trials the correction is often not answering at
+all: one replicate in six does not complete, the largest shift is 1.39
+on the log scale, and the effective sample size falls to three draws in
+a hundred.
+
+One dataset, named so it can be checked, shows what that looks like.
+Take 40 subjects at 20 trials from
+`set.seed(4206); rl_simulate(rl_bandit_design(40, 20), seed = 4206)`.
+Its Laplace `log sd(alpha)` is -1.2024. At 100 draws the correction
+returns +0.1831, a standard deviation of 1.20 against a truth of 0.5,
+with a Monte Carlo standard error of 0.336 and a smallest effective
+sample size of 0.33 per draw. At 400 draws, with enough draws to see its
+own weights, it REFUSES, reporting that the corrected objective rose
+rather than fell and pointing at the `[ID]` block’s two variance
+components and their correlation.
+
+That is one dataset and not a law. Other 20-trial datasets are fine: a
+reviewer running two seeds of this design got one that completed at 400
+draws and one whose 100-draw correction was already clean (shift 0.025,
+mcse 0.070, smallest effective sample size 0.90). The honest summary is
+the table above, where one replicate in six failed and the spread of
+shifts was an order of magnitude: at this design the correction is
+unreliable rather than uniformly broken, and a number it returns needs
+its own diagnostics read before it is believed.
+
+So the honest reading is not that the variance-component bias is Laplace
+error. It is that at 100 trials the correction runs and moves the
+variance component up by about a third of a log unit, the same order as
+the whole bias, so some real part of that bias is the approximation; and
+that at 20 trials the correction will not stand behind an answer at all,
+which is a second reason to treat a subject-level standard deviation
+from 20 binary trials as a lower bound rather than as an estimate. The
+operational advice is unchanged: report fixed effects from short
+sessions, and do not report a variance component from them.
 
 ## Shape and cost
 
@@ -803,18 +972,17 @@ it at 1.27x and 1.70x.
 The example above is a complete family. Three things would still change
 if it moved into a package.
 
-**A per-unit log-likelihood.** This family’s likelihood factorizes over
-trials, but `frmtmb_structure(loglik =)` returns one AD scalar, so the
-core never sees the individual factors. Two features follow from that
-and are unavailable here: a pointwise log-likelihood matrix, which
+**A pointwise log-likelihood for
+[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md).** The
+family declares its factorization, so `frm(importance = )` and deviance
+residuals work above.
 [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) and
-[`waic()`](https://aforren1.github.io/frmtmb/reference/loo.md) need, and
-`frm(importance =)`, whose refusal appears above. The importance
-correction needs one value per GROUP, not per row, and this family has
-that. The refusal is written in terms of rows because that is the only
-granularity the slot exposes. A future `pointwise_loglik` slot, or a
-`loglik` allowed to return a vector over the structure’s own `unit`,
-would serve both.
+[`waic()`](https://aforren1.github.io/frmtmb/reference/loo.md) would
+work too, on a sampled fit: they live in frmtmb.sample and read the same
+slots, and their columns would be SUBJECTS rather than trials, because
+`unit` says a trial cannot honestly be left out. Nothing here exercises
+that path, because these are maximum-likelihood fits and an elpd is a
+posterior quantity.
 
 **Newdata.** `predict(type = "response")` on new data would need a block
 built without a response, and the protocol defers that case on purpose.

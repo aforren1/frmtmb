@@ -1,5 +1,30 @@
 # Changelog
 
+## frmtmb.latent 0.2.0
+
+[`hmm()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm.md)
+declares the per-sequence log-likelihood, so `frm(importance = )` and
+`loo()` on draws reach it. Requires frmtmb 0.53.0 for the factorization
+slot.
+
+- [`hmm()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm.md)
+  declares `frmtmb_structure(loglik_group = )`: the log-likelihood of
+  every sequence, which the forward recursion already produces on its
+  way to the total. `frm(importance = )` can correct an hmm() fit whose
+  grouping factor is its own sequence variable, and `loo()` on sampled
+  draws has one column per sequence instead of a refusal. There is no
+  `loglik_row`, and its absence is the answer rather than an omission: a
+  row’s emission density is not its contribution to the likelihood,
+  because the state that emitted it was reached through every earlier
+  row. `residuals(type = "deviance")` stays refused for exactly that
+  reason, in the words it already used.
+
+- [`lca()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.md)
+  declares neither slot, and says why in the source: its likelihood IS
+  rowwise, because one row is one subject’s whole item response pattern,
+  so `loo()` and `frm(importance = )` reach it through the ordinary path
+  and a slot would be a second definition of the same numbers.
+
 ## frmtmb.latent 0.1.0
 
 First release.
@@ -32,10 +57,8 @@ were part of frmtmb through v0.47.0 and move here unchanged, as step 10
   this namespace and fails if one reaches a frmtmb internal.
 
 - The compatibility rules that name either family register from
-  `.onLoad()`, so
-  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.html)
-  gains their rows when this package is loaded and carries no dangling
-  reference when it is not.
+  `.onLoad()`, so `frm_compat()` gains their rows when this package is
+  loaded and carries no dangling reference when it is not.
 
 - No behavior changed in the move. Every test came over with its
   assertions intact.

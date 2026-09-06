@@ -21,7 +21,7 @@ covariance components)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,7 @@ covariance components)."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
+    <li><a class="dropdown-item" href="../articles/bayesian-cognitive-modeling.html">Bayesian Cognitive Modeling: the model list</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
@@ -45,6 +46,7 @@ covariance components)."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.spline/">frmtmb.spline (curve inference and spline survival)</a></li>
@@ -139,6 +141,12 @@ the route and <code><a href="https://rdrr.io/r/base/print.html" class="external-
 with its name in the <code>nlpar</code> column, the intercept among them, which
 is how brms lists them and what <code><a href="set_prior.html">set_prior()</a></code> addresses (see its
 Nonlinear parameters section).</p>
+<p>A distributional parameter is listed under whichever of its two
+spellings the model offers: its OWN class where the model gives it
+no predictor, and class <code>"Intercept"</code> with its name in the <code>dpar</code>
+column where the model gives it a formula. brms lists the same two,
+the same way round. See A distributional parameter's own class in
+<code><a href="set_prior.html">set_prior()</a></code>.</p>
 <p>An ordinal family has no intercept column, so its class <code>"Intercept"</code>
 row names the THRESHOLD vector, which is what the same row means in
 brms. See the Ordinal thresholds section of <code><a href="set_prior.html">set_prior()</a></code>.</p>
@@ -182,15 +190,15 @@ slopes stay <code>(flat)</code>, as they are in brms.</p>
 <span class="r-in"><span><span class="co"># frm_sample() applies, see "Which route the defaults describe"</span></span></span>
 <span class="r-in"><span><span class="fu">get_prior</span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> route = "fit": the prior defaults frm() applies</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    prior     class    coef group  dpar nlpar resp lb ub</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (flat) Intercept                                NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 (flat)         b                                NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (flat)         b       x                        NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (flat) Intercept               sigma            NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 (flat)        sd                                NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 (flat)        sd             g                  NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7 (flat)     theta                                NA NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8 (flat)     theta theta_1                        NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    prior     class    coef group dpar nlpar resp lb ub</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 (flat) Intercept                               NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 (flat)         b                               NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 (flat)         b       x                       NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 (flat)     sigma                               NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 (flat)        sd                               NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 (flat)        sd             g                 NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7 (flat)     theta                               NA NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8 (flat)     theta theta_1                       NA NA</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

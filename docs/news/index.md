@@ -1,5 +1,296 @@
 # Changelog
 
+## frmtmb 0.53.0
+
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)’s
+own class names mean what they mean in brms; the structured-family
+protocol factorizes a whole-response log-likelihood per row and per
+group, so the importance correction,
+[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) and
+deviance residuals reach `hmm()` and the learning families; every brms
+link name is in the registry; `car(type = "esicar")` prediction errors
+are exact; a Bayesian Cognitive Modeling tier fits fifty-two of the
+book’s models against their Stan programs; and frmtmb.learn, the sixth
+extension, brings reinforcement-learning families.
+
+- `frmtmb_register_compat(expects = )` accepts a name another package
+  already supplies. It used to refuse one, so frmtmb.sample, which
+  expects `hmm`, failed to load in every session that had loaded
+  frmtmb.latent first. An expectation the session has already met is
+  met; only a name the same call supplies in `features =` is refused,
+  since that declaration contradicts itself.
+
+- BUG FIX.
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  started every component at a quantile of the raw response. For a
+  bounded mean that is a count outside the logit’s range, so every
+  component fell back to the link origin, where they are the same
+  distribution, and `mixture(beta_binomial, beta_binomial)` on the
+  malingering data of Lee and Wagenmakers sat at two identical
+  components (logLik -64.26) with no warning where a separated start
+  reaches -58.71. A component whose mean link is on (0, 1) now starts
+  from the quantile of `y / trials`, clamped to (0.02, 0.98) the way the
+  component families clamp their own start, because eight of those
+  twenty-two respondents score 45 of 45 and put the two-thirds quantile
+  at exactly 1. Found by the Bayesian Cognitive Modeling port.
+
+- `residuals(type = "deviance")` on a structured family that declares
+  `loglik_row` but no `fitted_mean` now says which half is missing (the
+  sign of each row’s departure from its conditional mean) instead of
+  claiming the family has no unit deviance and listing thirty built-in
+  families that do.
+
+- `car(type = "esicar")` standard errors no longer carry `con_sd`.
+  `expand_b()` centers the field each connected component contributes,
+  so the linear predictor sees `P b` with `P` the centering projection,
+  but the delta method paired the design columns with `b` through
+  `dc/db = I`. Every `predict(se.fit = TRUE)` standard error and every
+  `ranef(condVar = TRUE)` conditional SD therefore carried the inert
+  component means, exactly `con_sd^2` in the variance: measured 1.348e-5
+  relative in a standard error at the 1e-3 default, 1.347e-3 at
+  `con_sd = 0.01`, and 7.5 to 12.7 percent at `con_sd = 0.1`, growing a
+  hundredfold per decade. The Jacobian is now the projection itself, so
+  an esicar block’s contribution is `Z P V P' Z'` and `P` annihilates
+  that coordinate whatever its scale. On a 4 by 4 lattice the standard
+  errors drop by 1.348e-5 relative and the variance by exactly
+  `con_sd^2`; a singleton component’s conditional SD was exactly
+  `con_sd` and is now exactly zero, which is the uncertainty of a field
+  value that is exactly zero.
+  [`logLik()`](https://rdrr.io/r/stats/logLik.html), the estimates,
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md)’s
+  values and
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  are bit-identical, and so is every reported number for `escar`, `icar`
+  and `bym2`. This closes the residual the 0.52.0 entry below documented
+  and the `esicar` review recorded as R2. Prediction standard errors for
+  a reduced-rank (`rr`) block are unaffected: they already went through
+  this Jacobian.
+
+- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  on a fit reads its display quantity from a new
+  [`ce_pred_dpar()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  rather than deriving it inline. Same answer, same models: the
+  expression moved, and `mean_display` is now `is.null(pred_dpar)`,
+  which it always was. The point of moving it is that a sampling
+  extension drawing the same curves per posterior draw has to make the
+  same choice, and could not: `mean_is_mu()` is a structural test of a
+  family’s `mean_fn` and stays private.
+
+- The conditional-effects seam of
+  [`?"frmtmb-sampling-api"`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  gains eight exports, so that a sampling extension can return the frame
+  this package returns instead of assembling a second one:
+  [`ce_frame()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  (the column set and its order),
+  [`ce_display_kind()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  (which of the three displays a call asks for, and the refusals
+  `categorical =` owes),
+  [`ce_group_vars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  (the grouping variables a `re_formula = NULL` call blanks), and
+  [`ce_new_level_spec()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md),
+  [`ce_boot_grids()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  and
+  [`ce_draw_new_levels()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  (the placeholder level and the draw that makes an unobserved group
+  carry its own effects),
+  [`ce_pred_dpar()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  (what gets predicted, which is not always the dpar the display is
+  labeled with) and
+  [`ce_dots()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  (the `allow_new_levels` spellings a
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  call accepts). All eight were already what the fit method used;
+  `frmtmb.sample` was reimplementing five of them, four badly. See that
+  package’s NEWS for what the exports bought.
+
+- `frm_lp_basis(newdata = )` now makes the same statement about a
+  [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) knot span
+  that `predict(newdata = )` makes. The two doors evaluate the same
+  closures at the same points, and only one of them said that the basis
+  stops being a partition of unity past its frozen outer knots; a curve
+  drawn through the basis seam was silent about a cliff the fit-end
+  report exists to warn about. The warning fires ONCE per
+  [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) term per
+  call, whatever the grid width or the coefficient count, and its text
+  is byte-identical to
+  [`predict()`](https://rdrr.io/r/stats/predict.html)’s on the same fit
+  and grid. In sample (`newdata = NULL`),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) stay quiet, as
+  before.
+
+- FIX: the span check could not run on a taped body at all. Its guard
+  was [`is.numeric()`](https://rdrr.io/r/base/numeric.html), which is
+  TRUE for an RTMB advector, so a
+  [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) term whose
+  argument names a nonlinear parameter would have raised “Comparison is
+  generally unsafe for AD types” as soon as any taped caller armed it.
+  The guard is `inherits(x, "advector")` now, and the basis seam
+  additionally evaluates the body once OFF the tape, so that case is
+  checked on numbers rather than skipped.
+
+- The [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) span
+  warning carries the condition class `frmtmb_ps_span_warning`, so a
+  consumer can catch, muffle or escalate this one warning without
+  matching on its text. `frmtmb.spline` uses it to surface the warning
+  once under its own function names and to refuse a feature search whose
+  bracket leaves the span.
+
+- **BEHAVIOR CHANGE.
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)’s
+  own class names now mean what the same names mean in brms.** A
+  distributional parameter’s own name is a class here as it is there:
+  `set_prior("student_t(3, 0, 2.5)", class = "sigma")` is a density on
+  sigma ITSELF, on its natural scale, with the inverse link’s
+  log-Jacobian applied. The two brms spellings are mutually exclusive by
+  model shape, measured off
+  [`brms::make_stancode()`](https://paulbuerkner.com/brms/reference/stancode.html),
+  and frmtmb now refuses each on the other’s model, by name, saying
+  which one applies:
+
+  | the model | the spelling it takes |
+  |----|----|
+  | `bf(y ~ x)` | `class = "sigma"`, a density on sigma |
+  | `bf(y ~ x, sigma ~ 1)` or `sigma ~ x` | `class = "Intercept", dpar = "sigma"`, a density on the log-scale intercept |
+
+  **What changes in your numbers.** Before this release,
+  `set_prior(..., class = "Intercept", dpar = "sigma")` was accepted on
+  a model with no `sigma` formula and meant a density on LOG sigma. On a
+  gaussian `y ~ x` with 200 rows whose maximum-likelihood sigma is
+  2.0103, `normal(0, 0.5)` gave 1.9965 that way; the same script now
+  stops, and `class = "sigma"` gives 1.9429, which is what
+  `brms::prior(normal(0, 0.5), class = "sigma")` gave all along. To
+  reproduce the OLD placement, write `sigma ~ 1` in
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) (that
+  model has a log-scale intercept, and the same spelling addresses it),
+  or reach the raw parameter with `prior = list(betad = )`. A
+  `class = "b"` prior on a dpar’s slopes is unaffected: it was
+  link-scale before and is link-scale in brms.
+
+- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  lists a distributional parameter under whichever of the two spellings
+  its model offers, which is the row brms lists: class `"sigma"` where
+  sigma has no predictor, `class = "Intercept"` with `dpar = "sigma"`
+  where it has one. A parameter with NEITHER spelling, because its class
+  is one frmtmb refuses by name, is left out rather than advertised: a
+  mixture proportion with no predictor of its own was briefly listed as
+  class `"theta1"`, which
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  refuses.
+
+- [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  refuses `class = "b", dpar = <name>` where that parameter’s predictor
+  is an intercept only. There are no slopes for the row to address
+  there, so it used to be accepted and applied nothing at all, silently;
+  brms refuses the same row.
+
+- [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  refuses a `coef` or a `group` on a distributional parameter’s own
+  class. The class names one parameter, so neither argument had anything
+  to narrow to, and both used to be accepted, printed, and then dropped
+  while the prior applied anyway.
+
+- [`print()`](https://rdrr.io/r/base/print.html) on a prior list, and
+  the slot names inside prior error messages, spell a density on a
+  distributional parameter with that parameter’s own class:
+  `student_t(3, 0, 2.5) class=sigma scale=natural` where a translated
+  row used to print `class=Intercept dpar=sigma scale=natural`. What is
+  printed is what
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  accepts on that model, which is the promise the printer makes.
+  `frm_sample()`’s default-prior announcement uses the same spelling.
+
+- The brms translation is now a pass-through rather than a second set of
+  rules: a translated row keeps its class and
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  decides the placement, so `frm(prior = brms::prior(...))` and
+  `frm(prior = set_prior(...))` are one code path and cannot drift. The
+  priors tier fits the same model both ways and asserts the objectives
+  are identical to 1e-12, class by class.
+
+- [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  refuses a `coef` on class `"sd"` or `"cor"`, which it used to accept,
+  print, and then apply to the whole block. The translated route already
+  refused it; both do now.
+
+- A prior class frmtmb keeps somewhere else (`sds`, `sdgp`, `lscale`,
+  `simo`, `sdcar`, `car`, brms’s mixture `theta1`) is refused by name
+  from
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  too, with the same sentence the translated route gives, rather than
+  being read as a distributional parameter that the model does not have.
+
+- No `natural =` or `scale =` argument was added: after this change the
+  placement follows from the class, which is brms’s own rule, so there
+  is nothing left for such an argument to override.
+
+- New
+  [`vignette("bayesian-cognitive-modeling")`](https://aforren1.github.io/frmtmb/articles/bayesian-cognitive-modeling.md):
+  a reference list of the models in Lee and Wagenmakers, *Bayesian
+  Cognitive Modeling*, each with its frmtmb spelling and how it was
+  checked against the Stan port of the same model.
+  `tests/testthat/helper-stan.R` is the harness the checks run through:
+  give it a Stan program, its data and a map from an frmtmb estimate to
+  its parameters, and it asserts that `log_prob` equals frmtmb’s log
+  density there plus a stated constant. The families the book needs and
+  the core does not ship are in `inst/bcm/`, alongside `inst/rl/`, and
+  `inst/COPYRIGHTS` carries the BSD-3 notice of the Stan programs the
+  tier adapts.
+
+Three seams in the structured-family protocol: a family can say how
+finely its likelihood factorizes, a family can say which addition terms
+it takes, and the compatibility vocabulary is built once instead of once
+per registration.
+
+- [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
+  gains `loglik_row` and `loglik_group`. `loglik` returns one number for
+  the whole response, which is what the objective needs and less than
+  every other consumer needs, so a structured family was refused
+  `frm(importance = )`,
+  [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md),
+  [`waic()`](https://aforren1.github.io/frmtmb/reference/loo.md) and
+  deviance residuals whether or not its likelihood factorized. The two
+  slots carry the pieces a family HAS, at the finest granularity it has
+  them: one value per row, or one per level of the block’s new reserved
+  `group` entry. `unit` is unchanged and still declares what may
+  honestly be left OUT, which is a different question: the worked
+  `rw_delta()` family factorizes per trial and leaves out a whole
+  subject.
+
+- `frm(importance = )` corrects a structured family that declares either
+  slot, instead of refusing every one of them. The refusal that remains
+  names the missing declaration. The family’s own units and the model’s
+  grouping levels must be the same partition of the rows and are
+  checked: summing a per-subject likelihood into a per-item proposal is
+  silently meaningless, so it is refused by name. A family’s handling of
+  the stacked design the correction evaluates is verified against the
+  plain objective, per group, by the check that was already there.
+
+- `residuals(type = "deviance")` works for a structured family that
+  declares `loglik_row` and attaches its saturated log-density to what
+  that slot returns. Without the saturated half the refusal names it,
+  rather than assuming a value that is right for a Bernoulli trial and
+  wrong for a Poisson count.
+
+- [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  gains `accepts_aterms`, the allow-list that complements
+  `required_aterms`. An addition term a family never reads used to be
+  parsed, stored on the fit and ignored in silence: `lba(3)` fitted
+  `rt | dec(two) + vint(choice) ~ 1` with fixed effects bit-identical to
+  the model without `dec()`. Frame assembly now refuses such a term by
+  name and lists the ones the family takes. The built-in families
+  declare theirs. `NULL`, the default, accepts every registered term, so
+  a custom family written before this keeps its behavior, and the check
+  runs after every guard that can say something more specific, so no
+  existing message changes.
+
+- The
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  feature vocabulary is cached and the cache is extended by each
+  registration rather than rebuilt. An extension registering four
+  addition terms from its `.onLoad()` paid four 16 ms builds and now
+  pays one.
+
 ## frmtmb 0.52.0
 
 A brms prior means what it means in brms; conditional_effects() plots
@@ -32,6 +323,66 @@ families.
 
 - The drift-diffusion extension is renamed frmtmb.eam (evidence
   accumulation models); see its NEWS.
+
+- The AD-safe link registry completes the brms 2.23.0 roster. New
+  `probit`, `probit_approx`, `cauchit`, `softit`, `softplus`,
+  `squareplus`, `sqrt`, `log1p` and `1/mu^2` links, each reproducing
+  brms’s own definition, so `bernoulli(link = "probit")` is now the
+  everyday spelling of a probit regression rather than a custom link
+  list passed through `get_link()`. `1/mu^2` is the inverse Gaussian
+  canonical link and is unrelated to `power12`, the tweedie power link.
+  Every link name brms accepts is now accepted here.
+
+  Six of them carry a robust field. Four of the six move a saturation
+  boundary, and each boundary is measured rather than assumed.
+  `probit`’s log-odds is a difference of two `pnorm` logs, which holds
+  to `|eta| = 38` where the plain round trip gave out at `6.4`;
+  `probit_approx`’s is the cubic itself and never saturates, where the
+  plain path gave out at `5.9`; `squareplus`’s log mean is
+  `asinh(eta / 2)`, exact where the sum `(eta + sqrt(eta^2 + 4)) / 2`
+  has cancelled to zero; `softit`’s log-odds is the softplus’s log.
+  `softplus` and `sqrt` carry a `log_eta` for a different reason: it
+  selects the family’s robust log-density, and without it
+  [`negbinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  forms `mu + mu^2 / shape`, whose excess over `mu` is lost to rounding
+  at a mean near zero. `cauchit` has no robust field and needs none: its
+  tails are polynomial, so the plain round trip is still accurate at
+  `eta = 3e9`.
+
+  [`stats::binomial()`](https://rdrr.io/r/stats/family.html),
+  [`stats::poisson()`](https://rdrr.io/r/stats/family.html) and
+  [`stats::Gamma()`](https://rdrr.io/r/stats/family.html) validate their
+  link string through
+  [`stats::make.link()`](https://rdrr.io/r/stats/make.link.html) before
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) sees it,
+  so the four names `stats` does not know (`probit_approx`, `softit`,
+  `softplus`, `squareplus`) have to come in through one of frmtmb’s own
+  family constructors. See
+  [`vignette("brms-migration")`](https://aforren1.github.io/frmtmb/articles/brms-migration.md)
+  and `dev/links-findings.md`.
+
+- BUG FIX.
+  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+  returned an INVERTED band on every decreasing link. `inverse` and
+  `1/mu^2` send the lower linear predictor to the upper response value,
+  and one of the three places the band’s endpoints are transformed did
+  not order them afterwards, so `Gamma(link = "inverse")` came back with
+  `lower__` above `upper__` on every row. The endpoints are now ordered
+  by the link’s direction rather than sorted, which also keeps a missing
+  bound on the side it belongs to.
+
+  A bound the link’s domain does not reach is now `NA` instead of `NaN`,
+  with one warning naming the link and the count. Two cases: `1/mu^2` is
+  `1 / sqrt(eta)` and has no value once the band reaches `eta = 0`, so
+  such a band has no upper bound at all; and `inverse` with the band
+  straddling zero has a pole between two finite ends, where neither end
+  bounds the response. The second was previously reported as an ordinary
+  interval.
+
+  This surfaced through the new `1/mu^2` link, which makes
+  `frm(family = stats::inverse.gaussian())` fit for the first time, but
+  the inversion was not new: it reproduces on `Gamma(link = "inverse")`
+  with the link registry untouched.
 
 The ten defects the brms post-fit method tier recorded in
 `dev/brms-methods-tests.md`, repaired. Nine of them are in
@@ -253,7 +604,8 @@ the two packages mean the same thing.
   1e-3 default that is 1.3e-5 relative in a standard error, but it grows
   a hundredfold per decade, so `con_sd = 0.1` inflates them by 7 to 13
   percent. Leave `con_sd` alone on an `esicar` term. On `icar` and
-  `bym2` it means what it always did.
+  `bym2` it means what it always did. (The standard-error half of this
+  is no longer true; see the development version’s entry.)
 
 ### Improvements
 

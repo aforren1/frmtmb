@@ -35,7 +35,7 @@ rp_floored(object, action = c("error", "report"), max_nlogS = 19.2)
 
 ## Value
 
-A list with `n_censored_floored`, `max_nlogS`, `threshold`,
+A list with `n_censored_deep`, `max_nlogS`, `threshold`,
 `n_nonmonotone`, `scale` and `n_obs`, returned invisibly when nothing
 was floored. The offending row indices are the `"rows"` attribute, a
 list with elements `censored` and `nonmonotone`.
@@ -104,12 +104,12 @@ fit <- frmtmb::frm(frmtmb::bf(t | cens(censored) ~ trt),
                    family = royston_parmar(df = 2), data = dd)
 str(rp_floored(fit, action = "report"))
 #> List of 6
-#>  $ n_censored_floored: int 0
-#>  $ max_nlogS         : num 2.56
-#>  $ threshold         : num 19.2
-#>  $ n_nonmonotone     : int 0
-#>  $ scale             : chr "hazard"
-#>  $ n_obs             : int 300
+#>  $ n_censored_deep: int 0
+#>  $ max_nlogS      : num 2.56
+#>  $ threshold      : num 19.2
+#>  $ n_nonmonotone  : int 0
+#>  $ scale          : chr "hazard"
+#>  $ n_obs          : int 300
 #>  - attr(*, "rows")=List of 2
 #>   ..$ censored   : int(0) 
 #>   ..$ nonmonotone: int(0) 

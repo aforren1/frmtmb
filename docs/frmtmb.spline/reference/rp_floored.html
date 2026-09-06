@@ -9,7 +9,7 @@ answers. One of them is gone; the other refuses."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,7 +81,7 @@ as the threshold so that the two versions report the same rows.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list with <code>n_censored_floored</code>, <code>max_nlogS</code>, <code>threshold</code>,
+    <p>A list with <code>n_censored_deep</code>, <code>max_nlogS</code>, <code>threshold</code>,
 <code>n_nonmonotone</code>, <code>scale</code> and <code>n_obs</code>, returned invisibly when
 nothing was floored. The offending row indices are the <code>"rows"</code>
 attribute, a list with elements <code>censored</code> and <code>nonmonotone</code>.</p>
@@ -149,12 +149,12 @@ it is returned rather than only when someone calls this function.
 <span class="r-in"><span>                   family <span class="op">=</span> <span class="fu"><a href="royston_parmar.html">royston_parmar</a></span><span class="op">(</span>df <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu">rp_floored</span><span class="op">(</span><span class="va">fit</span>, action <span class="op">=</span> <span class="st">"report"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> List of 6</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ n_censored_floored: int 0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ max_nlogS         : num 2.56</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ threshold         : num 19.2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ n_nonmonotone     : int 0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ scale             : chr "hazard"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ n_obs             : int 300</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ n_censored_deep: int 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ max_nlogS      : num 2.56</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ threshold      : num 19.2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ n_nonmonotone  : int 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ scale          : chr "hazard"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ n_obs          : int 300</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  - attr(*, "rows")=List of 2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ censored   : int(0) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ nonmonotone: int(0) </span>

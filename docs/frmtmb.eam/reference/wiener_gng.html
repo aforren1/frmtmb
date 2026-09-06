@@ -17,7 +17,7 @@ observation: no response."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,7 +66,13 @@ observation: no response.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">wiener_gng</span><span class="op">(</span>deadline <span class="op">=</span> <span class="cn">NULL</span>, max_ndt <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">wiener_gng</span><span class="op">(</span></span>
+<span>  deadline <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  max_ndt <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  variability <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
+<span>  nodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>sz <span class="op">=</span> <span class="fl">7L</span>, st <span class="op">=</span> <span class="fl">21L</span><span class="op">)</span>,</span>
+<span>  nogo_nodes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>sv <span class="op">=</span> <span class="fl">15L</span>, sz <span class="op">=</span> <span class="fl">7L</span>, st <span class="op">=</span> <span class="fl">7L</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -82,6 +88,31 @@ default, takes it per row from <code>vreal()</code>.</p></dd>
 <dt id="arg-max-ndt">max_ndt<a class="anchor" aria-label="anchor" href="#arg-max-ndt"></a></dt>
 <dd><p>Upper bound for the non-decision time. <code>NULL</code>, the
 default, takes it from the fastest go response.</p></dd>
+
+
+<dt id="arg-variability">variability<a class="anchor" aria-label="anchor" href="#arg-variability"></a></dt>
+<dd><p>Which across-trial variability parameters to
+estimate: any of <code>"sv"</code> (drift rate), <code>"sz"</code> (start point) and
+<code>"st"</code> (non-decision time), exactly as <code><a href="wiener.html">wiener()</a></code> takes them. The
+default estimates none.</p></dd>
+
+
+<dt id="arg-nodes">nodes<a class="anchor" aria-label="anchor" href="#arg-nodes"></a></dt>
+<dd><p>Gauss-Legendre node counts for the GO branch, which is
+<code><a href="wiener.html">wiener()</a></code>'s density: the same names, the same meaning and the same
+defaults, so a go trial is scored identically by the two families.</p></dd>
+
+
+<dt id="arg-nogo-nodes">nogo_nodes<a class="anchor" aria-label="anchor" href="#arg-nogo-nodes"></a></dt>
+<dd><p>Quadrature node counts for the NO-GO probability,
+which is a different integral over the same three distributions.
+<code>sz</code> and <code>st</code> are Gauss-Legendre counts, and <code>st</code> defaults lower
+than the density's because the probability's range is not cut by
+the response time; <code>sv</code> is a Gauss-Hermite count with no
+counterpart in <code><a href="wiener.html">wiener()</a></code>, because there the drift integral is
+closed form. Only the entries for the <code>variability</code> parameters in
+use are read. Raise <code>sv</code> for a wide drift variability; see
+Across-trial variability for the measured table.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -184,25 +215,171 @@ go trials at all is refused: nothing in it identifies the
 non-decision time.</p>
     </div>
     <div class="section level2">
-    <h2 id="across-trial-variability-and-why-there-is-none-here">Across-trial variability, and why there is none here<a class="anchor" aria-label="anchor" href="#across-trial-variability-and-why-there-is-none-here"></a></h2>
+    <h2 id="across-trial-variability">Across-trial variability<a class="anchor" aria-label="anchor" href="#across-trial-variability"></a></h2>
 
 
-<p><code><a href="wiener.html">wiener()</a></code> offers Ratcliff's <code>sv</code>, <code>sz</code> and <code>st0</code>. This family offers
-none of the three, and the reason is the no-go branch rather than an
-oversight.</p>
-<p>The go branch would inherit all three for free, because it is
-<code><a href="wiener.html">wiener()</a></code>'s density. The no-go branch would not. The drift enters
-the DENSITY as an exponential-quadratic, which is what makes
-averaging over a normal drift exact and free; it enters the
-DISTRIBUTION FUNCTION through the eigenvalues of both series, where
-it is not, so <code>sv</code> would need a quadrature of its own rather than a
-completed square. <code>sz</code> and <code>st0</code> could be reached with the existing
-Gauss-Legendre nodes, but shipping two of three would make
-<code>variability =</code> mean something different here than it does on
-<code><a href="wiener.html">wiener()</a></code>, which is worse than not having it.</p>
-<p>EMC2's <code>DDMGNG</code> does carry all three, by calling a compiled
-distribution function that integrates them numerically. If you need
-them, that is where they are.</p>
+<p>Ratcliff's <code>sv</code>, <code>sz</code> and <code>st</code> are here, named and linked exactly as
+<code><a href="wiener.html">wiener()</a></code> names and links them, so a model moves between the two
+families by changing the family and nothing else:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">dec</span>(responded) <span class="sc">~</span> cond, <span class="at">bias =</span> <span class="fl">0.5</span>),</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>    <span class="at">family =</span> <span class="fu">wiener_gng</span>(<span class="at">deadline =</span> <span class="fl">1.5</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>                        <span class="at">variability =</span> <span class="fu">c</span>(<span class="st">"sv"</span>, <span class="st">"sz"</span>, <span class="st">"st"</span>)),</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>    <span class="at">data =</span> dat)</span></code></pre><p></p></div>
+<p>The GO branch is <code><a href="wiener.html">wiener()</a></code>'s density and inherits all three
+unchanged: it calls the same averaged density at the same nodes, so
+the two families agree to the last bit on a go trial. The NO-GO
+branch is the part that had to be written, and it is a different
+integral, because it averages the DISTRIBUTION FUNCTION rather than
+the density.</p>
+<p>Each of the three enters it its own way.</p>
+<dl><dt><code>sv</code></dt>
+<dd><p>Quadrature, and the only one of the three that costs
+more here than in <code><a href="wiener.html">wiener()</a></code>. The drift enters the density only
+as <code>exp(-v a w - v^2 t / 2)</code>, an exponential-quadratic that a
+normal average integrates in closed form. It enters the
+distribution function through the eigenvalues as well, as
+<code>1 / (v^2 a^2 + k^2 pi^2)</code> in every term of the large-time
+series and as the gambler's-ruin probability that series
+corrects, and neither is an exponential-quadratic. So the no-go
+branch integrates the drift by Gauss-Hermite, and <code>nogo_nodes</code>
+carries an <code>sv</code> entry that <code><a href="wiener.html">wiener()</a></code> has no use for.</p></dd>
+
+<dt><code>sz</code></dt>
+<dd><p>The same Gauss-Legendre nodes the density uses, over
+the same uniform start point.</p></dd>
+
+<dt><code>st</code></dt>
+<dd><p>Shifts the DEADLINE. The density's non-decision-time
+range is cut at the response time, because past that the decision
+time is negative and the density is zero; the no-go probability
+has no such cut, because a non-decision time past the deadline
+leaves the accumulator no time at all and the probability of no
+response is then exactly one. The whole range is averaged.</p></dd>
+
+
+</dl><p>The identity that ties the two branches together holds WHILE THE
+START-POINT RANGE STAYS INSIDE THE BOUNDARIES, which is where the
+model is defined: the go density integrated to the deadline plus the
+no-go probability is one, to 8.9e-16 in the plain family and to
+whatever the quadrature gives once a variability parameter is on.
+With the default <code>nogo_nodes</code> that is 3.9e-14 at <code>sv</code> = 0.6 and
+2.0e-10 at <code>st</code> = 0.20, but only 8.1e-05 at <code>sv</code> = 2.0 and 9.9e-08
+at <code>st</code> = 0.45. It is not "exactly" one, and the size of the gap is
+the <code>sv</code> row of the node table below.</p>
+<p>Outside the boundaries the two branches are no longer the same
+average of the same pair, and the mass is not conserved. Only the
+NO-GO branch clamps the start point; the go branch is left unclamped
+deliberately, because clamping it would break the bit-identity with
+<code><a href="wiener.html">wiener()</a></code>. Measured, at a deadline of 1.5:</p><table class="table table"><tr><td></td><td>go</td><td>no-go</td><td>total</td></tr><tr><td><code>sz</code> = 0.5, <code>bias</code> = 0.85</td><td>0.919017</td><td>0.051622</td><td>0.970639</td></tr><tr><td><code>sz</code> = 0.9, <code>bias</code> = 0.90</td><td>0.780184</td><td>0.063186</td><td>0.843370</td></tr></table><p>so up to 16 percent of the pair's mass is missing there. What saves
+it is that the region is strictly downhill. Profiling <code>sz</code> on 2000
+trials generated at <code>bias</code> = 0.85 and a true <code>sz</code> of 0.20, where the
+range leaves the boundary at <code>sz</code> = 0.30, the best point inside is
+1867.975 at <code>sz</code> = 0.190 and the best point outside is 1678.640 at
+<code>sz</code> = 0.305: the interior peak wins by 189 log units and the surface
+is monotone across the crossing. The clamp is a barrier an optimizer
+walks away from, not an attractor, so a fit does not end up there.
+Read a fitted <code>sz</code> whose range crosses a boundary as a fit that has
+run out of model, not as an estimate.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="how-many-nodes-and-what-they-cost">How many nodes, and what they cost<a class="anchor" aria-label="anchor" href="#how-many-nodes-and-what-they-cost"></a></h2>
+
+
+<p>Measured against a 200-bit reference, over six parameter settings
+spanning deadlines 0.8 to 2.5, drifts 0.5 to 3, boundary separations
+0.8 to 2.5 and start points 0.4 to 0.8. Worst relative error, one
+parameter live at a time:</p><table class="table table"><tr><td>nodes</td><td><code>sz</code> = 0.1</td><td><code>sz</code> = 0.3</td><td></td><td><code>st</code> = 0.05</td><td><code>st</code> = 0.3</td></tr><tr><td>3</td><td>4.5e-06</td><td>2.1e-03</td><td></td><td>3.4e-11</td><td>1.6e-06</td></tr><tr><td>5</td><td>1.8e-11</td><td>6.4e-07</td><td></td><td>8.6e-15</td><td>4.0e-10</td></tr><tr><td>7</td><td>5.1e-15</td><td>4.2e-11</td><td></td><td>6.3e-15</td><td>6.1e-14</td></tr><tr><td>9</td><td>4.0e-15</td><td>2.1e-15</td><td></td><td>4.2e-15</td><td>2.7e-15</td></tr></table><p>Both saturate by seven nodes, and <code>st</code> saturates there where the
+DENSITY's own <code>st</code> integral needs 21. That is not a discrepancy: the
+density's range is cut at the response time and its integrand turns
+on sharply at the cut, and the probability has no cut at all.</p>
+<p><code>sv</code> is the one that does not saturate:</p><table class="table table"><tr><td>nodes</td><td><code>sv</code> = 0.3</td><td><code>sv</code> = 0.8</td><td><code>sv</code> = 1.5</td></tr><tr><td>7</td><td>9.0e-07</td><td>8.9e-04</td><td>1.8e-02</td></tr><tr><td>11</td><td>9.5e-12</td><td>3.8e-06</td><td>1.0e-02</td></tr><tr><td>15</td><td>8.4e-15</td><td>1.3e-06</td><td>1.4e-03</td></tr><tr><td>21</td><td>9.5e-15</td><td>3.3e-09</td><td>3.5e-05</td></tr><tr><td>31</td><td>1.2e-14</td><td>1.2e-12</td><td>6.6e-07</td></tr><tr><td>41</td><td>1.4e-14</td><td>2.8e-14</td><td>9.1e-08</td></tr></table><p>The node count a given accuracy needs rises with the product of the
+boundary separation and <code>sv</code>, because that product sets how sharp the
+transition in the drift is. The default of 15 holds 1e-14 at a narrow
+drift variability and 1e-6 at a moderate one; <strong>raise
+<code>nogo_nodes = c(sv = 31)</code> or higher for a wide one</strong>, and read the
+table rather than assuming the default is enough.</p>
+<p>The three do not compound. Measured jointly, the error of the full
+three-dimensional rule tracks the <code>sv</code> error alone to within a factor
+of three at every setting, so <code>sz</code> and <code>st</code> at seven nodes are there
+to not be the binding term, and <code>sv</code> is the only knob worth turning.</p>
+<p>The cost is a product, and it is the reason <code>nogo_nodes</code> exists as an
+argument separate from <code>nodes</code>. On 500 rows with all three live:</p><table class="table table"><tr><td><code>nogo_nodes</code></td><td>grid</td><td>wall</td></tr><tr><td>7, 5, 5</td><td>175</td><td>124 s</td></tr><tr><td>11, 5, 5</td><td>275</td><td>185 s</td></tr><tr><td>11, 7, 7</td><td>539</td><td>610 s</td></tr></table><p>A model with one variability parameter pays one dimension of that and
+is cheap; the three-at-once model is the expensive one, and it is
+expensive because a distribution function with no closed form in any
+of the three has to be evaluated on a product grid.</p>
+<p>EMC2's <code>DDMGNG</code> carries the same three parameters, by calling a
+compiled distribution function that integrates them numerically. The
+two agree: over 108 grid points the no-go probability matches
+<code>1 - EMC2:::pDDM()</code> to 9.4e-14 with no variability, 2.4e-13 under
+<code>sv</code> and 3.9e-13 under <code>sz</code>, and the go density matches
+<code>EMC2:::dDDM()</code> to 1.2e-15.</p>
+<p><code>st</code> needs a shift before the two are comparable, and the difference
+is a CONVENTION rather than a defect on either side. EMC2 takes
+<code>st0</code> as a uniform on <code>[t0, t0 + st0]</code>; this family takes <code>st</code>
+centred on <code>ndt</code>, following brms. Compare EMC2 at <code>t0</code> with this
+family at <code>ndt = t0 + st0 / 2</code> and the agreement is 1.5e-13 for the
+probability and 1.6e-15 for the density. Compare them without the
+shift and they differ by 14 to 45 percent, in the density as much as
+in the probability.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-a-go-no-go-design-can-and-cannot-identify">What a go/no-go design can and cannot identify<a class="anchor" aria-label="anchor" href="#what-a-go-no-go-design-can-and-cannot-identify"></a></h2>
+
+
+<p><code>sv</code> is weakly identified here, and it is the design rather than the
+likelihood. With only one boundary observed, drift variability trades
+against the drift and the boundary separation along a ridge.</p>
+<p>Measured on 3000 simulated trials with a true <code>sv</code> of 0.6, this
+family returns 0.001 while <code><a href="wiener.html">wiener()</a></code> on the same generative
+parameters, seeing BOTH boundaries, returns 0.612. Profiled at the
+true values of everything else the likelihood does peak at the truth,
+but the fit reaches a HIGHER log likelihood at <code>sv</code> near zero by
+moving the drift from 1.20 to 1.09 and the separation from 1.40 to
+1.33. Nothing is wrong with the surface; the sample simply prefers
+that corner of the ridge.</p>
+<p>How much of that is the ONE observable boundary is less settled than
+the contrast suggests, and the honest statement is narrower. A grid
+search on two-boundary data from the same generative parameters, with
+<code>ndt</code> and <code>bias</code> held at the truth, finds the same corner there too:
+<code>sv</code> near zero beats the truth by 2.4 log units, against 1.8 on the
+go/no-go data. So the ridge is a property of the drift-diffusion
+likelihood and not only of this design; what the go/no-go design does
+is remove the boundary-proportion information that would otherwise
+help pin <code>sv</code>, and the evidence for that is the pair of fits above
+rather than a study. Either way the practical advice is the same.</p>
+<p>So read a small fitted <code>sv</code> here as "the data did not pin it" rather
+than as "there is no drift variability", and prefer to fix it, or to
+estimate it from a two-choice condition of the same experiment, over
+reading it off a go/no-go block. <code>sz</code> and <code>st</code> are better behaved,
+because both change the SHAPE of the go response time distribution
+rather than trading against its location.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="censoring">Censoring<a class="anchor" aria-label="anchor" href="#censoring"></a></h2>
+
+
+<p>A trial whose clock was stopped before it responded is a
+RIGHT-CENSORED observation, and the probability of it is the no-go
+probability at the time the clock stopped. This family declares that
+as its log survivor function, so <code>cens()</code> works:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">dec</span>(responded) <span class="sc">+</span> <span class="fu">cens</span>(stopped) <span class="sc">~</span> cond),</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>    <span class="at">family =</span> <span class="fu">wiener_gng</span>(<span class="at">deadline =</span> <span class="fl">1.5</span>), <span class="at">data =</span> dat)</span></code></pre><p></p></div>
+<p>Left censoring, interval censoring and <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> are refused, and not
+for want of an integral. The likelihood here is a defective density
+plus a point mass at "no response", and a truncation window on the
+response scale renormalizes the density while saying nothing about
+the mass, so the two halves of every row would be divided by
+different things. Right censoring has no such problem, because it
+replaces a whole row rather than reweighting it. So this family
+declares an <code>lccdf</code> and, deliberately, no <code>lcdf</code>.</p>
+<p>The refusal you will see is frmtmb's own and does not name this
+family:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">cens</span>()<span class="sc">/</span><span class="fu">trunc</span>() need a family with a <span class="fu">CDF</span> (currently<span class="sc">:</span> gaussian,</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>lognormal, poisson, exponential, weibull, inverse.gaussian, cox) ...</span></code></pre><p></p></div>
+<p>Read it as a decision rather than as an omission. It arrives from
+frame assembly, which runs before any family-supplied check, so this
+family has no seam that does not require claiming a CDF it does not
+have.</p>
     </div>
     <div class="section level2">
     <h2 id="accuracy">Accuracy<a class="anchor" aria-label="anchor" href="#accuracy"></a></h2>
@@ -283,7 +460,7 @@ version of.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $ndt</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     1.70614 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    1.706139 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $bias</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>

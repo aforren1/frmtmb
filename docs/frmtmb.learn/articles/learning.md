@@ -56,10 +56,11 @@ mean(d$choice == 1)
 
 ## The fit
 
-This is an ordinary `frm()` call. The main right-hand side is the
-LEARNING RATE’s predictor, because the family declares `alpha` as its
-primary distributional parameter; `tau`, the softmax sensitivity, gets
-its own.
+This is an ordinary
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) call.
+The main right-hand side is the LEARNING RATE’s predictor, because the
+family declares `alpha` as its primary distributional parameter; `tau`,
+the softmax sensitivity, gets its own.
 
 ``` r
 
@@ -194,11 +195,13 @@ frm(bf(choice | reward(pay1, pay2) ~ after_reversal + (1 | id), tau ~ 1),
     family = bandit2arm_delta(subject = id, trial = trial), data = d,
     importance = 200)
 #> Error:
-#> ! `importance` cannot correct the 'bandit2arm_delta' family: it supplies its own log-likelihood, which does not factorize over rows, so a group's rows have no separable integrand to resample. This is the same restriction quadrature has. Use importance = 0
+#> ! `importance` cannot correct the 'bandit2arm_delta' family: it supplies its own log-likelihood, which returns one number for the whole response, so a group's rows have no separable integrand to resample. A family whose likelihood does factorize over its groups says so with frmtmb_structure(loglik_group = ) or (loglik_row = ), and this one declares neither. Use importance = 0
 ```
 
 That refusal is honest but wider than the mathematics, and it names the
-seam that would close it. `frm_compat()` is the place to ask:
+seam that would close it.
+[`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.html)
+is the place to ask:
 
 ``` r
 

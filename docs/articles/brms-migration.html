@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
+    <li><a class="dropdown-item" href="../articles/bayesian-cognitive-modeling.html">Bayesian Cognitive Modeling: the model list</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
@@ -48,6 +49,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
 <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.spline/">frmtmb.spline (curve inference and spline survival)</a></li>
@@ -213,8 +215,51 @@ included (below)</td>
 <td>same</td>
 <td>also resolves compound expressions (below)</td>
 </tr>
+<tr class="even">
+<td>
+<code>bernoulli(link = "probit")</code>, and every other brms link
+name</td>
+<td>same</td>
+<td>the whole brms 2.23.0 roster (below)</td>
+</tr>
 </tbody>
 </table>
+<div class="section level3">
+<h3 id="links">Links<a class="anchor" aria-label="anchor" href="#links"></a>
+</h3>
+<p>Every link name brms 2.23.0 accepts is accepted here under the same
+spelling, and computes the same function: <code>logit</code>,
+<code>probit</code>, <code>probit_approx</code>, <code>cauchit</code>,
+<code>cloglog</code>, <code>softit</code>, <code>identity</code>,
+<code>log</code>, <code>log1p</code>, <code>logm1</code>,
+<code>inverse</code>, <code>1/mu^2</code>, <code>sqrt</code>,
+<code>softplus</code>, <code>squareplus</code> and
+<code>tan_half</code>. <code>power12</code> is frmtmb’s own, for the
+tweedie power parameter.</p>
+<p>Two cautions when porting a link:</p>
+<ul>
+<li>
+<code><a href="https://rdrr.io/r/stats/family.html" class="external-link">stats::binomial()</a></code>, <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">stats::poisson()</a></code> and
+<code><a href="https://rdrr.io/r/stats/family.html" class="external-link">stats::Gamma()</a></code> validate their link string through
+<code><a href="https://rdrr.io/r/stats/make.link.html" class="external-link">stats::make.link()</a></code> before <code><a href="../reference/frm.html">frm()</a></code> sees it, so a
+name <code>stats</code> has never heard of (<code>probit_approx</code>,
+<code>softit</code>, <code>softplus</code>, <code>squareplus</code>) is
+refused by the constructor rather than by frmtmb. Use frmtmb’s own
+family constructor instead: <code>bernoulli(link = "softit")</code>,
+<code>Beta(link = "probit")</code>,
+<code>negbinomial(link = "softplus")</code>.</li>
+<li>brms’s <code>probit_approx</code> is two different functions inside
+brms itself. Its Stan program uses <code>Phi_approx()</code>, the
+logistic of <code>0.07056 x^3 + 1.5976 x</code>, while its R-side
+<code>inv_link()</code> answers <code><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">pnorm()</a></code>. frmtmb reproduces
+the Stan form, because that is the likelihood a brms fit was actually
+computed with.</li>
+</ul>
+<p>The ordinal families are the one place the roster is narrower:
+<code><a href="../reference/frmtmb-families.html">cumulative()</a></code>, <code><a href="../reference/frmtmb-families.html">sratio()</a></code> and
+<code><a href="../reference/frmtmb-families.html">cratio()</a></code> take <code>logit</code> and <code>probit</code>
+only, and <code><a href="../reference/frmtmb-families.html">acat()</a></code> takes <code>logit</code> only.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="what-changes">What changes<a class="anchor" aria-label="anchor" href="#what-changes"></a>
@@ -258,16 +303,77 @@ thresholds. On four of the shapes measured against Stan, frmtmb’s
 penalized objective is now brms’s posterior density up to one
 <code>log(2)</code> per lower-bounded parameter, a constant that moves
 no mode.</p>
-<p><strong>One divergence remains, and it is in frmtmb’s own spelling
-rather than in the translation.</strong>
+<p><strong>Which mode.</strong> The optimum is the mode in the INTERNAL
+coordinates, which is Stan’s target in unconstrained space, and not the
+mode of the parameter’s own density. A density on <code>sigma</code>
+enters the objective as <code>log p(sigma) + log|dsigma/deta|</code>,
+and what is maximized over <code>eta = log sigma</code> is that whole
+sum, log-Jacobian included.</p>
+<p>Measured on a gaussian <code>y ~ x</code> fit with
+<code>normal(2.5, 0.4)</code> on <code>sigma</code>, over 150 rows drawn
+as <code>set.seed(150)</code>, <code>x &lt;- rnorm(150)</code>,
+<code>y &lt;- rnorm(150, 1 + 0.5 * x, 2.2)</code>: frmtmb reports
+<code>sigma</code> 2.133344, the mode of <code>L * p</code> in the
+LOG-SIGMA coordinate is 2.133358, and the mode of <code>L * p</code> in
+the SIGMA coordinate is 2.126533. frmtmb matches the log-sigma mode, and
+it does so deliberately: that coordinate is Stan’s unconstrained target,
+and matching it is what keeps the two packages’ objectives one function,
+which is what everything above rests on. The gap to the sigma-coordinate
+mode is the same kind of remark as the <code>log(2)</code>, and about
+the same size.</p>
+<p><strong>Two rows frmtmb accepts and brms refuses.</strong> A
+distributional class written without <code>resp</code> on a MULTIVARIATE
+model applies to EVERY response, following frmtmb’s own convention that
+a class-wide prior is class-wide; brms refuses such a row and asks for
+<code>resp</code>. Write <code>resp</code> to address one response.
+Separately, <code><a href="../reference/frmtmb-families.html">cumulative()</a></code> has no <code>disc</code>
+distributional parameter here at all, so a <code>disc</code> formula is
+refused when the model is parsed and the acceptance rule above is never
+reached for it.</p>
+<p><strong>frmtmb’s own <code><a href="../reference/set_prior.html">set_prior()</a></code> takes brms’s words with
+brms’s meaning, and that is a BEHAVIOR CHANGE for a script written
+before 0.53.0.</strong> A distributional parameter has two spellings,
+and brms accepts each only on the model the other does not:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>the model</th>
+<th>the spelling</th>
+<th>the density is on</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>bf(y ~ x)</code></td>
+<td><code>set_prior(..., class = "sigma")</code></td>
+<td>sigma itself</td>
+</tr>
+<tr class="even">
+<td>
+<code>bf(y ~ x, sigma ~ 1)</code>, <code>sigma ~ x</code>
+</td>
+<td><code>set_prior(..., class = "Intercept", dpar = "sigma")</code></td>
+<td>the log-scale intercept of sigma’s predictor</td>
+</tr>
+</tbody>
+</table>
+<p>frmtmb says the same and refuses each spelling by name on the other’s
+model, naming the one that applies. Before 0.53.0,
 <code>set_prior("student_t(3, 0, 2.5)", class = "Intercept", dpar = "sigma")</code>
-means a density on LOG sigma here, and keeps that meaning; the same row
-written brms’s way,
-<code>prior(student_t(3, 0, 2.5), class = "sigma")</code>, means a
-density on sigma. Port the brms spelling rather than rewriting it by
-hand: the link spelling captures about 35 percent of the intended shift
-on a fit with sigma near 0.135, and effectively none of it where brms’s
-data-derived scale is large.</p>
+was accepted on a model with no <code>sigma</code> formula, where it
+meant a density on LOG sigma. To reproduce that placement, write
+<code>sigma ~ 1</code> in <code><a href="../reference/bf.html">bf()</a></code>, which is the model that HAS
+a log-scale intercept; to get brms’s placement, drop the
+<code>dpar =</code> and write the class. The numbers move with the
+meaning: on a gaussian <code>y ~ x</code> with 200 rows and a
+maximum-likelihood sigma of 2.0103, <code>normal(0, 0.5)</code> gave
+1.9965 under the old link spelling and gives 1.9429 under the class
+spelling, which is what
+<code>brms::prior(normal(0, 0.5), class = "sigma")</code> gave all
+along.</p>
 <p>A prior class frmtmb keeps somewhere else (brms’s mixture
 <code>theta</code>, <code>simo</code>, <code>sds</code>,
 <code>sdgp</code>, <code>lscale</code>, <code>sdcar</code>,
@@ -735,7 +841,16 @@ here, and <strong>frmtmb.latent</strong> adds hidden Markov and latent
 class families, so the reasons to reach for brms itself are narrower
 than they look:</p>
 <ul>
-<li>a marginal likelihood, and so a Bayes factor;</li>
+<li>a marginal likelihood, and so a Bayes factor between models that are
+not nested. A point null INSIDE one model is now answered here:
+<code><a href="../reference/hypothesis.html">hypothesis()</a></code> on a draws object reports the Savage-Dickey
+evidence ratio and posterior probability that brms reports, for a
+population-level coefficient whose prior is written about the
+coefficient itself (in practice a <code>class = "b"</code> prior you
+wrote). It refuses, by name, on a variance component, a correlation, a
+dispersion and the intercept, because each of those is reported on a
+scale its prior is not written on. What still needs brms is bridge
+sampling, which estimates the marginal likelihood itself;</li>
 <li>
 <code>reloo()</code> or <code>kfold()</code> on a model whose LOO
 approximation fails, since both need refits that this package does not

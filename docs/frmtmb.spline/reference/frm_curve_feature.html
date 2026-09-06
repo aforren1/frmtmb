@@ -11,7 +11,7 @@ method."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -155,6 +155,23 @@ to the coefficients is <code>df/dc + f'(t*) dt*/dc</code>, and <code>f'(t*)</cod
 there, so the standard error of the PEAK HEIGHT is just the pointwise
 standard error of the curve at <code>t*</code>. It is reported as <code>.value_se</code>,
 and it is not inflated by the uncertainty in the peak's location.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="past-a-ps-knot-span">Past a <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">ps()</a></code> knot span<a class="anchor" aria-label="anchor" href="#past-a-ps-knot-span"></a></h2>
+
+
+<p>This function REFUSES rather than warns. A <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">frmtmb::ps()</a></code> basis
+decays to zero past its frozen knot span, so a curve drawn there
+still has peaks and still crosses levels, and a root found among
+them is a root of the decaying partial sum. Unlike a band, which
+shows the reader what it is doing, that root leaves the function as
+a number with a standard error beside it and nothing to say which
+curve it came off. The bracket is checked at the grid scan, before
+any root is refined, and again at the located roots.</p>
+<p>What is checked is the grid you passed, not the difference stencil
+the scan widens it into: a grid whose endpoint sits exactly on a knot
+is inside the span, and was refused for being a millionth of its
+range outside the stencil's.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

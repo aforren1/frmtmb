@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
+    <li><a class="dropdown-item" href="../articles/bayesian-cognitive-modeling.html">Bayesian Cognitive Modeling: the model list</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
@@ -48,6 +49,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
 <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.spline/">frmtmb.spline (curve inference and spline survival)</a></li>
@@ -216,8 +218,13 @@ the fit.</p>
 <span>                         <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="va">nt</span><span class="op">)</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="va">nt</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">mask</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">len</span>, <span class="kw">function</span><span class="op">(</span><span class="va">l</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">nt</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="va">l</span><span class="op">)</span>,</span>
 <span>                          <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="va">nt</span><span class="op">)</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="va">nt</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="co"># `group` is a reserved name: it is what the per-subject</span></span>
+<span>  <span class="co"># log-likelihood returns one value per, in level order, and what the</span></span>
+<span>  <span class="co"># core checks a model's own grouping factor against before it lets</span></span>
+<span>  <span class="co"># frm(importance =) sum this family's pieces into its groups.</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>idx <span class="op">=</span> <span class="va">idx</span>, mask <span class="op">=</span> <span class="va">mask</span>, len <span class="op">=</span> <span class="va">len</span>, n_subj <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">rows</span><span class="op">)</span>,</span>
-<span>       n_trial <span class="op">=</span> <span class="va">nt</span>, subject <span class="op">=</span> <span class="va">gv</span>, trial <span class="op">=</span> <span class="va">tv</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">gv</span><span class="op">)</span>, n <span class="op">=</span> <span class="va">n</span><span class="op">)</span></span>
+<span>       n_trial <span class="op">=</span> <span class="va">nt</span>, group <span class="op">=</span> <span class="va">gv</span>, subject <span class="op">=</span> <span class="va">gv</span>, trial <span class="op">=</span> <span class="va">tv</span>,</span>
+<span>       levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">gv</span><span class="op">)</span>, n <span class="op">=</span> <span class="va">n</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>Two things to notice. <code>idx</code> holds row NUMBERS, not values,
 so the recursion can index any per-row quantity with it: the response,
@@ -244,27 +251,47 @@ against the balanced design’s 0.08, so for a tutorial the mask wins.</p>
 <span><span class="co"># a vector of ones does not.</span></span>
 <span><span class="va">rw_bcast</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">v</span>, <span class="va">n</span><span class="op">)</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1L</span><span class="op">)</span> <span class="va">v</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">n</span><span class="op">)</span> <span class="kw">else</span> <span class="va">v</span></span>
 <span></span>
-<span><span class="co"># The taped log-likelihood of the whole response, as one AD scalar.</span></span>
+<span><span class="co"># The subject-by-trial layout, repeated once per replicate of the</span></span>
+<span><span class="co"># design. The importance correction evaluates the whole design once per</span></span>
+<span><span class="co"># draw, stacked, so the recursion has to run over subject-crossed-with-</span></span>
+<span><span class="co"># draw rather than over subject. Because the loop below is already</span></span>
+<span><span class="co"># vectorized across subjects, that is the same loop over a longer</span></span>
+<span><span class="co"># vector: `nrep` blocks of subjects, each block's row numbers shifted by</span></span>
+<span><span class="co"># a whole design.</span></span>
+<span><span class="va">rw_stack</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">block</span>, <span class="va">nrep</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">idx</span> <span class="op">&lt;-</span> <span class="va">block</span><span class="op">[[</span><span class="st">"idx"</span><span class="op">]</span><span class="op">]</span></span>
+<span>  <span class="va">msk</span> <span class="op">&lt;-</span> <span class="va">block</span><span class="op">[[</span><span class="st">"mask"</span><span class="op">]</span><span class="op">]</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="va">nrep</span> <span class="op">==</span> <span class="fl">1L</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>idx <span class="op">=</span> <span class="va">idx</span>, mask <span class="op">=</span> <span class="va">msk</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">take</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span><span class="op">)</span>, <span class="va">nrep</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>idx <span class="op">=</span> <span class="va">idx</span><span class="op">[</span><span class="va">take</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span> <span class="op">+</span></span>
+<span>         <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">nrep</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span> <span class="op">*</span> <span class="va">block</span><span class="op">[[</span><span class="st">"n"</span><span class="op">]</span><span class="op">]</span>, each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>       mask <span class="op">=</span> <span class="va">msk</span><span class="op">[</span><span class="va">take</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># The trial-by-trial factors of the likelihood, as one vector per trial</span></span>
+<span><span class="co"># over all (subject, replicate) pairs. Every quantity the family reports</span></span>
+<span><span class="co"># is built from these, so there is one recursion and no second</span></span>
+<span><span class="co"># definition of the same arithmetic to drift from it.</span></span>
 <span><span class="co">#</span></span>
 <span><span class="co"># One iteration per TRIAL, each one a handful of vector operations over</span></span>
 <span><span class="co"># all subjects at once. Writing it the other way round, one iteration</span></span>
 <span><span class="co"># per row with Q[s] &lt;- ... inside, is the shape RTMB punishes: an</span></span>
 <span><span class="co"># element-wise assignment into a taped vector costs about three orders</span></span>
 <span><span class="co"># of magnitude more than the vector operation it replaces.</span></span>
-<span><span class="va">rw_loglik</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span>, <span class="va">weights</span>, <span class="va">block</span>, <span class="va">extra</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># weights() is refused in check_spec, so `weights` is 1 here. A trial's</span></span>
-<span>  <span class="co"># factor cannot be reweighted on its own: its value depends on every</span></span>
-<span>  <span class="co"># earlier trial of the same subject.</span></span>
-<span>  <span class="va">idx</span> <span class="op">&lt;-</span> <span class="va">block</span><span class="op">[[</span><span class="st">"idx"</span><span class="op">]</span><span class="op">]</span></span>
-<span>  <span class="va">msk</span> <span class="op">&lt;-</span> <span class="va">block</span><span class="op">[[</span><span class="st">"mask"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">rw_terms</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span>, <span class="va">block</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">n</span> <span class="op">&lt;-</span> <span class="va">block</span><span class="op">[[</span><span class="st">"n"</span><span class="op">]</span><span class="op">]</span></span>
-<span>  <span class="va">alpha</span> <span class="op">&lt;-</span> <span class="fu">rw_bcast</span><span class="op">(</span><span class="va">dpars</span><span class="op">[[</span><span class="st">"alpha"</span><span class="op">]</span><span class="op">]</span>, <span class="va">n</span><span class="op">)</span></span>
-<span>  <span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu">rw_bcast</span><span class="op">(</span><span class="va">dpars</span><span class="op">[[</span><span class="st">"beta"</span><span class="op">]</span><span class="op">]</span>, <span class="va">n</span><span class="op">)</span></span>
+<span>  <span class="va">nrep</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">NROW</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/Arithmetic.html" class="external-link">%/%</a></span> <span class="va">n</span></span>
+<span>  <span class="va">sk</span> <span class="op">&lt;-</span> <span class="fu">rw_stack</span><span class="op">(</span><span class="va">block</span>, <span class="va">nrep</span><span class="op">)</span></span>
+<span>  <span class="va">idx</span> <span class="op">&lt;-</span> <span class="va">sk</span><span class="op">[[</span><span class="st">"idx"</span><span class="op">]</span><span class="op">]</span></span>
+<span>  <span class="va">msk</span> <span class="op">&lt;-</span> <span class="va">sk</span><span class="op">[[</span><span class="st">"mask"</span><span class="op">]</span><span class="op">]</span></span>
+<span>  <span class="va">nn</span> <span class="op">&lt;-</span> <span class="va">n</span> <span class="op">*</span> <span class="va">nrep</span></span>
+<span>  <span class="va">alpha</span> <span class="op">&lt;-</span> <span class="fu">rw_bcast</span><span class="op">(</span><span class="va">dpars</span><span class="op">[[</span><span class="st">"alpha"</span><span class="op">]</span><span class="op">]</span>, <span class="va">nn</span><span class="op">)</span></span>
+<span>  <span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu">rw_bcast</span><span class="op">(</span><span class="va">dpars</span><span class="op">[[</span><span class="st">"beta"</span><span class="op">]</span><span class="op">]</span>, <span class="va">nn</span><span class="op">)</span></span>
 <span>  <span class="va">pay1</span> <span class="op">&lt;-</span> <span class="va">aterms</span><span class="op">[[</span><span class="st">"reward1"</span><span class="op">]</span><span class="op">]</span></span>
 <span>  <span class="va">pay2</span> <span class="op">&lt;-</span> <span class="va">aterms</span><span class="op">[[</span><span class="st">"reward2"</span><span class="op">]</span><span class="op">]</span></span>
 <span>  <span class="va">q1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">q2</span> <span class="op">&lt;-</span> <span class="va">q1</span></span>
-<span>  <span class="va">ll</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
+<span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">vector</a></span><span class="op">(</span><span class="st">"list"</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="kw">for</span> <span class="op">(</span><span class="va">t</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">i</span> <span class="op">&lt;-</span> <span class="va">idx</span><span class="op">[</span>, <span class="va">t</span><span class="op">]</span></span>
 <span>    <span class="va">m</span> <span class="op">&lt;-</span> <span class="va">msk</span><span class="op">[</span>, <span class="va">t</span><span class="op">]</span></span>
@@ -272,14 +299,57 @@ against the balanced design’s 0.08, so for a tutorial the mask wins.</p>
 <span>    <span class="va">eta</span> <span class="op">&lt;-</span> <span class="va">beta</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="va">q1</span> <span class="op">-</span> <span class="va">q2</span><span class="op">)</span></span>
 <span>    <span class="co"># log P(choice) = c1 * eta - log(1 + exp(eta)), folded with</span></span>
 <span>    <span class="co"># logspace_add so a decisive subject does not overflow</span></span>
-<span>    <span class="va">ll</span> <span class="op">&lt;-</span> <span class="va">ll</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">m</span> <span class="op">*</span> <span class="op">(</span><span class="va">c1</span> <span class="op">*</span> <span class="va">eta</span> <span class="op">-</span> <span class="fu">RTMB</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/RTMB/man/Distributions.html" class="external-link">logspace_add</a></span><span class="op">(</span><span class="fl">0</span> <span class="op">*</span> <span class="va">eta</span>, <span class="va">eta</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">out</span><span class="op">[[</span><span class="va">t</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">m</span> <span class="op">*</span> <span class="op">(</span><span class="va">c1</span> <span class="op">*</span> <span class="va">eta</span> <span class="op">-</span> <span class="fu">RTMB</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/RTMB/man/Distributions.html" class="external-link">logspace_add</a></span><span class="op">(</span><span class="fl">0</span> <span class="op">*</span> <span class="va">eta</span>, <span class="va">eta</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="co"># the mask enters through the learning rate, so a padded cell learns</span></span>
 <span>    <span class="co"># nothing and no branch reaches the tape</span></span>
 <span>    <span class="va">a</span> <span class="op">&lt;-</span> <span class="va">alpha</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="va">m</span></span>
 <span>    <span class="va">q1</span> <span class="op">&lt;-</span> <span class="va">q1</span> <span class="op">+</span> <span class="op">(</span><span class="va">a</span> <span class="op">*</span> <span class="va">c1</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">pay1</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">-</span> <span class="va">q1</span><span class="op">)</span></span>
 <span>    <span class="va">q2</span> <span class="op">&lt;-</span> <span class="va">q2</span> <span class="op">+</span> <span class="op">(</span><span class="va">a</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">c1</span><span class="op">)</span><span class="op">)</span> <span class="op">*</span> <span class="op">(</span><span class="va">pay2</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">-</span> <span class="va">q2</span><span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
-<span>  <span class="va">ll</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>terms <span class="op">=</span> <span class="va">out</span>, idx <span class="op">=</span> <span class="va">idx</span>, mask <span class="op">=</span> <span class="va">msk</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># One value per subject, which is this family's coarsest honest piece</span></span>
+<span><span class="co"># and the one frm(importance =) resamples. A subject's trials are a</span></span>
+<span><span class="co"># product, so its log-likelihood is the elementwise sum of the per-trial</span></span>
+<span><span class="co"># vectors: the piece is free, given the recursion.</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co"># weights() is refused in check_spec, so `weights` is 1 in all three</span></span>
+<span><span class="co"># slots. A trial's factor cannot be reweighted on its own: its value</span></span>
+<span><span class="co"># depends on every earlier trial of the same subject.</span></span>
+<span><span class="va">rw_loglik_group</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span>, <span class="va">weights</span>, <span class="va">block</span>, <span class="va">extra</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu">rw_terms</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span>, <span class="va">block</span><span class="op">)</span><span class="op">[[</span><span class="st">"terms"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># One value per trial: the choice probability CONDITIONAL on everything</span></span>
+<span><span class="co"># the subject saw before it. These are the factors themselves, scattered</span></span>
+<span><span class="co"># back to the rows they came from, and a Bernoulli factor's saturated</span></span>
+<span><span class="co"># value is zero, which is what makes a deviance residual definable here.</span></span>
+<span><span class="va">rw_loglik_row</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span>, <span class="va">weights</span>, <span class="va">block</span>, <span class="va">extra</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="st">"c"</span> <span class="op">&lt;-</span> <span class="fu">RTMB</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/RTMB/man/ADoverload.html" class="external-link">ADoverload</a></span><span class="op">(</span><span class="st">"c"</span><span class="op">)</span></span>
+<span>  <span class="st">"[&lt;-"</span> <span class="op">&lt;-</span> <span class="fu">RTMB</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/RTMB/man/ADoverload.html" class="external-link">ADoverload</a></span><span class="op">(</span><span class="st">"[&lt;-"</span><span class="op">)</span></span>
+<span>  <span class="va">tm</span> <span class="op">&lt;-</span> <span class="fu">rw_terms</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span>, <span class="va">block</span><span class="op">)</span></span>
+<span>  <span class="co"># ONE sub-assignment, not one per trial: `[&lt;-` copies the whole vector</span></span>
+<span>  <span class="co"># each time it is called on a taped one. The padded cells are dropped</span></span>
+<span>  <span class="co"># rather than written, because a pad repeats its subject's FIRST row</span></span>
+<span>  <span class="co"># number and would otherwise overwrite that trial's own factor with a</span></span>
+<span>  <span class="co"># masked zero.</span></span>
+<span>  <span class="va">keep</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">tm</span><span class="op">[[</span><span class="st">"mask"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">==</span> <span class="fl">1</span></span>
+<span>  <span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">out</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">tm</span><span class="op">[[</span><span class="st">"idx"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="va">keep</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">c</span>, <span class="va">tm</span><span class="op">[[</span><span class="st">"terms"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="va">keep</span><span class="op">]</span></span>
+<span>  <span class="co"># off the tape only: the numeric path is the one residuals() reads,</span></span>
+<span>  <span class="co"># and an advector carries no attributes</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">out</span>, <span class="st">"advector"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">out</span>, <span class="st">"saturated"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">out</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="va">out</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># The whole response's log-likelihood, defined as the sum of the pieces</span></span>
+<span><span class="co"># rather than accumulated separately, so the three slots cannot disagree.</span></span>
+<span><span class="va">rw_loglik</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span>, <span class="va">weights</span>, <span class="va">block</span>, <span class="va">extra</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu">rw_loglik_group</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span>, <span class="va">weights</span>, <span class="va">block</span>, <span class="va">extra</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>The loop body is the delta rule, written for every subject at once.
 <code>q1</code> and <code>q2</code> are vectors with one entry per
@@ -287,6 +357,24 @@ subject, and one iteration of the loop advances all of them. There is no
 conditional anywhere: the chosen arm is selected by multiplying by the
 response, which is data, and the padding is selected by multiplying by
 the mask, which is also data.</p>
+<p><code>rw_terms()</code> stops one step short of a log-likelihood: it
+returns the per-trial factors themselves, and the three slots below are
+three ways of adding them up. A subject’s log-likelihood is the
+elementwise sum across trials, a trial’s is the factor scattered back to
+its own row, and the total is the sum of either. Writing them as one
+recursion with three tails is not tidiness, it is the only way to be
+sure the three numbers agree; the suite asserts that they do.</p>
+<p>Why three at all. <code>loglik</code> is what the objective needs.
+<code>loglik_group</code> is what <code>frm(importance = )</code>
+resamples, one value per subject. <code>loglik_row</code> is what a
+deviance residual compares against its saturated fit, which for a
+Bernoulli factor is zero, and that zero is attached to the row values so
+the core does not have to guess it.</p>
+<p>The <code>nrep</code> line is the stacking contract. The importance
+correction evaluates the whole design once per draw, stacked end to end,
+so the recursion has to run over subject-crossed-with-draw. Because the
+loop is already vectorized across subjects, that is the same loop over a
+longer vector rather than a new algorithm.</p>
 <p><code>weights</code> arrives and is ignored, which the family is
 allowed to do only because it refuses <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code> outright
 further down. A row weight has no meaning here. A trial’s factor depends
@@ -435,6 +523,12 @@ observed choice, which is why one function serves both.</p>
 <span>    <span class="op">}</span>,</span>
 <span>    frame_block <span class="op">=</span> <span class="va">rw_block</span>,</span>
 <span>    loglik <span class="op">=</span> <span class="va">rw_loglik</span>,</span>
+<span>    <span class="co"># The two factorizations. `unit` is a different question and keeps</span></span>
+<span>    <span class="co"># its own answer: the finest factorization here is the TRIAL, while</span></span>
+<span>    <span class="co"># the smallest thing that can honestly be left out is a whole</span></span>
+<span>    <span class="co"># subject, because dropping one trial changes every later trial's Q.</span></span>
+<span>    loglik_row <span class="op">=</span> <span class="va">rw_loglik_row</span>,</span>
+<span>    loglik_group <span class="op">=</span> <span class="va">rw_loglik_group</span>,</span>
 <span>    unit <span class="op">=</span> <span class="st">"one subject's trial sequence"</span>,</span>
 <span>    fitted_mean <span class="op">=</span> <span class="va">rw_fitted</span>,</span>
 <span>    fitted_var <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">fit</span>, <span class="va">block</span><span class="op">)</span> <span class="op">{</span></span>
@@ -442,6 +536,12 @@ observed choice, which is why one function serves both.</p>
 <span>      <span class="va">p</span> <span class="op">*</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">p</span><span class="op">)</span></span>
 <span>    <span class="op">}</span>,</span>
 <span>    sim_ctx <span class="op">=</span> <span class="va">rw_sim</span>,</span>
+<span>    <span class="co"># The one capability a factorized likelihood buys back here. Every</span></span>
+<span>    <span class="co"># other flag stays FALSE: a per-trial factor is not a per-trial</span></span>
+<span>    <span class="co"># MODEL, so newdata, conditional effects and one-step-ahead</span></span>
+<span>    <span class="co"># residuals are refused for the reasons below and not for want of</span></span>
+<span>    <span class="co"># the factors.</span></span>
+<span>    supports <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>deviance <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>    refusals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>      newdata_response <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
 <span>        <span class="st">"predict(type = 'response') on a rw_delta() fit is not "</span>,</span>
@@ -460,12 +560,7 @@ observed choice, which is why one function serves both.</p>
 <span>        <span class="st">"residuals(type = 'osa') is not available for a rw_delta() fit: "</span>,</span>
 <span>        <span class="st">"the tape holds the recursion over each whole sequence with no "</span>,</span>
 <span>        <span class="st">"registered observation vector. Use type = 'pearson', which "</span>,</span>
-<span>        <span class="st">"divides by the binomial variance of the choice probability"</span><span class="op">)</span>,</span>
-<span>      deviance <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
-<span>        <span class="st">"residuals(type = 'deviance') is not available for a rw_delta() "</span>,</span>
-<span>        <span class="st">"fit: the per-trial factors exist, but the structured "</span>,</span>
-<span>        <span class="st">"protocol's loglik slot returns one total, so the core never "</span>,</span>
-<span>        <span class="st">"sees them. Use type = 'pearson'"</span><span class="op">)</span></span>
+<span>        <span class="st">"divides by the binomial variance of the choice probability"</span><span class="op">)</span></span>
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
@@ -475,6 +570,14 @@ why in its own words. <code><a href="../reference/conditional_effects.html">cond
 because it is hard but because it is undefined: the expected response
 here is a choice probability that depends on a whole trial history, and
 the synthetic grid that function builds has no history.</p>
+<p><code>deviance</code> is the one flag turned back on, and it is on
+because of a slot rather than in spite of one: with
+<code>loglik_row</code> declared the core has each trial’s log-density
+and its saturated value, which is what a unit deviance is made of.
+<code>unit</code> is a separate declaration and keeps its own answer.
+The finest factorization here is the TRIAL; the smallest thing that can
+honestly be left out is a whole SUBJECT, because dropping one trial
+changes every later trial’s value store.</p>
 </div>
 </div>
 <div class="section level2">
@@ -632,7 +735,7 @@ compare.</p>
 <span>  from_fitted <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">dbinom</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">choice</span>, <span class="fl">1</span>, <span class="va">p</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  difference <span class="op">=</span> <span class="va">ll</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">dbinom</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">choice</span>, <span class="fl">1</span>, <span class="va">p</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;     reference   from_fitted    difference </span></span>
-<span><span class="co">#&gt; -1.149687e+03 -1.149687e+03  2.728484e-12</span></span></code></pre></div>
+<span><span class="co">#&gt; -1.149687e+03 -1.149687e+03  2.955858e-12</span></span></code></pre></div>
 <p><code>tests/testthat/test-rl-example.R</code> runs this check on an
 unbalanced design as well, where the padding is live, and against the
 full joint density rather than the data part alone.</p>
@@ -788,21 +891,38 @@ approximation. The approximation is a Gaussian fitted at the conditional
 mode, and it is exact only when the conditional log-density really is
 quadratic. For a binary response it is not, and the fewer trials a
 subject has, the less quadratic it is.</p>
-<p>The usual way to price that error in frmtmb is
-<code>frm(importance =)</code>, which reweights draws from the Laplace
-Gaussian. It is REFUSED here:</p>
+<p>The way to price that error in frmtmb is
+<code>frm(importance = )</code>, which reweights draws from the Laplace
+Gaussian against the exact integrand. It works here, and it works
+because the family declares how its likelihood factorizes:
+<code>loglik_group</code> hands the correction one value per subject,
+which is exactly the piece it resamples. Until that slot existed the
+correction refused every family with a <code>loglik</code>, whether or
+not the likelihood factorized.</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">choice</span> <span class="op">|</span> <span class="fu">reward</span><span class="op">(</span><span class="va">pay1</span>, <span class="va">pay2</span><span class="op">)</span> <span class="op">~</span> <span class="va">condition</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">p</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>,</span>
-<span>       <span class="va">beta</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">p</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    family <span class="op">=</span> <span class="fu">rw_delta</span><span class="op">(</span>subject <span class="op">=</span> <span class="va">id</span>, trial <span class="op">=</span> <span class="va">trial</span><span class="op">)</span>,</span>
-<span>    data <span class="op">=</span> <span class="va">dd</span>, importance <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> `importance` cannot correct the 'rw_delta' family: it supplies its own log-likelihood, which does not factorize over rows, so a group's rows have no separable integrand to resample. This is the same restriction quadrature has. Use importance = 0</span></span></code></pre></div>
-<p>That refusal is honest but wider than it needs to be, and the closing
-section returns to it.</p>
-<p>What can still be measured is the consequence. Run the same recovery
-study at 20 trials per subject instead of 100, and read the bias and the
-coverage:</p>
+<code class="sourceCode R"><span><span class="va">fit_i</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">choice</span> <span class="op">|</span> <span class="fu">reward</span><span class="op">(</span><span class="va">pay1</span>, <span class="va">pay2</span><span class="op">)</span> <span class="op">~</span> <span class="va">condition</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">p</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>,</span>
+<span>                <span class="va">beta</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">p</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>             family <span class="op">=</span> <span class="fu">rw_delta</span><span class="op">(</span>subject <span class="op">=</span> <span class="va">id</span>, trial <span class="op">=</span> <span class="va">trial</span><span class="op">)</span>,</span>
+<span>             data <span class="op">=</span> <span class="va">dd</span>, importance <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>laplace <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>  corrected <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit_i</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   laplace corrected </span></span>
+<span><span class="co">#&gt; 0.4628031 0.5827301</span></span>
+<span><span class="va">fit_i</span><span class="op">$</span><span class="va">importance</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"draws"</span>, <span class="st">"mcse"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; $draws</span></span>
+<span><span class="co">#&gt; [1] 200</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $mcse</span></span>
+<span><span class="co">#&gt; [1] 0.1142937</span></span></code></pre></div>
+<p>The chunk is left with <code>error = TRUE</code> on purpose. The
+correction can decline, and on this model it sometimes does; the next
+section is about when.</p>
+</div>
+<div class="section level2">
+<h2 id="short-sessions-and-what-the-correction-says-about-them">Short sessions, and what the correction says about them<a class="anchor" aria-label="anchor" href="#short-sessions-and-what-the-correction-says-about-them"></a>
+</h2>
+<p>Run the same recovery study at 20 trials per subject instead of 100,
+and read the bias and the coverage:</p>
 <table class="table">
 <thead><tr class="header">
 <th>parameter</th>
@@ -862,14 +982,104 @@ standard deviation comes out 0.63 too low, which is a standard deviation
 about half the true one, and its interval covers 73 times in 100.
 Sixteen of the hundred short-session fits gave no usable interval for it
 at all.</p>
-<p>Do not read all of that as Laplace error. A variance component
-estimated by maximum likelihood from binary data with 40 levels is
-biased downward whether or not the integral is approximated, and this
-table does not separate the two causes. Separating them is what
-<code>frm(importance =)</code> exists for, and this family cannot ask
-it. What the table does establish is where the answers are safe: report
-fixed effects from short sessions, and treat a subject-level standard
-deviation estimated from 20 binary trials as a lower bound.</p>
+<p>Two causes could produce that, and they are not the same thing. A
+variance component estimated by maximum likelihood from binary data with
+40 levels is biased downward whether or not the integral is
+approximated; and the Laplace approximation is itself worse the fewer
+trials a subject has. The recovery table cannot separate them.
+<code>frm(importance = )</code> can, and now that this family declares
+its pieces, it can be asked. Six seeds per design, the same 40 subjects
+and the same truth, 100 draws:</p>
+<table class="table">
+<thead><tr class="header">
+<th></th>
+<th>40 x 100 trials</th>
+<th>40 x 20 trials</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>replicates the correction completed</td>
+<td>4 of 6</td>
+<td>5 of 6</td>
+</tr>
+<tr class="even">
+<td>mean shift, <code>alpha_(Intercept)</code>
+</td>
+<td>-0.004</td>
+<td>+0.034</td>
+</tr>
+<tr class="odd">
+<td>mean shift, <code>alpha_conditiontrt</code>
+</td>
+<td>+0.010</td>
+<td>+0.014</td>
+</tr>
+<tr class="even">
+<td>mean shift, <code>beta_(Intercept)</code>
+</td>
+<td>-0.002</td>
+<td>+0.048</td>
+</tr>
+<tr class="odd">
+<td>mean shift, <code>log sd(alpha)</code>
+</td>
+<td>+0.357</td>
+<td>+0.480</td>
+</tr>
+<tr class="even">
+<td>largest single shift, <code>log sd(alpha)</code>
+</td>
+<td>0.545</td>
+<td>1.386</td>
+</tr>
+<tr class="odd">
+<td>Monte Carlo standard error</td>
+<td>0.13 to 0.18</td>
+<td>0.02 to 0.70</td>
+</tr>
+<tr class="even">
+<td>smallest effective sample size per draw</td>
+<td>0.53</td>
+<td>0.03</td>
+</tr>
+</tbody>
+</table>
+<p>The fixed effects do not move. That is the recovery table’s first
+reading confirmed by an independent route: their bias is not Laplace
+error, because removing the Laplace error leaves them where they
+were.</p>
+<p>The variance component moves up, a long way, and the diagnostics say
+how far to trust it. At 20 trials the correction is often not answering
+at all: one replicate in six does not complete, the largest shift is
+1.39 on the log scale, and the effective sample size falls to three
+draws in a hundred.</p>
+<p>One dataset, named so it can be checked, shows what that looks like.
+Take 40 subjects at 20 trials from
+<code>set.seed(4206); rl_simulate(rl_bandit_design(40, 20), seed = 4206)</code>.
+Its Laplace <code>log sd(alpha)</code> is -1.2024. At 100 draws the
+correction returns +0.1831, a standard deviation of 1.20 against a truth
+of 0.5, with a Monte Carlo standard error of 0.336 and a smallest
+effective sample size of 0.33 per draw. At 400 draws, with enough draws
+to see its own weights, it REFUSES, reporting that the corrected
+objective rose rather than fell and pointing at the <code>[ID]</code>
+block’s two variance components and their correlation.</p>
+<p>That is one dataset and not a law. Other 20-trial datasets are fine:
+a reviewer running two seeds of this design got one that completed at
+400 draws and one whose 100-draw correction was already clean (shift
+0.025, mcse 0.070, smallest effective sample size 0.90). The honest
+summary is the table above, where one replicate in six failed and the
+spread of shifts was an order of magnitude: at this design the
+correction is unreliable rather than uniformly broken, and a number it
+returns needs its own diagnostics read before it is believed.</p>
+<p>So the honest reading is not that the variance-component bias is
+Laplace error. It is that at 100 trials the correction runs and moves
+the variance component up by about a third of a log unit, the same order
+as the whole bias, so some real part of that bias is the approximation;
+and that at 20 trials the correction will not stand behind an answer at
+all, which is a second reason to treat a subject-level standard
+deviation from 20 binary trials as a lower bound rather than as an
+estimate. The operational advice is unchanged: report fixed effects from
+short sessions, and do not report a variance component from them.</p>
 </div>
 <div class="section level2">
 <h2 id="shape-and-cost">Shape and cost<a class="anchor" aria-label="anchor" href="#shape-and-cost"></a>
@@ -1031,18 +1241,15 @@ it at 1.27x and 1.70x.</p>
 </h2>
 <p>The example above is a complete family. Three things would still
 change if it moved into a package.</p>
-<p><strong>A per-unit log-likelihood.</strong> This family’s likelihood
-factorizes over trials, but <code>frmtmb_structure(loglik =)</code>
-returns one AD scalar, so the core never sees the individual factors.
-Two features follow from that and are unavailable here: a pointwise
-log-likelihood matrix, which <code><a href="../reference/loo.html">loo()</a></code> and <code><a href="../reference/loo.html">waic()</a></code>
-need, and <code>frm(importance =)</code>, whose refusal appears above.
-The importance correction needs one value per GROUP, not per row, and
-this family has that. The refusal is written in terms of rows because
-that is the only granularity the slot exposes. A future
-<code>pointwise_loglik</code> slot, or a <code>loglik</code> allowed to
-return a vector over the structure’s own <code>unit</code>, would serve
-both.</p>
+<p><strong>A pointwise log-likelihood for <code><a href="../reference/loo.html">loo()</a></code>.</strong>
+The family declares its factorization, so
+<code>frm(importance = )</code> and deviance residuals work above.
+<code><a href="../reference/loo.html">loo()</a></code> and <code><a href="../reference/loo.html">waic()</a></code> would work too, on a sampled
+fit: they live in frmtmb.sample and read the same slots, and their
+columns would be SUBJECTS rather than trials, because <code>unit</code>
+says a trial cannot honestly be left out. Nothing here exercises that
+path, because these are maximum-likelihood fits and an elpd is a
+posterior quantity.</p>
 <p><strong>Newdata.</strong> <code>predict(type = "response")</code> on
 new data would need a block built without a response, and the protocol
 defers that case on purpose. For this family the meaning is clear enough

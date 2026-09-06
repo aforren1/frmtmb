@@ -27,9 +27,8 @@ latent_probs(fit, ...)
 A numeric matrix with one named column per latent state. Its rows are
 observations for a family whose class belongs to the row (`lca()`, a
 rowwise
-[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md))
-and groups for one whose class belongs to a group
-(`mixture(groups = )`).
+[`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html)) and
+groups for one whose class belongs to a group (`mixture(groups = )`).
 
 ## Details
 

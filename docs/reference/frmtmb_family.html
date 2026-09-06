@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,6 +31,7 @@ not branch on parameter values."></head><body>
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
+    <li><a class="dropdown-item" href="../articles/bayesian-cognitive-modeling.html">Bayesian Cognitive Modeling: the model list</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
@@ -39,6 +40,7 @@ not branch on parameter values."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.spline/">frmtmb.spline (curve inference and spline survival)</a></li>
@@ -92,6 +94,7 @@ not branch on parameter values.</p>
 <span>  lcdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  lccdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  required_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
+<span>  accepts_aterms <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  family_finalize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  drop_intercept <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -114,6 +117,7 @@ not branch on parameter values.</p>
 <span>  lcdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  lccdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  required_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
+<span>  accepts_aterms <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  family_finalize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  drop_intercept <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -249,6 +253,23 @@ returns, with a log-likelihood of zero. Declare every per-row datum
 the density indexes.</p></dd>
 
 
+<dt id="arg-accepts-aterms">accepts_aterms<a class="anchor" aria-label="anchor" href="#arg-accepts-aterms"></a></dt>
+<dd><p>The addition terms this family reads or lets the
+core act on, named as a formula writes them and without
+parentheses: <code>c("weights", "trials", "cens")</code>. Frame assembly
+refuses any other term on the response, by name, and lists the ones
+the family takes. <code>character(0)</code> declares a family that takes none.
+<code>NULL</code>, the default, accepts every registered term, which is what a
+family written before this argument existed keeps.</p>
+<p><code>required_aterms</code> is a conjunction of what the density cannot do
+without; this is the complementary allow-list, and the two are read
+together, so a required term need not be repeated here. Without a
+declaration an unread term is parsed, stored on the fit and
+silently ignored: <code>wiener()</code> accepted a <code>vint()</code> it cannot use, and
+<code>lba()</code> accepted a <code>dec()</code>, both giving a fit bit-identical to the
+one without the term.</p></dd>
+
+
 <dt id="arg-family-finalize">family_finalize<a class="anchor" aria-label="anchor" href="#arg-family-finalize"></a></dt>
 <dd><p>Optional function <code>(fam, y, aterms)</code> returning
 a family. It runs once at frame assembly, after the response is
@@ -275,7 +296,7 @@ its place).</p></dd>
 
 <dt id="arg-structure">structure<a class="anchor" aria-label="anchor" href="#arg-structure"></a></dt>
 <dd><p>Optional <code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> for a family whose
-likelihood does not factorize over rows (a group-level <code><a href="mixture.html">mixture()</a></code>,
+likelihood does not factorize over rows (a group-level <code><a href="https://paulbuerkner.com/brms/reference/mixture.html" class="external-link">mixture()</a></code>,
 a hidden Markov chain). It carries the non-rowwise log-likelihood,
 the frame block that likelihood reads, and the capability flags
 that say which post-fit methods the family can answer. <code>lpdf</code> stays
@@ -292,7 +313,7 @@ that refuses.</p></dd>
 
 
 <p>Some families cannot draw a response one row at a time: a group-level
-<code><a href="mixture.html">mixture()</a></code> draws one class per group, a <code><a href="mixture_mvn.html">mixture_mvn()</a></code> draw needs
+<code><a href="https://paulbuerkner.com/brms/reference/mixture.html" class="external-link">mixture()</a></code> draws one class per group, a <code><a href="mixture_mvn.html">mixture_mvn()</a></code> draw needs
 the class covariances, which are family-level extras rather than
 dpars, and a hidden Markov family walks a chain per sequence. Those
 families supply <code>sim_ctx(ctx)</code> instead of <code>sim(dpars, aterms, n)</code>.</p>

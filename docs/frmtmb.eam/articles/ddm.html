@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -1052,22 +1052,86 @@ This family’s large-time route is 3.0e-15 there.</p>
 surprising no-go trial is the row pulling hardest on the likelihood.</p>
 </div>
 <div class="section level3">
+<h3 id="across-trial-variability">Across-trial variability<a class="anchor" aria-label="anchor" href="#across-trial-variability"></a>
+</h3>
+<p><code><a href="../reference/wiener_gng.html">wiener_gng()</a></code> takes Ratcliff’s three across-trial
+variability parameters through the same <code>variability =</code>
+argument <code><a href="../reference/wiener.html">wiener()</a></code> takes them, under the same names and the
+same links:</p>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">responded</span><span class="op">)</span> <span class="op">~</span> <span class="va">cond</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
+<span>    family <span class="op">=</span> <span class="fu"><a href="../reference/wiener_gng.html">wiener_gng</a></span><span class="op">(</span>deadline <span class="op">=</span> <span class="fl">1.5</span>,</span>
+<span>                        variability <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sv"</span>, <span class="st">"sz"</span>, <span class="st">"st"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></code></pre></div>
+<p>The go branch inherits them from <code><a href="../reference/wiener.html">wiener()</a></code>, and not
+merely in the sense of agreeing: evaluated at the same parameters the
+two families’ log densities are bit-identical on every row, for every
+combination of the three. The no-go branch is the part that had to be
+written, because it averages the DISTRIBUTION FUNCTION rather than the
+density. The drift enters the density as an exponential-quadratic, which
+is what makes averaging over a normal drift exact and free; it enters
+the distribution function through the eigenvalues of both series as
+well, where nothing does, so <code>sv</code> needs a quadrature there
+that it does not need in <code><a href="../reference/wiener.html">wiener()</a></code>.</p>
+<p>That is why there are two node arguments. <code>nodes =</code>
+governs the go branch and is <code><a href="../reference/wiener.html">wiener()</a></code>’s, name for name and
+default for default. <code>nogo_nodes =</code> governs the no-go
+probability, defaults to <code>c(sv = 15, sz = 7, st = 7)</code>, and
+carries an <code>sv</code> entry <code><a href="../reference/wiener.html">wiener()</a></code> has no use for.
+Its <code>st</code> default is lower than the density’s 21 because the
+probability’s range is not cut at the response time and saturates by 7,
+which matters because the probability’s rule is a three-dimensional
+product: with the density’s own counts a 500-row three-variability model
+exhausts memory outright.</p>
+<p>Of the three, <code>sv</code> is the one whose accuracy is worth
+checking against the table in <code><a href="../reference/wiener_gng.html">?wiener_gng</a></code>. It does not
+saturate: at a drift standard deviation of 0.3 the default reaches
+1e-14, at 0.8 it reaches 1e-6, and at 1.5 it reaches only 1e-3. Raise
+it, <code>nogo_nodes = c(sv = 31)</code>, if the fit puts
+<code>sv</code> out that far.</p>
+</div>
+<div class="section level3">
+<h3 id="what-a-gono-go-design-cannot-tell-you">What a go/no-go design cannot tell you<a class="anchor" aria-label="anchor" href="#what-a-gono-go-design-cannot-tell-you"></a>
+</h3>
+<p><code>sv</code> is weakly identified here, and it is the design
+rather than the likelihood. With only one boundary observed, drift
+variability trades against the drift and the boundary separation along a
+ridge, so a fit can reach a HIGHER log likelihood at <code>sv</code>
+near zero by moving the other two. On 3000 simulated trials with a true
+<code>sv</code> of 0.6 this family returns 0.001 while
+<code><a href="../reference/wiener.html">wiener()</a></code>, on the same generative parameters and seeing both
+boundaries, returns 0.612.</p>
+<p>Read a small fitted <code>sv</code> here as “the data did not pin it”
+rather than as “there is no drift variability”. If you need it, fix it,
+or estimate it from a two-choice condition of the same experiment.
+<code>sz</code> and <code>st</code> are better behaved, because both
+change the SHAPE of the go response time distribution rather than
+trading against its location.</p>
+<p>One limit of the parameterization is worth knowing, and it is
+<code><a href="../reference/wiener.html">wiener()</a></code>’s limit too: a wide <code>sz</code> at a strongly
+biased start point pushes the uniform range past a boundary, where the
+model is not defined. The no-go branch clamps the start point back
+inside, which turns what would be an <code>NaN</code> into a finite
+penalized value; the go branch does not, so that the bit-identity with
+<code><a href="../reference/wiener.html">wiener()</a></code> survives. The two branches then average different
+distributions and their masses no longer sum to one - by 3 percent at
+<code>sz = 0.5, bias = 0.85</code> and by 16 percent at
+<code>sz = 0.9, bias = 0.90</code>. Nothing is fitted there in practice,
+because the region is strictly downhill: the best point inside the
+boundaries beats the best point outside by 189 log units on a profiled
+example. Treat a fitted <code>sz</code> whose range crosses a boundary
+as a fit that has run out of model.</p>
+<p>EMC2’s <code>DDMGNG</code> carries the same three parameters, and the
+two agree. Note one convention difference before porting numbers: EMC2
+takes <code>st0</code> as a uniform on <code>[t0, t0 + st0]</code>,
+where this family centres <code>st</code> on <code>ndt</code>, following
+brms.</p>
+</div>
+<div class="section level3">
 <h3 id="what-it-does-not-do">What it does not do<a class="anchor" aria-label="anchor" href="#what-it-does-not-do"></a>
 </h3>
-<p><code><a href="../reference/wiener.html">wiener()</a></code> offers Ratcliff’s three across-trial
-variability parameters through <code>variability =</code>. This family
-offers none of them, and the reason is the no-go branch. The go branch
-would inherit all three for free. The drift enters the DENSITY as an
-exponential-quadratic, which is what makes averaging over a normal drift
-exact and free; it enters the DISTRIBUTION FUNCTION through the
-eigenvalues of both series, where it is not. <code>sz</code> and
-<code>st0</code> could be reached with the quadrature nodes this package
-already has, but shipping two of three would make
-<code>variability =</code> mean something different here than it does on
-<code><a href="../reference/wiener.html">wiener()</a></code>. EMC2’s <code>DDMGNG</code> does carry all three,
-by integrating them numerically in compiled code.</p>
 <p>Neither family reports a fitted mean:</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit_g</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> wiener_gng: this family has no mean response to report. A go/no-go trial produces a PAIR, whether a response happened and when, and no single number summarizes it: the no-go trials have no response time to average at all. fitted(), predict(type = "response") and residuals(type = "response") are unavailable for that reason rather than for want of an integral. predict(type = "link") gives the drift, boundary separation, non-decision time and bias the fit estimated.</span></span></code></pre></div>

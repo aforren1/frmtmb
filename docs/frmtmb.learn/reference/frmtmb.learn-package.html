@@ -115,9 +115,9 @@ value per GROUP. These likelihoods factorize over subjects and again
 over trials, so the values exist; <code>frmtmb_structure(loglik =)</code>
 returns one AD scalar for the whole response and there is no slot to
 put them in. The same gap costs deviance residuals, which need a
-per-row saturated comparison. It does NOT cost <code>loo()</code> or <code>waic()</code>:
+per-row saturated comparison. It does NOT cost <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> or <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">waic()</a></code>:
 those refuse for every frmtmb fit, an ordinary gaussian one included,
-because <code>frm()</code> is maximum likelihood and an elpd averages the
+because <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> is maximum likelihood and an elpd averages the
 likelihood over draws. That refusal is core-wide, unrelated to this
 seam, and closing the seam would not deliver it.
 The design is written up in frmtmb's <code>dev/rl-findings.md</code>
@@ -134,16 +134,16 @@ so at the console.</p>
 
 
 <p>Nothing. Every accessor it uses is exported and documented:
-<code>frmtmb_family()</code>, <code>frmtmb_structure()</code>, <code>frmtmb_register_aterm()</code>,
-<code>frmtmb_register_compat()</code>, <code>compat_rule_builder()</code>,
-<code>single_response()</code>, <code>eval_dpars()</code> and <code>frame_block_of()</code>. There is
+<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_family.html" class="external-link">frmtmb_family()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_structure.html" class="external-link">frmtmb_structure()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.html" class="external-link">frmtmb_register_aterm()</a></code>,
+<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html" class="external-link">frmtmb_register_compat()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html" class="external-link">compat_rule_builder()</a></code>,
+<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html" class="external-link">single_response()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html" class="external-link">eval_dpars()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html" class="external-link">frame_block_of()</a></code>. There is
 one thing it wanted and could not have, and it is recorded rather
-than worked around: <code>frm_compat_features()</code> shows that an addition
+than worked around: <code><a href="https://aforren1.github.io/frmtmb/reference/frm_compat_features.html" class="external-link">frm_compat_features()</a></code> shows that an addition
 term is registered but not at what ARITY, so this package cannot
 verify that a <code>reward</code> term another package registered is the
 two-column one its families need. It declines to register over the
 top of an existing term, and the mismatch surfaces one step later as
-<code>frm()</code> refusing a missing <code>reward2</code>.</p>
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> refusing a missing <code>reward2</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="not-built-and-named">Not built, and named<a class="anchor" aria-label="anchor" href="#not-built-and-named"></a></h2>

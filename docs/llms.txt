@@ -120,7 +120,7 @@ frmtmb is not on CRAN yet. Install the development version from GitHub:
 remotes::install_github("aforren1/frmtmb")
 ```
 
-Five companion packages live in this repository, each installed the same
+Six companion packages live in this repository, each installed the same
 way and each documented on its own part of the site.
 
 | package | adds |
@@ -130,6 +130,7 @@ way and each documented on its own part of the site.
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
 | [frmtmb.eam](https://aforren1.github.io/frmtmb/frmtmb.eam/) | evidence accumulation models: `wiener()`, `gddm()`, `lba()`, `rdm()` and `wiener_gng()` |
 | [frmtmb.spline](https://aforren1.github.io/frmtmb/frmtmb.spline/) | curve inference on any fitted smooth, and the flexible parametric survival family `royston_parmar()` |
+| [frmtmb.learn](https://aforren1.github.io/frmtmb/frmtmb.learn/) | reinforcement-learning families: `bandit2arm_delta()`, `bandit2arm_dual()`, `prl_fictitious()`, `bandit4arm2_kalman_filter()`, `ts_par7()` and `igt_pvl_delta()`, each parameter an ordinary distributional parameter with its own linear predictor |
 
 ``` r
 
@@ -138,6 +139,7 @@ remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.latent")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.eam")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.spline")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.learn")
 ```
 
 ## Example
@@ -601,6 +603,7 @@ and `NEWS.md` for the changelog.
   [`neg_log_prior_fn`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`resolve_bounds`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`spec_target`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`spec_spelling`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`frmtmb_register_prior_defaults`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ncp_eligible`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ncp_scale_b`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
@@ -628,10 +631,18 @@ and `NEWS.md` for the changelog.
   [`hyp_tail_p`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_grids_build`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_boot_one`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_frame`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_finalize`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_cats_display`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_display_kind`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_pred_dpar`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_group_vars`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_new_level_spec`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_boot_grids`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_draw_new_levels`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_structure_check`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_re_formula`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`ce_dots`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`find_linpred`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`arg_unset`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`re_form_arg`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
@@ -728,6 +739,8 @@ and `NEWS.md` for the changelog.
   literature](https://aforren1.github.io/frmtmb/articles/case-studies.md):
 - [Reinforcement learning: a sequential family from
   scratch](https://aforren1.github.io/frmtmb/articles/reinforcement-learning.md):
+- [Bayesian Cognitive Modeling: the model
+  list](https://aforren1.github.io/frmtmb/articles/bayesian-cognitive-modeling.md):
 - [Model
   diagnostics](https://aforren1.github.io/frmtmb/articles/diagnostics.md):
 - [Case study: a race between habit and

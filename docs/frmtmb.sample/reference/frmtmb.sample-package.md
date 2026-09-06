@@ -14,7 +14,7 @@ posterior predictive checks, and conversion to the 'posterior' and
 
 Useful links:
 
-- <https://aforren1.github.io/frmtmb/>
+- <https://aforren1.github.io/frmtmb/frmtmb.sample/>
 
 - <https://github.com/aforren1/frmtmb>
 

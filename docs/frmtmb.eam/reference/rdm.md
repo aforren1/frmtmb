@@ -176,6 +176,36 @@ accumulator numbering.
 reason: that term carries a 0/1 indicator naming one of two boundaries,
 and a race of `n` accumulators needs `1..n`.
 
+## Censoring and truncation
+
+A race has a survivor function in closed form, so `cens()` and
+[`trunc()`](https://rdrr.io/r/base/Round.html) both work.
+
+The reason is that the race is over as soon as ANY accumulator finishes,
+so the probability that the response time is past `t` is the probability
+that none of them has:
+
+\$\$S(t) = \prod_i S_i(t),\$\$
+
+one factor per accumulator, each the start-point integral the likelihood
+already forms for the losers of an observed trial. The family declares
+that product as its log survivor function and its complement as its
+distribution function, so nothing new is derived for censoring: it is
+the same `lsurv` the density's loser terms use, multiplied over all `n`
+accumulators instead of over `n - 1` of them.
+
+    frm(bf(rt | vint(choice) + cens(censored) ~ cond), family = rdm(3),
+        data = dat)
+
+A censored trial has no winner to report, because the race had not
+finished when the clock ran out. `vint()` is still required, since a
+declaration cannot be conditional on a censoring code, so give such a
+row any accumulator index: the likelihood does not read it. The
+distribution function is written as `-expm1(log S)`, which keeps its
+digits where `1 - S` would lose them, and the log survivor goes to
+`frmtmb` on the LOG scale, so a right-censored row stays exact past the
+point where `log(1 - F)` is a constant with a zero gradient.
+
 ## Accuracy
 
 Every piece is written in the form that keeps its digits rather than the

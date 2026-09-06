@@ -92,6 +92,23 @@ fits or
 [`frmtmb::frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.html)
 for those.
 
+A family that declares how its likelihood factorizes
+(`frmtmb::frmtmb_structure(loglik_group = )` or `(loglik_row = )`) is
+not in that position and is not refused. Its columns are the pieces it
+declares, at the COARSEST granularity it gives: a family that groups its
+likelihood is saying that its rows are not independently droppable,
+which is exactly the question a leave-one-out column asks. The matrix
+then carries `attr(x, "unit")` naming what a column is.
+[`loo::loo.matrix()`](https://mc-stan.org/loo/reference/loo.html) never
+sees that attribute and its printout says only "Computed from N by K
+log-likelihood matrix", which reads exactly like a per-observation one,
+so [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html),
+[`waic()`](https://aforren1.github.io/frmtmb/reference/loo.html) and
+[`psis()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-loo.md)
+emit a message naming the unit and the column count when they are handed
+such a matrix. The elpd is then leave-one-UNIT-out, and the number
+itself carries no mark of that.
+
 ## See also
 
 [`frmtmb::loo()`](https://aforren1.github.io/frmtmb/reference/loo.html),
@@ -117,7 +134,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 }
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 0.8, 2.5)
-#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
+#>   sigma              student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
 #>   b                  (flat), as brms leaves slopes
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.

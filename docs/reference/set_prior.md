@@ -33,9 +33,10 @@ set_prior(
 
 - class:
 
-  `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, or one of the
+  `"b"`, `"Intercept"`, `"sd"`, `"cor"`, `"theta"`, one of the
   residual-structure classes `"ar"`, `"ma"`, `"cosy"`, `"cortime"` and
-  `"rescor"`.
+  `"rescor"`, or a distributional parameter's own name (`"sigma"`,
+  `"shape"`, ...). See A distributional parameter's own class.
 
 - coef:
 
@@ -111,6 +112,13 @@ Classes and their scales:
   residual autocorrelation, `"thetar_1"` for a residual correlation.
   This is the one spelling that reaches a single parameter of a
   structure whose natural coefficients are not free of one another.
+
+- a DISTRIBUTIONAL parameter's own name (`"sigma"`, `"shape"`, `"phi"`,
+  `"zi"`, `"nu"`, ...): a density on that parameter ITSELF, on its
+  NATURAL scale, with the inverse link's log-Jacobian applied, so
+  `set_prior("student_t(3, 0, 2.5)", class = "sigma")` means what it
+  says. Available where the parameter has no predictor of its own; see A
+  distributional parameter's own class.
 
 When priors overlap, later specifications override earlier ones, so put
 class-wide priors first and coefficient-specific ones after. A class
@@ -314,20 +322,20 @@ edited into a
 [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
 table in place, because brms does not update `source` after that edit.
 
-brms's class vocabulary is wider than the one above, and it is carried
-over rather than refused wherever the two packages mean the same
-parameter:
+**A specification means here what the same words mean in brms.** Every
+class brms writes that frmtmb can honor is a class `set_prior()` takes
+under the same name and with the same meaning, so a table and a
+hand-written specification reach one code path:
 
 - `b`, `Intercept`, `sd`, `cor`, `ar`, `ma`, `cosy`, `cortime` and
   `rescor` are frmtmb's own class names and keep their meaning.
 
 - a DISTRIBUTIONAL parameter's own class (`sigma`, `shape`, `phi`, `nu`,
-  `kappa`, `sigma1`, ...) is a density on that parameter ITSELF in brms.
-  It lands on the parameter itself here too, through the dpar's inverse
-  link with that map's log-Jacobian, which is the change of variables
-  class `"sd"` performs. A bound on such a row travels with it, so
-  brms's `lb = 0` on a log-linked dispersion becomes no constraint
-  rather than a floor of 1.
+  `kappa`, `sigma1`, ...) is a density on that parameter ITSELF, through
+  the dpar's inverse link with that map's log-Jacobian, which is the
+  change of variables class `"sd"` performs. A bound travels with it, so
+  `lb = 0` on a log-linked dispersion becomes no constraint rather than
+  a floor of 1.
 
 - `theta`/`theta1`/`theta2`, `simo`, `sds`, `sdgp`, `lscale`, `sdcar`
   and `car` are refused by name, each saying where frmtmb keeps that
@@ -345,22 +353,53 @@ Every refused row of a table is named in ONE message, because a table is
 edited as a whole and stopping at the first bad row costs a round trip
 per bad row.
 
-**frmtmb's own spelling for a distributional parameter is the one place
-the two packages still differ.**
-`set_prior("student_t(3, 0, 2.5)", class = "Intercept", dpar = "sigma")`
-is a density on LOG sigma, the parameter frmtmb stores, and it keeps
-that meaning; the same row spelled brms's way,
-`brms::prior(student_t(3, 0, 2.5), class = "sigma")`, is a density on
-sigma. The two are not the same prior: on a nonlinear fit with `sigma`
-near 0.135 the link spelling captures about 35 percent of the shift the
-natural one produces, and on `sleepstudy`, where brms's default scale is
-calibrated to a sigma near 31, it captures none of it. Write the brms
-spelling when brms's meaning is wanted.
-
 brms's `tag` and `check` have no counterpart: `tag` names a prior for
 reuse inside a Stan program, and `check` passes an unchecked string
 through to one. frmtmb compiles no Stan program, so both are omitted
 rather than accepted and ignored.
+
+## A distributional parameter's own class
+
+A distributional parameter has TWO spellings, and which one applies is
+decided by the model rather than by taste. They are brms's own two, and
+brms accepts each only on the model the other does not:
+
+- `class = "sigma"`:
+
+  a density on sigma ITSELF, on its natural scale. Available when sigma
+  has no predictor of its own, which is the model where sigma is a
+  single number.
+
+- `class = "Intercept", dpar = "sigma"`:
+
+  a density on the LINK-scale intercept of sigma's linear predictor.
+  Available when the model gives sigma a formula, `sigma ~ 1` included.
+
+Writing a formula for a parameter is what replaces the parameter with a
+linear predictor, so `bf(y ~ x, sigma ~ 1)` has no `sigma` to put a
+density on, and `bf(y ~ x)` has no `Intercept_sigma`. Each spelling is
+refused by name on the other's model, naming the one that applies,
+because a silently retargeted prior is a different model rather than no
+model.
+
+`class = "b", dpar = "sigma"` addresses that predictor's SLOPES and is
+on the link scale, in both packages. It needs slopes to exist: on
+`sigma ~ 1` the predictor is an intercept only, so the row addresses
+nothing, and it is refused rather than accepted as a silent no-op. brms
+refuses it there too.
+
+A distributional class names ONE parameter, so it takes `resp` and
+neither `coef` nor `group`; both are refused rather than dropped.
+Written without `resp` on a multivariate model it applies to every
+response, which is frmtmb's convention for a class-wide prior and one of
+the few rows brms refuses where frmtmb accepts (brms asks for `resp`).
+
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+lists whichever of the two spellings a model offers. Where a parameter
+has NEITHER, because frmtmb refuses its class by name, the table leaves
+it out rather than advertising a slot nothing can fill: a mixture
+proportion with no predictor of its own is one, and `?set_prior`'s
+refusal says where that quantity lives.
 
 ## Examples
 
@@ -394,6 +433,21 @@ fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
 set_prior("", class = "b", coef = "x", lb = 0)
 #> (bounds only) class=b coef=x lb=0
 
+# a distributional parameter's own class is a density on the
+# parameter itself, on its own scale, where the model gives that
+# parameter no predictor. This model does not, so this is the
+# spelling it offers, and get_prior() lists it
+fit_s <- frm(bf(y ~ x + z) + gaussian(), data = dd,
+             prior = set_prior("student_t(3, 0, 2.5)",
+                               class = "sigma"))
+sigma(fit_s)
+#> [1] 1.336249
+# with sigma ~ 1 the model has a log-scale intercept instead, and
+# that is the slot the prior addresses. brms draws the same line
+set_prior("student_t(3, 0, 2.5)", class = "Intercept",
+          dpar = "sigma")
+#> student_t(3, 0, 2.5) class=Intercept dpar=sigma
+
 # bounds address a nonlinear parameter the way a distribution does,
 # so a guessing rate is held in [0, 1]
 set_prior("", nlpar = "guess", lb = 0, ub = 1)
@@ -423,16 +477,16 @@ VarCorr(fitc)
 # get_prior() shows which rows a design offers
 get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
 #> route = "fit": the prior defaults frm() applies
-#>    prior     class    coef group  dpar nlpar resp lb ub
-#> 1 (flat) Intercept                                NA NA
-#> 2 (flat)         b                                NA NA
-#> 3 (flat)         b       x                        NA NA
-#> 4 (flat)         b       z                        NA NA
-#> 5 (flat) Intercept               sigma            NA NA
-#> 6 (flat)        sd                                NA NA
-#> 7 (flat)        sd             g                  NA NA
-#> 8 (flat)     theta                                NA NA
-#> 9 (flat)     theta theta_1                        NA NA
+#>    prior     class    coef group dpar nlpar resp lb ub
+#> 1 (flat) Intercept                               NA NA
+#> 2 (flat)         b                               NA NA
+#> 3 (flat)         b       x                       NA NA
+#> 4 (flat)         b       z                       NA NA
+#> 5 (flat)     sigma                               NA NA
+#> 6 (flat)        sd                               NA NA
+#> 7 (flat)        sd             g                 NA NA
+#> 8 (flat)     theta                               NA NA
+#> 9 (flat)     theta theta_1                       NA NA
 
 # prior() quotes its first argument, brms's spelling, and reaches
 # the same machinery

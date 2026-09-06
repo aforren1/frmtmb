@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.52.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,7 @@
     <li><a class="dropdown-item" href="../articles/brms-migration.html">frmtmb for brms users</a></li>
     <li><a class="dropdown-item" href="../articles/case-studies.html">Case studies: models from the showcase literature</a></li>
     <li><a class="dropdown-item" href="../articles/reinforcement-learning.html">Reinforcement learning: a sequential family from scratch</a></li>
+    <li><a class="dropdown-item" href="../articles/bayesian-cognitive-modeling.html">Bayesian Cognitive Modeling: the model list</a></li>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
@@ -48,6 +49,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
 <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample (NUTS sampling and posteriors)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.spline/">frmtmb.spline (curve inference and spline survival)</a></li>
@@ -2082,7 +2084,7 @@ or <code>homdiag</code> term.</p>
 <colgroup>
 <col width="0%">
 <col width="11%">
-<col width="87%">
+<col width="88%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -2197,12 +2199,13 @@ entries must be present and non-negative, and non-zero weights are
 binarized. type = “escar” is the proper CAR, “esicar” the intrinsic one
 under an EXACT sum-to-zero constraint, “icar” the same field under
 brms’s soft constraint (con_sd), “bym2” the scaled mixture; escar needs
-every location to have a neighbor. con_sd changes no esicar estimate,
-but it does scale that type’s prediction standard errors and ranef()
-conditional SDs as con_sd^2 in the variance, so leave it at the default
-there. Every constrained type constrains each connected component, where
-brms constrains the global sum; the two agree on a connected graph. M
-belongs in data2 = list(M = M).</td>
+every location to have a neighbor. con_sd changes nothing an esicar term
+reports: the constraint is exact and the delta method uses the centering
+projection, so the estimates, the prediction standard errors and the
+ranef() conditional SDs are all invariant to it. Every constrained type
+constrains each connected component, where brms constrains the global
+sum; the two agree on a connected graph. M belongs in data2 = list(M =
+M).</td>
 </tr>
 <tr class="even">
 <td align="left">~</td>

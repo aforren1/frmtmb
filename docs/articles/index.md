@@ -12,6 +12,8 @@
   literature](https://aforren1.github.io/frmtmb/articles/case-studies.md):
 - [Reinforcement learning: a sequential family from
   scratch](https://aforren1.github.io/frmtmb/articles/reinforcement-learning.md):
+- [Bayesian Cognitive Modeling: the model
+  list](https://aforren1.github.io/frmtmb/articles/bayesian-cognitive-modeling.md):
 - [Model
   diagnostics](https://aforren1.github.io/frmtmb/articles/diagnostics.md):
 - [Case study: a race between habit and

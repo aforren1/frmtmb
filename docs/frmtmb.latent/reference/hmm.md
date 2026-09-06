@@ -64,7 +64,7 @@ A `frmtmb_family`.
 
 Each of the wrapped family's distributional parameters is copied once
 per state and suffixed with the state index, exactly as
-[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
+[`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
 does: `hmm(2, gaussian())` has `mu1`, `mu2`, `sigma1`, `sigma2`. The
 main model formula applies to every state's location parameter; override
 one state with `bf(y ~ x, mu2 ~ x + (1 | id))`. Every dpar takes the
@@ -121,7 +121,7 @@ state's.
 
 The likelihood is invariant to permuting the states, so the state means
 start at spread response quantiles (see
-[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html));
+[`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html));
 a start with every state mean equal sits on the symmetry axis and the
 optimizer never leaves it. Relabeling between runs is expected and is
 not fought. Multimodality is real and is not signalled by any
@@ -195,16 +195,15 @@ location coefficients, which matches no standard definition),
 [`trunc()`](https://rdrr.io/r/base/Round.html), `se()` and `mi()` on the
 response, multivariate models and `rescor`, `residuals(type = "osa")`,
 `predict(se.fit = TRUE)` on the response scale, and
-[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html).
-A grouping in which every sequence has length 1 is refused too: the
-chain is then unidentified and the model is a
-[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html).
+`conditional_effects()`. A grouping in which every sequence has length 1
+is refused too: the chain is then unidentified and the model is a
+[`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html).
 
 ## See also
 
 [`hmm_probs()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_probs.md),
 [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_viterbi.md),
-[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
+[`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
 
 ## Examples
 

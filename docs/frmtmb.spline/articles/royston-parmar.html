@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -281,12 +281,13 @@ it pass for one:</p>
 <div class="section level2">
 <h2 id="the-check-you-must-run">The check you must run<a class="anchor" aria-label="anchor" href="#the-check-you-must-run"></a>
 </h2>
-<p>Two things in this family are floors rather than answers, and both
-are silent in the fitted object. <code><a href="../reference/rp_floored.html">rp_floored()</a></code> is where they
-go to be read, and it REFUSES rather than reports:</p>
+<p>One thing in this family is a floor rather than an answer, and it is
+silent in the fitted object. <code><a href="../reference/rp_floored.html">rp_floored()</a></code> is where it goes
+to be read. It refuses on that one and reports on a second quantity that
+used to be a floor and is not one any more:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/rp_floored.html">rp_floored</a></span><span class="op">(</span><span class="va">fit</span>, action <span class="op">=</span> <span class="st">"report"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $n_censored_floored</span></span>
+<span><span class="co">#&gt; $n_censored_deep</span></span>
 <span><span class="co">#&gt; [1] 0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $max_nlogS</span></span>
@@ -313,20 +314,26 @@ go to be read, and it REFUSES rather than reports:</p>
 <p>Zero on both counts here. Run it on every fit whose data carry
 censoring, because neither <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> nor <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>
 can tell you.</p>
-<p><strong>Why it matters.</strong> frmtmb forms a right-censored
-contribution as <code>log(1 - F(y))</code> on the probability scale, and
-core gives a family no complementary log-CDF slot to hand back
-<code>log S</code> directly. So the scored <code>log S</code> carries
-absolute error about <code>eps / S</code>: exact at <code>-log S</code>
-of 10, wrong by 1.7e-04 at 30, and floored at -35.127363 past 36. Past
-30 its GRADIENT is exactly zero, so the optimizer prices such a row at a
-constant and fits the others as if it were free.</p>
-<p>That is not hypothetical. A 600-subject dataset with one subject
-censored far beyond every event time converges without a warning and
-reports a log likelihood thousands of units away from the model’s, with
-a treatment coefficient wrong by tens of percent; <code>flexsurv</code>
-declines to fit the same data at all. <code><a href="../reference/rp_floored.html">rp_floored()</a></code> refuses
-it:</p>
+<p><strong>What the censored count used to mean.</strong> Up to frmtmb
+0.51.0 core formed a right-censored contribution as
+<code>log(1 - F(y))</code> on the probability scale and offered a family
+no complementary log-CDF slot to hand back <code>log S</code> directly.
+The scored <code>log S</code> carried absolute error about
+<code>eps / S</code>: exact at <code>-log S</code> of 10, wrong by
+1.7e-04 at 30, and floored at -35.127363 past 36. Past 30 its GRADIENT
+was exactly zero, so the optimizer priced such a row at a constant and
+fitted the others as if it were free.</p>
+<p>frmtmb 0.52.0 added the <code>lccdf</code> slot and this family
+supplies it, in closed form on all three scales, so no complement is
+formed and the floor is gone. <code>n_censored_deep</code> still counts
+the rows that used to fall in it, because a censored row whose fitted
+survival probability is <code>exp(-40)</code> is one the data barely
+constrain whatever the arithmetic does. It is a diagnostic now, and it
+does not refuse.</p>
+<p>Here is the design that made the old floor bite. One subject of 600
+is censored far beyond every event time, <code>flexsurv</code> declines
+to fit it at all, and on 0.51.0 it converged without a warning and
+reported a log likelihood thousands of units away from the model’s:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">20260905</span><span class="op">)</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">600</span></span>
@@ -342,23 +349,44 @@ it:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>converged <span class="op">=</span> <span class="va">bad_fit</span><span class="op">$</span><span class="va">opt</span><span class="op">$</span><span class="va">convergence</span>, logLik <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">bad_fit</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; converged    logLik </span></span>
 <span><span class="co">#&gt;    1.0000 -575.5379</span></span>
-<span><span class="fu"><a href="../reference/rp_floored.html">rp_floored</a></span><span class="op">(</span><span class="va">bad_fit</span><span class="op">)</span></span></code></pre></div>
-<p>The refusal is POST-FIT and cannot be otherwise:
-<code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> reads the optimizer’s own value and the family
-protocol has no hook that runs when a fit finishes.
-<code><a href="../reference/frm_curve.html">frm_curve()</a></code> and its two companions call
-<code><a href="../reference/rp_floored.html">rp_floored()</a></code> for you, so the documented way to inspect this
-family will not draw a curve off a fit like that one.</p>
-<p>Monotonicity of the cumulative hazard is the second floor, and it is
-not enforced; <code>flexsurv</code> does not enforce it either, and a
-spline that turns over inside the data range is an over-parameterized
-fit rather than something the software should have prevented. Where it
-turns over there is no hazard and the true log density is
-<code>-Inf</code>, so this family floors it to keep the optimizer alive,
-which makes <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> a pseudo-likelihood.
-<code><a href="../reference/rp_floored.html">rp_floored()</a></code> counts those rows too. You can see the same
-thing directly in the slope of the fitted log cumulative hazard, which
-must stay positive:</p>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/rp_floored.html">rp_floored</a></span><span class="op">(</span><span class="va">bad_fit</span>, action <span class="op">=</span> <span class="st">"report"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; List of 6</span></span>
+<span><span class="co">#&gt;  $ n_censored_deep: int 1</span></span>
+<span><span class="co">#&gt;  $ max_nlogS      : num 55.7</span></span>
+<span><span class="co">#&gt;  $ threshold      : num 19.2</span></span>
+<span><span class="co">#&gt;  $ n_nonmonotone  : int 0</span></span>
+<span><span class="co">#&gt;  $ scale          : chr "hazard"</span></span>
+<span><span class="co">#&gt;  $ n_obs          : int 600</span></span>
+<span><span class="co">#&gt;  - attr(*, "rows")=List of 2</span></span>
+<span><span class="co">#&gt;   ..$ censored   : int 1</span></span>
+<span><span class="co">#&gt;   ..$ nonmonotone: int(0)</span></span></code></pre></div>
+<p>That fit is now SCORED CORRECTLY and <code><a href="../reference/rp_floored.html">rp_floored()</a></code> does
+not refuse it. The one deep row is counted, at <code>-log S</code> of
+55.73, and its contribution is <code>-55.7302136</code> exactly where
+the old form gave <code>-Inf</code> and the floor gave -35.127363. The
+reported log likelihood reproduces an independent one written from the
+hazard-scale definition to 4.2e-12.</p>
+<p>What has NOT changed is that <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> and
+<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> cannot be gated from an extension.
+<code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> reads <code>object$opt$objective</code>, one
+number, and the protocol has no per-row or per-group log-likelihood slot
+through which a family could say which rows carried it.
+<code>post$fit_check</code>, frmtmb’s fit-end hook, is what this family
+uses instead: it warns as the fit is returned. That covers the
+monotonicity floor, which is a property of the fitted parameters. It
+cannot cover a row-level accounting that the protocol does not
+expose.</p>
+<p>Monotonicity of the cumulative hazard is the floor that remains, and
+it is not enforced; <code>flexsurv</code> does not enforce it either,
+and a spline that turns over inside the data range is an
+over-parameterized fit rather than something the software should have
+prevented. Where it turns over there is no hazard and the true log
+density is <code>-Inf</code>, so this family floors it to keep the
+optimizer alive, which makes <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> a pseudo-likelihood.
+<code><a href="../reference/rp_floored.html">rp_floored()</a></code> counts those rows and refuses on them, and
+<code>post$fit_check</code> warns about them as the fit is returned. You
+can see the same thing directly in the slope of the fitted log
+cumulative hazard, which must stay positive:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dlogH</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="va">logH</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>min_slope <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dlogH</span><span class="op">)</span>, all_increasing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">dlogH</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>

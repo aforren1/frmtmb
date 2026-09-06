@@ -156,6 +156,14 @@ written value is what lets a `pars` row be handed straight back as
 likewise drawn on that parameter and reported there, not on its link
 scale.
 
+A dpar's column is therefore on the scale its PRIOR was written on, and
+the column name does not say which: `sigma_Intercept` holds sigma under
+`set_prior(class = "sigma")`, on a model that gives sigma no predictor,
+and log sigma under `set_prior(class = "Intercept", dpar = "sigma")`, on
+a model that does. Only one of the two spellings is accepted on any one
+model, so a table cannot mix them, and the draw is used on the scale it
+was taken on either way.
+
 Parameters without a prior keep their `newparams` value. Whenever
 `prior` are used, or `newparams` uses the natural spelling, every fixed
 coefficient and every random-effect SD must be pinned by one or the
@@ -206,8 +214,7 @@ pp <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
                    prior = set_prior("normal(0, 1)", class = "b") +
                      set_prior("normal(0, 2)", class = "Intercept") +
                      set_prior("exponential(1)", class = "sd") +
-                     set_prior("exponential(1)", class = "Intercept",
-                               dpar = "sigma"),
+                     set_prior("exponential(1)", class = "sigma"),
                    nsim = 4, seed = 1)
 head(attr(pp, "pars"))
 #>            x  Intercept sd_g__Intercept sigma_Intercept

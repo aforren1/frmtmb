@@ -77,8 +77,11 @@ accepted spellings (including a brms `brmsprior`) to one,
 `list(entries, lower, upper)` on the internal parameter scale,
 `neg_log_prior_fn()` turns resolved entries into a tapeable closure,
 `resolve_bounds()` turns user-spelled bounds into internal-scale vectors
-over the outer parameters, and `spec_target()` names the slot one
-specification addresses.
+over the outer parameters, `spec_target()` names the slot one
+specification addresses, and `spec_spelling()` gives back the class and
+dpar it was WRITTEN with, which for a density on a distributional
+parameter itself is that parameter's own class rather than the intercept
+slot the resolver assigns to.
 
 `frmtmb_register_prior_defaults()` is the other direction: it lets a
 package tell
@@ -153,13 +156,47 @@ directional claim.
 
 `ce_grids_build()` builds the prediction grids, effect list, condition
 sets and base values; `ce_boot_one()` evaluates one grid at one
-parameter vector and flattens it; `ce_finalize()` assembles the
-per-effect data frames into the returned object with the attributes
+parameter vector and flattens it; `ce_frame()` lays out one grid's rows
+in the column order brms's frame carries (the varied predictor(s), every
+other model variable at its held value, `cond__`, `cats__`, `effect1__`,
+`effect2__`), and `ce_finalize()` assembles the per-effect data frames
+into the returned object with the attributes
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) reads.
-`ce_cats_display()` says whether the display is per-category,
+`ce_cats_display()` says whether the display is per-category and
+`ce_display_kind()` which of the three displays a call asks for,
 `ce_structure_check()` is the refusal a structured likelihood owes a
 grid, and `ce_re_formula()` resolves the random-effect argument of such
 a call.
+
+`ce_pred_dpar()` says what to PREDICT, which is not always the dpar the
+display is labeled with. It returns `NULL` - the expected response -
+whenever no dpar was named and the family's mean is not the inverse link
+of `mu`, or the response carries
+[`trunc()`](https://rdrr.io/r/base/Round.html) bounds. Call it rather
+than passing a resolved `dpar` straight to `ce_boot_one()`: on a
+zero-inflated fit the mu predictor alone is `1 / (1 - zi)` times the
+mean, on a mixture it is one component's mean, and on a response
+truncated below at zero it can be negative. The predicate underneath
+stays private, because what an extension needs is the decision and not
+the test that makes it.
+
+`ce_dots()` is the argument surface itself: it pulls `allow_new_levels`
+(and lme4's `allow.new.levels`) out of a call's dots, returns whether
+either was set, and reports whatever is left as unknown. An extension
+that hand-rolls the same check accepts a different set of arguments from
+the fit method, which is how `allow_new_levels` came to work on a fit
+and warn on draws.
+
+Four more serve one purpose between them: making an unobserved group a
+DRAWN group rather than letting the first observed one stand in for it
+silently. `ce_group_vars()` names the grouping variables a
+`re_formula = NULL` call blanks in its grid; `ce_new_level_spec()` reads
+the blocks that blanking reaches; `ce_boot_grids()` puts a placeholder
+level back in the grid the design has to map; and `ce_draw_new_levels()`
+overwrites that level's coefficients with one draw from the covariance
+the passed object's own `theta` implies. A sampler calls the last one
+per POSTERIOR DRAW where the fit method calls it per bootstrap
+replicate; the construction is the same and the frames stay comparable.
 
 ## The two-dialect argument seam
 

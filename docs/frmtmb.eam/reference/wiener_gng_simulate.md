@@ -16,7 +16,10 @@ wiener_gng_simulate(
   bs = 1.4,
   ndt = 0.25,
   bias = 0.5,
-  deadline = 1.5
+  deadline = 1.5,
+  sv = 0,
+  sz = 0,
+  st = 0
 )
 ```
 
@@ -45,6 +48,13 @@ wiener_gng_simulate(
 - deadline:
 
   The response deadline. One number, or one per trial.
+
+- sv, sz, st:
+
+  Across-trial variability in the drift rate, the relative start point
+  and the non-decision time, as
+  [`ddm_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ddm_simulate.md)
+  takes them. Zero, the default, is the plain model.
 
 ## Value
 

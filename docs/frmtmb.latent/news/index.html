@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,15 +44,22 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="frmtmblatent-020">frmtmb.latent 0.2.0<a class="anchor" aria-label="anchor" href="#frmtmblatent-020"></a></h2>
+<p><code><a href="../reference/hmm.html">hmm()</a></code> declares the per-sequence log-likelihood, so <code>frm(importance = )</code> and <code>loo()</code> on draws reach it. Requires frmtmb 0.53.0 for the factorization slot.</p>
+<ul><li><p><code><a href="../reference/hmm.html">hmm()</a></code> declares <code>frmtmb_structure(loglik_group = )</code>: the log-likelihood of every sequence, which the forward recursion already produces on its way to the total. <code>frm(importance = )</code> can correct an hmm() fit whose grouping factor is its own sequence variable, and <code>loo()</code> on sampled draws has one column per sequence instead of a refusal. There is no <code>loglik_row</code>, and its absence is the answer rather than an omission: a row’s emission density is not its contribution to the likelihood, because the state that emitted it was reached through every earlier row. <code>residuals(type = "deviance")</code> stays refused for exactly that reason, in the words it already used.</p></li>
+<li><p><code><a href="../reference/lca.html">lca()</a></code> declares neither slot, and says why in the source: its likelihood IS rowwise, because one row is one subject’s whole item response pattern, so <code>loo()</code> and <code>frm(importance = )</code> reach it through the ordinary path and a slot would be a second definition of the same numbers.</p></li>
+</ul></div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="frmtmblatent-010">frmtmb.latent 0.1.0<a class="anchor" aria-label="anchor" href="#frmtmblatent-010"></a></h2>
 <p>First release. <code><a href="../reference/hmm.html">hmm()</a></code> and <code><a href="../reference/lca.html">lca()</a></code> were part of frmtmb through v0.47.0 and move here unchanged, as step 10 (the last) of dev/structured-family-protocol.md.</p>
 <ul><li><p><code>hmm(K, family)</code> fits hidden Markov models: covariate-dependent transitions, a choice of initial distribution, the forward algorithm for the exact likelihood, and <code><a href="../reference/hmm_probs.html">hmm_probs()</a></code> and <code><a href="../reference/hmm_viterbi.html">hmm_viterbi()</a></code> for the smoothed occupancies and the decoded path.</p></li>
 <li><p><code>lca(K)</code> fits latent class analysis in the manner of poLCA: conditionally independent polytomous items, class-conditional item profiles as family extra parameters, and a multinomial logit on the class membership so that latent class REGRESSION is the ordinary fixed-effect machinery. <code><a href="../reference/lca_probs.html">lca_probs()</a></code> and <code><a href="../reference/lca_profiles.html">lca_profiles()</a></code> read the fit.</p></li>
 <li><p>Both reach frmtmb only through its exported extension API, and the suite asserts it: <code>test-structure-latent.R</code> scans every function in this namespace and fails if one reaches a frmtmb internal.</p></li>
-<li><p>The compatibility rules that name either family register from <code>.onLoad()</code>, so <code><a href="https://aforren1.github.io/frmtmb/reference/frm_compat.html" class="external-link">frm_compat()</a></code> gains their rows when this package is loaded and carries no dangling reference when it is not.</p></li>
+<li><p>The compatibility rules that name either family register from <code>.onLoad()</code>, so <code>frm_compat()</code> gains their rows when this package is loaded and carries no dangling reference when it is not.</p></li>
 <li><p>No behavior changed in the move. Every test came over with its assertions intact.</p></li>
 </ul></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

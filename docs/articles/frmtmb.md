@@ -242,15 +242,18 @@ the log-likelihood and `3e-5` relative in `sd(car)`, four orders below
 that parameter’s own standard error. Each decade of `con_sd` buys two
 more digits, at some cost in optimizer robustness.
 
-Because `esicar` constrains exactly, `con_sd` does not change what it
-fits: the likelihood, the estimates and `sd(car)` are all invariant to
-it. It is not inert everywhere, though. The coordinate it scales is
-carried into the standard errors from `predict(se.fit = TRUE)` and the
-conditional standard deviations from `ranef(condVar = TRUE)`, as
-`con_sd^2` in the variance. At the default that is `1.3e-5` relative,
-far below any digit worth reporting, but it grows a hundredfold per
-decade, so `con_sd = 0.1` would inflate those standard errors by about a
-tenth. Leave `con_sd` at its default on an `esicar` term.
+Because `esicar` constrains exactly, `con_sd` changes nothing it
+reports. The likelihood, the estimates, `sd(car)`, the standard errors
+from `predict(se.fit = TRUE)` and the conditional standard deviations
+from `ranef(condVar = TRUE)` are all invariant to it.
+
+The standard errors were not, through 0.52.0. The delta method paired
+the design columns with the parameters through an identity Jacobian,
+while the linear predictor sees the CENTERED field, so the coordinate
+`con_sd` scales was carried into every one of them as `con_sd^2` in the
+variance: `1.3e-5` relative at the default, and 7 to 13 percent at
+`con_sd = 0.1`. The Jacobian is now the centering projection itself,
+which annihilates that coordinate whatever its scale.
 
 All three constrained types differ from brms in one way that only shows
 on a disconnected adjacency matrix: frmtmb constrains each connected
@@ -398,14 +401,13 @@ pp <- frm_simulate(form, dd, nsim = 50, seed = 2,
                    prior = set_prior("normal(0, 1)", class = "b") +
                      set_prior("normal(0, 2)", class = "Intercept") +
                      set_prior("exponential(1)", class = "sd") +
-                     set_prior("normal(0, 1)", class = "Intercept",
-                               dpar = "sigma"))
+                     set_prior("exponential(1)", class = "sigma"))
 pars <- attr(pp, "pars")
 head(pars, 3)
-#>             x Intercept sd_g__Intercept sigma_Intercept
-#> 1 -0.89691455  3.267664     0.146652670      -0.9618920
-#> 2  1.36691810  4.070181     0.867184124       0.7864103
-#> 3 -0.04712552  1.338871     0.003779148      -2.0074329
+#>            x Intercept sd_g__Intercept sigma_Intercept
+#> 1 -0.8969145  3.274092       0.1466527       1.7307097
+#> 2  1.2004947 -1.598512       0.2034451       0.7437466
+#> 3 -2.0074329  1.767528       0.4951322       0.1981281
 # does the prior imply plausible data? slope against outcome spread
 plot(pars$x, apply(pp, 2, sd), xlab = "slope", ylab = "sd(y)")
 ```

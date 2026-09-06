@@ -13,7 +13,7 @@ matrix, and frmtmb::loo(), frmtmb::waic() and loo::psis() take it directly."></h
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -137,6 +137,19 @@ not refused. In-model imputation (<code>mi()</code>, <code>me()</code>) is refus
 same kind of reason: a latent value is a parameter, not an
 observation. Use <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> on the maximum-likelihood fits or
 <code><a href="https://aforren1.github.io/frmtmb/reference/frm_bootstrap.html" class="external-link">frmtmb::frm_bootstrap()</a></code> for those.</p>
+<p>A family that declares how its likelihood factorizes
+(<code>frmtmb::frmtmb_structure(loglik_group = )</code> or <code>(loglik_row = )</code>) is
+not in that position and is not refused. Its columns are the pieces
+it declares, at the COARSEST granularity it gives: a family that
+groups its likelihood is saying that its rows are not independently
+droppable, which is exactly the question a leave-one-out column asks.
+The matrix then carries <code>attr(x, "unit")</code> naming what a column is.
+<code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo::loo.matrix()</a></code> never sees that attribute and its printout says
+only "Computed from N by K log-likelihood matrix", which reads
+exactly like a per-observation one, so <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">waic()</a></code> and
+<code><a href="sample-loo.html">psis()</a></code> emit a message naming the unit and the column count when
+they are handed such a matrix. The elpd is then leave-one-UNIT-out,
+and the number itself carries no mark of that.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -161,7 +174,7 @@ observation. Use <code><a href="https://rdrr.io/r/stats/AIC.html" class="externa
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 0.8, 2.5)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   sigma              student_t(3, 0, 2.5)  [natural scale]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   sd                 student_t(3, 0, 2.5)  [natural sd scale]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   b                  (flat), as brms leaves slopes</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span>

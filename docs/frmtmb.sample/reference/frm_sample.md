@@ -448,7 +448,7 @@ prior_summary(ds3)
 }
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 1, 2.5)
-#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
+#>   sigma              student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
 #>   b                  (flat), as brms leaves slopes
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
@@ -459,7 +459,7 @@ prior_summary(ds3)
 #> https://mc-stan.org/misc/warnings.html#tail-ess
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 1, 2.5)
-#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
+#>   sigma              student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
 #>   b                  (flat), as brms leaves slopes
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
@@ -470,7 +470,7 @@ prior_summary(ds3)
 #> https://mc-stan.org/misc/warnings.html#tail-ess
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 1, 2.5)
-#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
+#>   sigma              student_t(3, 0, 2.5)  [natural scale]
 #>   b                  (flat), as brms leaves slopes
 #> Warning: The largest R-hat is 1.05, indicating chains have not mixed.
 #> Running the chains for more iterations may help. See
@@ -482,7 +482,7 @@ prior_summary(ds3)
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
 #> student_t(3, 1, 2.5) class=Intercept
-#> student_t(3, 0, 2.5) class=Intercept dpar=sigma scale=natural
+#> student_t(3, 0, 2.5) class=sigma scale=natural
 #> exponential(1) class=sd
 # }
 ```

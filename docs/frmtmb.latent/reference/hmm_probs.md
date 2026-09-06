@@ -2,7 +2,7 @@
 
 The smoothed occupancy `P(S_t = k | y)` for every row of the data, from
 a forward-backward pass at the estimates. This is the
-[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
+[`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
 analog
 [`mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.html),
 one rung up: an HMM's per-row state probability conditions on the WHOLE

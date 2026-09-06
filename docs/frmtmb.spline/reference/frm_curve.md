@@ -187,6 +187,29 @@ is now the whole cost, it is paid once because core memoizes it, and it
 grows with the total number of coefficients in the fit rather than with
 the grid.
 
+## Past a [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) knot span
+
+A [`frmtmb::ps()`](https://aforren1.github.io/frmtmb/reference/ps.html)
+basis is a partition of unity only between its frozen outer knots. Past
+them it is a partial sum that decays to zero, so a curve drawn there
+bends smoothly to whatever the rest of the body gives, which is exactly
+the shape a reader does not question. `predict(newdata = )` says so, and
+so does
+[`frmtmb::frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html),
+the seam this function reads. It is surfaced again here, ONCE per
+[`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) term per
+call and carrying the span, so that the sentence names the function you
+called: this one reads the seam on the grid, but
+[`frm_curve_deriv()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve_deriv.md)
+reads it on a three-point difference stencil and
+[`frm_curve_feature()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve_feature.md)
+on a five-point one, and core counts the rows it was handed.
+
+[`frm_curve_feature()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve_feature.md)
+REFUSES instead of warning. A band past the span is visibly wrong on the
+page; a peak located past it is a number with a standard error beside it
+and nothing to give it away.
+
 ## References
 
 Ruppert, D., Wand, M. P. and Carroll, R. J. (2003) *Semiparametric

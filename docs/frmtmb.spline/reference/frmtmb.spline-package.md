@@ -19,50 +19,64 @@ rest.
 
 ## What this package reads that frmtmb does not promise
 
-Two of the three things this package reads off a fitted object are
-documented seams and one is not. It is named here so that a reader does
-not have to discover it from the sources.
+Nothing, since frmtmb 0.52.0. Everything read off a fitted object is now
+a documented seam.
 
 - `fit$estimates` and `fit$obj` both have precedent: the
   `frmtmb::frmtmb-extension-api` example reads `fit$estimates`, and
   [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
   reads `fit$obj`.
 
-- **`fit$cache$Vjoint` has no precedent and is an internal.** It is the
-  memo written by frmtmb's `get_joint_cov()`, which is not exported and
-  not documented, and neither the slot nor its `list(V =, names =)`
-  shape appears anywhere in frmtmb's own documentation.
+- The joint covariance of a grid prediction comes from
+  [`frmtmb::frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html),
+  which is exported and documented. Up to frmtmb 0.51.0 there was no
+  such seam and
   [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
-  reads it because the alternative, recomputing the joint covariance
-  here, was both far slower and WRONG on an autoscaled fit.
+  read `fit$cache$Vjoint`, the memo written by an unexported
+  `get_joint_cov()`. That reach is gone, and with it the whole section
+  this one replaces.
 
-The consequences of that reach are bounded and are set out in full under
+The covariance check survives the change and still runs on every call:
+what it now verifies is that this package reads the seam correctly,
+rather than that a reconstruction reproduced core's number.
 [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md),
-section "The one internal this reaches into": a change to the name or
-the shape costs speed, a change to the meaning is caught by the
-covariance check that every call makes, and absence is the ordinary case
-on a fresh fit and is handled by warming the cache first. None of the
-three can produce a wrong number.
+section "The route to the covariance", sets it out.
 
-`dev/spline-seam-proposal.md` Part 1a asks core for an exported
-accessor, which would retire the reach entirely.
+## What core has since supplied, and what is still missing
 
-## Two limits that are core's to fix
+Three things this package used to work around are seams in frmtmb
+0.52.0.
 
-- [`logLik()`](https://rdrr.io/r/stats/logLik.html) and
-  [`AIC()`](https://rdrr.io/r/stats/AIC.html) on a
+- `lccdf`. A right-censored row is scored from `log S` directly, in
+  closed form on all three
   [`royston_parmar()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
-  fit report whatever the optimizer reached, and neither can be gated
-  from an extension: [`logLik()`](https://rdrr.io/r/stats/logLik.html)
-  reads `object$opt$objective` and the family protocol has no hook that
-  runs when a fit finishes. Where the likelihood was floored, those two
-  numbers are wrong and say nothing.
-  [`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md)
-  refuses, and
-  [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
-  calls it, but a user who reads
-  [`AIC()`](https://rdrr.io/r/stats/AIC.html) and nothing else gets no
-  signal. The fix is core's: an `lccdf` slot, or a post-fit family hook.
+  scales, so the floor at -35.127363 and the flat region past
+  `-log S = 30` are both gone.
+
+- `post$fit_check`, the fit-end family hook. A non-monotone fit warns as
+  it is returned rather than only when someone calls
+  [`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md).
+
+- [`frmtmb::frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html),
+  above.
+
+What is still missing is one thing, and it is the protocol's rather than
+this family's. `frmtmb_structure(loglik =)` returns one AD scalar, so
+core never sees the individual factors of a likelihood that factorizes.
+A **per-row log-likelihood slot** would give
+[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) and
+[`waic()`](https://aforren1.github.io/frmtmb/reference/loo.html) the
+pointwise matrix they need, and a **per-group log-likelihood slot**
+would give `frm(importance =)` the one value per group it corrects with.
+Neither exists, so [`logLik()`](https://rdrr.io/r/stats/logLik.html) and
+[`AIC()`](https://rdrr.io/r/stats/AIC.html) on a
+[`royston_parmar()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
+fit still report whatever the optimizer reached with no way to say which
+rows carried it;
+[`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md)
+is where that is read instead.
+
+## One limit that is core's to fix
 
 - A mapped random-effect block is untested here, because
   [`frmtmb::frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.html)

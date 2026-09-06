@@ -11,7 +11,7 @@ SIMULTANEOUS band that covers the whole curve at once."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -227,6 +227,25 @@ depends on the number of coefficients at all. The joint-precision
 solve is now the whole cost, it is paid once because core memoizes
 it, and it grows with the total number of coefficients in the fit
 rather than with the grid.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="past-a-ps-knot-span">Past a <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">ps()</a></code> knot span<a class="anchor" aria-label="anchor" href="#past-a-ps-knot-span"></a></h2>
+
+
+<p>A <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">frmtmb::ps()</a></code> basis is a partition of unity only between its
+frozen outer knots. Past them it is a partial sum that decays to
+zero, so a curve drawn there bends smoothly to whatever the rest of
+the body gives, which is exactly the shape a reader does not
+question. <code>predict(newdata = )</code> says so, and so does
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frmtmb::frm_lp_basis()</a></code>, the seam this function reads. It is
+surfaced again here, ONCE per <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">ps()</a></code> term per call and carrying the
+span, so that the sentence names the function you called: this one
+reads the seam on the grid, but <code><a href="frm_curve_deriv.html">frm_curve_deriv()</a></code> reads it on a
+three-point difference stencil and <code><a href="frm_curve_feature.html">frm_curve_feature()</a></code> on a
+five-point one, and core counts the rows it was handed.</p>
+<p><code><a href="frm_curve_feature.html">frm_curve_feature()</a></code> REFUSES instead of warning. A band past the
+span is visibly wrong on the page; a peak located past it is a
+number with a standard error beside it and nothing to give it away.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

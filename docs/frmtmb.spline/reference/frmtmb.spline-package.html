@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,40 +54,50 @@
     <h2 id="what-this-package-reads-that-frmtmb-does-not-promise">What this package reads that frmtmb does not promise<a class="anchor" aria-label="anchor" href="#what-this-package-reads-that-frmtmb-does-not-promise"></a></h2>
 
 
-<p>Two of the three things this package reads off a fitted object are
-documented seams and one is not. It is named here so that a reader
-does not have to discover it from the sources.</p><ul><li><p><code>fit$estimates</code> and <code>fit$obj</code> both have precedent: the
+<p>Nothing, since frmtmb 0.52.0. Everything read off a fitted object is
+now a documented seam.</p><ul><li><p><code>fit$estimates</code> and <code>fit$obj</code> both have precedent: the
 <code>frmtmb::frmtmb-extension-api</code> example reads <code>fit$estimates</code>, and
 <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html" class="external-link">frmtmb.sample::frm_sample()</a></code> reads <code>fit$obj</code>.</p></li>
-<li><p><strong><code>fit$cache$Vjoint</code> has no precedent and is an internal.</strong> It is
-the memo written by frmtmb's <code>get_joint_cov()</code>, which is not
-exported and not documented, and neither the slot nor its
-<code>list(V =, names =)</code> shape appears anywhere in frmtmb's own
-documentation. <code><a href="frm_curve.html">frm_curve()</a></code> reads it because the alternative,
-recomputing the joint covariance here, was both far slower and
-WRONG on an autoscaled fit.</p></li>
-</ul><p>The consequences of that reach are bounded and are set out in full
-under <code><a href="frm_curve.html">frm_curve()</a></code>, section "The one internal this reaches into": a
-change to the name or the shape costs speed, a change to the meaning
-is caught by the covariance check that every call makes, and absence
-is the ordinary case on a fresh fit and is handled by warming the
-cache first. None of the three can produce a wrong number.</p>
-<p><code>dev/spline-seam-proposal.md</code> Part 1a asks core for an exported
-accessor, which would retire the reach entirely.</p>
+<li><p>The joint covariance of a grid prediction comes from
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frmtmb::frm_lp_basis()</a></code>, which is exported and documented. Up to
+frmtmb 0.51.0 there was no such seam and <code><a href="frm_curve.html">frm_curve()</a></code> read
+<code>fit$cache$Vjoint</code>, the memo written by an unexported
+<code>get_joint_cov()</code>. That reach is gone, and with it the whole
+section this one replaces.</p></li>
+</ul><p>The covariance check survives the change and still runs on every
+call: what it now verifies is that this package reads the seam
+correctly, rather than that a reconstruction reproduced core's
+number. <code><a href="frm_curve.html">frm_curve()</a></code>, section "The route to the covariance", sets it
+out.</p>
     </div>
     <div class="section level2">
-    <h2 id="two-limits-that-are-core-s-to-fix">Two limits that are core's to fix<a class="anchor" aria-label="anchor" href="#two-limits-that-are-core-s-to-fix"></a></h2>
+    <h2 id="what-core-has-since-supplied-and-what-is-still-missing">What core has since supplied, and what is still missing<a class="anchor" aria-label="anchor" href="#what-core-has-since-supplied-and-what-is-still-missing"></a></h2>
 
 
-<ul><li><p><code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> and <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> on a <code><a href="royston_parmar.html">royston_parmar()</a></code> fit report whatever
-the optimizer reached, and neither can be gated from an extension:
-<code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> reads <code>object$opt$objective</code> and the family protocol has
-no hook that runs when a fit finishes. Where the likelihood was
-floored, those two numbers are wrong and say nothing.
-<code><a href="rp_floored.html">rp_floored()</a></code> refuses, and <code><a href="frm_curve.html">frm_curve()</a></code> calls it, but a user who
-reads <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> and nothing else gets no signal. The fix is core's:
-an <code>lccdf</code> slot, or a post-fit family hook.</p></li>
-<li><p>A mapped random-effect block is untested here, because
+<p>Three things this package used to work around are seams in frmtmb
+0.52.0.</p><ul><li><p><code>lccdf</code>. A right-censored row is scored from <code>log S</code> directly, in
+closed form on all three <code><a href="royston_parmar.html">royston_parmar()</a></code> scales, so the floor at
+-35.127363 and the flat region past <code>-log S = 30</code> are both gone.</p></li>
+<li><p><code>post$fit_check</code>, the fit-end family hook. A non-monotone fit warns
+as it is returned rather than only when someone calls
+<code><a href="rp_floored.html">rp_floored()</a></code>.</p></li>
+<li><p><code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frmtmb::frm_lp_basis()</a></code>, above.</p></li>
+</ul><p>What is still missing is one thing, and it is the protocol's rather
+than this family's. <code>frmtmb_structure(loglik =)</code> returns one AD
+scalar, so core never sees the individual factors of a likelihood
+that factorizes. A <strong>per-row log-likelihood slot</strong> would give
+<code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">waic()</a></code> the pointwise matrix they need, and a
+<strong>per-group log-likelihood slot</strong> would give <code>frm(importance =)</code> the
+one value per group it corrects with. Neither exists, so <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>
+and <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> on a <code><a href="royston_parmar.html">royston_parmar()</a></code> fit still report whatever the
+optimizer reached with no way to say which rows carried it;
+<code><a href="rp_floored.html">rp_floored()</a></code> is where that is read instead.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="one-limit-that-is-core-s-to-fix">One limit that is core's to fix<a class="anchor" aria-label="anchor" href="#one-limit-that-is-core-s-to-fix"></a></h2>
+
+
+<ul><li><p>A mapped random-effect block is untested here, because
 <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_control.html" class="external-link">frmtmb::frmtmb_control()</a></code> takes no <code>map</code> argument and there is
 therefore no supported route to one. The nearest reachable
 analogue is a distributional parameter held fixed, which sets

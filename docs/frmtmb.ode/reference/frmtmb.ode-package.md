@@ -12,7 +12,7 @@ Compartment models in pharmacokinetics are the main application.
 
 Useful links:
 
-- <https://aforren1.github.io/frmtmb/>
+- <https://aforren1.github.io/frmtmb/frmtmb.ode>
 
 - <https://github.com/aforren1/frmtmb>
 

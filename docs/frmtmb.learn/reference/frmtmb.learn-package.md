@@ -91,11 +91,14 @@ value per GROUP. These likelihoods factorize over subjects and again
 over trials, so the values exist; `frmtmb_structure(loglik =)` returns
 one AD scalar for the whole response and there is no slot to put them
 in. The same gap costs deviance residuals, which need a per-row
-saturated comparison. It does NOT cost `loo()` or `waic()`: those refuse
-for every frmtmb fit, an ordinary gaussian one included, because `frm()`
-is maximum likelihood and an elpd averages the likelihood over draws.
-That refusal is core-wide, unrelated to this seam, and closing the seam
-would not deliver it. The design is written up in frmtmb's
+saturated comparison. It does NOT cost
+[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) or
+[`waic()`](https://aforren1.github.io/frmtmb/reference/loo.html): those
+refuse for every frmtmb fit, an ordinary gaussian one included, because
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) is
+maximum likelihood and an elpd averages the likelihood over draws. That
+refusal is core-wide, unrelated to this seam, and closing the seam would
+not deliver it. The design is written up in frmtmb's
 `dev/rl-findings.md` under "Protocol seams": one slot carrying the
 finest factorization a family has, per row where one exists and per
 group otherwise, with `unit` left as the separate declaration of the
@@ -108,16 +111,24 @@ so it would fill a per-row slot the day one exists.
 ## What this package reads that frmtmb does not promise
 
 Nothing. Every accessor it uses is exported and documented:
-`frmtmb_family()`, `frmtmb_structure()`, `frmtmb_register_aterm()`,
-`frmtmb_register_compat()`, `compat_rule_builder()`,
-`single_response()`, `eval_dpars()` and `frame_block_of()`. There is one
-thing it wanted and could not have, and it is recorded rather than
-worked around: `frm_compat_features()` shows that an addition term is
-registered but not at what ARITY, so this package cannot verify that a
-`reward` term another package registered is the two-column one its
-families need. It declines to register over the top of an existing term,
-and the mismatch surfaces one step later as `frm()` refusing a missing
-`reward2`.
+[`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.html),
+[`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.html),
+[`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.html),
+[`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html),
+[`compat_rule_builder()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html),
+[`single_response()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html),
+[`eval_dpars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html)
+and
+[`frame_block_of()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html).
+There is one thing it wanted and could not have, and it is recorded
+rather than worked around:
+[`frm_compat_features()`](https://aforren1.github.io/frmtmb/reference/frm_compat_features.html)
+shows that an addition term is registered but not at what ARITY, so this
+package cannot verify that a `reward` term another package registered is
+the two-column one its families need. It declines to register over the
+top of an existing term, and the mismatch surfaces one step later as
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) refusing
+a missing `reward2`.
 
 ## Not built, and named
 

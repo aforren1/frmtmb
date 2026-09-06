@@ -53,7 +53,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 }
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 0.8, 2.5)
-#>   Intercept (sigma)  student_t(3, 0, 2.5)  [natural scale]
+#>   sigma              student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
 #>   b                  (flat), as brms leaves slopes
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.

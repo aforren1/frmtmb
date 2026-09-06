@@ -28,6 +28,45 @@ likelihood-ratio tests, AIC).
 | `(1 \| mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
 | `ar(t, g, cov = TRUE)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; `cov = TRUE` required (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
+| `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
+
+### Links
+
+Every link name brms 2.23.0 accepts is accepted here under the same
+spelling, and computes the same function: `logit`, `probit`,
+`probit_approx`, `cauchit`, `cloglog`, `softit`, `identity`, `log`,
+`log1p`, `logm1`, `inverse`, `1/mu^2`, `sqrt`, `softplus`, `squareplus`
+and `tan_half`. `power12` is frmtmb’s own, for the tweedie power
+parameter.
+
+Two cautions when porting a link:
+
+- [`stats::binomial()`](https://rdrr.io/r/stats/family.html),
+  [`stats::poisson()`](https://rdrr.io/r/stats/family.html) and
+  [`stats::Gamma()`](https://rdrr.io/r/stats/family.html) validate their
+  link string through
+  [`stats::make.link()`](https://rdrr.io/r/stats/make.link.html) before
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) sees it,
+  so a name `stats` has never heard of (`probit_approx`, `softit`,
+  `softplus`, `squareplus`) is refused by the constructor rather than by
+  frmtmb. Use frmtmb’s own family constructor instead:
+  `bernoulli(link = "softit")`, `Beta(link = "probit")`,
+  `negbinomial(link = "softplus")`.
+- brms’s `probit_approx` is two different functions inside brms itself.
+  Its Stan program uses `Phi_approx()`, the logistic of
+  `0.07056 x^3 + 1.5976 x`, while its R-side `inv_link()` answers
+  [`pnorm()`](https://rdrr.io/r/stats/Normal.html). frmtmb reproduces
+  the Stan form, because that is the likelihood a brms fit was actually
+  computed with.
+
+The ordinal families are the one place the roster is narrower:
+[`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+and
+[`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+take `logit` and `probit` only, and
+[`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+takes `logit` only.
 
 ## What changes
 
@@ -77,16 +116,57 @@ likelihood-ratio tests, AIC).
   penalized objective is now brms’s posterior density up to one `log(2)`
   per lower-bounded parameter, a constant that moves no mode.
 
-  **One divergence remains, and it is in frmtmb’s own spelling rather
-  than in the translation.**
+  **Which mode.** The optimum is the mode in the INTERNAL coordinates,
+  which is Stan’s target in unconstrained space, and not the mode of the
+  parameter’s own density. A density on `sigma` enters the objective as
+  `log p(sigma) + log|dsigma/deta|`, and what is maximized over
+  `eta = log sigma` is that whole sum, log-Jacobian included.
+
+  Measured on a gaussian `y ~ x` fit with `normal(2.5, 0.4)` on `sigma`,
+  over 150 rows drawn as `set.seed(150)`, `x <- rnorm(150)`,
+  `y <- rnorm(150, 1 + 0.5 * x, 2.2)`: frmtmb reports `sigma` 2.133344,
+  the mode of `L * p` in the LOG-SIGMA coordinate is 2.133358, and the
+  mode of `L * p` in the SIGMA coordinate is 2.126533. frmtmb matches
+  the log-sigma mode, and it does so deliberately: that coordinate is
+  Stan’s unconstrained target, and matching it is what keeps the two
+  packages’ objectives one function, which is what everything above
+  rests on. The gap to the sigma-coordinate mode is the same kind of
+  remark as the `log(2)`, and about the same size.
+
+  **Two rows frmtmb accepts and brms refuses.** A distributional class
+  written without `resp` on a MULTIVARIATE model applies to EVERY
+  response, following frmtmb’s own convention that a class-wide prior is
+  class-wide; brms refuses such a row and asks for `resp`. Write `resp`
+  to address one response. Separately,
+  [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  has no `disc` distributional parameter here at all, so a `disc`
+  formula is refused when the model is parsed and the acceptance rule
+  above is never reached for it.
+
+  **frmtmb’s own
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  takes brms’s words with brms’s meaning, and that is a BEHAVIOR CHANGE
+  for a script written before 0.53.0.** A distributional parameter has
+  two spellings, and brms accepts each only on the model the other does
+  not:
+
+  | the model | the spelling | the density is on |
+  |----|----|----|
+  | `bf(y ~ x)` | `set_prior(..., class = "sigma")` | sigma itself |
+  | `bf(y ~ x, sigma ~ 1)`, `sigma ~ x` | `set_prior(..., class = "Intercept", dpar = "sigma")` | the log-scale intercept of sigma’s predictor |
+
+  frmtmb says the same and refuses each spelling by name on the other’s
+  model, naming the one that applies. Before 0.53.0,
   `set_prior("student_t(3, 0, 2.5)", class = "Intercept", dpar = "sigma")`
-  means a density on LOG sigma here, and keeps that meaning; the same
-  row written brms’s way,
-  `prior(student_t(3, 0, 2.5), class = "sigma")`, means a density on
-  sigma. Port the brms spelling rather than rewriting it by hand: the
-  link spelling captures about 35 percent of the intended shift on a fit
-  with sigma near 0.135, and effectively none of it where brms’s
-  data-derived scale is large.
+  was accepted on a model with no `sigma` formula, where it meant a
+  density on LOG sigma. To reproduce that placement, write `sigma ~ 1`
+  in [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md), which
+  is the model that HAS a log-scale intercept; to get brms’s placement,
+  drop the `dpar =` and write the class. The numbers move with the
+  meaning: on a gaussian `y ~ x` with 200 rows and a maximum-likelihood
+  sigma of 2.0103, `normal(0, 0.5)` gave 1.9965 under the old link
+  spelling and gives 1.9429 under the class spelling, which is what
+  `brms::prior(normal(0, 0.5), class = "sigma")` gave all along.
 
   A prior class frmtmb keeps somewhere else (brms’s mixture `theta`,
   `simo`, `sds`, `sdgp`, `lscale`, `sdcar`, `car`) is refused by name,
@@ -545,7 +625,17 @@ comparison are all available here, and **frmtmb.latent** adds hidden
 Markov and latent class families, so the reasons to reach for brms
 itself are narrower than they look:
 
-- a marginal likelihood, and so a Bayes factor;
+- a marginal likelihood, and so a Bayes factor between models that are
+  not nested. A point null INSIDE one model is now answered here:
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  on a draws object reports the Savage-Dickey evidence ratio and
+  posterior probability that brms reports, for a population-level
+  coefficient whose prior is written about the coefficient itself (in
+  practice a `class = "b"` prior you wrote). It refuses, by name, on a
+  variance component, a correlation, a dispersion and the intercept,
+  because each of those is reported on a scale its prior is not written
+  on. What still needs brms is bridge sampling, which estimates the
+  marginal likelihood itself;
 - `reloo()` or `kfold()` on a model whose LOO approximation fails, since
   both need refits that this package does not do;
 - a family or term neither package here implements, which

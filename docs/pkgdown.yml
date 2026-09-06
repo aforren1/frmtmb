@@ -2,6 +2,7 @@ pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
+  bayesian-cognitive-modeling: bayesian-cognitive-modeling.html
   brms-migration: brms-migration.html
   case-studies: case-studies.html
   compatibility: compatibility.html
@@ -10,7 +11,7 @@ articles:
   habit: habit.html
   inputs: inputs.html
   reinforcement-learning: reinforcement-learning.html
-last_built: 2026-09-06T01:54Z
+last_built: 2026-09-06T12:14Z
 urls:
   reference: https://aforren1.github.io/frmtmb/reference
   article: https://aforren1.github.io/frmtmb/articles

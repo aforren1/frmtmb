@@ -14,7 +14,7 @@ needs a branch inside the core package.
 
 Useful links:
 
-- <https://aforren1.github.io/frmtmb/>
+- <https://aforren1.github.io/frmtmb/frmtmb.latent>
 
 - <https://github.com/aforren1/frmtmb>
 

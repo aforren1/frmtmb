@@ -11,7 +11,13 @@ response.
 ## Usage
 
 ``` r
-wiener_gng(deadline = NULL, max_ndt = NULL)
+wiener_gng(
+  deadline = NULL,
+  max_ndt = NULL,
+  variability = character(0),
+  nodes = c(sz = 7L, st = 21L),
+  nogo_nodes = c(sv = 15L, sz = 7L, st = 7L)
+)
 ```
 
 ## Arguments
@@ -26,6 +32,34 @@ wiener_gng(deadline = NULL, max_ndt = NULL)
 
   Upper bound for the non-decision time. `NULL`, the default, takes it
   from the fastest go response.
+
+- variability:
+
+  Which across-trial variability parameters to estimate: any of `"sv"`
+  (drift rate), `"sz"` (start point) and `"st"` (non-decision time),
+  exactly as
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+  takes them. The default estimates none.
+
+- nodes:
+
+  Gauss-Legendre node counts for the GO branch, which is
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)'s
+  density: the same names, the same meaning and the same defaults, so a
+  go trial is scored identically by the two families.
+
+- nogo_nodes:
+
+  Quadrature node counts for the NO-GO probability, which is a different
+  integral over the same three distributions. `sz` and `st` are
+  Gauss-Legendre counts, and `st` defaults lower than the density's
+  because the probability's range is not cut by the response time; `sv`
+  is a Gauss-Hermite count with no counterpart in
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md),
+  because there the drift integral is closed form. Only the entries for
+  the `variability` parameters in use are read. Raise `sv` for a wide
+  drift variability; see Across-trial variability for the measured
+  table.
 
 ## Value
 
@@ -137,28 +171,227 @@ response entry is a placeholder, so letting it into the bound would let
 a placeholder decide a parameter's range. A model with no go trials at
 all is refused: nothing in it identifies the non-decision time.
 
-## Across-trial variability, and why there is none here
+## Across-trial variability
 
+Ratcliff's `sv`, `sz` and `st` are here, named and linked exactly as
 [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
-offers Ratcliff's `sv`, `sz` and `st0`. This family offers none of the
-three, and the reason is the no-go branch rather than an oversight.
+names and links them, so a model moves between the two families by
+changing the family and nothing else:
 
-The go branch would inherit all three for free, because it is
+    frm(bf(rt | dec(responded) ~ cond, bias = 0.5),
+        family = wiener_gng(deadline = 1.5,
+                            variability = c("sv", "sz", "st")),
+        data = dat)
+
+The GO branch is
 [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)'s
-density. The no-go branch would not. The drift enters the DENSITY as an
-exponential-quadratic, which is what makes averaging over a normal drift
-exact and free; it enters the DISTRIBUTION FUNCTION through the
-eigenvalues of both series, where it is not, so `sv` would need a
-quadrature of its own rather than a completed square. `sz` and `st0`
-could be reached with the existing Gauss-Legendre nodes, but shipping
-two of three would make `variability =` mean something different here
-than it does on
-[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md),
-which is worse than not having it.
+density and inherits all three unchanged: it calls the same averaged
+density at the same nodes, so the two families agree to the last bit on
+a go trial. The NO-GO branch is the part that had to be written, and it
+is a different integral, because it averages the DISTRIBUTION FUNCTION
+rather than the density.
 
-EMC2's `DDMGNG` does carry all three, by calling a compiled distribution
-function that integrates them numerically. If you need them, that is
-where they are.
+Each of the three enters it its own way.
+
+- `sv`:
+
+  Quadrature, and the only one of the three that costs more here than in
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md).
+  The drift enters the density only as `exp(-v a w - v^2 t / 2)`, an
+  exponential-quadratic that a normal average integrates in closed form.
+  It enters the distribution function through the eigenvalues as well,
+  as `1 / (v^2 a^2 + k^2 pi^2)` in every term of the large-time series
+  and as the gambler's-ruin probability that series corrects, and
+  neither is an exponential-quadratic. So the no-go branch integrates
+  the drift by Gauss-Hermite, and `nogo_nodes` carries an `sv` entry
+  that
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+  has no use for.
+
+- `sz`:
+
+  The same Gauss-Legendre nodes the density uses, over the same uniform
+  start point.
+
+- `st`:
+
+  Shifts the DEADLINE. The density's non-decision-time range is cut at
+  the response time, because past that the decision time is negative and
+  the density is zero; the no-go probability has no such cut, because a
+  non-decision time past the deadline leaves the accumulator no time at
+  all and the probability of no response is then exactly one. The whole
+  range is averaged.
+
+The identity that ties the two branches together holds WHILE THE
+START-POINT RANGE STAYS INSIDE THE BOUNDARIES, which is where the model
+is defined: the go density integrated to the deadline plus the no-go
+probability is one, to 8.9e-16 in the plain family and to whatever the
+quadrature gives once a variability parameter is on. With the default
+`nogo_nodes` that is 3.9e-14 at `sv` = 0.6 and 2.0e-10 at `st` = 0.20,
+but only 8.1e-05 at `sv` = 2.0 and 9.9e-08 at `st` = 0.45. It is not
+"exactly" one, and the size of the gap is the `sv` row of the node table
+below.
+
+Outside the boundaries the two branches are no longer the same average
+of the same pair, and the mass is not conserved. Only the NO-GO branch
+clamps the start point; the go branch is left unclamped deliberately,
+because clamping it would break the bit-identity with
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md).
+Measured, at a deadline of 1.5:
+
+|                           |          |          |          |
+|---------------------------|----------|----------|----------|
+|                           | go       | no-go    | total    |
+| `sz` = 0.5, `bias` = 0.85 | 0.919017 | 0.051622 | 0.970639 |
+| `sz` = 0.9, `bias` = 0.90 | 0.780184 | 0.063186 | 0.843370 |
+
+so up to 16 percent of the pair's mass is missing there. What saves it
+is that the region is strictly downhill. Profiling `sz` on 2000 trials
+generated at `bias` = 0.85 and a true `sz` of 0.20, where the range
+leaves the boundary at `sz` = 0.30, the best point inside is 1867.975 at
+`sz` = 0.190 and the best point outside is 1678.640 at `sz` = 0.305: the
+interior peak wins by 189 log units and the surface is monotone across
+the crossing. The clamp is a barrier an optimizer walks away from, not
+an attractor, so a fit does not end up there. Read a fitted `sz` whose
+range crosses a boundary as a fit that has run out of model, not as an
+estimate.
+
+## How many nodes, and what they cost
+
+Measured against a 200-bit reference, over six parameter settings
+spanning deadlines 0.8 to 2.5, drifts 0.5 to 3, boundary separations 0.8
+to 2.5 and start points 0.4 to 0.8. Worst relative error, one parameter
+live at a time:
+
+|       |            |            |     |             |            |
+|-------|------------|------------|-----|-------------|------------|
+| nodes | `sz` = 0.1 | `sz` = 0.3 |     | `st` = 0.05 | `st` = 0.3 |
+| 3     | 4.5e-06    | 2.1e-03    |     | 3.4e-11     | 1.6e-06    |
+| 5     | 1.8e-11    | 6.4e-07    |     | 8.6e-15     | 4.0e-10    |
+| 7     | 5.1e-15    | 4.2e-11    |     | 6.3e-15     | 6.1e-14    |
+| 9     | 4.0e-15    | 2.1e-15    |     | 4.2e-15     | 2.7e-15    |
+
+Both saturate by seven nodes, and `st` saturates there where the
+DENSITY's own `st` integral needs 21. That is not a discrepancy: the
+density's range is cut at the response time and its integrand turns on
+sharply at the cut, and the probability has no cut at all.
+
+`sv` is the one that does not saturate:
+
+|       |            |            |            |
+|-------|------------|------------|------------|
+| nodes | `sv` = 0.3 | `sv` = 0.8 | `sv` = 1.5 |
+| 7     | 9.0e-07    | 8.9e-04    | 1.8e-02    |
+| 11    | 9.5e-12    | 3.8e-06    | 1.0e-02    |
+| 15    | 8.4e-15    | 1.3e-06    | 1.4e-03    |
+| 21    | 9.5e-15    | 3.3e-09    | 3.5e-05    |
+| 31    | 1.2e-14    | 1.2e-12    | 6.6e-07    |
+| 41    | 1.4e-14    | 2.8e-14    | 9.1e-08    |
+
+The node count a given accuracy needs rises with the product of the
+boundary separation and `sv`, because that product sets how sharp the
+transition in the drift is. The default of 15 holds 1e-14 at a narrow
+drift variability and 1e-6 at a moderate one; **raise
+`nogo_nodes = c(sv = 31)` or higher for a wide one**, and read the table
+rather than assuming the default is enough.
+
+The three do not compound. Measured jointly, the error of the full
+three-dimensional rule tracks the `sv` error alone to within a factor of
+three at every setting, so `sz` and `st` at seven nodes are there to not
+be the binding term, and `sv` is the only knob worth turning.
+
+The cost is a product, and it is the reason `nogo_nodes` exists as an
+argument separate from `nodes`. On 500 rows with all three live:
+
+|              |      |       |
+|--------------|------|-------|
+| `nogo_nodes` | grid | wall  |
+| 7, 5, 5      | 175  | 124 s |
+| 11, 5, 5     | 275  | 185 s |
+| 11, 7, 7     | 539  | 610 s |
+
+A model with one variability parameter pays one dimension of that and is
+cheap; the three-at-once model is the expensive one, and it is expensive
+because a distribution function with no closed form in any of the three
+has to be evaluated on a product grid.
+
+EMC2's `DDMGNG` carries the same three parameters, by calling a compiled
+distribution function that integrates them numerically. The two agree:
+over 108 grid points the no-go probability matches `1 - EMC2:::pDDM()`
+to 9.4e-14 with no variability, 2.4e-13 under `sv` and 3.9e-13 under
+`sz`, and the go density matches `EMC2:::dDDM()` to 1.2e-15.
+
+`st` needs a shift before the two are comparable, and the difference is
+a CONVENTION rather than a defect on either side. EMC2 takes `st0` as a
+uniform on `[t0, t0 + st0]`; this family takes `st` centred on `ndt`,
+following brms. Compare EMC2 at `t0` with this family at
+`ndt = t0 + st0 / 2` and the agreement is 1.5e-13 for the probability
+and 1.6e-15 for the density. Compare them without the shift and they
+differ by 14 to 45 percent, in the density as much as in the
+probability.
+
+## What a go/no-go design can and cannot identify
+
+`sv` is weakly identified here, and it is the design rather than the
+likelihood. With only one boundary observed, drift variability trades
+against the drift and the boundary separation along a ridge.
+
+Measured on 3000 simulated trials with a true `sv` of 0.6, this family
+returns 0.001 while
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+on the same generative parameters, seeing BOTH boundaries, returns
+0.612. Profiled at the true values of everything else the likelihood
+does peak at the truth, but the fit reaches a HIGHER log likelihood at
+`sv` near zero by moving the drift from 1.20 to 1.09 and the separation
+from 1.40 to 1.33. Nothing is wrong with the surface; the sample simply
+prefers that corner of the ridge.
+
+How much of that is the ONE observable boundary is less settled than the
+contrast suggests, and the honest statement is narrower. A grid search
+on two-boundary data from the same generative parameters, with `ndt` and
+`bias` held at the truth, finds the same corner there too: `sv` near
+zero beats the truth by 2.4 log units, against 1.8 on the go/no-go data.
+So the ridge is a property of the drift-diffusion likelihood and not
+only of this design; what the go/no-go design does is remove the
+boundary-proportion information that would otherwise help pin `sv`, and
+the evidence for that is the pair of fits above rather than a study.
+Either way the practical advice is the same.
+
+So read a small fitted `sv` here as "the data did not pin it" rather
+than as "there is no drift variability", and prefer to fix it, or to
+estimate it from a two-choice condition of the same experiment, over
+reading it off a go/no-go block. `sz` and `st` are better behaved,
+because both change the SHAPE of the go response time distribution
+rather than trading against its location.
+
+## Censoring
+
+A trial whose clock was stopped before it responded is a RIGHT-CENSORED
+observation, and the probability of it is the no-go probability at the
+time the clock stopped. This family declares that as its log survivor
+function, so `cens()` works:
+
+    frm(bf(rt | dec(responded) + cens(stopped) ~ cond),
+        family = wiener_gng(deadline = 1.5), data = dat)
+
+Left censoring, interval censoring and
+[`trunc()`](https://rdrr.io/r/base/Round.html) are refused, and not for
+want of an integral. The likelihood here is a defective density plus a
+point mass at "no response", and a truncation window on the response
+scale renormalizes the density while saying nothing about the mass, so
+the two halves of every row would be divided by different things. Right
+censoring has no such problem, because it replaces a whole row rather
+than reweighting it. So this family declares an `lccdf` and,
+deliberately, no `lcdf`.
+
+The refusal you will see is frmtmb's own and does not name this family:
+
+    cens()/trunc() need a family with a CDF (currently: gaussian,
+    lognormal, poisson, exponential, weibull, inverse.gaussian, cox) ...
+
+Read it as a decision rather than as an omission. It arrives from frame
+assembly, which runs before any family-supplied check, so this family
+has no seam that does not require claiming a CDF it does not have.
 
 ## Accuracy
 
@@ -240,7 +473,7 @@ fixef(fit)
 #> 
 #> $ndt
 #> (Intercept) 
-#>     1.70614 
+#>    1.706139 
 #> 
 #> $bias
 #> (Intercept) 

@@ -69,9 +69,10 @@ and computational-psychiatry literature, written as frmtmb families.
   be paid.
 - [`frm_task_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_simulate.md)
   draws whole datasets from the generative process, taking parameters
-  directly rather than through a formula. `frm_simulate()` is the other
-  route and goes through the fitted grammar; the two share the recursion
-  and are checked against each other.
+  directly rather than through a formula.
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.html)
+  is the other route and goes through the fitted grammar; the two share
+  the recursion and are checked against each other.
 - [`frm_learn_families()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_learn_families.md)
   is the reference table, including the map from each parameter to
   hBayesDM’s spelling of it.

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,7 @@ names.</p>
 a starting point.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://aforren1.github.io/frmtmb/" class="external-link">frmtmb</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://aforren1.github.io/frmtmb/frmtmb.sample">frmtmb.sample</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">9</span><span class="op">)</span></span>
 <span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">80</span><span class="op">)</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
@@ -202,6 +202,102 @@ on the same generics:</p>
 <code>Intercept</code>, not <code>(Intercept)</code> – because that is
 the vocabulary posterior, bayesplot and <code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code>
 already speak. <code>variables(ds)</code> lists them.</p>
+</div>
+<div class="section level2">
+<h2 id="conditional-effects-draw-the-frame-the-fit-draws">Conditional effects draw the frame the fit draws<a class="anchor" aria-label="anchor" href="#conditional-effects-draw-the-frame-the-fit-draws"></a>
+</h2>
+<p><code>conditional_effects(ds)</code> returns what
+<code>conditional_effects(fit)</code> returns: the same columns in the
+same order, the same grid, the same keys, and the same attributes brms’s
+<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> reads. What differs is where the band comes from.
+The curves are posterior expected-response draws, so
+<code>estimate__</code> is their mean and <code>lower__</code> and
+<code>upper__</code> are their percentiles, and
+<code>attr(df, "band")</code> reads <code>"posterior"</code>.</p>
+<p>The default display is the EXPECTED RESPONSE, not the <code>mu</code>
+predictor. On a zero-inflated or hurdle family, a mixture, or a
+<code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> response those are different curves, and the one
+you want is almost always the mean. Name a <code>dpar =</code> to get a
+predictor instead.</p>
+<p>Three arguments mean here what they mean on a fit.
+<code>int_conditions =</code> labels a moderator,
+<code>allow_new_levels =</code> is accepted in both spellings, and
+<code>re_formula = NULL</code> conditions on a NEW group: the grouping
+column of the returned frame reports <code>NA</code>, and each posterior
+draw carries that group’s effects drawn from its own covariance
+parameters. The band is wider than the population band by what that
+group’s variance adds, which is the whole point of asking.
+<code>seed =</code> makes the draw reproducible.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span>                 <span class="co"># population</span></span>
+<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x"</span>, re_formula <span class="op">=</span> <span class="cn">NULL</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x:z"</span>,</span>
+<span>                    int_conditions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>z <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>low <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, high <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, categorical <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># ordinal: E[category]</span></span></code></pre></div>
+<p>There is no <code>method =</code> and no <code>band =</code>. The
+curves ARE the posterior, so there is no wald/profile/boot choice to
+make. For a predictive band, quantile <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>
+over a grid you build yourself.</p>
+</div>
+<div class="section level2">
+<h2 id="evidence-ratios-and-bayes-factors">Evidence ratios and Bayes factors<a class="anchor" aria-label="anchor" href="#evidence-ratios-and-bayes-factors"></a>
+</h2>
+<p><code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code> reports <code>evid_ratio</code> and
+<code>post_prob</code> beside the interval. They are brms’s
+<code>Evid.Ratio</code> and <code>Post.Prob</code>, and they answer two
+different questions depending on how the hypothesis is written.</p>
+<p>A DIRECTIONAL hypothesis is the simple one. Its evidence ratio is the
+posterior odds of the claim, counted from the draws. No prior enters it,
+so it is always available.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x &gt; 0"</span><span class="op">)</span></span>
+<span><span class="va">h</span><span class="op">$</span><span class="va">evid_ratio</span>   <span class="co"># P(x &gt; 0) / P(x &lt; 0)</span></span>
+<span><span class="va">h</span><span class="op">$</span><span class="va">post_prob</span>    <span class="co"># P(x &gt; 0)</span></span></code></pre></div>
+<p>A POINT hypothesis is the Savage-Dickey density ratio: the posterior
+density of the tested quantity at the point, divided by its prior
+density there. For a point null nested inside the model, that ratio IS
+the Bayes factor. It needs a proper prior on the parameter, and
+<code><a href="../reference/frm_sample.html">frm_sample()</a></code> leaves class <code>"b"</code> flat by default
+because brms does, so write one:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, prior <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x = 0"</span><span class="op">)</span><span class="op">$</span><span class="va">evid_ratio</span></span></code></pre></div>
+<p>Without a proper prior the ratio is <code>NA</code> and a warning
+names the parameter and says what to write. The other rows of the same
+call still report.</p>
+<p>The numerator is a kernel density of the drawn quantity, with
+<code><a href="https://rdrr.io/r/stats/density.html" class="external-link">stats::density()</a></code>‘s default <code>nrd0</code> bandwidth over
+4096 grid points, read at the point with a spline. That is brms’s
+construction, so the two packages’ numbers are comparable. The
+denominator is not brms’s: brms estimates the prior density from
+<code>sample_prior = "yes"</code> draws, and this package evaluates it
+from the specification the model was sampled under. Half the Monte Carlo
+error goes away with it.</p>
+<p>A density ratio deserves an error bar. The between-chain Monte Carlo
+error of each ratio rides on the returned object:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x = 0"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">h</span>, <span class="st">"evid_ratio_mcse"</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="what-a-point-ratio-refuses">What a point ratio refuses<a class="anchor" aria-label="anchor" href="#what-a-point-ratio-refuses"></a>
+</h3>
+<p>Each refusal names the parameter and its own reason, and leaves that
+row’s <code>evid_ratio</code> at <code>NA</code>:</p>
+<ul>
+<li>the parameter has no proper prior. Write one and resample.</li>
+<li>the hypothesis names a variance component or a correlation. Their
+priors sit on the internal parameter, not on the reported quantity, and
+a point null at zero on a standard deviation is on the boundary, where a
+density ratio answers nothing.</li>
+<li>the hypothesis is not an affine function of the coefficients it
+names. The prior of a nonlinear function of them has no closed form
+here.</li>
+<li>the hypothesis names the intercept. Its prior is about the intercept
+at the predictor means, which is not the coefficient being tested.</li>
+</ul>
+<p>A contrast of several coefficients works when each carries a normal
+prior, because the prior of the contrast is then normal too.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="known-failure-a-tmbstan-built-against-stanheaders-2-39">Known failure: a tmbstan built against StanHeaders 2.39<a class="anchor" aria-label="anchor" href="#known-failure-a-tmbstan-built-against-stanheaders-2-39"></a>

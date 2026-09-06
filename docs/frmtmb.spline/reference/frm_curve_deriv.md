@@ -110,6 +110,24 @@ its covariance is `D V D'`, which is exact for the differenced basis;
 the only approximation is the difference itself, and `eps` controls
 that.
 
+## Past a [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) knot span
+
+Warned once per
+[`frmtmb::ps()`](https://aforren1.github.io/frmtmb/reference/ps.html)
+term per call, as
+[`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)'s
+section describes, and counted over the grid you passed rather than over
+the three-point stencil the design is built on.
+
+Past the outer knot the basis is exactly zero, so the DERIVATIVE design
+is exactly zero and those rows carry a standard error of exactly zero.
+They are covered with probability one, so they leave the max-deviation
+simulation instead of standardizing a zero deviation by a zero divisor;
+`simultaneous = TRUE` therefore still returns a band, computed over the
+rows that carry uncertainty. A grid on which EVERY row is past the outer
+knot has no such row, and the call refuses rather than returning a band
+with no content.
+
 ## See also
 
 [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md),
