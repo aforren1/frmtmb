@@ -122,9 +122,16 @@ test_that("the second derivative is the one gratia's fixed eps gets wrong", {
        mgcv::predict.gam(gm, newdata = gl, type = "lpmatrix")) / e^2
   }
   ref <- as.numeric(stencil(1e-4 * diff(range(g$x))) %*% stats::coef(gm))
-  expect_lt(max(abs(d2$.estimate - ref)), 1e-3)
-  # and the same calculation at gratia's fixed 1e-7 is wrong by orders
-  # of magnitude, which is the measurement the default eps rests on
+  good_err <- max(abs(d2$.estimate - ref))
+  expect_lt(good_err, 1e-3)
+  # and the same calculation at gratia's fixed 1e-7 is wrong by two
+  # orders of magnitude more. The SIZE of that error is roundoff and
+  # so is platform-dependent, measured 1.76 here against 0.42 on the
+  # Linux runner, which is why neither number is asserted: what is
+  # asserted is that it dwarfs the adaptive step's error and is a
+  # visible fraction of the second derivative's own scale.
   bad <- as.numeric(stencil(1e-7) %*% stats::coef(gm))
-  expect_gt(max(abs(bad - ref)), 0.5)
+  bad_err <- max(abs(bad - ref))
+  expect_gt(bad_err, 100 * good_err)
+  expect_gt(bad_err / max(abs(ref)), 0.005)
 })

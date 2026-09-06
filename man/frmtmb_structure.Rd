@@ -118,7 +118,7 @@ An object of class \code{frmtmb_structure}.
 \description{
 A \code{frmtmb_structure()} is what a family carries when its likelihood
 does not factorize over the rows of the data: a group-level
-\code{\link[brms:mixture]{mixture()}}, a hidden Markov chain, a latent class measurement model.
+\code{\link[=mixture]{mixture()}}, a hidden Markov chain, a latent class measurement model.
 It is one object with one contract, so the core needs no branch per
 family and a structured family can live in another package. Attach it
 with \code{frmtmb_family(structure = )}.
@@ -311,5 +311,5 @@ st
 \seealso{
 \link{frmtmb-extension-api} for the accessors a slot may use to
 read a fit, \code{\link[=latent_probs]{latent_probs()}} for the generic \code{latent_probs}
-answers, \code{\link[=frmtmb_family]{frmtmb_family()}}, \code{\link[brms:mixture]{mixture()}}
+answers, \code{\link[=frmtmb_family]{frmtmb_family()}}, \code{\link[=mixture]{mixture()}}
 }

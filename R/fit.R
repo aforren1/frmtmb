@@ -1036,11 +1036,6 @@ unfitted_object <- function(spec, frame, obj, template, bform, cl, REML,
   )
 }
 
-#' Refuse a method that reports a maximum-likelihood quantity on an
-#' object that has none. `what` names the method, so the one message
-#' still tells the user which call to change.
-#'
-#' @noRd
 #' The object really is a fit, before anything reaches into its slots.
 #'
 #' Without this the first reach lands inside `sdreport()` and the reader
@@ -1054,6 +1049,11 @@ require_frmtmb_fit <- function(fit, what) {
        call. = FALSE)
 }
 
+#' Refuse a method that reports a maximum-likelihood quantity on an
+#' object that has none. `what` names the method, so the one message
+#' still tells the user which call to change.
+#'
+#' @noRd
 require_fitted <- function(fit, what) {
   if (!inherits(fit, "frmtmb_unfitted")) return(invisible(NULL))
   stop(what, " needs a fitted model. This object was assembled by ",

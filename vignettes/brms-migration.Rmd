@@ -22,19 +22,19 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 
 | brms | frmtmb | notes |
 |---|---|---|
-| `bf(y ~ x + (x \| g))` | same | plus `us()`, `diag()`, `homdiag()`, `cs()`, `ar1()` wrappers |
-| `bf(y ~ x, sigma ~ z + (1 \| g))` | same | any dpar, full grammar |
+| `bf(y ~ x + (x | g))` | same | plus `us()`, `diag()`, `homdiag()`, `cs()`, `ar1()` wrappers |
+| `bf(y ~ x, sigma ~ z + (1 | g))` | same | any dpar, full grammar |
 | `bf(y ~ x, sigma = 1)` | same | fixed via TMB `map` |
 | `s(x)`, `t2(x, z)` | same | mgcv smooths in any dpar; `te()`/`ti()` unsupported |
-| `(1 \| p \| g)` | same | cross-formula RE correlation |
+| `(1 | p | g)` | same | cross-formula RE correlation |
 | `mvbind(y1, y2) ~ x`, `mvbf()`, `set_rescor()` | same | per-response families; `rescor` gaussian-only |
-| `y \| trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family |
+| `y | trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family |
 | `nl = TRUE` | same | a located prior places the start, else provide `start` (`par_template()` names it); se.fit on the nonlinear mu not yet |
 | `lf()`, `nlf()` | same | `nlf()` on any dpar, bodies chain to any depth (below) |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |
-| `(1 \| mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
+| `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
 | `ar(t, g, cov = TRUE)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; `cov = TRUE` required (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
@@ -315,8 +315,8 @@ when it refuses one:
 
 | brms | frmtmb |
 |---|---|
-| `mm(g1, g2, cor = FALSE)` | `diag(x \| mm(g1, g2))`, or `(x \|\| mm(g1, g2))` |
-| `mm(g1, g2, id = "q")` | the `\|ID\|` key, `(x \| q \| g)` - not yet over `mm()` |
+| `mm(g1, g2, cor = FALSE)` | `diag(x | mm(g1, g2))`, or `(x || mm(g1, g2))` |
+| `mm(g1, g2, id = "q")` | the `|ID|` key, `(x | q | g)` - not yet over `mm()` |
 | `mm(g1, g2, cov = A)` | `gr(g, cov = A)` - not yet over `mm()` |
 | `mm(g1, g2, by = )`, `pw =`, `dist =` | no equivalent yet |
 
@@ -394,7 +394,7 @@ direct translation, and the translation was verified against
 
 | nlme | frmtmb |
 |---|---|
-| `varIdent(form = ~ 1 \| g)` | `sigma ~ 0 + g` |
+| `varIdent(form = ~ 1 | g)` | `sigma ~ 0 + g` |
 | `varExp(form = ~ v)` | `sigma ~ v` |
 | `varPower(form = ~ v)` | `sigma ~ log(abs(v))` |
 | `varFixed(~ v)` | `sigma ~ offset(0.5 * log(v))` |

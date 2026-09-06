@@ -29,7 +29,7 @@ so cluster means may depend on covariates, which mclust cannot do.
 The location dpars are named \verb{mu<k>d<j>} (class k, response column
 j) and are individually overridable, e.g. \code{bf(Y ~ x, mu2d1 ~ 1)}
 (all except the first, \code{mu1d1}). Mixing weights are \verb{theta1 ... theta\{K-1\}}, multinomial logit against class K, each with its own
-linear predictor - so gating on covariates works like \code{\link[brms:mixture]{mixture()}}.
+linear predictor - so gating on covariates works like \code{\link[=mixture]{mixture()}}.
 }
 \details{
 Class covariances are family-level extra parameters, covariate-free,

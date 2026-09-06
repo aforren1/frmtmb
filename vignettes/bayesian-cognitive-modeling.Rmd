@@ -82,9 +82,9 @@ directly: Cohen's kappa, a sample correlation, a classification.
 
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
-| Rate_1 | `frm(k \| trials(n) ~ 1, family = binomial())` | identity | |
-| Rate_2 | `k \| trials(n) ~ 0 + g` | identity | |
-| Rate_3 | `k \| trials(n) ~ 1`, two rows | identity | |
+| Rate_1 | `frm(k | trials(n) ~ 1, family = binomial())` | identity | |
+| Rate_2 | `k | trials(n) ~ 0 + g` | identity | |
+| Rate_3 | `k | trials(n) ~ 1`, two rows | identity | |
 | Rate_4 | Rate_1's spelling; the predictive is `simulate()` | identity | the program's `thetaprior` is a prior draw with no data, dropped |
 | Rate_5 | Rate_3's spelling | identity | |
 | Survey | `frm(k ~ 1, family = bcm_survey(nmax = 500))` | identity | the number sent is summed out; `latent_probs()` reports it |
@@ -120,11 +120,11 @@ the same penalty so the constant is zero.
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
 | Correlation_1 | `mvbf(bf(x1 ~ 1), bf(x2 ~ 1)) + set_rescor(TRUE)` | identity | |
-| Correlation_2 | `se(sd, sigma = FALSE)` on each response plus `(1 \| p \| id)` | identity, inner gradient | `mi(sd)` cannot reach it; see below |
+| Correlation_2 | `se(sd, sigma = FALSE)` on each response plus `(1 | p | id)` | identity, inner gradient | `mi(sd)` cannot reach it; see below |
 | Kappa | `cbind(y1, y2, y3, y4) ~ 1` with `bcm_kappa()` | identity, structure | the tree is saturated, so the estimate IS Cohen's kappa |
 | ChangeDetection | `frm(c ~ 1, family = bcm_changepoint(t))` | identity, recovery | the changepoint is summed out; the port's continuous `tau` is a different model |
 | Planes | **refused**: the model has no free parameter | identity of the arithmetic | `bcm_planes_posterior()` computes it |
-| ChaSaSoon | `z \| trials(n) + vint(hi) + weights(w) ~ 1` with `bcm_binomial_band()` | identity | a band of counts, not a marginalization |
+| ChaSaSoon | `z | trials(n) + vint(hi) + weights(w) ~ 1` with `bcm_binomial_band()` | identity | a band of counts, not a marginalization |
 
 `mi(sd)` is frmtmb's measurement-error spelling and it does not reach
 Correlation_2: `mi()` refuses `rescor = TRUE`, and with a correlated
@@ -158,7 +158,7 @@ day either gate moves it says so.
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
 | Exams_1 | `mixture(binomial, binomial)` with `mu2` and `theta1` pinned by an offset | identity | |
-| Exams_2 | Exams_1 plus `(1 \| id)` on `mu1` | identity, inner gradient | **Laplace**; see below |
+| Exams_2 | Exams_1 plus `(1 | id)` on `mu1` | identity, inner gradient | **Laplace**; see below |
 | Malingering_1 | `mixture(binomial, binomial)`, both rates free | identity | label switching: the order restriction is a prior |
 | Malingering_2 | `mixture(beta_binomial, beta_binomial)` | identity | the per-person rate integrates out exactly, and **the second precision's estimate is infinity**; see below |
 | Cheating | `mixture(beta_binomial, beta_binomial)` | structure | classifies better than chance |
@@ -230,11 +230,11 @@ the evidence test can be written the moment it lands.
 
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
-| Pledgers_1 | `s \| trials(n) ~ 0 + g` | identity | |
+| Pledgers_1 | `s | trials(n) ~ 0 + g` | identity | |
 | Pledgers_2 | the same fit | structure | the order restriction does not bind at the estimate |
-| Geurts | `k \| trials(n) ~ group + (1 \| id)` with `bcm_binomial_probit()` | identity, inner gradient | |
+| Geurts | `k | trials(n) ~ group + (1 | id)` with `bcm_binomial_probit()` | identity, inner gradient | |
 | GeurtsOrderRestricted | the same fit | structure | whether the restriction binds is decided by the sign of the unrestricted delta |
-| Zeelenberg | `s \| trials(n) ~ both + (1 + both \|\| id)`, probit | structure | |
+| Zeelenberg | `s | trials(n) ~ both + (1 + both || id)`, probit | structure | |
 | OneSample | `frm(x ~ 1)`; delta is `mu / sigma` | structure | the book's parameterization is a reparameterization |
 | OneSampleOrderRestricted | the same fit | structure | the restriction does not bind |
 | TwoSample | `frm(v ~ g)`; delta is the standardized difference | identity | |
@@ -243,9 +243,9 @@ the evidence test can be written the moment it lands.
 
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
-| Retention_1 | `bf(k \| trials(n) ~ bcm_cap1(exp(-plogis(la) * t) + plogis(lb)), la ~ 1, lb ~ 1, nl = TRUE)` | identity | |
+| Retention_1 | `bf(k | trials(n) ~ bcm_cap1(exp(-plogis(la) * t) + plogis(lb)), la ~ 1, lb ~ 1, nl = TRUE)` | identity | |
 | Retention_2 | the same with `la ~ 0 + id, lb ~ 0 + id` | identity | |
-| Retention_3 | the same with `la ~ 1 + (1 \| id)` and `lb ~ 1 + (1 \| id)` | identity, inner gradient | the group distribution is logit-normal, not the book's truncated normal |
+| Retention_3 | the same with `la ~ 1 + (1 | id)` and `lb ~ 1 + (1 | id)` | identity, inner gradient | the group distribution is logit-normal, not the book's truncated normal |
 
 The `min(1, .)` in the retention curve is carried, through
 `bcm_cap1()`, and it is not decoration: one subject recalled every item
@@ -278,8 +278,8 @@ hierarchical model gives them independent group distributions.
 
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
-| SDT_1 | `y \| trials(N) ~ 0 + case:half + case:bias`, `bcm_binomial_probit()` | identity | the demo data separate one case, so the book's own first data set has no finite estimate |
-| SDT_2 | `y \| trials(N) ~ 0 + half + bias + (0 + half + bias \|\| id)` | identity, inner gradient | **Laplace** |
+| SDT_1 | `y | trials(N) ~ 0 + case:half + case:bias`, `bcm_binomial_probit()` | identity | the demo data separate one case, so the book's own first data set has no finite estimate |
+| SDT_2 | `y | trials(N) ~ 0 + half + bias + (0 + half + bias || id)` | identity, inner gradient | **Laplace** |
 | SDT_3 | the SDT_2 fit | identity against SDT_3's program at `xi = 1` | parameter expansion is a ridge, not a model |
 
 frmtmb's link registry has no probit. A link is a plain list of four
@@ -291,8 +291,8 @@ one and no change to the core is needed; the gap itself is recorded in
 
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
-| PsychophysicalFunction1 | `frm(r \| trials(n) ~ xc + (xc \|\| subj))` | identity, inner gradient | **Laplace** |
-| PsychophysicalFunction2 | the same plus `phi ~ 1 + (1 \| subj)` with `bcm_contaminant()` | identity, inner gradient | **Laplace**; the contaminant rate is integrated out |
+| PsychophysicalFunction1 | `frm(r | trials(n) ~ xc + (xc || subj))` | identity, inner gradient | **Laplace** |
+| PsychophysicalFunction2 | the same plus `phi ~ 1 + (1 | subj)` with `bcm_contaminant()` | identity, inner gradient | **Laplace**; the contaminant rate is integrated out |
 | PsychometricFunction1_Answers | PsychophysicalFunction1's fit | structure | the exercise answers derive JND and PSE from the same fit |
 
 The book's contaminant process has a rate of its own per cell with a
@@ -321,7 +321,7 @@ likelihood is identical, so frmtmb fits them once.
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
 | MPT_1 | `cbind(k1, k2, k3, k4) ~ 1` with `bcm_mpt_pairs()` | identity, structure | |
-| MPT_2 to MPT_5 | `1 + (1 \| p \| id)` on each of the three probits | identity, inner gradient | **Laplace**; the correlations are the latent-trait ones and their standard errors do not exist; see below |
+| MPT_2 to MPT_5 | `1 + (1 | p | id)` on each of the three probits | identity, inner gradient | **Laplace**; the correlations are the latent-trait ones and their standard errors do not exist; see below |
 
 The hierarchical fit is the one in the port whose `diagnose()` is not
 clean, and the reason is the model rather than the search. Four
@@ -351,8 +351,8 @@ asserts every line of what `diagnose()` says.
 
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
-| SIMPLE_1 | `bf(k \| trials(n) ~ 0 + set, s ~ 0 + set, t ~ 0 + set)` with `bcm_simple(set, pos, m)` | identity | needs a start above the cap; see below |
-| SIMPLE_2 | `bf(k \| trials(n) ~ 1, s ~ 1, t ~ ll)` with `link_t = "identity"` | structure | the threshold is a linear function of list length, so its link is the identity |
+| SIMPLE_1 | `bf(k | trials(n) ~ 0 + set, s ~ 0 + set, t ~ 0 + set)` with `bcm_simple(set, pos, m)` | identity | needs a start above the cap; see below |
+| SIMPLE_2 | `bf(k | trials(n) ~ 1, s ~ 1, t ~ ll)` with `link_t = "identity"` | structure | the threshold is a linear function of list length, so its link is the identity |
 
 An item's discriminability is its similarity relative to every other
 item in the SAME list, so one row's contribution reads the whole list:
@@ -372,7 +372,7 @@ every start at or above it reaches the same optimum.
 |---|---|---|---|
 | Ability | Correlation_1's spelling | identity, at Correlation_1 | the hundred pairs of proportions are not re-embedded |
 | OptionalStopping | Correlation_1's spelling | identity | |
-| Extraversion | `mvbf()` of a probit binomial and a probit gaussian sharing `(1 \| p \| id)` | identity, inner gradient | **Laplace** |
+| Extraversion | `mvbf()` of a probit binomial and a probit gaussian sharing `(1 | p | id)` | identity, inner gradient | **Laplace** |
 | OptionalStopping_Answer_1 | not ported | | the chapter's exercise answers, on the model OptionalStopping already ports |
 
 Extraversion is the reason `bcm_gaussian_probit()` exists. The book
@@ -390,8 +390,8 @@ the term. `vreal()` is the channel a custom family IS given.
 
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
-| GCM_1 | `y \| trials(t) ~ 1` with `bcm_gcm(stim, d1, d2, a)` | identity | |
-| GCM_2 | `bf(y \| trials(t) ~ 0 + subj, w ~ 0 + subj)` | identity | ten of the forty subjects |
+| GCM_1 | `y | trials(t) ~ 1` with `bcm_gcm(stim, d1, d2, a)` | identity | |
+| GCM_2 | `bf(y | trials(t) ~ 0 + subj, w ~ 0 + subj)` | identity | ten of the forty subjects |
 | GCM_3, GCM_3_optimized | not ported | | the case study's own contaminant extension; the same family with a mixture on top |
 
 ## Chapter 19, the Balloon Analogue Risk Task

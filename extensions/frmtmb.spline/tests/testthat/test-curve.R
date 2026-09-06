@@ -285,9 +285,13 @@ test_that("a factor-smooth model costs the documented number of calls", {
   sv <- stats::rnorm(n_sub, 0.5, 0.04)
   d$v <- peak(d$t, h[sub], sv[sub]) + stats::rnorm(nrow(d), 0, 0.06)
 
-  fit <- frmtmb::frm(
+  # suppressWarnings: this fit reaches a maximum absolute gradient of
+  # about 1.5e-3 on some platforms and not others. What this test
+  # measures is the number of predict() calls and the covariance
+  # identity below, neither of which that touches.
+  fit <- suppressWarnings(frmtmb::frm(
     frmtmb::bf(v ~ s(t, k = 12) + s(t, subject, bs = "fs", k = 5)),
-    family = stats::gaussian(), data = d)
+    family = stats::gaussian(), data = d))
   expect_equal(length(fit$estimates$b), 110L)
   g <- data.frame(t = seq(0, 1, length.out = 80))
   cv <- frm_curve(fit, newdata = g, re.form = NA, simultaneous = FALSE)
