@@ -33,6 +33,16 @@ hBayesDM spells the two-armed bandit's learning rate \code{A}, the
 reversal models' sensitivity \code{beta}, and the Iowa gambling task's
 UTILITY EXPONENT \code{alpha}.
 
+ONE ROW HAS NO COUNTERPART. \code{\link[=rlddm]{rlddm()}} is a delta rule feeding a
+drift-diffusion choice rule, and hBayesDM ships the two halves
+separately (\code{bandit2arm_delta} and \code{choiceRT_ddm}) rather than the
+join. Its \code{hbayesdm} cell says \code{none} rather than naming a model it
+is not, and \code{?rlddm} says which of that package's parameters map onto
+which of its own. \code{\link[=igt_orl]{igt_orl()}}'s cell is a rename with one transform:
+hBayesDM bounds \code{K} to \verb{(0, 5)} through a probit where this family
+puts it on \verb{(0, Inf)} with a log link, and the two are the same
+number on the same scale wherever hBayesDM's bound is not binding.
+
 Two cautions the map does not remove. Core refuses a distributional
 parameter name containing a dot or an underscore, which is why the
 dual-rate family spells its rates \code{Arew} and \code{Apun} rather than

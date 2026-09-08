@@ -4,14 +4,7 @@
 \alias{frm_task_simulate}
 \title{Draw datasets from a learning family's generative process}
 \usage{
-frm_task_simulate(
-  family,
-  data,
-  pars,
-  nsim = 1L,
-  response = "choice",
-  seed = NULL
-)
+frm_task_simulate(family, data, pars, nsim = 1L, response = NULL, seed = NULL)
 }
 \arguments{
 \item{family}{A family from this package, such as
@@ -29,7 +22,11 @@ is what a reversal is: see the example.}
 
 \item{nsim}{Datasets to draw.}
 
-\item{response}{Name of the column the drawn choice goes into.}
+\item{response}{Name of the column the drawn response goes into.
+\code{NULL}, the default, uses the family's own: \code{choice} for a family
+whose response is the option taken, \code{rt} for \code{\link[=rlddm]{rlddm()}}, whose
+response is the response time and whose drawn choice is written
+beside it.}
 
 \item{seed}{Passed to \code{\link[=set.seed]{set.seed()}} when not \code{NULL}.}
 }

@@ -267,3 +267,114 @@ test_that("a parameter may vary within a subject, one value per row", {
   expect_error(frm_task_simulate(fam, d, pars = list(alpha = a[-1], tau = 1)),
                "one per row")
 })
+## ------------------------------------------- the round-two additions
+
+test_that("rlddm refuses a response that is an option code", {
+  d <- frm_task_design("bandit2arm", n_subject = 4L, n_trial = 20L,
+                       seed = 81L)
+  d$choice <- rep_len(c(0, 1), nrow(d))
+  d$rt <- rep_len(c(1, 2), nrow(d))
+  expect_error(
+    frmtmb::frm(
+      frmtmb::bf(choice | dec(choice) + reward(pay1, pay2) ~ 1,
+                 drift ~ 1, bs ~ 1, ndt ~ 1, bias ~ 1),
+      family = rlddm(subject = id, trial = trial), data = d),
+    "the response is the response TIME")
+})
+
+test_that("rlddm refuses a non-decision-time bound above the fastest response", {
+  skip_if_not_installed("RWiener")
+  d <- frm_task_design("bandit2arm", n_subject = 4L, n_trial = 20L,
+                       seed = 82L)
+  d <- frm_task_simulate(
+    rlddm(subject = id, trial = trial), d,
+    pars = list(alpha = 0.4, drift = 3, bs = 1.6, ndt = 0.2, bias = 0.5),
+    seed = 82)[[1L]]
+  expect_error(
+    frmtmb::frm(
+      frmtmb::bf(rt | dec(choice) + reward(pay1, pay2) ~ 1, drift ~ 1,
+                 bs ~ 1, ndt ~ 1, bias ~ 1),
+      family = rlddm(subject = id, trial = trial,
+                     max_ndt = max(d$rt) + 1), data = d),
+    "above the fastest response")
+})
+
+test_that("rlddm refuses simulate() and names the whole-frame route", {
+  skip_if_not_installed("RWiener")
+  d <- frm_task_design("bandit2arm", n_subject = 4L, n_trial = 20L,
+                       seed = 83L)
+  d <- frm_task_simulate(
+    rlddm(subject = id, trial = trial), d,
+    pars = list(alpha = 0.4, drift = 3, bs = 1.6, ndt = 0.2, bias = 0.5),
+    seed = 83)[[1L]]
+  fit <- frmtmb::frm(
+    frmtmb::bf(rt | dec(choice) + reward(pay1, pay2) ~ 1, drift ~ 1,
+               bs ~ 1, ndt ~ 1, bias ~ 1),
+    family = rlddm(subject = id, trial = trial), data = d)
+  expect_error(stats::simulate(fit), "frm_task_simulate")
+})
+
+test_that("rlddm's simulator writes both a time and a boundary", {
+  skip_if_not_installed("RWiener")
+  d <- frm_task_design("bandit2arm", n_subject = 5L, n_trial = 30L,
+                       seed = 84L)
+  s <- frm_task_simulate(
+    rlddm(subject = id, trial = trial), d,
+    pars = list(alpha = 0.4, drift = 3, bs = 1.6, ndt = 0.2, bias = 0.5),
+    seed = 84)[[1L]]
+  expect_true(all(c("rt", "choice") %in% names(s)))
+  # every response time is above the non-decision time by construction
+  expect_true(all(s$rt > 0.2))
+  expect_setequal(unique(s$choice), c(0L, 1L))
+  # THE VALUE STORE REACHES THE DRIFT RATE, asserted against two
+  # anchored claims rather than by comparing two random draws to each
+  # other. At drift 0 the drift is exactly zero on every trial, so each
+  # subject's boundary is a coin weighted by `bias` alone; at drift 12
+  # the learned value difference dominates and each subject locks onto
+  # one boundary.
+  #
+  # PER SUBJECT, and that is the whole measurement. A learner that
+  # locks onto its first-rewarded arm locks onto a DIFFERENT arm in
+  # different subjects, so the pooled share stays near 0.5 however
+  # decisive each subject is: measured over five seeds, the pooled
+  # statistic at drift 3 ranges 0.020 to 0.313 while the per-subject
+  # one ranges 0.233 to 0.313. The first version of this test used the
+  # pooled share and was a coin flip.
+  lock <- function(v) {
+    x <- frm_task_simulate(
+      rlddm(subject = id, trial = trial), d,
+      pars = list(alpha = 0.4, drift = v, bs = 1.6, ndt = 0.2,
+                  bias = 0.5), seed = 84)[[1L]]
+    mean(abs(tapply(x$choice, x$id, mean) - 0.5))
+  }
+  # measured over seeds 84 to 88: 0.047 to 0.087 at drift 0, and 0.320
+  # to 0.480 at drift 12
+  expect_lt(lock(0), 0.15)
+  expect_gt(lock(12), 0.25)
+})
+
+test_that("igt_orl swaps its two rates on the sign of the outcome", {
+  # A deck that has only ever paid is updated at Arew when it is played
+  # and at Apun counterfactually; the swap is what makes Arew and Apun
+  # different models rather than two names for one rate. Measured by
+  # fitting the same data under the two orders and requiring that the
+  # log-likelihood move.
+  d <- frm_task_design("igt", n_subject = 5L, n_trial = 60L, seed = 85L)
+  d$choice <- frm_task_simulate(
+    igt_orl(subject = id, trial = trial), d,
+    pars = list(Arew = 0.5, Apun = 0.05, k = 0.5, betaF = 1, betaP = 1),
+    seed = 85)[[1L]]$choice
+  f <- frmtmb::bf(choice | payoff(pay1, pay2, pay3, pay4) ~ 1, Apun ~ 1,
+                  k ~ 1, betaF ~ 1, betaP ~ 1)
+  fam <- igt_orl(subject = id, trial = trial)
+  a <- frmtmb::frm(f, family = fam, data = d,
+                   dry_run = "objective")
+  p <- a$obj$par
+  # the two rate positions swapped in the parameter vector
+  q <- p
+  ib <- which(names(p) == "beta")
+  id2 <- which(names(p) == "betad")
+  q[[ib[[1L]]]] <- p[[id2[[1L]]]]
+  q[[id2[[1L]]]] <- p[[ib[[1L]]]]
+  expect_false(isTRUE(all.equal(a$obj$fn(p), a$obj$fn(q))))
+})

@@ -4,7 +4,7 @@
 \alias{bandit4arm2_kalman_filter}
 \title{A Kalman filter over the restless four-armed bandit}
 \usage{
-bandit4arm2_kalman_filter(subject, trial = NULL, sigma_o = 4)
+bandit4arm2_kalman_filter(subject, trial = NULL, sigma_o = 4, bonus = FALSE)
 }
 \arguments{
 \item{subject}{The column separating one learner's trial sequence
@@ -21,6 +21,10 @@ rather than estimated. Daw and others use 4. It sets the scale the
 gain is measured against, and estimating it alongside \code{sigma0} and
 \code{sigmaD} asks the data to separate three quantities that enter
 through two ratios.}
+
+\item{bonus}{Add the exploration bonus to the choice rule, giving one
+more parameter \code{phi}. \code{FALSE}, the default, is the plain softmax
+over posterior means and is the model the first release fitted.}
 }
 \value{
 A \code{frmtmb_family} object, for \code{frm(family = )}.
@@ -66,12 +70,39 @@ argument, not a parameter, for that reason), and consider fixing
 
 \section{Exploration bonus}{
 
-Not implemented. Daw and others compare softmax choice with rules
-that add a bonus for uncertainty, and the filter here carries the
-variance those rules need, so it is a short addition; it is left out
-because a bonus and \code{tau} are hard to separate on the data sizes
-these studies run. The state is in \code{\link[=frm_value_trace]{frm_value_trace()}} as \code{s1} to
-\code{s4} if you want to look.
+\code{bonus = TRUE} adds Daw and others' exploration bonus: an arm's
+utility becomes
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{util[j] <- tau * (mu[j] + phi * sqrt(s[j]))
+}\if{html}{\out{</div>}}
+
+so an arm the subject is UNCERTAIN about is worth more than its
+posterior mean alone, by an amount \code{phi} the fit estimates. \code{phi} is
+an ordinary distributional parameter, so it takes a formula like any
+other; \code{phi = 0} is the plain softmax and is what \code{bonus = FALSE},
+the default, fits.
+
+IT IS OFF BY DEFAULT so that every fit made before it existed is
+unchanged, and the suite pins that by holding \code{phi} at zero with
+\code{bf(phi = 0)} and requiring the two log-likelihoods to agree.
+
+WHAT IT TRADES OFF AGAINST IS NOT \code{tau}, and this help said otherwise
+before the study ran. The reasoning was that both control how far
+choice departs from the current best arm. Measured at 30 subjects by
+100 trials with \code{center}, \code{mu0} and \code{sigma0} held at the task's own
+values, 60 replicates: \code{phi} recovers with a bias of +0.06 against a
+truth of 1.5, a spread of 0.14 and coverage 0.93, and its estimates
+correlate with \code{tau}'s at 0.12, which is nothing. What they correlate
+with is \code{sigmaD}, at -0.81, and after the fact that is the obvious
+pair: \code{phi} multiplies the posterior standard deviation and \code{sigmaD}
+sets how fast that standard deviation grows, so the two scale the
+same term. Report them together. \code{tau}'s own interval undercovers a
+little here, 0.85 against the nominal 0.95.
+
+Turn the bonus on when uncertainty-driven exploration is the question
+the study asks. Leaving \code{center}, \code{mu0} and \code{sigma0} free as well is
+not advisable on a session this size, for the reason the section
+above gives.
 }
 
 \section{The Laplace caveat}{
@@ -82,9 +113,19 @@ is quadratic. For binary choices it is not, and the fewer trials a
 subject has the less quadratic it is. Measured on this family, the
 fixed effects survive short sessions and the variance components do
 not: see the Laplace section of \code{vignette("learning")} and
-\code{?frmtmb.learn} for the numbers. \code{frm(importance =)}, which is the
-usual way to price that error, is REFUSED for every family here; the
-refusal names the seam.
+\code{?frmtmb.learn} for the numbers.
+
+\code{frm(importance =)}, the usual way to price that error, now WORKS for
+every family here. It was refused in the first release because the
+correction needs one log-likelihood value per subject and the
+structured protocol had no slot to put them in; the slots landed and
+the families declare them. What the correction is worth depends on
+the design and not on the family: at 40 subjects by 100 trials it
+moves a well-identified subject-level standard deviation up by about
+0.1 to 0.2 log units, toward the truth, with good diagnostics, and at
+20 trials it has nothing to correct because the Laplace fit has
+usually collapsed the component to zero already. \code{?frmtmb.learn}
+carries the per-dataset table.
 }
 
 \examples{

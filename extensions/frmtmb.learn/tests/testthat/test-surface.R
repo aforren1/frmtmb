@@ -69,22 +69,15 @@ test_that("every residual type refuses, each for its own stated reason", {
   # 'deviance' and 'osa' refuse earlier still, in this package's own
   # words, for reasons that would hold even if a mean existed
   expect_error(stats::residuals(f, type = "deviance"),
-               "loglik slot returns one total")
+               "SIGN rather than the magnitude")
   expect_error(stats::residuals(f, type = "osa"),
                "no registered observation vector")
 })
 
-test_that("conditional_effects and importance refuse by name", {
+test_that("conditional_effects refuses by name", {
   o <- ln_surface_fit()
   expect_error(frmtmb::conditional_effects(o$fit),
                "synthetic grid this function builds does not have")
-  expect_error(
-    frmtmb::frm(
-      frmtmb::bf(choice | reward(pay1, pay2) ~ after_reversal + (1 | id),
-                 tau ~ 1),
-      family = bandit2arm_delta(subject = id, trial = trial), data = o$d,
-      importance = 50),
-    "importance")
 })
 
 test_that("the reshaping addition terms refuse in the family's words", {
@@ -168,7 +161,8 @@ test_that("frm_value_trace refuses a fit it cannot replay", {
 
 test_that("the compatibility rows this package registered resolve", {
   fams <- c("bandit2arm_delta", "bandit2arm_dual", "prl_fictitious",
-            "bandit4arm2_kalman_filter", "ts_par7", "igt_pvl_delta")
+            "bandit4arm2_kalman_filter", "ts_par7", "igt_pvl_delta",
+            "igt_orl", "rlddm")
   feats <- frmtmb::frm_compat_features()
   expect_true(all(fams %in% feats$key))
   expect_true(all(c("frm_value_trace", "frm_task_simulate") %in% feats$key))
@@ -184,25 +178,33 @@ test_that("the compatibility rows this package registered resolve", {
       expect_true(st %in% ok, info = paste(nm, ft))
     }
   }
-  # the seam is named by name in the row it belongs to
+  # the seam the first release named in a refusal is now the row's
+  # explanation of why it works
   imp <- frmtmb::frm_compat("bandit2arm_delta", "importance")
-  expect_identical(imp$status, "refused")
-  expect_match(imp$note, "finest factorization")
-  # simulate is the one capability that differs between the families
+  expect_identical(imp$status, "works")
+  expect_match(imp$note, "loglik_group")
+  # simulate is one of the two capabilities that differ between them
   expect_identical(frmtmb::frm_compat("bandit2arm_delta", "simulate")$status,
                    "works")
-  expect_identical(frmtmb::frm_compat("ts_par7", "simulate")$status,
-                   "refused")
+  for (nm in c("ts_par7", "rlddm")) {
+    expect_identical(frmtmb::frm_compat(nm, "simulate")$status, "refused")
+  }
+  # the other is the REASON fitted() is refused, and rlddm is the one
+  # family here whose response is not a nominal option code
   expect_identical(frmtmb::frm_compat("igt_pvl_delta", "fitted")$status,
                    "refused")
   expect_match(frmtmb::frm_compat("igt_pvl_delta", "fitted")$note,
                "NOMINAL")
+  expect_identical(frmtmb::frm_compat("rlddm", "fitted")$status, "refused")
+  expect_match(frmtmb::frm_compat("rlddm", "fitted")$note,
+               "does have a conditional mean")
+  expect_identical(frmtmb::frm_compat("rlddm", "dec()")$status, "works")
 })
 
 test_that("the reference table matches the families that exist", {
   d <- frm_learn_families()
   expect_s3_class(d, "data.frame")
-  expect_equal(nrow(d), 6L)
+  expect_equal(nrow(d), 8L)
   for (nm in d$family) {
     expect_true(exists(nm, envir = asNamespace("frmtmb.learn")),
                 info = nm)
@@ -214,11 +216,21 @@ test_that("the reference table matches the families that exist", {
              bandit4arm2_kalman_filter =
                bandit4arm2_kalman_filter(subject = id),
              ts_par7 = ts_par7(subject = id),
-             igt_pvl_delta = igt_pvl_delta(subject = id))
+             igt_pvl_delta = igt_pvl_delta(subject = id),
+             igt_orl = igt_orl(subject = id),
+             rlddm = rlddm(subject = id))
   for (i in seq_len(nrow(d))) {
     listed <- trimws(strsplit(d$pars[i], ",")[[1L]])
     expect_setequal(listed, mk[[d$family[i]]]$learn$dpars)
-    # the hBayesDM column has one entry per parameter, in the same order
+    # the hBayesDM column has one entry per parameter, in the same
+    # order, EXCEPT where there is no counterpart model to map onto.
+    # rlddm() is that row: hBayesDM ships this family's two halves
+    # separately and neither is it, so the cell points at the help
+    # rather than listing five names that would each be a claim.
+    if (identical(d$hbayesdm[i], "none")) {
+      expect_match(d$hbayesdm_pars[i], "no counterpart")
+      next
+    }
     expect_length(trimws(strsplit(d$hbayesdm_pars[i], ",")[[1L]]),
                   length(listed))
   }

@@ -151,29 +151,25 @@ fitted(fit)
 ```
 
 `frm_value_trace()` above returns everything a mean would have carried,
-and more. The other refusal worth knowing is the Laplace correction:
-
-```{r refuse-importance, error = TRUE}
-frm(bf(choice | reward(pay1, pay2) ~ after_reversal + (1 | id), tau ~ 1),
-    family = bandit2arm_delta(subject = id, trial = trial), data = d,
-    importance = 200)
-```
-
-That refusal is honest but wider than the mathematics, and it names the
-seam that would close it. `frm_compat()` is the place to ask:
+and more. `frm_compat()` is the place to ask what else refuses:
 
 ```{r compat}
 frm_compat("bandit2arm_delta", "residuals")$status
 frm_compat("bandit2arm_delta", "s()")$status
+frm_compat("bandit2arm_delta", "importance")$status
 ```
+
+That last one refused in the first release and works now. The
+correction reweights draws from the Laplace Gaussian and needs one
+log-likelihood value per subject; the families declare them, so it runs.
+The next section says what it is worth.
 
 ## The Laplace caveat
 
 frmtmb integrates the subject effects out with a Laplace approximation,
 which is exact only when the conditional log-density is quadratic. For
 binary choices it is not, and the fewer trials a subject has the less
-quadratic it is. The consequence was measured by simulation, because
-`frm(importance =)`, the usual way to price it, is refused. 100
+quadratic it is. The consequence was measured by simulation, 100
 replicates at 40 subjects, the full tables in `?frmtmb.learn`:
 
 | parameter | bias at 100 trials | coverage | bias at 20 trials | coverage |
@@ -195,10 +191,25 @@ widens at least as fast as the estimate degrades and still covers 0.95.
 Treat a subject-level standard deviation from twenty binary trials as a
 lower bound, and read its interval rather than its point estimate.
 
-`frm(importance =)` is what would separate Laplace error from the
-ordinary downward bias of a variance component estimated from binary
-data with few levels, and it is refused, so the study measures the
-combined effect and says so.
+`frm(importance =)` is what separates Laplace error from the ordinary
+downward bias of a variance component estimated from binary data with
+few levels, and it now runs. Measured on this design, six datasets per
+cell: at 100 trials, where the Laplace fit has kept a real variance
+component, the correction moves `sd(alpha)` up by 0.11 to 0.18 log
+units and toward the truth, with a Monte Carlo standard error a third
+of that and effective sample sizes near 1. So part of the downward bias
+at 100 trials IS Laplace error, and it is a modest part.
+
+At 20 trials the correction has nothing to work with. Five of six
+Laplace fits have already collapsed `sd(alpha)` to 1e-4, and the
+correction then walks at its own step cap for every round while warning
+that it did not converge. A shift reported alongside that warning is
+the step cap rather than an estimate, so check `sqrt(VarCorr(fit))` and
+read the warning before believing one. The warning advises raising
+`frmtmb_control(importance_rounds =)`, and on a collapsed component
+that makes the artifact bigger in exact proportion: five rounds of a
+0.3645 cap give 1.822 and ten give 3.645. `?frmtmb.learn` carries the
+per-dataset table.
 
 ## The families
 
@@ -224,11 +235,18 @@ the two-step model, and loss aversion in the Iowa gambling task. Each
 family's help says which. In particular, hBayesDM's `alpha` for
 `igt_pvl_delta` is this package's `shape`, not this package's `alpha`.
 
-All six share one recursion, which walks trials once and updates every
-subject at each step. A family supplies a choice rule and a learning
-rule and is a few dozen lines; the walk, the padding for unequal trial
-counts, the softmax, and the three modes it runs in (likelihood, fitted
-trajectory, simulation) are written once.
+All eight share one recursion, which walks trials once and updates
+every subject at each step. A family supplies a choice rule and a
+learning rule and is a few dozen lines; the walk, the padding for
+unequal trial counts, the softmax, and the three modes it runs in
+(likelihood, fitted trajectory, simulation) are written once.
+
+`rlddm()` is the one that does not softmax. Its value difference drives
+the drift rate of a two-boundary diffusion, so a trial contributes the
+joint density of which boundary was reached and when, and choices and
+response times are modeled together. Its response is the response TIME
+and the boundary travels in `dec()`; the density comes from
+`frmtmb.eam::wiener_lpdf()`.
 
 A second family, to show how little changes. The dual-rate learner
 absorbs good news and bad news at different speeds, and the asymmetry is
@@ -251,12 +269,12 @@ the payoff is graded. See `?bandit2arm_dual`.
 
 ## Where to go next
 
-* `?bandit2arm_delta` and the other five family pages for the equations
-  and each family's own cautions.
+* `?bandit2arm_delta` and the other seven family pages for the
+  equations and each family's own cautions.
 * `?frm_value_trace` for the trajectory, and `?frm_task_simulate` for
   drawing datasets from the generative process.
-* `?frmtmb.learn` for the Laplace numbers and the protocol seam that
-  `frm(importance =)` waits on.
+* `?frmtmb.learn` for the Laplace numbers, the recovery tables, and
+  what `frm(importance =)` is worth on which designs.
 * `vignette("reinforcement-learning", package = "frmtmb")` for the
   structured-family protocol these families are built on, written out
   longhand for one model.

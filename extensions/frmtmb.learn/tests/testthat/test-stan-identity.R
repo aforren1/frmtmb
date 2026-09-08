@@ -180,3 +180,108 @@ test_that("ts_par7 reproduces a Stan program of the same model", {
                                 c2 = as.integer(d$choice2), pc = 0.7)),
               label = "ts_par7")
 })
+
+test_that("bandit4arm2_kalman_filter reproduces Stan with the bonus", {
+  skip_unless_stan()
+  set.seed(107)
+  ns <- 10L
+  fam <- bandit4arm2_kalman_filter(subject = id, trial = trial,
+                                   bonus = TRUE)
+  d <- frm_task_design("bandit4arm_restless", n_subject = ns, n_trial = 50,
+                       seed = 107)
+  d$cond <- factor(rep(c("a", "b"), length.out = ns)[as.integer(d$id)])
+  cb <- as.numeric("b" == as.character(d$cond[!duplicated(d$id)]))
+  tau <- exp(log(0.15) + 0.4 * cb + stats::rnorm(ns, 0, 0.3))
+  d$choice <- frm_task_simulate(
+    fam, d, pars = list(tau = tau, lambda = 0.98, center = 50, mu0 = 50,
+                        sigma0 = 10, sigmaD = 3, phi = 1.5),
+    seed = 107)[[1L]]$choice
+  fit <- frmtmb::frm(
+    frmtmb::bf(choice | payoff(pay1, pay2, pay3, pay4) ~ cond + (1 | id),
+               lambda ~ 1, center ~ 1, mu0 ~ 1, sigma0 ~ 1, sigmaD ~ 1,
+               phi ~ 1),
+    family = fam, data = d)
+  ln_lp_check(fit, ln_stan_code_kalman(bonus = TRUE),
+              ln_stan_data(fit, d, ~ cond,
+                           list(pay = as.matrix(d[, paste0("pay", 1:4)]),
+                                sigma_o = 4)),
+              label = "bandit4arm2_kalman_filter (bonus)")
+  # the bonus is the only difference between the two programs, so a
+  # non-zero phi must move the objective; otherwise this row would agree
+  # with the plain one for a reason that has nothing to do with sqrt(s)
+  expect_gt(abs(unlist(frmtmb::fixef(fit))[["phi.(Intercept)"]]), 0.1)
+})
+
+test_that("igt_orl reproduces a Stan program of the same model", {
+  skip_unless_stan()
+  set.seed(108)
+  ns <- 12L
+  fam <- igt_orl(subject = id, trial = trial)
+  d <- frm_task_design("igt", n_subject = ns, n_trial = 80, seed = 108)
+  d$cond <- factor(rep(c("a", "b"), length.out = ns)[as.integer(d$id)])
+  cb <- as.numeric("b" == as.character(d$cond[!duplicated(d$id)]))
+  ar <- stats::plogis(stats::qlogis(0.3) + 0.8 * cb +
+                        stats::rnorm(ns, 0, 0.5))
+  d$choice <- frm_task_simulate(
+    fam, d, pars = list(Arew = ar, Apun = 0.1, k = 0.5, betaF = 1,
+                        betaP = 1),
+    seed = 108)[[1L]]$choice
+  fit <- frmtmb::frm(
+    frmtmb::bf(choice | payoff(pay1, pay2, pay3, pay4) ~ cond + (1 | id),
+               Apun ~ 1, k ~ 1, betaF ~ 1, betaP ~ 1),
+    family = fam, data = d)
+  ln_lp_check(fit, ln_stan_code_orl(),
+              ln_stan_data(fit, d, ~ cond,
+                           list(pay = as.matrix(d[, paste0("pay", 1:4)]))),
+              label = "igt_orl")
+})
+
+test_that("rlddm reproduces a Stan program of the same model", {
+  skip_unless_stan()
+  skip_if_not_installed("RWiener")
+  set.seed(109)
+  ns <- 12L
+  fam <- rlddm(subject = id, trial = trial)
+  d <- frm_task_design("bandit2arm", n_subject = ns, n_trial = 60,
+                       seed = 109)
+  d$cond <- factor(rep(c("a", "b"), length.out = ns)[as.integer(d$id)])
+  cb <- as.numeric("b" == as.character(d$cond[!duplicated(d$id)]))
+  al <- stats::plogis(stats::qlogis(0.35) + 0.9 * cb +
+                        stats::rnorm(ns, 0, 0.6))
+  d <- frm_task_simulate(
+    fam, d, pars = list(alpha = al, drift = 3, bs = 1.6, ndt = 0.2,
+                        bias = 0.5), seed = 109)[[1L]]
+  fit <- frmtmb::frm(
+    frmtmb::bf(rt | dec(choice) + reward(pay1, pay2) ~ cond + (1 | id),
+               drift ~ 1, bs ~ 1, ndt ~ 1, bias ~ 1),
+    family = fam, data = d)
+  # THE ONE ROW IN THIS FILE THAT IS NOT EXACT, and it is worth knowing
+  # why. Every other program here evaluates the same arithmetic as the
+  # engine in a different order, so the two agree to the level of double
+  # accumulation, 1e-13 over several hundred trials. Stan implements the
+  # Wiener first-passage density ITSELF, with its own truncation, where
+  # frmtmb.eam evaluates Navarro and Fuss's two series and blends them
+  # smoothly. So this row compares two independent implementations of
+  # the density as well as two of the recursion.
+  #
+  # WHICH SIDE THE DIFFERENCE IS ON is settled by a third
+  # implementation rather than by the size of this residual: measured
+  # over 4000 rows spanning dt in (0.05, 3), drift in (-4, 4), boundary
+  # in (0.6, 2.5) and bias in (0.2, 0.8), frmtmb.eam's density differs
+  # from RWiener's by a median of 0 and a 99th percentile of 3.6e-15 per
+  # row. A per-row difference of about 4e-12 against Stan therefore sits
+  # on Stan's side of the comparison. The check's own tolerance is 1e-6
+  # relative, so this passes with four orders of magnitude to spare, and
+  # what it buys is a check on the density that no other row makes.
+  #
+  # The non-decision time link is scaled onto (0, min(rt)), so the bound
+  # is data on the Stan side too; passing anything else would compare
+  # two different parameterizations and the residual would say so.
+  ln_lp_check(fit, ln_stan_code_rlddm(),
+              ln_stan_data(fit, d, ~ cond,
+                           list(pay1 = as.numeric(d$pay1),
+                                pay2 = as.numeric(d$pay2),
+                                rt = as.numeric(d$rt),
+                                ndt_ub = min(d$rt))),
+              label = "rlddm")
+})

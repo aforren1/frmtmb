@@ -11,14 +11,17 @@
 # own engine deliberately does not use, so an error in the vectorized,
 # masked, indicator-selected form the engine does use cannot cancel.
 
-ln_stan_head <- function(nd, extra = "") {
+ln_stan_head <- function(nd, extra = "", choice_lb = 1L) {
   paste(
     "data {",
     "  int<lower=1> N; int<lower=1> S; int<lower=1> T; int<lower=1> K;",
     "  array[S, T] int<lower=1> idx;",
     "  matrix[S, T] mask;",
     "  array[N] int<lower=1> subj;",
-    "  array[N] int<lower=1> choice;",
+    # rlddm() codes its response column as the BOUNDARY reached, 0 or 1,
+    # because that is what dec() reads; the six softmax families code it
+    # as the option taken, 1 to K.
+    paste0("  array[N] int<lower=", choice_lb, "> choice;"),
     "  matrix[N, K] X;",
     "  real<lower=0> sd_u;",
     extra,
@@ -113,12 +116,13 @@ ln_stan_code_fict <- function() {
     ln_stan_tail(), sep = "\n")
 }
 
-ln_stan_code_kalman <- function() {
+ln_stan_code_kalman <- function(bonus = FALSE) {
   paste(
-    ln_stan_head(5, paste(
+    ln_stan_head(if (bonus) 6 else 5, paste(
       "  matrix[N, 4] pay;",
       "  real<lower=0> sigma_o;", sep = "\n")),
     "  vector[N] tau = exp(eta);",
+    if (bonus) "  real phi = bd[6];" else "",
     "  real lam = inv_logit(bd[1]);",
     "  real ctr = bd[2];",
     "  real mu0 = bd[3];",
@@ -131,7 +135,12 @@ ln_stan_code_kalman <- function() {
     "      if (mask[s, t] == 1) {",
     "        int i = idx[s, t];",
     "        vector[4] v;",
-    "        for (k in 1:4) v[k] = tau[i] * mu[s, k];",
+    if (bonus) {
+      paste0("        for (k in 1:4) v[k] = tau[i] * (mu[s, k]",
+             " + phi * sqrt(vv[s, k]));")
+    } else {
+      "        for (k in 1:4) v[k] = tau[i] * mu[s, k];"
+    },
     "        target += v[choice[i]] - log_sum_exp(v);",
     "        int c = choice[i];",
     "        real g = vv[s, c] / (vv[s, c] + sigma_o ^ 2);",
@@ -215,6 +224,91 @@ ln_stan_code_ts <- function() {
     "        q2[s, m] += a2 * d2;",
     "        rp[s, 1] = choice[i] == 1 ? 1 : 0;",
     "        rp[s, 2] = choice[i] == 2 ? 1 : 0;",
+    "      }",
+    "    }",
+    "  }",
+    ln_stan_tail(), sep = "\n")
+}
+
+# ORL. The two learning rates SWAP between the played deck and the three
+# that were not, on the sign of what the played deck returned; getting
+# that swap the wrong way round is the error this program exists to
+# catch, so it is written as the published two-branch statement rather
+# than as the arithmetic selector the engine uses.
+ln_stan_code_orl <- function() {
+  paste(
+    ln_stan_head(4, "  matrix[N, 4] pay;"),
+    "  vector[N] Arew = inv_logit(eta);",
+    "  real Apun = inv_logit(bd[1]);",
+    "  real kk = exp(bd[2]);",
+    "  real betaF = bd[3];",
+    "  real betaP = bd[4];",
+    "  matrix[S, 4] ev = rep_matrix(0, S, 4);",
+    "  matrix[S, 4] ef = rep_matrix(0, S, 4);",
+    "  matrix[S, 4] ps = rep_matrix(0, S, 4);",
+    "  for (t in 1:T) {",
+    "    for (s in 1:S) {",
+    "      if (mask[s, t] == 1) {",
+    "        int i = idx[s, t];",
+    "        int c = choice[i];",
+    "        vector[4] v;",
+    "        for (k in 1:4)",
+    "          v[k] = ev[s, k] + betaF * ef[s, k] + betaP * ps[s, k];",
+    "        target += v[c] - log_sum_exp(v);",
+    "        real x = pay[i, c];",
+    "        real sg = x > 0 ? 1 : (x < 0 ? -1 : 0);",
+    "        real a_play = x >= 0 ? Arew[i] : Apun;",
+    "        real a_fic = x >= 0 ? Apun : Arew[i];",
+    "        for (k in 1:4) {",
+    "          if (k == c) {",
+    "            ev[s, k] += a_play * (x - ev[s, k]);",
+    "            ef[s, k] += a_play * (sg - ef[s, k]);",
+    "            ps[s, k] = 1;",
+    "          } else {",
+    "            ef[s, k] += a_fic * (-sg / 3 - ef[s, k]);",
+    "            ps[s, k] = ps[s, k] / exp(kk * log(3));",
+    "          }",
+    "        }",
+    "      }",
+    "    }",
+    "  }",
+    ln_stan_tail(), sep = "\n")
+}
+
+# RLDDM. Stan has the Wiener first-passage density built in, which makes
+# this the one program here that shares no code path with the R side at
+# all: frmtmb.eam evaluates Navarro and Fuss's two series and blends
+# them, and Stan uses its own implementation. So this row checks the
+# DENSITY as well as the recursion, which none of the others do.
+#
+# Stan's wiener_lpdf is the UPPER-boundary density. The lower boundary
+# is the same function at (1 - bias, -drift), which is the reflection
+# the R side spells inside ddm_lpdf_both().
+ln_stan_code_rlddm <- function() {
+  paste(
+    ln_stan_head(4, paste(
+      "  vector[N] pay1; vector[N] pay2;",
+      "  vector<lower=0>[N] rt;",
+      "  real<lower=0> ndt_ub;", sep = "\n"), choice_lb = 0L),
+    "  vector[N] alpha = inv_logit(eta);",
+    "  real drift = bd[1];",
+    "  real bs = exp(bd[2]);",
+    "  real ndt = ndt_ub / (1 + exp(-bd[3]));",
+    "  real bias = inv_logit(bd[4]);",
+    "  vector[S] q1 = rep_vector(0, S);",
+    "  vector[S] q2 = rep_vector(0, S);",
+    "  for (t in 1:T) {",
+    "    for (s in 1:S) {",
+    "      if (mask[s, t] == 1) {",
+    "        int i = idx[s, t];",
+    "        real v = drift * (q2[s] - q1[s]);",
+    "        if (choice[i] == 1) {",
+    "          target += wiener_lpdf(rt[i] | bs, ndt, bias, v);",
+    "          q2[s] += alpha[i] * (pay2[i] - q2[s]);",
+    "        } else {",
+    "          target += wiener_lpdf(rt[i] | bs, ndt, 1 - bias, -v);",
+    "          q1[s] += alpha[i] * (pay1[i] - q1[s]);",
+    "        }",
     "      }",
     "    }",
     "  }",

@@ -7,8 +7,10 @@ export(frm_learn_families)
 export(frm_task_design)
 export(frm_task_simulate)
 export(frm_value_trace)
+export(igt_orl)
 export(igt_pvl_delta)
 export(prl_fictitious)
+export(rlddm)
 export(ts_par7)
 importFrom(frmtmb,
   compat_rule_builder,
@@ -18,5 +20,9 @@ importFrom(frmtmb,
   frmtmb_register_compat,
   frmtmb_structure,
   single_response
+)
+importFrom(frmtmb.eam,
+  ddm_simulate,
+  wiener_lpdf
 )
 importFrom(stats,setNames)

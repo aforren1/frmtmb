@@ -53,7 +53,22 @@ ln_register_aterms <- function() {
                  prl_fictitious = "family",
                  bandit4arm2_kalman_filter = "family",
                  ts_par7 = "family", igt_pvl_delta = "family",
+                 igt_orl = "family", rlddm = "family",
                  frm_value_trace = "method", frm_task_simulate = "method"),
+    # `dec()` is frmtmb.eam's term, not this package's. rlddm() reads it
+    # for the boundary the response reached, so a rule here names a
+    # feature another package supplies, which is what expects = is for.
+    #
+    # It IS already registered by the time this call runs, and the
+    # reason is the `importFrom(frmtmb.eam, ...)` in NAMESPACE rather
+    # than the DESCRIPTION Imports line: R loads a package's imports
+    # before running its .onLoad(), and frmtmb.eam registers `dec()` in
+    # its own. An earlier version of this comment credited the
+    # DESCRIPTION entry, which loads nothing, and `rlddm()` was
+    # unusable from a clean session for exactly that reason. `expects =`
+    # tolerates a name already present either way, and is what stops
+    # this call failing if the ordering ever changes.
+    expects = "dec()",
     rules = ln_compat_rules)
   invisible(NULL)
 }
@@ -67,7 +82,7 @@ ln_register_aterms <- function() {
 #' these in `ln_compat_rules()`.
 #'
 #' @noRd
-ln_common_rules <- function(r, nm) {
+ln_common_rules <- function(r, nm, nominal = TRUE) {
   r(nm, "weights()", "refused",
     paste0("Refused in check_spec, by name. A row weight has no meaning ",
            "here: a trial's factor depends on every earlier trial of the ",
@@ -87,23 +102,27 @@ ln_common_rules <- function(r, nm) {
            "history."))
   r(nm, "se()", "refused",
     "Refused in check_spec. A choice has no measurement standard error.")
-  r(nm, "importance", "refused",
-    paste0("REFUSED BY NAME, and the refusal is wider than the ",
-           "mathematics. frm(importance =) reweights draws from the ",
-           "Laplace Gaussian and needs one log-likelihood value per ",
-           "GROUP; this family HAS that value, because its likelihood ",
-           "factorizes over subjects and again over trials, but ",
-           "frmtmb_structure(loglik =) returns one AD scalar for the ",
-           "whole response and there is no slot to put the factors in. ",
-           "THE SEAM: a structure slot carrying the finest factorization ",
-           "the family has, per row where one exists and per group ",
-           "otherwise, with `unit` left as the separate declaration of ",
-           "the leave-one-out granularity. It is written up in frmtmb's ",
-           "dev/rl-findings.md under 'Protocol seams'. This package ",
-           "computes a per-row conditional likelihood already, for ",
-           "frm_value_trace(), so it would fill a per-row slot the day ",
-           "exists. Until then, the Laplace error is measured by ",
-           "simulation instead: see vignette('learning')."))
+  r(nm, "importance", "works",
+    paste0("ADMITTED, and it was refused by name until this family ",
+           "declared how its likelihood factorizes. The correction ",
+           "reweights draws from the Laplace Gaussian and needs one ",
+           "log-likelihood value per GROUP; the family now supplies ",
+           "frmtmb_structure(loglik_group = ), one value per subject, ",
+           "and frmtmb_structure(loglik_row = ), one per trial, both ",
+           "off the same recursion the objective tapes. The core checks ",
+           "the family's units against the model's grouping factor and ",
+           "refuses a model grouped on anything else, and imp_verify() ",
+           "checks the family's handling of the stacked design against ",
+           "the plain objective at the first freeze. MEASURED, and the ",
+           "answer depends on the design rather than on the family: on ",
+           "40 subjects by 100 trials the fixed effects move by less ",
+           "than 0.02 and the subject-level standard deviation moves up ",
+           "substantially where the Laplace fit had not collapsed it; ",
+           "on 20-trial data the correction still runs but the quantity ",
+           "it corrects is already gone. dev/learn2-findings.md carries ",
+           "the per-dataset table with its Monte Carlo error and its ",
+           "effective sample sizes, and vignette('learning') carries ",
+           "the summary."))
   r(nm, "quadrature", "refused",
     paste0("Refused by the protocol's conservative default, and a real ",
            "refusal rather than a missing slot. Gauss-Kronrod ",
@@ -126,36 +145,62 @@ ln_common_rules <- function(r, nm) {
     paste0("Refused by the protocol's conservative default. A mixture ",
            "over learning strategies is a real model and a wanted one, ",
            "but core's mixture() combines per-row densities and would ",
-           "need per-sequence ones here. Same seam as importance."))
+           "need per-SEQUENCE ones here. The family now declares its ",
+           "per-sequence values, which is what admitted the importance ",
+           "correction, so what is left is a mixture() that reads a ",
+           "declared factorization rather than a rowwise density. That ",
+           "is a change under core's R/ and not a declaration this ",
+           "package can make."))
   r(nm, "residuals_osa", "refused",
     paste0("Refused by name. One-step-ahead residuals re-tape the ",
            "objective with the response promoted to a parameter, and the ",
            "response here is a category the recursion selects with a ",
            "zero-one indicator rather than a continuous quantity the ",
            "tape could differentiate."))
-  r(nm, "fitted", "refused",
-    paste0("The family declares no fitted_mean, and that is a decision ",
-           "rather than an omission. The response is the option a ",
-           "subject took, coded 1 to K, and it is NOMINAL: arm 2 is not ",
-           "twice arm 1, and the four decks of the Iowa gambling task ",
-           "have no order at all. Core forms a fitted value as the ",
-           "conditional mean of the response and a residual as ",
-           "y - mean, so any mean this family supplied would be ",
-           "arithmetic on a category code. core::cox() and ",
-           "frmtmb.spline::royston_parmar() decline to invent a mean for ",
-           "the same kind of reason. WHAT REPLACES IT: ",
-           "frm_value_trace(), which returns more than a mean could. ",
-           "Its `p` column is the per-trial factor of the likelihood, so ",
-           "sum(log(p)) is the CONDITIONAL data log-likelihood: equal to ",
-           "logLik(fit) to machine precision with no random effects, and ",
-           "different from it in a hierarchical fit, where logLik() is ",
-           "the Laplace MARGINAL (measured: -1507.8 against -1542.5 at ",
-           "sd(id) = 1.07). NOTE the difference from frmtmb's own rw_delta ",
-           "example, which does have fitted(): it codes a two-armed ",
-           "choice 0 and 1 and returns P(arm 1), so y - p is the ",
-           "ordinary binary residual. That does not survive a fourth ",
-           "arm, and one engine over two and four options was judged ",
-           "worth more than fitted() on the two-option half."))
+  if (nominal) {
+    r(nm, "fitted", "refused",
+      paste0("The family declares no fitted_mean, and that is a ",
+             "decision rather than an omission. The response is the ",
+             "option a subject took, coded 1 to K, and it is NOMINAL: ",
+             "arm 2 is not twice arm 1, and the four decks of the Iowa ",
+             "gambling task have no order at all. Core forms a fitted ",
+             "value as the conditional mean of the response and a ",
+             "residual as y - mean, so any mean this family supplied ",
+             "would be arithmetic on a category code. core::cox() and ",
+             "frmtmb.spline::royston_parmar() decline to invent a mean ",
+             "for the same kind of reason. WHAT REPLACES IT: ",
+             "frm_value_trace(), which returns more than a mean could. ",
+             "Its `p` column is the per-trial factor of the likelihood, ",
+             "so sum(log(p)) is the CONDITIONAL data log-likelihood: ",
+             "equal to logLik(fit) to machine precision with no random ",
+             "effects, and different from it in a hierarchical fit, ",
+             "where logLik() is the Laplace MARGINAL (measured: ",
+             "-1507.8 against -1542.5 at sd(id) = 1.07). NOTE the ",
+             "difference from frmtmb's own rw_delta example, which does ",
+             "have fitted(): it codes a two-armed choice 0 and 1 and ",
+             "returns P(arm 1), so y - p is the ordinary binary ",
+             "residual. That does not survive a fourth arm, and one ",
+             "engine over two and four options was judged worth more ",
+             "than fitted() on the two-option half."))
+  } else {
+    r(nm, "fitted", "refused",
+      paste0("Refused for a different reason from the option-code ",
+             "families, and the difference is worth stating: this ",
+             "response is a response TIME, which is ordered and does ",
+             "have a conditional mean, so nothing about the model ",
+             "forbids fitted(). What is missing is a route to it. The ",
+             "mean of a Wiener first-passage time conditional on the ",
+             "boundary reached is a closed form that belongs to ",
+             "frmtmb.eam, and what that package exports to this one is ",
+             "the DENSITY, so declaring fitted_mean here would mean ",
+             "re-deriving the mean rather than importing it. That is a ",
+             "second seam and it is recorded as one in ",
+             "dev/learn2-findings.md rather than guessed at. WHAT IS ",
+             "AVAILABLE MEANWHILE: frm_value_trace(), whose `dens` ",
+             "column is the per-trial joint density of the boundary and ",
+             "the time, and whose `drift_t` column is the drift rate ",
+             "the value difference produced on that trial."))
+  }
   r(nm, "predict", "conditional",
     paste0("type = 'link' works everywhere, on new data too, and is how ",
            "a fitted learning parameter is read: ",
@@ -167,11 +212,23 @@ ln_common_rules <- function(r, nm) {
   r(nm, "residuals", "refused",
     paste0("All four types refuse and no type is available. 'response' ",
            "and 'pearson' refuse first, on the missing mean; see the ",
-           "fitted row. 'deviance' and 'osa' refuse in this package's own ",
-           "words for reasons that would apply even if a mean existed. ",
-           "What a fit of one of these families is checked with is its ",
-           "fitted value trajectory against the observed choices, which ",
-           "is frm_value_trace() and a plot rather than a residual."))
+           "fitted row. 'osa' refuses in this package's own words for a ",
+           "reason that would apply even if a mean existed. 'deviance' ",
+           "is the one that changed this round: the family now declares ",
+           "loglik_row(), so each trial's own log-likelihood IS ",
+           "available, and what is still missing is ",
+           if (nominal) {
+             "the SIGN, which needs a conditional mean to depart from"
+           } else {
+             paste0("the saturated comparison: a row here contributes a ",
+                    "DENSITY, whose supremum over the parameters at a ",
+                    "fixed response time is unbounded, so there is no ",
+                    "constant to subtract")
+           },
+           ". What a fit of one of these families is checked with is ",
+           "its fitted value trajectory against the observed choices, ",
+           "which is frm_value_trace() and a plot rather than a ",
+           "residual."))
   r(nm, "s()", "works",
     paste0("A smooth reaches any parameter of the family, because every ",
            "parameter is an ordinary distributional parameter with its ",
@@ -216,11 +273,15 @@ ln_compat_rules <- function() {
   b <- compat_rule_builder()
   r <- b$r
   fams <- c("bandit2arm_delta", "bandit2arm_dual", "prl_fictitious",
-            "bandit4arm2_kalman_filter", "ts_par7", "igt_pvl_delta")
-  for (nm in fams) ln_common_rules(r, nm)
+            "bandit4arm2_kalman_filter", "ts_par7", "igt_pvl_delta",
+            "igt_orl", "rlddm")
+  # rlddm() is the one family whose response is not an option code, so
+  # it is the one whose missing mean has a different reason. Everything
+  # else about the eight is the same, which is what one engine buys.
+  for (nm in fams) ln_common_rules(r, nm, nominal = nm != "rlddm")
 
   ## ---- what differs, family by family ------------------------------
-  for (nm in setdiff(fams, "ts_par7")) {
+  for (nm in setdiff(fams, c("ts_par7", "rlddm"))) {
     r(nm, "simulate", "works",
       paste0("The structured simulator walks each subject forward, ",
              "drawing a choice from the current value store and learning ",
@@ -267,6 +328,29 @@ ln_compat_rules <- function() {
            "probability is a known constant of the task rather than a ",
            "parameter, so it contributes a constant to the log ",
            "likelihood and is dropped."))
+
+  r("rlddm", "dec()", "works",
+    paste0("The boundary the response reached, 0 for the lower and 1 ",
+           "for the upper, which is frmtmb.eam's term and frmtmb.eam's ",
+           "coding. Arm 1 is the lower boundary and arm 2 the upper, so ",
+           "reward(pay1, pay2) is in the same arm order as every other ",
+           "family here. The term is registered by frmtmb.eam, which ",
+           "this package imports for the density, so it is present ",
+           "whenever rlddm() is."))
+  r("rlddm", "reward()", "works",
+    paste0("As bandit2arm_delta(). The learning rule is that family's ",
+           "exactly; what differs is that the value difference drives a ",
+           "drift rate rather than a softmax."))
+  r("rlddm", "simulate", "refused",
+    paste0("REFUSED, for the reason ts_par7() refuses it. One trial's ",
+           "draw is two numbers, the boundary reached and the time it ",
+           "took, and simulate() returns one response vector. Drawing ",
+           "the time alone against the observed choice is a draw from a ",
+           "different model, not a cheaper version of this one. Use ",
+           "frm_task_simulate(), which returns whole data frames with ",
+           "both columns written."))
+  r("igt_orl", "payoff()", "works",
+    "Four columns, one per deck, as igt_pvl_delta().")
 
   ## ---- the two methods this package adds ---------------------------
   r("frm_value_trace", "fitted", "works",

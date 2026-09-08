@@ -6,7 +6,7 @@
 \alias{frmtmb.learn-package}
 \title{frmtmb.learn: Reinforcement-Learning Families for 'frmtmb' Models}
 \description{
-The value-learning models of the reinforcement-learning and computational-psychiatry literature, written as 'frmtmb' families so that each of their parameters is an ordinary distributional parameter with its own linear predictor. A learning rate then takes a condition effect, a smooth term or a correlated per-subject random effect the way a mean does, and it comes back with a standard error, which is what a separate model per group does not give. Six families share one recursion that walks trials once and updates every subject at each step: the two-armed delta learner and its dual-rate and counterfactual variants, a Kalman filter over the restless four-armed bandit of Daw and others (2006), the two-stage model-based and model-free hybrid of Daw and others (2011), and a prospect-theory learner for the Iowa gambling task. Families are named as 'hBayesDM' names them where a name exists. Each one is checked by an identity against an independent 'Stan' program of the same model at the same estimates, and by parameter recovery at a realistic scale.
+The value-learning models of the reinforcement-learning and computational-psychiatry literature, written as 'frmtmb' families so that each of their parameters is an ordinary distributional parameter with its own linear predictor. A learning rate then takes a condition effect, a smooth term or a correlated per-subject random effect the way a mean does, and it comes back with a standard error, which is what a separate model per group does not give. Eight families share one recursion that walks trials once and updates every subject at each step: the two-armed delta learner and its dual-rate and counterfactual variants, a Kalman filter over the restless four-armed bandit of Daw and others (2006) with an optional exploration bonus, the two-stage model-based and model-free hybrid of Daw and others (2011), prospect-theory and outcome-representation learners for the Iowa gambling task, and a joint model of choices and response times in which the learned value difference drives the drift rate of a Wiener diffusion. Families are named as 'hBayesDM' names them where a name exists. Each one is checked by an identity against an independent 'Stan' program of the same model at the same estimates, and by parameter recovery at a realistic scale.
 }
 \section{What this package is for}{
 
@@ -21,12 +21,20 @@ as \code{alpha ~ after_reversal + (1 | id)} gives the CHANGE in learning
 rate with an interval, which two separately fitted models do not.
 }
 
-\section{One recursion, six families}{
+\section{One recursion, eight families}{
 
 Every family here is the same walk: carry a value store per subject,
 visit the trials in order, turn the store into a choice probability
 and the outcome into a new store. The walk is written once. A family
 supplies a choice rule and a learning rule, and is a few dozen lines.
+
+Seven of the eight turn the store into a SOFTMAX over options.
+\code{\link[=rlddm]{rlddm()}} turns it into the drift rate of a two-boundary diffusion,
+so its trial contributes the joint density of which boundary was
+reached and when. That is the one place the engine had to grow a
+seam: a family may supply a log density in place of a choice rule,
+and everything else about the walk, the mask and the three likelihood
+slots is unchanged.
 
 The walk loops over TRIALS and vectorizes over SUBJECTS, which is not
 a style preference. Written one row at a time with the store updated
@@ -70,30 +78,157 @@ Do not read the bias as Laplace error alone: a variance component
 estimated by maximum likelihood from binary data with few levels is
 biased downward whether or not the integral is approximated, and the
 simulation does not separate the two causes. Separating them is what
-\code{frm(importance =)} exists for, and every family here refuses it.
+\code{frm(importance =)} exists for, and it now runs; see the next
+section for what it is worth.
 }
 
-\section{The seam this package is waiting on}{
+\section{The seam that closed, and what the correction is worth}{
 
-\code{frm(importance =)} is refused for every family, and the refusal is
-wider than the mathematics. The correction needs one log-likelihood
-value per GROUP. These likelihoods factorize over subjects and again
-over trials, so the values exist; \code{frmtmb_structure(loglik =)}
-returns one AD scalar for the whole response and there is no slot to
-put them in. The same gap costs deviance residuals, which need a
-per-row saturated comparison. It does NOT cost \code{loo()} or \code{waic()}:
-those refuse for every frmtmb fit, an ordinary gaussian one included,
-because \code{frm()} is maximum likelihood and an elpd averages the
-likelihood over draws. That refusal is core-wide, unrelated to this
-seam, and closing the seam would not deliver it.
-The design is written up in frmtmb's \code{dev/rl-findings.md}
-under "Protocol seams": one slot carrying the finest factorization a
-family has, per row where one exists and per group otherwise, with
-\code{unit} left as the separate declaration of the leave-one-out
-granularity. This package computes a per-row conditional likelihood
-already, for \code{\link[=frm_value_trace]{frm_value_trace()}}, so it would fill a per-row slot
-the day one exists. \code{frm_compat("bandit2arm_delta", "importance")} says
-so at the console.
+\code{frm(importance =)} was refused for every family in the first release
+and works now. The correction reweights draws from the Laplace
+Gaussian and needs one log-likelihood value per GROUP; these
+likelihoods factorize over subjects and again over trials, so the
+values always existed, and what was missing was a slot to put them
+in. \code{frmtmb_structure()} grew two, \code{loglik_row} and \code{loglik_group},
+and every family here declares both off the same recursion the
+objective tapes. A subject is the group, a trial is the row, and
+\code{unit} is unchanged at "one subject's trial sequence", because
+dropping a trial changes every later trial's value store.
+
+What the correction is worth depends on the design rather than on the
+family. Measured on \code{\link[=bandit2arm_delta]{bandit2arm_delta()}}, 40 subjects, one scalar
+random intercept, six datasets per cell, truth \code{sd(alpha) = 0.5}
+(\code{dev/learn2-findings.md} has the per-dataset table):\tabular{llllll}{
+   trials \tab datasets \tab Laplace \code{sd(alpha)} \tab corrected \tab mcse \tab min ESS per draw \cr
+   100 \tab 3 of 6 informative \tab 0.38 to 0.45 \tab 0.45 to 0.51 \tab 0.05 to 0.06 \tab 0.87 to 0.93 \cr
+   100 \tab 1 of 6 collapsed \tab 0.0004 \tab 0.0025 \tab 0.000 \tab 1.000 \cr
+   100 \tab 2 of 6 refused \tab  \tab  \tab  \tab  \cr
+   20 \tab 5 of 6 collapsed \tab 0.0001 \tab unchanged \tab 0.000 \tab 1.000 \cr
+   20 \tab 1 of 6 informative \tab 0.371 \tab 0.729 \tab 0.103 \tab 0.743 \cr
+}
+
+
+A COLLAPSED DATASET IS NOT A SHORT-SESSION PROBLEM. One of the six
+at 100 trials has it too, and reports the same spurious +1.822 as
+the five at 20 trials do. Check \code{sqrt(VarCorr(fit))} on the Laplace
+fit at every trial count, not only short ones.
+\itemize{
+\item at 100 trials, on the three of six datasets whose variance
+component is identified, the correction moves it UP by 0.11 to
+0.18 log units and toward the truth, its Monte Carlo error is a
+third of the shift, and the effective sample sizes are near 1. It
+costs 30 to 80 seconds against 2 for the Laplace fit. Of the other
+three, two refused on the correction's own convergence guard and
+one had already collapsed.
+\item at 20 trials it is not usable, and the reason is worth knowing.
+Five of six Laplace fits have already collapsed \code{sd(alpha)} to
+1e-4, so there is nothing left to reweight; the correction then
+walks at its own step cap for every round and WARNS that it did
+not converge. A shift reported with \code{fit$importance$capped} true
+and every entry of \code{fit$importance$moves} equal is that step cap,
+not an estimate. The one 20-trial dataset with a real variance
+component overshoots, 0.37 to 0.73 against a truth of 0.5.
+}
+
+DO NOT FOLLOW THE WARNING'S ADVICE ON A CAPPED RUN. It says to raise
+\code{frmtmb_control(importance_rounds =)}, and on a collapsed variance
+component that makes the artifact bigger in exact proportion:
+measured on one 20-trial dataset, five rounds of a 0.3645 cap give a
+shift of 1.822 and ten rounds give 3.645, both exactly rounds times
+the cap. The number is not an estimate that more iterations would
+sharpen. Read \code{fit$importance$capped} and \verb{$moves} first, and if the
+moves are all equal, treat the correction as declining rather than
+answering.
+
+So check \code{sqrt(VarCorr(fit))} on the Laplace fit before believing a
+correction, and read the warning if there is one.
+
+The correction requires the model to be grouped on the family's own
+subject. \code{(1 | something_else)} gives a per-subject likelihood
+against a per-something-else proposal, and the core refuses it by
+name rather than adding up numbers that do not add up.
+
+THE SAME SLOTS ALSO TURN \code{loo()} ON, at subject granularity, and an
+earlier draft of this page said the opposite. \code{frm()} itself is
+maximum likelihood and has no draws to average over, so \code{loo()} on a
+\code{frmtmb_fit} still refuses for that core-wide reason; the route that
+changed is \code{frmtmb.sample}, which admits any structure declaring
+\code{loglik} together with either factorization slot and then reads the
+COARSEST one. Measured on a 6-subject, 180-row fit: the pointwise
+matrix is admitted, it has 6 columns rather than 180, it carries
+\code{attr(x, "unit")} of \code{"one subject's trial sequence"}, and it sums to
+\code{logLik(fit)} to twelve digits.
+
+Read that literally. A column is a SUBJECT, so leaving one out drops
+that subject's whole sequence, which is the only honest leave-one-out
+for a recursion: a trial cannot be dropped because every later
+trial's value store depends on it. \code{loo()} prints "Computed from N by
+K" and says nothing about what a column is, so \code{frmtmb.sample}
+messages the unit when the matrix carries one.
+
+Deviance residuals are
+closer but still refused: the magnitude is now available from
+\code{loglik_row()}, and what is missing is the SIGN, because seven of the
+eight families have a nominal response with no mean to depart from
+and the eighth has no exported route to the mean of a first-passage
+time.
+}
+
+\section{Recovery tables for the three families measured this round}{
+
+\code{dev/learn-recovery-round2.R}, 60 replicates each, 30 subjects by 100
+trials, one random intercept on the primary parameter. Everything on
+the NATURAL scale, with each Wald interval's endpoints pushed through
+the same monotone link, because \code{\link[=rlddm]{rlddm()}}'s non-decision time is
+bounded by its own dataset's fastest response and its link scale is
+therefore not comparable across replicates.
+
+\strong{\code{\link[=rlddm]{rlddm()}}.} Every bias inside its Monte Carlo error, 60 of 60
+usable.\tabular{llllll}{
+   parameter \tab truth \tab bias \tab mc se \tab sd of est \tab coverage \cr
+   \code{alpha} \tab 0.35 \tab -0.002 \tab 0.003 \tab 0.026 \tab 0.87 \cr
+   \code{drift} \tab 3.00 \tab +0.001 \tab 0.009 \tab 0.069 \tab 0.98 \cr
+   \code{bs} \tab 1.60 \tab 0.000 \tab 0.002 \tab 0.019 \tab 0.95 \cr
+   \code{ndt} \tab 0.20 \tab +0.001 \tab 0.000 \tab 0.003 \tab 0.98 \cr
+   \code{bias} \tab 0.50 \tab -0.002 \tab 0.001 \tab 0.007 \tab 0.95 \cr
+}
+
+
+The pair that co-varies is \code{bs} with \code{ndt} at -0.57 and \code{drift} with
+\code{bias} at +0.56. \code{drift} with \code{bs}, which is the pair a first-passage
+density suggests, is 0.17.
+
+\strong{\code{\link[=igt_orl]{igt_orl()}}.} Every parameter recovers; coverage 0.92 to 0.98, 60
+of 60 usable.\tabular{llllll}{
+   parameter \tab truth \tab bias \tab mc se \tab sd of est \tab coverage \cr
+   \code{Arew} \tab 0.3 \tab -0.008 \tab 0.004 \tab 0.032 \tab 0.97 \cr
+   \code{Apun} \tab 0.1 \tab 0.000 \tab 0.001 \tab 0.007 \tab 0.98 \cr
+   \code{k} \tab 0.5 \tab -0.004 \tab 0.014 \tab 0.107 \tab 0.92 \cr
+   \code{betaF} \tab 1.0 \tab -0.015 \tab 0.013 \tab 0.097 \tab 0.95 \cr
+   \code{betaP} \tab 1.0 \tab +0.012 \tab 0.010 \tab 0.075 \tab 0.97 \cr
+}
+
+
+What is weak is the SEPARATION of the choice-rule parameters rather
+than any one estimate: \code{betaF} with \code{betaP} correlate at -0.77, \code{k}
+with \code{betaP} at -0.53 and \code{k} with \code{betaF} at +0.45. The two learning
+rates correlate at 0.38 and with none of the three above 0.21.
+
+\strong{\code{\link[=bandit4arm2_kalman_filter]{bandit4arm2_kalman_filter()}} with \code{bonus = TRUE}}, and with
+\code{center}, \code{mu0} and \code{sigma0} held at the task's own values through
+\code{bf(name = value)}, because those three do not separate on a session
+this size whether or not the bonus is on.\tabular{llllll}{
+   parameter \tab truth \tab bias \tab mc se \tab sd of est \tab coverage \cr
+   \code{tau} \tab 0.15 \tab +0.005 \tab 0.001 \tab 0.011 \tab 0.85 \cr
+   \code{lambda} \tab 0.98 \tab 0.000 \tab 0.000 \tab 0.003 \tab 1.00 \cr
+   \code{sigmaD} \tab 3.00 \tab -0.045 \tab 0.026 \tab 0.203 \tab 0.95 \cr
+   \code{phi} \tab 1.50 \tab +0.059 \tab 0.018 \tab 0.141 \tab 0.93 \cr
+}
+
+
+\code{phi} trades off with \code{sigmaD}, at -0.81, and not with \code{tau}, at
+0.12. Both scale the same term: \code{phi} multiplies the posterior
+standard deviation and \code{sigmaD} sets how fast it grows.
 }
 
 \section{What this package reads that frmtmb does not promise}{
@@ -113,12 +248,41 @@ top of an existing term, and the mismatch surfaces one step later as
 
 \section{Not built, and named}{
 
-RLDDM, a learning rule feeding a drift-diffusion choice rule, is the
-next family and is deliberately absent. The choice rule belongs to
-\code{frmtmb.eam}, and building it here would make this package import a
-sibling extension. The engine already has the shape it needs: a
-choice rule is a function from a value store to a per-option
-quantity, and the Wiener first-passage density is one such function.
+The three things the first release left out are in: \code{\link[=rlddm]{rlddm()}},
+\code{\link[=igt_orl]{igt_orl()}} and the Kalman filter's exploration bonus. What is still
+out:
+\itemize{
+\item \strong{\code{fitted()} for \code{\link[=rlddm]{rlddm()}}.} Unlike the seven softmax families,
+this one's response is ordered and its conditional mean exists. The
+mean of a Wiener first-passage time conditional on the boundary
+reached belongs to \code{frmtmb.eam}, which exports the density and not
+the mean, so declaring \code{fitted_mean} here would mean deriving it
+again. That is a second seam and it is recorded rather than guessed
+at. \code{frm_value_trace()} gives the per-trial density and drift rate
+meanwhile.
+\item \strong{A mixture over learning strategies.} A real model and a wanted
+one. Core's \code{mixture()} combines per-ROW densities and would need
+per-sequence ones; the families now declare their per-sequence
+values, so what is left is a change under core's \verb{R/} rather than a
+declaration this package can make.
+\item \strong{\code{accepts_aterms} on these families.} frmtmb gained an
+addition-term allow-list, and these families do not declare one, so
+a term none of them reads is still carried without effect. Every
+term that would reshape a per-row contribution is already refused
+by name with a better message than an allow-list would give, so
+what the declaration would add is narrow.
+\item \strong{A recovery table for every family.} Four of the eight have one
+now (\code{\link[=bandit2arm_delta]{bandit2arm_delta()}}, \code{\link[=rlddm]{rlddm()}}, \code{\link[=igt_orl]{igt_orl()}} and the Kalman
+filter with \code{bonus = TRUE}). The other four have the Stan identity,
+the longhand reference and a smoke-level recovery assertion, which
+establishes that they compute the model they claim; what they do
+not have is a published bias-and-coverage table. The reason is time
+rather than principle: each table is 60 to 200 fits.
+\item \strong{\code{\link[=frm_task_design]{frm_task_design()}} for a task the user brings.} The design
+helpers cover the tasks these families are written for. A user
+fitting their own data needs none of it: the family reads whatever
+columns the formula names.
+}
 }
 
 \examples{
