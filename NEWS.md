@@ -1,5 +1,86 @@
 # frmtmb (development version)
 
+Two gates that made a family written in plain R a second-class citizen
+of the addition-term grammar. Both were found by the Bayesian Cognitive
+Modeling port, which had to work around them; the workarounds are gone.
+
+* `se()` is no longer gated on the family NAME. A family gets the term
+  by DECLARING that it reads it, with
+  `frmtmb_family(accepts_aterms = c(..., "se"))` or `required_aterms`,
+  and reads it as `aterms[["se"]]`. `se()` is the one core addition
+  term whose entire effect is inside the density, so the declaration is
+  the only thing that can answer whether the term does anything, and a
+  family that does not declare it is still refused, now with a message
+  that says how to opt in. The built-in gaussian and student already
+  declared it and are unchanged. `mixture()` no longer inherits the
+  declaration from its components: reading the term is half of what
+  `se()` means, and the other half maps out a dpar named `sigma`,
+  which `sigma1` and `sigma2` are not, so `mixture(gaussian, gaussian)`
+  with `se()` fitted with both component sigmas at their starting value
+  and every standard error `NaN`.
+
+  The name test was also a silent wrong answer, which the capability
+  test closes. A custom family that merely CALLED itself `"gaussian"`
+  and ignored the term was accepted, its `sigma` was mapped out, and
+  the `se()` column was discarded: a likelihood with a frozen residual
+  scale and no message anywhere. Measured on main against this branch,
+  same family, same data: `ACCEPTED (sigma mapped out: TRUE)` becomes a
+  refusal that names the missing declaration.
+
+* A family that declares `se()`, has no dpar named `sigma`, and carries
+  another free dpar is refused by name. `se()` without `sigma = TRUE`
+  replaces the residual scale, and the core maps out only the dpar the
+  convention names, so the other one would be left free and unread:
+  measured, it sits at its starting value and every standard error is
+  `NaN`. That is the condition `mixture()` is refused for, and opening
+  `se()` to custom families opened a second route to it. A family whose
+  whole scale IS the known one (no dpar beyond its primaries) is
+  unaffected. Three ways out, all measured: name the scale `sigma`, pin
+  it in the formula (`bf(y | se(s) ~ x, tau = 1)`), or write
+  `se(x, sigma = TRUE)` if it stays estimated alongside the known
+  standard deviation.
+
+* `cens()` no longer refuses a family for BEING discrete. It still
+  needs a CDF, which is the gate that always made sense. A discrete
+  family that has one is censored under an INCLUSIVE convention: a
+  censoring bound names a value the response can take, so right
+  censoring at `k` is `P(Y >= k)`, an interval is `P(k <= Y <= k2)`,
+  and every lower edge enters the CDF as `F(k - 1)`. That is the rule
+  `trunc(lb = )` has always followed, so one number means one thing on
+  a response however it is bounded. `poisson()` is censored as a
+  result. Verified against a hand-rolled likelihood for all four codes
+  and composed with `trunc()`.
+
+  It DIFFERS from brms for RIGHT and INTERVAL censoring of a count,
+  where brms emits `poisson_lccdf(y | mu)`, that is `P(Y > y)`. Left
+  censoring agrees exactly, and so does continuous censoring. On 200
+  poisson draws at `lambda = 4` right censored at 6 the two readings
+  differ by 20.8 log units.
+
+  The divergence is deliberate, because brms is internally inconsistent
+  here and frmtmb cannot be both: brms's own discrete truncation emits
+  an INCLUSIVE lower bound (`lb - 1`), so in brms `trunc(lb = 6)` means
+  `Y >= 6` while a right-censored 6 means `Y > 6`. frmtmb's `trunc()`
+  reproduces brms bit for bit, so its `cens()` had to choose between
+  matching brms's censoring and matching its own truncation. It is also
+  the only reading consistent with the pre-existing
+  `simulate(censored = TRUE)`, which records `k` when the latent draw is
+  `>= k`: 4000 draws from a fit censored at 7 put 0.13250 of the mass at
+  that point, against 0.12190 inclusive and 0.05763 exclusive. The
+  migration vignette carries the argument and the remedy.
+
+  Two smaller consequences. A one-point interval (`y2 == y`) is legal
+  on a discrete response, where it is exactly `P(Y = y)`; it stays
+  refused on a continuous one. And a non-integer censoring bound on a
+  discrete family is refused by name, because the `F(k - 1)` shift
+  assumes the unit integer lattice.
+
+* `residuals(type = "osa")` is refused on a censored DISCRETE fit,
+  by name. Inclusive bounds put an uncensored row's support on
+  `[lo + 1, hi - 1]` rather than the `[lo, hi]` the one-step window is
+  built on. Every other residual type works, and `dharma_residuals()`
+  covers the same ground.
+
 Four usability defects of hierarchical NONLINEAR models, found while
 fitting `bf(..., nl = TRUE)` with random effects on the nonlinear
 parameters.

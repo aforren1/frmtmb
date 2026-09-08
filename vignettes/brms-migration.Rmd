@@ -28,7 +28,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `s(x)`, `t2(x, z)` | same | mgcv smooths in any dpar; `te()`/`ti()` unsupported |
 | `(1 | p | g)` | same | cross-formula RE correlation |
 | `mvbind(y1, y2) ~ x`, `mvbf()`, `set_rescor()` | same | per-response families; `rescor` gaussian-only |
-| `y | trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family |
+| `y | trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family; a DISCRETE censoring bound is read inclusively, unlike brms (below) |
 | `nl = TRUE` | same | a located prior places the start, else provide `start` (`par_template()` names it); se.fit on the nonlinear mu not yet |
 | `lf()`, `nlf()` | same | `nlf()` on any dpar, bodies chain to any depth (below) |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
@@ -223,7 +223,45 @@ only, and `acat()` takes `logit` only.
   in the formula stays a frequency weight, as in brms.
 - `se()` works as in brms (meta-analysis), including
   `se(x, sigma = TRUE)` and the phylogenetic version with
-  `gr(g, cov = A)`.
+  `gr(g, cov = A)`. It reaches further than brms does: a family written
+  with `frmtmb_family()` gets the term by declaring
+  `accepts_aterms = c(..., "se")`, rather than by being gaussian or
+  student.
+- **`cens()` on a COUNT means something different here**, for RIGHT and
+  INTERVAL censoring only. A discrete censoring bound names a value the
+  response can take and is INCLUDED: right censoring at `k` is
+  `P(Y >= k)` and an interval is `P(k <= Y <= k2)`. brms emits
+  `poisson_lccdf(y | mu)`, which is `P(Y > y)`, and reads an interval as
+  `(y, y2]`. **Left censoring is `P(Y <= y)` in both packages and agrees
+  exactly**, and continuous censoring is unaffected, because an
+  interval's endpoint carries no mass there. The difference is the point
+  mass at the recorded value; on 200 poisson draws at `lambda = 4` right
+  censored at 6, the two readings differ by 20.8 log units and 3.7
+  percent of the estimate. Subtract one from every right-censored and
+  interval lower bound to reproduce a brms fit, or keep the numbers and
+  read them as "6 or more", which is what a recorded count usually
+  means.
+
+  The reason frmtmb does not simply follow brms is that **brms is
+  internally inconsistent here, and frmtmb cannot be both.** brms's own
+  discrete truncation emits `poisson_lccdf(lb - 1 | mu)`, an inclusive
+  lower bound, `P(Y >= lb)`. So in brms `trunc(lb = 6)` means `Y >= 6`
+  while a right-censored row recorded at 6 means `Y > 6`: the same
+  number with two meanings on the same response. frmtmb's `trunc()`
+  reproduces brms bit for bit (poisson on `y = 3,4,5,6` at
+  `b0 = log 4`, `trunc(lb = 2)` gives 6.9990718955 in both, against
+  6.2954805379 for the exclusive reading), so its `cens()` had to
+  choose between matching brms's censoring and matching its own
+  truncation, and it matches its own.
+
+  The inclusive reading is also the only one consistent with frmtmb's
+  censored simulator, which predates the change: `simulate(censored =
+  TRUE)` caps a draw at the censoring point, recording `k` exactly when
+  the latent draw is `>= k`. Measured on 4000 draws from a fit censored
+  at 7, the simulated mass at that point is 0.13250, against
+  `P(Y >= 7) = 0.12190` inclusive and `P(Y > 7) = 0.05763` exclusive.
+  Following brms would silently decouple the likelihood from the
+  simulator `dharma_residuals()` rests on.
 - `mm()` ports with its `weights =` and `scale =` arguments and with
   `mmc()`; its other arguments have different spellings here (below).
 

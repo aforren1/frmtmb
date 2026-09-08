@@ -65,12 +65,14 @@ test_that("OptionalStopping matches Correlation_1's Stan program", {
 # latent pair is an ordinary correlated random intercept shared by two
 # responses, (1 | p | id). The two families are the probit binomial and
 # the probit gaussian of inst/bcm/binomial-extras.R, and the known
-# measurement standard deviation rides on vreal(sd), scaled by the same
+# measurement standard deviation rides on se(sd), scaled by the same
 # 100.
 #
-# It rides on vreal() rather than on se(sd, sigma = FALSE) because the
-# core gates se() on the family NAME and a custom family cannot opt in.
-# See inst/bcm/binomial-extras.R and dev/bcm-findings.md.
+# The known measurement standard deviation rides on se(sd), which is the
+# term that means it: a family is given the term by declaring that it
+# reads it. It rode on vreal(sd) until the core stopped gating se() on
+# the family NAME. See inst/bcm/binomial-extras.R and
+# dev/custom-findings.md.
 # ---------------------------------------------------------------------
 
 bcm_extraversion_data <- function() {
@@ -94,7 +96,7 @@ bcm_extraversion_data <- function() {
 
 bcm_extraversion_formula <- function() {
   mvbf(bf(k | trials(nt) ~ 1 + (1 | p | id)) + bcm_binomial_probit(),
-       bf(xs | vreal(sx) ~ 1 + (1 | p | id)) + bcm_gaussian_probit())
+       bf(xs | se(sx) ~ 1 + (1 | p | id)) + bcm_gaussian_probit())
 }
 
 bcm_extraversion_code <- function() {

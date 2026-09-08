@@ -356,3 +356,194 @@ test_that("a non-finite init_dpars value is reported, not dropped", {
   expect_warning(frm(bf(y ~ x) + fam, data = dd),
                  "Starting value 0 for mu is -Inf through its log link")
 })
+
+# ---------------------------------------------------------------------
+# se() is gated on the family's DECLARATION, not on its name. The term
+# is the one whose whole effect is inside the density, so the family is
+# the only thing that can say whether writing it changes anything.
+# ---------------------------------------------------------------------
+
+se_reader <- function(declare = c("accepts", "required", "neither")) {
+  declare <- match.arg(declare)
+  frmtmb_family(
+    "se_reader",
+    dpars = "mu",
+    links = list(mu = "identity"),
+    type = "continuous",
+    accepts_aterms = if (declare == "accepts") c("weights", "se"),
+    required_aterms = if (declare == "required") "se" else character(0),
+    lpdf = function(y, dpars, aterms) {
+      RTMB::dnorm(y, dpars[["mu"]], aterms[["se"]], log = TRUE)
+    },
+    init_dpars = list(mu = function(y, aterms) mean(y)))
+}
+
+se_data <- function(seed = 909, n = 80) {
+  set.seed(seed)
+  s <- runif(n, 0.1, 0.6)
+  data.frame(v = rnorm(n, 1, s), s = s)
+}
+
+test_that("a family that declares se() is given it", {
+  d <- se_data()
+  for (how in c("accepts", "required")) {
+    fit <- frm(bf(v | se(s) ~ 1) + se_reader(how), data = d)
+    # the known-variance mean is the inverse-variance weighted one
+    w <- 1 / d$s^2
+    expect_equal(unname(fixef(fit)$mu), sum(w * d$v) / sum(w),
+                 tolerance = 1e-8, label = how)
+    expect_equal(as.numeric(logLik(fit)),
+                 sum(stats::dnorm(d$v, sum(w * d$v) / sum(w), d$s,
+                                  log = TRUE)),
+                 tolerance = 1e-8)
+  }
+})
+
+test_that("a family that declares nothing is refused se(), by name", {
+  d <- se_data()
+  expect_error(frm(bf(v | se(s) ~ 1) + se_reader("neither"), data = d),
+               "se_reader.*does not declare that it does")
+  # the refusal says how to opt in
+  expect_error(frm(bf(v | se(s) ~ 1) + se_reader("neither"), data = d),
+               "accepts_aterms")
+})
+
+test_that("required_aterms = \"se\" also refuses a model without it", {
+  d <- se_data()
+  expect_error(frm(bf(v ~ 1) + se_reader("required"), data = d),
+               "the density needs `se`")
+})
+
+test_that("the built-in families that read se() are unchanged", {
+  d <- se_data()
+  fit <- frm(bf(v | se(s) ~ 1) + gaussian(), data = d)
+  ref <- frm(bf(v | se(s) ~ 1) + se_reader("accepts"), data = d)
+  expect_equal(as.numeric(logLik(fit)), as.numeric(logLik(ref)),
+               tolerance = 1e-8)
+  expect_equal(sigma(fit), 0)
+  expect_error(frm(bf(v | se(s) ~ 1) + Gamma(), data = d),
+               "does not declare that it does")
+})
+
+test_that("a mixture does not inherit se() from its components", {
+  d <- se_data()
+  # a component reads the term, but the dpar se() maps out is named
+  # sigma and a mixture's are sigma1 and sigma2, so the fit would be
+  # unidentified rather than wrong: refused instead
+  expect_error(frm(bf(v | se(s) ~ 1),
+                   family = mixture(gaussian, gaussian), data = d),
+               "does not declare that it does")
+})
+
+# ---------------------------------------------------------------------
+# The other half of se(): the residual scale it replaces has to stop
+# being free. The core maps out the dpar the convention names, `sigma`,
+# so a declaring family whose scale is called anything else would be
+# left with a flat direction and a NaN standard error.
+# ---------------------------------------------------------------------
+
+se_scale_fam <- function(scale_name) {
+  force(scale_name)
+  # by NAME, never by position: `dpars` also carries the `.eta_<dpar>`
+  # linear predictors, so dpars[[2L]] is not the second declared dpar
+  frmtmb_family(
+    paste0("scale_", scale_name),
+    accepts_aterms = c("weights", "se"),
+    dpars = c("mu", scale_name),
+    links = stats::setNames(list("identity", "log"), c("mu", scale_name)),
+    lpdf = function(y, dpars, aterms) {
+      sd <- if (is.null(aterms[["se"]])) {
+        dpars[[scale_name]]
+      } else if (isTRUE(aterms[["se_sigma"]])) {
+        sqrt(dpars[[scale_name]]^2 + aterms[["se"]]^2)
+      } else {
+        aterms[["se"]]
+      }
+      RTMB::dnorm(y, dpars[["mu"]], sd, log = TRUE)
+    },
+    init_dpars = stats::setNames(
+      list(function(y, aterms) mean(y),
+           function(y, aterms) stats::sd(y)),
+      c("mu", scale_name)))
+}
+
+se_scale_data <- function(seed = 5, n = 120, extra = 0) {
+  set.seed(seed)
+  d <- data.frame(x = rnorm(n), sev = runif(n, 0.2, 0.8))
+  d$y <- 1 + 0.7 * d$x + rnorm(n, 0, sqrt(extra^2 + d$sev^2))
+  d
+}
+
+test_that("a declared se() with an unmappable scale dpar is refused", {
+  d <- se_scale_data()
+  expect_error(frm(bf(y | se(sev) ~ x) + se_scale_fam("tau"), data = d),
+               "has no `sigma`")
+  # the message names the dpar and all three ways out
+  msg <- tryCatch(frm(bf(y | se(sev) ~ x) + se_scale_fam("tau"),
+                      data = d),
+                  error = conditionMessage)
+  expect_match(msg, "`tau`")
+  expect_match(msg, "name the scale `sigma`")
+  expect_match(msg, "pin it in the formula")
+  expect_match(msg, "sigma = TRUE")
+})
+
+test_that("each way out of the unmappable scale actually works", {
+  d <- se_scale_data()
+  # 1. name the scale sigma: the core maps it out
+  f1 <- frm(bf(y | se(sev) ~ x) + se_scale_fam("sigma"), data = d)
+  expect_true(all(is.finite(sqrt(diag(vcov(f1))))))
+  # 2. pin it in the formula
+  f2 <- frm(bf(y | se(sev) ~ x, tau = 1) + se_scale_fam("tau"), data = d)
+  expect_true(all(is.finite(sqrt(diag(vcov(f2))))))
+  expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f2)),
+               tolerance = 1e-8)
+  # 3. sigma = TRUE, where the scale stays estimated alongside the
+  # known one. Needs data carrying variance beyond se, or the scale
+  # sits on its boundary at zero and is flat for a real reason.
+  dq <- se_scale_data(seed = 21, n = 400, extra = 0.9)
+  f3 <- frm(bf(y | se(sev, sigma = TRUE) ~ x) + se_scale_fam("tau"),
+            data = dq)
+  expect_true(all(is.finite(sqrt(diag(vcov(f3))))))
+  expect_equal(exp(unname(fixef(f3)$tau)), 0.9, tolerance = 0.05)
+  # and it is the same model as the one whose scale is named sigma
+  f4 <- frm(bf(y | se(sev, sigma = TRUE) ~ x) + se_scale_fam("sigma"),
+            data = dq)
+  expect_equal(as.numeric(logLik(f3)), as.numeric(logLik(f4)),
+               tolerance = 1e-10)
+})
+
+test_that("a family whose whole scale is the known one is not refused", {
+  # no dpar beyond the primaries, so there is nothing to map out; this
+  # is the shape bcm_gaussian_probit() uses
+  d <- se_scale_data()
+  fit <- frm(bf(y | se(sev) ~ x) + se_reader("accepts"), data = d)
+  expect_true(all(is.finite(sqrt(diag(vcov(fit))))))
+})
+
+test_that("the built-in se() families are untouched by the scale rule", {
+  d <- se_scale_data()
+  fg <- frm(y | se(sev) ~ x, data = d)
+  expect_equal(sigma(fg), 0)
+  expect_true(all(is.finite(sqrt(diag(vcov(fg))))))
+  # student keeps nu free alongside a known se, as it always has
+  fs <- frm(bf(y | se(sev) ~ x) + student(), data = d)
+  expect_true("nu" %in% names(fixef(fs)))
+  expect_true(all(is.finite(sqrt(diag(vcov(fg))))))
+  # sigma = TRUE keeps the estimated scale
+  fq <- frm(y | se(sev, sigma = TRUE) ~ x, data = d)
+  expect_gt(sigma(fq), 0)
+})
+
+test_that("the se() refusal names a declaration a caller can write", {
+  d <- se_scale_data()
+  msg <- tryCatch(frm(bf(y | se(sev) ~ x) + se_reader("neither"),
+                      data = d),
+                  error = conditionMessage)
+  # it must not send an author to an unexported helper
+  expect_false(grepl("resid_sd", msg, fixed = TRUE))
+  expect_match(msg, "accepts_aterms")
+  expect_match(msg, "required_aterms")
+  # and it states the sigma = TRUE convention inline
+  expect_match(msg, "se_sigma")
+})

@@ -143,8 +143,11 @@ test_that("interval censoring under trunc() divides by the window mass", {
 })
 
 test_that("the discrete censored-truncated form keeps the F(lb - 1) convention", {
-  # cens() is refused for discrete families at the frame guard, so the
-  # composed discrete branch is exercised on the objective directly
+  # One convention, two terms: an inclusive lower bound enters the CDF
+  # as F(bound - 1) whether it came from trunc(lb = ) or from a
+  # right-censored row. The censoring is injected on the objective
+  # directly so that the composed branch is exercised at the same
+  # estimates the truncated fit reached.
   set.seed(11)
   np <- 300
   xp <- stats::rnorm(np)
@@ -164,13 +167,15 @@ test_that("the discrete censored-truncated form keeps the F(lb - 1) convention",
   val <- frmtmb:::build_objective(fr)(fp$estimates)
 
   mu <- exp(fp$estimates$beta[1] + fp$estimates$beta[2] * dp$x)
-  # inclusive lower bound: the window is P(1 <= Y <= 8) = F(8) - F(0),
-  # and a left-censored count observes Y <= y, so F(y) needs no shift
+  # inclusive bounds everywhere: the window is P(1 <= Y <= 8) =
+  # F(8) - F(0), a right-censored count observes Y >= y, so its
+  # numerator is F(8) - F(y - 1), and a left-censored one observes
+  # Y <= y, where F(y) already includes the point
   Z <- stats::ppois(8, mu) - stats::ppois(0, mu)
   ll <- stats::dpois(dp$y, mu, log = TRUE)
   ir <- cen == 1
   il <- cen == -1
-  ll[ir] <- log(stats::ppois(8, mu[ir]) - stats::ppois(dp$y[ir], mu[ir]))
+  ll[ir] <- log(stats::ppois(8, mu[ir]) - stats::ppois(dp$y[ir] - 1, mu[ir]))
   ll[il] <- log(stats::ppois(dp$y[il], mu[il]) - stats::ppois(0, mu[il]))
   expect_lt(abs(val - (-sum(ll - log(Z)))), 1e-10)
 })

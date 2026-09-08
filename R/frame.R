@@ -1361,17 +1361,45 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
              "censoring may supply the log survivor function through ",
              "lccdf instead", call. = FALSE)
       }
-      if (!is.null(av[["cens"]]) && identical(resp$family[["type"]],
-        "discrete")) {
-        stop("cens() is not supported for discrete families yet ",
-             "(truncation is)", call. = FALSE)
-      }
       if (!is.null(av[["cens"]]) && !all(av[["cens"]] %in% c(-1, 0, 1, 2))) {
         stop("cens() codes must be -1 (left), 0 (observed), 1 (right), ",
              "or 2 (interval), or the matching names \"left\", \"none\", ",
              "\"right\", \"interval\"; got: ",
              paste(unique(av[["cens"]][!av[["cens"]] %in% c(-1, 0, 1, 2)]),
                    collapse = ", "), call. = FALSE)
+      }
+      # The discrete censoring convention (see row_lpdf() in
+      # R/objective.R, where it is the arithmetic). A bound on a count
+      # NAMES a value the response can take and is INCLUDED: right
+      # censoring at k is Y >= k, an interval is k <= Y <= k2, and left
+      # censoring at k is Y <= k. That is the rule trunc(lb = ) already
+      # follows, so one number means one thing on a response however it
+      # is bounded, and it is what "5 or more" means where a count was
+      # recorded that way.
+      #
+      # It reads a lower edge as F(edge - 1), so it assumes the support
+      # is the unit integer lattice. A family whose support is not that
+      # would be shifted onto a point it has no mass at, silently, so a
+      # non-integer edge is refused here rather than rounded there.
+      if (!is.null(av[["cens"]]) &&
+          identical(resp$family[["type"]], "discrete")) {
+        yv <- y[[resp$resp_name]]
+        i_c <- which(av[["cens"]] != 0)
+        edges <- c(yv[i_c],
+                   if (!is.null(av[["cens_y2"]])) {
+                     av[["cens_y2"]][av[["cens"]] == 2]
+                   })
+        edges <- edges[!is.na(edges)]
+        if (length(edges) && any(edges != round(edges))) {
+          stop("cens() on a discrete family reads every bound as a ",
+               "value the response can take: right censoring at k is ",
+               "Y >= k, an interval is k <= Y <= k2, and a lower bound ",
+               "enters the CDF as F(k - 1). That step assumes the ",
+               "support is the integers, so a censoring bound must be ",
+               "one; got ",
+               paste(utils::head(unique(edges[edges != round(edges)]), 3),
+                     collapse = ", "), call. = FALSE)
+        }
       }
       if (!is.null(av[["cens"]]) && any(av[["cens"]] == 2)) {
         i2 <- av[["cens"]] == 2
@@ -1384,7 +1412,19 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                "rows", call. = FALSE)
         }
         yv <- y[[resp$resp_name]]
-        if (any(av[["cens_y2"]][i2] <= yv[i2])) {
+        # A discrete interval includes both ends, so one whose ends
+        # agree is the exact observation P(Y = y) = F(y) - F(y - 1) and
+        # is a legitimate way to write a row that happens to be known.
+        # On a continuous response that same interval is an event of
+        # probability zero, so it stays refused.
+        if (identical(resp$family[["type"]], "discrete")) {
+          if (any(av[["cens_y2"]][i2] < yv[i2])) {
+            stop("Interval upper bounds (y2) must be at least the lower ",
+                 "bounds (the response). Both ends of a discrete ",
+                 "interval are included, so y2 == y is the exact ",
+                 "observation and is allowed", call. = FALSE)
+          }
+        } else if (any(av[["cens_y2"]][i2] <= yv[i2])) {
           stop("Interval upper bounds (y2) must exceed the lower bounds ",
                "(the response)", call. = FALSE)
         }
@@ -1395,9 +1435,31 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
     }
     if (!is.null(av[["se"]])) {
-      if (!resp$family[["family"]] %in% c("gaussian", "student")) {
-        stop("se() is supported for gaussian and student families only",
-             call. = FALSE)
+      # A capability test, not a name test. `se()` is the one core
+      # addition term whose whole effect lives inside the density: the
+      # core neither multiplies it in nor reshapes anything with it, it
+      # only hands `aterms[["se"]]` to the family and maps out a now
+      # redundant `sigma`. So the question is whether the density READS
+      # it, and the family answers by declaring it - which is what
+      # `accepts_aterms` and `required_aterms` are for. An undeclared
+      # family (`accepts_aterms = NULL`, which otherwise means "every
+      # term") is refused, because "did not say" cannot mean yes for a
+      # term that changes nothing unless it is read: that is the same
+      # silent-wrong-answer the allow-list exists to close, and it is
+      # also the behavior every custom family had before this test
+      # replaced the name test.
+      if (!family_declares_aterm(resp$family, "se")) {
+        stop("se() carries a known standard deviation into the density, ",
+             "so only a family that reads it can be given one, and '",
+             resp$family[["family"]], "' does not declare that it does. ",
+             "A family declares it with frmtmb_family(accepts_aterms = ",
+             "c(..., \"se\")) or with required_aterms = \"se\", which ",
+             "also refuses a model that leaves the term out. The density ",
+             "then reads aterms[[\"se\"]] as the standard deviation, and ",
+             "honors se(x, sigma = TRUE) by reading aterms[[\"se_sigma\"]] ",
+             "and using sqrt(dpars[[\"sigma\"]]^2 + aterms[[\"se\"]]^2) ",
+             "where it is TRUE. The built-in families that read it are ",
+             "gaussian and student", call. = FALSE)
       }
       if (any(av[["se"]] <= 0)) {
         stop("se() values must be positive", call. = FALSE)

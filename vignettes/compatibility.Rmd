@@ -151,8 +151,12 @@ knitr::kable(data.frame(Combination = b$Pairs, Evidence = b$Note),
 
 Addition terms are the most family-sensitive part of the grammar.
 `cens()` and `trunc()` need a family that supplies a cumulative
-distribution function, and `cens()` additionally refuses discrete
-responses. `se()` and `mi()` need a gaussian or student model.
+distribution function, and that is all they need: a discrete family
+that has one is censored under the inclusive convention, where a bound
+names a value the response can take (see [`frmtmb_family()`]). `mi()`
+needs a gaussian or student model. `se()` needs a family that DECLARES
+it reads the term, with `accepts_aterms`; gaussian and student are the
+built-in ones that do.
 
 ```{r fam-aterm}
 grid_table("family", "aterm", rows = kind_of("family"),

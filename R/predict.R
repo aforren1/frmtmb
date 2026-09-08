@@ -2212,10 +2212,29 @@ ord_cat_moments <- function(object, rspec) {
 #' exactly a draw that landed inside the window, so its PIT renormalizes
 #' on that window just as a `trunc()` fit's does.
 #'
+#' `discrete` refuses rather than shifts. The window this builds is the
+#' continuous one, `lo < Y < hi` written as `[lo, hi]` because the ends
+#' carry no mass there. A count censored at `hi` under the inclusive
+#' convention (see `row_lpdf()`) can BE `hi` and still be censored, so
+#' an uncensored row's support is `[lo + 1, hi - 1]` and its PIT
+#' renormalizes on `F(hi - 1) - F(lo)`. Shifting the window is one line
+#' and verifying it is not, so it is refused until something measures
+#' it.
+#'
 #' @noRd
-osa_cens_domain <- function(av, y) {
+osa_cens_domain <- function(av, y, discrete = FALSE) {
   cen <- av[["cens"]]
   if (is.null(cen) || !any(cen != 0)) return(NULL)
+  if (discrete) {
+    stop("residuals(type = \"osa\") is not supported on a cens() fit ",
+         "with a discrete family. A discrete censoring bound is ",
+         "INCLUSIVE (right censoring at k is Y >= k), so an uncensored ",
+         "row's support is [lo + 1, hi - 1] rather than the [lo, hi] ",
+         "the one-step window is built on, and no reference has ",
+         "measured the shifted window. Every other residual type ",
+         "works, and dharma_residuals() covers the same ground through ",
+         "simulate(censored = TRUE)", call. = FALSE)
+  }
   if (any(cen == 2)) {
     stop("residuals(type = \"osa\") does not support interval censoring ",
          "(cens code 2): an interval-censored row observes an event, not ",
@@ -2274,7 +2293,13 @@ osa_cens_domain <- function(av, y) {
 #' an event has no one-step CDF. The uncensored rows get residuals
 #' conditional on the censoring events, which needs one censoring point
 #' per side (type-I censoring); row-varying censoring times and interval
-#' censoring are refused. `dharma_residuals()` is not a substitute on a
+#' censoring are refused, and so is a DISCRETE family. A discrete
+#' censoring bound is inclusive (right censoring at `k` is `Y >= k`;
+#' see [frmtmb_family()]), so an uncensored count's support is
+#' `[lo + 1, hi - 1]` rather than the `[lo, hi]` this window is built
+#' on, and no reference has measured the shifted window. Every other
+#' residual type works there.
+#' `dharma_residuals()` is not a substitute on a
 #' censored fit, because [simulate.frmtmb_fit()] draws the latent
 #' uncensored response by default (as brms's `posterior_predict()`
 #' does) and those draws are not comparable with the observed censored
@@ -2492,7 +2517,8 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
     }
     av0 <- object$frame[["aterm_values"]][[rspec$resp_name]]
     tb <- trunc_bounds(av0, object$frame[["n_obs"]])
-    cb <- osa_cens_domain(av0, object$frame[["y"]][[rspec$resp_name]])
+    cb <- osa_cens_domain(av0, object$frame[["y"]][[rspec$resp_name]],
+                          identical(fam[["type"]], "discrete"))
     ordinal <- identical(fam[["type"]], "ordinal")
     method <- osa_method %||%
       if (!is.null(tb) || !is.null(cb) || ordinal) "oneStepGeneric"
