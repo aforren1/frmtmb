@@ -71,7 +71,7 @@ bcm_tree_valid_y <- function(name, K) {
 # `1 + (1 | p | id)` on each of the three, the correlation of the
 # random-effect block IS the latent-trait correlation the case study
 # reports.
-bcm_mpt_pairs <- function(link = bcm_probit()) {
+bcm_mpt_pairs <- function(link = "probit") {
   frmtmb_family(
     "bcm_mpt_pairs",
     dpars = c("c", "r", "u"),

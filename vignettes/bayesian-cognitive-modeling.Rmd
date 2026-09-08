@@ -232,7 +232,7 @@ the evidence test can be written the moment it lands.
 |---|---|---|---|
 | Pledgers_1 | `s | trials(n) ~ 0 + g` | identity | |
 | Pledgers_2 | the same fit | structure | the order restriction does not bind at the estimate |
-| Geurts | `k | trials(n) ~ group + (1 | id)` with `bcm_binomial_probit()` | identity, inner gradient | |
+| Geurts | `k | trials(n) ~ group + (1 | id)` with `binomial(link = "probit")` | identity, inner gradient | |
 | GeurtsOrderRestricted | the same fit | structure | whether the restriction binds is decided by the sign of the unrestricted delta |
 | Zeelenberg | `s | trials(n) ~ both + (1 + both || id)`, probit | structure | |
 | OneSample | `frm(x ~ 1)`; delta is `mu / sigma` | structure | the book's parameterization is a reparameterization |
@@ -278,14 +278,18 @@ hierarchical model gives them independent group distributions.
 
 | model | frmtmb spelling | validated by | caveat |
 |---|---|---|---|
-| SDT_1 | `y | trials(N) ~ 0 + case:half + case:bias`, `bcm_binomial_probit()` | identity | the demo data separate one case, so the book's own first data set has no finite estimate |
+| SDT_1 | `y | trials(N) ~ 0 + case:half + case:bias`, `binomial(link = "probit")` | identity | the demo data separate one case, so the book's own first data set has no finite estimate |
 | SDT_2 | `y | trials(N) ~ 0 + half + bias + (0 + half + bias || id)` | identity, inner gradient | **Laplace** |
 | SDT_3 | the SDT_2 fit | identity against SDT_3's program at `xi = 1` | parameter expansion is a ridge, not a model |
 
-frmtmb's link registry has no probit. A link is a plain list of four
-functions, so `bcm_probit()` in `inst/bcm/binomial-extras.R` supplies
-one and no change to the core is needed; the gap itself is recorded in
-`dev/bcm-findings.md` for whoever owns `R/links.R`.
+Signal detection theory is defined on the normal scale, so these need
+a probit. The core registry supplies it, and `binomial(link =
+"probit")` is the whole spelling. `stats::binomial()` accepts the name
+and frmtmb resolves it against its own AD-safe registry rather than
+`stats::make.link()`, so the tape sees a probit written over plain
+arithmetic. The registry entry also carries `logit_eta`, the exact log
+odds behind the linear predictor, which puts a saturated cell on
+`dbinom_robust()` instead of a plain round trip.
 
 ## Chapter 12, psychophysical functions
 
@@ -375,16 +379,18 @@ every start at or above it reaches the same optimum.
 | Extraversion | `mvbf()` of a probit binomial and a probit gaussian sharing `(1 | p | id)` | identity, inner gradient | **Laplace** |
 | OptionalStopping_Answer_1 | not ported | | the chapter's exercise answers, on the model OptionalStopping already ports |
 
-Extraversion is the reason `bcm_gaussian_probit()` exists. The book
-writes the extraversion score as normal around `100 * Phi(theta_2)`;
-dividing the response by 100 makes the mean `Phi(theta_2)` exactly, so
-the whole nonlinearity is a link and the latent pair is an ordinary
-correlated random intercept shared by two responses.
+Extraversion is a `gaussian(link = "probit")`. The book writes the
+extraversion score as normal around `100 * Phi(theta_2)`; dividing the
+response by 100 makes the mean `Phi(theta_2)` exactly, so the whole
+nonlinearity is a link and the latent pair is an ordinary correlated
+random intercept shared by two responses.
 
-The known measurement standard deviation rides on `vreal(sd)` rather
-than on `se(sd, sigma = FALSE)`, because the core gates `se()` on the
-family NAME: a custom family cannot opt in however faithfully it reads
-the term. `vreal()` is the channel a custom family IS given.
+The known measurement standard deviation rides on `se(sd)`, which maps
+the free `sigma` out and leaves the per-row standard deviation as the
+whole residual scale. This model used to need a custom family and
+`vreal(sd)` instead, because the core gates `se()` on the family name
+and a custom family could not pass that gate. Once the probit came to
+the registry there was no custom family left to gate.
 
 ## Chapter 17, the generalized context model
 
@@ -496,7 +502,7 @@ joint with tmbstan and compares.
 |---|---|
 | the identity harness | `tests/testthat/helper-stan.R` |
 | the chapter tests | `tests/testthat/test-bcm-*.R` |
-| the extra links and binomials | `inst/bcm/binomial-extras.R` |
+| the extra binomials | `inst/bcm/binomial-extras.R` |
 | the processing trees | `inst/bcm/process-trees.R` |
 | the similarity models | `inst/bcm/similarity.R` |
 | the finite-sum families | `inst/bcm/marginal.R` |

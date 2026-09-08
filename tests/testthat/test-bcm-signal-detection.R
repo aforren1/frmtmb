@@ -161,7 +161,7 @@ test_that("SDT_1 is a probit GLM whose coefficients are d and c", {
   cn <- bcm_sdt1_counts()
   d <- bcm_sdt_long(cn$h, cn$f, cn$s, cn$n)
   fit <- frm(y | trials(N) ~ 0 + case:half + case:bias,
-             family = bcm_binomial_probit(), data = d,
+             family = binomial(link = "probit"), data = d,
              prior = bcm_sdt1_prior())
   b <- fixef(fit)$mu
   dd <- unname(b[paste0("case", 1:3, ":half")])
@@ -181,7 +181,7 @@ test_that("SDT_1 matches its Stan program", {
   cn <- bcm_sdt1_counts()
   d <- bcm_sdt_long(cn$h, cn$f, cn$s, cn$n)
   fit <- frm(y | trials(N) ~ 0 + case:half + case:bias,
-             family = bcm_binomial_probit(), data = d,
+             family = binomial(link = "probit"), data = d,
              prior = bcm_sdt1_prior())
   stan_lp_check(
     bcm_sdt1_code(),
@@ -231,7 +231,7 @@ test_that("SDT_2 is a probit GLMM with independent d and c effects", {
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_sdt2_data()
   fit <- frm(y | trials(N) ~ 0 + half + bias + (0 + half + bias || id),
-             family = bcm_binomial_probit(), data = d)
+             family = binomial(link = "probit"), data = d)
   b <- fixef(fit)$mu
   expect_gt(unname(b["half"]), 0)
   # every subject's pair is finite, which is what the group
@@ -246,7 +246,7 @@ test_that("SDT_2 matches its Stan program", {
   cn <- bcm_sdt2_counts()
   d <- bcm_sdt2_data()
   fit <- frm(y | trials(N) ~ 0 + half + bias + (0 + half + bias || id),
-             family = bcm_binomial_probit(), data = d)
+             family = binomial(link = "probit"), data = d)
   stan_lp_check(
     bcm_sdt2_code(),
     data = list(k = cn$k, h = cn$h, f = cn$f, s = cn$s, n = cn$n),
@@ -271,7 +271,7 @@ test_that("SDT_3's parameter expansion is a ridge, not a model", {
   cn <- bcm_sdt2_counts()
   d <- bcm_sdt2_data()
   fit <- frm(y | trials(N) ~ 0 + half + bias + (0 + half + bias || id),
-             family = bcm_binomial_probit(), data = d)
+             family = binomial(link = "probit"), data = d)
   stan_lp_check(
     bcm_sdt3_code(),
     data = list(k = cn$k, h = cn$h, f = cn$f, s = cn$s, n = cn$n),
