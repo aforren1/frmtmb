@@ -140,6 +140,24 @@ clusters. Four things in this package route around that:
 with adaptive quadrature, and `frm(importance = )` reweights it
 (the next section).
 
+### NaN standard errors
+
+"Some standard errors are not finite" has two causes and one symptom.
+The covariance is the inverse Hessian, so ONE unusable direction sends
+every entry to `NaN`, and the fit-time warning used to guess at
+overparameterization for both.
+
+`diagnose(fit)` separates them. It reports "Flat directions" when the
+likelihood does not depend on a parameter at all: zero gradient and an
+empty Hessian row, measured by perturbing the parameter and seeing
+whether the gradient moves. Parameters named there are not
+identified AT THAT POINT, which is a starting-value problem, not a
+model-size problem. A nonlinear term evaluated outside its own support
+is the usual cause; see the nonlinear section of
+`vignette("frmtmb")`. With no flat direction the covariance failed for
+the other reason, and the model has parameters the data cannot tell
+apart.
+
 To measure the violation rather than route around it, install the
 companion package **frmtmb.sample** and read
 `vignette("posterior-diagnostics", package = "frmtmb.sample")`, which

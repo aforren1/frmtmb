@@ -803,6 +803,135 @@ diagnose_predictor_scale <- function(fit, tol = 3) {
   out
 }
 
+#' Outer parameters the likelihood does not depend on at all: zero
+#' gradient AND an empty Hessian row.
+#'
+#' A singular Hessian has two very different causes and the same
+#' symptom. Two parameters that trade off against each other are
+#' over-parameterization, which is what the standard-error warning has
+#' always said. A parameter the likelihood is FLAT in is something else:
+#' a nonlinear term that has left its own support, where the remedy is a
+#' starting value, not a smaller model. A Gaussian peak
+#' `exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2)` with `pk` at the
+#' default 0 and `w` running from 1 to 45 underflows to zero everywhere,
+#' and `lamp`, `pk`, `lsig` and `pk`'s group standard deviation then
+#' have no gradient at all. The old report named every parameter as
+#' having a bad standard error, which names none of them.
+#'
+#' Measured, not assumed. `fit$obj$he()` is unavailable on a model with
+#' random effects ("Hessian not yet implemented"), so the row is read
+#' from the gradient: perturb one parameter and see whether the WHOLE
+#' gradient vector moves. A direction the likelihood is flat in moves it
+#' by nothing. On the peak fit above that separates the four flat
+#' parameters from the five identified ones by ten orders of magnitude
+#' (row norms 3e-30 to 3e-10 against 20 to 700) in 0.08 s for nine
+#' gradient evaluations.
+#'
+#' Only parameters with a vanishing gradient are candidates, so a
+#' healthy fit pays for nothing, and the caller gates the whole check on
+#' a covariance that already failed.
+#'
+#' @noRd
+diagnose_flat <- function(fit, gr = NULL, tol = 1e-8, gtol = 1e-6) {
+  p <- fit$opt$par
+  if (!length(p)) return(character(0))
+  if (is.null(gr)) {
+    gr <- tryCatch(drop(fit$obj$gr(p)), error = function(e) NULL)
+  }
+  if (is.null(gr) || length(gr) != length(p) || anyNA(gr)) {
+    return(character(0))
+  }
+  cand <- which(abs(gr) <= gtol)
+  if (!length(cand)) return(character(0))
+  flat <- logical(length(cand))
+  for (k in seq_along(cand)) {
+    j <- cand[k]
+    # a step scaled to the parameter, so a coefficient at 1e4 is
+    # perturbed meaningfully and one at zero is perturbed at all
+    h <- max(1e-4, 1e-4 * abs(p[j]))
+    pj <- p
+    pj[j] <- pj[j] + h
+    g1 <- tryCatch(drop(fit$obj$gr(pj)), error = function(e) NULL)
+    if (is.null(g1) || length(g1) != length(gr) || anyNA(g1)) next
+    flat[k] <- max(abs(g1 - gr)) / h <= tol
+  }
+  if (!any(flat)) return(character(0))
+  outer_par_names(fit)[cand[flat]]
+}
+
+#' `diagnose_flat()` once per fit. vcov(), summary(), confint() and
+#' diagnose() all reach the same verdict on the same degenerate object.
+#'
+#' @noRd
+flat_pars <- function(fit) {
+  cache <- fit$cache
+  if (is.environment(cache) && !is.null(cache$flat_pars)) {
+    return(cache$flat_pars)
+  }
+  out <- tryCatch(diagnose_flat(fit), error = function(e) character(0))
+  if (is.environment(cache)) cache$flat_pars <- out
+  out
+}
+
+#' Does this fit carry nonlinear parameters at all?
+#'
+#' `diagnose_flat()` measures flatness and nothing else, so it finds
+#' flat directions in models that have no nonlinear term: a saturated
+#' `mo()` simplex is one (its softmax sits in a corner, and moving the
+#' last `zeta` leaves the objective unchanged to fifteen digits). The
+#' nonlinear EXPLANATION must therefore be gated on the model the
+#' explanation is about, or the report asserts a cause it never
+#' measured - which is the defect the flat-direction check was added to
+#' remove, relocated to another model class.
+#'
+#' @noRd
+fit_has_nlpars <- function(fit) {
+  resp <- fit$frame[["spec"]]$responses %||% fit$spec$responses %||% list()
+  any(vapply(resp, function(r) length(r$nlpars %||% character(0)) > 0L, TRUE))
+}
+
+#' A flat parameter's name, with the block its standard deviation
+#' belongs to when the name is a bare `theta_k`.
+#'
+#' `theta_3` in a flat set is the standard deviation OF a flat
+#' parameter's random effect, and a bare index leaves the reader to work
+#' that out. `log_sd_theta_index()` already carries the labels.
+#'
+#' @noRd
+flat_par_display <- function(fit, nms) {
+  sd_i <- tryCatch(log_sd_theta_index(fit), error = function(e) integer(0))
+  if (!length(sd_i)) return(nms)
+  key <- paste0("theta_", as.integer(sd_i))
+  vapply(nms, function(n) {
+    j <- match(n, key)
+    if (is.na(j)) n else paste0(n, " (sd of ", names(sd_i)[j], ")")
+  }, "", USE.NAMES = FALSE)
+}
+
+#' The sentence that names the flat directions, or "" when there are
+#' none. Appended to whichever warning reports the failed covariance.
+#'
+#' @noRd
+flat_par_note <- function(fit) {
+  fl <- flat_pars(fit)
+  if (!length(fl)) return("")
+  one <- length(fl) == 1L
+  paste0(". The likelihood is FLAT in ", length(fl),
+         if (one) " direction: " else " directions: ",
+         paste(flat_par_display(fit, fl), collapse = ", "),
+         " - zero gradient and an empty Hessian row, so ",
+         if (one) "that parameter is" else "those parameters are",
+         " not identified AT THIS POINT rather than over-parameterized",
+         if (fit_has_nlpars(fit)) {
+           paste0(". A nonlinear term that has left its own support does ",
+                  "this; give it a starting value that puts it back (see ",
+                  "par_template())")
+         } else {
+           paste0(": moving ", if (one) "it" else "them",
+                  " does not change the likelihood at all")
+         })
+}
+
 #' lme4's isSingular: a variance component sitting on the boundary of its
 #' parameter space - a standard deviation at zero, or a correlation at
 #' +/-1. The verdict is read off the estimates alone, so it stands even
@@ -881,12 +1010,25 @@ log_sd_theta_index <- function(fit) {
 
 #' Convergence diagnostics for a frmtmb fit
 #'
-#' Reports the optimizer's own verdict plus four checks that a converged
-#' fit can still fail: non-finite standard errors, complete separation
-#' in a binomial-type fit, predictor columns scaled far from one, and
-#' variance components on the boundary of their parameter space
-#' (lme4's `isSingular()`, read off the estimates rather than the
-#' Hessian).
+#' Reports the optimizer's own verdict plus five checks that a converged
+#' fit can still fail: non-finite standard errors, flat directions,
+#' complete separation in a binomial-type fit, predictor columns scaled
+#' far from one, and variance components on the boundary of their
+#' parameter space (lme4's `isSingular()`, read off the estimates rather
+#' than the Hessian).
+#'
+#' A FLAT DIRECTION is an outer parameter the likelihood does not depend
+#' on: zero gradient and an empty Hessian row. It separates the two
+#' causes of `NaN` standard errors. Parameters that trade off against
+#' each other are over-parameterization, and the model is too big.
+#' Parameters the likelihood is flat in are unidentified AT THIS POINT,
+#' and the remedy is a starting value: a nonlinear term evaluated
+#' outside its own support (a bump whose centre starts far from the
+#' data) is flat in several of its parameters at once. One unusable
+#' direction makes EVERY standard error `NaN`, so `bad_se` names the
+#' whole vector and `flat` names the cause. The check is measured by
+#' perturbing each candidate and seeing whether the gradient moves, and
+#' runs only when the covariance has already failed.
 #'
 #' @param fit A `frmtmb_fit`.
 #' @param quiet If `TRUE`, return the diagnostics without printing.
@@ -906,8 +1048,8 @@ log_sd_theta_index <- function(fit) {
 #'   optimizer's verdict, and `diagnose()` returns the maximum absolute
 #'   gradient, the worst-offending parameter, the positive-definiteness
 #'   of the Hessian, non-finite standard errors, the smallest eigenvalue
-#'   of the covariance, boundary (singular) variance components,
-#'   separation, and predictor scaling. `frm_allfit()` refits across
+#'   of the covariance, the flat directions, boundary (singular)
+#'   variance components, separation, and predictor scaling. `frm_allfit()` refits across
 #'   optimizers as a further convergence check, and `check_laplace()`
 #'   audits the approximation itself.
 #'
@@ -961,6 +1103,13 @@ diagnose <- function(fit, quiet = FALSE) {
     worst_grad = if (length(gr)) nm[which.max(abs(gr))] else NA_character_,
     pdHess = isTRUE(sdr_of(fit)$pdHess),
     bad_se = nm[!is.finite(se)],
+    # gated on a covariance that already failed: on a healthy fit every
+    # parameter would be a candidate (a converged gradient is tiny
+    # everywhere) and the check would cost one gradient evaluation per
+    # parameter for a finding that cannot arise
+    flat = if (!isTRUE(sdr_of(fit)$pdHess) || any(!is.finite(se))) {
+      flat_pars(fit)
+    } else character(0),
     min_cov_eigenvalue = if (!is.null(ev) && length(ev)) min(ev),
     extreme_theta = sd_i[abs(th[sd_i]) > 8],
     separation = if (!is.null(ps)) diagnose_separation(fit, ps),
@@ -981,6 +1130,40 @@ diagnose <- function(fit, quiet = FALSE) {
     if (length(out$bad_se)) {
       cat("Non-finite standard errors:",
           paste(out$bad_se, collapse = ", "), "\n")
+    }
+    if (length(out$flat)) {
+      # named BEFORE the covariance verdict is read as
+      # over-parameterization: these are the parameters the likelihood
+      # does not depend on, and the others inherit their NaN
+      one <- length(out$flat) == 1L
+      cat("Flat directions (zero gradient, empty Hessian row): ",
+          paste(flat_par_display(fit, out$flat), collapse = ", "),
+          "\n  The likelihood does not depend on ",
+          if (one) "this parameter" else "these parameters",
+          " at this point, so the model is UNIDENTIFIED HERE rather ",
+          "than overparameterized, and every other standard error is ",
+          "NaN because the Hessian cannot be inverted. ",
+          # the CAUSE is gated on the model: the check measures flatness
+          # and nothing else, and finds it in models with no nonlinear
+          # term at all (a saturated mo() simplex, say). Asserting a bump
+          # there is a false lead, and a false lead is worse than the
+          # vague message this block replaced.
+          if (fit_has_nlpars(fit)) {
+            paste0("A nonlinear term evaluated outside its own support ",
+                   "does this - a bump whose centre starts far from the ",
+                   "data is flat in its centre, amplitude and width at ",
+                   "once. Give those parameters a starting value that ",
+                   "puts the term back on the data: par_template() names ",
+                   "them, and start = takes the names straight back.\n")
+          } else {
+            paste0("Moving ", if (one) "it" else "them", " does not ",
+                   "change the likelihood at all, so no amount of ",
+                   "optimization will pin ", if (one) "it" else "them",
+                   " down: what the fit reports for ",
+                   if (one) "that parameter" else "those parameters",
+                   " is wherever the optimizer stopped. par_template() ",
+                   if (one) "names it." else "names them.", "\n")
+          }, sep = "")
     }
     if (length(out$extreme_theta)) {
       cat("Extreme covariance parameters (|log sd| > 8): ",
@@ -1671,7 +1854,7 @@ hyp_par_cov <- function(fit) {
          n_outer = length(fit$opt$par))
   } else {
     Q <- sdr_of(fit)$jointPrecision
-    Vall <- solve_joint_precision(Q, fit$cache)
+    Vall <- solve_joint_precision(Q, fit$cache, fit)
     rn <- rownames(Q)
     keep <- which(rn %in% comps)
     vo <- hyp_vals_only(fit)

@@ -77,3 +77,168 @@ test_that("nl validation errors are clear", {
                    data = NULL, dry_run = "spec"),
                "not used in the model formula")
 })
+
+# --- reserved nonlinear parameter names -------------------------------
+# Four usability defects of hierarchical nl models, wt-api. A nonlinear
+# parameter named after one of the family's own dpars used to die inside
+# model.frame() with "object 'mu' not found", naming nothing; one named
+# after a par-template component fits, but `start` then means the
+# component and reported ITS length.
+
+nl_reserved_data <- function(n_id = 8, seed = 7) {
+  set.seed(seed)
+  w <- seq(1, 6, by = 0.5)
+  d <- do.call(rbind, lapply(seq_len(n_id), function(i) {
+    data.frame(id = i, group = i %% 2, w = w, logw = log(w),
+               I = rexp(length(w), rate = 1 / exp(1.2 - 1.5 * log(w))))
+  }))
+  d$id <- factor(d$id)
+  d
+}
+
+test_that("a nonlinear parameter named after a family dpar is refused by name", {
+  d <- nl_reserved_data()
+  # the reported spelling: `mu ~ 1 + (1 | id)` alongside nl = TRUE
+  expect_error(
+    frm(bf(I ~ mu - chi * logw, mu ~ 1 + (1 | id), chi ~ 1 + group,
+           nl = TRUE),
+        family = exponential(link = "log"), data = d),
+    "distributional parameter of family 'exponential'")
+  expect_error(
+    frm(bf(I ~ mu - chi * logw, mu ~ 1 + (1 | id), chi ~ 1 + group,
+           nl = TRUE),
+        family = exponential(link = "log"), data = d),
+    "This family reserves: mu")
+  # and at SPEC time, so par_template() refuses it before any fit
+  expect_error(
+    par_template(bf(I ~ mu - chi * logw, mu ~ 1 + (1 | id),
+                    chi ~ 1 + group, nl = TRUE),
+                 data = d, family = exponential(link = "log")),
+    "cannot also be a nonlinear parameter")
+  # any family, not just this one
+  expect_error(
+    frm(bf(I ~ mu * chi, mu ~ 1, chi ~ 1, nl = TRUE), gaussian(), data = d),
+    "distributional parameter of family 'gaussian'")
+})
+
+test_that("a body that names its own parameter is refused, with the data checked first", {
+  d <- nl_reserved_data()
+  # no formula for mu and no column called mu: the old message was R's
+  # own "object 'mu' not found" from eval(predvars, data, env)
+  expect_error(
+    frm(bf(I ~ mu - chi * logw, chi ~ 1 + group, nl = TRUE),
+        family = exponential(link = "log"), data = d),
+    "refers to 'mu' itself")
+  # a REAL column of that name still wins, as it does for a dpar
+  # reference, so this model keeps fitting
+  d2 <- d
+  d2$mu <- 1
+  f <- frm(bf(I ~ mu * apo - chi * logw, apo ~ 1, chi ~ 1 + group,
+              nl = TRUE),
+           family = exponential(link = "log"), data = d2)
+  # mu is computed by the body, so it contributes no coefficient block;
+  # what matters is that the fit happened at all
+  expect_setequal(names(fixef(f)), c("apo", "chi"))
+  expect_true(all(is.finite(fixef(f, flatten = TRUE))))
+  # an nlf() body that names ITSELF is the same fault under another
+  # spelling
+  expect_error(
+    frm(bf(I ~ apo - chi * logw, apo ~ 1, chi ~ 1 + group, nl = TRUE) +
+          nlf(sigma ~ sigma + 1),
+        family = gaussian(), data = d),
+    "refers to 'sigma' itself")
+})
+
+test_that("a body reading ANOTHER dpar's value is untouched", {
+  # the deliberate variance-function extension: `sigma` in mu's body is
+  # that parameter's per-row value, not a nonlinear parameter, and the
+  # refusals above must not reach it
+  set.seed(2)
+  dd <- data.frame(x = rnorm(120))
+  dd$y <- 2 + dd$x + rnorm(120)
+  f <- frm(bf(y ~ sigma * x + a, a ~ 1, nl = TRUE), gaussian(), data = dd)
+  expect_true(is.finite(fixef(f)$a[[1]]))
+})
+
+test_that("a nonlinear parameter named after a template component fits, and start names the collision", {
+  d <- nl_reserved_data()
+  # one test per par-template component that a plain hierarchical model
+  # carries. Each name FITS - the refusal is only about `start`.
+  for (nm in c("beta", "b", "theta")) {
+    body <- stats::as.formula(paste0("I ~ ", nm, " - chi * logw"))
+    par <- stats::as.formula(paste0(nm, " ~ 1 + (1 | id)"))
+    f <- frm(bf(body, par, chi ~ 1 + group, nl = TRUE),
+             family = exponential(link = "log"), data = d)
+    expect_true(paste0(nm, "_(Intercept)") %in% names(fixef(f, flatten = TRUE)),
+                info = nm)
+    st <- list(1)
+    names(st) <- nm
+    # `start$<nm>` sets the COMPONENT. Whether that is a length error or
+    # a silent success depends on the component's length, so both paths
+    # have to carry the explanation.
+    seen <- character(0)
+    msg <- tryCatch({
+      withCallingHandlers(
+        frm(bf(body, par, chi ~ 1 + group, nl = TRUE),
+            family = exponential(link = "log"), data = d, start = st),
+        warning = function(w) {
+          seen <<- c(seen, conditionMessage(w))
+          invokeRestart("muffleWarning")
+        })
+      paste(seen, collapse = " ")
+    }, error = function(e) conditionMessage(e))
+    expect_match(msg, "not the nonlinear parameter", info = nm)
+    expect_match(msg, "par_template\\(\\) lists both", info = nm)
+  }
+})
+
+test_that("every par-template component name is spelled out by the collision message", {
+  # thetaac, thetar and miss need an autocorrelation term, a residual
+  # correlation and an imputed column to appear in a template at all;
+  # the message that names them is unit-tested instead of fitting three
+  # more models for one string each
+  tpl <- list(beta = c(`z_(Intercept)` = 0), betad = numeric(0),
+              b = numeric(0), theta = numeric(0), thetaac = numeric(0),
+              thetar = numeric(0), miss = numeric(0))
+  expect_match(frmtmb:::nl_start_collision_msg("beta", tpl),
+               "fixed-effect coefficients")
+  expect_match(frmtmb:::nl_start_collision_msg("betad", tpl),
+               "distributional parameters")
+  expect_match(frmtmb:::nl_start_collision_msg("b", tpl),
+               "random-effect vector")
+  expect_match(frmtmb:::nl_start_collision_msg("theta", tpl),
+               "covariance parameters")
+  expect_match(frmtmb:::nl_start_collision_msg("thetaac", tpl),
+               "autocorrelation parameters")
+  expect_match(frmtmb:::nl_start_collision_msg("thetar", tpl),
+               "residual-correlation parameters")
+  expect_match(frmtmb:::nl_start_collision_msg("miss", tpl),
+               "imputed missing values")
+})
+
+test_that("newparams carries the same collision message, in its own spelling", {
+  d <- nl_reserved_data()
+  msg <- tryCatch(
+    frm_simulate(bf(I ~ b - chi * logw, b ~ 1 + (1 | id), chi ~ 1 + group,
+                    nl = TRUE),
+                 data = d, family = exponential(link = "log"),
+                 newparams = list(beta = c(1, 1.5, 0.2), b = 1,
+                                  theta = 0.3),
+                 nsim = 1, seed = 1),
+    error = function(e) conditionMessage(e))
+  expect_match(msg, "not the nonlinear parameter")
+  # the message answers the argument the caller actually used
+  expect_match(msg, "`newparams[$]b`")
+  expect_false(grepl("start$", msg, fixed = TRUE))
+})
+
+test_that("the collision message keeps saying start$ for start", {
+  d <- nl_reserved_data()
+  msg <- tryCatch(
+    frm(bf(I ~ b - chi * logw, b ~ 1 + (1 | id), chi ~ 1 + group,
+           nl = TRUE),
+        family = exponential(link = "log"), data = d, start = list(b = 1)),
+    error = function(e) conditionMessage(e))
+  expect_match(msg, "`start[$]b`")
+  expect_false(grepl("newparams", msg, fixed = TRUE))
+})

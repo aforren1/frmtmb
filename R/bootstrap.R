@@ -14,7 +14,9 @@
 #'
 #' @param fit A `frmtmb_fit` for a univariate model.
 #' @param FUN Function of a `frmtmb_fit` returning a numeric vector.
-#'   Default: the flattened fixed effects.
+#'   Default: `fixef(f, flatten = TRUE)`, the fixed effects named as
+#'   `vcov()` names its rows, so a bootstrap standard error lines up
+#'   with the Wald one by name.
 #' @param nsim Number of bootstrap draws.
 #' @param seed Optional seed.
 #' @param re.form Passed to [simulate()]; the default `NA` simulates
@@ -32,7 +34,7 @@
 #' bs
 #' confint(bs)
 #' @export
-frm_bootstrap <- function(fit, FUN = function(f) unlist(fixef(f)),
+frm_bootstrap <- function(fit, FUN = function(f) fixef(f, flatten = TRUE),
                           nsim = 500, seed = NULL, re.form = NA) {
   # nsim is passed straight to simulate() as a length, and a bad one
   # used to surface as "invalid 'length' argument" from inside the

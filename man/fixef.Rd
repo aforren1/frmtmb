@@ -7,18 +7,48 @@
 \usage{
 fixef(object, ...)
 
-\method{fixef}{frmtmb_fit}(object, ...)
+\method{fixef}{frmtmb_fit}(object, flatten = FALSE, ...)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
 \item{...}{Unused.}
+
+\item{flatten}{If \code{TRUE}, one named vector in the \code{vcov()} /
+\code{confint()} spelling instead of the per-dpar list. Coefficients
+come in linear-predictor order, which need not be \code{vcov()}'s row
+order; index by name. Distributional parameters held at a constant
+are included here and are absent from \code{vcov()}, which covers the
+ESTIMATED coefficients only - so dividing by a \code{vcov()} diagonal is
+\code{NA} for those entries, and
+\code{intersect(names(cf), rownames(vcov(fit)))} selects the ones a
+standard error exists for.}
 }
 \value{
-A named list of coefficient vectors, one per dpar.
+A named list of coefficient vectors, one per dpar, or with
+\code{flatten = TRUE} a single named vector.
 }
 \description{
-Extract fixed effects
+Two shapes, and the difference is the NAMES. The default is a list
+keyed by distributional parameter, whose entries are named by DESIGN
+COLUMN: \code{fixef(fit)$sigma[["(Intercept)"]]}. \code{flatten = TRUE} is one
+vector in the INTERNAL parameter name, which is what \code{vcov()},
+\code{confint()}, \code{par_template()}, \code{start} and \code{newparams} use:
+\code{dpar_column}, with the location parameter's own coefficients left
+unprefixed (\code{x}, not \code{mu_x}), and the response prefixed ahead of that
+in a multivariate fit.
+}
+\details{
+\code{hypothesis()} is a THIRD vocabulary and is not the same one. It
+strips parentheses, so it reads \code{sigma_(Intercept)} only backquoted,
+and its own spelling is the parenthesis-free \code{sigma_Intercept}. The
+comment above \code{par_name_bare()} sets out all three.
+
+\code{unlist(fixef(fit))} is none of them. It is base R's composite of a
+list KEY and an element name, \code{mu.x}, and it names no parameter of
+the model: the separator differs and the location parameter is named
+where the model does not name it. Use \code{flatten = TRUE} to line
+coefficients up with a covariance matrix or a prior.
 }
 \examples{
 set.seed(1)
@@ -30,6 +60,15 @@ fit <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
 fixef(fit)
 exp(fixef(fit)$sigma[["(Intercept)"]])   # sigma is modeled on the log
 
-# flatten to the vector confint() and hypothesis() name their rows by
-unlist(fixef(fit))
+# flatten to the vector vcov() and confint() name their rows by
+fixef(fit, flatten = TRUE)
+all(names(fixef(fit, flatten = TRUE)) \%in\% rownames(confint(fit)))
+
+# so a standard error goes with its coefficient by name
+cf <- fixef(fit, flatten = TRUE)
+cf / sqrt(diag(vcov(fit))[names(cf)])
+}
+\seealso{
+\code{\link[=vcov.frmtmb_fit]{vcov.frmtmb_fit()}} and \code{\link[=confint.frmtmb_fit]{confint.frmtmb_fit()}}, which name
+their rows the way \code{flatten = TRUE} names its entries.
 }

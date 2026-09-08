@@ -297,15 +297,21 @@ parse_num_levels <- function(lv) {
 #' refit that is still degenerate warns again.
 #'
 #' @noRd
-warn_nonfinite_cov <- function(cache = NULL) {
+warn_nonfinite_cov <- function(cache = NULL, fit = NULL) {
   if (is.environment(cache)) {
     if (isTRUE(cache$warned_nonfinite_cov)) return(invisible(NULL))
     cache$warned_nonfinite_cov <- TRUE
   }
+  # "probably overparameterized" is a guess, and the wrong one when the
+  # likelihood is flat in a direction. Given the fit, measure instead.
+  note <- if (is.null(fit)) "" else flat_par_note(fit)
   warning("Some standard errors are not finite, so vcov() and ",
           "summary() report NaN: the covariance could not be recovered ",
-          "from the Hessian and the model is probably ",
-          "overparameterized. diagnose() names the offending ",
+          "from the Hessian",
+          if (nzchar(note)) note else {
+            " and the model is probably overparameterized"
+          },
+          ". diagnose() names the offending ",
           "parameters; see the 'Convergence problems' section of ",
           "vignette('diagnostics')", call. = FALSE)
 }
@@ -319,7 +325,7 @@ warn_nonfinite_cov <- function(cache = NULL) {
 #' plus one warning pointing at diagnose().
 #'
 #' @noRd
-solve_joint_precision <- function(Q, cache = NULL) {
+solve_joint_precision <- function(Q, cache = NULL, fit = NULL) {
   # Matrix::solve, not base solve: the joint precision of a GLMM is
   # sparse and often badly conditioned, and base's dense LAPACK path
   # refuses it on a reciprocal-condition-number test that the sparse
@@ -336,7 +342,7 @@ solve_joint_precision <- function(Q, cache = NULL) {
     # The x slot is the stored values of a Matrix; a base matrix has no
     # such slot and is read whole.
     xs <- tryCatch(V@x, error = function(e) as.numeric(as.matrix(V)))
-    if (any(!is.finite(xs))) warn_nonfinite_cov(cache)
+    if (any(!is.finite(xs))) warn_nonfinite_cov(cache, fit)
     return(V)
   }
   if (is.environment(cache)) {
@@ -347,9 +353,13 @@ solve_joint_precision <- function(Q, cache = NULL) {
     }
     cache$warned_singular_precision <- TRUE
   }
+  note <- if (is.null(fit)) "" else flat_par_note(fit)
   warning("The joint precision matrix is singular, so standard errors ",
-          "are NaN; the model is probably overparameterized. ",
-          "diagnose() names the offending parameter; see the ",
+          "are NaN",
+          if (nzchar(note)) note else {
+            "; the model is probably overparameterized"
+          },
+          ". diagnose() names the offending parameter; see the ",
           "'Convergence problems' section of vignette('diagnostics')",
           call. = FALSE)
   matrix(NaN, nrow(Q), ncol(Q), dimnames = dimnames(Q))

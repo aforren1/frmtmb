@@ -15,12 +15,26 @@ diagnose(fit, quiet = FALSE)
 Invisibly, a list of diagnostics.
 }
 \description{
-Reports the optimizer's own verdict plus four checks that a converged
-fit can still fail: non-finite standard errors, complete separation
-in a binomial-type fit, predictor columns scaled far from one, and
-variance components on the boundary of their parameter space
-(lme4's \code{isSingular()}, read off the estimates rather than the
-Hessian).
+Reports the optimizer's own verdict plus five checks that a converged
+fit can still fail: non-finite standard errors, flat directions,
+complete separation in a binomial-type fit, predictor columns scaled
+far from one, and variance components on the boundary of their
+parameter space (lme4's \code{isSingular()}, read off the estimates rather
+than the Hessian).
+}
+\details{
+A FLAT DIRECTION is an outer parameter the likelihood does not depend
+on: zero gradient and an empty Hessian row. It separates the two
+causes of \code{NaN} standard errors. Parameters that trade off against
+each other are over-parameterization, and the model is too big.
+Parameters the likelihood is flat in are unidentified AT THIS POINT,
+and the remedy is a starting value: a nonlinear term evaluated
+outside its own support (a bump whose centre starts far from the
+data) is flat in several of its parameters at once. One unusable
+direction makes EVERY standard error \code{NaN}, so \code{bad_se} names the
+whole vector and \code{flat} names the cause. The check is measured by
+perturbing each candidate and seeing whether the gradient moves, and
+runs only when the covariance has already failed.
 }
 \examples{
 set.seed(1)

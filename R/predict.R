@@ -24,7 +24,7 @@ get_joint_cov <- function(fit) {
     # same degradation vcov() uses: a singular joint precision gives NaN
     # standard errors and one warning naming diagnose(), not a raw
     # LAPACK message from deep inside predict()
-    V <- as.matrix(solve_joint_precision(Q, cache))
+    V <- as.matrix(solve_joint_precision(Q, cache, fit))
     rn <- rownames(Q)
   }
   cache$Vjoint <- list(V = V, names = rn)
