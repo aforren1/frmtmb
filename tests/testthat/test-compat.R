@@ -75,6 +75,83 @@ test_that("no pair is decided by file order alone", {
                character(0))
 })
 
+test_that("a derived refusal never displaces a hand-written row", {
+  # Every derived row is a name x name pair and so outranks the group
+  # and kind rules it touches. That is where a declaration could
+  # silently replace somebody's reading of a fit, and it is the one
+  # thing the derivation must not do: a disagreement means one of the
+  # two is wrong and a person has to say which.
+  bad <- compat_declared_displacements()
+  expect_equal(sprintf("%s x %s (was %s)", bad$feature_a, bad$feature_b,
+                       bad$was),
+               character(0))
+})
+
+test_that("a family's allow-list decides its addition-term cells", {
+  ft <- frm_compat_features()
+  ats <- ft$name[ft$kind == "aterm"]
+  tb <- as.data.frame(frm_compat())
+  status <- function(a, b) {
+    i <- which((tb$feature_a == a & tb$feature_b == b) |
+                 (tb$feature_a == b & tb$feature_b == a))
+    tb$status[i[[1L]]]
+  }
+  for (fm in names(compat_core_family_accepts())) {
+    ok <- compat_core_family_accepts()[[fm]]
+    if (is.null(ok)) next
+    for (at in ats) {
+      if (sub("[(][)]$", "", at) %in% ok) next
+      # not "untested": frame assembly refuses this pair by name
+      expect_identical(status(fm, at), "refused",
+                       info = paste(fm, "x", at))
+    }
+  }
+})
+
+test_that("only the refusal is derived, never the promise", {
+  # A family that ACCEPTS a term has said nothing about whether the pair
+  # works. gddm x weights() is declared-accepted and hand-written
+  # untested, and untested is the honest answer until somebody runs it.
+  drv <- compat_aterm_rules(list(f = c("weights", "trials")))
+  expect_true(all(drv$status == "refused"))
+  expect_false(any(drv$feature_b %in% c("weights()", "trials()")))
+  # NULL is a family with no allow-list, so there is nothing to derive
+  expect_equal(nrow(compat_aterm_rules(list(f = NULL))), 0L)
+})
+
+test_that("a cell the registry already refuses keeps its own note", {
+  # cens(), trunc(), se() and mi() are refused for a family by
+  # kind-level rules that say WHY: the missing log-CDF, or the residual
+  # variance only two families have. A derived row is a name x name
+  # pair and would outrank all four, so the derivation leaves them.
+  drv <- compat_aterm_rules(list(f = character(0)))
+  expect_false(any(c("cens()", "trunc()", "se()", "mi()") %in%
+                     drv$feature_b))
+  expect_true(all(c("weights()", "trials()", "vint()", "vreal()") %in%
+                    drv$feature_b))
+  # `existing` extends that deference, which is how a contributed
+  # package's own rows survive its own derivation
+  mine <- data.frame(feature_a = "f", feature_b = "vint()",
+                     status = "refused", note = "mine", override = FALSE,
+                     stringsAsFactors = FALSE)
+  drv2 <- compat_aterm_rules(list(f = character(0)), mine)
+  expect_false("vint()" %in% drv2$feature_b)
+  expect_true("vreal()" %in% drv2$feature_b)
+})
+
+test_that("compat_aterm_rules refuses a shape it cannot read", {
+  expect_error(compat_aterm_rules(c(gaussian = "weights")),
+               "maps a family's DISPLAY name")
+  expect_error(compat_aterm_rules(list("weights")),
+               "maps a family's DISPLAY name")
+  expect_error(compat_aterm_rules(list(gaussian = 42)),
+               "a family object, a character vector of term names")
+  # a family object is read for its own declaration
+  drv <- compat_aterm_rules(list(gaussian = fam_gaussian()))
+  expect_true("trials()" %in% drv$feature_b)
+  expect_false("cens()" %in% drv$feature_b)
+})
+
 test_that("precedence compares the two sides as a sorted pair", {
   # (3,1) beats (2,2) beats (2,1) beats (1,1); summing the sides would
   # tie the first two at 4 and the last two at 3.

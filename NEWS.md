@@ -1,5 +1,63 @@
 # frmtmb (development version)
 
+What a family declares about the addition terms it reads: the
+exclusivity the 0.53.0 allow-list could not express, the compatibility
+cells those declarations already settle, and a structure slot that had
+no reader.
+
+* `frmtmb_family(exclusive_aterms =)` declares that a set of
+  addition-term values say the SAME thing to the density, so at most one
+  of them may be supplied. An allow-list cannot express this, because
+  both spellings are legitimately on it: `wiener()` reads its boundary
+  indicator from `dec()` and falls back to `vint1`, so
+  `rt | dec(u) + vint(1 - u) ~ 1` passed every guard and fitted with a
+  log-likelihood bit-identical to the `dec()`-only model, the two
+  columns contradicting each other and nothing saying so. Frame assembly
+  now refuses the combination by name, says which spelling the density
+  reads and which to drop.
+
+  Written in VALUES, as `required_aterms` is, so the two compose: an
+  any-of group in one and the same set in the other read together as
+  "exactly one". It is opt-in rather than implied by an any-of group,
+  because `gddm()` genuinely reads `dec()` and `vint1` together, as the
+  boundary and the condition index. Declaring a set exclusive whose values
+  `required_aterms` demands TOGETHER is refused at construction, because
+  no model could then satisfy the family. A `mixture()` keeps a set only if
+  every component declares it, which is the intersection where the
+  allow-list is the union.
+
+* `frm_compat()` derives its addition-term refusals from
+  `frmtmb_family(accepts_aterms =)` instead of leaving them `untested`.
+  A term outside a family's allow-list is refused BY NAME at frame
+  assembly, so `untested` was never right for that cell: nothing is
+  missing, the guard exists, and the reason is the declaration. With
+  `frmtmb` alone, **104** cells move from `untested` to `refused`, all
+  of them `trials()`, `vint()` and `vreal()` against families that do
+  not read them; with `frmtmb.eam` also loaded it is 147, the extra 43
+  being `dec()` and the eam families' own cells. Nothing else moves at
+  either size: audited before the change, no hand-written row disagreed
+  with any declaration.
+
+  Only the refusal is derived. A family that ACCEPTS a term has said
+  nothing about whether the pair works, so `untested` stays there. And a
+  pair the hand-written rules already refuse keeps its own note, which
+  usually says more than the declaration does; `compat_aterm_rules()` is
+  exported so a contributing package derives its own rows the same way,
+  deferring to both its rules and the core's.
+
+  `r("trials()", "kind:family", "untested")` is gone, superseded: the
+  four families that take `trials()` are named and the other 32 refuse
+  it by declaration, so the kind-level rule won no pair.
+
+* A structured family's generic refusal names the family's own unit:
+  "its likelihood factorizes no finer than a hidden-Markov sequence"
+  rather than "does not factorize over the rows of the data". That
+  sentence is what `frmtmb_structure(unit =)` was documented for and had
+  no reader for; it was also false of a structure that carries no
+  `loglik`, which is a capability declaration on a family whose
+  likelihood IS rowwise, and those now get a sentence that is true of
+  them.
+
 Four usability defects of hierarchical NONLINEAR models, found while
 fitting `bf(..., nl = TRUE)` with random effects on the nonlinear
 parameters.

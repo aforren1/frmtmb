@@ -103,6 +103,28 @@
 #'   silently ignored: `wiener()` accepted a `vint()` it cannot use, and
 #'   `lba()` accepted a `dec()`, both giving a fit bit-identical to the
 #'   one without the term.
+#' @param exclusive_aterms Sets of addition-term values that say the SAME
+#'   thing to the density, so that at most one of each set may be
+#'   supplied. Named as `required_aterms` names them, in values rather
+#'   than in terms: `exclusive_aterms = list(c("dec", "vint1"))`. A
+#'   character vector is one such set; a list is several. The FIRST name
+#'   of a set is the spelling the density reads, and the refusal tells
+#'   the user to keep it.
+#'
+#'   This is what an allow-list cannot express, because both spellings
+#'   are legitimately on it. `wiener()` reads its boundary indicator from
+#'   `dec()` and falls back to `vint1`, so `rt | dec(u) + vint(1 - u)`
+#'   passed every guard and fitted with a log-likelihood bit-identical to
+#'   the `dec()`-only model: the user said one thing twice, and
+#'   inconsistently, and nothing complained. Declare the alternatives of
+#'   an any-of `required_aterms` group here when the density reads only
+#'   one of them; leave them undeclared when it reads both, as `gddm()`
+#'   does, where `dec()` and `vint1` carry different data.
+#'
+#'   Read WITH `required_aterms`, not instead of it: an any-of group in
+#'   one and the same set in the other together mean "exactly one".
+#'   Declaring a set that holds two values `required_aterms` demands
+#'   TOGETHER is refused here, because no model could then be fitted.
 #' @param family_finalize Optional function `(fam, y, aterms)` returning
 #'   a family. It runs once at frame assembly, after the response is
 #'   coerced and validated and before any link is used, and whatever it
@@ -316,6 +338,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           lccdf = NULL,
                           required_aterms = character(0),
                           accepts_aterms = NULL,
+                          exclusive_aterms = list(),
                           family_finalize = NULL,
                           extra_pars = NULL, drop_intercept = FALSE,
                           structure = NULL) {
@@ -324,6 +347,8 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
             is.function(lpdf))
   check_required_aterms(required_aterms)
   accepts_aterms <- check_accepts_aterms(accepts_aterms)
+  exclusive_aterms <- check_exclusive_aterms(exclusive_aterms,
+                                             required_aterms)
   if (!is.null(family_finalize) && !is.function(family_finalize)) {
     stop("frmtmb_family(family_finalize =) must be a function ",
          "(fam, y, aterms) returning the family", call. = FALSE)
@@ -366,6 +391,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
          sim_refusal = sim_refusal, primary_dpars = primary_dpars,
          lcdf = lcdf, lccdf = lccdf, required_aterms = required_aterms,
          accepts_aterms = accepts_aterms,
+         exclusive_aterms = exclusive_aterms,
          family_finalize = family_finalize, extra_pars = extra_pars,
          drop_intercept = isTRUE(drop_intercept),
          structure = structure),
@@ -3018,6 +3044,12 @@ mixture <- function(..., groups = NULL) {
     accepts_aterms = if (!any(vapply(comp_acc, is.null, NA))) {
       unique(unlist(comp_acc, use.names = FALSE))
     },
+    # Exclusivity is the INTERSECTION where the allow-list is the union,
+    # and the asymmetry is not an oversight: a term reaches the density
+    # if any component reads it, but two spellings are interchangeable
+    # only if every component treats them so. One component that reads
+    # both is a component the second spelling is data for.
+    exclusive_aterms = mixture_exclusive_aterms(comps),
     dpars = dpars,
     links = links,
     lpdf = function(y, dpars, aterms) {
@@ -5007,4 +5039,188 @@ required_aterm_groups <- function(x) {
   if (is.null(x) || !length(x)) return(list())
   if (is.character(x)) return(as.list(x))
   lapply(x, as.character)
+}
+
+#' `exclusive_aterms` as the groups frame assembly checks: each element
+#' is a set of addition-term VALUES that mean the same thing to the
+#' density, at most one of which may be supplied.
+#'
+#' Spelled in values rather than in terms, so that it lines up with the
+#' any-of groups of `required_aterms` it is usually the other half of:
+#' `dec` and `vint1` are one datum under two spellings, while `vint2`
+#' beside them is a second datum.
+#'
+#' A bare character vector is ONE set, which is the opposite of
+#' `required_aterms`'s reading of the same shape. The two arguments say
+#' different things about a list of names -- everything, versus at most
+#' one thing -- so a shared convention would have made one of them
+#' unwritable.
+#'
+#' @noRd
+exclusive_aterm_groups <- function(x) {
+  if (is.null(x) || !length(x)) return(list())
+  if (is.character(x)) return(list(as.character(x)))
+  lapply(x, as.character)
+}
+
+#' Validate `frmtmb_family(exclusive_aterms =)`.
+#'
+#' The cross-check against `required_aterms` is the one that earns its
+#' place: a family whose conjunction demands two values and whose
+#' exclusivity forbids them together has declared a model nobody can
+#' fit, and every fit would then fail at frame assembly with a message
+#' about the user's formula rather than about the family.
+#'
+#' Membership in the addition-term registry is NOT checked, for the
+#' reason `check_accepts_aterms()` gives: a family may name a value from
+#' a term its own package registers, and registration order is not
+#' fixed.
+#'
+#' @noRd
+check_exclusive_aterms <- function(x, required = character(0)) {
+  bad <- function(why = NULL, set = NULL) {
+    stop("frmtmb_family(exclusive_aterms =) names sets of addition-term ",
+         "VALUES that say the same thing to the density, so that at ",
+         "most one of each set may be supplied: a character vector for ",
+         "one set, or a list of them. Each set needs at least two ",
+         "distinct values. ",
+         if (is.null(why)) paste0("Got ", arg_desc(x)) else {
+           paste0("Set ", set, " ", why)
+         },
+         call. = FALSE)
+  }
+  if (is.null(x) || (is.list(x) && !length(x)) ||
+        (is.character(x) && !length(x))) {
+    return(list())
+  }
+  if (is.object(x) || !(is.character(x) || is.list(x))) bad()
+  # The RAW elements, before exclusive_aterm_groups() coerces them.
+  # Validating the coerced value cannot fail for anything as.character()
+  # accepts, so list(c(1, 2)) was taken and became c("1", "2"): a set
+  # matching no addition-term value, and a rule that never fires. The
+  # sibling required_aterms refuses that shape, and so must this.
+  raw <- if (is.character(x)) list(x) else x
+  for (i in seq_along(raw)) {
+    z <- raw[[i]]
+    if (!is.character(z)) {
+      bad(paste0("is ", arg_desc(z),
+                 ", and a set is a character vector of term values"), i)
+    }
+    if (anyNA(z) || !all(nzchar(z))) {
+      bad("has a missing or empty value in it", i)
+    }
+    if (length(unique(z)) < 2L) {
+      bad(paste0("has ", length(unique(z)),
+                 " distinct value(s), and exclusivity needs two"), i)
+    }
+  }
+  grps <- exclusive_aterm_groups(x)
+  # A length-one required group is a value the density cannot do
+  # without. Two of them inside one exclusive set is unsatisfiable.
+  must <- unlist(Filter(function(g) length(g) == 1L,
+                        required_aterm_groups(required)),
+                 use.names = FALSE)
+  for (g in grps) {
+    clash <- intersect(g, must)
+    if (length(clash) > 1L) {
+      stop("frmtmb_family(exclusive_aterms =) makes ",
+           paste0("`", clash, "`", collapse = " and "),
+           " mutually exclusive, and required_aterms demands both of ",
+           "them, so no model could satisfy the family. Make them ",
+           "alternatives instead: required_aterms = list(c(",
+           paste0("\"", clash, "\"", collapse = ", "), ")).",
+           call. = FALSE)
+    }
+  }
+  grps
+}
+
+#' The exclusive sets a mixture keeps: the INTERSECTION of what its
+#' components declare, not the sets they agree on exactly.
+#'
+#' The rule is that two spellings are interchangeable for the mixture
+#' only if EVERY component treats them so, and set equality is stricter
+#' than that in the direction that fails open. A component declaring
+#' `c("dec", "vint1", "vint2")` beside one declaring `c("dec", "vint1")`
+#' does treat `dec` and `vint1` as one datum; comparing whole sets found
+#' them unequal, dropped the rule, and let the mixture take both
+#' spellings together, which is the defect this argument exists to
+#' close.
+#'
+#' Intersecting against EVERY set of each later component rather than
+#' the best-matching one keeps a component that splits one set in two
+#' from silently costing the mixture the half it still shares. Order
+#' inside a kept set comes from the first component, so the refusal
+#' names the spelling that component reads.
+#'
+#' @noRd
+mixture_exclusive_aterms <- function(comps) {
+  grps <- lapply(comps, function(f) {
+    exclusive_aterm_groups(f[["exclusive_aterms"]])
+  })
+  if (!length(grps) || any(!lengths(grps))) return(list())
+  keep <- grps[[1L]]
+  for (gs in grps[-1L]) {
+    nxt <- list()
+    for (g in keep) {
+      for (s in gs) {
+        hit <- g[g %in% s]
+        if (length(hit) >= 2L) nxt[[length(nxt) + 1L]] <- hit
+      }
+    }
+    keep <- nxt
+    if (!length(keep)) return(list())
+  }
+  # A set fully contained in another says nothing the larger one does
+  # not, and two components can produce the same set by two routes.
+  keep <- keep[!duplicated(lapply(keep, sort))]
+  Filter(function(g) {
+    !any(vapply(keep, function(h) {
+      length(h) > length(g) && all(g %in% h)
+    }, NA))
+  }, keep)
+}
+
+#' `c("a", "b", "c")` as "a, b and c", for a message that has to list
+#' an arbitrary number of names and still read as a sentence.
+#'
+#' @noRd
+comma_and <- function(x) {
+  if (length(x) < 2L) return(paste(x, collapse = ""))
+  paste(paste(x[-length(x)], collapse = ", "), "and", x[[length(x)]])
+}
+
+#' Refuse two spellings of one datum supplied together.
+#'
+#' Runs immediately after the `required_aterms` check, because it is the
+#' same declaration read the other way round: that one asks whether the
+#' datum arrived at all, this one whether it arrived twice. Running it
+#' here rather than with the allow-list keeps a family's own `valid_y`
+#' from reporting on values the density was never going to read.
+#'
+#' @noRd
+check_exclusive_aterms_supplied <- function(resp, av) {
+  grps <- exclusive_aterm_groups(resp$family[["exclusive_aterms"]])
+  if (!length(grps)) return(invisible(NULL))
+  have <- unique(c(names(av), names(resp$aterms)))
+  for (g in grps) {
+    hit <- g[g %in% have]
+    if (length(hit) < 2L) next
+    # Group order is the declaration's own precedence, so the name kept
+    # is the one the density actually reads.
+    keep <- hit[[1L]]
+    drop <- hit[-1L]
+    stop(resp$family[["family"]], ": ",
+         comma_and(paste0("`", hit, "`")),
+         " are spellings of the same datum for this family, and this ",
+         "response supplies ",
+         if (length(hit) > 2L) "all of them" else "both",
+         ". The density reads `", keep, "` and would ignore ",
+         comma_and(paste0("`", drop, "`")),
+         ", so they could disagree with nothing to say so. Keep ",
+         aterm_spelling(keep), " and drop ",
+         comma_and(vapply(drop, aterm_spelling, "")),
+         ".", call. = FALSE)
+  }
+  invisible(NULL)
 }

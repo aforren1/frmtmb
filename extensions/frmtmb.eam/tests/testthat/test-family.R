@@ -163,3 +163,64 @@ test_that("the compat rows this package registers are present", {
   expect_equal(tb$status[tb$feature_b == "trunc()"], "refused")
   expect_true("wiener" %in% frm_compat_features()$name)
 })
+
+test_that("a term a family does not accept reads refused, not untested", {
+  # The declarations settle the cells nobody measured: a term outside a
+  # family's accepts_aterms allow-list is refused BY NAME at frame
+  # assembly, so `untested` was never the honest answer for it. The
+  # converse is NOT derived: gddm x weights() is declared-accepted and
+  # hand-written untested, and untested is right there until somebody
+  # runs it.
+  ft <- frm_compat_features()
+  ats <- ft$name[ft$kind == "aterm"]
+  for (fm in names(ddm_accepts)) {
+    tb <- frm_compat(fm)
+    other <- ifelse(tb$feature_a == fm, tb$feature_b, tb$feature_a)
+    keep <- other %in% ats
+    expect_equal(sum(keep), length(ats))
+    unread <- keep & !(sub("[(][)]$", "", other) %in% ddm_accepts[[fm]])
+    expect_true(all(tb$status[unread] == "refused"), info = fm)
+  }
+  # and a measured row keeps its own note rather than the derived
+  # sentence, because the derivation defers to what is already refused
+  tb <- frm_compat("rdm")
+  note <- tb$note[ifelse(tb$feature_a == "rdm", tb$feature_b,
+                         tb$feature_a) == "dec()"]
+  expect_match(note, "a race of n accumulators needs a winner in 1..n",
+               fixed = TRUE)
+})
+
+test_that("one boundary spelling at a time", {
+  # Measured before exclusive_aterms existed: rt | dec(u) + vint(1 - u)
+  # FITTED, with a log likelihood bit-identical to the dec()-only model.
+  # ddm_indicator() reads dec and falls back to vint1, so the second
+  # column travelled into the fit unread even when it contradicted the
+  # first.
+  set.seed(2)
+  n <- 120
+  dat <- data.frame(rt = 0.3 + stats::rexp(n, 3),
+                    upper = stats::rbinom(n, 1, 0.6))
+  err <- tryCatch(
+    frm(bf(rt | dec(upper) + vint(1 - upper) ~ 1, bias = 0.5),
+        family = wiener(), data = dat),
+    error = conditionMessage)
+  expect_match(err, "wiener: `dec` and `vint1` are spellings of the same",
+               fixed = TRUE)
+  expect_match(err, "Keep dec(<column>) and drop vint(<column>).",
+               fixed = TRUE)
+  # either alone is still accepted, and the two agree to the bit
+  a <- frm(bf(rt | dec(upper) ~ 1, bias = 0.5), family = wiener(),
+           data = dat)
+  b <- frm(bf(rt | vint(upper) ~ 1, bias = 0.5), family = wiener(),
+           data = dat)
+  expect_identical(as.numeric(logLik(a)), as.numeric(logLik(b)))
+})
+
+test_that("gddm still reads dec() and vint() together", {
+  # The reason exclusivity is opt-in rather than implied by an any-of
+  # required_aterms group: here the two carry different data, the
+  # boundary and the condition index.
+  expect_length(gddm()[["exclusive_aterms"]], 0L)
+  expect_identical(wiener()[["exclusive_aterms"]],
+                   list(c("dec", "vint1")))
+})

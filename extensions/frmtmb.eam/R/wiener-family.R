@@ -372,7 +372,7 @@ ddm_family <- function(cfg, ub, delta) {
 
   frmtmb::custom_family(
     "wiener",
-    accepts_aterms = c("dec", "vint", "weights"),
+    accepts_aterms = ddm_accepts[["wiener"]],
     dpars = dpars,
     links = links,
     lpdf = lpdf,
@@ -381,6 +381,11 @@ ddm_family <- function(cfg, ub, delta) {
     # vint1, and either will do, so the requirement is declared as the
     # choice it is rather than checked by hand after the frame is built.
     required_aterms = list(c("dec", "vint1")),
+    # Either will do, and only one of them: ddm_indicator() reads dec
+    # and falls back to vint1, so a model supplying both used to fit
+    # with the second column silently unread, even when the two
+    # contradicted each other. The pair order is that precedence.
+    exclusive_aterms = list(c("dec", "vint1")),
     family_finalize = function(fam, y, aterms) {
       ddm_finalize(cfg, y)
     },

@@ -3,11 +3,14 @@
 \name{frmtmb_register_compat}
 \alias{frmtmb_register_compat}
 \alias{compat_rule_builder}
+\alias{compat_aterm_rules}
 \title{Contribute to the compatibility matrix from another package}
 \usage{
 frmtmb_register_compat(features = NULL, rules = NULL, expects = character(0))
 
 compat_rule_builder()
+
+compat_aterm_rules(accepts, existing = NULL)
 }
 \arguments{
 \item{features}{Named character vector mapping a feature's DISPLAY
@@ -51,11 +54,23 @@ The near-miss guess in a refusal is searched over the vocabulary
 only, never over \code{expects}, so a misspelling of an expected name
 is refused without a suggestion. Pointing at a feature that is not
 in the session would be its own confusion.}
+
+\item{accepts}{For \code{compat_aterm_rules()}: a named list mapping a
+family's DISPLAY name to what that family accepts. An element is a
+family object, a character vector of addition-term names without
+parentheses (the vocabulary \code{frmtmb_family(accepts_aterms =)} is
+written in), or \code{NULL} for a family that declares no allow-list and
+so has nothing to derive from.}
+
+\item{existing}{For \code{compat_aterm_rules()}: the rules written by hand,
+so that the derivation defers to them. A pair named on both sides
+there is left alone, note and all. \code{NULL} defers to nothing.}
 }
 \value{
 \code{NULL}, invisibly. Called for the registration.
 \code{compat_rule_builder()} returns a list with elements \code{r} and
-\code{rules}.
+\code{rules}. \code{compat_aterm_rules()} returns a rule data frame, ready to
+\code{rbind()} with one.
 }
 \description{
 \code{\link[=frm_compat]{frm_compat()}} answers what one feature does in the presence of
@@ -100,6 +115,29 @@ registered term the table cannot describe would be a gap by
 construction, so the registrant is not asked to say it twice; saying
 it anyway is a no-op. Register the term BEFORE the rules that name
 it.
+}
+
+\section{Rows a family has already declared}{
+
+\code{compat_aterm_rules()} writes the addition-term refusals out of
+\code{frmtmb_family(accepts_aterms =)} instead of asking for them twice. A
+term outside a family's allow-list is refused BY NAME at frame
+assembly, so \code{untested} was never the right answer for that cell:
+nothing is missing, the guard exists and the reason is the
+declaration. Feed it the families the package supplies, and hand it
+the rows written by hand so that it defers to them:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{hand <- b$rules()
+rbind(hand,
+      compat_aterm_rules(list(wiener = c("dec", "vint", "weights")),
+                         hand))
+}\if{html}{\out{</div>}}
+
+A pair \code{existing} already names on both sides is skipped, note and
+all, so the derivation adds cells rather than replacing them. What is
+derived is only the refusal: a family that ACCEPTS a term has said
+nothing about whether the pair works, and \code{untested} stays the honest
+answer there until somebody runs it.
 }
 
 \section{Status vocabulary}{

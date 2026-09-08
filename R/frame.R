@@ -1256,6 +1256,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
            paste(spell, collapse = " + "),
            " ~ ...", call. = FALSE)
     }
+    # The same declaration read the other way round: the check above
+    # asks whether the datum arrived, this one whether two spellings of
+    # it arrived together. An allow-list cannot catch that, because both
+    # spellings are legitimately on it.
+    check_exclusive_aterms_supplied(resp, av)
     # before the generic aterm guards, so a structured response is
     # refused for the shape of its likelihood rather than for its
     # family's missing CDF further down

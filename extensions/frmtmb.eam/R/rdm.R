@@ -242,7 +242,7 @@ rdm <- function(n, max_ndt = NULL) {
 
   fam <- frmtmb::custom_family(
     "rdm",
-    accepts_aterms = c("vint", "weights", "cens", "trunc"),
+    accepts_aterms = ddm_accepts[["rdm"]],
     dpars = dpn,
     links = lk,
     lpdf = function(y, dpars, aterms) {

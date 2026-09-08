@@ -1,3 +1,30 @@
+# frmtmb.eam (development version)
+
+* `wiener()` declares `dec()` and `vint1` mutually exclusive, so a model
+  supplying both is refused by name instead of fitted with the second
+  column unread. Measured before the change on 120 rows:
+  `rt | dec(u) ~ 1`, `rt | vint(u) ~ 1` and
+  `rt | dec(u) + vint(1 - u) ~ 1` all gave a log-likelihood of
+  -76.0486443897369, the third with the two columns CONTRADICTING each
+  other. `ddm_indicator()` reads `dec` and falls back to `vint1`, and
+  the declaration is that precedence written down. Needs frmtmb's new
+  `frmtmb_family(exclusive_aterms =)`.
+
+  `gddm()` deliberately declares no such set and is why the rule is
+  opt-in: there `dec()` and `vint1` are two data, the boundary and the
+  condition index, not two spellings of one.
+
+* Every family x addition-term cell in `frm_compat()` is now decided.
+  The refusals each family has already declared in `accepts_aterms` are
+  derived through frmtmb's `compat_aterm_rules()` rather than written
+  out again, so `trials()`, and `vreal()` where the family does not read
+  it, stop reading `untested`. Rows written by hand keep their own
+  notes: the derivation defers to any pair already refused.
+
+  The allow-lists themselves move to one `ddm_accepts` list that the
+  five constructors and the compatibility rows both read, so the table
+  cannot promise a term frame assembly refuses.
+
 # frmtmb.eam 0.4.0
 
 `wiener_gng()` gains across-trial variability with the go branch

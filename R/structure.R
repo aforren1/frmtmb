@@ -905,21 +905,49 @@ structure_allows <- function(st, flag) {
 #' The generic refusal, for a structure that declared a capability
 #' unsupported without writing a sentence of its own.
 #'
+#' It reports two DECLARATIONS and asserts no mathematics: the family
+#' hands the core one whole-response likelihood, and it has not opted
+#' this capability in. That is deliberate and was got wrong twice.
+#' Before this lane the sentence claimed the likelihood "does not
+#' factorize over the rows of the data", which is false for a structure
+#' carrying no `loglik` at all. The first fix replaced it with
+#' "factorizes no finer than <unit>", which is false in the other
+#' direction: `unit` answers what may be LEFT OUT, not how finely the
+#' likelihood factorizes (see its own `@param`, and
+#' dev/structured-family-protocol.md), and `frmtmb.learn`'s families
+#' declare `loglik_row` and `loglik_group` alongside a per-subject
+#' `unit`. Core must not print a sentence denying a factorization that
+#' a shipped extension declares, so the unit is quoted for the question
+#' it does answer and labelled with it.
+#'
 #' @noRd
 structure_generic <- function(fam, what) {
-  paste0(what, " is not available for a '", fam[["family"]], "' family: ",
-         "its likelihood does not factorize over the rows of the data, ",
-         "so the quantity this needs per row is not defined")
+  st <- fam_structure(fam)
+  lead <- paste0(what, " is not available for a '", fam[["family"]],
+                 "' family: ")
+  # A structure with no `loglik` is a pure capability declaration on a
+  # family whose likelihood IS rowwise (lca(), mixture() without
+  # groups). There is nothing to say about its likelihood at all.
+  if (is.null(st[["loglik"]])) {
+    return(paste0(lead, "the family declares it unsupported and gives ",
+                  "no reason of its own"))
+  }
+  paste0(lead, "the family replaces the rowwise likelihood with one the ",
+         "core evaluates whole, and it has not declared this capability. ",
+         "Its own unit for leaving data out is ", structure_unit(st))
 }
 
-#' The smallest independent unit of a structured likelihood, for the
-#' core messages that must say why a per-OBSERVATION quantity does not
-#' exist. A structure that replaces the rowwise likelihood without
-#' naming its unit gets a phrase that is true of all of them.
+#' The unit a structured family declares for LEAVING DATA OUT, for the
+#' core messages that have to name it.
+#'
+#' Not a factorization: `frmtmb_structure(unit =)` documents the two as
+#' different questions, and a family may declare a per-row `loglik_row`
+#' and still leave out nothing smaller than a subject. Callers must
+#' label it as what it is; `structure_generic()` does.
 #'
 #' @noRd
 structure_unit <- function(st) {
-  st[["unit"]] %||% "a group the likelihood does not factor within"
+  st[["unit"]] %||% "one it has not named"
 }
 
 #' Everything a structured family may refuse or warn about at fit time,

@@ -22,6 +22,7 @@ frmtmb_family(
   lccdf = NULL,
   required_aterms = character(0),
   accepts_aterms = NULL,
+  exclusive_aterms = list(),
   family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
@@ -45,6 +46,7 @@ custom_family(
   lccdf = NULL,
   required_aterms = character(0),
   accepts_aterms = NULL,
+  exclusive_aterms = list(),
   family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
@@ -163,6 +165,29 @@ declaration an unread term is parsed, stored on the fit and
 silently ignored: \code{wiener()} accepted a \code{vint()} it cannot use, and
 \code{lba()} accepted a \code{dec()}, both giving a fit bit-identical to the
 one without the term.}
+
+\item{exclusive_aterms}{Sets of addition-term values that say the SAME
+thing to the density, so that at most one of each set may be
+supplied. Named as \code{required_aterms} names them, in values rather
+than in terms: \code{exclusive_aterms = list(c("dec", "vint1"))}. A
+character vector is one such set; a list is several. The FIRST name
+of a set is the spelling the density reads, and the refusal tells
+the user to keep it.
+
+This is what an allow-list cannot express, because both spellings
+are legitimately on it. \code{wiener()} reads its boundary indicator from
+\code{dec()} and falls back to \code{vint1}, so \code{rt | dec(u) + vint(1 - u)}
+passed every guard and fitted with a log-likelihood bit-identical to
+the \code{dec()}-only model: the user said one thing twice, and
+inconsistently, and nothing complained. Declare the alternatives of
+an any-of \code{required_aterms} group here when the density reads only
+one of them; leave them undeclared when it reads both, as \code{gddm()}
+does, where \code{dec()} and \code{vint1} carry different data.
+
+Read WITH \code{required_aterms}, not instead of it: an any-of group in
+one and the same set in the other together mean "exactly one".
+Declaring a set that holds two values \code{required_aterms} demands
+TOGETHER is refused here, because no model could then be fitted.}
 
 \item{family_finalize}{Optional function \verb{(fam, y, aterms)} returning
 a family. It runs once at frame assembly, after the response is

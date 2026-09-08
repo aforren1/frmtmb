@@ -350,3 +350,12 @@ knitr::kable(data.frame(
 The untested share is the honest measure of what this registry does
 not yet know. It shrinks as pairs are tested, not as the code is
 trusted. To close one, add a test and change the rule in `R/compat.R`.
+
+One class of cell closes without a test, and only that one: a family
+declares the addition terms it reads in
+`frmtmb_family(accepts_aterms =)`, and frame assembly refuses any other
+term on that response BY NAME. Those cells are refusals with a reason
+rather than an absence of evidence, so they are derived from the
+declaration instead of being written out. Only the refusal is derived;
+a family that ACCEPTS a term has said nothing about whether the pair
+works, and that cell stays `untested` until somebody runs it.
