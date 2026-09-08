@@ -1,3 +1,75 @@
+# frmtmb (development version)
+
+* A custom family can now write a numerically exact density from
+  another package. `dpar_log()`, `dpar_log1m()`,
+  `dpar_log_complement()` and `dpar_complement()` are exported: they
+  read a distributional parameter on the LINEAR-PREDICTOR scale, which
+  is the only scale that survives a saturated inverse link.
+  `stats::plogis(eta)` is exactly 1 in double precision from
+  `eta = 36.7368005696771` up, so a density that forms `1 - mu` by
+  subtraction gets exactly 0 there and returns `NaN` for the value and
+  for the gradient; below that the complement is wrong by 1.0e-3
+  relative at `eta = 30`. Both regions are reachable in real fits.
+  The accessors were internal, so a family defined
+  outside frmtmb could only write the arithmetic again:
+  `frmtmb.coupling` did exactly that and now calls the public API
+  instead. They take the dpar's OWN link, as a name or as a link
+  object, because the linear predictor is on the link scale and reading
+  it as a log odds when the link is a probit is a different, wrong
+  density. See `?"frmtmb-robust-dpars"`.
+
+  Take the one-sided `dpar_log()` or `dpar_log1m()` when the density
+  needs one term. `dpar_log_complement()` returns both from one log
+  odds, which is what a mixture gate wants, and records a second
+  `RTMB::logspace_add()` over the whole response that the tape then
+  replays on every gradient evaluation. At 1000 rows the accessor tapes
+  14002 AD nodes against 10002; one gradient sweep of the
+  `cross_wishart()` density costs 633 us against 480 us, and 462 us for
+  the hand-written arithmetic it replaces; the accessor measured on its
+  own is 387 us against 205 us. Six interleaved blocks of 2000 sweeps,
+  one process. The R-level density call is not the cost that matters
+  here: it runs once per fit, when the tape is built.
+
+  The `.eta_<dpar>` entry these read is documented as RESERVED, not as
+  API. It is visible in `dpars` and it is not a supported thing to
+  read: its meaning depends on the dpar's link, and whether it is
+  present depends on whether the objective is being taped. The
+  accessors fold both branches in, which is the whole reason to have
+  them. `check_custom_family()` supplies no linear predictors, so it
+  checks the fallback branch only, and now says so.
+
+* `bcm_contaminant()` in `inst/bcm/binomial-extras.R` fitted a
+  different density from the one it documented whenever `link_phi` was
+  not the default. It read the stored linear predictor as a LOG ODDS
+  regardless of which link put it there, so only a logit was right.
+  It now calls `dpar_log_complement()`, which is told the link.
+
+  **At the default `link_phi = "logit"` nothing moves.** Old and new
+  are bit-identical at all 15 linear predictors tested from -700 to
+  700, maximum absolute difference 0, so no logit result anyone has
+  fitted changes.
+
+  Away from the default the old density was wrong, per observation, at
+  `eta = 2` with `trials = 10`, `mu = 0.4`, `y = 0`:
+
+  | `link_phi` | phi | old error, nats |
+  | --- | --- | --- |
+  | `"logit"` | 0.88080 | 0 |
+  | `"cauchit"` | 0.85242 | +0.0303 |
+  | `"probit"` | 0.97725 | -0.0965 |
+  | `"cloglog"` | 0.99938 | -0.1174 |
+  | `"identity"` | 0.05 (at `eta = 0.05`) | +1.5716 |
+
+  Every one of those constructs today: `bcm_contaminant()` passes
+  `link_phi` straight to `frmtmb_family()`, which does not restrict it
+  per dpar. `"identity"` is the worst case and also the one the
+  framework's own unit-interval link set allows, where the old code
+  read a probability as a log odds: 1.57 nats per observation at
+  `phi = 0.05`, falling to 0.19 at `phi = 0.5`. The file is a shipped
+  example rather than an exported family, so no fitted model in the
+  package's own tests moves; the Bayesian Cognitive Modeling tier is
+  363 passing before and after.
+
 # frmtmb 0.54.0
 
 Every link in the registry can now be reached and found: a link on any

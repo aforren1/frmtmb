@@ -15,6 +15,12 @@
 #' @param lpdf Function `(y, dpars, aterms)` returning the vectorized
 #'   log-density. `dpars` is a named list of advector vectors; `aterms` is a
 #'   named list of numeric addition-term values (for example `trials`).
+#'   Read `dpars` by name, never by position: it also carries reserved
+#'   entries that are not distributional parameters. Take `log(mu)`,
+#'   `log(1 - mu)` and `1 - mu` from [frmtmb-robust-dpars] rather than
+#'   writing them out, because an inverse link saturates and the plain
+#'   arithmetic returns `NaN` for the value and the gradient alike in
+#'   the tail.
 #' @param valid_y Optional function `(y, aterms)` that signals an error for
 #'   invalid responses. Called once at assembly time.
 #' @param init_dpars Optional named list of functions `(y, aterms)` giving a
@@ -164,13 +170,15 @@
 #'   required even then, for the rowwise contract, and may be a stub
 #'   that refuses.
 #' @return An object of class `frmtmb_family`.
-#' @seealso [frmtmb_structure()] for a likelihood that does not
+#' @seealso [frmtmb-robust-dpars] for the accessors a density uses to
+#'   stay exact where an inverse link saturates,
+#'   [frmtmb_structure()] for a likelihood that does not
 #'   factorize over rows, [frmtmb_register_aterm()] for giving the
 #'   family's per-row data a name of its own instead of `vint()`,
 #'   [frmtmb_register_compat()] for telling [frm_compat()] what the
 #'   family does and does not combine with, and
 #'   [frmtmb-extension-api] for the accessors a family outside frmtmb
-#'   may use
+#'   may use after a fit
 #' @section Structured simulators:
 #' Some families cannot draw a response one row at a time: a group-level
 #' [mixture()] draws one class per group, a [mixture_mvn()] draw needs
@@ -519,13 +527,60 @@ count_y <- function(name) {
 # of NaN. `build_objective()` therefore stores the linear predictor
 # beside each dpar under `.eta_<dpar>`, and the accessors below recover
 # the quantity a robust density needs from it. Off the tape the entries
-# are absent, every accessor returns NULL, and the family falls back to
-# the plain form - which is correct there, because nothing off the tape
-# is differentiated.
+# are absent and every accessor returns the plain form. That is correct
+# there, because nothing off the tape is differentiated.
+
+#' Resolve the `link` argument of a public accessor.
+#'
+#' A family outside frmtmb usually holds only the NAME it wrote in
+#' `links = list(coh = "logit")`, since [get_link()] is not part of the
+#' public surface, so a name is resolved here rather than making that
+#' family carry a link object it has no way to build.
+#'
+#' An object goes through [get_link()] too, rather than being taken on
+#' trust. A list that is not an frmtmb link carries no `logit_eta` and
+#' no `log_eta`, so trusting it means falling back to the plain
+#' arithmetic and returning `-Inf` where the accessor exists to return
+#' -40, with nothing said. `stats::make.link("logit")` is exactly such
+#' a list: it spells the derivative `mu.eta` where the contract here is
+#' `mu_eta`. The validation costs about 26 us, and a density runs in R
+#' once per tape build rather than once per iteration, so it is paid
+#' once per fit.
+#'
+#' @noRd
+robust_link <- function(link, dpar) {
+  get_link(link, dpar = dpar)
+}
+
+#' The value of one dpar, or a refusal that names it.
+#'
+#' `dpars[[dpar]]` is `NULL` for a name that is not there, and `NULL`
+#' propagates instead of stopping: `1 - NULL` is `numeric(0)`, so
+#' [dpar_complement()] answered a misspelled dpar with an empty density
+#' term and no message. The name is written in the family author's own
+#' source, so the refusal says which one was not found and what was.
+#'
+#' @noRd
+robust_dpar_value <- function(dpars, dpar, what) {
+  v <- dpars[[dpar]]
+  if (is.null(v)) {
+    have <- setdiff(names(dpars), grep("^\\.eta_", names(dpars),
+                                       value = TRUE))
+    stop(what, "(): `dpars` has no distributional parameter '", dpar,
+         "'. It carries: ", paste(have, collapse = ", "), call. = FALSE)
+  }
+  v
+}
 
 #' The log-odds behind a probability dpar, on the linear-predictor
 #' scale, or NULL when the objective did not supply the linear predictor
 #' or the dpar's link has no exact log-odds form (identity, inverse).
+#'
+#' PARTIAL on purpose, and internal for the same reason: the NULL is how
+#' a core family switches between two whole density EXPRESSIONS, which
+#' is more than the public accessors offer. A family that only needs the
+#' quantity uses [dpar_log_complement()] or [dpar_complement()], which
+#' fold the fallback in.
 #'
 #' @noRd
 robust_logit <- function(dpars, link, name = "mu") {
@@ -545,51 +600,212 @@ robust_logmu <- function(dpars, link, name = "mu") {
   link$log_eta(e)
 }
 
-#' The log of a positive dpar (`shape`, `phi`, `sigma`), taken off the
-#' linear predictor when the dpar's link can give it exactly.
+#' Exact distributional parameters for a custom density
 #'
-#' `link` is not optional and the dpar's OWN link has to be passed. The
-#' log link makes this the linear predictor itself, which is what this
-#' used to assume unconditionally; once `link_shape` became an argument
-#' that assumption would have read a softplus predictor as a log and
-#' quietly returned the wrong density.
+#' The `dpars` list a [frmtmb_family()] log-density is handed carries
+#' each distributional parameter on its own response scale. That is what
+#' a density can usually use directly, and it is not enough in the tail.
+#' An inverse link SATURATES: `stats::plogis(eta)` is exactly one in
+#' double precision from `eta = 36.7368005696771` upward, so a density
+#' that forms `1 - mu` by subtraction gets exactly zero there and
+#' returns `NaN` for the value AND for the gradient, where the truth is
+#' an ordinary large negative number. Below that point the subtraction
+#' is not fatal, only wrong: the complement it forms is off by 1.0e-3
+#' relative at `eta = 30`.
 #'
-#' @noRd
-log_dpar <- function(dpars, name, link) {
-  robust_logmu(dpars, link, name) %||% log(dpars[[name]])
+#' The linear predictor never saturated. [frm()] stores it beside each
+#' distributional parameter while the objective is taped, and these
+#' four accessors recover from it the quantity the density needs.
+#' Write a density over them instead of over `log(mu)`, `log(1 - mu)`
+#' and `1 - mu`.
+#'
+#' \describe{
+#'   \item{`dpar_log()`}{`log(x)`, for a dpar that must stay positive
+#'     (a `shape`, a `phi`, a `sigma`) and for one on the unit
+#'     interval alike.}
+#'   \item{`dpar_log1m()`}{`log(1 - x)` for a dpar on the unit
+#'     interval: a `zi` or `hu` gate, a probability, a coherence. This
+#'     is the term that dies first, and it stays finite and exactly
+#'     differentiable at a value the optimizer has pushed against 1.}
+#'   \item{`dpar_log_complement()`}{Both of the above at once, as `l`
+#'     and `l1m`, from ONE log odds, for a density that needs the pair.
+#'     A mixture gate does. Take a one-sided function when you need
+#'     one term. The pair records a second `RTMB::logspace_add()` over
+#'     the whole response and the tape REPLAYS it on every gradient
+#'     evaluation: at 1000 rows the accessor tapes 14002 AD nodes
+#'     against 10002, and one gradient sweep of the `cross_wishart()`
+#'     density costs 633 us against 480 us. What you are not paying
+#'     for is the R call, which happens once per fit, when the tape is
+#'     built.}
+#'   \item{`dpar_complement()`}{`x` as `p` and `1 - x` as `q`, for a
+#'     density that needs the natural scale. You call it for `q`; `p`
+#'     comes back with it because one log-odds gives both, and a pair
+#'     taken from one source cannot disagree with itself.}
+#' }
+#'
+#' @section How far this reaches:
+#' The relative error of the plain arithmetic on a logit gate,
+#' against what these accessors return, at the linear predictors an
+#' optimizer can visit. One process, the log-scale form as the
+#' reference:
+#'
+#' \tabular{lrr}{
+#'   \strong{eta} \tab \strong{`1 - plogis(eta)`} \tab
+#'     \strong{`log(1 - plogis(eta))`} \cr
+#'   20 \tab 3.6e-08 \tab 1.8e-09 \cr
+#'   30 \tab 1.0e-03 \tab 3.4e-05 \cr
+#'   36 \tab 4.3e-02 \tab 1.2e-03 \cr
+#'   36.7368005696771 \tab 1 (exactly 0) \tab 1.9e-02 \cr
+#'   40 \tab 1 (exactly 0) \tab Inf, the log is -Inf \cr
+#'   700 \tab 1 (exactly 0) \tab Inf, the log is -Inf
+#' }
+#'
+#' The plain form does not fail suddenly. It loses digits from
+#' `eta = 20`, is down to three at 30 and to one at 36, and only
+#' then becomes `-Inf` with a `NaN` gradient. A fit that walks out
+#' there converges to a floored likelihood without a word.
+#'
+#' @section On the tape and off it:
+#' The `.eta_` entries exist only while the objective is taped. Your
+#' density reads them exactly once, when the tape is built; what runs
+#' on every gradient sweep after that is the arithmetic that read
+#' RECORDED, not your R code. Anywhere else the dpar values arrive
+#' alone, every accessor falls back to the plain arithmetic, and that
+#' is correct because nothing outside the tape is differentiated.
+#'
+#' Anywhere else is a smaller place than it sounds. `fitted()`,
+#' `predict()`, `logLik()`, `simulate()` and `vcov()` do not evaluate
+#' the density at all: they read `post$mean_fn`, the link, the
+#' optimizer's own value and `sim`. What can reach these accessors off
+#' the tape is a family's OWN numeric helpers, `post$dev_fn` and
+#' `post$var_fn` among them, and [check_custom_family()]. Counted on a
+#' fitted `cross_wishart()`, whose deviance helper is the one that
+#' calls them, fourteen post-fit entry points reach the arithmetic
+#' exactly once between them, through `residuals(type = "deviance")`.
+#'
+#' **Test your density on both paths.** A family author who exercises
+#' only the off-tape path never runs the branch these accessors exist
+#' for, and a density that is wrong on the tape still fits: it converges
+#' to the wrong place, or dies at `NA/NaN gradient evaluation` with
+#' nothing naming the cause. Build the on-tape list by hand to test it,
+#' as the example below does, and put the value under
+#' `.eta_<dpar>` yourself for that one purpose.
+#'
+#' @section The `.eta_` entries are not the API:
+#' `.eta_<dpar>` is a reserved name, and reading it directly is not
+#' supported even though you can see it in `dpars`. It holds the linear
+#' predictor on the LINK scale, so what it means depends on the dpar's
+#' link, and a density that assumes one link reads a different quantity
+#' the moment the family gains a `link_<dpar>` argument. `-log1p(exp(e))`
+#' is `log(1 - x)` on a logit and is nothing at all on an identity link;
+#' `e` is `log(x)` on a log link and is not on a softplus. The accessors
+#' take the link and branch on what it can supply, which is why they
+#' take it as an argument and why it is not optional. Whether an entry
+#' is present is also a property of the phase, not of the model, and
+#' folding that branch in is most of what these do.
+#'
+#' @section If you need the raw log odds:
+#' There is no accessor for it, and there does not need to be:
+#' `dpar_log(d, p, lk) - dpar_log1m(d, p, lk)` reconstructs it. Measured
+#' on a logit at `eta` in `{-700, -40, 0, 40, 700}` the absolute error
+#' is 0, and it peaks at 5.0e-17 near `eta = 0` where the two terms
+#' nearly cancel. A density term linear in the natural parameter cares
+#' about that absolute error, not the relative one.
+#'
+#' @param dpars The named list of distributional parameters the density
+#'   was handed. Read it by name, never by position.
+#' @param dpar The name of the distributional parameter to read, as
+#'   `dpars` names it: `"mu"`, `"zi"`, `"shape"`.
+#' @param link That dpar's OWN link, as the link name your family gave
+#'   in `links = ` (`"logit"`) or as a link object. It is not optional:
+#'   the linear predictor is on the link scale, so nothing can be
+#'   recovered from it without knowing which link put it there.
+#' @return `dpar_log()` and `dpar_log1m()` a numeric or advector
+#'   vector. The other two a list of two such vectors: `l` and `l1m`
+#'   for `dpar_log_complement()`, which are what the two one-sided
+#'   functions return, and `p` and `q` for `dpar_complement()`.
+#' @seealso [frmtmb_family()] for the density these serve,
+#'   [frmtmb-links] for which links carry an exact form and which fall
+#'   back, and [frmtmb-extension-api] for the accessors a family uses
+#'   AFTER a fit, at the estimates
+#' @examples
+#' # a gate at plogis(40), which is exactly 1 in double precision
+#' on_tape <- list(zi = stats::plogis(40), .eta_zi = 40)
+#' off_tape <- list(zi = stats::plogis(40))
+#'
+#' # the value a density needs, and what the subtraction gives instead
+#' dpar_log1m(on_tape, "zi", "logit")
+#' log(1 - off_tape$zi)
+#'
+#' # off the tape the entry is absent and the plain form comes back
+#' dpar_log1m(off_tape, "zi", "logit")
+#'
+#' # both terms from one log odds, for a density that needs the pair
+#' unlist(dpar_log_complement(on_tape, "zi", "logit"))
+#'
+#' # the log of a positive dpar, through that dpar's own link
+#' dpar_log(list(shape = exp(3), .eta_shape = 3), "shape", "log")
+#' dpar_log(list(shape = log1p(exp(3)), .eta_shape = 3), "shape",
+#'          "softplus")
+#'
+#' # a density written over the pair rather than over 1 - mu
+#' d <- list(mu = stats::plogis(40), .eta_mu = 40)
+#' mp <- dpar_complement(d, "mu", "logit")
+#' c(p = mp$p, q = mp$q)
+#' @name frmtmb-robust-dpars
+NULL
+
+#' @rdname frmtmb-robust-dpars
+#' @export
+dpar_log <- function(dpars, dpar, link) {
+  lk <- robust_link(link, dpar)
+  lm <- robust_logmu(dpars, lk, dpar)
+  if (!is.null(lm)) return(lm)
+  # A unit-interval dpar has no log mean; it has a log odds, and log(x)
+  # comes out of that exactly. Without this branch the same call that
+  # is exact at eta = -800 on a log link returns -Inf on a logit, where
+  # plogis(-800) is exactly 0. One function, two answers, would have
+  # been a trap of its own.
+  lo <- robust_logit(dpars, lk, dpar)
+  if (!is.null(lo)) return(log_inv_logit(lo))
+  log(robust_dpar_value(dpars, dpar, "dpar_log"))
 }
 
-#' `log(p)` and `log(1 - p)` for a mixture gate (`zi`, `hu`) or any
-#' other dpar on the unit interval. Both terms stay finite and exactly
-#' differentiable at a gate the optimizer has pushed against 0 or 1,
-#' which is where a separated zero-inflation predictor lives.
-#'
-#' `link` is the gate's own link and is not optional, for the reason
-#' given at [log_dpar()]: on the logit it recovers the log odds from
-#' the linear predictor, and on the identity link brms also offers
-#' there is no log odds to recover, so the pair falls back to the
-#' natural scale rather than reading a probability as a log odds.
-#'
-#' @noRd
-gate_logs <- function(dpars, name, link) {
-  lo <- robust_logit(dpars, link, name)
+#' @rdname frmtmb-robust-dpars
+#' @export
+dpar_log1m <- function(dpars, dpar, link) {
+  lo <- robust_logit(dpars, robust_link(link, dpar), dpar)
+  # log1p(-p), not log(1 - p): see dpar_log_complement() below
   if (is.null(lo)) {
-    p <- dpars[[name]]
-    return(list(l = log(p), l1m = log(1 - p)))
+    return(log1p(-robust_dpar_value(dpars, dpar, "dpar_log1m")))
+  }
+  log1m_inv_logit(lo)
+}
+
+#' @rdname frmtmb-robust-dpars
+#' @export
+dpar_log_complement <- function(dpars, dpar, link) {
+  lo <- robust_logit(dpars, robust_link(link, dpar), dpar)
+  if (is.null(lo)) {
+    # log1p(-p), not log(1 - p). The two are bit-identical from
+    # p = 0.25 up, where `1 - p` is exact, so this buys nothing at the
+    # saturating end. It buys the OTHER boundary, which a gate reaches
+    # just as often: at p = 1e-17 the subtraction rounds `1 - p` to 1
+    # and log(1 - p) is exactly 0, where the value is -1e-17. Measured
+    # over 800 points spread through (0, 1), the two spellings differ
+    # at 397 of them and every one has p < 0.1.
+    p <- robust_dpar_value(dpars, dpar, "dpar_log_complement")
+    return(list(l = log(p), l1m = log1p(-p)))
   }
   list(l = log_inv_logit(lo), l1m = log1m_inv_logit(lo))
 }
 
-#' The pair `(mu, 1 - mu)` for a density that needs both, from the
-#' log-odds when it is available. `1 - plogis(eta)` is 0 for eta beyond
-#' 37 and carries one significant digit from 30 on; `exp(log(1 - p))`
-#' off the log-odds is exact over the whole line.
-#'
-#' @noRd
-mu_pair <- function(dpars, link, name = "mu") {
-  lo <- robust_logit(dpars, link, name)
+#' @rdname frmtmb-robust-dpars
+#' @export
+dpar_complement <- function(dpars, dpar, link) {
+  lo <- robust_logit(dpars, robust_link(link, dpar), dpar)
   if (is.null(lo)) {
-    mu <- dpars[[name]]
+    mu <- robust_dpar_value(dpars, dpar, "dpar_complement")
     return(list(p = mu, q = 1 - mu))
   }
   list(p = exp(log_inv_logit(lo)), q = exp(log1m_inv_logit(lo)))
@@ -1227,7 +1443,7 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
                                        dpars[["shape"]],
                               log = TRUE))
       }
-      RTMB::dnbinom_robust(y, lmu, 2 * lmu - log_dpar(dpars, "shape", lk_shape),
+      RTMB::dnbinom_robust(y, lmu, 2 * lmu - dpar_log(dpars, "shape", lk_shape),
                            log = TRUE)
     },
     valid_y = count_y("negbinomial"),
@@ -1275,7 +1491,7 @@ fam_nbinom1 <- function(link = "log", link_phi = "log") {
                dpars[["mu"]] * (1 + dpars[["phi"]]),
                               log = TRUE))
       }
-      RTMB::dnbinom_robust(y, lmu, lmu + log_dpar(dpars, "phi", lk_phi),
+      RTMB::dnbinom_robust(y, lmu, lmu + dpar_log(dpars, "phi", lk_phi),
                            log = TRUE)
     },
     valid_y = count_y("nbinom1"),
@@ -1324,7 +1540,7 @@ fam_beta <- function(link = "logit", link_phi = "log") {
       # the SECOND shape is (1 - mu) * phi, and 1 - plogis(eta) is
       # exactly 0 past eta = 37: dbeta at shape 0 is -Inf. Taking the
       # pair off the log-odds keeps both shapes strictly positive.
-      mp <- mu_pair(dpars, lk)
+      mp <- dpar_complement(dpars, "mu", lk)
       RTMB::dbeta(y, mp$p * dpars[["phi"]], mp$q * dpars[["phi"]], log = TRUE)
     },
     valid_y = function(y, aterms) {
@@ -1553,7 +1769,7 @@ fam_zi_poisson <- function(link = "log", link_zi = "logit") {
       # the zi predictor separates, and the Poisson's own log P(0) is
       # -mu exactly, with no exp() to underflow.
       i0 <- as.numeric(y == 0)
-      g <- gate_logs(dpars, "zi", lk_zi)
+      g <- dpar_log_complement(dpars, "zi", lk_zi)
       i0 * RTMB::logspace_add(g$l, g$l1m - dpars[["mu"]]) +
         (1 - i0) * (g$l1m + RTMB::dpois(y, dpars[["mu"]], log = TRUE))
     },
@@ -1594,7 +1810,7 @@ fam_zi_negbinomial <- function(link = "log", link_shape = "log",
     links = list(mu = lk, shape = lk_shape, zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
-      g <- gate_logs(dpars, "zi", lk_zi)
+      g <- dpar_log_complement(dpars, "zi", lk_zi)
       lmu <- robust_logmu(dpars, lk)
       if (is.null(lmu)) {
         lp0 <- dpars[["shape"]] * (log(dpars[["shape"]]) -
@@ -1606,7 +1822,7 @@ fam_zi_negbinomial <- function(link = "log", link_shape = "log",
       } else {
         # log P(0) = shape * log(shape / (shape + mu)), which is
         # -shape * log(1 + mu / shape) with the ratio taken in logs
-        lsh <- log_dpar(dpars, "shape", lk_shape)
+        lsh <- dpar_log(dpars, "shape", lk_shape)
         lp0 <- -dpars[["shape"]] *
           RTMB::logspace_add(0 * lmu, lmu - lsh)
         base <- RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
@@ -1644,7 +1860,7 @@ fam_hurdle_poisson <- function(link = "log", link_hu = "logit") {
     links = list(mu = link, hu = lk_hu),
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
-      g <- gate_logs(dpars, "hu", lk_hu)
+      g <- dpar_log_complement(dpars, "hu", lk_hu)
       # nonzero part is a zero-truncated poisson. Its normalizer
       # log(1 - exp(-mu)) cancels to log(0) once mu underflows below
       # the double epsilon; expm1 keeps it, and the truth there is
@@ -1928,7 +2144,7 @@ fam_hurdle_gamma <- function(link = "log", link_shape = "log",
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
       yp <- y + i0   # dodge dgamma(0) = -Inf; the term carries weight 0
-      g <- gate_logs(dpars, "hu", lk_hu)
+      g <- dpar_log_complement(dpars, "hu", lk_hu)
       i0 * g$l +
         (1 - i0) * (g$l1m +
                       RTMB::dgamma(yp, shape = dpars[["shape"]],
@@ -1974,7 +2190,7 @@ fam_hurdle_lognormal <- function(link = "identity", link_sigma = "log",
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
       yp <- y + i0
-      g <- gate_logs(dpars, "hu", lk_hu)
+      g <- dpar_log_complement(dpars, "hu", lk_hu)
       i0 * g$l +
         (1 - i0) * (g$l1m +
                       RTMB::dnorm(log(yp), dpars[["mu"]], dpars[["sigma"]],
@@ -2024,7 +2240,7 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
     lpdf = function(y, dpars, aterms) {
       size <- aterms[["trials"]] %||% 1
       i0 <- as.numeric(y == 0)
-      g <- gate_logs(dpars, "zi", lk_zi)
+      g <- dpar_log_complement(dpars, "zi", lk_zi)
       lo <- robust_logit(dpars, lk)
       if (is.null(lo)) {
         lp0 <- size * log(1 - dpars[["mu"]])
@@ -2080,8 +2296,8 @@ fam_zi_beta <- function(link = "logit", link_phi = "log", link_zi = "logit") {
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
       ya <- y + i0 * 0.5   # dodge dbeta(0) = -Inf; term carries weight 0
-      g <- gate_logs(dpars, "zi", lk_zi)
-      mp <- mu_pair(dpars, lk)
+      g <- dpar_log_complement(dpars, "zi", lk_zi)
+      mp <- dpar_complement(dpars, "mu", lk)
       i0 * g$l +
         (1 - i0) * (g$l1m +
                       RTMB::dbeta(ya, mp$p * dpars[["phi"]],
@@ -2135,7 +2351,7 @@ fam_asym_laplace <- function(link = "identity", link_sigma = "log",
       u <- (y - dpars[["mu"]]) / dpars[["sigma"]]
       # log(p) + log(1 - p) is the normalizer; an extreme quantile makes
       # one of them -Inf through the logit round trip
-      gq <- gate_logs(dpars, "quantile", lk_quantile)
+      gq <- dpar_log_complement(dpars, "quantile", lk_quantile)
       gq$l + gq$l1m - log(dpars[["sigma"]]) -
         0.5 * (abs(u) + (2 * p - 1) * u)
     },
@@ -2182,10 +2398,10 @@ fam_zi_asym_laplace <- function(link = "identity", link_sigma = "log",
       i0 <- as.numeric(y == 0)
       p <- dpars[["quantile"]]
       u <- (y - dpars[["mu"]]) / dpars[["sigma"]]
-      gq <- gate_logs(dpars, "quantile", lk_quantile)
+      gq <- dpar_log_complement(dpars, "quantile", lk_quantile)
       ald <- gq$l + gq$l1m - log(dpars[["sigma"]]) -
         0.5 * (abs(u) + (2 * p - 1) * u)
-      g <- gate_logs(dpars, "zi", lk_zi)
+      g <- dpar_log_complement(dpars, "zi", lk_zi)
       i0 * g$l + (1 - i0) * (g$l1m + ald)
     },
     init_dpars = list(
@@ -2344,7 +2560,7 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
       size <- aterms[["trials"]] %||% 1
       # RTMBdist has no log-odds form, so the robustness has to go into
       # the shapes: a zero second shape gives lgamma(0) = NaN
-      mp <- mu_pair(dpars, lk)
+      mp <- dpar_complement(dpars, "mu", lk)
       RTMBdist::dbetabinom(y, size, mp$p * dpars[["phi"]],
                 mp$q * dpars[["phi"]],
                            log = TRUE)

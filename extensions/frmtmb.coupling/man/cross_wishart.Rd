@@ -115,23 +115,24 @@ there, and would already be wrong in the third digit at \code{eta = 30}.
 That region is reachable: a random effect on \code{coh} with one group
 near a true coherence of 1 drives the estimate past \code{eta = 34}.
 
-This family therefore never subtracts. Core stores each dpar's linear
-predictor beside it, and the logit link's \code{logit_eta} field makes the
-log-odds exact, so \code{log(1 - C)} is computed as
-\code{-logspace_add(0, eta)} and \code{1 / (1 - C)} as its exponential. Both
-are exact to \code{eta = 709}, where the double range itself ends, against
-\code{36.74} for the naive form. Measured against a high-precision
-reference at \code{n = 16}: relative error 1.0e-03 at \code{eta = 30} and NaN
-at \code{eta = 40} before the change, below 1e-15 at both after it.
+This family therefore never subtracts. Core keeps each dpar's linear
+predictor beside it while the objective is taped, and
+\code{\link[frmtmb:dpar_log1m]{frmtmb::dpar_log1m()}} reads \code{log(1 - C)} off it exactly, so
+\code{1 / (1 - C)} is its exponential. Both are exact to \code{eta = 709},
+where the double range itself ends, against \code{36.74} for the naive
+form. Measured against a high-precision reference at \code{n = 16}:
+relative error 1.0e-03 at \code{eta = 30} and NaN at \code{eta = 40} before
+the change, below 1e-15 at both after it.
 
 One path keeps the plain round trip, and says so rather than being
 floored: \code{residuals(type = "deviance")} runs off the tape, where core
-does not store the linear predictor, so it uses \code{log1p(-C)}. That is
-accurate until \code{C} rounds to exactly 1, which needs \code{eta} past 36.74
-and is further than a fit reaches in practice. Measured on the
-degenerate case above, two signals differing by 1e-5 of noise: the
-fit lands at \code{eta = 23.0}, \code{C} is 0.99999999989743915 rather than 1,
-and all 127 response, Pearson and deviance residuals are finite.
+does not store the linear predictor, so the accessor falls back to
+the plain form. That is accurate until \code{C} rounds to exactly 1,
+which needs \code{eta} past 36.74 and is further than a fit reaches in
+practice. Measured on the degenerate case above, two signals
+differing by 1e-5 of noise: the fit lands at \code{eta = 23.0}, \code{C} is
+0.99999999989743915 rather than 1, and all 127 response, Pearson and
+deviance residuals are finite.
 Past 36.74 they would be \code{NaN}, and no floor is applied to hide it.
 }
 

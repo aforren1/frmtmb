@@ -64,14 +64,16 @@ Everything read off a fitted object here is a documented seam:
 both extractors are built out of, and \code{\link[stats:family]{stats::family()}} to refuse a
 fit of the wrong family.
 
-One thing this package uses is real but not promised: core stores each
-dpar's linear predictor beside it in the \code{dpars} list as
-\verb{.eta_<dpar>}, which is what makes the coherence complement exact
-(see \code{\link[=cross_wishart]{cross_wishart()}}, "Why the links are the constraint"). It
-works, it is what core's own binomial and beta densities rely on
-through internal accessors, and no sibling extension uses it. It is
-undocumented for extension authors, and a promise would be worth
-making.
+The seam that makes the coherence complement exact is documented
+too, and was not when 0.1.0 shipped. Core keeps each dpar's linear
+predictor beside it while the objective is taped, and
+\code{\link[frmtmb:dpar_log1m]{frmtmb::dpar_log1m()}} reads \code{log(1 - C)} off it (see
+\code{\link[=cross_wishart]{cross_wishart()}}, "Why the links are the constraint"). This
+package wrote that arithmetic out for itself against the reserved
+\verb{.eta_<dpar>} entry while the accessor was internal; it calls the
+accessor now. The entry itself stays reserved: it is on the LINK
+scale, so what it means depends on the dpar's link, and the accessor
+is the supported way to read it.
 
 What is NOT missing, and this package said otherwise in 0.1.0: a
 matrix-valued response. \code{R/frame.R} preserves one explicitly, and a

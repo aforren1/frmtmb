@@ -363,12 +363,16 @@ build_objective <- function(frame) {
       # that recomputes 1 - mu or log(mu) from the dpar reads -Inf or
       # NaN with a useless gradient in a region the linear predictor
       # itself describes perfectly well. The families that can use the
-      # eta scale (see `robust_logit()`, `robust_logmu()`,
-      # `gate_logs()`) read it from here, and undoing the link to
-      # recover it would defeat the purpose. Only the taped objective
-      # supplies it: the numeric post-fit paths (fitted(), simulate(),
-      # the CDFs) pass the dpar values alone, and there nothing is
-      # differentiated, so the saturation is harmless.
+      # eta scale read it from here through the public accessors
+      # (`dpar_log()`, `dpar_log_complement()`, `dpar_complement()`),
+      # and undoing the link to recover it would defeat the purpose.
+      # The entry is RESERVED rather than API: what it holds is on the
+      # link scale, so its meaning depends on the dpar's link, which is
+      # why every accessor takes that link and why a density must not
+      # read the entry itself. Only the taped objective supplies it:
+      # the numeric post-fit paths (fitted(), simulate(), the CDFs)
+      # pass the dpar values alone, and there nothing is differentiated,
+      # so the saturation is harmless.
       dparv[[lp[["resp"]]]][[paste0(".eta_", lp[["dpar"]])]] <- eta
     }
 

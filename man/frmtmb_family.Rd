@@ -65,7 +65,13 @@ has to carry.}
 
 \item{lpdf}{Function \verb{(y, dpars, aterms)} returning the vectorized
 log-density. \code{dpars} is a named list of advector vectors; \code{aterms} is a
-named list of numeric addition-term values (for example \code{trials}).}
+named list of numeric addition-term values (for example \code{trials}).
+Read \code{dpars} by name, never by position: it also carries reserved
+entries that are not distributional parameters. Take \code{log(mu)},
+\code{log(1 - mu)} and \code{1 - mu} from \link{frmtmb-robust-dpars} rather than
+writing them out, because an inverse link saturates and the plain
+arithmetic returns \code{NaN} for the value and the gradient alike in
+the tail.}
 
 \item{valid_y}{Optional function \verb{(y, aterms)} that signals an error for
 invalid responses. Called once at assembly time.}
@@ -480,11 +486,13 @@ fit <- frm(bf(y | vint(size) ~ x) + fam, data = dd)
 fixef(fit)
 }
 \seealso{
+\link{frmtmb-robust-dpars} for the accessors a density uses to
+stay exact where an inverse link saturates,
 \code{\link[=frmtmb_structure]{frmtmb_structure()}} for a likelihood that does not
 factorize over rows, \code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}} for giving the
 family's per-row data a name of its own instead of \code{vint()},
 \code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}} for telling \code{\link[=frm_compat]{frm_compat()}} what the
 family does and does not combine with, and
 \link{frmtmb-extension-api} for the accessors a family outside frmtmb
-may use
+may use after a fit
 }

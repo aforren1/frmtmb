@@ -137,7 +137,10 @@ predictor, on the link scale, at a parameter list in the frame's
 own layout, or \code{NULL} when that response and dpar have no linear
 predictor with columns. Random effects are excluded on purpose:
 this exists for a \code{check_fit} slot, which runs before the inner
-modes are solved and cannot see them.}
+modes are solved and cannot see them. Not to be confused with
+the \verb{dpar_*} accessors of \link{frmtmb-robust-dpars}, which take a
+\code{dpars} list rather than a frame and run inside a density while
+the objective is taped.}
 \item{\code{response_mean()}}{The expected response of a family at given
 dpar values, with \code{trunc()} bounds applied when the response
 carries them. A structured family composing per-state or
@@ -225,7 +228,9 @@ as_frmtmb_family(gaussian)
 }
 \seealso{
 \code{\link[=frmtmb_structure]{frmtmb_structure()}} for the protocol these serve,
-\code{\link[=frmtmb_family]{frmtmb_family()}} for the family object they read, and the
+\code{\link[=frmtmb_family]{frmtmb_family()}} for the family object they read,
+\link{frmtmb-robust-dpars} for the accessors a DENSITY uses while the
+objective is taped, and the
 registries an extension fills from its own \code{.onLoad()}:
 \code{\link[=frmtmb_register_frame_check]{frmtmb_register_frame_check()}}, \code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}} and
 \code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}}

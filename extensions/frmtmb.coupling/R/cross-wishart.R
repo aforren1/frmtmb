@@ -101,23 +101,24 @@
 #' That region is reachable: a random effect on `coh` with one group
 #' near a true coherence of 1 drives the estimate past `eta = 34`.
 #'
-#' This family therefore never subtracts. Core stores each dpar's linear
-#' predictor beside it, and the logit link's `logit_eta` field makes the
-#' log-odds exact, so `log(1 - C)` is computed as
-#' `-logspace_add(0, eta)` and `1 / (1 - C)` as its exponential. Both
-#' are exact to `eta = 709`, where the double range itself ends, against
-#' `36.74` for the naive form. Measured against a high-precision
-#' reference at `n = 16`: relative error 1.0e-03 at `eta = 30` and NaN
-#' at `eta = 40` before the change, below 1e-15 at both after it.
+#' This family therefore never subtracts. Core keeps each dpar's linear
+#' predictor beside it while the objective is taped, and
+#' [frmtmb::dpar_log1m()] reads `log(1 - C)` off it exactly, so
+#' `1 / (1 - C)` is its exponential. Both are exact to `eta = 709`,
+#' where the double range itself ends, against `36.74` for the naive
+#' form. Measured against a high-precision reference at `n = 16`:
+#' relative error 1.0e-03 at `eta = 30` and NaN at `eta = 40` before
+#' the change, below 1e-15 at both after it.
 #'
 #' One path keeps the plain round trip, and says so rather than being
 #' floored: `residuals(type = "deviance")` runs off the tape, where core
-#' does not store the linear predictor, so it uses `log1p(-C)`. That is
-#' accurate until `C` rounds to exactly 1, which needs `eta` past 36.74
-#' and is further than a fit reaches in practice. Measured on the
-#' degenerate case above, two signals differing by 1e-5 of noise: the
-#' fit lands at `eta = 23.0`, `C` is 0.99999999989743915 rather than 1,
-#' and all 127 response, Pearson and deviance residuals are finite.
+#' does not store the linear predictor, so the accessor falls back to
+#' the plain form. That is accurate until `C` rounds to exactly 1,
+#' which needs `eta` past 36.74 and is further than a fit reaches in
+#' practice. Measured on the degenerate case above, two signals
+#' differing by 1e-5 of noise: the fit lands at `eta = 23.0`, `C` is
+#' 0.99999999989743915 rather than 1, and all 127 response, Pearson and
+#' deviance residuals are finite.
 #' Past 36.74 they would be `NaN`, and no floor is applied to hide it.
 #'
 #' @section What it refuses:
@@ -196,27 +197,37 @@ cross_wishart <- function() {
 #' negative number. Below that the subtraction is merely inaccurate,
 #' 1e-3 relative at `eta = 30`.
 #'
-#' Core anticipated this. `build_objective()` stores each dpar's linear
-#' predictor beside it as `.eta_<dpar>`, and the logit link's
-#' `logit_eta` field is the identity, so the log-odds are available
-#' exactly on the tape. `log(1 - plogis(eta))` is then
-#' `-logspace_add(0, eta)`, which is exact everywhere, and `1 / (1 - C)`
-#' is its exponential, finite to `eta = 709` rather than to 36.74.
+#' Core answers this, and the answer is public:
+#' [frmtmb::dpar_log1m()] returns `log(1 - C)` from the linear
+#' predictor frmtmb keeps beside the dpar while the objective is taped.
+#' It is exact to `eta = 709`, the end of the double range, rather than
+#' to 36.74, and `1 / (1 - C)` is its exponential. This package wrote
+#' that arithmetic out for itself while the accessor was internal; only
+#' the two quantities the density spells differently are left here.
 #'
-#' Off the tape the `.eta_` entries are absent by design and the plain
-#' round trip is used. `cw_dev()` is the only caller that runs there,
-#' and `log1p(-C)` holds until `C` rounds to exactly 1 above
-#' `eta = 36.74`, which is past where a fit lands: a deliberately
-#' degenerate fit reached `eta = 23.0` with every residual finite.
+#' The ONE-SIDED accessor, not the pair. `dpar_log_complement()` would
+#' also give `log(C)`, which this density never uses, and the tape
+#' would replay that dead half on every gradient evaluation of every
+#' fit. At 1000 rows one gradient sweep of this density costs 633 us
+#' through the pair against 480 us through `dpar_log1m()`, with the
+#' hand-written arithmetic this replaced at 462 us; six interleaved
+#' blocks of 2000 sweeps. The R-level call is not where the cost is:
+#' this function runs once per fit, when the tape is built.
+#'
+#' Off the tape the accessor falls back to the plain round trip.
+#' `cw_dev()` is the only caller that runs there, and `log1p(-C)` holds
+#' until `C` rounds to exactly 1 above `eta = 36.74`, which is past
+#' where a fit lands: a deliberately degenerate fit reached `eta = 23.0`
+#' with every residual finite.
+#'
+#' The link is named rather than assumed. `-logspace_add(0, eta)` is
+#' `log(1 - C)` only because `coh` is on a logit; the accessor reads the
+#' link and would fall back rather than misread an identity predictor as
+#' a log odds.
 #'
 #' @noRd
 cw_complement <- function(dpars) {
-  eta <- dpars[[".eta_coh"]]
-  if (is.null(eta)) {
-    ch <- dpars[["coh"]]
-    return(list(log = log1p(-ch), inv = 1 / (1 - ch)))
-  }
-  lg <- -RTMB::logspace_add(0 * eta, eta)
+  lg <- dpar_log1m(dpars, "coh", "logit")
   list(log = lg, inv = exp(-lg))
 }
 

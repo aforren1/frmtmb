@@ -570,11 +570,12 @@ test_that("the new (0, 1) links survive a separated predictor", {
       expect_robust_at(bernoulli(lk), y01, list(), list(mu = 0), "mu", e0)
       expect_robust_at(frmtmb:::fam_binomial(lk), ybin, list(trials = 5),
                        list(mu = 0), "mu", e0)
-      # beta's shapes are mu * phi and (1 - mu) * phi, so mu_pair() has
-      # to exponentiate the log-odds back and a shape underflows to zero
-      # past |log-odds| = 745. probit reaches only 454 at eta = 30, but
-      # probit_approx's log-odds is CUBIC in eta and is already at 1953
-      # there, so it is swept where the shape is still representable.
+      # beta's shapes are mu * phi and (1 - mu) * phi, so
+      # dpar_complement() has to exponentiate the log-odds back and a
+      # shape underflows to zero past |log-odds| = 745. probit reaches
+      # only 454 at eta = 30, but probit_approx's log-odds is CUBIC in
+      # eta and is already at 1953 there, so it is swept where the
+      # shape is still representable.
       be <- if (identical(lk, "probit_approx")) sign(e0) * 20 else e0
       expect_robust_at(Beta(lk), c(0.2, 0.5, 0.9), list(),
                        list(mu = 0, phi = log(5)), "mu", be)

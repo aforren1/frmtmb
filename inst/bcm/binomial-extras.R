@@ -75,15 +75,15 @@ bcm_cap1 <- function(u) u - 0.5 * (abs(u - 1) + (u - 1))
 # because it integrates the same parameter out by averaging over it.
 # The contamination rate takes a LOGIT link, where the book puts it on
 # a probit. The reason is numerical and it is the seam the core's own
-# binomial uses: `dpars[[".eta_phi"]]` is the linear predictor behind
-# phi, so on a logit both log(phi) and log(1 - phi) can be recovered
-# from it exactly, however far the predictor runs. Read off the natural
-# scale instead, a probit rounds phi to 1 at a linear predictor of 8.3
-# and log(1 - phi) becomes -Infinity where the true value is -8.3, which
-# is what an optimizer walks into. The group distribution the book puts
-# on the probit of phi becomes a group distribution on its logit; that
-# is a different prior for the same model, and the test's Stan program
-# says so.
+# binomial uses: frmtmb keeps the linear predictor behind phi while the
+# objective is taped, so `dpar_log_complement()` recovers both log(phi)
+# and log(1 - phi) from it exactly, however far the predictor runs.
+# Read off the natural scale instead, a probit rounds phi to 1 at a
+# linear predictor of 8.3 and log(1 - phi) becomes -Infinity where the
+# true value is -8.3, which is what an optimizer walks into. The group
+# distribution the book puts on the probit of phi becomes a group
+# distribution on its logit; that is a different prior for the same
+# model, and the test's Stan program says so.
 bcm_contaminant <- function(link = "logit", link_phi = "logit") {
   frmtmb_family(
     "bcm_contaminant",
@@ -94,16 +94,14 @@ bcm_contaminant <- function(link = "logit", link_phi = "logit") {
     lpdf = function(y, dpars, aterms) {
       size <- aterms[["trials"]]
       if (is.null(size)) size <- 1
-      phi <- dpars[["phi"]]
-      eta <- dpars[[".eta_phi"]]
-      if (is.null(eta)) {
-        lphi <- log(phi)
-        l1mphi <- log(1 - phi)
-      } else {
-        # -log(1 + exp(-eta)) and -log(1 + exp(eta)), exact at both ends
-        lphi <- -RTMB::logspace_add(0 * eta, -eta)
-        l1mphi <- -RTMB::logspace_add(0 * eta, eta)
-      }
+      # log(phi) and log(1 - phi) from the linear predictor behind phi,
+      # exact at both ends, and through phi's OWN link rather than an
+      # assumed logit: `link_phi` is an argument, so a hand-rolled
+      # -logspace_add(0, eta) here would read a probit predictor as a
+      # log odds
+      g <- dpar_log_complement(dpars, "phi", link_phi)
+      lphi <- g$l
+      l1mphi <- g$l1m
       # logspace_add keeps a decisive cell, where one component is many
       # nats above the other, from underflowing to a constant
       RTMB::logspace_add(

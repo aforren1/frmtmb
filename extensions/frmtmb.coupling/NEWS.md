@@ -1,3 +1,32 @@
+# frmtmb.coupling (development version)
+
+* The coherence complement now comes from frmtmb's public accessor,
+  `dpar_log1m()`, rather than from this package's own copy of the same
+  arithmetic. The copy existed because the accessor was
+  internal to frmtmb: a family defined outside that package could see
+  the reserved `.eta_<dpar>` entry and had no sanctioned way to read
+  it. The two agree to the last bit on the tape, which is the path a
+  fit runs on: measured on the full `cross_wishart()` log density over
+  961 values of the coherence linear predictor from 10 to 700, the
+  maximum difference is 0. Off the tape, where both fall back to the
+  plain arithmetic, `1 / (1 - C)` is now `exp(-log(1 - C))` and the
+  log density moves by at most 2.3e-13 on a value of -1693.4, one part
+  in 7.4e15, at a coherence of 0.999. Deviance residuals are the only
+  quantity that reads it.
+
+  Nothing about the density changes: it still never subtracts from 1,
+  and `log(1 - C)` is still exact to `eta = 709` against 36.74 for the
+  naive form. This is a change of source, not of arithmetic.
+
+* **This release needs a newer frmtmb.** The `Depends:` floor has to
+  rise to the frmtmb release that exports `dpar_log1m()`.
+  Building against an older frmtmb fails at install time, where the
+  import cannot be resolved, rather than at run time.
+
+* `RTMB` leaves `Imports:`. Its only use was the `logspace_add()` call
+  the accessor replaces; the density is taped by frmtmb and calls no
+  RTMB function of its own.
+
 # frmtmb.coupling 0.1.0
 
 First release. A complex Wishart family for the cross-spectrum of a

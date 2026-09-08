@@ -178,6 +178,26 @@ test_that("the complement never comes from a subtraction", {
   expect_equal(z$inv, 1 / 0.75)
 })
 
+test_that("the complement comes from core's public accessor", {
+  # This package wrote the arithmetic out for itself while the accessor
+  # was internal to frmtmb. The guard is structural on purpose: a second
+  # copy is not wrong on the day it is written, it is wrong on the day
+  # core learns something new about a link and only one copy hears it.
+  expect_true("dpar_log1m" %in% getNamespaceExports("frmtmb"))
+  imp <- getNamespaceImports("frmtmb.coupling")[["frmtmb"]]
+  expect_true("dpar_log1m" %in% imp)
+  cmp <- frmtmb.coupling:::cw_complement
+  for (eta in c(0, 20, 40, 100, 700)) {
+    d <- list(coh = stats::plogis(eta), .eta_coh = eta)
+    expect_identical(cmp(d)$log,
+                     frmtmb::dpar_log1m(d, "coh", "logit"),
+                     info = paste("eta", eta))
+  }
+  # and the accessor is told which link `coh` is on, so the family and
+  # the accessor cannot disagree about what the linear predictor means
+  expect_identical(cross_wishart()$links$coh$name, "logit")
+})
+
 test_that("weights scale the log likelihood", {
   set.seed(105)
   d <- cp_draw(N = 20L, n = 8L)

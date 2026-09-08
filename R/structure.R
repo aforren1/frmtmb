@@ -613,7 +613,10 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'     own layout, or `NULL` when that response and dpar have no linear
 #'     predictor with columns. Random effects are excluded on purpose:
 #'     this exists for a `check_fit` slot, which runs before the inner
-#'     modes are solved and cannot see them.}
+#'     modes are solved and cannot see them. Not to be confused with
+#'     the `dpar_*` accessors of [frmtmb-robust-dpars], which take a
+#'     `dpars` list rather than a frame and run inside a density while
+#'     the objective is taped.}
 #'   \item{`response_mean()`}{The expected response of a family at given
 #'     dpar values, with `trunc()` bounds applied when the response
 #'     carries them. A structured family composing per-state or
@@ -713,7 +716,9 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #'   probabilities; `mixture_multimodal_refusals()` a list of two
 #'   refusal strings.
 #' @seealso [frmtmb_structure()] for the protocol these serve,
-#'   [frmtmb_family()] for the family object they read, and the
+#'   [frmtmb_family()] for the family object they read,
+#'   [frmtmb-robust-dpars] for the accessors a DENSITY uses while the
+#'   objective is taped, and the
 #'   registries an extension fills from its own `.onLoad()`:
 #'   [frmtmb_register_frame_check()], [frmtmb_register_aterm()] and
 #'   [frmtmb_register_compat()]

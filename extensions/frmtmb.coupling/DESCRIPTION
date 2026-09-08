@@ -36,7 +36,6 @@ Depends:
     R (>= 4.1),
     frmtmb (>= 0.53.0)
 Imports:
-    RTMB (>= 1.9),
     stats
 Suggests:
     knitr,

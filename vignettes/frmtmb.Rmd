@@ -156,6 +156,24 @@ check_custom_family(my_poisson, y = rpois(50, 3),
                     dpars = list(mu = rep(2.5, 50)))
 ```
 
+An inverse link saturates, so a density written over `1 - mu` or
+`log(mu)` loses the tail: `plogis(eta)` is exactly 1 in double precision
+from `eta = 36.7368` up, and there `1 - mu` is exactly 0, which gives
+`NaN` for the value and for the gradient. `frm()` keeps each linear
+predictor beside its distributional parameter while the objective is
+taped, and `?"frmtmb-robust-dpars"` is how a density reads it.
+
+```{r}
+# a gate the optimizer has pushed against 1
+d_on <- list(zi = plogis(40), .eta_zi = 40)
+c(plain = log(1 - d_on$zi),
+  robust = dpar_log1m(d_on, "zi", "logit"))
+```
+
+`check_custom_family()` supplies no linear predictors, so it exercises
+the fallback path only. Test the other one by building the `dpars` list
+by hand, as above.
+
 ## Smooths and Gaussian processes
 
 mgcv smooths and `gp()` terms work in any linear predictor; their

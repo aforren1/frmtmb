@@ -5,10 +5,10 @@ export(frm_coherence)
 export(frm_cross_simulate)
 export(frm_cross_spectrum)
 export(frm_phase)
-importFrom(RTMB,logspace_add)
 importFrom(frmtmb,
   compat_rule_builder,
   custom_family,
+  dpar_log1m,
   frmtmb_register_compat
 )
 importFrom(stats,

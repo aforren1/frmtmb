@@ -48,14 +48,16 @@
 #' both extractors are built out of, and [stats::family()] to refuse a
 #' fit of the wrong family.
 #'
-#' One thing this package uses is real but not promised: core stores each
-#' dpar's linear predictor beside it in the `dpars` list as
-#' `.eta_<dpar>`, which is what makes the coherence complement exact
-#' (see [cross_wishart()], "Why the links are the constraint"). It
-#' works, it is what core's own binomial and beta densities rely on
-#' through internal accessors, and no sibling extension uses it. It is
-#' undocumented for extension authors, and a promise would be worth
-#' making.
+#' The seam that makes the coherence complement exact is documented
+#' too, and was not when 0.1.0 shipped. Core keeps each dpar's linear
+#' predictor beside it while the objective is taped, and
+#' [frmtmb::dpar_log1m()] reads `log(1 - C)` off it (see
+#' [cross_wishart()], "Why the links are the constraint"). This
+#' package wrote that arithmetic out for itself against the reserved
+#' `.eta_<dpar>` entry while the accessor was internal; it calls the
+#' accessor now. The entry itself stays reserved: it is on the LINK
+#' scale, so what it means depends on the dpar's link, and the accessor
+#' is the supported way to read it.
 #'
 #' What is NOT missing, and this package said otherwise in 0.1.0: a
 #' matrix-valued response. `R/frame.R` preserves one explicitly, and a
@@ -69,8 +71,7 @@
 # this package builds on are imported by name as well, because a
 # namespace that is loaded and not attached reaches nothing through the
 # search path.
-#' @importFrom RTMB logspace_add
 #' @importFrom frmtmb custom_family frmtmb_register_compat
-#'   compat_rule_builder
+#'   compat_rule_builder dpar_log1m
 #' @importFrom stats plogis predict qnorm rnorm setNames
 NULL

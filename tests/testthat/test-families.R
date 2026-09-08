@@ -198,7 +198,7 @@ test_that("frm_family() reaches the links the stats families cannot", {
 })
 
 test_that("a dpar link that is not log keeps the density honest", {
-  # log_dpar() used to hand the linear predictor back AS the log of the
+  # dpar_log() used to hand the linear predictor back AS the log of the
   # dpar, which is right only on a log link. On a softplus shape that
   # would be a different, wrong, density; the fit is compared with the
   # log-link fit of the SAME model, which has to reach the same place.
@@ -219,7 +219,7 @@ test_that("a dpar link that is not log keeps the density honest", {
 })
 
 test_that("a gate link that is not logit keeps the density honest", {
-  # the same hazard for gate_logs(), which assumed the logit
+  # the same hazard for dpar_log_complement(), which assumed the logit
   set.seed(5)
   n <- 400
   d <- data.frame(x = rnorm(n))

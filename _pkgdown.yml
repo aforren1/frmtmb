@@ -59,6 +59,7 @@ reference:
   - frmtmb_register_compat
   - frmtmb_ad_overload
   - frmtmb-extension-api
+  - frmtmb-robust-dpars
   - latent_probs
   - frmtmb-families
   - frmtmb-links

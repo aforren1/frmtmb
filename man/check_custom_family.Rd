@@ -28,6 +28,16 @@ against central finite differences. A mismatch usually means the lpdf
 uses operations the tape cannot see (base \code{matrix()}/\code{c()} on
 advectors, branching on parameter values, \code{min}/\code{max}, clamping).
 }
+\details{
+It differentiates with respect to the DPAR VALUES, and it supplies no
+linear predictors, so a density that reads the linear-predictor scale
+through \link{frmtmb-robust-dpars} is checked here on its fallback path
+only. That path is the plain arithmetic, and the plain arithmetic is
+what saturates. This function cannot reach the other path: \code{dpars}
+must name exactly the family's own distributional parameters, so a
+\verb{.eta_<dpar>} entry is refused rather than taped. Call the lpdf
+yourself on a list that carries one; \link{frmtmb-robust-dpars} shows how.
+}
 \examples{
 set.seed(1)
 y <- rpois(50, 3)
@@ -53,4 +63,8 @@ bad <- custom_family(
   type = "discrete"
 )
 try(check_custom_family(bad, y = y, dpars = list(mu = rep(2.5, 50))))
+}
+\seealso{
+\code{\link[=frmtmb_family]{frmtmb_family()}} for the family this checks, and
+\link{frmtmb-robust-dpars} for the path this check cannot reach
 }

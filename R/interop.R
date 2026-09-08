@@ -14,6 +14,15 @@
 #' uses operations the tape cannot see (base `matrix()`/`c()` on
 #' advectors, branching on parameter values, `min`/`max`, clamping).
 #'
+#' It differentiates with respect to the DPAR VALUES, and it supplies no
+#' linear predictors, so a density that reads the linear-predictor scale
+#' through [frmtmb-robust-dpars] is checked here on its fallback path
+#' only. That path is the plain arithmetic, and the plain arithmetic is
+#' what saturates. This function cannot reach the other path: `dpars`
+#' must name exactly the family's own distributional parameters, so a
+#' `.eta_<dpar>` entry is refused rather than taped. Call the lpdf
+#' yourself on a list that carries one; [frmtmb-robust-dpars] shows how.
+#'
 #' @param family A `frmtmb_family` (from [frmtmb_family()] /
 #'   [custom_family()]).
 #' @param y A response vector of test data.
@@ -22,6 +31,8 @@
 #' @param aterms Named list of addition-term values (e.g. `trials`).
 #' @param tol Maximum relative gradient error.
 #' @return Invisibly `TRUE`; signals an error on failure.
+#' @seealso [frmtmb_family()] for the family this checks, and
+#'   [frmtmb-robust-dpars] for the path this check cannot reach
 #' @examples
 #' set.seed(1)
 #' y <- rpois(50, 3)
