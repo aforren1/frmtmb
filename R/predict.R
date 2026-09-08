@@ -844,9 +844,15 @@ dpars_natural <- function(fit, rspec, newdata, re.form,
 #' reported the log link's inverse of the mapped-out coefficient, 1,
 #' which reads as an estimate of a parameter the model does not have.
 #'
+#' The dpar this applies to is the one the FAMILY says `se()` replaces,
+#' so a family that declares `se_dpar = "tau"` reports `tau` the same
+#' way, and one that declares `se_dpar = NA` has no such dpar.
+#'
 #' @noRd
 se_unused_sigma <- function(rspec, dpar) {
-  identical(dpar, "sigma") && !is.null(rspec$aterms[["se"]]) &&
+  repl <- family_se_dpar(rspec$family)
+  !is.null(repl) && !is.na(repl) && identical(dpar, repl) &&
+    !is.null(rspec$aterms[["se"]]) &&
     !isTRUE(rspec$aterms[["se_sigma"]])
 }
 

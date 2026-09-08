@@ -322,3 +322,126 @@ test_that("a discrete row censored at the support minimum is free", {
                sum(stats::dpois(d$y[obs], mu, log = TRUE)),
                tolerance = 1e-10)
 })
+
+# ---------------------------------------------------------------------
+# The inclusive discrete convention announces itself ONCE per session.
+# It is the one place frmtmb answers a ported brms model with a
+# different number, and nothing at the call site said so. The suite
+# runs with the notice off (setup.R), so a test that wants it turns it
+# on and clears the session state first.
+# ---------------------------------------------------------------------
+
+arm_cens_notice <- function(env = parent.frame()) {
+  withr::local_options(frmtmb.notices = TRUE, .local_envir = env)
+  st <- frmtmb:::frmtmb_notice_state
+  clear <- function() rm(list = ls(envir = st, all.names = TRUE),
+                         envir = st)
+  clear()
+  withr::defer(clear(), envir = env)
+}
+
+# messages only: a censored fit may also warn, and expect_silent()
+# would fail on the warning rather than on the notice
+notice_msgs <- function(expr) {
+  got <- character(0)
+  withCallingHandlers(
+    suppressWarnings(force(expr)),
+    message = function(m) {
+      got <<- c(got, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    })
+  got
+}
+
+pois_right_data <- function(seed = 720, n = 150, k = 6) {
+  set.seed(seed)
+  d <- data.frame(y = stats::rpois(n, 4))
+  d$cc <- ifelse(d$y >= k, "right", "none")
+  d$y <- pmin(d$y, k)
+  d
+}
+
+test_that("discrete right censoring announces the convention once", {
+  arm_cens_notice()
+  d <- pois_right_data()
+  m1 <- notice_msgs(frm(y | cens(cc) ~ 1, family = poisson(), data = d))
+  expect_length(grep("INCLUSIVE", m1), 1)
+  # what it says: the rule, the divergence, the remedy, where the
+  # argument lives, and how to turn it off
+  expect_match(m1[[1]], "P[(]Y >= k[)]")
+  expect_match(m1[[1]], "brms")
+  expect_match(m1[[1]], "subtract one")
+  expect_match(m1[[1]], "brms-migration")
+  expect_match(m1[[1]], "frmtmb.notices")
+  # the second fit in the same session is silent
+  m2 <- notice_msgs(frm(y | cens(cc) ~ 1, family = poisson(), data = d))
+  expect_length(m2, 0)
+})
+
+test_that("interval censoring on a count announces it too", {
+  arm_cens_notice()
+  d <- disc_cens_data()
+  d <- d[d$cc %in% c("none", "interval"), ]
+  m <- notice_msgs(frm(y | cens(cc, y2) ~ 1, family = poisson(),
+                       data = d))
+  expect_length(grep("INCLUSIVE", m), 1)
+})
+
+test_that("the notice fires only where the two packages disagree", {
+  # left censoring on a count: P(Y <= k) in both packages
+  arm_cens_notice()
+  set.seed(721)
+  dl <- data.frame(y = stats::rpois(150, 4))
+  dl$cc <- ifelse(dl$y <= 2, "left", "none")
+  dl$y <- pmax(dl$y, 2)
+  expect_length(notice_msgs(frm(y | cens(cc) ~ 1, family = poisson(),
+                                data = dl)), 0)
+
+  # a continuous response: an endpoint carries no mass, so the two
+  # conventions coincide
+  set.seed(722)
+  dg <- data.frame(y = stats::rnorm(150, 1, 1))
+  dg$cc <- ifelse(dg$y > 1.5, "right", "none")
+  dg$y <- pmin(dg$y, 1.5)
+  expect_length(notice_msgs(frm(y | cens(cc) ~ 1, family = gaussian(),
+                                data = dg)), 0)
+
+  # truncation alone: the inclusive lower bound there is brms's own
+  set.seed(723)
+  dt <- data.frame(y = stats::rpois(150, 6))
+  dt <- dt[dt$y >= 2, , drop = FALSE]
+  expect_length(notice_msgs(frm(y | trunc(lb = 2) ~ 1,
+                                family = poisson(), data = dt)), 0)
+
+  # and the notice is still unspent, so it was not merely suppressed
+  d <- pois_right_data()
+  expect_length(grep("INCLUSIVE",
+                     notice_msgs(frm(y | cens(cc) ~ 1,
+                                     family = poisson(), data = d))), 1)
+})
+
+test_that("the notice is suppressible two ways", {
+  d <- pois_right_data()
+  arm_cens_notice()
+  expect_length(notice_msgs(suppressMessages(
+    frm(y | cens(cc) ~ 1, family = poisson(), data = d))), 0)
+
+  arm_cens_notice()
+  withr::local_options(frmtmb.notices = FALSE)
+  expect_length(notice_msgs(frm(y | cens(cc) ~ 1, family = poisson(),
+                                data = d)), 0)
+})
+
+test_that("a refused fit does not spend the session's one notice", {
+  arm_cens_notice()
+  d <- disc_cens_data()
+  d2 <- d
+  # a half-integer INTERVAL bound: the response is still a count, so
+  # this is refused by the guard the notice sits behind
+  d2$y2[which(d2$cc == "interval")[[1]]] <- 9.5
+  expect_error(frm(y | cens(cc, y2) ~ 1, family = poisson(), data = d2),
+               "censoring bound must be")
+  expect_length(grep("INCLUSIVE",
+                     notice_msgs(frm(y | cens(cc, y2) ~ 1,
+                                     family = poisson(), data = d))), 1)
+})

@@ -22,6 +22,7 @@ frmtmb_family(
   lccdf = NULL,
   required_aterms = character(0),
   accepts_aterms = NULL,
+  se_dpar = NULL,
   exclusive_aterms = list(),
   family_finalize = NULL,
   extra_pars = NULL,
@@ -46,6 +47,7 @@ custom_family(
   lccdf = NULL,
   required_aterms = character(0),
   accepts_aterms = NULL,
+  se_dpar = NULL,
   exclusive_aterms = list(),
   family_finalize = NULL,
   extra_pars = NULL,
@@ -181,6 +183,23 @@ other term, declares nothing and so does not open this one. Read
 \code{aterms[["se"]]} as the known standard deviation, and
 \code{aterms[["se_sigma"]]} to honor \code{se(x, sigma = TRUE)}, which asks
 for the known and estimated scales in quadrature.}
+
+\item{se_dpar}{The dpar that a known standard error replaces, named
+so that the core can map it out: \code{se_dpar = "tau"} maps out \code{tau}
+exactly as the convention maps out \code{sigma}. \code{NA} declares that
+\code{se()} replaces NO dpar, which is the shape of a family whose whole
+scale IS the known standard error. \code{NULL}, the default, reads the
+convention: the dpar named \code{sigma}, if the family has one.
+
+Only a family that declares \code{se()} reaches this. \code{se()} without
+\code{sigma = TRUE} says the residual scale is known, so the dpar it
+replaces has to stop being estimated. A dpar the density never
+reads is a flat direction and a NaN standard error, so a declaring
+family with no \code{sigma} and another free dpar is refused: the core
+cannot tell a second SCALE from a genuine SHAPE. This argument is
+how the family says which one it has. \code{se_dpar = NA} is a promise
+that every remaining dpar is read alongside the known standard
+error, the way a skew or a tail index is.}
 
 \item{exclusive_aterms}{Sets of addition-term values that say the SAME
 thing to the density, so that at most one of each set may be

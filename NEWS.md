@@ -1,3 +1,74 @@
+# frmtmb (development version)
+
+Three defects recorded against the 0.54.0 addition-term work, fixed.
+Two of them are one guard: the `se()` scale rule could not tell a
+second scale from a shape, and a dpar formula walked past it.
+
+* A family can now say which dpar a known standard error replaces:
+  `frmtmb_family(se_dpar = "tau")` maps out `tau` exactly as the
+  convention maps out `sigma`, and `se_dpar = NA` says it replaces
+  none, because the known standard error IS the family's whole scale.
+  That is the case 0.54.0 over-refused. A family with no `sigma`,
+  another free dpar, and no declaration is still refused, because the
+  core cannot tell a second SCALE, which would be left free and
+  unread, from a genuine SHAPE, which has to stay free. Measured on
+  both: the same data, the same `se()` column, one family whose extra
+  dpar is a second scale and one whose extra dpar is a skew. The
+  second scale still refuses (before the guard existed it fitted with
+  the scale frozen at its start value and all three standard errors
+  `NaN`); the skew, declared with `se_dpar = NA`, fits at a
+  log-likelihood of -285.459 with every standard error finite, the
+  skew estimated at 2.956 (standard error 0.352) where the data were
+  drawn at 3, and 80.06 log units above the same family with the skew
+  pinned symmetric. The refusal now names `se_dpar` as a fourth way
+  out. `predict(dpar = )` reports a declared and mapped-out dpar as
+  the zero it is, which it did for `sigma` alone before. `sigma()` is
+  unchanged: it reports the dpar named `sigma`, and a family without
+  one still gets 1.
+
+* A dpar FORMULA no longer walks past that guard. `se()` without
+  `sigma = TRUE` says the residual scale is known, so the dpar it
+  replaces stops being estimated, and only a CONSTANT pins it:
+  `sigma ~ 1` estimates an intercept the density never reads. The
+  guard now reads every route a formula arrives by, `bf()`, `lf()`,
+  `nlf()` and a family's own `default_forms`, and refuses the pair by
+  name. This was pre-existing and the BUILT-IN gaussian shared it:
+  measured, `bf(y | se(sev) ~ x, sigma ~ 1)` fitted at exactly the
+  reference model's log-likelihood, -62.4977718, with the same two
+  coefficients to seven figures and every standard error `NaN`. The
+  fit itself said nothing; the flat direction surfaced only when
+  `vcov()` or `summary()` was asked for it. The three documented
+  escapes are unchanged and measured again: no formula at all, a
+  constant (`sigma = 1`), and `se(x, sigma = TRUE)`, which takes a
+  `sigma` formula as it always did, because the density reads the dpar
+  there.
+
+  It is a breaking change for a family written against 0.54.0 that
+  declares `se()`, has no `sigma`, and gave its extra dpar a formula:
+  that model fitted before and is refused now. The refusal names the
+  one-argument fix.
+
+* The discrete censoring convention announces itself ONCE per session.
+  frmtmb reads a censoring bound on a count as INCLUSIVE, so right
+  censoring at `k` is `P(Y >= k)` and every lower edge enters the CDF
+  as `F(k - 1)`; brms emits `P(Y > y)` for right and interval
+  censoring of a count. On 200 poisson draws at `lambda = 4` right
+  censored at 6 the two readings differ by 21.8 to 33.3 log units,
+  median 29.4 over 40 seeds, which is about 0.66 per censored row.
+  (The 0.54.0 entry below gives 20.8 for the same setup; that figure
+  is below all 40 of those draws and should not be quoted again.) The
+  notice fires only on the combination that diverges, a DISCRETE
+  family with RIGHT or INTERVAL censoring, and says the rule, the
+  remedy and where the argument lives. Left censoring, a continuous
+  response and truncation alone are silent, measured. It is a message,
+  so `suppressMessages()` silences it, and
+  `options(frmtmb.notices = FALSE)` silences every
+  notice for a session. A call a CENSORING guard refuses, such as one
+  with a half-integer bound, does not spend it; a call refused later,
+  for a reason that has nothing to do with censoring, does. The
+  package's own suite sets the option off in `tests/testthat/setup.R`,
+  so no test depends on which file censors a count first.
+
 # frmtmb 0.54.0
 
 Every link in the registry can now be reached and found: a link on any
