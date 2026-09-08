@@ -136,6 +136,8 @@ fit <- frm(bf(y ~ x + (1 | mm(school1, school2))) + gaussian(),
            data = d)
 summary(fit)
 #> Family: gaussian 
+#>  Links: mu = identity; sigma = log
+#> 
 #> Formula: y ~ x + (1 | mm(school1, school2)) 
 #> Method: ML   nobs: 200 
 #> Groups: mm(school1, school2), 12 
@@ -178,6 +180,8 @@ frm(bf(y ~ x + (1 | mm(school1, school2,
     data = d)
 #> frmtmb fit: y ~ x + (1 | mm(school1, school2, weights = cbind(share1, share2))) 
 #> Family: gaussian   Method: ML 
+#>  Links: mu = identity; sigma = log
+#> 
 #> logLik: -208.589  AIC: 425.179  nobs: 200 
 #> 
 #> Fixed effects:

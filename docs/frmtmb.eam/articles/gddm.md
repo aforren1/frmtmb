@@ -180,6 +180,9 @@ fit <- frm(bf(rt | vint(upper, cond) + vreal(coh) ~ 1, bias = 0.5),
            data = dat)
 summary(fit)
 #> Family: gddm 
+#>  Links: mu = identity; alpha = log; leak = identity; bs = log; tau = log;
+#>         bias = logit; ndt = scaled_logit(0, 0.3267)
+#> 
 #> Formula: rt | vint(upper, cond) + vreal(coh) ~ 1 
 #> Method: ML   nobs: 900 
 #> logLik: 46.4345  AIC: -80.869  BIC: -52.0547 

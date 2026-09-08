@@ -1,5 +1,56 @@
 # Changelog
 
+## frmtmb.eam 0.5.0
+
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+refuses a boundary given twice, one export for a sibling package, and
+the compatibility table says refused where it used to say untested.
+Requires frmtmb 0.54.0 for the exclusivity declaration.
+
+- [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+  declares `dec()` and `vint1` mutually exclusive, so a model supplying
+  both is refused by name instead of fitted with the second column
+  unread. Measured before the change on 120 rows: `rt | dec(u) ~ 1`,
+  `rt | vint(u) ~ 1` and `rt | dec(u) + vint(1 - u) ~ 1` all gave a
+  log-likelihood of -76.0486443897369, the third with the two columns
+  CONTRADICTING each other. `ddm_indicator()` reads `dec` and falls back
+  to `vint1`, and the declaration is that precedence written down. Needs
+  frmtmb’s new `frmtmb_family(exclusive_aterms =)`.
+
+  [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md)
+  deliberately declares no such set and is why the rule is opt-in: there
+  `dec()` and `vint1` are two data, the boundary and the condition
+  index, not two spellings of one.
+
+- Every family x addition-term cell in
+  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.html)
+  is now decided. The refusals each family has already declared in
+  `accepts_aterms` are derived through frmtmb’s
+  [`compat_aterm_rules()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html)
+  rather than written out again, so `trials()`, and `vreal()` where the
+  family does not read it, stop reading `untested`. Rows written by hand
+  keep their own notes: the derivation defers to any pair already
+  refused.
+
+  The allow-lists themselves move to one `ddm_accepts` list that the
+  five constructors and the compatibility rows both read, so the table
+  cannot promise a term frame assembly refuses.
+
+- [`wiener_lpdf()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.md)
+  is now exported: the Wiener first-passage log density with
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)’s
+  parameterization and
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)’s
+  tape safety.
+  [`frmtmb.learn::rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.html)
+  is a delta learning rule whose value difference drives the drift rate
+  of this density, and until now the only route to it was
+  `frmtmb.eam:::ddm_lpdf_both()`, which is a promise nobody made. This
+  is that promise, made deliberately and kept to one function: the
+  series truncations, the blend between them, the across-trial
+  variability integrals and the CDF all stay internal. Nothing about the
+  package’s own behavior changes.
+
 ## frmtmb.eam 0.4.0
 
 [`wiener_gng()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_gng.md)

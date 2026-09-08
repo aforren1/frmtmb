@@ -78,3 +78,6 @@
 
 - [`wiener_gng_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_gng_simulate.md)
   : Simulate from a go/no-go diffusion model
+
+- [`wiener_lpdf()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.md)
+  : The Wiener first-passage log density, for another package's family

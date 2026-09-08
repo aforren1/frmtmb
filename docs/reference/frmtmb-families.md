@@ -13,35 +13,35 @@ accepted directly by
 ## Usage
 
 ``` r
-student(link = "identity")
+student(link = "identity", link_sigma = "log", link_nu = "logm1")
 
-lognormal(link = "identity")
+lognormal(link = "identity", link_sigma = "log")
 
-negbinomial(link = "log")
+negbinomial(link = "log", link_shape = "log")
 
-nbinom1(link = "log")
+nbinom1(link = "log", link_phi = "log")
 
-Beta(link = "logit")
+Beta(link = "logit", link_phi = "log")
 
-tweedie(link = "log")
+tweedie(link = "log", link_phi = "log")
 
-compois(link = "log")
+compois(link = "log", link_nu = "log")
 
-zero_inflated_poisson(link = "log")
+zero_inflated_poisson(link = "log", link_zi = "logit")
 
-zero_inflated_negbinomial(link = "log")
+zero_inflated_negbinomial(link = "log", link_shape = "log", link_zi = "logit")
 
-hurdle_poisson(link = "log")
+hurdle_poisson(link = "log", link_hu = "logit")
 
 multinomial(K)
 
 cumulative(link = "logit")
 
-beta_binomial(link = "logit")
+beta_binomial(link = "logit", link_phi = "log")
 
-skew_normal(link = "identity")
+skew_normal(link = "identity", link_sigma = "log", link_alpha = "identity")
 
-exgaussian(link = "identity")
+exgaussian(link = "identity", link_sigma = "log", link_beta = "log")
 
 bernoulli(link = "logit")
 
@@ -49,23 +49,28 @@ geometric(link = "log")
 
 exponential(link = "log")
 
-weibull(link = "log")
+weibull(link = "log", link_shape = "log")
 
-shifted_lognormal(link = "identity")
+shifted_lognormal(link = "identity", link_sigma = "log", link_ndt = "log")
 
-hurdle_gamma(link = "log")
+hurdle_gamma(link = "log", link_shape = "log", link_hu = "logit")
 
-hurdle_lognormal(link = "identity")
+hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit")
 
-zero_inflated_binomial(link = "logit")
+zero_inflated_binomial(link = "logit", link_zi = "logit")
 
-zero_inflated_beta(link = "logit")
+zero_inflated_beta(link = "logit", link_phi = "log", link_zi = "logit")
 
-asym_laplace(link = "identity")
+asym_laplace(link = "identity", link_sigma = "log", link_quantile = "logit")
 
-zero_inflated_asym_laplace(link = "identity")
+zero_inflated_asym_laplace(
+  link = "identity",
+  link_sigma = "log",
+  link_quantile = "logit",
+  link_zi = "logit"
+)
 
-huber(link = "identity", k = 1.345)
+huber(link = "identity", k = 1.345, link_sigma = "log")
 
 sratio(link = "logit")
 
@@ -73,7 +78,7 @@ cratio(link = "logit")
 
 acat(link = "logit")
 
-von_mises(link = "tan_half")
+von_mises(link = "tan_half", link_kappa = "log")
 
 categorical(link = "logit", levels = NULL, K = NULL)
 
@@ -84,12 +89,35 @@ cox(link = "log", df = 5, degree = 3, intercept = TRUE)
 
 - link:
 
-  Link for `mu`.
+  Link for `mu`. See
+  [frmtmb-links](https://aforren1.github.io/frmtmb/reference/frmtmb-links.md).
+
+- link_sigma, link_shape, link_phi, link_kappa, link_ndt, link_beta:
+
+  Link for a strictly positive parameter: one of `"log"` (the default),
+  `"identity"`, `"softplus"` or `"squareplus"`.
+
+- link_nu:
+
+  Link for `nu`. `student()`'s degrees of freedom take `"logm1"` (the
+  default) or `"identity"`, which keeps them above one; `compois()`'s
+  dispersion is an ordinary positive parameter and takes the positive
+  set.
+
+- link_zi, link_hu, link_quantile:
+
+  Link for a parameter on the unit interval: `"logit"` (the default) or
+  `"identity"`.
 
 - K:
 
   For `multinomial()`: number of response categories (columns of the
   count-matrix response); category 1 is the reference.
+
+- link_alpha:
+
+  Link for `skew_normal()`'s skewness, which is signed: `"identity"`
+  (the default), `"log"`, `"softplus"` or `"squareplus"`.
 
 - k:
 
@@ -288,6 +316,33 @@ satisfy Huber's own estimating equations, `X' psi(u) = 0` with
 [`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)
 confirms the fit when in doubt.
 
+## Links
+
+Every constructor takes `link` for the mean and a `link_<dpar>` for each
+of its other distributional parameters, following brms:
+`student(link_sigma = "softplus")`,
+`zero_inflated_poisson(link_zi = "identity")`.
+[frmtmb-links](https://aforren1.github.io/frmtmb/reference/frmtmb-links.md)
+lists the whole roster, what each link maps, which families take it for
+the mean, and which set each parameter admits.
+
+The four families 'stats' owns,
+[`gaussian()`](https://rdrr.io/r/stats/family.html),
+[`poisson()`](https://rdrr.io/r/stats/family.html),
+[`binomial()`](https://rdrr.io/r/stats/family.html) and
+[`Gamma()`](https://rdrr.io/r/stats/family.html), have no frmtmb
+constructor to carry these. Reach their links through
+[`frm_family()`](https://aforren1.github.io/frmtmb/reference/frm_family.md):
+`frm_family("gaussian", link_sigma = "softplus")`.
+
+An ordinal family's `link` is not a link on a mean. It names the
+distribution function the thresholds are read through, so
+`cumulative()`, `sratio()` and `cratio()` take `logit`, `probit`,
+`probit_approx`, `cloglog` and `cauchit` (and `cumulative()` also takes
+`softit`), and refuse anything else. `acat()` takes `logit` alone,
+because brms defines its other links by a different density rather than
+by substituting a distribution function.
+
 ## Examples
 
 ``` r
@@ -323,6 +378,8 @@ dd$zi <- ifelse(runif(n) < 0.3, 0, dd$cnt)
 frm(bf(zi ~ x, zi ~ 1) + zero_inflated_poisson(), data = dd)
 #> frmtmb fit: zi ~ x 
 #> Family: zero_inflated_poisson   Method: ML 
+#>  Links: mu = log; zi = logit
+#> 
 #> logLik: -173.275  AIC: 352.55  nobs: 120 
 #> 
 #> Fixed effects:
@@ -339,6 +396,8 @@ dd$grade <- cut(1 + 0.8 * dd$x + rlogis(n), 3,
 frm(bf(grade ~ x) + cumulative(), data = dd)
 #> frmtmb fit: grade ~ x 
 #> Family: cumulative   Method: ML 
+#>  Links: cdf = logit
+#> 
 #> logLik: -81.675  AIC: 169.35  nobs: 120 
 #> 
 #> Fixed effects:
@@ -351,6 +410,8 @@ dd$p <- plogis(0.2 + 0.6 * dd$x + rnorm(n, 0, 0.3))
 frm(bf(p ~ x) + Beta(), data = dd)
 #> frmtmb fit: p ~ x 
 #> Family: beta   Method: ML 
+#>  Links: mu = logit; phi = log
+#> 
 #> logLik: 154.805  AIC: -303.61  nobs: 120 
 #> 
 #> Fixed effects:
@@ -399,6 +460,8 @@ dd$w <- rnorm(n)
 frm(bf(pick ~ x, mustout ~ w), family = categorical(), data = dd)
 #> frmtmb fit: pick ~ x 
 #> Family: categorical   Method: ML 
+#>  Links: mulager = identity; mustout = identity
+#> 
 #> logLik: -128.572  AIC: 265.145  nobs: 120 
 #> 
 #> Fixed effects:

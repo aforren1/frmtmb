@@ -11,7 +11,7 @@ from 'stats' are accepted directly by frm() and +."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,10 +31,12 @@ from 'stats' are accepted directly by frm() and +."></head><body>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -72,35 +74,35 @@ from 'stats' are accepted directly by <code><a href="frm.html">frm()</a></code> 
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">student</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">student</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span>, link_sigma <span class="op">=</span> <span class="st">"log"</span>, link_nu <span class="op">=</span> <span class="st">"logm1"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">lognormal</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
+<span><span class="fu">lognormal</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span>, link_sigma <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">negbinomial</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
+<span><span class="fu">negbinomial</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_shape <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">nbinom1</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
+<span><span class="fu">nbinom1</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_phi <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">Beta</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
+<span><span class="fu">Beta</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span>, link_phi <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">tweedie</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
+<span><span class="fu">tweedie</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_phi <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">compois</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
+<span><span class="fu">compois</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_nu <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">zero_inflated_poisson</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
+<span><span class="fu">zero_inflated_poisson</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_zi <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">zero_inflated_negbinomial</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
+<span><span class="fu">zero_inflated_negbinomial</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_shape <span class="op">=</span> <span class="st">"log"</span>, link_zi <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">hurdle_poisson</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
+<span><span class="fu">hurdle_poisson</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_hu <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">multinomial</span><span class="op">(</span><span class="va">K</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">cumulative</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">beta_binomial</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
+<span><span class="fu">beta_binomial</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span>, link_phi <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">skew_normal</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
+<span><span class="fu">skew_normal</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span>, link_sigma <span class="op">=</span> <span class="st">"log"</span>, link_alpha <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">exgaussian</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
+<span><span class="fu">exgaussian</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span>, link_sigma <span class="op">=</span> <span class="st">"log"</span>, link_beta <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">bernoulli</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
@@ -108,23 +110,28 @@ from 'stats' are accepted directly by <code><a href="frm.html">frm()</a></code> 
 <span></span>
 <span><span class="fu">exponential</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">weibull</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
+<span><span class="fu">weibull</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_shape <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">shifted_lognormal</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
+<span><span class="fu">shifted_lognormal</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span>, link_sigma <span class="op">=</span> <span class="st">"log"</span>, link_ndt <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">hurdle_gamma</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
+<span><span class="fu">hurdle_gamma</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"log"</span>, link_shape <span class="op">=</span> <span class="st">"log"</span>, link_hu <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">hurdle_lognormal</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
+<span><span class="fu">hurdle_lognormal</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span>, link_sigma <span class="op">=</span> <span class="st">"log"</span>, link_hu <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">zero_inflated_binomial</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
+<span><span class="fu">zero_inflated_binomial</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span>, link_zi <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">zero_inflated_beta</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
+<span><span class="fu">zero_inflated_beta</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span>, link_phi <span class="op">=</span> <span class="st">"log"</span>, link_zi <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">asym_laplace</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
+<span><span class="fu">asym_laplace</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span>, link_sigma <span class="op">=</span> <span class="st">"log"</span>, link_quantile <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">zero_inflated_asym_laplace</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span><span class="op">)</span></span>
+<span><span class="fu">zero_inflated_asym_laplace</span><span class="op">(</span></span>
+<span>  link <span class="op">=</span> <span class="st">"identity"</span>,</span>
+<span>  link_sigma <span class="op">=</span> <span class="st">"log"</span>,</span>
+<span>  link_quantile <span class="op">=</span> <span class="st">"logit"</span>,</span>
+<span>  link_zi <span class="op">=</span> <span class="st">"logit"</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">huber</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span>, k <span class="op">=</span> <span class="fl">1.345</span><span class="op">)</span></span>
+<span><span class="fu">huber</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"identity"</span>, k <span class="op">=</span> <span class="fl">1.345</span>, link_sigma <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">sratio</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
@@ -132,7 +139,7 @@ from 'stats' are accepted directly by <code><a href="frm.html">frm()</a></code> 
 <span></span>
 <span><span class="fu">acat</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">von_mises</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"tan_half"</span><span class="op">)</span></span>
+<span><span class="fu">von_mises</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"tan_half"</span>, link_kappa <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">categorical</span><span class="op">(</span>link <span class="op">=</span> <span class="st">"logit"</span>, levels <span class="op">=</span> <span class="cn">NULL</span>, K <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
 <span></span>
@@ -144,12 +151,35 @@ from 'stats' are accepted directly by <code><a href="frm.html">frm()</a></code> 
 
 
 <dl><dt id="arg-link">link<a class="anchor" aria-label="anchor" href="#arg-link"></a></dt>
-<dd><p>Link for <code>mu</code>.</p></dd>
+<dd><p>Link for <code>mu</code>. See <a href="frmtmb-links.html">frmtmb-links</a>.</p></dd>
+
+
+<dt id="arg-link-sigma-link-shape-link-phi-link-kappa-link-ndt-link-beta">link_sigma, link_shape, link_phi, link_kappa, link_ndt, link_beta<a class="anchor" aria-label="anchor" href="#arg-link-sigma-link-shape-link-phi-link-kappa-link-ndt-link-beta"></a></dt>
+<dd><p>Link for a strictly positive parameter: one of <code>"log"</code> (the
+default), <code>"identity"</code>, <code>"softplus"</code> or <code>"squareplus"</code>.</p></dd>
+
+
+<dt id="arg-link-nu">link_nu<a class="anchor" aria-label="anchor" href="#arg-link-nu"></a></dt>
+<dd><p>Link for <code>nu</code>. <code>student()</code>'s degrees of freedom take
+<code>"logm1"</code> (the default) or <code>"identity"</code>, which keeps them above
+one; <code>compois()</code>'s dispersion is an ordinary positive parameter
+and takes the positive set.</p></dd>
+
+
+<dt id="arg-link-zi-link-hu-link-quantile">link_zi, link_hu, link_quantile<a class="anchor" aria-label="anchor" href="#arg-link-zi-link-hu-link-quantile"></a></dt>
+<dd><p>Link for a parameter on the
+unit interval: <code>"logit"</code> (the default) or <code>"identity"</code>.</p></dd>
 
 
 <dt id="arg-k">K<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
 <dd><p>For <code>multinomial()</code>: number of response categories (columns
 of the count-matrix response); category 1 is the reference.</p></dd>
+
+
+<dt id="arg-link-alpha">link_alpha<a class="anchor" aria-label="anchor" href="#arg-link-alpha"></a></dt>
+<dd><p>Link for <code>skew_normal()</code>'s skewness, which is
+signed: <code>"identity"</code> (the default), <code>"log"</code>, <code>"softplus"</code> or
+<code>"squareplus"</code>.</p></dd>
 
 
 <dt id="arg-k">k<a class="anchor" aria-label="anchor" href="#arg-k"></a></dt>
@@ -333,6 +363,27 @@ warning. That is the kink, not a bad fit: the same thing happens to
 equations, <code>X' psi(u) = 0</code> with <code>psi(u) = min(max(u, -k), k)</code>, to
 the same order. <code><a href="frm_allfit.html">frm_allfit()</a></code> confirms the fit when in doubt.</p>
     </div>
+    <div class="section level2">
+    <h2 id="links">Links<a class="anchor" aria-label="anchor" href="#links"></a></h2>
+
+
+<p>Every constructor takes <code>link</code> for the mean and a <code>link_&lt;dpar&gt;</code> for
+each of its other distributional parameters, following brms:
+<code>student(link_sigma = "softplus")</code>, <code>zero_inflated_poisson(link_zi = "identity")</code>. <a href="frmtmb-links.html">frmtmb-links</a> lists the whole roster, what each link
+maps, which families take it for the mean, and which set each
+parameter admits.</p>
+<p>The four families 'stats' owns, <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code>, <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson()</a></code>,
+<code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code> and <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">Gamma()</a></code>, have no frmtmb constructor to carry
+these. Reach their links through <code><a href="frm_family.html">frm_family()</a></code>:
+<code>frm_family("gaussian", link_sigma = "softplus")</code>.</p>
+<p>An ordinal family's <code>link</code> is not a link on a mean. It names the
+distribution function the thresholds are read through, so
+<code>cumulative()</code>, <code>sratio()</code> and <code>cratio()</code> take <code>logit</code>, <code>probit</code>,
+<code>probit_approx</code>, <code>cloglog</code> and <code>cauchit</code> (and <code>cumulative()</code> also
+takes <code>softit</code>), and refuse anything else. <code>acat()</code> takes <code>logit</code>
+alone, because brms defines its other links by a different density
+rather than by substituting a distribution function.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -368,6 +419,8 @@ the same order. <code><a href="frm_allfit.html">frm_allfit()</a></code> confirms
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">zi</span> <span class="op">~</span> <span class="va">x</span>, <span class="va">zi</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span> <span class="fu">zero_inflated_poisson</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: zi ~ x </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Family: zero_inflated_poisson   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = log; zi = logit</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -173.275  AIC: 352.55  nobs: 120 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
@@ -384,6 +437,8 @@ the same order. <code><a href="frm_allfit.html">frm_allfit()</a></code> confirms
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">grade</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu">cumulative</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: grade ~ x </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Family: cumulative   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Links: cdf = logit</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -81.675  AIC: 169.35  nobs: 120 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
@@ -396,6 +451,8 @@ the same order. <code><a href="frm_allfit.html">frm_allfit()</a></code> confirms
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">p</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu">Beta</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: p ~ x </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Family: beta   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = logit; phi = log</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> logLik: 154.805  AIC: -303.61  nobs: 120 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
@@ -444,6 +501,8 @@ the same order. <code><a href="frm_allfit.html">frm_allfit()</a></code> confirms
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">pick</span> <span class="op">~</span> <span class="va">x</span>, <span class="va">mustout</span> <span class="op">~</span> <span class="va">w</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">categorical</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: pick ~ x </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Family: categorical   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mulager = identity; mustout = identity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -128.572  AIC: 265.145  nobs: 120 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>

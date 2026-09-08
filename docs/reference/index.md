@@ -53,6 +53,7 @@
 
 - [`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
   [`compat_rule_builder()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+  [`compat_aterm_rules()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
   : Contribute to the compatibility matrix from another package
 
 - [`frmtmb_ad_overload()`](https://aforren1.github.io/frmtmb/reference/frmtmb_ad_overload.md)
@@ -108,6 +109,12 @@
   [`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   : Additional response families
+
+- [`frmtmb-links`](https://aforren1.github.io/frmtmb/reference/frmtmb-links.md)
+  : Link functions
+
+- [`frm_family()`](https://aforren1.github.io/frmtmb/reference/frm_family.md)
+  : Build a family by name, with a link for any of its parameters
 
 - [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
   : Finite mixture families
@@ -318,6 +325,15 @@
   : Feature metadata for the compatibility registry
 - [`frm_compat_rules()`](https://aforren1.github.io/frmtmb/reference/frm_compat_rules.md)
   : Compatibility rules, before resolution
+
+## Spectral models
+
+- [`frm_periodogram()`](https://aforren1.github.io/frmtmb/reference/frm_periodogram.md)
+  : Periodogram for a Whittle-likelihood fit
+- [`whittle()`](https://aforren1.github.io/frmtmb/reference/whittle.md)
+  : Whittle likelihood for a periodogram response
+- [`frm_series_draw()`](https://aforren1.github.io/frmtmb/reference/frm_series_draw.md)
+  : Draw a time series from a fitted spectrum
 
 ## Package
 

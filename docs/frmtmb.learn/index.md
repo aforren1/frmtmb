@@ -4,13 +4,16 @@ that each of their parameters is an ordinary distributional parameter
 with its own linear predictor. A learning rate then takes a condition
 effect, a smooth term or a correlated per-subject random effect the way
 a mean does, and it comes back with a standard error, which is what a
-separate model per group does not give. Six families share one recursion
-that walks trials once and updates every subject at each step: the
-two-armed delta learner and its dual-rate and counterfactual variants, a
-Kalman filter over the restless four-armed bandit of Daw and others
-(2006), the two-stage model-based and model-free hybrid of Daw and
-others (2011), and a prospect-theory learner for the Iowa gambling task.
-Families are named as 'hBayesDM' names them where a name exists. Each
-one is checked by an identity against an independent 'Stan' program of
-the same model at the same estimates, and by parameter recovery at a
-realistic scale.
+separate model per group does not give. Eight families share one
+recursion that walks trials once and updates every subject at each step:
+the two-armed delta learner and its dual-rate and counterfactual
+variants, a Kalman filter over the restless four-armed bandit of Daw and
+others (2006) with an optional exploration bonus, the two-stage
+model-based and model-free hybrid of Daw and others (2011),
+prospect-theory and outcome-representation learners for the Iowa
+gambling task, and a joint model of choices and response times in which
+the learned value difference drives the drift rate of a Wiener
+diffusion. Families are named as 'hBayesDM' names them where a name
+exists. Each one is checked by an identity against an independent 'Stan'
+program of the same model at the same estimates, and by parameter
+recovery at a realistic scale.

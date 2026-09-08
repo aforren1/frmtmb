@@ -19,7 +19,7 @@ transition makes it switch rather than stay. w is how much of each."></head><bod
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -175,9 +175,18 @@ is quadratic. For binary choices it is not, and the fewer trials a
 subject has the less quadratic it is. Measured on this family, the
 fixed effects survive short sessions and the variance components do
 not: see the Laplace section of <code><a href="../articles/learning.html">vignette("learning")</a></code> and
-<code><a href="frmtmb.learn-package.html">?frmtmb.learn</a></code> for the numbers. <code>frm(importance =)</code>, which is the
-usual way to price that error, is REFUSED for every family here; the
-refusal names the seam.</p>
+<code><a href="frmtmb.learn-package.html">?frmtmb.learn</a></code> for the numbers.</p>
+<p><code>frm(importance =)</code>, the usual way to price that error, now WORKS for
+every family here. It was refused in the first release because the
+correction needs one log-likelihood value per subject and the
+structured protocol had no slot to put them in; the slots landed and
+the families declare them. What the correction is worth depends on
+the design and not on the family: at 40 subjects by 100 trials it
+moves a well-identified subject-level standard deviation up by about
+0.1 to 0.2 log units, toward the truth, with good diagnostics, and at
+20 trials it has nothing to correct because the Laplace fit has
+usually collapsed the component to zero already. <code><a href="frmtmb.learn-package.html">?frmtmb.learn</a></code>
+carries the per-dataset table.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

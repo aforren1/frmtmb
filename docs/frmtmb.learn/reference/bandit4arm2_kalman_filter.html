@@ -19,7 +19,7 @@ uncertainty implies."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,7 +68,7 @@ uncertainty implies.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">bandit4arm2_kalman_filter</span><span class="op">(</span><span class="va">subject</span>, trial <span class="op">=</span> <span class="cn">NULL</span>, sigma_o <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">bandit4arm2_kalman_filter</span><span class="op">(</span><span class="va">subject</span>, trial <span class="op">=</span> <span class="cn">NULL</span>, sigma_o <span class="op">=</span> <span class="fl">4</span>, bonus <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -94,6 +94,12 @@ rather than estimated. Daw and others use 4. It sets the scale the
 gain is measured against, and estimating it alongside <code>sigma0</code> and
 <code>sigmaD</code> asks the data to separate three quantities that enter
 through two ratios.</p></dd>
+
+
+<dt id="arg-bonus">bonus<a class="anchor" aria-label="anchor" href="#arg-bonus"></a></dt>
+<dd><p>Add the exploration bonus to the choice rule, giving one
+more parameter <code>phi</code>. <code>FALSE</code>, the default, is the plain softmax
+over posterior means and is the model the first release fitted.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -133,12 +139,33 @@ argument, not a parameter, for that reason), and consider fixing
     <h2 id="exploration-bonus">Exploration bonus<a class="anchor" aria-label="anchor" href="#exploration-bonus"></a></h2>
 
 
-<p>Not implemented. Daw and others compare softmax choice with rules
-that add a bonus for uncertainty, and the filter here carries the
-variance those rules need, so it is a short addition; it is left out
-because a bonus and <code>tau</code> are hard to separate on the data sizes
-these studies run. The state is in <code><a href="frm_value_trace.html">frm_value_trace()</a></code> as <code>s1</code> to
-<code>s4</code> if you want to look.</p>
+<p><code>bonus = TRUE</code> adds Daw and others' exploration bonus: an arm's
+utility becomes</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>util[j] <span class="ot">&lt;-</span> tau <span class="sc">*</span> (mu[j] <span class="sc">+</span> phi <span class="sc">*</span> <span class="fu">sqrt</span>(s[j]))</span></code></pre><p></p></div>
+<p>so an arm the subject is UNCERTAIN about is worth more than its
+posterior mean alone, by an amount <code>phi</code> the fit estimates. <code>phi</code> is
+an ordinary distributional parameter, so it takes a formula like any
+other; <code>phi = 0</code> is the plain softmax and is what <code>bonus = FALSE</code>,
+the default, fits.</p>
+<p>IT IS OFF BY DEFAULT so that every fit made before it existed is
+unchanged, and the suite pins that by holding <code>phi</code> at zero with
+<code>bf(phi = 0)</code> and requiring the two log-likelihoods to agree.</p>
+<p>WHAT IT TRADES OFF AGAINST IS NOT <code>tau</code>, and this help said otherwise
+before the study ran. The reasoning was that both control how far
+choice departs from the current best arm. Measured at 30 subjects by
+100 trials with <code>center</code>, <code>mu0</code> and <code>sigma0</code> held at the task's own
+values, 60 replicates: <code>phi</code> recovers with a bias of +0.06 against a
+truth of 1.5, a spread of 0.14 and coverage 0.93, and its estimates
+correlate with <code>tau</code>'s at 0.12, which is nothing. What they correlate
+with is <code>sigmaD</code>, at -0.81, and after the fact that is the obvious
+pair: <code>phi</code> multiplies the posterior standard deviation and <code>sigmaD</code>
+sets how fast that standard deviation grows, so the two scale the
+same term. Report them together. <code>tau</code>'s own interval undercovers a
+little here, 0.85 against the nominal 0.95.</p>
+<p>Turn the bonus on when uncertainty-driven exploration is the question
+the study asks. Leaving <code>center</code>, <code>mu0</code> and <code>sigma0</code> free as well is
+not advisable on a session this size, for the reason the section
+above gives.</p>
     </div>
     <div class="section level2">
     <h2 id="the-laplace-caveat">The Laplace caveat<a class="anchor" aria-label="anchor" href="#the-laplace-caveat"></a></h2>
@@ -150,9 +177,18 @@ is quadratic. For binary choices it is not, and the fewer trials a
 subject has the less quadratic it is. Measured on this family, the
 fixed effects survive short sessions and the variance components do
 not: see the Laplace section of <code><a href="../articles/learning.html">vignette("learning")</a></code> and
-<code><a href="frmtmb.learn-package.html">?frmtmb.learn</a></code> for the numbers. <code>frm(importance =)</code>, which is the
-usual way to price that error, is REFUSED for every family here; the
-refusal names the seam.</p>
+<code><a href="frmtmb.learn-package.html">?frmtmb.learn</a></code> for the numbers.</p>
+<p><code>frm(importance =)</code>, the usual way to price that error, now WORKS for
+every family here. It was refused in the first release because the
+correction needs one log-likelihood value per subject and the
+structured protocol had no slot to put them in; the slots landed and
+the families declare them. What the correction is worth depends on
+the design and not on the family: at 40 subjects by 100 trials it
+moves a well-identified subject-level standard deviation up by about
+0.1 to 0.2 log units, toward the truth, with good diagnostics, and at
+20 trials it has nothing to correct because the Laplace fit has
+usually collapsed the component to zero already. <code><a href="frmtmb.learn-package.html">?frmtmb.learn</a></code>
+carries the per-dataset table.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

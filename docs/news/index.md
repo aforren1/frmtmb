@@ -1,5 +1,470 @@
 # Changelog
 
+## frmtmb 0.54.0
+
+Every link in the registry can now be reached and found: a link on any
+distributional parameter, a reference page listing all seventeen, and
+the ordinal families going through the registry rather than a
+hand-written switch. Making them reachable exposed two silent density
+bugs. A family written in plain R reaches `se()` and discrete `cens()`
+on its own declaration rather than on its name. A family can declare two
+addition terms mutually exclusive, which is what an allow-list cannot
+say. And the frequency domain arrives:
+[`frm_periodogram()`](https://aforren1.github.io/frmtmb/reference/frm_periodogram.md),
+[`whittle()`](https://aforren1.github.io/frmtmb/reference/whittle.md),
+and a measurement of what an untapered periodogram cannot tell you.
+
+Two gates that made a family written in plain R a second-class citizen
+of the addition-term grammar. Both were found by the Bayesian Cognitive
+Modeling port, which had to work around them; the workarounds are gone.
+
+- `se()` is no longer gated on the family NAME. A family gets the term
+  by DECLARING that it reads it, with
+  `frmtmb_family(accepts_aterms = c(..., "se"))` or `required_aterms`,
+  and reads it as `aterms[["se"]]`. `se()` is the one core addition term
+  whose entire effect is inside the density, so the declaration is the
+  only thing that can answer whether the term does anything, and a
+  family that does not declare it is still refused, now with a message
+  that says how to opt in. The built-in gaussian and student already
+  declared it and are unchanged.
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  no longer inherits the declaration from its components: reading the
+  term is half of what `se()` means, and the other half maps out a dpar
+  named `sigma`, which `sigma1` and `sigma2` are not, so
+  `mixture(gaussian, gaussian)` with `se()` fitted with both component
+  sigmas at their starting value and every standard error `NaN`.
+
+  The name test was also a silent wrong answer, which the capability
+  test closes. A custom family that merely CALLED itself `"gaussian"`
+  and ignored the term was accepted, its `sigma` was mapped out, and the
+  `se()` column was discarded: a likelihood with a frozen residual scale
+  and no message anywhere. Measured on main against this branch, same
+  family, same data: `ACCEPTED (sigma mapped out: TRUE)` becomes a
+  refusal that names the missing declaration.
+
+- A family that declares `se()`, has no dpar named `sigma`, and carries
+  another free dpar is refused by name. `se()` without `sigma = TRUE`
+  replaces the residual scale, and the core maps out only the dpar the
+  convention names, so the other one would be left free and unread:
+  measured, it sits at its starting value and every standard error is
+  `NaN`. That is the condition
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  is refused for, and opening `se()` to custom families opened a second
+  route to it. A family whose whole scale IS the known one (no dpar
+  beyond its primaries) is unaffected. Three ways out, all measured:
+  name the scale `sigma`, pin it in the formula
+  (`bf(y | se(s) ~ x, tau = 1)`), or write `se(x, sigma = TRUE)` if it
+  stays estimated alongside the known standard deviation.
+
+- `cens()` no longer refuses a family for BEING discrete. It still needs
+  a CDF, which is the gate that always made sense. A discrete family
+  that has one is censored under an INCLUSIVE convention: a censoring
+  bound names a value the response can take, so right censoring at `k`
+  is `P(Y >= k)`, an interval is `P(k <= Y <= k2)`, and every lower edge
+  enters the CDF as `F(k - 1)`. That is the rule `trunc(lb = )` has
+  always followed, so one number means one thing on a response however
+  it is bounded. [`poisson()`](https://rdrr.io/r/stats/family.html) is
+  censored as a result. Verified against a hand-rolled likelihood for
+  all four codes and composed with
+  [`trunc()`](https://rdrr.io/r/base/Round.html).
+
+  It DIFFERS from brms for RIGHT and INTERVAL censoring of a count,
+  where brms emits `poisson_lccdf(y | mu)`, that is `P(Y > y)`. Left
+  censoring agrees exactly, and so does continuous censoring. On 200
+  poisson draws at `lambda = 4` right censored at 6 the two readings
+  differ by 20.8 log units.
+
+  The divergence is deliberate, because brms is internally inconsistent
+  here and frmtmb cannot be both: brms’s own discrete truncation emits
+  an INCLUSIVE lower bound (`lb - 1`), so in brms `trunc(lb = 6)` means
+  `Y >= 6` while a right-censored 6 means `Y > 6`. frmtmb’s
+  [`trunc()`](https://rdrr.io/r/base/Round.html) reproduces brms bit for
+  bit, so its `cens()` had to choose between matching brms’s censoring
+  and matching its own truncation. It is also the only reading
+  consistent with the pre-existing `simulate(censored = TRUE)`, which
+  records `k` when the latent draw is `>= k`: 4000 draws from a fit
+  censored at 7 put 0.13250 of the mass at that point, against 0.12190
+  inclusive and 0.05763 exclusive. The migration vignette carries the
+  argument and the remedy.
+
+  Two smaller consequences. A one-point interval (`y2 == y`) is legal on
+  a discrete response, where it is exactly `P(Y = y)`; it stays refused
+  on a continuous one. And a non-integer censoring bound on a discrete
+  family is refused by name, because the `F(k - 1)` shift assumes the
+  unit integer lattice.
+
+- `residuals(type = "osa")` is refused on a censored DISCRETE fit, by
+  name. Inclusive bounds put an uncensored row’s support on
+  `[lo + 1, hi - 1]` rather than the `[lo, hi]` the one-step window is
+  built on. Every other residual type works, and
+  [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
+  covers the same ground. The link registry became reachable and
+  findable. It has held seventeen links since the last round; almost
+  none of them could be named from the grammar or found in the help.
+
+- New `frmtmb-links` help topic documents every link: what it maps, its
+  inverse, the range it maps onto, which families accept it for the
+  mean, which set each distributional parameter admits, and which links
+  carry a robust field and what that buys. Nothing in `man/` mentioned
+  probit, softplus, cauchit, squareplus or softit before. Every family
+  constructor’s `link` argument, `frmtmb_family(links =)` and the
+  unknown-link error now point at it, and it is in the pkgdown reference
+  index.
+
+- Family constructors take a link for EVERY distributional parameter,
+  not only the mean, following brms:
+  `student(link_sigma = "softplus", link_nu = "identity")`,
+  `zero_inflated_poisson(link_zi = "identity")`,
+  `skew_normal(link_alpha = "log")`. 23 exported constructors gained one
+  argument per non-mean parameter, 34 arguments in all, and the accepted
+  set for every one of the 34 is brms 2.23.0’s set exactly. Each is
+  validated against what that parameter’s support admits, and an
+  out-of-range link is refused with the parameter named. The density is
+  now invariant to which link produced a given parameter value: over all
+  37 family-by-parameter pairs, holding the natural value fixed and
+  feeding each allowed link’s own `linkfun` of it, 34 agree to a spread
+  of exactly zero and the rest to 1.8e-15.
+
+- New
+  [`frm_family()`](https://aforren1.github.io/frmtmb/reference/frm_family.md)
+  names a family and its links for the four families ‘stats’ owns, which
+  have no frmtmb constructor to carry the new arguments:
+  `frm_family("gaussian", link_sigma = "softplus")`,
+  `frm_family("poisson", link = "softplus")`. It is the analogue of
+  brms’s `brmsfamily()`. frmtmb still does not shadow
+  [`gaussian()`](https://rdrr.io/r/stats/family.html),
+  [`poisson()`](https://rdrr.io/r/stats/family.html),
+  [`binomial()`](https://rdrr.io/r/stats/family.html) or
+  [`Gamma()`](https://rdrr.io/r/stats/family.html).
+
+- [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  go through the link registry instead of a hand-written switch, so they
+  now take `cloglog`, `cauchit` and `probit_approx` as well as `logit`
+  and `probit`, and
+  [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  also takes `softit`. This is brms’s roster exactly.
+  [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  still takes `logit` alone, and it is the one place frmtmb takes less
+  than brms. The reason is the density, not the link: probit, cloglog,
+  cauchit and softit all map onto (0, 1) and brms accepts every one of
+  them for `acat`, but off the logit brms computes a category
+  probability from a SECOND expression, a product of distribution
+  functions times a reversed product of survivals. That expression
+  agrees with acat’s log-linear form when the distribution function is
+  logistic, so it generalizes the same model rather than replacing it,
+  but it has to be written and taped, and substituting a distribution
+  function into the log-linear form does not reach it.
+  [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)’s
+  refusal says all of this, and the `frmtmb-links` topic records the gap
+  in its table beside the families that do take those links.
+
+- The ordinal log-space density generalized from the logit to every link
+  that carries an exact log odds. Without it `cloglog` and
+  `probit_approx` would return a log density of `-Inf` with a dead
+  gradient past a linear predictor of 2. Against a 500-bit reference the
+  generalized form holds 1e-13 or better out to a linear predictor
+  of 25. The logit path is arithmetically unchanged.
+
+- Ordinal thresholds now start on the fitted link’s own scale rather
+  than always on `qlogis`.
+
+- [`summary()`](https://rdrr.io/r/base/summary.html) and
+  [`print()`](https://rdrr.io/r/base/print.html) name the link of every
+  distributional parameter on a `Links:` line under `Family:`. A
+  coefficient is reported on the link scale and the family name no
+  longer says which scale that is. An ordinal fit reports the
+  distribution function its thresholds are read through, not
+  `mu = identity`, because the distribution function applies to
+  `tau - eta` and never to `eta`. A multivariate fit names each
+  response, and the line wraps between entries rather than inside one,
+  which a mixture needs: two components run to 106 characters unwrapped.
+
+- BEHAVIOR CHANGE, `cumulative(link = "probit")`. It now takes the
+  log-space path the logit already took, so a saturated threshold pair
+  is scored exactly instead of through a difference of two rounded
+  distribution functions. Estimates move by the size of that error,
+  which is 1.6e-04 in the log density at a linear predictor of 8 and
+  unbounded beyond it.
+
+- BEHAVIOR CHANGE,
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)’s
+  robust branch read its distribution function at `tau - eta` and relied
+  on `1 - F(-x) = F(x)`. Measured over `x = -2, -0.5, 0, 0.5, 2`, that
+  identity holds to 1.4e-16 for the logit, 5.6e-17 for the probit,
+  1.3e-16 for probit_approx and exactly for the cauchit, and FAILS for
+  the cloglog at 2.6e-01: at `x = 0` it gives 0.36788 against 0.63212.
+  It now reads at `eta - tau`, which is where the density actually
+  evaluates. No logit result changes. Against a 500-bit reference on a
+  four-category cratio, the naive generalization that keeps reading at
+  `tau - eta` has relative error 1.000 on the cloglog and is exact on
+  every other link; the form that shipped is 1.1e-16 on all of them, at
+  linear predictors where the plain path returns negative infinity.
+
+- Two latent bugs were fixed on the way, and they are the reason this
+  work is more than a grammar addition. Neither could fire before,
+  because the argument that triggers each did not exist.
+
+  `log_dpar()` handed back the linear predictor AS the log of a positive
+  parameter, which is true only on a log link. With `link_shape` now an
+  argument, `negbinomial(link_shape = "softplus")` would have read a
+  softplus predictor as a log and returned a wrong density with no
+  warning and no error: at `eta_shape = 0.5`, so `shape = 0.974077`, the
+  old code is off by up to 0.339 nats at one point and 0.608 over
+  `y = 0:6`, and its answer is reproduced exactly by the misread it
+  makes. The shipped version agrees with
+  [`dnbinom()`](https://rdrr.io/r/stats/NegBinomial.html) to 8.9e-16.
+
+  `gate_logs()` had the same flaw for a unit-interval parameter, and
+  read a probability as a log odds:
+  `zero_inflated_poisson(link_zi = "identity")` with `zi = 0.3` used
+  0.5744 instead, an error of 0.533 nats. It is now exact to 2.2e-16.
+  What a family declares about the addition terms it reads: the
+  exclusivity the 0.53.0 allow-list could not express, the compatibility
+  cells those declarations already settle, and a structure slot that had
+  no reader.
+
+- `frmtmb_family(exclusive_aterms =)` declares that a set of
+  addition-term values say the SAME thing to the density, so at most one
+  of them may be supplied. An allow-list cannot express this, because
+  both spellings are legitimately on it: `wiener()` reads its boundary
+  indicator from `dec()` and falls back to `vint1`, so
+  `rt | dec(u) + vint(1 - u) ~ 1` passed every guard and fitted with a
+  log-likelihood bit-identical to the `dec()`-only model, the two
+  columns contradicting each other and nothing saying so. Frame assembly
+  now refuses the combination by name, says which spelling the density
+  reads and which to drop.
+
+  Written in VALUES, as `required_aterms` is, so the two compose: an
+  any-of group in one and the same set in the other read together as
+  “exactly one”. It is opt-in rather than implied by an any-of group,
+  because `gddm()` genuinely reads `dec()` and `vint1` together, as the
+  boundary and the condition index. Declaring a set exclusive whose
+  values `required_aterms` demands TOGETHER is refused at construction,
+  because no model could then satisfy the family. A
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  keeps a set only if every component declares it, which is the
+  intersection where the allow-list is the union.
+
+- [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
+  derives its addition-term refusals from
+  `frmtmb_family(accepts_aterms =)` instead of leaving them `untested`.
+  A term outside a family’s allow-list is refused BY NAME at frame
+  assembly, so `untested` was never right for that cell: nothing is
+  missing, the guard exists, and the reason is the declaration. With
+  `frmtmb` alone, **104** cells move from `untested` to `refused`, all
+  of them `trials()`, `vint()` and `vreal()` against families that do
+  not read them; with `frmtmb.eam` also loaded it is 147, the extra 43
+  being `dec()` and the eam families’ own cells. Nothing else moves at
+  either size: audited before the change, no hand-written row disagreed
+  with any declaration.
+
+  Only the refusal is derived. A family that ACCEPTS a term has said
+  nothing about whether the pair works, so `untested` stays there. And a
+  pair the hand-written rules already refuse keeps its own note, which
+  usually says more than the declaration does;
+  [`compat_aterm_rules()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+  is exported so a contributing package derives its own rows the same
+  way, deferring to both its rules and the core’s.
+
+  `r("trials()", "kind:family", "untested")` is gone, superseded: the
+  four families that take `trials()` are named and the other 32 refuse
+  it by declaration, so the kind-level rule won no pair.
+
+- A structured family’s generic refusal names the family’s own unit:
+  “its likelihood factorizes no finer than a hidden-Markov sequence”
+  rather than “does not factorize over the rows of the data”. That
+  sentence is what `frmtmb_structure(unit =)` was documented for and had
+  no reader for; it was also false of a structure that carries no
+  `loglik`, which is a capability declaration on a family whose
+  likelihood IS rowwise, and those now get a sentence that is true of
+  them.
+
+Four usability defects of hierarchical NONLINEAR models, found while
+fitting `bf(..., nl = TRUE)` with random effects on the nonlinear
+parameters.
+
+- A nonlinear parameter named after one of the family’s own
+  distributional parameters is refused BY NAME.
+  `bf(I ~ mu - chi * logw, mu ~ 1 + (1 | id), chi ~ 1 + group, nl = TRUE)`
+  used to die inside
+  [`model.frame()`](https://rdrr.io/r/stats/model.frame.html) with R’s
+  own “object ‘mu’ not found”, which names neither the parameter nor the
+  collision: `mu` is subtracted out of the nonlinear parameters because
+  the family already owns it, so the body’s reference to it was asked of
+  `data` as a column. The refusal says which name, which family, and
+  what the family reserves, and it comes from the parse, so
+  [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)
+  refuses it too. brms 2.23.0 on the same formula silently discards the
+  nonlinear body and fits an intercept-only model.
+
+- A nonlinear body that names its OWN parameter with no column behind it
+  is refused the same way, wherever the name comes from, including
+  `nlf(sigma ~ sigma + 1)`. A real `data` column of that name still
+  wins, so a body reading a column called `mu` keeps fitting, and so
+  does a body reading ANOTHER dpar’s per-row value
+  (`nlf(sigma ~ ls + th * log(abs(mu)))`), which is a deliberate
+  extension and not a collision.
+
+- `start` and `newparams` name the collision when a nonlinear parameter
+  is named after a parameter-template component (`beta`, `betad`, `b`,
+  `theta`, `thetaac`, `thetar`, `miss`). Such a model FITS; only the
+  start list is ambiguous, and it was resolved silently in favor of the
+  component. `start = list(b = 1)` on a model with a nonlinear parameter
+  `b` reported “start\$b must have length 120”, which describes the
+  random-effect vector, an object the caller never meant. It now says
+  so, and gives the spelling that reaches the parameter
+  (`start = list(beta = c("b_(Intercept)" = 1))`).
+
+- NEW `fixef(object, flatten = TRUE)`: one named vector in the
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html) /
+  [`confint()`](https://rdrr.io/r/stats/confint.html) /
+  [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)
+  spelling, `dpar_column` with the location parameter’s own coefficients
+  unprefixed.
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  is a third vocabulary and is NOT included in that claim: it strips
+  parentheses, so it takes `sigma_(Intercept)` only backquoted and
+  spells it `sigma_Intercept` itself. `unlist(fixef(fit))` is NOT that
+  vector and never was: it is base R’s composite of a list KEY and a
+  design-column name (`mu.x`), differing from the model’s own name both
+  in the separator and in naming `mu` where the model does not.
+  [`?fixef`](https://aforren1.github.io/frmtmb/reference/fixef.md) said
+  the two agreed. **The [`unlist()`](https://rdrr.io/r/base/unlist.html)
+  spelling does not move**: 19 files in this repository index literal
+  `dpar.column` names out of it, across core and five extensions, and it
+  is base R’s composite rather than a name this package assigns.
+
+- BEHAVIOR CHANGE, and **what changes is the NAMES of
+  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)’s
+  default statistic**, from `mu.x` to `x`: the default `FUN` is now
+  `fixef(f, flatten = TRUE)`, so `apply(bs$t, 2, sd)` and
+  `sqrt(diag(vcov(fit)))` line up by name, which is what that comparison
+  is for. `confint(bs)` row names change with it. A `FUN` you supplied
+  yourself is untouched.
+
+- Every
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md)
+  block is addressable. A nonlinear model with `(1 | id)` on three
+  parameters returns three blocks all named `id`, and
+  `ranef(fit)[["id"]]` reached the first one silently. `$` and `[[` now
+  also take the BLOCK LABEL, `ranef(fit)[["chi: 1 | id"]]`, which is the
+  `"term"` attribute each matrix already carried,
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)’s
+  key and the `grp` column of
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html). A bare
+  grouping-factor name that several blocks share is refused and names
+  the labels instead of answering with the first. **What breaks is
+  `ranef(fit)$g` on a factor carrying more than one block**, which
+  returned the first block and now errors. Three ordinary spellings do
+  that, so this is not a nonlinear-model corner: an uncorrelated slope
+  `(1 + x || g)`, which desugars to the two blocks `1 | g` and
+  `0 + x | g`; the same two written out as `(1 | g) + (0 + x | g)`; and
+  a random effect on more than one distributional or nonlinear
+  parameter, such as `bf(y ~ x + (1 | g), sigma ~ (1 | g))` or
+  `(1 | id)` on three nonlinear parameters. A CORRELATED slope
+  `(1 + x | g)` is one block and still answers to `$g`. The 0.52.0
+  grouping-factor keying is unchanged, positional indexing is unchanged,
+  and frmtmb.sample’s
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) on a
+  draws object, which indexes by position, needs no change.
+
+- [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+  names FLAT DIRECTIONS: outer parameters with zero gradient and an
+  empty Hessian row. A Gaussian peak
+  `exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2)` whose centre starts
+  at 0 while `w` runs from 1 to 45 underflows to zero everywhere, so its
+  amplitude, centre and width have no gradient at all; the covariance
+  then fails and EVERY standard error is `NaN`. The old report listed
+  all nine parameters as having a bad standard error, which names none
+  of them, and the warning asserted overparameterization. The model is
+  not overparameterized. The emptiness of the row is measured rather
+  than assumed, by perturbing the parameter and seeing whether the
+  gradient moves at all (`fit$obj$he()` is unavailable on a model with
+  random effects), and the check is gated on a covariance that already
+  failed, so a healthy fit pays nothing. The
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html),
+  [`summary()`](https://rdrr.io/r/base/summary.html) and fit-time
+  warnings name those parameters in place of the overparameterization
+  guess.
+  [`vignette("frmtmb")`](https://aforren1.github.io/frmtmb/articles/frmtmb.md)
+  gains the starting-value rule for bump-shaped terms and
+  [`vignette("diagnostics")`](https://aforren1.github.io/frmtmb/articles/diagnostics.md)
+  the two causes of `NaN` standard errors.
+
+The frequency domain. A spectral fit was already possible, because the
+Whittle likelihood IS an exponential GLM on the periodogram with a log
+link and
+[`exponential()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+is mean-parameterized, but nothing said so and nothing prepared the
+data.
+[`vignette("spectral")`](https://aforren1.github.io/frmtmb/articles/spectral.md)
+carries the worked AR(1) and power-law fits.
+
+- NEW
+  [`frm_periodogram()`](https://aforren1.github.io/frmtmb/reference/frm_periodogram.md)
+  turns one or more series into the data frame a spectral model reads:
+  one row per retained ordinate, with the frequency in Hz. The zero and
+  Nyquist ordinates are DROPPED, so a series of length `m` gives
+  `floor((m - 1) / 2)` rows. Checked against
+  [`stats::spec.pgram()`](https://rdrr.io/r/stats/spec.pgram.html) at
+  `taper = 0, detrend = FALSE, fast = FALSE`: every ordinate agrees to a
+  ratio of exactly 1 and every frequency to 0, which pins the scaling
+  and the frequency axis together. It offers detrending, Hann and
+  split-cosine tapers, Bartlett segment averaging, and takes a matrix of
+  series or a `group` vector of unequal lengths.
+
+- NEW `whittle(tapers = )` names the assumption a spectral fit makes:
+  ordinates independent, exponential about the spectrum. It is
+  `exponential(log)` at one taper and `Gamma(log)` with the shape FIXED
+  at `tapers` above it, through a new family slot that reaches the
+  existing constant-dpar mechanism, so an averaged periodogram spends no
+  parameter on a number the data preparation already decided. On an
+  AR(1) of 1024 points at `phi = 0.7` it returns 0.708617 (se 0.02218)
+  against `arima(method = "ML")`’s 0.707178 (se 0.02204).
+
+- [`whittle()`](https://aforren1.github.io/frmtmb/reference/whittle.md)
+  refuses what the response alone can prove, and states what it cannot
+  see. A response that is not positive is log power or power in dB,
+  which is the common wrong response and is caught exactly. A response
+  too SMOOTH to be raw is caught because `var(diff(log(I)))` is
+  `2 * trigamma(k)` for ordinates of shape `k` WHATEVER the spectrum is,
+  and both smoothing and reordering only add to it, so a value far below
+  the model’s is one-sided evidence. It refuses 98 to 100 percent of
+  periodograms that were segment averaged without saying so, and 89 to
+  100 percent of leakage-dominated ones, against a false-alarm rate
+  measured at 0.000 percent under the flat null over 20000 samples per
+  cell and 0 percent on AR(1), AR(2) and 1/f-with-a-peak spectra. Two
+  limits are documented rather than hidden: four averaged ordinates
+  below about 200 rows are only caught 46 percent of the time, and a
+  near-unit-root AR(1) fires occasionally because its spectrum really is
+  leakage-dominated. A Hann-tapered periodogram is legitimately raw but
+  its neighbours correlate, so it is refused about 1 to 2 percent of the
+  time; the message says so rather than prescribing a taper the user may
+  already have applied.
+
+- NEW
+  [`frm_series_draw()`](https://aforren1.github.io/frmtmb/reference/frm_series_draw.md)
+  draws a time series from a fitted spectrum.
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) is refused on a
+  whittle fit instead of returning ordinates that nothing in the object
+  identifies as ordinates.
+
+- MEASURED, and the practical result of the work: an untapered
+  periodogram cannot estimate a spectral exponent steeper than about 2,
+  at any length. On a cut power law of 300 replicates, true exponents of
+  2 and 3 both come back between 1.91 and 1.97, because the leakage
+  floor of an untapered transform falls like `f^-2` and anything steeper
+  sits under it. A LONGER recording is monotonically worse: the bias at
+  exponent 3 goes from -1.033 at 256 points to -1.094 at 1024. A Hann
+  taper removes it (0.087 and 0.029). At an exponent of 1, flatter than
+  the floor, the raw estimate is unbiased, which is why this is a taper
+  argument and not a taper default. Whittle’s own small-sample bias in
+  `phi` is separately smaller in magnitude than exact Gaussian ML’s in
+  every cell measured at 64 and 128 points, and comparable above.
+
 ## frmtmb 0.53.0
 
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)’s

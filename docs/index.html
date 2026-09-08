@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,12 +44,14 @@
     <li><a class="dropdown-item" href="articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
-<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -148,7 +150,11 @@
 </tr>
 <tr>
 <td><a href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn</a></td>
-<td>reinforcement-learning families: <code>bandit2arm_delta()</code>, <code>bandit2arm_dual()</code>, <code>prl_fictitious()</code>, <code>bandit4arm2_kalman_filter()</code>, <code>ts_par7()</code> and <code>igt_pvl_delta()</code>, each parameter an ordinary distributional parameter with its own linear predictor</td>
+<td>reinforcement-learning families: <code>bandit2arm_delta()</code>, <code>bandit2arm_dual()</code>, <code>prl_fictitious()</code>, <code>bandit4arm2_kalman_filter()</code>, <code>ts_par7()</code>, <code>igt_pvl_delta()</code>, <code>igt_orl()</code> and <code>rlddm()</code>, each parameter an ordinary distributional parameter with its own linear predictor</td>
+</tr>
+<tr>
+<td><a href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling</a></td>
+<td>coherence and phase between two signals: the complex Wishart family <code>cross_wishart()</code>, whose coherence and phase are distributional parameters with their own linear predictors</td>
 </tr>
 </tbody>
 </table>
@@ -158,7 +164,8 @@
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.ode"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.eam"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.spline"</span><span class="op">)</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.learn"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.learn"</span><span class="op">)</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"aforren1/frmtmb"</span>, subdir <span class="op">=</span> <span class="st">"extensions/frmtmb.coupling"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>

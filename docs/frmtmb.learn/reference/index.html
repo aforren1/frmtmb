@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,7 +45,7 @@
     <div class="section level2">
       <h2 id="families">Families<a class="anchor" aria-label="anchor" href="#families"></a></h2>
 
-      <div class="section-desc"><p>One recursion engine, six models. Each parameter is an ordinary distributional parameter with its own linear predictor, so a learning rate takes a condition effect, a smooth term or a correlated per-subject random effect the way a mean does.</p></div>
+      <div class="section-desc"><p>One recursion engine, eight models. Each parameter is an ordinary distributional parameter with its own linear predictor, so a learning rate takes a condition effect, a smooth term or a correlated per-subject random effect the way a mean does. Seven turn a value store into a softmax over options; rlddm() turns it into the drift rate of a diffusion, so choices and response times are one likelihood.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -93,10 +93,24 @@
 
         </dt>
         <dd>Prospect-valence learning with a delta rule, for the Iowa gambling task</dd>
+
+        <dt>
+
+          <code><a href="igt_orl.html">igt_orl()</a></code>
+
+        </dt>
+        <dd>Outcome-representation learning for the Iowa gambling task</dd>
+
+        <dt>
+
+          <code><a href="rlddm.html">rlddm()</a></code>
+
+        </dt>
+        <dd>Reinforcement learning with a drift-diffusion choice rule</dd>
       </dl></div><div class="section level2">
       <h2 id="after-the-fit">After the fit<a class="anchor" aria-label="anchor" href="#after-the-fit"></a></h2>
 
-      <div class="section-desc"><p>These families declare no mean on the response scale, because the response is a nominal option code, so fitted() and residuals() refuse. The trajectory is read here instead.</p></div>
+      <div class="section-desc"><p>These families declare no mean on the response scale, so fitted() and residuals() refuse: for seven of them because the response is a nominal option code, and for rlddm() because the mean of a first-passage time belongs to frmtmb.eam. The trajectory is read here instead.</p></div>
 
       <dl></dl></div><div class="section level2">
 

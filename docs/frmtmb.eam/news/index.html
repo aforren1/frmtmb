@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,19 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.eam/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.5.0" id="frmtmbeam-050">frmtmb.eam 0.5.0<a class="anchor" aria-label="anchor" href="#frmtmbeam-050"></a></h2>
+<p><code><a href="../reference/wiener.html">wiener()</a></code> refuses a boundary given twice, one export for a sibling package, and the compatibility table says refused where it used to say untested. Requires frmtmb 0.54.0 for the exclusivity declaration.</p>
+<ul><li>
+<p><code><a href="../reference/wiener.html">wiener()</a></code> declares <code>dec()</code> and <code>vint1</code> mutually exclusive, so a model supplying both is refused by name instead of fitted with the second column unread. Measured before the change on 120 rows: <code>rt | dec(u) ~ 1</code>, <code>rt | vint(u) ~ 1</code> and <code>rt | dec(u) + vint(1 - u) ~ 1</code> all gave a log-likelihood of -76.0486443897369, the third with the two columns CONTRADICTING each other. <code>ddm_indicator()</code> reads <code>dec</code> and falls back to <code>vint1</code>, and the declaration is that precedence written down. Needs frmtmb’s new <code>frmtmb_family(exclusive_aterms =)</code>.</p>
+<p><code><a href="../reference/gddm.html">gddm()</a></code> deliberately declares no such set and is why the rule is opt-in: there <code>dec()</code> and <code>vint1</code> are two data, the boundary and the condition index, not two spellings of one.</p>
+</li>
+<li>
+<p>Every family x addition-term cell in <code><a href="https://aforren1.github.io/frmtmb/reference/frm_compat.html" class="external-link">frm_compat()</a></code> is now decided. The refusals each family has already declared in <code>accepts_aterms</code> are derived through frmtmb’s <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html" class="external-link">compat_aterm_rules()</a></code> rather than written out again, so <code>trials()</code>, and <code>vreal()</code> where the family does not read it, stop reading <code>untested</code>. Rows written by hand keep their own notes: the derivation defers to any pair already refused.</p>
+<p>The allow-lists themselves move to one <code>ddm_accepts</code> list that the five constructors and the compatibility rows both read, so the table cannot promise a term frame assembly refuses.</p>
+</li>
+<li><p><code><a href="../reference/wiener_lpdf.html">wiener_lpdf()</a></code> is now exported: the Wiener first-passage log density with <code><a href="../reference/wiener.html">wiener()</a></code>’s parameterization and <code><a href="../reference/wiener.html">wiener()</a></code>’s tape safety. <code><a href="https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.html" class="external-link">frmtmb.learn::rlddm()</a></code> is a delta learning rule whose value difference drives the drift rate of this density, and until now the only route to it was <code>frmtmb.eam:::ddm_lpdf_both()</code>, which is a promise nobody made. This is that promise, made deliberately and kept to one function: the series truncations, the blend between them, the across-trial variability integrals and the CDF all stay internal. Nothing about the package’s own behavior changes.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.0" id="frmtmbeam-040">frmtmb.eam 0.4.0<a class="anchor" aria-label="anchor" href="#frmtmbeam-040"></a></h2>
 <p><code><a href="../reference/wiener_gng.html">wiener_gng()</a></code> gains across-trial variability with the go branch identical to <code><a href="../reference/wiener.html">wiener()</a></code>’s; <code><a href="../reference/rdm.html">rdm()</a></code> and <code><a href="../reference/wiener_gng.html">wiener_gng()</a></code> take <code>cens()</code>; every family declares the addition terms it reads. Requires frmtmb 0.53.0 for the allow-list.</p>

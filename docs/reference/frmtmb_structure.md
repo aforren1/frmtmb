@@ -2,7 +2,7 @@
 
 A `frmtmb_structure()` is what a family carries when its likelihood does
 not factorize over the rows of the data: a group-level
-[`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html), a
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md), a
 hidden Markov chain, a latent class measurement model. It is one object
 with one contract, so the core needs no branch per family and a
 structured family can live in another package. Attach it with
@@ -386,7 +386,7 @@ for the accessors a slot may use to read a fit,
 [`latent_probs()`](https://aforren1.github.io/frmtmb/reference/latent_probs.md)
 for the generic `latent_probs` answers,
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md),
-[`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html)
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
 
 ## Examples
 

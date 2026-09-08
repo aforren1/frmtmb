@@ -8,6 +8,17 @@ Nothing about the fit changes. The model is the one
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) already
 assembled; what is added is a posterior, and a starting point.
 
+Most chunks on this page are shown and not run, and speed is not the
+reason: four chains on the model below take seconds, not minutes. The
+reason is that tmbstan and rstan are `Suggests`, so a build machine need
+not have them, and that a tmbstan built against the wrong StanHeaders
+samples the wrong density in silence (the last section says how).
+Numbers that depend on which Stan the page was built against are worse
+than no numbers. The two chunks that need no sampler do run: the setup
+below, and the
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.html)
+calls under **The default priors**.
+
 ``` r
 
 library(frmtmb)
@@ -16,6 +27,9 @@ library(frmtmb.sample)
 set.seed(9)
 dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+```
+
+``` r
 
 fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 ds <- frm_sample(fit, chains = 4)
@@ -61,12 +75,32 @@ applies, and this package is what lets it answer.
 
 # what frm() applies. Loading this package does not change it
 get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#> route = "fit": the prior defaults frm() applies
+#>    prior     class    coef group dpar nlpar resp lb ub
+#> 1 (flat) Intercept                               NA NA
+#> 2 (flat)         b                               NA NA
+#> 3 (flat)         b       x                       NA NA
+#> 4 (flat)     sigma                               NA NA
+#> 5 (flat)        sd                               NA NA
+#> 6 (flat)        sd             g                 NA NA
+#> 7 (flat)     theta                               NA NA
+#> 8 (flat)     theta theta_1                       NA NA
 
 # what frm_sample() applies, which is the brms reading of get_prior().
 # Without this package loaded, the call is refused rather than
 # answered "(flat)"
 get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
           route = "sample")
+#> route = "sample": the prior defaults frm_sample() applies
+#>                  prior     class    coef group dpar nlpar resp lb ub
+#> 1 student_t(3, 1, 2.5) Intercept                               NA NA
+#> 2               (flat)         b                               NA NA
+#> 3               (flat)         b       x                       NA NA
+#> 4 student_t(3, 0, 2.5)     sigma                               NA NA
+#> 5 student_t(3, 0, 2.5)        sd                               NA NA
+#> 6 student_t(3, 0, 2.5)        sd             g                 NA NA
+#> 7               (flat)     theta                               NA NA
+#> 8               (flat)     theta theta_1                       NA NA
 ```
 
 The printed table names its route on the first line, so a table copied

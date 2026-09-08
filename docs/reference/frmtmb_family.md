@@ -27,6 +27,7 @@ frmtmb_family(
   lccdf = NULL,
   required_aterms = character(0),
   accepts_aterms = NULL,
+  exclusive_aterms = list(),
   family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
@@ -50,6 +51,7 @@ custom_family(
   lccdf = NULL,
   required_aterms = character(0),
   accepts_aterms = NULL,
+  exclusive_aterms = list(),
   family_finalize = NULL,
   extra_pars = NULL,
   drop_intercept = FALSE,
@@ -70,8 +72,9 @@ custom_family(
 
 - links:
 
-  Named list mapping each dpar to a link name (see
-  `frmtmb:::frmtmb_links`) or a link object.
+  Named list mapping each dpar to a link name or a link object.
+  [frmtmb-links](https://aforren1.github.io/frmtmb/reference/frmtmb-links.md)
+  lists the names and says what a link object has to carry.
 
 - lpdf:
 
@@ -153,7 +156,12 @@ custom_family(
 
   Optional vectorized AD log-safe CDF `(q, dpars, aterms)` returning
   probabilities; enables `cens()` and
-  [`trunc()`](https://rdrr.io/r/base/Round.html) addition terms.
+  [`trunc()`](https://rdrr.io/r/base/Round.html) addition terms. It is
+  the only thing either term asks of a family, whatever the family's
+  `type`: a discrete family that supplies one is censored under the
+  inclusive convention (see Censoring a discrete response), which reads
+  a lower bound as `F(q - 1)` and so calls this at one below a recorded
+  value.
 
 - lccdf:
 
@@ -205,6 +213,41 @@ custom_family(
   accepted a `dec()`, both giving a fit bit-identical to the one without
   the term.
 
+  Naming `"se"` here is more than an allow-list entry: it is how a
+  family OPTS IN to `se()`. That term is the one whose entire effect is
+  inside the density - the core hands over `aterms[["se"]]` and maps out
+  the residual scale it replaces, and does nothing else with it - so a
+  family that does not declare it is refused the term rather than given
+  one it would ignore. `NULL`, which accepts every other term, declares
+  nothing and so does not open this one. Read `aterms[["se"]]` as the
+  known standard deviation, and `aterms[["se_sigma"]]` to honor
+  `se(x, sigma = TRUE)`, which asks for the known and estimated scales
+  in quadrature.
+
+- exclusive_aterms:
+
+  Sets of addition-term values that say the SAME thing to the density,
+  so that at most one of each set may be supplied. Named as
+  `required_aterms` names them, in values rather than in terms:
+  `exclusive_aterms = list(c("dec", "vint1"))`. A character vector is
+  one such set; a list is several. The FIRST name of a set is the
+  spelling the density reads, and the refusal tells the user to keep it.
+
+  This is what an allow-list cannot express, because both spellings are
+  legitimately on it. `wiener()` reads its boundary indicator from
+  `dec()` and falls back to `vint1`, so `rt | dec(u) + vint(1 - u)`
+  passed every guard and fitted with a log-likelihood bit-identical to
+  the `dec()`-only model: the user said one thing twice, and
+  inconsistently, and nothing complained. Declare the alternatives of an
+  any-of `required_aterms` group here when the density reads only one of
+  them; leave them undeclared when it reads both, as `gddm()` does,
+  where `dec()` and `vint1` carry different data.
+
+  Read WITH `required_aterms`, not instead of it: an any-of group in one
+  and the same set in the other together mean "exactly one". Declaring a
+  set that holds two values `required_aterms` demands TOGETHER is
+  refused here, because no model could then be fitted.
+
 - family_finalize:
 
   Optional function `(fam, y, aterms)` returning a family. It runs once
@@ -233,8 +276,8 @@ custom_family(
   [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
   for a family whose likelihood does not factorize over rows (a
   group-level
-  [`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html), a
-  hidden Markov chain). It carries the non-rowwise log-likelihood, the
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md),
+  a hidden Markov chain). It carries the non-rowwise log-likelihood, the
   frame block that likelihood reads, and the capability flags that say
   which post-fit methods the family can answer. `lpdf` stays required
   even then, for the rowwise contract, and may be a stub that refuses.
@@ -246,7 +289,7 @@ An object of class `frmtmb_family`.
 ## Structured simulators
 
 Some families cannot draw a response one row at a time: a group-level
-[`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html)
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
 draws one class per group, a
 [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
 draw needs the class covariances, which are family-level extras rather
@@ -381,9 +424,14 @@ Two families with a CDF do NOT declare one, for measured reasons.
 nothing: `RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)` is
 computed on the probability scale and reaches `-Inf` at the same
 `log S = -34` that `log(1 - F)` does.
-[`poisson()`](https://rdrr.io/r/stats/family.html) is discrete, and
-`cens()` is refused for discrete families, so the slot would be
-unreachable.
+[`poisson()`](https://rdrr.io/r/stats/family.html) is censored (see
+Censoring a discrete response) and would use the slot, but cannot
+declare one: `RTMB::ppois(lower.tail = FALSE, log.p = TRUE)` is exact in
+R (`-2773.28` at `q = 700`, `lambda = 5`, where `log(1 - F)` is `-Inf`)
+and does not TAPE - inside `MakeADFun` it reaches
+[`stats::ppois`](https://rdrr.io/r/stats/Poisson.html) and errors with
+"Non-numeric argument to mathematical function". An exact discrete log
+survivor has to be written out before poisson can have one.
 
 `lccdf` fixes RIGHT censoring and nothing else. Left censoring is still
 `log(F(y) - Flb)`, interval censoring is still a difference of CDFs, and
@@ -392,6 +440,66 @@ survival model - delayed entry, which is routine - meets the identical
 representability problem from the other side. Closing that needs a
 windowed log-difference slot, and this is the first step rather than the
 last one.
+
+## Censoring a discrete response
+
+A censoring bound on a discrete response NAMES a value the response can
+take, and the value is INCLUDED in the event:
+
+|                |                |                    |
+|----------------|----------------|--------------------|
+| **code**       | **means**      | **scored as**      |
+| `0` "none"     | `Y == y`       | `f(y)`             |
+| `-1` "left"    | `Y <= y`       | `F(y)`             |
+| `1` "right"    | `Y >= y`       | `1 - F(y - 1)`     |
+| `2` "interval" | `y <= Y <= y2` | `F(y2) - F(y - 1)` |
+
+Equivalently: every LOWER edge enters the CDF as `F(edge - 1)`, and
+upper edges are unchanged because `F` already includes its argument. It
+is the rule `trunc(lb = )` has always followed on a discrete response,
+so one number means one thing however a response is bounded, and it is
+what a count recorded as "5 or more" means.
+
+It DIFFERS from brms for RIGHT and INTERVAL censoring only, where brms
+emits `poisson_lccdf(y | mu)`, that is `P(Y > y)`, and reads an interval
+as `(y, y2]`. LEFT censoring is `P(Y <= y)` in both packages and agrees
+exactly. Migrating a right- or interval-censored count model changes its
+log-likelihood; on 200 poisson draws at `lambda = 4` right censored at
+6, the two readings differ by 20.8 log units and 3.7 percent of the
+estimate. Subtract one from every right-censored and interval lower
+bound to reproduce a brms fit.
+
+The divergence is deliberate, because **brms is internally inconsistent
+here and frmtmb cannot be both.** brms's own discrete truncation emits
+`poisson_lccdf(lb - 1 | mu)`, an INCLUSIVE lower bound, `P(Y >= lb)`. So
+in brms `trunc(lb = 6)` means `Y >= 6` while a right-censored row
+recorded at 6 means `Y > 6`: one number, two meanings, on one response.
+frmtmb's [`trunc()`](https://rdrr.io/r/base/Round.html) reproduces brms
+bit for bit (poisson on `y = 3,4,5,6` at `b0 = log 4`, `trunc(lb = 2)`
+gives 6.9990718955 under both, against 6.2954805379 for the exclusive
+reading), so its `cens()` had to choose between matching brms's
+censoring and matching its own truncation. It matches its own.
+
+It is also the only reading consistent with the censored SIMULATOR,
+which predates all of this: `simulate(censored = TRUE)` caps a draw with
+`pmin(pmax(y, lo), hi)`, recording the value `k` exactly when the latent
+draw is `>= k`. Measured on 4000 draws from a fit censored at 7, the
+simulated mass at that point is 0.13250, against `P(Y >= 7) = 0.12190`
+inclusive and `P(Y > 7) = 0.05763` exclusive. The other reading would
+silently decouple the likelihood from the simulator that
+[`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
+rests on.
+
+Two consequences worth knowing. A one-point interval (`y2 == y`) is
+legal and is the exact observation `P(Y = y)`, where on a continuous
+response it is refused as an event of probability zero. And the shift
+assumes the support is the unit integer lattice, so a non-integer
+censoring bound is refused rather than moved onto a point the family has
+no mass at.
+
+`residuals(type = "osa")` is refused on a censored discrete fit:
+inclusive bounds make an uncensored row's support `[lo + 1, hi - 1]`
+rather than the `[lo, hi]` the one-step window is built on.
 
 ## Tape-safe scope
 

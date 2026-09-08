@@ -78,9 +78,8 @@ A list with
 - `extra_var`:
 
   length `n`; variance that is NOT coefficient uncertainty, kept
-  separate rather than folded into `A V A'` because an exact
-  [`gp()`](https://paulbuerkner.com/brms/reference/gp.html)'s kriging
-  variance and a new grouping level's marginal variance are not.
+  separate rather than folded into `A V A'` because an exact `gp()`'s
+  kriging variance and a new grouping level's marginal variance are not.
 
 - `nonest`:
 
@@ -109,10 +108,8 @@ nonlinear predictor; this is the route.
 The Jacobian is exact, and the delta method built on it is still a
 first-order approximation, which for a warped curve is a stronger
 assumption than it is for a linear one. `allow_new_levels = TRUE` is
-refused there, and so is a contributing exact
-[`gp()`](https://paulbuerkner.com/brms/reference/gp.html), because
-neither variance has a chain rule through the body that has been
-measured.
+refused there, and so is a contributing exact `gp()`, because neither
+variance has a chain rule through the body that has been measured.
 
 ## A reduced-rank block
 

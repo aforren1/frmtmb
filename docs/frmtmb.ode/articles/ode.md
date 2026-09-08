@@ -107,6 +107,8 @@ fit <- frm(form + gaussian(), data = d, se = TRUE,
            start = list(beta = c(0.5, log(0.08), log(0.5))))
 summary(fit)
 #> Family: gaussian 
+#>  Links: mu = identity; sigma = log
+#> 
 #> Formula: conc ~ frm_ode(pk_dyn, init = list(Dose, 0), times = Time, parms = list(exp(lka), exp(lke), exp(lV)), group = Subject, states = c("depot", "central"), output = "central") 
 #> Method: ML   nobs: 132 
 #> Groups: Subject, 12 

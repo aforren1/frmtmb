@@ -13,7 +13,7 @@ mislead.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,10 +33,12 @@ mislead.'></head><body>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -125,7 +127,13 @@ row: what is observed there is an event (<code>Y &gt; c</code>), not a value, an
 an event has no one-step CDF. The uncensored rows get residuals
 conditional on the censoring events, which needs one censoring point
 per side (type-I censoring); row-varying censoring times and interval
-censoring are refused. <code><a href="dharma_residuals.html">dharma_residuals()</a></code> is not a substitute on a
+censoring are refused, and so is a DISCRETE family. A discrete
+censoring bound is inclusive (right censoring at <code>k</code> is <code>Y &gt;= k</code>;
+see <code><a href="frmtmb_family.html">frmtmb_family()</a></code>), so an uncensored count's support is
+<code>[lo + 1, hi - 1]</code> rather than the <code>[lo, hi]</code> this window is built
+on, and no reference has measured the shifted window. Every other
+residual type works there.
+<code><a href="dharma_residuals.html">dharma_residuals()</a></code> is not a substitute on a
 censored fit, because <code><a href="simulate.frmtmb_fit.html">simulate.frmtmb_fit()</a></code> draws the latent
 uncensored response by default (as brms's <code>posterior_predict()</code>
 does) and those draws are not comparable with the observed censored

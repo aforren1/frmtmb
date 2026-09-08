@@ -25,7 +25,7 @@ linear predictor - so gating on covariates works like mixture()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,10 +45,12 @@ linear predictor - so gating on covariates works like mixture()."></head><body>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -182,6 +184,9 @@ regression), and the models with a class-varying eigenvector basis
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span> <span class="fu">mixture_mvn</span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span>, D <span class="op">=</span> <span class="fl">2</span>, model <span class="op">=</span> <span class="st">"EII"</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: Y ~ 1 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Family: mixture_mvn(K = 2, D = 2, model = "EII")   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu1d1 = identity; mu1d2 = identity; mu2d1 = identity; mu2d2 = identity;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         theta1 = identity</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -196.172  AIC: 404.344  nobs: 60 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>

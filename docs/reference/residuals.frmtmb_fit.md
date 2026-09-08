@@ -60,7 +60,12 @@ what is observed there is an event (`Y > c`), not a value, and an event
 has no one-step CDF. The uncensored rows get residuals conditional on
 the censoring events, which needs one censoring point per side (type-I
 censoring); row-varying censoring times and interval censoring are
-refused.
+refused, and so is a DISCRETE family. A discrete censoring bound is
+inclusive (right censoring at `k` is `Y >= k`; see
+[`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)),
+so an uncensored count's support is `[lo + 1, hi - 1]` rather than the
+`[lo, hi]` this window is built on, and no reference has measured the
+shifted window. Every other residual type works there.
 [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
 is not a substitute on a censored fit, because
 [`simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md)

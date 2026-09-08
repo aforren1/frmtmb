@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,12 +42,14 @@
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
-<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -245,11 +247,29 @@ assumption, <code><a href="../reference/frm_bootstrap.html">frm_bootstrap()</a><
 distribution, <code>frm(quadrature = TRUE)</code> replaces the Laplace
 approximation itself with adaptive quadrature, and
 <code>frm(importance = )</code> reweights it (the next section).</p>
+<div class="section level3">
+<h3 id="nan-standard-errors">NaN standard errors<a class="anchor" aria-label="anchor" href="#nan-standard-errors"></a>
+</h3>
+<p>“Some standard errors are not finite” has two causes and one symptom.
+The covariance is the inverse Hessian, so ONE unusable direction sends
+every entry to <code>NaN</code>, and the fit-time warning used to guess
+at overparameterization for both.</p>
+<p><code>diagnose(fit)</code> separates them. It reports “Flat
+directions” when the likelihood does not depend on a parameter at all:
+zero gradient and an empty Hessian row, measured by perturbing the
+parameter and seeing whether the gradient moves. Parameters named there
+are not identified AT THAT POINT, which is a starting-value problem, not
+a model-size problem. A nonlinear term evaluated outside its own support
+is the usual cause; see the nonlinear section of
+<code><a href="../articles/frmtmb.html">vignette("frmtmb")</a></code>. With no flat direction the covariance
+failed for the other reason, and the model has parameters the data
+cannot tell apart.</p>
 <p>To measure the violation rather than route around it, install the
 companion package <strong>frmtmb.sample</strong> and read
 <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/articles/posterior-diagnostics.html">vignette("posterior-diagnostics", package = "frmtmb.sample")</a></code>,
 which covers <code>check_laplace()</code> and the diagnostics of a
 sampled fit; this page stays with the maximum-likelihood side.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="when-the-laplace-approximation-is-the-problem">When the Laplace approximation is the problem<a class="anchor" aria-label="anchor" href="#when-the-laplace-approximation-is-the-problem"></a>
@@ -298,6 +318,8 @@ says so, and says how far it can be trusted:</p>
 <code class="sourceCode R"><span><span class="va">imp</span></span>
 <span><span class="co">#&gt; frmtmb fit: y ~ x + (x | g) </span></span>
 <span><span class="co">#&gt; Family: binomial   Method: ML </span></span>
+<span><span class="co">#&gt;  Links: mu = logit</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; logLik: -118.439  AIC: 246.878  nobs: 200 </span></span>
 <span><span class="co">#&gt; Marginal likelihood: importance-corrected, 500 draws per group in 4 rounds (MCSE 0.11, min ESS 0.64 of 1) </span></span>
 <span><span class="co">#&gt; </span></span>

@@ -79,63 +79,172 @@ design decision.
 
 Addition terms are the most family-sensitive part of the grammar.
 `cens()` and [`trunc()`](https://rdrr.io/r/base/Round.html) need a
-family that supplies a cumulative distribution function, and `cens()`
-additionally refuses discrete responses. `se()` and `mi()` need a
-gaussian or student model.
+family that supplies a cumulative distribution function, and that is all
+they need: a discrete family that has one is censored under the
+inclusive convention, where a bound names a value the response can take
+(see
+\[[`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)\]).
+`mi()` needs a gaussian or student model. `se()` needs a family that
+DECLARES it reads the term, with `accepts_aterms`; gaussian and student
+are the built-in ones that do.
 
 |  | weights() | trials() | cens() | trunc() | se() | mi() | vint() | vreal() |
 |:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| gaussian | \+ | ? | \+ | \+ | \+ | \+ | ? | ? |
-| student | \+ | ? | x | x | \+ | \+ | ? | ? |
-| lognormal | \+ | ? | \+ | \+ | x | x | ? | ? |
-| shifted_lognormal | \+ | ? | x | x | x | x | ? | ? |
-| skew_normal | \+ | ? | x | x | x | x | ? | ? |
-| exgaussian | \+ | ? | x | x | x | x | ? | ? |
-| asym_laplace | \+ | ? | x | x | x | x | ? | ? |
-| Gamma | \+ | ? | x | x | x | x | ? | ? |
-| weibull | \+ | ? | \+ | \+ | x | x | ? | ? |
-| exponential | \+ | ? | \+ | \+ | x | x | ? | ? |
-| inverse.gaussian | \+ | ? | \+ | \+ | x | x | ? | ? |
-| beta | \+ | ? | x | x | x | x | ? | ? |
-| tweedie | \+ | ? | x | x | x | x | ? | ? |
-| poisson | \+ | ? | x | ~ | x | x | ? | ? |
-| negbinomial | \+ | ? | x | x | x | x | ? | ? |
-| nbinom1 | \+ | ? | x | x | x | x | ? | ? |
-| geometric | \+ | ? | x | x | x | x | ? | ? |
-| compois | \+ | ? | x | x | x | x | ? | ? |
-| binomial | \+ | \+ | x | x | x | x | ? | ? |
-| bernoulli | \+ | ? | x | x | x | x | ? | ? |
-| beta_binomial | \+ | \+ | x | x | x | x | ? | ? |
-| multinomial | \+ | ~ | x | x | x | x | ? | ? |
-| zero_inflated_poisson | \+ | ? | x | x | x | x | ? | ? |
-| zero_inflated_negbinomial | \+ | ? | x | x | x | x | ? | ? |
-| zero_inflated_binomial | \+ | \+ | x | x | x | x | ? | ? |
-| zero_inflated_beta | \+ | ? | x | x | x | x | ? | ? |
-| hurdle_poisson | \+ | ? | x | x | x | x | ? | ? |
-| hurdle_gamma | \+ | ? | x | x | x | x | ? | ? |
-| hurdle_lognormal | \+ | ? | x | x | x | x | ? | ? |
-| cumulative | \+ | ? | x | x | x | x | ? | ? |
-| sratio | \+ | ? | x | x | x | x | ? | ? |
-| cratio | \+ | ? | x | x | x | x | ? | ? |
-| acat | \+ | ? | x | x | x | x | ? | ? |
-| categorical | \+ | ? | x | x | x | x | ? | ? |
-| von_mises | \+ | ? | x | x | x | x | ? | ? |
-| cox | \+ | ? | \+ | ~ | x | x | ? | ? |
+| gaussian | \+ | x | \+ | \+ | \+ | \+ | x | x |
+| student | \+ | x | x | x | \+ | \+ | x | x |
+| lognormal | \+ | x | \+ | \+ | x | x | x | x |
+| shifted_lognormal | \+ | x | x | x | x | x | x | x |
+| skew_normal | \+ | x | x | x | x | x | x | x |
+| exgaussian | \+ | x | x | x | x | x | x | x |
+| asym_laplace | \+ | x | x | x | x | x | x | x |
+| Gamma | \+ | x | x | x | x | x | x | x |
+| weibull | \+ | x | \+ | \+ | x | x | x | x |
+| exponential | \+ | x | \+ | \+ | x | x | x | x |
+| inverse.gaussian | \+ | x | \+ | \+ | x | x | x | x |
+| beta | \+ | x | x | x | x | x | x | x |
+| tweedie | \+ | x | x | x | x | x | x | x |
+| poisson | \+ | x | ~ | ~ | x | x | x | x |
+| negbinomial | \+ | x | x | x | x | x | x | x |
+| nbinom1 | \+ | x | x | x | x | x | x | x |
+| geometric | \+ | x | x | x | x | x | x | x |
+| compois | \+ | x | x | x | x | x | x | x |
+| binomial | \+ | \+ | x | x | x | x | x | x |
+| bernoulli | \+ | x | x | x | x | x | x | x |
+| beta_binomial | \+ | \+ | x | x | x | x | x | x |
+| multinomial | \+ | ~ | x | x | x | x | x | x |
+| zero_inflated_poisson | \+ | x | x | x | x | x | x | x |
+| zero_inflated_negbinomial | \+ | x | x | x | x | x | x | x |
+| zero_inflated_binomial | \+ | \+ | x | x | x | x | x | x |
+| zero_inflated_beta | \+ | x | x | x | x | x | x | x |
+| hurdle_poisson | \+ | x | x | x | x | x | x | x |
+| hurdle_gamma | \+ | x | x | x | x | x | x | x |
+| hurdle_lognormal | \+ | x | x | x | x | x | x | x |
+| cumulative | \+ | x | x | x | x | x | x | x |
+| sratio | \+ | x | x | x | x | x | x | x |
+| cratio | \+ | x | x | x | x | x | x | x |
+| acat | \+ | x | x | x | x | x | x | x |
+| categorical | \+ | x | x | x | x | x | x | x |
+| von_mises | \+ | x | x | x | x | x | x | x |
+| cox | \+ | x | \+ | ~ | x | x | x | x |
 
 | Status | Pairs | Note |
 |:---|:---|:---|
-| ~ | poisson + trunc() | Discrete truncation needs a lower bound of at least 1; trunc(lb = 0) is not truncation and is refused. |
+| ~ | poisson + cens() | Works, under the INCLUSIVE discrete convention: a censoring bound names a value the response can take, so right censoring at k is P(Y \>= k), an interval is P(k \<= Y \<= k2), and a lower edge enters the CDF as F(k - 1). That is trunc(lb = )’s rule. It differs from brms for RIGHT and INTERVAL censoring, where brms emits poisson_lccdf(y \| mu) = P(Y \> y); LEFT censoring already agrees. Verified against a hand-rolled likelihood for all four codes and composed with trunc(). A non-integer censoring bound is refused (the shift assumes the integer lattice), and residuals(type = “osa”) is refused. |
+| ~ | poisson + trunc() | Discrete truncation needs a lower bound of at least 1; trunc(lb = 0) is not truncation and is refused. The bound is INCLUSIVE: trunc(lb = k) is P(Y \>= k), scored with F(k - 1). That is brms’s rule too, and it is the premise the discrete cens() convention is built on, so that one number means one thing on a response however it is bounded. |
 | ~ | multinomial + trials() | Required. The row sums of the response matrix must equal the trials. |
 | ~ | cox + trunc() | Runs through the same log-CDF the censoring uses, so trunc(lb = ) is delayed entry. The truncation bound is evaluated against the SAME spline basis the response is, which means a bound outside the boundary knots is clamped to them rather than extrapolated. Untested against an external left-truncated reference. |
+| x | gaussian + trials() | Refused by declaration: gaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | gaussian + vint() | Refused by declaration: gaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | gaussian + vreal() | Refused by declaration: gaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | student + trials() | Refused by declaration: student names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | student + cens(); shifted_lognormal + cens(); skew_normal + cens(); exgaussian + cens(); asym_laplace + cens(); and 8 more | Refused: cens() needs a family with an AD log-CDF. |
 | x | student + trunc(); shifted_lognormal + trunc(); skew_normal + trunc(); exgaussian + trunc(); asym_laplace + trunc(); and 19 more | Refused: trunc() needs a family with an AD log-CDF. |
-| x | lognormal + se(); shifted_lognormal + se(); skew_normal + se(); exgaussian + se(); asym_laplace + se(); and 29 more | Refused: known standard errors are added to the residual variance, which only the gaussian and student families have. |
+| x | student + vint() | Refused by declaration: student names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | student + vreal() | Refused by declaration: student names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | lognormal + trials() | Refused by declaration: lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | lognormal + se(); shifted_lognormal + se(); skew_normal + se(); exgaussian + se(); asym_laplace + se(); and 29 more | Refused unless the family DECLARES that it reads the term, with frmtmb_family(accepts_aterms = c(…, “se”)) or required_aterms = “se”. se() is the one core addition term whose whole effect is inside the density, so the core cannot act on it for a family that ignores it. gaussian and student are the built-in families that declare it. A declaring family is refused a SECOND way if it has no dpar named `sigma` and carries another free dpar: se() without sigma = TRUE replaces the residual scale, the core maps out only the dpar the convention names, and the other one would be left free and unread - a flat direction and a NaN standard error. A family whose whole scale IS the known one (no dpar beyond its primaries) is unaffected; the ways out are to name the scale `sigma`, pin it in the formula, or write se(x, sigma = TRUE). |
 | x | lognormal + mi(); shifted_lognormal + mi(); skew_normal + mi(); exgaussian + mi(); asym_laplace + mi(); and 29 more | Refused: an imputation model must be gaussian or student. |
-| x | poisson + cens() | Refused: censoring is not supported for discrete families yet, even though poisson carries a CDF. |
-| x | negbinomial + cens(); nbinom1 + cens(); geometric + cens(); compois + cens(); binomial + cens(); and 6 more | Refused: censoring is not supported for discrete families yet. |
+| x | lognormal + vint() | Refused by declaration: lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | lognormal + vreal() | Refused by declaration: lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | shifted_lognormal + trials() | Refused by declaration: shifted_lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | shifted_lognormal + vint() | Refused by declaration: shifted_lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | shifted_lognormal + vreal() | Refused by declaration: shifted_lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | skew_normal + trials() | Refused by declaration: skew_normal names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | skew_normal + vint() | Refused by declaration: skew_normal names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | skew_normal + vreal() | Refused by declaration: skew_normal names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | exgaussian + trials() | Refused by declaration: exgaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | exgaussian + vint() | Refused by declaration: exgaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | exgaussian + vreal() | Refused by declaration: exgaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | asym_laplace + trials() | Refused by declaration: asym_laplace names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | asym_laplace + vint() | Refused by declaration: asym_laplace names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | asym_laplace + vreal() | Refused by declaration: asym_laplace names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | Gamma + trials() | Refused by declaration: Gamma names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | Gamma + vint() | Refused by declaration: Gamma names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | Gamma + vreal() | Refused by declaration: Gamma names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | weibull + trials() | Refused by declaration: weibull names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | weibull + vint() | Refused by declaration: weibull names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | weibull + vreal() | Refused by declaration: weibull names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | exponential + trials() | Refused by declaration: exponential names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | exponential + vint() | Refused by declaration: exponential names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | exponential + vreal() | Refused by declaration: exponential names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | inverse.gaussian + trials() | Refused by declaration: inverse.gaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | inverse.gaussian + vint() | Refused by declaration: inverse.gaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | inverse.gaussian + vreal() | Refused by declaration: inverse.gaussian names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | beta + trials() | Refused by declaration: beta names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | beta + vint() | Refused by declaration: beta names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | beta + vreal() | Refused by declaration: beta names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | tweedie + trials() | Refused by declaration: tweedie names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | tweedie + vint() | Refused by declaration: tweedie names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | tweedie + vreal() | Refused by declaration: tweedie names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | poisson + trials() | Refused by declaration: poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | poisson + vint() | Refused by declaration: poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | poisson + vreal() | Refused by declaration: poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | negbinomial + trials() | Refused by declaration: negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | negbinomial + cens(); nbinom1 + cens(); geometric + cens(); compois + cens(); binomial + cens(); and 6 more | Refused: none of these families carries an AD log-CDF, which is what a censored row needs. It is no longer refused for BEING discrete: a discrete family that supplies lcdf is censored under the inclusive convention, as poisson is. |
+| x | negbinomial + vint() | Refused by declaration: negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | negbinomial + vreal() | Refused by declaration: negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | nbinom1 + trials() | Refused by declaration: nbinom1 names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | nbinom1 + vint() | Refused by declaration: nbinom1 names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | nbinom1 + vreal() | Refused by declaration: nbinom1 names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | geometric + trials() | Refused by declaration: geometric names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | geometric + vint() | Refused by declaration: geometric names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | geometric + vreal() | Refused by declaration: geometric names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | compois + trials() | Refused by declaration: compois names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | compois + vint() | Refused by declaration: compois names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | compois + vreal() | Refused by declaration: compois names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | binomial + vint() | Refused by declaration: binomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | binomial + vreal() | Refused by declaration: binomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | bernoulli + trials() | Refused by declaration: bernoulli names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | bernoulli + vint() | Refused by declaration: bernoulli names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | bernoulli + vreal() | Refused by declaration: bernoulli names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | beta_binomial + vint() | Refused by declaration: beta_binomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | beta_binomial + vreal() | Refused by declaration: beta_binomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | multinomial + vint() | Refused by declaration: multinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | multinomial + vreal() | Refused by declaration: multinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_poisson + trials() | Refused by declaration: zero_inflated_poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_poisson + vint() | Refused by declaration: zero_inflated_poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_poisson + vreal() | Refused by declaration: zero_inflated_poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_negbinomial + trials() | Refused by declaration: zero_inflated_negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_negbinomial + vint() | Refused by declaration: zero_inflated_negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_negbinomial + vreal() | Refused by declaration: zero_inflated_negbinomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_binomial + vint() | Refused by declaration: zero_inflated_binomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_binomial + vreal() | Refused by declaration: zero_inflated_binomial names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_beta + trials() | Refused by declaration: zero_inflated_beta names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_beta + vint() | Refused by declaration: zero_inflated_beta names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | zero_inflated_beta + vreal() | Refused by declaration: zero_inflated_beta names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_poisson + trials() | Refused by declaration: hurdle_poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_poisson + vint() | Refused by declaration: hurdle_poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_poisson + vreal() | Refused by declaration: hurdle_poisson names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_gamma + trials() | Refused by declaration: hurdle_gamma names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_gamma + vint() | Refused by declaration: hurdle_gamma names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_gamma + vreal() | Refused by declaration: hurdle_gamma names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_lognormal + trials() | Refused by declaration: hurdle_lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_lognormal + vint() | Refused by declaration: hurdle_lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | hurdle_lognormal + vreal() | Refused by declaration: hurdle_lognormal names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | cumulative + trials() | Refused by declaration: cumulative names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | cumulative + cens(); cumulative + trunc(); sratio + cens(); sratio + trunc(); cratio + cens(); and 3 more | Refused: ordinal families carry no AD log-CDF over the response scale. |
+| x | cumulative + vint() | Refused by declaration: cumulative names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | cumulative + vreal() | Refused by declaration: cumulative names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | sratio + trials() | Refused by declaration: sratio names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | sratio + vint() | Refused by declaration: sratio names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | sratio + vreal() | Refused by declaration: sratio names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | cratio + trials() | Refused by declaration: cratio names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | cratio + vint() | Refused by declaration: cratio names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | cratio + vreal() | Refused by declaration: cratio names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | acat + trials() | Refused by declaration: acat names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | acat + vint() | Refused by declaration: acat names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | acat + vreal() | Refused by declaration: acat names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | categorical + trials() | Refused by declaration: categorical names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 | x | categorical + cens() | Refused: a nominal response carries no order, so it has no CDF for a censored row to contribute. |
 | x | categorical + trunc() | Refused for the same reason: no order, no CDF, no truncation window. |
+| x | categorical + vint() | Refused by declaration: categorical names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | categorical + vreal() | Refused by declaration: categorical names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | von_mises + trials() | Refused by declaration: von_mises names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | von_mises + vint() | Refused by declaration: von_mises names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | von_mises + vreal() | Refused by declaration: von_mises names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | cox + trials() | Refused by declaration: cox names the addition terms it reads in frmtmb_family(accepts_aterms =), trials() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | cox + vint() | Refused by declaration: cox names the addition terms it reads in frmtmb_family(accepts_aterms =), vint() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
+| x | cox + vreal() | Refused by declaration: cox names the addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and frame assembly refuses it by name, listing the terms the family does take. This row is derived from that declaration rather than measured, so the table and the guard cannot drift apart. |
 
 ## Response distributions and post-fit methods
 
@@ -333,7 +442,7 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 | x | mixture_mvn + cens(); mixture_mvn + trunc() | Refused: mixture_mvn() has no CDF. |
 | x | rescor + trunc() | Refused. This pair was once accepted with the truncation silently dropped. |
 | x | mixture + trunc() | Refused: mixture() has no CDF. |
-| x | mixture + se() | Refused: se() is supported for gaussian and student families only. |
+| x | mixture + se() | Refused: a mixture does not declare se() even when its components do. Reading the term is only half of what se() means; the other half is that the residual scale it replaces is mapped out, and that step names the dpar `sigma`, which sigma1 and sigma2 are not. Measured before the refusal was made explicit: mixture(gaussian, gaussian) with se() fitted with both component sigmas at their starting value and every standard error NaN. |
 | x | rescor + mi() | Refused: mi() cannot be combined with rescor = TRUE. |
 | x | mixture + mi() | Refused: mi() on the mixture response is not supported. |
 
@@ -485,11 +594,20 @@ row; see `?frmtmb-multimembership`.
 | Status      | Pairs | Share |
 |:------------|------:|:------|
 | works       |  1768 | 34%   |
-| conditional |  1804 | 34%   |
-| refused     |   735 | 14%   |
+| conditional |  1805 | 34%   |
+| refused     |   838 | 16%   |
 | broken      |     0 | 0%    |
-| untested    |   949 | 18%   |
+| untested    |   845 | 16%   |
 
 The untested share is the honest measure of what this registry does not
 yet know. It shrinks as pairs are tested, not as the code is trusted. To
 close one, add a test and change the rule in `R/compat.R`.
+
+One class of cell closes without a test, and only that one: a family
+declares the addition terms it reads in
+`frmtmb_family(accepts_aterms =)`, and frame assembly refuses any other
+term on that response BY NAME. Those cells are refusals with a reason
+rather than an absence of evidence, so they are derived from the
+declaration instead of being written out. Only the refusal is derived; a
+family that ACCEPTS a term has said nothing about whether the pair
+works, and that cell stays `untested` until somebody runs it.

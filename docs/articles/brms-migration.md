@@ -13,19 +13,19 @@ likelihood-ratio tests, AIC).
 
 | brms | frmtmb | notes |
 |----|----|----|
-| `bf(y ~ x + (x \| g))` | same | plus `us()`, [`diag()`](https://rdrr.io/r/base/diag.html), `homdiag()`, `cs()`, `ar1()` wrappers |
-| `bf(y ~ x, sigma ~ z + (1 \| g))` | same | any dpar, full grammar |
+| `bf(y ~ x + (x | g))` | same | plus `us()`, [`diag()`](https://rdrr.io/r/base/diag.html), `homdiag()`, `cs()`, `ar1()` wrappers |
+| `bf(y ~ x, sigma ~ z + (1 | g))` | same | any dpar, full grammar |
 | `bf(y ~ x, sigma = 1)` | same | fixed via TMB `map` |
 | `s(x)`, `t2(x, z)` | same | mgcv smooths in any dpar; `te()`/`ti()` unsupported |
-| `(1 \| p \| g)` | same | cross-formula RE correlation |
+| `(1 | p | g)` | same | cross-formula RE correlation |
 | `mvbind(y1, y2) ~ x`, [`mvbf()`](https://aforren1.github.io/frmtmb/reference/mvbf.md), [`set_rescor()`](https://aforren1.github.io/frmtmb/reference/mvbf.md) | same | per-response families; `rescor` gaussian-only |
-| `y \| trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family |
+| `y | trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family; a DISCRETE censoring bound is read inclusively, unlike brms (below) |
 | `nl = TRUE` | same | a located prior places the start, else provide `start` ([`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md) names it); se.fit on the nonlinear mu not yet |
 | [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md), [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) | same | [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) on any dpar, bodies chain to any depth (below) |
 | [`custom_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md) | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md), [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md) | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |
-| `(1 \| mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
+| `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
 | `ar(t, g, cov = TRUE)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; `cov = TRUE` required (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
@@ -265,7 +265,49 @@ takes `logit` only.
 
 - `se()` works as in brms (meta-analysis), including
   `se(x, sigma = TRUE)` and the phylogenetic version with
-  `gr(g, cov = A)`.
+  `gr(g, cov = A)`. It reaches further than brms does: a family written
+  with
+  [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+  gets the term by declaring `accepts_aterms = c(..., "se")`, rather
+  than by being gaussian or student.
+
+- **`cens()` on a COUNT means something different here**, for RIGHT and
+  INTERVAL censoring only. A discrete censoring bound names a value the
+  response can take and is INCLUDED: right censoring at `k` is
+  `P(Y >= k)` and an interval is `P(k <= Y <= k2)`. brms emits
+  `poisson_lccdf(y | mu)`, which is `P(Y > y)`, and reads an interval as
+  `(y, y2]`. **Left censoring is `P(Y <= y)` in both packages and agrees
+  exactly**, and continuous censoring is unaffected, because an
+  interval’s endpoint carries no mass there. The difference is the point
+  mass at the recorded value; on 200 poisson draws at `lambda = 4` right
+  censored at 6, the two readings differ by 20.8 log units and 3.7
+  percent of the estimate. Subtract one from every right-censored and
+  interval lower bound to reproduce a brms fit, or keep the numbers and
+  read them as “6 or more”, which is what a recorded count usually
+  means.
+
+  The reason frmtmb does not simply follow brms is that **brms is
+  internally inconsistent here, and frmtmb cannot be both.** brms’s own
+  discrete truncation emits `poisson_lccdf(lb - 1 | mu)`, an inclusive
+  lower bound, `P(Y >= lb)`. So in brms `trunc(lb = 6)` means `Y >= 6`
+  while a right-censored row recorded at 6 means `Y > 6`: the same
+  number with two meanings on the same response. frmtmb’s
+  [`trunc()`](https://rdrr.io/r/base/Round.html) reproduces brms bit for
+  bit (poisson on `y = 3,4,5,6` at `b0 = log 4`, `trunc(lb = 2)` gives
+  6.9990718955 in both, against 6.2954805379 for the exclusive reading),
+  so its `cens()` had to choose between matching brms’s censoring and
+  matching its own truncation, and it matches its own.
+
+  The inclusive reading is also the only one consistent with frmtmb’s
+  censored simulator, which predates the change:
+  `simulate(censored = TRUE)` caps a draw at the censoring point,
+  recording `k` exactly when the latent draw is `>= k`. Measured on 4000
+  draws from a fit censored at 7, the simulated mass at that point is
+  0.13250, against `P(Y >= 7) = 0.12190` inclusive and
+  `P(Y > 7) = 0.05763` exclusive. Following brms would silently decouple
+  the likelihood from the simulator
+  [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
+  rests on.
 
 - `mm()` ports with its `weights =` and `scale =` arguments and with
   `mmc()`; its other arguments have different spellings here (below).
@@ -367,8 +409,8 @@ refuses one:
 
 | brms | frmtmb |
 |----|----|
-| `mm(g1, g2, cor = FALSE)` | `diag(x \| mm(g1, g2))`, or `(x \|\| mm(g1, g2))` |
-| `mm(g1, g2, id = "q")` | the `\|ID\|` key, `(x \| q \| g)` - not yet over `mm()` |
+| `mm(g1, g2, cor = FALSE)` | `diag(x | mm(g1, g2))`, or `(x || mm(g1, g2))` |
+| `mm(g1, g2, id = "q")` | the `|ID|` key, `(x | q | g)` - not yet over `mm()` |
 | `mm(g1, g2, cov = A)` | `gr(g, cov = A)` - not yet over `mm()` |
 | `mm(g1, g2, by = )`, `pw =`, `dist =` | no equivalent yet |
 
@@ -456,13 +498,13 @@ direct translation, and the translation was verified against
 [`nlme::gls()`](https://rdrr.io/pkg/nlme/man/gls.html) under ML
 (log-likelihood agreement 1e-10 or better).
 
-| nlme                        | frmtmb                               |
-|-----------------------------|--------------------------------------|
-| `varIdent(form = ~ 1 \| g)` | `sigma ~ 0 + g`                      |
-| `varExp(form = ~ v)`        | `sigma ~ v`                          |
-| `varPower(form = ~ v)`      | `sigma ~ log(abs(v))`                |
-| `varFixed(~ v)`             | `sigma ~ offset(0.5 * log(v))`       |
-| `varComb(A, B)`             | the two terms in one `sigma` formula |
+| nlme                       | frmtmb                               |
+|----------------------------|--------------------------------------|
+| `varIdent(form = ~ 1 | g)` | `sigma ~ 0 + g`                      |
+| `varExp(form = ~ v)`       | `sigma ~ v`                          |
+| `varPower(form = ~ v)`     | `sigma ~ log(abs(v))`                |
+| `varFixed(~ v)`            | `sigma ~ offset(0.5 * log(v))`       |
+| `varComb(A, B)`            | the two terms in one `sigma` formula |
 
 The coefficient of `log(abs(v))` is nlme’s power `theta`. The
 translation is also more general than a `varFunc`: `sigma` takes the

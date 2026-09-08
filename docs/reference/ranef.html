@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,10 +27,12 @@
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -95,12 +97,24 @@ matrix, in matching layout.</p></dd>
     <p>A named list of levels-by-coefficients matrices, one per
 random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
 key it (so <code>ranef(fit)$g</code> and <code>coef(fit)$g</code> name the same group).
-Two terms on one factor give two entries under one name, so index
-by position when a model has them; each matrix carries the block
-label that tells them apart in its <code>"term"</code> attribute, which is
-also the key <code><a href="VarCorr.html">VarCorr()</a></code> uses and the <code>grp</code> column of
+Each matrix carries its block label in a <code>"term"</code> attribute, which
+is also the key <code><a href="VarCorr.html">VarCorr()</a></code> uses and the <code>grp</code> column of
 <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>. That long form (with a <code>condsd</code> column when
 <code>condVar = TRUE</code> was used) is what broom.mixed-style code reads.</p>
+<p>Several terms on ONE grouping factor give several entries under one
+name, and <code>$</code> and <code>[[</code> then take the block label instead:
+<code>ranef(fit)[["chi: 1 | id"]]</code>. The bare factor name is refused
+there, and names the labels, rather than returning the first block.
+Positional indexing reaches every block either way.</p>
+<p>Three ordinary spellings put more than one block on one factor, so
+this is not a nonlinear-model corner: an uncorrelated slope
+<code>(1 + x || g)</code>, which desugars to <code>1 | g</code> and <code>0 + x | g</code>; two bars
+written out on the same factor, <code>(1 | g) + (0 + x | g)</code>, the same
+two blocks; and a random effect on more than one distributional or
+nonlinear parameter, such as <code>bf(y ~ x + (1 | g), sigma ~ (1 | g))</code>
+(<code>1 | g</code> and <code>sigma: 1 | g</code>) or <code>(1 | id)</code> on three nonlinear
+parameters. A CORRELATED slope <code>(1 + x | g)</code> is one block and is
+addressed by the factor name as before.</p>
     </div>
 
     <div class="section level2">
@@ -130,6 +144,9 @@ also the key <code><a href="VarCorr.html">VarCorr()</a></code> uses and the <cod
 <span class="r-out co"><span class="r-pr">#&gt;</span> -0.7929115  0.1938107 -0.6968785 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu">ranef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">g</span>, <span class="st">"term"</span><span class="op">)</span>          <span class="co"># the block it came from</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "1 | g"</span>
+<span class="r-in"><span><span class="fu">ranef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[[</span><span class="st">"1 | g"</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="op">]</span>        <span class="co"># or by that label</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          1          2          3 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -0.7929115  0.1938107 -0.6968785 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># condVar adds the conditional SDs a caterpillar plot needs</span></span></span>
 <span class="r-in"><span><span class="va">re</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">ranef</span><span class="op">(</span><span class="va">fit</span>, condVar <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>

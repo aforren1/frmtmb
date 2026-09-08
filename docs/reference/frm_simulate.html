@@ -15,7 +15,7 @@ them."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,10 +35,12 @@ them."></head><body>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -235,13 +237,13 @@ zero effect or unit SD.</p>
 <span class="r-in"><span>                                      sd_g__Intercept <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                     nsim <span class="op">=</span> <span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">sims</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       sim_1        sim_2      sim_3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.8476542  0.344709864  0.6289625</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 1.6862256  1.156485736  0.2785519</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.2897796 -0.496369784 -0.8822257</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 2.2704655  2.976915206  1.7419804</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 1.7904259  0.494875611 -0.7485436</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.2114016 -0.005453893 -0.2398657</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       sim_1      sim_2      sim_3</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.8647286 0.36178434  0.6460370</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 1.9956516 1.46591169  0.5879778</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 1.3777358 0.59158649  0.2057305</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 1.9654916 2.67194124  1.4370064</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 2.3704051 1.07485483 -0.1685644</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.2364781 0.01962257 -0.2147892</span>
 <span class="r-in"><span><span class="co"># the same thing on the internal scale</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="par_template.html">par_template</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">dd</span><span class="op">)</span>   <span class="co"># the layout</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;frmtmb parameter template&gt; starting values</span>
@@ -272,10 +274,10 @@ zero effect or unit SD.</p>
 <span class="r-in"><span>                   nsim <span class="op">=</span> <span class="fl">4</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">pp</span>, <span class="st">"pars"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>            x  Intercept sd_g__Intercept sigma_Intercept</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 -0.6264538  3.1311986       0.1457067       0.1397953</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  0.4755095 -2.4622073       1.5652413       0.8145358</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3  1.1765833 -0.8155673       3.3072809       1.4953203</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 -0.1643758 -0.8160698       0.3260219       1.5316271</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 -0.6264538  3.1939242       0.1457067       0.1397953</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  0.4755095 -2.5098192       1.5652413       0.8145358</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  1.1765833 -0.9333763       3.3072809       1.4953203</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 -0.1643758 -0.7996112       0.3260219       1.5316271</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

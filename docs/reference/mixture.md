@@ -115,6 +115,9 @@ head(mixture_probs(fit))
 frm(bf(y ~ 1, theta1 ~ x) + mixture(gaussian(), gaussian()), data = dd)
 #> frmtmb fit: y ~ 1 
 #> Family: mixture(gaussian, gaussian)   Method: ML 
+#>  Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;
+#>         theta1 = identity
+#> 
 #> logLik: -327.164  AIC: 666.328  nobs: 160 
 #> 
 #> Fixed effects:

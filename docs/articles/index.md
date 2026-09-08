@@ -20,3 +20,5 @@
   intention](https://aforren1.github.io/frmtmb/articles/habit.md):
 - [Feature
   compatibility](https://aforren1.github.io/frmtmb/articles/compatibility.md):
+- [Spectral models: fitting a
+  periodogram](https://aforren1.github.io/frmtmb/articles/spectral.md):

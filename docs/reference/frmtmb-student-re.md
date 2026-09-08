@@ -175,6 +175,8 @@ frm(bf(y ~ x + (1 | gr(g, dist = "student", dist_nu = 3))),
     family = gaussian(), data = d)
 #> frmtmb fit: y ~ x + (1 | gr(g, dist = "student", dist_nu = 3)) 
 #> Family: gaussian   Method: ML 
+#>  Links: mu = identity; sigma = log
+#> 
 #> logLik: -384.804  AIC: 777.607  nobs: 240 
 #> 
 #> Fixed effects:

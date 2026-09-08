@@ -11,6 +11,11 @@ it was given. The third question changes character: the posterior IS the
 uncertainty statement, so the interesting comparison is against the
 maximum-likelihood fit that the same objective produced.
 
+Every chunk here is shown and not run, because every one needs a sampler
+this package only suggests.
+[`vignette("sampling")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/sampling.md)
+says more about why, and its own prior tables do run.
+
 ``` r
 
 library(frmtmb)

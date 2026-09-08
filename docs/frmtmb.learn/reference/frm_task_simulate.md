@@ -8,14 +8,7 @@ draw and the density that scores it cannot drift apart.
 ## Usage
 
 ``` r
-frm_task_simulate(
-  family,
-  data,
-  pars,
-  nsim = 1L,
-  response = "choice",
-  seed = NULL
-)
+frm_task_simulate(family, data, pars, nsim = 1L, response = NULL, seed = NULL)
 ```
 
 ## Arguments
@@ -46,7 +39,12 @@ frm_task_simulate(
 
 - response:
 
-  Name of the column the drawn choice goes into.
+  Name of the column the drawn response goes into. `NULL`, the default,
+  uses the family's own: `choice` for a family whose response is the
+  option taken, `rt` for
+  [`rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.md),
+  whose response is the response time and whose drawn choice is written
+  beside it.
 
 - seed:
 

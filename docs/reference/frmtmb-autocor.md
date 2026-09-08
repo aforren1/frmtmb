@@ -202,6 +202,8 @@ fit <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
            data = d)
 summary(fit)
 #> Family: gaussian 
+#>  Links: mu = identity; sigma = log
+#> 
 #> Formula: y ~ x + ar(week, subj, cov = TRUE) 
 #> Method: ML   nobs: 150 
 #> logLik: -214.257  AIC: 436.514  BIC: 448.556 
@@ -231,6 +233,8 @@ autocor_matrix(fit)
 frm(bf(y ~ x + cosy(week, subj)) + gaussian(), data = d)
 #> frmtmb fit: y ~ x + cosy(week, subj) 
 #> Family: gaussian   Method: ML 
+#>  Links: mu = identity; sigma = log
+#> 
 #> logLik: -220.426  AIC: 448.852  nobs: 150 
 #> 
 #> Fixed effects:
@@ -243,6 +247,8 @@ frm(bf(y ~ x + cosy(week, subj)) + gaussian(), data = d)
 frm(bf(y ~ x + unstr(week, subj)) + gaussian(), data = d)
 #> frmtmb fit: y ~ x + unstr(week, subj) 
 #> Family: gaussian   Method: ML 
+#>  Links: mu = identity; sigma = log
+#> 
 #> logLik: -213.317  AIC: 452.634  nobs: 150 
 #> 
 #> Fixed effects:
@@ -258,6 +264,8 @@ frm(bf(y ~ x + (1 | subj) + ar(week, subj, cov = TRUE)) + gaussian(),
     data = d)
 #> frmtmb fit: y ~ x + (1 | subj) + ar(week, subj, cov = TRUE) 
 #> Family: gaussian   Method: ML 
+#>  Links: mu = identity; sigma = log
+#> 
 #> logLik: -214.232  AIC: 438.465  nobs: 150 
 #> 
 #> Fixed effects:

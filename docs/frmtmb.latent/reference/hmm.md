@@ -195,8 +195,9 @@ location coefficients, which matches no standard definition),
 [`trunc()`](https://rdrr.io/r/base/Round.html), `se()` and `mi()` on the
 response, multivariate models and `rescor`, `residuals(type = "osa")`,
 `predict(se.fit = TRUE)` on the response scale, and
-`conditional_effects()`. A grouping in which every sequence has length 1
-is refused too: the chain is then unidentified and the model is a
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html).
+A grouping in which every sequence has length 1 is refused too: the
+chain is then unidentified and the model is a
 [`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html).
 
 ## See also
@@ -270,6 +271,9 @@ frm(bf(y ~ 1, mu2 ~ 1 + (1 | id)),
     data = dd)
 #> frmtmb fit: y ~ 1 
 #> Family: hmm(2, gaussian)   Method: ML 
+#>  Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;
+#>         tr12 = identity; tr22 = identity
+#> 
 #> logLik: -617.932  AIC: 1249.86  nobs: 500 
 #> 
 #> Fixed effects:
@@ -305,6 +309,9 @@ frm(bf(y ~ 1),
     data = dd)
 #> frmtmb fit: y ~ 1 
 #> Family: hmm(2, gaussian)   Method: ML 
+#>  Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;
+#>         tr12 = identity; tr22 = identity
+#> 
 #> logLik: -610.619  AIC: 1239.24  nobs: 500 
 #> 
 #> Fixed effects:

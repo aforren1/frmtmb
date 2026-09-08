@@ -15,7 +15,7 @@ optimizer does not report convergence are kept but flagged."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,10 +35,12 @@ optimizer does not report convergence are kept but flagged."></head><body>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -80,7 +82,7 @@ optimizer does not report convergence are kept but flagged.</p>
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">frm_bootstrap</span><span class="op">(</span></span>
 <span>  <span class="va">fit</span>,</span>
-<span>  FUN <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  FUN <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">f</span>, flatten <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  nsim <span class="op">=</span> <span class="fl">500</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  re.form <span class="op">=</span> <span class="cn">NA</span></span>
@@ -97,7 +99,9 @@ optimizer does not report convergence are kept but flagged.</p>
 
 <dt id="arg-fun">FUN<a class="anchor" aria-label="anchor" href="#arg-fun"></a></dt>
 <dd><p>Function of a <code>frmtmb_fit</code> returning a numeric vector.
-Default: the flattened fixed effects.</p></dd>
+Default: <code>fixef(f, flatten = TRUE)</code>, the fixed effects named as
+<code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> names its rows, so a bootstrap standard error lines up
+with the Wald one by name.</p></dd>
 
 
 <dt id="arg-nsim">nsim<a class="anchor" aria-label="anchor" href="#arg-nsim"></a></dt>
@@ -138,14 +142,14 @@ percentile intervals.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Parametric bootstrap: 20 refits, 0 failed or not converged</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                   estimate      bias       se       lwr     upr</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> mu.(Intercept)    1.235000 -0.017843 0.137530  0.943890 1.40490</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> mu.x              0.570230  0.028611 0.126600  0.423170 0.88196</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> sigma.(Intercept) 0.055309  0.017652 0.086742 -0.071832 0.24671</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)       1.235000 -0.017843 0.137530  0.943890 1.40490</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x                 0.570230  0.028611 0.126600  0.423170 0.88196</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma_(Intercept) 0.055309  0.017652 0.086742 -0.071832 0.24671</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint</a></span><span class="op">(</span><span class="va">bs</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                           lwr       upr       est</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> mu.(Intercept)     0.94389441 1.4049435 1.2349782</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> mu.x               0.42317128 0.8819600 0.5702318</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> sigma.(Intercept) -0.07183161 0.2467123 0.0553095</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)        0.94389441 1.4049435 1.2349782</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x                  0.42317128 0.8819600 0.5702318</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma_(Intercept) -0.07183161 0.2467123 0.0553095</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

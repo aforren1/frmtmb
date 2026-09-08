@@ -80,7 +80,7 @@ rows of a sequence and sums the state path out exactly.
 <code>lca(K)</code> puts one class on each subject and reads it through
 conditionally independent items. Both are written against the
 structured-family protocol that frmtmb exports, so the rest of the
-grammar (priors, monotonic effects, <code>hypothesis()</code>, and the
+grammar (priors, monotonic effects, <code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code>, and the
 addition terms each family accepts) applies to them unchanged.</p>
 <p>The animal-track study below came from frmtmb’s own case-studies
 vignette when <code><a href="../reference/hmm.html">hmm()</a></code> moved out here. It checks the same
@@ -117,11 +117,11 @@ a bare name or a one-sided formula. <code>init = "stationary"</code>
 gives the chain the stationary distribution of its own transition
 matrix, which costs no parameters.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fhmm</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">logstep</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<code class="sourceCode R"><span><span class="va">fhmm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">logstep</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>            family <span class="op">=</span> <span class="fu"><a href="../reference/hmm.html">hmm</a></span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, time <span class="op">=</span> <span class="va">step</span>, group <span class="op">=</span> <span class="va">track</span>,</span>
 <span>                         init <span class="op">=</span> <span class="st">"stationary"</span><span class="op">)</span>,</span>
 <span>            data <span class="op">=</span> <span class="va">mv</span><span class="op">)</span></span>
-<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fhmm</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fhmm</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>estimated <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"sigma1.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="va">e</span><span class="op">[[</span><span class="st">"mu1.(Intercept)"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>                    <span class="va">e</span><span class="op">[[</span><span class="st">"mu2.(Intercept)"</span><span class="op">]</span><span class="op">]</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"sigma2.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>      simulated <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.45</span>, <span class="fl">1.4</span>, <span class="fl">3.1</span>, <span class="fl">0.55</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span><span class="op">]</span> <span class="op">|&gt;</span></span>
@@ -188,7 +188,7 @@ so this is a check of the optimum and not only of the likelihood.</p>
 <code>init = "estimated"</code>. Its expectation-maximization run is
 multimodal, so take the best of several random starts.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fest</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">logstep</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<code class="sourceCode R"><span><span class="va">fest</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">logstep</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>            family <span class="op">=</span> <span class="fu"><a href="../reference/hmm.html">hmm</a></span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, time <span class="op">=</span> <span class="va">step</span>, group <span class="op">=</span> <span class="va">track</span>,</span>
 <span>                         init <span class="op">=</span> <span class="st">"estimated"</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">mv</span><span class="op">)</span></span>
 <span><span class="va">dm</span> <span class="op">&lt;-</span> <span class="fu">depmixS4</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/depmixS4/man/depmix.html" class="external-link">depmix</a></span><span class="op">(</span><span class="va">logstep</span> <span class="op">~</span> <span class="fl">1</span>, data <span class="op">=</span> <span class="va">mv</span>, nstates <span class="op">=</span> <span class="fl">2</span>,</span>
@@ -238,24 +238,24 @@ what the transition matrix measures.</p>
 <p>The refusals below are documented rather than worked around. Each one
 has a reason that a workaround would hide.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">conditional_effects</span><span class="op">(</span><span class="va">fhmm</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">fhmm</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> conditional_effects() is not available for an hmm() fit: the expected response weights the state means by posterior state occupancies, which depend on the observed responses of a whole sequence and are therefore undefined on the synthetic grid this function builds. Plot one state's own predictor from predict(dpar = "mu2"), or the occupancies from hmm_probs()</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">fhmm</span>, type <span class="op">=</span> <span class="st">"deviance"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> residuals(type = "deviance") is not available for an hmm() fit: the unit deviance compares a row's likelihood with its saturated fit, and an HMM has no per-row likelihood to saturate. Use type = "response" or type = "pearson"</span></span></code></pre></div>
-<p><code>conditional_effects()</code> needs an expected response on a
+<p><code><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects()</a></code> needs an expected response on a
 synthetic covariate grid. Under an HMM the expected response weights the
 state means by the posterior occupancies, and those depend on the
 observed responses of a whole sequence, so they do not exist on a grid.
 Plot one state’s own predictor with <code>predict(dpar = "mu2")</code>,
 or the occupancies from <code><a href="../reference/hmm_probs.html">hmm_probs()</a></code>.</p>
 <p><code>residuals(type = "deviance")</code>, and frmtmb.sample’s
-<code>log_lik()</code> and <code>loo()</code>, all need a likelihood
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.html" class="external-link">log_lik()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code>, all need a likelihood
 that factors into one term per observation. An HMM’s smallest
 independent unit is a sequence, so a per-observation column would be a
 group and leaving one out would drop a whole track. Compare HMM fits
-with <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> or <code>frm_bootstrap()</code>.</p>
+with <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> or <code><a href="https://aforren1.github.io/frmtmb/reference/frm_bootstrap.html" class="external-link">frm_bootstrap()</a></code>.</p>
 <p>This section also does not cover the parts of the surface that do
 work: transition covariates (<code>trans = ~x</code>, or
 <code>bf(y ~ 1, tr12 ~ x)</code> for one cell), non-gaussian emissions,
@@ -294,10 +294,12 @@ its categories.</p>
 <span><span class="co">#&gt; [2,] 2 2 2 2 2 2 2</span></span>
 <span><span class="co">#&gt; [3,] 1 1 1 1 1 1 1</span></span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">flca</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/lca.html">lca</a></span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dc</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">flca</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/lca.html">lca</a></span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dc</span><span class="op">)</span></span>
 <span><span class="va">flca</span></span>
 <span><span class="co">#&gt; frmtmb fit: Y ~ 1 </span></span>
 <span><span class="co">#&gt; Family: lca(K = 2)   Method: ML </span></span>
+<span><span class="co">#&gt;  Links: theta1 = identity</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; logLik: -813.028  AIC: 1656.06  nobs: 250 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fixed effects:</span></span>
@@ -421,7 +423,7 @@ effects.</p>
 class-membership weights are ordinary distributional parameters, so a
 covariate in the formula puts a multinomial logit on class membership,
 and its coefficients get standard errors, priors and
-<code>hypothesis()</code> like any other fixed effect.</p>
+<code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code> like any other fixed effect.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

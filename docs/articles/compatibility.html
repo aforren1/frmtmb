@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,12 +42,14 @@
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
-<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -198,9 +200,13 @@ a design decision.</p>
 </h2>
 <p>Addition terms are the most family-sensitive part of the grammar.
 <code>cens()</code> and <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> need a family that supplies
-a cumulative distribution function, and <code>cens()</code> additionally
-refuses discrete responses. <code>se()</code> and <code>mi()</code> need
-a gaussian or student model.</p>
+a cumulative distribution function, and that is all they need: a
+discrete family that has one is censored under the inclusive convention,
+where a bound names a value the response can take (see
+[<code><a href="../reference/frmtmb_family.html">frmtmb_family()</a></code>]). <code>mi()</code> needs a gaussian or
+student model. <code>se()</code> needs a family that DECLARES it reads
+the term, with <code>accepts_aterms</code>; gaussian and student are the
+built-in ones that do.</p>
 <table class="table">
 <colgroup>
 <col width="27%">
@@ -228,200 +234,200 @@ a gaussian or student model.</p>
 <tr class="odd">
 <td align="left">gaussian</td>
 <td align="center">+</td>
-<td align="center">?</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">+</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">student</td>
 <td align="center">+</td>
-<td align="center">?</td>
+<td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">lognormal</td>
 <td align="center">+</td>
-<td align="center">?</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">shifted_lognormal</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">skew_normal</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">exgaussian</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">asym_laplace</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">Gamma</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">weibull</td>
 <td align="center">+</td>
-<td align="center">?</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">exponential</td>
 <td align="center">+</td>
-<td align="center">?</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">inverse.gaussian</td>
 <td align="center">+</td>
-<td align="center">?</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">+</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">beta</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">tweedie</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">poisson</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
+<td align="center">~</td>
 <td align="center">~</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">negbinomial</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">nbinom1</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">geometric</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">compois</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">binomial</td>
@@ -431,19 +437,19 @@ a gaussian or student model.</p>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">bernoulli</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">beta_binomial</td>
@@ -453,8 +459,8 @@ a gaussian or student model.</p>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">multinomial</td>
@@ -464,30 +470,30 @@ a gaussian or student model.</p>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">zero_inflated_poisson</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">zero_inflated_negbinomial</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">zero_inflated_binomial</td>
@@ -497,137 +503,137 @@ a gaussian or student model.</p>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">zero_inflated_beta</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">hurdle_poisson</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">hurdle_gamma</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">hurdle_lognormal</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">cumulative</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">sratio</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">cratio</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">acat</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">categorical</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="odd">
 <td align="left">von_mises</td>
 <td align="center">+</td>
-<td align="center">?</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 <tr class="even">
 <td align="left">cox</td>
 <td align="center">+</td>
-<td align="center">?</td>
+<td align="center">x</td>
 <td align="center">+</td>
 <td align="center">~</td>
 <td align="center">x</td>
 <td align="center">x</td>
-<td align="center">?</td>
-<td align="center">?</td>
+<td align="center">x</td>
+<td align="center">x</td>
 </tr>
 </tbody>
 </table>
 <table class="table">
 <colgroup>
-<col width="1%">
-<col width="28%">
-<col width="69%">
+<col width="0%">
+<col width="13%">
+<col width="85%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -637,17 +643,35 @@ a gaussian or student model.</p>
 <tbody>
 <tr class="odd">
 <td align="left">~</td>
-<td align="left">poisson + trunc()</td>
-<td align="left">Discrete truncation needs a lower bound of at least 1;
-trunc(lb = 0) is not truncation and is refused.</td>
+<td align="left">poisson + cens()</td>
+<td align="left">Works, under the INCLUSIVE discrete convention: a
+censoring bound names a value the response can take, so right censoring
+at k is P(Y &gt;= k), an interval is P(k &lt;= Y &lt;= k2), and a lower
+edge enters the CDF as F(k - 1). That is trunc(lb = )’s rule. It differs
+from brms for RIGHT and INTERVAL censoring, where brms emits
+poisson_lccdf(y | mu) = P(Y &gt; y); LEFT censoring already agrees.
+Verified against a hand-rolled likelihood for all four codes and
+composed with trunc(). A non-integer censoring bound is refused (the
+shift assumes the integer lattice), and residuals(type = “osa”) is
+refused.</td>
 </tr>
 <tr class="even">
+<td align="left">~</td>
+<td align="left">poisson + trunc()</td>
+<td align="left">Discrete truncation needs a lower bound of at least 1;
+trunc(lb = 0) is not truncation and is refused. The bound is INCLUSIVE:
+trunc(lb = k) is P(Y &gt;= k), scored with F(k - 1). That is brms’s rule
+too, and it is the premise the discrete cens() convention is built on,
+so that one number means one thing on a response however it is
+bounded.</td>
+</tr>
+<tr class="odd">
 <td align="left">~</td>
 <td align="left">multinomial + trials()</td>
 <td align="left">Required. The row sums of the response matrix must
 equal the trials.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">~</td>
 <td align="left">cox + trunc()</td>
 <td align="left">Runs through the same log-CDF the censoring uses, so
@@ -656,14 +680,50 @@ the SAME spline basis the response is, which means a bound outside the
 boundary knots is clamped to them rather than extrapolated. Untested
 against an external left-truncated reference.</td>
 </tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">gaussian + trials()</td>
+<td align="left">Refused by declaration: gaussian names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
 <tr class="even">
+<td align="left">x</td>
+<td align="left">gaussian + vint()</td>
+<td align="left">Refused by declaration: gaussian names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">gaussian + vreal()</td>
+<td align="left">Refused by declaration: gaussian names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">student + trials()</td>
+<td align="left">Refused by declaration: student names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">student + cens(); shifted_lognormal + cens();
 skew_normal + cens(); exgaussian + cens(); asym_laplace + cens(); and 8
 more</td>
 <td align="left">Refused: cens() needs a family with an AD log-CDF.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">student + trunc(); shifted_lognormal + trunc();
 skew_normal + trunc(); exgaussian + trunc(); asym_laplace + trunc(); and
@@ -671,13 +731,50 @@ skew_normal + trunc(); exgaussian + trunc(); asym_laplace + trunc(); and
 <td align="left">Refused: trunc() needs a family with an AD
 log-CDF.</td>
 </tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">student + vint()</td>
+<td align="left">Refused by declaration: student names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">student + vreal()</td>
+<td align="left">Refused by declaration: student names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">lognormal + trials()</td>
+<td align="left">Refused by declaration: lognormal names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
 <tr class="even">
 <td align="left">x</td>
 <td align="left">lognormal + se(); shifted_lognormal + se(); skew_normal
 + se(); exgaussian + se(); asym_laplace + se(); and 29 more</td>
-<td align="left">Refused: known standard errors are added to the
-residual variance, which only the gaussian and student families
-have.</td>
+<td align="left">Refused unless the family DECLARES that it reads the
+term, with frmtmb_family(accepts_aterms = c(…, “se”)) or required_aterms
+= “se”. se() is the one core addition term whose whole effect is inside
+the density, so the core cannot act on it for a family that ignores it.
+gaussian and student are the built-in families that declare it. A
+declaring family is refused a SECOND way if it has no dpar named
+<code>sigma</code> and carries another free dpar: se() without sigma =
+TRUE replaces the residual scale, the core maps out only the dpar the
+convention names, and the other one would be left free and unread - a
+flat direction and a NaN standard error. A family whose whole scale IS
+the known one (no dpar beyond its primaries) is unaffected; the ways out
+are to name the scale <code>sigma</code>, pin it in the formula, or
+write se(x, sigma = TRUE).</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
@@ -688,16 +785,710 @@ student.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
-<td align="left">poisson + cens()</td>
-<td align="left">Refused: censoring is not supported for discrete
-families yet, even though poisson carries a CDF.</td>
+<td align="left">lognormal + vint()</td>
+<td align="left">Refused by declaration: lognormal names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
+<td align="left">lognormal + vreal()</td>
+<td align="left">Refused by declaration: lognormal names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">shifted_lognormal + trials()</td>
+<td align="left">Refused by declaration: shifted_lognormal names the
+addition terms it reads in frmtmb_family(accepts_aterms =), trials() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">shifted_lognormal + vint()</td>
+<td align="left">Refused by declaration: shifted_lognormal names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vint() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">shifted_lognormal + vreal()</td>
+<td align="left">Refused by declaration: shifted_lognormal names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">skew_normal + trials()</td>
+<td align="left">Refused by declaration: skew_normal names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">skew_normal + vint()</td>
+<td align="left">Refused by declaration: skew_normal names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">skew_normal + vreal()</td>
+<td align="left">Refused by declaration: skew_normal names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">exgaussian + trials()</td>
+<td align="left">Refused by declaration: exgaussian names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">exgaussian + vint()</td>
+<td align="left">Refused by declaration: exgaussian names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">exgaussian + vreal()</td>
+<td align="left">Refused by declaration: exgaussian names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">asym_laplace + trials()</td>
+<td align="left">Refused by declaration: asym_laplace names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">asym_laplace + vint()</td>
+<td align="left">Refused by declaration: asym_laplace names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">asym_laplace + vreal()</td>
+<td align="left">Refused by declaration: asym_laplace names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">Gamma + trials()</td>
+<td align="left">Refused by declaration: Gamma names the addition terms
+it reads in frmtmb_family(accepts_aterms =), trials() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">Gamma + vint()</td>
+<td align="left">Refused by declaration: Gamma names the addition terms
+it reads in frmtmb_family(accepts_aterms =), vint() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">Gamma + vreal()</td>
+<td align="left">Refused by declaration: Gamma names the addition terms
+it reads in frmtmb_family(accepts_aterms =), vreal() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">weibull + trials()</td>
+<td align="left">Refused by declaration: weibull names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">weibull + vint()</td>
+<td align="left">Refused by declaration: weibull names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">weibull + vreal()</td>
+<td align="left">Refused by declaration: weibull names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">exponential + trials()</td>
+<td align="left">Refused by declaration: exponential names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">exponential + vint()</td>
+<td align="left">Refused by declaration: exponential names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">exponential + vreal()</td>
+<td align="left">Refused by declaration: exponential names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">inverse.gaussian + trials()</td>
+<td align="left">Refused by declaration: inverse.gaussian names the
+addition terms it reads in frmtmb_family(accepts_aterms =), trials() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">inverse.gaussian + vint()</td>
+<td align="left">Refused by declaration: inverse.gaussian names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vint() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">inverse.gaussian + vreal()</td>
+<td align="left">Refused by declaration: inverse.gaussian names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">beta + trials()</td>
+<td align="left">Refused by declaration: beta names the addition terms
+it reads in frmtmb_family(accepts_aterms =), trials() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">beta + vint()</td>
+<td align="left">Refused by declaration: beta names the addition terms
+it reads in frmtmb_family(accepts_aterms =), vint() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">beta + vreal()</td>
+<td align="left">Refused by declaration: beta names the addition terms
+it reads in frmtmb_family(accepts_aterms =), vreal() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">tweedie + trials()</td>
+<td align="left">Refused by declaration: tweedie names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">tweedie + vint()</td>
+<td align="left">Refused by declaration: tweedie names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">tweedie + vreal()</td>
+<td align="left">Refused by declaration: tweedie names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">poisson + trials()</td>
+<td align="left">Refused by declaration: poisson names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">poisson + vint()</td>
+<td align="left">Refused by declaration: poisson names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">poisson + vreal()</td>
+<td align="left">Refused by declaration: poisson names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">negbinomial + trials()</td>
+<td align="left">Refused by declaration: negbinomial names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
 <td align="left">negbinomial + cens(); nbinom1 + cens(); geometric +
 cens(); compois + cens(); binomial + cens(); and 6 more</td>
-<td align="left">Refused: censoring is not supported for discrete
-families yet.</td>
+<td align="left">Refused: none of these families carries an AD log-CDF,
+which is what a censored row needs. It is no longer refused for BEING
+discrete: a discrete family that supplies lcdf is censored under the
+inclusive convention, as poisson is.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">negbinomial + vint()</td>
+<td align="left">Refused by declaration: negbinomial names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">negbinomial + vreal()</td>
+<td align="left">Refused by declaration: negbinomial names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">nbinom1 + trials()</td>
+<td align="left">Refused by declaration: nbinom1 names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">nbinom1 + vint()</td>
+<td align="left">Refused by declaration: nbinom1 names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">nbinom1 + vreal()</td>
+<td align="left">Refused by declaration: nbinom1 names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">geometric + trials()</td>
+<td align="left">Refused by declaration: geometric names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">geometric + vint()</td>
+<td align="left">Refused by declaration: geometric names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">geometric + vreal()</td>
+<td align="left">Refused by declaration: geometric names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">compois + trials()</td>
+<td align="left">Refused by declaration: compois names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">compois + vint()</td>
+<td align="left">Refused by declaration: compois names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">compois + vreal()</td>
+<td align="left">Refused by declaration: compois names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">binomial + vint()</td>
+<td align="left">Refused by declaration: binomial names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">binomial + vreal()</td>
+<td align="left">Refused by declaration: binomial names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">bernoulli + trials()</td>
+<td align="left">Refused by declaration: bernoulli names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">bernoulli + vint()</td>
+<td align="left">Refused by declaration: bernoulli names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">bernoulli + vreal()</td>
+<td align="left">Refused by declaration: bernoulli names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">beta_binomial + vint()</td>
+<td align="left">Refused by declaration: beta_binomial names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vint() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">beta_binomial + vreal()</td>
+<td align="left">Refused by declaration: beta_binomial names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">multinomial + vint()</td>
+<td align="left">Refused by declaration: multinomial names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">multinomial + vreal()</td>
+<td align="left">Refused by declaration: multinomial names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">zero_inflated_poisson + trials()</td>
+<td align="left">Refused by declaration: zero_inflated_poisson names the
+addition terms it reads in frmtmb_family(accepts_aterms =), trials() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">zero_inflated_poisson + vint()</td>
+<td align="left">Refused by declaration: zero_inflated_poisson names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vint() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">zero_inflated_poisson + vreal()</td>
+<td align="left">Refused by declaration: zero_inflated_poisson names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">zero_inflated_negbinomial + trials()</td>
+<td align="left">Refused by declaration: zero_inflated_negbinomial names
+the addition terms it reads in frmtmb_family(accepts_aterms =), trials()
+is not among them, and frame assembly refuses it by name, listing the
+terms the family does take. This row is derived from that declaration
+rather than measured, so the table and the guard cannot drift
+apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">zero_inflated_negbinomial + vint()</td>
+<td align="left">Refused by declaration: zero_inflated_negbinomial names
+the addition terms it reads in frmtmb_family(accepts_aterms =), vint()
+is not among them, and frame assembly refuses it by name, listing the
+terms the family does take. This row is derived from that declaration
+rather than measured, so the table and the guard cannot drift
+apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">zero_inflated_negbinomial + vreal()</td>
+<td align="left">Refused by declaration: zero_inflated_negbinomial names
+the addition terms it reads in frmtmb_family(accepts_aterms =), vreal()
+is not among them, and frame assembly refuses it by name, listing the
+terms the family does take. This row is derived from that declaration
+rather than measured, so the table and the guard cannot drift
+apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">zero_inflated_binomial + vint()</td>
+<td align="left">Refused by declaration: zero_inflated_binomial names
+the addition terms it reads in frmtmb_family(accepts_aterms =), vint()
+is not among them, and frame assembly refuses it by name, listing the
+terms the family does take. This row is derived from that declaration
+rather than measured, so the table and the guard cannot drift
+apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">zero_inflated_binomial + vreal()</td>
+<td align="left">Refused by declaration: zero_inflated_binomial names
+the addition terms it reads in frmtmb_family(accepts_aterms =), vreal()
+is not among them, and frame assembly refuses it by name, listing the
+terms the family does take. This row is derived from that declaration
+rather than measured, so the table and the guard cannot drift
+apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">zero_inflated_beta + trials()</td>
+<td align="left">Refused by declaration: zero_inflated_beta names the
+addition terms it reads in frmtmb_family(accepts_aterms =), trials() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">zero_inflated_beta + vint()</td>
+<td align="left">Refused by declaration: zero_inflated_beta names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vint() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">zero_inflated_beta + vreal()</td>
+<td align="left">Refused by declaration: zero_inflated_beta names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">hurdle_poisson + trials()</td>
+<td align="left">Refused by declaration: hurdle_poisson names the
+addition terms it reads in frmtmb_family(accepts_aterms =), trials() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">hurdle_poisson + vint()</td>
+<td align="left">Refused by declaration: hurdle_poisson names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vint() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">hurdle_poisson + vreal()</td>
+<td align="left">Refused by declaration: hurdle_poisson names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">hurdle_gamma + trials()</td>
+<td align="left">Refused by declaration: hurdle_gamma names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">hurdle_gamma + vint()</td>
+<td align="left">Refused by declaration: hurdle_gamma names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">hurdle_gamma + vreal()</td>
+<td align="left">Refused by declaration: hurdle_gamma names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">hurdle_lognormal + trials()</td>
+<td align="left">Refused by declaration: hurdle_lognormal names the
+addition terms it reads in frmtmb_family(accepts_aterms =), trials() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">hurdle_lognormal + vint()</td>
+<td align="left">Refused by declaration: hurdle_lognormal names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vint() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">hurdle_lognormal + vreal()</td>
+<td align="left">Refused by declaration: hurdle_lognormal names the
+addition terms it reads in frmtmb_family(accepts_aterms =), vreal() is
+not among them, and frame assembly refuses it by name, listing the terms
+the family does take. This row is derived from that declaration rather
+than measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">cumulative + trials()</td>
+<td align="left">Refused by declaration: cumulative names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
@@ -705,6 +1496,114 @@ families yet.</td>
 cens(); sratio + trunc(); cratio + cens(); and 3 more</td>
 <td align="left">Refused: ordinal families carry no AD log-CDF over the
 response scale.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">cumulative + vint()</td>
+<td align="left">Refused by declaration: cumulative names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">cumulative + vreal()</td>
+<td align="left">Refused by declaration: cumulative names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">sratio + trials()</td>
+<td align="left">Refused by declaration: sratio names the addition terms
+it reads in frmtmb_family(accepts_aterms =), trials() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">sratio + vint()</td>
+<td align="left">Refused by declaration: sratio names the addition terms
+it reads in frmtmb_family(accepts_aterms =), vint() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">sratio + vreal()</td>
+<td align="left">Refused by declaration: sratio names the addition terms
+it reads in frmtmb_family(accepts_aterms =), vreal() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">cratio + trials()</td>
+<td align="left">Refused by declaration: cratio names the addition terms
+it reads in frmtmb_family(accepts_aterms =), trials() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">cratio + vint()</td>
+<td align="left">Refused by declaration: cratio names the addition terms
+it reads in frmtmb_family(accepts_aterms =), vint() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">cratio + vreal()</td>
+<td align="left">Refused by declaration: cratio names the addition terms
+it reads in frmtmb_family(accepts_aterms =), vreal() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">acat + trials()</td>
+<td align="left">Refused by declaration: acat names the addition terms
+it reads in frmtmb_family(accepts_aterms =), trials() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">acat + vint()</td>
+<td align="left">Refused by declaration: acat names the addition terms
+it reads in frmtmb_family(accepts_aterms =), vint() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">acat + vreal()</td>
+<td align="left">Refused by declaration: acat names the addition terms
+it reads in frmtmb_family(accepts_aterms =), vreal() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">categorical + trials()</td>
+<td align="left">Refused by declaration: categorical names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
@@ -717,6 +1616,78 @@ no CDF for a censored row to contribute.</td>
 <td align="left">categorical + trunc()</td>
 <td align="left">Refused for the same reason: no order, no CDF, no
 truncation window.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">categorical + vint()</td>
+<td align="left">Refused by declaration: categorical names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">categorical + vreal()</td>
+<td align="left">Refused by declaration: categorical names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">von_mises + trials()</td>
+<td align="left">Refused by declaration: von_mises names the addition
+terms it reads in frmtmb_family(accepts_aterms =), trials() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">von_mises + vint()</td>
+<td align="left">Refused by declaration: von_mises names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vint() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">von_mises + vreal()</td>
+<td align="left">Refused by declaration: von_mises names the addition
+terms it reads in frmtmb_family(accepts_aterms =), vreal() is not among
+them, and frame assembly refuses it by name, listing the terms the
+family does take. This row is derived from that declaration rather than
+measured, so the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">cox + trials()</td>
+<td align="left">Refused by declaration: cox names the addition terms it
+reads in frmtmb_family(accepts_aterms =), trials() is not among them,
+and frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="odd">
+<td align="left">x</td>
+<td align="left">cox + vint()</td>
+<td align="left">Refused by declaration: cox names the addition terms it
+reads in frmtmb_family(accepts_aterms =), vint() is not among them, and
+frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
+</tr>
+<tr class="even">
+<td align="left">x</td>
+<td align="left">cox + vreal()</td>
+<td align="left">Refused by declaration: cox names the addition terms it
+reads in frmtmb_family(accepts_aterms =), vreal() is not among them, and
+frame assembly refuses it by name, listing the terms the family does
+take. This row is derived from that declaration rather than measured, so
+the table and the guard cannot drift apart.</td>
 </tr>
 </tbody>
 </table>
@@ -2363,9 +3334,9 @@ resamples.</td>
 </table>
 <table class="table">
 <colgroup>
-<col width="5%">
-<col width="34%">
-<col width="59%">
+<col width="1%">
+<col width="9%">
+<col width="89%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -2409,8 +3380,13 @@ truncation silently dropped.</td>
 <tr class="odd">
 <td align="left">x</td>
 <td align="left">mixture + se()</td>
-<td align="left">Refused: se() is supported for gaussian and student
-families only.</td>
+<td align="left">Refused: a mixture does not declare se() even when its
+components do. Reading the term is only half of what se() means; the
+other half is that the residual scale it replaces is mapped out, and
+that step names the dpar <code>sigma</code>, which sigma1 and sigma2 are
+not. Measured before the refusal was made explicit: mixture(gaussian,
+gaussian) with se() fitted with both component sigmas at their starting
+value and every standard error NaN.</td>
 </tr>
 <tr class="even">
 <td align="left">x</td>
@@ -3542,13 +4518,13 @@ column.</td>
 </tr>
 <tr class="even">
 <td align="left">conditional</td>
-<td align="right">1804</td>
+<td align="right">1805</td>
 <td align="left">34%</td>
 </tr>
 <tr class="odd">
 <td align="left">refused</td>
-<td align="right">735</td>
-<td align="left">14%</td>
+<td align="right">838</td>
+<td align="left">16%</td>
 </tr>
 <tr class="even">
 <td align="left">broken</td>
@@ -3557,8 +4533,8 @@ column.</td>
 </tr>
 <tr class="odd">
 <td align="left">untested</td>
-<td align="right">949</td>
-<td align="left">18%</td>
+<td align="right">845</td>
+<td align="left">16%</td>
 </tr>
 </tbody>
 </table>
@@ -3566,6 +4542,15 @@ column.</td>
 not yet know. It shrinks as pairs are tested, not as the code is
 trusted. To close one, add a test and change the rule in
 <code>R/compat.R</code>.</p>
+<p>One class of cell closes without a test, and only that one: a family
+declares the addition terms it reads in
+<code>frmtmb_family(accepts_aterms =)</code>, and frame assembly refuses
+any other term on that response BY NAME. Those cells are refusals with a
+reason rather than an absence of evidence, so they are derived from the
+declaration instead of being written out. Only the refusal is derived; a
+family that ACCEPTS a term has said nothing about whether the pair
+works, and that cell stays <code>untested</code> until somebody runs
+it.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

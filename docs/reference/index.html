@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,10 +27,12 @@
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -214,7 +216,7 @@
 
         <dt>
 
-          <code><a href="frmtmb_register_compat.html">frmtmb_register_compat()</a></code> <code><a href="frmtmb_register_compat.html">compat_rule_builder()</a></code>
+          <code><a href="frmtmb_register_compat.html">frmtmb_register_compat()</a></code> <code><a href="frmtmb_register_compat.html">compat_rule_builder()</a></code> <code><a href="frmtmb_register_compat.html">compat_aterm_rules()</a></code>
 
         </dt>
         <dd>Contribute to the compatibility matrix from another package</dd>
@@ -246,6 +248,20 @@
 
         </dt>
         <dd>Additional response families</dd>
+
+        <dt>
+
+          <code><a href="frmtmb-links.html">frmtmb-links</a></code>
+
+        </dt>
+        <dd>Link functions</dd>
+
+        <dt>
+
+          <code><a href="frm_family.html">frm_family()</a></code>
+
+        </dt>
+        <dd>Build a family by name, with a link for any of its parameters</dd>
 
         <dt>
 
@@ -672,6 +688,36 @@
 
         </dt>
         <dd>Compatibility rules, before resolution</dd>
+      </dl></div><div class="section level2">
+      <h2 id="spectral-models">Spectral models<a class="anchor" aria-label="anchor" href="#spectral-models"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="frm_periodogram.html">frm_periodogram()</a></code>
+
+        </dt>
+        <dd>Periodogram for a Whittle-likelihood fit</dd>
+
+        <dt>
+
+          <code><a href="whittle.html">whittle()</a></code>
+
+        </dt>
+        <dd>Whittle likelihood for a periodogram response</dd>
+
+        <dt>
+
+          <code><a href="frm_series_draw.html">frm_series_draw()</a></code>
+
+        </dt>
+        <dd>Draw a time series from a fitted spectrum</dd>
       </dl></div><div class="section level2">
       <h2 id="package">Package<a class="anchor" aria-label="anchor" href="#package"></a></h2>
 

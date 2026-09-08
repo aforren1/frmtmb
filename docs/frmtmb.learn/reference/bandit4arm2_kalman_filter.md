@@ -10,7 +10,7 @@ each arm, and its gain is the learning rate the uncertainty implies.
 ## Usage
 
 ``` r
-bandit4arm2_kalman_filter(subject, trial = NULL, sigma_o = 4)
+bandit4arm2_kalman_filter(subject, trial = NULL, sigma_o = 4, bonus = FALSE)
 ```
 
 ## Arguments
@@ -36,6 +36,12 @@ bandit4arm2_kalman_filter(subject, trial = NULL, sigma_o = 4)
   measured against, and estimating it alongside `sigma0` and `sigmaD`
   asks the data to separate three quantities that enter through two
   ratios.
+
+- bonus:
+
+  Add the exploration bonus to the choice rule, giving one more
+  parameter `phi`. `FALSE`, the default, is the plain softmax over
+  posterior means and is the model the first release fitted.
 
 ## Value
 
@@ -72,13 +78,38 @@ and `center` at the task's own center when the design is known.
 
 ## Exploration bonus
 
-Not implemented. Daw and others compare softmax choice with rules that
-add a bonus for uncertainty, and the filter here carries the variance
-those rules need, so it is a short addition; it is left out because a
-bonus and `tau` are hard to separate on the data sizes these studies
-run. The state is in
-[`frm_value_trace()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_value_trace.md)
-as `s1` to `s4` if you want to look.
+`bonus = TRUE` adds Daw and others' exploration bonus: an arm's utility
+becomes
+
+    util[j] <- tau * (mu[j] + phi * sqrt(s[j]))
+
+so an arm the subject is UNCERTAIN about is worth more than its
+posterior mean alone, by an amount `phi` the fit estimates. `phi` is an
+ordinary distributional parameter, so it takes a formula like any other;
+`phi = 0` is the plain softmax and is what `bonus = FALSE`, the default,
+fits.
+
+IT IS OFF BY DEFAULT so that every fit made before it existed is
+unchanged, and the suite pins that by holding `phi` at zero with
+`bf(phi = 0)` and requiring the two log-likelihoods to agree.
+
+WHAT IT TRADES OFF AGAINST IS NOT `tau`, and this help said otherwise
+before the study ran. The reasoning was that both control how far choice
+departs from the current best arm. Measured at 30 subjects by 100 trials
+with `center`, `mu0` and `sigma0` held at the task's own values, 60
+replicates: `phi` recovers with a bias of +0.06 against a truth of 1.5,
+a spread of 0.14 and coverage 0.93, and its estimates correlate with
+`tau`'s at 0.12, which is nothing. What they correlate with is `sigmaD`,
+at -0.81, and after the fact that is the obvious pair: `phi` multiplies
+the posterior standard deviation and `sigmaD` sets how fast that
+standard deviation grows, so the two scale the same term. Report them
+together. `tau`'s own interval undercovers a little here, 0.85 against
+the nominal 0.95.
+
+Turn the bonus on when uncertainty-driven exploration is the question
+the study asks. Leaving `center`, `mu0` and `sigma0` free as well is not
+advisable on a session this size, for the reason the section above
+gives.
 
 ## The Laplace caveat
 
@@ -91,9 +122,20 @@ section of
 [`vignette("learning")`](https://aforren1.github.io/frmtmb/frmtmb.learn/articles/learning.md)
 and
 [`?frmtmb.learn`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frmtmb.learn-package.md)
-for the numbers. `frm(importance =)`, which is the usual way to price
-that error, is REFUSED for every family here; the refusal names the
-seam.
+for the numbers.
+
+`frm(importance =)`, the usual way to price that error, now WORKS for
+every family here. It was refused in the first release because the
+correction needs one log-likelihood value per subject and the structured
+protocol had no slot to put them in; the slots landed and the families
+declare them. What the correction is worth depends on the design and not
+on the family: at 40 subjects by 100 trials it moves a well-identified
+subject-level standard deviation up by about 0.1 to 0.2 log units,
+toward the truth, with good diagnostics, and at 20 trials it has nothing
+to correct because the Laplace fit has usually collapsed the component
+to zero already.
+[`?frmtmb.learn`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frmtmb.learn-package.md)
+carries the per-dataset table.
 
 ## References
 

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -83,22 +83,31 @@ names.</p>
 <p>Nothing about the fit changes. The model is the one
 <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> already assembled; what is added is a posterior, and
 a starting point.</p>
+<p>Most chunks on this page are shown and not run, and speed is not the
+reason: four chains on the model below take seconds, not minutes. The
+reason is that tmbstan and rstan are <code>Suggests</code>, so a build
+machine need not have them, and that a tmbstan built against the wrong
+StanHeaders samples the wrong density in silence (the last section says
+how). Numbers that depend on which Stan the page was built against are
+worse than no numbers. The two chunks that need no sampler do run: the
+setup below, and the <code><a href="https://aforren1.github.io/frmtmb/reference/get_prior.html" class="external-link">get_prior()</a></code> calls under <strong>The
+default priors</strong>.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://aforren1.github.io/frmtmb/" class="external-link">frmtmb</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/">frmtmb.sample</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">9</span><span class="op">)</span></span>
 <span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">80</span><span class="op">)</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">80</span>, <span class="fl">1</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">0</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">g</span><span class="op">]</span>, <span class="fl">1</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span>
+<span><span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">80</span>, <span class="fl">1</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">0</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">g</span><span class="op">]</span>, <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span>
 <span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="two-routes-one-posterior">Two routes, one posterior<a class="anchor" aria-label="anchor" href="#two-routes-one-posterior"></a>
 </h2>
 <p><code><a href="../reference/frm_sample.html">frm_sample()</a></code> takes either a fit or a formula.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># from a fit: the ML mode anchors the chains and shortens warmup</span></span>
 <span><span class="va">ds1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span></span>
@@ -123,15 +132,35 @@ this route. It has two routes, because frmtmb has two:
 <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> applies, which is flat in every slot.
 <code>route = "sample"</code> reports what <code><a href="../reference/frm_sample.html">frm_sample()</a></code>
 applies, and this package is what lets it answer.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># what frm() applies. Loading this package does not change it</span></span>
 <span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/get_prior.html" class="external-link">get_prior</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span>
+<span><span class="co">#&gt; route = "fit": the prior defaults frm() applies</span></span>
+<span><span class="co">#&gt;    prior     class    coef group dpar nlpar resp lb ub</span></span>
+<span><span class="co">#&gt; 1 (flat) Intercept                               NA NA</span></span>
+<span><span class="co">#&gt; 2 (flat)         b                               NA NA</span></span>
+<span><span class="co">#&gt; 3 (flat)         b       x                       NA NA</span></span>
+<span><span class="co">#&gt; 4 (flat)     sigma                               NA NA</span></span>
+<span><span class="co">#&gt; 5 (flat)        sd                               NA NA</span></span>
+<span><span class="co">#&gt; 6 (flat)        sd             g                 NA NA</span></span>
+<span><span class="co">#&gt; 7 (flat)     theta                               NA NA</span></span>
+<span><span class="co">#&gt; 8 (flat)     theta theta_1                       NA NA</span></span>
 <span></span>
 <span><span class="co"># what frm_sample() applies, which is the brms reading of get_prior().</span></span>
 <span><span class="co"># Without this package loaded, the call is refused rather than</span></span>
 <span><span class="co"># answered "(flat)"</span></span>
 <span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/get_prior.html" class="external-link">get_prior</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>,</span>
-<span>          route <span class="op">=</span> <span class="st">"sample"</span><span class="op">)</span></span></code></pre></div>
+<span>          route <span class="op">=</span> <span class="st">"sample"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; route = "sample": the prior defaults frm_sample() applies</span></span>
+<span><span class="co">#&gt;                  prior     class    coef group dpar nlpar resp lb ub</span></span>
+<span><span class="co">#&gt; 1 student_t(3, 1, 2.5) Intercept                               NA NA</span></span>
+<span><span class="co">#&gt; 2               (flat)         b                               NA NA</span></span>
+<span><span class="co">#&gt; 3               (flat)         b       x                       NA NA</span></span>
+<span><span class="co">#&gt; 4 student_t(3, 0, 2.5)     sigma                               NA NA</span></span>
+<span><span class="co">#&gt; 5 student_t(3, 0, 2.5)        sd                               NA NA</span></span>
+<span><span class="co">#&gt; 6 student_t(3, 0, 2.5)        sd             g                 NA NA</span></span>
+<span><span class="co">#&gt; 7               (flat)     theta                               NA NA</span></span>
+<span><span class="co">#&gt; 8               (flat)     theta theta_1                       NA NA</span></span></code></pre></div>
 <p>The printed table names its route on the first line, so a table
 copied out of a session still says which set of defaults it
 describes.</p>
@@ -143,7 +172,7 @@ variance components.</p>
 <p>A <code><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">set_prior()</a></code> specification takes over the classes it
 names and leaves the other defaults alone, which is brms’s
 partial-override rule.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span>,</span>
 <span>                 prior <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/prior_summary.html" class="external-link">prior_summary</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></code></pre></div>
@@ -189,7 +218,7 @@ the approximation.</p>
 </h2>
 <p>The draws object supports the post-processing surface a brmsfit does,
 on the same generics:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/ranef.html" class="external-link">ranef</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/VarCorr.html" class="external-link">VarCorr</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/posterior_epred.html">posterior_epred</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="../reference/posterior_epred.html">posterior_predict</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="../reference/posterior_epred.html">posterior_linpred</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</span><span class="op">)</span></span>
@@ -228,7 +257,7 @@ draw carries that group’s effects drawn from its own covariance
 parameters. The band is wider than the population band by what that
 group’s variance adds, which is the whole point of asking.
 <code>seed =</code> makes the draw reproducible.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span>                 <span class="co"># population</span></span>
 <span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x"</span>, re_formula <span class="op">=</span> <span class="cn">NULL</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x:z"</span>,</span>
@@ -249,7 +278,7 @@ different questions depending on how the hypothesis is written.</p>
 <p>A DIRECTIONAL hypothesis is the simple one. Its evidence ratio is the
 posterior odds of the claim, counted from the draws. No prior enters it,
 so it is always available.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x &gt; 0"</span><span class="op">)</span></span>
 <span><span class="va">h</span><span class="op">$</span><span class="va">evid_ratio</span>   <span class="co"># P(x &gt; 0) / P(x &lt; 0)</span></span>
 <span><span class="va">h</span><span class="op">$</span><span class="va">post_prob</span>    <span class="co"># P(x &gt; 0)</span></span></code></pre></div>
@@ -259,7 +288,7 @@ density there. For a point null nested inside the model, that ratio IS
 the Bayes factor. It needs a proper prior on the parameter, and
 <code><a href="../reference/frm_sample.html">frm_sample()</a></code> leaves class <code>"b"</code> flat by default
 because brms does, so write one:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, prior <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x = 0"</span><span class="op">)</span><span class="op">$</span><span class="va">evid_ratio</span></span></code></pre></div>
 <p>Without a proper prior the ratio is <code>NA</code> and a warning
@@ -275,7 +304,7 @@ from the specification the model was sampled under. Half the Monte Carlo
 error goes away with it.</p>
 <p>A density ratio deserves an error bar. The between-chain Monte Carlo
 error of each ratio rides on the returned object:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x = 0"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">h</span>, <span class="st">"evid_ratio_mcse"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">

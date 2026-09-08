@@ -42,10 +42,10 @@ dd$y <- rpois(60, exp(0.3 + 0.4 * dd$x + rnorm(6, 0, 0.4)[dd$g]))
 fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
 frm_allfit(fit)
 #>     optimizer    logLik convergence seconds
-#>        nlminb -100.9269           0    0.04
-#>         optim -100.9269           0    0.04
-#>        bobyqa -100.9269           0    0.10
-#>  nloptr_lbfgs -100.9269           0    0.09
+#>        nlminb -100.9269           0    0.05
+#>         optim -100.9269           0    0.06
+#>        bobyqa -100.9269           0    0.16
+#>  nloptr_lbfgs -100.9269           0    0.20
 #> 
 #> logLik spread: 3.82e-11 
 #> max fixed-effect spread: 4.27e-07 

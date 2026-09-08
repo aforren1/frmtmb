@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,12 +42,14 @@
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
-<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -159,7 +161,8 @@ unsupported</td>
 </td>
 <td>same</td>
 <td>
-<code>cens</code>/<code>trunc</code> need a CDF-carrying family</td>
+<code>cens</code>/<code>trunc</code> need a CDF-carrying family; a
+DISCRETE censoring bound is read inclusively, unlike brms (below)</td>
 </tr>
 <tr class="even">
 <td><code>nl = TRUE</code></td>
@@ -460,7 +463,50 @@ becomes <code>y | trials(size)</code> with either proportions or counts;
 brms.</p></li>
 <li><p><code>se()</code> works as in brms (meta-analysis), including
 <code>se(x, sigma = TRUE)</code> and the phylogenetic version with
-<code>gr(g, cov = A)</code>.</p></li>
+<code>gr(g, cov = A)</code>. It reaches further than brms does: a family
+written with <code><a href="../reference/frmtmb_family.html">frmtmb_family()</a></code> gets the term by declaring
+<code>accepts_aterms = c(..., "se")</code>, rather than by being
+gaussian or student.</p></li>
+<li>
+<p><strong><code>cens()</code> on a COUNT means something different
+here</strong>, for RIGHT and INTERVAL censoring only. A discrete
+censoring bound names a value the response can take and is INCLUDED:
+right censoring at <code>k</code> is <code>P(Y &gt;= k)</code> and an
+interval is <code>P(k &lt;= Y &lt;= k2)</code>. brms emits
+<code>poisson_lccdf(y | mu)</code>, which is <code>P(Y &gt; y)</code>,
+and reads an interval as <code>(y, y2]</code>. <strong>Left censoring is
+<code>P(Y &lt;= y)</code> in both packages and agrees exactly</strong>,
+and continuous censoring is unaffected, because an interval’s endpoint
+carries no mass there. The difference is the point mass at the recorded
+value; on 200 poisson draws at <code>lambda = 4</code> right censored at
+6, the two readings differ by 20.8 log units and 3.7 percent of the
+estimate. Subtract one from every right-censored and interval lower
+bound to reproduce a brms fit, or keep the numbers and read them as “6
+or more”, which is what a recorded count usually means.</p>
+<p>The reason frmtmb does not simply follow brms is that <strong>brms is
+internally inconsistent here, and frmtmb cannot be both.</strong> brms’s
+own discrete truncation emits <code>poisson_lccdf(lb - 1 | mu)</code>,
+an inclusive lower bound, <code>P(Y &gt;= lb)</code>. So in brms
+<code>trunc(lb = 6)</code> means <code>Y &gt;= 6</code> while a
+right-censored row recorded at 6 means <code>Y &gt; 6</code>: the same
+number with two meanings on the same response. frmtmb’s
+<code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> reproduces brms bit for bit (poisson on
+<code>y = 3,4,5,6</code> at <code>b0 = log 4</code>,
+<code>trunc(lb = 2)</code> gives 6.9990718955 in both, against
+6.2954805379 for the exclusive reading), so its <code>cens()</code> had
+to choose between matching brms’s censoring and matching its own
+truncation, and it matches its own.</p>
+<p>The inclusive reading is also the only one consistent with frmtmb’s
+censored simulator, which predates the change:
+<code>simulate(censored = TRUE)</code> caps a draw at the censoring
+point, recording <code>k</code> exactly when the latent draw is
+<code>&gt;= k</code>. Measured on 4000 draws from a fit censored at 7,
+the simulated mass at that point is 0.13250, against
+<code>P(Y &gt;= 7) = 0.12190</code> inclusive and
+<code>P(Y &gt; 7) = 0.05763</code> exclusive. Following brms would
+silently decouple the likelihood from the simulator
+<code><a href="../reference/dharma_residuals.html">dharma_residuals()</a></code> rests on.</p>
+</li>
 <li><p><code>mm()</code> ports with its <code>weights =</code> and
 <code>scale =</code> arguments and with <code>mmc()</code>; its other
 arguments have different spellings here (below).</p></li>

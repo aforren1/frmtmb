@@ -179,6 +179,8 @@ st$beta["x"] <- 2
 frm(bf(y ~ x) + gaussian(), dd, start = st)
 #> frmtmb fit: y ~ x 
 #> Family: gaussian   Method: ML 
+#>  Links: mu = identity; sigma = log
+#> 
 #> logLik: -38.8663  AIC: 83.7327  nobs: 30 
 #> 
 #> Fixed effects:

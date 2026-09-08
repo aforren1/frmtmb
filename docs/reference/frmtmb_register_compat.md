@@ -13,6 +13,8 @@ and reads as if it reported on all of it.
 frmtmb_register_compat(features = NULL, rules = NULL, expects = character(0))
 
 compat_rule_builder()
+
+compat_aterm_rules(accepts, existing = NULL)
 ```
 
 ## Arguments
@@ -67,10 +69,27 @@ compat_rule_builder()
   without a suggestion. Pointing at a feature that is not in the session
   would be its own confusion.
 
+- accepts:
+
+  For `compat_aterm_rules()`: a named list mapping a family's DISPLAY
+  name to what that family accepts. An element is a family object, a
+  character vector of addition-term names without parentheses (the
+  vocabulary `frmtmb_family(accepts_aterms =)` is written in), or `NULL`
+  for a family that declares no allow-list and so has nothing to derive
+  from.
+
+- existing:
+
+  For `compat_aterm_rules()`: the rules written by hand, so that the
+  derivation defers to them. A pair named on both sides there is left
+  alone, note and all. `NULL` defers to nothing.
+
 ## Value
 
 `NULL`, invisibly. Called for the registration. `compat_rule_builder()`
-returns a list with elements `r` and `rules`.
+returns a list with elements `r` and `rules`. `compat_aterm_rules()`
+returns a rule data frame, ready to
+[`rbind()`](https://rdrr.io/r/base/cbind.html) with one.
 
 ## Details
 
@@ -108,6 +127,27 @@ is added to the vocabulary for you, as `"<name>()"` of kind `"aterm"`. A
 registered term the table cannot describe would be a gap by
 construction, so the registrant is not asked to say it twice; saying it
 anyway is a no-op. Register the term BEFORE the rules that name it.
+
+## Rows a family has already declared
+
+`compat_aterm_rules()` writes the addition-term refusals out of
+`frmtmb_family(accepts_aterms =)` instead of asking for them twice. A
+term outside a family's allow-list is refused BY NAME at frame assembly,
+so `untested` was never the right answer for that cell: nothing is
+missing, the guard exists and the reason is the declaration. Feed it the
+families the package supplies, and hand it the rows written by hand so
+that it defers to them:
+
+    hand <- b$rules()
+    rbind(hand,
+          compat_aterm_rules(list(wiener = c("dec", "vint", "weights")),
+                             hand))
+
+A pair `existing` already names on both sides is skipped, note and all,
+so the derivation adds cells rather than replacing them. What is derived
+is only the refusal: a family that ACCEPTS a term has said nothing about
+whether the pair works, and `untested` stays the honest answer there
+until somebody runs it.
 
 ## Status vocabulary
 

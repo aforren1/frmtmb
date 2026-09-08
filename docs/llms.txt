@@ -130,7 +130,8 @@ way and each documented on its own part of the site.
 | [frmtmb.ode](https://aforren1.github.io/frmtmb/frmtmb.ode/) | ordinary differential equation dynamics: `frm_ode()` |
 | [frmtmb.eam](https://aforren1.github.io/frmtmb/frmtmb.eam/) | evidence accumulation models: `wiener()`, `gddm()`, `lba()`, `rdm()` and `wiener_gng()` |
 | [frmtmb.spline](https://aforren1.github.io/frmtmb/frmtmb.spline/) | curve inference on any fitted smooth, and the flexible parametric survival family `royston_parmar()` |
-| [frmtmb.learn](https://aforren1.github.io/frmtmb/frmtmb.learn/) | reinforcement-learning families: `bandit2arm_delta()`, `bandit2arm_dual()`, `prl_fictitious()`, `bandit4arm2_kalman_filter()`, `ts_par7()` and `igt_pvl_delta()`, each parameter an ordinary distributional parameter with its own linear predictor |
+| [frmtmb.learn](https://aforren1.github.io/frmtmb/frmtmb.learn/) | reinforcement-learning families: `bandit2arm_delta()`, `bandit2arm_dual()`, `prl_fictitious()`, `bandit4arm2_kalman_filter()`, `ts_par7()`, `igt_pvl_delta()`, `igt_orl()` and `rlddm()`, each parameter an ordinary distributional parameter with its own linear predictor |
+| [frmtmb.coupling](https://aforren1.github.io/frmtmb/frmtmb.coupling/) | coherence and phase between two signals: the complex Wishart family `cross_wishart()`, whose coherence and phase are distributional parameters with their own linear predictors |
 
 ``` r
 
@@ -140,6 +141,7 @@ remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.eam")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.spline")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.learn")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.coupling")
 ```
 
 ## Example
@@ -451,6 +453,7 @@ and `NEWS.md` for the changelog.
 
 - [`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
   [`compat_rule_builder()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
+  [`compat_aterm_rules()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
   : Contribute to the compatibility matrix from another package
 
 - [`frmtmb_ad_overload()`](https://aforren1.github.io/frmtmb/reference/frmtmb_ad_overload.md)
@@ -506,6 +509,12 @@ and `NEWS.md` for the changelog.
   [`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
   : Additional response families
+
+- [`frmtmb-links`](https://aforren1.github.io/frmtmb/reference/frmtmb-links.md)
+  : Link functions
+
+- [`frm_family()`](https://aforren1.github.io/frmtmb/reference/frm_family.md)
+  : Build a family by name, with a link for any of its parameters
 
 - [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
   : Finite mixture families
@@ -717,6 +726,15 @@ and `NEWS.md` for the changelog.
 - [`frm_compat_rules()`](https://aforren1.github.io/frmtmb/reference/frm_compat_rules.md)
   : Compatibility rules, before resolution
 
+## Spectral models
+
+- [`frm_periodogram()`](https://aforren1.github.io/frmtmb/reference/frm_periodogram.md)
+  : Periodogram for a Whittle-likelihood fit
+- [`whittle()`](https://aforren1.github.io/frmtmb/reference/whittle.md)
+  : Whittle likelihood for a periodogram response
+- [`frm_series_draw()`](https://aforren1.github.io/frmtmb/reference/frm_series_draw.md)
+  : Draw a time series from a fitted spectrum
+
 ## Package
 
 - [`frmtmb`](https://aforren1.github.io/frmtmb/reference/frmtmb-package.md)
@@ -747,3 +765,5 @@ and `NEWS.md` for the changelog.
   intention](https://aforren1.github.io/frmtmb/articles/habit.md):
 - [Feature
   compatibility](https://aforren1.github.io/frmtmb/articles/compatibility.md):
+- [Spectral models: fitting a
+  periodogram](https://aforren1.github.io/frmtmb/articles/spectral.md):

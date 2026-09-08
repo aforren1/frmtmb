@@ -112,6 +112,8 @@ fit <- frm(bf(rt | vint(upper) ~ lex, bias = 0.5),
            family = wiener(), data = dat)
 summary(fit)
 #> Family: wiener 
+#>  Links: mu = identity; bs = log; ndt = scaled_logit; bias = logit
+#> 
 #> Formula: rt | vint(upper) ~ lex 
 #> Method: ML   nobs: 1200 
 #> logLik: -799.08  AIC: 1606.16  BIC: 1626.52 
@@ -287,13 +289,13 @@ frm_compat("wiener")[, c("feature_b", "status")]
 #> 23               us_t       works
 #> 24             diag_t       works
 #> 25          weights()       works
-#> 26           trials()    untested
+#> 26           trials()     refused
 #> 27             cens()     refused
 #> 28            trunc()     refused
 #> 29               se()     refused
 #> 30               mi()     refused
 #> 31             vint()       works
-#> 32            vreal()    untested
+#> 32            vreal()     refused
 #> 33                s()       works
 #> 34               t2()       works
 #> 35               mo() conditional

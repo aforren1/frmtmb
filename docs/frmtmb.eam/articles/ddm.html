@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -180,6 +180,8 @@ it.</p>
 <span>           family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Family: wiener </span></span>
+<span><span class="co">#&gt;  Links: mu = identity; bs = log; ndt = scaled_logit; bias = logit</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Formula: rt | vint(upper) ~ lex </span></span>
 <span><span class="co">#&gt; Method: ML   nobs: 1200 </span></span>
 <span><span class="co">#&gt; logLik: -799.08  AIC: 1606.16  BIC: 1626.52 </span></span>
@@ -346,13 +348,13 @@ what was tested and what merely was not.</p>
 <span><span class="co">#&gt; 23               us_t       works</span></span>
 <span><span class="co">#&gt; 24             diag_t       works</span></span>
 <span><span class="co">#&gt; 25          weights()       works</span></span>
-<span><span class="co">#&gt; 26           trials()    untested</span></span>
+<span><span class="co">#&gt; 26           trials()     refused</span></span>
 <span><span class="co">#&gt; 27             cens()     refused</span></span>
 <span><span class="co">#&gt; 28            trunc()     refused</span></span>
 <span><span class="co">#&gt; 29               se()     refused</span></span>
 <span><span class="co">#&gt; 30               mi()     refused</span></span>
 <span><span class="co">#&gt; 31             vint()       works</span></span>
-<span><span class="co">#&gt; 32            vreal()    untested</span></span>
+<span><span class="co">#&gt; 32            vreal()     refused</span></span>
 <span><span class="co">#&gt; 33                s()       works</span></span>
 <span><span class="co">#&gt; 34               t2()       works</span></span>
 <span><span class="co">#&gt; 35               mo() conditional</span></span>

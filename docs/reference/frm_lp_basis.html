@@ -21,7 +21,7 @@ perturbation, one predict() call per coefficient."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,10 +41,12 @@ perturbation, one predict() call per coefficient."></head><body>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -148,7 +150,7 @@ belong to, in <code>V</code>'s own order.</p></dd>
 <dt><code>extra_var</code></dt>
 <dd><p>length <code>n</code>; variance that is NOT coefficient
 uncertainty, kept separate rather than folded into <code>A V A'</code>
-because an exact <code><a href="https://paulbuerkner.com/brms/reference/gp.html" class="external-link">gp()</a></code>'s kriging variance and a new grouping
+because an exact <code>gp()</code>'s kriging variance and a new grouping
 level's marginal variance are not.</p></dd>
 
 <dt><code>nonest</code></dt>
@@ -177,7 +179,7 @@ this is the route.</p>
 <p>The Jacobian is exact, and the delta method built on it is still a
 first-order approximation, which for a warped curve is a stronger
 assumption than it is for a linear one. <code>allow_new_levels = TRUE</code> is
-refused there, and so is a contributing exact <code><a href="https://paulbuerkner.com/brms/reference/gp.html" class="external-link">gp()</a></code>, because neither
+refused there, and so is a contributing exact <code>gp()</code>, because neither
 variance has a chain rule through the body that has been measured.</p>
     </div>
     <div class="section level2">

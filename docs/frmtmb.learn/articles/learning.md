@@ -186,22 +186,9 @@ fitted(fit)
 ```
 
 [`frm_value_trace()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_value_trace.md)
-above returns everything a mean would have carried, and more. The other
-refusal worth knowing is the Laplace correction:
-
-``` r
-
-frm(bf(choice | reward(pay1, pay2) ~ after_reversal + (1 | id), tau ~ 1),
-    family = bandit2arm_delta(subject = id, trial = trial), data = d,
-    importance = 200)
-#> Error:
-#> ! `importance` cannot correct the 'bandit2arm_delta' family: it supplies its own log-likelihood, which returns one number for the whole response, so a group's rows have no separable integrand to resample. A family whose likelihood does factorize over its groups says so with frmtmb_structure(loglik_group = ) or (loglik_row = ), and this one declares neither. Use importance = 0
-```
-
-That refusal is honest but wider than the mathematics, and it names the
-seam that would close it.
+above returns everything a mean would have carried, and more.
 [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.html)
-is the place to ask:
+is the place to ask what else refuses:
 
 ``` r
 
@@ -209,15 +196,21 @@ frm_compat("bandit2arm_delta", "residuals")$status
 #> [1] "refused"
 frm_compat("bandit2arm_delta", "s()")$status
 #> [1] "works"
+frm_compat("bandit2arm_delta", "importance")$status
+#> [1] "works"
 ```
+
+That last one refused in the first release and works now. The correction
+reweights draws from the Laplace Gaussian and needs one log-likelihood
+value per subject; the families declare them, so it runs. The next
+section says what it is worth.
 
 ## The Laplace caveat
 
 frmtmb integrates the subject effects out with a Laplace approximation,
 which is exact only when the conditional log-density is quadratic. For
 binary choices it is not, and the fewer trials a subject has the less
-quadratic it is. The consequence was measured by simulation, because
-`frm(importance =)`, the usual way to price it, is refused. 100
+quadratic it is. The consequence was measured by simulation, 100
 replicates at 40 subjects, the full tables in
 [`?frmtmb.learn`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frmtmb.learn-package.md):
 
@@ -240,10 +233,26 @@ widens at least as fast as the estimate degrades and still covers 0.95.
 Treat a subject-level standard deviation from twenty binary trials as a
 lower bound, and read its interval rather than its point estimate.
 
-`frm(importance =)` is what would separate Laplace error from the
-ordinary downward bias of a variance component estimated from binary
-data with few levels, and it is refused, so the study measures the
-combined effect and says so.
+`frm(importance =)` is what separates Laplace error from the ordinary
+downward bias of a variance component estimated from binary data with
+few levels, and it now runs. Measured on this design, six datasets per
+cell: at 100 trials, where the Laplace fit has kept a real variance
+component, the correction moves `sd(alpha)` up by 0.11 to 0.18 log units
+and toward the truth, with a Monte Carlo standard error a third of that
+and effective sample sizes near 1. So part of the downward bias at 100
+trials IS Laplace error, and it is a modest part.
+
+At 20 trials the correction has nothing to work with. Five of six
+Laplace fits have already collapsed `sd(alpha)` to 1e-4, and the
+correction then walks at its own step cap for every round while warning
+that it did not converge. A shift reported alongside that warning is the
+step cap rather than an estimate, so check `sqrt(VarCorr(fit))` and read
+the warning before believing one. The warning advises raising
+`frmtmb_control(importance_rounds =)`, and on a collapsed component that
+makes the artifact bigger in exact proportion: five rounds of a 0.3645
+cap give 1.822 and ten give 3.645.
+[`?frmtmb.learn`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frmtmb.learn-package.md)
+carries the per-dataset table.
 
 ## The families
 
@@ -261,6 +270,8 @@ knitr::kable(fams[, c("family", "hbayesdm", "task", "options")])
 | bandit4arm2_kalman_filter | bandit4arm2_kalman_filter | restless four-armed bandit | 4 |
 | ts_par7 | ts_par7 | two-stage Markov decision task | 2 then 2 |
 | igt_pvl_delta | igt_pvl_delta | Iowa gambling task | 4 |
+| igt_orl | igt_orl | Iowa gambling task | 4 |
+| rlddm | none | two-armed bandit, choices and response times | 2 |
 
 Each family’s parameters, and the map to hBayesDM’s spelling of them:
 
@@ -277,6 +288,8 @@ knitr::kable(fams[, c("family", "pars", "hbayesdm_pars")])
 | bandit4arm2_kalman_filter | tau, lambda, center, mu0, sigma0, sigmaD | beta, lambda, theta, mu0, sigma0, sigmaD |
 | ts_par7 | w, alpha1, tau1, alpha2, tau2, lambda, pers | w, a1, beta1, a2, beta2, lambda, pi / tau1 |
 | igt_pvl_delta | alpha, shape, lambda, tau | A, alpha, lambda, 3^cons - 1 |
+| igt_orl | Arew, Apun, k, betaF, betaP | Arew, Apun, K, betaF, betaP |
+| rlddm | alpha, drift, bs, ndt, bias | no counterpart; see ?rlddm |
 
 `alpha` is always a learning rate on (0, 1) and `tau` is always the
 softmax sensitivity on (0, Inf), so what a formula does to `alpha` means
@@ -289,11 +302,19 @@ the two-step model, and loss aversion in the Iowa gambling task. Each
 family’s help says which. In particular, hBayesDM’s `alpha` for
 `igt_pvl_delta` is this package’s `shape`, not this package’s `alpha`.
 
-All six share one recursion, which walks trials once and updates every
+All eight share one recursion, which walks trials once and updates every
 subject at each step. A family supplies a choice rule and a learning
 rule and is a few dozen lines; the walk, the padding for unequal trial
 counts, the softmax, and the three modes it runs in (likelihood, fitted
 trajectory, simulation) are written once.
+
+[`rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.md)
+is the one that does not softmax. Its value difference drives the drift
+rate of a two-boundary diffusion, so a trial contributes the joint
+density of which boundary was reached and when, and choices and response
+times are modeled together. Its response is the response TIME and the
+boundary travels in `dec()`; the density comes from
+[`frmtmb.eam::wiener_lpdf()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.html).
 
 A second family, to show how little changes. The dual-rate learner
 absorbs good news and bad news at different speeds, and the asymmetry is
@@ -321,15 +342,15 @@ the payoff is graded. See
 ## Where to go next
 
 - [`?bandit2arm_delta`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/bandit2arm_delta.md)
-  and the other five family pages for the equations and each family’s
+  and the other seven family pages for the equations and each family’s
   own cautions.
 - [`?frm_value_trace`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_value_trace.md)
   for the trajectory, and
   [`?frm_task_simulate`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_simulate.md)
   for drawing datasets from the generative process.
 - [`?frmtmb.learn`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frmtmb.learn-package.md)
-  for the Laplace numbers and the protocol seam that `frm(importance =)`
-  waits on.
+  for the Laplace numbers, the recovery tables, and what
+  `frm(importance =)` is worth on which designs.
 - [`vignette("reinforcement-learning", package = "frmtmb")`](https://aforren1.github.io/frmtmb/articles/reinforcement-learning.html)
   for the structured-family protocol these families are built on,
   written out longhand for one model.

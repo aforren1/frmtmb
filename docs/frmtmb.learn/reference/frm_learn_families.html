@@ -13,7 +13,7 @@ parameters with their links."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,6 +84,15 @@ means the same thing whichever family it is written against.
 hBayesDM spells the two-armed bandit's learning rate <code>A</code>, the
 reversal models' sensitivity <code>beta</code>, and the Iowa gambling task's
 UTILITY EXPONENT <code>alpha</code>.</p>
+<p>ONE ROW HAS NO COUNTERPART. <code><a href="rlddm.html">rlddm()</a></code> is a delta rule feeding a
+drift-diffusion choice rule, and hBayesDM ships the two halves
+separately (<code>bandit2arm_delta</code> and <code>choiceRT_ddm</code>) rather than the
+join. Its <code>hbayesdm</code> cell says <code>none</code> rather than naming a model it
+is not, and <code><a href="rlddm.html">?rlddm</a></code> says which of that package's parameters map onto
+which of its own. <code><a href="igt_orl.html">igt_orl()</a></code>'s cell is a rename with one transform:
+hBayesDM bounds <code>K</code> to <code>(0, 5)</code> through a probit where this family
+puts it on <code>(0, Inf)</code> with a log link, and the two are the same
+number on the same scale wherever hBayesDM's bound is not binding.</p>
 <p>Two cautions the map does not remove. Core refuses a distributional
 parameter name containing a dot or an underscore, which is why the
 dual-rate family spells its rates <code>Arew</code> and <code>Apun</code> rather than
@@ -103,6 +112,8 @@ Iowa gambling task. Each family's help says which.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4 bandit4arm2_kalman_filter  bandit4arm2_kalman_filter</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5                   ts_par7                    ts_par7</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6             igt_pvl_delta              igt_pvl_delta</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7                   igt_orl                    igt_orl</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                     rlddm                       none</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                          pars</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1                                  alpha, tau</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2                             Arew, Apun, tau</span>
@@ -110,6 +121,8 @@ Iowa gambling task. Each family's help says which.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4    tau, lambda, center, mu0, sigma0, sigmaD</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5 w, alpha1, tau1, alpha2, tau2, lambda, pers</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6                   alpha, shape, lambda, tau</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7                 Arew, Apun, k, betaF, betaP</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                 alpha, drift, bs, ndt, bias</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

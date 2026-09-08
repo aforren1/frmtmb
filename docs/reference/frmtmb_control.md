@@ -213,6 +213,8 @@ frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
     control = frmtmb_control(grad_tol = 1e-4, restarts = 3))
 #> frmtmb fit: y ~ x + (1 | g) 
 #> Family: gaussian   Method: ML 
+#>  Links: mu = identity; sigma = log
+#> 
 #> logLik: -296.63  AIC: 601.26  nobs: 200 
 #> 
 #> Fixed effects:
@@ -235,6 +237,8 @@ frm(bf(y ~ xbig + (1 | g)) + gaussian(), data = dd,
     control = frmtmb_control(autoscale = TRUE))
 #> frmtmb fit: y ~ xbig + (1 | g) 
 #> Family: gaussian   Method: ML 
+#>  Links: mu = identity; sigma = log
+#> 
 #> logLik: -296.63  AIC: 601.26  nobs: 200 
 #> 
 #> Fixed effects:

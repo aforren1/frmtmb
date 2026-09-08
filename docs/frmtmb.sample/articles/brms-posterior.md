@@ -18,6 +18,11 @@ The draws come from Stan’s NUTS sampler, but through tmbstan on an RTMB
 objective rather than a generated Stan program, and that one difference
 explains every entry below.
 
+Every chunk here is shown and not run, because every one needs a sampler
+this package only suggests.
+[`vignette("sampling")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/sampling.md)
+says more about why, and its own prior tables do run.
+
 ## The call
 
 ``` r

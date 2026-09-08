@@ -172,6 +172,24 @@ replaces it with a resampling distribution, `frm(quadrature = TRUE)`
 replaces the Laplace approximation itself with adaptive quadrature, and
 `frm(importance = )` reweights it (the next section).
 
+### NaN standard errors
+
+“Some standard errors are not finite” has two causes and one symptom.
+The covariance is the inverse Hessian, so ONE unusable direction sends
+every entry to `NaN`, and the fit-time warning used to guess at
+overparameterization for both.
+
+`diagnose(fit)` separates them. It reports “Flat directions” when the
+likelihood does not depend on a parameter at all: zero gradient and an
+empty Hessian row, measured by perturbing the parameter and seeing
+whether the gradient moves. Parameters named there are not identified AT
+THAT POINT, which is a starting-value problem, not a model-size problem.
+A nonlinear term evaluated outside its own support is the usual cause;
+see the nonlinear section of
+[`vignette("frmtmb")`](https://aforren1.github.io/frmtmb/articles/frmtmb.md).
+With no flat direction the covariance failed for the other reason, and
+the model has parameters the data cannot tell apart.
+
 To measure the violation rather than route around it, install the
 companion package **frmtmb.sample** and read
 [`vignette("posterior-diagnostics", package = "frmtmb.sample")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/posterior-diagnostics.html),
@@ -237,6 +255,8 @@ it can be trusted:
 imp
 #> frmtmb fit: y ~ x + (x | g) 
 #> Family: binomial   Method: ML 
+#>  Links: mu = logit
+#> 
 #> logLik: -118.439  AIC: 246.878  nobs: 200 
 #> Marginal likelihood: importance-corrected, 500 draws per group in 4 rounds (MCSE 0.11, min ESS 0.64 of 1) 
 #> 

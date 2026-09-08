@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,48 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.learn/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="frmtmblearn-020">frmtmb.learn 0.2.0<a class="anchor" aria-label="anchor" href="#frmtmblearn-020"></a></h2>
+<p>The three things 0.1.0 named as left out are in, and the seam it was waiting on has closed. Requires frmtmb 0.53.0 for the two factorization slots, and frmtmb.eam 0.5.0 for the Wiener density.</p>
+<div class="section level3">
+<h3 id="frmimportance---works-0-2-0">frm(importance = ) works<a class="anchor" aria-label="anchor" href="#frmimportance---works-0-2-0"></a></h3>
+<ul><li>
+<p>Every family declares <code>frmtmb_structure(loglik_row =)</code> and <code>(loglik_group =)</code> beside <code>loglik</code>, so <code>frm(importance = )</code> is admitted instead of refused by name. A subject is the group and a trial is the row: two subjects share nothing but the parameters, and a subject’s likelihood is a product over trials given the value trajectory. Both facts are properties of the recursion rather than of any one learning rule, so both hold for all eight families.</p>
+<p>All three quantities come off ONE call to the recursion, which now yields per-trial factors rather than a running total. The change costs nothing: measured at 40 subjects by 100 trials, tape build 0.250 s against 0.260 s and one gradient 98.5 ms against 103.0 ms, with the objective identical to full printed precision.</p>
+<p><code>unit</code> is unchanged, “one subject’s trial sequence”. These slots say how finely the likelihood FACTORIZES; <code>unit</code> says what may honestly be left OUT, and dropping a trial changes every later trial’s value store.</p>
+</li>
+<li>
+<p><strong>What the correction is worth, measured, and it depends on the design.</strong> <code><a href="../reference/bandit2arm_delta.html">bandit2arm_delta()</a></code> on a reversal task, 40 subjects, one scalar random intercept, truth <code>sd(alpha) = 0.5</code>, six datasets per cell. At 100 trials, on the three of six datasets whose variance component the Laplace fit had not collapsed, the correction moves <code>sd(alpha)</code> from 0.38-0.45 to 0.45-0.51, that is up and toward the truth, by 0.11 to 0.18 log units, with a Monte Carlo standard error of 0.05-0.06 and a smallest effective sample size per draw of 0.87-0.93. Of the other three, two refused on the correction’s own convergence guard and ONE HAD ALREADY COLLAPSED to 0.0004 and reported the same spurious +1.822 the short-session cell does, so a collapsed component is not a short-session problem and <code>sqrt(VarCorr(fit))</code> is worth checking at every trial count. The fixed effects move by less than 0.02.</p>
+<p>At 20 trials it is not usable, and the reason is worth knowing: five of six Laplace fits have already collapsed <code>sd(alpha)</code> to 1e-4, so there is nothing to reweight, and the correction then walks at its own step cap for every round while WARNING that it did not converge. A shift reported with <code>fit$importance$capped</code> true and every entry of <code>fit$importance$moves</code> equal is that step cap, not an estimate, and the warning’s advice to raise <code>importance_rounds</code> enlarges it in exact proportion: five rounds of a 0.3645 cap give 1.822 and ten give 3.645. Check <code>sqrt(VarCorr(fit))</code> before believing a correction.</p>
+<p>The model must be grouped on the family’s own subject. <code>(1 | other)</code> gives a per-subject likelihood against a per-other proposal, and the core refuses it by name.</p>
+</li>
+<li><p><code>residuals(type = "deviance")</code> still refuses, and for a different reason than before. The magnitude is now available, because <code>loglik_row()</code> carries each trial’s own log-likelihood and, for the seven option-code families, its saturated value of zero. What is missing is the SIGN: the response is nominal and has no mean to depart from. <code><a href="../reference/rlddm.html">rlddm()</a></code>’s row has no saturated value at all, because a density’s supremum at a fixed response time is unbounded, and its refusal says so.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="two-new-families-0-2-0">Two new families<a class="anchor" aria-label="anchor" href="#two-new-families-0-2-0"></a></h3>
+<ul><li>
+<p><code><a href="../reference/rlddm.html">rlddm()</a></code>, a delta learning rule whose value difference drives the drift rate of a Wiener first-passage density, so choices and response times are one likelihood (Pedersen, Frank and Biele 2017). The response is the response TIME and the boundary reached travels in <code>dec()</code>. <strong>hBayesDM does not carry this model</strong>: it ships the two halves separately as <code>bandit2arm_delta</code> and <code>choiceRT_ddm</code>, and <code><a href="../reference/rlddm.html">?rlddm</a></code> maps the parameters onto the second of those rather than naming a counterpart that does not exist.</p>
+<p>The density comes from <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.html" class="external-link">frmtmb.eam::wiener_lpdf()</a></code>, newly exported for the purpose, rather than through a colon. This is the only dependency one extension of frmtmb has on another and it is one function.</p>
+<p>Recovered at 30 subjects by 100 trials, 60 replicates: every bias inside its Monte Carlo error, coverage 0.95 to 0.98 on <code>drift</code>, <code>bs</code>, <code>ndt</code> and <code>bias</code> and 0.87 on <code>alpha</code>, 60 of 60 usable. The pair that trades off is not the obvious one: <code>drift</code> with <code>bs</code> correlate at 0.17 across replicates, while <code>bs</code> with <code>ndt</code> reach -0.57 and <code>drift</code> with <code>bias</code> +0.56.</p>
+<p><code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> refuses, as <code><a href="../reference/ts_par7.html">ts_par7()</a></code> does: one trial’s draw is two numbers and a response vector holds one. <code><a href="../reference/frm_task_simulate.html">frm_task_simulate()</a></code> returns whole data frames with both columns.</p>
+</li>
+<li>
+<p><code><a href="../reference/igt_orl.html">igt_orl()</a></code>, outcome-representation learning for the Iowa gambling task (Haines, Vassileva and Ahn 2018). Three value stores per deck, separate learning rates for gains and losses that SWAP between the played deck and the three that were not, and a perseverance term.</p>
+<p>0.1.0 left it out on the grounds that it is weakly identified. Measured, that is half right. Every parameter recovers at 30 subjects by 100 trials: biases at or inside their Monte Carlo error, coverage 0.92 to 0.98, 60 of 60 usable. What is weak is the SEPARATION of the three choice-rule parameters, visible in the correlation of the estimates rather than in their bias: <code>betaF</code> with <code>betaP</code> at -0.77, <code>k</code> with <code>betaP</code> at -0.53, <code>k</code> with <code>betaF</code> at +0.45. Report <code>betaF</code> and <code>betaP</code> together rather than one alone.</p>
+</li>
+</ul></div>
+<div class="section level3">
+<h3 id="the-kalman-filters-exploration-bonus-0-2-0">The Kalman filter’s exploration bonus<a class="anchor" aria-label="anchor" href="#the-kalman-filters-exploration-bonus-0-2-0"></a></h3>
+<ul><li>
+<code>bandit4arm2_kalman_filter(bonus = TRUE)</code> adds Daw and others’ exploration bonus, <code>tau * (mu + phi * sqrt(s))</code>, so an arm the subject is uncertain about is worth more than its posterior mean. <code>phi</code> is an ordinary distributional parameter and takes a formula like any other. <code>bonus = FALSE</code> is the default and fits exactly the model 0.1.0 fitted; the suite pins that by holding <code>phi</code> at zero with <code>bf(phi = 0)</code> and requiring the two log-likelihoods to agree.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="checks-0-2-0">Checks<a class="anchor" aria-label="anchor" href="#checks-0-2-0"></a></h3>
+<ul><li><p>Three new rows in the Stan identity tier, all written from the published equations: the Kalman filter with the bonus at -2.8e-13, <code>igt_orl</code> at -6.8e-13, and <code>rlddm</code> at 3.2e-09. <strong>The last one is not exact and that makes it the strongest row.</strong> Every other program in that file evaluates the same arithmetic as the engine in a different order; Stan implements the Wiener density itself, so this row compares two independent implementations of the density as well as two of the recursion. Which side the difference is on is settled by a third implementation rather than by the size of the residual: measured over 4000 rows spanning the region the fixture visits, <code>frmtmb.eam</code>’s density differs from <code>RWiener</code>’s by a median of 0 and a 99th percentile of 3.6e-15 per row, so a per-row difference of about 4e-12 against Stan sits on Stan’s side.</p></li>
+<li><p>Longhand references for <code><a href="../reference/igt_orl.html">igt_orl()</a></code> and <code><a href="../reference/rlddm.html">rlddm()</a></code> join the six that 0.1.0 shipped, in <code>test-reference.R</code>: one subject and one trial at a time, <code>if</code> and <code>[</code> for selection, the opposite spelling to the engine’s.</p></li>
+<li><p><code>test-factorization.R</code> is new: the three likelihood slots agree with each other and with <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>, a subject’s value is the sum of its own rows in the order the core fixes, the slots honor the stacked design the correction calls them with, and a replicate whose parameters differ gives different values, without which the stacking check would pass on a family that ignored the stacking entirely.</p></li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="frmtmblearn-010">frmtmb.learn 0.1.0<a class="anchor" aria-label="anchor" href="#frmtmblearn-010"></a></h2>
 <p>First release. The value-learning models of the reinforcement-learning and computational-psychiatry literature, written as frmtmb families.</p>

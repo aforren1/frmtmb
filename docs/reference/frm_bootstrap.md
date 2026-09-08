@@ -12,7 +12,7 @@ report convergence are kept but flagged.
 ``` r
 frm_bootstrap(
   fit,
-  FUN = function(f) unlist(fixef(f)),
+  FUN = function(f) fixef(f, flatten = TRUE),
   nsim = 500,
   seed = NULL,
   re.form = NA
@@ -27,8 +27,10 @@ frm_bootstrap(
 
 - FUN:
 
-  Function of a `frmtmb_fit` returning a numeric vector. Default: the
-  flattened fixed effects.
+  Function of a `frmtmb_fit` returning a numeric vector. Default:
+  `fixef(f, flatten = TRUE)`, the fixed effects named as
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html) names its rows, so a
+  bootstrap standard error lines up with the Wald one by name.
 
 - nsim:
 
@@ -70,12 +72,12 @@ bs
 #> Parametric bootstrap: 20 refits, 0 failed or not converged
 #> 
 #>                   estimate      bias       se       lwr     upr
-#> mu.(Intercept)    1.235000 -0.017843 0.137530  0.943890 1.40490
-#> mu.x              0.570230  0.028611 0.126600  0.423170 0.88196
-#> sigma.(Intercept) 0.055309  0.017652 0.086742 -0.071832 0.24671
+#> (Intercept)       1.235000 -0.017843 0.137530  0.943890 1.40490
+#> x                 0.570230  0.028611 0.126600  0.423170 0.88196
+#> sigma_(Intercept) 0.055309  0.017652 0.086742 -0.071832 0.24671
 confint(bs)
 #>                           lwr       upr       est
-#> mu.(Intercept)     0.94389441 1.4049435 1.2349782
-#> mu.x               0.42317128 0.8819600 0.5702318
-#> sigma.(Intercept) -0.07183161 0.2467123 0.0553095
+#> (Intercept)        0.94389441 1.4049435 1.2349782
+#> x                  0.42317128 0.8819600 0.5702318
+#> sigma_(Intercept) -0.07183161 0.2467123 0.0553095
 ```

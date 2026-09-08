@@ -10,7 +10,7 @@ j) and are individually overridable, e.g. `bf(Y ~ x, mu2d1 ~ 1)` (all
 except the first, `mu1d1`). Mixing weights are `theta1 ... theta{K-1}`,
 multinomial logit against class K, each with its own linear predictor -
 so gating on covariates works like
-[`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html).
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md).
 
 ## Usage
 
@@ -118,6 +118,9 @@ head(mixture_probs(fit))
 frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2, model = "EII"), data = dd)
 #> frmtmb fit: Y ~ 1 
 #> Family: mixture_mvn(K = 2, D = 2, model = "EII")   Method: ML 
+#>  Links: mu1d1 = identity; mu1d2 = identity; mu2d1 = identity; mu2d2 = identity;
+#>         theta1 = identity
+#> 
 #> logLik: -196.172  AIC: 404.344  nobs: 60 
 #> 
 #> Fixed effects:

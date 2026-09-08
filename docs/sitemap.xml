@@ -10,9 +10,24 @@
 <url><loc>https://aforren1.github.io/frmtmb/articles/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/inputs.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/articles/reinforcement-learning.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/articles/spectral.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/authors.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/CODE_OF_CONDUCT.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/CONTRIBUTING.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/404.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/articles/coherence.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/articles/index.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/authors.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/index.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/news/index.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/cross_wishart.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frmtmb.coupling-package.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frmtmb.coupling.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_coherence.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_simulate.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_spectrum.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_phase.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.ddm/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/404.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/articles/ddm.html</loc></url>
@@ -51,6 +66,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_gng.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_gng_simulate.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/404.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/articles/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/articles/latent.html</loc></url>
@@ -81,9 +97,11 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_design.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_simulate.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_value_trace.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/igt_orl.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/igt_pvl_delta.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/prl_fictitious.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.learn/reference/ts_par7.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.ode/404.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.ode/articles/index.html</loc></url>
@@ -293,6 +311,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-families.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-links.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-loo-refusals.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-multimembership.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-package.html</loc></url>
@@ -311,12 +330,15 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_compat.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_compat_features.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_compat_rules.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frm_family.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_joint_cov.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_multiple.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_ode.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_ode_failures.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frm_periodogram.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_sample.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frm_series_draw.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_simulate.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/getCall.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/getME.frmtmb_fit.html</loc></url>
@@ -428,6 +450,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/vcov.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/vcov_cluster.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/waic.frmtmb_draws.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/whittle.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/SPEC.html</loc></url>
 </urlset>
 

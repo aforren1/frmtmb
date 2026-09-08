@@ -82,9 +82,20 @@ section of
 [`vignette("learning")`](https://aforren1.github.io/frmtmb/frmtmb.learn/articles/learning.md)
 and
 [`?frmtmb.learn`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frmtmb.learn-package.md)
-for the numbers. `frm(importance =)`, which is the usual way to price
-that error, is REFUSED for every family here; the refusal names the
-seam.
+for the numbers.
+
+`frm(importance =)`, the usual way to price that error, now WORKS for
+every family here. It was refused in the first release because the
+correction needs one log-likelihood value per subject and the structured
+protocol had no slot to put them in; the slots landed and the families
+declare them. What the correction is worth depends on the design and not
+on the family: at 40 subjects by 100 trials it moves a well-identified
+subject-level standard deviation up by about 0.1 to 0.2 log units,
+toward the truth, with good diagnostics, and at 20 trials it has nothing
+to correct because the Laplace fit has usually collapsed the component
+to zero already.
+[`?frmtmb.learn`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frmtmb.learn-package.md)
+carries the per-dataset table.
 
 ## References
 

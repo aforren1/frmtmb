@@ -17,7 +17,7 @@ all of it."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,10 +37,12 @@ all of it."></head><body>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -83,7 +85,9 @@ all of it.</p>
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">frmtmb_register_compat</span><span class="op">(</span>features <span class="op">=</span> <span class="cn">NULL</span>, rules <span class="op">=</span> <span class="cn">NULL</span>, expects <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">compat_rule_builder</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">compat_rule_builder</span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">compat_aterm_rules</span><span class="op">(</span><span class="va">accepts</span>, existing <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -135,12 +139,28 @@ only, never over <code>expects</code>, so a misspelling of an expected name
 is refused without a suggestion. Pointing at a feature that is not
 in the session would be its own confusion.</p></dd>
 
+
+<dt id="arg-accepts">accepts<a class="anchor" aria-label="anchor" href="#arg-accepts"></a></dt>
+<dd><p>For <code>compat_aterm_rules()</code>: a named list mapping a
+family's DISPLAY name to what that family accepts. An element is a
+family object, a character vector of addition-term names without
+parentheses (the vocabulary <code>frmtmb_family(accepts_aterms =)</code> is
+written in), or <code>NULL</code> for a family that declares no allow-list and
+so has nothing to derive from.</p></dd>
+
+
+<dt id="arg-existing">existing<a class="anchor" aria-label="anchor" href="#arg-existing"></a></dt>
+<dd><p>For <code>compat_aterm_rules()</code>: the rules written by hand,
+so that the derivation defers to them. A pair named on both sides
+there is left alone, note and all. <code>NULL</code> defers to nothing.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p><code>NULL</code>, invisibly. Called for the registration.
 <code>compat_rule_builder()</code> returns a list with elements <code>r</code> and
-<code>rules</code>.</p>
+<code>rules</code>. <code>compat_aterm_rules()</code> returns a rule data frame, ready to
+<code><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind()</a></code> with one.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -177,6 +197,27 @@ registered term the table cannot describe would be a gap by
 construction, so the registrant is not asked to say it twice; saying
 it anyway is a no-op. Register the term BEFORE the rules that name
 it.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="rows-a-family-has-already-declared">Rows a family has already declared<a class="anchor" aria-label="anchor" href="#rows-a-family-has-already-declared"></a></h2>
+
+
+<p><code>compat_aterm_rules()</code> writes the addition-term refusals out of
+<code>frmtmb_family(accepts_aterms =)</code> instead of asking for them twice. A
+term outside a family's allow-list is refused BY NAME at frame
+assembly, so <code>untested</code> was never the right answer for that cell:
+nothing is missing, the guard exists and the reason is the
+declaration. Feed it the families the package supplies, and hand it
+the rows written by hand so that it defers to them:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">hand</span> <span class="op">&lt;-</span> <span class="va">b</span><span class="op">$</span><span class="fu">rules</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">hand</span>,</span>
+<span>      <span class="fu"><a href="../reference/frmtmb_register_compat.html">compat_aterm_rules</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>wiener <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dec"</span>, <span class="st">"vint"</span>, <span class="st">"weights"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                         <span class="va">hand</span><span class="op">)</span><span class="op">)</span></span></code></pre><p></p></div>
+<p>A pair <code>existing</code> already names on both sides is skipped, note and
+all, so the derivation adds cells rather than replacing them. What is
+derived is only the refusal: a family that ACCEPTS a term has said
+nothing about whether the pair works, and <code>untested</code> stays the honest
+answer there until somebody runs it.</p>
     </div>
     <div class="section level2">
     <h2 id="status-vocabulary">Status vocabulary<a class="anchor" aria-label="anchor" href="#status-vocabulary"></a></h2>

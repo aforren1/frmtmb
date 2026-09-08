@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -229,22 +229,19 @@ arithmetic on a category code.</p>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> fitted() is not defined for family 'bandit2arm_delta'</span></span></code></pre></div>
 <p><code><a href="../reference/frm_value_trace.html">frm_value_trace()</a></code> above returns everything a mean would
-have carried, and more. The other refusal worth knowing is the Laplace
-correction:</p>
+have carried, and more. <code><a href="https://aforren1.github.io/frmtmb/reference/frm_compat.html" class="external-link">frm_compat()</a></code> is the place to ask
+what else refuses:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">choice</span> <span class="op">|</span> <span class="fu">reward</span><span class="op">(</span><span class="va">pay1</span>, <span class="va">pay2</span><span class="op">)</span> <span class="op">~</span> <span class="va">after_reversal</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">tau</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>    family <span class="op">=</span> <span class="fu"><a href="../reference/bandit2arm_delta.html">bandit2arm_delta</a></span><span class="op">(</span>subject <span class="op">=</span> <span class="va">id</span>, trial <span class="op">=</span> <span class="va">trial</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span>,</span>
-<span>    importance <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> `importance` cannot correct the 'bandit2arm_delta' family: it supplies its own log-likelihood, which returns one number for the whole response, so a group's rows have no separable integrand to resample. A family whose likelihood does factorize over its groups says so with frmtmb_structure(loglik_group = ) or (loglik_row = ), and this one declares neither. Use importance = 0</span></span></code></pre></div>
-<p>That refusal is honest but wider than the mathematics, and it names
-the seam that would close it. <code><a href="https://aforren1.github.io/frmtmb/reference/frm_compat.html" class="external-link">frm_compat()</a></code> is the place to
-ask:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm_compat.html" class="external-link">frm_compat</a></span><span class="op">(</span><span class="st">"bandit2arm_delta"</span>, <span class="st">"residuals"</span><span class="op">)</span><span class="op">$</span><span class="va">status</span></span>
 <span><span class="co">#&gt; [1] "refused"</span></span>
 <span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm_compat.html" class="external-link">frm_compat</a></span><span class="op">(</span><span class="st">"bandit2arm_delta"</span>, <span class="st">"s()"</span><span class="op">)</span><span class="op">$</span><span class="va">status</span></span>
+<span><span class="co">#&gt; [1] "works"</span></span>
+<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm_compat.html" class="external-link">frm_compat</a></span><span class="op">(</span><span class="st">"bandit2arm_delta"</span>, <span class="st">"importance"</span><span class="op">)</span><span class="op">$</span><span class="va">status</span></span>
 <span><span class="co">#&gt; [1] "works"</span></span></code></pre></div>
+<p>That last one refused in the first release and works now. The
+correction reweights draws from the Laplace Gaussian and needs one
+log-likelihood value per subject; the families declare them, so it runs.
+The next section says what it is worth.</p>
 </div>
 <div class="section level2">
 <h2 id="the-laplace-caveat">The Laplace caveat<a class="anchor" aria-label="anchor" href="#the-laplace-caveat"></a>
@@ -253,8 +250,7 @@ ask:</p>
 approximation, which is exact only when the conditional log-density is
 quadratic. For binary choices it is not, and the fewer trials a subject
 has the less quadratic it is. The consequence was measured by
-simulation, because <code>frm(importance =)</code>, the usual way to
-price it, is refused. 100 replicates at 40 subjects, the full tables in
+simulation, 100 replicates at 40 subjects, the full tables in
 <code><a href="../reference/frmtmb.learn-package.html">?frmtmb.learn</a></code>:</p>
 <table class="table">
 <colgroup>
@@ -313,15 +309,31 @@ interval widens at least as fast as the estimate degrades and still
 covers 0.95. Treat a subject-level standard deviation from twenty binary
 trials as a lower bound, and read its interval rather than its point
 estimate.</p>
-<p><code>frm(importance =)</code> is what would separate Laplace error
-from the ordinary downward bias of a variance component estimated from
-binary data with few levels, and it is refused, so the study measures
-the combined effect and says so.</p>
+<p><code>frm(importance =)</code> is what separates Laplace error from
+the ordinary downward bias of a variance component estimated from binary
+data with few levels, and it now runs. Measured on this design, six
+datasets per cell: at 100 trials, where the Laplace fit has kept a real
+variance component, the correction moves <code>sd(alpha)</code> up by
+0.11 to 0.18 log units and toward the truth, with a Monte Carlo standard
+error a third of that and effective sample sizes near 1. So part of the
+downward bias at 100 trials IS Laplace error, and it is a modest
+part.</p>
+<p>At 20 trials the correction has nothing to work with. Five of six
+Laplace fits have already collapsed <code>sd(alpha)</code> to 1e-4, and
+the correction then walks at its own step cap for every round while
+warning that it did not converge. A shift reported alongside that
+warning is the step cap rather than an estimate, so check
+<code>sqrt(VarCorr(fit))</code> and read the warning before believing
+one. The warning advises raising
+<code>frmtmb_control(importance_rounds =)</code>, and on a collapsed
+component that makes the artifact bigger in exact proportion: five
+rounds of a 0.3645 cap give 1.822 and ten give 3.645.
+<code><a href="../reference/frmtmb.learn-package.html">?frmtmb.learn</a></code> carries the per-dataset table.</p>
 </div>
 <div class="section level2">
 <h2 id="the-families">The families<a class="anchor" aria-label="anchor" href="#the-families"></a>
 </h2>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fams</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_learn_families.html">frm_learn_families</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">fams</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"family"</span>, <span class="st">"hbayesdm"</span>, <span class="st">"task"</span>, <span class="st">"options"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -374,11 +386,23 @@ the combined effect and says so.</p>
 <td align="left">Iowa gambling task</td>
 <td align="left">4</td>
 </tr>
+<tr class="odd">
+<td align="left">igt_orl</td>
+<td align="left">igt_orl</td>
+<td align="left">Iowa gambling task</td>
+<td align="left">4</td>
+</tr>
+<tr class="even">
+<td align="left">rlddm</td>
+<td align="left">none</td>
+<td align="left">two-armed bandit, choices and response times</td>
+<td align="left">2</td>
+</tr>
 </tbody>
 </table>
 <p>Each family’s parameters, and the map to hBayesDM’s spelling of
 them:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">fams</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"family"</span>, <span class="st">"pars"</span>, <span class="st">"hbayesdm_pars"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
@@ -422,6 +446,16 @@ them:</p>
 <td align="left">alpha, shape, lambda, tau</td>
 <td align="left">A, alpha, lambda, 3^cons - 1</td>
 </tr>
+<tr class="odd">
+<td align="left">igt_orl</td>
+<td align="left">Arew, Apun, k, betaF, betaP</td>
+<td align="left">Arew, Apun, K, betaF, betaP</td>
+</tr>
+<tr class="even">
+<td align="left">rlddm</td>
+<td align="left">alpha, drift, bs, ndt, bias</td>
+<td align="left">no counterpart; see ?rlddm</td>
+</tr>
 </tbody>
 </table>
 <p><code>alpha</code> is always a learning rate on (0, 1) and
@@ -436,15 +470,21 @@ eligibility trace in the two-step model, and loss aversion in the Iowa
 gambling task. Each family’s help says which. In particular, hBayesDM’s
 <code>alpha</code> for <code>igt_pvl_delta</code> is this package’s
 <code>shape</code>, not this package’s <code>alpha</code>.</p>
-<p>All six share one recursion, which walks trials once and updates
+<p>All eight share one recursion, which walks trials once and updates
 every subject at each step. A family supplies a choice rule and a
 learning rule and is a few dozen lines; the walk, the padding for
 unequal trial counts, the softmax, and the three modes it runs in
 (likelihood, fitted trajectory, simulation) are written once.</p>
+<p><code><a href="../reference/rlddm.html">rlddm()</a></code> is the one that does not softmax. Its value
+difference drives the drift rate of a two-boundary diffusion, so a trial
+contributes the joint density of which boundary was reached and when,
+and choices and response times are modeled together. Its response is the
+response TIME and the boundary travels in <code>dec()</code>; the
+density comes from <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.html" class="external-link">frmtmb.eam::wiener_lpdf()</a></code>.</p>
 <p>A second family, to show how little changes. The dual-rate learner
 absorbs good news and bad news at different speeds, and the asymmetry is
 the parameter most of the clinical literature is about:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">choice</span> <span class="op">|</span> <span class="fu">reward</span><span class="op">(</span><span class="va">pay1</span>, <span class="va">pay2</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">Apun</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">tau</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>            family <span class="op">=</span> <span class="fu"><a href="../reference/bandit2arm_dual.html">bandit2arm_dual</a></span><span class="op">(</span>subject <span class="op">=</span> <span class="va">id</span>, trial <span class="op">=</span> <span class="va">trial</span><span class="op">)</span>,</span>
 <span>            data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
@@ -465,15 +505,16 @@ differ only when the payoff is graded. See
 </h2>
 <ul>
 <li>
-<code><a href="../reference/bandit2arm_delta.html">?bandit2arm_delta</a></code> and the other five family pages for
+<code><a href="../reference/bandit2arm_delta.html">?bandit2arm_delta</a></code> and the other seven family pages for
 the equations and each family’s own cautions.</li>
 <li>
 <code><a href="../reference/frm_value_trace.html">?frm_value_trace</a></code> for the trajectory, and
 <code><a href="../reference/frm_task_simulate.html">?frm_task_simulate</a></code> for drawing datasets from the generative
 process.</li>
 <li>
-<code><a href="../reference/frmtmb.learn-package.html">?frmtmb.learn</a></code> for the Laplace numbers and the protocol
-seam that <code>frm(importance =)</code> waits on.</li>
+<code><a href="../reference/frmtmb.learn-package.html">?frmtmb.learn</a></code> for the Laplace numbers, the recovery
+tables, and what <code>frm(importance =)</code> is worth on which
+designs.</li>
 <li>
 <code><a href="https://aforren1.github.io/frmtmb/articles/reinforcement-learning.html" class="external-link">vignette("reinforcement-learning", package = "frmtmb")</a></code>
 for the structured-family protocol these families are built on, written

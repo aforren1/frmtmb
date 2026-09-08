@@ -5,7 +5,8 @@ discrete state. `hmm(K, family)` puts a Markov chain over the rows of a
 sequence and sums the state path out exactly. `lca(K)` puts one class on
 each subject and reads it through conditionally independent items. Both
 are written against the structured-family protocol that frmtmb exports,
-so the rest of the grammar (priors, monotonic effects, `hypothesis()`,
+so the rest of the grammar (priors, monotonic effects,
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html),
 and the addition terms each family accepts) applies to them unchanged.
 
 The animal-track study below came from frmtmb’s own case-studies
@@ -215,20 +216,22 @@ residuals(fhmm, type = "deviance")
 #> ! residuals(type = "deviance") is not available for an hmm() fit: the unit deviance compares a row's likelihood with its saturated fit, and an HMM has no per-row likelihood to saturate. Use type = "response" or type = "pearson"
 ```
 
-`conditional_effects()` needs an expected response on a synthetic
-covariate grid. Under an HMM the expected response weights the state
-means by the posterior occupancies, and those depend on the observed
-responses of a whole sequence, so they do not exist on a grid. Plot one
-state’s own predictor with `predict(dpar = "mu2")`, or the occupancies
-from
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html)
+needs an expected response on a synthetic covariate grid. Under an HMM
+the expected response weights the state means by the posterior
+occupancies, and those depend on the observed responses of a whole
+sequence, so they do not exist on a grid. Plot one state’s own predictor
+with `predict(dpar = "mu2")`, or the occupancies from
 [`hmm_probs()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_probs.md).
 
-`residuals(type = "deviance")`, and frmtmb.sample’s `log_lik()` and
-`loo()`, all need a likelihood that factors into one term per
-observation. An HMM’s smallest independent unit is a sequence, so a
-per-observation column would be a group and leaving one out would drop a
-whole track. Compare HMM fits with
-[`AIC()`](https://rdrr.io/r/stats/AIC.html) or `frm_bootstrap()`.
+`residuals(type = "deviance")`, and frmtmb.sample’s
+[`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.html)
+and [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html), all
+need a likelihood that factors into one term per observation. An HMM’s
+smallest independent unit is a sequence, so a per-observation column
+would be a group and leaving one out would drop a whole track. Compare
+HMM fits with [`AIC()`](https://rdrr.io/r/stats/AIC.html) or
+[`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.html).
 
 This section also does not cover the parts of the surface that do work:
 transition covariates (`trans = ~x`, or `bf(y ~ 1, tr12 ~ x)` for one
@@ -275,6 +278,8 @@ flca <- frm(bf(Y ~ 1), family = lca(K = 2), data = dc)
 flca
 #> frmtmb fit: Y ~ 1 
 #> Family: lca(K = 2)   Method: ML 
+#>  Links: theta1 = identity
+#> 
 #> logLik: -813.028  AIC: 1656.06  nobs: 250 
 #> 
 #> Fixed effects:
@@ -423,5 +428,6 @@ residuals(flca)
 Latent class REGRESSION needs no extra machinery. The class-membership
 weights are ordinary distributional parameters, so a covariate in the
 formula puts a multinomial logit on class membership, and its
-coefficients get standard errors, priors and `hypothesis()` like any
-other fixed effect.
+coefficients get standard errors, priors and
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html)
+like any other fixed effect.

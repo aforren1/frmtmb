@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,12 +42,14 @@
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul>
 </li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-extensions">
-<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+<li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -435,8 +437,8 @@ constant is zero.</p>
 <tr class="even">
 <td>ChaSaSoon</td>
 <td>
-<code>z | trials(n) + vint(hi) + weights(w) ~ 1</code> with
-<code>bcm_binomial_band()</code>
+<code>z | trials(n) + cens(cc, hi) + weights(w) ~ 1</code> with
+<code>bcm_binomial_cdf()</code>
 </td>
 <td>identity</td>
 <td>a band of counts, not a marginalization</td>
@@ -460,17 +462,19 @@ write. The arithmetic is checked against the reference program directly,
 and the posterior mode falls where Lincoln and Petersen put it, at
 <code>floor(x n / k)</code>.</p>
 <p><code>ChaSaSoon</code> is interval censoring, and
-<code>cens("interval")</code> does not reach it. Two gates stand in the
-way and only the first is a seam: <code>cens()</code> needs a family
-with a CDF, which <code>frmtmb_family(lcdf = )</code> supplies, and then
-<code>cens()</code> refuses every family whose <code>type</code> is
-<code>"discrete"</code> whatever it supplies. So the band is written
-into the family: the response is the smallest count consistent with the
-row and <code>vint(hi)</code> the largest,
-<code>log(F(hi) - F(y - 1))</code> is the exact density when the two
-agree and the band probability otherwise, and <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>
-carries the 949 repeats. The test asserts both refusal messages, so the
-day either gate moves it says so.</p>
+<code>cens("interval")</code> is how it is written. One thing stands
+between the core binomial and a censored row, and the refusal names it:
+the family has no CDF. <code>bcm_binomial_cdf()</code> supplies one with
+<code>frmtmb_family(lcdf = )</code> in four lines, and the model is then
+<code>z | trials(n) + cens(cc, hi) + weights(w) ~ 1</code>, with
+<code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code> carrying the 949 repeats. frmtmb reads a discrete
+censoring bound as INCLUSIVE, so the banded row scores
+<code>F(25) - F(14) = P(15 &lt;= Y &lt;= 25)</code>, which is the book’s
+Stan program exactly.</p>
+<p>Through frmtmb 0.53.0 the band had to be written into the family’s
+own density, because <code>cens()</code> refused every family whose
+<code>type</code> was <code>"discrete"</code> whatever CDF it supplied.
+That gate is gone and the convention above replaced it.</p>
 </div>
 <div class="section level2">
 <h2 id="chapter-6-latent-mixtures">Chapter 6, latent mixtures<a class="anchor" aria-label="anchor" href="#chapter-6-latent-mixtures"></a>
@@ -637,7 +641,7 @@ lands.</p>
 <td>Geurts</td>
 <td>
 <code>k | trials(n) ~ group + (1 | id)</code> with
-<code>bcm_binomial_probit()</code>
+<code>binomial(link = "probit")</code>
 </td>
 <td>identity, inner gradient</td>
 <td></td>
@@ -774,7 +778,7 @@ distributions.</p>
 <td>SDT_1</td>
 <td>
 <code>y | trials(N) ~ 0 + case:half + case:bias</code>,
-<code>bcm_binomial_probit()</code>
+<code>binomial(link = "probit")</code>
 </td>
 <td>identity</td>
 <td>the demo data separate one case, so the book’s own first data set
@@ -795,12 +799,16 @@ has no finite estimate</td>
 </tr>
 </tbody>
 </table>
-<p>frmtmb’s link registry has no probit. A link is a plain list of four
-functions, so <code>bcm_probit()</code> in
-<code>inst/bcm/binomial-extras.R</code> supplies one and no change to
-the core is needed; the gap itself is recorded in
-<code>dev/bcm-findings.md</code> for whoever owns
-<code>R/links.R</code>.</p>
+<p>Signal detection theory is defined on the normal scale, so these need
+a probit. The core registry supplies it, and
+<code>binomial(link = "probit")</code> is the whole spelling.
+<code><a href="https://rdrr.io/r/stats/family.html" class="external-link">stats::binomial()</a></code> accepts the name and frmtmb resolves it
+against its own AD-safe registry rather than
+<code><a href="https://rdrr.io/r/stats/make.link.html" class="external-link">stats::make.link()</a></code>, so the tape sees a probit written over
+plain arithmetic. The registry entry also carries
+<code>logit_eta</code>, the exact log odds behind the linear predictor,
+which puts a saturated cell on <code>dbinom_robust()</code> instead of a
+plain round trip.</p>
 </div>
 <div class="section level2">
 <h2 id="chapter-12-psychophysical-functions">Chapter 12, psychophysical functions<a class="anchor" aria-label="anchor" href="#chapter-12-psychophysical-functions"></a>
@@ -1016,18 +1024,21 @@ already ports</td>
 </tr>
 </tbody>
 </table>
-<p>Extraversion is the reason <code>bcm_gaussian_probit()</code> exists.
-The book writes the extraversion score as normal around
+<p>Extraversion is a <code>gaussian(link = "probit")</code>. The book
+writes the extraversion score as normal around
 <code>100 * Phi(theta_2)</code>; dividing the response by 100 makes the
 mean <code>Phi(theta_2)</code> exactly, so the whole nonlinearity is a
 link and the latent pair is an ordinary correlated random intercept
 shared by two responses.</p>
 <p>The known measurement standard deviation rides on
-<code>vreal(sd)</code> rather than on
-<code>se(sd, sigma = FALSE)</code>, because the core gates
-<code>se()</code> on the family NAME: a custom family cannot opt in
-however faithfully it reads the term. <code>vreal()</code> is the
-channel a custom family IS given.</p>
+<code>se(sd)</code>, which is the term that means it, and it leaves the
+per-row standard deviation as the whole residual scale. Through frmtmb
+0.53.0 this model needed a custom family and <code>vreal(sd)</code> for
+two separate reasons, and both are gone. The probit is in the link
+registry, so there is no custom family left to write; and
+<code>se()</code> is now given to a family that DECLARES it reads the
+term rather than to a family with the right name, so a custom family
+could opt in even if one were needed.</p>
 </div>
 <div class="section level2">
 <h2 id="chapter-17-the-generalized-context-model">Chapter 17, the generalized context model<a class="anchor" aria-label="anchor" href="#chapter-17-the-generalized-context-model"></a>
@@ -1258,7 +1269,7 @@ other route: it samples the joint with tmbstan and compares.</p>
 <td><code>tests/testthat/test-bcm-*.R</code></td>
 </tr>
 <tr class="odd">
-<td>the extra links and binomials</td>
+<td>the extra binomials</td>
 <td><code>inst/bcm/binomial-extras.R</code></td>
 </tr>
 <tr class="even">

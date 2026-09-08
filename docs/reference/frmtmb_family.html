@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.53.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,10 +35,12 @@ not branch on parameter values."></head><body>
     <li><a class="dropdown-item" href="../articles/diagnostics.html">Model diagnostics</a></li>
     <li><a class="dropdown-item" href="../articles/habit.html">Case study: a race between habit and intention</a></li>
     <li><a class="dropdown-item" href="../articles/compatibility.html">Feature compatibility</a></li>
+    <li><a class="dropdown-item" href="../articles/spectral.html">Spectral models: fitting a periodogram</a></li>
   </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-extensions" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Extensions</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-extensions"><li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.coupling/">frmtmb.coupling (coherence and phase between signals)</a></li>
+    <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.eam/">frmtmb.eam (evidence accumulation models)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.latent/">frmtmb.latent (hidden Markov and latent class)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.learn/">frmtmb.learn (reinforcement-learning families)</a></li>
     <li><a class="dropdown-item" href="https://aforren1.github.io/frmtmb/frmtmb.ode/">frmtmb.ode (differential equation dynamics)</a></li>
@@ -95,6 +97,7 @@ not branch on parameter values.</p>
 <span>  lccdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  required_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  accepts_aterms <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  exclusive_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  family_finalize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  drop_intercept <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -118,6 +121,7 @@ not branch on parameter values.</p>
 <span>  lccdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  required_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  accepts_aterms <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  exclusive_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  family_finalize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  drop_intercept <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -139,8 +143,9 @@ first entry must be <code>"mu"</code>.</p></dd>
 
 
 <dt id="arg-links">links<a class="anchor" aria-label="anchor" href="#arg-links"></a></dt>
-<dd><p>Named list mapping each dpar to a link name (see
-<code>frmtmb:::frmtmb_links</code>) or a link object.</p></dd>
+<dd><p>Named list mapping each dpar to a link name or a link
+object. <a href="frmtmb-links.html">frmtmb-links</a> lists the names and says what a link object
+has to carry.</p></dd>
 
 
 <dt id="arg-lpdf">lpdf<a class="anchor" aria-label="anchor" href="#arg-lpdf"></a></dt>
@@ -218,7 +223,11 @@ under REML.</p></dd>
 <dt id="arg-lcdf">lcdf<a class="anchor" aria-label="anchor" href="#arg-lcdf"></a></dt>
 <dd><p>Optional vectorized AD log-safe CDF <code>(q, dpars, aterms)</code>
 returning probabilities; enables <code>cens()</code> and <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> addition
-terms.</p></dd>
+terms. It is the only thing either term asks of a family, whatever
+the family's <code>type</code>: a discrete family that supplies one is
+censored under the inclusive convention (see Censoring a discrete
+response), which reads a lower bound as <code>F(q - 1)</code> and so calls
+this at one below a recorded value.</p></dd>
 
 
 <dt id="arg-lccdf">lccdf<a class="anchor" aria-label="anchor" href="#arg-lccdf"></a></dt>
@@ -267,7 +276,40 @@ together, so a required term need not be repeated here. Without a
 declaration an unread term is parsed, stored on the fit and
 silently ignored: <code>wiener()</code> accepted a <code>vint()</code> it cannot use, and
 <code>lba()</code> accepted a <code>dec()</code>, both giving a fit bit-identical to the
-one without the term.</p></dd>
+one without the term.</p>
+<p>Naming <code>"se"</code> here is more than an allow-list entry: it is how a
+family OPTS IN to <code>se()</code>. That term is the one whose entire effect
+is inside the density - the core hands over <code>aterms[["se"]]</code> and
+maps out the residual scale it replaces, and does nothing else with
+it - so a family that does not declare it is refused the term
+rather than given one it would ignore. <code>NULL</code>, which accepts every
+other term, declares nothing and so does not open this one. Read
+<code>aterms[["se"]]</code> as the known standard deviation, and
+<code>aterms[["se_sigma"]]</code> to honor <code>se(x, sigma = TRUE)</code>, which asks
+for the known and estimated scales in quadrature.</p></dd>
+
+
+<dt id="arg-exclusive-aterms">exclusive_aterms<a class="anchor" aria-label="anchor" href="#arg-exclusive-aterms"></a></dt>
+<dd><p>Sets of addition-term values that say the SAME
+thing to the density, so that at most one of each set may be
+supplied. Named as <code>required_aterms</code> names them, in values rather
+than in terms: <code>exclusive_aterms = list(c("dec", "vint1"))</code>. A
+character vector is one such set; a list is several. The FIRST name
+of a set is the spelling the density reads, and the refusal tells
+the user to keep it.</p>
+<p>This is what an allow-list cannot express, because both spellings
+are legitimately on it. <code>wiener()</code> reads its boundary indicator from
+<code>dec()</code> and falls back to <code>vint1</code>, so <code>rt | dec(u) + vint(1 - u)</code>
+passed every guard and fitted with a log-likelihood bit-identical to
+the <code>dec()</code>-only model: the user said one thing twice, and
+inconsistently, and nothing complained. Declare the alternatives of
+an any-of <code>required_aterms</code> group here when the density reads only
+one of them; leave them undeclared when it reads both, as <code>gddm()</code>
+does, where <code>dec()</code> and <code>vint1</code> carry different data.</p>
+<p>Read WITH <code>required_aterms</code>, not instead of it: an any-of group in
+one and the same set in the other together mean "exactly one".
+Declaring a set that holds two values <code>required_aterms</code> demands
+TOGETHER is refused here, because no model could then be fitted.</p></dd>
 
 
 <dt id="arg-family-finalize">family_finalize<a class="anchor" aria-label="anchor" href="#arg-family-finalize"></a></dt>
@@ -419,9 +461,15 @@ three have <code>log S</code> in closed form (<code>-q/mu</code>, <code>-(q/scal
 <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">inverse.gaussian()</a></code> gains nothing:
 <code>RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)</code> is computed
 on the probability scale and reaches <code>-Inf</code> at the same
-<code>log S = -34</code> that <code>log(1 - F)</code> does. <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson()</a></code> is discrete, and
-<code>cens()</code> is refused for discrete families, so the slot would be
-unreachable.</p>
+<code>log S = -34</code> that <code>log(1 - F)</code> does. <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson()</a></code> is censored (see
+Censoring a discrete response) and would use the slot, but cannot
+declare one: <code>RTMB::ppois(lower.tail = FALSE, log.p = TRUE)</code> is
+exact in R (<code>-2773.28</code> at <code>q = 700</code>, <code>lambda = 5</code>, where
+<code>log(1 - F)</code> is <code>-Inf</code>)
+and does not TAPE - inside <code>MakeADFun</code> it reaches
+<code><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">stats::ppois</a></code> and errors with "Non-numeric argument to mathematical
+function". An exact discrete log survivor has to be written out
+before poisson can have one.</p>
 <p><code>lccdf</code> fixes RIGHT censoring and nothing else. Left censoring is
 still <code>log(F(y) - Flb)</code>, interval censoring is still a difference of
 CDFs, and the truncation normalizer is still <code>log(Fub - Flb)</code>, so a
@@ -429,6 +477,53 @@ LEFT-TRUNCATED survival model - delayed entry, which is routine -
 meets the identical representability problem from the other side.
 Closing that needs a windowed log-difference slot, and this is the
 first step rather than the last one.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="censoring-a-discrete-response">Censoring a discrete response<a class="anchor" aria-label="anchor" href="#censoring-a-discrete-response"></a></h2>
+
+
+<p>A censoring bound on a discrete response NAMES a value the response
+can take, and the value is INCLUDED in the event:</p>
+<table class="table table"><tr><td><strong>code</strong></td><td><strong>means</strong></td><td><strong>scored as</strong></td></tr><tr><td><code>0</code> "none"</td><td><code>Y == y</code></td><td><code>f(y)</code></td></tr><tr><td><code>-1</code> "left"</td><td><code>Y &lt;= y</code></td><td><code>F(y)</code></td></tr><tr><td><code>1</code> "right"</td><td><code>Y &gt;= y</code></td><td><code>1 - F(y - 1)</code></td></tr><tr><td><code>2</code> "interval"</td><td><code>y &lt;= Y &lt;= y2</code></td><td><code>F(y2) - F(y - 1)</code></td></tr></table><p>Equivalently: every LOWER edge enters the CDF as <code>F(edge - 1)</code>, and
+upper edges are unchanged because <code>F</code> already includes its argument.
+It is the rule <code>trunc(lb = )</code> has always followed on a discrete
+response, so one number means one thing however a response is
+bounded, and it is what a count recorded as "5 or more" means.</p>
+<p>It DIFFERS from brms for RIGHT and INTERVAL censoring only, where
+brms emits <code>poisson_lccdf(y | mu)</code>, that is <code>P(Y &gt; y)</code>, and reads an
+interval as <code>(y, y2]</code>. LEFT censoring is <code>P(Y &lt;= y)</code> in both packages
+and agrees exactly. Migrating a right- or interval-censored count
+model changes its log-likelihood; on 200 poisson draws at
+<code>lambda = 4</code> right censored at 6, the two readings differ by 20.8 log
+units and 3.7 percent of the estimate. Subtract one from every
+right-censored and interval lower bound to reproduce a brms fit.</p>
+<p>The divergence is deliberate, because <strong>brms is internally
+inconsistent here and frmtmb cannot be both.</strong> brms's own discrete
+truncation emits <code>poisson_lccdf(lb - 1 | mu)</code>, an INCLUSIVE lower
+bound, <code>P(Y &gt;= lb)</code>. So in brms <code>trunc(lb = 6)</code> means <code>Y &gt;= 6</code> while
+a right-censored row recorded at 6 means <code>Y &gt; 6</code>: one number, two
+meanings, on one response. frmtmb's <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> reproduces brms bit for
+bit (poisson on <code>y = 3,4,5,6</code> at <code>b0 = log 4</code>, <code>trunc(lb = 2)</code> gives
+6.9990718955 under both, against 6.2954805379 for the exclusive
+reading), so its <code>cens()</code> had to choose between matching brms's
+censoring and matching its own truncation. It matches its own.</p>
+<p>It is also the only reading consistent with the censored SIMULATOR,
+which predates all of this: <code>simulate(censored = TRUE)</code> caps a draw
+with <code>pmin(pmax(y, lo), hi)</code>, recording the value <code>k</code> exactly when
+the latent draw is <code>&gt;= k</code>. Measured on 4000 draws from a fit censored
+at 7, the simulated mass at that point is 0.13250, against
+<code>P(Y &gt;= 7) = 0.12190</code> inclusive and <code>P(Y &gt; 7) = 0.05763</code> exclusive.
+The other reading would silently decouple the likelihood from the
+simulator that <code><a href="dharma_residuals.html">dharma_residuals()</a></code> rests on.</p>
+<p>Two consequences worth knowing. A one-point interval (<code>y2 == y</code>) is
+legal and is the exact observation <code>P(Y = y)</code>, where on a continuous
+response it is refused as an event of probability zero. And the
+shift assumes the support is the unit integer lattice, so a
+non-integer censoring bound is refused rather than moved onto a
+point the family has no mass at.</p>
+<p><code>residuals(type = "osa")</code> is refused on a censored discrete fit:
+inclusive bounds make an uncensored row's support <code>[lo + 1, hi - 1]</code>
+rather than the <code>[lo, hi]</code> the one-step window is built on.</p>
     </div>
     <div class="section level2">
     <h2 id="tape-safe-scope">Tape-safe scope<a class="anchor" aria-label="anchor" href="#tape-safe-scope"></a></h2>
@@ -471,8 +566,8 @@ may use</p></div>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">size</span><span class="op">)</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="va">fam</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept)            x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> -0.480495115 -0.004402594 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -0.58378094 -0.02406052 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 </code></pre></div>
     </div>

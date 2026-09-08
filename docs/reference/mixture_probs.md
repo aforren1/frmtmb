@@ -1,7 +1,7 @@
 # Posterior class probabilities of a mixture fit
 
 For an ordinary
-[`mixture()`](https://paulbuerkner.com/brms/reference/mixture.html) or
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md) or
 [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
 fit, one row per observation; for a group-level mixture (`groups = ~g`),
 one row per group.

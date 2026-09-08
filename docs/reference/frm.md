@@ -419,6 +419,8 @@ dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.5)[dd$g], 1)
 fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 summary(fit)
 #> Family: gaussian 
+#>  Links: mu = identity; sigma = log
+#> 
 #> Formula: y ~ x + (1 | g) 
 #> Method: ML   nobs: 100 
 #> Groups: g, 10 
