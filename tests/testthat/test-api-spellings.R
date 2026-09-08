@@ -133,3 +133,59 @@ test_that("set_rescor() takes brms's rescor and keeps rescor_value", {
                "two spellings of ONE setting")
   expect_error(set_rescor(rescor = "yes"), "must be TRUE or FALSE")
 })
+
+# --- one coefficient, one name ----------------------------------------
+# fixef() is a LIST keyed by dpar whose entries are named by design
+# COLUMN, so unlist() composes base R's own "mu.x" - a name no surface
+# of this package uses. vcov(), confint(), hypothesis(), par_template()
+# and `start` all spell the same coefficient "sigma_x", with the
+# LOCATION parameter's own coefficients left unprefixed. flatten = TRUE
+# is that spelling; the unlist() composite is pinned below so it cannot
+# drift into looking canonical.
+
+test_that("fixef(flatten = TRUE) names coefficients as vcov() names its rows", {
+  cs <- sp_case()
+  f <- cs$fit
+  expect_setequal(names(fixef(f, flatten = TRUE)), rownames(vcov(f)))
+  # the location parameter is NOT prefixed, here or there
+  expect_true("x" %in% names(fixef(f, flatten = TRUE)))
+  expect_false("mu.x" %in% names(fixef(f, flatten = TRUE)))
+  # the values are the same coefficients, just differently keyed
+  expect_equal(unname(fixef(f, flatten = TRUE)[["x"]]),
+               unname(fixef(f)$mu[["x"]]))
+  # every flattened name addresses a confint() row
+  expect_true(all(names(fixef(f, flatten = TRUE)) %in% rownames(confint(f))))
+})
+
+test_that("a second dpar keeps the two spellings apart", {
+  set.seed(4)
+  dd <- data.frame(x = stats::rnorm(120))
+  dd$y <- stats::rnorm(120, 1 + 0.5 * dd$x, exp(0.2 + 0.1 * dd$x))
+  f <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
+  expect_setequal(names(fixef(f, flatten = TRUE)), rownames(vcov(f)))
+  expect_true("sigma_x" %in% names(fixef(f, flatten = TRUE)))
+  # the default shape is untouched: a list keyed by dpar, bare columns
+  expect_named(fixef(f), c("mu", "sigma"))
+  expect_named(fixef(f)$sigma, c("(Intercept)", "x"))
+})
+
+test_that("unlist(fixef()) stays base R's composite, deliberately", {
+  # NOT the canonical spelling, and not made into one: 19 files in this
+  # monorepo index literal "dpar.column" names out of unlist(fixef()).
+  # Pinned so a later change has to be a decision.
+  cs <- sp_case()
+  expect_true("mu.x" %in% names(unlist(fixef(cs$fit))))
+  expect_false("mu.x" %in% rownames(vcov(cs$fit)))
+})
+
+test_that("the bootstrap statistic is named like the covariance it is compared with", {
+  cs <- sp_case()
+  bs <- frm_bootstrap(cs$fit, nsim = 3, seed = 1)
+  expect_setequal(names(bs$t0), rownames(vcov(cs$fit)))
+  expect_equal(unname(bs$t0), unname(fixef(cs$fit, flatten = TRUE)))
+})
+
+test_that("flatten is a flag", {
+  cs <- sp_case()
+  expect_error(fixef(cs$fit, flatten = "yes"), "flatten")
+})

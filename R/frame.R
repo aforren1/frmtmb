@@ -796,6 +796,52 @@ resolve_nl_dpar_refs <- function(spec, data) {
   spec
 }
 
+#' Refuse a nonlinear body that names its OWN parameter.
+#'
+#' `nl_dpar()` excludes a parameter's own name from `nl_dpar_refs` -
+#' a body cannot read the value it is itself computing - so the name
+#' stays in `datavars` and the combined model frame is asked for a
+#' column of that name. With no such column that surfaced as R's own
+#' "object 'mu' not found" from `eval(predvars, data, env)`, naming
+#' neither the parameter nor the reason.
+#'
+#' A real column of that name still wins, exactly as it does for a dpar
+#' reference: `bf(I ~ mu - chi * logw, chi ~ 1, nl = TRUE)` on data
+#' carrying a `mu` column is a body reading that column, and is left
+#' alone. The refusal is therefore made HERE, where the data is known,
+#' rather than at parse time. `parse_one_response()` catches the other
+#' half of the collision - a name given both a formula and a body - and
+#' needs no data to do it.
+#'
+#' @noRd
+check_nl_self_reference <- function(spec, data) {
+  dn <- names(data)
+  for (resp in spec$responses) {
+    for (nm in names(resp$dpars)) {
+      dp <- resp$dpars[[nm]]
+      if (is.null(dp[["nl_body"]])) next
+      if (!nm %in% (dp[["datavars"]] %||% character(0))) next
+      if (nm %in% dn) next
+      reserved <- resp$family[["dpars"]] %||% character(0)
+      stop("The body of '", nm, "' refers to '", nm, "' itself, and ",
+           "`data` has no column of that name. A nonlinear body is ",
+           "computed FROM its parameters, so it cannot read the ",
+           "parameter it computes.",
+           if (nm %in% reserved) {
+             paste0(" '", nm, "' is a distributional parameter of family '",
+                    resp$family[["family"]], "': a nonlinear parameter ",
+                    "cannot be named after one, so rename it. This ",
+                    "family reserves: ",
+                    paste(reserved, collapse = ", "), ".")
+           },
+           " Declare the parameter under another name with ",
+           "bf(..., a ~ 1, nl = TRUE), or add the column to `data`",
+           call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
+
 #' Re-raise a nonlinear-body failure with the lexical names attached.
 #'
 #' @noRd
@@ -1010,6 +1056,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          call. = FALSE)
   }
   data2 <- validate_data2(data2)
+  check_nl_self_reference(spec, data)
   spec <- resolve_nl_dpar_refs(spec, data)
   spec <- drop_nl_lexical_datavars(spec, data)
   # One combined model frame holds every response, every variable of every

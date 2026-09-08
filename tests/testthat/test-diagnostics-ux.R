@@ -363,3 +363,153 @@ test_that("offset() in a dpar formula reaches the likelihood", {
     as.numeric(model.matrix(~x, nd) %*% fixef(f)$sigma) + nd$off
   )
 })
+
+# --- a flat nonlinear term is named, not called overparameterized -----
+# A Gaussian peak whose centre starts far from the data underflows to
+# zero everywhere. Its amplitude, centre and width then have no
+# gradient, the Hessian is singular and every standard error is NaN.
+# diagnose() used to name all nine parameters as having a bad standard
+# error, which names none of them, and the warning asserted
+# overparameterization. Three parameters and one variance component are
+# UNIDENTIFIED AT THAT POINT instead.
+
+# 10 subjects and w by 0.25 is the smallest grid measured to collapse
+# the way the reported model does (1770 rows, 0.1 s a fit); on a coarser
+# grid the optimizer sometimes keeps a foothold on the bump and the
+# Hessian fails for the ordinary reason instead.
+flat_peak_data <- function(n_id = 10, seed = 5) {
+  set.seed(seed)
+  w <- seq(1, 45, by = 0.25)
+  d <- do.call(rbind, lapply(seq_len(n_id), function(i) {
+    mu_i <- stats::rnorm(1, 10, 1.1)
+    logf <- stats::rnorm(1, 1.2, 0.3) - 1.5 * log(w) +
+      1.1 * exp(-0.5 * ((w - mu_i) / 1.6)^2)
+    data.frame(id = i, w = w, logw = log(w),
+               I = stats::rexp(length(w), rate = 1 / exp(logf)))
+  }))
+  d$id <- factor(d$id)
+  d
+}
+
+test_that("diagnose() names the flat directions instead of every parameter", {
+  d <- flat_peak_data()
+  # `pk` starts at 0 while w runs from 1 to 45: the bump is numerically
+  # zero everywhere, so it never had a gradient to follow
+  fit <- suppressWarnings(frm(
+    bf(I ~ apo - chi * logw + exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2),
+       apo ~ 1 + (1 | id), chi ~ 1, pk ~ 1, lamp ~ 1, lsig ~ 1,
+       nl = TRUE),
+    family = exponential(link = "log"), data = d))
+  dg <- diagnose(fit, quiet = TRUE)
+  expect_false(dg$pdHess)
+  expect_true(length(dg$bad_se) > length(dg$flat))   # the old report
+  expect_setequal(dg$flat, c("pk_(Intercept)", "lamp_(Intercept)",
+                             "lsig_(Intercept)"))
+  # the flat set is a SUBSET of the NaN standard errors: the others are
+  # NaN only because the Hessian could not be inverted
+  expect_true(all(dg$flat %in% dg$bad_se))
+  expect_output(print(diagnose(fit)), "Flat directions")
+  # and the covariance warning says so rather than guessing at size.
+  # It fires once per fit, so both claims are read off the one message.
+  w <- tryCatch(vcov(fit), warning = function(x) conditionMessage(x))
+  expect_match(w, "likelihood is FLAT")
+  expect_match(w, "not identified AT THIS POINT")
+  expect_false(grepl("probably overparameterized", w, fixed = TRUE))
+})
+
+test_that("the same model with the centre on the data has no flat direction", {
+  d <- flat_peak_data()
+  fit <- suppressWarnings(frm(
+    bf(I ~ apo - chi * logw +
+         exp(lamp) * exp(-0.5 * ((w - (10 + pk)) / exp(lsig))^2),
+       apo ~ 1 + (1 | id), chi ~ 1, pk ~ 1, lamp ~ 1, lsig ~ 1,
+       nl = TRUE),
+    family = exponential(link = "log"), data = d))
+  dg <- diagnose(fit, quiet = TRUE)
+  expect_length(dg$flat, 0L)
+  expect_true(all(is.finite(sqrt(diag(vcov(fit))))))
+})
+
+test_that("a healthy fit pays nothing for the flat check", {
+  set.seed(1)
+  dd <- data.frame(x = stats::rnorm(100), g = factor(rep(1:10, 10)))
+  dd$y <- stats::rnorm(100, 1 + 0.5 * dd$x +
+                         stats::rnorm(10, 0, 0.8)[dd$g], 1)
+  fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+  dg <- diagnose(fit, quiet = TRUE)
+  # gated on a covariance that already failed, so no gradient
+  # evaluations are spent on a fit with nothing to find
+  expect_length(dg$flat, 0L)
+  expect_true(dg$pdHess)
+  expect_null(fit$cache$flat_pars)
+})
+
+# The flat-direction check measures flatness and nothing else, so it
+# reaches models with no nonlinear term: a monotonic simplex that has
+# saturated is flat in its last zeta. The DIAGNOSIS is right there; the
+# nonlinear EXPLANATION must not follow it, or the report asserts a
+# cause it never measured - the same defect this check was added to
+# remove, relocated to another model class.
+
+flat_mo_fit <- function(seed = 6, n = 300) {
+  set.seed(seed)
+  d <- data.frame(x = stats::rnorm(n), g = factor(rep(1:15, n / 15)),
+                  mo = factor(sample(0:3, n, TRUE), ordered = TRUE))
+  d$y <- 1 + 0.6 * d$x + stats::rnorm(n, 0, 0.5)
+  suppressWarnings(frm(y ~ mo(mo) + x, data = d))
+}
+
+test_that("a flat direction with no nonlinear term is named without a nonlinear cause", {
+  fit <- flat_mo_fit()
+  # the fixture is only useful while it stays degenerate in this one way
+  expect_length(unlist(lapply(fit$frame[["spec"]]$responses,
+                              function(r) r$nlpars)), 0L)
+  dg <- diagnose(fit, quiet = TRUE)
+  expect_true("zeta1_2" %in% dg$flat)
+
+  # the detector is right: the objective does not move when it moves
+  p <- fit$opt$par
+  j <- match("zeta1_2", frmtmb:::outer_par_names(fit))
+  p1 <- p
+  p1[j] <- p1[j] + 1
+  expect_equal(fit$obj$fn(p1), fit$obj$fn(p), tolerance = 1e-12)
+
+  # ... and the explanation does not invent a bump
+  txt <- paste(utils::capture.output(print(diagnose(fit))), collapse = " ")
+  expect_match(txt, "Flat directions")
+  expect_false(grepl("nonlinear", txt, fixed = TRUE))
+  expect_false(grepl("bump", txt, fixed = TRUE))
+
+  w <- tryCatch(vcov(fit), warning = function(x) conditionMessage(x))
+  expect_match(w, "likelihood is FLAT")
+  expect_false(grepl("nonlinear", w, fixed = TRUE))
+  expect_false(grepl("probably overparameterized", w, fixed = TRUE))
+})
+
+test_that("the nonlinear explanation still fires on a nonlinear fit", {
+  d <- flat_peak_data()
+  fit <- suppressWarnings(frm(
+    bf(I ~ apo - chi * logw + exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2),
+       apo ~ 1 + (1 | id), chi ~ 1, pk ~ 1, lamp ~ 1, lsig ~ 1,
+       nl = TRUE),
+    family = exponential(link = "log"), data = d))
+  txt <- paste(utils::capture.output(print(diagnose(fit))), collapse = " ")
+  expect_match(txt, "nonlinear term evaluated outside its own support")
+  w <- tryCatch(vcov(fit), warning = function(x) conditionMessage(x))
+  expect_match(w, "nonlinear term that has left its own support")
+})
+
+test_that("a theta in the flat set says which block's standard deviation it is", {
+  d <- flat_peak_data()
+  # pk carries the random effect here, so its group sd goes flat with it
+  fit <- suppressWarnings(frm(
+    bf(I ~ apo - chi * logw + exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2),
+       apo ~ 1 + (1 | id), chi ~ 1, pk ~ 1 + (1 | id), lamp ~ 1, lsig ~ 1,
+       nl = TRUE),
+    family = exponential(link = "log"), data = d))
+  dg <- diagnose(fit, quiet = TRUE)
+  th <- grep("^theta_", dg$flat, value = TRUE)
+  skip_if(!length(th), "this fixture did not drive the group sd flat")
+  txt <- paste(utils::capture.output(print(diagnose(fit))), collapse = " ")
+  expect_match(txt, paste0(th[1], " \\(sd of pk: 1 \\| id"))
+})

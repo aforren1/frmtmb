@@ -1,3 +1,100 @@
+# frmtmb (development version)
+
+Four usability defects of hierarchical NONLINEAR models, found while
+fitting `bf(..., nl = TRUE)` with random effects on the nonlinear
+parameters.
+
+* A nonlinear parameter named after one of the family's own
+  distributional parameters is refused BY NAME. `bf(I ~ mu - chi *
+  logw, mu ~ 1 + (1 | id), chi ~ 1 + group, nl = TRUE)` used to die
+  inside `model.frame()` with R's own "object 'mu' not found", which
+  names neither the parameter nor the collision: `mu` is subtracted out
+  of the nonlinear parameters because the family already owns it, so
+  the body's reference to it was asked of `data` as a column. The
+  refusal says which name, which family, and what the family reserves,
+  and it comes from the parse, so `par_template()` refuses it too.
+  brms 2.23.0 on the same formula silently discards the nonlinear body
+  and fits an intercept-only model.
+
+* A nonlinear body that names its OWN parameter with no column behind
+  it is refused the same way, wherever the name comes from, including
+  `nlf(sigma ~ sigma + 1)`. A real `data` column of that name still
+  wins, so a body reading a column called `mu` keeps fitting, and so
+  does a body reading ANOTHER dpar's per-row value
+  (`nlf(sigma ~ ls + th * log(abs(mu)))`), which is a deliberate
+  extension and not a collision.
+
+* `start` and `newparams` name the collision when a nonlinear parameter
+  is named after a parameter-template component (`beta`, `betad`, `b`,
+  `theta`, `thetaac`, `thetar`, `miss`). Such a model FITS; only the
+  start list is ambiguous, and it was resolved silently in favor of the
+  component. `start = list(b = 1)` on a model with a nonlinear
+  parameter `b` reported "start$b must have length 120", which
+  describes the random-effect vector, an object the caller never meant.
+  It now says so, and gives the spelling that reaches the parameter
+  (`start = list(beta = c("b_(Intercept)" = 1))`).
+
+* NEW `fixef(object, flatten = TRUE)`: one named vector in the
+  `vcov()` / `confint()` / `par_template()` spelling, `dpar_column`
+  with the location parameter's own coefficients unprefixed.
+  `hypothesis()` is a third vocabulary and is NOT included in that
+  claim: it strips parentheses, so it takes `sigma_(Intercept)` only
+  backquoted and spells it `sigma_Intercept` itself. `unlist(fixef(fit))` is NOT that vector and never was:
+  it is base R's composite of a list KEY and a design-column name
+  (`mu.x`), differing from the model's own name both in the separator
+  and in naming `mu` where the model does not. `?fixef` said the two
+  agreed. **The `unlist()` spelling does not move**: 19 files in this
+  repository index literal `dpar.column` names out of it, across core
+  and five extensions, and it is base R's composite rather than a name
+  this package assigns.
+
+* BEHAVIOR CHANGE, and **what changes is the NAMES of
+  `frm_bootstrap()`'s default statistic**, from `mu.x` to `x`: the
+  default `FUN` is now `fixef(f, flatten = TRUE)`, so
+  `apply(bs$t, 2, sd)` and `sqrt(diag(vcov(fit)))` line up by name,
+  which is what that comparison is for. `confint(bs)` row names change
+  with it. A `FUN` you supplied yourself is untouched.
+
+* Every `ranef()` block is addressable. A nonlinear model with
+  `(1 | id)` on three parameters returns three blocks all named `id`,
+  and `ranef(fit)[["id"]]` reached the first one silently. `$` and
+  `[[` now also take the BLOCK LABEL, `ranef(fit)[["chi: 1 | id"]]`,
+  which is the `"term"` attribute each matrix already carried,
+  `VarCorr()`'s key and the `grp` column of `as.data.frame()`. A bare
+  grouping-factor name that several blocks share is refused and names
+  the labels instead of answering with the first. **What breaks is
+  `ranef(fit)$g` on a factor carrying more than one block**, which
+  returned the first block and now errors. Three ordinary spellings do
+  that, so this is not a nonlinear-model corner: an uncorrelated slope
+  `(1 + x || g)`, which desugars to the two blocks `1 | g` and
+  `0 + x | g`; the same two written out as `(1 | g) + (0 + x | g)`; and
+  a random effect on more than one distributional or nonlinear
+  parameter, such as `bf(y ~ x + (1 | g), sigma ~ (1 | g))` or `(1 | id)`
+  on three nonlinear parameters. A CORRELATED slope `(1 + x | g)` is one
+  block and still answers to `$g`. The 0.52.0 grouping-factor
+  keying is unchanged, positional indexing is unchanged, and
+  frmtmb.sample's `ranef()` on a draws object, which indexes by
+  position, needs no change.
+
+* `diagnose()` names FLAT DIRECTIONS: outer parameters with zero
+  gradient and an empty Hessian row. A Gaussian peak
+  `exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2)` whose centre
+  starts at 0 while `w` runs from 1 to 45 underflows to zero
+  everywhere, so its amplitude, centre and width have no gradient at
+  all; the covariance then fails and EVERY standard error is `NaN`.
+  The old report listed all nine parameters as having a bad standard
+  error, which names none of them, and the warning asserted
+  overparameterization. The model is not overparameterized. The
+  emptiness of the row is measured rather than assumed, by perturbing
+  the parameter and seeing whether the gradient moves at all
+  (`fit$obj$he()` is unavailable on a model with random effects), and
+  the check is gated on a covariance that already failed, so a healthy
+  fit pays nothing. The `vcov()`, `summary()` and fit-time warnings
+  name those parameters in place of the overparameterization guess.
+  `vignette("frmtmb")` gains the starting-value rule for bump-shaped
+  terms and `vignette("diagnostics")` the two causes of `NaN` standard
+  errors.
+
 # frmtmb 0.53.0
 
 `set_prior()`'s own class names mean what they mean in brms; the

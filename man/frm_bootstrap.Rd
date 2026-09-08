@@ -6,7 +6,7 @@
 \usage{
 frm_bootstrap(
   fit,
-  FUN = function(f) unlist(fixef(f)),
+  FUN = function(f) fixef(f, flatten = TRUE),
   nsim = 500,
   seed = NULL,
   re.form = NA
@@ -16,7 +16,9 @@ frm_bootstrap(
 \item{fit}{A \code{frmtmb_fit} for a univariate model.}
 
 \item{FUN}{Function of a \code{frmtmb_fit} returning a numeric vector.
-Default: the flattened fixed effects.}
+Default: \code{fixef(f, flatten = TRUE)}, the fixed effects named as
+\code{vcov()} names its rows, so a bootstrap standard error lines up
+with the Wald one by name.}
 
 \item{nsim}{Number of bootstrap draws.}
 

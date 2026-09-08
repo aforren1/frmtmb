@@ -100,8 +100,45 @@ d$y <- 2.5 * exp(-0.7 * d$x) + rnorm(200, 0, 0.15)
 nlfit <- frm(bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE) +
                gaussian(),
              data = d, start = list(beta = c(1, 0.3)))
-unlist(fixef(nlfit)[c("a", "b")])
+fixef(nlfit, flatten = TRUE)
 ```
+
+Every nonlinear parameter starts at zero unless `start` or a located
+prior moves it. For a monotone term that is usually good enough. For a
+BUMP-SHAPED term it is not, because a bump evaluated away from the data
+is flat in every one of its parameters at once. Write a peak
+`exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2)` over `w` from 1 to
+45 and `pk` starts at 0, where the bump underflows to zero everywhere:
+the amplitude, the centre and the width then have no gradient, the
+Hessian is singular and every standard error is `NaN`. The fit is not
+overparameterized. It never had a gradient to follow.
+
+Two spellings avoid it. Put the centre where the data is, either with a
+start value or by writing the offset into the formula:
+
+```r
+# start the centre in the middle of the range
+frm(bf(I ~ exp(lamp) * exp(-0.5 * ((w - pk) / exp(lsig))^2),
+       pk ~ 1, lamp ~ 1, lsig ~ 1, nl = TRUE),
+    family = exponential("log"), data = d,
+    start = list(beta = c("pk_(Intercept)" = 10)))
+
+# or estimate a DEPARTURE from a centre you already know
+bf(I ~ exp(lamp) * exp(-0.5 * ((w - (10 + pk)) / exp(lsig))^2), ...)
+```
+
+`diagnose(fit)` names the flat parameters when this happens, under
+"Flat directions".
+
+A nonlinear parameter also cannot be named after one of the family's
+own distributional parameters. `mu ~ 1 + (1 | id)` in a `nl = TRUE`
+model gives the family's own `mu` a linear predictor, and the model
+body then has no `mu` to refer to; `frm()` refuses it and names the
+reserved set. Any other name is free, including `b` and `theta`. Those
+two are also parameter-template component names, so `start = list(b =
+)` still means the random-effect vector, not the parameter: a
+nonlinear parameter's coefficients live inside `beta`, as
+`start = list(beta = c("b_(Intercept)" = 1))`.
 
 ## Custom families
 

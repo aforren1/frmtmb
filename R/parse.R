@@ -1521,6 +1521,45 @@ parse_one_response <- function(bform) {
              "here", call. = FALSE)
       }
     }
+    # A parameter cannot carry a design matrix AND a nonlinear body:
+    # one of the two is then discarded. The case that matters is a
+    # nonlinear parameter named after one of the family's own dpars,
+    # because the `nlpars` line above subtracts those out, so
+    # `mu ~ 1 + (1 | id)` is read as a formula for the family's mu while
+    # `nl = TRUE` gives mu the model body as well. The body's own
+    # reference to `mu` then falls through to `datavars` and the model
+    # frame is asked for a column of that name, which surfaced as R's
+    # "object 'mu' not found" - naming neither the parameter nor the
+    # collision. brms 2.23.0 is worse on the same formula: it discards
+    # the body and generates an intercept-only model with no warning.
+    both <- intersect(names(pforms), nl_dpars)
+    if (length(both)) {
+      bad <- both[1L]
+      if (bad %in% fam[["dpars"]]) {
+        stop("'", bad, "' is a distributional parameter of family '",
+             fam[["family"]], "', so it cannot also be a nonlinear ",
+             "parameter: '", bad, " ~ ...' gives the family's own '",
+             bad, "' a linear predictor, while the nonlinear body needs ",
+             "'", bad, "' to be a parameter it can refer to. Rename the ",
+             "nonlinear parameter. This family reserves: ",
+             paste(fam[["dpars"]], collapse = ", "), call. = FALSE)
+      }
+      # UNREACHABLE while `+.frmtmb_formula` stands: a name needs a
+      # formula AND a body to get here, and R/bf.R:338, :351 and :358
+      # refuse that combination on all three orderings ("nlf() sets 'a',
+      # which the bf() it is added to already sets"), while a duplicate
+      # inside one bf() is refused as "Duplicated dpar formula". So the
+      # only member `both` can hold is the location dpar injected above,
+      # which the first branch takes. Measured on all four routes. Kept
+      # as a guard rather than deleted, because the branch above would
+      # otherwise tell a non-dpar name it is a distributional parameter
+      # if that upstream refusal ever moves.
+      stop("Nonlinear parameter '", bad, "' has both a formula ('", bad,
+           " ~ ...') and a body ('nlf(", bad, " ~ ...)'). A parameter is ",
+           "one or the other: a body computes it from other parameters, ",
+           "a formula estimates coefficients of its own. Drop whichever ",
+           "is not meant", call. = FALSE)
+    }
     if (!length(nlpars)) {
       stop("A nonlinear formula needs at least one nonlinear-parameter ",
            "formula whose name appears in the model formula. No name in ",

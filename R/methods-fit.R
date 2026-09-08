@@ -388,7 +388,7 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
     # own convergence checks all passed - so say so here, or nothing
     # does. (The REML/profile branch below warns through
     # solve_joint_precision().)
-    if (any(!is.finite(V))) warn_nonfinite_cov(object$cache)
+    if (any(!is.finite(V))) warn_nonfinite_cov(object$cache, object)
     if (full) {
       # cov.fixed rows repeat the component names; the per-parameter
       # names (confint rows) are the useful labels
@@ -400,7 +400,7 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
     V <- V[ord, ord, drop = FALSE]
   } else {
     Q <- sdr_of(object)$jointPrecision
-    Vall <- solve_joint_precision(Q, object$cache)
+    Vall <- solve_joint_precision(Q, object$cache, object)
     rn <- rownames(Q)
     if (full) {
       # The outer parameter vector under REML (or control profile =
@@ -529,9 +529,42 @@ coef.frmtmb_fit <- function(object, ...) {
 }
 
 #' Extract fixed effects
+#'
+#' Two shapes, and the difference is the NAMES. The default is a list
+#' keyed by distributional parameter, whose entries are named by DESIGN
+#' COLUMN: `fixef(fit)$sigma[["(Intercept)"]]`. `flatten = TRUE` is one
+#' vector in the INTERNAL parameter name, which is what `vcov()`,
+#' `confint()`, `par_template()`, `start` and `newparams` use:
+#' `dpar_column`, with the location parameter's own coefficients left
+#' unprefixed (`x`, not `mu_x`), and the response prefixed ahead of that
+#' in a multivariate fit.
+#'
+#' `hypothesis()` is a THIRD vocabulary and is not the same one. It
+#' strips parentheses, so it reads `sigma_(Intercept)` only backquoted,
+#' and its own spelling is the parenthesis-free `sigma_Intercept`. The
+#' comment above `par_name_bare()` sets out all three.
+#'
+#' `unlist(fixef(fit))` is none of them. It is base R's composite of a
+#' list KEY and an element name, `mu.x`, and it names no parameter of
+#' the model: the separator differs and the location parameter is named
+#' where the model does not name it. Use `flatten = TRUE` to line
+#' coefficients up with a covariance matrix or a prior.
+#'
 #' @param object A `frmtmb_fit`.
+#' @param flatten If `TRUE`, one named vector in the `vcov()` /
+#'   `confint()` spelling instead of the per-dpar list. Coefficients
+#'   come in linear-predictor order, which need not be `vcov()`'s row
+#'   order; index by name. Distributional parameters held at a constant
+#'   are included here and are absent from `vcov()`, which covers the
+#'   ESTIMATED coefficients only - so dividing by a `vcov()` diagonal is
+#'   `NA` for those entries, and
+#'   `intersect(names(cf), rownames(vcov(fit)))` selects the ones a
+#'   standard error exists for.
 #' @param ... Unused.
-#' @return A named list of coefficient vectors, one per dpar.
+#' @return A named list of coefficient vectors, one per dpar, or with
+#'   `flatten = TRUE` a single named vector.
+#' @seealso [vcov.frmtmb_fit()] and [confint.frmtmb_fit()], which name
+#'   their rows the way `flatten = TRUE` names its entries.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
@@ -542,17 +575,33 @@ coef.frmtmb_fit <- function(object, ...) {
 #' fixef(fit)
 #' exp(fixef(fit)$sigma[["(Intercept)"]])   # sigma is modeled on the log
 #'
-#' # flatten to the vector confint() and hypothesis() name their rows by
-#' unlist(fixef(fit))
+#' # flatten to the vector vcov() and confint() name their rows by
+#' fixef(fit, flatten = TRUE)
+#' all(names(fixef(fit, flatten = TRUE)) %in% rownames(confint(fit)))
+#'
+#' # so a standard error goes with its coefficient by name
+#' cf <- fixef(fit, flatten = TRUE)
+#' cf / sqrt(diag(vcov(fit))[names(cf)])
 #' @export
 fixef <- function(object, ...) UseMethod("fixef")
 
 #' @rdname fixef
 #' @exportS3Method nlme::fixef
 #' @export
-fixef.frmtmb_fit <- function(object, ...) {
+fixef.frmtmb_fit <- function(object, flatten = FALSE, ...) {
   require_fitted(object, "fixef()")
+  check_flag(flatten, "flatten")
   est <- object$estimates
+  # the estimates already CARRY the canonical names (the parameter
+  # template builds both), so flatten reads them rather than rebuilding
+  # the dpar-prefix rule a second place where it could drift
+  if (flatten) {
+    out <- numeric(0)
+    for (lp in object$frame[["linpreds"]]) {
+      out <- c(out, est[[lp[["par"]]]][lp[["idx"]]])
+    }
+    return(out)
+  }
   out <- list()
   for (lp in object$frame[["linpreds"]]) {
     v <- est[[lp[["par"]]]][lp[["idx"]]]
@@ -571,12 +620,26 @@ fixef.frmtmb_fit <- function(object, ...) {
 #' @return A named list of levels-by-coefficients matrices, one per
 #'   random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
 #'   key it (so `ranef(fit)$g` and `coef(fit)$g` name the same group).
-#'   Two terms on one factor give two entries under one name, so index
-#'   by position when a model has them; each matrix carries the block
-#'   label that tells them apart in its `"term"` attribute, which is
-#'   also the key [VarCorr()] uses and the `grp` column of
+#'   Each matrix carries its block label in a `"term"` attribute, which
+#'   is also the key [VarCorr()] uses and the `grp` column of
 #'   `as.data.frame()`. That long form (with a `condsd` column when
 #'   `condVar = TRUE` was used) is what broom.mixed-style code reads.
+#'
+#'   Several terms on ONE grouping factor give several entries under one
+#'   name, and `$` and `[[` then take the block label instead:
+#'   `ranef(fit)[["chi: 1 | id"]]`. The bare factor name is refused
+#'   there, and names the labels, rather than returning the first block.
+#'   Positional indexing reaches every block either way.
+#'
+#'   Three ordinary spellings put more than one block on one factor, so
+#'   this is not a nonlinear-model corner: an uncorrelated slope
+#'   `(1 + x || g)`, which desugars to `1 | g` and `0 + x | g`; two bars
+#'   written out on the same factor, `(1 | g) + (0 + x | g)`, the same
+#'   two blocks; and a random effect on more than one distributional or
+#'   nonlinear parameter, such as `bf(y ~ x + (1 | g), sigma ~ (1 | g))`
+#'   (`1 | g` and `sigma: 1 | g`) or `(1 | id)` on three nonlinear
+#'   parameters. A CORRELATED slope `(1 + x | g)` is one block and is
+#'   addressed by the factor name as before.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
@@ -587,6 +650,7 @@ fixef.frmtmb_fit <- function(object, ...) {
 #' ranef(fit)
 #' ranef(fit)$g[1:3, ]                 # keyed by the grouping factor
 #' attr(ranef(fit)$g, "term")          # the block it came from
+#' ranef(fit)[["1 | g"]][1:3, ]        # or by that label
 #'
 #' # condVar adds the conditional SDs a caterpillar plot needs
 #' re <- as.data.frame(ranef(fit, condVar = TRUE))
@@ -652,6 +716,66 @@ ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
     bk[["group_name"]] %||% bk[["term_label"]]
   }, "")
   structure(out, class = "ranef_frmtmb")
+}
+
+#' Blocks that share a grouping factor stay addressable.
+#'
+#' 0.52.0 re-keyed this list by the GROUPING FACTOR, which is brms's and
+#' lme4's key and the one `coef()` already used. That is the right key
+#' and it does not change here. What it left behind is a list whose
+#' names repeat: three `(1 | id)` terms on three nonlinear parameters
+#' are three entries all called `id`, and `[["id"]]` reached the first
+#' of them silently - a wrong answer rather than an error, and no
+#' spelling reached the other two at all.
+#'
+#' So the KEY grows a second accepted form rather than the list changing
+#' shape: the block label, which is what `attr(blk, "term")` carries,
+#' what `VarCorr()` keys by and what `as.data.frame()` puts in `grp`.
+#' A grouping factor with one block is addressed as before; a factor
+#' with several is either addressed by its block label or refused by
+#' name. Positional indexing is untouched, so `print()`,
+#' `as.data.frame()` and frmtmb.sample's `ranef.frmtmb_draws()` - all of
+#' which index by position on purpose - go through the fast path.
+#'
+#' @noRd
+ranef_pick <- function(x, i) {
+  y <- unclass(x)
+  hit <- which(names(y) == i)
+  if (length(hit) == 1L) return(list(found = TRUE, value = y[[hit]]))
+  tl <- vapply(y, function(m) attr(m, "term") %||% NA_character_, "")
+  ti <- which(tl == i)
+  if (length(ti) == 1L) return(list(found = TRUE, value = y[[ti]]))
+  if (length(hit) > 1L) {
+    stop("ranef() has ", length(hit), " random-effect blocks on ",
+         "grouping factor '", i, "', so '", i, "' does not name one of ",
+         "them. Address a block by its term label - ",
+         paste0("[[\"", tl[hit], "\"]]", collapse = ", "),
+         " - or by position. The label is also each block's \"term\" ",
+         "attribute, VarCorr()'s key and the `grp` column of ",
+         "as.data.frame()", call. = FALSE)
+  }
+  list(found = FALSE, value = NULL)
+}
+
+#' @export
+`[[.ranef_frmtmb` <- function(x, i, ...) {
+  if (!is.character(i) || length(i) != 1L) return(unclass(x)[[i, ...]])
+  got <- ranef_pick(x, i)
+  if (got$found) return(got$value)
+  # whatever base does with a name this list does not carry, which on a
+  # list is NULL rather than an error
+  unclass(x)[[i, ...]]
+}
+
+#' @export
+`$.ranef_frmtmb` <- function(x, name) {
+  got <- ranef_pick(x, name)
+  if (got$found) return(got$value)
+  y <- unclass(x)
+  # base `$` on a list partial-matches and returns NULL for a miss;
+  # keep both, or a name that used to work would silently become NULL
+  j <- pmatch(name, names(y))
+  if (is.na(j)) NULL else y[[j]]
 }
 
 #' @export

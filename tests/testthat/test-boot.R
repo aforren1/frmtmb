@@ -24,7 +24,10 @@ test_that("frm_bootstrap recovers the sampling distribution", {
   # default FUN covers every dpar's fixed effects, sigma included
   expect_equal(dim(bs$t), c(40L, 3L))
   expect_true(all(bs$converged))
-  expect_named(bs$t0, c("mu.(Intercept)", "mu.x", "sigma.(Intercept)"))
+  # the default statistic is fixef(flatten = TRUE), so the names are
+  # vcov()'s rows and a bootstrap SE lines up with the Wald one
+  expect_named(bs$t0, c("(Intercept)", "x", "sigma_(Intercept)"))
+  expect_true(all(names(bs$t0) %in% rownames(vcov(fit))))
   # bootstrap mean near the estimate, bootstrap SE near the Wald SE
   expect_lt(abs(mean(bs$t[, 2]) - bs$t0[[2]]), 0.1)
   se_wald <- sqrt(vcov(fit)["x", "x"])

@@ -1876,6 +1876,52 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
   )
 }
 
+#' What a `start` component name means when a NONLINEAR PARAMETER of
+#' the same model carries the same name.
+#'
+#' `start` and `newparams` are keyed by par-template COMPONENT
+#' (`beta`, `betad`, `b`, `theta`, `thetaac`, `thetar`, `miss`), and a
+#' nonlinear parameter may be named after any of them and fit
+#' perfectly: its coefficients live inside `beta` as `b_(Intercept)`,
+#' not in the component called `b`. So `start = list(b = 1)` on such a
+#' model sets the RANDOM-EFFECT VECTOR, and reported the length of that
+#' vector ("start$b must have length 120") - a message about an object
+#' the caller never meant. Neither reading can be dropped, so name both.
+#'
+#' `arg` is the caller's own spelling, so a `frm_simulate()` message
+#' does not answer a `newparams$b` error by talking about `start$b`.
+#'
+#' @noRd
+nl_start_collision_msg <- function(nm, tpl, arg = "start") {
+  what <- switch(nm,
+    beta = "the fixed-effect coefficients of the location predictors",
+    betad = "the coefficients of the distributional parameters",
+    b = "the random-effect vector (the conditional modes)",
+    theta = "the covariance parameters",
+    thetaac = "the autocorrelation parameters",
+    thetar = "the residual-correlation parameters",
+    miss = "the imputed missing values",
+    "a parameter-template component")
+  pfx <- paste0(nm, "_")
+  own <- character(0)
+  for (cp in c("beta", "betad")) {
+    cn <- names(tpl[[cp]]) %||% character(0)
+    hit <- cn[startsWith(cn, pfx)]
+    if (length(hit)) {
+      own <- c(own, paste0(cp, " = c(`", hit[1L], "` = ...)"))
+      break
+    }
+  }
+  paste0("`", arg, "$", nm, "` sets ", what, ", not the nonlinear ",
+         "parameter '", nm, "' of the same name: `", arg, "` is keyed ",
+         "by parameter-template component, and a nonlinear parameter's ",
+         "coefficients sit INSIDE one of those components",
+         if (length(own)) {
+           paste0(" - here as ", arg, " = list(", own[1L], ")")
+         },
+         ". par_template() lists both")
+}
+
 #' The cold starting values: the parameter template with each linear
 #' predictor's intercept seeded from the family's own initializer, then
 #' any nonlinear parameter a prior's location places, then whatever the
@@ -1924,10 +1970,28 @@ make_start <- function(frame, start, prior_entries = NULL,
   for (p in placed) tpl[["beta"]][p$idx] <- p$value
   claimed <- integer(0)
   if (!is.null(start)) {
+    nl_named <- unique(unlist(lapply(frame[["spec"]]$responses,
+                                     function(r) r$nlpars %||% character(0))))
     for (nm in names(start)) {
       if (!nm %in% names(tpl)) {
         stop("Unknown start component: '", nm, "' (template has: ",
              paste(names(tpl), collapse = ", "), ")", call. = FALSE)
+      }
+      if (nm %in% nl_named) {
+        # the component reading is the one that applies, but it is not
+        # the one the caller is likely to have meant
+        msg <- nl_start_collision_msg(nm, tpl)
+        tpl[[nm]] <- tryCatch(
+          resolve_start_component(tpl[[nm]], start[[nm]], nm),
+          # the length and name errors describe the COMPONENT, so on
+          # this model they describe the wrong object; carry the
+          # collision into the error rather than leaving it to a
+          # warning the error would outrun
+          error = function(e) {
+            stop(conditionMessage(e), ". ", msg, call. = FALSE)
+          })
+        warning(msg, call. = FALSE)
+        next
       }
       tpl[[nm]] <- resolve_start_component(tpl[[nm]], start[[nm]], nm)
     }
@@ -2013,14 +2077,17 @@ check_convergence <- function(fit, control) {
   # then refuses as computationally singular, and cov.fixed is NaN.
   sdr <- fit$cache$sdr
   if (!is.null(sdr) && !is.null(sdr$pdHess) && !isTRUE(sdr$pdHess)) {
+    # "overparameterized" is one of two causes and the wrong one when a
+    # direction is flat; flat_par_note() names the parameters when it is
     msgs <- c(msgs, paste0("Hessian is not positive definite; standard ",
                            "errors are unreliable. The model may be ",
-                           "overparameterized"))
+                           "overparameterized", flat_par_note(fit)))
   } else if (!is.null(sdr) && length(sdr$cov.fixed) &&
              any(!is.finite(sdr$cov.fixed))) {
     msgs <- c(msgs, paste0("Some standard errors are not finite: the ",
                            "covariance could not be recovered from the ",
-                           "Hessian. diagnose() names the offending ",
+                           "Hessian", flat_par_note(fit),
+                           ". diagnose() names the offending ",
                            "parameters; see the 'Convergence problems' ",
                            "section of vignette('diagnostics')"))
   }

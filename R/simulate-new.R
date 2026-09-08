@@ -592,10 +592,20 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
   slots <- nat_slots(frame)
 
   if (internal) {
+    # a nonlinear parameter may be named after a template component and
+    # still fit; see nl_start_collision_msg()
+    nl_named <- unique(unlist(lapply(spec$responses,
+                                     function(r) r$nlpars %||% character(0))))
     for (nm in names(np_internal)) {
       if (length(np_internal[[nm]]) != length(est[[nm]])) {
         stop("newparams$", nm, " must have length ", length(est[[nm]]),
+             if (nm %in% nl_named) {
+               paste0(". ", nl_start_collision_msg(nm, est, "newparams"))
+             },
              call. = FALSE)
+      }
+      if (nm %in% nl_named) {
+        warning(nl_start_collision_msg(nm, est, "newparams"), call. = FALSE)
       }
       est[[nm]][] <- np_internal[[nm]]
     }
