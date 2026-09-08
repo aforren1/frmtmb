@@ -573,13 +573,14 @@ test_that("a mixture does not inherit se() from its components", {
 # left with a flat direction and a NaN standard error.
 # ---------------------------------------------------------------------
 
-se_scale_fam <- function(scale_name) {
+se_scale_fam <- function(scale_name, se_dpar = NULL) {
   force(scale_name)
   # by NAME, never by position: `dpars` also carries the `.eta_<dpar>`
   # linear predictors, so dpars[[2L]] is not the second declared dpar
   frmtmb_family(
     paste0("scale_", scale_name),
     accepts_aterms = c("weights", "se"),
+    se_dpar = se_dpar,
     dpars = c("mu", scale_name),
     links = stats::setNames(list("identity", "log"), c("mu", scale_name)),
     lpdf = function(y, dpars, aterms) {
@@ -677,4 +678,152 @@ test_that("the se() refusal names a declaration a caller can write", {
   expect_match(msg, "required_aterms")
   # and it states the sigma = TRUE convention inline
   expect_match(msg, "se_sigma")
+})
+
+# ---------------------------------------------------------------------
+# `se_dpar` names the dpar a known standard error replaces. Without it
+# the guard above has only the name `sigma` to go on, so it cannot tell
+# a second SCALE, which would be left free and unread, from a genuine
+# SHAPE, which has to stay free. This is how a family answers.
+# ---------------------------------------------------------------------
+
+# scale = the known se, plus a skew that the density READS. Refused
+# before `se_dpar` existed, and identified: the skew has data behind it.
+skew_se_fam <- function(declare = TRUE) {
+  frmtmb_family(
+    "skew_se",
+    accepts_aterms = c("weights", "se"),
+    se_dpar = if (declare) NA,
+    dpars = c("mu", "alpha"),
+    links = list(mu = "identity", alpha = "identity"),
+    lpdf = function(y, dpars, aterms) {
+      om <- if (is.null(aterms[["se"]])) 1 else aterms[["se"]]
+      z <- (y - dpars[["mu"]]) / om
+      log(2) - log(om) + RTMB::dnorm(z, 0, 1, log = TRUE) +
+        RTMB::pnorm(dpars[["alpha"]] * z, log.p = TRUE)
+    },
+    init_dpars = list(mu = function(y, aterms) mean(y),
+                      alpha = function(y, aterms) 0))
+}
+
+skew_se_data <- function(seed = 11, n = 400, alpha = 3) {
+  set.seed(seed)
+  d <- data.frame(x = rnorm(n), sev = runif(n, 0.4, 1.2))
+  dl <- alpha / sqrt(1 + alpha^2)
+  d$y <- 1 + 0.7 * d$x +
+    d$sev * (dl * abs(rnorm(n)) + sqrt(1 - dl^2) * rnorm(n))
+  d
+}
+
+test_that("se_dpar = NA accepts a family whose other dpar is a shape", {
+  d <- skew_se_data()
+  fit <- frm(bf(y | se(sev) ~ x) + skew_se_fam(), data = d)
+  se <- sqrt(diag(vcov(fit)))
+  expect_true(all(is.finite(se)))
+  # the shape is estimated, not frozen: within four of its own
+  # standard errors of the value the data were drawn at
+  a_hat <- unname(fixef(fit)$alpha)
+  a_se <- se[[grep("alpha", names(se))[[1]]]]
+  expect_lt(abs(a_hat - 3), 4 * a_se)
+  # and it buys likelihood over the same family with the shape pinned
+  # at the symmetric value
+  ref <- frm(bf(y | se(sev) ~ x, alpha = 0) + skew_se_fam(), data = d)
+  expect_gt(as.numeric(logLik(fit)) - as.numeric(logLik(ref)), 1)
+})
+
+test_that("the same family without the declaration is still refused", {
+  d <- skew_se_data()
+  msg <- tryCatch(frm(bf(y | se(sev) ~ x) + skew_se_fam(FALSE), data = d),
+                  error = conditionMessage)
+  expect_match(msg, "has no `sigma`")
+  # the refusal names the declaration that settles it, both spellings
+  expect_match(msg, "se_dpar = \"alpha\"")
+  expect_match(msg, "se_dpar = NA")
+})
+
+test_that("se_dpar names the dpar the core maps out", {
+  d <- se_scale_data()
+  f1 <- frm(bf(y | se(sev) ~ x) + se_scale_fam("tau", se_dpar = "tau"),
+            data = d)
+  expect_true(all(is.finite(sqrt(diag(vcov(f1))))))
+  # the same model the convention reaches by naming the scale `sigma`
+  f2 <- frm(bf(y | se(sev) ~ x) + se_scale_fam("sigma"), data = d)
+  expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f2)),
+               tolerance = 1e-10)
+  expect_equal(unname(fixef(f1)$mu), unname(fixef(f2)$mu),
+               tolerance = 1e-8)
+  # and the mapped-out dpar reports as the zero it is, as `sigma` does
+  expect_true(all(predict(f1, dpar = "tau", type = "response") == 0))
+})
+
+test_that("frmtmb_family(se_dpar =) is checked at construction", {
+  expect_error(se_scale_fam("tau", se_dpar = "phi"),
+               "names a dpar 'scale_tau' does not have")
+  expect_error(se_scale_fam("tau", se_dpar = "mu"),
+               "names a LOCATION parameter")
+  expect_error(se_scale_fam("tau", se_dpar = c("tau", "mu")),
+               "names the ONE dpar")
+})
+
+# ---------------------------------------------------------------------
+# A dpar FORMULA is not a way to stop being free. It was the hole in
+# the guard: `sigma ~ 1` estimates an intercept the density never
+# reads, which is the flat direction the bare case is refused for. The
+# built-in gaussian had it too, so this is not a custom-family rule.
+# ---------------------------------------------------------------------
+
+test_that("a formula for the replaced scale is refused, every route", {
+  d <- se_scale_data()
+  for (mk in list(function() frm(bf(y | se(sev) ~ x, sigma ~ 1),
+                                 data = d),
+                  function() frm(bf(y | se(sev) ~ x) + lf(sigma ~ 1),
+                                 data = d),
+                  function() frm(bf(y | se(sev) ~ x, sigma ~ x),
+                                 data = d))) {
+    expect_error(mk(), "The formula `sigma ~ ...` estimates it")
+  }
+  # the same hole on a family that names its scale itself
+  expect_error(frm(bf(y | se(sev) ~ x, tau ~ 1) +
+                     se_scale_fam("tau", se_dpar = "tau"), data = d),
+               "The formula `tau ~ ...` estimates it")
+  # and on an undeclared family, where the message is the other one
+  expect_error(frm(bf(y | se(sev) ~ x, tau ~ 1) + se_scale_fam("tau"),
+                   data = d),
+               "has no `sigma`")
+})
+
+test_that("the three documented escapes survive the formula rule", {
+  d <- se_scale_data()
+  # 1. no formula at all: the core maps the scale out
+  f0 <- frm(bf(y | se(sev) ~ x), data = d)
+  expect_equal(sigma(f0), 0)
+  expect_true(all(is.finite(sqrt(diag(vcov(f0))))))
+  # 2. a CONSTANT pins it, and reaches the same likelihood
+  f1 <- frm(bf(y | se(sev) ~ x, sigma = 1), data = d)
+  expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f0)),
+               tolerance = 1e-10)
+  expect_true(all(is.finite(sqrt(diag(vcov(f1))))))
+  # 3. sigma = TRUE keeps it estimated, formula and all
+  dq <- se_scale_data(seed = 21, n = 400, extra = 0.9)
+  f2 <- frm(bf(y | se(sev, sigma = TRUE) ~ x, sigma ~ 1), data = dq)
+  expect_gt(sigma(f2), 0)
+  expect_true(all(is.finite(sqrt(diag(vcov(f2))))))
+})
+
+test_that("a family's own default_forms go through the same guard", {
+  # a default form is still a formula: it estimates. hmm() is the
+  # family that ships them, and they are merged AFTER this guard, so
+  # the guard has to read them where they are declared.
+  d <- se_scale_data()
+  fam <- se_scale_fam("tau", se_dpar = "tau")
+  fam[["default_forms"]] <- list(tau = ~1)
+  expect_error(frm(bf(y | se(sev) ~ x) + fam, data = d),
+               "The formula `tau ~ ...` estimates it")
+  # a constant wins over a default form, so the escape still exists
+  f <- frm(bf(y | se(sev) ~ x, tau = 1) + fam, data = d)
+  expect_true(all(is.finite(sqrt(diag(vcov(f))))))
+  expect_equal(as.numeric(logLik(f)),
+               as.numeric(logLik(frm(bf(y | se(sev) ~ x) +
+                                       se_scale_fam("sigma"), data = d))),
+               tolerance = 1e-10)
 })

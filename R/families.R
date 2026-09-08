@@ -125,6 +125,22 @@
 #'   `aterms[["se"]]` as the known standard deviation, and
 #'   `aterms[["se_sigma"]]` to honor `se(x, sigma = TRUE)`, which asks
 #'   for the known and estimated scales in quadrature.
+#' @param se_dpar The dpar that a known standard error replaces, named
+#'   so that the core can map it out: `se_dpar = "tau"` maps out `tau`
+#'   exactly as the convention maps out `sigma`. `NA` declares that
+#'   `se()` replaces NO dpar, which is the shape of a family whose whole
+#'   scale IS the known standard error. `NULL`, the default, reads the
+#'   convention: the dpar named `sigma`, if the family has one.
+#'
+#'   Only a family that declares `se()` reaches this. `se()` without
+#'   `sigma = TRUE` says the residual scale is known, so the dpar it
+#'   replaces has to stop being estimated. A dpar the density never
+#'   reads is a flat direction and a NaN standard error, so a declaring
+#'   family with no `sigma` and another free dpar is refused: the core
+#'   cannot tell a second SCALE from a genuine SHAPE. This argument is
+#'   how the family says which one it has. `se_dpar = NA` is a promise
+#'   that every remaining dpar is read alongside the known standard
+#'   error, the way a skew or a tail index is.
 #' @param exclusive_aterms Sets of addition-term values that say the SAME
 #'   thing to the density, so that at most one of each set may be
 #'   supplied. Named as `required_aterms` names them, in values rather
@@ -425,7 +441,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           primary_dpars = "mu", lcdf = NULL,
                           lccdf = NULL,
                           required_aterms = character(0),
-                          accepts_aterms = NULL,
+                          accepts_aterms = NULL, se_dpar = NULL,
                           exclusive_aterms = list(),
                           family_finalize = NULL,
                           extra_pars = NULL, drop_intercept = FALSE,
@@ -435,6 +451,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
             is.function(lpdf))
   check_required_aterms(required_aterms)
   accepts_aterms <- check_accepts_aterms(accepts_aterms)
+  se_dpar <- check_se_dpar(se_dpar, dpars, primary_dpars, family)
   exclusive_aterms <- check_exclusive_aterms(exclusive_aterms,
                                              required_aterms)
   if (!is.null(family_finalize) && !is.function(family_finalize)) {
@@ -478,7 +495,7 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
          post = post, sim = sim, sim_ctx = sim_ctx,
          sim_refusal = sim_refusal, primary_dpars = primary_dpars,
          lcdf = lcdf, lccdf = lccdf, required_aterms = required_aterms,
-         accepts_aterms = accepts_aterms,
+         accepts_aterms = accepts_aterms, se_dpar = se_dpar,
          exclusive_aterms = exclusive_aterms,
          family_finalize = family_finalize, extra_pars = extra_pars,
          drop_intercept = isTRUE(drop_intercept),
@@ -1150,6 +1167,7 @@ fam_gaussian <- function(link = "identity", link_sigma = "log") {
   frmtmb_family(
     "gaussian",
     accepts_aterms = c("weights", "cens", "trunc", "se", "mi"),
+    se_dpar = "sigma",
     dpars = c("mu", "sigma"),
     links = list(mu = link, sigma = lk_sigma),
     lpdf = function(y, dpars, aterms) {
@@ -1501,6 +1519,7 @@ fam_student <- function(link = "identity", link_sigma = "log",
   frmtmb_family(
     "student",
     accepts_aterms = c("weights", "se", "mi"),
+    se_dpar = "sigma",
     dpars = c("mu", "sigma", "nu"),
     links = list(mu = link, sigma = lk_sigma, nu = lk_nu),
     lpdf = function(y, dpars, aterms) {
@@ -5796,6 +5815,54 @@ accepted_aterm_names <- function(fam) {
   req <- unlist(required_aterm_groups(fam[["required_aterms"]]),
                 use.names = FALSE)
   sort(unique(c(acc, vapply(req %||% character(0), aterm_base, ""))))
+}
+
+#' Validate `frmtmb_family(se_dpar =)`: one dpar name, or `NA` for a
+#' family whose whole scale is the known standard error.
+#'
+#' A location parameter is refused by name, because `se()` replaces the
+#' residual SCALE and mapping out `mu` would delete the model.
+#'
+#' @noRd
+check_se_dpar <- function(se_dpar, dpars, primary_dpars, family) {
+  if (is.null(se_dpar)) return(NULL)
+  if (length(se_dpar) != 1L ||
+      !(is.character(se_dpar) || (is.logical(se_dpar) && is.na(se_dpar)))) {
+    stop("frmtmb_family(se_dpar =) names the ONE dpar that a known ",
+         "standard error replaces, or is NA where it replaces none ",
+         "because the whole scale is the known one; got ",
+         arg_desc(se_dpar), call. = FALSE)
+  }
+  if (is.na(se_dpar)) return(NA_character_)
+  if (!se_dpar %in% dpars) {
+    stop("frmtmb_family(se_dpar = \"", se_dpar, "\") names a dpar '",
+         family, "' does not have (it has: ",
+         paste(dpars, collapse = ", "),
+         "). Name the scale se() replaces, or NA if it replaces none",
+         call. = FALSE)
+  }
+  if (se_dpar %in% primary_dpars) {
+    stop("frmtmb_family(se_dpar = \"", se_dpar, "\") names a LOCATION ",
+         "parameter of '", family, "'. se() carries a known standard ",
+         "deviation, so it replaces a scale; mapping out the location ",
+         "would leave the model with nothing to estimate", call. = FALSE)
+  }
+  se_dpar
+}
+
+#' The dpar a known `se()` replaces: the declaration if the family made
+#' one, `NA_character_` where it declared that `se()` replaces nothing,
+#' and NULL where it said nothing and has no `sigma` to fall back on.
+#'
+#' NULL is the case the parse-time guard refuses on, because an
+#' undeclared family with a second free dpar cannot be told from one
+#' whose second dpar is a shape the density reads.
+#'
+#' @noRd
+family_se_dpar <- function(fam) {
+  d <- fam[["se_dpar"]]
+  if (!is.null(d)) return(d)
+  if ("sigma" %in% fam[["dpars"]]) "sigma" else NULL
 }
 
 #' Whether a family EXPLICITLY declares that it reads an addition term.

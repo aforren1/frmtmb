@@ -1438,6 +1438,35 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         av[["cens_y2"]][!i2 | is.na(av[["cens_y2"]])] <-
           yv[!i2 | is.na(av[["cens_y2"]])]
       }
+      # RIGHT and INTERVAL censoring of a count is where the inclusive
+      # reading DIVERGES from brms, which emits P(Y > y) for both. Left
+      # censoring and continuous censoring agree exactly, so neither
+      # says anything here, and neither does truncation alone. A model
+      # ported from brms otherwise changes its answer with nothing at
+      # the call site to say so: on 200 poisson draws at lambda = 4
+      # right censored at 6 the two readings differ by 21.8 to 33.3 log
+      # units, median 29.4 over 40 seeds, about 0.66 per censored row.
+      # The 20.8 the 0.54.0 NEWS gives for the same setup is below
+      # every one of those 40 draws, so it is not the figure to quote.
+      # Last of the CENSORING guards, so a bad bound does not spend the
+      # one notice a session gets. A refusal raised after this point
+      # still spends it: se() on the same response, or anything the
+      # fit refuses later, such as a prior on a class the model has
+      # not got. Measured both ways.
+      if (!is.null(av[["cens"]]) && any(av[["cens"]] %in% c(1, 2)) &&
+          identical(resp$family[["type"]], "discrete")) {
+        notify_once(
+          "cens_discrete_inclusive",
+          "cens() on a discrete response reads every bound as ",
+          "INCLUSIVE: right censoring at k is P(Y >= k), an interval ",
+          "is P(k <= Y <= k2), and a lower edge enters the CDF as ",
+          "F(k - 1). brms reads a RIGHT or INTERVAL bound on a count ",
+          "as exclusive, P(Y > y), so subtract one from those bounds ",
+          "to reproduce a brms fit. Left censoring and continuous ",
+          "censoring agree in both packages. The argument is in ",
+          "vignette(\"brms-migration\"). This notice is given once ",
+          "per session; options(frmtmb.notices = FALSE) turns it off.")
+      }
     }
     if (!is.null(av[["se"]])) {
       # A capability test, not a name test. `se()` is the one core

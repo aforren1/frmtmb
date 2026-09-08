@@ -1581,39 +1581,76 @@ parse_one_response <- function(bform) {
 
   if (!is.null(ri$aterms[["se"]]) && !isTRUE(ri$aterms[["se_sigma"]])) {
     # se() without sigma = TRUE says the residual scale is KNOWN, so
-    # whatever dpar it replaces has to stop being free. The core can map
-    # out only the one the convention names, `sigma`.
-    spoken_for <- c(names(pforms), names(pfix), nl_dpars)
-    if ("sigma" %in% fam[["dpars"]]) {
-      if (!"sigma" %in% spoken_for) {
-        # the residual SD is the known se alone, so sigma is mapped out
-        # (its value is unused by the lpdf)
-        pfix$sigma <- 1
+    # whatever dpar it replaces has to stop being free. Which dpar that
+    # is comes from the family: `se_dpar` where it declared one, the
+    # convention's `sigma` where it has one, and NA where it declared
+    # that the known standard error IS its whole scale.
+    #
+    # A FORMULA is not a way to stop being free, and this is where a
+    # dpar formula used to slip through: `sigma ~ 1` estimates an
+    # intercept the density never reads, which is the same flat
+    # direction and NaN standard error the bare case is refused for.
+    # Only a CONSTANT pins a dpar. The guard therefore counts
+    # `names(pfix)` alone as spoken for, and reads every route a
+    # formula arrives by: bf(), lf(), nlf(), and the family's own
+    # default_forms, which are merged further down this function.
+    modeled <- unique(c(names(pforms), nl_dpars))
+    modeled <- c(modeled,
+                 setdiff(intersect(names(fam[["default_forms"]] %||%
+                                           list()), fam[["dpars"]]),
+                         c(modeled, names(pfix))))
+    repl <- family_se_dpar(fam)
+    if (!is.null(repl) && !is.na(repl)) {
+      if (repl %in% modeled && family_declares_aterm(fam, "se")) {
+        stop("se() without sigma = TRUE replaces the residual scale, ",
+             "which for '", fam[["family"]], "' is `", repl,
+             "`, so the core maps that dpar out and the density never ",
+             "reads it. The formula `", repl, " ~ ...` estimates it ",
+             "instead, which leaves a flat direction and a NaN ",
+             "standard error. Three ways out: drop the formula and ",
+             "let the core map `", repl, "` out; pin it with a ",
+             "constant (", deparse1(ri$resp), " | se(...) ~ ..., ",
+             repl, " = 1); or write se(x, sigma = TRUE) if it stays ",
+             "estimated alongside the known standard deviation",
+             call. = FALSE)
       }
-    } else if (family_declares_aterm(fam, "se")) {
-      # A family that declares se() and calls its scale something else
-      # leaves that dpar free and unread: the likelihood is flat in it
-      # and every standard error comes back NaN. That is the condition
-      # mixture() is refused for, and opening se() to custom families
-      # opened a second route to it, so it is refused here by name.
-      # Measured before this guard: dpars c("mu", "tau"), tau frozen at
-      # its start value and all three standard errors NaN.
+      if (!repl %in% c(modeled, names(pfix))) {
+        # the residual SD is the known se alone, so the dpar it
+        # replaces is mapped out (its value is unused by the lpdf)
+        pfix[[repl]] <- 1
+      }
+    } else if (is.null(repl) && family_declares_aterm(fam, "se")) {
+      # A family that declares se(), calls its scale something other
+      # than `sigma`, and does not say which dpar the known standard
+      # error replaces: the core has no way to tell a second SCALE,
+      # which would be left free and unread, from a genuine SHAPE such
+      # as a skew or a tail index, which must stay free. Measured on
+      # the scale case before this guard: dpars c("mu", "tau"), tau
+      # frozen at its start value and all three standard errors NaN.
+      # `se_dpar` is how the family answers, either way.
       #
       # A family with no dpar beyond its primaries has nothing to map
-      # out and is not refused - that is the ordinary shape of a family
-      # whose whole scale IS the known one. A family carrying `sigma`
-      # is trusted about its other dpars (student's `nu` is estimated
-      # alongside a known se, and always was).
-      loose <- setdiff(fam[["dpars"]], c(primaries, spoken_for))
+      # out and is not refused. A family carrying `sigma` is trusted
+      # about its other dpars (student's `nu` is estimated alongside a
+      # known se, and always was).
+      loose <- setdiff(fam[["dpars"]], c(primaries, names(pfix)))
       if (length(loose)) {
         stop("se() without sigma = TRUE replaces the residual scale, ",
              "and the core maps out the dpar named `sigma` to do it. ",
              "'", fam[["family"]], "' declares that it reads se() but ",
-             "has no `sigma`, so ",
+             "has no `sigma`, so the core cannot tell whether ",
              paste0("`", loose, "`", collapse = ", "),
              if (length(loose) > 1L) " are" else " is",
-             " left free and unused, which is a flat direction and a ",
-             "NaN standard error. Three ways out: name the scale ",
+             " a second SCALE, which se() would leave free and unread ",
+             "(a flat direction and a NaN standard error), or a SHAPE ",
+             "the density reads alongside the known standard error. ",
+             "Four ways out: say which dpar the ",
+             "known standard error replaces, with frmtmb_family(",
+             "se_dpar = \"", loose[[1L]], "\"), or with se_dpar = NA ",
+             "if it replaces none because ",
+             paste0("`", loose, "`", collapse = ", "),
+             if (length(loose) > 1L) " are shapes" else " is a shape",
+             " the density reads; name the scale ",
              "`sigma` so the core maps it out; pin it in the formula (",
              deparse1(ri$resp), " | se(...) ~ ..., ", loose[[1L]],
              " = 1); or write se(x, sigma = TRUE) if it stays ",
