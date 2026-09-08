@@ -147,7 +147,11 @@ frm_task_design <- function(task = c("bandit2arm", "reversal",
 #'   form is what a covariate that varies WITHIN a subject needs, which
 #'   is what a reversal is: see the example.
 #' @param nsim Datasets to draw.
-#' @param response Name of the column the drawn choice goes into.
+#' @param response Name of the column the drawn response goes into.
+#'   `NULL`, the default, uses the family's own: `choice` for a family
+#'   whose response is the option taken, `rt` for [rlddm()], whose
+#'   response is the response time and whose drawn choice is written
+#'   beside it.
 #' @param seed Passed to [set.seed()] when not `NULL`.
 #'
 #' @return A list of `nsim` data frames, each `data` with the drawn
@@ -171,7 +175,7 @@ frm_task_design <- function(task = c("bandit2arm", "reversal",
 #' table(rs[[1]]$choice)
 #' @export
 frm_task_simulate <- function(family, data, pars, nsim = 1L,
-                              response = "choice", seed = NULL) {
+                              response = NULL, seed = NULL) {
   lrn <- family[["learn"]]
   if (is.null(lrn)) {
     stop("frm_task_simulate() takes a family from frmtmb.learn, and ",
@@ -224,11 +228,34 @@ frm_task_simulate <- function(family, data, pars, nsim = 1L,
          "so on, and this route reads them by those names", call. = FALSE)
   }
   for (k in names(dm)) cd[[k]] <- as.numeric(data[[dm[[k]]]])
+  # A family whose choice rule is a DENSITY has a response that is not
+  # an option code: rlddm()'s is a response time, which is continuous
+  # and belongs in a column called rt rather than choice. Both facts
+  # follow from the one property, so both are read off it rather than
+  # declared twice.
+  # A family whose DRAW needs a package the likelihood does not, checked
+  # once here rather than once per trial inside the walk. rlddm() is the
+  # one: its joint draw of a boundary and a time is exact only through
+  # RWiener, and refusing up front is better than the alternative,
+  # which is a draw that succeeds on most rows and errors on the rest.
+  need <- lrn[["sim_needs"]]
+  if (!is.null(need) && !requireNamespace(need, quietly = TRUE)) {
+    stop("frm_task_simulate(): drawing from ", nm, "() needs the '",
+         need, "' package, which is not installed. It draws a boundary ",
+         "and a response time jointly from the diffusion, and the ",
+         "route that does so exactly is the one '", need, "' supplies. ",
+         "Fitting needs nothing extra: the likelihood is exact without ",
+         "it", call. = FALSE)
+  }
+  code_resp <- is.null(lrn[["spec"]][["logp"]])
+  if (is.null(response)) {
+    response <- if (code_resp) "choice" else lrn[["sim_response"]]
+  }
   if (!is.null(seed)) set.seed(seed)
   lapply(seq_len(nsim), function(s) {
     out <- ln_recurse(block, cd, rep(1, n), lrn[["spec"]], "simulate")
     d <- data
-    d[[response]] <- as.integer(out[["y"]])
+    d[[response]] <- if (code_resp) as.integer(out[["y"]]) else out[["y"]]
     for (nmc in names(out[["cols"]])) {
       col <- lrn[["sim_out"]][[nmc]]
       if (!is.null(col)) d[[col]] <- as.integer(out[["cols"]][[nmc]])

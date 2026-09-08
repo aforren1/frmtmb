@@ -23,6 +23,12 @@
 # ONE recursion at three settings of `mode`, not three copies that have
 # to be kept in step. The worked example this package generalizes,
 # `inst/rl/rw-delta.R` in frmtmb, needed two copies.
+#
+# The walk yields per-trial FACTORS rather than a running total. That is
+# what lets the same recursion answer all three of the protocol's
+# likelihood questions, the whole response and one value per subject and
+# one value per row, without a second pass and without three definitions
+# of the same numbers that could disagree.
 
 #' Gather every per-row quantity at one trial's rows.
 #'
@@ -105,6 +111,11 @@ ln_rcat <- function(pm) {
 #' @noRd
 ln_max2 <- function(a, b) 0.5 * (a + b + abs(a - b))
 
+#' What the trace's summary column is called for this family.
+#'
+#' @noRd
+ln_pcol <- function(spec) if (is.null(spec[["logp"]])) "p" else "dens"
+
 #' Fold a set of option utilities into their log normalizing constant.
 #'
 #' @noRd
@@ -112,6 +123,30 @@ ln_lse <- function(u) {
   out <- u[[1L]]
   for (k in seq_along(u)[-1L]) out <- RTMB::logspace_add(out, u[[k]])
   out
+}
+
+#' Lay the recursion out over `nrep` copies of the same design.
+#'
+#' WHY THIS EXISTS. The importance correction evaluates the whole design
+#' once per draw, stacked, so `y` and every distributional parameter
+#' arrive `nrep` times as long while the frame block still describes one
+#' copy. Row `i` of replicate `k` sits at position `i + (k - 1) * n`, so
+#' the block's row NUMBERS shift by that and nothing else does: the walk
+#' is the same
+#' walk over a longer subject axis. This is the whole of what the
+#' protocol's stacking contract costs a family whose loop is already
+#' vectorized across subjects.
+#'
+#' @noRd
+ln_stack <- function(block, nrep) {
+  idx <- block[["idx"]]
+  msk <- block[["mask"]]
+  if (nrep == 1L) return(list(idx = idx, mask = msk))
+  ns <- nrow(idx)
+  take <- rep(seq_len(ns), nrep)
+  list(idx = idx[take, , drop = FALSE] +
+         rep((seq_len(nrep) - 1L) * block[["n"]], each = ns),
+       mask = msk[take, , drop = FALSE])
 }
 
 #' Walk a value-learning recursion over every subject at once.
@@ -124,18 +159,25 @@ ln_lse <- function(u) {
 #'   addition-term columns.
 #' @param y The response, coded 1 to K.
 #' @param spec The model, as built by `ln_spec()`.
-#' @param mode `"loglik"` returns one AD scalar, `"trace"` returns a
-#'   named list of per-row vectors (choice probabilities, value
-#'   estimates, prediction errors), `"simulate"` returns a drawn
-#'   response vector.
+#' @param mode `"terms"` returns the per-trial log-likelihood factors,
+#'   one masked vector over subjects per trial, which the three
+#'   likelihood slots are each one line of arithmetic away from;
+#'   `"trace"` returns a named list of per-row vectors (choice
+#'   probabilities, value estimates, prediction errors); `"simulate"`
+#'   returns a drawn response vector.
+#' @param nrep How many stacked copies of the design `y` and the
+#'   distributional parameters carry. Only the likelihood path ever sees
+#'   more than one; see `ln_stack()`.
 #'
 #' @noRd
 ln_recurse <- function(block, cd, y, spec,
-                       mode = c("loglik", "trace", "simulate")) {
+                       mode = c("terms", "trace", "simulate"),
+                       nrep = 1L) {
   mode <- match.arg(mode)
-  idx <- block[["idx"]]
-  msk <- block[["mask"]]
-  n <- block[["n"]]
+  sk <- ln_stack(block, nrep)
+  idx <- sk[["idx"]]
+  msk <- sk[["mask"]]
+  n <- block[["n"]] * nrep
   ns <- nrow(idx)
   nopt <- spec[["n_option"]]
   nd <- length(nopt)
@@ -143,16 +185,24 @@ ln_recurse <- function(block, cd, y, spec,
   # the whole response rather than compared at every trial. This is also
   # what keeps the chosen option out of a branch: selecting it is a
   # multiplication by a column of zeros and ones.
+  cc <- spec[["choice_col"]]
   ind <- NULL
   if (mode != "simulate") {
     ind <- vector("list", nd)
     for (j in seq_len(nd)) {
-      v <- if (j == 1L) y else cd[[spec[["resp"]][[j]]]]
+      # `choice_col` is the seam a joint choice-and-response-time family
+      # needs: its RESPONSE is the response time, so the option taken
+      # arrives as an addition term instead of as `y`.
+      v <- if (j == 1L) {
+        if (is.null(cc)) y else spec[["choice_map"]](cd[[cc]])
+      } else {
+        cd[[spec[["resp"]][[j]]]]
+      }
       ind[[j]] <- lapply(seq_len(nopt[j]), function(k) as.numeric(v == k))
     }
   }
   state <- spec[["init"]](ns, ln_at(cd, idx[, 1L]))
-  ll <- 0
+  tm <- if (mode == "terms") vector("list", ncol(idx))
   tr <- list()
   ysim <- if (mode == "simulate") rep(NA_real_, n)
   # A task whose trial holds more than one choice, or whose outcome is
@@ -169,10 +219,41 @@ ln_recurse <- function(block, cd, y, spec,
     m <- msk[, t]
     d <- ln_at(cd, i)
     d[["m"]] <- m
+    # the response at this trial's rows, which a density rule reads and
+    # a softmax rule does not. In `simulate` mode it is the placeholder
+    # the caller passed and no rule reads it.
+    d[[".y"]] <- y[i]
     ch <- vector("list", nd)
     lp <- 0
     pj <- list()
     for (j in seq_len(nd)) {
+      # A DENSITY RULE rather than a softmax over utilities. A family
+      # whose response is a response time has no set of option utilities
+      # to normalize: its trial contributes one log density, formed from
+      # the value store and the response together, and the option taken
+      # picks a boundary rather than a term of a sum. Supplying `logp`
+      # replaces the choice-and-softmax pair with that; everything else
+      # about the walk, the mask and the three likelihood slots is
+      # unchanged, which is the whole reason it is a seam in the engine
+      # rather than a second engine.
+      if (!is.null(spec[["logp"]])) {
+        if (mode == "simulate") {
+          # the draw writes its own answer back into `d`, in the coding
+          # the addition term uses, because only the family knows that
+          # coding; the engine reads back the option code it returns
+          dr <- spec[["draw"]](state, d)
+          d <- dr[["d"]]
+          ysim[i[m == 1]] <- dr[["y"]][m == 1]
+          ch[[j]] <- lapply(seq_len(nopt[j]),
+                            function(k) as.numeric(dr[["choice"]] == k))
+          lpj <- 0 * m
+        } else {
+          ch[[j]] <- lapply(ind[[j]], function(v) v[i])
+          lpj <- spec[["logp"]](state, d, ch[[j]])
+        }
+        lp <- lp + lpj
+        next
+      }
       u <- spec[["choice"]](state, d, j)
       lse <- ln_lse(u)
       if (mode == "simulate") {
@@ -197,14 +278,20 @@ ln_recurse <- function(block, cd, y, spec,
       lp <- lp + lpj
       if (mode == "trace" && nd > 1L) pj[[paste0("p", j)]] <- exp(lpj)
     }
-    if (mode == "loglik") ll <- ll + sum(m * lp)
+    if (mode == "terms") tm[[t]] <- m * lp
     if (length(sc)) {
       keep <- m == 1
       for (nm in names(sc)) sc[[nm]][i[keep]] <- as.numeric(d[[nm]])[keep]
     }
     upd <- spec[["update"]](state, d, ch)
     if (mode == "trace") {
-      rec <- c(state, upd[names(upd) != "state"], pj, list(p = exp(lp)))
+      # `p` for a softmax family and `dens` for a density family, and
+      # the difference is not cosmetic: exp(lp) is a probability in the
+      # first case and a density in the second, which may exceed one.
+      # Calling a density `p` would invite a reader to check it against
+      # a probability.
+      rec <- c(state, upd[names(upd) != "state"], pj,
+               stats::setNames(list(exp(lp)), ln_pcol(spec)))
       if (!length(tr)) tr <- lapply(rec, function(z) rep(NA_real_, n))
       keep <- m == 1
       for (nm in names(rec)) {
@@ -215,8 +302,79 @@ ln_recurse <- function(block, cd, y, spec,
     }
     state <- ln_blend(state, upd[["state"]], m)
   }
-  switch(mode, loglik = ll, trace = tr,
+  switch(mode,
+         terms = list(terms = tm, idx = idx, mask = msk),
+         trace = tr,
          simulate = list(y = ysim, cols = sc))
+}
+
+# ------------------------------------------------------ the three slots
+#
+# WHY THEY ARE ALL ONE RECURSION. The structured protocol asks a family
+# how finely its likelihood factorizes, and this one factorizes twice:
+# over subjects, because two subjects share nothing but parameters, and
+# again over trials, because
+#
+#     L(subject) = prod_t P(choice_t | history_t, theta)
+#
+# is a product, the value store at trial t being a function of that
+# subject's data before t and of the parameters. Both statements are
+# properties of the recursion rather than of any one rule, so both hold
+# for every family in this package. Nothing extra is COMPUTED for them:
+# the walk already forms one factor per trial per subject, and the total
+# it used to accumulate was the sum of exactly these. Deriving all three
+# from `ln_recurse(mode = "terms")` is what keeps them from drifting.
+
+#' The whole response's log-likelihood, as the sum of its pieces.
+#'
+#' @noRd
+ln_loglik <- function(block, cd, y, spec) {
+  sum(Reduce(`+`, ln_recurse(block, cd, y, spec, "terms")[["terms"]]))
+}
+
+#' One value per subject per replicate, which is the coarsest honest
+#' piece and the one `frm(importance =)` resamples.
+#'
+#' A subject's trials are a product, so its log-likelihood is the
+#' elementwise sum of the per-trial vectors. The order is the one the
+#' protocol fixes: replicate-major, and within a replicate the subject
+#' order of `block[["group"]]`'s levels, which is the order `ln_pack()`
+#' laid the rows out in.
+#'
+#' @noRd
+ln_loglik_group <- function(block, cd, y, spec, nrep) {
+  Reduce(`+`, ln_recurse(block, cd, y, spec, "terms", nrep)[["terms"]])
+}
+
+#' One value per row: the trial's choice probability CONDITIONAL on
+#' everything its subject saw before it.
+#'
+#' These are the factors themselves, scattered back to the rows they
+#' came from. ONE sub-assignment, not one per trial: `[<-` on a taped
+#' vector copies the whole vector each time it is called, and this
+#' package measured that copy costing an order of magnitude at tape
+#' build. The padded cells are dropped rather than written, because a
+#' pad repeats its subject's FIRST row number and would otherwise
+#' overwrite that trial's own factor with a masked zero.
+#'
+#' @noRd
+ln_loglik_row <- function(block, cd, y, spec, nrep, saturated) {
+  "c" <- RTMB::ADoverload("c")
+  "[<-" <- RTMB::ADoverload("[<-")
+  tm <- ln_recurse(block, cd, y, spec, "terms", nrep)
+  keep <- as.vector(tm[["mask"]]) == 1
+  out <- rep(0, length(y))
+  out[as.vector(tm[["idx"]])[keep]] <- do.call(c, tm[["terms"]])[keep]
+  # off the tape only, and only where the family has one: an advector
+  # carries no attributes, and the numeric path is the one residuals()
+  # would read. A saturated fit of a nominal choice puts probability one
+  # on the option that was taken, so its log-density is zero; a family
+  # whose row carries a DENSITY rather than a probability has no such
+  # constant and declares none.
+  if (saturated && !inherits(out, "advector")) {
+    attr(out, "saturated") <- rep(0, length(out))
+  }
+  out
 }
 
 #' The model half of a learning family.
@@ -249,11 +407,31 @@ ln_recurse <- function(block, cd, y, spec,
 #'   read back to rebuild a whole simulated dataset. Empty for a task
 #'   whose payoff schedule is fixed in advance, where the response
 #'   vector is the entire draw.
+#' @param logp `function(state, d, ch)` returning one log density per
+#'   subject, for a family whose response is not the option code.
+#'   Supplying it replaces `choice` and the engine's softmax: there are
+#'   no utilities to normalize when the trial's contribution is a
+#'   first-passage density. `ch[[k]]` is 1 for the subjects that took
+#'   option `k`, and `d[[".y"]]` is the response at this trial's rows.
+#' @param draw Simulation only, and required with `logp`:
+#'   `function(state, d)` returning `list(y = , choice = , d = )`, the
+#'   drawn response, the option each subject took as a code in
+#'   `1..n_option`, and `d` with the drawn choice written back under the
+#'   name its addition term reads.
+#' @param choice_col The name in `cd` of the option taken, for a family
+#'   whose response is something else.
+#' @param choice_map `function(v)` turning that column into option codes
+#'   `1..n_option`. `dec()` codes a boundary 0 or 1, and the option
+#'   codes are 1 and 2, so the map is what keeps the family's coding out
+#'   of the engine.
 #'
 #' @noRd
 ln_spec <- function(n_option, init, choice, update, resp = NULL,
-                    draw_env = NULL, sim_cols = character(0)) {
+                    draw_env = NULL, sim_cols = character(0),
+                    logp = NULL, draw = NULL, choice_col = NULL,
+                    choice_map = identity) {
   list(n_option = as.integer(n_option), init = init, choice = choice,
        update = update, resp = resp, draw_env = draw_env,
-       sim_cols = sim_cols)
+       sim_cols = sim_cols, logp = logp, draw = draw,
+       choice_col = choice_col, choice_map = choice_map)
 }

@@ -33,10 +33,13 @@ navbar:
 reference:
 - title: Families
   desc: >
-    One recursion engine, six models. Each parameter is an ordinary
+    One recursion engine, eight models. Each parameter is an ordinary
     distributional parameter with its own linear predictor, so a
     learning rate takes a condition effect, a smooth term or a
-    correlated per-subject random effect the way a mean does.
+    correlated per-subject random effect the way a mean does. Seven
+    turn a value store into a softmax over options; rlddm() turns it
+    into the drift rate of a diffusion, so choices and response times
+    are one likelihood.
   contents:
   - bandit2arm_delta
   - bandit2arm_dual
@@ -44,11 +47,15 @@ reference:
   - bandit4arm2_kalman_filter
   - ts_par7
   - igt_pvl_delta
+  - igt_orl
+  - rlddm
 - title: After the fit
   desc: >
-    These families declare no mean on the response scale, because the
-    response is a nominal option code, so fitted() and residuals()
-    refuse. The trajectory is read here instead.
+    These families declare no mean on the response scale, so fitted()
+    and residuals() refuse: for seven of them because the response is a
+    nominal option code, and for rlddm() because the mean of a
+    first-passage time belongs to frmtmb.eam. The trajectory is read
+    here instead.
   contents:
   - frm_value_trace
   - frm_learn_families

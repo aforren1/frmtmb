@@ -68,9 +68,11 @@ frm_value_trace <- function(fit) {
   blk <- frame_block_of(fit[["frame"]], rspec[["resp_name"]])
   tr <- ln_trace_at(fit, blk, lrn[["spec"]], fam[["family"]])
   out <- data.frame(subject = blk[["subject"]], trial = blk[["trial"]])
-  # p last, because it is the summary of the row rather than part of the
-  # trajectory, and the value stores read left to right in trial order
-  for (nm in c(setdiff(names(tr), "p"), "p")) out[[nm]] <- tr[[nm]]
+  # the summary column last, because it is the summary of the row rather
+  # than part of the trajectory, and the value stores read left to right
+  # in trial order
+  pc <- ln_pcol(lrn[["spec"]])
+  for (nm in c(setdiff(names(tr), pc), pc)) out[[nm]] <- tr[[nm]]
   out
 }
 
@@ -98,6 +100,16 @@ frm_value_trace <- function(fit) {
 #' reversal models' sensitivity `beta`, and the Iowa gambling task's
 #' UTILITY EXPONENT `alpha`.
 #'
+#' ONE ROW HAS NO COUNTERPART. [rlddm()] is a delta rule feeding a
+#' drift-diffusion choice rule, and hBayesDM ships the two halves
+#' separately (`bandit2arm_delta` and `choiceRT_ddm`) rather than the
+#' join. Its `hbayesdm` cell says `none` rather than naming a model it
+#' is not, and `?rlddm` says which of that package's parameters map onto
+#' which of its own. [igt_orl()]'s cell is a rename with one transform:
+#' hBayesDM bounds `K` to `(0, 5)` through a probit where this family
+#' puts it on `(0, Inf)` with a log link, and the two are the same
+#' number on the same scale wherever hBayesDM's bound is not binding.
+#'
 #' Two cautions the map does not remove. Core refuses a distributional
 #' parameter name containing a dot or an underscore, which is why the
 #' dual-rate family spells its rates `Arew` and `Apun` rather than
@@ -114,23 +126,29 @@ frm_value_trace <- function(fit) {
 frm_learn_families <- function() {
   d <- data.frame(
     family = c("bandit2arm_delta", "bandit2arm_dual", "prl_fictitious",
-               "bandit4arm2_kalman_filter", "ts_par7", "igt_pvl_delta"),
+               "bandit4arm2_kalman_filter", "ts_par7", "igt_pvl_delta",
+               "igt_orl", "rlddm"),
     hbayesdm = c("bandit2arm_delta", "prl_rp (split = 'outcome')",
                  "prl_fictitious", "bandit4arm2_kalman_filter", "ts_par7",
-                 "igt_pvl_delta"),
+                 "igt_pvl_delta", "igt_orl", "none"),
     task = c("two-armed bandit", "two-armed bandit, reward and punishment",
              "probabilistic reversal, counterfactual updating",
              "restless four-armed bandit",
-             "two-stage Markov decision task", "Iowa gambling task"),
-    options = c("2", "2", "2", "4", "2 then 2", "4"),
+             "two-stage Markov decision task", "Iowa gambling task",
+             "Iowa gambling task",
+             "two-armed bandit, choices and response times"),
+    options = c("2", "2", "2", "4", "2 then 2", "4", "4", "2"),
     aterms = c("reward(pay1, pay2)", "reward(pay1, pay2)",
                "reward(pay1, pay2)", "payoff(pay1, ..., pay4)",
                "stage2(state, choice) + payoff(pay1, ..., pay4)",
-               "payoff(pay1, ..., pay4)"),
+               "payoff(pay1, ..., pay4)", "payoff(pay1, ..., pay4)",
+               "dec(choice) + reward(pay1, pay2)"),
     pars = c("alpha, tau", "Arew, Apun, tau", "alpha, bias, tau",
              "tau, lambda, center, mu0, sigma0, sigmaD",
              "w, alpha1, tau1, alpha2, tau2, lambda, pers",
-             "alpha, shape, lambda, tau"),
+             "alpha, shape, lambda, tau",
+             "Arew, Apun, k, betaF, betaP",
+             "alpha, drift, bs, ndt, bias"),
     # Cells show a TRANSFORM wherever the relation is not a rename.
     # Two of the six are related to hBayesDM by a factor of an ESTIMATED
     # parameter, so no constant maps them and a ported estimate is a
@@ -140,13 +158,17 @@ frm_learn_families <- function() {
                       "eta, -tau * alpha, beta",
                       "beta, lambda, theta, mu0, sigma0, sigmaD",
                       "w, a1, beta1, a2, beta2, lambda, pi / tau1",
-                      "A, alpha, lambda, 3^cons - 1"),
+                      "A, alpha, lambda, 3^cons - 1",
+                      "Arew, Apun, K, betaF, betaP",
+                      "no counterpart; see ?rlddm"),
     reference = c("Ahn, Haines and Zhang (2017)",
                   "Ahn, Haines and Zhang (2017)",
                   "Glascher, Hampton and O'Doherty (2009)",
                   "Daw, O'Doherty, Dayan, Seymour and Dolan (2006)",
                   "Daw, Gershman, Seymour, Dayan and Dolan (2011)",
-                  "Ahn, Busemeyer, Wagenmakers and Stout (2008)"),
+                  "Ahn, Busemeyer, Wagenmakers and Stout (2008)",
+                  "Haines, Vassileva and Ahn (2018)",
+                  "Pedersen, Frank and Biele (2017)"),
     stringsAsFactors = FALSE)
   d
 }

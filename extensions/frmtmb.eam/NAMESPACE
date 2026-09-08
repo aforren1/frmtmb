@@ -26,6 +26,7 @@ export(rdm_simulate)
 export(wiener)
 export(wiener_gng)
 export(wiener_gng_simulate)
+export(wiener_lpdf)
 importFrom(frmtmb,
   compat_rule_builder,
   custom_family,

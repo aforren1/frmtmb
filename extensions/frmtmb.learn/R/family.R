@@ -72,8 +72,17 @@ ln_pack <- function(gv, tv, n, nm) {
                          integer(nt)), nrow = nt))
   mask <- t(matrix(vapply(len, function(l) as.numeric(seq_len(nt) <= l),
                           numeric(nt)), nrow = nt))
+  # `group` is the protocol's reserved name for the family's own
+  # independent unit, and a subject IS that unit here: two subjects
+  # share parameters and nothing else. The core reads it to align its
+  # own grouping against this one before it admits the importance
+  # correction, and to order what `loglik_group` returns. `subject` is
+  # the same vector under this package's own name, which
+  # frm_value_trace() reads; they are one column with two readers rather
+  # than two columns that could drift, because both are `gv`.
   list(idx = idx, mask = mask, len = len, n_subj = length(rows),
-       n_trial = nt, subject = gv, trial = tv, levels = levels(gv), n = n)
+       n_trial = nt, group = gv, subject = gv, trial = tv,
+       levels = levels(gv), n = n)
 }
 
 #' The refusal a non-rowwise likelihood owes the rowwise contract.
@@ -121,13 +130,16 @@ ln_check_spec <- function(nm, resp, spec, av) {
 
 #' The four sentences every family in this package owes, in its own name.
 #'
-#' Each is a consequence of the same fact and none of them is a switch
-#' that could be turned on: a synthetic covariate grid has no trial
-#' history, and the protocol's `loglik` slot returns one total, so the
-#' core never sees a per-row factor to build a deviance residual from.
+#' Three of them are consequences of the recursion reading a whole trial
+#' history, and none of those is a switch that could be turned on: a
+#' synthetic covariate grid has no history to replay, and the tape holds
+#' no registered observation vector to differentiate. The fourth,
+#' deviance, is a consequence of the response being NOMINAL rather than
+#' of the likelihood: the magnitude is available now that the family
+#' declares `loglik_row`, and only the sign is not.
 #'
 #' @noRd
-ln_refusals <- function(nm) {
+ln_refusals <- function(nm, nominal = TRUE) {
   list(
     newdata_response = paste0(
       "predict(type = 'response') on a ", nm, "() fit is not available ",
@@ -146,12 +158,30 @@ ln_refusals <- function(nm) {
       "registered observation vector, and the response is a nominal ",
       "option code rather than a quantity the tape could differentiate. ",
       "frm_value_trace() gives the per-trial choice probability"),
-    deviance = paste0(
-      "residuals(type = 'deviance') is not available for a ", nm, "() ",
-      "fit: the per-trial factors exist, but the structured protocol's ",
-      "loglik slot returns one total, so the core never sees a saturated ",
-      "per-row comparison. frm_value_trace() gives the per-trial log ",
-      "likelihood as log(p)"))
+    deviance = if (nominal) {
+      paste0(
+        "residuals(type = 'deviance') is not available for a ", nm,
+        "() fit, and what is missing is the SIGN rather than the ",
+        "magnitude. The family declares loglik_row(), so each trial's ",
+        "log-likelihood and its saturated value are both available and ",
+        "their difference is the unit deviance; a deviance RESIDUAL ",
+        "then needs the direction of the row's departure from its ",
+        "conditional mean, and the response is the option a subject ",
+        "took, coded 1 to K, which is nominal and has no mean to ",
+        "depart from. frm_value_trace() gives the per-trial log ",
+        "likelihood as log(p)")
+    } else {
+      paste0(
+        "residuals(type = 'deviance') is not available for a ", nm,
+        "() fit. The family declares loglik_row(), so each trial's own ",
+        "log-likelihood is available; what a unit deviance needs ",
+        "beside it is the SATURATED value, and a row here contributes ",
+        "a density rather than a probability. The supremum of a Wiener ",
+        "log density at a fixed response time is unbounded over the ",
+        "parameters, so there is no constant to compare against. ",
+        "frm_value_trace() gives the per-trial log density as ",
+        "log(dens)")
+    })
 }
 
 #' The quantities the post-fit slots read, through exported accessors.
@@ -181,7 +211,12 @@ ln_trace_at <- function(fit, block, spec, nm) {
 #' switches.
 #'
 #' @noRd
-ln_structure <- function(nm, spec, sim = TRUE, refusals = list()) {
+ln_structure <- function(nm, spec, sim = TRUE, refusals = list(),
+                         saturated = TRUE) {
+  # A family whose choice rule is a density has a response that is not
+  # an option code, and three of its refusals then say something else.
+  # Read off the rule rather than declared again beside it.
+  nominal <- is.null(spec[["logp"]])
   frmtmb_structure(
     frame_vars = function(fam) {
       list(fam[["learn"]][["subject_expr"]], fam[["learn"]][["trial_expr"]])
@@ -193,12 +228,44 @@ ln_structure <- function(nm, spec, sim = TRUE, refusals = list()) {
     keep_na = FALSE,
     check_spec = function(resp, spec_, av) ln_check_spec(nm, resp, spec_, av),
     frame_block = ln_block,
-    # `weights` arrives and is ignored, which is allowed only because
-    # check_spec refuses weights() outright: a trial's factor depends on
-    # every earlier trial of the same subject, so there is nothing
-    # separable to reweight.
+    # `weights` arrives at all THREE likelihood slots and all three
+    # ignore it. The protocol's convention is that the family applies
+    # the row weights exactly once, and ignoring them is only correct
+    # because they cannot be anything but 1 here. Two routes could
+    # supply them and both are shut: check_spec refuses `weights()` by
+    # name, and cluster weights reach the objective only through
+    # sandwich.R, which gates on the `cluster_robust` support flag that
+    # this structure leaves FALSE. A trial's factor could not be
+    # reweighted on its own in any case, because its value depends on
+    # every earlier trial of the same subject.
     loglik = function(y, dpars, aterms, weights, block, extra) {
-      ln_recurse(block, c(dpars, aterms), y, spec, "loglik")
+      ln_loglik(block, c(dpars, aterms), y, spec)
+    },
+    # THE TWO FACTORIZATION SLOTS, and each declares something that is
+    # true of this recursion rather than something convenient.
+    #
+    # loglik_group: a subject. Two subjects share the parameters and
+    # nothing else, so the response's likelihood is a product over them.
+    #
+    # loglik_row: a trial. Given the parameters, a subject's likelihood
+    # is prod_t P(choice_t | history_t), and history_t is that subject's
+    # own earlier rows. So a row HAS a conditional log-density, it
+    # depends only on its own subject's random effects, and the row
+    # values sum to the group values which sum to the total. All three
+    # come off one call to the recursion (R/engine.R), which is what
+    # stops them disagreeing.
+    #
+    # `unit` is a different question and keeps its own answer. These say
+    # how finely the likelihood factorizes; `unit` says what may honestly
+    # be left OUT, and dropping one trial changes every later trial's
+    # value store, so the leave-one-out unit is still the whole sequence.
+    loglik_row = function(y, dpars, aterms, weights, block, extra) {
+      ln_loglik_row(block, c(dpars, aterms), y, spec,
+                    NROW(y) %/% block[["n"]], saturated)
+    },
+    loglik_group = function(y, dpars, aterms, weights, block, extra) {
+      ln_loglik_group(block, c(dpars, aterms), y, spec,
+                      NROW(y) %/% block[["n"]])
     },
     unit = "one subject's trial sequence",
     # NO fitted_mean, and it is a decision rather than an omission.
@@ -234,7 +301,7 @@ ln_structure <- function(nm, spec, sim = TRUE, refusals = list()) {
                    rep(1, blk[["n"]]), spec, "simulate")[["y"]]
       }
     },
-    refusals = utils::modifyList(ln_refusals(nm), refusals))
+    refusals = utils::modifyList(ln_refusals(nm, nominal), refusals))
 }
 
 #' Assemble a learning family.
@@ -246,7 +313,8 @@ ln_structure <- function(nm, spec, sim = TRUE, refusals = list()) {
 ln_family <- function(nm, subject_expr, trial_expr, dpars, links, primary,
                       inits, aterms, spec, sim = TRUE, data_map = NULL,
                       constants = list(), refusals = list(),
-                      sim_refusal = NULL) {
+                      sim_refusal = NULL, saturated = TRUE,
+                      valid_y = NULL, finalize = NULL) {
   if (is.null(subject_expr)) {
     stop(nm, "(subject =) names the column that separates one learner's ",
          "trial sequence from the next", call. = FALSE)
@@ -264,9 +332,17 @@ ln_family <- function(nm, subject_expr, trial_expr, dpars, links, primary,
     # signature cannot see. Returning something anyway is the silent lie
     # the structured protocol exists to remove.
     lpdf = function(y, dpars, aterms, extra = NULL) ln_no_rowwise(nm),
-    valid_y = function(y, aterms) ln_valid_y(y, k, nm),
+    # The six softmax families all take the same response, an option
+    # code 1 to K, and share one validator. A family whose response is
+    # something else brings its own.
+    valid_y = if (is.null(valid_y)) {
+      function(y, aterms) ln_valid_y(y, k, nm)
+    } else {
+      valid_y
+    },
+    family_finalize = finalize,
     init_dpars = inits,
-    structure = ln_structure(nm, spec, sim, refusals))
+    structure = ln_structure(nm, spec, sim, refusals, saturated))
   # Core reads this slot when a family has no simulator, and appends it
   # to whichever entry point refused. It is not a `supports` flag,
   # because having a simulator is not a capability the protocol tracks.
