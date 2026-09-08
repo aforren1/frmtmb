@@ -125,6 +125,7 @@ same way and each documented on its own part of the site.
 | [frmtmb.eam](https://aforren1.github.io/frmtmb/frmtmb.eam/) | evidence accumulation models: `wiener()`, `gddm()`, `lba()`, `rdm()` and `wiener_gng()` |
 | [frmtmb.spline](https://aforren1.github.io/frmtmb/frmtmb.spline/) | curve inference on any fitted smooth, and the flexible parametric survival family `royston_parmar()` |
 | [frmtmb.learn](https://aforren1.github.io/frmtmb/frmtmb.learn/) | reinforcement-learning families: `bandit2arm_delta()`, `bandit2arm_dual()`, `prl_fictitious()`, `bandit4arm2_kalman_filter()`, `ts_par7()` and `igt_pvl_delta()`, each parameter an ordinary distributional parameter with its own linear predictor |
+| [frmtmb.coupling](https://aforren1.github.io/frmtmb/frmtmb.coupling/) | coherence and phase between two signals: the complex Wishart family `cross_wishart()`, whose coherence and phase are distributional parameters with their own linear predictors |
 
 ```r
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.sample")
@@ -133,6 +134,7 @@ remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.ode")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.eam")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.spline")
 remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.learn")
+remotes::install_github("aforren1/frmtmb", subdir = "extensions/frmtmb.coupling")
 ```
 
 ## Example
