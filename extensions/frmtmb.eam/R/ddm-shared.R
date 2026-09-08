@@ -72,3 +72,24 @@ ddm_ndt_finalize <- function(fam, y, max_ndt, what) {
     })
   fam
 }
+
+#' What each family in this package reads, in one place.
+#'
+#' The constructor passes its entry to `accepts_aterms` and the
+#' compatibility rows derive the refusals from the same entry, so the
+#' table cannot promise a term frame assembly refuses, nor refuse one it
+#' takes. Written here rather than read back off the family objects
+#' because the rules builder runs inside `.onLoad()`, where building
+#' five families to ask them one question each is work nobody needs on a
+#' package load.
+#'
+#' Spelled in TERMS, without parentheses, which is the vocabulary
+#' `frmtmb_family(accepts_aterms =)` uses.
+#'
+#' @noRd
+ddm_accepts <- list(
+  wiener     = c("dec", "vint", "weights"),
+  gddm       = c("dec", "vint", "vreal", "weights"),
+  lba        = c("vint", "weights"),
+  rdm        = c("vint", "weights", "cens", "trunc"),
+  wiener_gng = c("dec", "vreal", "weights", "cens"))

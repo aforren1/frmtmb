@@ -255,7 +255,7 @@ lba <- function(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL) {
 
   fam <- frmtmb::custom_family(
     "lba",
-    accepts_aterms = c("vint", "weights"),
+    accepts_aterms = ddm_accepts[["lba"]],
     dpars = dpn,
     links = lk,
     lpdf = function(y, dpars, aterms) {

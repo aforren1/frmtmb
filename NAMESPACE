@@ -168,6 +168,7 @@ export(build_objective, row_lpdf, with_cs_offsets,
 export(categorical)
 export(check_custom_family)
 export(cluster_scores)
+export(compat_aterm_rules)
 export(compat_rule_builder)
 export(compois)
 export(conditional_effects)

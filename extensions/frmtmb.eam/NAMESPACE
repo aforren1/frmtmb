@@ -28,6 +28,7 @@ export(wiener_gng)
 export(wiener_gng_simulate)
 export(wiener_lpdf)
 importFrom(frmtmb,
+  compat_aterm_rules,
   compat_rule_builder,
   custom_family,
   frmtmb_register_aterm,

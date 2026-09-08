@@ -49,6 +49,62 @@ test_that("unit is one noun phrase, or the generic one", {
   expect_true(nzchar(structure_unit(frmtmb_structure(loglik = ll_ok))))
 })
 
+# The generic refusal had NO test until 2026-09-08, which is how a false
+# sentence survived a rewrite whose stated purpose was removing one. It
+# has now been wrong twice in opposite directions, so what is pinned
+# here is the property, not the prose: the sentence reports what the
+# family DECLARED and asserts nothing about how the likelihood
+# factorizes.
+
+fam_with <- function(...) {
+  frmtmb_family("toy", dpars = "mu", links = list(mu = "identity"),
+                lpdf = function(y, dpars, aterms) 0,
+                structure = frmtmb_structure(...))
+}
+
+test_that("the generic refusal names the unit as a leave-out unit", {
+  f <- fam_with(loglik = ll_ok, unit = "a hidden-Markov sequence",
+                supports = list(reml = FALSE))
+  msg <- structure_generic(f, "REML = TRUE")
+  expect_match(msg, "REML = TRUE is not available for a 'toy' family:",
+               fixed = TRUE)
+  expect_match(msg, "Its own unit for leaving data out is a hidden-Markov sequence",
+               fixed = TRUE)
+  # a family that declares no unit still gets a sentence that parses
+  g <- fam_with(loglik = ll_ok, supports = list(reml = FALSE))
+  expect_match(structure_generic(g, "REML = TRUE"),
+               "unit for leaving data out is one it has not named",
+               fixed = TRUE)
+})
+
+test_that("the generic refusal asserts nothing about factorization", {
+  # frmtmb.learn's shape: a whole-response loglik, BOTH factorization
+  # slots, and a leave-one-out unit of a whole subject. `unit` answers
+  # what may be left out, not how finely the likelihood factorizes, so
+  # a refusal that read the unit as a factorization claim would deny
+  # what this very family declares.
+  f <- fam_with(loglik = ll_ok, loglik_row = ll_ok, loglik_group = ll_ok,
+                unit = "one subject's trial sequence",
+                supports = list(reml = FALSE))
+  msg <- structure_generic(f, "REML = TRUE")
+  for (bad in c("factorize", "factorizes", "factorization",
+                "not defined per row", "per row is not defined")) {
+    expect_false(grepl(bad, msg, fixed = TRUE), info = bad)
+  }
+  expect_match(msg, "has not declared this capability", fixed = TRUE)
+})
+
+test_that("a capability-only structure says so instead", {
+  # loglik = NULL keeps the family's own rowwise lpdf, so there is
+  # nothing whatever to say about its likelihood
+  f <- fam_with(supports = list(osa = FALSE))
+  msg <- structure_generic(f, "residuals(type = \"osa\")")
+  expect_match(msg, "declares it unsupported and gives no reason of its own",
+               fixed = TRUE)
+  expect_false(grepl("factoriz", msg, fixed = TRUE))
+  expect_false(grepl("leaving data out", msg, fixed = TRUE))
+})
+
 test_that("the constructor validates slot types", {
   for (arg in c("frame_vars", "check_spec", "frame_block", "check_frame",
                 "check_fit", "fitted_mean", "fitted_var", "latent_probs",

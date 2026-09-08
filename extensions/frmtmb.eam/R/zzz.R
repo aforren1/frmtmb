@@ -160,7 +160,15 @@ ddm_compat_rules <- function() {
     "Not exercised.")
   r("lba", "quadrature", "refused",
     "By frmtmb. No random effect, nothing to marginalize.")
-  b$rules()
+  # The refusals each family has already declared, appended and handed
+  # the rows above so that it defers to them: a pair written by hand
+  # keeps its own note, and what is added is the cells nobody wrote.
+  # Those are the terms outside a family's accepts_aterms allow-list,
+  # which frame assembly refuses by name, so they stop reading
+  # `untested` when the guard has been there all along.
+  hand <- b$rules()
+  rbind(hand,
+        compat_aterm_rules(ddm_accepts[c("wiener", "gddm", "lba")], hand))
 }
 
 #' The compatibility rules for the two families added at 0.3.0.
@@ -233,5 +241,7 @@ rdm_gng_compat_rules <- function() {
     "Verified on a model with a random effect, as for rdm and unlike wiener().")
   r("wiener_gng", "mixture", "conditional",
     "It assembles and runs, where mixture(rdm(3), ...) is refused outright, because this family has a dpar called mu. But the one case tried did not converge, reporting false convergence and a maximum absolute gradient of 7.7e13, so nothing here supports relying on it. What a contaminant should do with the no-go rows is a modelling question this package has not answered.")
-  b$rules()
+  hand <- b$rules()
+  rbind(hand,
+        compat_aterm_rules(ddm_accepts[c("rdm", "wiener_gng")], hand))
 }

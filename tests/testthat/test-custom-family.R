@@ -240,6 +240,137 @@ test_that("all-of and any-of mix in one declaration", {
     "frmtmb_fit")
 })
 
+# --- exclusive_aterms ------------------------------------------------
+#
+# The allow-list cannot close this one, because both spellings are
+# legitimately on it. Measured before the argument existed: wiener()
+# fitted `rt | dec(u) + vint(1 - u)` with a log-likelihood bit-identical
+# to the dec()-only model, so the user said one thing twice, and
+# inconsistently, and nothing complained.
+
+test_that("two spellings of one datum are refused together", {
+  dd <- either_dat()
+  fam <- custom_family(
+    "excl", dpars = "mu", links = list(mu = "log"),
+    lpdf = function(y, dpars, aterms) RTMB::dpois(y, dpars$mu, log = TRUE),
+    required_aterms = list(c("vint1", "vreal1")),
+    exclusive_aterms = list(c("vint1", "vreal1")),
+    type = "discrete")
+  # either alone still fits: exclusivity is at MOST one, not exactly one
+  expect_s3_class(frm(bf(y | vint(size) ~ x) + fam, data = dd),
+                  "frmtmb_fit")
+  expect_s3_class(frm(bf(y | vreal(z) ~ x) + fam, data = dd),
+                  "frmtmb_fit")
+  err <- tryCatch(frm(bf(y | vint(size) + vreal(z) ~ x) + fam, data = dd),
+                  error = conditionMessage)
+  expect_match(err, "excl: `vint1` and `vreal1` are spellings of the same",
+               fixed = TRUE)
+  # it says which to keep, and the group order is that precedence
+  expect_match(err, "The density reads `vint1` and would ignore `vreal1`",
+               fixed = TRUE)
+  expect_match(err, "Keep vint(<column>) and drop vreal(<column>).",
+               fixed = TRUE)
+})
+
+test_that("an any-of requirement and the same exclusive set mean exactly one", {
+  dd <- either_dat()
+  fam <- custom_family(
+    "excl1", dpars = "mu", links = list(mu = "log"),
+    lpdf = function(y, dpars, aterms) RTMB::dpois(y, dpars$mu, log = TRUE),
+    required_aterms = list(c("vint1", "vreal1")),
+    exclusive_aterms = list(c("vint1", "vreal1")),
+    type = "discrete")
+  # neither: the required check speaks
+  expect_error(frm(bf(y ~ x) + fam, data = dd),
+               "the density needs one of `vint1` or `vreal1`", fixed = TRUE)
+  # both: the exclusivity check speaks, and it runs after the required
+  # one, which is why the two messages never collide
+  expect_error(frm(bf(y | vint(size) + vreal(z) ~ x) + fam, data = dd),
+               "are spellings of the same datum", fixed = TRUE)
+})
+
+test_that("a term the family does not accept is still refused first", {
+  # the allow-list runs LAST, so an unaccepted term reaches it only when
+  # nothing more specific fired: exclusivity is more specific
+  dd <- either_dat()
+  fam <- custom_family(
+    "excl2", dpars = "mu", links = list(mu = "log"),
+    lpdf = function(y, dpars, aterms) RTMB::dpois(y, dpars$mu, log = TRUE),
+    accepts_aterms = c("vint", "vreal"),
+    exclusive_aterms = c("vint1", "vreal1"),
+    type = "discrete")
+  expect_error(frm(bf(y | vint(size) + vreal(z) ~ x) + fam, data = dd),
+               "are spellings of the same datum", fixed = TRUE)
+  expect_error(frm(bf(y | weights(z) ~ x) + fam, data = dd),
+               "is not one this family reads", fixed = TRUE)
+})
+
+test_that("exclusive_aterms validates its own shape", {
+  bad <- function(ex, req = character(0)) {
+    custom_family("bad_excl", dpars = "mu", links = list(mu = "log"),
+                  lpdf = function(y, dpars, aterms) y,
+                  required_aterms = req, exclusive_aterms = ex)
+  }
+  expect_error(bad(list("dec")), "distinct value")
+  expect_error(bad(list(c("dec", "dec"))), "distinct value")
+  expect_error(bad(42), "at most one of each set may be supplied")
+  expect_error(bad(list(c("dec", NA))), "missing or empty value")
+  # a non-character set is refused, not coerced. The validator used to
+  # run AFTER as.character(), so this was accepted and became
+  # c("1", "2"): a set matching no term value, and a rule that could
+  # never fire. required_aterms refuses the same shape.
+  expect_error(bad(list(c(1, 2))), "a character vector of term values")
+  expect_error(bad(list(c(TRUE, FALSE))), "a character vector of term values")
+  # the refusal says WHICH set and why, not just the argument's class
+  expect_error(bad(list(c("dec", "vint1"), c("a", NA))), "Set 2")
+  # a bare character vector is ONE set, unlike required_aterms
+  f <- bad(c("dec", "vint1"))
+  expect_identical(f[["exclusive_aterms"]], list(c("dec", "vint1")))
+  expect_identical(bad(list())[["exclusive_aterms"]], list())
+  # a conjunction that demands both is a family nobody could fit
+  expect_error(bad(list(c("dec", "vint1")), req = c("dec", "vint1")),
+               "no model could satisfy the family")
+  # the same names as an ANY-of group are fine: together they read
+  # "exactly one"
+  expect_s3_class(bad(list(c("dec", "vint1")), req = list(c("dec", "vint1"))),
+                  "frmtmb_family")
+})
+
+test_that("a mixture keeps the exclusive sets every component shares", {
+  # Nothing covered mixture composition at all, and the first
+  # implementation compared whole sets with setequal(), so a component
+  # declaring a SUPERSET dropped the rule and the mixture then accepted
+  # both spellings together: the failure was open, in exactly the case
+  # this argument exists to close.
+  mk <- function(ex) {
+    custom_family("cmp", dpars = "mu", links = list(mu = "identity"),
+                  lpdf = function(y, dpars, aterms) {
+                    RTMB::dnorm(y, dpars$mu, 1, log = TRUE)
+                  },
+                  exclusive_aterms = ex)
+  }
+  ex_of <- function(...) {
+    lapply(mixture(...)[["exclusive_aterms"]], sort)
+  }
+  pair <- c("dec", "vint1")
+  # identical sets, and the same sets written in the other order
+  expect_identical(ex_of(mk(list(pair)), mk(list(pair))), list(pair))
+  expect_identical(ex_of(mk(list(pair)), mk(list(rev(pair)))), list(pair))
+  # a SUPERSET still treats dec and vint1 as one datum, so the shared
+  # pair survives rather than the whole rule vanishing
+  expect_identical(
+    ex_of(mk(list(pair)), mk(list(c("dec", "vint1", "vint2")))),
+    list(pair))
+  # one component declaring none, and disjoint sets, both keep nothing
+  expect_length(ex_of(mk(list(pair)), mk(list())), 0L)
+  expect_length(ex_of(mk(list(pair)), mk(list(c("vreal1", "vreal2")))), 0L)
+  # a component that SPLITS a set keeps the half it still shares
+  expect_identical(
+    ex_of(mk(list(c("dec", "vint1", "vint2"))),
+          mk(list(c("dec", "vint1"), c("vint2", "vreal1")))),
+    list(pair))
+})
+
 test_that("family_finalize derives a link from the response", {
   # the shifted-family problem: the ndt link's upper bound is min(y),
   # which the family cannot know until frm() has the data

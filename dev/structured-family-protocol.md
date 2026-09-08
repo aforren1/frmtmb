@@ -525,7 +525,9 @@ for a release.
 
 `wiener()` has the same defect and the allow-list does NOT close it,
 which is worth stating here rather than leaving the doc claiming a
-win it did not get. The earlier draft of this paragraph said
+win it did not get. CLOSED 2026-09-07 by a second declaration,
+`frmtmb_family(exclusive_aterms =)`; see the note at the end of this
+section. The earlier draft of this paragraph said
 `wiener()` took a `vint()` it cannot use; that is wrong, and the
 review measured it: `wiener()` reads `vint1` as the boundary when
 `dec` is absent, so `rt | vint(upper)` and `rt | dec(upper)` give a
@@ -565,3 +567,50 @@ Two decisions worth keeping:
   `gddm()` is why that rule is not written here: it reads `dec()` and
   `vint()` together, with the condition index in `vint1` when `dec()`
   is present and in `vint2` when it is not.
+
+## The exclusivity rule (added 2026-09-07)
+
+`frmtmb_family(exclusive_aterms =)` is the third declaration and the
+one the two above could not make between them: a SET of addition-term
+values that say the same thing to the density, at most one of which may
+be supplied. It closes the `wiener()` case recorded just above.
+
+Spelled in VALUES, like `required_aterms` and unlike `accepts_aterms`,
+because the granularity is the point: `dec` and `vint1` are one datum
+under two spellings, and `vint2` beside them is a second datum. A bare
+character vector is ONE set here where it is a conjunction there,
+because the two arguments say different things about a list of names:
+all of them, versus at most one of them. A shared convention would have
+left one of them unwritable.
+
+Read WITH `required_aterms`, not instead of it. An any-of group in one
+and the same set in the other read together as "exactly one", which is
+`wiener()`'s contract; either alone is weaker and both are useful. The
+one combination refused, and refused at CONSTRUCTION rather than at
+frame assembly, is a conjunction whose values are also declared
+exclusive: it describes a family no model could satisfy.
+
+OPT-IN, not implied by an any-of group, and `gddm()` is the reason
+named above: it reads `dec()` and `vint1` together. An implied rule
+would refuse the model that family exists for.
+
+`mixture()` composes the sets by INTERSECTION where it composes the
+allow-list by union. A term reaches the density if ANY component reads
+it; two spellings are interchangeable only if EVERY component treats
+them so, because a component that reads both is a component the second
+spelling is data for.
+
+The check runs immediately after the `required_aterms` groups at frame
+assembly rather than last with the allow-list. It is the same
+declaration read the other way round, asking whether the datum arrived
+twice rather than whether it arrived at all. Running it early keeps a
+family's own `valid_y` from reporting on values the density was never
+going to read.
+
+The compatibility table gained a derivation in the same round, and it
+belongs here because it reads the same declaration: a term outside
+`accepts_aterms` is refused BY NAME, so those cells are refusals with a
+reason rather than absences of evidence, and `compat_aterm_rules()`
+writes them out instead of asking a family to say the same thing twice.
+Only the refusal is derived, and a pair the hand-written rules already
+refuse keeps its own note, which usually says more.

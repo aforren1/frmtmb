@@ -1021,12 +1021,19 @@ gddm <- function(drift = gddm_drift_constant(),
   # vint(upper, cond) it is vint2 - so the requirement is a disjunction
   # of conjunctions and no declaration says that. It stays hand-rolled
   # in gd_check_response(), and it says why there.
+  #
+  # NO exclusive_aterms, deliberately, and this family is the reason
+  # that argument had to be opt-in rather than implied by an any-of
+  # group. wiener() declares list(c("dec", "vint1")) because there the
+  # two are one datum under two spellings; here they are two data, the
+  # boundary and the condition index, and refusing them together would
+  # refuse the model gd_indicator() is written for.
   req <- c(list(c("dec", "vint1")),
            as.list(unique(unlist(lapply(terms, function(z) z$aterms)))))
 
   fam <- frmtmb::custom_family(
     "gddm",
-    accepts_aterms = c("dec", "vint", "vreal", "weights"),
+    accepts_aterms = ddm_accepts[["gddm"]],
     dpars = dpnames,
     links = lapply(dp, function(z) z$link),
     lpdf = function(y, dpars, aterms) {

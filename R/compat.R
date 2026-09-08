@@ -132,6 +132,28 @@ compat_cache_extend <- function(add, before) {
 #' it anyway is a no-op. Register the term BEFORE the rules that name
 #' it.
 #'
+#' @section Rows a family has already declared:
+#' `compat_aterm_rules()` writes the addition-term refusals out of
+#' `frmtmb_family(accepts_aterms =)` instead of asking for them twice. A
+#' term outside a family's allow-list is refused BY NAME at frame
+#' assembly, so `untested` was never the right answer for that cell:
+#' nothing is missing, the guard exists and the reason is the
+#' declaration. Feed it the families the package supplies, and hand it
+#' the rows written by hand so that it defers to them:
+#'
+#' ```r
+#' hand <- b$rules()
+#' rbind(hand,
+#'       compat_aterm_rules(list(wiener = c("dec", "vint", "weights")),
+#'                          hand))
+#' ```
+#'
+#' A pair `existing` already names on both sides is skipped, note and
+#' all, so the derivation adds cells rather than replacing them. What is
+#' derived is only the refusal: a family that ACCEPTS a term has said
+#' nothing about whether the pair works, and `untested` stays the honest
+#' answer there until somebody runs it.
+#'
 #' @section Status vocabulary:
 #' Every rule declares one of three states, and the third is the reason
 #' the registry exists: a guard that does not exist looks exactly like a
@@ -184,9 +206,19 @@ compat_cache_extend <- function(add, before) {
 #'   only, never over `expects`, so a misspelling of an expected name
 #'   is refused without a suggestion. Pointing at a feature that is not
 #'   in the session would be its own confusion.
+#' @param accepts For `compat_aterm_rules()`: a named list mapping a
+#'   family's DISPLAY name to what that family accepts. An element is a
+#'   family object, a character vector of addition-term names without
+#'   parentheses (the vocabulary `frmtmb_family(accepts_aterms =)` is
+#'   written in), or `NULL` for a family that declares no allow-list and
+#'   so has nothing to derive from.
+#' @param existing For `compat_aterm_rules()`: the rules written by hand,
+#'   so that the derivation defers to them. A pair named on both sides
+#'   there is left alone, note and all. `NULL` defers to nothing.
 #' @return `NULL`, invisibly. Called for the registration.
 #'   `compat_rule_builder()` returns a list with elements `r` and
-#'   `rules`.
+#'   `rules`. `compat_aterm_rules()` returns a rule data frame, ready to
+#'   `rbind()` with one.
 #' @seealso [frm_compat()] for the matrix these fill,
 #'   [frmtmb_family()] and [frmtmb_structure()] for the family-side
 #'   seams a contributor usually registers alongside these, and
@@ -546,6 +578,169 @@ compat_rule_builder <- function() {
   )
 }
 
+#' @rdname frmtmb_register_compat
+#' @export
+compat_aterm_rules <- function(accepts, existing = NULL) {
+  arg <- "compat_aterm_rules(accepts =)"
+  if (!is.list(accepts) || is.object(accepts) || !length(accepts) ||
+        is.null(names(accepts)) || anyNA(names(accepts)) ||
+        !all(nzchar(names(accepts)))) {
+    stop(arg, " maps a family's DISPLAY name to what it accepts: a ",
+         "named list whose elements are family objects, character ",
+         "vectors of addition-term names without parentheses, or NULL ",
+         "for a family that declares no allow-list. Got ",
+         arg_desc(accepts), call. = FALSE)
+  }
+  ft <- frmtmb_compat_features_tbl()
+  terms <- ft$name[ft$kind == "aterm"]
+  base <- sub("[(][)]$", "", terms)
+  cand <- list()
+  for (i in seq_along(accepts)) {
+    fm <- names(accepts)[[i]]
+    ok <- accepts[[i]]
+    if (inherits(ok, "frmtmb_family")) ok <- accepted_aterm_names(ok)
+    # NULL is a family that accepts every registered term, so it has
+    # declared nothing to derive from and keeps whatever rows it has.
+    if (is.null(ok)) next
+    if (!is.character(ok) || anyNA(ok)) {
+      stop(arg, " gave '", fm, "' ", arg_desc(accepts[[i]]),
+           ", and an entry is a family object, a character vector of ",
+           "term names, or NULL", call. = FALSE)
+    }
+    bad <- terms[!(base %in% ok)]
+    if (length(bad)) {
+      cand[[length(cand) + 1L]] <- data.frame(
+        feature_a = fm, feature_b = bad, stringsAsFactors = FALSE)
+    }
+  }
+  cand <- do.call(rbind, cand)
+  if (is.null(cand)) return(compat_rule_frame(NULL, NULL))
+  keep <- !compat_already_refused(cand, existing)
+  compat_rule_frame(cand$feature_a[keep], cand$feature_b[keep])
+}
+
+#' An empty rule frame, or one of derived refusals.
+#'
+#' @noRd
+compat_rule_frame <- function(a, b) {
+  if (!length(a)) {
+    return(data.frame(feature_a = character(0), feature_b = character(0),
+                      status = character(0), note = character(0),
+                      override = logical(0), stringsAsFactors = FALSE))
+  }
+  data.frame(feature_a = a, feature_b = b, status = "refused",
+             note = compat_derived_note(a, b), override = FALSE,
+             stringsAsFactors = FALSE)
+}
+
+#' Which candidate pairs the registry already refuses, hand-written
+#' rules and `existing` together.
+#'
+#' The derivation adds cells; it does not restate them. A pair that is
+#' refused already has a note somebody wrote about that pair. Such a
+#' note usually says more than "the family did not list it": `cens()`
+#' names the missing log-CDF, `se()` names the residual variance. A
+#' derived row would replace it, because a name x name pair outranks the
+#' group or kind rule the note is on, and that is the one thing this
+#' derivation must not do.
+#'
+#' `existing` is resolved on top of the core's own hand-written rules,
+#' so a contributed package defers to both without having to restate the
+#' core's defaults. Contributed rules other than `existing` are not
+#' visible here and cannot be: this runs from inside the assembly of the
+#' very table that would hold them.
+#'
+#' @noRd
+compat_already_refused <- function(cand, existing = NULL) {
+  need <- c("feature_a", "feature_b", "status")
+  rules <- compat_hand_rules_tbl()[need]
+  if (!is.null(existing) && nrow(existing)) {
+    if (!all(need %in% names(existing))) {
+      stop("compat_aterm_rules(existing =) takes a rule data frame, the ",
+           "kind compat_rule_builder()'s rules() returns, and this one ",
+           "has no column called ",
+           setdiff(need, names(existing))[[1L]], call. = FALSE)
+    }
+    rules <- rbind(rules, existing[need])
+  }
+  ft <- frmtmb_compat_features_tbl()
+  kind <- stats::setNames(ft$kind, ft$name)
+  # A family this session has not registered yet is one the caller is
+  # registering now, and every such feature is a family here.
+  pairs <- data.frame(
+    feature_a = cand$feature_a,
+    kind_a = unname(ifelse(is.na(kind[cand$feature_a]), "family",
+                           kind[cand$feature_a])),
+    feature_b = cand$feature_b,
+    kind_b = unname(kind[cand$feature_b]),
+    stringsAsFactors = FALSE)
+  res <- compat_resolve(pairs, rules)
+  !is.na(res$win) & rules$status[res$win] == "refused"
+}
+
+#' The note a derived refusal carries, as a pure function of the pair.
+#'
+#' Pure on purpose: it is also how a derived row is RECOGNIZED later.
+#' `compat_declared_displacements()` has to separate rows this
+#' derivation wrote from rows a person wrote, including rows a
+#' contributed package derived through the same seam, and a note it can
+#' recompute from the two feature names identifies them exactly. A
+#' marker column would have been the obvious alternative and is not
+#' available: a rule frame has five fixed columns so that a derived
+#' block and a hand-written one `rbind()` together.
+#'
+#' @noRd
+compat_derived_note <- function(fm, term) {
+  paste0("Refused by declaration: ", fm, " names the addition terms it ",
+         "reads in frmtmb_family(accepts_aterms =), ", term,
+         " is not among them, and frame assembly refuses it by name, ",
+         "listing the terms the family does take. This row is derived ",
+         "from that declaration rather than measured, so the table and ",
+         "the guard cannot drift apart.")
+}
+
+# Constructors that cannot be called bare. The family object built here
+# is read for its `accepts_aterms` declaration and nothing else, and no
+# family's allow-list depends on an argument, so any legal value serves.
+compat_family_ctor_args <- list(multinomial = list(K = 2L))
+
+# Built once per session: the registry's constructors are static, and
+# building all of them costs ~45 ms, which is a quarter of frm_compat().
+compat_accepts_cache <- new.env(parent = emptyenv())
+
+#' Each core family's allow-list, keyed by the DISPLAY name the
+#' compatibility vocabulary uses.
+#'
+#' Read off the registry rather than listed, for the reason
+#' `deviance_family_names()` gives: a list would drift. Registry names
+#' the vocabulary does not carry (the `nbinom2` and `Beta` aliases,
+#' `huber`) are dropped, because a rule side naming a feature that does
+#' not exist would dangle and be reported as unresolved.
+#'
+#' @noRd
+compat_core_family_accepts <- function() {
+  # Keyed on the contributed features, because those decide which
+  # registry names the vocabulary carries and so which of them this
+  # answers for. Everything else here is static.
+  if (!is.null(compat_accepts_cache$acc) &&
+        identical(compat_accepts_cache$features,
+                  frmtmb_compat_contrib$features)) {
+    return(compat_accepts_cache$acc)
+  }
+  ft <- frmtmb_compat_features_tbl()
+  nms <- intersect(names(family_registry), ft$name[ft$kind == "family"])
+  acc <- lapply(nms, function(nm) {
+    fam <- tryCatch(
+      do.call(family_registry[[nm]], compat_family_ctor_args[[nm]] %||% list()),
+      error = function(e) NULL)
+    if (is.null(fam)) NULL else accepted_aterm_names(fam)
+  })
+  names(acc) <- nms
+  compat_accepts_cache$acc <- acc
+  compat_accepts_cache$features <- frmtmb_compat_contrib$features
+  acc
+}
+
 # ---------------------------------------------------------------- features
 
 #' The feature vocabulary of the registry, one row per feature.
@@ -728,7 +923,7 @@ frmtmb_compat_groups_lst <- list(
 
 # ------------------------------------------------------------------- rules
 
-#' The declared compatibility rules, one row per rule.
+#' The compatibility rules written by hand, one row per rule.
 #'
 #' Patterns, from least to most specific, with the specificity each one
 #' scores:
@@ -758,7 +953,8 @@ frmtmb_compat_groups_lst <- list(
 #' marked `override = TRUE` and says in its note what it is overriding.
 #'
 #' @noRd
-frmtmb_compat_rules_tbl <- function() {
+compat_hand_rules_tbl <- function() {
+  if (!is.null(compat_hand_cache$tbl)) return(compat_hand_cache$tbl)
   rows <- list()
   r <- function(a, b, status, note, override = FALSE) {
     rows[[length(rows) + 1L]] <<- data.frame(
@@ -1069,9 +1265,14 @@ frmtmb_compat_rules_tbl <- function() {
   ## weights() and trials() ---------------------------------------------
   r("weights()", "kind:family", "works",
     "Case weights multiply each observation's log-likelihood contribution, whatever the family.")
-  r("trials()", "kind:family", "untested",
-    "trials() is meaningful only for the binomial-type families.")
-  r("trials()", "group:trials_families", "works", "")
+  # NO trials() x kind:family rule. It said "meaningful only for the
+  # binomial-type families" and was true, but every family now answers
+  # for itself: the four that take trials() are named below, and the
+  # other 32 refuse it through their own accepts_aterms declaration,
+  # which frame assembly enforces by name. A kind-level rule under all
+  # of them would have won no pair, which is a claim nobody can read.
+  r("trials()", "group:trials_families", "works",
+    "The families whose response is a count out of a known number of trials. Every other family refuses trials() by name: it is not on their allow-list, so writing it would change nothing about the fit.")
   r("trials()", "multinomial", "conditional",
     "Required. The row sums of the response matrix must equal the trials.")
   r("trials()", "binomial", "works",
@@ -1515,9 +1716,36 @@ frmtmb_compat_rules_tbl <- function() {
   # would outrank each structure's own "<name> x *" condition and
   # replace it with an unconditional claim.
 
-  out <- do.call(rbind, c(rows,
-                          lapply(frmtmb_compat_contrib$rules,
-                                 function(mk) mk())))
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  compat_hand_cache$tbl <- out
+  out
+}
+
+# The hand-written rules do not change within a session: no contributed
+# rule reaches them, and building the ~400 one-row frames costs enough
+# to be worth doing once, since the derivation resolves against them.
+compat_hand_cache <- new.env(parent = emptyenv())
+
+#' Every rule the registry holds: the ones written by hand, the
+#' addition-term refusals derived from each core family's own
+#' declaration, and the contributed ones.
+#'
+#' `untested` is the honest answer only where nothing is known, and
+#' `frmtmb_family(accepts_aterms =)` knows: a term outside a family's
+#' allow-list is refused BY NAME at frame assembly, so the cell is a
+#' refusal with a reason rather than an absence of evidence. The derived
+#' block fills exactly those cells and no others: a pair the
+#' hand-written rules already refuse keeps its own note, which is
+#' usually the better sentence. It is appended rather than interleaved,
+#' so a contributed rule still wins its own ties.
+#'
+#' @noRd
+frmtmb_compat_rules_tbl <- function() {
+  hand <- compat_hand_rules_tbl()
+  out <- do.call(rbind, c(
+    list(hand, compat_aterm_rules(compat_core_family_accepts())),
+    lapply(frmtmb_compat_contrib$rules, function(mk) mk())))
   rownames(out) <- NULL
   out
 }
@@ -1660,6 +1888,48 @@ frmtmb_compat_validate <- function() {
     rule = if (length(w)) paste(rules$feature_a[w], "x",
                                 rules$feature_b[w]) else character(0),
     stringsAsFactors = FALSE)
+}
+
+#' Pairs a derived allow-list refusal takes away from a hand-written
+#' rule that did not say `refused`.
+#'
+#' A derived row is a name x name pair and so outranks every group- and
+#' kind-level rule it touches. That is the point where a declaration
+#' could quietly replace a measurement, and it is the one thing the
+#' derivation must never do: a hand-written row is somebody's reading of
+#' a fit, and if it disagrees with the declaration then one of the two
+#' is wrong and a human has to say which.
+#'
+#' The comparison is against the SAME registry with the derived block
+#' removed, so it reports what the table said before the derivation
+#' spoke, whatever precedence the rule that said it had. Same-precedence
+#' clashes are `frmtmb_compat_validate()`'s job and are not repeated
+#' here. Run from test-compat.R, for its cost.
+#'
+#' @noRd
+compat_declared_displacements <- function() {
+  pairs <- frmtmb_compat_pairs_tbl()
+  rules <- frmtmb_compat_rules_tbl()
+  drv <- rules$status == "refused" & !rules$override &
+    rules$note == compat_derived_note(rules$feature_a, rules$feature_b)
+  if (!any(drv)) return(compat_displacement_frame(NULL, NULL, NULL))
+  plain <- rules[!drv, , drop = FALSE]
+  now <- compat_resolve(pairs, rules)
+  was <- compat_resolve(pairs, plain)
+  # Only a pair the derived block actually wins can have been displaced.
+  won <- !is.na(now$win) & drv[now$win]
+  prev <- ifelse(is.na(was$win), "untested", plain$status[was$win])
+  bad <- which(won & !(prev %in% c("refused", "untested")))
+  compat_displacement_frame(pairs$feature_a[bad], pairs$feature_b[bad],
+                            prev[bad])
+}
+
+#' @noRd
+compat_displacement_frame <- function(a, b, was) {
+  data.frame(feature_a = a %||% character(0),
+             feature_b = b %||% character(0),
+             was = was %||% character(0),
+             stringsAsFactors = FALSE)
 }
 
 #' Feature metadata for the compatibility registry

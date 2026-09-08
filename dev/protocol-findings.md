@@ -431,12 +431,19 @@ The build count is the claim that cannot move with load, and
   is why the rule is not a one-liner - it reads `dec()` and `vint()`
   together, with the condition index moving between `vint1` and
   `vint2` depending on whether `dec()` is present.
+  DONE 2026-09-07 as `frmtmb_family(exclusive_aterms =)`, opt-in for
+  that reason; see `dev/aterms-findings.md`.
 * Deriving the compat table's 143 family-by-aterm "untested" cells from
   the new declarations. Now computable, but it is a change to the
   shared rule machinery rather than to a declaration.
+  DONE 2026-09-07. 148 cells, not 143, because `dec()` joined the
+  vocabulary; audited against every hand-written row first, and no row
+  disagreed with any declaration.
 * `structure_unit()` is still dead code in core (`R/structure.R`), the
   residual `dev/rl-findings.md` records. Nothing this lane added reads
   it; `frmtmb.sample` still inlines the expression deliberately.
+  DONE 2026-09-07: `structure_generic()` reads it, which is the caller
+  the slot was documented for.
 * Fixing the `frmtmb.sample` load-order defect found above. Not this
   lane's file, and the fix is a semantics decision about `expects =`.
 
