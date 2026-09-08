@@ -126,6 +126,11 @@ reference:
   - frm_compat
   - frm_compat_features
   - frm_compat_rules
+- title: Spectral models
+  contents:
+  - frm_periodogram
+  - whittle
+  - frm_series_draw
 - title: Package
   contents:
   - frmtmb-package
@@ -144,3 +149,4 @@ articles:
   - diagnostics
   - habit
   - compatibility
+  - spectral

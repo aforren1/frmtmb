@@ -1649,6 +1649,18 @@ parse_one_response <- function(bform) {
     }
   }
 
+  # A family may also fix one of its own dpars at a value IT knows and
+  # the user is never asked for: whittle(tapers = k) is the Gamma
+  # likelihood with the shape held at the number of periodograms that
+  # were averaged, which is data preparation rather than something to
+  # estimate. It takes the same constant route (and so the same `map`)
+  # as `bf(y ~ x, shape = k)`, and an explicit value there still wins.
+  for (dp in names(fam[["fixed_dpars"]] %||% list())) {
+    if (dp %in% fam[["dpars"]] && !dp %in% extra) {
+      pfix[[dp]] <- fam[["fixed_dpars"]][[dp]]
+    }
+  }
+
   lin_dpar <- function(nm, link) {
     pf <- pforms[[nm]]
     lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
