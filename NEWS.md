@@ -279,6 +279,30 @@ second scale from a shape, and a dpar formula walked past it.
   and `frmtmb.coupling` passed its own check and its own tests with 34
   such reads.
 
+* `whittle()` no longer refuses legitimate tapered periodograms. Its
+  smoothness statistic compares ordinates THREE apart rather than
+  neighbors. A Hann window's transform is three bins wide, so it
+  correlates neighboring log ordinates (0.31) and leaves ordinates
+  three apart alone (-0.003); at lag one that correlation pulled the
+  statistic from 3.29 to 2.27 and refused about 2 percent of
+  Hann-tapered responses, and at lag three the rate is 0 in 2000
+  replicates at each of nine cells. Hamming and Blackman windows, which
+  this package does not apply, went from 1.0 and 18.1 percent to 0 the
+  same way. A single Slepian taper, which lag one refused 27 percent of
+  the time at 127 ordinates and 56 percent at 255, is now accepted.
+  The threshold curve is unchanged and the false-alarm rate on the flat
+  null is still 0 in 20000 per cell. Detection of a SEGMENT-averaged
+  periodogram declared raw is unchanged within Monte Carlo error.
+  Detection of leakage costs 1.3 points at exponent 3 and 2.3 at
+  exponent 2.5 with 127 ordinates, and under one point at 255
+  ordinates and above. What the wider step also costs is an estimate
+  smoothed ACROSS FREQUENCY and then declared raw: a three-bin Daniell
+  smooth of a short record is caught 18 percent of the time at 32
+  ordinates and 58 percent at 64, where the old step caught nearly all
+  of them, and the two agree again above about 100 ordinates. The
+  refusal message no longer suggests a taper the user may already have
+  applied.
+
 
 # frmtmb 0.54.0
 

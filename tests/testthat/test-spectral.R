@@ -284,6 +284,55 @@ test_that("leakage-dominated ordinates are refused too", {
   hann$logf <- log(hann$freq)
   fit <- frm(bf(pgram ~ logf), family = whittle(), data = hann)
   expect_equal(-fixef(fit)[["mu"]][[2L]], 3, tolerance = 0.15)
+
+  # That fit only happens if the refusal lets a tapered response
+  # through, and this seed used to clear the trigger by 28.9%, which is
+  # not a margin worth pinning a test on: 0.25% of fresh seeds fell
+  # under it. Read the margin off the SHIPPED refusal rather than
+  # rewriting its statistic here: the statistic is a variance of log
+  # differences, so y^a scales it by a^2 exactly, and a response still
+  # accepted at a = 1/sqrt(1.5) clears the trigger by half again. This
+  # seed clears it by 111%. The rate over fresh seeds is the next test.
+  vy <- whittle()[["valid_y"]]
+  expect_silent(vy(hann$pgram^(1 / sqrt(1.5)), NULL))
+})
+
+test_that("a taper does not trip the smoothness refusal, over seeds", {
+  # A tapered periodogram is legitimately raw, so the only honest way to
+  # state what the refusal costs it is a rate, and the only honest
+  # comparison is against a response the threshold was calibrated on.
+  # Both counts come from the shipped refusal.
+  vy <- whittle()[["valid_y"]]
+  refusals <- function(taper, reps, n, seed) {
+    set.seed(seed)
+    sum(vapply(seq_len(reps), function(i) {
+      pg <- frm_periodogram(stats::rnorm(n), taper = taper)
+      inherits(tryCatch(vy(pg$pgram, NULL), error = function(e) e),
+               "error")
+    }, TRUE))
+  }
+  reps <- 1000L
+  # n = 512 is the worst cell measured: at 255 ordinates a hann taper
+  # used to cost 1.9% of responses, so about 19 of these
+  n_none <- refusals("none", reps, 512L, 41L)
+  n_hann <- refusals("hann", reps, 512L, 42L)
+  n_scos <- refusals("split_cosine", reps, 512L, 43L)
+  # the slack is binomial, not a tolerance: the threshold is calibrated
+  # so that at most about 1 flat-spectrum response in 10000 reaches it,
+  # which puts P(count > 3) at 3.8e-6 by pbinom(3, 1000, 1e-4), while a
+  # rule that reads NEIGHBORING ordinates expects 19 and fails this on
+  # every one of 30 seed sets tried
+  expect_lte(n_hann, n_none + 3L)
+  expect_lte(n_scos, n_none + 3L)
+
+  # why the statistic compares ordinates three apart rather than two:
+  # a hann window's transform is three bins wide, so it correlates
+  # neighbors and leaves ordinates three apart alone. Both numbers are
+  # measured here, and the assertion is their ratio.
+  set.seed(44)
+  li <- log(frm_periodogram(stats::rnorm(32768), taper = "hann")$pgram)
+  ac <- drop(stats::acf(li, lag.max = 3, plot = FALSE)$acf)[-1L]
+  expect_gt(ac[[1L]], 4 * max(abs(ac[2:3])))
 })
 
 test_that("the smoothness check reaches short responses", {

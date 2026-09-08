@@ -239,11 +239,11 @@ frm_periodogram <- function(x, fs = NULL,
 #'
 #' The second is detectable, and nearly one-sidedly. The log ratio of
 #' two ordinates with the same mean has variance `2 trigamma(k)` at
-#' shape k and nothing else enters it, so for neighbouring frequencies
-#' `var(diff(log y))` is that variance plus the variance the SPECTRUM
-#' contributes across one grid step. A spectrum that moves can only ADD
-#' to it, and so can a random reordering of the rows (measured: a
-#' shuffled raw periodogram gives 3.46 against a model 3.29, and is
+#' shape k and nothing else enters it, so for two frequencies a fixed
+#' step apart `var(diff(log y, lag))` is that variance plus the variance
+#' the SPECTRUM contributes across that step. A spectrum that moves can
+#' only ADD to it, and so can a random reordering of the rows (measured:
+#' a shuffled raw periodogram gives 3.46 against a model 3.29, and is
 #' accepted).
 #'
 #' The exception, and the reason this says "nearly": a reordering that
@@ -265,16 +265,20 @@ frm_periodogram <- function(x, fs = NULL,
 #' statistic, so what is bought at small counts is bought by asking for
 #' more evidence rather than by refusing to look.
 #'
-#' Measured in dev/freq-findings.md. At 127 ordinates the untapered
-#' exponent-3 power law is now caught 92% of the time (it was 0%), a
-#' k-averaged periodogram declared raw is caught 90 to 100% at k = 4
-#' and 8 down to 31 ordinates, and no legitimate spectrum tested false-
-#' fired: AR(1) at phi 0, 0.9 and 0.99, a 1/f background with a strong
-#' alpha peak, and ten stacked 64-point series are all 0%. The two
-#' known limits are k = 2 below about 200 ordinates, where Gamma(2) and
-#' Gamma(1) are too close to separate (48%), and AR(1) at phi = 0.999,
-#' which fires about 8% and is arguably a true positive because that
-#' spectrum really is leakage-contaminated at that length.
+#' Measured in dev/freq-findings.md and dev/spectral2-findings.md. At
+#' 127 ordinates the untapered exponent-3 power law is caught about 92%
+#' of the time (it was 0%), a k-averaged periodogram declared raw is
+#' caught 98 to 100% at k = 4 and 8 down to 31 ordinates, and no
+#' legitimate spectrum tested false-fired: AR(1) at phi 0, 0.5 and 0.9,
+#' a 1/f background with a strong alpha peak, and a Hann or
+#' split-cosine taper are all 0%. Three known limits: k = 2 below about
+#' 200 ordinates, where Gamma(2) and Gamma(1) are too close to separate
+#' (55%); AR(1) at phi = 0.999, which fires about 6%; and a
+#' near-unit-root AR(2) resonance on a short record, 4.6% at 127
+#' ordinates with poles at radius 0.995. The last two are arguably true
+#' positives, because such a spectrum really is leakage-contaminated at
+#' that length, and both fall away with length: the AR(2) cell is 0.9%
+#' at 511 ordinates and 0 in 1000 at 2047.
 #'
 #' @noRd
 whittle_smooth_frac <- function(nf) {
@@ -282,11 +286,51 @@ whittle_smooth_frac <- function(nf) {
   # 10000 reaches it, with a 15% margin, monotone in nf and capped at
   # the half that the 200-ordinate rule used. Interpolated on log(nf)
   # and flat outside the knots.
+  #
+  # The curve is calibrated at shape k about a FLAT spectrum, where the
+  # ordinates are iid whatever the differencing lag is, so it does not
+  # move with whittle_diff_lag: re-measured at lags 1, 2 and 3 over
+  # 120000 samples a cell, the 1e-4 quantile of the statistic agrees
+  # across the lags to within the spread of the estimate, and the two
+  # smallest knots were settled by 500000 direct samples at the
+  # threshold itself (dev/spectral2-findings.md).
   knots_nf <- c(24, 32, 48, 64, 96, 128, 192, 256, 384, 512)
   knots_fr <- c(0.123, 0.171, 0.236, 0.279, 0.359,
                 0.400, 0.455, 0.494, 0.500, 0.500)
   stats::approx(log(knots_nf), knots_fr, xout = log(nf), rule = 2)$y
 }
+
+# How far apart the two ordinates being compared are. Lag 1 is the
+# natural reading and was the first rule, but it refused legitimate
+# Hann-tapered responses: a periodic Hann window's transform has
+# exactly three non-zero taps, so a tapered ordinate at bin j is built
+# from bins j-1, j and j+1 alone, NEIGHBORING ordinates share two of
+# those bins, and the log ordinates correlate about 0.31. Correlation
+# subtracts from the statistic, which fell from 3.29 to 2.27, so 2%
+# of Hann-tapered responses landed under the trigger.
+#
+# Bins j and j+3 share nothing, so at this lag a Hann or Hamming window
+# leaves the statistic exactly uncorrelated rather than nearly so. What
+# it costs is one more grid step of the SPECTRUM's own drift, which
+# only adds. A leakage floor is smooth across many bins rather than
+# one, so the lag does not reach it either, and a SEGMENT-averaged
+# periodogram is deflated through its marginal shape alone, which no
+# lag can see around: its ordinates stay independent across frequency.
+#
+# The one error the lag does weaken is an estimate smoothed ACROSS
+# FREQUENCY (a Daniell window, a multitaper) and then declared raw.
+# There the ordinates really are correlated, the correlation was doing
+# part of the detection, and three bins of it are given up. It costs
+# nothing above about 100 ordinates and a great deal below: a three-bin
+# Daniell smooth declared raw is caught 18% of the time at 32 ordinates
+# against 95% at lag 1. The trade is deliberate. At lag 1 the same
+# correlation refused the HONEST declaration of those estimates as well
+# (a three-bin Daniell declared as three was refused 68% of the time at
+# 127 ordinates, and a single Slepian taper 27%), which is a refusal
+# charged to a user who did everything right. Every number here is
+# measured in dev/spectral2-findings.md and
+# dev/reviews/2026-09-08-spectral2.md.
+whittle_diff_lag <- 3L
 
 whittle_valid_y <- function(tapers) {
   force(tapers)
@@ -307,11 +351,12 @@ whittle_valid_y <- function(tapers) {
     # smoothed periodogram from a rough one, and a series that short
     # has no spectrum worth fitting either
     if (length(y) < 24L) return(invisible(NULL))
-    v <- stats::var(diff(log(y)))
+    v <- stats::var(diff(log(y), lag = whittle_diff_lag))
     thr <- whittle_smooth_frac(length(y)) * 2 * trigamma(tapers)
     if (v < thr) {
       stop("whittle(tapers = ", tapers, "): the response is far too ",
-           "smooth to be that. var(diff(log(y))) is ",
+           "smooth to be that. var(diff(log(y), lag = ",
+           whittle_diff_lag, ")) is ",
            format(signif(v, 3)), ", the refusal triggers below ",
            format(signif(thr, 3)), ", and ordinates of shape ", tapers,
            " have an expected ", format(signif(2 * trigamma(tapers), 3)),
@@ -324,10 +369,10 @@ whittle_valid_y <- function(tapers) {
            "which is what an untapered periodogram returns for a ",
            "spectrum falling faster than f^-2, and the estimate from it ",
            "would be the leakage floor rather than the spectrum: pass ",
-           "taper = \"hann\" to frm_periodogram(). If the ordinates ",
-           "ALREADY carry a hann taper, that taper correlates ",
-           "neighbouring ordinates and can trip this check on its ",
-           "own: use taper = \"split_cosine\", which does not",
+           "taper = \"hann\" to frm_periodogram(). If you already ",
+           "tapered, that is not the cause: the statistic compares ",
+           "ordinates ", whittle_diff_lag, " apart, which the tapers ",
+           "frm_periodogram() applies leave uncorrelated",
            call. = FALSE)
     }
     invisible(NULL)
@@ -378,27 +423,44 @@ whittle_valid_y <- function(tapers) {
 #' power in dB, which this likelihood is not about.
 #'
 #' A response too SMOOTH to have the declared shape is also refused.
-#' `var(diff(log(y)))` is `2 trigamma(tapers)` for ordinates of that
-#' shape whatever the spectrum is, and only the spectrum's own
-#' step-to-step variation adds to it, so a value far below that is
+#' `var(diff(log(y), lag = 3))` is `2 trigamma(tapers)` for ordinates of
+#' that shape whatever the spectrum is, and only the spectrum's own
+#' variation across the step adds to it, so a value far below that is
 #' evidence the ordinates were averaged more than `tapers` says, or
 #' that they are spectral leakage rather than signal. The threshold is
 #' a calibrated fraction of the model value that shrinks as the number
 #' of ordinates falls.
+#'
+#' The step is three ordinates rather than one because of the taper. A
+#' Hann window's transform is three bins wide, so it correlates
+#' NEIGHBORING ordinates (about 0.31 on the log scale) and leaves
+#' ordinates three apart uncorrelated (-0.003). At lag one a
+#' legitimate Hann-tapered response was refused about 2% of the time;
+#' at lag three the measured rate is 0 in 2000 replicates at each of
+#' nine cells, and the same holds for Hamming and Blackman windows,
+#' which this package does not apply and which were refused 1.0% and
+#' 18.1% of the time at lag one. The wider step costs leakage detection
+#' at the shortest usable length, 1.3 points at exponent 3 and 2.3 at
+#' exponent 2.5 with 127 ordinates, and under one point at 255
+#' ordinates and above (2000 replicates a cell).
 #'
 #' **What it cannot see.** It needs the rows in frequency order, which
 #' is what [frm_periodogram()] returns: a periodogram sorted by its own
 #' power is refused every time, wrongly. It does not run at all below
 #' 24 ordinates. It separates `tapers = 2` from a raw periodogram only
 #' above about 200 ordinates, because Gamma(2) and Gamma(1) are close.
-#' A Hann-tapered periodogram is legitimately raw, but the taper
-#' correlates neighbouring ordinates: the lag-one correlation of
-#' `log I` is about 0.3, which pulls the expected statistic from
-#' 3.29 down to 2.28 against a trigger of 1.65, so such a response is
-#' refused about one to two percent of the time. A split-cosine taper
-#' does not do this (correlation 0.009). If a refusal names a response
-#' you already tapered with Hann, that is this, and the remedy is not
-#' another taper.
+#' It reads an estimate smoothed ACROSS FREQUENCY (a Daniell window, a
+#' multitaper) poorly at both ends. Declared raw, such an estimate is
+#' caught every time above about 100 ordinates and often missed below
+#' it: a three-bin Daniell smooth is caught 18% of the time at 32
+#' ordinates and 58% at 64. Declared honestly, by giving `tapers` the
+#' equivalent degrees of freedom, it passes up to about five bins of
+#' smoothing and is then refused anyway, 37% to 89% of the time at
+#' seven bins and 92% or more at eleven, because the check assumes
+#' ordinates independent across frequency and a wide smooth is not. Fit
+#' a
+#' frequency-smoothed estimate with care, or fit the raw or
+#' segment-averaged periodogram it came from.
 #' And it is a backstop, not a test to rely on: at 127 ordinates (a
 #' one-second epoch at 256 Hz) an untapered exponent-3 power law is
 #' caught about 92% of the time and an exponent-2 one much less often.

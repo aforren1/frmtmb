@@ -226,9 +226,9 @@ band being fitted.**
 ### What the refusal can and cannot see
 
 Do not rely on the refusal to remind you, and know what its numbers are
-conditional on. Measured at **1023 ordinates**, it fires on 97% of
-untapered replicates at exponent 3 and 81% at 2.5, but only 14% at
-exponent 2 - and at exponent 2 the untapered fit still comes back
+conditional on. Measured at **1023 ordinates** over 6000 replicates, it
+fires on 96% of untapered replicates at exponent 3 and 77% at 2.5, but
+only 10% at exponent 2. At exponent 2 the untapered fit still comes back
 quietly 4% low, with small standard errors and well-behaved residuals,
 because the model is describing the leakage correctly.
 
@@ -240,9 +240,12 @@ refusals near zero:
 | epoch at 256 Hz | ordinates | exponent-3 leakage caught |
 | --- | --- | --- |
 | 1 s (n = 256) | 127 | 92% |
-| 2 s (n = 512) | 255 | 93% |
+| 2 s (n = 512) | 255 | 95% |
 | 4 s (n = 1024) | 511 | 96% |
-| 8 s (n = 2048) | 1023 | 99% |
+| 8 s (n = 2048) | 1023 | 96% |
+
+Each cell is 6000 replicates, so a rate here carries a standard error
+under 0.4 points.
 
 Below 24 ordinates it does not run at all, and a `tapers = 2` response
 is separable from a raw one only above about 200 ordinates. The refusal
@@ -261,7 +264,11 @@ this vignette recommends anyway.
 
 The price of the taper is that neighbouring ordinates are no longer
 close to independent, so its standard errors are optimistic. That is far
-smaller than the bias it removes.
+smaller than the bias it removes. It is not a reason to expect the
+refusal to fire on your tapered response: the statistic compares
+ordinates three apart, which a Hann window leaves uncorrelated, and a
+tapered raw periodogram was refused 0 times in 2000 replicates at each
+of nine cells.
 
 ## Peaks need an averaged periodogram, and a starting value
 
