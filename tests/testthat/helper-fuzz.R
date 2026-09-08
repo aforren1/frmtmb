@@ -126,7 +126,7 @@ fuzz_families <- list(
   poisson = list(
     ctor = "poisson()", brms = "poisson()", dpar2 = NULL,
     reml = FALSE, sim = TRUE, mean_check = TRUE, ordinal = FALSE,
-    trials = FALSE, cens = FALSE, trunc = TRUE, se = FALSE,
+    trials = FALSE, cens = TRUE, trunc = TRUE, se = FALSE,
     eta0 = 1, trunc_lb = 1
   ),
   binomial = list(
@@ -371,10 +371,9 @@ fuzz_refusal_cases <- list(
        a = list(family = "Beta", aterm = "trunc", re = "none",
                 special = "none", dpar = "none", mode = "ml",
                 op = "predict")),
-  list(name = "cens_discrete", expect = "discrete",
-       a = list(family = "poisson", aterm = "cens", re = "ri",
-                special = "none", dpar = "none", mode = "ml",
-                op = "predict")),
+  # cens_discrete was here. Through 0.53.0 cens() refused a family for
+  # BEING discrete; 0.54.0 refuses only a family with no CDF, so
+  # poisson is censored and the pair moved into the grid above.
   list(name = "quad_smooth", expect = "scalar random",
        a = list(family = "gaussian", aterm = "none", re = "ri",
                 special = "smooth", dpar = "none", mode = "quadrature",
@@ -578,6 +577,13 @@ fuzz_data <- function(sp) {
     if (fm$ordinal) d$y <- factor(d$y, ordered = TRUE)
     if (identical(sp$aterm, "cens") || identical(sp$aterm, "cens_chr")) {
       qs <- stats::quantile(y, c(0.15, 0.85), names = FALSE)
+      # A discrete family reads a censoring bound as a value the
+      # response can take, so the bound has to sit on the lattice;
+      # quantile() interpolates between order statistics and does not.
+      if (all(y == round(y))) {
+        qs <- c(floor(qs[1]), ceiling(qs[2]))
+        if (qs[2] - qs[1] < 2) next
+      }
       cc <- ifelse(y < qs[1], -1L, ifelse(y > qs[2], 1L, 0L))
       d$y <- pmin(pmax(y, qs[1]), qs[2])
       d$cc <- cc
@@ -879,12 +885,22 @@ fuzz_inv_permutation <- function(recs, sp, fit, d) {
     # optimizer stopped at, so both tapes re-solve the inner problem the
     # same way - and it probes the same claim, that the two objectives
     # are the same function of the parameters.
+    #
+    # The midpoint does not always clear it. Measured on
+    # student + se() + ar1 under REML, the two tapes agree BITWISE at
+    # the midpoint plus and minus 0.15 and differ by 1.1e-07 at the
+    # midpoint itself, so the residue is the inner Newton stopping one
+    # iterate apart at one point rather than an order-dependent
+    # likelihood. An absolute 1e-8 on an objective of 143 is 7e-11
+    # relative, tighter than the inner solve's own accuracy, so this
+    # uses the tolerance the logLik check below derives from the
+    # gradient scale and the distance between the two optima.
     par <- (fit$opt$par + f2$value$opt$par) / 2
     s1 <- fuzz_try(as.numeric(fit$obj$fn(par)))
     s2 <- fuzz_try(as.numeric(f2$value$obj$fn(par)))
     if (s1$ok && s2$ok) {
       ds <- abs(s1$value - s2$value)
-      if (!is.finite(ds) || ds > 1e-8) {
+      if (!is.finite(ds) || ds > fuzz_permutation_tol(fit, f2$value)) {
         return(fuzz_finding(recs, sp, "row_permutation", "candidate",
                             paste("objective at a shared parameter",
                                   "vector changed under a row",
@@ -1650,7 +1666,22 @@ FUZZ_KNOWN_PENDING <- list(
        why = "mo() crossed with a factor is refused rather than fitted",
        match = function(f) identical(f$kind, "refusal:mo_factor") &&
          identical(f$invariant, "refusal_is_error") &&
-         grepl("was accepted", f$detail))
+         grepl("was accepted", f$detail)),
+  # Deliberately narrow: the four axes are the ones measured. A
+  # neighbouring spec failing the same invariant is a new finding and
+  # should be seen as one.
+  list(id = "reml-ar1-se-two-optima",
+       why = paste("student + se() + ar1 under REML reaches two optima",
+                   "5.9 apart in parameter space and 0.0049 apart in",
+                   "logLik under a row permutation. The objective is",
+                   "the same function of the parameters: the two tapes",
+                   "agree bitwise either side of the midpoint. Measured",
+                   "identical on 0.53.0, so it is not a 0.54.0",
+                   "regression. dev/fuzz-findings.md carries the",
+                   "numbers."),
+       match = function(f) identical(f$invariant, "row_permutation") &&
+         grepl("family=student", f$spec) && grepl("aterm=se", f$spec) &&
+         grepl("re=ar1", f$spec) && grepl("mode=reml", f$spec))
 )
 
 # Combinations the package refuses on purpose, with a message that

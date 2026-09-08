@@ -1,17 +1,9 @@
-# frmtmb.eam 0.4.1
+# frmtmb.eam 0.5.0
 
-One export, for another extension package.
-
-* `wiener_lpdf()` is now exported: the Wiener first-passage log density
-  with `wiener()`'s parameterization and `wiener()`'s tape safety.
-  `frmtmb.learn::rlddm()` is a delta learning rule whose value
-  difference drives the drift rate of this density, and until now the
-  only route to it was `frmtmb.eam:::ddm_lpdf_both()`, which is a
-  promise nobody made. This is that promise, made deliberately and kept
-  to one function: the series truncations, the blend between them, the
-  across-trial variability integrals and the CDF all stay internal.
-  Nothing about the package's own behavior changes.
-# frmtmb.eam (development version)
+`wiener()` refuses a boundary given twice, one export for a
+sibling package, and the compatibility table says refused where it
+used to say untested. Requires frmtmb 0.54.0 for the exclusivity
+declaration.
 
 * `wiener()` declares `dec()` and `vint1` mutually exclusive, so a model
   supplying both is refused by name instead of fitted with the second
@@ -37,6 +29,16 @@ One export, for another extension package.
   The allow-lists themselves move to one `ddm_accepts` list that the
   five constructors and the compatibility rows both read, so the table
   cannot promise a term frame assembly refuses.
+
+* `wiener_lpdf()` is now exported: the Wiener first-passage log density
+  with `wiener()`'s parameterization and `wiener()`'s tape safety.
+  `frmtmb.learn::rlddm()` is a delta learning rule whose value
+  difference drives the drift rate of this density, and until now the
+  only route to it was `frmtmb.eam:::ddm_lpdf_both()`, which is a
+  promise nobody made. This is that promise, made deliberately and kept
+  to one function: the series truncations, the blend between them, the
+  across-trial variability integrals and the CDF all stay internal.
+  Nothing about the package's own behavior changes.
 
 # frmtmb.eam 0.4.0
 

@@ -538,3 +538,74 @@ Structural lessons worth keeping:
 - An invariant must read the warnings of the call it makes, not only
   the ones the fit made (H8). "Non-finite, and nothing said" is a
   different claim from "non-finite", and only the first is a defect.
+
+## 0.54.0 release run (2026-09-08)
+
+Two changes to the harness and one recorded defect.
+
+### The `cens_discrete` refusal was asserting the opposite of 0.54.0
+
+Through 0.53.0 `cens()` refused a family for BEING discrete, and the
+harness pinned that as refused by design. 0.54.0 refuses only a family
+with no CDF, so `poisson()` is censored. The refusal case is deleted
+and `poisson`'s `cens` flag in `fuzz_families` is now TRUE, which puts
+the pair in the generated grid instead of the refusal list.
+
+That needed one more change. A discrete family reads a censoring bound
+as a value the response CAN TAKE, so the bound has to sit on the
+integer lattice, and `quantile()` interpolates between order
+statistics. The data builder now floors and ceilings the two bounds
+when the response is integral, and skips the row if that leaves fewer
+than two levels between them.
+
+Flipping one applicability flag re-shuffles the greedy cover, so every
+row's index and therefore every per-model seed changes. The plan seed
+is still fixed; the plan is simply a different one. That is how the
+next item surfaced.
+
+### H9: the shared-parameter objective check used an absolute tolerance
+
+`fuzz_inv_permutation()` compared the two tapes at the midpoint of the
+two optima against `ds > 1e-8`. On an objective of 143.17 that is
+7e-11 relative, tighter than the inner solve's own accuracy, and it
+fired on `family=student aterm=se re=ar1 mode=reml op=confint` at
+`ds = 1.1171e-07`.
+
+Measured, three ways, before changing anything:
+
+| probe | result |
+| --- | --- |
+| one tape, same `par`, three different tape histories | spread 0 |
+| two tapes at `par - 0.15` | `ds = 0` bitwise |
+| two tapes at `par + 0.15` | `ds = 0` bitwise |
+| two tapes at the midpoint | `ds = 1.1171e-07` |
+
+A likelihood that depended on row order would differ at all three
+points and scale with the displacement. This one is zero either side
+and nonzero at a single point, which is the inner Newton stopping one
+iterate apart there. The check now uses `fuzz_permutation_tol()`, the
+same gradient-scale times parameter-distance tolerance the logLik
+comparison eight lines below already derived. This is the third
+absolute threshold in the suite to be re-posed as a relative one, after
+`test-deriv.R` at 0.52.0 and `test-gratia.R` at 0.53.0.
+
+### The defect that check was hiding: two optima, not one likelihood
+
+With the artifact out of the way the same spec reports the real thing.
+The two fits land 5.938 apart in parameter space with a logLik gap of
+0.004862 against a derived tolerance of 0.000174, a factor of 28. The
+objective is the same function of the parameters; the OPTIMIZER
+reaches a different point from a permuted row order. student + `se()`
+puts a known standard error under a heavy-tailed density while `ar1`
+correlates the rows and REML integrates `beta` as well, and that
+surface is flat enough to stop in two places.
+
+**It is not a 0.54.0 regression.** The identical probe on the 0.53.0
+library returns every number above to the digit: `ds` 1.1171e-07 at the
+midpoint, 0 either side, `sum|p1 - p2|` 5.938096, logLik gap 0.004862287.
+It is reachable now only because the plan changed.
+
+Recorded in `FUZZ_KNOWN_PENDING` as `reml-ar1-se-two-optima`, matched
+on the four axes actually measured so a neighbouring spec failing the
+same invariant still reads as new. The tier is green again: two passes,
+no findings off the lists.

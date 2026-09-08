@@ -1,4 +1,15 @@
-# frmtmb (development version)
+# frmtmb 0.54.0
+
+Every link in the registry can now be reached and found: a link on any
+distributional parameter, a reference page listing all seventeen, and
+the ordinal families going through the registry rather than a
+hand-written switch. Making them reachable exposed two silent density
+bugs. A family written in plain R reaches `se()` and discrete `cens()`
+on its own declaration rather than on its name. A family can declare
+two addition terms mutually exclusive, which is what an allow-list
+cannot say. And the frequency domain arrives: `frm_periodogram()`,
+`whittle()`, and a measurement of what an untapered periodogram cannot
+tell you.
 
 Two gates that made a family written in plain R a second-class citizen
 of the addition-term grammar. Both were found by the Bayesian Cognitive
@@ -341,6 +352,69 @@ parameters.
   `vignette("frmtmb")` gains the starting-value rule for bump-shaped
   terms and `vignette("diagnostics")` the two causes of `NaN` standard
   errors.
+
+The frequency domain. A spectral fit was already possible, because the
+Whittle likelihood IS an exponential GLM on the periodogram with a log
+link and `exponential()` is mean-parameterized, but nothing said so and
+nothing prepared the data. `vignette("spectral")` carries the worked
+AR(1) and power-law fits.
+
+* NEW `frm_periodogram()` turns one or more series into the data frame
+  a spectral model reads: one row per retained ordinate, with the
+  frequency in Hz. The zero and Nyquist ordinates are DROPPED, so a
+  series of length `m` gives `floor((m - 1) / 2)` rows. Checked against
+  `stats::spec.pgram()` at `taper = 0, detrend = FALSE, fast = FALSE`:
+  every ordinate agrees to a ratio of exactly 1 and every frequency to
+  0, which pins the scaling and the frequency axis together. It offers
+  detrending, Hann and split-cosine tapers, Bartlett segment averaging,
+  and takes a matrix of series or a `group` vector of unequal lengths.
+
+* NEW `whittle(tapers = )` names the assumption a spectral fit makes:
+  ordinates independent, exponential about the spectrum. It is
+  `exponential(log)` at one taper and `Gamma(log)` with the shape FIXED
+  at `tapers` above it, through a new family slot that reaches the
+  existing constant-dpar mechanism, so an averaged periodogram spends
+  no parameter on a number the data preparation already decided. On an
+  AR(1) of 1024 points at `phi = 0.7` it returns 0.708617 (se 0.02218)
+  against `arima(method = "ML")`'s 0.707178 (se 0.02204).
+
+* `whittle()` refuses what the response alone can prove, and states
+  what it cannot see. A response that is not positive is log power or
+  power in dB, which is the common wrong response and is caught
+  exactly. A response too SMOOTH to be raw is caught because
+  `var(diff(log(I)))` is `2 * trigamma(k)` for ordinates of shape `k`
+  WHATEVER the spectrum is, and both smoothing and reordering only add
+  to it, so a value far below the model's is one-sided evidence. It
+  refuses 98 to 100 percent of periodograms that were segment
+  averaged without saying so, and 89 to 100 percent of
+  leakage-dominated ones, against a false-alarm rate measured at
+  0.000 percent under the flat null over 20000 samples per cell and
+  0 percent on AR(1), AR(2) and 1/f-with-a-peak spectra. Two limits
+  are documented rather than hidden: four averaged ordinates below
+  about 200 rows are only caught 46 percent of the time, and a
+  near-unit-root AR(1) fires occasionally because its spectrum
+  really is leakage-dominated. A Hann-tapered periodogram is
+  legitimately raw but its neighbours correlate, so it is refused
+  about 1 to 2 percent of the time; the message says so rather than
+  prescribing a taper the user may already have applied.
+
+* NEW `frm_series_draw()` draws a time series from a fitted spectrum.
+  `simulate()` is refused on a whittle fit instead of returning
+  ordinates that nothing in the object identifies as ordinates.
+
+* MEASURED, and the practical result of the work: an untapered
+  periodogram cannot estimate a spectral exponent steeper than about
+  2, at any length. On a cut power law of 300 replicates, true
+  exponents of 2 and 3 both come back between 1.91 and 1.97, because
+  the leakage floor of an untapered transform falls like `f^-2` and
+  anything steeper sits under it. A LONGER recording is monotonically
+  worse: the bias at exponent 3 goes from -1.033 at 256 points to
+  -1.094 at 1024. A Hann taper removes it (0.087 and 0.029). At an
+  exponent of 1, flatter than the floor, the raw estimate is
+  unbiased, which is why this is a taper argument and not a taper
+  default. Whittle's own small-sample bias in `phi` is separately
+  smaller in magnitude than exact Gaussian ML's in every cell
+  measured at 64 and 128 points, and comparable above.
 
 # frmtmb 0.53.0
 

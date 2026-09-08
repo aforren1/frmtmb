@@ -1,3 +1,18 @@
+# frmtmb.sample 0.3.1
+
+* The sampling articles say why they are unevaluated, and the
+  reason they used to give was false: four chains on the model in
+  question take seconds, not the minutes claimed. They are
+  unevaluated because the samplers are optional dependencies and
+  because that page documents a Stan build which samples the wrong
+  density silently. The two chunks that need no sampler now run,
+  so the page shows output.
+
+* `loo()` on a group-unit matrix says which unit it left out.
+  `loo::loo.matrix()` never sees the attribute the log-likelihood
+  matrix carries, so the printed estimate was indistinguishable
+  from a per-observation one.
+
 # frmtmb.sample 0.3.0
 
 `conditional_effects()` on draws returns core's frame, grid and

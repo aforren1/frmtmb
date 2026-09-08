@@ -2,7 +2,7 @@
 
 The three things 0.1.0 named as left out are in, and the seam it was
 waiting on has closed. Requires frmtmb 0.53.0 for the two factorization
-slots, and frmtmb.eam 0.4.1 for the Wiener density.
+slots, and frmtmb.eam 0.5.0 for the Wiener density.
 
 ## frm(importance = ) works
 

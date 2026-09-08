@@ -1418,3 +1418,73 @@ Read it for three things this file does not carry:
 
 Nothing in that audit was fixed. The prior-interface edges it records
 are the ones the `wt-priorcompat` lane owns.
+
+## Follow-ups carried out of the 0.54.0 round (2026-09-08)
+
+Recorded, not fixed. Each was found by a lane or its review and left
+because it was outside that lane's scope, not because it was judged
+harmless.
+
+1. **Expose the stored linear predictors.** `R/families.R` keeps
+   `.eta_<dpar>` beside each dpar and has four accessors for it, all
+   `@noRd` and none in NAMESPACE. One of them is the log-scale gate
+   `-logspace_add(0, eta)`. `frmtmb.coupling` needed exactly that and
+   had to write it again, because a family in another package cannot
+   reach core's copy. Anything with a probability dpar near 1 needs
+   it: `plogis(eta)` is exactly 1 above `eta = 36.7368005696771`, so
+   `1 - p` is exactly 0 and the density returns `NaN` for value and
+   gradient alike. Decide the public spelling and export it.
+
+2. **The capped importance-correction warning gives advice about a
+   number that is not an estimate.** `R/fit.R`, the `capped` branch of
+   the convergence messages, reports the last round's move and tells
+   the user to raise the round count or the draw count. When the
+   correction is walking at its step limit every move is the SAME
+   number, the reported shift is exactly rounds times the cap, and
+   more rounds buy a proportionally larger wrong answer.
+   `dev/learn2-findings.md` has the measurement: five rounds of 0.3645
+   reported as a shift of 1.822, and 1.502 at 400 draws where the cap
+   resolves to 0.3004. The warning should test whether the moves are
+   all equal and say that instead.
+
+3. **The spline span refusal keys on the wrong thing.**
+   `extensions/frmtmb.spline/R/curve-feature.R` discards `parts$span`
+   and then refuses on a proxy. The refusal itself was falsified once
+   in review and restored byte for byte, so the code is right and the
+   question is only what it should read. Decide before the next span
+   change.
+
+4. **`se()` over-refuses one narrow family shape.** A family whose
+   scale IS the known standard error but which also reads a genuine
+   shape dpar is refused by name, because the guard cannot tell a
+   second scale from a shape. The three documented ways out all work;
+   the refusal is still wrong for that family.
+
+5. **`bf(y | se(sev) ~ x, tau ~ 1)` slips past the same guard.** A dpar
+   formula written in `bf()` is not what the guard inspects. This is
+   pre-existing and the built-in gaussian shares it, so it is not a
+   0.54.0 regression.
+
+6. **The discrete censoring convention should announce itself once per
+   session.** frmtmb's inclusive reading differs from brms for right
+   and interval censoring of a count. The migration vignette carries
+   the argument, but a user porting a model gets no signal at the call
+   site. A once-per-session notice, not a warning per fit.
+
+7. **`whittle()`'s dispersion refusal fires on 1 to 2 percent of
+   Hann-tapered periodograms**, which are legitimately raw. The taper
+   correlates neighbouring ordinates (lag-one correlation of `log I`
+   about 0.3), which pulls the statistic below the trigger. The help
+   says so and names the remedy; the rate is the debt.
+
+8. **`tests/testthat/test-spectral.R` has one assertion that passes
+   only because its seed is pinned.** Re-pose it as a rate over seeds,
+   the way `test-gratia.R` was re-posed as a ratio after it broke on
+   CI.
+
+9. **The hazard-container guard runs too late.**
+   `test-bracket-access.R` polices the extensions from core's suite, so
+   a new extension can pass its own `R CMD check` and its own suite
+   with 34 `$` reads on hazard containers and only fail at the release
+   tally, which is where `frmtmb.coupling` was caught. Either the lane
+   brief for a new package names the guard, or the guard moves.

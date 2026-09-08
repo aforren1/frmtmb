@@ -165,15 +165,18 @@ cross_wishart <- function() {
                  phase = "identity"),
     lpdf = cw_lpdf,
     valid_y = cw_valid_y,
-    init_dpars = list(mu = function(y, aterms) mean(y / aterms$vint1),
+    init_dpars = list(mu = function(y, aterms) mean(y / aterms[["vint1"]]),
                       pow2 = function(y, aterms)
-                        mean(aterms$vreal1 / aterms$vint1),
+                        mean(aterms[["vreal1"]] / aterms[["vint1"]]),
                       coh = cw_init_coh,
                       phase = function(y, aterms)
-                        atan2(sum(aterms$vreal3), sum(aterms$vreal2))),
+                        atan2(sum(aterms[["vreal3"]]),
+                              sum(aterms[["vreal2"]]))),
     type = "continuous",
-    post = list(mean_fn = function(dpars, aterms) aterms$vint1 * dpars$mu,
-                var_fn = function(dpars, aterms) aterms$vint1 * dpars$mu^2,
+    post = list(mean_fn = function(dpars, aterms)
+                  aterms[["vint1"]] * dpars[["mu"]],
+                var_fn = function(dpars, aterms)
+                  aterms[["vint1"]] * dpars[["mu"]]^2,
                 dev_fn = cw_dev),
     sim_refusal = paste0(
       "a draw is a whole Hermitian matrix and the response carries only ",
@@ -210,7 +213,7 @@ cross_wishart <- function() {
 cw_complement <- function(dpars) {
   eta <- dpars[[".eta_coh"]]
   if (is.null(eta)) {
-    ch <- dpars$coh
+    ch <- dpars[["coh"]]
     return(list(log = log1p(-ch), inv = 1 / (1 - ch)))
   }
   lg <- -RTMB::logspace_add(0 * eta, eta)
@@ -226,9 +229,11 @@ cw_complement <- function(dpars) {
 #'
 #' @noRd
 cw_lpdf <- function(y, dpars, aterms) {
-  n <- aterms$vint1
-  w22 <- aterms$vreal1; w12r <- aterms$vreal2; w12i <- aterms$vreal3
-  s11 <- dpars$mu; s22 <- dpars$pow2; ch <- dpars$coh; ph <- dpars$phase
+  n <- aterms[["vint1"]]
+  w22 <- aterms[["vreal1"]]
+  w12r <- aterms[["vreal2"]]; w12i <- aterms[["vreal3"]]
+  s11 <- dpars[["mu"]]; s22 <- dpars[["pow2"]]
+  ch <- dpars[["coh"]]; ph <- dpars[["phase"]]
   cmp <- cw_complement(dpars)
   logdetW <- log(y * w22 - w12r^2 - w12i^2)
   logdetS <- log(s11) + log(s22) + cmp$log
@@ -247,9 +252,11 @@ cw_lpdf <- function(y, dpars, aterms) {
 #'
 #' @noRd
 cw_dev <- function(y, dpars, aterms) {
-  n <- aterms$vint1
-  w22 <- aterms$vreal1; w12r <- aterms$vreal2; w12i <- aterms$vreal3
-  s11 <- dpars$mu; s22 <- dpars$pow2; ch <- dpars$coh; ph <- dpars$phase
+  n <- aterms[["vint1"]]
+  w22 <- aterms[["vreal1"]]
+  w12r <- aterms[["vreal2"]]; w12i <- aterms[["vreal3"]]
+  s11 <- dpars[["mu"]]; s22 <- dpars[["pow2"]]
+  ch <- dpars[["coh"]]; ph <- dpars[["phase"]]
   cmp <- cw_complement(dpars)
   logdetW <- log(y * w22 - w12r^2 - w12i^2)
   logdetS <- log(s11) + log(s22) + cmp$log
@@ -265,8 +272,8 @@ cw_dev <- function(y, dpars, aterms) {
 #'
 #' @noRd
 cw_init_coh <- function(y, aterms) {
-  num <- sum(aterms$vreal2)^2 + sum(aterms$vreal3)^2
-  den <- sum(y) * sum(aterms$vreal1)
+  num <- sum(aterms[["vreal2"]])^2 + sum(aterms[["vreal3"]])^2
+  den <- sum(y) * sum(aterms[["vreal1"]])
   min(max(num / den, 0.02), 0.9)
 }
 
@@ -276,8 +283,9 @@ cw_valid_y <- function(y, aterms) {
     stop("the response of cross_wishart() is an auto-spectrum and must ",
          "be positive and finite in every row.", call. = FALSE)
   }
-  n <- aterms$vint1
-  w22 <- aterms$vreal1; w12r <- aterms$vreal2; w12i <- aterms$vreal3
+  n <- aterms[["vint1"]]
+  w22 <- aterms[["vreal1"]]
+  w12r <- aterms[["vreal2"]]; w12i <- aterms[["vreal3"]]
   if (any(!is.finite(w22)) || any(w22 <= 0)) {
     stop("the second auto-spectrum, vreal1, must be positive and finite ",
          "in every row.", call. = FALSE)

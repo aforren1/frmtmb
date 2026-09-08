@@ -182,7 +182,7 @@ frm_cross_simulate <- function(fit, nsim = 1L, seed = NULL,
                                                 re.form = re.form))
   s11 <- exp(get("mu")); s22 <- exp(get("pow2"))
   ch <- stats::plogis(get("coh")); ph <- get("phase")
-  dat <- if (is.null(newdata)) fit$frame$data else newdata
+  dat <- if (is.null(newdata)) fit$frame[["data"]] else newdata
   n <- as.numeric(if (!is.null(dat) && !is.null(dat$n)) dat$n
                   else stats::model.frame(fit)$n)
   if (length(n) != length(s11)) {
