@@ -111,24 +111,24 @@ would already be wrong in the third digit at `eta = 30`. That region is
 reachable: a random effect on `coh` with one group near a true coherence
 of 1 drives the estimate past `eta = 34`.
 
-This family therefore never subtracts. Core stores each dpar's linear
-predictor beside it, and the logit link's `logit_eta` field makes the
-log-odds exact, so `log(1 - C)` is computed as `-logspace_add(0, eta)`
-and `1 / (1 - C)` as its exponential. Both are exact to `eta = 709`,
-where the double range itself ends, against `36.74` for the naive form.
-Measured against a high-precision reference at `n = 16`: relative error
-1.0e-03 at `eta = 30` and NaN at `eta = 40` before the change, below
-1e-15 at both after it.
+This family therefore never subtracts. Core keeps each dpar's linear
+predictor beside it while the objective is taped, and
+[`frmtmb::dpar_log1m()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html)
+reads `log(1 - C)` off it exactly, so `1 / (1 - C)` is its exponential.
+Both are exact to `eta = 709`, where the double range itself ends,
+against `36.74` for the naive form. Measured against a high-precision
+reference at `n = 16`: relative error 1.0e-03 at `eta = 30` and NaN at
+`eta = 40` before the change, below 1e-15 at both after it.
 
 One path keeps the plain round trip, and says so rather than being
 floored: `residuals(type = "deviance")` runs off the tape, where core
-does not store the linear predictor, so it uses `log1p(-C)`. That is
-accurate until `C` rounds to exactly 1, which needs `eta` past 36.74 and
-is further than a fit reaches in practice. Measured on the degenerate
-case above, two signals differing by 1e-5 of noise: the fit lands at
-`eta = 23.0`, `C` is 0.99999999989743915 rather than 1, and all 127
-response, Pearson and deviance residuals are finite. Past 36.74 they
-would be `NaN`, and no floor is applied to hide it.
+does not store the linear predictor, so the accessor falls back to the
+plain form. That is accurate until `C` rounds to exactly 1, which needs
+`eta` past 36.74 and is further than a fit reaches in practice. Measured
+on the degenerate case above, two signals differing by 1e-5 of noise:
+the fit lands at `eta = 23.0`, `C` is 0.99999999989743915 rather than 1,
+and all 127 response, Pearson and deviance residuals are finite. Past
+36.74 they would be `NaN`, and no floor is applied to hide it.
 
 ## What it refuses
 

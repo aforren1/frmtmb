@@ -116,13 +116,18 @@ still has peaks and still crosses levels, and a root found among them is
 a root of the decaying partial sum. Unlike a band, which shows the
 reader what it is doing, that root leaves the function as a number with
 a standard error beside it and nothing to say which curve it came off.
-The bracket is checked at the grid scan, before any root is refined, and
-again at the located roots.
+The bracket is checked at the grid scan, before any root is refined.
 
 What is checked is the grid you passed, not the difference stencil the
 scan widens it into: a grid whose endpoint sits exactly on a knot is
 inside the span, and was refused for being a millionth of its range
 outside the stencil's.
+
+The search holds every column but `var` at row 1's value, so a grid
+whose other columns change from row to row is checked a second time,
+against the whole grid. That is where a second
+[`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) term can
+leave its span in a row the search itself never predicts at.
 
 ## See also
 

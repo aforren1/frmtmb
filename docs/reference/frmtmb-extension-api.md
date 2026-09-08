@@ -166,7 +166,11 @@ object is internal and may be renamed without notice.
   scale, at a parameter list in the frame's own layout, or `NULL` when
   that response and dpar have no linear predictor with columns. Random
   effects are excluded on purpose: this exists for a `check_fit` slot,
-  which runs before the inner modes are solved and cannot see them.
+  which runs before the inner modes are solved and cannot see them. Not
+  to be confused with the `dpar_*` accessors of
+  [frmtmb-robust-dpars](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md),
+  which take a `dpars` list rather than a frame and run inside a density
+  while the objective is taped.
 
 - `response_mean()`:
 
@@ -261,8 +265,10 @@ does nothing is indistinguishable from one that worked.
 [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
 for the protocol these serve,
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
-for the family object they read, and the registries an extension fills
-from its own `.onLoad()`:
+for the family object they read,
+[frmtmb-robust-dpars](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+for the accessors a DENSITY uses while the objective is taped, and the
+registries an extension fills from its own `.onLoad()`:
 [`frmtmb_register_frame_check()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_frame_check.md),
 [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
 and

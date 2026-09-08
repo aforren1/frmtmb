@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,10 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.sample/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.2" id="frmtmbsample-032">frmtmb.sample 0.3.2<a class="anchor" aria-label="anchor" href="#frmtmbsample-032"></a></h2>
+<p>Requires frmtmb 0.55.0, for the hazard-container lint that now runs in this package’s own check.</p>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.1" id="frmtmbsample-031">frmtmb.sample 0.3.1<a class="anchor" aria-label="anchor" href="#frmtmbsample-031"></a></h2>
 <ul><li><p>The sampling articles say why they are unevaluated, and the reason they used to give was false: four chains on the model in question take seconds, not the minutes claimed. They are unevaluated because the samplers are optional dependencies and because that page documents a Stan build which samples the wrong density silently. The two chunks that need no sampler now run, so the page shows output.</p></li>

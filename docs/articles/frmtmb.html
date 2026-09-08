@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -247,6 +247,24 @@ Stan or C++ involved:</p>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/check_custom_family.html">check_custom_family</a></span><span class="op">(</span><span class="va">my_poisson</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">3</span><span class="op">)</span>,</span>
 <span>                    dpars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">2.5</span>, <span class="fl">50</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>An inverse link saturates, so a density written over
+<code>1 - mu</code> or <code>log(mu)</code> loses the tail:
+<code>plogis(eta)</code> is exactly 1 in double precision from
+<code>eta = 36.7368</code> up, and there <code>1 - mu</code> is exactly
+0, which gives <code>NaN</code> for the value and for the gradient.
+<code><a href="../reference/frm.html">frm()</a></code> keeps each linear predictor beside its distributional
+parameter while the objective is taped, and
+<code><a href="../reference/frmtmb-robust-dpars.html">?"frmtmb-robust-dpars"</a></code> is how a density reads it.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># a gate the optimizer has pushed against 1</span></span>
+<span><span class="va">d_on</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>zi <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="fl">40</span><span class="op">)</span>, .eta_zi <span class="op">=</span> <span class="fl">40</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>plain <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">d_on</span><span class="op">$</span><span class="va">zi</span><span class="op">)</span>,</span>
+<span>  robust <span class="op">=</span> <span class="fu"><a href="../reference/frmtmb-robust-dpars.html">dpar_log1m</a></span><span class="op">(</span><span class="va">d_on</span>, <span class="st">"zi"</span>, <span class="st">"logit"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  plain robust </span></span>
+<span><span class="co">#&gt;   -Inf    -40</span></span></code></pre></div>
+<p><code><a href="../reference/check_custom_family.html">check_custom_family()</a></code> supplies no linear predictors, so
+it exercises the fallback path only. Test the other one by building the
+<code>dpars</code> list by hand, as above.</p>
 </div>
 <div class="section level2">
 <h2 id="smooths-and-gaussian-processes">Smooths and Gaussian processes<a class="anchor" aria-label="anchor" href="#smooths-and-gaussian-processes"></a>
@@ -262,7 +280,7 @@ uses brms’s input convention: the coordinates are divided by their
 largest pairwise distance, so the boundary factor <code>c =</code> (1.25
 by default, one value per variable) means the same thing here as in
 brms. Reported lengthscales stay in data units.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">200</span>, <span class="fl">0</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">ds</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="va">ds</span><span class="op">$</span><span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">200</span>, <span class="fl">0</span>, <span class="fl">0.4</span><span class="op">)</span></span>
@@ -321,7 +339,7 @@ observations onto them, and <code>type</code> names the field:</p>
 <code>bym2</code> add a mixing parameter on <code>(0, 1)</code>,
 reported by <code><a href="../reference/confint_varcorr.html">confint_varcorr()</a></code> under brms’s names
 <code>car</code> and <code>rhocar</code>.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span>r <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, c <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span></span>
 <span><span class="va">nloc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">grid</span><span class="op">)</span></span>
@@ -406,7 +424,7 @@ column of those numbers, or a factor whose levels are those numbers;
 every one of those spellings is the same model. Any other labeling is an
 error. Not every node has to be observed: a node no row visits keeps its
 column and its prior, so the field is still smoothed across it.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># node holds the mesh row of each observation, 1..nrow(fem$c0)</span></span>
 <span><span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="fu">spde</span><span class="op">(</span><span class="fu">fmesher</span><span class="fu">::</span><span class="fu"><a href="https://inlabru-org.github.io/fmesher/reference/fm_fem.html" class="external-link">fm_fem</a></span><span class="op">(</span><span class="va">mesh</span><span class="op">)</span>, gr <span class="op">=</span> <span class="va">node</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></code></pre></div>
@@ -422,7 +440,7 @@ not supported yet.</p>
 <code>mi()</code> imputes missing continuous predictors inside the model
 (with <code>mi(sdx)</code> for known measurement error), and
 <code>se()</code> gives meta-analysis:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">dm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">300</span>, <span class="cn">TRUE</span><span class="op">)</span>, z <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">300</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">dm</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">1.6</span>, <span class="fl">2</span><span class="op">)</span><span class="op">[</span><span class="va">dm</span><span class="op">$</span><span class="va">inc</span> <span class="op">+</span> <span class="fl">1</span><span class="op">]</span> <span class="op">+</span> <span class="fl">0.3</span> <span class="op">*</span> <span class="va">dm</span><span class="op">$</span><span class="va">z</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">300</span><span class="op">)</span></span>
@@ -437,7 +455,7 @@ not supported yet.</p>
 <p>Finite mixtures keep per-component parameters and covariate-dependent
 mixing weights; <code>groups = ~g</code> moves the class draw to the
 group level (latent classes, combinable with random effects):</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">mix</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mixture.html">mixture</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, groups <span class="op">=</span> <span class="op">~</span><span class="va">g</span><span class="op">)</span></span>
 <span><span class="va">dmix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fl">0</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">40</span>, each <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co"># frm_simulate() draws one class per GROUP here, which is what</span></span>
@@ -462,7 +480,7 @@ group level (latent classes, combinable with random effects):</p>
 <p><code><a href="../reference/hypothesis.html">hypothesis()</a></code> tests arbitrary parameter expressions
 (Wald, profile, or parametric bootstrap), with natural-scale
 random-effect names:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Hypothesis tests (method = wald)</span></span>
 <span><span class="co">#&gt;                                           hypothesis estimate      se      lwr</span></span>
@@ -484,7 +502,7 @@ on their natural scales (coefficients on the link scale,
 <code>sigma</code> as a residual SD,
 <code>sd_&lt;group&gt;__&lt;term&gt;</code> as a standard
 deviation):</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">120</span><span class="op">)</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">12</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>, y <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
 <span><span class="va">form</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -503,7 +521,7 @@ parameter vector first - the analog of brms’s
 <code>posterior_predict()</code>. The drawn parameters come back as an
 attribute, so a prior-predictive check can relate parameters to
 outcomes:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_simulate.html">frm_simulate</a></span><span class="op">(</span><span class="va">form</span>, <span class="va">dd</span>, nsim <span class="op">=</span> <span class="fl">50</span>, seed <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>                   prior <span class="op">=</span> <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>                     <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 2)"</span>, class <span class="op">=</span> <span class="st">"Intercept"</span><span class="op">)</span> <span class="op">+</span></span>
@@ -529,7 +547,7 @@ than a silent zero effect.</p>
 Simulation-based residuals come through DHARMa, predictive checks
 through <code><a href="../reference/pp_check.html">pp_check()</a></code>, and effect displays through
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code>:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="../reference/dharma_residuals.html">dharma_residuals</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="../reference/conditional_effects.html">conditional_effects</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>The same fitted objective can be handed to NUTS for full Bayes on the

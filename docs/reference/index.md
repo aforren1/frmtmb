@@ -72,6 +72,12 @@
   : The two fitting options every mixture-type family refuses, in its
   own name.
 
+- [`dpar_log()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+  [`dpar_log1m()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+  [`dpar_log_complement()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+  [`dpar_complement()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+  : Exact distributional parameters for a custom density
+
 - [`latent_probs()`](https://aforren1.github.io/frmtmb/reference/latent_probs.md)
   : Posterior probabilities of the latent states
 
@@ -340,5 +346,11 @@
 - [`frmtmb`](https://aforren1.github.io/frmtmb/reference/frmtmb-package.md)
   [`frmtmb-package`](https://aforren1.github.io/frmtmb/reference/frmtmb-package.md)
   : frmtmb: Formula-Based Regression Models via 'RTMB'
+
 - [`habit_prep`](https://aforren1.github.io/frmtmb/reference/habit_prep.md)
   : Forced-response habit data from Hardwick et al. (2019)
+
+- [`frm_hazard_reads()`](https://aforren1.github.io/frmtmb/reference/frm_hazard_reads.md)
+  :
+
+  Find `$` reads of a partial-matching container

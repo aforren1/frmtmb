@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -632,8 +632,8 @@ built-in ones that do.</p>
 <table class="table">
 <colgroup>
 <col width="0%">
-<col width="13%">
-<col width="85%">
+<col width="10%">
+<col width="88%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -773,8 +773,12 @@ TRUE replaces the residual scale, the core maps out only the dpar the
 convention names, and the other one would be left free and unread - a
 flat direction and a NaN standard error. A family whose whole scale IS
 the known one (no dpar beyond its primaries) is unaffected; the ways out
-are to name the scale <code>sigma</code>, pin it in the formula, or
-write se(x, sigma = TRUE).</td>
+are frmtmb_family(se_dpar =), which names the dpar the known standard
+error replaces or is NA where it replaces none, naming the scale
+<code>sigma</code>, pinning it in the formula, or se(x, sigma = TRUE). A
+FORMULA for the replaced dpar is refused too, on any family: it
+estimates a parameter the density never reads, so only a constant pins
+it.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>

@@ -19,7 +19,7 @@ frequency is an ordinary frmtmb::frm() formula."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -152,22 +152,23 @@ formed <code>1 - C</code> by subtraction would read <code>log(0)</code> and divi
 there, and would already be wrong in the third digit at <code>eta = 30</code>.
 That region is reachable: a random effect on <code>coh</code> with one group
 near a true coherence of 1 drives the estimate past <code>eta = 34</code>.</p>
-<p>This family therefore never subtracts. Core stores each dpar's linear
-predictor beside it, and the logit link's <code>logit_eta</code> field makes the
-log-odds exact, so <code>log(1 - C)</code> is computed as
-<code>-logspace_add(0, eta)</code> and <code>1 / (1 - C)</code> as its exponential. Both
-are exact to <code>eta = 709</code>, where the double range itself ends, against
-<code>36.74</code> for the naive form. Measured against a high-precision
-reference at <code>n = 16</code>: relative error 1.0e-03 at <code>eta = 30</code> and NaN
-at <code>eta = 40</code> before the change, below 1e-15 at both after it.</p>
+<p>This family therefore never subtracts. Core keeps each dpar's linear
+predictor beside it while the objective is taped, and
+<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html" class="external-link">frmtmb::dpar_log1m()</a></code> reads <code>log(1 - C)</code> off it exactly, so
+<code>1 / (1 - C)</code> is its exponential. Both are exact to <code>eta = 709</code>,
+where the double range itself ends, against <code>36.74</code> for the naive
+form. Measured against a high-precision reference at <code>n = 16</code>:
+relative error 1.0e-03 at <code>eta = 30</code> and NaN at <code>eta = 40</code> before
+the change, below 1e-15 at both after it.</p>
 <p>One path keeps the plain round trip, and says so rather than being
 floored: <code>residuals(type = "deviance")</code> runs off the tape, where core
-does not store the linear predictor, so it uses <code>log1p(-C)</code>. That is
-accurate until <code>C</code> rounds to exactly 1, which needs <code>eta</code> past 36.74
-and is further than a fit reaches in practice. Measured on the
-degenerate case above, two signals differing by 1e-5 of noise: the
-fit lands at <code>eta = 23.0</code>, <code>C</code> is 0.99999999989743915 rather than 1,
-and all 127 response, Pearson and deviance residuals are finite.
+does not store the linear predictor, so the accessor falls back to
+the plain form. That is accurate until <code>C</code> rounds to exactly 1,
+which needs <code>eta</code> past 36.74 and is further than a fit reaches in
+practice. Measured on the degenerate case above, two signals
+differing by 1e-5 of noise: the fit lands at <code>eta = 23.0</code>, <code>C</code> is
+0.99999999989743915 rather than 1, and all 127 response, Pearson and
+deviance residuals are finite.
 Past 36.74 they would be <code>NaN</code>, and no floor is applied to hide it.</p>
     </div>
     <div class="section level2">

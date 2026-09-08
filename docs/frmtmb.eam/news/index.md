@@ -1,5 +1,10 @@
 # Changelog
 
+## frmtmb.eam 0.5.1
+
+Requires frmtmb 0.55.0, for the hazard-container lint that now runs in
+this package’s own check.
+
 ## frmtmb.eam 0.5.0
 
 [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)

@@ -13,7 +13,7 @@ advectors, branching on parameter values, min/max, clamping)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,6 +109,22 @@ advectors, branching on parameter values, <code>min</code>/<code>max</code>, cla
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Invisibly <code>TRUE</code>; signals an error on failure.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>It differentiates with respect to the DPAR VALUES, and it supplies no
+linear predictors, so a density that reads the linear-predictor scale
+through <a href="frmtmb-robust-dpars.html">frmtmb-robust-dpars</a> is checked here on its fallback path
+only. That path is the plain arithmetic, and the plain arithmetic is
+what saturates. This function cannot reach the other path: <code>dpars</code>
+must name exactly the family's own distributional parameters, so a
+<code>.eta_&lt;dpar&gt;</code> entry is refused rather than taped. Call the lpdf
+yourself on a list that carries one; <a href="frmtmb-robust-dpars.html">frmtmb-robust-dpars</a> shows how.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="frmtmb_family.html">frmtmb_family()</a></code> for the family this checks, and
+<a href="frmtmb-robust-dpars.html">frmtmb-robust-dpars</a> for the path this check cannot reach</p></div>
     </div>
 
     <div class="section level2">

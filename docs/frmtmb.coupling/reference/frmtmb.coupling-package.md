@@ -76,14 +76,17 @@ Everything read off a fitted object here is a documented seam:
 out of, and [`stats::family()`](https://rdrr.io/r/stats/family.html) to
 refuse a fit of the wrong family.
 
-One thing this package uses is real but not promised: core stores each
-dpar's linear predictor beside it in the `dpars` list as `.eta_<dpar>`,
-which is what makes the coherence complement exact (see
+The seam that makes the coherence complement exact is documented too,
+and was not when 0.1.0 shipped. Core keeps each dpar's linear predictor
+beside it while the objective is taped, and
+[`frmtmb::dpar_log1m()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html)
+reads `log(1 - C)` off it (see
 [`cross_wishart()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/cross_wishart.md),
-"Why the links are the constraint"). It works, it is what core's own
-binomial and beta densities rely on through internal accessors, and no
-sibling extension uses it. It is undocumented for extension authors, and
-a promise would be worth making.
+"Why the links are the constraint"). This package wrote that arithmetic
+out for itself against the reserved `.eta_<dpar>` entry while the
+accessor was internal; it calls the accessor now. The entry itself stays
+reserved: it is on the LINK scale, so what it means depends on the
+dpar's link, and the accessor is the supported way to read it.
 
 What is NOT missing, and this package said otherwise in 0.1.0: a
 matrix-valued response. `R/frame.R` preserves one explicitly, and a

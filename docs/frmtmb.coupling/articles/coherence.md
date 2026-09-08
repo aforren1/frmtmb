@@ -127,12 +127,12 @@ The interval is a Wald interval on the logit scale pushed through
 `(0, 1)` however close to a boundary the estimate sits. That boundary is
 where the arithmetic has to be careful: `plogis(eta)` is exactly 1 in
 double precision above about `eta = 36.7`, so the density never forms
-`1 - C` by subtraction. It reads the linear predictor that core stores
-beside each parameter and computes `log(1 - C)` as
-`-logspace_add(0, eta)`, which is exact to `eta = 709`. A draft of this
-package did subtract, and returned `NaN` above `eta = 36.7` and a
-confidence interval of width zero for two signals that differed only by
-1e-5 of noise.
+`1 - C` by subtraction. It asks core for `log(1 - C)` with
+[`frmtmb::dpar_log1m()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html),
+which reads the linear predictor core keeps beside each parameter and is
+exact to `eta = 709`. A draft of this package did subtract, and returned
+`NaN` above `eta = 36.7` and a confidence interval of width zero for two
+signals that differed only by 1e-5 of noise.
 
 ### Put a random effect on every parameter, not only on coherence
 

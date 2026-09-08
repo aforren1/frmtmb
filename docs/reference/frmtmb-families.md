@@ -267,6 +267,44 @@ a benign false-convergence warning near the optimum;
 [`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)
 confirms the fit when in doubt.
 
+## Degrees of freedom that run off
+
+`student()` estimates `nu` on the `logm1` link, which holds it above one
+but puts no ceiling on it. A student-t reaches
+[`gaussian()`](https://rdrr.io/r/stats/family.html) only in the limit
+`nu -> Inf`, so on data with no heavy tails the likelihood keeps rising
+as `nu` grows and the maximum is never attained. The fit then reports
+whatever `nu` the optimizer last reached, with a standard error to
+match: values of `1e9` and above are ordinary, and two runs of the same
+model on the same data in a different row order can differ by orders of
+magnitude in `nu` while agreeing on every coefficient to the last bit.
+
+That is the model saying the data shows no heavy tails, not a failure to
+converge.
+[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+names it under "Distributional parameter at the end of its link". Read
+the fit as the gaussian one it has become. If you want a number you can
+report, refit with [`gaussian()`](https://rdrr.io/r/stats/family.html),
+or hold `nu` somewhere finite with a prior (see
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md));
+brms does the same with its default `gamma(2, 0.1)`.
+
+`nu` runs off the OTHER end too, and there the reading is opposite. On
+tails heavier than any identified `nu` can hold, Cauchy data for
+instance, `nu` goes down to one instead: `log(nu - 1)` around -20, a
+standard error in the thousands, and a natural-scale value that prints
+as `1`.
+[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+names that under the same heading. The remedy is not
+[`gaussian()`](https://rdrr.io/r/stats/family.html), which is the worst
+fit available for such data. There the data is the message; a prior is
+still the way to hold `nu` finite.
+
+The likelihood itself stays accurate the whole way. The log density is
+formed so that `log Gamma((nu + 1) / 2) - log Gamma(nu / 2)` never
+cancels, which holds it to 7e-15 of a 300-bit reference for every `nu`
+up to `1e50`.
+
 ## Robust regression
 
 `huber()` fits Huber's least-favorable distribution: gaussian within `k`

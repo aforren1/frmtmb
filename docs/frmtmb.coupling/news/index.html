@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,15 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="frmtmbcoupling-020">frmtmb.coupling 0.2.0<a class="anchor" aria-label="anchor" href="#frmtmbcoupling-020"></a></h2>
+<ul><li>
+<p>The coherence complement now comes from frmtmb’s public accessor, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html" class="external-link">dpar_log1m()</a></code>, rather than from this package’s own copy of the same arithmetic. The copy existed because the accessor was internal to frmtmb: a family defined outside that package could see the reserved <code>.eta_&lt;dpar&gt;</code> entry and had no sanctioned way to read it. The two agree to the last bit on the tape, which is the path a fit runs on: measured on the full <code><a href="../reference/cross_wishart.html">cross_wishart()</a></code> log density over 961 values of the coherence linear predictor from 10 to 700, the maximum difference is 0. Off the tape, where both fall back to the plain arithmetic, <code>1 / (1 - C)</code> is now <code>exp(-log(1 - C))</code> and the log density moves by at most 2.3e-13 on a value of -1693.4, one part in 7.4e15, at a coherence of 0.999. Deviance residuals are the only quantity that reads it.</p>
+<p>Nothing about the density changes: it still never subtracts from 1, and <code>log(1 - C)</code> is still exact to <code>eta = 709</code> against 36.74 for the naive form. This is a change of source, not of arithmetic.</p>
+</li>
+<li><p><strong>This release needs a newer frmtmb.</strong> The <code>Depends:</code> floor has to rise to the frmtmb release that exports <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html" class="external-link">dpar_log1m()</a></code>. Building against an older frmtmb fails at install time, where the import cannot be resolved, rather than at run time.</p></li>
+<li><p><code>RTMB</code> leaves <code>Imports:</code>. Its only use was the <code>logspace_add()</code> call the accessor replaces; the density is taped by frmtmb and calls no RTMB function of its own.</p></li>
+</ul></div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="frmtmbcoupling-010">frmtmb.coupling 0.1.0<a class="anchor" aria-label="anchor" href="#frmtmbcoupling-010"></a></h2>
 <p>First release. A complex Wishart family for the cross-spectrum of a signal pair, with coherence and phase as distributional parameters.</p>
 <ul><li><p><code><a href="../reference/cross_wishart.html">cross_wishart()</a></code>, the likelihood of a two-channel cross-spectral matrix. Its four dpars are the two channel powers, the magnitude squared coherence and the phase, so a random effect on coherence or a smooth in coherence over frequency is an ordinary formula. The logit link on coherence IS the positive definiteness constraint: no linear predictor can produce an invalid spectral matrix.</p></li>
@@ -57,7 +66,8 @@
 <li><p>More than two channels is refused as a SCOPE decision of this package. Core is not the obstacle: <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> carries a matrix-valued response and a custom family reading <code>y[, 1]</code> and <code>y[, 2]</code> fits today. An earlier draft of this package said otherwise and was wrong.</p></li>
 <li><p>The measurements behind all of this are in <code>dev/xspec-findings.md</code>: the naive coherence bias table, the effective degrees of freedom of each route to <code>n</code>, and the interval coverage that argues for putting a random effect on every dpar rather than only on the coherence.</p></li>
 </ul></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

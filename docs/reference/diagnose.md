@@ -1,9 +1,10 @@
 # Convergence diagnostics for a frmtmb fit
 
-Reports the optimizer's own verdict plus five checks that a converged
-fit can still fail: non-finite standard errors, flat directions,
-complete separation in a binomial-type fit, predictor columns scaled far
-from one, and variance components on the boundary of their parameter
+Reports the optimizer's own verdict plus six checks that a converged fit
+can still fail: non-finite standard errors, flat directions, complete
+separation in a binomial-type fit, a distributional parameter whose
+maximum likelihood is outside its own range, predictor columns scaled
+far from one, and variance components on the boundary of their parameter
 space (lme4's `isSingular()`, read off the estimates rather than the
 Hessian).
 
@@ -28,6 +29,26 @@ diagnose(fit, quiet = FALSE)
 Invisibly, a list of diagnostics.
 
 ## Details
+
+A DISTRIBUTIONAL PARAMETER AT THE END OF ITS LINK is one whose estimate
+is far out on the link scale AND whose standard error is larger than the
+estimate itself. The likelihood was still rising where the optimizer
+stopped, so the number reported is the stopping point and not an
+estimate.
+[`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)'s
+`nu` does this on any data with no heavy tails, because a student-t
+reaches the gaussian only as `nu` goes to infinity: the maximum is never
+attained, and two runs of the same model can report degrees of freedom
+orders of magnitude apart while agreeing on every coefficient. Refit
+with [`gaussian()`](https://rdrr.io/r/stats/family.html), or hold `nu`
+somewhere finite with
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md).
+The same parameter runs the other way, down to one, on data whose tails
+are heavier than any identified `nu` can hold. The check names that too,
+with a large NEGATIVE estimate and a natural-scale value of one, and
+there [`gaussian()`](https://rdrr.io/r/stats/family.html) is the wrong
+answer: the data is the message, and a prior is the way to hold `nu`
+finite.
 
 A FLAT DIRECTION is an outer parameter the likelihood does not depend
 on: zero gradient and an empty Hessian row. It separates the two causes

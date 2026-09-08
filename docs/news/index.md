@@ -1,5 +1,357 @@
 # Changelog
 
+## frmtmb 0.55.0
+
+Two densities were silently wrong and are fixed. The student-t log
+density cancelled its own digits as `nu` ran off, by 57 log units at
+`nu = 1e50`, which the grammar fuzz tier had recorded as two optima
+under a row permutation; and a Bayesian Cognitive Modeling family read a
+probability on the wrong scale, by 1.5716 nats per observation on the
+identity link. Neither is a regression: both have been wrong for longer
+than 0.54.0.
+
+The accessors that make a density exact at a saturated link are now
+public, which is what a family in another package needs and had to write
+again. `se()` reads the family’s own declaration of which scale the
+known standard error replaces.
+[`whittle()`](https://aforren1.github.io/frmtmb/reference/whittle.md)
+stops refusing tapered periodograms. The hazard-container lint runs
+inside each extension’s own check rather than only at the release tally.
+
+- A custom family can now write a numerically exact density from another
+  package.
+  [`dpar_log()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md),
+  [`dpar_log1m()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md),
+  [`dpar_log_complement()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+  and
+  [`dpar_complement()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+  are exported: they read a distributional parameter on the
+  LINEAR-PREDICTOR scale, which is the only scale that survives a
+  saturated inverse link. `stats::plogis(eta)` is exactly 1 in double
+  precision from `eta = 36.7368005696771` up, so a density that forms
+  `1 - mu` by subtraction gets exactly 0 there and returns `NaN` for the
+  value and for the gradient; below that the complement is wrong by
+  1.0e-3 relative at `eta = 30`. Both regions are reachable in real
+  fits. The accessors were internal, so a family defined outside frmtmb
+  could only write the arithmetic again: `frmtmb.coupling` did exactly
+  that and now calls the public API instead. They take the dpar’s OWN
+  link, as a name or as a link object, because the linear predictor is
+  on the link scale and reading it as a log odds when the link is a
+  probit is a different, wrong density. See
+  [`?"frmtmb-robust-dpars"`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md).
+
+  Take the one-sided
+  [`dpar_log()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+  or
+  [`dpar_log1m()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+  when the density needs one term.
+  [`dpar_log_complement()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+  returns both from one log odds, which is what a mixture gate wants,
+  and records a second
+  [`RTMB::logspace_add()`](https://rdrr.io/pkg/RTMB/man/Distributions.html)
+  over the whole response that the tape then replays on every gradient
+  evaluation. At 1000 rows the accessor tapes 14002 AD nodes against
+  10002; one gradient sweep of the `cross_wishart()` density costs 633
+  us against 480 us, and 462 us for the hand-written arithmetic it
+  replaces; the accessor measured on its own is 387 us against 205 us.
+  Six interleaved blocks of 2000 sweeps, one process. The R-level
+  density call is not the cost that matters here: it runs once per fit,
+  when the tape is built.
+
+  The `.eta_<dpar>` entry these read is documented as RESERVED, not as
+  API. It is visible in `dpars` and it is not a supported thing to read:
+  its meaning depends on the dpar’s link, and whether it is present
+  depends on whether the objective is being taped. The accessors fold
+  both branches in, which is the whole reason to have them.
+  [`check_custom_family()`](https://aforren1.github.io/frmtmb/reference/check_custom_family.md)
+  supplies no linear predictors, so it checks the fallback branch only,
+  and now says so.
+
+- `bcm_contaminant()` in `inst/bcm/binomial-extras.R` fitted a different
+  density from the one it documented whenever `link_phi` was not the
+  default. It read the stored linear predictor as a LOG ODDS regardless
+  of which link put it there, so only a logit was right. It now calls
+  [`dpar_log_complement()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md),
+  which is told the link.
+
+  **At the default `link_phi = "logit"` nothing moves.** Old and new are
+  bit-identical at all 15 linear predictors tested from -700 to 700,
+  maximum absolute difference 0, so no logit result anyone has fitted
+  changes.
+
+  Away from the default the old density was wrong, per observation, at
+  `eta = 2` with `trials = 10`, `mu = 0.4`, `y = 0`:
+
+  | `link_phi`   | phi                    | old error, nats |
+  |--------------|------------------------|-----------------|
+  | `"logit"`    | 0.88080                | 0               |
+  | `"cauchit"`  | 0.85242                | +0.0303         |
+  | `"probit"`   | 0.97725                | -0.0965         |
+  | `"cloglog"`  | 0.99938                | -0.1174         |
+  | `"identity"` | 0.05 (at `eta = 0.05`) | +1.5716         |
+
+  Every one of those constructs today: `bcm_contaminant()` passes
+  `link_phi` straight to
+  [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md),
+  which does not restrict it per dpar. `"identity"` is the worst case
+  and also the one the framework’s own unit-interval link set allows,
+  where the old code read a probability as a log odds: 1.57 nats per
+  observation at `phi = 0.05`, falling to 0.19 at `phi = 0.5`. The file
+  is a shipped example rather than an exported family, so no fitted
+  model in the package’s own tests moves; the Bayesian Cognitive
+  Modeling tier is 363 passing before and after.
+
+### The student-t log density loses its digits as `nu` runs off
+
+`RTMB::dt()` sends a double straight to
+[`stats::dt()`](https://rdrr.io/r/stats/TDist.html), which is accurate,
+and an AD number to a tape that forms
+`lgamma((nu + 1) / 2) - lgamma(nu / 2)` as written. Every fit runs on
+the tape, so the accurate branch was the one no fit used. The two values
+agree in every leading digit once `nu` is large: at `nu = 1e10` each is
+about 2.3e11, where a double is spaced 3e-5 apart, and the difference
+they must produce is 11.5. Against a 300-bit reference the subtraction
+is wrong by 1.4e-5 at `nu = 1e10` and by 57 at `nu = 1e50`.
+
+Data with no heavy tails asks exactly this of the density, because a
+student-t reaches the gaussian only as `nu` goes to infinity. Past about
+`nu = 1e7` the objective was noise, its gradient changed sign at points
+the true likelihood is monotone through, and the optimizer stopped at
+whichever sign change it reached first. That is what the grammar fuzz
+tier recorded at 0.54.0 as `reml-ar1-se-two-optima`: the same model
+fitted to the same data with its rows permuted landed 5.938 apart in
+parameter space with a logLik gap of 0.004862, 28 times the tolerance
+derived from the run. It was never two optima.
+
+- The difference is now formed without the cancellation, by pushing `a`
+  up 12 steps with the Gamma recurrence until Binet’s remainder series
+  holds and then taking the Stirling difference in a shape whose large
+  terms are never built. Accurate to 1.3e-14 relative over 369 `(a, s)`
+  points, and 6 ulp end to end over the `(nu, z)` grid up to
+  `nu = 1e50`, rising to 2.0e-14 absolute by `nu = 1e300`, where the
+  head and the normalizing term cancel down to the size of the answer.
+
+  **It is not free, and where it costs is the distributional case.**
+  With a scalar `nu`, which is `nu ~ 1` and the common model, the
+  objective measured between 0.75 and 1.33 times its old cost over three
+  independent runs on this machine, with a control tape built from the
+  same density putting the noise floor at 10 to 20 percent. The sign is
+  not settled and the size is small either way. The mechanism is two
+  effects that nearly cancel: the same formula written out by hand is
+  already close to the cost of `RTMB::dt()` at a scalar `df`, and the
+  recurrence then adds a little back.
+
+  With `nu ~ x` it is **2.1 to 3.3 times** the old cost, because `a` is
+  then a vector of length `n` and the 12 fixed recurrence steps become
+  12 vector `log1p` nodes where the old code had two `lgamma` nodes.
+  `bf(y ~ x, nu ~ z) + student()` is a supported model, so this is a
+  real cost, not a hypothetical one. The recurrence length cannot be
+  shortened by reading `nu`, which is a parameter the optimizer moves
+  after taping. What does shorten it is the Binet series, which depends
+  on no parameter at all: six terms reach 1e-16 at `x = 12` where four
+  need `x = 28`, so the shift is 12 and not 25. That halved the
+  vector-path cost, and the sweep behind it found no accuracy ordering
+  between the two. `dev/reviews/2026-09-08-remlopt.md` has the numbers.
+
+  The permuted and unpermuted fits now agree: the log likelihood is
+  BITWISE identical where it was 0.004862 apart, and the parameter
+  vectors agree to 1.8e-11 where they were 5.938 apart. The residue is
+  entirely in `nu`, the parameter that has no maximum; the two `theta`
+  agree to 1.2e-16 and 0, and `mu` to 5.6e-17.
+  [`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)
+  on the same fit went from a logLik spread of 90.1, with one optimizer
+  reporting an impossible -53.05, to a spread of 4.2e-06 across all
+  four. The `reml-ar1-se-two-optima` entry is gone from the fuzz tier’s
+  pending list and the tier is green without it.
+
+- The multivariate-t carried the same subtraction in two more places,
+  the `gr(dist = "student")` covariance blocks and the
+  [`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fit of `ar(cov = TRUE)`. Both are fixed with the same helper, and the
+  `log(1 + q/nu)` in the autocorrelation path is now
+  [`log1p()`](https://rdrr.io/r/base/Log.html), which its sibling in
+  `covstruct.R` already argued for. A t block reaching its gaussian
+  limit is how a user checks that it reduces to one, and at `nu = 1e16`
+  that check was off by 49 log units. It is now exact to the double that
+  carries it.
+
+- No coefficient moved. Across the reported case the `mu` estimates
+  agreed to 3.2e-09 before the fix and to 5.6e-17 after: the error was
+  confined to `nu`, which no user reports, so no scientific answer
+  changes. What changes is that the fit is reproducible.
+
+### `diagnose()` names a distributional parameter with no maximum
+
+A
+[`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+fit on data with no heavy tails reports `nu` in the billions with a
+standard error in the thousands, and 0.54.0’s
+[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+answered “No convergence problems detected”. The likelihood has no
+maximum in `nu` there, so the number reported is where the optimizer
+stopped.
+
+- [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+  gains `unbounded_dpar`, which names a distributional parameter whose
+  estimate is far out on its link AND whose standard error is larger
+  than the estimate itself, prints the natural-scale value alongside,
+  and says to refit with
+  [`gaussian()`](https://rdrr.io/r/stats/family.html) or to hold `nu`
+  finite with a prior. The pair is the evidence, not either half: a dpar
+  legitimately far out on its link keeps a small standard error.
+  Measured over 84 student fits (seven error laws, `n` of 60 and 200,
+  six replicates each), `se(log(nu - 1))` ran from 4878 to 1.2e4 on the
+  35 fits whose `nu` ran off and from 0.35 to 22 on the 49 where it did
+  not, with `|log(nu - 1)|` below 5.1 on every one of those. The two
+  conditions together fired on none of them. Replicated independently on
+  10 further error laws and 120 fits: 0 of 99 identified fits flagged.
+
+  READ THE SIGN. `nu` runs off BOTH ends of `logm1`, and the check
+  catches both. A large POSITIVE estimate means no heavy tails and the
+  fit is the gaussian one. A large NEGATIVE estimate, with a
+  natural-scale value that prints as `1`, means tails heavier than any
+  identified `nu` can hold, and there
+  [`gaussian()`](https://rdrr.io/r/stats/family.html) is the worst
+  answer available: on Cauchy errors `log(nu - 1)` lands between -20.5
+  and -17.7 with a standard error of 4003 to 8533, on 8 of 8 fits that
+  reached the boundary.
+
+- `?frmtmb-families` gains a “Degrees of freedom that run off” section
+  saying the same thing where a user of
+  [`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  will find it, and
+  [`vignette("diagnostics")`](https://aforren1.github.io/frmtmb/articles/diagnostics.md)
+  gains “A distributional parameter with no maximum” beside its “NaN
+  standard errors” section, which is where
+  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)’s
+  own message already sends people. Both name the two directions and
+  what each one means.
+
+Three defects recorded against the 0.54.0 addition-term work, fixed. Two
+of them are one guard: the `se()` scale rule could not tell a second
+scale from a shape, and a dpar formula walked past it.
+
+- A family can now say which dpar a known standard error replaces:
+  `frmtmb_family(se_dpar = "tau")` maps out `tau` exactly as the
+  convention maps out `sigma`, and `se_dpar = NA` says it replaces none,
+  because the known standard error IS the family’s whole scale. That is
+  the case 0.54.0 over-refused. A family with no `sigma`, another free
+  dpar, and no declaration is still refused, because the core cannot
+  tell a second SCALE, which would be left free and unread, from a
+  genuine SHAPE, which has to stay free. Measured on both: the same
+  data, the same `se()` column, one family whose extra dpar is a second
+  scale and one whose extra dpar is a skew. The second scale still
+  refuses (before the guard existed it fitted with the scale frozen at
+  its start value and all three standard errors `NaN`); the skew,
+  declared with `se_dpar = NA`, fits at a log-likelihood of -285.459
+  with every standard error finite, the skew estimated at 2.956
+  (standard error 0.352) where the data were drawn at 3, and 80.06 log
+  units above the same family with the skew pinned symmetric. The
+  refusal now names `se_dpar` as a fourth way out. `predict(dpar = )`
+  reports a declared and mapped-out dpar as the zero it is, which it did
+  for `sigma` alone before.
+  [`sigma()`](https://rdrr.io/r/stats/sigma.html) is unchanged: it
+  reports the dpar named `sigma`, and a family without one still gets 1.
+
+- A dpar FORMULA no longer walks past that guard. `se()` without
+  `sigma = TRUE` says the residual scale is known, so the dpar it
+  replaces stops being estimated, and only a CONSTANT pins it:
+  `sigma ~ 1` estimates an intercept the density never reads. The guard
+  now reads every route a formula arrives by,
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md),
+  [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md),
+  [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) and a
+  family’s own `default_forms`, and refuses the pair by name. This was
+  pre-existing and the BUILT-IN gaussian shared it: measured,
+  `bf(y | se(sev) ~ x, sigma ~ 1)` fitted at exactly the reference
+  model’s log-likelihood, -62.4977718, with the same two coefficients to
+  seven figures and every standard error `NaN`. The fit itself said
+  nothing; the flat direction surfaced only when
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html) or
+  [`summary()`](https://rdrr.io/r/base/summary.html) was asked for it.
+  The three documented escapes are unchanged and measured again: no
+  formula at all, a constant (`sigma = 1`), and `se(x, sigma = TRUE)`,
+  which takes a `sigma` formula as it always did, because the density
+  reads the dpar there.
+
+  It is a breaking change for a family written against 0.54.0 that
+  declares `se()`, has no `sigma`, and gave its extra dpar a formula:
+  that model fitted before and is refused now. The refusal names the
+  one-argument fix.
+
+- The discrete censoring convention announces itself ONCE per session.
+  frmtmb reads a censoring bound on a count as INCLUSIVE, so right
+  censoring at `k` is `P(Y >= k)` and every lower edge enters the CDF as
+  `F(k - 1)`; brms emits `P(Y > y)` for right and interval censoring of
+  a count. On 200 poisson draws at `lambda = 4` right censored at 6 the
+  two readings differ by 21.8 to 33.3 log units, median 29.4 over 40
+  seeds, which is about 0.66 per censored row. (The 0.54.0 entry below
+  gives 20.8 for the same setup; that figure is below all 40 of those
+  draws and should not be quoted again.) The notice fires only on the
+  combination that diverges, a DISCRETE family with RIGHT or INTERVAL
+  censoring, and says the rule, the remedy and where the argument lives.
+  Left censoring, a continuous response and truncation alone are silent,
+  measured. It is a message, so
+  [`suppressMessages()`](https://rdrr.io/r/base/message.html) silences
+  it, and `options(frmtmb.notices = FALSE)` silences every notice for a
+  session. A call a CENSORING guard refuses, such as one with a
+  half-integer bound, does not spend it; a call refused later, for a
+  reason that has nothing to do with censoring, does. The package’s own
+  suite sets the option off in `tests/testthat/setup.R`, so no test
+  depends on which file censors a count first.
+
+- The warning from a capped importance correction now says which of two
+  things happened, because they want opposite advice. A correction that
+  is short of rounds shrinks its move by a factor of three to ten each
+  round, and raising `frmtmb_control(importance_rounds =)` lands it:
+  that message is unchanged. A STALLED correction takes the same step
+  every round, and its total shift is that step times the round count,
+  so more rounds buy a proportionally larger number rather than a better
+  one. It now says so, and sends the reader to
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md),
+  because a variance component the Laplace fit has already collapsed is
+  what does this. Measured: twelve groups of three Bernoulli rows with
+  no variance component walk at 0.909073 for all five rounds and report
+  a shift of 4.545, and the step is a property of the DRAWS rather than
+  of the data. It changes to 0.317931 at `importance_seed = 7`, and at
+  one seed it varies less between two datasets, or between core and a
+  `frmtmb.learn` fit of an unrelated family with the same group and draw
+  counts, than it does between the rounds of a single run.
+
+- New
+  [`frm_hazard_reads()`](https://aforren1.github.io/frmtmb/reference/frm_hazard_reads.md),
+  a testing aid for frmtmb and its extensions. It reports every place in
+  a package where `$` is used on one of the containers whose slot names
+  collide under partial matching, so an extension asserts the rule on
+  itself, in its own suite and under its own `R CMD check`, from the one
+  container list frmtmb owns. Until now the rule was policed only from
+  frmtmb’s suite, and `frmtmb.coupling` passed its own check and its own
+  tests with 34 such reads.
+
+- [`whittle()`](https://aforren1.github.io/frmtmb/reference/whittle.md)
+  no longer refuses legitimate tapered periodograms. Its smoothness
+  statistic compares ordinates THREE apart rather than neighbors. A Hann
+  window’s transform is three bins wide, so it correlates neighboring
+  log ordinates (0.31) and leaves ordinates three apart alone (-0.003);
+  at lag one that correlation pulled the statistic from 3.29 to 2.27 and
+  refused about 2 percent of Hann-tapered responses, and at lag three
+  the rate is 0 in 2000 replicates at each of nine cells. Hamming and
+  Blackman windows, which this package does not apply, went from 1.0 and
+  18.1 percent to 0 the same way. A single Slepian taper, which lag one
+  refused 27 percent of the time at 127 ordinates and 56 percent at 255,
+  is now accepted. The threshold curve is unchanged and the false-alarm
+  rate on the flat null is still 0 in 20000 per cell. Detection of a
+  SEGMENT-averaged periodogram declared raw is unchanged within Monte
+  Carlo error. Detection of leakage costs 1.3 points at exponent 3 and
+  2.3 at exponent 2.5 with 127 ordinates, and under one point at 255
+  ordinates and above. What the wider step also costs is an estimate
+  smoothed ACROSS FREQUENCY and then declared raw: a three-bin Daniell
+  smooth of a short record is caught 18 percent of the time at 32
+  ordinates and 58 percent at 64, where the old step caught nearly all
+  of them, and the two agree again above about 100 ordinates. The
+  refusal message no longer suggests a taper the user may already have
+  applied.
+
 ## frmtmb 0.54.0
 
 Every link in the registry can now be reached and found: a link on any

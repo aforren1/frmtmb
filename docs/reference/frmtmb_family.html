@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,6 +97,7 @@ not branch on parameter values.</p>
 <span>  lccdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  required_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  accepts_aterms <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  se_dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  exclusive_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  family_finalize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -121,6 +122,7 @@ not branch on parameter values.</p>
 <span>  lccdf <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  required_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
 <span>  accepts_aterms <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  se_dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  exclusive_aterms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  family_finalize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  extra_pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -151,7 +153,13 @@ has to carry.</p></dd>
 <dt id="arg-lpdf">lpdf<a class="anchor" aria-label="anchor" href="#arg-lpdf"></a></dt>
 <dd><p>Function <code>(y, dpars, aterms)</code> returning the vectorized
 log-density. <code>dpars</code> is a named list of advector vectors; <code>aterms</code> is a
-named list of numeric addition-term values (for example <code>trials</code>).</p></dd>
+named list of numeric addition-term values (for example <code>trials</code>).
+Read <code>dpars</code> by name, never by position: it also carries reserved
+entries that are not distributional parameters. Take <code>log(mu)</code>,
+<code>log(1 - mu)</code> and <code>1 - mu</code> from <a href="frmtmb-robust-dpars.html">frmtmb-robust-dpars</a> rather than
+writing them out, because an inverse link saturates and the plain
+arithmetic returns <code>NaN</code> for the value and the gradient alike in
+the tail.</p></dd>
 
 
 <dt id="arg-valid-y">valid_y<a class="anchor" aria-label="anchor" href="#arg-valid-y"></a></dt>
@@ -287,6 +295,24 @@ other term, declares nothing and so does not open this one. Read
 <code>aterms[["se"]]</code> as the known standard deviation, and
 <code>aterms[["se_sigma"]]</code> to honor <code>se(x, sigma = TRUE)</code>, which asks
 for the known and estimated scales in quadrature.</p></dd>
+
+
+<dt id="arg-se-dpar">se_dpar<a class="anchor" aria-label="anchor" href="#arg-se-dpar"></a></dt>
+<dd><p>The dpar that a known standard error replaces, named
+so that the core can map it out: <code>se_dpar = "tau"</code> maps out <code>tau</code>
+exactly as the convention maps out <code>sigma</code>. <code>NA</code> declares that
+<code>se()</code> replaces NO dpar, which is the shape of a family whose whole
+scale IS the known standard error. <code>NULL</code>, the default, reads the
+convention: the dpar named <code>sigma</code>, if the family has one.</p>
+<p>Only a family that declares <code>se()</code> reaches this. <code>se()</code> without
+<code>sigma = TRUE</code> says the residual scale is known, so the dpar it
+replaces has to stop being estimated. A dpar the density never
+reads is a flat direction and a NaN standard error, so a declaring
+family with no <code>sigma</code> and another free dpar is refused: the core
+cannot tell a second SCALE from a genuine SHAPE. This argument is
+how the family says which one it has. <code>se_dpar = NA</code> is a promise
+that every remaining dpar is read alongside the known standard
+error, the way a skew or a tail index is.</p></dd>
 
 
 <dt id="arg-exclusive-aterms">exclusive_aterms<a class="anchor" aria-label="anchor" href="#arg-exclusive-aterms"></a></dt>
@@ -539,13 +565,15 @@ functions.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> for a likelihood that does not
+    <div class="dont-index"><p><a href="frmtmb-robust-dpars.html">frmtmb-robust-dpars</a> for the accessors a density uses to
+stay exact where an inverse link saturates,
+<code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> for a likelihood that does not
 factorize over rows, <code><a href="frmtmb_register_aterm.html">frmtmb_register_aterm()</a></code> for giving the
 family's per-row data a name of its own instead of <code>vint()</code>,
 <code><a href="frmtmb_register_compat.html">frmtmb_register_compat()</a></code> for telling <code><a href="frm_compat.html">frm_compat()</a></code> what the
 family does and does not combine with, and
 <a href="frmtmb-extension-api.html">frmtmb-extension-api</a> for the accessors a family outside frmtmb
-may use</p></div>
+may use after a fit</p></div>
     </div>
 
     <div class="section level2">

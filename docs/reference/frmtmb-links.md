@@ -203,5 +203,5 @@ frm(bf(z ~ x, sigma ~ x), family = student(link_sigma = "log"), data = d)
 #>      0.1874      0.1708 
 #>  nu:
 #> (Intercept) 
-#>       15.66 
+#>       19.63 
 ```

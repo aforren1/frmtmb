@@ -74,13 +74,25 @@ ordinate is a squared modulus, so a negative one means log power or
 power in dB, which this likelihood is not about.
 
 A response too SMOOTH to have the declared shape is also refused.
-`var(diff(log(y)))` is `2 trigamma(tapers)` for ordinates of that shape
-whatever the spectrum is, and only the spectrum's own step-to-step
-variation adds to it, so a value far below that is evidence the
-ordinates were averaged more than `tapers` says, or that they are
-spectral leakage rather than signal. The threshold is a calibrated
-fraction of the model value that shrinks as the number of ordinates
-falls.
+`var(diff(log(y), lag = 3))` is `2 trigamma(tapers)` for ordinates of
+that shape whatever the spectrum is, and only the spectrum's own
+variation across the step adds to it, so a value far below that is
+evidence the ordinates were averaged more than `tapers` says, or that
+they are spectral leakage rather than signal. The threshold is a
+calibrated fraction of the model value that shrinks as the number of
+ordinates falls.
+
+The step is three ordinates rather than one because of the taper. A Hann
+window's transform is three bins wide, so it correlates NEIGHBORING
+ordinates (about 0.31 on the log scale) and leaves ordinates three apart
+uncorrelated (-0.003). At lag one a legitimate Hann-tapered response was
+refused about 2% of the time; at lag three the measured rate is 0 in
+2000 replicates at each of nine cells, and the same holds for Hamming
+and Blackman windows, which this package does not apply and which were
+refused 1.0% and 18.1% of the time at lag one. The wider step costs
+leakage detection at the shortest usable length, 1.3 points at exponent
+3 and 2.3 at exponent 2.5 with 127 ordinates, and under one point at 255
+ordinates and above (2000 replicates a cell).
 
 **What it cannot see.** It needs the rows in frequency order, which is
 what
@@ -88,18 +100,21 @@ what
 returns: a periodogram sorted by its own power is refused every time,
 wrongly. It does not run at all below 24 ordinates. It separates
 `tapers = 2` from a raw periodogram only above about 200 ordinates,
-because Gamma(2) and Gamma(1) are close. A Hann-tapered periodogram is
-legitimately raw, but the taper correlates neighbouring ordinates: the
-lag-one correlation of `log I` is about 0.3, which pulls the expected
-statistic from 3.29 down to 2.28 against a trigger of 1.65, so such a
-response is refused about one to two percent of the time. A split-cosine
-taper does not do this (correlation 0.009). If a refusal names a
-response you already tapered with Hann, that is this, and the remedy is
-not another taper. And it is a backstop, not a test to rely on: at 127
-ordinates (a one-second epoch at 256 Hz) an untapered exponent-3 power
-law is caught about 92% of the time and an exponent-2 one much less
-often. Choose the taper from the shape of the spectrum, not from whether
-an error appeared.
+because Gamma(2) and Gamma(1) are close. It reads an estimate smoothed
+ACROSS FREQUENCY (a Daniell window, a multitaper) poorly at both ends.
+Declared raw, such an estimate is caught every time above about 100
+ordinates and often missed below it: a three-bin Daniell smooth is
+caught 18% of the time at 32 ordinates and 58% at 64. Declared honestly,
+by giving `tapers` the equivalent degrees of freedom, it passes up to
+about five bins of smoothing and is then refused anyway, 37% to 89% of
+the time at seven bins and 92% or more at eleven, because the check
+assumes ordinates independent across frequency and a wide smooth is not.
+Fit a frequency-smoothed estimate with care, or fit the raw or
+segment-averaged periodogram it came from. And it is a backstop, not a
+test to rely on: at 127 ordinates (a one-second epoch at 256 Hz) an
+untapered exponent-3 power law is caught about 92% of the time and an
+exponent-2 one much less often. Choose the taper from the shape of the
+spectrum, not from whether an error appeared.
 [`vignette("spectral")`](https://aforren1.github.io/frmtmb/articles/spectral.md)
 has the measured rates.
 

@@ -42,6 +42,27 @@ check_custom_family(family, y, dpars, aterms = list(), tol = 1e-04)
 
 Invisibly `TRUE`; signals an error on failure.
 
+## Details
+
+It differentiates with respect to the DPAR VALUES, and it supplies no
+linear predictors, so a density that reads the linear-predictor scale
+through
+[frmtmb-robust-dpars](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+is checked here on its fallback path only. That path is the plain
+arithmetic, and the plain arithmetic is what saturates. This function
+cannot reach the other path: `dpars` must name exactly the family's own
+distributional parameters, so a `.eta_<dpar>` entry is refused rather
+than taped. Call the lpdf yourself on a list that carries one;
+[frmtmb-robust-dpars](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+shows how.
+
+## See also
+
+[`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
+for the family this checks, and
+[frmtmb-robust-dpars](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+for the path this check cannot reach
+
 ## Examples
 
 ``` r

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -203,7 +203,12 @@ or the freshly anchored objective is stationary at them to
 <code>grad_tol</code>. Measured on this package's own designs that takes two
 to four rounds, with the move falling about tenfold each time, so
 the default leaves one in hand; an unused round costs nothing, and
-each round actually taken costs one tape.</p></dd>
+each round actually taken costs one tape. A fit that uses every
+round warns, and the warning distinguishes two cases: moves that
+are still shrinking want a larger cap, while moves that are all
+the SAME size are a stalled iteration, whose reported shift is
+that step times the round count and grows with the cap instead of
+settling.</p></dd>
 
 
 <dt id="arg-importance-ess">importance_ess<a class="anchor" aria-label="anchor" href="#arg-importance-ess"></a></dt>

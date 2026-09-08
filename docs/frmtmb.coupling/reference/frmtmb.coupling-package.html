@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -104,14 +104,16 @@ looks most like success, because the fit converges without a warning.</p>
 <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">stats::predict()</a></code> with <code>se.fit = TRUE</code> and <code>dpar =</code>, which is what
 both extractors are built out of, and <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">stats::family()</a></code> to refuse a
 fit of the wrong family.</p>
-<p>One thing this package uses is real but not promised: core stores each
-dpar's linear predictor beside it in the <code>dpars</code> list as
-<code>.eta_&lt;dpar&gt;</code>, which is what makes the coherence complement exact
-(see <code><a href="cross_wishart.html">cross_wishart()</a></code>, "Why the links are the constraint"). It
-works, it is what core's own binomial and beta densities rely on
-through internal accessors, and no sibling extension uses it. It is
-undocumented for extension authors, and a promise would be worth
-making.</p>
+<p>The seam that makes the coherence complement exact is documented
+too, and was not when 0.1.0 shipped. Core keeps each dpar's linear
+predictor beside it while the objective is taped, and
+<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html" class="external-link">frmtmb::dpar_log1m()</a></code> reads <code>log(1 - C)</code> off it (see
+<code><a href="cross_wishart.html">cross_wishart()</a></code>, "Why the links are the constraint"). This
+package wrote that arithmetic out for itself against the reserved
+<code>.eta_&lt;dpar&gt;</code> entry while the accessor was internal; it calls the
+accessor now. The entry itself stays reserved: it is on the LINK
+scale, so what it means depends on the dpar's link, and the accessor
+is the supported way to read it.</p>
 <p>What is NOT missing, and this package said otherwise in 0.1.0: a
 matrix-valued response. <code>R/frame.R</code> preserves one explicitly, and a
 custom family indexing <code>y[, 1]</code> and <code>y[, 2]</code> fits today. The reason

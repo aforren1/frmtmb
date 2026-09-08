@@ -27,6 +27,7 @@ frmtmb_family(
   lccdf = NULL,
   required_aterms = character(0),
   accepts_aterms = NULL,
+  se_dpar = NULL,
   exclusive_aterms = list(),
   family_finalize = NULL,
   extra_pars = NULL,
@@ -51,6 +52,7 @@ custom_family(
   lccdf = NULL,
   required_aterms = character(0),
   accepts_aterms = NULL,
+  se_dpar = NULL,
   exclusive_aterms = list(),
   family_finalize = NULL,
   extra_pars = NULL,
@@ -80,7 +82,14 @@ custom_family(
 
   Function `(y, dpars, aterms)` returning the vectorized log-density.
   `dpars` is a named list of advector vectors; `aterms` is a named list
-  of numeric addition-term values (for example `trials`).
+  of numeric addition-term values (for example `trials`). Read `dpars`
+  by name, never by position: it also carries reserved entries that are
+  not distributional parameters. Take `log(mu)`, `log(1 - mu)` and
+  `1 - mu` from
+  [frmtmb-robust-dpars](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+  rather than writing them out, because an inverse link saturates and
+  the plain arithmetic returns `NaN` for the value and the gradient
+  alike in the tail.
 
 - valid_y:
 
@@ -223,6 +232,25 @@ custom_family(
   known standard deviation, and `aterms[["se_sigma"]]` to honor
   `se(x, sigma = TRUE)`, which asks for the known and estimated scales
   in quadrature.
+
+- se_dpar:
+
+  The dpar that a known standard error replaces, named so that the core
+  can map it out: `se_dpar = "tau"` maps out `tau` exactly as the
+  convention maps out `sigma`. `NA` declares that `se()` replaces NO
+  dpar, which is the shape of a family whose whole scale IS the known
+  standard error. `NULL`, the default, reads the convention: the dpar
+  named `sigma`, if the family has one.
+
+  Only a family that declares `se()` reaches this. `se()` without
+  `sigma = TRUE` says the residual scale is known, so the dpar it
+  replaces has to stop being estimated. A dpar the density never reads
+  is a flat direction and a NaN standard error, so a declaring family
+  with no `sigma` and another free dpar is refused: the core cannot tell
+  a second SCALE from a genuine SHAPE. This argument is how the family
+  says which one it has. `se_dpar = NA` is a promise that every
+  remaining dpar is read alongside the known standard error, the way a
+  skew or a tail index is.
 
 - exclusive_aterms:
 
@@ -512,6 +540,9 @@ its own bindings: lexical scope does not travel into other functions.
 
 ## See also
 
+[frmtmb-robust-dpars](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
+for the accessors a density uses to stay exact where an inverse link
+saturates,
 [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)
 for a likelihood that does not factorize over rows,
 [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
@@ -522,7 +553,7 @@ for telling
 [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.md)
 what the family does and does not combine with, and
 [frmtmb-extension-api](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
-for the accessors a family outside frmtmb may use
+for the accessors a family outside frmtmb may use after a fit
 
 ## Examples
 

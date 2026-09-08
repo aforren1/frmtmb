@@ -51,7 +51,7 @@ hypothesis() among them."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -261,7 +261,10 @@ predictor, on the link scale, at a parameter list in the frame's
 own layout, or <code>NULL</code> when that response and dpar have no linear
 predictor with columns. Random effects are excluded on purpose:
 this exists for a <code>check_fit</code> slot, which runs before the inner
-modes are solved and cannot see them.</p></dd>
+modes are solved and cannot see them. Not to be confused with
+the <code>dpar_*</code> accessors of <a href="frmtmb-robust-dpars.html">frmtmb-robust-dpars</a>, which take a
+<code>dpars</code> list rather than a frame and run inside a density while
+the objective is taped.</p></dd>
 
 <dt><code>response_mean()</code></dt>
 <dd><p>The expected response of a family at given
@@ -347,7 +350,9 @@ alternative.</p></li>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="frmtmb_structure.html">frmtmb_structure()</a></code> for the protocol these serve,
-<code><a href="frmtmb_family.html">frmtmb_family()</a></code> for the family object they read, and the
+<code><a href="frmtmb_family.html">frmtmb_family()</a></code> for the family object they read,
+<a href="frmtmb-robust-dpars.html">frmtmb-robust-dpars</a> for the accessors a DENSITY uses while the
+objective is taped, and the
 registries an extension fills from its own <code>.onLoad()</code>:
 <code><a href="frmtmb_register_frame_check.html">frmtmb_register_frame_check()</a></code>, <code><a href="frmtmb_register_aterm.html">frmtmb_register_aterm()</a></code> and
 <code><a href="frmtmb_register_compat.html">frmtmb_register_compat()</a></code></p></div>

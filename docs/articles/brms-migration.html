@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -466,7 +466,15 @@ brms.</p></li>
 <code>gr(g, cov = A)</code>. It reaches further than brms does: a family
 written with <code><a href="../reference/frmtmb_family.html">frmtmb_family()</a></code> gets the term by declaring
 <code>accepts_aterms = c(..., "se")</code>, rather than by being
-gaussian or student.</p></li>
+gaussian or student. A family whose scale is not named
+<code>sigma</code> says which dpar the known standard error replaces
+with <code>frmtmb_family(se_dpar =)</code>, or <code>se_dpar = NA</code>
+where it replaces none because the known standard error IS its whole
+scale. A dpar FORMULA does not pin the replaced scale:
+<code>bf(y | se(s) ~ x, sigma ~ 1)</code> is refused, because it
+estimates a parameter the density never reads. Pin it with a constant
+(<code>sigma = 1</code>) or write
+<code>se(s, sigma = TRUE)</code>.</p></li>
 <li>
 <p><strong><code>cens()</code> on a COUNT means something different
 here</strong>, for RIGHT and INTERVAL censoring only. A discrete
@@ -482,7 +490,13 @@ value; on 200 poisson draws at <code>lambda = 4</code> right censored at
 6, the two readings differ by 20.8 log units and 3.7 percent of the
 estimate. Subtract one from every right-censored and interval lower
 bound to reproduce a brms fit, or keep the numbers and read them as “6
-or more”, which is what a recorded count usually means.</p>
+or more”, which is what a recorded count usually means. frmtmb says this
+ONCE per session, the first time a model it is given combines a discrete
+family with right or interval censoring. It comes from frame assembly,
+so <code><a href="../reference/get_prior.html">get_prior()</a></code> on such a model spends the notice and the
+fit that follows is silent. <code><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages()</a></code> silences
+that one call and <code>options(frmtmb.notices = FALSE)</code> silences
+the session.</p>
 <p>The reason frmtmb does not simply follow brms is that <strong>brms is
 internally inconsistent here, and frmtmb cannot be both.</strong> brms’s
 own discrete truncation emits <code>poisson_lccdf(lb - 1 | mu)</code>,

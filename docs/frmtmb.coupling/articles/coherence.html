@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -179,13 +179,13 @@ effect on coherence is written the way any random effect is written.</p>
 close to a boundary the estimate sits. That boundary is where the
 arithmetic has to be careful: <code>plogis(eta)</code> is exactly 1 in
 double precision above about <code>eta = 36.7</code>, so the density
-never forms <code>1 - C</code> by subtraction. It reads the linear
-predictor that core stores beside each parameter and computes
-<code>log(1 - C)</code> as <code>-logspace_add(0, eta)</code>, which is
-exact to <code>eta = 709</code>. A draft of this package did subtract,
-and returned <code>NaN</code> above <code>eta = 36.7</code> and a
-confidence interval of width zero for two signals that differed only by
-1e-5 of noise.</p>
+never forms <code>1 - C</code> by subtraction. It asks core for
+<code>log(1 - C)</code> with <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html" class="external-link">frmtmb::dpar_log1m()</a></code>, which
+reads the linear predictor core keeps beside each parameter and is exact
+to <code>eta = 709</code>. A draft of this package did subtract, and
+returned <code>NaN</code> above <code>eta = 36.7</code> and a confidence
+interval of width zero for two signals that differed only by 1e-5 of
+noise.</p>
 <div class="section level3">
 <h3 id="put-a-random-effect-on-every-parameter-not-only-on-coherence">Put a random effect on every parameter, not only on coherence<a class="anchor" aria-label="anchor" href="#put-a-random-effect-on-every-parameter-not-only-on-coherence"></a>
 </h3>

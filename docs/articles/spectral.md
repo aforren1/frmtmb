@@ -198,7 +198,7 @@ exponent <- function(taper) {
 }
 exponent("none")
 #> Error:
-#> ! whittle(tapers = 1): the response is far too smooth to be that. var(diff(log(y))) is 0.251, the refusal triggers below 1.64, and ordinates of shape 1 have an expected 3.29 whatever the spectrum is, since only the spectrum's own step-to-step variation adds to it. Two things look like this. (1) The ordinates were already averaged - Welch, Bartlett, multitaper - and this family says they are raw: pass tapers = the number of periodograms that were averaged. (2) They are spectral leakage rather than signal, which is what an untapered periodogram returns for a spectrum falling faster than f^-2, and the estimate from it would be the leakage floor rather than the spectrum: pass taper = "hann" to frm_periodogram(). If the ordinates ALREADY carry a hann taper, that taper correlates neighbouring ordinates and can trip this check on its own: use taper = "split_cosine", which does not
+#> ! whittle(tapers = 1): the response is far too smooth to be that. var(diff(log(y), lag = 3)) is 0.361, the refusal triggers below 1.64, and ordinates of shape 1 have an expected 3.29 whatever the spectrum is, since only the spectrum's own step-to-step variation adds to it. Two things look like this. (1) The ordinates were already averaged - Welch, Bartlett, multitaper - and this family says they are raw: pass tapers = the number of periodograms that were averaged. (2) They are spectral leakage rather than signal, which is what an untapered periodogram returns for a spectrum falling faster than f^-2, and the estimate from it would be the leakage floor rather than the spectrum: pass taper = "hann" to frm_periodogram(). If you already tapered, that is not the cause: the statistic compares ordinates 3 apart, which the tapers frm_periodogram() applies leave uncorrelated
 ```
 
 [`whittle()`](https://aforren1.github.io/frmtmb/reference/whittle.md)
@@ -240,9 +240,9 @@ band being fitted.**
 ### What the refusal can and cannot see
 
 Do not rely on the refusal to remind you, and know what its numbers are
-conditional on. Measured at **1023 ordinates**, it fires on 97% of
-untapered replicates at exponent 3 and 81% at 2.5, but only 14% at
-exponent 2 - and at exponent 2 the untapered fit still comes back
+conditional on. Measured at **1023 ordinates** over 6000 replicates, it
+fires on 96% of untapered replicates at exponent 3 and 77% at 2.5, but
+only 10% at exponent 2. At exponent 2 the untapered fit still comes back
 quietly 4% low, with small standard errors and well-behaved residuals,
 because the model is describing the leakage correctly.
 
@@ -254,9 +254,12 @@ refusals near zero:
 | epoch at 256 Hz | ordinates | exponent-3 leakage caught |
 |-----------------|-----------|---------------------------|
 | 1 s (n = 256)   | 127       | 92%                       |
-| 2 s (n = 512)   | 255       | 93%                       |
+| 2 s (n = 512)   | 255       | 95%                       |
 | 4 s (n = 1024)  | 511       | 96%                       |
-| 8 s (n = 2048)  | 1023      | 99%                       |
+| 8 s (n = 2048)  | 1023      | 96%                       |
+
+Each cell is 6000 replicates, so a rate here carries a standard error
+under 0.4 points.
 
 Below 24 ordinates it does not run at all, and a `tapers = 2` response
 is separable from a raw one only above about 200 ordinates. The refusal
@@ -276,7 +279,11 @@ recommends anyway.
 
 The price of the taper is that neighbouring ordinates are no longer
 close to independent, so its standard errors are optimistic. That is far
-smaller than the bias it removes.
+smaller than the bias it removes. It is not a reason to expect the
+refusal to fire on your tapered response: the statistic compares
+ordinates three apart, which a Hann window leaves uncorrelated, and a
+tapered raw periodogram was refused 0 times in 2000 replicates at each
+of nine cells.
 
 ## Peaks need an averaged periodogram, and a starting value
 
@@ -311,7 +318,7 @@ They have to agree, and here the family says so rather than the prose:
 
 frm(bf(pgram ~ logf), family = whittle(), data = pk)   # tapers forgotten
 #> Error:
-#> ! whittle(tapers = 1): the response is far too smooth to be that. var(diff(log(y))) is 0.259, the refusal triggers below 1.64, and ordinates of shape 1 have an expected 3.29 whatever the spectrum is, since only the spectrum's own step-to-step variation adds to it. Two things look like this. (1) The ordinates were already averaged - Welch, Bartlett, multitaper - and this family says they are raw: pass tapers = the number of periodograms that were averaged. (2) They are spectral leakage rather than signal, which is what an untapered periodogram returns for a spectrum falling faster than f^-2, and the estimate from it would be the leakage floor rather than the spectrum: pass taper = "hann" to frm_periodogram(). If the ordinates ALREADY carry a hann taper, that taper correlates neighbouring ordinates and can trip this check on its own: use taper = "split_cosine", which does not
+#> ! whittle(tapers = 1): the response is far too smooth to be that. var(diff(log(y), lag = 3)) is 0.308, the refusal triggers below 1.64, and ordinates of shape 1 have an expected 3.29 whatever the spectrum is, since only the spectrum's own step-to-step variation adds to it. Two things look like this. (1) The ordinates were already averaged - Welch, Bartlett, multitaper - and this family says they are raw: pass tapers = the number of periodograms that were averaged. (2) They are spectral leakage rather than signal, which is what an untapered periodogram returns for a spectrum falling faster than f^-2, and the estimate from it would be the leakage floor rather than the spectrum: pass taper = "hann" to frm_periodogram(). If you already tapered, that is not the cause: the statistic compares ordinates 3 apart, which the tapers frm_periodogram() applies leave uncorrelated
 ```
 
 An alpha peak sits on top of the aperiodic part, so the spectrum is a

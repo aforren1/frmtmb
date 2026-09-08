@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,10 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.spline/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.4.0" id="frmtmbspline-040">frmtmb.spline 0.4.0<a class="anchor" aria-label="anchor" href="#frmtmbspline-040"></a></h2>
+<ul><li>FIX: <code><a href="../reference/frm_curve_feature.html">frm_curve_feature()</a></code>’s second span check reads the grid you passed rather than the five-point stencil at the located roots. The stencil reaches <code>eps</code> past each root, so the old gate was true when a root happened to land within that distance of a knot and false otherwise, whatever the grid held. On a fit with two <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">ps()</a></code> terms, one row whose <code>z</code> left the second term’s span was refused when the crossing landed at the end of the bracket and returned in silence, with a bit-identical estimate, when it landed in the middle; and the refusal it did raise quoted <code>z</code>’s span while the gate that fired was <code>t</code>’s stencil fringe. The check now runs when, and only when, a column other than the search variable varies down the grid, which is the one thing the grid scan cannot see, and it refuses on what that question answers. A grid whose other columns are pinned to row 1, which is every grid in this package’s own examples, is unaffected and costs no extra prediction.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0" id="frmtmbspline-030">frmtmb.spline 0.3.0<a class="anchor" aria-label="anchor" href="#frmtmbspline-030"></a></h2>
 <p>A curve past the fitted knot span warns once under the function that drew it, the feature search refuses, and <code><a href="../reference/frm_curve_deriv.html">frm_curve_deriv()</a></code> no longer dies on its default simultaneous band. Requires frmtmb 0.53.0 for the classed span warning.</p>

@@ -269,7 +269,13 @@ takes `logit` only.
   with
   [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
   gets the term by declaring `accepts_aterms = c(..., "se")`, rather
-  than by being gaussian or student.
+  than by being gaussian or student. A family whose scale is not named
+  `sigma` says which dpar the known standard error replaces with
+  `frmtmb_family(se_dpar =)`, or `se_dpar = NA` where it replaces none
+  because the known standard error IS its whole scale. A dpar FORMULA
+  does not pin the replaced scale: `bf(y | se(s) ~ x, sigma ~ 1)` is
+  refused, because it estimates a parameter the density never reads. Pin
+  it with a constant (`sigma = 1`) or write `se(s, sigma = TRUE)`.
 
 - **`cens()` on a COUNT means something different here**, for RIGHT and
   INTERVAL censoring only. A discrete censoring bound names a value the
@@ -284,7 +290,14 @@ takes `logit` only.
   percent of the estimate. Subtract one from every right-censored and
   interval lower bound to reproduce a brms fit, or keep the numbers and
   read them as “6 or more”, which is what a recorded count usually
-  means.
+  means. frmtmb says this ONCE per session, the first time a model it is
+  given combines a discrete family with right or interval censoring. It
+  comes from frame assembly, so
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  on such a model spends the notice and the fit that follows is silent.
+  [`suppressMessages()`](https://rdrr.io/r/base/message.html) silences
+  that one call and `options(frmtmb.notices = FALSE)` silences the
+  session.
 
   The reason frmtmb does not simply follow brms is that **brms is
   internally inconsistent here, and frmtmb cannot be both.** brms’s own

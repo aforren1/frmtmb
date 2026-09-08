@@ -11,7 +11,7 @@ from 'stats' are accepted directly by frm() and +."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.54.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -320,6 +320,39 @@ asymmetric-Laplace approach, shared by brms. Use
 function's kink can also produce a benign false-convergence
 warning near the optimum; <code><a href="frm_allfit.html">frm_allfit()</a></code> confirms the fit when in
 doubt.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="degrees-of-freedom-that-run-off">Degrees of freedom that run off<a class="anchor" aria-label="anchor" href="#degrees-of-freedom-that-run-off"></a></h2>
+
+
+<p><code>student()</code> estimates <code>nu</code> on the <code>logm1</code> link, which holds it above
+one but puts no ceiling on it. A student-t reaches <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code> only
+in the limit <code>nu -&gt; Inf</code>, so on data with no heavy tails the
+likelihood keeps rising as <code>nu</code> grows and the maximum is never
+attained. The fit then reports whatever <code>nu</code> the optimizer last
+reached, with a standard error to match: values of <code>1e9</code> and above
+are ordinary, and two runs of the same model on the same data in a
+different row order can differ by orders of magnitude in <code>nu</code> while
+agreeing on every coefficient to the last bit.</p>
+<p>That is the model saying the data shows no heavy tails, not a
+failure to converge. <code><a href="diagnose.html">diagnose()</a></code> names it under "Distributional
+parameter at the end of its link". Read the fit as the gaussian one
+it has become. If you want a number you can report, refit with
+<code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code>, or hold <code>nu</code> somewhere finite with a prior (see
+<code><a href="set_prior.html">set_prior()</a></code>); brms does the same with its default
+<code>gamma(2, 0.1)</code>.</p>
+<p><code>nu</code> runs off the OTHER end too, and there the reading is opposite.
+On tails heavier than any identified <code>nu</code> can hold, Cauchy data for
+instance, <code>nu</code> goes down to one instead: <code>log(nu - 1)</code> around -20,
+a standard error in the thousands, and a natural-scale value that
+prints as <code>1</code>. <code><a href="diagnose.html">diagnose()</a></code> names that under the same heading. The
+remedy is not <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code>, which is the worst fit available for
+such data. There the data is the message; a prior is still the way
+to hold <code>nu</code> finite.</p>
+<p>The likelihood itself stays accurate the whole way. The log density
+is formed so that <code>log Gamma((nu + 1) / 2) - log Gamma(nu / 2)</code>
+never cancels, which holds it to 7e-15 of a 300-bit reference for
+every <code>nu</code> up to <code>1e50</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="robust-regression">Robust regression<a class="anchor" aria-label="anchor" href="#robust-regression"></a></h2>

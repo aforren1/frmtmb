@@ -1,5 +1,10 @@
 # Changelog
 
+## frmtmb.latent 0.2.1
+
+Requires frmtmb 0.55.0, for the hazard-container lint that now runs in
+this package’s own check.
+
 ## frmtmb.latent 0.2.0
 
 [`hmm()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm.md)

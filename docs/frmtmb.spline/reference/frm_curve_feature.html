@@ -11,7 +11,7 @@ method."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -167,11 +167,15 @@ them is a root of the decaying partial sum. Unlike a band, which
 shows the reader what it is doing, that root leaves the function as
 a number with a standard error beside it and nothing to say which
 curve it came off. The bracket is checked at the grid scan, before
-any root is refined, and again at the located roots.</p>
+any root is refined.</p>
 <p>What is checked is the grid you passed, not the difference stencil
 the scan widens it into: a grid whose endpoint sits exactly on a knot
 is inside the span, and was refused for being a millionth of its
 range outside the stencil's.</p>
+<p>The search holds every column but <code>var</code> at row 1's value, so a grid
+whose other columns change from row to row is checked a second time,
+against the whole grid. That is where a second <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">ps()</a></code> term can leave
+its span in a row the search itself never predicts at.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

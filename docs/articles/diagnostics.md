@@ -196,6 +196,66 @@ companion package **frmtmb.sample** and read
 which covers `check_laplace()` and the diagnostics of a sampled fit;
 this page stays with the maximum-likelihood side.
 
+### A distributional parameter with no maximum
+
+A standard error in the thousands on an estimate in the tens is not a
+wide interval. It means the likelihood was still rising where the
+optimizer stopped, so the number reported is the stopping point.
+
+[`student()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)’s
+`nu` is the case you will meet. A student-t becomes a gaussian only as
+`nu` goes to infinity, so on data with no heavy tails the likelihood has
+no maximum in `nu` and the fit reports whatever the last step reached.
+Values above `1e9` are ordinary, and two runs of the same model on the
+same data in a different row order can differ by orders of magnitude in
+`nu` while agreeing on every coefficient.
+
+``` r
+
+set.seed(41)
+du <- data.frame(x = rnorm(120))
+# uniform errors: lighter tails than any student-t
+du$y <- 1 + 0.5 * du$x + (runif(120) - 0.5) * 3.4
+diagnose(frm(bf(y ~ x) + student(), data = du), quiet = TRUE)$unbounded_dpar
+#>         parameter estimate std.error      value
+#> 1 nu: (Intercept) 21.53311  7699.398 2247558151
+```
+
+[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+reports this as “Distributional parameter at the end of its link” and
+prints the natural-scale value beside the link-scale estimate. The pair
+is the evidence, not either half: a parameter legitimately far out on
+its link keeps a small standard error.
+
+Read the fit as the gaussian one it has become. To get a number you can
+report, refit with [`gaussian()`](https://rdrr.io/r/stats/family.html),
+or hold `nu` somewhere finite with a prior; see
+[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md).
+
+The same parameter runs off the other end, and there the reading is
+opposite. On tails heavier than any identified `nu` can hold, `nu` goes
+down to one: `log(nu - 1)` around -20, a standard error in the
+thousands, and a natural-scale value that prints as `1`.
+
+``` r
+
+set.seed(77101)
+dc <- data.frame(x = rnorm(200))
+dc$y <- 1 + 0.5 * dc$x + rcauchy(200)      # the heaviest tails there are
+diagnose(frm(bf(y ~ x) + student(), data = dc), quiet = TRUE)$unbounded_dpar
+#>         parameter  estimate std.error value
+#> 1 nu: (Intercept) -19.06957  4260.962     1
+```
+
+[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+names this under the same heading, so read the sign. A large POSITIVE
+estimate means no heavy tails and
+[`gaussian()`](https://rdrr.io/r/stats/family.html) says so. A large
+NEGATIVE one means the opposite, and
+[`gaussian()`](https://rdrr.io/r/stats/family.html) is then the worst
+fit available: the data is the message, and a prior is the way to hold
+`nu` finite.
+
 ## When the Laplace approximation is the problem
 
 The tools above ask whether the *reported uncertainty* is trustworthy.
