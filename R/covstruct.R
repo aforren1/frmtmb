@@ -285,10 +285,17 @@ student_lpdf_scalar <- function(b, log_scale, nu) {
 #' first decimal. A large `nu` is how the gaussian limit is reached, and
 #' how a user checks that a t block reduces to one.
 #'
+#' The head term needs the same care and for the same reason.
+#' `lgamma((nu + d)/2) - lgamma(nu/2)` written out cancels: measured
+#' against a 300-bit reference on `d = 4` over 30 levels it is wrong by
+#' 6.7e-05 at `nu = 1e10` and by 2.6 at `nu = 1e14`, which puts a false
+#' stationary point in the gaussian limit this comment sends users to.
+#' `lgamma_shift_diff()` carries the numbers.
+#'
 #' @noRd
 student_lpdf_core <- function(q, ldet_W, nu, d, n_levels) {
-  n_levels * (lgamma((nu + d) / 2) - lgamma(nu / 2) -
-                d / 2 * log(nu * pi) - ldet_W) -
+  n_levels * (lgamma_shift_diff(nu / 2, d / 2) -
+                d / 2 * (log(nu) + log(pi)) - ldet_W) -
     (nu + d) / 2 * sum(log1p(q / nu))
 }
 

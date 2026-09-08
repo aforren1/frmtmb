@@ -301,6 +301,12 @@ test_that("the group densities match dmvnorm and dmvt", {
                tolerance = 1e-12)
   expect_equal(autocor_loglik(z, R, ac, sum(log(sg)), nu = 5.5), refT,
                tolerance = 1e-12)
+  # and the gaussian limit, which is how a user checks that a t block
+  # reduces to one. The approach is O(1/nu), so by 1e16 the two are the
+  # same number to the double that carries them; a cancelled
+  # lgamma((nu + k)/2) - lgamma(nu/2) misses it by 49 log units.
+  big <- autocor_loglik(z, R, ac, sum(log(sg)), nu = 1e16)
+  expect_lt(abs(big - refN), 64 * .Machine$double.eps * abs(refN))
 })
 
 test_that("student() reaches the multivariate-t path", {

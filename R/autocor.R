@@ -776,9 +776,14 @@ autocor_loglik <- function(z, R, ac, log_sigma_sum, nu = NULL) {
     half_ldet <- -(l0 + 0.5 * k * log(2 * pi))
     tZ <- t(Z)
     qv <- as.vector(((tZ %*% RTMB::solve(Rp)) * tZ) %*% rep(1, k))
-    ll <- ll + pt$G * (lgamma((nu + k) / 2) - lgamma(nu / 2) -
-                         0.5 * k * log(nu * pi) - half_ldet) -
-      0.5 * (nu + k) * sum(log(1 + qv / nu))
+    # both halves have to survive a large nu, which is how this block
+    # reduces to its gaussian limit: lgamma_shift_diff() for the head,
+    # where the two lgamma() values agree in every leading digit, and
+    # log1p() for the tail, which is multiplied by (nu + k) / 2 and so
+    # amplifies the rounding of 1 + qv/nu by that same factor
+    ll <- ll + pt$G * (lgamma_shift_diff(nu / 2, k / 2) -
+                         0.5 * k * (log(nu) + log(pi)) - half_ldet) -
+      0.5 * (nu + k) * sum(log1p(qv / nu))
   }
   ll
 }

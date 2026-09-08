@@ -41,6 +41,66 @@ test_that("student matches MASS::fitdistr", {
   expect_lt(abs(est_nu - ref$estimate[["df"]]) / ref$estimate[["df"]], 1e-2)
 })
 
+# The two tests below are about ONE thing: the student log density has
+# to keep its digits when the degrees of freedom run to infinity, which
+# is what data with no heavy tails asks of it. `RTMB::dt()` sends a
+# double straight to `stats::dt()` and an AD number to a tape that
+# subtracts two `lgamma()` values agreeing in every leading digit, so
+# the accurate branch is the one no fit uses. dev/remlopt-findings.md
+# carries the measurement.
+
+test_that("the student density keeps its digits as nu runs off", {
+  set.seed(11)
+  z <- stats::rnorm(120)
+  fam <- student()
+  obj <- RTMB::MakeADFun(
+    function(p) {
+      -sum(fam$lpdf(z, list(mu = 0, sigma = 1,
+                            nu = 1 + exp(p[["e"]])), list()))
+    },
+    list(e = 5), silent = TRUE)
+  for (e in c(0, 2, 5, 10, 15, 20, 25, 30, 35)) {
+    # stats::dt is the reference: it holds 1e-13 against a 300-bit
+    # Rmpfr reference at every df tried, up to 1e50
+    ref <- -sum(stats::dt(z, df = 1 + exp(e), log = TRUE))
+    got <- as.numeric(obj$fn(e))
+    # the tolerance is the answer's own magnitude in units of the
+    # double that carries it, not a number chosen in advance
+    expect_lt(abs(got - ref), 64 * .Machine$double.eps * abs(ref))
+  }
+})
+
+test_that("a student objective has no false optimum in the large-nu tail", {
+  set.seed(12)
+  n <- 150
+  # uniform errors have lighter tails than any student-t, so the
+  # likelihood rises all the way to the gaussian limit: there is no
+  # interior optimum in nu and no sign change in its gradient
+  y <- 1 + (stats::runif(n) - 0.5) * 3.4
+  fam <- student()
+  obj <- RTMB::MakeADFun(
+    function(p) {
+      -sum(fam$lpdf(y, list(mu = p[["mu"]], sigma = exp(p[["ls"]]),
+                            nu = 1 + exp(p[["e"]])), list()))
+    },
+    list(mu = mean(y), ls = log(stats::sd(y)), e = 5), silent = TRUE)
+  base <- c(mean(y), log(stats::sd(y)))
+  es <- seq(4, 34, by = 0.5)
+  val <- vapply(es, function(e) as.numeric(obj$fn(c(base, e))), 0)
+  grd <- vapply(es, function(e) as.numeric(obj$gr(c(base, e)))[3], 0)
+  # every rise in the negative log likelihood is the density having
+  # lost digits, so the ceiling is what a double can hold at this
+  # objective's magnitude
+  noise <- 64 * .Machine$double.eps * max(abs(val))
+  expect_lt(max(c(0, diff(val))), noise)
+  # The optimizer stops where the gradient turns uphill. Past the point
+  # where nu is unidentified to the last bit the sign of a gradient
+  # this small is meaningless, and the ladder steps by 0.5, so the same
+  # floor bounds the derivative: what may not happen is an uphill
+  # gradient BIGGER than the objective's own noise.
+  expect_equal(sum(grd > noise), 0L)
+})
+
 test_that("negbinomial GLM matches MASS::glm.nb", {
   skip_if_not_installed("MASS")
   set.seed(24)

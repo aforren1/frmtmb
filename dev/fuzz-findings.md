@@ -609,3 +609,51 @@ Recorded in `FUZZ_KNOWN_PENDING` as `reml-ar1-se-two-optima`, matched
 on the four axes actually measured so a neighbouring spec failing the
 same invariant still reads as new. The tier is green again: two passes,
 no findings off the lists.
+
+## 0.55.0: `reml-ar1-se-two-optima` was a cancelled `lgamma` difference
+
+The defect recorded above is closed and the entry is out of
+`FUZZ_KNOWN_PENDING`. It was never two optima, and the four axes the
+entry matched on (`student`, `se`, `ar1`, `reml`) were three axes too
+many: only `student` mattered.
+
+Every number in the section above is reproduced and then explained.
+The whole 5.938 of parameter distance sat in ONE outer parameter,
+`betad`, which is `nu` on the `logm1` link: 8.15e+07 in one row order
+and 3.09e+10 in the other. The `mu` coefficients agreed to 3.2e-09 and
+the two `theta` to 2.3e-07, so no reportable quantity moved.
+
+Neither point was stationary. Profiling the objective along `betad`
+with the two `theta` held fixed shows it falling monotonically to
+about `betad = 17` and then breaking up: 143.16575 at 18, 143.16500 at
+23, 143.17185 at 24, 143.43018 at 28, 142.02355 at 30, 144.83863 at
+31, 127.90483 at 32. The gradient breaks up with it and changes sign
+where the true likelihood is monotone.
+
+The cause is `RTMB::dt()`. Its double branch is `stats::dt()` and is
+accurate; its AD branch, which is the only one a fit uses, forms
+`lgamma((nu + 1) / 2) - lgamma(nu / 2)` as written, and the two values
+agree in every leading digit for large `nu`. Taped against
+`stats::dt()` on 90 standard normal points:
+
+| `log(nu - 1)` | AD error | true `d/de` |
+| --- | --- | --- |
+| 14 | 5.7e-10 | negative |
+| 18 | -1.7e-06 | negative, AD says +1.7e-06 |
+| 24 | 6.1e-03 | negative, AD says +2.5e-03 |
+| 32 | -1.5e+01 | negative, AD says -1.96e-01 |
+
+The AD error at `log(nu - 1) = 24` is 6.1e-03; the second fit stopped
+at 24.155 and "gained" 4.86e-03 of logLik. That is the same number.
+
+Taking the ingredients apart over 16 cells and 5 seeds each confirms
+the axis. Every gaussian cell was already at 1e-13, and every student
+cell whose `nu` stayed small (1.3 to 19) was too. The four student
+cells whose `nu` ran past 1e8 were the only ones over the derived
+tolerance, and the worst was not the recorded spec at all: `student`
+with no aterm, `ar1` and ML reached `nu = 4.66e+36` with a logLik gap
+of 124.9.
+
+With the density formed stably (see NEWS 0.55.0) all 16 cells are
+under tolerance, the recorded spec lands BITWISE identically under a
+row permutation, and the full plan is green with the entry removed.

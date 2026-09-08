@@ -144,6 +144,54 @@ test_that("diagnose() names complete separation (glmmTMB diagnose())", {
                        quiet = TRUE)$separation)
 })
 
+test_that("diagnose() names a dpar whose maximum is outside its range", {
+  set.seed(41)
+  n <- 120
+  # uniform errors have lighter tails than any student-t, so nu has no
+  # maximum: the likelihood rises all the way to the gaussian limit
+  du <- data.frame(x = stats::rnorm(n))
+  du$y <- 1 + 0.5 * du$x + (stats::runif(n) - 0.5) * 3.4
+  f <- suppressWarnings(frm(bf(y ~ x) + student(), data = du))
+  dg <- diagnose(f, quiet = TRUE)
+  expect_s3_class(dg$unbounded_dpar, "data.frame")
+  expect_true(any(grepl("^nu", dg$unbounded_dpar$parameter)))
+  # the pair is the evidence: an estimate far out on the link AND a
+  # standard error bigger than the estimate
+  expect_gt(abs(dg$unbounded_dpar$estimate[1]), 10)
+  expect_gt(dg$unbounded_dpar$std.error[1],
+            abs(dg$unbounded_dpar$estimate[1]))
+  expect_output(diagnose(f), "end of its link")
+  # the same model on data that does pin nu down is not flagged
+  set.seed(42)
+  dt3 <- data.frame(x = stats::rnorm(n))
+  dt3$y <- 1 + 0.5 * dt3$x + stats::rt(n, df = 3)
+  expect_null(diagnose(suppressWarnings(frm(bf(y ~ x) + student(),
+                                            data = dt3)),
+                       quiet = TRUE)$unbounded_dpar)
+  # nor is a gaussian fit, whose sigma the data does pin down
+  expect_null(diagnose(frm(bf(y ~ x) + gaussian(), data = du),
+                       quiet = TRUE)$unbounded_dpar)
+})
+
+test_that("the same check reads the LOWER end of logm1 correctly", {
+  # nu runs off both ways. Cauchy errors are heavier than any
+  # identified nu can hold, so nu goes to its floor and the estimate is
+  # large and NEGATIVE. The check fires on |estimate|, so it sees this
+  # too, and the advice it prints must not be "the fit is the gaussian
+  # one" on the heaviest-tailed data there is.
+  set.seed(77101)
+  dc <- data.frame(x = stats::rnorm(200))
+  dc$y <- 1 + 0.5 * dc$x + stats::rcauchy(200)
+  fc <- suppressWarnings(frm(bf(y ~ x) + student(), data = dc))
+  dgc <- diagnose(fc, quiet = TRUE)
+  expect_s3_class(dgc$unbounded_dpar, "data.frame")
+  expect_lt(dgc$unbounded_dpar$estimate[1], -10)
+  expect_gt(dgc$unbounded_dpar$std.error[1],
+            abs(dgc$unbounded_dpar$estimate[1]))
+  out <- utils::capture.output(diagnose(fc))
+  expect_true(any(grepl("runs DOWN to one", out)))
+})
+
 test_that("diagnose() points badly scaled predictors at autoscale", {
   set.seed(8)
   dp <- data.frame(y = rnorm(60))
