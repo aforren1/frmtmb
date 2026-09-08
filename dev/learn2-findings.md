@@ -1,5 +1,17 @@
 # frmtmb.learn, round two: factorization, RLDDM, and the two models left out
 
+> **CORRECTION, 2026-09-08 (lane `wt-debts`, confirmed in review).**
+> There is no step cap. `optimize_obj()` bounds nothing: `nlminb` with
+> `step.max` at 0.05 against 100, and L-BFGS-B, all return the same
+> step to six digits. The constant move is the fixed-point map becoming
+> a translation, and it is a property of the DRAWS, not of a clamp:
+> over 141 stalled fits grouped by group count, draw count and
+> importance seed alone, all 18 cells span three families and 7 to 9
+> distinct datasets. Every sentence below that says "step cap" should
+> be read as "the stalled step". The arithmetic the sections state is
+> unaffected; only the mechanism was named wrongly.
+
+
 Lane `wt-learn2`, worktree `C:/Users/adf44/source/r/frmtmb-wt-learn2`,
 branch `wt-learn2` at main's head (54d4d92, frmtmb 0.53.0). Private
 library `.../scratchpad/l3-lib`, holding core, `frmtmb.eam` and

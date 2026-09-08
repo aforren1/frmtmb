@@ -1,3 +1,10 @@
+# frmtmb.learn 0.2.1
+
+Requires frmtmb 0.55.0. The hazard-container lint runs in this
+package's own check, and `frm(importance = )` now says when the
+correction has stalled rather than advising more rounds, which
+this package's own documentation had to say in prose instead.
+
 # frmtmb.learn 0.2.0
 
 The three things 0.1.0 named as left out are in, and the seam it was

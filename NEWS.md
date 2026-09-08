@@ -1,4 +1,19 @@
-# frmtmb (development version)
+# frmtmb 0.55.0
+
+Two densities were silently wrong and are fixed. The student-t log
+density cancelled its own digits as `nu` ran off, by 57 log units at
+`nu = 1e50`, which the grammar fuzz tier had recorded as two optima
+under a row permutation; and a Bayesian Cognitive Modeling family read
+a probability on the wrong scale, by 1.5716 nats per observation on
+the identity link. Neither is a regression: both have been wrong for
+longer than 0.54.0.
+
+The accessors that make a density exact at a saturated link are now
+public, which is what a family in another package needs and had to
+write again. `se()` reads the family's own declaration of which scale
+the known standard error replaces. `whittle()` stops refusing tapered
+periodograms. The hazard-container lint runs inside each extension's
+own check rather than only at the release tally.
 
 * A custom family can now write a numerically exact density from
   another package. `dpar_log()`, `dpar_log1m()`,

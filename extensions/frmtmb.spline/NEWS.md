@@ -1,4 +1,4 @@
-# frmtmb.spline (development version)
+# frmtmb.spline 0.4.0
 
 * FIX: `frm_curve_feature()`'s second span check reads the grid you
   passed rather than the five-point stencil at the located roots. The

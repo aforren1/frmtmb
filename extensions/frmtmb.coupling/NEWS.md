@@ -1,4 +1,4 @@
-# frmtmb.coupling (development version)
+# frmtmb.coupling 0.2.0
 
 * The coherence complement now comes from frmtmb's public accessor,
   `dpar_log1m()`, rather than from this package's own copy of the same

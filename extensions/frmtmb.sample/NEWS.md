@@ -1,3 +1,8 @@
+# frmtmb.sample 0.3.2
+
+Requires frmtmb 0.55.0, for the hazard-container lint that now
+runs in this package's own check.
+
 # frmtmb.sample 0.3.1
 
 * The sampling articles say why they are unevaluated, and the

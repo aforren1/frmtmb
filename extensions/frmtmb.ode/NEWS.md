@@ -1,3 +1,8 @@
+# frmtmb.ode 0.1.1
+
+Requires frmtmb 0.55.0, for the hazard-container lint that now
+runs in this package's own check.
+
 # frmtmb.ode 0.1.0
 
 First release, extracted from frmtmb 0.46.0.

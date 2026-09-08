@@ -1435,17 +1435,18 @@ harmless.
    `1 - p` is exactly 0 and the density returns `NaN` for value and
    gradient alike. Decide the public spelling and export it.
 
-2. **The capped importance-correction warning gives advice about a
-   number that is not an estimate.** `R/fit.R`, the `capped` branch of
-   the convergence messages, reports the last round's move and tells
-   the user to raise the round count or the draw count. When the
-   correction is walking at its step limit every move is the SAME
-   number, the reported shift is exactly rounds times the cap, and
-   more rounds buy a proportionally larger wrong answer.
-   `dev/learn2-findings.md` has the measurement: five rounds of 0.3645
-   reported as a shift of 1.822, and 1.502 at 400 draws where the cap
-   resolves to 0.3004. The warning should test whether the moves are
-   all equal and say that instead.
+2. ~~**The capped importance-correction warning gives advice about a
+   number that is not an estimate.**~~ **DONE in 0.55.0, lane
+   `wt-debts`.** `imp_stalled()` splits the fit that is still moving
+   from the fit that is not, and keeps the old advice verbatim for the
+   first. NOTE that this entry named the mechanism wrongly: it said the
+   reported shift is rounds times a STEP CAP. There is no cap in the
+   code, and the constant move is a property of the draws; see the
+   correction at the head of `dev/learn2-findings.md`. The threshold is
+   1e-2 on the relative spread of the moves, calibrated on 184 capped
+   fits, where the widest stalled spread is 6.51e-03 and the narrowest
+   moving one 2.10e-02. Those margins are 1.54 and 2.10, not the 39 and
+   32 a smaller calibration first reported.
 
 3. **The spline span refusal keys on the wrong thing.**
    `extensions/frmtmb.spline/R/curve-feature.R` discards `parts$span`
@@ -1514,3 +1515,65 @@ harmless.
    with 34 `$` reads on hazard containers and only fail at the release
    tally, which is where `frmtmb.coupling` was caught. Either the lane
    brief for a new package names the guard, or the guard moves.
+
+## Follow-ups carried out of the 0.55.0 round (2026-09-08)
+
+All nine items of the 0.54.0 list are closed. These are what the five
+lanes and their reviews found on the way and did not fix.
+
+1. **Three sites disagree about `sigma()` on a family whose scale is
+   known.** On the built-in gaussian with `se()`, `sigma()` returns 0
+   and `predict(dpar = "sigma")` returns 0, but
+   `hypothesis(fit, "sigma = 0")` reports 1. On a family with no dpar
+   called `sigma` at all, `sigma()` returns 1 where `predict()` returns
+   0. Present on 0.54.0 too. Settling it means deciding what `sigma()`
+   means for a family that has no `sigma`, and touching `R/sugar.R`,
+   `R/confint.R` and the report hook together.
+
+2. **The `se()` guard reads `default_forms` but not `fixed_dpars`.** A
+   family that pins its own scale with a constant, rather than with a
+   formula, is refused on both builds. One expression, but it wants its
+   own test.
+
+3. **`student()` appears in no brms comparison.** The gated tier tests
+   no part of the t density, which is why every gated count matched the
+   release figure exactly while the density was being rewritten. One
+   `student()` row in `test-brms-likelihood.R` closes it.
+
+4. **`profile.frmtmb_fit`'s example takes 8.71 s** and puts a third
+   NOTE on `R CMD check --as-cran`. Measured on a quiet machine, so it
+   is not contention. Nothing this round touched it.
+
+5. **The `whittle()` refusal no longer sees frequency-domain
+   smoothing.** Differencing at lag 3 is what stops it refusing tapered
+   spectra, and the price is that a kernel wider than three bins is no
+   longer caught below about 100 ordinates: a three-bin Daniell
+   declared raw falls from 80.9 percent detected to 13.8 at 24
+   ordinates. The trade was made deliberately, because lag 1 refused a
+   single Slepian taper, which is genuinely raw, 26.9 percent of the
+   time. Revisit if a statistic that sees both appears.
+
+6. **A fuzz spec is broken on both libraries.** `sparse_x` with
+   `mo_int` fails `row_permutation` with a gradient of 4.6e9 before the
+   density fix and 1.7e11 after, and `nu` identical to six figures, so
+   the density change is not its cause. It was made visible, not worse.
+   Nobody owns it.
+
+7. **The spline stencil's `+/- e2` points enter `.se` through `f2` for
+   a stationary point and enter nothing reported for a crossing.**
+   Recorded by lane `wt-debts` while fixing the span gate.
+
+8. **The threshold that separates a stalled importance correction from
+   a moving one has margins of 1.54 and 2.10.** That is tight. The
+   obvious repair, dropping the first move, was measured and rejected:
+   it trades six misses for three and collapses the margins to 1.04 and
+   1.09. A better statistic would be worth having before this rule is
+   relied on.
+
+9. **Two performance claims and two "unreproducible" numbers went
+   wrong the same way this round.** Both timings measured something
+   below the instrument's resolution or outside the hot path; both
+   missing numbers were recorded under a construction the lane had not
+   found. The lane briefs now say to check the instrument first and to
+   hunt for the construction before calling a record wrong. Keep that
+   in the brief.
