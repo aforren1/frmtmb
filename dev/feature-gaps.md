@@ -1473,14 +1473,40 @@ harmless.
 
 7. **`whittle()`'s dispersion refusal fires on 1 to 2 percent of
    Hann-tapered periodograms**, which are legitimately raw. The taper
-   correlates neighbouring ordinates (lag-one correlation of `log I`
+   correlates neighboring ordinates (lag-one correlation of `log I`
    about 0.3), which pulls the statistic below the trigger. The help
    says so and names the remedy; the rate is the debt.
+   **DONE in 0.55.0, lane `wt-spectral2`.** The statistic now compares
+   ordinates THREE apart. A Hann window's transform is three bins wide,
+   so it correlates neighbors (0.308) and leaves ordinates three apart
+   alone (-0.003). Measured 0 in 2000 at each of nine tapered cells,
+   with the threshold curve unchanged, the flat-null rate unchanged at
+   0 in 20000 per cell, SEGMENT-averaged detection unchanged, and
+   leakage detection down 1.0 point at 127 ordinates and nothing
+   measurable above it. The attribute route and the structure route
+   were both examined and rejected with measurements, and the seam
+   recorded for `structure.R` in `dev/freq-findings.md` was withdrawn
+   as no longer true. See `dev/spectral2-findings.md`.
+   **Reviewed, and one cost was found that the lane did not measure**
+   (`dev/reviews/2026-09-08-spectral2.md`): an estimate smoothed ACROSS
+   frequency and declared raw is caught less often below about 100
+   ordinates, 18% against 95% for a three-bin smooth at 32 ordinates.
+   The change still nets out positive, because at lag 1 the same
+   correlation refused the HONEST declaration of those estimates, and a
+   single Slepian taper 27% to 56% of the time. What is left open is a
+   check that can read a frequency-smoothed estimate at all; nobody has
+   one, and `?whittle` now says so rather than prescribing `tapers`.
 
 8. **`tests/testthat/test-spectral.R` has one assertion that passes
    only because its seed is pinned.** Re-pose it as a rate over seeds,
    the way `test-gratia.R` was re-posed as a ratio after it broke on
    CI.
+   **DONE in 0.55.0, lane `wt-spectral2`.** It is now a rate over 1000
+   seeds read off the shipped refusal and compared against an untapered
+   control, plus a deterministic margin assertion on the pinned seed
+   that reads the margin through `y^a` rather than rewriting the
+   statistic. Both were seen to fail against the unfixed rule; the file
+   costs 1.9 s more and needs no gate.
 
 9. **The hazard-container guard runs too late.**
    `test-bracket-access.R` polices the extensions from core's suite, so
