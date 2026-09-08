@@ -1,0 +1,105 @@
+# R CMD check for the coupling extension, extensions/frmtmb.coupling.
+#
+# The extension is not part of the core tarball (.Rbuildignore excludes
+# extensions/), so the core workflows never see it. This job installs the
+# core package from the checkout, then checks the extension against that
+# build. The path filter includes the core R sources as well as the
+# extension's own tree, because the extension consumes core's custom
+# family and compat seams and a change to either is what would break it.
+#
+# No extra-repositories: this package's only hard dependency past frmtmb
+# is RTMB, which is on CRAN, and it compiles nothing. Its density is
+# plain R arithmetic that runs on RTMB advectors and on doubles alike,
+# which is also why the tests can evaluate it on doubles and compare
+# against a reference written the same way.
+#
+# There are no heavy suggests to argue about. What this package's claims
+# are checked against is its own arithmetic: the pooled maximum
+# likelihood estimate in closed form, the complex Wishart first moment,
+# and a coherence bias that is known analytically at a true coherence of
+# zero. Nothing is compared against another package, because no other
+# package fits this likelihood.
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'extensions/frmtmb.coupling/**'
+      - 'R/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '.github/workflows/check-frmtmb-coupling.yaml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'extensions/frmtmb.coupling/**'
+      - 'R/**'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - '.github/workflows/check-frmtmb-coupling.yaml'
+  workflow_dispatch:
+
+name: check-frmtmb.coupling
+
+jobs:
+  check-frmtmb-coupling:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      NOT_CRAN: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+      # The core's own dependencies, resolved from the root DESCRIPTION,
+      # so that R CMD INSTALL below has everything it needs.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+      - name: Install the core package from this checkout
+        run: R CMD INSTALL --no-multiarch --with-keep.source .
+        shell: bash
+      # The extension's own dependencies, read from its DESCRIPTION and
+      # installed directly rather than through pak. pak resolves every
+      # dependency against a repository, and frmtmb is in no repository:
+      # the build wanted here is the one installed from the checkout in
+      # the step above, so frmtmb is skipped along with anything else
+      # already present.
+      - name: Install the extension's dependencies
+        run: |
+          d <- read.dcf("extensions/frmtmb.coupling/DESCRIPTION")
+          f <- intersect(c("Imports", "Suggests"), colnames(d))
+          p <- unlist(strsplit(paste(d[, f], collapse = ","), ","))
+          p <- trimws(sub("[(].*", "", p))
+          p <- setdiff(p[nzchar(p)], rownames(installed.packages()))
+          if (length(p)) install.packages(p)
+        shell: Rscript {0}
+      # NOT_CRAN is set at the job level above and is repeated here on
+      # purpose. The claims that need real replication carry
+      # skip_on_cran(): the effective degrees of freedom of each route to
+      # n, the naive coherence bias, the hierarchical comparison against
+      # naive averaging, the variance-component survival check, and the
+      # simulator's first moment. Together they fit hundreds of models
+      # and draw tens of thousands of matrices, which does not belong in
+      # a CRAN run. Without NOT_CRAN reaching the check subprocess this
+      # job would report a green check that asserts nothing about the
+      # measurement the package exists to make.
+      #
+      # Measured locally, one process, counted per file: 384 expectations
+      # in 63 s with NOT_CRAN (coherence 58, cross-spectrum 61,
+      # cross-wishart 203, message-uniqueness 4, surface 58), against 369
+      # with 5 skips in 16 s without it. Inside R CMD check that is one
+      # skip more, because test-message-uniqueness.R skips itself when
+      # the sources are not there to scan: this job, which does pass
+      # NOT_CRAN through, reports FAIL 0 | SKIP 1 | PASS 380.
+      - uses: r-lib/actions/check-r-package@v2
+        env:
+          NOT_CRAN: "true"
+        with:
+          working-directory: extensions/frmtmb.coupling
+          args: 'c("--no-manual")'
+          upload-snapshots: true

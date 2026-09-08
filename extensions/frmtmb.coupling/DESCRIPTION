@@ -1,0 +1,49 @@
+Package: frmtmb.coupling
+Title: Coherence and Phase Between Signals for 'frmtmb' Models
+Version: 0.1.0
+Authors@R:
+    person("Alex", "Forrence", email = "alex.forrence@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9728-6337"))
+Description: Hierarchical models for the coupling between two recorded
+    signals. A spectral model of ONE series needs no new likelihood,
+    because a periodogram ordinate is exponential about the spectral
+    density; two series is different, since the cross-spectrum is
+    complex and the pair's periodogram at each frequency is complex
+    Wishart. This package supplies that likelihood, parameterized so
+    that coherence and phase are distributional parameters with their
+    own linear predictors, which is what makes a random effect on
+    coherence or a smooth in coherence over frequency an ordinary
+    'frmtmb' formula. The parameterization cannot leave the positive
+    definite cone, because a logit link on coherence IS the constraint,
+    and the complement it needs is computed on the log scale from the
+    linear predictor so that the guarantee survives in floating point
+    rather than only on paper.
+    The reason to want it: coherence estimated from few segments is
+    biased upward by about the reciprocal of the segment count, the
+    bias does not shrink when subject coherences are averaged, and
+    concatenating subjects instead cancels the cross terms whenever
+    phase varies between them. Both failures are measured in the
+    vignette against a known truth.
+License: GPL (>= 2)
+URL: https://aforren1.github.io/frmtmb/frmtmb.coupling,
+    https://github.com/aforren1/frmtmb
+BugReports: https://github.com/aforren1/frmtmb/issues
+Encoding: UTF-8
+Language: en-US
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1),
+    frmtmb (>= 0.53.0)
+Imports:
+    RTMB (>= 1.9),
+    stats
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    tinyplot
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0
+Config/Needs/website: pkgdown
