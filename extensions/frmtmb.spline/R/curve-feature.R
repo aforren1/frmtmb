@@ -222,9 +222,15 @@ frm_curve_feature <- function(object, var,
   stk <- row1[rep(1L, 5L * length(roots)), , drop = FALSE]
   stk[[var]] <- c(roots - e2, roots - e1, roots, roots + e1, roots + e2)
   parts <- sp_curve_parts(sp$fit, stk, sp$dpar, sp$resp, sp$re.form, tol)
-  # the same reading as above: the five-point stencil at the located
-  # roots reaches e2 past them, and the roots themselves are inside the
-  # grid
+  # Re-ask on the GRID, and only when the stencil saw something. This
+  # is NOT the same question the scan above asked, which is what makes
+  # it reachable: the scan and the stencil both hold every column but
+  # `var` at row1's value, while sp_span_on_grid() predicts on the
+  # whole of `nd`. A second ps() term can leave its span in a row the
+  # scan never evaluates, so scan$span is empty, the first refusal
+  # never runs, and this is the only thing between the user and a root
+  # reported with a standard error. test-span.R covers that two-ps()
+  # case; deleting this block as unreachable made the call silent.
   if (length(parts$span)) {
     sp_span_stop(sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form))
   }

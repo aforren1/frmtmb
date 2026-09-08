@@ -3082,7 +3082,7 @@ b_coef_labels <- function(fit) {
 #'   \item{`coef_names`}{length `p`; the labels of those rows.}
 #'   \item{`extra_var`}{length `n`; variance that is NOT coefficient
 #'     uncertainty, kept separate rather than folded into `A V A'`
-#'     because an exact [gp()]'s kriging variance and a new grouping
+#'     because an exact `gp()`'s kriging variance and a new grouping
 #'     level's marginal variance are not.}
 #'   \item{`nonest`}{length `n`; rows that load on a direction the
 #'     rank-deficient design could not identify.}
@@ -3100,7 +3100,7 @@ b_coef_labels <- function(fit) {
 #' The Jacobian is exact, and the delta method built on it is still a
 #' first-order approximation, which for a warped curve is a stronger
 #' assumption than it is for a linear one. `allow_new_levels = TRUE` is
-#' refused there, and so is a contributing exact [gp()], because neither
+#' refused there, and so is a contributing exact `gp()`, because neither
 #' variance has a chain rule through the body that has been measured.
 #' @section A reduced-rank block:
 #' An `rr()` block's loadings live in `theta`, so a design over

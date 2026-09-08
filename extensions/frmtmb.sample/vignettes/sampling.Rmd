@@ -19,14 +19,26 @@ names.
 Nothing about the fit changes. The model is the one `frm()` already
 assembled; what is added is a posterior, and a starting point.
 
-```{r, eval = FALSE}
+Most chunks on this page are shown and not run, and speed is not the
+reason: four chains on the model below take seconds, not minutes. The
+reason is that tmbstan and rstan are `Suggests`, so a build machine
+need not have them, and that a tmbstan built against the wrong
+StanHeaders samples the wrong density in silence (the last section
+says how). Numbers that depend on which Stan the page was built
+against are worse than no numbers. The two chunks that need no sampler
+do run: the setup below, and the `get_prior()` calls under **The
+default priors**.
+
+```{r}
 library(frmtmb)
 library(frmtmb.sample)
 
 set.seed(9)
 dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+```
 
+```{r, eval = FALSE}
 fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 ds <- frm_sample(fit, chains = 4)
 summary(ds)
@@ -63,7 +75,7 @@ default and reports what `frm()` applies, which is flat in every slot.
 `route = "sample"` reports what `frm_sample()` applies, and this
 package is what lets it answer.
 
-```{r, eval = FALSE}
+```{r}
 # what frm() applies. Loading this package does not change it
 get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 

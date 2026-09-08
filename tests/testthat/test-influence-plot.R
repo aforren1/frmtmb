@@ -65,13 +65,17 @@ test_that("which= selects panels and an all-NA table is refused", {
   cn <- colnames(dfbetas(infl))
 
   panels <- list()
+  # .package named, not inferred: without it testthat asks pkgload which
+  # package is under development, which is an error whenever this file is
+  # run against the INSTALLED package rather than through test_check()
   local_mocked_bindings(
     infl_index_panel = function(v, units, xlab, ylab, main, labels,
                                band = NULL, ...) {
       panels[[length(panels) + 1L]] <<- list(main = main, xlab = xlab,
                                              band = band)
       invisible(NULL)
-    }
+    },
+    .package = "frmtmb"
   )
   # 1 + j is the jth coefficient's dfbetas panel
   plot(infl, which = 2, ask = FALSE)
@@ -131,7 +135,8 @@ test_that("plot() runs on an observation-deletion object", {
     infl_index_panel = function(v, units, xlab, ...) {
       xlabs <<- c(xlabs, xlab)
       invisible(NULL)
-    }
+    },
+    .package = "frmtmb"
   )
   plot(infl, ask = FALSE)
   expect_true(all(xlabs == "Observation"))
