@@ -1364,7 +1364,12 @@ sdr_of <- function(fit) {
 #'   `grad_tol`. Measured on this package's own designs that takes two
 #'   to four rounds, with the move falling about tenfold each time, so
 #'   the default leaves one in hand; an unused round costs nothing, and
-#'   each round actually taken costs one tape.
+#'   each round actually taken costs one tape. A fit that uses every
+#'   round warns, and the warning distinguishes two cases: moves that
+#'   are still shrinking want a larger cap, while moves that are all
+#'   the SAME size are a stalled iteration, whose reported shift is
+#'   that step times the round count and grows with the cap instead of
+#'   settling.
 #' @param importance_ess Effective sample size, as a fraction of the
 #'   draw count, below which `frm(importance =)` warns and names the
 #'   groups. The default `0.25` separates two measured regimes rather
@@ -2053,14 +2058,35 @@ check_convergence <- function(fit, control) {
     # the Monte Carlo standard error; the gradient stays visible in
     # `fit$importance$grad`.
     if (isTRUE(fit$importance$capped)) {
-      msgs <- c(msgs, paste0("The importance correction used all ",
-                             fit$importance$rounds, " of its rounds and ",
-                             "the estimates were still moving by ",
-                             format(fit$importance$moved, digits = 3),
-                             " at the last one. Raise ",
-                             "frmtmb_control(importance_rounds =), or ",
-                             "raise the draw count so each round lands ",
-                             "in the same place"))
+      # Two different fits reach `capped`, and only one of them wants
+      # more rounds. A stalled iteration takes the SAME step every
+      # round, so the shift it reports is that step times the round
+      # count and more rounds buy a proportionally larger wrong
+      # answer; telling that user to raise the cap is advice about a
+      # number that is not an estimate. imp_stalled() separates them.
+      msgs <- c(msgs, if (imp_stalled(fit$importance$moves)) {
+        paste0("The importance correction moved by the same amount, ",
+               format(fit$importance$moved, digits = 3), ", in every ",
+               "one of its ", fit$importance$rounds, " rounds, so it ",
+               "has not converged and its total shift is that step ",
+               "times the round count rather than an estimate. The ",
+               "step is a property of the draws and not of the data, ",
+               "so raising frmtmb_control(importance_rounds =) would ",
+               "only move the estimates proportionally further. A ",
+               "variance component the Laplace fit has already ",
+               "collapsed does this, because nothing is left to ",
+               "reweight: check VarCorr() before reading the ",
+               "corrected estimates")
+      } else {
+        paste0("The importance correction used all ",
+               fit$importance$rounds, " of its rounds and ",
+               "the estimates were still moving by ",
+               format(fit$importance$moved, digits = 3),
+               " at the last one. Raise ",
+               "frmtmb_control(importance_rounds =), or ",
+               "raise the draw count so each round lands ",
+               "in the same place")
+      })
     }
   } else if (is.finite(g) && g > control$grad_tol) {
     msgs <- c(msgs, paste0("Large maximum absolute gradient at the ",

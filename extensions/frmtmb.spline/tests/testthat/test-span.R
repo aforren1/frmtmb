@@ -246,17 +246,23 @@ test_that("a model with no ps() term is untouched by any of this", {
   expect_equal(attr(cv, "check")$n_predict, 1L)
 })
 
-## A SECOND ps() term makes the stencil guard reachable.
+## A SECOND ps() term is what the second span check is for.
 ##
 ## frm_curve_feature() checks the span twice, and the two checks are not
-## the same question. The scan and the five-point stencil are built from
-## row 1 replicated, so they hold every column but `var` pinned; the
-## re-ask runs one predict() on the WHOLE grid. A second ps() term can
-## therefore leave its span in a row the scan never evaluates: the first
-## refusal's guard is false, and only the stencil guard is left between
-## the user and a root reported with a standard error. This case was
-## deleted once as unreachable, which made the call silent where it had
-## refused, so it is pinned here.
+## the same question. The scan, the Newton steps and the five-point
+## stencil are all row 1 replicated, so they hold every column but `var`
+## pinned; the second check runs one predict() on the WHOLE grid. A
+## second ps() term can therefore leave its span in a row the scan never
+## evaluates, and that check is the only thing between the user and a
+## root reported with a standard error. The block was deleted once as
+## unreachable, which made the call silent where it had refused.
+##
+## Until 0.55.0 the block was gated on the STENCIL's span messages
+## instead of on the grid, and the stencil reaches e2 past each root. So
+## the gate was true when a root happened to land within e2 of a knot
+## and false otherwise, whatever the grid held: the two tests below are
+## the same out-of-span row judged either way, and before 0.55.0 the
+## first refused and the second returned a root in silence.
 sp_span_fit2 <- function(seed = 4242, n = 220) {
   set.seed(seed)
   d <- data.frame(t = sort(stats::runif(n)), z = stats::runif(n, 0, 1))
@@ -269,7 +275,7 @@ sp_span_fit2 <- function(seed = 4242, n = 220) {
   list(fit = fit, t_span = pt[[1]]$knot_range, z_span = pt[[2]]$knot_range)
 }
 
-test_that("a second ps() term's span reaches the stencil refusal", {
+test_that("a second ps() term's span refuses at a root by the knot", {
   skip_on_cran()
   o <- sp_span_fit2()
 
@@ -290,20 +296,64 @@ test_that("a second ps() term's span reaches the stencil refusal", {
   e2 <- 1e-4 * diff(range(g$t))
   at <- eta_at(b - 0.2 * e2)
 
-  # Control. The stencil DOES leave t's span here, so the guard is true,
-  # but the grid itself is clean and the re-ask correctly declines to
-  # refuse. This is the half of the block that must stay quiet.
+  # Control. The stencil DOES leave t's span here, and the grid does
+  # not: every other column is pinned to row 1, so the scan has already
+  # predicted at everything the grid holds and nothing is re-asked. The
+  # stencil's own millionth-of-a-range fringe is not a refusal, here or
+  # in frm_curve_deriv().
   expect_no_error(ok <- frm_curve_feature(o$fit, var = "t",
                                           type = "crossing", at = at,
                                           newdata = g))
   expect_equal(nrow(ok), 1L)
 
-  # One row leaves z's span, and it is not row 1, so nothing the scan
-  # evaluates ever sees it. Only the stencil guard can refuse here, so
-  # this errors if and only if that block is present.
+  # One row leaves z's span, and it is not row 1, so nothing the search
+  # evaluates ever sees it. The second check is the only one that can
+  # refuse here, so this errors if and only if that block is present.
   g_out <- g
   g_out$z[10] <- o$z_span[2] + 5
-  expect_error(frm_curve_feature(o$fit, var = "t", type = "crossing",
-                                 at = at, newdata = g_out),
-               "the search bracket leaves", fixed = TRUE)
+  e <- expect_error(frm_curve_feature(o$fit, var = "t", type = "crossing",
+                                      at = at, newdata = g_out),
+                    "the search bracket leaves", fixed = TRUE)
+  # and it names the term that is actually out of span. Before 0.55.0
+  # the gate that fired was t's stencil fringe while the message quoted
+  # z, which is the mismatch this keying removes.
+  expect_match(conditionMessage(e), "ps(z, k = 8", fixed = TRUE)
+})
+
+test_that("a second ps() term's span refuses at a root in the middle", {
+  skip_on_cran()
+  o <- sp_span_fit2()
+
+  # The same grid and the same out-of-span row, but a crossing in the
+  # MIDDLE of the bracket, so no stencil point is within e2 of either
+  # knot. Nothing about the answer changes: the search holds z at row
+  # 1's value, and before 0.55.0 this returned a root whose estimate
+  # was bit-identical to the clean grid's, in silence, because the gate
+  # was the stencil's span and not the grid's.
+  a <- 0.05
+  b <- o$t_span[2] - 5e-6 * (o$t_span[2] - a)
+  g <- data.frame(t = seq(a, b, length.out = 15))
+  g$z <- 0.5
+  eta_at <- function(tv) {
+    dd <- g[rep(1L, length(tv)), , drop = FALSE]
+    dd$t <- tv
+    as.numeric(stats::predict(o$fit, newdata = dd, type = "link"))
+  }
+  at <- eta_at(0.5 * (a + b))
+
+  expect_no_error(ok <- frm_curve_feature(o$fit, var = "t",
+                                          type = "crossing", at = at,
+                                          newdata = g))
+  expect_equal(nrow(ok), 1L)
+
+  g_out <- g
+  g_out$z[10] <- o$z_span[2] + 5
+  e <- expect_error(frm_curve_feature(o$fit, var = "t", type = "crossing",
+                                      at = at, newdata = g_out),
+                    "the search bracket leaves", fixed = TRUE)
+  expect_match(conditionMessage(e), "ps(z, k = 8", fixed = TRUE)
+  # frm_curve() warns about the same grid, so the two doors now agree
+  # about it; they differ only in warning against refusing
+  expect_warning(frm_curve(o$fit, newdata = g_out, simultaneous = FALSE),
+                 "leaves a ps() term's knot span", fixed = TRUE)
 })

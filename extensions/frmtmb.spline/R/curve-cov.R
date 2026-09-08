@@ -91,6 +91,32 @@ sp_span_on_grid <- function(fit, nd, dpar, resp, re.form) {
   sp_catch_span(sp_predict_eta(fit, nd, dpar, resp, re.form))$span
 }
 
+#' Does the grid hold every column but `var` at row 1's value?
+#'
+#' [frm_curve_feature()] evaluates nothing but row 1 with `var` moved:
+#' the scan, the Newton steps and the five-point stencil are all
+#' `row1[rep(1L, n), ]` with that one column overwritten. So when the
+#' rest of the grid is pinned to row 1, the scan has already predicted
+#' at every covariate combination the grid holds, and its own span
+#' check covers the grid. Only a column that VARIES down the grid can
+#' put a value outside a second `ps()` term's span in a row the search
+#' never evaluates, which is the one case the second check is for.
+#'
+#' `duplicated()` rather than a comparison: it compares factors,
+#' characters and matrix columns as themselves, it treats `NA` as equal
+#' to `NA`, and "duplicated from row 2 on" is exactly "one distinct
+#' value". A numeric tolerance would be wrong here, because a value a
+#' hair past a knot is outside the span.
+#'
+#' @noRd
+sp_grid_pinned <- function(nd, var) {
+  if (nrow(nd) < 2L) return(TRUE)
+  for (nm in setdiff(names(nd), var)) {
+    if (!all(duplicated(nd[[nm]])[-1L])) return(FALSE)
+  }
+  TRUE
+}
+
 #' One prediction on the link scale, as a plain numeric vector.
 #'
 #' @noRd

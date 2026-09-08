@@ -69,12 +69,17 @@
 #' shows the reader what it is doing, that root leaves the function as
 #' a number with a standard error beside it and nothing to say which
 #' curve it came off. The bracket is checked at the grid scan, before
-#' any root is refined, and again at the located roots.
+#' any root is refined.
 #'
 #' What is checked is the grid you passed, not the difference stencil
 #' the scan widens it into: a grid whose endpoint sits exactly on a knot
 #' is inside the span, and was refused for being a millionth of its
 #' range outside the stencil's.
+#'
+#' The search holds every column but `var` at row 1's value, so a grid
+#' whose other columns change from row to row is checked a second time,
+#' against the whole grid. That is where a second `ps()` term can leave
+#' its span in a row the search itself never predicts at.
 #'
 #' @seealso [frm_curve()], [frm_curve_deriv()]
 #' @examples
@@ -215,6 +220,30 @@ frm_curve_feature <- function(object, var,
                      row.names = integer(0)))
   }
 
+  # THE SECOND SPAN CHECK, and it is not the scan's question asked
+  # again. The scan, the Newton steps and the stencil are all row 1
+  # with `var` moved, so they hold every other column at row 1's value;
+  # sp_span_on_grid() predicts on the whole of `nd`. A grid whose other
+  # columns are pinned to row 1 is therefore already covered by the
+  # scan, and only a column that VARIES down the grid can put a value
+  # outside a second ps() term's span in a row nothing the search
+  # evaluates ever sees. That is the question, and this asks it.
+  #
+  # It used to be gated on `parts$span`, the five-point stencil's own
+  # messages, which is a THIRD question: the stencil reaches e2 past
+  # the root, so that gate was true when a root landed within e2 of a
+  # knot and false otherwise, whatever the grid held. On the two-ps()
+  # fixture in test-span.R the same out-of-span `z` in row 10 was
+  # refused when the root landed at the end of the bracket and returned
+  # silently, with a bit-identical estimate, when it landed in the
+  # middle; and the refusal it did raise quoted `z`'s span while the
+  # gate that fired was `t`'s stencil fringe. The stencil's own fringe
+  # is not asked about here on purpose, the same way frm_curve_deriv()
+  # counts the grid and not the stencil it widens the grid into.
+  if (!sp_grid_pinned(nd, var)) {
+    sp_span_stop(sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form))
+  }
+
   # One design pass over the whole five-point stencil at every root: the
   # variances below are exact functionals of the same C and V the bands
   # use, so a feature and a band on one fit cannot disagree about the
@@ -222,18 +251,6 @@ frm_curve_feature <- function(object, var,
   stk <- row1[rep(1L, 5L * length(roots)), , drop = FALSE]
   stk[[var]] <- c(roots - e2, roots - e1, roots, roots + e1, roots + e2)
   parts <- sp_curve_parts(sp$fit, stk, sp$dpar, sp$resp, sp$re.form, tol)
-  # Re-ask on the GRID, and only when the stencil saw something. This
-  # is NOT the same question the scan above asked, which is what makes
-  # it reachable: the scan and the stencil both hold every column but
-  # `var` at row1's value, while sp_span_on_grid() predicts on the
-  # whole of `nd`. A second ps() term can leave its span in a row the
-  # scan never evaluates, so scan$span is empty, the first refusal
-  # never runs, and this is the only thing between the user and a root
-  # reported with a standard error. test-span.R covers that two-ps()
-  # case; deleting this block as unreachable made the call silent.
-  if (length(parts$span)) {
-    sp_span_stop(sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form))
-  }
   nr <- length(roots)
   blk <- function(k) parts$C[(k - 1L) * nr + seq_len(nr), , drop = FALSE]
   eta <- function(k) parts$eta[(k - 1L) * nr + seq_len(nr)]

@@ -145,18 +145,27 @@ test_that("the importance correction runs on a learn fit", {
   # the first freeze, so a fit returning at all is that check having
   # passed. NOT the answer: eight subjects is far too few for the
   # correction to converge, and it says so rather than being quiet about
-  # it. The iteration walks at its step cap for all five rounds at 50,
+  # it. The iteration takes the SAME step for all five rounds at 24, 50,
   # 100 and 200 draws alike, which is measured in
   # dev/learn2-findings.md; the warning is asserted here so a future
   # change that made it silent would fail rather than pass.
+  #
+  # frmtmb >= 0.55.0 says which kind of capped this is. The step here is
+  # a property of the draws: at 50 draws these eight subjects walk at
+  # 0.94961, the same number a core Bernoulli fit of eight groups walks
+  # at with the same seed and draw count.
   expect_warning(
     fit <- frmtmb::frm(f, family = fam, data = d, importance = 24),
-    "still moving")
+    "moved by the same amount")
   expect_s3_class(fit, "frmtmb_fit")
   expect_equal(fit$importance$draws, 24)
   expect_true(is.finite(as.numeric(stats::logLik(fit))))
   expect_equal(length(fit$importance$ess), 8L)
   expect_true(fit$importance$capped)
+  # the moves are equal to a part in ten thousand of themselves, which
+  # is what "the same step" means and what the warning keys on
+  mv <- fit$importance$moves
+  expect_lt((max(mv) - min(mv)) / mean(mv), 1e-3)
 })
 
 test_that("importance refuses a grouping that is not the family's unit", {
