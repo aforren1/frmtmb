@@ -1171,3 +1171,115 @@ test_that("a factorization with no grouping in the block is refused", {
                    importance = 100L),
                "carries no `group`")
 })
+
+# ---------------------------------------------------------------------
+# WHICH KIND OF CAPPED. `capped` covers two fits that want opposite
+# advice, and until 0.55.0 both got the same sentence.
+#
+# One is short of rounds: its moves shrink by a factor of three to ten
+# each round and one or two more rounds would land it. The other is
+# stalled: it takes the SAME step every round, so its total shift is
+# that step times the round count, and a larger cap buys a
+# proportionally larger number rather than a better one.
+#
+# The step is a property of the DRAWS and not of the model. Twelve
+# groups of three Bernoulli rows simulated with sd = 0, at 50 draws,
+# walk at 0.90907 whatever the data seed, and eight groups at 50 draws
+# walk at 0.949613, which is 1.3e-06 from what a frmtmb.learn fit of an
+# entirely different family reports at eight subjects and 50 draws.
+# Both differences are smaller than the spread between the rounds of
+# either run.
+# ---------------------------------------------------------------------
+
+# sd = 0, so the Laplace fit collapses the component and the correction
+# has nothing left to reweight. Twelve groups of three rows fits in
+# about a fifth of a second.
+imp_stall_data <- function(seed = 1L, ng = 12L, per = 3L) {
+  set.seed(seed)
+  g <- factor(rep(seq_len(ng), each = per))
+  x <- rnorm(ng * per)
+  data.frame(y = rbinom(ng * per, 1, plogis(-0.3 + 0.7 * x)), x = x, g = g)
+}
+
+# every warning the expression raises, as text
+imp_warnings <- function(expr) {
+  ws <- character(0)
+  val <- withCallingHandlers(expr, warning = function(w) {
+    ws <<- c(ws, conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+  list(value = val, warnings = ws)
+}
+
+test_that("a stalled correction is not told to raise the round count", {
+  r <- imp_warnings(frm(bf(y ~ x + (1 | g)) + bernoulli(),
+                        data = imp_stall_data(), importance = 50L))
+  im <- r$value$importance
+  expect_true(im$capped)
+  expect_true(frmtmb:::imp_stalled(im$moves))
+  # the collapsed component is the cause, and it is what the message
+  # sends the reader to look at
+  expect_lt(sqrt(VarCorr(r$value)[[1L]][1L, 1L]), 1e-4)
+
+  hit <- grep("importance correction", r$warnings, value = TRUE)
+  expect_length(hit, 1L)
+  expect_match(hit, "moved by the same amount", fixed = TRUE)
+  expect_match(hit, "not of the data", fixed = TRUE)
+  # the advice that is wrong here is gone: more rounds do not land this
+  # fit anywhere
+  expect_false(grepl("still moving", hit, fixed = TRUE))
+
+  # and the shift it reports IS the step times the round count, to a
+  # part in a thousand of itself. That is arithmetic, not an estimate.
+  expect_lt(abs(sum(im$moves) - im$rounds * im$moved) / sum(im$moves),
+            1e-3)
+})
+
+test_that("a correction that is still shrinking still asks for rounds", {
+  # the same design as the multi-block tests, stopped one round short:
+  # it lands at three rounds on its own, so a cap of two is genuinely
+  # short of rounds rather than stalled
+  r <- imp_warnings(frm(bf(y ~ x + (1 | g)) + bernoulli(),
+                        data = imp_scalar_data(), importance = 200L,
+                        control = frmtmb_control(importance_rounds = 2L)))
+  im <- r$value$importance
+  expect_true(im$capped)
+  expect_false(frmtmb:::imp_stalled(im$moves))
+  # measured: 0.109 then 0.0106, a tenth of the first
+  expect_lt(im$moves[2L] / im$moves[1L], 0.5)
+
+  hit <- grep("importance correction", r$warnings, value = TRUE)
+  expect_length(hit, 1L)
+  expect_match(hit, "still moving", fixed = TRUE)
+  expect_false(grepl("moved by the same amount", hit, fixed = TRUE))
+})
+
+test_that("imp_stalled() separates the two measured regimes", {
+  # the capped move vectors this package's own designs produce, kept as
+  # data rather than refitted: three converging (scalar Bernoulli and
+  # the 2x2 probe stopped short, and a wandering 20-group fit) and
+  # three stalled (12 groups at 50 draws, and two frmtmb.learn fits)
+  converging <- list(
+    c(0.109326438, 0.010590534),
+    c(0.0958364841, 0.0257134495, 0.0072451622),
+    c(0.3637685545, 0.2674934619, 0.2918042143, 0.2844988173, 0.2873984641))
+  stalled <- list(
+    c(0.9090782568, 0.9090729177, 0.9090783941, 0.9090782113, 0.9090729093),
+    c(0.3644537287, 0.3644636190, 0.3644559839, 0.3644573799, 0.3644548398),
+    c(0.3004727073, 0.3004744652, 0.3004240675, 0.3004749115, 0.3005011796))
+  for (m in converging) expect_false(frmtmb:::imp_stalled(m))
+  for (m in stalled) expect_true(frmtmb:::imp_stalled(m))
+
+  # the margin either way, as a ratio to the threshold rather than as a
+  # number: 32 times under it for the narrowest converging vector, 39
+  # times over it for the widest stalled one
+  spread <- function(m) (max(m) - min(m)) / mean(m)
+  expect_gt(min(vapply(converging, spread, 0)) / frmtmb:::imp_stall_tol, 10)
+  expect_lt(max(vapply(stalled, spread, 0)) / frmtmb:::imp_stall_tol, 0.1)
+
+  # one round is no evidence: a single move is trivially equal to
+  # itself, and a cap of one round is where raising the cap is right
+  expect_false(frmtmb:::imp_stalled(0.5))
+  expect_false(frmtmb:::imp_stalled(c(NA_real_, 0.5)))
+  expect_false(frmtmb:::imp_stalled(c(0, 0)))
+})

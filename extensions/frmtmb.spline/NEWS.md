@@ -1,3 +1,21 @@
+# frmtmb.spline (development version)
+
+* FIX: `frm_curve_feature()`'s second span check reads the grid you
+  passed rather than the five-point stencil at the located roots. The
+  stencil reaches `eps` past each root, so the old gate was true when a
+  root happened to land within that distance of a knot and false
+  otherwise, whatever the grid held. On a fit with two `ps()` terms,
+  one row whose `z` left the second term's span was refused when the
+  crossing landed at the end of the bracket and returned in silence,
+  with a bit-identical estimate, when it landed in the middle; and the
+  refusal it did raise quoted `z`'s span while the gate that fired was
+  `t`'s stencil fringe. The check now runs when, and only when, a
+  column other than the search variable varies down the grid, which is
+  the one thing the grid scan cannot see, and it refuses on what that
+  question answers. A grid whose other columns are pinned to row 1,
+  which is every grid in this package's own examples, is unaffected and
+  costs no extra prediction.
+
 # frmtmb.spline 0.3.0
 
 A curve past the fitted knot span warns once under the function that

@@ -1079,6 +1079,49 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
 #' @noRd
 imp_move_tol <- 1e-3
 
+#' How nearly equal the round-to-round moves must be before the
+#' iteration is reported as stalled rather than as needing more rounds.
+#'
+#' Measured, as a spread relative to the moves' own size, so no
+#' parameter scale enters it.
+#'
+#' A correction that is converging shrinks its move by a factor of
+#' three to ten each round, and its moves are therefore nothing like
+#' equal: over the capped fits on this package's own designs (the
+#' scalar Bernoulli intercept, the correlated 2x2 probe, and the
+#' gaussian mu-and-sigma design, each stopped short at two or three
+#' rounds) the relative spread is 1.15, 1.35, 1.65 and 2.06.
+#'
+#' A stalled correction takes the SAME step every round: over ten
+#' capped `frmtmb.learn` fits (three reversal datasets at 100 and 400
+#' draws, one 8-subject fit at 24, 50, 100 and 200 draws) the relative
+#' spread runs from 5.4e-06 to 2.6e-04. The two regimes are four orders
+#' of magnitude apart, and 1e-2 sits with a factor of 39 over the
+#' widest stalled spread and a factor of 115 under the narrowest
+#' converging one.
+#'
+#' The threshold is loose on purpose. A fit that really was converging
+#' but whose moves agreed to one percent would be shrinking them by a
+#' factor of 0.9975 per round, which from a move of 0.36 needs some
+#' 2400 more rounds to reach `imp_move_tol`, and "raise the round
+#' count" is not honest advice there either.
+#'
+#' @noRd
+imp_stall_tol <- 1e-2
+
+#' Is the correction taking the same step every round?
+#'
+#' One round says nothing: a single move is trivially equal to itself,
+#' and a cap of one round is exactly the case where raising the cap is
+#' the right advice.
+#'
+#' @noRd
+imp_stalled <- function(moves) {
+  if (length(moves) < 2L || !all(is.finite(moves))) return(FALSE)
+  m <- mean(moves)
+  m > 0 && (max(moves) - min(moves)) / m < imp_stall_tol
+}
+
 #' The effective sample size, as a fraction of the draw count, below
 #' which the proposal is reported as having stopped covering its
 #' integrand.

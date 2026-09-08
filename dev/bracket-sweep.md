@@ -2077,12 +2077,24 @@ untouched, and the names in the list are reserved - binding one of
 them to something that is not the container it names is itself a hit,
 and the fix is to rename the local.
 
-The extensions are policed from core rather than from a copy of the
-test in each of them, so the container list has one home; the boundary
-test already reaches across the monorepo the same way. The price is
-that the guard runs in core's suite and not in each extension's own
-`R CMD check`. A cloned copy would trade one container list for five
-that drift, which is the worse bargain.
+Until 0.55.0 the extensions were policed from core alone, so the
+container list had one home and the price was that the guard ran in
+core's suite and not in each extension's own `R CMD check`.
+`frmtmb.coupling` then passed its own check and its own suite with 34
+hazard reads and was caught at the release tally.
+
+The list still has one home, and the guard now runs in both places.
+`R/hazard-containers.R` holds the list and exports
+`frm_hazard_reads()`, which walks the syntax tree of every function in
+a NAMESPACE and reports the reads. Each extension asserts it on itself
+in ten lines with no list of its own, and that assertion runs under
+`R CMD check` on a built tarball, where the source-tree scanner has no
+`R/` to read. Core keeps the source scan of every extension as a
+backstop: it reports file and line, it sees top-level code that is not
+inside a function, and it catches an extension that dropped its own
+guard file. Core's suite also fails when an extension in the tree has
+no `test-bracket-access.R` of its own, which is the earliest point at
+which a new package can be told about the rule.
 
 Both assertions are empty after the sweep, so the scanner needs a hit
 of its own to prove it can still see one. The boundary test points its

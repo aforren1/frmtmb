@@ -253,6 +253,32 @@ second scale from a shape, and a dpar formula walked past it.
   package's own suite sets the option off in `tests/testthat/setup.R`,
   so no test depends on which file censors a count first.
 
+* The warning from a capped importance correction now says which of two
+  things happened, because they want opposite advice. A correction that
+  is short of rounds shrinks its move by a factor of three to ten each
+  round, and raising `frmtmb_control(importance_rounds =)` lands it:
+  that message is unchanged. A STALLED correction takes the same step
+  every round, and its total shift is that step times the round count,
+  so more rounds buy a proportionally larger number rather than a
+  better one. It now says so, and sends the reader to `VarCorr()`,
+  because a variance component the Laplace fit has already collapsed is
+  what does this. Measured: twelve groups of three Bernoulli rows with
+  no variance component walk at 0.909073 for all five rounds and report
+  a shift of 4.545, and the step is a property of the DRAWS rather than
+  of the data. It changes to 0.317931 at `importance_seed = 7`, and at
+  one seed it varies less between two datasets, or between core and a
+  `frmtmb.learn` fit of an unrelated family with the same group and
+  draw counts, than it does between the rounds of a single run.
+
+* New `frm_hazard_reads()`, a testing aid for frmtmb and its
+  extensions. It reports every place in a package where `$` is used on
+  one of the containers whose slot names collide under partial
+  matching, so an extension asserts the rule on itself, in its own
+  suite and under its own `R CMD check`, from the one container list
+  frmtmb owns. Until now the rule was policed only from frmtmb's suite,
+  and `frmtmb.coupling` passed its own check and its own tests with 34
+  such reads.
+
 
 # frmtmb 0.54.0
 

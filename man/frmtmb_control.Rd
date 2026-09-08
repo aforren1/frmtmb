@@ -116,7 +116,12 @@ or the freshly anchored objective is stationary at them to
 \code{grad_tol}. Measured on this package's own designs that takes two
 to four rounds, with the move falling about tenfold each time, so
 the default leaves one in hand; an unused round costs nothing, and
-each round actually taken costs one tape.}
+each round actually taken costs one tape. A fit that uses every
+round warns, and the warning distinguishes two cases: moves that
+are still shrinking want a larger cap, while moves that are all
+the SAME size are a stalled iteration, whose reported shift is
+that step times the round count and grows with the cap instead of
+settling.}
 
 \item{importance_ess}{Effective sample size, as a fraction of the
 draw count, below which \code{frm(importance =)} warns and names the
