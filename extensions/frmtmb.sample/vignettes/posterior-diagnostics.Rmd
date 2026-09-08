@@ -8,9 +8,10 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-# every chunk needs tmbstan and a real NUTS run, which is minutes of
-# compute and a package this one only suggests, so the page shows the
-# calls and not their output
+# every chunk needs tmbstan, which this package only suggests, so the
+# page shows the calls and not their output. Not a speed decision:
+# four chains on the model below are seconds, not minutes. No figure
+# here on purpose; a machine-specific second-count goes stale silently
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
@@ -23,6 +24,10 @@ so the first question becomes whether the sampler explored the
 posterior it was given. The third question changes character: the
 posterior IS the uncertainty statement, so the interesting comparison
 is against the maximum-likelihood fit that the same objective produced.
+
+Every chunk here is shown and not run, because every one needs a
+sampler this package only suggests. `vignette("sampling")` says more
+about why, and its own prior tables do run.
 
 ```{r}
 library(frmtmb)

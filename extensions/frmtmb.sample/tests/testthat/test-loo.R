@@ -490,8 +490,10 @@ test_that("a group-unit matrix says so, because loo() cannot", {
   # The message is the only place a caller learns which they asked for.
   ll <- matrix(rnorm(30), 5, 6)
   attr(ll, "unit") <- "one subject's trial sequence"
+  # .package named so the mock does not depend on a pkgload dev namespace
   local_mocked_bindings(log_lik = function(x, ndraws = NULL, resp = NULL,
-                                           ...) ll)
+                                           ...) ll,
+                        .package = "frmtmb.sample")
   expect_message(loo_matrix(NULL, NULL, NULL, "loo()"),
                  "leave-one-out over the 6 units")
   expect_message(loo_matrix(NULL, NULL, NULL, "loo()"),
@@ -501,6 +503,7 @@ test_that("a group-unit matrix says so, because loo() cannot", {
   # a per-observation matrix carries no unit and says nothing
   plain <- matrix(rnorm(30), 5, 6)
   local_mocked_bindings(log_lik = function(x, ndraws = NULL, resp = NULL,
-                                           ...) plain)
+                                           ...) plain,
+                        .package = "frmtmb.sample")
   expect_no_message(loo_matrix(NULL, NULL, NULL, "loo()"))
 })

@@ -4,6 +4,18 @@ Edge cases harvested from the reference packages' test suites and
 issue/PR history (2026-08-31). Status: DONE items have tests in
 tests/testthat/ (mostly test-edgecases.R); the rest are open work.
 
+## Triage, 2026-09-07 (frmtmb 0.53.0)
+
+Every entry under an `Open` heading was re-measured against the tree at
+0.53.0, by running it rather than by reading for it. Of the 17, six
+closed as done, one closed as moot, one halved, and nine remain; two of
+the nine are restated below, because what they predicted is not what
+now happens. The Done, Fixed and Verified-immune sections were not
+re-measured and stay as the archive they are.
+
+An `Open` heading is therefore live: an entry under one is work still
+to do, and every closure carries the measurement that closed it.
+
 ## Done
 
 - Frozen data-dependent bases (poly/ns/scale) via predvars stored from
@@ -48,39 +60,84 @@ tests/testthat/ (mostly test-edgecases.R); the rest are open work.
 
 ## Open - high priority
 
-1. Interval censoring (cens code 2 + y2), with NA y2 allowed on
-   non-interval rows. [brms#1070]
-2. Discrete-family truncation off-by-one: P(lb <= Y) needs F(lb-1), not
-   F(lb), once count families get lcdf. [brms#1903]
-3. |ID| new-level prediction must draw from the joint block, not the
-   marginals; dpar-formula reordering must not change logLik.
-   [brms#779, #674]
-4. Level ordering of (1|a:b) interaction factors matching
-   droplevels(a:b) label order (count verified; label order and star
-   syntax (1|a*b) untested). [lme4#635/#636/#945]
-5. Constant-weight (non-)invariance for gaussian documented and tested
-   (frequency semantics now verified for poisson). [lme4 priorWeights.R]
+- Constant-weight (non-)invariance for gaussian documented and tested.
+  The behavior is already right and only unpinned: at 0.53.0 a constant
+  `weights(w)` of 2 leaves the coefficients invariant to 5.9e-06 and
+  exactly doubles the logLik (-347.5174 against -173.7587). What is
+  missing is the regression test and the sentence saying so.
+  [lme4 priorWeights.R]
+
+### Closed at the 2026-09-07 triage (was: Open - high priority)
+
+- DONE. Interval censoring (cens code 2 + y2), NA y2 off the interval
+  rows. `cens_code_map` carries `interval = 2` (R/frame.R:531), an NA
+  y2 is allowed off interval rows (:1086) and refused on them (:1383),
+  and a gaussian fit over all four codes converges. [brms#1070]
+- DONE. Discrete truncation normalizes with F(lb - 1)
+  (R/objective.R:71-77): a poisson `trunc(lb = 2)` fit's logLik
+  matches a hand-rolled
+  `ppois(lb - 1)` reference to 1.1e-13. Duplicate of the
+  "Verified immune" entry below, which already said so. [brms#1903]
+- DONE. `predict(newdata =, allow_new_levels = TRUE, se.fit = TRUE)` at
+  a new level of a `(1 | ID | g)` block spanning mu and sigma returns a
+  finite estimate and standard error, and a `student()` fit with
+  `sigma` and `nu` swapped in `bf()` gives a bit-identical logLik
+  (difference 0.0e+00). [brms#779, #674]
+- DONE. tests/testthat/test-aliased-grouping.R:144 pins the label order
+  against `levels(droplevels(a:b))`, and `(1 | a * b)` is covered under
+  "Verified immune" below. [lme4#635/#636/#945]
 
 ## Open - medium
 
 - Singular-fit detection: the isSingular verdict is done (see the
   diagnostics/UX cluster below); what is left is profile CIs on
-  boundary parameters, which must warn rather than hang.
+  boundary parameters. RESTATED 2026-09-07, because it does not hang,
+  and it fails in TWO ways rather than one. Sweeping 17 gaussian fits
+  whose grouping factor carries no signal, all returning in well under
+  a second, `confint(parm = "theta_1", method = "profile")`:
+  - dies inside `approx()` with "need at least two non-NA values to
+    interpolate", a raw internal message (10 of 17 here, 6 of 17 on a
+    reviewer's sweep; the split is seed-dependent, both modes always
+    appear);
+  - or returns a CI with `lwr = NA` and a finite `upr`, warning only
+    "NA/NaN function evaluation", which names no component (7 of 17
+    here, 11 of 17 on the reviewer's). This is the worse mode: a
+    plausible-looking half-answer rather than a refusal, and the first
+    pass of this triage recorded only the error.
+
+  One fix covers both: catch it and return NA bounds with a warning
+  naming the component, which is what the Wald path already does.
   [lme4 test-isSingular.R, #660]
-- Offset-only models (zero-column X in every predictor - partially
-  covered by ordinal); the offset ARGUMENT form (offset = as a separate
-  argument, not offset() in the formula). Offset in dpar formulas is
-  done. [glmmTMB test-offset.R, #625, #286]
-- predict type grid for zi families: response = (1-zprob)*conditional;
-  zprob on non-zi model returns 0 not garbage; truncated conditional
-  means. [glmmTMB#798, #873, #634]
-- gam-style exclude= for zeroing individual smooths in prediction;
-  re.form = NA keeps smooths (implemented - keep regression test).
+- The offset ARGUMENT form: `frm(..., offset = )` is still an
+  "unused argument" error. HALVED 2026-09-07: the offset-only model is
+  done, `y ~ 0 + offset(o)` fits, and offset inside a dpar formula was
+  already done. [glmmTMB test-offset.R, #625, #286]
+- gam-style exclude= for zeroing individual smooths in prediction.
+  Confirmed 2026-09-07: `predict(exclude = "s(z)")` still warns
+  "ignoring unknown arguments to predict(): exclude". `re.form = NA`
+  keeps smooths (implemented; keep the regression test).
   [glmmTMB test-smooths.R; mgcv semantics]
-- confint/vcov excluding mapped parameters everywhere (constant dpars
-  covered; extend to any future map use). [glmmTMB#1120]
-- dpar/nlpar names with dots or underscores rejected (collision with
-  coefficient naming). [brms tests.brmsformula.R]
+- confint/vcov excluding mapped parameters everywhere. Constant dpars
+  are covered and nothing else maps yet, so this is a rule to apply
+  when a new map appears rather than work waiting. [glmmTMB#1120]
+
+### Closed at the 2026-09-07 triage (was: Open - medium)
+
+- DONE. predict type grid for zi families: on a
+  `zero_inflated_poisson()` fit, `type = "response"` equals
+  `(1 - zi) * conditional` exactly, maximum difference 0.0e+00. The
+  third part of the same entry, truncated conditional means, is done
+  too and recorded under the open-issue sweep's "Fixed": `fitted()`,
+  `predict(type = "response")` and `residuals()` report
+  E[Y | lb <= Y <= ub].
+- MOOT. "zprob on a non-zi model returns 0 not garbage": it now refuses
+  by name instead, `Unknown dpar: 'zi' for response 'y'. Available:
+  mu`, which is the better answer and retires the item as written.
+  [glmmTMB#798, #873, #634]
+- DONE, and a duplicate. dpar/nlpar names with dots or underscores are
+  refused at R/bf.R:157 with the message this entry asks for; the same
+  item already sits under "Addressed in v0.6" above.
+  [brms tests.brmsformula.R]
 
 ## Diagnostics and UX cluster (2026-09-01)
 
@@ -288,8 +345,12 @@ tests/testthat/test-aliased-grouping.R.
   fix wants an integrator that recalibrates per evaluation; TMBad's
   `adaptive = TRUE` is meant to be that and is measurably worse, so it
   would have to be built rather than switched on.
+  Confirmed 2026-09-07: unchanged at 0.53.0, and the fix is still an
+  integrator to build rather than a flag to set.
 - No `link_zi` / `link_hu`: the zero-inflation and hurdle parts are
-  logit-only, as in glmmTMB. [glmmTMB#847]
+  logit-only, as in glmmTMB. Confirmed 2026-09-07:
+  `zero_inflated_poisson(link_zi = "probit")` is an unused-argument
+  error. [glmmTMB#847]
 
 (`cbind(successes, failures)` and the zero-free-parameter model moved
 to the diagnostics/UX cluster below; both are fixed.)
@@ -362,10 +423,12 @@ Regression tests in tests/testthat/test-osa-inference.R.
   censored row would have to be a randomized quantile inside the
   censoring interval, which `oneStepPredict` cannot produce; doing it
   would mean computing the conditional CDF at the censoring point
-  outside TMB.
+  outside TMB. Confirmed 2026-09-07: a standing design limit, not a
+  defect that a fix would close.
 - `dharma_residuals()` on a censored fit compares latent draws with
   observed censored values and is not valid. It neither warns nor
-  refuses. `simulate(censored = TRUE)` makes the draws comparable, but
+  refuses. Confirmed 2026-09-07: `dharma_residuals()` on a gaussian
+  `cens()` fit returns normally, silently. `simulate(censored = TRUE)` makes the draws comparable, but
   the point mass it puts at each censoring point is not a distribution
   DHARMa's rank transform can use, so it is not a drop-in fix.
 
@@ -436,10 +499,54 @@ tests in tests/testthat/test-review-v25.R.
   `vint()`/`vreal()` payload silently (`ce_aterms()`), where
   `aterms_for_newdata()` now errors or warns. The grid case is
   deliberately laxer, but a custom family that needs the payload gets
-  the same length-0 mean there.
+  the same length-0 mean there. Confirmed 2026-09-07 at
+  R/conditional-effects.R:14: `ce_aterms()`'s `strict` set is trials,
+  se, trunc_lb and trunc_ub, and vint/vreal are not in it.
 - `cens()` stays refused for discrete families, so the discrete
   censored-truncated branch is reachable only through
-  `build_objective()` and is tested that way.
+  `build_objective()` and is tested that way. Confirmed 2026-09-07:
+  a poisson `cens()` fit refuses with "cens() is not supported for
+  discrete families yet (truncation is)".
+
+## Recorded by the loose-ends lane, 2026-09-07
+
+Found while clearing other debt; none of it is done. The first entry is a SILENT WRONG ANSWER, which this package treats as the worst category: the feature search stays quiet in exactly the case that matters and speaks in one that does not.
+
+- `frm_curve_feature()`'s stencil span check is incoherent, and both
+  main and every branch share it. When the five-point stencil leaves a
+  `ps()` term's span, the guard at `curve-feature.R:235` is true and
+  the code then re-asks about the WHOLE grid: it refuses when some
+  unrelated grid row leaves some other term's span (evidence the search
+  never touched), and stays silent in the case that actually matters,
+  where the stencil left the span but the grid is clean. `parts$span`
+  holds the right answer at `:224` and is discarded. `frm_curve()` and
+  `frm_curve_deriv()` both warn about their own excursions; the feature
+  path, which `sp_span_stop()`'s own roxygen at `curve-cov.R:50-56`
+  argues is the one that most needs to speak, says nothing. Fixing it
+  means changing what a refusal keys on, so it is a behavior decision
+  rather than debt. Covered both ways by test-span.R's two-ps() test.
+- `gp()` has no Rd topic. It is a formula special, parsed at
+  R/parse.R:960 and registered at R/covstruct.R:1587, documented only
+  in the vignettes and not exported, so an unqualified roxygen
+  `[gp()]` resolved against installed brms until this lane unlinked
+  it. A topic for it is a documentation feature rather than debt:
+  `ps()` has one because `ps()` is called directly and `gp()` never is.
+- `local_mocked_bindings()` without `.package` at
+  extensions/frmtmb.ode/tests/testthat/test-ode.R:128 and :132. The
+  same defect was cleared in core and in frmtmb.sample; ode was left
+  because verifying a change there means checking a package this lane
+  does not otherwise touch.
+- Several test files run only under `pkgload::load_all()`, because they
+  reach package internals by bare name, and `test_check()` hides it.
+  Measured under a bare `test_file()` against the installed package:
+  tests/testthat/test-compat-register.R fails all 27 tests at
+  `frmtmb_compat_contrib`; tests/testthat/test-structure.R takes 13
+  errors at `fam_structure`, `structure_unit`, `structure_gate`,
+  `structure_allows`, `structure_group_codes` and
+  `check_structure_block`; and frmtmb.sample's test-loo.R takes 6 at
+  `mixture`, `mvbf`, `cumulative`, `rescor_matrix` and
+  `expose_functions`, none of which the file attaches. Qualifying the
+  calls would make each file runnable on its own.
 
 ## Reference
 

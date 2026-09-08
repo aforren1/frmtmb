@@ -41,7 +41,7 @@ belong to, in \code{V}'s own order.}
 \item{\code{coef_names}}{length \code{p}; the labels of those rows.}
 \item{\code{extra_var}}{length \code{n}; variance that is NOT coefficient
 uncertainty, kept separate rather than folded into \verb{A V A'}
-because an exact \code{\link[brms:gp]{gp()}}'s kriging variance and a new grouping
+because an exact \code{gp()}'s kriging variance and a new grouping
 level's marginal variance are not.}
 \item{\code{nonest}}{length \code{n}; rows that load on a direction the
 rank-deficient design could not identify.}
@@ -75,7 +75,7 @@ this is the route.
 The Jacobian is exact, and the delta method built on it is still a
 first-order approximation, which for a warped curve is a stronger
 assumption than it is for a linear one. \code{allow_new_levels = TRUE} is
-refused there, and so is a contributing exact \code{\link[brms:gp]{gp()}}, because neither
+refused there, and so is a contributing exact \code{gp()}, because neither
 variance has a chain rule through the body that has been measured.
 }
 
