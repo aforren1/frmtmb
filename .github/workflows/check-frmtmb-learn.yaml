@@ -8,11 +8,17 @@
 # addition-term and compat seams and a change to any of them is what
 # would break it.
 #
-# No extra-repositories here: every dependency of this package that this
-# job installs is on CRAN, and the package itself compiles nothing. Its
-# recursion is plain R arithmetic that runs on RTMB advectors and on
-# doubles alike, which is the property that lets one loop serve the
-# likelihood, the fitted trajectory and the simulator.
+# TWO PACKAGES COME FROM THE CHECKOUT, not from a repository: frmtmb
+# itself and frmtmb.eam, which this package imports for the Wiener
+# density behind rlddm(). install.packages() cannot resolve either, so
+# both are installed from source below, eam after core because it
+# depends on core. This is the only extension that depends on another
+# extension; when a second one appears, this pair of steps is the
+# pattern to copy. Everything else this job installs is on CRAN, and
+# the package itself compiles nothing. Its recursion is plain R
+# arithmetic that runs on RTMB advectors and on doubles alike, which
+# is the property that lets one loop serve the likelihood, the fitted
+# trajectory and the simulator.
 #
 # ONE SUGGEST IS DELIBERATELY NOT INSTALLED, unlike the spline job,
 # which installs every one of its. rstan is skipped because the identity
@@ -31,6 +37,7 @@ on:
     branches: [main, master]
     paths:
       - 'extensions/frmtmb.learn/**'
+      - 'extensions/frmtmb.eam/**'
       - 'R/**'
       - 'DESCRIPTION'
       - 'NAMESPACE'
@@ -39,6 +46,7 @@ on:
     branches: [main, master]
     paths:
       - 'extensions/frmtmb.learn/**'
+      - 'extensions/frmtmb.eam/**'
       - 'R/**'
       - 'DESCRIPTION'
       - 'NAMESPACE'
@@ -74,9 +82,28 @@ jobs:
       # installed directly rather than through pak. pak resolves every
       # dependency against a repository, and frmtmb is in no repository:
       # the build wanted here is the one installed from the checkout in
-      # the step above, so frmtmb is skipped along with anything else
-      # already present. rstan is dropped for the reason in the header;
-      # the tests that need it skip themselves.
+      # the steps above, so frmtmb and frmtmb.eam are both skipped along
+      # with anything else already present. rstan is dropped for the reason
+      # in the header; the tests that need it skip themselves.
+      # frmtmb.eam is imported by this package and is not on CRAN, so
+      # it comes from the checkout too. Its own Imports are installed
+      # first; its Suggests are not, because nothing here runs its
+      # tests. Without this step R CMD check fails at
+      # "dependency 'frmtmb.eam' is not available" while building
+      # vignettes, which is how this was found.
+      - name: Install frmtmb.eam from this checkout
+        run: |
+          d <- read.dcf("extensions/frmtmb.eam/DESCRIPTION")
+          f <- intersect("Imports", colnames(d))
+          p <- unlist(strsplit(paste(d[, f], collapse = ","), ","))
+          p <- trimws(sub("[(].*", "", p))
+          p <- setdiff(p[nzchar(p)], c("frmtmb", ""))
+          p <- setdiff(p, rownames(installed.packages()))
+          if (length(p)) install.packages(p)
+        shell: Rscript {0}
+      - name: Install frmtmb.eam itself
+        run: R CMD INSTALL --no-multiarch --with-keep.source extensions/frmtmb.eam
+        shell: bash
       - name: Install the extension's dependencies
         run: |
           d <- read.dcf("extensions/frmtmb.learn/DESCRIPTION")
