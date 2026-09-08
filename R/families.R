@@ -1163,6 +1163,116 @@ fam_lognormal <- function(link = "identity", link_sigma = "log") {
   )
 }
 
+#' Binet's `mu(x)`: what `log Gamma(x)` has left over its Stirling
+#' part, `(x - 1/2) log x - x + log(2 pi) / 2`.
+#'
+#' The series is asymptotic, so it has a smallest usable argument
+#' rather than a largest, and that argument falls fast with the number
+#' of terms. Smallest `x` whose truncation is 1e-16 or better, against
+#' a 400-bit reference: 28 for four terms, 17 for five, 12 for six, 10
+#' for seven, 8 for eight. `lgamma_shift_diff()` shifts by 12, so it
+#' never calls this below `x = 12`, where these six terms are 5.8e-17
+#' out.
+#'
+#' The coefficients are `B_{2n} / (2n(2n - 1))`, and each one is
+#' confirmed by the truncation it predicts: the remainder after `k`
+#' terms has the sign of, and is bounded by, the first omitted term,
+#' and the measured error over that term is -0.96 at every `k` from 4
+#' to 7 and every `x` from 8 to 28.
+#'
+#' Six terms with a shift of 12 replaced four with a shift of 25. The
+#' pair is no less accurate anywhere measured, over 800 `(nu, z)`
+#' points in six bands with neither ordering dominating, and it sits 4
+#' times further from its own truncation floor at the smallest
+#' argument it can be handed (5.8e-17 at `x = 12` against 2.2e-16 at
+#' `x = 25`, where four terms were already inside where they reach
+#' 1e-16). What the change buys is cost: 12 recurrence nodes rather
+#' than 25 halves the objective when `nu` carries a linear predictor.
+#' `dev/reviews/2026-09-08-remlopt.md` has the sweep.
+#'
+#' @noRd
+lgamma_binet <- function(x) {
+  ix2 <- 1 / (x * x)
+  (1 / 12 - ix2 * (1 / 360 - ix2 * (1 / 1260 - ix2 * (1 / 1680 -
+    ix2 * (1 / 1188 - ix2 * (691 / 360360)))))) / x
+}
+
+#' `log Gamma(a + s) - log Gamma(a)`, formed so that nothing large
+#' cancels.
+#'
+#' Subtracting the two `lgamma()` values directly loses the answer once
+#' `a` is large: at `a = 1e10` each one is about 2.3e11, where a double
+#' is spaced 3e-5 apart, and the difference they have to produce is
+#' 11.5. Measured against a 300-bit reference the naive difference is
+#' wrong by 1.4e-5 at `a = 1e10` and by 57 at `a = 1e50`. That is what
+#' turns the flat large-`nu` tail of a student likelihood into noise:
+#' the optimizer stops at whichever sign change of a noise-dominated
+#' gradient it reaches first, so a permuted row order lands it
+#' somewhere else. This form holds 1.3e-14 relative over 369 `(a, s)`
+#' points, `a` from 1e-300 to 1e300 crossed with `s` from 1/2 to 100,
+#' which covers both the density's `s = 1/2` and the `s = k/2` the
+#' multivariate-t blocks ask for.
+#'
+#' Two steps. Push `a` up with `Gamma(x + 1) = x Gamma(x)`, one exact
+#' `log1p` per step, until Binet's remainder series holds. Then take
+#' the Stirling difference in a shape whose big terms are never formed:
+#' `(a - 1/2) log1p(s/a) + s log(a + s) - s` is the whole of it, and
+#' every piece stays the size of the answer.
+#'
+#' Branchless on purpose, for two reasons, neither of which is that a
+#' branch is impossible. RTMB 1.9 exports no `CondExp*`, and a
+#' comparison on an advector ERRORS under the default
+#' `TapeConfig(comparison = "forbid")` ("Comparison is generally unsafe
+#' for AD types"); under `TapeConfig(comparison = "tape")` it tapes
+#' correctly, verified on an indicator that switched at the right
+#' argument on re-evaluation, with jacobians 1 and 2 either side. But
+#' `TapeConfig` is process-global, so a package
+#' must not flip it under the user. And the one conditional that needs
+#' no setting, a multiplicative blend of the naive and the asymptotic
+#' form, evaluates both arms: `lgamma(a)` overflows to `Inf` at
+#' `a = 2.533e305`, which is `nu = 5.07e305` and `log(nu - 1) = 703.9`,
+#' inside the 709.78 the `logm1` link reaches, so the blend returns
+#' `NaN` at a reachable `nu` where this form still gives the gaussian
+#' limit to 2.0e-14.
+#'
+#' `m` is 12 for every `a`, and it cannot be shortened by reading one.
+#' The shift needed falls with `a`, but `a` is `nu / 2` and `nu` is a
+#' fitted parameter that the optimizer moves across the whole range
+#' after taping. The only facts fixed at tape time are the link's, and
+#' `logm1` bounds `a > 0.5`, which buys ONE step. The lever that does
+#' work is the series length, which depends on no parameter at all:
+#' `m` is whatever `lgamma_binet()` needs, so six terms buy 12 where
+#' four needed 25.
+#'
+#' @noRd
+lgamma_shift_diff <- function(a, s) {
+  # steps of the recurrence that put any positive `a` above the point
+  # where lgamma_binet() is accurate. m and the series length are one
+  # choice: see lgamma_binet() for the table that pairs them.
+  m <- 12L
+  acc <- 0
+  for (j in seq_len(m) - 1L) acc <- acc + log1p(s / (a + j))
+  b <- a + m
+  (b - 0.5) * log1p(s / b) + s * log(b + s) - s +
+    lgamma_binet(b + s) - lgamma_binet(b) - acc
+}
+
+#' Log density of a standard student-t, stable for every `nu`.
+#'
+#' `RTMB::dt()` sends a double straight to `stats::dt()`, which is
+#' accurate, and an AD number to a tape that forms
+#' `lgamma((nu + 1) / 2) - lgamma(nu / 2)` as written. Every fit runs on
+#' the tape, so the objective the optimizer sees is the inaccurate one;
+#' `lgamma_shift_diff()` carries the measurement. `log(nu) + log(pi)`
+#' rather than `log(nu * pi)` because the product overflows near the top
+#' of the double range while the density there is still defined.
+#'
+#' @noRd
+dt_stable <- function(z, nu) {
+  lgamma_shift_diff(nu / 2, 0.5) - (log(nu) + log(pi)) / 2 -
+    (nu + 1) / 2 * log1p(z^2 / nu)
+}
+
 #' Student-t family, dpars `mu`, `sigma` and `nu`. The `logm1` link on
 #' `nu` holds the degrees of freedom above one. A known `se()` term
 #' enters the scale, as in the gaussian family.
@@ -1179,8 +1289,7 @@ fam_student <- function(link = "identity", link_sigma = "log",
     links = list(mu = link, sigma = lk_sigma, nu = lk_nu),
     lpdf = function(y, dpars, aterms) {
       sd_t <- resid_sd(dpars[["sigma"]], aterms)
-      RTMB::dt((y - dpars[["mu"]]) / sd_t, df = dpars[["nu"]], log = TRUE) -
-        log(sd_t)
+      dt_stable((y - dpars[["mu"]]) / sd_t, dpars[["nu"]]) - log(sd_t)
     },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
@@ -4949,6 +5058,39 @@ as_frmtmb_family <- function(x) {
 #' function's kink can also produce a benign false-convergence
 #' warning near the optimum; `frm_allfit()` confirms the fit when in
 #' doubt.
+#'
+#' @section Degrees of freedom that run off:
+#' `student()` estimates `nu` on the `logm1` link, which holds it above
+#' one but puts no ceiling on it. A student-t reaches `gaussian()` only
+#' in the limit `nu -> Inf`, so on data with no heavy tails the
+#' likelihood keeps rising as `nu` grows and the maximum is never
+#' attained. The fit then reports whatever `nu` the optimizer last
+#' reached, with a standard error to match: values of `1e9` and above
+#' are ordinary, and two runs of the same model on the same data in a
+#' different row order can differ by orders of magnitude in `nu` while
+#' agreeing on every coefficient to the last bit.
+#'
+#' That is the model saying the data shows no heavy tails, not a
+#' failure to converge. [diagnose()] names it under "Distributional
+#' parameter at the end of its link". Read the fit as the gaussian one
+#' it has become. If you want a number you can report, refit with
+#' `gaussian()`, or hold `nu` somewhere finite with a prior (see
+#' [set_prior()]); brms does the same with its default
+#' `gamma(2, 0.1)`.
+#'
+#' `nu` runs off the OTHER end too, and there the reading is opposite.
+#' On tails heavier than any identified `nu` can hold, Cauchy data for
+#' instance, `nu` goes down to one instead: `log(nu - 1)` around -20,
+#' a standard error in the thousands, and a natural-scale value that
+#' prints as `1`. [diagnose()] names that under the same heading. The
+#' remedy is not `gaussian()`, which is the worst fit available for
+#' such data. There the data is the message; a prior is still the way
+#' to hold `nu` finite.
+#'
+#' The likelihood itself stays accurate the whole way. The log density
+#' is formed so that `log Gamma((nu + 1) / 2) - log Gamma(nu / 2)`
+#' never cancels, which holds it to 7e-15 of a 300-bit reference for
+#' every `nu` up to `1e50`.
 #'
 #' @section Robust regression:
 #' `huber()` fits Huber's least-favorable distribution: gaussian within

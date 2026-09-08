@@ -1666,22 +1666,15 @@ FUZZ_KNOWN_PENDING <- list(
        why = "mo() crossed with a factor is refused rather than fitted",
        match = function(f) identical(f$kind, "refusal:mo_factor") &&
          identical(f$invariant, "refusal_is_error") &&
-         grepl("was accepted", f$detail)),
-  # Deliberately narrow: the four axes are the ones measured. A
-  # neighbouring spec failing the same invariant is a new finding and
-  # should be seen as one.
-  list(id = "reml-ar1-se-two-optima",
-       why = paste("student + se() + ar1 under REML reaches two optima",
-                   "5.9 apart in parameter space and 0.0049 apart in",
-                   "logLik under a row permutation. The objective is",
-                   "the same function of the parameters: the two tapes",
-                   "agree bitwise either side of the midpoint. Measured",
-                   "identical on 0.53.0, so it is not a 0.54.0",
-                   "regression. dev/fuzz-findings.md carries the",
-                   "numbers."),
-       match = function(f) identical(f$invariant, "row_permutation") &&
-         grepl("family=student", f$spec) && grepl("aterm=se", f$spec) &&
-         grepl("re=ar1", f$spec) && grepl("mode=reml", f$spec))
+         grepl("was accepted", f$detail))
+  # `reml-ar1-se-two-optima` was here through 0.54.0. It was never two
+  # optima: the AD branch of `RTMB::dt()` subtracts two lgamma() values
+  # that agree in every leading digit, so a student likelihood whose nu
+  # runs past about 1e7 is noise, and the optimizer stopped at whichever
+  # sign change of a noise-dominated gradient the row order sent it to.
+  # 0.55.0 forms that difference without the cancellation and the two
+  # row orders land bitwise together. dev/remlopt-findings.md has the
+  # numbers.
 )
 
 # Combinations the package refuses on purpose, with a message that

@@ -775,6 +775,70 @@ diagnose_separation <- function(fit, ps) {
   out
 }
 
+#' A DISTRIBUTIONAL parameter whose maximum likelihood sits outside its
+#' own range.
+#'
+#' Same evidence as `diagnose_separation()` and a different cause. An
+#' estimate far out on the link with a standard error bigger than
+#' itself means the likelihood was still rising when the optimizer's
+#' tolerances bit, so what is reported is where it stopped rather than
+#' an estimate. `student()`'s `nu` does it on any data with no heavy
+#' tails: the student-t reaches the gaussian only in the limit
+#' `nu -> Inf`, so the maximum is never attained and `nu` comes back at
+#' whatever the last step reached.
+#'
+#' Measured over 84 student fits (seven error laws, `n` of 60 and 200,
+#' six replicates each): `se` of `log(nu - 1)` ran from 4878 to 1.2e4
+#' on the 35 fits whose `nu` ran off, and from 0.35 to 22 on the 49
+#' where it did not. `|log(nu - 1)|` stayed below 5.1 on every one of
+#' those, so both conditions together fired on none of them.
+#'
+#' The condition reads `abs(est)` and not `est`, because the same
+#' parameter runs off both ways. On Cauchy errors `nu` goes to its
+#' floor instead: 8 of 12 fits at `n` of 60 and 200 returned
+#' `log(nu - 1)` near -19 with a standard error of 4000 to 8500, which
+#' is the same defect and the same evidence. The message names both
+#' directions, because `gaussian()` is the right answer to only one.
+#'
+#' `negbinomial()`'s `shape` does it too, on data with no
+#' overdispersion: 4 of 4 Poisson-generated fits returned a log shape
+#' near 18 with a non-finite standard error, and the check named them.
+#'
+#' Primary dpars are left to `diagnose_separation()`. A runaway `mu` is
+#' separation in a binomial and collinearity elsewhere, and this
+#' message describes neither.
+#'
+#' @noRd
+diagnose_unbounded_dpar <- function(fit, ps) {
+  rows <- list()
+  for (lp in fit$frame[["linpreds"]]) {
+    fam <- fit$spec$responses[[lp[["resp"]]]]$family
+    if (lp[["dpar"]] %in% (fam[["primary_dpars"]] %||% "mu")) next
+    if (is.null(lp[["X"]]) || !ncol(lp[["X"]])) next
+    est <- ps$est[[lp[["par"]]]][lp[["idx"]]]
+    se <- ps$se[[lp[["par"]]]][lp[["idx"]]]
+    # the pair, not either half: a dpar legitimately far out on its
+    # link (a log sd of a column scaled by 1e6) keeps a small se
+    hit <- which(abs(est) > 10 & (!is.finite(se) | se > abs(est)))
+    lk <- fam[["links"]][[lp[["dpar"]]]]
+    for (i in hit) {
+      rows[[length(rows) + 1L]] <- data.frame(
+        parameter = paste0(coef_block_key(fit, lp), ": ",
+                           colnames(lp[["X"]])[i]),
+        estimate = est[i], std.error = se[i],
+        # the natural scale is what makes the message readable: a nu
+        # of 2e9 says "gaussian" where a log(nu - 1) of 21.5 does not
+        value = tryCatch(as.numeric(lk$linkinv(est[i])),
+                         error = function(e) NA_real_)
+      )
+    }
+  }
+  if (!length(rows)) return(NULL)
+  out <- do.call(rbind, rows)
+  rownames(out) <- NULL
+  out
+}
+
 #' Predictor columns whose spread is many orders of magnitude away from
 #' one: the objective's curvature then spans the same range, and the
 #' optimizer's convergence tolerances are absolute. `autoscale = TRUE`
@@ -1010,12 +1074,29 @@ log_sd_theta_index <- function(fit) {
 
 #' Convergence diagnostics for a frmtmb fit
 #'
-#' Reports the optimizer's own verdict plus five checks that a converged
+#' Reports the optimizer's own verdict plus six checks that a converged
 #' fit can still fail: non-finite standard errors, flat directions,
-#' complete separation in a binomial-type fit, predictor columns scaled
-#' far from one, and variance components on the boundary of their
-#' parameter space (lme4's `isSingular()`, read off the estimates rather
-#' than the Hessian).
+#' complete separation in a binomial-type fit, a distributional
+#' parameter whose maximum likelihood is outside its own range,
+#' predictor columns scaled far from one, and variance components on
+#' the boundary of their parameter space (lme4's `isSingular()`, read
+#' off the estimates rather than the Hessian).
+#'
+#' A DISTRIBUTIONAL PARAMETER AT THE END OF ITS LINK is one whose
+#' estimate is far out on the link scale AND whose standard error is
+#' larger than the estimate itself. The likelihood was still rising
+#' where the optimizer stopped, so the number reported is the stopping
+#' point and not an estimate. `student()`'s `nu` does this on any data
+#' with no heavy tails, because a student-t reaches the gaussian only
+#' as `nu` goes to infinity: the maximum is never attained, and two
+#' runs of the same model can report degrees of freedom orders of
+#' magnitude apart while agreeing on every coefficient. Refit with
+#' `gaussian()`, or hold `nu` somewhere finite with [set_prior()].
+#' The same parameter runs the other way, down to one, on data whose
+#' tails are heavier than any identified `nu` can hold. The check
+#' names that too, with a large NEGATIVE estimate and a natural-scale
+#' value of one, and there `gaussian()` is the wrong answer: the data
+#' is the message, and a prior is the way to hold `nu` finite.
 #'
 #' A FLAT DIRECTION is an outer parameter the likelihood does not depend
 #' on: zero gradient and an empty Hessian row. It separates the two
@@ -1049,7 +1130,8 @@ log_sd_theta_index <- function(fit) {
 #'   gradient, the worst-offending parameter, the positive-definiteness
 #'   of the Hessian, non-finite standard errors, the smallest eigenvalue
 #'   of the covariance, the flat directions, boundary (singular)
-#'   variance components, separation, and predictor scaling. `frm_allfit()` refits across
+#'   variance components, separation, distributional parameters at the
+#'   end of their link, and predictor scaling. `frm_allfit()` refits across
 #'   optimizers as a further convergence check, and `check_laplace()`
 #'   audits the approximation itself.
 #'
@@ -1113,6 +1195,7 @@ diagnose <- function(fit, quiet = FALSE) {
     min_cov_eigenvalue = if (!is.null(ev) && length(ev)) min(ev),
     extreme_theta = sd_i[abs(th[sd_i]) > 8],
     separation = if (!is.null(ps)) diagnose_separation(fit, ps),
+    unbounded_dpar = if (!is.null(ps)) diagnose_unbounded_dpar(fit, ps),
     predictor_scale = diagnose_predictor_scale(fit),
     singular = diagnose_singular(fit)
   )
@@ -1198,6 +1281,26 @@ diagnose <- function(fit, quiet = FALSE) {
           "perfectly. Drop or pool the offending predictor, or add a ",
           "prior (see set_prior()).\n", sep = "")
     }
+    if (!is.null(out$unbounded_dpar)) {
+      cat("Distributional parameter at the end of its link: ",
+          paste(paste0(out$unbounded_dpar$parameter, " = ",
+                       format(out$unbounded_dpar$estimate, digits = 3),
+                       " (se ", format(out$unbounded_dpar$std.error,
+                                       digits = 3),
+                       ", natural scale ",
+                       format(out$unbounded_dpar$value, digits = 3), ")"),
+                collapse = "; "),
+          "\n  The likelihood was still rising when the optimizer ",
+          "stopped, so this is where it stopped and not an estimate; ",
+          "its standard error is larger than the estimate itself. Read ",
+          "the natural-scale value as the end of a range and not as a ",
+          "number. student()'s nu runs UP on data with no heavy tails, ",
+          "and the fit is then the gaussian one, so refit with ",
+          "gaussian() to say so; it runs DOWN to one on tails heavier ",
+          "than any identified nu can hold, and there the data is the ",
+          "message. Either way a prior holds the parameter somewhere ",
+          "finite (see set_prior()).\n", sep = "")
+    }
     if (!is.null(out$predictor_scale)) {
       cat("Badly scaled predictors: ",
           paste(paste0(out$predictor_scale$column, " (sd ",
@@ -1208,7 +1311,7 @@ diagnose <- function(fit, quiet = FALSE) {
     }
     clean <- out$convergence == 0 && out$pdHess && !length(out$bad_se) &&
       is.null(out$singular) && is.null(out$separation) &&
-      is.null(out$predictor_scale) &&
+      is.null(out$unbounded_dpar) && is.null(out$predictor_scale) &&
       (degenerate || out$max_grad < 1e-3)
     if (clean) cat("No convergence problems detected\n")
   }

@@ -108,6 +108,17 @@ test_that("us_t and diag_t are the multivariate t mvtnorm knows", {
                                      log = TRUE)),
                    tolerance = 1e-10)
     }
+    # the gaussian limit, which is how a user checks that a t block
+    # reduces to one. The approach is O(1/nu), so by 1e16 the two are
+    # the same number to the double that carries them; forming
+    # lgamma((nu + d)/2) - lgamma(nu/2) as written misses it by whole
+    # log units.
+    blk_g <- list(covstruct = "us_t", dim = d, n_levels = nlev,
+                  dist_nu = 1e16, cnms = paste0("c", seq_len(d)))
+    Sg <- unname(reg$us_t$vcov(th_us, blk_g))
+    refg <- sum(mvtnorm::dmvnorm(B, sigma = Sg, log = TRUE))
+    expect_lt(abs(reg$us_t$nll(b, th_us, blk_g) - refg),
+              64 * .Machine$double.eps * abs(refg))
   }
 })
 

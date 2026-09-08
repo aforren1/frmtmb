@@ -15,14 +15,31 @@ diagnose(fit, quiet = FALSE)
 Invisibly, a list of diagnostics.
 }
 \description{
-Reports the optimizer's own verdict plus five checks that a converged
+Reports the optimizer's own verdict plus six checks that a converged
 fit can still fail: non-finite standard errors, flat directions,
-complete separation in a binomial-type fit, predictor columns scaled
-far from one, and variance components on the boundary of their
-parameter space (lme4's \code{isSingular()}, read off the estimates rather
-than the Hessian).
+complete separation in a binomial-type fit, a distributional
+parameter whose maximum likelihood is outside its own range,
+predictor columns scaled far from one, and variance components on
+the boundary of their parameter space (lme4's \code{isSingular()}, read
+off the estimates rather than the Hessian).
 }
 \details{
+A DISTRIBUTIONAL PARAMETER AT THE END OF ITS LINK is one whose
+estimate is far out on the link scale AND whose standard error is
+larger than the estimate itself. The likelihood was still rising
+where the optimizer stopped, so the number reported is the stopping
+point and not an estimate. \code{student()}'s \code{nu} does this on any data
+with no heavy tails, because a student-t reaches the gaussian only
+as \code{nu} goes to infinity: the maximum is never attained, and two
+runs of the same model can report degrees of freedom orders of
+magnitude apart while agreeing on every coefficient. Refit with
+\code{gaussian()}, or hold \code{nu} somewhere finite with \code{\link[=set_prior]{set_prior()}}.
+The same parameter runs the other way, down to one, on data whose
+tails are heavier than any identified \code{nu} can hold. The check
+names that too, with a large NEGATIVE estimate and a natural-scale
+value of one, and there \code{gaussian()} is the wrong answer: the data
+is the message, and a prior is the way to hold \code{nu} finite.
+
 A FLAT DIRECTION is an outer parameter the likelihood does not depend
 on: zero gradient and an empty Hessian row. It separates the two
 causes of \code{NaN} standard errors. Parameters that trade off against

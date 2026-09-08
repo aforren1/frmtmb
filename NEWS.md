@@ -1,3 +1,119 @@
+# frmtmb 0.55.0
+
+## The student-t log density loses its digits as `nu` runs off
+
+`RTMB::dt()` sends a double straight to `stats::dt()`, which is
+accurate, and an AD number to a tape that forms
+`lgamma((nu + 1) / 2) - lgamma(nu / 2)` as written. Every fit runs on
+the tape, so the accurate branch was the one no fit used. The two
+values agree in every leading digit once `nu` is large: at `nu = 1e10`
+each is about 2.3e11, where a double is spaced 3e-5 apart, and the
+difference they must produce is 11.5. Against a 300-bit reference the
+subtraction is wrong by 1.4e-5 at `nu = 1e10` and by 57 at `nu = 1e50`.
+
+Data with no heavy tails asks exactly this of the density, because a
+student-t reaches the gaussian only as `nu` goes to infinity. Past
+about `nu = 1e7` the objective was noise, its gradient changed sign at
+points the true likelihood is monotone through, and the optimizer
+stopped at whichever sign change it reached first. That is what the
+grammar fuzz tier recorded at 0.54.0 as `reml-ar1-se-two-optima`: the
+same model fitted to the same data with its rows permuted landed 5.938
+apart in parameter space with a logLik gap of 0.004862, 28 times the
+tolerance derived from the run. It was never two optima.
+
+* The difference is now formed without the cancellation, by pushing
+  `a` up 12 steps with the Gamma recurrence until Binet's remainder
+  series holds and then taking the Stirling difference in a shape whose
+  large terms are never built. Accurate to 1.3e-14 relative over 369
+  `(a, s)` points, and 6 ulp end to end over the `(nu, z)` grid up to
+  `nu = 1e50`, rising to 2.0e-14 absolute by `nu = 1e300`, where the
+  head and the normalizing term cancel down to the size of the answer.
+
+  **It is not free, and where it costs is the distributional case.**
+  With a scalar `nu`, which is `nu ~ 1` and the common model, the
+  objective measured between 0.75 and 1.33 times its old cost over
+  three independent runs on this machine, with a control tape built
+  from the same density putting the noise floor at 10 to 20 percent.
+  The sign is not settled and the size is small either way. The
+  mechanism is two effects that nearly cancel: the same formula
+  written out by hand is already close to the cost of `RTMB::dt()` at
+  a scalar `df`, and the recurrence then adds a little back.
+
+  With `nu ~ x` it is **2.1 to 3.3 times** the old cost, because `a` is
+  then a vector of length `n` and the 12 fixed recurrence steps become
+  12 vector `log1p` nodes where the old code had two `lgamma` nodes.
+  `bf(y ~ x, nu ~ z) + student()` is a supported model, so this is a
+  real cost, not a hypothetical one. The recurrence length cannot be
+  shortened by reading `nu`, which is a parameter the optimizer moves
+  after taping. What does shorten it is the Binet series, which
+  depends on no parameter at all: six terms reach 1e-16 at `x = 12`
+  where four need `x = 28`, so the shift is 12 and not 25. That halved
+  the vector-path cost, and the sweep behind it found no accuracy
+  ordering between the two. `dev/reviews/2026-09-08-remlopt.md` has
+  the numbers.
+
+  The permuted and unpermuted fits now agree: the log likelihood is
+  BITWISE identical where it was 0.004862 apart, and the parameter
+  vectors agree to 1.8e-11 where they were 5.938 apart. The residue is
+  entirely in `nu`, the parameter that has no maximum; the two `theta`
+  agree to 1.2e-16 and 0, and `mu` to 5.6e-17. `frm_allfit()` on the
+  same fit went from a logLik spread of 90.1, with one optimizer
+  reporting an impossible -53.05, to a spread of 4.2e-06 across all
+  four. The `reml-ar1-se-two-optima` entry is gone from the fuzz
+  tier's pending list and the tier is green without it.
+
+* The multivariate-t carried the same subtraction in two more places,
+  the `gr(dist = "student")` covariance blocks and the `student()` fit
+  of `ar(cov = TRUE)`. Both are fixed with the same helper, and the
+  `log(1 + q/nu)` in the autocorrelation path is now `log1p()`, which
+  its sibling in `covstruct.R` already argued for. A t block reaching
+  its gaussian limit is how a user checks that it reduces to one, and
+  at `nu = 1e16` that check was off by 49 log units. It is now exact to
+  the double that carries it.
+
+* No coefficient moved. Across the reported case the `mu` estimates
+  agreed to 3.2e-09 before the fix and to 5.6e-17 after: the error was
+  confined to `nu`, which no user reports, so no scientific answer
+  changes. What changes is that the fit is reproducible.
+
+## `diagnose()` names a distributional parameter with no maximum
+
+A `student()` fit on data with no heavy tails reports `nu` in the
+billions with a standard error in the thousands, and 0.54.0's
+`diagnose()` answered "No convergence problems detected". The
+likelihood has no maximum in `nu` there, so the number reported is
+where the optimizer stopped.
+
+* `diagnose()` gains `unbounded_dpar`, which names a distributional
+  parameter whose estimate is far out on its link AND whose standard
+  error is larger than the estimate itself, prints the natural-scale
+  value alongside, and says to refit with `gaussian()` or to hold `nu`
+  finite with a prior. The pair is the evidence, not either half: a
+  dpar legitimately far out on its link keeps a small standard error.
+  Measured over 84 student fits (seven error laws, `n` of 60 and 200,
+  six replicates each), `se(log(nu - 1))` ran from 4878 to 1.2e4 on
+  the 35 fits whose `nu` ran off and from 0.35 to 22 on the 49 where
+  it did not, with `|log(nu - 1)|` below 5.1 on every one of those.
+  The two conditions together fired on none of them. Replicated
+  independently on 10 further error laws and 120 fits: 0 of 99
+  identified fits flagged.
+
+  READ THE SIGN. `nu` runs off BOTH ends of `logm1`, and the check
+  catches both. A large POSITIVE estimate means no heavy tails and the
+  fit is the gaussian one. A large NEGATIVE estimate, with a
+  natural-scale value that prints as `1`, means tails heavier than any
+  identified `nu` can hold, and there `gaussian()` is the worst answer
+  available: on Cauchy errors `log(nu - 1)` lands between -20.5 and
+  -17.7 with a standard error of 4003 to 8533, on 8 of 8 fits that
+  reached the boundary.
+
+* `?frmtmb-families` gains a "Degrees of freedom that run off" section
+  saying the same thing where a user of `student()` will find it, and
+  `vignette("diagnostics")` gains "A distributional parameter with no
+  maximum" beside its "NaN standard errors" section, which is where
+  `diagnose()`'s own message already sends people. Both name the two
+  directions and what each one means.
+
 # frmtmb 0.54.0
 
 Every link in the registry can now be reached and found: a link on any

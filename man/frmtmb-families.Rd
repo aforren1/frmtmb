@@ -262,6 +262,41 @@ warning near the optimum; \code{frm_allfit()} confirms the fit when in
 doubt.
 }
 
+\section{Degrees of freedom that run off}{
+
+\code{student()} estimates \code{nu} on the \code{logm1} link, which holds it above
+one but puts no ceiling on it. A student-t reaches \code{gaussian()} only
+in the limit \code{nu -> Inf}, so on data with no heavy tails the
+likelihood keeps rising as \code{nu} grows and the maximum is never
+attained. The fit then reports whatever \code{nu} the optimizer last
+reached, with a standard error to match: values of \code{1e9} and above
+are ordinary, and two runs of the same model on the same data in a
+different row order can differ by orders of magnitude in \code{nu} while
+agreeing on every coefficient to the last bit.
+
+That is the model saying the data shows no heavy tails, not a
+failure to converge. \code{\link[=diagnose]{diagnose()}} names it under "Distributional
+parameter at the end of its link". Read the fit as the gaussian one
+it has become. If you want a number you can report, refit with
+\code{gaussian()}, or hold \code{nu} somewhere finite with a prior (see
+\code{\link[=set_prior]{set_prior()}}); brms does the same with its default
+\code{gamma(2, 0.1)}.
+
+\code{nu} runs off the OTHER end too, and there the reading is opposite.
+On tails heavier than any identified \code{nu} can hold, Cauchy data for
+instance, \code{nu} goes down to one instead: \code{log(nu - 1)} around -20,
+a standard error in the thousands, and a natural-scale value that
+prints as \code{1}. \code{\link[=diagnose]{diagnose()}} names that under the same heading. The
+remedy is not \code{gaussian()}, which is the worst fit available for
+such data. There the data is the message; a prior is still the way
+to hold \code{nu} finite.
+
+The likelihood itself stays accurate the whole way. The log density
+is formed so that \verb{log Gamma((nu + 1) / 2) - log Gamma(nu / 2)}
+never cancels, which holds it to 7e-15 of a 300-bit reference for
+every \code{nu} up to \code{1e50}.
+}
+
 \section{Robust regression}{
 
 \code{huber()} fits Huber's least-favorable distribution: gaussian within
