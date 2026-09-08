@@ -250,6 +250,23 @@ test_that("row 12: ordinal families, cumulative sratio cratio acat", {
   brms_lp_check(brms::bf(y ~ x), brms::acat(), do,
                 frm(bf(y ~ x) + acat(), data = do))
 
+  # The links the registry opened. brms accepts the same roster, so
+  # each of these is the SAME model in both packages and the identity
+  # has to hold exactly as it does on the logit.
+  #
+  # cratio + cloglog is the row that matters most: frmtmb's robust
+  # branch used to read its distribution function at tau - eta and lean
+  # on 1 - F(-x) = F(x), which the cloglog does not satisfy. brms has
+  # no such shortcut, so this row is what catches it.
+  for (lk in c("probit", "cloglog", "cauchit")) {
+    brms_lp_check(brms::bf(y ~ x), brms::cumulative(lk), do,
+                  frm(bf(y ~ x) + cumulative(lk), data = do))
+  }
+  brms_lp_check(brms::bf(y ~ x), brms::sratio("cloglog"), do,
+                frm(bf(y ~ x) + sratio("cloglog"), data = do))
+  brms_lp_check(brms::bf(y ~ x), brms::cratio("cloglog"), do,
+                frm(bf(y ~ x) + cratio("cloglog"), data = do))
+
   # cs(): brms declares bcs as matrix[Kcs, nthres], frmtmb keeps one
   # bcs<j> vector of length nthres per category-specific covariate
   do$z <- rnorm(n)

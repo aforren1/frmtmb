@@ -1,6 +1,5 @@
 # Binomial pieces the Bayesian Cognitive Modeling port needs and the
-# core does not ship, written as an ordinary link object and ordinary
-# rowwise custom families.
+# core does not ship, written as ordinary rowwise custom families.
 # vignette("bayesian-cognitive-modeling") shows them in place;
 # tests/testthat/test-bcm-psychophysics.R,
 # tests/testthat/test-bcm-signal-detection.R and
@@ -34,78 +33,26 @@
 # either side gets the derivative of the side it is on.
 bcm_cap1 <- function(u) u - 0.5 * (abs(u - 1) + (u - 1))
 
-## ---- bcm-probit ----
-# The probit link.
+## ---- bcm-probit-retired ----
+# bcm_probit(), bcm_binomial_probit() and bcm_gaussian_probit() used to
+# live here. The core link registry had no probit, so this file built
+# one by hand and wrapped two families around it.
 #
-# frmtmb's link registry has identity, log, logit, cloglog, inverse,
-# logm1, tan_half and power12, and no probit; brms has one. Signal
-# detection theory is DEFINED on the normal scale, and so are the latent
-# traits of the multinomial processing trees, so the port needs it.
+# The registry now holds probit, so all three are gone and the models
+# they served are ordinary core families:
 #
-# A link is a plain list of four functions, so supplying one costs
-# nothing and needs no change to the core. The RTMB spellings are the
-# taped ones: stats::pnorm clamps at C level in ways the tape cannot
-# see, which is the reason the core keeps its own registry rather than
-# calling stats::make.link.
-bcm_probit <- function() {
-  list(
-    name = "probit",
-    linkfun = function(mu) RTMB::qnorm(mu),
-    linkinv = function(eta) RTMB::pnorm(eta),
-    mu_eta = function(eta) RTMB::dnorm(eta))
-}
-
-## ---- bcm-binomial-probit ----
-# A binomial on the probit scale, which is what an equal-variance
-# Gaussian signal detection model is. Identical to the core binomial
-# except for the link, and without the core's `logit_eta` shortcut: a
-# probit has no exact log-odds form to recover from its linear
-# predictor, so a saturated cell is scored through the plain round trip
-# and a design that saturates has to be caught by the fit, not hidden.
-bcm_binomial_probit <- function() {
-  frmtmb_family(
-    "bcm_binomial_probit",
-    dpars = "mu",
-    links = list(mu = bcm_probit()),
-    type = "discrete",
-    lpdf = function(y, dpars, aterms) {
-      size <- aterms[["trials"]]
-      if (is.null(size)) size <- 1
-      RTMB::dbinom(y, size, dpars[["mu"]], log = TRUE)
-    },
-    valid_y = function(y, aterms) {
-      size <- aterms[["trials"]]
-      if (is.null(size)) size <- 1
-      if (any(y < 0) || any(y > size) || any(y != round(y))) {
-        stop("bcm_binomial_probit(): the response must be integer counts ",
-             "in [0, trials]", call. = FALSE)
-      }
-    },
-    init_dpars = list(
-      mu = function(y, aterms) {
-        size <- aterms[["trials"]]
-        if (is.null(size)) size <- 1
-        min(max(mean(y / size), 0.02), 0.98)
-      }
-    ),
-    post = list(
-      mean_fn = function(dpars, aterms) {
-        size <- aterms[["trials"]]
-        if (is.null(size)) size <- 1
-        size * dpars[["mu"]]
-      },
-      var_fn = function(dpars, aterms) {
-        size <- aterms[["trials"]]
-        if (is.null(size)) size <- 1
-        size * dpars[["mu"]] * (1 - dpars[["mu"]])
-      }
-    ),
-    sim = function(dpars, aterms, n) {
-      size <- aterms[["trials"]]
-      if (is.null(size)) size <- 1
-      stats::rbinom(n, size, dpars[["mu"]])
-    })
-}
+#   bcm_binomial_probit()  ->  binomial(link = "probit")
+#   bcm_gaussian_probit()  ->  gaussian(link = "probit") with the known
+#                              measurement SD on se(sd) instead of
+#                              vreal(sd)
+#
+# Neither is a loss of faithfulness. The core binomial reads the
+# registry's `logit_eta` for probit, which this file's hand-built link
+# could not supply, so a saturated cell is now scored through
+# dbinom_robust() rather than through a plain round trip. And a core
+# gaussian is allowed se(), which is the channel the known standard
+# deviation belonged in all along; the vreal() spelling was a way
+# around the se() family gate that a custom family could not pass.
 
 ## ---- bcm-contaminant ----
 # The contaminant binomial of Lee and Wagenmakers chapter 12.2. With
@@ -287,59 +234,3 @@ bcm_binomial_cdf <- function(link = "logit") {
     })
 }
 
-## ---- bcm-gaussian-probit ----
-# A gaussian whose mean is Phi of its linear predictor, with a KNOWN
-# standard deviation carried per row.
-#
-# The ESP replication of chapter 16.2 needs it. There a person's
-# extraversion score is normal around 100 * Phi(theta) with a known
-# measurement standard deviation, and theta is one half of a correlated
-# latent pair whose other half is a probit rate. Dividing the response
-# by 100 makes the mean Phi(theta) exactly, so the whole nonlinearity is
-# a link and the latent pair is an ordinary correlated random intercept
-# shared by two responses.
-#
-# The known standard deviation arrives through `se(sd)`, which is the
-# term that means it. A family is given the term by DECLARING that it
-# reads it, and `required_aterms = "se"` both declares it and refuses a
-# model that leaves it out. This used to ride on `vreal(sd)` because
-# the core gated `se()` on the family NAME and a custom family could
-# not opt in; `dev/custom-findings.md` records what replaced that.
-#
-# There is no `sigma` parameter, because there is nothing to estimate: a
-# free residual scale beside a known one is a flat direction. That is
-# also why `se(sd, sigma = TRUE)` is refused rather than ignored -
-# there is no sigma to add in quadrature.
-bcm_gaussian_probit <- function() {
-  frmtmb_family(
-    "bcm_gaussian_probit",
-    dpars = "mu",
-    links = list(mu = bcm_probit()),
-    type = "continuous",
-    accepts_aterms = c("se", "weights"),
-    required_aterms = "se",
-    lpdf = function(y, dpars, aterms) {
-      RTMB::dnorm(y, dpars[["mu"]], aterms[["se"]], log = TRUE)
-    },
-    valid_y = function(y, aterms) {
-      if (any(y < 0) || any(y > 1)) {
-        stop("bcm_gaussian_probit(): the mean is Phi of a linear ",
-             "predictor, so the response belongs on (0, 1); divide by ",
-             "its scale first", call. = FALSE)
-      }
-      if (isTRUE(aterms[["se_sigma"]])) {
-        stop("bcm_gaussian_probit(): se(sd, sigma = TRUE) adds a free ",
-             "residual scale in quadrature and this family has none, ",
-             "so the known sd is the whole scale: write se(sd)",
-             call. = FALSE)
-      }
-    },
-    init_dpars = list(
-      mu = function(y, aterms) min(max(mean(y), 0.02), 0.98)),
-    post = list(
-      mean_fn = function(dpars, aterms) dpars[["mu"]],
-      var_fn = function(dpars, aterms) aterms[["se"]]^2),
-    sim = function(dpars, aterms, n) {
-      stats::rnorm(n, dpars[["mu"]], aterms[["se"]])
-    })
-}

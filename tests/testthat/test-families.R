@@ -136,3 +136,152 @@ test_that("simulate() round-trips through family simulators", {
   c1 <- simulate(fit, nsim = 1, seed = 2)
   expect_false(identical(m1, c1))
 })
+
+# --- links on distributional parameters other than the mean ----------
+
+test_that("every constructor takes the dpar links brms allows", {
+  # the sets are keyed on the parameter's support, and `nu` means two
+  # different parameters: student's degrees of freedom take logm1,
+  # compois's dispersion is an ordinary positive scale
+  pos <- c("log", "identity", "softplus", "squareplus")
+  spec <- list(
+    student = list(sigma = pos, nu = c("logm1", "identity")),
+    lognormal = list(sigma = pos), negbinomial = list(shape = pos),
+    nbinom1 = list(phi = pos), Beta = list(phi = pos),
+    tweedie = list(phi = pos), compois = list(nu = pos),
+    weibull = list(shape = pos), huber = list(sigma = pos),
+    beta_binomial = list(phi = pos), von_mises = list(kappa = pos),
+    exgaussian = list(sigma = pos, beta = pos),
+    shifted_lognormal = list(sigma = pos, ndt = pos),
+    skew_normal = list(sigma = pos, alpha = pos),
+    zero_inflated_poisson = list(zi = c("logit", "identity")),
+    zero_inflated_binomial = list(zi = c("logit", "identity")),
+    hurdle_poisson = list(hu = c("logit", "identity")),
+    zero_inflated_negbinomial = list(shape = pos,
+                                     zi = c("logit", "identity")),
+    hurdle_gamma = list(shape = pos, hu = c("logit", "identity")),
+    hurdle_lognormal = list(sigma = pos, hu = c("logit", "identity")),
+    zero_inflated_beta = list(phi = pos, zi = c("logit", "identity")),
+    asym_laplace = list(sigma = pos, quantile = c("logit", "identity")))
+  for (cn in names(spec)) {
+    ctor <- get(cn, envir = asNamespace("frmtmb"))
+    for (dp in names(spec[[cn]])) {
+      arg <- paste0("link_", dp)
+      expect_true(arg %in% names(formals(ctor)),
+                  label = paste(cn, "has", arg))
+      for (l in spec[[cn]][[dp]]) {
+        fam <- do.call(ctor, stats::setNames(list(l), arg))
+        expect_identical(fam$links[[dp]]$name, l,
+                         label = paste(cn, arg, l))
+      }
+      # a link outside the parameter's range is refused, by name
+      expect_error(do.call(ctor, stats::setNames(list("tan_half"), arg)),
+                   dp, fixed = TRUE)
+    }
+  }
+})
+
+test_that("frm_family() reaches the links the stats families cannot", {
+  # stats::gaussian() has no link_sigma and stats::poisson() refuses
+  # softplus, so these are unreachable through the constructors
+  expect_identical(
+    frm_family("gaussian", link_sigma = "softplus")$links$sigma$name,
+    "softplus")
+  expect_identical(frm_family("poisson", link = "softplus")$links$mu$name,
+                   "softplus")
+  expect_identical(
+    frm_family("Gamma", link = "inverse", link_shape = "identity")$links$
+      shape$name, "identity")
+  expect_error(frm_family("gaussian", link_shape = "log"), "link_shape")
+  expect_error(frm_family("nope"), "no family called")
+  expect_error(frm_family("gaussian", "softplus"), "has to be named")
+})
+
+test_that("a dpar link that is not log keeps the density honest", {
+  # log_dpar() used to hand the linear predictor back AS the log of the
+  # dpar, which is right only on a log link. On a softplus shape that
+  # would be a different, wrong, density; the fit is compared with the
+  # log-link fit of the SAME model, which has to reach the same place.
+  set.seed(4)
+  n <- 300
+  d <- data.frame(x = rnorm(n))
+  d$y <- rnbinom(n, mu = exp(1 + 0.5 * d$x), size = 2)
+  a <- frm(bf(y ~ x), family = negbinomial(link_shape = "log"), data = d)
+  b <- frm(bf(y ~ x), family = negbinomial(link_shape = "softplus"),
+           data = d)
+  expect_equal(as.numeric(logLik(a)), as.numeric(logLik(b)),
+               tolerance = 1e-6)
+  expect_equal(unlist(fixef(a)$mu), unlist(fixef(b)$mu), tolerance = 1e-5)
+  # the shape itself, read back off each link, agrees
+  sa <- exp(unlist(fixef(a))[["shape.(Intercept)"]])
+  sb <- log1p(exp(unlist(fixef(b))[["shape.(Intercept)"]]))
+  expect_equal(sa, sb, tolerance = 1e-4)
+})
+
+test_that("a gate link that is not logit keeps the density honest", {
+  # the same hazard for gate_logs(), which assumed the logit
+  set.seed(5)
+  n <- 400
+  d <- data.frame(x = rnorm(n))
+  d$y <- ifelse(runif(n) < 0.25, 0L, rpois(n, exp(1 + 0.4 * d$x)))
+  a <- frm(bf(y ~ x), family = zero_inflated_poisson(link_zi = "logit"),
+           data = d)
+  b <- frm(bf(y ~ x), family = zero_inflated_poisson(link_zi = "identity"),
+           data = d)
+  expect_equal(as.numeric(logLik(a)), as.numeric(logLik(b)),
+               tolerance = 1e-5)
+  za <- plogis(unlist(fixef(a))[["zi.(Intercept)"]])
+  zb <- unlist(fixef(b))[["zi.(Intercept)"]]
+  expect_equal(za, zb, tolerance = 1e-4)
+})
+
+test_that("a dpar's prior goes through that dpar's own link", {
+  # set_prior(class = "sigma") is a density on sigma itself, so the
+  # objective carries |d sigma / d eta|. That Jacobian has to be the
+  # dpar's OWN link: with a log link assumed, the softplus row below
+  # would land on the log row instead of on its own reference.
+  set.seed(7)
+  n <- 200
+  d <- data.frame(x = rnorm(n))
+  d$y <- 1 + 0.7 * d$x + rnorm(n, 0, 1.4)
+  X <- model.matrix(~ x, d)
+  rss <- sum((d$y - X %*% qr.solve(X, d$y))^2)   # profile beta is OLS
+  pr <- set_prior("normal(0, 0.5)", class = "sigma")
+  got <- ref <- stats::setNames(numeric(4), c("log", "identity",
+                                              "softplus", "squareplus"))
+  for (l in names(got)) {
+    lk <- frmtmb:::get_link(l)
+    f <- frm(bf(y ~ x), family = frm_family("gaussian", link_sigma = l),
+             data = d, prior = pr)
+    got[l] <- lk$linkinv(unname(unlist(fixef(f))[["sigma.(Intercept)"]]))
+    obj <- function(eta) {
+      s <- lk$linkinv(eta)
+      if (s <= 0) return(1e10)
+      -(-n * log(s) - rss / (2 * s^2) +
+        stats::dnorm(s, 0, 0.5, log = TRUE) + log(abs(lk$mu_eta(eta))))
+    }
+    ref[l] <- lk$linkinv(stats::optimize(obj, c(-8, 8), tol = 1e-12)$minimum)
+  }
+  expect_equal(unname(got), unname(ref), tolerance = 1e-5)
+  # and the four are genuinely different places, so the test above is
+  # not passing on a coincidence
+  expect_gt(diff(range(got)), 1e-4)
+})
+
+test_that("summary() and print() name the link of every dpar", {
+  set.seed(3)
+  n <- 80
+  d <- data.frame(x = rnorm(n))
+  d$y <- 1 + d$x + rnorm(n)
+  f <- frm(bf(y ~ x), family = gaussian(), data = d)
+  expect_match(paste(utils::capture.output(print(summary(f))),
+                     collapse = "\n"),
+               "Links: mu = identity; sigma = log", fixed = TRUE)
+  expect_match(paste(utils::capture.output(print(f)), collapse = "\n"),
+               "Links: mu = identity; sigma = log", fixed = TRUE)
+  g <- frm(bf(y ~ x), family = frm_family("gaussian",
+                                          link_sigma = "softplus"), data = d)
+  expect_match(paste(utils::capture.output(print(summary(g))),
+                     collapse = "\n"),
+               "sigma = softplus", fixed = TRUE)
+})

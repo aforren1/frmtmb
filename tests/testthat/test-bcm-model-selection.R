@@ -139,7 +139,7 @@ test_that("Geurts is a hierarchical probit rate comparison", {
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_geurts_data()
   fit <- frm(k | trials(n) ~ group + (1 | id),
-             family = bcm_binomial_probit(), data = d)
+             family = binomial(link = "probit"), data = d)
   b <- fixef(fit)$mu
   sd_id <- sqrt(unname(VarCorr(fit)[[1L]])[1, 1])
   delta <- unname(b["groupadhd"]) / sd_id
@@ -160,7 +160,7 @@ test_that("Geurts matches its Stan program", {
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_geurts_data()
   fit <- frm(k | trials(n) ~ group + (1 | id),
-             family = bcm_binomial_probit(), data = d)
+             family = binomial(link = "probit"), data = d)
   stan_lp_check(
     bcm_geurts_code(),
     data = list(N = nrow(d), S = nlevels(d$id), k = as.integer(d$k),
@@ -204,7 +204,7 @@ test_that("Zeelenberg is a within-subject probit rate comparison", {
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_zeelenberg_data()
   fit <- frm(s | trials(n) ~ both + (1 + both || id),
-             family = bcm_binomial_probit(), data = d)
+             family = binomial(link = "probit"), data = d)
   b <- fixef(fit)$mu
   sd_both <- frm_sd_term(fit, "0 + both | id")
   delta <- unname(b["both"]) / sd_both

@@ -95,8 +95,8 @@ bcm_extraversion_data <- function() {
 }
 
 bcm_extraversion_formula <- function() {
-  mvbf(bf(k | trials(nt) ~ 1 + (1 | p | id)) + bcm_binomial_probit(),
-       bf(xs | se(sx) ~ 1 + (1 | p | id)) + bcm_gaussian_probit())
+  mvbf(bf(k | trials(nt) ~ 1 + (1 | p | id)) + binomial(link = "probit"),
+       bf(xs | se(sx) ~ 1 + (1 | p | id)) + gaussian(link = "probit"))
 }
 
 bcm_extraversion_code <- function() {

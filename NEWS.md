@@ -80,6 +80,115 @@ Modeling port, which had to work around them; the workarounds are gone.
   `[lo + 1, hi - 1]` rather than the `[lo, hi]` the one-step window is
   built on. Every other residual type works, and `dharma_residuals()`
   covers the same ground.
+The link registry became reachable and findable. It has held seventeen
+links since the last round; almost none of them could be named from
+the grammar or found in the help.
+
+* New `frmtmb-links` help topic documents every link: what it maps, its
+  inverse, the range it maps onto, which families accept it for the
+  mean, which set each distributional parameter admits, and which links
+  carry a robust field and what that buys. Nothing in `man/` mentioned
+  probit, softplus, cauchit, squareplus or softit before. Every family
+  constructor's `link` argument, `frmtmb_family(links =)` and the
+  unknown-link error now point at it, and it is in the pkgdown
+  reference index.
+
+* Family constructors take a link for EVERY distributional parameter,
+  not only the mean, following brms: `student(link_sigma = "softplus",
+  link_nu = "identity")`, `zero_inflated_poisson(link_zi = "identity")`,
+  `skew_normal(link_alpha = "log")`. 23 exported constructors gained
+  one argument per non-mean parameter, 34 arguments in all, and the
+  accepted set for every one of the 34 is brms 2.23.0's set exactly.
+  Each is validated against what that parameter's support admits, and
+  an out-of-range link is refused with the parameter named. The
+  density is now invariant to which link produced a given parameter
+  value: over all 37 family-by-parameter pairs, holding the natural
+  value fixed and feeding each allowed link's own `linkfun` of it,
+  34 agree to a spread of exactly zero and the rest to 1.8e-15.
+
+* New `frm_family()` names a family and its links for the four
+  families 'stats' owns, which have no frmtmb constructor to carry the
+  new arguments: `frm_family("gaussian", link_sigma = "softplus")`,
+  `frm_family("poisson", link = "softplus")`. It is the analogue of
+  brms's `brmsfamily()`. frmtmb still does not shadow `gaussian()`,
+  `poisson()`, `binomial()` or `Gamma()`.
+
+* `cumulative()`, `sratio()` and `cratio()` go through the link
+  registry instead of a hand-written switch, so they now take
+  `cloglog`, `cauchit` and `probit_approx` as well as `logit` and
+  `probit`, and `cumulative()` also takes `softit`. This is brms's
+  roster exactly. `acat()` still takes `logit` alone, and it is the one
+  place frmtmb takes less than brms. The reason is the density, not the
+  link: probit, cloglog, cauchit and softit all map onto (0, 1) and
+  brms accepts every one of them for `acat`, but off the logit brms
+  computes a category probability from a SECOND expression, a product
+  of distribution functions times a reversed product of survivals.
+  That expression agrees with acat's log-linear form when the
+  distribution function is logistic, so it generalizes the same model
+  rather than replacing it, but it has to be written and taped, and
+  substituting a distribution function into the log-linear form does
+  not reach it. `acat()`'s refusal says all of this, and the
+  `frmtmb-links` topic records the gap in its table beside the
+  families that do take those links.
+
+* The ordinal log-space density generalized from the logit to every
+  link that carries an exact log odds. Without it `cloglog` and
+  `probit_approx` would return a log density of `-Inf` with a dead
+  gradient past a linear predictor of 2. Against a 500-bit reference
+  the generalized form holds 1e-13 or better out to a linear predictor
+  of 25. The logit path is arithmetically unchanged.
+
+* Ordinal thresholds now start on the fitted link's own scale rather
+  than always on `qlogis`.
+
+* `summary()` and `print()` name the link of every distributional
+  parameter on a ` Links:` line under `Family:`. A coefficient is
+  reported on the link scale and the family name no longer says which
+  scale that is. An ordinal fit reports the distribution function its
+  thresholds are read through, not `mu = identity`, because the
+  distribution function applies to `tau - eta` and never to `eta`.
+  A multivariate fit names each response, and the line wraps between
+  entries rather than inside one, which a mixture needs: two
+  components run to 106 characters unwrapped.
+
+* BEHAVIOR CHANGE, `cumulative(link = "probit")`. It now takes the
+  log-space path the logit already took, so a saturated threshold pair
+  is scored exactly instead of through a difference of two rounded
+  distribution functions. Estimates move by the size of that error,
+  which is 1.6e-04 in the log density at a linear predictor of 8 and
+  unbounded beyond it.
+
+* BEHAVIOR CHANGE, `cratio()`'s robust branch read its distribution
+  function at `tau - eta` and relied on `1 - F(-x) = F(x)`. Measured
+  over `x = -2, -0.5, 0, 0.5, 2`, that identity holds to 1.4e-16 for
+  the logit, 5.6e-17 for the probit, 1.3e-16 for probit_approx and
+  exactly for the cauchit, and FAILS for the cloglog at 2.6e-01: at
+  `x = 0` it gives 0.36788 against 0.63212. It now reads at
+  `eta - tau`, which is where the density actually evaluates. No logit
+  result changes. Against a 500-bit reference on a four-category
+  cratio, the naive generalization that keeps reading at `tau - eta`
+  has relative error 1.000 on the cloglog and is exact on every other
+  link; the form that shipped is 1.1e-16 on all of them, at linear
+  predictors where the plain path returns negative infinity.
+
+* Two latent bugs were fixed on the way, and they are the reason this
+  work is more than a grammar addition. Neither could fire before,
+  because the argument that triggers each did not exist.
+
+  `log_dpar()` handed back the linear predictor AS the log of a
+  positive parameter, which is true only on a log link. With
+  `link_shape` now an argument, `negbinomial(link_shape = "softplus")`
+  would have read a softplus predictor as a log and returned a wrong
+  density with no warning and no error: at `eta_shape = 0.5`, so
+  `shape = 0.974077`, the old code is off by up to 0.339 nats at one
+  point and 0.608 over `y = 0:6`, and its answer is reproduced exactly
+  by the misread it makes. The shipped version agrees with
+  `dnbinom()` to 8.9e-16.
+
+  `gate_logs()` had the same flaw for a unit-interval parameter, and
+  read a probability as a log odds:
+  `zero_inflated_poisson(link_zi = "identity")` with `zi = 0.3` used
+  0.5744 instead, an error of 0.533 nats. It is now exact to 2.2e-16.
 
 Four usability defects of hierarchical NONLINEAR models, found while
 fitting `bf(..., nl = TRUE)` with random effects on the nonlinear

@@ -61,6 +61,8 @@ reference:
   - frmtmb-extension-api
   - latent_probs
   - frmtmb-families
+  - frmtmb-links
+  - frm_family
   - mixture
   - mixture_mvn
   - mixture_probs

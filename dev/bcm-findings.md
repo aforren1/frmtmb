@@ -383,13 +383,34 @@ of `y / trials` rather than of `y`.
 
 ### Reproductions
 
+> **SEAM 1 IS CLOSED.** The links lane put probit in the core registry
+> (`R/links.R`), so the transcript below is history for that row only.
+> `binomial(link = "probit")` now works, and the workaround this file
+> recorded has been retired: `bcm_probit()`, `bcm_binomial_probit()`
+> and `bcm_gaussian_probit()` are deleted from
+> `inst/bcm/binomial-extras.R`, and the models they served are core
+> families. `bcm_binomial_probit()` became `binomial(link = "probit")`
+> and `bcm_gaussian_probit()` became `gaussian(link = "probit")` with
+> the known measurement SD on `se(sd)`.
+>
+> Closing seam 1 also removed this file's ONE use of the seam 2
+> workaround, without touching seam 2. `se()` is still gated on the
+> family name and `R/frame.R` is unchanged; the Extraversion model
+> simply stopped being a custom family, so the gate no longer applies
+> to it. Seams 2, 3 and 4 stand exactly as recorded.
+>
+> The Stan identities held. Residuals over
+> `test-bcm-signal-detection.R`, `test-bcm-binomial.R` and
+> `test-bcm-esp.R`, before and after, are in
+> `dev/links2-findings.md`.
+
 `scratchpad/bc-seams.R` and `bc-seam2.R` run all four. Transcript, R
 4.6.1, taken at frmtmb 0.52.0. Seams 2 and 3 no longer reproduce: the
 line numbers below are the gates as they stood, and the transcript is
 kept as the record of what they did rather than as something to re-run.
 
 ```
-SEAM 1  no probit link                          R/links.R:14, refusal at :158
+SEAM 1  no probit link                          CLOSED, see below
   frm(y | trials(N) ~ x, family = binomial(link = "probit"), data = d)
   ERROR: Unknown link: 'probit'. Available links: identity, log, logit,
          cloglog, inverse, logm1, tan_half, power12

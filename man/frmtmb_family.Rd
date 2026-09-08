@@ -57,8 +57,9 @@ custom_family(
 \item{dpars}{Character vector of distributional parameter names. The
 first entry must be \code{"mu"}.}
 
-\item{links}{Named list mapping each dpar to a link name (see
-\code{frmtmb:::frmtmb_links}) or a link object.}
+\item{links}{Named list mapping each dpar to a link name or a link
+object. \link{frmtmb-links} lists the names and says what a link object
+has to carry.}
 
 \item{lpdf}{Function \verb{(y, dpars, aterms)} returning the vectorized
 log-density. \code{dpars} is a named list of advector vectors; \code{aterms} is a

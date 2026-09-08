@@ -37,35 +37,35 @@
 \alias{cox}
 \title{Additional response families}
 \usage{
-student(link = "identity")
+student(link = "identity", link_sigma = "log", link_nu = "logm1")
 
-lognormal(link = "identity")
+lognormal(link = "identity", link_sigma = "log")
 
-negbinomial(link = "log")
+negbinomial(link = "log", link_shape = "log")
 
-nbinom1(link = "log")
+nbinom1(link = "log", link_phi = "log")
 
-Beta(link = "logit")
+Beta(link = "logit", link_phi = "log")
 
-tweedie(link = "log")
+tweedie(link = "log", link_phi = "log")
 
-compois(link = "log")
+compois(link = "log", link_nu = "log")
 
-zero_inflated_poisson(link = "log")
+zero_inflated_poisson(link = "log", link_zi = "logit")
 
-zero_inflated_negbinomial(link = "log")
+zero_inflated_negbinomial(link = "log", link_shape = "log", link_zi = "logit")
 
-hurdle_poisson(link = "log")
+hurdle_poisson(link = "log", link_hu = "logit")
 
 multinomial(K)
 
 cumulative(link = "logit")
 
-beta_binomial(link = "logit")
+beta_binomial(link = "logit", link_phi = "log")
 
-skew_normal(link = "identity")
+skew_normal(link = "identity", link_sigma = "log", link_alpha = "identity")
 
-exgaussian(link = "identity")
+exgaussian(link = "identity", link_sigma = "log", link_beta = "log")
 
 bernoulli(link = "logit")
 
@@ -73,23 +73,28 @@ geometric(link = "log")
 
 exponential(link = "log")
 
-weibull(link = "log")
+weibull(link = "log", link_shape = "log")
 
-shifted_lognormal(link = "identity")
+shifted_lognormal(link = "identity", link_sigma = "log", link_ndt = "log")
 
-hurdle_gamma(link = "log")
+hurdle_gamma(link = "log", link_shape = "log", link_hu = "logit")
 
-hurdle_lognormal(link = "identity")
+hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit")
 
-zero_inflated_binomial(link = "logit")
+zero_inflated_binomial(link = "logit", link_zi = "logit")
 
-zero_inflated_beta(link = "logit")
+zero_inflated_beta(link = "logit", link_phi = "log", link_zi = "logit")
 
-asym_laplace(link = "identity")
+asym_laplace(link = "identity", link_sigma = "log", link_quantile = "logit")
 
-zero_inflated_asym_laplace(link = "identity")
+zero_inflated_asym_laplace(
+  link = "identity",
+  link_sigma = "log",
+  link_quantile = "logit",
+  link_zi = "logit"
+)
 
-huber(link = "identity", k = 1.345)
+huber(link = "identity", k = 1.345, link_sigma = "log")
 
 sratio(link = "logit")
 
@@ -97,17 +102,32 @@ cratio(link = "logit")
 
 acat(link = "logit")
 
-von_mises(link = "tan_half")
+von_mises(link = "tan_half", link_kappa = "log")
 
 categorical(link = "logit", levels = NULL, K = NULL)
 
 cox(link = "log", df = 5, degree = 3, intercept = TRUE)
 }
 \arguments{
-\item{link}{Link for \code{mu}.}
+\item{link}{Link for \code{mu}. See \link{frmtmb-links}.}
+
+\item{link_sigma, link_shape, link_phi, link_kappa, link_ndt, link_beta}{Link for a strictly positive parameter: one of \code{"log"} (the
+default), \code{"identity"}, \code{"softplus"} or \code{"squareplus"}.}
+
+\item{link_nu}{Link for \code{nu}. \code{student()}'s degrees of freedom take
+\code{"logm1"} (the default) or \code{"identity"}, which keeps them above
+one; \code{compois()}'s dispersion is an ordinary positive parameter
+and takes the positive set.}
+
+\item{link_zi, link_hu, link_quantile}{Link for a parameter on the
+unit interval: \code{"logit"} (the default) or \code{"identity"}.}
 
 \item{K}{For \code{multinomial()}: number of response categories (columns
 of the count-matrix response); category 1 is the reference.}
+
+\item{link_alpha}{Link for \code{skew_normal()}'s skewness, which is
+signed: \code{"identity"} (the default), \code{"log"}, \code{"softplus"} or
+\code{"squareplus"}.}
 
 \item{k}{For \code{huber()}: Huber's tuning constant, the residual size in
 units of \code{sigma} where the density stops being gaussian and becomes
@@ -285,6 +305,28 @@ warning. That is the kink, not a bad fit: the same thing happens to
 \code{asym_laplace()}. The estimates satisfy Huber's own estimating
 equations, \verb{X' psi(u) = 0} with \code{psi(u) = min(max(u, -k), k)}, to
 the same order. \code{\link[=frm_allfit]{frm_allfit()}} confirms the fit when in doubt.
+}
+
+\section{Links}{
+
+Every constructor takes \code{link} for the mean and a \verb{link_<dpar>} for
+each of its other distributional parameters, following brms:
+\code{student(link_sigma = "softplus")}, \code{zero_inflated_poisson(link_zi = "identity")}. \link{frmtmb-links} lists the whole roster, what each link
+maps, which families take it for the mean, and which set each
+parameter admits.
+
+The four families 'stats' owns, \code{gaussian()}, \code{poisson()},
+\code{binomial()} and \code{Gamma()}, have no frmtmb constructor to carry
+these. Reach their links through \code{\link[=frm_family]{frm_family()}}:
+\code{frm_family("gaussian", link_sigma = "softplus")}.
+
+An ordinal family's \code{link} is not a link on a mean. It names the
+distribution function the thresholds are read through, so
+\code{cumulative()}, \code{sratio()} and \code{cratio()} take \code{logit}, \code{probit},
+\code{probit_approx}, \code{cloglog} and \code{cauchit} (and \code{cumulative()} also
+takes \code{softit}), and refuse anything else. \code{acat()} takes \code{logit}
+alone, because brms defines its other links by a different density
+rather than by substituting a distribution function.
 }
 
 \examples{

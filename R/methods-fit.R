@@ -38,6 +38,62 @@ par_est_se <- function(fit, vcov = NULL) {
   list(est = est, se = se)
 }
 
+#' The text of the ` Links:` line for one or more responses, or `""`
+#' when no family has a link to name.
+#'
+#' A reader looks at a coefficient table and has to know which scale
+#' the numbers are on. The family name settled that only while every
+#' family had one link; it now does not. A multivariate fit prefixes
+#' each response, because its families need not agree.
+#'
+#' @noRd
+family_links_str <- function(responses) {
+  s <- vapply(responses, function(r) family_link_str(r$family), "")
+  # filter BEFORE the prefix: prefixing first makes a family with
+  # nothing to say into the non-empty string "y: "
+  keep <- nzchar(s)
+  if (length(s) > 1L) s <- paste0(names(responses), ": ", s)
+  s <- s[keep]
+  if (!length(s)) "" else paste(s, collapse = "; ")
+}
+
+#' Print that text under the `Family:` line, wrapped.
+#'
+#' Wrapped because a mixture names every component's every dpar: two
+#' gaussian-ish components run to 106 characters on one line, and a
+#' third component is worse. Unwrapped, the terminal breaks it wherever
+#' the width happens to land, in the middle of a name. `strwrap()`
+#' breaks it between entries instead and indents the continuations
+#' under the first one.
+#'
+#' @noRd
+cat_family_links <- function(responses) {
+  txt <- if (is.character(responses)) responses else {
+    family_links_str(responses)
+  }
+  if (!nzchar(txt)) return(invisible(NULL))
+  w <- max(40L, getOption("width", 80L))
+  # break BETWEEN entries and never inside one. strwrap() splits on any
+  # space, which puts "nu2" at the end of a line and "= logm1" at the
+  # start of the next; a reader then cannot see which dpar that is.
+  parts <- strsplit(txt, "; ", fixed = TRUE)[[1L]]
+  parts <- paste0(parts, c(rep(";", length(parts) - 1L), ""))
+  out <- character(0)
+  cur <- " Links:"
+  for (p in parts) {
+    cand <- paste(cur, p)
+    if (nchar(cand) > w && !identical(cur, " Links:")) {
+      out <- c(out, cur)
+      cur <- paste("       ", p)
+    } else {
+      cur <- cand
+    }
+  }
+  cat(c(out, cur), sep = "\n")
+  cat("\n")
+  invisible(NULL)
+}
+
 #' @export
 print.frmtmb_fit <- function(x, ...) {
   require_fitted(x, "print()")
@@ -52,6 +108,7 @@ print.frmtmb_fit <- function(x, ...) {
   cat("Family:", fam_str, "  Method:",
       paste0(if (x$REML) "REML" else "ML",
              if (!is.null(x$prior)) " (MAP)"), "\n")
+  cat_family_links(x$spec$responses)
   ll <- logLik(x)
   cat("logLik:", format(as.numeric(ll), digits = 6),
       " AIC:", format(stats::AIC(x), digits = 6),
@@ -117,6 +174,12 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
   }
   structure(
     list(call = object$call, family = family(object),
+         # family(object) is the SINGLE family and is empty for a
+         # multivariate fit, so the links are rendered here off the
+         # responses, the way print.frmtmb_fit() does. Reading
+         # x$family for them printed no Links line at all on the one
+         # kind of fit whose families need not agree.
+         links = family_links_str(object$spec$responses),
          formula = formula(object), nobs = stats::nobs(object),
          ngrps = ngrps(object),
          loglik = logLik(object), AIC = stats::AIC(object),
@@ -167,6 +230,7 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
 #' @export
 print.summary.frmtmb_fit <- function(x, ...) {
   cat("Family:", x$family[["family"]], "\n")
+  cat_family_links(x$links %||% family_link_str(x$family))
   cat("Formula:", deparse1(x$formula), "\n")
   cat("Method:", if (x$REML) "REML" else "ML",
       "  nobs:", x$nobs, "\n")
